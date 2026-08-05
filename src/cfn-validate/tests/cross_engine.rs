@@ -512,6 +512,32 @@ fn intrinsic_and_condition_fixtures_fire_identically_on_both_engines() {
     }
 }
 
+#[test]
+fn fargate_task_size_and_placement_fixtures_fire_identically_on_both_engines() {
+    // The Fargate task-size and placement rules read the written size and the
+    // resolved property in each engine, so both must classify a padded spelling,
+    // a non-scalar value, and a removed placement constraint the same way.
+    let sv = SchemaValidator::new();
+    let fixtures = [
+        "bad/ecs_fargate_task_requirements.yaml",
+        "good/ecs_fargate_task_requirements.yaml",
+        "bad/fargate_bad_cpu_memory.yaml",
+        "good/ecs_fargate_valid.yaml",
+        "bad/conditions.yaml",
+    ];
+    for name in fixtures {
+        let bytes = load_template(name);
+        let ids = |engine: &dyn ValidationEngine| -> Vec<String> {
+            let report = validate_bytes(engine, &sv, &bytes, Default::default()).unwrap();
+            let mut out: Vec<String> =
+                report.diagnostics.iter().map(|d| format!("{}|{:?}|{}", d.rule_id, d.severity, d.message)).collect();
+            out.sort();
+            out
+        };
+        assert_eq!(ids(&*CEL), ids(&*REGO), "{name}: engines diverge");
+    }
+}
+
 fn walkdir(dir: &std::path::Path) -> Vec<std::path::PathBuf> {
     let mut out = Vec::new();
     walk_recursive(dir, &mut out);

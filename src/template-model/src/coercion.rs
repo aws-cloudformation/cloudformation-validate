@@ -69,6 +69,26 @@ pub fn coerce_to_bool(val: &Value) -> Option<bool> {
     }
 }
 
+/// The text of a value written as a string or an integer, or `None` for every
+/// other shape.
+///
+/// A non-integer number (e.g. `80.0`), a boolean, `null`, and composites yield
+/// `None`, so a caller comparing or classifying written sizes never matches on a
+/// value CloudFormation would not accept in that position. An integer-valued
+/// float such as `80.0` is deliberately excluded — the value counts only when
+/// written as an integer or a string.
+///
+/// This is the single definition of that notion. Both rule engines use it (the
+/// Rego engine through a builtin of the same name), so a value classifies
+/// identically no matter which engine evaluates the rule.
+pub fn coerce_string_or_integer_to_string(val: &Value) -> Option<String> {
+    match val {
+        Value::String(s) => Some(s.clone()),
+        Value::Number(n) => n.as_i64().map(|i| i.to_string()).or_else(|| n.as_u64().map(|u| u.to_string())),
+        _ => None,
+    }
+}
+
 /// Stringify a value for port-style comparison, accepting only string and
 /// integer scalars.
 ///
@@ -80,11 +100,7 @@ pub fn coerce_to_bool(val: &Value) -> Option<bool> {
 /// An integer-valued float such as `80.0` is deliberately excluded — the value
 /// is only treated as a port when written as an integer or a string.
 pub fn coerce_port_to_string(val: &Value) -> Option<String> {
-    match val {
-        Value::String(s) => Some(s.clone()),
-        Value::Number(n) => n.as_i64().map(|i| i.to_string()).or_else(|| n.as_u64().map(|u| u.to_string())),
-        _ => None,
-    }
+    coerce_string_or_integer_to_string(val)
 }
 
 /// Whether two values are equal under CloudFormation's loose scalar semantics.
@@ -313,6 +329,23 @@ mod tests {
         assert_eq!(coerce_to_bool(&json!("maybe")), None);
         assert_eq!(coerce_to_bool(&json!("")), None);
         assert_eq!(coerce_to_bool(&json!("2")), None);
+    }
+
+    #[test]
+    fn coerce_string_or_integer_to_string_keeps_the_text_as_written() {
+        assert_eq!(coerce_string_or_integer_to_string(&json!("512")), Some("512".into()));
+        assert_eq!(coerce_string_or_integer_to_string(&json!(512)), Some("512".into()));
+        // Zero padding is part of the written text: a caller matching against an
+        // exact spelling must be able to tell '0512' from '512'.
+        assert_eq!(coerce_string_or_integer_to_string(&json!("0512")), Some("0512".into()));
+        assert_eq!(coerce_string_or_integer_to_string(&json!(".25 vCPU")), Some(".25 vCPU".into()));
+    }
+
+    #[test]
+    fn coerce_string_or_integer_to_string_rejects_every_other_shape() {
+        for rejected in [json!(512.0), json!(512.5), json!(true), json!(null), json!([512]), json!({"Cpu": 512})] {
+            assert_eq!(coerce_string_or_integer_to_string(&rejected), None, "{rejected} must not yield text");
+        }
     }
 
     #[test]

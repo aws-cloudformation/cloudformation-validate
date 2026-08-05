@@ -3,6 +3,7 @@ use diagnostics::{Diagnostic, RelatedResource, ResourceRef};
 use rules::Category;
 use template_model::SemanticModel;
 use template_model::SourceSpan;
+use template_model::coercion::coerce_string_or_integer_to_string;
 use template_model::consts::{
     FIELD_CREATION_POLICY, FIELD_RESOURCE_TYPE, FIELD_RESOURCES, FIELD_UPDATE_POLICY, KEY_CREATION_POLICY,
     KEY_UPDATE_POLICY,
@@ -51,8 +52,13 @@ fn eval_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             }
             let cpu = resolve_concrete(m, name, "Properties.Cpu");
             let mem = resolve_concrete(m, name, "Properties.Memory");
+            // A task size is only declared when both values are written as a
+            // string or an integer. Any other shape is a type violation the
+            // schema reports, and carries no size to pair.
             if let (Some(cpu_val), Some(mem_val)) = (cpu, mem)
-                && !is_valid_fargate_task_size(&cpu_val, &mem_val)
+                && let Some(cpu_text) = coerce_string_or_integer_to_string(&cpu_val)
+                && let Some(memory_text) = coerce_string_or_integer_to_string(&mem_val)
+                && !is_offered_fargate_task_size(&cpu_text, &memory_text)
             {
                 out.push(make_resource_diagnostic(
                     "E3047",
@@ -277,7 +283,7 @@ fn fargate_task_requirements(m: &SemanticModel) -> Vec<Diagnostic> {
             out.extend(invalid_fargate_cpu(m, name, &cpu));
         }
 
-        if has_property(m, name, "PlacementConstraints") {
+        if declares_fargate_placement_constraints(m, name) {
             out.push(make_resource_diagnostic(
                 "E3048",
                 &format!("{} is not supported for a Fargate task", quote("PlacementConstraints")),
@@ -293,23 +299,22 @@ fn fargate_task_requirements(m: &SemanticModel) -> Vec<Diagnostic> {
     out
 }
 
-/// The declared `Cpu` as text, so the CPU-unit and vCPU forms can be told apart
-/// whether the template wrote a number or a string. A value that is only known
-/// at deploy time yields `None`.
+/// The declared `Cpu` as the text the template author wrote, so the CPU-unit and
+/// vCPU forms can be told apart whether the template wrote a number or a string.
+/// A value that is only known at deploy time, or written in a shape that names no
+/// size at all, yields `None`.
 fn fargate_cpu_text(m: &SemanticModel, name: &str) -> Option<String> {
     if is_dynamic(m, name, "Properties.Cpu") {
         return None;
     }
-    match resolve_concrete(m, name, "Properties.Cpu")? {
-        serde_json::Value::String(text) => Some(text),
-        serde_json::Value::Number(number) => Some(number.to_string()),
-        _ => None,
-    }
+    coerce_string_or_integer_to_string(&resolve_concrete(m, name, "Properties.Cpu")?)
 }
 
 fn invalid_fargate_cpu(m: &SemanticModel, name: &str, cpu: &str) -> Vec<Diagnostic> {
-    if let Some(units) = parse_unsigned_integer(cpu) {
-        if FARGATE_TASK_SIZES.iter().any(|(offered, _)| *offered == units) {
+    if is_digit_text(cpu) {
+        // The CPU-unit form is matched as written: a padded spelling such as
+        // '0512' names none of the sizes Fargate offers.
+        if fargate_cpu_unit_sizes().iter().any(|offered| offered == cpu) {
             return Vec::new();
         }
         return vec![make_resource_diagnostic(
@@ -321,7 +326,7 @@ fn invalid_fargate_cpu(m: &SemanticModel, name: &str, cpu: &str) -> Vec<Diagnost
             Some("Use a task-level Cpu size Fargate offers"),
         )];
     }
-    if fargate_cpu_units(&serde_json::Value::String(cpu.to_string())).is_some() {
+    if fargate_cpu_units(cpu).is_some() {
         return Vec::new();
     }
     vec![make_resource_diagnostic(
@@ -372,10 +377,43 @@ fn unsupported_fargate_log_drivers(m: &SemanticModel, name: &str) -> Vec<Diagnos
 const FARGATE_TASK_SIZES: &[(i64, &str)] =
     &[(256, ".25"), (512, ".5"), (1024, "1"), (2048, "2"), (4096, "4"), (8192, "8"), (16384, "16")];
 
+/// Unit suffixes a task size may carry, matched after lowercasing.
+const VCPU_SUFFIX: &str = "vcpu";
+const GB_SUFFIX: &str = "gb";
+
+/// The one fractional GB size Fargate offers; every other GB size is a whole
+/// number of gigabytes.
+const HALF_GB: &str = "0.5";
+
+const MIB_PER_GB: i64 = 1024;
+
+/// Whether the task pins placement in a way that survives to deployment.
+///
+/// A `PlacementConstraints` written as an `Fn::If` that resolves to
+/// `AWS::NoValue` is removed by CloudFormation before the task is created, so the
+/// task does not pin placement and the key's presence in the source is not a
+/// violation. The property counts only when some reachable scenario keeps a
+/// value. A value that cannot be resolved statically is treated as declared, so
+/// a genuine constraint behind a deploy-time value is still reported.
+fn declares_fargate_placement_constraints(m: &SemanticModel, name: &str) -> bool {
+    if !has_property(m, name, "PlacementConstraints") {
+        return false;
+    }
+    let scenarios = m.resolve_scenarios_json(name, "Properties.PlacementConstraints");
+    if scenarios.is_empty() {
+        return true;
+    }
+    scenarios.iter().any(|(value, conditions)| {
+        !value.is_null()
+            && (conditions.is_empty()
+                || m.conditions.is_satisfiable(&conditions.iter().map(|(k, v)| (k.clone(), *v)).collect::<Vec<_>>()))
+    })
+}
+
 /// Whether the declared task size is one Fargate offers. Cpu may be written in
 /// CPU units or vCPU, and Memory in MiB or GB; a value in a form Fargate does
 /// not accept at all is not a valid size either.
-fn is_valid_fargate_task_size(cpu: &serde_json::Value, memory: &serde_json::Value) -> bool {
+fn is_offered_fargate_task_size(cpu: &str, memory: &str) -> bool {
     match (fargate_cpu_units(cpu), fargate_memory_mib(memory)) {
         (Some(cpu_units), Some(memory_mib)) => valid_fargate_combo(cpu_units, memory_mib),
         _ => false,
@@ -385,43 +423,45 @@ fn is_valid_fargate_task_size(cpu: &serde_json::Value, memory: &serde_json::Valu
 /// The declared Cpu in CPU units, accepting either the CPU-unit spelling
 /// (`1024`, `"1024"`) or the vCPU spelling (`"1 vCPU"`), or `None` when the
 /// value is in neither form.
-fn fargate_cpu_units(cpu: &serde_json::Value) -> Option<i64> {
-    let text = scalar_text(cpu)?;
-    if let Some(units) = parse_unsigned_integer(&text) {
-        return Some(units);
+///
+/// The CPU-unit spelling is matched exactly as written, because Fargate offers a
+/// fixed set of Cpu values rather than a numeric range: a padded spelling such as
+/// `"0512"` names none of them.
+fn fargate_cpu_units(cpu: &str) -> Option<i64> {
+    if is_digit_text(cpu) {
+        return FARGATE_TASK_SIZES.iter().find(|(units, _)| units.to_string() == cpu).map(|(units, _)| *units);
     }
-    let size = text.to_ascii_lowercase().strip_suffix("vcpu")?.trim_end().to_string();
+    let size = cpu.to_ascii_lowercase().strip_suffix(VCPU_SUFFIX)?.trim().to_string();
     FARGATE_TASK_SIZES.iter().find(|(_, vcpu)| *vcpu == size).map(|(units, _)| *units)
 }
 
 /// The declared Memory in MiB, accepting either the MiB spelling (`2048`,
 /// `"2048"`) or the GB spelling (`"2GB"`, `"0.5 GB"`), or `None` when the value
 /// is in neither form.
-fn fargate_memory_mib(memory: &serde_json::Value) -> Option<i64> {
-    const MIB_PER_GB: i64 = 1024;
-    let text = scalar_text(memory)?;
-    if let Some(mib) = parse_unsigned_integer(&text) {
+///
+/// Unlike Cpu, Memory is bounded by a range rather than a fixed set of
+/// spellings, so a MiB or GB size is read as the number it denotes.
+fn fargate_memory_mib(memory: &str) -> Option<i64> {
+    if let Some(mib) = digits_as_number(memory) {
         return Some(mib);
     }
-    let size = text.to_ascii_lowercase().strip_suffix("gb")?.trim_end().to_string();
-    if size == "0.5" {
+    let size = memory.to_ascii_lowercase().strip_suffix(GB_SUFFIX)?.trim().to_string();
+    if size == HALF_GB {
         return Some(MIB_PER_GB / 2);
     }
-    parse_unsigned_integer(&size).map(|gigabytes| gigabytes * MIB_PER_GB)
+    digits_as_number(&size).map(|gigabytes| gigabytes * MIB_PER_GB)
 }
 
-/// A scalar property value as the text the template author wrote, so numeric and
-/// unit-suffixed spellings can be told apart.
-fn scalar_text(value: &serde_json::Value) -> Option<String> {
-    match value {
-        serde_json::Value::String(text) => Some(text.clone()),
-        serde_json::Value::Number(number) => Some(number.to_string()),
-        _ => None,
-    }
+/// Whether the text is written as digits only — the shape of the CPU-unit and
+/// MiB spellings, whether or not the digits name a size Fargate offers.
+fn is_digit_text(text: &str) -> bool {
+    !text.is_empty() && text.bytes().all(|b| b.is_ascii_digit())
 }
 
-fn parse_unsigned_integer(text: &str) -> Option<i64> {
-    if text.is_empty() || !text.bytes().all(|b| b.is_ascii_digit()) {
+/// The number a digits-only text denotes, or `None` when the text is not digits.
+/// Zero padding does not change the number a size is read as.
+fn digits_as_number(text: &str) -> Option<i64> {
+    if !is_digit_text(text) {
         return None;
     }
     text.parse().ok()
@@ -521,41 +561,75 @@ mod tests {
 
     #[test]
     fn cpu_accepts_both_spellings() {
-        assert_eq!(fargate_cpu_units(&json!("1024")), Some(1024));
-        assert_eq!(fargate_cpu_units(&json!(1024)), Some(1024));
-        assert_eq!(fargate_cpu_units(&json!(".25 vCPU")), Some(256));
-        assert_eq!(fargate_cpu_units(&json!("16vcpu")), Some(16384));
-        assert_eq!(fargate_cpu_units(&json!("2 VCPU")), Some(2048));
+        assert_eq!(fargate_cpu_units("1024"), Some(1024));
+        assert_eq!(fargate_cpu_units(".25 vCPU"), Some(256));
+        assert_eq!(fargate_cpu_units("16vcpu"), Some(16384));
+        assert_eq!(fargate_cpu_units("2 VCPU"), Some(2048));
     }
 
     #[test]
     fn cpu_rejects_sizes_fargate_does_not_offer() {
-        assert_eq!(fargate_cpu_units(&json!("3 vCPU")), None);
-        assert_eq!(fargate_cpu_units(&json!("abc")), None);
-        assert_eq!(fargate_cpu_units(&json!("")), None);
+        assert_eq!(fargate_cpu_units("3 vCPU"), None);
+        assert_eq!(fargate_cpu_units("abc"), None);
+        assert_eq!(fargate_cpu_units(""), None);
+    }
+
+    #[test]
+    fn cpu_unit_spelling_is_matched_as_written() {
+        // Fargate offers a fixed set of Cpu values, so a padded spelling names
+        // none of them even though it reads as the same number.
+        assert_eq!(fargate_cpu_units("0512"), None);
+        assert_eq!(fargate_cpu_units("512"), Some(512));
     }
 
     #[test]
     fn memory_accepts_both_spellings() {
-        assert_eq!(fargate_memory_mib(&json!("2048")), Some(2048));
-        assert_eq!(fargate_memory_mib(&json!(2048)), Some(2048));
-        assert_eq!(fargate_memory_mib(&json!("0.5GB")), Some(512));
-        assert_eq!(fargate_memory_mib(&json!("2 GB")), Some(2048));
-        assert_eq!(fargate_memory_mib(&json!("30gb")), Some(30720));
+        assert_eq!(fargate_memory_mib("2048"), Some(2048));
+        assert_eq!(fargate_memory_mib("0.5GB"), Some(512));
+        assert_eq!(fargate_memory_mib("2 GB"), Some(2048));
+        assert_eq!(fargate_memory_mib("30gb"), Some(30720));
+    }
+
+    #[test]
+    fn memory_is_read_as_the_number_it_denotes() {
+        // Memory is bounded by a range rather than a fixed set of spellings, so
+        // padding does not change the size.
+        assert_eq!(fargate_memory_mib("01024"), Some(1024));
+        assert_eq!(fargate_memory_mib("02GB"), Some(2048));
     }
 
     #[test]
     fn memory_rejects_forms_fargate_does_not_accept() {
-        assert_eq!(fargate_memory_mib(&json!("2 TB")), None);
-        assert_eq!(fargate_memory_mib(&json!("half a gb")), None);
+        assert_eq!(fargate_memory_mib("2 TB"), None);
+        assert_eq!(fargate_memory_mib("half a gb"), None);
     }
 
     #[test]
     fn task_size_pairs_the_two_spellings() {
-        assert!(is_valid_fargate_task_size(&json!(".25 vCPU"), &json!("0.5GB")));
-        assert!(is_valid_fargate_task_size(&json!("256"), &json!("0.5GB")));
-        assert!(is_valid_fargate_task_size(&json!(".25 vCPU"), &json!(2048)));
-        assert!(!is_valid_fargate_task_size(&json!(".25 vCPU"), &json!("3GB")));
-        assert!(!is_valid_fargate_task_size(&json!("abc"), &json!("512")));
+        assert!(is_offered_fargate_task_size(".25 vCPU", "0.5GB"));
+        assert!(is_offered_fargate_task_size("256", "0.5GB"));
+        assert!(is_offered_fargate_task_size(".25 vCPU", "2048"));
+        assert!(!is_offered_fargate_task_size(".25 vCPU", "3GB"));
+        assert!(!is_offered_fargate_task_size("abc", "512"));
+        assert!(!is_offered_fargate_task_size("0512", "1024"), "a padded Cpu names no offered size");
+    }
+
+    #[test]
+    fn only_a_string_or_integer_declares_a_task_size() {
+        // A composite or fractional value names no size, so the pair carries
+        // nothing to check and the schema type rules own the finding.
+        for shape in [json!([256]), json!({"Cpu": 256}), json!(256.5), json!(true), json!(null)] {
+            assert_eq!(coerce_string_or_integer_to_string(&shape), None, "{shape} must not name a size");
+        }
+        assert_eq!(coerce_string_or_integer_to_string(&json!(256)), Some("256".to_string()));
+        assert_eq!(coerce_string_or_integer_to_string(&json!("256")), Some("256".to_string()));
+    }
+
+    #[test]
+    fn digit_text_classifies_the_cpu_unit_form() {
+        assert!(is_digit_text("512"));
+        assert!(is_digit_text("0512"), "a padded spelling is still the CPU-unit form");
+        assert!(!is_digit_text(".5 vCPU"));
+        assert!(!is_digit_text(""));
     }
 }

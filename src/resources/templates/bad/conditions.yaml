@@ -49,6 +49,7 @@ Conditions:
       - !Not [!Equals [!Ref EnvType, ""]]
       - !Not [!Equals [!Ref EnableGeoBlocking, ""]]
   NullCondition: null
+  EmptyCondition: {}
 Resources:
   EC2Instance:
     Type: "AWS::EC2::Instance"

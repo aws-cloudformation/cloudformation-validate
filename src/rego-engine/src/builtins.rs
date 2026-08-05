@@ -6,7 +6,8 @@ use std::collections::{BTreeSet, HashMap, HashSet};
 use std::sync::{Arc, OnceLock};
 use template_model::SemanticModel;
 use template_model::coercion::{
-    coerce_port_to_string, coerce_to_bool, coerce_to_integer, coerce_to_number, coerce_to_string, type_compatible,
+    coerce_port_to_string, coerce_string_or_integer_to_string, coerce_to_bool, coerce_to_integer, coerce_to_number,
+    coerce_to_string, type_compatible,
 };
 use template_model::consts::{
     FIELD_CONDITION, FIELD_DEPENDS_ON, FIELD_KIND, FIELD_PROPERTIES, FIELD_RESOURCE_TYPE, FIELD_SOURCE,
@@ -90,6 +91,7 @@ pub(crate) fn register_all(rego: &mut regorus::Engine, holder: SharedModel, regi
     register_coerce_to_integer(rego);
     register_coerce_to_string(rego);
     register_coerce_port_to_string(rego);
+    register_coerce_string_or_integer_to_string(rego);
     register_coerce_to_bool(rego);
     register_cfn_type_compatible(rego);
     register_estimate_string_length(rego, holder.clone());
@@ -1308,6 +1310,20 @@ fn register_coerce_port_to_string(rego: &mut regorus::Engine) {
         Box::new(|params: Vec<Value>| {
             let jv = rego_to_json(&params[0]);
             match coerce_port_to_string(&jv) {
+                Some(s) => Ok(Value::from(s.as_str())),
+                None => Ok(Value::Undefined),
+            }
+        }),
+    );
+}
+
+fn register_coerce_string_or_integer_to_string(rego: &mut regorus::Engine) {
+    let _ = rego.add_extension(
+        "coerce_string_or_integer_to_string".into(),
+        1,
+        Box::new(|params: Vec<Value>| {
+            let jv = rego_to_json(&params[0]);
+            match coerce_string_or_integer_to_string(&jv) {
                 Some(s) => Ok(Value::from(s.as_str())),
                 None => Ok(Value::Undefined),
             }

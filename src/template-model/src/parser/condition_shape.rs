@@ -81,7 +81,10 @@ fn body_defect_reason(arena: &Arena, body_ref: NodeRef) -> Option<String> {
             entries.len(),
             crate::message::render_str_list(entries.iter().map(|(key, _)| key))
         )),
-        Node::Map(entries) => Some(format!(
+        // A body that names exactly one key names the wrong function. An empty
+        // body names none at all, so it carries no key to quote and falls to the
+        // shape arm below.
+        Node::Map(entries) if entries.len() == 1 => Some(format!(
             "must be one of {}, got {}",
             crate::message::render_str_list(CONDITION_FUNCTIONS),
             quote(&entries[0].0)
@@ -135,6 +138,30 @@ mod tests {
         assert_eq!(
             messages(&template),
             ["Conditions/Bad|Condition 'Bad' must be one of ['Fn::And', 'Fn::Equals', 'Fn::Not', 'Fn::Or'], got null"]
+        );
+    }
+
+    #[test]
+    fn an_empty_body_is_reported_by_its_shape() {
+        // An empty body names no function, so it is reported by shape rather than
+        // by quoting a key it does not have.
+        let template = format!("Conditions:\n  Bad: {{}}\n{RESOURCES}");
+        assert_eq!(
+            messages(&template),
+            [
+                "Conditions/Bad|Condition 'Bad' must be one of ['Fn::And', 'Fn::Equals', 'Fn::Not', 'Fn::Or'], got an object"
+            ]
+        );
+    }
+
+    #[test]
+    fn an_empty_body_in_json_is_reported_by_its_shape() {
+        let template = r#"{"Conditions": {"Bad": {}}, "Resources": {"R": {"Type": "AWS::SNS::Topic"}}}"#;
+        assert_eq!(
+            messages(template),
+            [
+                "Conditions/Bad|Condition 'Bad' must be one of ['Fn::And', 'Fn::Equals', 'Fn::Not', 'Fn::Or'], got an object"
+            ]
         );
     }
 

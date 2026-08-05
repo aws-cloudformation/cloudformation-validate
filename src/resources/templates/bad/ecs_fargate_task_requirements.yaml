@@ -1,6 +1,17 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: Fargate task definitions violating the requirements Fargate imposes.
 
+Parameters:
+  PlacementMode:
+    Type: String
+    Default: pinned
+    AllowedValues:
+    - managed
+    - pinned
+
+Conditions:
+  PinPlacement: !Equals [!Ref PlacementMode, pinned]
+
 Resources:
   MissingTaskSize:
     Type: AWS::ECS::TaskDefinition
@@ -89,3 +100,40 @@ Resources:
           LogDriver: json-file
           Options:
             max-size: 10m
+
+  # Fargate offers a fixed set of Cpu values, so a padded spelling names none of
+  # them even though it reads as the same number.
+  PaddedCpuUnits:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: padded-cpu-units
+      RequiresCompatibilities:
+      - FARGATE
+      NetworkMode: awsvpc
+      Cpu: "0512"
+      Memory: "1024"
+      ContainerDefinitions:
+      - Name: app
+        Image: nginx
+        Essential: true
+
+  # A conditional placement that keeps constraints in one branch still pins
+  # placement whenever that branch applies.
+  ConditionallyPinnedPlacement:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: conditionally-pinned-placement
+      RequiresCompatibilities:
+      - FARGATE
+      NetworkMode: awsvpc
+      Cpu: "256"
+      Memory: "512"
+      PlacementConstraints: !If
+      - PinPlacement
+      - - Type: memberOf
+          Expression: attribute:ecs.instance-type =~ t2.*
+      - !Ref AWS::NoValue
+      ContainerDefinitions:
+      - Name: app
+        Image: nginx
+        Essential: true

@@ -386,6 +386,8 @@ fn e2e_bad_fargate_task_requirements() {
         "UnsupportedVcpuSize",
         "PinnedPlacement",
         "UnsupportedLogDriver",
+        "PaddedCpuUnits",
+        "ConditionallyPinnedPlacement",
     ] {
         assert!(flagged.contains(&logical_id), "Expected E3048 on {logical_id}, got: {flagged:?}");
     }
@@ -393,7 +395,8 @@ fn e2e_bad_fargate_task_requirements() {
 
 #[test]
 fn e2e_good_fargate_task_requirements() {
-    // Cpu in vCPU, Memory in GB, and an EC2 task pinning placement are all
+    // Cpu in vCPU, Memory in GB, an EC2 task pinning placement, a placement
+    // constraint removed by AWS::NoValue, and a padded Memory size are all
     // accepted shapes, so neither the task-requirement nor the task-size check
     // may fire.
     let report = validate_fixture("good/ecs_fargate_task_requirements.yaml");

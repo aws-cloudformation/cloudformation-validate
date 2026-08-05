@@ -32,15 +32,18 @@ violation contains make_diag_full("E3047", "ERROR", name,
     not is_dynamic(name, "Properties.Memory")
     cpu := resolve(name, "Properties.Cpu")
     memory := resolve(name, "Properties.Memory")
-    cpu != null
-    memory != null
-    not _offered_task_size(cpu, memory)
+    # A task size is only declared when both values are written as a string or an
+    # integer. Any other shape is a type violation the schema reports, and
+    # carries no size to pair.
+    cpu_text := coerce_string_or_integer_to_string(cpu)
+    memory_text := coerce_string_or_integer_to_string(memory)
+    not _offered_task_size(cpu_text, memory_text)
 }
 
 # Undefined when either value is in a form Fargate does not accept, which makes
 # the declared size an unoffered one.
-_offered_task_size(cpu, memory) if {
-    _valid_size_pair(_cpu_units(cpu), _memory_mib(memory))
+_offered_task_size(cpu_text, memory_text) if {
+    _valid_size_pair(_cpu_units(cpu_text), _memory_mib(memory_text))
 }
 
 _valid_size_pair(cpu_units, memory_mib) if {
@@ -55,31 +58,43 @@ _valid_size_pair(cpu_units, memory_mib) if {
     memory_mib % limits.step == 0
 }
 
-_cpu_units(value) := to_number(text) if {
-    text := sprintf("%v", [value])
+# The CPU-unit spelling is matched exactly as written, because Fargate offers a
+# fixed set of Cpu values rather than a numeric range: a padded spelling such as
+# "0512" names none of them.
+_cpu_units(text) := to_number(text) if {
+    text in _fargate_cpu_units
+}
+
+_cpu_units(text) := _vcpu_to_cpu_units[_size_before_unit(text, "vcpu")]
+
+# Memory is bounded by a range rather than a fixed set of spellings, so a MiB or
+# GB size is read as the number it denotes.
+_memory_mib(text) := _digits_as_number(text)
+
+_memory_mib(text) := _mib_per_gb / 2 if {
+    _size_before_unit(text, "gb") == "0.5"
+}
+
+_memory_mib(text) := _digits_as_number(size) * _mib_per_gb if {
+    size := _size_before_unit(text, "gb")
+    not size == "0.5"
+}
+
+# The number a digits-only text denotes. Zero padding does not change the number a
+# size is read as, so the padding is stripped before the text is read.
+_digits_as_number(text) := 0 if {
+    regex.match(`^0+$`, text)
+}
+
+_digits_as_number(text) := to_number(trim_left(text, "0")) if {
     regex.match(`^\d+$`, text)
-}
-
-_cpu_units(value) := _vcpu_to_cpu_units[_size_before_unit(value, "vcpu")]
-
-_memory_mib(value) := to_number(text) if {
-    text := sprintf("%v", [value])
-    regex.match(`^\d+$`, text)
-}
-
-_memory_mib(value) := _mib_per_gb / 2 if {
-    _size_before_unit(value, "gb") == "0.5"
-}
-
-_memory_mib(value) := to_number(size) * _mib_per_gb if {
-    size := _size_before_unit(value, "gb")
-    regex.match(`^\d+$`, size)
+    not regex.match(`^0+$`, text)
 }
 
 # The size written before a `vCPU`/`GB` unit suffix, in any casing and with
 # optional space before the unit. Undefined when the value carries no such unit.
-_size_before_unit(value, unit) := size if {
-    text := lower(sprintf("%v", [value]))
-    endswith(text, unit)
-    size := trim_space(substring(text, 0, count(text) - count(unit)))
+_size_before_unit(text, unit) := size if {
+    lowered := lower(text)
+    endswith(lowered, unit)
+    size := trim_space(substring(lowered, 0, count(lowered) - count(unit)))
 }

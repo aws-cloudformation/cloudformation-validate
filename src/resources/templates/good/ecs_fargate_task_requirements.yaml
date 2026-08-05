@@ -1,6 +1,17 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: Fargate task definitions in every shape Fargate accepts.
 
+Parameters:
+  PlacementMode:
+    Type: String
+    Default: managed
+    AllowedValues:
+    - managed
+    - pinned
+
+Conditions:
+  PinPlacement: !Equals [!Ref PlacementMode, pinned]
+
 Resources:
   CpuUnitsForm:
     Type: AWS::ECS::TaskDefinition
@@ -75,3 +86,69 @@ Resources:
           LogDriver: json-file
           Options:
             max-size: 10m
+
+  # CloudFormation removes a property that resolves to AWS::NoValue before the
+  # task is created, so these tasks do not pin placement.
+  RemovedPlacementConstraints:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: removed-placement-constraints
+      RequiresCompatibilities:
+      - FARGATE
+      NetworkMode: awsvpc
+      Cpu: "256"
+      Memory: "512"
+      PlacementConstraints: !Ref AWS::NoValue
+      ContainerDefinitions:
+      - Name: app
+        Image: nginx
+        Essential: true
+        LogConfiguration:
+          LogDriver: awslogs
+          Options:
+            awslogs-group: /ecs/removed-placement-constraints
+            awslogs-region: us-east-1
+            awslogs-stream-prefix: ecs
+
+  ConditionallyRemovedPlacementConstraints:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: conditionally-removed-placement-constraints
+      RequiresCompatibilities:
+      - FARGATE
+      NetworkMode: awsvpc
+      Cpu: 1 vCPU
+      Memory: 2GB
+      PlacementConstraints: !If [PinPlacement, !Ref AWS::NoValue, !Ref AWS::NoValue]
+      ContainerDefinitions:
+      - Name: app
+        Image: nginx
+        Essential: true
+        LogConfiguration:
+          LogDriver: awslogs
+          Options:
+            awslogs-group: /ecs/conditionally-removed-placement-constraints
+            awslogs-region: us-east-1
+            awslogs-stream-prefix: ecs
+
+  # Memory is bounded by a range rather than a fixed set of spellings, so it is
+  # read as the number it denotes.
+  PaddedMemorySize:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: padded-memory-size
+      RequiresCompatibilities:
+      - FARGATE
+      NetworkMode: awsvpc
+      Cpu: "512"
+      Memory: "01024"
+      ContainerDefinitions:
+      - Name: app
+        Image: nginx
+        Essential: true
+        LogConfiguration:
+          LogDriver: awslogs
+          Options:
+            awslogs-group: /ecs/padded-memory-size
+            awslogs-region: us-east-1
+            awslogs-stream-prefix: ecs

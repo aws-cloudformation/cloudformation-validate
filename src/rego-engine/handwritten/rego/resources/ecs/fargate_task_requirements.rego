@@ -59,13 +59,14 @@ violation contains make_diag_full("E3048", "ERROR", name, "Properties.Cpu",
     not regex.match(`^(\.25|\.5|1|2|4|8|16)\s*(?i)vCpu$`, cpu)
 }
 
-# The declared Cpu as text, so the numeric and vCPU forms can be told apart
-# whether the template wrote a number or a string. Unresolvable values are
-# skipped: their deploy-time value is unknown.
-_cpu_text(name) := text if {
+# The declared Cpu as the text the template author wrote, so the numeric and vCPU
+# forms can be told apart whether the template wrote a number or a string.
+# Unresolvable values are skipped: their deploy-time value is unknown. A value
+# written in any other shape names no size, and is a type violation the schema
+# reports rather than a Cpu size to check.
+_cpu_text(name) := coerce_string_or_integer_to_string(cpu) if {
     cpu := resolve(name, "Properties.Cpu")
     not is_dynamic(name, "Properties.Cpu")
-    text := sprintf("%v", [cpu])
 }
 
 violation contains make_diag_full("E3048", "ERROR", name, "Properties.PlacementConstraints",
@@ -73,7 +74,24 @@ violation contains make_diag_full("E3048", "ERROR", name, "Properties.PlacementC
     "Remove PlacementConstraints; Fargate selects the infrastructure",
     "") if {
     some name in _fargate_tasks
+    _declares_placement_constraints(name)
+}
+
+# A `PlacementConstraints` written as an `Fn::If` that resolves to `AWS::NoValue`
+# is removed by CloudFormation before the task is created, so the task does not
+# pin placement and the key's presence in the source is not a violation. The
+# property counts only when some branch keeps a value.
+_declares_placement_constraints(name) if {
     has_property(name, "PlacementConstraints")
+    some value in resolve_all(name, "Properties.PlacementConstraints")
+    value != null
+}
+
+# A value that cannot be resolved statically is treated as declared, so a genuine
+# constraint behind a deploy-time value is still reported.
+_declares_placement_constraints(name) if {
+    has_property(name, "PlacementConstraints")
+    count(resolve_all(name, "Properties.PlacementConstraints")) == 0
 }
 
 violation contains make_diag_full("E3048", "ERROR", name,

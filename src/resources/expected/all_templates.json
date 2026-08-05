@@ -3090,9 +3090,9 @@
     "metadata": {
       "resourcesScanned": 4,
       "counts": {
-        "fatal": 9,
+        "fatal": 10,
         "errors": 3,
-        "warnings": 9,
+        "warnings": 10,
         "informational": 8,
         "debug": 0
       },
@@ -3174,6 +3174,24 @@
         "phase": "PARSE"
       },
       {
+        "ruleId": "F0013",
+        "severity": "FATAL",
+        "message": "Condition 'EmptyCondition' must be one of ['Fn::And', 'Fn::Equals', 'Fn::Not', 'Fn::Or'], got an object",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "EmptyCondition",
+          "entityType": "Condition"
+        },
+        "propertyPath": "Conditions/EmptyCondition",
+        "category": "Intrinsic Function",
+        "startLine": 52,
+        "startColumn": 3,
+        "endLine": 52,
+        "endColumn": 17,
+        "ruleDescription": "Conditions must be well-formed: a condition body must evaluate to a boolean and Fn::If must have exactly 3 elements",
+        "phase": "PARSE"
+      },
+      {
         "ruleId": "F3002",
         "severity": "FATAL",
         "message": "Additional properties are not allowed ('BadKey' was unexpected)",
@@ -3185,9 +3203,9 @@
         },
         "propertyPath": "Properties.Tags.1.BadKey",
         "category": "Schema",
-        "startLine": 60,
+        "startLine": 61,
         "startColumn": 17,
-        "endLine": 60,
+        "endLine": 61,
         "endColumn": 18,
         "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
         "ruleDescription": "Additional properties are not allowed",
@@ -3260,9 +3278,9 @@
         },
         "propertyPath": "Properties.Tags.1.BadValue",
         "category": "Schema",
-        "startLine": 60,
+        "startLine": 61,
         "startColumn": 17,
-        "endLine": 60,
+        "endLine": 61,
         "endColumn": 18,
         "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
         "ruleDescription": "Additional properties are not allowed",
@@ -3335,9 +3353,9 @@
         },
         "propertyPath": "Properties.DistributionConfig.Restrictions.GeoRestriction.BadLocations",
         "category": "Schema",
-        "startLine": 89,
+        "startLine": 90,
         "startColumn": 11,
-        "endLine": 89,
+        "endLine": 90,
         "endColumn": 25,
         "ruleDescription": "Additional properties are not allowed",
         "phase": "SCHEMA",
@@ -3366,9 +3384,9 @@
         "propertyPath": "Properties.DistributionConfig",
         "suggestedFix": "Add the required property 'DefaultCacheBehavior'",
         "category": "Schema",
-        "startLine": 86,
+        "startLine": 87,
         "startColumn": 7,
-        "endLine": 86,
+        "endLine": 87,
         "endColumn": 25,
         "ruleDescription": "Required property missing",
         "phase": "SCHEMA"
@@ -3385,9 +3403,9 @@
         },
         "propertyPath": "Properties.DistributionConfig.Restrictions.GeoRestriction.RestrictionType",
         "category": "Schema",
-        "startLine": 89,
+        "startLine": 90,
         "startColumn": 11,
-        "endLine": 89,
+        "endLine": 90,
         "endColumn": 25,
         "conditionScenario": {
           "EnableGeoBlocking": true
@@ -3413,9 +3431,9 @@
         },
         "propertyPath": "Properties.Tags.1",
         "category": "Intrinsic Function",
-        "startLine": 60,
+        "startLine": 61,
         "startColumn": 17,
-        "endLine": 60,
+        "endLine": 61,
         "endColumn": 18,
         "ruleDescription": "Fn::If condition must exist in Conditions section",
         "phase": "PARSE"
@@ -3432,9 +3450,9 @@
         },
         "propertyPath": "Properties.Tags.1.Fn::If.2",
         "category": "Intrinsic Function",
-        "startLine": 64,
+        "startLine": 65,
         "startColumn": 21,
-        "endLine": 64,
+        "endLine": 65,
         "endColumn": 22,
         "ruleDescription": "Fn::If condition must exist in Conditions section",
         "phase": "PARSE"
@@ -3451,9 +3469,9 @@
         },
         "propertyPath": "Condition",
         "category": "Resource",
-        "startLine": 84,
+        "startLine": 85,
         "startColumn": 5,
-        "endLine": 84,
+        "endLine": 85,
         "endColumn": 14,
         "ruleDescription": "Resource attributes must be recognized and correctly shaped",
         "phase": "PARSE"
@@ -3488,9 +3506,9 @@
         },
         "propertyPath": "Properties.DistributionConfig.Restrictions.GeoRestriction.RestrictionType",
         "category": "Schema",
-        "startLine": 89,
+        "startLine": 90,
         "startColumn": 11,
-        "endLine": 89,
+        "endLine": 90,
         "endColumn": 25,
         "conditionScenario": {
           "EnableGeoBlocking": true
@@ -3601,6 +3619,24 @@
         "phase": "LINT"
       },
       {
+        "ruleId": "W8001",
+        "severity": "WARN",
+        "message": "Condition 'EmptyCondition' is not used by any resource or Fn::If",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "EmptyCondition",
+          "entityType": "Condition"
+        },
+        "propertyPath": "Conditions/EmptyCondition",
+        "category": "Best Practice",
+        "startLine": 52,
+        "startColumn": 3,
+        "endLine": 52,
+        "endColumn": 17,
+        "ruleDescription": "Check if Conditions are Used",
+        "phase": "LINT"
+      },
+      {
         "ruleId": "W9010",
         "severity": "WARN",
         "message": "Hardcoded AMI ID - use a parameter or mapping for portability",
@@ -3612,9 +3648,9 @@
         },
         "propertyPath": "Properties.ImageId",
         "category": "Security",
-        "startLine": 56,
+        "startLine": 57,
         "startColumn": 7,
-        "endLine": 56,
+        "endLine": 57,
         "endColumn": 14,
         "ruleDescription": "Hardcoded AMI ID",
         "phase": "LINT"
@@ -3643,9 +3679,9 @@
           "resourceType": "AWS::EC2::Volume"
         },
         "category": "Best Practice",
-        "startLine": 76,
+        "startLine": 77,
         "startColumn": 3,
-        "endLine": 76,
+        "endLine": 77,
         "endColumn": 12,
         "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
         "phase": "LINT"
@@ -3661,9 +3697,9 @@
           "resourceType": "AWS::EC2::Volume"
         },
         "category": "Best Practice",
-        "startLine": 76,
+        "startLine": 77,
         "startColumn": 3,
-        "endLine": 76,
+        "endLine": 77,
         "endColumn": 12,
         "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
         "phase": "LINT"
@@ -3680,9 +3716,9 @@
         },
         "propertyPath": "Properties.ImageId",
         "category": "Best Practice",
-        "startLine": 56,
+        "startLine": 57,
         "startColumn": 7,
-        "endLine": 56,
+        "endLine": 57,
         "endColumn": 14,
         "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
         "ruleDescription": "Create-only property updated triggers resource replacement",
@@ -3703,9 +3739,9 @@
         },
         "propertyPath": "Properties.InstanceId",
         "category": "Best Practice",
-        "startLine": 73,
+        "startLine": 74,
         "startColumn": 7,
-        "endLine": 73,
+        "endLine": 74,
         "endColumn": 17,
         "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
         "ruleDescription": "Create-only property updated triggers resource replacement",
@@ -3727,9 +3763,9 @@
         },
         "propertyPath": "Properties.VolumeId",
         "category": "Best Practice",
-        "startLine": 74,
+        "startLine": 75,
         "startColumn": 7,
-        "endLine": 74,
+        "endLine": 75,
         "endColumn": 15,
         "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
         "ruleDescription": "Create-only property updated triggers resource replacement",
@@ -3751,9 +3787,9 @@
         },
         "propertyPath": "Properties.Device",
         "category": "Best Practice",
-        "startLine": 75,
+        "startLine": 76,
         "startColumn": 7,
-        "endLine": 75,
+        "endLine": 76,
         "endColumn": 13,
         "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
         "ruleDescription": "Create-only property updated triggers resource replacement",
@@ -3775,9 +3811,9 @@
         "propertyPath": "Properties.Tags",
         "suggestedFix": "Add Tags to improve resource organization and cost tracking",
         "category": "Best Practice",
-        "startLine": 79,
+        "startLine": 80,
         "startColumn": 5,
-        "endLine": 79,
+        "endLine": 80,
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"
@@ -3795,9 +3831,9 @@
         "propertyPath": "Properties.Tags",
         "suggestedFix": "Add Tags to improve resource organization and cost tracking",
         "category": "Best Practice",
-        "startLine": 85,
+        "startLine": 86,
         "startColumn": 5,
-        "endLine": 85,
+        "endLine": 86,
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"
@@ -9569,12 +9605,12 @@
     "status": "OK",
     "version": "1.6.0",
     "metadata": {
-      "resourcesScanned": 6,
+      "resourcesScanned": 8,
       "counts": {
         "fatal": 0,
-        "errors": 10,
+        "errors": 13,
         "warnings": 0,
-        "informational": 40,
+        "informational": 55,
         "debug": 0
       },
       "suppressed": 0,
@@ -9595,9 +9631,9 @@
         "propertyPath": "Properties.Cpu",
         "suggestedFix": "Use a task size Fargate offers (e.g. Cpu 256 with Memory 512, 1024, or 2048)",
         "category": "Resource",
-        "startLine": 37,
+        "startLine": 48,
         "startColumn": 7,
-        "endLine": 37,
+        "endLine": 48,
         "endColumn": 10,
         "ruleDescription": "Validate ECS Fargate tasks have the right combination of CPU and memory",
         "phase": "LINT",
@@ -9621,9 +9657,9 @@
         "propertyPath": "Properties.Cpu",
         "suggestedFix": "Use a task size Fargate offers (e.g. Cpu 256 with Memory 512, 1024, or 2048)",
         "category": "Resource",
-        "startLine": 51,
+        "startLine": 62,
         "startColumn": 7,
-        "endLine": 51,
+        "endLine": 62,
         "endColumn": 10,
         "ruleDescription": "Validate ECS Fargate tasks have the right combination of CPU and memory",
         "phase": "LINT",
@@ -9631,6 +9667,32 @@
           "extra": {
             "cpu": "3 vCPU",
             "memory": "4096"
+          }
+        }
+      },
+      {
+        "ruleId": "E3047",
+        "severity": "ERROR",
+        "message": "Cpu '0512' is not compatible with Memory '1024' for Fargate",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "PaddedCpuUnits",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.Cpu",
+        "suggestedFix": "Use a task size Fargate offers (e.g. Cpu 256 with Memory 512, 1024, or 2048)",
+        "category": "Resource",
+        "startLine": 113,
+        "startColumn": 7,
+        "endLine": 113,
+        "endColumn": 10,
+        "ruleDescription": "Validate ECS Fargate tasks have the right combination of CPU and memory",
+        "phase": "LINT",
+        "context": {
+          "extra": {
+            "cpu": "0512",
+            "memory": "1024"
           }
         }
       },
@@ -9646,9 +9708,9 @@
         },
         "propertyPath": "Properties",
         "category": "Resource",
-        "startLine": 7,
+        "startLine": 18,
         "startColumn": 5,
-        "endLine": 7,
+        "endLine": 18,
         "endColumn": 15,
         "ruleDescription": "Validate ECS Fargate tasks have required properties and values",
         "phase": "LINT"
@@ -9665,9 +9727,9 @@
         },
         "propertyPath": "Properties",
         "category": "Resource",
-        "startLine": 7,
+        "startLine": 18,
         "startColumn": 5,
-        "endLine": 7,
+        "endLine": 18,
         "endColumn": 15,
         "ruleDescription": "Validate ECS Fargate tasks have required properties and values",
         "phase": "LINT"
@@ -9684,9 +9746,9 @@
         },
         "propertyPath": "Properties",
         "category": "Resource",
-        "startLine": 7,
+        "startLine": 18,
         "startColumn": 5,
-        "endLine": 7,
+        "endLine": 18,
         "endColumn": 15,
         "ruleDescription": "Validate ECS Fargate tasks have required properties and values",
         "phase": "LINT"
@@ -9704,9 +9766,9 @@
         "propertyPath": "Properties.NetworkMode",
         "suggestedFix": "Set NetworkMode to 'awsvpc'",
         "category": "Resource",
-        "startLine": 22,
+        "startLine": 33,
         "startColumn": 7,
-        "endLine": 22,
+        "endLine": 33,
         "endColumn": 18,
         "ruleDescription": "Validate ECS Fargate tasks have required properties and values",
         "phase": "LINT"
@@ -9724,9 +9786,9 @@
         "propertyPath": "Properties.Cpu",
         "suggestedFix": "Use a task-level Cpu size Fargate offers",
         "category": "Resource",
-        "startLine": 37,
+        "startLine": 48,
         "startColumn": 7,
-        "endLine": 37,
+        "endLine": 48,
         "endColumn": 10,
         "ruleDescription": "Validate ECS Fargate tasks have required properties and values",
         "phase": "LINT"
@@ -9744,9 +9806,9 @@
         "propertyPath": "Properties.Cpu",
         "suggestedFix": "Use a vCPU size such as '.25 vCPU', '1 vCPU', or '16 vCPU'",
         "category": "Resource",
-        "startLine": 51,
+        "startLine": 62,
         "startColumn": 7,
-        "endLine": 51,
+        "endLine": 62,
         "endColumn": 10,
         "ruleDescription": "Validate ECS Fargate tasks have required properties and values",
         "phase": "LINT"
@@ -9764,9 +9826,9 @@
         "propertyPath": "Properties.PlacementConstraints",
         "suggestedFix": "Remove PlacementConstraints; Fargate selects the infrastructure",
         "category": "Resource",
-        "startLine": 67,
+        "startLine": 78,
         "startColumn": 7,
-        "endLine": 67,
+        "endLine": 78,
         "endColumn": 27,
         "ruleDescription": "Validate ECS Fargate tasks have required properties and values",
         "phase": "LINT"
@@ -9784,10 +9846,50 @@
         "propertyPath": "Properties.ContainerDefinitions.0.LogConfiguration.LogDriver",
         "suggestedFix": "Use a log driver Fargate supports: ['awslogs', 'splunk', 'awsfirelens']",
         "category": "Resource",
-        "startLine": 89,
+        "startLine": 100,
         "startColumn": 11,
-        "endLine": 89,
+        "endLine": 100,
         "endColumn": 20,
+        "ruleDescription": "Validate ECS Fargate tasks have required properties and values",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3048",
+        "severity": "ERROR",
+        "message": "Cpu '0512' is not one of ['256', '512', '1024', '2048', '4096', '8192', '16384']",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "PaddedCpuUnits",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.Cpu",
+        "suggestedFix": "Use a task-level Cpu size Fargate offers",
+        "category": "Resource",
+        "startLine": 113,
+        "startColumn": 7,
+        "endLine": 113,
+        "endColumn": 10,
+        "ruleDescription": "Validate ECS Fargate tasks have required properties and values",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3048",
+        "severity": "ERROR",
+        "message": "'PlacementConstraints' is not supported for a Fargate task",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ConditionallyPinnedPlacement",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.PlacementConstraints",
+        "suggestedFix": "Remove PlacementConstraints; Fargate selects the infrastructure",
+        "category": "Resource",
+        "startLine": 131,
+        "startColumn": 7,
+        "endLine": 131,
+        "endColumn": 27,
         "ruleDescription": "Validate ECS Fargate tasks have required properties and values",
         "phase": "LINT"
       },
@@ -9798,75 +9900,6 @@
         "source": "ENGINE",
         "entity": {
           "logicalId": "MissingTaskSize",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.Family",
-        "category": "Best Practice",
-        "startLine": 8,
-        "startColumn": 7,
-        "endLine": 8,
-        "endColumn": 13,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'RequiresCompatibilities' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "MissingTaskSize",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.RequiresCompatibilities",
-        "category": "Best Practice",
-        "startLine": 9,
-        "startColumn": 7,
-        "endLine": 9,
-        "endColumn": 30,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "MissingTaskSize",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.ContainerDefinitions",
-        "category": "Best Practice",
-        "startLine": 11,
-        "startColumn": 7,
-        "endLine": 11,
-        "endColumn": 27,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Family' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "WrongNetworkMode",
           "entityType": "Resource",
           "resourceType": "AWS::ECS::TaskDefinition"
         },
@@ -9889,7 +9922,7 @@
         "message": "Property 'RequiresCompatibilities' is create-only; updating it will cause resource replacement",
         "source": "ENGINE",
         "entity": {
-          "logicalId": "WrongNetworkMode",
+          "logicalId": "MissingTaskSize",
           "entityType": "Resource",
           "resourceType": "AWS::ECS::TaskDefinition"
         },
@@ -9909,87 +9942,18 @@
       {
         "ruleId": "I9001",
         "severity": "INFO",
-        "message": "Property 'NetworkMode' is create-only; updating it will cause resource replacement",
+        "message": "Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement",
         "source": "ENGINE",
         "entity": {
-          "logicalId": "WrongNetworkMode",
+          "logicalId": "MissingTaskSize",
           "entityType": "Resource",
           "resourceType": "AWS::ECS::TaskDefinition"
         },
-        "propertyPath": "Properties.NetworkMode",
+        "propertyPath": "Properties.ContainerDefinitions",
         "category": "Best Practice",
         "startLine": 22,
         "startColumn": 7,
         "endLine": 22,
-        "endColumn": 18,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Cpu' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "WrongNetworkMode",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.Cpu",
-        "category": "Best Practice",
-        "startLine": 23,
-        "startColumn": 7,
-        "endLine": 23,
-        "endColumn": 10,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Memory' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "WrongNetworkMode",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.Memory",
-        "category": "Best Practice",
-        "startLine": 24,
-        "startColumn": 7,
-        "endLine": 24,
-        "endColumn": 13,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "WrongNetworkMode",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.ContainerDefinitions",
-        "category": "Best Practice",
-        "startLine": 25,
-        "startColumn": 7,
-        "endLine": 25,
         "endColumn": 27,
         "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
         "ruleDescription": "Create-only property updated triggers resource replacement",
@@ -10004,16 +9968,62 @@
         "message": "Property 'Family' is create-only; updating it will cause resource replacement",
         "source": "ENGINE",
         "entity": {
-          "logicalId": "UnsupportedCpuUnits",
+          "logicalId": "WrongNetworkMode",
           "entityType": "Resource",
           "resourceType": "AWS::ECS::TaskDefinition"
         },
         "propertyPath": "Properties.Family",
+        "category": "Best Practice",
+        "startLine": 30,
+        "startColumn": 7,
+        "endLine": 30,
+        "endColumn": 13,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'RequiresCompatibilities' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "WrongNetworkMode",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.RequiresCompatibilities",
+        "category": "Best Practice",
+        "startLine": 31,
+        "startColumn": 7,
+        "endLine": 31,
+        "endColumn": 30,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'NetworkMode' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "WrongNetworkMode",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.NetworkMode",
         "category": "Best Practice",
         "startLine": 33,
         "startColumn": 7,
         "endLine": 33,
-        "endColumn": 13,
+        "endColumn": 18,
         "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
         "ruleDescription": "Create-only property updated triggers resource replacement",
         "phase": "SCHEMA",
@@ -10024,19 +10034,19 @@
       {
         "ruleId": "I9001",
         "severity": "INFO",
-        "message": "Property 'RequiresCompatibilities' is create-only; updating it will cause resource replacement",
+        "message": "Property 'Cpu' is create-only; updating it will cause resource replacement",
         "source": "ENGINE",
         "entity": {
-          "logicalId": "UnsupportedCpuUnits",
+          "logicalId": "WrongNetworkMode",
           "entityType": "Resource",
           "resourceType": "AWS::ECS::TaskDefinition"
         },
-        "propertyPath": "Properties.RequiresCompatibilities",
+        "propertyPath": "Properties.Cpu",
         "category": "Best Practice",
         "startLine": 34,
         "startColumn": 7,
         "endLine": 34,
-        "endColumn": 30,
+        "endColumn": 10,
         "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
         "ruleDescription": "Create-only property updated triggers resource replacement",
         "phase": "SCHEMA",
@@ -10047,87 +10057,41 @@
       {
         "ruleId": "I9001",
         "severity": "INFO",
-        "message": "Property 'NetworkMode' is create-only; updating it will cause resource replacement",
+        "message": "Property 'Memory' is create-only; updating it will cause resource replacement",
         "source": "ENGINE",
         "entity": {
-          "logicalId": "UnsupportedCpuUnits",
+          "logicalId": "WrongNetworkMode",
           "entityType": "Resource",
           "resourceType": "AWS::ECS::TaskDefinition"
         },
-        "propertyPath": "Properties.NetworkMode",
+        "propertyPath": "Properties.Memory",
+        "category": "Best Practice",
+        "startLine": 35,
+        "startColumn": 7,
+        "endLine": 35,
+        "endColumn": 13,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "WrongNetworkMode",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.ContainerDefinitions",
         "category": "Best Practice",
         "startLine": 36,
         "startColumn": 7,
         "endLine": 36,
-        "endColumn": 18,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Cpu' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "UnsupportedCpuUnits",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.Cpu",
-        "category": "Best Practice",
-        "startLine": 37,
-        "startColumn": 7,
-        "endLine": 37,
-        "endColumn": 10,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Memory' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "UnsupportedCpuUnits",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.Memory",
-        "category": "Best Practice",
-        "startLine": 38,
-        "startColumn": 7,
-        "endLine": 38,
-        "endColumn": 13,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "UnsupportedCpuUnits",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.ContainerDefinitions",
-        "category": "Best Practice",
-        "startLine": 39,
-        "startColumn": 7,
-        "endLine": 39,
         "endColumn": 27,
         "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
         "ruleDescription": "Create-only property updated triggers resource replacement",
@@ -10142,15 +10106,153 @@
         "message": "Property 'Family' is create-only; updating it will cause resource replacement",
         "source": "ENGINE",
         "entity": {
-          "logicalId": "UnsupportedVcpuSize",
+          "logicalId": "UnsupportedCpuUnits",
           "entityType": "Resource",
           "resourceType": "AWS::ECS::TaskDefinition"
         },
         "propertyPath": "Properties.Family",
+        "category": "Best Practice",
+        "startLine": 44,
+        "startColumn": 7,
+        "endLine": 44,
+        "endColumn": 13,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'RequiresCompatibilities' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "UnsupportedCpuUnits",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.RequiresCompatibilities",
+        "category": "Best Practice",
+        "startLine": 45,
+        "startColumn": 7,
+        "endLine": 45,
+        "endColumn": 30,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'NetworkMode' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "UnsupportedCpuUnits",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.NetworkMode",
         "category": "Best Practice",
         "startLine": 47,
         "startColumn": 7,
         "endLine": 47,
+        "endColumn": 18,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Cpu' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "UnsupportedCpuUnits",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.Cpu",
+        "category": "Best Practice",
+        "startLine": 48,
+        "startColumn": 7,
+        "endLine": 48,
+        "endColumn": 10,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Memory' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "UnsupportedCpuUnits",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.Memory",
+        "category": "Best Practice",
+        "startLine": 49,
+        "startColumn": 7,
+        "endLine": 49,
+        "endColumn": 13,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "UnsupportedCpuUnits",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.ContainerDefinitions",
+        "category": "Best Practice",
+        "startLine": 50,
+        "startColumn": 7,
+        "endLine": 50,
+        "endColumn": 27,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Family' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "UnsupportedVcpuSize",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.Family",
+        "category": "Best Practice",
+        "startLine": 58,
+        "startColumn": 7,
+        "endLine": 58,
         "endColumn": 13,
         "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
         "ruleDescription": "Create-only property updated triggers resource replacement",
@@ -10171,9 +10273,9 @@
         },
         "propertyPath": "Properties.RequiresCompatibilities",
         "category": "Best Practice",
-        "startLine": 48,
+        "startLine": 59,
         "startColumn": 7,
-        "endLine": 48,
+        "endLine": 59,
         "endColumn": 30,
         "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
         "ruleDescription": "Create-only property updated triggers resource replacement",
@@ -10194,9 +10296,9 @@
         },
         "propertyPath": "Properties.NetworkMode",
         "category": "Best Practice",
-        "startLine": 50,
+        "startLine": 61,
         "startColumn": 7,
-        "endLine": 50,
+        "endLine": 61,
         "endColumn": 18,
         "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
         "ruleDescription": "Create-only property updated triggers resource replacement",
@@ -10217,9 +10319,9 @@
         },
         "propertyPath": "Properties.Cpu",
         "category": "Best Practice",
-        "startLine": 51,
+        "startLine": 62,
         "startColumn": 7,
-        "endLine": 51,
+        "endLine": 62,
         "endColumn": 10,
         "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
         "ruleDescription": "Create-only property updated triggers resource replacement",
@@ -10240,9 +10342,9 @@
         },
         "propertyPath": "Properties.Memory",
         "category": "Best Practice",
-        "startLine": 52,
+        "startLine": 63,
         "startColumn": 7,
-        "endLine": 52,
+        "endLine": 63,
         "endColumn": 13,
         "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
         "ruleDescription": "Create-only property updated triggers resource replacement",
@@ -10263,9 +10365,9 @@
         },
         "propertyPath": "Properties.ContainerDefinitions",
         "category": "Best Practice",
-        "startLine": 53,
+        "startLine": 64,
         "startColumn": 7,
-        "endLine": 53,
+        "endLine": 64,
         "endColumn": 27,
         "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
         "ruleDescription": "Create-only property updated triggers resource replacement",
@@ -10286,9 +10388,9 @@
         },
         "propertyPath": "Properties.Family",
         "category": "Best Practice",
-        "startLine": 61,
+        "startLine": 72,
         "startColumn": 7,
-        "endLine": 61,
+        "endLine": 72,
         "endColumn": 13,
         "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
         "ruleDescription": "Create-only property updated triggers resource replacement",
@@ -10309,9 +10411,9 @@
         },
         "propertyPath": "Properties.RequiresCompatibilities",
         "category": "Best Practice",
-        "startLine": 62,
+        "startLine": 73,
         "startColumn": 7,
-        "endLine": 62,
+        "endLine": 73,
         "endColumn": 30,
         "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
         "ruleDescription": "Create-only property updated triggers resource replacement",
@@ -10332,9 +10434,9 @@
         },
         "propertyPath": "Properties.NetworkMode",
         "category": "Best Practice",
-        "startLine": 64,
+        "startLine": 75,
         "startColumn": 7,
-        "endLine": 64,
+        "endLine": 75,
         "endColumn": 18,
         "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
         "ruleDescription": "Create-only property updated triggers resource replacement",
@@ -10355,9 +10457,9 @@
         },
         "propertyPath": "Properties.Cpu",
         "category": "Best Practice",
-        "startLine": 65,
+        "startLine": 76,
         "startColumn": 7,
-        "endLine": 65,
+        "endLine": 76,
         "endColumn": 10,
         "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
         "ruleDescription": "Create-only property updated triggers resource replacement",
@@ -10378,9 +10480,9 @@
         },
         "propertyPath": "Properties.Memory",
         "category": "Best Practice",
-        "startLine": 66,
+        "startLine": 77,
         "startColumn": 7,
-        "endLine": 66,
+        "endLine": 77,
         "endColumn": 13,
         "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
         "ruleDescription": "Create-only property updated triggers resource replacement",
@@ -10401,9 +10503,9 @@
         },
         "propertyPath": "Properties.PlacementConstraints",
         "category": "Best Practice",
-        "startLine": 67,
+        "startLine": 78,
         "startColumn": 7,
-        "endLine": 67,
+        "endLine": 78,
         "endColumn": 27,
         "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
         "ruleDescription": "Create-only property updated triggers resource replacement",
@@ -10424,9 +10526,9 @@
         },
         "propertyPath": "Properties.ContainerDefinitions",
         "category": "Best Practice",
-        "startLine": 70,
+        "startLine": 81,
         "startColumn": 7,
-        "endLine": 70,
+        "endLine": 81,
         "endColumn": 27,
         "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
         "ruleDescription": "Create-only property updated triggers resource replacement",
@@ -10447,9 +10549,9 @@
         },
         "propertyPath": "Properties.Family",
         "category": "Best Practice",
-        "startLine": 78,
+        "startLine": 89,
         "startColumn": 7,
-        "endLine": 78,
+        "endLine": 89,
         "endColumn": 13,
         "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
         "ruleDescription": "Create-only property updated triggers resource replacement",
@@ -10470,9 +10572,9 @@
         },
         "propertyPath": "Properties.RequiresCompatibilities",
         "category": "Best Practice",
-        "startLine": 79,
+        "startLine": 90,
         "startColumn": 7,
-        "endLine": 79,
+        "endLine": 90,
         "endColumn": 30,
         "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
         "ruleDescription": "Create-only property updated triggers resource replacement",
@@ -10493,9 +10595,9 @@
         },
         "propertyPath": "Properties.NetworkMode",
         "category": "Best Practice",
-        "startLine": 81,
+        "startLine": 92,
         "startColumn": 7,
-        "endLine": 81,
+        "endLine": 92,
         "endColumn": 18,
         "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
         "ruleDescription": "Create-only property updated triggers resource replacement",
@@ -10516,9 +10618,9 @@
         },
         "propertyPath": "Properties.Cpu",
         "category": "Best Practice",
-        "startLine": 82,
+        "startLine": 93,
         "startColumn": 7,
-        "endLine": 82,
+        "endLine": 93,
         "endColumn": 10,
         "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
         "ruleDescription": "Create-only property updated triggers resource replacement",
@@ -10539,9 +10641,9 @@
         },
         "propertyPath": "Properties.Memory",
         "category": "Best Practice",
-        "startLine": 83,
+        "startLine": 94,
         "startColumn": 7,
-        "endLine": 83,
+        "endLine": 94,
         "endColumn": 13,
         "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
         "ruleDescription": "Create-only property updated triggers resource replacement",
@@ -10562,9 +10664,309 @@
         },
         "propertyPath": "Properties.ContainerDefinitions",
         "category": "Best Practice",
-        "startLine": 84,
+        "startLine": 95,
         "startColumn": 7,
-        "endLine": 84,
+        "endLine": 95,
+        "endColumn": 27,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Family' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "PaddedCpuUnits",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.Family",
+        "category": "Best Practice",
+        "startLine": 109,
+        "startColumn": 7,
+        "endLine": 109,
+        "endColumn": 13,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'RequiresCompatibilities' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "PaddedCpuUnits",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.RequiresCompatibilities",
+        "category": "Best Practice",
+        "startLine": 110,
+        "startColumn": 7,
+        "endLine": 110,
+        "endColumn": 30,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'NetworkMode' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "PaddedCpuUnits",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.NetworkMode",
+        "category": "Best Practice",
+        "startLine": 112,
+        "startColumn": 7,
+        "endLine": 112,
+        "endColumn": 18,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Cpu' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "PaddedCpuUnits",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.Cpu",
+        "category": "Best Practice",
+        "startLine": 113,
+        "startColumn": 7,
+        "endLine": 113,
+        "endColumn": 10,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Memory' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "PaddedCpuUnits",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.Memory",
+        "category": "Best Practice",
+        "startLine": 114,
+        "startColumn": 7,
+        "endLine": 114,
+        "endColumn": 13,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "PaddedCpuUnits",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.ContainerDefinitions",
+        "category": "Best Practice",
+        "startLine": 115,
+        "startColumn": 7,
+        "endLine": 115,
+        "endColumn": 27,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Family' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ConditionallyPinnedPlacement",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.Family",
+        "category": "Best Practice",
+        "startLine": 125,
+        "startColumn": 7,
+        "endLine": 125,
+        "endColumn": 13,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'RequiresCompatibilities' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ConditionallyPinnedPlacement",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.RequiresCompatibilities",
+        "category": "Best Practice",
+        "startLine": 126,
+        "startColumn": 7,
+        "endLine": 126,
+        "endColumn": 30,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'NetworkMode' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ConditionallyPinnedPlacement",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.NetworkMode",
+        "category": "Best Practice",
+        "startLine": 128,
+        "startColumn": 7,
+        "endLine": 128,
+        "endColumn": 18,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Cpu' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ConditionallyPinnedPlacement",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.Cpu",
+        "category": "Best Practice",
+        "startLine": 129,
+        "startColumn": 7,
+        "endLine": 129,
+        "endColumn": 10,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Memory' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ConditionallyPinnedPlacement",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.Memory",
+        "category": "Best Practice",
+        "startLine": 130,
+        "startColumn": 7,
+        "endLine": 130,
+        "endColumn": 13,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'PlacementConstraints' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ConditionallyPinnedPlacement",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.PlacementConstraints",
+        "category": "Best Practice",
+        "startLine": 131,
+        "startColumn": 7,
+        "endLine": 131,
+        "endColumn": 27,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Fn::If on condition 'PinPlacement'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ConditionallyPinnedPlacement",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.ContainerDefinitions",
+        "category": "Best Practice",
+        "startLine": 136,
+        "startColumn": 7,
+        "endLine": 136,
         "endColumn": 27,
         "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
         "ruleDescription": "Create-only property updated triggers resource replacement",
@@ -10586,9 +10988,9 @@
         "propertyPath": "Properties.Tags",
         "suggestedFix": "Add Tags to improve resource organization and cost tracking",
         "category": "Best Practice",
-        "startLine": 7,
+        "startLine": 18,
         "startColumn": 5,
-        "endLine": 7,
+        "endLine": 18,
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"
@@ -10606,9 +11008,9 @@
         "propertyPath": "Properties.Tags",
         "suggestedFix": "Add Tags to improve resource organization and cost tracking",
         "category": "Best Practice",
-        "startLine": 18,
+        "startLine": 29,
         "startColumn": 5,
-        "endLine": 18,
+        "endLine": 29,
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"
@@ -10626,9 +11028,9 @@
         "propertyPath": "Properties.Tags",
         "suggestedFix": "Add Tags to improve resource organization and cost tracking",
         "category": "Best Practice",
-        "startLine": 32,
+        "startLine": 43,
         "startColumn": 5,
-        "endLine": 32,
+        "endLine": 43,
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"
@@ -10646,9 +11048,9 @@
         "propertyPath": "Properties.Tags",
         "suggestedFix": "Add Tags to improve resource organization and cost tracking",
         "category": "Best Practice",
-        "startLine": 46,
+        "startLine": 57,
         "startColumn": 5,
-        "endLine": 46,
+        "endLine": 57,
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"
@@ -10666,9 +11068,9 @@
         "propertyPath": "Properties.Tags",
         "suggestedFix": "Add Tags to improve resource organization and cost tracking",
         "category": "Best Practice",
-        "startLine": 60,
+        "startLine": 71,
         "startColumn": 5,
-        "endLine": 60,
+        "endLine": 71,
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"
@@ -10686,9 +11088,49 @@
         "propertyPath": "Properties.Tags",
         "suggestedFix": "Add Tags to improve resource organization and cost tracking",
         "category": "Best Practice",
-        "startLine": 77,
+        "startLine": 88,
         "startColumn": 5,
-        "endLine": 77,
+        "endLine": 88,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'PaddedCpuUnits' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "PaddedCpuUnits",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 108,
+        "startColumn": 5,
+        "endLine": 108,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'ConditionallyPinnedPlacement' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ConditionallyPinnedPlacement",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 124,
+        "startColumn": 5,
+        "endLine": 124,
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"
@@ -132724,12 +133166,12 @@
     "status": "OK",
     "version": "1.6.0",
     "metadata": {
-      "resourcesScanned": 4,
+      "resourcesScanned": 7,
       "counts": {
         "fatal": 0,
         "errors": 0,
         "warnings": 2,
-        "informational": 26,
+        "informational": 49,
         "debug": 0
       },
       "suppressed": 0,
@@ -132749,9 +133191,9 @@
         },
         "propertyPath": "Properties.Cpu",
         "category": "Best Practice",
-        "startLine": 32,
+        "startLine": 43,
         "startColumn": 7,
-        "endLine": 32,
+        "endLine": 43,
         "endColumn": 10,
         "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
         "ruleDescription": "Property type coercion warning",
@@ -132769,9 +133211,9 @@
         },
         "propertyPath": "Properties.Memory",
         "category": "Best Practice",
-        "startLine": 33,
+        "startLine": 44,
         "startColumn": 7,
-        "endLine": 33,
+        "endLine": 44,
         "endColumn": 13,
         "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
         "ruleDescription": "Property type coercion warning",
@@ -132789,9 +133231,9 @@
         },
         "propertyPath": "Properties.Family",
         "category": "Best Practice",
-        "startLine": 8,
+        "startLine": 19,
         "startColumn": 7,
-        "endLine": 8,
+        "endLine": 19,
         "endColumn": 13,
         "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
         "ruleDescription": "Create-only property updated triggers resource replacement",
@@ -132812,9 +133254,9 @@
         },
         "propertyPath": "Properties.RequiresCompatibilities",
         "category": "Best Practice",
-        "startLine": 9,
+        "startLine": 20,
         "startColumn": 7,
-        "endLine": 9,
+        "endLine": 20,
         "endColumn": 30,
         "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
         "ruleDescription": "Create-only property updated triggers resource replacement",
@@ -132835,9 +133277,9 @@
         },
         "propertyPath": "Properties.NetworkMode",
         "category": "Best Practice",
-        "startLine": 11,
+        "startLine": 22,
         "startColumn": 7,
-        "endLine": 11,
+        "endLine": 22,
         "endColumn": 18,
         "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
         "ruleDescription": "Create-only property updated triggers resource replacement",
@@ -132858,9 +133300,9 @@
         },
         "propertyPath": "Properties.Cpu",
         "category": "Best Practice",
-        "startLine": 12,
+        "startLine": 23,
         "startColumn": 7,
-        "endLine": 12,
+        "endLine": 23,
         "endColumn": 10,
         "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
         "ruleDescription": "Create-only property updated triggers resource replacement",
@@ -132881,9 +133323,9 @@
         },
         "propertyPath": "Properties.Memory",
         "category": "Best Practice",
-        "startLine": 13,
+        "startLine": 24,
         "startColumn": 7,
-        "endLine": 13,
+        "endLine": 24,
         "endColumn": 13,
         "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
         "ruleDescription": "Create-only property updated triggers resource replacement",
@@ -132904,9 +133346,9 @@
         },
         "propertyPath": "Properties.ContainerDefinitions",
         "category": "Best Practice",
-        "startLine": 14,
+        "startLine": 25,
         "startColumn": 7,
-        "endLine": 14,
+        "endLine": 25,
         "endColumn": 27,
         "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
         "ruleDescription": "Create-only property updated triggers resource replacement",
@@ -132927,9 +133369,9 @@
         },
         "propertyPath": "Properties.Family",
         "category": "Best Practice",
-        "startLine": 28,
+        "startLine": 39,
         "startColumn": 7,
-        "endLine": 28,
+        "endLine": 39,
         "endColumn": 13,
         "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
         "ruleDescription": "Create-only property updated triggers resource replacement",
@@ -132950,9 +133392,9 @@
         },
         "propertyPath": "Properties.RequiresCompatibilities",
         "category": "Best Practice",
-        "startLine": 29,
+        "startLine": 40,
         "startColumn": 7,
-        "endLine": 29,
+        "endLine": 40,
         "endColumn": 30,
         "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
         "ruleDescription": "Create-only property updated triggers resource replacement",
@@ -132973,9 +133415,9 @@
         },
         "propertyPath": "Properties.NetworkMode",
         "category": "Best Practice",
-        "startLine": 31,
+        "startLine": 42,
         "startColumn": 7,
-        "endLine": 31,
+        "endLine": 42,
         "endColumn": 18,
         "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
         "ruleDescription": "Create-only property updated triggers resource replacement",
@@ -132996,9 +133438,9 @@
         },
         "propertyPath": "Properties.Cpu",
         "category": "Best Practice",
-        "startLine": 32,
+        "startLine": 43,
         "startColumn": 7,
-        "endLine": 32,
+        "endLine": 43,
         "endColumn": 10,
         "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
         "ruleDescription": "Create-only property updated triggers resource replacement",
@@ -133019,9 +133461,9 @@
         },
         "propertyPath": "Properties.Memory",
         "category": "Best Practice",
-        "startLine": 33,
+        "startLine": 44,
         "startColumn": 7,
-        "endLine": 33,
+        "endLine": 44,
         "endColumn": 13,
         "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
         "ruleDescription": "Create-only property updated triggers resource replacement",
@@ -133042,9 +133484,9 @@
         },
         "propertyPath": "Properties.ContainerDefinitions",
         "category": "Best Practice",
-        "startLine": 34,
+        "startLine": 45,
         "startColumn": 7,
-        "endLine": 34,
+        "endLine": 45,
         "endColumn": 27,
         "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
         "ruleDescription": "Create-only property updated triggers resource replacement",
@@ -133065,9 +133507,9 @@
         },
         "propertyPath": "Properties.Family",
         "category": "Best Practice",
-        "startLine": 46,
+        "startLine": 57,
         "startColumn": 7,
-        "endLine": 46,
+        "endLine": 57,
         "endColumn": 13,
         "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
         "ruleDescription": "Create-only property updated triggers resource replacement",
@@ -133088,9 +133530,9 @@
         },
         "propertyPath": "Properties.RequiresCompatibilities",
         "category": "Best Practice",
-        "startLine": 47,
+        "startLine": 58,
         "startColumn": 7,
-        "endLine": 47,
+        "endLine": 58,
         "endColumn": 30,
         "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
         "ruleDescription": "Create-only property updated triggers resource replacement",
@@ -133111,9 +133553,9 @@
         },
         "propertyPath": "Properties.NetworkMode",
         "category": "Best Practice",
-        "startLine": 49,
+        "startLine": 60,
         "startColumn": 7,
-        "endLine": 49,
+        "endLine": 60,
         "endColumn": 18,
         "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
         "ruleDescription": "Create-only property updated triggers resource replacement",
@@ -133134,9 +133576,9 @@
         },
         "propertyPath": "Properties.Cpu",
         "category": "Best Practice",
-        "startLine": 50,
+        "startLine": 61,
         "startColumn": 7,
-        "endLine": 50,
+        "endLine": 61,
         "endColumn": 10,
         "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
         "ruleDescription": "Create-only property updated triggers resource replacement",
@@ -133157,9 +133599,9 @@
         },
         "propertyPath": "Properties.Memory",
         "category": "Best Practice",
-        "startLine": 51,
+        "startLine": 62,
         "startColumn": 7,
-        "endLine": 51,
+        "endLine": 62,
         "endColumn": 13,
         "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
         "ruleDescription": "Create-only property updated triggers resource replacement",
@@ -133180,9 +133622,9 @@
         },
         "propertyPath": "Properties.ContainerDefinitions",
         "category": "Best Practice",
-        "startLine": 52,
+        "startLine": 63,
         "startColumn": 7,
-        "endLine": 52,
+        "endLine": 63,
         "endColumn": 27,
         "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
         "ruleDescription": "Create-only property updated triggers resource replacement",
@@ -133203,9 +133645,9 @@
         },
         "propertyPath": "Properties.Family",
         "category": "Best Practice",
-        "startLine": 64,
+        "startLine": 75,
         "startColumn": 7,
-        "endLine": 64,
+        "endLine": 75,
         "endColumn": 13,
         "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
         "ruleDescription": "Create-only property updated triggers resource replacement",
@@ -133226,9 +133668,9 @@
         },
         "propertyPath": "Properties.RequiresCompatibilities",
         "category": "Best Practice",
-        "startLine": 65,
+        "startLine": 76,
         "startColumn": 7,
-        "endLine": 65,
+        "endLine": 76,
         "endColumn": 30,
         "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
         "ruleDescription": "Create-only property updated triggers resource replacement",
@@ -133249,9 +133691,9 @@
         },
         "propertyPath": "Properties.PlacementConstraints",
         "category": "Best Practice",
-        "startLine": 67,
+        "startLine": 78,
         "startColumn": 7,
-        "endLine": 67,
+        "endLine": 78,
         "endColumn": 27,
         "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
         "ruleDescription": "Create-only property updated triggers resource replacement",
@@ -133272,9 +133714,470 @@
         },
         "propertyPath": "Properties.ContainerDefinitions",
         "category": "Best Practice",
-        "startLine": 70,
+        "startLine": 81,
         "startColumn": 7,
-        "endLine": 70,
+        "endLine": 81,
+        "endColumn": 27,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Family' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "RemovedPlacementConstraints",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.Family",
+        "category": "Best Practice",
+        "startLine": 95,
+        "startColumn": 7,
+        "endLine": 95,
+        "endColumn": 13,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'RequiresCompatibilities' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "RemovedPlacementConstraints",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.RequiresCompatibilities",
+        "category": "Best Practice",
+        "startLine": 96,
+        "startColumn": 7,
+        "endLine": 96,
+        "endColumn": 30,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'NetworkMode' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "RemovedPlacementConstraints",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.NetworkMode",
+        "category": "Best Practice",
+        "startLine": 98,
+        "startColumn": 7,
+        "endLine": 98,
+        "endColumn": 18,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Cpu' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "RemovedPlacementConstraints",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.Cpu",
+        "category": "Best Practice",
+        "startLine": 99,
+        "startColumn": 7,
+        "endLine": 99,
+        "endColumn": 10,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Memory' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "RemovedPlacementConstraints",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.Memory",
+        "category": "Best Practice",
+        "startLine": 100,
+        "startColumn": 7,
+        "endLine": 100,
+        "endColumn": 13,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'PlacementConstraints' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "RemovedPlacementConstraints",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.PlacementConstraints",
+        "category": "Best Practice",
+        "startLine": 101,
+        "startColumn": 7,
+        "endLine": 101,
+        "endColumn": 27,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "RemovedPlacementConstraints",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.ContainerDefinitions",
+        "category": "Best Practice",
+        "startLine": 102,
+        "startColumn": 7,
+        "endLine": 102,
+        "endColumn": 27,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Family' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ConditionallyRemovedPlacementConstraints",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.Family",
+        "category": "Best Practice",
+        "startLine": 116,
+        "startColumn": 7,
+        "endLine": 116,
+        "endColumn": 13,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'RequiresCompatibilities' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ConditionallyRemovedPlacementConstraints",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.RequiresCompatibilities",
+        "category": "Best Practice",
+        "startLine": 117,
+        "startColumn": 7,
+        "endLine": 117,
+        "endColumn": 30,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'NetworkMode' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ConditionallyRemovedPlacementConstraints",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.NetworkMode",
+        "category": "Best Practice",
+        "startLine": 119,
+        "startColumn": 7,
+        "endLine": 119,
+        "endColumn": 18,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Cpu' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ConditionallyRemovedPlacementConstraints",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.Cpu",
+        "category": "Best Practice",
+        "startLine": 120,
+        "startColumn": 7,
+        "endLine": 120,
+        "endColumn": 10,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Memory' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ConditionallyRemovedPlacementConstraints",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.Memory",
+        "category": "Best Practice",
+        "startLine": 121,
+        "startColumn": 7,
+        "endLine": 121,
+        "endColumn": 13,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'PlacementConstraints' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ConditionallyRemovedPlacementConstraints",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.PlacementConstraints",
+        "category": "Best Practice",
+        "startLine": 122,
+        "startColumn": 7,
+        "endLine": 122,
+        "endColumn": 27,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Fn::If on condition 'PinPlacement'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ConditionallyRemovedPlacementConstraints",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.ContainerDefinitions",
+        "category": "Best Practice",
+        "startLine": 123,
+        "startColumn": 7,
+        "endLine": 123,
+        "endColumn": 27,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Family' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "PaddedMemorySize",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.Family",
+        "category": "Best Practice",
+        "startLine": 139,
+        "startColumn": 7,
+        "endLine": 139,
+        "endColumn": 13,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'RequiresCompatibilities' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "PaddedMemorySize",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.RequiresCompatibilities",
+        "category": "Best Practice",
+        "startLine": 140,
+        "startColumn": 7,
+        "endLine": 140,
+        "endColumn": 30,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'NetworkMode' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "PaddedMemorySize",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.NetworkMode",
+        "category": "Best Practice",
+        "startLine": 142,
+        "startColumn": 7,
+        "endLine": 142,
+        "endColumn": 18,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Cpu' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "PaddedMemorySize",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.Cpu",
+        "category": "Best Practice",
+        "startLine": 143,
+        "startColumn": 7,
+        "endLine": 143,
+        "endColumn": 10,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Memory' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "PaddedMemorySize",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.Memory",
+        "category": "Best Practice",
+        "startLine": 144,
+        "startColumn": 7,
+        "endLine": 144,
+        "endColumn": 13,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "PaddedMemorySize",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.ContainerDefinitions",
+        "category": "Best Practice",
+        "startLine": 145,
+        "startColumn": 7,
+        "endLine": 145,
         "endColumn": 27,
         "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
         "ruleDescription": "Create-only property updated triggers resource replacement",
@@ -133296,9 +134199,9 @@
         "propertyPath": "Properties.Tags",
         "suggestedFix": "Add Tags to improve resource organization and cost tracking",
         "category": "Best Practice",
-        "startLine": 7,
+        "startLine": 18,
         "startColumn": 5,
-        "endLine": 7,
+        "endLine": 18,
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"
@@ -133316,9 +134219,9 @@
         "propertyPath": "Properties.Tags",
         "suggestedFix": "Add Tags to improve resource organization and cost tracking",
         "category": "Best Practice",
-        "startLine": 27,
+        "startLine": 38,
         "startColumn": 5,
-        "endLine": 27,
+        "endLine": 38,
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"
@@ -133336,9 +134239,9 @@
         "propertyPath": "Properties.Tags",
         "suggestedFix": "Add Tags to improve resource organization and cost tracking",
         "category": "Best Practice",
-        "startLine": 45,
+        "startLine": 56,
         "startColumn": 5,
-        "endLine": 45,
+        "endLine": 56,
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"
@@ -133356,9 +134259,69 @@
         "propertyPath": "Properties.Tags",
         "suggestedFix": "Add Tags to improve resource organization and cost tracking",
         "category": "Best Practice",
-        "startLine": 63,
+        "startLine": 74,
         "startColumn": 5,
-        "endLine": 63,
+        "endLine": 74,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'RemovedPlacementConstraints' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "RemovedPlacementConstraints",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 94,
+        "startColumn": 5,
+        "endLine": 94,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'ConditionallyRemovedPlacementConstraints' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ConditionallyRemovedPlacementConstraints",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 115,
+        "startColumn": 5,
+        "endLine": 115,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'PaddedMemorySize' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "PaddedMemorySize",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 138,
+        "startColumn": 5,
+        "endLine": 138,
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"
