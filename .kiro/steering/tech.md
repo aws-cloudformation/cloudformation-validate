@@ -21,9 +21,17 @@ into the binary — no runtime fetching.
 pipeline yourself**. Regeneration is a maintainer-run operation; if a change requires regenerating these artifacts,
 stop and ask the user to run it.
 
-## Cargo usage rules
+Generated binding artifacts are owned and committed by the `build-artifacts` workflow, not by local development
+changes. If binding generation is required to test a change, generate the bindings locally, run the affected binding
+checks, then revert every generated binding artifact before finishing. Commit only the hand-maintained source change;
+the workflow will commit required generated artifacts.
 
-All `cargo` commands run from `src/` (the workspace root is the repo root; the Cargo workspace lives in `src/`).
+## Cargo usage and change-appropriate validation
+
+All `cargo` commands run from `src/` (the workspace root is the repo root; the Cargo workspace lives in `src/`). Select
+checks by the behavior and artifact changed, not from a blanket checklist. Run a command only when it can exercise the
+change. If no files changed, run no tests or validation commands. For mixed changes, apply the union of the relevant
+checks.
 
 ```bash
 cd src
@@ -32,16 +40,32 @@ cd src
 cargo build                                   # whole workspace (debug)
 cargo build -p cfn-validate                   # CLI -> target/debug/cfn-validate (add --release for optimized)
 
-# Test — full workspace tests are EXPENSIVE: run targeted tests while iterating, and the full suite ONCE at the
-# end of the task. Tee the output; never re-run to grab different output, never filter through head/tail/grep.
+# Core Rust tests — only when these tests exercise the changed behavior
 cargo test -p cel-engine <name>               # single crate / filtered test — preferred while iterating
-cargo test --workspace 2>&1 | tee ../tmp/test-output.txt   # full suite — once, at task completion
+cargo test --workspace 2>&1 | tee ../tmp/test-output.txt   # broad core changes only; at most once at completion
 # CI runs coverage, not plain test: cargo llvm-cov --locked --release --workspace --no-fail-fast
 
-# Format + lint — run BOTH after every code change; CI gates on both; must pass clean
+# Required after every Rust source change
 cargo fmt --all
 cargo clippy --locked --all-targets --workspace -- -D warnings
 ```
+
+Apply these rules when choosing validation:
+
+- **Core Rust (`*.rs`) changes:** always run `cargo fmt --all` and workspace clippy. Run the narrowest Cargo tests that
+  cover the changed behavior. Run the full workspace test suite only for broad or cross-crate core changes for which it
+  provides meaningful coverage.
+- **Binding-layer Rust changes** under `bindings-wasm`, `bindings-jvm`, `bindings-python`, or `bindings-go`: always run
+  Rust format and clippy, then build and test the affected consumer artifact with that binding's `build.sh` and
+  `tests/run.sh`. Do not run `cargo test` merely as a substitute; the Cargo suite does not exercise the packaged
+  Node.js, JVM, Python, or Go API. Run Cargo tests only if the same change also affects core behavior they cover. If
+  local binding generation is needed, revert its generated output after testing because `build-artifacts` owns it.
+- **Non-Rust-only changes** such as documentation, GitHub workflows, scripts, or binding-language code: do not run
+  Cargo format, clippy, or tests unless the changed file is a Cargo/build input and the command actually exercises it.
+  Use the relevant syntax checker, build, test runner, or dry-run for the changed artifact instead.
+- **Rule, schema-data, or template changes:** run the focused validator, parity, corpus, and golden-file checks that
+  exercise the changed diagnostics. A file being non-Rust does not remove those domain-specific requirements, but it
+  also does not justify unrelated Cargo tests.
 
 Regenerate the golden file (`resources/expected/all_templates.json`) after any change that alters diagnostics:
 
@@ -51,12 +75,17 @@ cargo run --release -p resources --example generate_golden
 
 It runs both engines on the whole corpus in parallel, verifies they agree, and rewrites the golden file.
 
-## Reference projects — correctness baselines
+## Reference projects — compatibility evidence
 
-Check these before implementing or fixing rules. If our output differs from the applicable reference, we are wrong.
+Derive expected validation behavior first from CloudFormation's schemas, documented syntax, and intrinsic/resource
+semantics, using focused valid and invalid templates. Then compare against the applicable external implementation.
+A mismatch must be investigated; it does not by itself prove which implementation is correct.
 
-- **cfn-lint** (E/W/I rules): `cfn-lint <template>` — cfn-lint-sourced rules must match on firing and location
-  (messages may be more descriptive — see `product.md`).
+- **cfn-lint** (E/W/I rules): `cfn-lint <template>` — a rule whose number matches cfn-lint SHOULD implement the same
+  check and behave similarly on firing and location, including an E→F promotion with the same numeric portion. Use the
+  comparison as compatibility evidence: cfn-lint can be incorrect, so never copy its behavior solely to make a
+  comparison pass. An intentional divergence requires stronger CloudFormation evidence and focused regression coverage
+  for both accepted and rejected cases (messages may be more descriptive — see `product.md`).
 - **cloudformation-guard** (Guard DSL): `cfn-guard validate -d <template> -r <rules.guard>` — `guard-translator`
   output must match Guard's evaluation.
 
@@ -111,23 +140,29 @@ Apply fixes at the highest-leverage layer, in this order:
 3. Only if neither applies — `schema-validator`, `rego-engine`, or `cel-engine`. The fix MUST be applied to both engines
    in the same change. Parity is non-negotiable.
 
-## Mandatory validation procedure
+## Validation procedure for diagnostic behavior changes
 
-A fix is not done until all of the following pass. No shortcuts.
+A validation-behavior fix is not done until every applicable step below passes. These steps do not apply wholesale to
+unrelated changes such as documentation or workflow-only edits.
 
-1. Identify or create a test template in `src/resources/templates/`. Repro in `templates/bad/`, counter-example in
+1. Establish the expected behavior from first principles using CloudFormation schemas, official documentation and
+   specifications, intrinsic/resource semantics, and focused valid and invalid examples.
+2. Identify or create a test template in `src/resources/templates/`. Repro in `templates/bad/`, counter-example in
    `templates/good/` if false-positive risk exists.
-2. Check the SemanticModel with `inspect`. If the model is wrong, fix template-model first.
-3. Run against the applicable reference (cfn-lint for E/W/I, cloudformation-guard for Guard). Confirm match. Fatal
-   rules are validated against the compiled CloudFormation resource schemas — confirm the diagnostic reflects what
-   the schema actually requires.
-4. Run `cfn-validate` with both `--engine rego` and `--engine cel` on the repro template. Outputs must be identical on
+3. Check the SemanticModel with `inspect`. If the model is wrong, fix template-model first.
+4. Compare against the applicable external implementation (cfn-lint for E/W/I, cloudformation-guard for Guard). If
+   cfn-lint differs, investigate and resolve the mismatch using the first-principles evidence; do not assume cfn-lint
+   is correct. Fatal rules are checked against the compiled schemas.
+5. Run `cfn-validate` with both `--engine rego` and `--engine cel` on the repro template. Outputs must be identical on
    rule ID, severity, location, and message.
-5. Run the full test corpus with both engines. Zero new false positives on `templates/good/`. Regenerate the golden
+6. Run the full test corpus with both engines. Zero new false positives on `templates/good/`. Regenerate the golden
    file if diagnostics legitimately changed.
-6. Run `cargo test --workspace` (the full suite — once, at the end of the task; use targeted `cargo test -p <crate>`
-   while iterating). All tests pass.
-7. Run `cargo fmt --all` and `cargo clippy --locked --all-targets --workspace -- -D warnings`. Both clean.
+7. For core Rust changes, run targeted Cargo tests that cover the change; use `cargo test --workspace` once only when
+   the broad suite provides relevant coverage. Do not use Cargo tests to validate binding-only changes.
+8. For every Rust source change, run `cargo fmt --all` and
+   `cargo clippy --locked --all-targets --workspace -- -D warnings`.
+9. For binding changes, build the affected binding and run its `tests/run.sh` so the packaged consumer API is tested;
+   revert any locally generated binding artifacts afterward.
 
 ## Code quality — mandatory for every code change
 
