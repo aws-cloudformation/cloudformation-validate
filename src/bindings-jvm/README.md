@@ -11,7 +11,8 @@ All types live in the `software.amazon.cloudformation.validate` package.
 
 ## Installation
 
-Available on [Maven Central](https://central.sonatype.com/artifact/software.amazon.cloudformation/cloudformation-validate)
+Available
+on [Maven Central](https://central.sonatype.com/artifact/software.amazon.cloudformation/cloudformation-validate)
 as `software.amazon.cloudformation:cloudformation-validate`. Both snippets below resolve the latest published version;
 substitute a specific version to pin one.
 
@@ -24,6 +25,7 @@ implementation 'software.amazon.cloudformation:cloudformation-validate:latest.re
 Maven:
 
 ```xml
+
 <dependency>
     <groupId>software.amazon.cloudformation</groupId>
     <artifactId>cloudformation-validate</artifactId>
@@ -83,11 +85,11 @@ val engine = RegoEngine()                                          // default co
 val engine = CelEngine(EngineConfig(guardRules = listOf(myRule)))  // with Guard rules
 ```
 
-| Field               | Default       | Description                                                                                   |
-|---------------------|---------------|-----------------------------------------------------------------------------------------------|
-| `customRules`       | `emptyList()` | Engine-native rules (Rego for `RegoEngine`, CEL for `CelEngine`)                              |
-| `guardRules`        | `emptyList()` | CloudFormation Guard DSL rules — translated internally by each engine                         |
-| `schemaValidatorConfig`   | `null`        | Optional `SchemaValidatorConfig` with additional schemas merged over bundled schemas           |
+| Field                   | Default       | Description                                                                          |
+|-------------------------|---------------|--------------------------------------------------------------------------------------|
+| `customRules`           | `emptyList()` | Engine-native rules (Rego for `RegoEngine`, CEL for `CelEngine`)                     |
+| `guardRules`            | `emptyList()` | CloudFormation Guard DSL rules — translated internally by each engine                |
+| `schemaValidatorConfig` | `null`        | Optional `SchemaValidatorConfig` with additional schemas merged over bundled schemas |
 
 Load an additional schema with `fileToAdditionalSchemaSource(file, typeName = null)`, or construct an
 `AdditionalSchemaSource` from schema text. `typeName` may be omitted when the JSON contains its own `typeName`:
@@ -129,14 +131,14 @@ val config = ValidateConfig(
 val report = engine.validateStandard(File("template.yaml"), config)
 ```
 
-| Field                      | Default                  | Description                                                                                                              |
-|----------------------------|--------------------------|--------------------------------------------------------------------------------------------------------------------------|
-| `include`                  | empty (all rules)        | When set, only matching rules produce diagnostics. Empty means include everything.                                       |
-| `exclude`                  | empty (nothing excluded) | Matching rules are suppressed. Applied after `include`.                                                                  |
-| `severityLevel`            | `INFO`                   | Minimum severity threshold. Diagnostics below this level are dropped. Values: `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`. |
-| `parameterOverrides`       | `emptyMap()`             | Override template parameter values during resolution. Keys are parameter logical IDs.                                    |
-| `pseudoParameterOverrides` | all `null`               | Override CloudFormation pseudo-parameters (`AWS::AccountId`, `AWS::Region`, etc.).                                       |
-| `strict`                   | `false`                  | When `true`, `WARN`-severity diagnostics are upgraded to `ERROR`.                                                        |
+| Field                      | Default                  | Description                                                                                                                               |
+|----------------------------|--------------------------|-------------------------------------------------------------------------------------------------------------------------------------------|
+| `include`                  | empty (all rules)        | When set, only matching rules produce diagnostics. Empty means include everything.                                                        |
+| `exclude`                  | empty (nothing excluded) | Matching rules are suppressed. Applied after `include`.                                                                                   |
+| `severityLevel`            | `INFO`                   | Minimum severity threshold. Diagnostics below this level are dropped. Values: `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`.                  |
+| `parameterOverrides`       | `emptyMap()`             | Override template parameter values during resolution. Keys are parameter logical IDs.                                                     |
+| `pseudoParameterOverrides` | all `null`               | Override CloudFormation pseudo-parameters (`AWS::AccountId`, `AWS::Region`, etc.).                                                        |
+| `strict`                   | `false`                  | When `true`, `WARN`-severity diagnostics are upgraded to `ERROR`.                                                                         |
 | `disableBuiltinRules`      | `false`                  | When `true`, all built-in rules (schema validation, Step Functions, engine rules) are skipped; only custom and Guard rules are evaluated. |
 
 ### RuleFilterConfig
@@ -273,7 +275,6 @@ data class Entity(
 )
 
 enum class EntityType {
-    RESOURCE, PARAMETER, OUTPUT, MAPPING, METADATA,
-    RULE, CONDITION, TRANSFORM, FORMAT_VERSION, DESCRIPTION,
+    RESOURCE, PARAMETER, OUTPUT, MAPPING, METADATA, RULE, CONDITION, TRANSFORM, FORMAT_VERSION, DESCRIPTION,
 }
 ```

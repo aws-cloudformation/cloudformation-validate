@@ -45,20 +45,31 @@ CloudFormation resource schemas — no semantic interpretation, no cross-resourc
 requiring those belongs to E/W/I and is evaluated by the rule engines. cfn-lint-sourced rules keep their original
 E/W/I severity.
 
-## Relationship to cfn-lint — the correctness baseline
+## Relationship to cfn-lint — compatibility evidence
+
+Correctness does not come from reproducing another tool. Derive how validation **should** behave from first principles
+using the strongest available evidence: compiled CloudFormation resource schemas and template syntax, official
+CloudFormation documentation and resource specifications, intrinsic and resource semantics, and focused valid and
+invalid templates. cfn-lint is a valuable compatibility comparison, but it is not authoritative and can contain bugs.
 
 cfn-lint has no Fatal severity: both **Fatal (F)** and **Error (E)** here map to a cfn-lint **Error**. A Fatal rule
-promoted from a cfn-lint Error keeps the cfn-lint number with the prefix changed (e.g. `F3006` ↔ cfn-lint `E3006`) —
-same trigger and location, only the local severity differs.
+promoted from a cfn-lint Error keeps the cfn-lint number with the prefix changed (e.g. `F3006` ↔ cfn-lint `E3006`).
+The numbering relationship does not make cfn-lint the source of truth for the rule's behavior. A rule whose number
+matches cfn-lint SHOULD implement the same check and behave similarly on firing and location, including a
+schema-grounded E→F promotion with the same numeric portion.
 
-cfn-lint-sourced E/W/I rules must match cfn-lint on **firing and location** — the same rule triggers on the same
-construct at the same location (or a more precise one). That is the baseline: if whether-or-where a rule fires
-differs, we are wrong. But **rule descriptions and diagnostic messages may and should be more accurate and descriptive
-than cfn-lint's** — the accuracy check (`scripts/compare_cfnlint.py`) matches on rule ID + resource + path, not
-message text, so clearer wording is never a mismatch. Guard DSL rules are baselined against `cfn-guard validate`.
+cfn-lint-sourced E/W/I rules should normally match cfn-lint on **firing and location**, and comparison against it is a
+required compatibility check for those rules. A mismatch is evidence to investigate, not proof that this project is
+wrong. Establish the expected behavior independently before changing an implementation; never copy cfn-lint behavior
+solely to make a comparison pass. If first-principles evidence shows that cfn-lint is incorrect, intentionally diverge
+and add focused regression coverage for both the accepted and rejected cases. Record the evidence and rationale in the
+change description. **Rule descriptions and diagnostic messages may and should be more accurate and descriptive than
+cfn-lint's** — `scripts/compare_cfnlint.py` matches on rule ID + resource + path, not message text. Guard DSL rules are
+compared against `cfn-guard validate`.
 
-**False positives compared to cfn-lint are never allowed.** Any rule that has a cfn-lint equivalent and fires where
-cfn-lint would not is a false positive — a bug, not an "extra finding."
+A finding that cfn-lint does not emit is a **candidate false positive** when the rule has a cfn-lint equivalent. It must
+be investigated and is accepted only when authoritative evidence shows that the finding is correct and regression
+tests protect the intended behavior. It must not be relabeled as an "engine-extra" merely to excuse the mismatch.
 
 ### Rule origin taxonomy
 
@@ -83,8 +94,8 @@ engine-extra rules — get their own numbers in the **9xxx** range (e.g. `E9003`
 
 A rule is **"engine-extra"** (a correct finding cfn-lint never emits) *only* when it has no cfn-lint equivalent at
 all: true origin `Engine`/`Engine(collision)`, or a Schema Fatal with no cfn-lint promotion. Rules with *any* cfn-lint
-equivalent are excluded from "engine-extra," so an unmatched firing of one of them surfaces as a **false positive**
-rather than being excused. The one intentional exception is **W9003** (cfn-lint coerces silently; the engine warns).
+equivalent are excluded from "engine-extra"; unmatched behavior follows the evidence-based mismatch procedure above.
+**W9003** is a known intentional divergence: cfn-lint coerces silently while this engine warns.
 
 ## Non-negotiable principles
 
@@ -92,11 +103,14 @@ These apply to every change. No exceptions.
 
 - No half measures. Only completely correct solutions. Quick patches that leave root causes unaddressed are not
   acceptable.
+- Derive validation behavior from CloudFormation's contracts and semantics. External tools provide comparison evidence,
+  not unquestionable truth.
 - No silent failures. Unexpected states produce errors, never plausible-looking defaults.
 - No hard crashes. Errors and exceptions never panic the process — they propagate through the language boundary
   layers (JVM, Python, Go, WASM) as catchable errors so callers can handle them.
 - Fatal rules must reflect what CloudFormation itself rejects based on the compiled resource schemas.
-- cfn-lint-sourced rules must match cfn-lint on firing and location (messages may be better — see above).
+- Investigate cfn-lint mismatches; preserve compatibility when it is correct and intentionally diverge when stronger
+  evidence proves that it is not.
 - Rego and CEL engines must have parity — same rules, results, severities, messages.
-- Zero false positives against `resources/templates/good/` and against cfn-lint's rule set.
-- Every fix validated end-to-end on a real template with both `inspect` and `cfn-validate`.
+- Zero false positives against valid CloudFormation behavior and `resources/templates/good/`.
+- Every validation-behavior fix is validated end-to-end on a real template with both `inspect` and `cfn-validate`.
