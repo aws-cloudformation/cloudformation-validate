@@ -4,17 +4,17 @@ set -euo pipefail
 # ── Constants ─────────────────────────────────────────────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 WORKSPACE="$(cd "$SCRIPT_DIR/.." && pwd)"
+REPOSITORY_ROOT="$(cd "$WORKSPACE/.." && pwd)"
 GENERATED_DIR="$SCRIPT_DIR/generated"
 RELEASE_DIR="$WORKSPACE/target/release"
 PYTHON_SRC="$SCRIPT_DIR/python/cloudformation_validate"
 PACKAGE_DIR="$GENERATED_DIR/cloudformation_validate"
 WHEEL_DIR="$GENERATED_DIR/dist"
 
-ARCH="$(uname -m)"
+ARCH="$(bash "$REPOSITORY_ROOT/scripts/build-support/rust-host-architecture.sh")"
 case "$ARCH" in
-    arm64|aarch64) ARCH="aarch64" ;;
-    x86_64|amd64)  ARCH="x86-64"  ;;
-    *) echo "Unsupported architecture: $ARCH" >&2; exit 1 ;;
+    aarch64) ARCH="aarch64" ;;
+    x86_64)  ARCH="x86-64"  ;;
 esac
 
 case "$(uname -s)" in
