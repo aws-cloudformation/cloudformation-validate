@@ -121282,6 +121282,69 @@
       }
     ]
   },
+  "gh-issues/issue-247.json": {
+    "filePath": "gh-issues/issue-247.json",
+    "status": "OK",
+    "version": "1.7.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 2,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Type' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ALB",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElasticLoadBalancingV2::LoadBalancer"
+        },
+        "propertyPath": "Properties.Type",
+        "category": "Best Practice",
+        "startLine": 6,
+        "startColumn": 9,
+        "endLine": 6,
+        "endColumn": 14,
+        "documentationUrl": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-elasticloadbalancingv2-loadbalancer.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'ALB' of type 'AWS::ElasticLoadBalancingV2::LoadBalancer' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ALB",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElasticLoadBalancingV2::LoadBalancer"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 5,
+        "startColumn": 7,
+        "endLine": 5,
+        "endColumn": 18,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
   "gh-issues/issue-34-w2506-overfire.json": {
     "filePath": "gh-issues/issue-34-w2506-overfire.json",
     "status": "OK",
@@ -125918,7 +125981,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "dynamic (cross-stack output)"
+          "resolutionSource": "dynamic (cross-stack output: StackName=\"Stack1\", Region=\"us-east-1\", OutputName=\"PublishOutputFnGetAttMyResourceArn8F315E6B\")"
         }
       },
       {
