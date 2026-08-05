@@ -7,7 +7,7 @@ on:
         description: 'Iterations per template (positive integer)'
         required: false
         type: number
-        default: 5
+        default: 50
 
   schedule:
     # Weekly: every Monday at 06:00 UTC
@@ -27,7 +27,6 @@ jobs:
   benchmark:
     needs: [ get-configs ]
     runs-on: ubuntu-latest
-    timeout-minutes: 120
     env:
       WORKING_DIR: ${{ needs.get-configs.outputs.working-dir }}
     steps:
@@ -122,7 +121,7 @@ jobs:
       working-directory: ${{ env.WORKING_DIR }}
       run: |
         python3 ../scripts/compare_benchmarks.py \
-          --iterations ${{ inputs.iterations || 5 }}
+          --iterations ${{ inputs.iterations }}
 
     - name: Validate aggregates
       working-directory: ${{ env.WORKING_DIR }}
