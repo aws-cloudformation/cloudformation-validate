@@ -3,8 +3,9 @@
 //! These tests confirm the validator stays bounded and structured on adversarial
 //! input: oversized templates are rejected, deep nesting does not overflow the
 //! stack, pathological condition counts and closures resolve within a bounded
-//! budget, internal panics surface as structured errors, custom rules cannot
-//! reach host resources, and large templates validate without runaway cost.
+//! budget, conditions layered over shared inputs are still analyzed in full,
+//! internal panics surface as structured errors, custom rules cannot reach host
+//! resources, and large templates validate without runaway cost.
 //!
 //! The large/pathological fixtures live in `resources/security/` and are produced
 //! by `resources/security/generate.py`.
@@ -136,6 +137,35 @@ fn pathological_condition_closures_resolve_within_budget() {
              resolve within {COMPLETION_BUDGET:?}; the satisfiability budget must cap the work"
         );
         finished.unwrap().expect("validation should return a structured report");
+    }
+}
+
+#[test]
+fn conditions_layered_over_shared_inputs_are_analyzed_without_curtailing() {
+    // The shape that made CDK's default template validation stall for hours: two
+    // hundred conditions all reaching the same three inputs, so the whole
+    // condition set is connected through them. The deterministic,
+    // machine-independent signature that the analysis stayed affordable is the
+    // absence of the advisory that reports a curtailed satisfiability analysis —
+    // if deciding these conditions ever costs more than the budgets allow, the
+    // validator says so, and this test fails instead of merely getting slower.
+    const CURTAILED_ANALYSIS_ADVISORY: &str = "I9052";
+    for engine_name in ["rego", "cel"] {
+        let bytes = common::load_security("condition_fusion.yaml");
+        let finished = validate_within(COMPLETION_BUDGET, engine_name, bytes);
+        let rule_ids = finished
+            .unwrap_or_else(|| {
+                panic!(
+                    "{engine_name}: conditions layered over shared inputs must validate within \
+                     {COMPLETION_BUDGET:?}"
+                )
+            })
+            .expect("validation should return a structured report");
+        assert!(
+            !rule_ids.iter().any(|rule_id| rule_id == CURTAILED_ANALYSIS_ADVISORY),
+            "{engine_name}: every condition pair in this template must be decided within budget, \
+             so no curtailed-analysis advisory may be reported"
+        );
     }
 }
 
