@@ -6,3 +6,4 @@ generate_immutable_records = true
 rules = "software.amazon.cloudformation.validate.rules"
 diagnostics = "software.amazon.cloudformation.validate.diagnostics"
 template_model = "software.amazon.cloudformation.validate.templatemodel"
+schema_validator = "software.amazon.cloudformation.validate.schemavalidator"
