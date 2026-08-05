@@ -139,6 +139,10 @@ jobs:
     - name: Log tool versions
       uses: ./.github/actions/print-build-versions
 
+    - name: Test build support scripts
+      working-directory: scripts/build-support/tests
+      run: bash ./run.sh
+
     - name: Test
       working-directory: ${{ env.WORKING_DIR }}
       run: cargo llvm-cov --locked --release --workspace --no-fail-fast
