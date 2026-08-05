@@ -580,7 +580,7 @@ func uniffiCheckChecksums() {
 		checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 			return C.uniffi_bindings_go_checksum_constructor_goschemavalidator_new()
 		})
-		if checksum != 23400 {
+		if checksum != 22024 {
 			// If this happens try cleaning and rebuilding your project
 			panic("bindings_go: uniffi_bindings_go_checksum_constructor_goschemavalidator_new: UniFFI API checksum mismatch")
 		}
@@ -1094,10 +1094,16 @@ type GoSchemaValidator struct {
 	ffiObject FfiObject
 }
 
-func NewGoSchemaValidator() *GoSchemaValidator {
-	return FfiConverterGoSchemaValidatorINSTANCE.Lift(rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint64_t {
-		return C.uniffi_bindings_go_fn_constructor_goschemavalidator_new(_uniffiStatus)
-	}))
+func NewGoSchemaValidator(schemaConfigJson string) (*GoSchemaValidator, error) {
+	_uniffiRV, _uniffiErr := rustCallWithError[*ValidationError](FfiConverterValidationError{}, func(_uniffiStatus *C.RustCallStatus) C.uint64_t {
+		return C.uniffi_bindings_go_fn_constructor_goschemavalidator_new(FfiConverterStringINSTANCE.Lower(schemaConfigJson), _uniffiStatus)
+	})
+	if _uniffiErr != nil {
+		var _uniffiDefaultValue *GoSchemaValidator
+		return _uniffiDefaultValue, _uniffiErr
+	} else {
+		return FfiConverterGoSchemaValidatorINSTANCE.Lift(_uniffiRV), nil
+	}
 }
 
 // Returns the schema validator's rules as a JSON array of rule infos.

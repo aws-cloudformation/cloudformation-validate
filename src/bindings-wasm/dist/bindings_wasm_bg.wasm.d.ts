@@ -46,7 +46,7 @@ export const wasmregoengine_validateStandard: (
     f: number,
 ) => [number, number, number];
 export const wasmschemavalidator_listRules: (a: number) => [number, number, number];
-export const wasmschemavalidator_new: () => number;
+export const wasmschemavalidator_new: (a: any) => [number, number, number];
 export const wasmschemavalidator_schemaCount: (a: number) => number;
 export const wasmschemavalidator_validate: (a: number, b: number, c: number, d: number) => [number, number, number];
 export const wasmsemanticmodel_conditions: (a: number) => [number, number, number];

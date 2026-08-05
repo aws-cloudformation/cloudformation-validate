@@ -452,8 +452,7 @@ void uniffi_bindings_go_fn_free_goschemavalidator(uint64_t handle, RustCallStatu
 #endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_BINDINGS_GO_FN_CONSTRUCTOR_GOSCHEMAVALIDATOR_NEW
 #define UNIFFI_FFIDEF_UNIFFI_BINDINGS_GO_FN_CONSTRUCTOR_GOSCHEMAVALIDATOR_NEW
-uint64_t uniffi_bindings_go_fn_constructor_goschemavalidator_new(RustCallStatus *out_status
-    
+uint64_t uniffi_bindings_go_fn_constructor_goschemavalidator_new(RustBuffer schema_config_json, RustCallStatus *out_status
 );
 #endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_BINDINGS_GO_FN_METHOD_GOSCHEMAVALIDATOR_LIST_RULES_JSON
