@@ -1,13 +1,15 @@
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.DynamicTest
-import org.junit.jupiter.api.TestFactory
 import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.DynamicTest
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestFactory
 import org.junit.jupiter.api.assertThrows
 import software.amazon.cloudformation.validate.*
+import software.amazon.cloudformation.validate.datasource.AdditionalSchemaSource
 import software.amazon.cloudformation.validate.diagnostics.*
 import software.amazon.cloudformation.validate.engine.*
 import software.amazon.cloudformation.validate.gson.buildBindingsGson
 import software.amazon.cloudformation.validate.rules.*
+import software.amazon.cloudformation.validate.schemavalidator.SchemaValidatorConfig
 import java.io.File
 
 class SmokeTest {
@@ -142,7 +144,7 @@ class SmokeTest {
 
     @Test
     fun schemaValidatorExposesSchemasAndRules() {
-        val sv = JvmSchemaValidator()
+        val sv = JvmSchemaValidator(SchemaValidatorConfig())
         assertTrue(sv.schemaCount() > 0u, "schema count must be positive")
         val rules = sv.listRules()
         assertTrue(rules.isNotEmpty(), "schema validator must have rules")

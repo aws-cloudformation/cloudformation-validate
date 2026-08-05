@@ -1,13 +1,13 @@
 package software.amazon.cloudformation.validate
 
+import software.amazon.cloudformation.validate.datasource.AdditionalSchemaSource
 import software.amazon.cloudformation.validate.diagnostics.DetailedReport
 import software.amazon.cloudformation.validate.diagnostics.StandardDiagnostic
 import software.amazon.cloudformation.validate.diagnostics.StandardReport
-import software.amazon.cloudformation.validate.engine.AdditionalSchemaSource
 import software.amazon.cloudformation.validate.engine.EngineConfig
 import software.amazon.cloudformation.validate.engine.ExternalRuleSource
-import software.amazon.cloudformation.validate.engine.SchemaValidatorConfig
 import software.amazon.cloudformation.validate.rules.RuleInfo
+import software.amazon.cloudformation.validate.schemavalidator.SchemaValidatorConfig
 import java.io.File
 
 interface Engine {
