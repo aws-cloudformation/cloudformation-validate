@@ -3971,7 +3971,7 @@
         "startLine": 4,
         "startColumn": 3,
         "endLine": 4,
-        "endColumn": 16,
+        "endColumn": 10,
         "ruleDescription": "Fn::And must take between 2 and 10 boolean conditions",
         "phase": "PARSE"
       },
@@ -3989,7 +3989,7 @@
         "startLine": 5,
         "startColumn": 3,
         "endLine": 5,
-        "endColumn": 18,
+        "endColumn": 10,
         "ruleDescription": "Fn::And must take between 2 and 10 boolean conditions",
         "phase": "PARSE"
       },
@@ -4025,7 +4025,7 @@
         "startLine": 19,
         "startColumn": 3,
         "endLine": 19,
-        "endColumn": 22,
+        "endColumn": 10,
         "ruleDescription": "Fn::And must take between 2 and 10 boolean conditions",
         "phase": "PARSE"
       },
@@ -4043,7 +4043,7 @@
         "startLine": 19,
         "startColumn": 3,
         "endLine": 19,
-        "endColumn": 22,
+        "endColumn": 10,
         "ruleDescription": "Fn::And must take between 2 and 10 boolean conditions",
         "phase": "PARSE"
       },
@@ -4061,7 +4061,7 @@
         "startLine": 20,
         "startColumn": 3,
         "endLine": 20,
-        "endColumn": 18,
+        "endColumn": 10,
         "ruleDescription": "Fn::And must take between 2 and 10 boolean conditions",
         "phase": "PARSE"
       },
@@ -4079,7 +4079,7 @@
         "startLine": 20,
         "startColumn": 3,
         "endLine": 20,
-        "endColumn": 18,
+        "endColumn": 10,
         "ruleDescription": "Fn::And must take between 2 and 10 boolean conditions",
         "phase": "PARSE"
       },
@@ -4831,7 +4831,7 @@
         "startLine": 8,
         "startColumn": 3,
         "endLine": 8,
-        "endColumn": 12,
+        "endColumn": 13,
         "ruleDescription": "Fn::Equals must take exactly two scalar operands",
         "phase": "PARSE"
       },
@@ -4849,7 +4849,7 @@
         "startLine": 9,
         "startColumn": 3,
         "endLine": 9,
-        "endColumn": 19,
+        "endColumn": 13,
         "ruleDescription": "Fn::Equals must take exactly two scalar operands",
         "phase": "PARSE"
       },
@@ -4867,7 +4867,7 @@
         "startLine": 10,
         "startColumn": 3,
         "endLine": 10,
-        "endColumn": 18,
+        "endColumn": 13,
         "ruleDescription": "Fn::Equals must take exactly two scalar operands",
         "phase": "PARSE"
       },
@@ -4885,7 +4885,7 @@
         "startLine": 11,
         "startColumn": 3,
         "endLine": 11,
-        "endColumn": 7,
+        "endColumn": 13,
         "ruleDescription": "Fn::Equals must take exactly two scalar operands",
         "phase": "PARSE"
       },
@@ -4903,7 +4903,7 @@
         "startLine": 11,
         "startColumn": 3,
         "endLine": 11,
-        "endColumn": 7,
+        "endColumn": 13,
         "ruleDescription": "Fn::Equals must take exactly two scalar operands",
         "phase": "PARSE"
       },
@@ -4921,7 +4921,7 @@
         "startLine": 12,
         "startColumn": 3,
         "endLine": 12,
-        "endColumn": 16,
+        "endColumn": 13,
         "ruleDescription": "Fn::Equals must take exactly two scalar operands",
         "phase": "PARSE"
       },
@@ -7620,7 +7620,7 @@
         "startLine": 45,
         "startColumn": 7,
         "endLine": 45,
-        "endColumn": 11,
+        "endColumn": 14,
         "ruleDescription": "ARNs should use correctly placed Pseudo Parameters",
         "phase": "LINT"
       },
@@ -7639,7 +7639,7 @@
         "startLine": 58,
         "startColumn": 7,
         "endLine": 58,
-        "endColumn": 11,
+        "endColumn": 14,
         "ruleDescription": "ARNs should use correctly placed Pseudo Parameters",
         "phase": "LINT"
       },
@@ -11269,7 +11269,7 @@
         "startLine": 4,
         "startColumn": 3,
         "endLine": 4,
-        "endColumn": 16,
+        "endColumn": 13,
         "ruleDescription": "Fn::Equals must take exactly two scalar operands",
         "phase": "PARSE"
       },
@@ -12037,12 +12037,12 @@
           "entityType": "Resource",
           "resourceType": "AWS::IAM::Policy"
         },
-        "propertyPath": "Properties.PolicyDocument.Statement.1.Resource",
+        "propertyPath": "Properties.PolicyDocument.Statement.1.NotResource",
         "category": "Security",
-        "startLine": 26,
-        "startColumn": 17,
-        "endLine": 26,
-        "endColumn": 18,
+        "startLine": 29,
+        "startColumn": 11,
+        "endLine": 29,
+        "endColumn": 22,
         "ruleDescription": "Validate statement resources match the actions",
         "phase": "LINT"
       },
@@ -12339,9 +12339,9 @@
         "propertyPath": "Properties.ImageId.Fn::FindInMap.2",
         "category": "Intrinsic Function",
         "startLine": 9,
-        "startColumn": 7,
+        "startColumn": 65,
         "endLine": 9,
-        "endColumn": 14,
+        "endColumn": 66,
         "ruleDescription": "Fn::FindInMap operands must be strings or one of Ref/Fn::FindInMap",
         "phase": "PARSE"
       },
@@ -13702,10 +13702,10 @@
         },
         "propertyPath": "Properties.AvailabilityZone.Fn::Select.0",
         "category": "Intrinsic Function",
-        "startLine": 10,
-        "startColumn": 7,
-        "endLine": 10,
-        "endColumn": 23,
+        "startLine": 11,
+        "startColumn": 9,
+        "endLine": 11,
+        "endColumn": 10,
         "ruleDescription": "Fn::Select requires exactly two operands and a list source",
         "phase": "PARSE"
       },
@@ -15890,7 +15890,7 @@
         "startLine": 9,
         "startColumn": 11,
         "endLine": 9,
-        "endColumn": 16,
+        "endColumn": 18,
         "ruleDescription": "ARNs should use correctly placed Pseudo Parameters",
         "phase": "LINT"
       },
@@ -15909,7 +15909,7 @@
         "startLine": 21,
         "startColumn": 13,
         "endLine": 21,
-        "endColumn": 21,
+        "endColumn": 20,
         "ruleDescription": "ARNs should use correctly placed Pseudo Parameters",
         "phase": "LINT"
       },
@@ -16008,7 +16008,7 @@
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
-        "fatal": 0,
+        "fatal": 1,
         "errors": 0,
         "warnings": 1,
         "informational": 4,
@@ -16019,6 +16019,26 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
+      {
+        "ruleId": "F3017",
+        "severity": "FATAL",
+        "message": "Value is not valid under any of the given schemas",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "Topic",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.KmsMasterKeyId",
+        "category": "Schema",
+        "startLine": 11,
+        "startColumn": 7,
+        "endLine": 11,
+        "endColumn": 21,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-sns",
+        "ruleDescription": "Value not valid under anyOf",
+        "phase": "SCHEMA"
+      },
       {
         "ruleId": "W9013",
         "severity": "WARN",
@@ -18478,9 +18498,9 @@
         "propertyPath": "Outputs/ConditionalListBranch/Value/Fn::If/1",
         "category": "Structure",
         "startLine": 30,
-        "startColumn": 5,
+        "startColumn": 25,
         "endLine": 30,
-        "endColumn": 10,
+        "endColumn": 26,
         "ruleDescription": "Output value must be a string",
         "phase": "PARSE"
       },
@@ -18496,9 +18516,9 @@
         "propertyPath": "Outputs/ConditionalListBranch/Value/Fn::If/2",
         "category": "Structure",
         "startLine": 30,
-        "startColumn": 5,
+        "startColumn": 35,
         "endLine": 30,
-        "endColumn": 10,
+        "endColumn": 36,
         "ruleDescription": "Output value must be a string",
         "phase": "PARSE"
       },
@@ -30442,7 +30462,7 @@
         "startLine": 84,
         "startColumn": 13,
         "endLine": 84,
-        "endColumn": 21,
+        "endColumn": 20,
         "ruleDescription": "ARNs should use correctly placed Pseudo Parameters",
         "phase": "LINT"
       },
@@ -30461,7 +30481,7 @@
         "startLine": 92,
         "startColumn": 13,
         "endLine": 92,
-        "endColumn": 21,
+        "endColumn": 20,
         "ruleDescription": "ARNs should use correctly placed Pseudo Parameters",
         "phase": "LINT"
       },
@@ -30480,7 +30500,7 @@
         "startLine": 165,
         "startColumn": 15,
         "endLine": 165,
-        "endColumn": 18,
+        "endColumn": 22,
         "ruleDescription": "ARNs should use correctly placed Pseudo Parameters",
         "phase": "LINT"
       },
@@ -30499,7 +30519,7 @@
         "startLine": 171,
         "startColumn": 15,
         "endLine": 171,
-        "endColumn": 18,
+        "endColumn": 22,
         "ruleDescription": "ARNs should use correctly placed Pseudo Parameters",
         "phase": "LINT"
       },
@@ -30518,7 +30538,7 @@
         "startLine": 192,
         "startColumn": 24,
         "endLine": 192,
-        "endColumn": 25,
+        "endColumn": 31,
         "ruleDescription": "ARNs should use correctly placed Pseudo Parameters",
         "phase": "LINT"
       },
@@ -30537,7 +30557,7 @@
         "startLine": 204,
         "startColumn": 15,
         "endLine": 204,
-        "endColumn": 18,
+        "endColumn": 22,
         "ruleDescription": "ARNs should use correctly placed Pseudo Parameters",
         "phase": "LINT"
       },
@@ -124143,7 +124163,7 @@
       {
         "ruleId": "W3030",
         "severity": "WARN",
-        "message": "'node99.x' is not one of ['dotnet10', 'dotnet6', 'dotnet8', 'dotnetcore1.0', 'dotnetcore2.0', 'dotnetcore2.1', 'dotnetcore3.1', 'go1.x', 'java11', 'java11.al2023', 'java17', 'java17.al2023', 'java21', 'java25', 'java8', 'java8.al2', 'java8.al2023', 'nodejs', 'nodejs10.x', 'nodejs12.x', 'nodejs14.x', 'nodejs16.x', 'nodejs18.x', 'nodejs20.x', 'nodejs22.x', 'nodejs24.x', 'nodejs4.3', 'nodejs4.3-edge', 'nodejs6.10', 'nodejs8.10', 'provided', 'provided.al2', 'provided.al2023', 'python2.7', 'python3.10', 'python3.11', 'python3.12', 'python3.13', 'python3.14', 'python3.6', 'python3.7', 'python3.8', 'python3.9', 'ruby2.5', 'ruby2.7', 'ruby3.2', 'ruby3.3', 'ruby3.4', 'ruby4.0']",
+        "message": "'node99.x' is not one of ['dotnet10', 'dotnet6', 'dotnet8', 'dotnetcore1.0', 'dotnetcore2.0', 'dotnetcore2.1', 'dotnetcore3.1', 'go1.x', 'java11', 'java11.al2023', 'java17', 'java17.al2023', 'java21', 'java25', 'java8', 'java8.al2', 'java8.al2023', 'nodejs', 'nodejs10.x', 'nodejs12.x', 'nodejs14.x', 'nodejs16.x', 'nodejs18.x', 'nodejs20.x', 'nodejs22.x', 'nodejs24.x', 'nodejs26.x', 'nodejs4.3', 'nodejs4.3-edge', 'nodejs6.10', 'nodejs8.10', 'provided', 'provided.al2', 'provided.al2023', 'python2.7', 'python3.10', 'python3.11', 'python3.12', 'python3.13', 'python3.14', 'python3.15', 'python3.6', 'python3.7', 'python3.8', 'python3.9', 'ruby2.5', 'ruby2.7', 'ruby3.2', 'ruby3.3', 'ruby3.4', 'ruby4.0']",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "MyFunction",
@@ -124188,6 +124208,7 @@
               "nodejs20.x",
               "nodejs22.x",
               "nodejs24.x",
+              "nodejs26.x",
               "nodejs4.3",
               "nodejs4.3-edge",
               "nodejs6.10",
@@ -124201,6 +124222,7 @@
               "python3.12",
               "python3.13",
               "python3.14",
+              "python3.15",
               "python3.6",
               "python3.7",
               "python3.8",
@@ -127319,7 +127341,7 @@
       {
         "ruleId": "W3030",
         "severity": "WARN",
-        "message": "'nodejs99.x' is not one of ['dotnet10', 'dotnet6', 'dotnet8', 'dotnetcore1.0', 'dotnetcore2.0', 'dotnetcore2.1', 'dotnetcore3.1', 'go1.x', 'java11', 'java11.al2023', 'java17', 'java17.al2023', 'java21', 'java25', 'java8', 'java8.al2', 'java8.al2023', 'nodejs', 'nodejs10.x', 'nodejs12.x', 'nodejs14.x', 'nodejs16.x', 'nodejs18.x', 'nodejs20.x', 'nodejs22.x', 'nodejs24.x', 'nodejs4.3', 'nodejs4.3-edge', 'nodejs6.10', 'nodejs8.10', 'provided', 'provided.al2', 'provided.al2023', 'python2.7', 'python3.10', 'python3.11', 'python3.12', 'python3.13', 'python3.14', 'python3.6', 'python3.7', 'python3.8', 'python3.9', 'ruby2.5', 'ruby2.7', 'ruby3.2', 'ruby3.3', 'ruby3.4', 'ruby4.0']",
+        "message": "'nodejs99.x' is not one of ['dotnet10', 'dotnet6', 'dotnet8', 'dotnetcore1.0', 'dotnetcore2.0', 'dotnetcore2.1', 'dotnetcore3.1', 'go1.x', 'java11', 'java11.al2023', 'java17', 'java17.al2023', 'java21', 'java25', 'java8', 'java8.al2', 'java8.al2023', 'nodejs', 'nodejs10.x', 'nodejs12.x', 'nodejs14.x', 'nodejs16.x', 'nodejs18.x', 'nodejs20.x', 'nodejs22.x', 'nodejs24.x', 'nodejs26.x', 'nodejs4.3', 'nodejs4.3-edge', 'nodejs6.10', 'nodejs8.10', 'provided', 'provided.al2', 'provided.al2023', 'python2.7', 'python3.10', 'python3.11', 'python3.12', 'python3.13', 'python3.14', 'python3.15', 'python3.6', 'python3.7', 'python3.8', 'python3.9', 'ruby2.5', 'ruby2.7', 'ruby3.2', 'ruby3.3', 'ruby3.4', 'ruby4.0']",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "MyFunc",
@@ -127364,6 +127386,7 @@
               "nodejs20.x",
               "nodejs22.x",
               "nodejs24.x",
+              "nodejs26.x",
               "nodejs4.3",
               "nodejs4.3-edge",
               "nodejs6.10",
@@ -127377,6 +127400,7 @@
               "python3.12",
               "python3.13",
               "python3.14",
+              "python3.15",
               "python3.6",
               "python3.7",
               "python3.8",
@@ -127394,7 +127418,7 @@
       {
         "ruleId": "W3030",
         "severity": "WARN",
-        "message": "'node99.x' is not one of ['dotnet10', 'dotnet6', 'dotnet8', 'dotnetcore1.0', 'dotnetcore2.0', 'dotnetcore2.1', 'dotnetcore3.1', 'go1.x', 'java11', 'java11.al2023', 'java17', 'java17.al2023', 'java21', 'java25', 'java8', 'java8.al2', 'java8.al2023', 'nodejs', 'nodejs10.x', 'nodejs12.x', 'nodejs14.x', 'nodejs16.x', 'nodejs18.x', 'nodejs20.x', 'nodejs22.x', 'nodejs24.x', 'nodejs4.3', 'nodejs4.3-edge', 'nodejs6.10', 'nodejs8.10', 'provided', 'provided.al2', 'provided.al2023', 'python2.7', 'python3.10', 'python3.11', 'python3.12', 'python3.13', 'python3.14', 'python3.6', 'python3.7', 'python3.8', 'python3.9', 'ruby2.5', 'ruby2.7', 'ruby3.2', 'ruby3.3', 'ruby3.4', 'ruby4.0']",
+        "message": "'node99.x' is not one of ['dotnet10', 'dotnet6', 'dotnet8', 'dotnetcore1.0', 'dotnetcore2.0', 'dotnetcore2.1', 'dotnetcore3.1', 'go1.x', 'java11', 'java11.al2023', 'java17', 'java17.al2023', 'java21', 'java25', 'java8', 'java8.al2', 'java8.al2023', 'nodejs', 'nodejs10.x', 'nodejs12.x', 'nodejs14.x', 'nodejs16.x', 'nodejs18.x', 'nodejs20.x', 'nodejs22.x', 'nodejs24.x', 'nodejs26.x', 'nodejs4.3', 'nodejs4.3-edge', 'nodejs6.10', 'nodejs8.10', 'provided', 'provided.al2', 'provided.al2023', 'python2.7', 'python3.10', 'python3.11', 'python3.12', 'python3.13', 'python3.14', 'python3.15', 'python3.6', 'python3.7', 'python3.8', 'python3.9', 'ruby2.5', 'ruby2.7', 'ruby3.2', 'ruby3.3', 'ruby3.4', 'ruby4.0']",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "FutureNodeFunc",
@@ -127439,6 +127463,7 @@
               "nodejs20.x",
               "nodejs22.x",
               "nodejs24.x",
+              "nodejs26.x",
               "nodejs4.3",
               "nodejs4.3-edge",
               "nodejs6.10",
@@ -127452,6 +127477,7 @@
               "python3.12",
               "python3.13",
               "python3.14",
+              "python3.15",
               "python3.6",
               "python3.7",
               "python3.8",
@@ -132524,7 +132550,7 @@
       "counts": {
         "fatal": 0,
         "errors": 0,
-        "warnings": 0,
+        "warnings": 1,
         "informational": 4,
         "debug": 0
       },
@@ -132533,6 +132559,29 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
+      {
+        "ruleId": "W2531",
+        "severity": "WARN",
+        "message": "Runtime 'provided.al2' was deprecated on '2026-07-31'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'provided.al2023'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "FunctionC",
+          "entityType": "Resource",
+          "resourceType": "AWS::Serverless::Function"
+        },
+        "propertyPath": "Properties.Runtime",
+        "category": "Deprecation",
+        "startLine": 36,
+        "startColumn": 7,
+        "endLine": 36,
+        "endColumn": 14,
+        "ruleDescription": "Check if EOL Lambda Function Runtimes are used",
+        "phase": "SCHEMA",
+        "context": {
+          "actualValue": "provided.al2",
+          "lifecycle": "deprecated"
+        }
+      },
       {
         "ruleId": "I9001",
         "severity": "INFO",
@@ -134552,10 +134601,10 @@
         },
         "propertyPath": "Properties.ClusterName.Fn::FindInMap.1.Fn::Join",
         "category": "Intrinsic Function",
-        "startLine": 49,
-        "startColumn": 7,
-        "endLine": 49,
-        "endColumn": 18,
+        "startLine": 52,
+        "startColumn": 11,
+        "endLine": 52,
+        "endColumn": 19,
         "ruleDescription": "Use Sub instead of Join",
         "phase": "LINT"
       },
@@ -134571,10 +134620,10 @@
         },
         "propertyPath": "Properties.ClusterName.Fn::FindInMap.2.Fn::Join",
         "category": "Intrinsic Function",
-        "startLine": 49,
-        "startColumn": 7,
-        "endLine": 49,
-        "endColumn": 18,
+        "startLine": 56,
+        "startColumn": 11,
+        "endLine": 56,
+        "endColumn": 19,
         "ruleDescription": "Use Sub instead of Join",
         "phase": "LINT"
       },
@@ -135726,6 +135775,220 @@
       }
     ]
   },
+  "good/kms_key_identifier_forms.yaml": {
+    "filePath": "good/kms_key_identifier_forms.yaml",
+    "status": "OK",
+    "version": "1.7.0",
+    "metadata": {
+      "resourcesScanned": 7,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 3,
+        "informational": 7,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "W9013",
+        "severity": "WARN",
+        "message": "Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "TopicKeyArn",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "category": "Security",
+        "startLine": 8,
+        "startColumn": 3,
+        "endLine": 8,
+        "endColumn": 14,
+        "ruleDescription": "Hardcoded account ID in ARN",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W9013",
+        "severity": "WARN",
+        "message": "Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "TopicAliasArn",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "category": "Security",
+        "startLine": 16,
+        "startColumn": 3,
+        "endLine": 16,
+        "endColumn": 16,
+        "ruleDescription": "Hardcoded account ID in ARN",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W9013",
+        "severity": "WARN",
+        "message": "Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "TopicMultiRegionKeyArn",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "category": "Security",
+        "startLine": 24,
+        "startColumn": 3,
+        "endLine": 24,
+        "endColumn": 25,
+        "ruleDescription": "Hardcoded account ID in ARN",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'TopicKeyId' of type 'AWS::SNS::Topic' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "TopicKeyId",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 6,
+        "startColumn": 5,
+        "endLine": 6,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'TopicKeyArn' of type 'AWS::SNS::Topic' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "TopicKeyArn",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 10,
+        "startColumn": 5,
+        "endLine": 10,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'TopicAliasName' of type 'AWS::SNS::Topic' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "TopicAliasName",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 14,
+        "startColumn": 5,
+        "endLine": 14,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'TopicAliasArn' of type 'AWS::SNS::Topic' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "TopicAliasArn",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 18,
+        "startColumn": 5,
+        "endLine": 18,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'TopicMultiRegionKeyId' of type 'AWS::SNS::Topic' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "TopicMultiRegionKeyId",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 22,
+        "startColumn": 5,
+        "endLine": 22,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'TopicMultiRegionKeyArn' of type 'AWS::SNS::Topic' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "TopicMultiRegionKeyArn",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 26,
+        "startColumn": 5,
+        "endLine": 26,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'TopicIntrinsicAliasArn' of type 'AWS::SNS::Topic' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "TopicIntrinsicAliasArn",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 30,
+        "startColumn": 5,
+        "endLine": 30,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
   "good/lambda_permission_source_account.yaml": {
     "filePath": "good/lambda_permission_source_account.yaml",
     "status": "OK",
@@ -136131,7 +136394,7 @@
         "startLine": 9,
         "startColumn": 7,
         "endLine": 9,
-        "endColumn": 11,
+        "endColumn": 14,
         "ruleDescription": "ARNs should use correctly placed Pseudo Parameters",
         "phase": "LINT"
       },
@@ -142880,7 +143143,7 @@
         "startLine": 12,
         "startColumn": 11,
         "endLine": 12,
-        "endColumn": 16,
+        "endColumn": 18,
         "ruleDescription": "ARNs should use correctly placed Pseudo Parameters",
         "phase": "LINT"
       },
@@ -142899,7 +143162,7 @@
         "startLine": 24,
         "startColumn": 13,
         "endLine": 24,
-        "endColumn": 21,
+        "endColumn": 20,
         "ruleDescription": "ARNs should use correctly placed Pseudo Parameters",
         "phase": "LINT"
       },
@@ -148194,10 +148457,10 @@
         },
         "propertyPath": "Properties.Runtime",
         "category": "Deprecation",
-        "startLine": 12,
+        "startLine": 5,
         "startColumn": 5,
-        "endLine": 12,
-        "endColumn": 15,
+        "endLine": 5,
+        "endColumn": 12,
         "ruleDescription": "Check if Lambda Function Runtimes are updatable",
         "phase": "SCHEMA",
         "context": {
@@ -150508,7 +150771,7 @@
         "startLine": 61,
         "startColumn": 16,
         "endLine": 61,
-        "endColumn": 17,
+        "endColumn": 23,
         "ruleDescription": "ARNs should use correctly placed Pseudo Parameters",
         "phase": "LINT"
       },
@@ -150527,7 +150790,7 @@
         "startLine": 97,
         "startColumn": 7,
         "endLine": 97,
-        "endColumn": 11,
+        "endColumn": 14,
         "ruleDescription": "ARNs should use correctly placed Pseudo Parameters",
         "phase": "LINT"
       },
@@ -156887,9 +157150,9 @@
         "propertyPath": "Properties.BucketName.Fn::If.2",
         "category": "Best Practice",
         "startLine": 57,
-        "startColumn": 7,
+        "startColumn": 54,
         "endLine": 57,
-        "endColumn": 17,
+        "endColumn": 55,
         "ruleDescription": "Check Fn::If has a path that cannot be reached",
         "phase": "LINT"
       },
@@ -156924,10 +157187,10 @@
         },
         "propertyPath": "Properties.PublicAccessBlockConfiguration.BlockPublicAcls.Fn::If.2",
         "category": "Best Practice",
-        "startLine": 66,
-        "startColumn": 9,
-        "endLine": 66,
-        "endColumn": 24,
+        "startLine": 69,
+        "startColumn": 13,
+        "endLine": 69,
+        "endColumn": 14,
         "ruleDescription": "Check Fn::If has a path that cannot be reached",
         "phase": "LINT"
       },

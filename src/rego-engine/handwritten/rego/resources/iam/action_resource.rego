@@ -3,7 +3,7 @@ package resources
 import rego.v1
 
 violation contains make_diag_at("I3510", "INFO", name,
-    sprintf("Properties.PolicyDocument.Statement.%d.Resource", [stmt_idx]),
+    sprintf("Properties.PolicyDocument.Statement.%d.%s", [stmt_idx, resource_field]),
     sprintf("action '%s' requires a resource of [%s]",
         [action, _format_list(candidate_formats)])) if {
     some name in resources_of_type("AWS::IAM::Policy")
@@ -15,6 +15,7 @@ violation contains make_diag_at("I3510", "INFO", name,
     is_array(stmts)
     some stmt_idx, stmt in stmts
     is_object(stmt)
+    resource_field := _authored_resource_field(stmt)
     not _stmt_has_skip_condition(name, stmt_idx, stmt)
     not _stmt_uses_functions(name, stmt_idx, stmt)
     all_resources := _reachable_resources(name, stmt_idx, stmt)
@@ -25,6 +26,15 @@ violation contains make_diag_at("I3510", "INFO", name,
     candidate_formats != null
     is_array(candidate_formats)
     _no_format_matches_any_resource(candidate_formats, all_resources)
+}
+
+_authored_resource_field(stmt) := "Resource" if {
+    object.get(stmt, "Resource", null) != null
+}
+
+_authored_resource_field(stmt) := "NotResource" if {
+    object.get(stmt, "Resource", null) == null
+    object.get(stmt, "NotResource", null) != null
 }
 
 _is_specific_action(action) if {

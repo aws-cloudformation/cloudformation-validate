@@ -536,6 +536,47 @@ fn composition_f3018_one_of_zero_matches() {
 }
 
 #[test]
+fn intrinsic_built_kms_alias_arn_is_not_rejected_by_format_composition() {
+    let diagnostics = validate_fixture("cdk/ddb-stream-lambda-sns--DdbStreamStack.template.json");
+    assert!(
+        !diagnostics.iter().any(|diagnostic| {
+            diagnostic.rule_id == "F3017"
+                && diagnostic.resource_logical_id() == Some("ddbstreamtopic7821AF6E")
+                && diagnostic.property_path.as_deref() == Some("Properties.KmsMasterKeyId")
+        }),
+        "a valid intrinsic-built KMS alias ARN must pass format composition: {diagnostics:?}"
+    );
+}
+
+#[test]
+fn every_valid_kms_key_identifier_form_passes_format_composition() {
+    let diagnostics = validate_fixture("good/kms_key_identifier_forms.yaml");
+    let rejected: Vec<_> = diagnostics
+        .iter()
+        .filter(|diagnostic| {
+            diagnostic.rule_id == "F3017" && diagnostic.property_path.as_deref() == Some("Properties.KmsMasterKeyId")
+        })
+        .collect();
+    assert!(
+        rejected.is_empty(),
+        "key ID, key ARN, alias name, alias ARN, and multi-Region forms are all valid: {rejected:?}"
+    );
+}
+
+#[test]
+fn malformed_literal_kms_key_arn_is_rejected_by_format_composition() {
+    let diagnostics = validate_fixture("bad/hardcoded_partition.yaml");
+    assert!(
+        diagnostics.iter().any(|diagnostic| {
+            diagnostic.rule_id == "F3017"
+                && diagnostic.resource_logical_id() == Some("Topic")
+                && diagnostic.property_path.as_deref() == Some("Properties.KmsMasterKeyId")
+        }),
+        "the malformed literal KMS key ARN must remain rejected: {diagnostics:?}"
+    );
+}
+
+#[test]
 fn composition_f3017_any_of_no_match() {
     let diags = validate_fixture("bad/schema_composition.yaml");
     let f3017: Vec<_> =

@@ -451,6 +451,31 @@ fn multi_combined_external_rule_metadata_identical_between_engines() {
 }
 
 #[test]
+fn iam_action_resource_findings_target_authored_fields_in_both_engines() {
+    let template = "bad/functions/sub_needed.yaml";
+    for (engine_name, diagnostics) in
+        [("rego", validate_template(&*REGO, template)), ("cel", validate_template(&*CEL, template))]
+    {
+        let findings: Vec<&Diagnostic> = diagnostics.iter().filter(|d| d.rule_id == "I3510").collect();
+        assert_eq!(findings.len(), 2, "[{engine_name}] expected both incompatible IAM statements");
+        assert!(
+            findings.iter().any(|d| {
+                d.property_path.as_deref() == Some("Properties.PolicyDocument.Statement.0.Resource")
+                    && d.location.as_ref().is_some_and(|span| span.start_line == 25)
+            }),
+            "[{engine_name}] Resource finding should target line 25: {findings:?}"
+        );
+        assert!(
+            findings.iter().any(|d| {
+                d.property_path.as_deref() == Some("Properties.PolicyDocument.Statement.1.NotResource")
+                    && d.location.as_ref().is_some_and(|span| span.start_line == 29)
+            }),
+            "[{engine_name}] NotResource finding should target line 29: {findings:?}"
+        );
+    }
+}
+
+#[test]
 fn good_templates_produce_no_fatal_or_error_diagnostics() {
     let new_rule_ids: std::collections::HashSet<&str> = [
         "E1002", "E1005", "E1015", "E1016", "E1027", "F1030", "F1031", "F1032", "E1033", "E1051", "E1052", "E3011",
