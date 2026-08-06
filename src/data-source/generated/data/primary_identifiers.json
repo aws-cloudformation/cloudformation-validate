@@ -81,10 +81,6 @@
     "AWS::AppStream::Stack": [
       "Name"
     ],
-    "AWS::AppStream::StackFleetAssociation": [
-      "FleetName",
-      "StackName"
-    ],
     "AWS::AppStream::StackUserAssociation": [
       "StackName",
       "UserName",
@@ -350,6 +346,9 @@
     "AWS::CustomerProfiles::SegmentDefinition": [
       "DomainName",
       "SegmentDefinitionName"
+    ],
+    "AWS::DMS::EventSubscription": [
+      "SubscriptionName"
     ],
     "AWS::DataBrew::Dataset": [
       "Name"
@@ -661,6 +660,9 @@
       "Name"
     ],
     "AWS::Glue::UsageProfile": [
+      "Name"
+    ],
+    "AWS::Glue::Workflow": [
       "Name"
     ],
     "AWS::GuardDuty::Filter": [
@@ -1016,6 +1018,9 @@
       "FlowArn",
       "Name"
     ],
+    "AWS::MediaConvert::Preset": [
+      "Name"
+    ],
     "AWS::MediaLive::Multiplexprogram": [
       "ProgramName",
       "MultiplexId"
@@ -1049,6 +1054,9 @@
     ],
     "AWS::MediaTailor::ChannelPolicy": [
       "ChannelName"
+    ],
+    "AWS::MediaTailor::Function": [
+      "FunctionId"
     ],
     "AWS::MediaTailor::LiveSource": [
       "LiveSourceName",
@@ -1239,6 +1247,10 @@
       "AwsAccountId",
       "KnowledgeBaseId"
     ],
+    "AWS::QuickSight::Space": [
+      "AwsAccountId",
+      "SpaceId"
+    ],
     "AWS::QuickSight::Template": [
       "AwsAccountId",
       "TemplateId"
@@ -1248,6 +1260,10 @@
       "AwsAccountId"
     ],
     "AWS::QuickSight::Topic": [
+      "AwsAccountId",
+      "TopicId"
+    ],
+    "AWS::QuickSight::TopicV2": [
       "AwsAccountId",
       "TopicId"
     ],

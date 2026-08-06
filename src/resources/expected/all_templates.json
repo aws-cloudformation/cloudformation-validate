@@ -16008,7 +16008,7 @@
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
-        "fatal": 0,
+        "fatal": 1,
         "errors": 0,
         "warnings": 1,
         "informational": 4,
@@ -16019,6 +16019,26 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
+      {
+        "ruleId": "F3017",
+        "severity": "FATAL",
+        "message": "Value is not valid under any of the given schemas",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "Topic",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.KmsMasterKeyId",
+        "category": "Schema",
+        "startLine": 11,
+        "startColumn": 7,
+        "endLine": 11,
+        "endColumn": 21,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-sns",
+        "ruleDescription": "Value not valid under anyOf",
+        "phase": "SCHEMA"
+      },
       {
         "ruleId": "W9013",
         "severity": "WARN",
@@ -62511,7 +62531,7 @@
     "metadata": {
       "resourcesScanned": 16,
       "counts": {
-        "fatal": 0,
+        "fatal": 1,
         "errors": 0,
         "warnings": 4,
         "informational": 18,
@@ -62522,6 +62542,26 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
+      {
+        "ruleId": "F3017",
+        "severity": "FATAL",
+        "message": "Value is not valid under any of the given schemas",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "ddbstreamtopic7821AF6E",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.KmsMasterKeyId",
+        "category": "Schema",
+        "startLine": 7,
+        "startColumn": 5,
+        "endLine": 7,
+        "endColumn": 20,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-sns",
+        "ruleDescription": "Value not valid under anyOf",
+        "phase": "SCHEMA"
+      },
       {
         "ruleId": "W2531",
         "severity": "WARN",
@@ -123689,7 +123729,7 @@
       {
         "ruleId": "W3030",
         "severity": "WARN",
-        "message": "'node99.x' is not one of ['dotnet10', 'dotnet6', 'dotnet8', 'dotnetcore1.0', 'dotnetcore2.0', 'dotnetcore2.1', 'dotnetcore3.1', 'go1.x', 'java11', 'java11.al2023', 'java17', 'java17.al2023', 'java21', 'java25', 'java8', 'java8.al2', 'java8.al2023', 'nodejs', 'nodejs10.x', 'nodejs12.x', 'nodejs14.x', 'nodejs16.x', 'nodejs18.x', 'nodejs20.x', 'nodejs22.x', 'nodejs24.x', 'nodejs4.3', 'nodejs4.3-edge', 'nodejs6.10', 'nodejs8.10', 'provided', 'provided.al2', 'provided.al2023', 'python2.7', 'python3.10', 'python3.11', 'python3.12', 'python3.13', 'python3.14', 'python3.6', 'python3.7', 'python3.8', 'python3.9', 'ruby2.5', 'ruby2.7', 'ruby3.2', 'ruby3.3', 'ruby3.4', 'ruby4.0']",
+        "message": "'node99.x' is not one of ['dotnet10', 'dotnet6', 'dotnet8', 'dotnetcore1.0', 'dotnetcore2.0', 'dotnetcore2.1', 'dotnetcore3.1', 'go1.x', 'java11', 'java11.al2023', 'java17', 'java17.al2023', 'java21', 'java25', 'java8', 'java8.al2', 'java8.al2023', 'nodejs', 'nodejs10.x', 'nodejs12.x', 'nodejs14.x', 'nodejs16.x', 'nodejs18.x', 'nodejs20.x', 'nodejs22.x', 'nodejs24.x', 'nodejs26.x', 'nodejs4.3', 'nodejs4.3-edge', 'nodejs6.10', 'nodejs8.10', 'provided', 'provided.al2', 'provided.al2023', 'python2.7', 'python3.10', 'python3.11', 'python3.12', 'python3.13', 'python3.14', 'python3.15', 'python3.6', 'python3.7', 'python3.8', 'python3.9', 'ruby2.5', 'ruby2.7', 'ruby3.2', 'ruby3.3', 'ruby3.4', 'ruby4.0']",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "MyFunction",
@@ -123734,6 +123774,7 @@
               "nodejs20.x",
               "nodejs22.x",
               "nodejs24.x",
+              "nodejs26.x",
               "nodejs4.3",
               "nodejs4.3-edge",
               "nodejs6.10",
@@ -123747,6 +123788,7 @@
               "python3.12",
               "python3.13",
               "python3.14",
+              "python3.15",
               "python3.6",
               "python3.7",
               "python3.8",
@@ -126865,7 +126907,7 @@
       {
         "ruleId": "W3030",
         "severity": "WARN",
-        "message": "'nodejs99.x' is not one of ['dotnet10', 'dotnet6', 'dotnet8', 'dotnetcore1.0', 'dotnetcore2.0', 'dotnetcore2.1', 'dotnetcore3.1', 'go1.x', 'java11', 'java11.al2023', 'java17', 'java17.al2023', 'java21', 'java25', 'java8', 'java8.al2', 'java8.al2023', 'nodejs', 'nodejs10.x', 'nodejs12.x', 'nodejs14.x', 'nodejs16.x', 'nodejs18.x', 'nodejs20.x', 'nodejs22.x', 'nodejs24.x', 'nodejs4.3', 'nodejs4.3-edge', 'nodejs6.10', 'nodejs8.10', 'provided', 'provided.al2', 'provided.al2023', 'python2.7', 'python3.10', 'python3.11', 'python3.12', 'python3.13', 'python3.14', 'python3.6', 'python3.7', 'python3.8', 'python3.9', 'ruby2.5', 'ruby2.7', 'ruby3.2', 'ruby3.3', 'ruby3.4', 'ruby4.0']",
+        "message": "'nodejs99.x' is not one of ['dotnet10', 'dotnet6', 'dotnet8', 'dotnetcore1.0', 'dotnetcore2.0', 'dotnetcore2.1', 'dotnetcore3.1', 'go1.x', 'java11', 'java11.al2023', 'java17', 'java17.al2023', 'java21', 'java25', 'java8', 'java8.al2', 'java8.al2023', 'nodejs', 'nodejs10.x', 'nodejs12.x', 'nodejs14.x', 'nodejs16.x', 'nodejs18.x', 'nodejs20.x', 'nodejs22.x', 'nodejs24.x', 'nodejs26.x', 'nodejs4.3', 'nodejs4.3-edge', 'nodejs6.10', 'nodejs8.10', 'provided', 'provided.al2', 'provided.al2023', 'python2.7', 'python3.10', 'python3.11', 'python3.12', 'python3.13', 'python3.14', 'python3.15', 'python3.6', 'python3.7', 'python3.8', 'python3.9', 'ruby2.5', 'ruby2.7', 'ruby3.2', 'ruby3.3', 'ruby3.4', 'ruby4.0']",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "MyFunc",
@@ -126910,6 +126952,7 @@
               "nodejs20.x",
               "nodejs22.x",
               "nodejs24.x",
+              "nodejs26.x",
               "nodejs4.3",
               "nodejs4.3-edge",
               "nodejs6.10",
@@ -126923,6 +126966,7 @@
               "python3.12",
               "python3.13",
               "python3.14",
+              "python3.15",
               "python3.6",
               "python3.7",
               "python3.8",
@@ -126940,7 +126984,7 @@
       {
         "ruleId": "W3030",
         "severity": "WARN",
-        "message": "'node99.x' is not one of ['dotnet10', 'dotnet6', 'dotnet8', 'dotnetcore1.0', 'dotnetcore2.0', 'dotnetcore2.1', 'dotnetcore3.1', 'go1.x', 'java11', 'java11.al2023', 'java17', 'java17.al2023', 'java21', 'java25', 'java8', 'java8.al2', 'java8.al2023', 'nodejs', 'nodejs10.x', 'nodejs12.x', 'nodejs14.x', 'nodejs16.x', 'nodejs18.x', 'nodejs20.x', 'nodejs22.x', 'nodejs24.x', 'nodejs4.3', 'nodejs4.3-edge', 'nodejs6.10', 'nodejs8.10', 'provided', 'provided.al2', 'provided.al2023', 'python2.7', 'python3.10', 'python3.11', 'python3.12', 'python3.13', 'python3.14', 'python3.6', 'python3.7', 'python3.8', 'python3.9', 'ruby2.5', 'ruby2.7', 'ruby3.2', 'ruby3.3', 'ruby3.4', 'ruby4.0']",
+        "message": "'node99.x' is not one of ['dotnet10', 'dotnet6', 'dotnet8', 'dotnetcore1.0', 'dotnetcore2.0', 'dotnetcore2.1', 'dotnetcore3.1', 'go1.x', 'java11', 'java11.al2023', 'java17', 'java17.al2023', 'java21', 'java25', 'java8', 'java8.al2', 'java8.al2023', 'nodejs', 'nodejs10.x', 'nodejs12.x', 'nodejs14.x', 'nodejs16.x', 'nodejs18.x', 'nodejs20.x', 'nodejs22.x', 'nodejs24.x', 'nodejs26.x', 'nodejs4.3', 'nodejs4.3-edge', 'nodejs6.10', 'nodejs8.10', 'provided', 'provided.al2', 'provided.al2023', 'python2.7', 'python3.10', 'python3.11', 'python3.12', 'python3.13', 'python3.14', 'python3.15', 'python3.6', 'python3.7', 'python3.8', 'python3.9', 'ruby2.5', 'ruby2.7', 'ruby3.2', 'ruby3.3', 'ruby3.4', 'ruby4.0']",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "FutureNodeFunc",
@@ -126985,6 +127029,7 @@
               "nodejs20.x",
               "nodejs22.x",
               "nodejs24.x",
+              "nodejs26.x",
               "nodejs4.3",
               "nodejs4.3-edge",
               "nodejs6.10",
@@ -126998,6 +127043,7 @@
               "python3.12",
               "python3.13",
               "python3.14",
+              "python3.15",
               "python3.6",
               "python3.7",
               "python3.8",
@@ -132070,7 +132116,7 @@
       "counts": {
         "fatal": 0,
         "errors": 0,
-        "warnings": 0,
+        "warnings": 1,
         "informational": 4,
         "debug": 0
       },
@@ -132079,6 +132125,29 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
+      {
+        "ruleId": "W2531",
+        "severity": "WARN",
+        "message": "Runtime 'provided.al2' was deprecated on '2026-07-31'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'provided.al2023'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "FunctionC",
+          "entityType": "Resource",
+          "resourceType": "AWS::Serverless::Function"
+        },
+        "propertyPath": "Properties.Runtime",
+        "category": "Deprecation",
+        "startLine": 36,
+        "startColumn": 7,
+        "endLine": 36,
+        "endColumn": 14,
+        "ruleDescription": "Check if EOL Lambda Function Runtimes are used",
+        "phase": "SCHEMA",
+        "context": {
+          "actualValue": "provided.al2",
+          "lifecycle": "deprecated"
+        }
+      },
       {
         "ruleId": "I9001",
         "severity": "INFO",

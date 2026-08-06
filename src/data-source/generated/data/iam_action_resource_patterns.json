@@ -313,6 +313,9 @@
     "account:getprimaryemail": [
       "arn:${Partition}:account::${ManagementAccountId}:account/.*"
     ],
+    "account:getprimaryemailupdatestatus": [
+      "arn:${Partition}:account::${ManagementAccountId}:account/.*"
+    ],
     "account:getregionoptstatus": [
       "arn:${Partition}:account::${Account}:account",
       "arn:${Partition}:account::${ManagementAccountId}:account/.*"
@@ -5446,6 +5449,12 @@
       "arn:${Partition}:bedrock-mantle:${Region}:${Account}:project/.*",
       "arn:${Partition}:bedrock-mantle:${Region}:${Account}:reservation/.*"
     ],
+    "bedrock-websearch:invokefetch": [
+      "arn:${Partition}:bedrock-websearch:${Region}:aws:tool/.*"
+    ],
+    "bedrock-websearch:invokesearch": [
+      "arn:${Partition}:bedrock-websearch:${Region}:aws:tool/.*"
+    ],
     "bedrock:allowvendedlogdeliveryforresource": [
       "arn:${Partition}:bedrock:${Region}:${Account}:knowledge-base/.*"
     ],
@@ -5474,6 +5483,11 @@
     ],
     "bedrock:counttokens": [
       "arn:${Partition}:bedrock:${Region}::foundation-model/.*"
+    ],
+    "bedrock:createadvancedpromptoptimizationjob": [
+      "arn:${Partition}:bedrock:${Region}:${Account}:application-inference-profile/.*",
+      "arn:${Partition}:bedrock:${Region}::foundation-model/.*",
+      "arn:${Partition}:bedrock:${Region}:${Account}:inference-profile/.*"
     ],
     "bedrock:createagentactiongroup": [
       "arn:${Partition}:bedrock:${Region}:${Account}:agent/.*"
@@ -14093,6 +14107,9 @@
       "arn:${Partition}:directconnect:${Region}:${Account}:dxcon/.*",
       "arn:${Partition}:directconnect:${Region}:${Account}:dxlag/.*"
     ],
+    "directconnect:listvirtualinterfaceroutes": [
+      "arn:${Partition}:directconnect:${Region}:${Account}:dxvif/.*"
+    ],
     "directconnect:listvirtualinterfacetesthistory": [
       "arn:${Partition}:directconnect:${Region}:${Account}:dxvif/.*"
     ],
@@ -15762,7 +15779,6 @@
       "arn:${Partition}:ec2:${Region}::image/.*"
     ],
     "ec2:createroute": [
-      "arn:${Partition}:ec2:${Region}:${Account}:instance/.*",
       "arn:${Partition}:ec2:${Region}:${Account}:route-table/.*"
     ],
     "ec2:createrouteserver": [
@@ -17262,7 +17278,6 @@
       "arn:${Partition}:ec2:${Region}:${Account}:network-acl/.*"
     ],
     "ec2:replaceroute": [
-      "arn:${Partition}:ec2:${Region}:${Account}:instance/.*",
       "arn:${Partition}:ec2:${Region}:${Account}:route-table/.*"
     ],
     "ec2:replaceroutetableassociation": [
@@ -19508,6 +19523,9 @@
     "es:getindex": [
       "arn:${Partition}:es:${Region}:${Account}:domain/.*"
     ],
+    "es:getmigration": [
+      "arn:${Partition}:opensearch:${Region}:${Account}:application/.*"
+    ],
     "es:getupgradehistory": [
       "arn:${Partition}:es:${Region}:${Account}:domain/.*"
     ],
@@ -19534,6 +19552,9 @@
     ],
     "es:listinsights": [
       "arn:${Partition}:es:${Region}:${Account}:domain/.*"
+    ],
+    "es:listmigrations": [
+      "arn:${Partition}:opensearch:${Region}:${Account}:application/.*"
     ],
     "es:listpackagesfordomain": [
       "arn:${Partition}:es:${Region}:${Account}:domain/.*"
@@ -19568,6 +19589,9 @@
     ],
     "es:startelasticsearchservicesoftwareupdate": [
       "arn:${Partition}:es:${Region}:${Account}:domain/.*"
+    ],
+    "es:startmigration": [
+      "arn:${Partition}:opensearch:${Region}:${Account}:application/.*"
     ],
     "es:startservicesoftwareupdate": [
       "arn:${Partition}:es:${Region}:${Account}:domain/.*"
@@ -20864,6 +20888,7 @@
     ],
     "fsx:createvolume": [
       "arn:${Partition}:fsx:${Region}:${Account}:snapshot/.*",
+      "arn:${Partition}:fsx:${Region}:${Account}:storage-virtual-machine/.*",
       "arn:${Partition}:fsx:${Region}:${Account}:volume/.*"
     ],
     "fsx:createvolumefrombackup": [
@@ -21243,6 +21268,10 @@
     "gameliftstreams:createstreamsessionconnection": [
       "arn:${Partition}:gameliftstreams:${Region}:${Account}:streamgroup/.*"
     ],
+    "gameliftstreams:createstreamurl": [
+      "arn:${Partition}:gameliftstreams:${Region}:${Account}:application/.*",
+      "arn:${Partition}:gameliftstreams:${Region}:${Account}:streamgroup/.*"
+    ],
     "gameliftstreams:deleteapplication": [
       "arn:${Partition}:gameliftstreams:${Region}:${Account}:application/.*"
     ],
@@ -21265,6 +21294,12 @@
     "gameliftstreams:getstreamsession": [
       "arn:${Partition}:gameliftstreams:${Region}:${Account}:streamgroup/.*"
     ],
+    "gameliftstreams:getstreamurl": [
+      "arn:${Partition}:gameliftstreams:${Region}:${Account}:streamgroup/.*"
+    ],
+    "gameliftstreams:listapplicationshadercaches": [
+      "arn:${Partition}:gameliftstreams:${Region}:${Account}:application/.*"
+    ],
     "gameliftstreams:liststreamsessions": [
       "arn:${Partition}:gameliftstreams:${Region}:${Account}:streamgroup/.*"
     ],
@@ -21273,6 +21308,9 @@
       "arn:${Partition}:gameliftstreams:${Region}:${Account}:streamgroup/.*"
     ],
     "gameliftstreams:removestreamgrouplocations": [
+      "arn:${Partition}:gameliftstreams:${Region}:${Account}:streamgroup/.*"
+    ],
+    "gameliftstreams:revokestreamurl": [
       "arn:${Partition}:gameliftstreams:${Region}:${Account}:streamgroup/.*"
     ],
     "gameliftstreams:startstreamsession": [
@@ -25814,8 +25852,20 @@
       "arn:${Partition}:iotsitewise:${Region}:${Account}:asset/.*",
       "arn:${Partition}:iotsitewise:${Region}:${Account}:time-series/.*"
     ],
+    "iotsitewise:batchassociatedatasegmentstodataset": [
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:dataset/.*",
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:workspace/.*"
+    ],
     "iotsitewise:batchassociateprojectassets": [
       "arn:${Partition}:iotsitewise:${Region}:${Account}:project/.*"
+    ],
+    "iotsitewise:batchdeletedatasetdatasegments": [
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:dataset/.*",
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:workspace/.*"
+    ],
+    "iotsitewise:batchdisassociatedatasegmentsfromdataset": [
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:dataset/.*",
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:workspace/.*"
     ],
     "iotsitewise:batchdisassociateprojectassets": [
       "arn:${Partition}:iotsitewise:${Region}:${Account}:project/.*"
@@ -25836,6 +25886,15 @@
       "arn:${Partition}:iotsitewise:${Region}:${Account}:asset/.*",
       "arn:${Partition}:iotsitewise:${Region}:${Account}:time-series/.*"
     ],
+    "iotsitewise:cancelenrichmentjob": [
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:workspace/.*"
+    ],
+    "iotsitewise:cancelpipelineexecution": [
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:workspace/.*"
+    ],
+    "iotsitewise:cancelquery": [
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:workspace/.*"
+    ],
     "iotsitewise:createaccesspolicy": [
       "arn:${Partition}:iotsitewise:${Region}:${Account}:portal/.*",
       "arn:${Partition}:iotsitewise:${Region}:${Account}:project/.*"
@@ -25846,6 +25905,10 @@
     "iotsitewise:createassetmodelcompositemodel": [
       "arn:${Partition}:iotsitewise:${Region}:${Account}:asset-model/.*"
     ],
+    "iotsitewise:createbulkimportjob": [
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:dataset/.*",
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:workspace/.*"
+    ],
     "iotsitewise:createcomputationmodel": [
       "arn:${Partition}:iotsitewise:${Region}:${Account}:asset/.*",
       "arn:${Partition}:iotsitewise:${Region}:${Account}:asset-model/.*"
@@ -25853,11 +25916,26 @@
     "iotsitewise:createdashboard": [
       "arn:${Partition}:iotsitewise:${Region}:${Account}:project/.*"
     ],
+    "iotsitewise:createdataset": [
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:workspace/.*"
+    ],
+    "iotsitewise:createdatasetexportjob": [
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:dataset/.*",
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:time-series/.*",
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:workspace/.*"
+    ],
+    "iotsitewise:createenrichmentjob": [
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:dataset/.*",
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:workspace/.*"
+    ],
     "iotsitewise:createproject": [
       "arn:${Partition}:iotsitewise:${Region}:${Account}:portal/.*"
     ],
     "iotsitewise:deleteaccesspolicy": [
       "arn:${Partition}:iotsitewise:${Region}:${Account}:access-policy/.*"
+    ],
+    "iotsitewise:deleteapplication": [
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:workspace/.*"
     ],
     "iotsitewise:deleteasset": [
       "arn:${Partition}:iotsitewise:${Region}:${Account}:asset/.*"
@@ -25878,10 +25956,14 @@
       "arn:${Partition}:iotsitewise:${Region}:${Account}:dashboard/.*"
     ],
     "iotsitewise:deletedataset": [
-      "arn:${Partition}:iotsitewise:${Region}:${Account}:dataset/.*"
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:dataset/.*",
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:workspace/.*"
     ],
     "iotsitewise:deletegateway": [
       "arn:${Partition}:iotsitewise:${Region}:${Account}:gateway/.*"
+    ],
+    "iotsitewise:deletepipeline": [
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:workspace/.*"
     ],
     "iotsitewise:deleteportal": [
       "arn:${Partition}:iotsitewise:${Region}:${Account}:portal/.*"
@@ -25889,9 +25971,16 @@
     "iotsitewise:deleteproject": [
       "arn:${Partition}:iotsitewise:${Region}:${Account}:project/.*"
     ],
+    "iotsitewise:deletetask": [
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:workspace/.*"
+    ],
     "iotsitewise:deletetimeseries": [
       "arn:${Partition}:iotsitewise:${Region}:${Account}:asset/.*",
-      "arn:${Partition}:iotsitewise:${Region}:${Account}:time-series/.*"
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:time-series/.*",
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:workspace/.*"
+    ],
+    "iotsitewise:deleteworkspace": [
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:workspace/.*"
     ],
     "iotsitewise:describeaccesspolicy": [
       "arn:${Partition}:iotsitewise:${Region}:${Account}:access-policy/.*"
@@ -25899,6 +25988,9 @@
     "iotsitewise:describeaction": [
       "arn:${Partition}:iotsitewise:${Region}:${Account}:asset/.*",
       "arn:${Partition}:iotsitewise:${Region}:${Account}:computation-model/.*"
+    ],
+    "iotsitewise:describeapplication": [
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:workspace/.*"
     ],
     "iotsitewise:describeasset": [
       "arn:${Partition}:iotsitewise:${Region}:${Account}:asset/.*"
@@ -25918,6 +26010,10 @@
     "iotsitewise:describeassetproperty": [
       "arn:${Partition}:iotsitewise:${Region}:${Account}:asset/.*"
     ],
+    "iotsitewise:describebulkimportjob": [
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:dataset/.*",
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:workspace/.*"
+    ],
     "iotsitewise:describecomputationmodel": [
       "arn:${Partition}:iotsitewise:${Region}:${Account}:computation-model/.*"
     ],
@@ -25929,7 +26025,14 @@
       "arn:${Partition}:iotsitewise:${Region}:${Account}:dashboard/.*"
     ],
     "iotsitewise:describedataset": [
-      "arn:${Partition}:iotsitewise:${Region}:${Account}:dataset/.*"
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:dataset/.*",
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:workspace/.*"
+    ],
+    "iotsitewise:describedatasetexportjob": [
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:workspace/.*"
+    ],
+    "iotsitewise:describeenrichmentjob": [
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:workspace/.*"
     ],
     "iotsitewise:describegateway": [
       "arn:${Partition}:iotsitewise:${Region}:${Account}:gateway/.*"
@@ -25937,15 +26040,34 @@
     "iotsitewise:describegatewaycapabilityconfiguration": [
       "arn:${Partition}:iotsitewise:${Region}:${Account}:gateway/.*"
     ],
+    "iotsitewise:describepipeline": [
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:workspace/.*"
+    ],
+    "iotsitewise:describepipelineexecution": [
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:workspace/.*"
+    ],
     "iotsitewise:describeportal": [
       "arn:${Partition}:iotsitewise:${Region}:${Account}:portal/.*"
     ],
     "iotsitewise:describeproject": [
       "arn:${Partition}:iotsitewise:${Region}:${Account}:project/.*"
     ],
+    "iotsitewise:describequery": [
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:workspace/.*"
+    ],
+    "iotsitewise:describesearch": [
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:workspace/.*"
+    ],
+    "iotsitewise:describetask": [
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:workspace/.*"
+    ],
     "iotsitewise:describetimeseries": [
       "arn:${Partition}:iotsitewise:${Region}:${Account}:asset/.*",
-      "arn:${Partition}:iotsitewise:${Region}:${Account}:time-series/.*"
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:time-series/.*",
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:workspace/.*"
+    ],
+    "iotsitewise:describeworkspace": [
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:workspace/.*"
     ],
     "iotsitewise:disassociateassets": [
       "arn:${Partition}:iotsitewise:${Region}:${Account}:asset/.*"
@@ -25970,9 +26092,19 @@
       "arn:${Partition}:iotsitewise:${Region}:${Account}:asset/.*",
       "arn:${Partition}:iotsitewise:${Region}:${Account}:time-series/.*"
     ],
+    "iotsitewise:getcapturedata": [
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:time-series/.*",
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:workspace/.*"
+    ],
     "iotsitewise:getinterpolatedassetpropertyvalues": [
       "arn:${Partition}:iotsitewise:${Region}:${Account}:asset/.*",
       "arn:${Partition}:iotsitewise:${Region}:${Account}:time-series/.*"
+    ],
+    "iotsitewise:getqueryresults": [
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:workspace/.*"
+    ],
+    "iotsitewise:getsearchresults": [
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:workspace/.*"
     ],
     "iotsitewise:listaccesspolicies": [
       "arn:${Partition}:iotsitewise:${Region}:${Account}:portal/.*",
@@ -26000,6 +26132,9 @@
     "iotsitewise:listassociatedassets": [
       "arn:${Partition}:iotsitewise:${Region}:${Account}:asset/.*"
     ],
+    "iotsitewise:listbulkimportjobs": [
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:workspace/.*"
+    ],
     "iotsitewise:listcompositionrelationships": [
       "arn:${Partition}:iotsitewise:${Region}:${Account}:asset-model/.*"
     ],
@@ -26013,6 +26148,24 @@
     "iotsitewise:listdashboards": [
       "arn:${Partition}:iotsitewise:${Region}:${Account}:project/.*"
     ],
+    "iotsitewise:listdatasetdatasegmentrelationships": [
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:dataset/.*",
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:workspace/.*"
+    ],
+    "iotsitewise:listdatasetdatasegments": [
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:dataset/.*",
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:workspace/.*"
+    ],
+    "iotsitewise:listdatasetexportjobs": [
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:workspace/.*"
+    ],
+    "iotsitewise:listdatasets": [
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:workspace/.*"
+    ],
+    "iotsitewise:listenrichmentjobs": [
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:dataset/.*",
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:workspace/.*"
+    ],
     "iotsitewise:listexecutions": [
       "arn:${Partition}:iotsitewise:${Region}:${Account}:asset/.*",
       "arn:${Partition}:iotsitewise:${Region}:${Account}:computation-model/.*"
@@ -26020,53 +26173,84 @@
     "iotsitewise:listinterfacerelationships": [
       "arn:${Partition}:iotsitewise:${Region}:${Account}:asset-model/.*"
     ],
+    "iotsitewise:listpipelineexecutions": [
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:workspace/.*"
+    ],
     "iotsitewise:listprojectassets": [
       "arn:${Partition}:iotsitewise:${Region}:${Account}:project/.*"
     ],
     "iotsitewise:listprojects": [
       "arn:${Partition}:iotsitewise:${Region}:${Account}:portal/.*"
     ],
+    "iotsitewise:listqueries": [
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:workspace/.*"
+    ],
+    "iotsitewise:listsearches": [
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:workspace/.*"
+    ],
     "iotsitewise:listtagsforresource": [
       "arn:${Partition}:iotsitewise:${Region}:${Account}:access-policy/.*",
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:workspace/.*",
       "arn:${Partition}:iotsitewise:${Region}:${Account}:asset/.*",
       "arn:${Partition}:iotsitewise:${Region}:${Account}:asset-model/.*",
       "arn:${Partition}:iotsitewise:${Region}:${Account}:computation-model/.*",
       "arn:${Partition}:iotsitewise:${Region}:${Account}:dashboard/.*",
       "arn:${Partition}:iotsitewise:${Region}:${Account}:dataset/.*",
       "arn:${Partition}:iotsitewise:${Region}:${Account}:gateway/.*",
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:workspace/.*",
       "arn:${Partition}:iotsitewise:${Region}:${Account}:portal/.*",
       "arn:${Partition}:iotsitewise:${Region}:${Account}:project/.*",
-      "arn:${Partition}:iotsitewise:${Region}:${Account}:time-series/.*"
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:workspace/.*",
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:time-series/.*",
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:workspace/.*"
     ],
     "iotsitewise:listtimeseries": [
-      "arn:${Partition}:iotsitewise:${Region}:${Account}:asset/.*"
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:asset/.*",
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:workspace/.*"
     ],
     "iotsitewise:putassetmodelinterfacerelationship": [
       "arn:${Partition}:iotsitewise:${Region}:${Account}:asset-model/.*"
     ],
+    "iotsitewise:startpipelineexecution": [
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:workspace/.*"
+    ],
+    "iotsitewise:startquery": [
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:workspace/.*"
+    ],
+    "iotsitewise:startsearch": [
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:workspace/.*"
+    ],
     "iotsitewise:tagresource": [
       "arn:${Partition}:iotsitewise:${Region}:${Account}:access-policy/.*",
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:workspace/.*",
       "arn:${Partition}:iotsitewise:${Region}:${Account}:asset/.*",
       "arn:${Partition}:iotsitewise:${Region}:${Account}:asset-model/.*",
       "arn:${Partition}:iotsitewise:${Region}:${Account}:computation-model/.*",
       "arn:${Partition}:iotsitewise:${Region}:${Account}:dashboard/.*",
       "arn:${Partition}:iotsitewise:${Region}:${Account}:dataset/.*",
       "arn:${Partition}:iotsitewise:${Region}:${Account}:gateway/.*",
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:workspace/.*",
       "arn:${Partition}:iotsitewise:${Region}:${Account}:portal/.*",
       "arn:${Partition}:iotsitewise:${Region}:${Account}:project/.*",
-      "arn:${Partition}:iotsitewise:${Region}:${Account}:time-series/.*"
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:workspace/.*",
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:time-series/.*",
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:workspace/.*"
     ],
     "iotsitewise:untagresource": [
       "arn:${Partition}:iotsitewise:${Region}:${Account}:access-policy/.*",
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:workspace/.*",
       "arn:${Partition}:iotsitewise:${Region}:${Account}:asset/.*",
       "arn:${Partition}:iotsitewise:${Region}:${Account}:asset-model/.*",
       "arn:${Partition}:iotsitewise:${Region}:${Account}:computation-model/.*",
       "arn:${Partition}:iotsitewise:${Region}:${Account}:dashboard/.*",
       "arn:${Partition}:iotsitewise:${Region}:${Account}:dataset/.*",
       "arn:${Partition}:iotsitewise:${Region}:${Account}:gateway/.*",
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:workspace/.*",
       "arn:${Partition}:iotsitewise:${Region}:${Account}:portal/.*",
       "arn:${Partition}:iotsitewise:${Region}:${Account}:project/.*",
-      "arn:${Partition}:iotsitewise:${Region}:${Account}:time-series/.*"
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:workspace/.*",
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:time-series/.*",
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:workspace/.*"
     ],
     "iotsitewise:updateaccesspolicy": [
       "arn:${Partition}:iotsitewise:${Region}:${Account}:access-policy/.*"
@@ -26095,7 +26279,8 @@
       "arn:${Partition}:iotsitewise:${Region}:${Account}:dashboard/.*"
     ],
     "iotsitewise:updatedataset": [
-      "arn:${Partition}:iotsitewise:${Region}:${Account}:dataset/.*"
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:dataset/.*",
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:workspace/.*"
     ],
     "iotsitewise:updategateway": [
       "arn:${Partition}:iotsitewise:${Region}:${Account}:gateway/.*"
@@ -26103,11 +26288,20 @@
     "iotsitewise:updategatewaycapabilityconfiguration": [
       "arn:${Partition}:iotsitewise:${Region}:${Account}:gateway/.*"
     ],
+    "iotsitewise:updatepipeline": [
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:workspace/.*"
+    ],
     "iotsitewise:updateportal": [
       "arn:${Partition}:iotsitewise:${Region}:${Account}:portal/.*"
     ],
     "iotsitewise:updateproject": [
       "arn:${Partition}:iotsitewise:${Region}:${Account}:project/.*"
+    ],
+    "iotsitewise:updatetask": [
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:workspace/.*"
+    ],
+    "iotsitewise:updateworkspace": [
+      "arn:${Partition}:iotsitewise:${Region}:${Account}:workspace/.*"
     ],
     "iottwinmaker:batchputpropertyvalues": [
       "arn:${Partition}:iottwinmaker:${Region}:${Account}:workspace/.*",
@@ -27095,6 +27289,9 @@
     "kafka:batchdisassociatescramsecret": [
       "arn:${Partition}:kafka:${Region}:${Account}:cluster/.*"
     ],
+    "kafka:createchannel": [
+      "arn:${Partition}:kafka:${Region}:${Account}:cluster/.*"
+    ],
     "kafka:createcluster": [
       "arn:${Partition}:kafka:${Region}:${Account}:cluster/.*"
     ],
@@ -27114,6 +27311,10 @@
       "arn:${Partition}:kafka:${Region}:${Account}:cluster/.*",
       "arn:${Partition}:kafka:${Region}:${VpcOwnerAccount}:vpc-connection/.*"
     ],
+    "kafka:deletechannel": [
+      "arn:${Partition}:kafka:${Region}:${Account}:channel/.*",
+      "arn:${Partition}:kafka:${Region}:${Account}:cluster/.*"
+    ],
     "kafka:deletecluster": [
       "arn:${Partition}:kafka:${Region}:${Account}:cluster/.*"
     ],
@@ -27131,6 +27332,10 @@
     ],
     "kafka:deletevpcconnection": [
       "arn:${Partition}:kafka:${Region}:${VpcOwnerAccount}:vpc-connection/.*"
+    ],
+    "kafka:describechannel": [
+      "arn:${Partition}:kafka:${Region}:${Account}:channel/.*",
+      "arn:${Partition}:kafka:${Region}:${Account}:cluster/.*"
     ],
     "kafka:describecluster": [
       "arn:${Partition}:kafka:${Region}:${Account}:cluster/.*"
@@ -27157,6 +27362,9 @@
       "arn:${Partition}:kafka:${Region}:${VpcOwnerAccount}:vpc-connection/.*"
     ],
     "kafka:getclusterpolicy": [
+      "arn:${Partition}:kafka:${Region}:${Account}:cluster/.*"
+    ],
+    "kafka:listchannels": [
       "arn:${Partition}:kafka:${Region}:${Account}:cluster/.*"
     ],
     "kafka:listclientvpcconnections": [
@@ -27208,6 +27416,10 @@
       "arn:${Partition}:kafka:${Region}:${Account}:cluster/.*"
     ],
     "kafka:updatebrokertype": [
+      "arn:${Partition}:kafka:${Region}:${Account}:cluster/.*"
+    ],
+    "kafka:updatechannel": [
+      "arn:${Partition}:kafka:${Region}:${Account}:channel/.*",
       "arn:${Partition}:kafka:${Region}:${Account}:cluster/.*"
     ],
     "kafka:updateclusterconfiguration": [
@@ -34576,6 +34788,9 @@
       "arn:${Partition}:organizations::${Account}:ou/.*",
       "arn:${Partition}:organizations::${Account}:root/.*"
     ],
+    "organizations:createpolicy": [
+      "arn:${Partition}:organizations::${Account}:policy/.*"
+    ],
     "organizations:declinehandshake": [
       "arn:${Partition}:organizations::${Account}:handshake/.*"
     ],
@@ -35104,9 +35319,6 @@
     "partnercentral:putprofilevisibility": [
       "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*"
     ],
-    "partnercentral:querydataset": [
-      "arn:${Partition}:partnercentral::${Account}:catalog/AWS/ReportingData/.*"
-    ],
     "partnercentral:recallbenefitapplication": [
       "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*"
     ],
@@ -35158,7 +35370,6 @@
     "partnercentral:tagresource": [
       "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*",
       "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*",
-      "arn:${Partition}:partnercentral::${Account}:catalog/AWS/ReportingData/.*",
       "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*",
       "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*",
       "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*",
@@ -35170,7 +35381,6 @@
     "partnercentral:untagresource": [
       "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*",
       "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*",
-      "arn:${Partition}:partnercentral::${Account}:catalog/AWS/ReportingData/.*",
       "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*",
       "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*",
       "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*",
@@ -37822,6 +38032,9 @@
     "quicksight:passdatasource": [
       "arn:${Partition}:quicksight:${Region}:${Account}:datasource/.*"
     ],
+    "quicksight:passtopic": [
+      "arn:${Partition}:quicksight:${Region}:${Account}:topic/.*"
+    ],
     "quicksight:predictqaresults": [
       "arn:${Partition}:quicksight:${Region}:${Account}:dashboard/.*",
       "arn:${Partition}:quicksight:${Region}:${Account}:topic/.*"
@@ -39638,6 +39851,9 @@
     "resiliencehub:createsystem": [
       "arn:${Partition}:resiliencehub:${Region}:${Account}:system/.*"
     ],
+    "resiliencehub:createtest": [
+      "arn:${Partition}:resiliencehub:${Region}:${Account}:service/.*"
+    ],
     "resiliencehub:createuserjourney": [
       "arn:${Partition}:resiliencehub:${Region}:${Account}:policy/.*",
       "arn:${Partition}:resiliencehub:${Region}:${Account}:system/.*"
@@ -39684,6 +39900,12 @@
     "resiliencehub:deletesystem": [
       "arn:${Partition}:resiliencehub:${Region}:${Account}:system/.*"
     ],
+    "resiliencehub:deletetest": [
+      "arn:${Partition}:resiliencehub:${Region}:${Account}:service/.*"
+    ],
+    "resiliencehub:deletetestsources": [
+      "arn:${Partition}:resiliencehub:${Region}:${Account}:service/.*"
+    ],
     "resiliencehub:deleteuserjourney": [
       "arn:${Partition}:resiliencehub:${Region}:${Account}:system/.*"
     ],
@@ -39728,6 +39950,12 @@
     ],
     "resiliencehub:getsystem": [
       "arn:${Partition}:resiliencehub:${Region}:${Account}:system/.*"
+    ],
+    "resiliencehub:gettest": [
+      "arn:${Partition}:resiliencehub:${Region}:${Account}:service/.*"
+    ],
+    "resiliencehub:gettestrun": [
+      "arn:${Partition}:resiliencehub:${Region}:${Account}:service/.*"
     ],
     "resiliencehub:getuserjourney": [
       "arn:${Partition}:resiliencehub:${Region}:${Account}:system/.*"
@@ -39791,6 +40019,9 @@
     "resiliencehub:listreports": [
       "arn:${Partition}:resiliencehub:${Region}:${Account}:service/.*"
     ],
+    "resiliencehub:listresolvedtestruntargetresources": [
+      "arn:${Partition}:resiliencehub:${Region}:${Account}:service/.*"
+    ],
     "resiliencehub:listresourcegroupingrecommendations": [
       "arn:${Partition}:resiliencehub:${Region}:${Account}:app/.*"
     ],
@@ -39824,6 +40055,21 @@
     "resiliencehub:listtestrecommendations": [
       "arn:${Partition}:resiliencehub:${Region}:${Account}:app/.*"
     ],
+    "resiliencehub:listtestrunevents": [
+      "arn:${Partition}:resiliencehub:${Region}:${Account}:service/.*"
+    ],
+    "resiliencehub:listtestruns": [
+      "arn:${Partition}:resiliencehub:${Region}:${Account}:service/.*"
+    ],
+    "resiliencehub:listtestrunsources": [
+      "arn:${Partition}:resiliencehub:${Region}:${Account}:service/.*"
+    ],
+    "resiliencehub:listtests": [
+      "arn:${Partition}:resiliencehub:${Region}:${Account}:service/.*"
+    ],
+    "resiliencehub:listtestsources": [
+      "arn:${Partition}:resiliencehub:${Region}:${Account}:service/.*"
+    ],
     "resiliencehub:listunsupportedappversionresources": [
       "arn:${Partition}:resiliencehub:${Region}:${Account}:app/.*"
     ],
@@ -39835,6 +40081,9 @@
     ],
     "resiliencehub:putdraftappversiontemplate": [
       "arn:${Partition}:resiliencehub:${Region}:${Account}:app/.*"
+    ],
+    "resiliencehub:puttestsources": [
+      "arn:${Partition}:resiliencehub:${Region}:${Account}:service/.*"
     ],
     "resiliencehub:rejectresourcegroupingrecommendations": [
       "arn:${Partition}:resiliencehub:${Region}:${Account}:app/.*"
@@ -39853,6 +40102,12 @@
     ],
     "resiliencehub:startresourcegroupingrecommendationtask": [
       "arn:${Partition}:resiliencehub:${Region}:${Account}:app/.*"
+    ],
+    "resiliencehub:starttestrun": [
+      "arn:${Partition}:resiliencehub:${Region}:${Account}:service/.*"
+    ],
+    "resiliencehub:stoptestrun": [
+      "arn:${Partition}:resiliencehub:${Region}:${Account}:service/.*"
     ],
     "resiliencehub:tagresource": [
       "arn:${Partition}:resiliencehub:${Region}:${Account}:app-assessment/.*",
@@ -39909,6 +40164,9 @@
     ],
     "resiliencehub:updatesystem": [
       "arn:${Partition}:resiliencehub:${Region}:${Account}:system/.*"
+    ],
+    "resiliencehub:updatetest": [
+      "arn:${Partition}:resiliencehub:${Region}:${Account}:service/.*"
     ],
     "resiliencehub:updateuserjourney": [
       "arn:${Partition}:resiliencehub:${Region}:${Account}:policy/.*",
@@ -47967,17 +48225,26 @@
     "thinclient:updatesoftwareset": [
       "arn:${Partition}:thinclient:${Region}:${Account}:softwareset/.*"
     ],
+    "timestream-influxdb:createdbbackup": [
+      "arn:${Partition}:timestream-influxdb:${Region}:${Account}:db-backup/.*"
+    ],
     "timestream-influxdb:createdbcluster": [
       "arn:${Partition}:timestream-influxdb:${Region}:${Account}:db-parameter-group/.*"
     ],
     "timestream-influxdb:createdbinstance": [
       "arn:${Partition}:timestream-influxdb:${Region}:${Account}:db-parameter-group/.*"
     ],
+    "timestream-influxdb:deletedbbackup": [
+      "arn:${Partition}:timestream-influxdb:${Region}:${Account}:db-backup/.*"
+    ],
     "timestream-influxdb:deletedbcluster": [
       "arn:${Partition}:timestream-influxdb:${Region}:${Account}:db-cluster/.*"
     ],
     "timestream-influxdb:deletedbinstance": [
       "arn:${Partition}:timestream-influxdb:${Region}:${Account}:db-instance/.*"
+    ],
+    "timestream-influxdb:getdbbackup": [
+      "arn:${Partition}:timestream-influxdb:${Region}:${Account}:db-backup/.*"
     ],
     "timestream-influxdb:getdbcluster": [
       "arn:${Partition}:timestream-influxdb:${Region}:${Account}:db-cluster/.*"
@@ -47992,6 +48259,7 @@
       "arn:${Partition}:timestream-influxdb:${Region}:${Account}:db-cluster/.*"
     ],
     "timestream-influxdb:listtagsforresource": [
+      "arn:${Partition}:timestream-influxdb:${Region}:${Account}:db-backup/.*",
       "arn:${Partition}:timestream-influxdb:${Region}:${Account}:db-cluster/.*",
       "arn:${Partition}:timestream-influxdb:${Region}:${Account}:db-instance/.*",
       "arn:${Partition}:timestream-influxdb:${Region}:${Account}:db-parameter-group/.*"
@@ -48003,12 +48271,17 @@
     "timestream-influxdb:rebootdbinstance": [
       "arn:${Partition}:timestream-influxdb:${Region}:${Account}:db-instance/.*"
     ],
+    "timestream-influxdb:restorefromdbbackup": [
+      "arn:${Partition}:timestream-influxdb:${Region}:${Account}:db-backup/.*"
+    ],
     "timestream-influxdb:tagresource": [
+      "arn:${Partition}:timestream-influxdb:${Region}:${Account}:db-backup/.*",
       "arn:${Partition}:timestream-influxdb:${Region}:${Account}:db-cluster/.*",
       "arn:${Partition}:timestream-influxdb:${Region}:${Account}:db-instance/.*",
       "arn:${Partition}:timestream-influxdb:${Region}:${Account}:db-parameter-group/.*"
     ],
     "timestream-influxdb:untagresource": [
+      "arn:${Partition}:timestream-influxdb:${Region}:${Account}:db-backup/.*",
       "arn:${Partition}:timestream-influxdb:${Region}:${Account}:db-cluster/.*",
       "arn:${Partition}:timestream-influxdb:${Region}:${Account}:db-instance/.*",
       "arn:${Partition}:timestream-influxdb:${Region}:${Account}:db-parameter-group/.*"
