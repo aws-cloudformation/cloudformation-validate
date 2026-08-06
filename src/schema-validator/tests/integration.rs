@@ -536,6 +536,32 @@ fn composition_f3018_one_of_zero_matches() {
 }
 
 #[test]
+fn intrinsic_built_kms_alias_arn_is_not_rejected_by_format_composition() {
+    let diagnostics = validate_fixture("cdk/ddb-stream-lambda-sns--DdbStreamStack.template.json");
+    assert!(
+        !diagnostics.iter().any(|diagnostic| {
+            diagnostic.rule_id == "F3017"
+                && diagnostic.resource_logical_id() == Some("ddbstreamtopic7821AF6E")
+                && diagnostic.property_path.as_deref() == Some("Properties.KmsMasterKeyId")
+        }),
+        "an intrinsic-built KMS alias ARN cannot be proven invalid: {diagnostics:?}"
+    );
+}
+
+#[test]
+fn malformed_literal_kms_key_arn_is_rejected_by_format_composition() {
+    let diagnostics = validate_fixture("bad/hardcoded_partition.yaml");
+    assert!(
+        diagnostics.iter().any(|diagnostic| {
+            diagnostic.rule_id == "F3017"
+                && diagnostic.resource_logical_id() == Some("Topic")
+                && diagnostic.property_path.as_deref() == Some("Properties.KmsMasterKeyId")
+        }),
+        "the malformed literal KMS key ARN must remain rejected: {diagnostics:?}"
+    );
+}
+
+#[test]
 fn composition_f3017_any_of_no_match() {
     let diags = validate_fixture("bad/schema_composition.yaml");
     let f3017: Vec<_> =

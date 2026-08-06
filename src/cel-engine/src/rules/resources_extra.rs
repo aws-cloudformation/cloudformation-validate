@@ -4245,12 +4245,13 @@ fn check_iam_action_resources(
             if !matched {
                 let formats_display =
                     candidate_formats.iter().map(|s| format!("'{}'", s)).collect::<Vec<_>>().join(", ");
+                let resource_field = if stmt.get("Resource").is_some() { "Resource" } else { "NotResource" };
                 out.push(make_resource_diagnostic(
                     "I3510",
                     &format!("action '{}' requires a resource of [{}]", action, formats_display),
                     m,
                     name,
-                    &format!("Properties.PolicyDocument.Statement.{}.Resource", stmt_idx),
+                    &format!("Properties.PolicyDocument.Statement.{}.{}", stmt_idx, resource_field),
                     None,
                 ));
             }

@@ -3971,7 +3971,7 @@
         "startLine": 4,
         "startColumn": 3,
         "endLine": 4,
-        "endColumn": 16,
+        "endColumn": 10,
         "ruleDescription": "Fn::And must take between 2 and 10 boolean conditions",
         "phase": "PARSE"
       },
@@ -3989,7 +3989,7 @@
         "startLine": 5,
         "startColumn": 3,
         "endLine": 5,
-        "endColumn": 18,
+        "endColumn": 10,
         "ruleDescription": "Fn::And must take between 2 and 10 boolean conditions",
         "phase": "PARSE"
       },
@@ -4025,7 +4025,7 @@
         "startLine": 19,
         "startColumn": 3,
         "endLine": 19,
-        "endColumn": 22,
+        "endColumn": 10,
         "ruleDescription": "Fn::And must take between 2 and 10 boolean conditions",
         "phase": "PARSE"
       },
@@ -4043,7 +4043,7 @@
         "startLine": 19,
         "startColumn": 3,
         "endLine": 19,
-        "endColumn": 22,
+        "endColumn": 10,
         "ruleDescription": "Fn::And must take between 2 and 10 boolean conditions",
         "phase": "PARSE"
       },
@@ -4061,7 +4061,7 @@
         "startLine": 20,
         "startColumn": 3,
         "endLine": 20,
-        "endColumn": 18,
+        "endColumn": 10,
         "ruleDescription": "Fn::And must take between 2 and 10 boolean conditions",
         "phase": "PARSE"
       },
@@ -4079,7 +4079,7 @@
         "startLine": 20,
         "startColumn": 3,
         "endLine": 20,
-        "endColumn": 18,
+        "endColumn": 10,
         "ruleDescription": "Fn::And must take between 2 and 10 boolean conditions",
         "phase": "PARSE"
       },
@@ -4831,7 +4831,7 @@
         "startLine": 8,
         "startColumn": 3,
         "endLine": 8,
-        "endColumn": 12,
+        "endColumn": 13,
         "ruleDescription": "Fn::Equals must take exactly two scalar operands",
         "phase": "PARSE"
       },
@@ -4849,7 +4849,7 @@
         "startLine": 9,
         "startColumn": 3,
         "endLine": 9,
-        "endColumn": 19,
+        "endColumn": 13,
         "ruleDescription": "Fn::Equals must take exactly two scalar operands",
         "phase": "PARSE"
       },
@@ -4867,7 +4867,7 @@
         "startLine": 10,
         "startColumn": 3,
         "endLine": 10,
-        "endColumn": 18,
+        "endColumn": 13,
         "ruleDescription": "Fn::Equals must take exactly two scalar operands",
         "phase": "PARSE"
       },
@@ -4885,7 +4885,7 @@
         "startLine": 11,
         "startColumn": 3,
         "endLine": 11,
-        "endColumn": 7,
+        "endColumn": 13,
         "ruleDescription": "Fn::Equals must take exactly two scalar operands",
         "phase": "PARSE"
       },
@@ -4903,7 +4903,7 @@
         "startLine": 11,
         "startColumn": 3,
         "endLine": 11,
-        "endColumn": 7,
+        "endColumn": 13,
         "ruleDescription": "Fn::Equals must take exactly two scalar operands",
         "phase": "PARSE"
       },
@@ -4921,7 +4921,7 @@
         "startLine": 12,
         "startColumn": 3,
         "endLine": 12,
-        "endColumn": 16,
+        "endColumn": 13,
         "ruleDescription": "Fn::Equals must take exactly two scalar operands",
         "phase": "PARSE"
       },
@@ -7620,7 +7620,7 @@
         "startLine": 45,
         "startColumn": 7,
         "endLine": 45,
-        "endColumn": 11,
+        "endColumn": 14,
         "ruleDescription": "ARNs should use correctly placed Pseudo Parameters",
         "phase": "LINT"
       },
@@ -7639,7 +7639,7 @@
         "startLine": 58,
         "startColumn": 7,
         "endLine": 58,
-        "endColumn": 11,
+        "endColumn": 14,
         "ruleDescription": "ARNs should use correctly placed Pseudo Parameters",
         "phase": "LINT"
       },
@@ -11269,7 +11269,7 @@
         "startLine": 4,
         "startColumn": 3,
         "endLine": 4,
-        "endColumn": 16,
+        "endColumn": 13,
         "ruleDescription": "Fn::Equals must take exactly two scalar operands",
         "phase": "PARSE"
       },
@@ -12037,12 +12037,12 @@
           "entityType": "Resource",
           "resourceType": "AWS::IAM::Policy"
         },
-        "propertyPath": "Properties.PolicyDocument.Statement.1.Resource",
+        "propertyPath": "Properties.PolicyDocument.Statement.1.NotResource",
         "category": "Security",
-        "startLine": 26,
-        "startColumn": 17,
-        "endLine": 26,
-        "endColumn": 18,
+        "startLine": 29,
+        "startColumn": 11,
+        "endLine": 29,
+        "endColumn": 22,
         "ruleDescription": "Validate statement resources match the actions",
         "phase": "LINT"
       },
@@ -12339,9 +12339,9 @@
         "propertyPath": "Properties.ImageId.Fn::FindInMap.2",
         "category": "Intrinsic Function",
         "startLine": 9,
-        "startColumn": 7,
+        "startColumn": 65,
         "endLine": 9,
-        "endColumn": 14,
+        "endColumn": 66,
         "ruleDescription": "Fn::FindInMap operands must be strings or one of Ref/Fn::FindInMap",
         "phase": "PARSE"
       },
@@ -13702,10 +13702,10 @@
         },
         "propertyPath": "Properties.AvailabilityZone.Fn::Select.0",
         "category": "Intrinsic Function",
-        "startLine": 10,
-        "startColumn": 7,
-        "endLine": 10,
-        "endColumn": 23,
+        "startLine": 11,
+        "startColumn": 9,
+        "endLine": 11,
+        "endColumn": 10,
         "ruleDescription": "Fn::Select requires exactly two operands and a list source",
         "phase": "PARSE"
       },
@@ -15890,7 +15890,7 @@
         "startLine": 9,
         "startColumn": 11,
         "endLine": 9,
-        "endColumn": 16,
+        "endColumn": 18,
         "ruleDescription": "ARNs should use correctly placed Pseudo Parameters",
         "phase": "LINT"
       },
@@ -15909,7 +15909,7 @@
         "startLine": 21,
         "startColumn": 13,
         "endLine": 21,
-        "endColumn": 21,
+        "endColumn": 20,
         "ruleDescription": "ARNs should use correctly placed Pseudo Parameters",
         "phase": "LINT"
       },
@@ -18498,9 +18498,9 @@
         "propertyPath": "Outputs/ConditionalListBranch/Value/Fn::If/1",
         "category": "Structure",
         "startLine": 30,
-        "startColumn": 5,
+        "startColumn": 25,
         "endLine": 30,
-        "endColumn": 10,
+        "endColumn": 26,
         "ruleDescription": "Output value must be a string",
         "phase": "PARSE"
       },
@@ -18516,9 +18516,9 @@
         "propertyPath": "Outputs/ConditionalListBranch/Value/Fn::If/2",
         "category": "Structure",
         "startLine": 30,
-        "startColumn": 5,
+        "startColumn": 35,
         "endLine": 30,
-        "endColumn": 10,
+        "endColumn": 36,
         "ruleDescription": "Output value must be a string",
         "phase": "PARSE"
       },
@@ -30462,7 +30462,7 @@
         "startLine": 84,
         "startColumn": 13,
         "endLine": 84,
-        "endColumn": 21,
+        "endColumn": 20,
         "ruleDescription": "ARNs should use correctly placed Pseudo Parameters",
         "phase": "LINT"
       },
@@ -30481,7 +30481,7 @@
         "startLine": 92,
         "startColumn": 13,
         "endLine": 92,
-        "endColumn": 21,
+        "endColumn": 20,
         "ruleDescription": "ARNs should use correctly placed Pseudo Parameters",
         "phase": "LINT"
       },
@@ -30500,7 +30500,7 @@
         "startLine": 165,
         "startColumn": 15,
         "endLine": 165,
-        "endColumn": 18,
+        "endColumn": 22,
         "ruleDescription": "ARNs should use correctly placed Pseudo Parameters",
         "phase": "LINT"
       },
@@ -30519,7 +30519,7 @@
         "startLine": 171,
         "startColumn": 15,
         "endLine": 171,
-        "endColumn": 18,
+        "endColumn": 22,
         "ruleDescription": "ARNs should use correctly placed Pseudo Parameters",
         "phase": "LINT"
       },
@@ -30538,7 +30538,7 @@
         "startLine": 192,
         "startColumn": 24,
         "endLine": 192,
-        "endColumn": 25,
+        "endColumn": 31,
         "ruleDescription": "ARNs should use correctly placed Pseudo Parameters",
         "phase": "LINT"
       },
@@ -30557,7 +30557,7 @@
         "startLine": 204,
         "startColumn": 15,
         "endLine": 204,
-        "endColumn": 18,
+        "endColumn": 22,
         "ruleDescription": "ARNs should use correctly placed Pseudo Parameters",
         "phase": "LINT"
       },
@@ -62531,7 +62531,7 @@
     "metadata": {
       "resourcesScanned": 16,
       "counts": {
-        "fatal": 1,
+        "fatal": 0,
         "errors": 0,
         "warnings": 4,
         "informational": 18,
@@ -62542,26 +62542,6 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
-      {
-        "ruleId": "F3017",
-        "severity": "FATAL",
-        "message": "Value is not valid under any of the given schemas",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "ddbstreamtopic7821AF6E",
-          "entityType": "Resource",
-          "resourceType": "AWS::SNS::Topic"
-        },
-        "propertyPath": "Properties.KmsMasterKeyId",
-        "category": "Schema",
-        "startLine": 7,
-        "startColumn": 5,
-        "endLine": 7,
-        "endColumn": 20,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-sns",
-        "ruleDescription": "Value not valid under anyOf",
-        "phase": "SCHEMA"
-      },
       {
         "ruleId": "W2531",
         "severity": "WARN",
@@ -134167,10 +134147,10 @@
         },
         "propertyPath": "Properties.ClusterName.Fn::FindInMap.1.Fn::Join",
         "category": "Intrinsic Function",
-        "startLine": 49,
-        "startColumn": 7,
-        "endLine": 49,
-        "endColumn": 18,
+        "startLine": 52,
+        "startColumn": 11,
+        "endLine": 52,
+        "endColumn": 19,
         "ruleDescription": "Use Sub instead of Join",
         "phase": "LINT"
       },
@@ -134186,10 +134166,10 @@
         },
         "propertyPath": "Properties.ClusterName.Fn::FindInMap.2.Fn::Join",
         "category": "Intrinsic Function",
-        "startLine": 49,
-        "startColumn": 7,
-        "endLine": 49,
-        "endColumn": 18,
+        "startLine": 56,
+        "startColumn": 11,
+        "endLine": 56,
+        "endColumn": 19,
         "ruleDescription": "Use Sub instead of Join",
         "phase": "LINT"
       },
@@ -135746,7 +135726,7 @@
         "startLine": 9,
         "startColumn": 7,
         "endLine": 9,
-        "endColumn": 11,
+        "endColumn": 14,
         "ruleDescription": "ARNs should use correctly placed Pseudo Parameters",
         "phase": "LINT"
       },
@@ -142495,7 +142475,7 @@
         "startLine": 12,
         "startColumn": 11,
         "endLine": 12,
-        "endColumn": 16,
+        "endColumn": 18,
         "ruleDescription": "ARNs should use correctly placed Pseudo Parameters",
         "phase": "LINT"
       },
@@ -142514,7 +142494,7 @@
         "startLine": 24,
         "startColumn": 13,
         "endLine": 24,
-        "endColumn": 21,
+        "endColumn": 20,
         "ruleDescription": "ARNs should use correctly placed Pseudo Parameters",
         "phase": "LINT"
       },
@@ -147809,10 +147789,10 @@
         },
         "propertyPath": "Properties.Runtime",
         "category": "Deprecation",
-        "startLine": 12,
+        "startLine": 5,
         "startColumn": 5,
-        "endLine": 12,
-        "endColumn": 15,
+        "endLine": 5,
+        "endColumn": 12,
         "ruleDescription": "Check if Lambda Function Runtimes are updatable",
         "phase": "SCHEMA",
         "context": {
@@ -150123,7 +150103,7 @@
         "startLine": 61,
         "startColumn": 16,
         "endLine": 61,
-        "endColumn": 17,
+        "endColumn": 23,
         "ruleDescription": "ARNs should use correctly placed Pseudo Parameters",
         "phase": "LINT"
       },
@@ -150142,7 +150122,7 @@
         "startLine": 97,
         "startColumn": 7,
         "endLine": 97,
-        "endColumn": 11,
+        "endColumn": 14,
         "ruleDescription": "ARNs should use correctly placed Pseudo Parameters",
         "phase": "LINT"
       },
@@ -156502,9 +156482,9 @@
         "propertyPath": "Properties.BucketName.Fn::If.2",
         "category": "Best Practice",
         "startLine": 57,
-        "startColumn": 7,
+        "startColumn": 54,
         "endLine": 57,
-        "endColumn": 17,
+        "endColumn": 55,
         "ruleDescription": "Check Fn::If has a path that cannot be reached",
         "phase": "LINT"
       },
@@ -156539,10 +156519,10 @@
         },
         "propertyPath": "Properties.PublicAccessBlockConfiguration.BlockPublicAcls.Fn::If.2",
         "category": "Best Practice",
-        "startLine": 66,
-        "startColumn": 9,
-        "endLine": 66,
-        "endColumn": 24,
+        "startLine": 69,
+        "startColumn": 13,
+        "endLine": 69,
+        "endColumn": 14,
         "ruleDescription": "Check Fn::If has a path that cannot be reached",
         "phase": "LINT"
       },

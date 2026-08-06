@@ -31,16 +31,22 @@ pub fn extract_sam_globals(arena: &Arena, globals_ref: NodeRef) -> HashMap<Strin
 pub fn apply_sam_globals(
     resources: &mut HashMap<String, ResolvedResource>,
     globals: &HashMap<String, HashMap<String, serde_json::Value>>,
+    span_index: &mut SourceSpanIndex,
 ) {
     for (short_name, defaults) in globals {
         let full_type = SAM_GLOBALS_TYPE_MAP.iter().find(|(s, _)| *s == short_name).map(|(_, t)| *t);
         let Some(full_type) = full_type else { continue };
-        for res in resources.values_mut() {
+        for (resource_id, res) in resources.iter_mut() {
             if res.resource_type != full_type {
                 continue;
             }
             for (prop, val) in defaults {
                 if !res.properties.contains_key(prop) {
+                    let global_path = format!("{}/{}/{}", SECTION_GLOBALS, short_name, prop);
+                    let resource_path = format!("Resources/{}/Properties/{}", resource_id, prop);
+                    if let Some(span) = span_index.get(&global_path).copied() {
+                        span_index.entry(resource_path).or_insert(span);
+                    }
                     res.properties.insert(prop.clone(), ResolvedValue::Concrete { value: val.clone().into() });
                 }
             }

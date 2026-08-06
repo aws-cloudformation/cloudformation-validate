@@ -2335,7 +2335,10 @@ fn validate_prop(
                     || is_unresolved_intrinsic(val)
                     || (!val.is_object() && !val.is_array())
             });
-            if has_only_scalars {
+            let has_format_branch =
+                schema.all_of.iter().chain(&schema.any_of).chain(&schema.one_of).any(|branch| branch.format.is_some());
+            let is_intrinsic_format_value = has_format_branch && m.is_from_intrinsic(rid, prop_path);
+            if has_only_scalars && !is_intrinsic_format_value {
                 validate_prop_composition(out, m, rid, prop_path, schema, defs, &scenarios);
             }
         }

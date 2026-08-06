@@ -468,6 +468,10 @@ fn sam_globals_merged_into_function() {
     assert!(model.sam_globals["Function"].contains_key("Runtime"));
     // The function should have the Runtime property from globals
     assert!(func.properties.contains_key("Runtime"));
+    let runtime_span = model
+        .source_location("Resources/myFunction/Properties/Runtime")
+        .expect("inherited Runtime should retain its Globals source span");
+    assert_eq!(runtime_span.start_line, 5, "inherited Runtime should point to Globals.Function.Runtime");
 }
 
 #[test]
