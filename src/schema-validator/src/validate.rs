@@ -3688,11 +3688,17 @@ fn check_gather_property_constraints(
 }
 
 fn describe_resolution(m: &Arc<SemanticModel>, rid: &str, prop_path: &str) -> Option<String> {
-    let val = m.resolve(rid, prop_path).or_else(|| {
-        let stripped = prop_path.strip_prefix("Properties.")?;
-        let top = stripped.split('.').next()?;
-        m.resources.get(rid)?.properties.get(top)
-    })?;
+    let top_level_path;
+    let (val, value_path) = match m.resolve(rid, prop_path) {
+        Some(val) => (val, prop_path),
+        None => {
+            let stripped = prop_path.strip_prefix("Properties.")?;
+            let top = stripped.split('.').next()?;
+            let val = m.resources.get(rid)?.properties.get(top)?;
+            top_level_path = format!("Properties.{}", top);
+            (val, top_level_path.as_str())
+        }
+    };
     match val {
         ResolvedValue::Reference { target, kind } => {
             let kind_str = match kind {
@@ -3710,9 +3716,15 @@ fn describe_resolution(m: &Arc<SemanticModel>, rid: &str, prop_path: &str) -> Op
             Some(format!("Fn::If on condition '{}'", cond))
         }
         ResolvedValue::Dynamic { reason: desc } => Some(format!("dynamic ({})", desc)),
-        ResolvedValue::TypedDynamic { reason: name, param_type: typ } => {
-            Some(format!("parameter '{}' (type {})", name, typ))
-        }
+        // A typed value that is unknown until deployment is only a parameter when
+        // the model says a parameter produced it. A cross-stack import and a
+        // dynamic reference are just as unknown and carry the same declared type,
+        // so naming them a parameter would report something the template does not
+        // contain — and would print the explanation where a name belongs.
+        ResolvedValue::TypedDynamic { reason: desc, param_type: typ } => match m.parameter_name_at(rid, value_path) {
+            Some(parameter) => Some(format!("parameter '{}' (type {})", parameter, typ)),
+            None => Some(format!("dynamic ({})", desc)),
+        },
         _ => None,
     }
 }

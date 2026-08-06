@@ -1682,6 +1682,13 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         "RequiresCompatibilities",
         "PlacementConstraints",
     ];
+    // A property whose items must be unique must not repeat a value. Two entries
+    // are only reported when they are provably one value: an entry that resolves
+    // before deployment is settled by its contents, and an entry that stays opaque
+    // is settled by the expression that produces it, since two entries written the
+    // same way always read the same thing. When any entry offers neither, the
+    // property is left alone — entries that merely look alike because their values
+    // are unknowable are not a duplicate.
     for (name, res) in &m.resources {
         for prop in res.properties.keys() {
             if !UNIQUE_ARRAY_PROPS.contains(&prop.as_str()) {
@@ -1692,23 +1699,24 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             let Some(rv) = resolved else {
                 continue;
             };
-            let items: Vec<String> = match &rv {
-                ResolvedValue::Concrete { value: v } => {
-                    let Some(arr) = v.as_array() else {
-                        continue;
-                    };
-                    arr.iter().map(|x| x.to_string()).collect()
-                }
-                ResolvedValue::List { items } => {
-                    items.iter().map(|it| serde_json::to_string(it).unwrap_or_default()).collect()
-                }
+            let item_count = match &rv {
+                ResolvedValue::Concrete { value: v } => match v.as_array() {
+                    Some(arr) => arr.len(),
+                    None => continue,
+                },
+                ResolvedValue::List { items } => items.len(),
                 _ => continue,
             };
-            if items.len() < 2 {
+            if item_count < 2 {
+                continue;
+            }
+            let identities: Vec<String> =
+                (0..item_count).filter_map(|index| m.value_identity(name, &format!("{}.{}", path, index))).collect();
+            if identities.len() != item_count {
                 continue;
             }
             let mut seen = HashSet::new();
-            let has_dup = items.iter().any(|s| !seen.insert(s.clone()));
+            let has_dup = identities.iter().any(|identity| !seen.insert(identity.clone()));
             if has_dup {
                 out.push(make_resource_diagnostic(
                     "W9007",
@@ -2283,20 +2291,22 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                             continue;
                         }
                         let path = format!("Properties.{}", prop);
-                        // Skip concrete strings — already covered by generated schema string-length rules.
-                        // Only estimate through intrinsics (Fn::Sub, Fn::Join, etc.).
-                        if let Some(ResolvedValue::Concrete { value: v }) = m.resolve(name, &path)
-                            && v.is_string()
-                        {
-                            continue;
-                        }
-                        if let Some(len) = m.estimate_string_length(name, &path) {
+                        // Only reported when the constraint is broken whichever
+                        // value the deployment picks: the shortest possibility
+                        // still too long, or the longest still too short. A value
+                        // the template states literally is checked against the
+                        // constraint by schema validation instead, and a value with
+                        // any unknown possibility yields no bounds at all.
+                        if let Some((shortest, longest)) = m.estimated_string_length_bounds(name, &path) {
                             if let Some(max) = max_len
-                                && len as u64 > max
+                                && shortest as u64 > max
                             {
                                 out.push(make_resource_diagnostic(
                                     "W9006",
-                                    &format!("String length {} exceeds maximum {} for property '{}'", len, max, prop),
+                                    &format!(
+                                        "String length {} exceeds maximum {} for property '{}'",
+                                        shortest, max, prop
+                                    ),
                                     m,
                                     name,
                                     &path,
@@ -2304,11 +2314,14 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                                 ));
                             }
                             if let Some(min) = min_len
-                                && (len as u64) < min
+                                && (longest as u64) < min
                             {
                                 out.push(make_resource_diagnostic(
                                     "W9006",
-                                    &format!("String length {} is below minimum {} for property '{}'", len, min, prop),
+                                    &format!(
+                                        "String length {} is below minimum {} for property '{}'",
+                                        longest, min, prop
+                                    ),
                                     m,
                                     name,
                                     &path,

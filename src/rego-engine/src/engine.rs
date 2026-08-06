@@ -1418,19 +1418,40 @@ violation contains v if {
     }
 
     #[test]
-    fn builtin_estimate_string_length_returns_value() {
+    fn builtin_estimated_string_length_bounds_returns_both_bounds() {
+        // `!If [IsProd, "production", "development"]` — the deployment picks one of
+        // two known values, so the length is bounded but not fixed.
         let diags = eval_builtin_policy(
             r#"
 package builtin_test
 import rego.v1
 violation contains v if {
-    len := estimate_string_length("MyBucket", "BucketName")
-    len > 0
+    bounds := estimated_string_length_bounds("MyBucket", "Tags.0.Value")
+    bounds.shortest == 10
+    bounds.longest == 11
     v := {"rule_id": "B_ESL", "severity": "error", "message": "ok", "resource_id": "MyBucket"}
 }
 "#,
             "B_ESL",
         );
-        assert_eq!(diags.len(), 1, "estimate_string_length should return positive length for 'my-bucket'");
+        assert_eq!(diags.len(), 1, "a value chosen between two known strings must report both bounds");
+    }
+
+    #[test]
+    fn builtin_estimated_string_length_bounds_is_undefined_for_a_literal() {
+        // Schema validation checks a literal against the constraint, so this rule
+        // is not given one to estimate.
+        let diags = eval_builtin_policy(
+            r#"
+package builtin_test
+import rego.v1
+violation contains v if {
+    bounds := estimated_string_length_bounds("MyBucket", "BucketName")
+    v := {"rule_id": "B_ESL_LITERAL", "severity": "error", "message": "ok", "resource_id": "MyBucket"}
+}
+"#,
+            "B_ESL_LITERAL",
+        );
+        assert!(diags.is_empty(), "a literal string must yield no bounds, got {diags:?}");
     }
 }

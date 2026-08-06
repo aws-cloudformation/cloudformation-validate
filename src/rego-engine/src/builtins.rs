@@ -39,6 +39,7 @@ pub(crate) fn register_all(
     register_is_dynamic(rego, holder.clone());
     register_is_from_parameter(rego, holder.clone());
     register_is_from_intrinsic(rego, holder.clone());
+    register_value_identity(rego, holder.clone());
     register_follow_ref(rego, holder.clone());
     register_authored_form(rego, holder.clone());
     register_resources_of_type(rego, holder.clone());
@@ -98,7 +99,7 @@ pub(crate) fn register_all(
     register_coerce_port_to_string(rego);
     register_coerce_to_bool(rego);
     register_cfn_type_compatible(rego);
-    register_estimate_string_length(rego, holder.clone());
+    register_estimated_string_length_bounds(rego, holder.clone());
     register_schema_string_length(rego, schema_registry.clone());
     register_schema_requires_unique_items(rego, schema_registry);
     register_unreachable_if_branches(rego, holder);
@@ -382,6 +383,27 @@ fn register_is_from_intrinsic(rego: &mut regorus::Engine, holder: SharedModel) {
             let rid = params[0].as_string()?;
             let path = params[1].as_string()?;
             Ok(Value::from(model.is_from_intrinsic(rid, path)))
+        }),
+    );
+}
+
+/// Undefined when nothing about the value at `path` settles whether it is the
+/// same value as another, so a caller comparing keys cannot conclude anything
+/// from a missing one.
+fn register_value_identity(rego: &mut regorus::Engine, holder: SharedModel) {
+    let _ = rego.add_extension(
+        "value_identity".into(),
+        2,
+        Box::new(move |params: Vec<Value>| {
+            let Some(model) = get_model(&holder) else {
+                return Ok(Value::Undefined);
+            };
+            let rid = params[0].as_string()?;
+            let path = params[1].as_string()?;
+            match model.value_identity(rid, path) {
+                Some(identity) => Ok(Value::from(identity)),
+                None => Ok(Value::Undefined),
+            }
         }),
     );
 }
@@ -1969,9 +1991,12 @@ fn register_make_diag_conditional(rego: &mut regorus::Engine, holder: SharedMode
     );
 }
 
-fn register_estimate_string_length(rego: &mut regorus::Engine, holder: SharedModel) {
+/// `estimated_string_length_bounds(resource, path) -> {"shortest": n, "longest": n}`
+/// — undefined when the length cannot be pinned for every possibility, or when the
+/// template states the value literally.
+fn register_estimated_string_length_bounds(rego: &mut regorus::Engine, holder: SharedModel) {
     let _ = rego.add_extension(
-        "estimate_string_length".into(),
+        "estimated_string_length_bounds".into(),
         2,
         Box::new(move |params: Vec<Value>| {
             let Some(model) = get_model(&holder) else {
@@ -1979,8 +2004,10 @@ fn register_estimate_string_length(rego: &mut regorus::Engine, holder: SharedMod
             };
             let rid = params[0].as_string()?;
             let path = params[1].as_string()?;
-            match model.estimate_string_length(rid, path) {
-                Some(len) => Ok(Value::from(len as i64)),
+            match model.estimated_string_length_bounds(rid, path) {
+                Some((shortest, longest)) => {
+                    Ok(json_to_value(&serde_json::json!({"shortest": shortest, "longest": longest})))
+                }
                 None => Ok(Value::Undefined),
             }
         }),

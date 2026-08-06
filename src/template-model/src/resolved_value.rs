@@ -229,29 +229,61 @@ pub fn json_contains_markers(v: &serde_json::Value) -> bool {
     }
 }
 
-pub fn estimate_resolved_string_length(val: &ResolvedValue) -> Option<usize> {
+/// The shortest and longest a string value can be at deployment, or `None` when
+/// any possibility is unknown.
+///
+/// A length constraint may only be reported broken when it is broken for every
+/// possibility, so one unknown possibility withdraws the whole estimate instead
+/// of narrowing it. Bounds rather than a single number are what let a caller tell
+/// "every possibility is too long" from "every possibility is too short".
+pub fn estimate_resolved_string_length_bounds(val: &ResolvedValue) -> Option<(usize, usize)> {
     match val {
-        ResolvedValue::Concrete { value: v } if v.is_string() => Some(v.as_str().unwrap().len()),
-        // Pure ${var} interpolations could resolve to any length at deploy time —
-        // report None so length-constraint rules don't fire false positives on e.g.
-        // `BucketName: !Sub "${EnvPrefix}-${AppName}"`.
-        ResolvedValue::Dynamic { reason: desc } if desc.starts_with("Sub:") => {
-            let template = &desc[4..];
-            if has_interpolation_variable(template) { None } else { Some(template.len()) }
+        ResolvedValue::Concrete { value: v } if v.is_string() => {
+            let length = v.as_str()?.len();
+            Some((length, length))
         }
-        ResolvedValue::Dynamic { reason: desc } if desc.starts_with("Join:") => Some(desc[5..].len()),
+        // A partially resolved Sub or Join is a description of what could be
+        // worked out, not the value. Its length is only the value's length when
+        // nothing is still standing in for something unknown: a `${...}`
+        // interpolation expands to any length at deploy time, and a reference
+        // placeholder is internal text whose width says nothing about the value it
+        // stands for. Measuring either would report a length the template never
+        // produces.
+        ResolvedValue::Dynamic { reason: desc } if desc.starts_with(SUB_PARTIAL_PREFIX) => {
+            partial_length_bounds(&desc[SUB_PARTIAL_PREFIX.len()..])
+        }
+        ResolvedValue::Dynamic { reason: desc } if desc.starts_with(JOIN_PARTIAL_PREFIX) => {
+            partial_length_bounds(&desc[JOIN_PARTIAL_PREFIX.len()..])
+        }
         ResolvedValue::Dynamic { reason: _ } => None,
         ResolvedValue::Conditional { if_true: t, if_false: f, .. } => {
-            let tl = estimate_resolved_string_length(t);
-            let fl = estimate_resolved_string_length(f);
-            match (tl, fl) {
-                (Some(a), Some(b)) => Some(a.min(b)),
-                (Some(a), None) | (None, Some(a)) => Some(a),
-                _ => None,
-            }
+            let (true_shortest, true_longest) = estimate_resolved_string_length_bounds(t)?;
+            let (false_shortest, false_longest) = estimate_resolved_string_length_bounds(f)?;
+            Some((true_shortest.min(false_shortest), true_longest.max(false_longest)))
         }
-        ResolvedValue::Enum { variants } => variants.iter().filter_map(estimate_resolved_string_length).min(),
+        ResolvedValue::Enum { variants } => {
+            let mut bounds: Option<(usize, usize)> = None;
+            for variant in variants {
+                let (shortest, longest) = estimate_resolved_string_length_bounds(variant)?;
+                bounds = Some(match bounds {
+                    Some((known_shortest, known_longest)) => (known_shortest.min(shortest), known_longest.max(longest)),
+                    None => (shortest, longest),
+                });
+            }
+            bounds
+        }
         _ => None,
+    }
+}
+
+fn partial_length_bounds(partial: &str) -> Option<(usize, usize)> {
+    if has_interpolation_variable(partial)
+        || partial.contains(UNRESOLVED_REF_PLACEHOLDER_PREFIX)
+        || partial.contains(UNRESOLVED_DYNAMIC_PLACEHOLDER)
+    {
+        None
+    } else {
+        Some((partial.len(), partial.len()))
     }
 }
 
@@ -722,67 +754,122 @@ mod tests {
     }
 
     #[test]
-    fn estimate_string_length_concrete() {
+    fn bounds_of_a_literal_are_its_own_length() {
         let val = ResolvedValue::Concrete { value: json!("hello").into() };
-        assert_eq!(estimate_resolved_string_length(&val), Some(5));
+        assert_eq!(estimate_resolved_string_length_bounds(&val), Some((5, 5)));
     }
 
     #[test]
-    fn estimate_string_length_conditional_takes_min() {
+    fn bounds_of_a_conditional_span_both_branches() {
         let val = ResolvedValue::Conditional {
             condition: "C".into(),
             if_true: Box::new(ResolvedValue::Concrete { value: json!("short").into() }),
             if_false: Box::new(ResolvedValue::Concrete { value: json!("much longer string").into() }),
         };
-        assert_eq!(estimate_resolved_string_length(&val), Some(5));
+        assert_eq!(estimate_resolved_string_length_bounds(&val), Some((5, "much longer string".len())));
     }
 
     #[test]
-    fn estimate_string_length_enum_takes_min() {
+    fn bounds_of_a_conditional_are_absent_when_one_branch_is_unknown() {
+        // The deployment may take the unknown branch, so no length holds for every
+        // possibility.
+        let val = ResolvedValue::Conditional {
+            condition: "C".into(),
+            if_true: Box::new(ResolvedValue::Concrete { value: json!("short").into() }),
+            if_false: Box::new(ResolvedValue::Dynamic { reason: "unknown".into() }),
+        };
+        assert_eq!(estimate_resolved_string_length_bounds(&val), None);
+    }
+
+    #[test]
+    fn bounds_of_allowed_values_span_every_choice() {
         let val = ResolvedValue::Enum {
             variants: vec![
                 ResolvedValue::Concrete { value: json!("ab").into() },
                 ResolvedValue::Concrete { value: json!("abcdef").into() },
             ],
         };
-        assert_eq!(estimate_resolved_string_length(&val), Some(2));
+        assert_eq!(estimate_resolved_string_length_bounds(&val), Some((2, 6)));
     }
 
     #[test]
-    fn estimate_string_length_sub_with_variables_returns_none() {
-        // Sub templates containing unresolved `${...}` interpolations can expand to any
-        // length at deploy time, so we intentionally return None rather than the length
-        // of the literal portion (which was previously reported as a misleading lower
-        // bound and produced false-positive min-length violations).
+    fn bounds_of_allowed_values_are_absent_when_one_choice_is_unknown() {
+        let val = ResolvedValue::Enum {
+            variants: vec![
+                ResolvedValue::Concrete { value: json!("ab").into() },
+                ResolvedValue::Dynamic { reason: "unknown".into() },
+            ],
+        };
+        assert_eq!(estimate_resolved_string_length_bounds(&val), None);
+    }
+
+    #[test]
+    fn bounds_of_a_sub_with_interpolation_are_absent() {
+        // A `${...}` interpolation expands to any length at deploy time, so the
+        // literal portion is not a lower bound on the value.
         let val = ResolvedValue::Dynamic { reason: "Sub:arn:aws:s3:::${BucketName}".into() };
-        assert_eq!(estimate_resolved_string_length(&val), None, "Sub with variables should return None");
+        assert_eq!(estimate_resolved_string_length_bounds(&val), None);
     }
 
     #[test]
-    fn estimate_string_length_sub_without_variables_returns_literal_length() {
+    fn bounds_of_a_fully_substituted_sub_are_its_length() {
         let val = ResolvedValue::Dynamic { reason: "Sub:no-variables-here".into() };
-        let len = estimate_resolved_string_length(&val).unwrap();
-        assert_eq!(len, "no-variables-here".len());
-    }
-
-    #[test]
-    fn estimate_string_length_non_string_returns_none() {
         assert_eq!(
-            estimate_resolved_string_length(&ResolvedValue::Concrete { value: json!(42).into() }),
-            None,
-            "non-string concrete should return None"
-        );
-        assert_eq!(
-            estimate_resolved_string_length(&ResolvedValue::Dynamic { reason: "unknown".into() }),
-            None,
-            "generic Dynamic should return None"
+            estimate_resolved_string_length_bounds(&val),
+            Some(("no-variables-here".len(), "no-variables-here".len()))
         );
     }
 
     #[test]
-    fn estimate_string_length_join_prefix_returns_length() {
-        let val = ResolvedValue::Dynamic { reason: "Join:prefix-{ref:Other}-suffix".into() };
-        // "prefix-{ref:Other}-suffix" is 25 chars
-        assert_eq!(estimate_resolved_string_length(&val), Some("prefix-{ref:Other}-suffix".len()));
+    fn bounds_are_absent_for_a_non_string_and_an_opaque_value() {
+        assert_eq!(
+            estimate_resolved_string_length_bounds(&ResolvedValue::Concrete { value: json!(42).into() }),
+            None,
+            "a number has no string length"
+        );
+        assert_eq!(
+            estimate_resolved_string_length_bounds(&ResolvedValue::Dynamic { reason: "unknown".into() }),
+            None,
+            "an opaque value has no known length"
+        );
+    }
+
+    #[test]
+    fn bounds_of_a_join_with_an_unresolved_reference_are_absent() {
+        // The placeholder is internal text standing in for a value that is only
+        // known at deployment. Measuring it reported the width of the placeholder
+        // as the length of the value, which produced length violations citing a
+        // number the template never produces.
+        let val = ResolvedValue::Dynamic {
+            reason: format!("{JOIN_PARTIAL_PREFIX}prefix-{UNRESOLVED_REF_PLACEHOLDER_PREFIX}Other}}-suffix"),
+        };
+        assert_eq!(estimate_resolved_string_length_bounds(&val), None, "a placeholder has no measurable length");
+    }
+
+    #[test]
+    fn bounds_of_a_join_with_an_opaque_deploy_time_value_are_absent() {
+        let val = ResolvedValue::Dynamic {
+            reason: format!("{JOIN_PARTIAL_PREFIX}prefix-{UNRESOLVED_DYNAMIC_PLACEHOLDER}-suffix"),
+        };
+        assert_eq!(
+            estimate_resolved_string_length_bounds(&val),
+            None,
+            "a deploy-time placeholder has no measurable length"
+        );
+    }
+
+    #[test]
+    fn bounds_of_a_join_of_known_parts_are_its_length() {
+        let val = ResolvedValue::Dynamic { reason: "Join:prefix-middle-suffix".into() };
+        assert_eq!(
+            estimate_resolved_string_length_bounds(&val),
+            Some(("prefix-middle-suffix".len(), "prefix-middle-suffix".len()))
+        );
+    }
+
+    #[test]
+    fn bounds_of_a_sub_with_an_unresolved_reference_are_absent() {
+        let val = ResolvedValue::Dynamic { reason: "Sub:name-{ref:Other}".into() };
+        assert_eq!(estimate_resolved_string_length_bounds(&val), None, "a placeholder has no measurable length");
     }
 }

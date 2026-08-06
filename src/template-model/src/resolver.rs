@@ -143,6 +143,9 @@ pub(crate) struct Resolver<'a> {
     pub(crate) extra_condition_refs: HashMap<String, Vec<String>>,
     pub(crate) inline_conditions: Vec<(String, crate::conditions::ConditionExpr)>,
     resolution_source_map: HashMap<(String, String), String>, // (resource_id, property_path) → source description
+    /// (resource_id, property_path) → the authored expression behind a value that
+    /// stayed opaque, used to establish whether two such values are one value.
+    value_node_map: HashMap<(String, String), NodeRef>,
     parameter_overrides: &'a HashMap<String, String>,
     pseudo_parameter_overrides: &'a crate::model::PseudoParameterOverrides,
 
@@ -187,6 +190,7 @@ impl<'a> Resolver<'a> {
             extra_condition_refs: HashMap::new(),
             inline_conditions: Vec::new(),
             resolution_source_map: HashMap::new(),
+            value_node_map: HashMap::new(),
             parameter_overrides,
             pseudo_parameter_overrides,
 
@@ -203,6 +207,10 @@ impl<'a> Resolver<'a> {
         self.resolution_source_map.clone()
     }
 
+    pub fn value_nodes(&self) -> HashMap<(String, String), NodeRef> {
+        self.value_node_map.clone()
+    }
+
     pub fn resolve_node(&mut self, node_ref: NodeRef) -> ResolvedValue {
         if node_ref == NULL_REF {
             warn!("Attempted to resolve NULL_REF node at path '{}'", self.current_path);
@@ -215,7 +223,17 @@ impl<'a> Resolver<'a> {
         self.depth += 1;
         let result = self.resolve_node_inner(node_ref);
         self.depth -= 1;
-        opaque_if_dynamic_reference(result)
+        let result = opaque_if_dynamic_reference(result);
+        // A value that stays opaque carries no contents to compare, so the
+        // expression that produced it is kept: it is the only thing that can
+        // later show whether two such values are the same value. A value that
+        // resolved to contents needs no such record.
+        if !matches!(result, ResolvedValue::Concrete { value: _ })
+            && let Some(ref resource_id) = self.current_resource
+        {
+            self.value_node_map.insert((resource_id.clone(), self.current_path.clone()), node_ref);
+        }
+        result
     }
 
     fn resolve_node_inner(&mut self, node_ref: NodeRef) -> ResolvedValue {
@@ -434,13 +452,15 @@ impl<'a> Resolver<'a> {
                                 .map(|v| match v {
                                     ResolvedValue::Concrete { value: cv } => cv.as_str().unwrap_or("").to_string(),
                                     ResolvedValue::Reference { target, .. } => {
-                                        format!("{{ref:{}}}", target)
+                                        format!("{}{}}}", UNRESOLVED_REF_PLACEHOLDER_PREFIX, target)
                                     }
-                                    _ => "{dynamic}".to_string(),
+                                    _ => UNRESOLVED_DYNAMIC_PLACEHOLDER.to_string(),
                                 })
                                 .collect();
                             self.collect_extra_condition_refs(&values);
-                            return ResolvedValue::Dynamic { reason: format!("Join:{}", parts.join(ds)) };
+                            return ResolvedValue::Dynamic {
+                                reason: format!("{}{}", JOIN_PARTIAL_PREFIX, parts.join(ds)),
+                            };
                         }
                         self.collect_extra_condition_refs(&values);
                         ResolvedValue::Dynamic { reason: "Join with unresolvable arguments".into() }
@@ -1425,7 +1445,7 @@ impl<'a> Resolver<'a> {
                         }
                         // If unresolved vars remain, produce Dynamic with partial info
                         if result.contains("${") {
-                            ResolvedValue::Dynamic { reason: format!("Sub:{}", result) }
+                            ResolvedValue::Dynamic { reason: format!("{}{}", SUB_PARTIAL_PREFIX, result) }
                         } else {
                             ResolvedValue::Concrete { value: serde_json::Value::String(result).into() }
                         }
@@ -1448,7 +1468,7 @@ impl<'a> Resolver<'a> {
         for val in sub_map.values() {
             self.collect_extra_condition_refs(val);
         }
-        ResolvedValue::Dynamic { reason: format!("Sub:{}", partial) }
+        ResolvedValue::Dynamic { reason: format!("{}{}", SUB_PARTIAL_PREFIX, partial) }
     }
 
     fn collect_extra_condition_refs(&mut self, val: &ResolvedValue) {

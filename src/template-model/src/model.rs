@@ -194,6 +194,9 @@ pub struct SemanticModel {
     /// specific mapping.
     pub has_dynamic_findinmap_name: bool,
     pub resolution_sources: HashMap<(String, String), String>,
+    /// (resource_id, property_path) → the authored expression behind a value that
+    /// stayed opaque. Consulted by [`SemanticModel::value_identity`].
+    value_nodes: HashMap<(String, String), NodeRef>,
     resolve_memo: Mutex<HashMap<(String, String), Option<ResolvedValue>>>,
     scenario_memo: Mutex<HashMap<(String, String), Vec<(serde_json::Value, HashMap<String, bool>)>>>,
     /// Cumulative count of scenarios materialized by `resolve_scenarios` across
@@ -490,6 +493,7 @@ impl SemanticModel {
         }
 
         let resolution_sources = resolver.resolution_sources();
+        let value_nodes = resolver.value_nodes();
         let mut all_edges = resolver.edges;
         for (id, res) in &resources {
             for dep in &res.depends_on {
@@ -879,6 +883,7 @@ impl SemanticModel {
                 params_referenced_in_definitions,
                 has_dynamic_findinmap_name,
                 resolution_sources,
+                value_nodes,
                 resolve_memo: Mutex::new(HashMap::new()),
                 scenario_memo: Mutex::new(HashMap::new()),
                 scenario_combinations_used: AtomicU64::new(0),
@@ -923,9 +928,40 @@ impl SemanticModel {
 
     #[must_use]
     pub fn is_from_parameter(&self, resource_id: &str, path: &str) -> bool {
-        self.resolution_sources
-            .get(&(resource_id.to_string(), path.to_string()))
-            .is_some_and(|s| s.starts_with("Parameters/"))
+        self.parameter_name_at(resource_id, path).is_some()
+    }
+
+    /// The parameter whose declaration stood in for the value at `path`, or `None`
+    /// when the value came from somewhere else. A value that is only known at
+    /// deployment is not necessarily a parameter — a cross-stack import and a
+    /// dynamic reference are equally unknown — so callers that describe a value to
+    /// a reader must ask rather than assume.
+    #[must_use]
+    pub fn parameter_name_at(&self, resource_id: &str, path: &str) -> Option<&str> {
+        let source = self.resolution_sources.get(&(resource_id.to_string(), path.to_string()))?;
+        parameter_name_from_source(source)
+    }
+
+    /// A key that two values share only when they are provably the same value, or
+    /// `None` when nothing about the value settles the question.
+    ///
+    /// A value that resolves before deployment is keyed by its contents, so the
+    /// authored form does not matter. A value that stays opaque is keyed by the
+    /// expression that produces it, because that is the only thing that can show
+    /// two such values are one value. Callers that compare keys must treat `None`
+    /// and two differing keys alike: neither proves the values differ, so neither
+    /// permits a claim that they are the same.
+    #[must_use]
+    pub fn value_identity(&self, resource_id: &str, path: &str) -> Option<String> {
+        let resolved = self.resolve_deep(resource_id, path).or_else(|| self.resolve(resource_id, path).cloned())?;
+        let as_json = crate::serialization::resolved_value_to_json(&resolved);
+        if !json_contains_markers(&as_json) {
+            let fingerprint = crate::value_identity::concrete_value_fingerprint(&as_json);
+            return Some(format!("value:{fingerprint}"));
+        }
+        let node = *self.value_nodes.get(&(resource_id.to_string(), path.to_string()))?;
+        crate::value_identity::expression_fingerprint(&self.arena, node)
+            .map(|fingerprint| format!("expr:{fingerprint}"))
     }
 
     /// True when the value at `path` (or any ancestor up to the resource root) was
@@ -1221,9 +1257,20 @@ impl SemanticModel {
             .copied()
     }
 
-    pub fn estimate_string_length(&self, resource_id: &str, path: &str) -> Option<usize> {
+    /// Bounds on the length of a string value the template does not state
+    /// literally — one built by an intrinsic, or chosen from a parameter's
+    /// AllowedValues. `None` when the length cannot be pinned for every
+    /// possibility, and also when the template does state the value literally,
+    /// because schema validation checks a literal against the constraint directly.
+    ///
+    /// Both engines decide what to report from this one answer, so neither can
+    /// reach a different conclusion about the same property.
+    pub fn estimated_string_length_bounds(&self, resource_id: &str, path: &str) -> Option<(usize, usize)> {
         let val = self.resolve_deep(resource_id, path).or_else(|| self.resolve(resource_id, path).cloned())?;
-        estimate_resolved_string_length(&val)
+        if matches!(&val, ResolvedValue::Concrete { value } if value.is_string()) {
+            return None;
+        }
+        estimate_resolved_string_length_bounds(&val)
     }
 }
 
@@ -1332,6 +1379,15 @@ fn collect_refs_in_subtree(
         }
         _ => {}
     }
+}
+
+/// The parameter name inside a `resolution_sources` entry that records a value
+/// taken from a parameter declaration, such as `Parameters/InstanceType/Default`.
+/// A logical id never contains a separator, so the first segment is the whole name.
+fn parameter_name_from_source(source: &str) -> Option<&str> {
+    let rest = source.strip_prefix(SECTION_PARAMETERS)?.strip_prefix('/')?;
+    let name = rest.split('/').next()?;
+    if name.is_empty() { None } else { Some(name) }
 }
 
 /// Some intrinsic nodes stand in for a whole object — most notably
@@ -2099,17 +2155,35 @@ Resources:
     }
 
     #[test]
-    fn estimate_string_length_concrete_property() {
+    fn estimated_bounds_are_absent_for_a_literal_string() {
+        // Schema validation checks a literal against its constraint directly, so
+        // the estimating rule is deliberately given nothing for one.
         let input = r#"{"Resources":{"R":{"Type":"T","Properties":{"V":"hello"}}}}"#;
         let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
-        assert_eq!(model.estimate_string_length("R", "Properties.V"), Some(5));
+        assert_eq!(model.estimated_string_length_bounds("R", "Properties.V"), None);
+    }
+
+    #[test]
+    fn estimated_bounds_span_every_allowed_value() {
+        let input = r#"{"Parameters":{"Size":{"Type":"String","AllowedValues":["xs","large"]}},
+            "Resources":{"R":{"Type":"T","Properties":{"V":{"Ref":"Size"}}}}}"#;
+        let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        assert_eq!(model.estimated_string_length_bounds("R", "Properties.V"), Some((2, 5)));
+    }
+
+    #[test]
+    fn estimated_bounds_are_absent_when_a_possibility_is_unknown() {
+        let input = r#"{"Parameters":{"Free":{"Type":"String"}},
+            "Resources":{"R":{"Type":"T","Properties":{"V":{"Ref":"Free"}}}}}"#;
+        let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        assert_eq!(model.estimated_string_length_bounds("R", "Properties.V"), None);
     }
 
     #[test]
     fn estimate_string_length_missing_property() {
         let input = r#"{"Resources":{"R":{"Type":"T","Properties":{"V":"hello"}}}}"#;
         let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
-        assert!(model.estimate_string_length("R", "Properties.Missing").is_none());
+        assert!(model.estimated_string_length_bounds("R", "Properties.Missing").is_none());
     }
 
     #[test]
@@ -2302,6 +2376,36 @@ Resources:
                 "{name} must be a free variable when the user has not explicitly pinned it"
             );
         }
+    }
+
+    #[test]
+    fn parameter_name_at_names_the_parameter_behind_a_value() {
+        let input = r#"{"Parameters":{"BucketName":{"Type":"String"}},
+            "Resources":{"R":{"Type":"AWS::S3::Bucket","Properties":{"BucketName":{"Ref":"BucketName"}}}}}"#;
+        let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        assert_eq!(model.parameter_name_at("R", "Properties.BucketName"), Some("BucketName"));
+        assert!(model.is_from_parameter("R", "Properties.BucketName"));
+    }
+
+    #[test]
+    fn parameter_name_at_is_absent_for_a_value_no_parameter_produced() {
+        // A cross-stack import is unknown until deployment without being a
+        // parameter, so nothing may name one.
+        let input = r#"{"Resources":{"R":{"Type":"AWS::S3::Bucket",
+            "Properties":{"BucketName":{"Fn::ImportValue":"SharedName"}}}}}"#;
+        let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        assert_eq!(model.parameter_name_at("R", "Properties.BucketName"), None);
+        assert!(!model.is_from_parameter("R", "Properties.BucketName"));
+    }
+
+    #[test]
+    fn parameter_name_from_source_reads_only_a_parameter_entry() {
+        assert_eq!(parameter_name_from_source("Parameters/InstanceType/Default"), Some("InstanceType"));
+        assert_eq!(parameter_name_from_source("Parameters/InstanceType/AllowedValues"), Some("InstanceType"));
+        assert_eq!(parameter_name_from_source("Parameters/InstanceType"), Some("InstanceType"));
+        assert_eq!(parameter_name_from_source("Intrinsic/Ref"), None);
+        assert_eq!(parameter_name_from_source("Parameters/"), None);
+        assert_eq!(parameter_name_from_source("ParametersLookAlike/Name"), None);
     }
 
     #[test]
