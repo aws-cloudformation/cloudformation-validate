@@ -10,6 +10,18 @@ use std::collections::{HashMap, HashSet};
 use std::sync::OnceLock;
 use std::sync::atomic::{AtomicU64, Ordering};
 
+/// How many budget-exhausted satisfiability queries are retained for the
+/// advisory diagnostic. The advisory tells an author that analysis of their
+/// condition set was cut short; a handful of examples conveys that, while
+/// retaining every query on a pathological template would itself grow unbounded.
+const MAX_REPORTED_BUDGET_EXHAUSTED_QUERIES: usize = 5;
+
+/// How the advisory describes analysis cut short by the cumulative budget rather
+/// than by one expensive query: from that point on, every remaining question about
+/// the condition set gets the conservative answer.
+const WHOLE_CONDITION_SET_DESCRIPTION: &str =
+    "this template's condition set as a whole (remaining conditions were assumed compatible)";
+
 #[derive(Debug, Clone)]
 pub enum ConditionExpr {
     Equals(ValueExpr, ValueExpr),
@@ -53,6 +65,15 @@ pub struct ConditionModel {
     pub parameters: HashMap<String, ParameterInfo>,
     pub mutex_groups: Vec<MutexGroup>,
     pub implications: Vec<Implication>,
+    /// Constraints a `Rules` section imposes on the parameters, as
+    /// `rule condition => assertion` pairs over synthetic conditions. Kept apart
+    /// from `implications` — which the `And`/`Or` structure of the conditions
+    /// entails and satisfiability therefore rederives on its own — because these
+    /// are external restrictions on what a deployment may supply and are the only
+    /// constraints the satisfiability search has to apply itself. Separate
+    /// storage also means recomputing the derived `implications` cannot discard
+    /// them.
+    rule_implications: Vec<Implication>,
     pseudo_overrides: PseudoParameterOverrides,
     mappings: MappingData,
     /// Cumulative satisfiability search steps consumed across every query for
@@ -61,23 +82,12 @@ pub struct ConditionModel {
     /// builtins all draw down a single per-validation budget.
     sat_iterations_used: AtomicU64,
     /// Referenced parameters and their candidate values, derived from the
-    /// condition set and parameter definitions. The satisfiability consistency
-    /// check enumerates this map at every search leaf, so caching it avoids
-    /// recomputing the same map across leaves and queries. Computed once on
-    /// first use and invalidated by `register_inline` — the only path that
-    /// mutates the condition set after construction.
+    /// condition set and parameter definitions. Every satisfiability query reads
+    /// the candidate values of the parameters it depends on, so caching this
+    /// avoids rederiving the same map across queries. Computed once on first use
+    /// and invalidated by `register_inline` — the only path that mutates the
+    /// condition set after construction.
     referenced_param_values: OnceLock<HashMap<String, Vec<String>>>,
-    /// Condition names in a stable (sorted) order, cached for reuse. The
-    /// satisfiability search assigns each condition an index by this order, and
-    /// the order in which assignments are explored drives how fast the per-query
-    /// and cumulative budgets draw down. `HashMap` key order is randomized per
-    /// instance, so without a stable order the iteration charged per query — and
-    /// thus which pair the budget trips at under exhaustion — would differ
-    /// between runs and between separate model instances built from the same
-    /// template. A sorted order makes search order, budget draw-down, and
-    /// budget-truncated output reproducible. Computed once on first use and
-    /// invalidated by `register_inline`.
-    sorted_condition_names: OnceLock<Vec<String>>,
     budget_exhausted_queries: std::sync::Mutex<Vec<String>>,
 }
 
@@ -145,16 +155,24 @@ impl ConditionModel {
             parameters: parameters.clone(),
             mutex_groups,
             implications,
+            rule_implications: Vec::new(),
             pseudo_overrides: pseudo_overrides.clone(),
             mappings: mappings.clone(),
             sat_iterations_used: AtomicU64::new(0),
             referenced_param_values: OnceLock::new(),
-            sorted_condition_names: OnceLock::new(),
             budget_exhausted_queries: std::sync::Mutex::new(Vec::new()),
         }
     }
 
     /// Decides whether the given condition assumptions can hold simultaneously.
+    ///
+    /// A condition is a pure function of the template's parameters,
+    /// pseudo-parameters, and mappings, so the assumptions hold exactly when some
+    /// assignment of concrete values to the parameters they read makes every
+    /// assumed condition take its assumed value. The search is over those
+    /// parameter assignments, which is why its cost tracks how many independent
+    /// inputs a template really has rather than how many conditions are layered
+    /// over them.
     ///
     /// On inputs that exhaust a search budget this degrades to a conservative
     /// `true` (assume satisfiable). Whether that conservative answer *adds* or
@@ -179,7 +197,13 @@ impl ConditionModel {
     ///   imply", which can surface an extra (false-positive) diagnostic.
     ///
     /// All of these occur only on adversarial inputs that exhaust the budget;
-    /// valid templates resolve well within budget and are unaffected.
+    /// valid templates resolve well within budget and are unaffected. Reaching a
+    /// budget is recorded (see [`Self::budget_exhausted_queries`]) so a curtailed
+    /// analysis is reported rather than silently narrowing what validation proves.
+    ///
+    /// A condition the parameters cannot decide — one comparing a value the model
+    /// cannot resolve, or sitting on a reference cycle — is treated as compatible
+    /// with any assumption about it, the same conservative direction.
     #[must_use]
     pub fn is_satisfiable(&self, assumptions: &[(String, bool)]) -> bool {
         self.is_satisfiable_with_param_overrides(assumptions, &HashMap::new())
@@ -206,10 +230,10 @@ impl ConditionModel {
     /// override restricts a parameter to exactly the given values for this query
     /// only; a parameter not referenced by any relevant condition is unaffected.
     #[must_use]
-    fn is_satisfiable_with_param_overrides(
-        &self,
+    fn is_satisfiable_with_param_overrides<'model>(
+        &'model self,
         assumptions: &[(String, bool)],
-        param_overrides: &HashMap<String, Vec<String>>,
+        param_overrides: &'model HashMap<String, Vec<String>>,
     ) -> bool {
         // Once the cumulative search budget for this model is spent, assume
         // satisfiable instead of searching further (the conservative-`true`
@@ -219,119 +243,43 @@ impl ConditionModel {
         if self.satisfiability_budget_exhausted() {
             return true;
         }
-        let cond_names: &[String] = self.sorted_condition_names.get_or_init(|| {
-            let mut names: Vec<String> = self.conditions.keys().cloned().collect();
-            names.sort();
-            names
-        });
-        let n = cond_names.len();
-        if n == 0 {
+
+        let mut assumed: HashMap<&'model str, bool> = HashMap::with_capacity(assumptions.len());
+        for (name, expected) in assumptions {
+            // A name that names no condition of this template fixes no
+            // expression's value, so it constrains nothing.
+            let Some((condition_name, _)) = self.conditions.get_key_value(name.as_str()) else {
+                continue;
+            };
+            if let Some(&already_assumed) = assumed.get(condition_name.as_str())
+                && already_assumed != *expected
+            {
+                return false;
+            }
+            assumed.insert(condition_name.as_str(), *expected);
+        }
+        if assumed.is_empty() {
             return true;
         }
-        debug!("Checking satisfiability of {:?} against {} conditions", assumptions, n);
+        debug!("Checking satisfiability of {:?} against {} conditions", assumptions, self.conditions.len());
 
-        let name_to_idx: HashMap<&str, usize> = cond_names.iter().enumerate().map(|(i, n)| (n.as_str(), i)).collect();
+        let mut query = SatisfiabilityQuery::prepare(self, &assumed, param_overrides);
 
-        let mut assumption_map: HashMap<usize, bool> = HashMap::new();
-        for (name, val) in assumptions {
-            if let Some(&idx) = name_to_idx.get(name.as_str()) {
-                if let Some(&existing) = assumption_map.get(&idx)
-                    && existing != *val
-                {
-                    return false;
-                }
-                assumption_map.insert(idx, *val);
-            }
-        }
-
-        let relevant = self.find_relevant_conditions(assumptions);
-        let mut relevant_indices: Vec<usize> =
-            relevant.iter().filter_map(|name| name_to_idx.get(name.as_str()).copied()).collect();
-        // `find_relevant_conditions` returns a HashSet, whose iteration order is
-        // randomized per process. The satisfiability result is order-independent,
-        // but the number of search steps charged to the cumulative budget before
-        // a satisfying assignment is found is not. Sort so per-query budget
-        // draw-down is deterministic across runs and across separate model
-        // instances built with different hash seeds; otherwise budget exhaustion
-        // would trip at a different query per run and diverge the budget-truncated
-        // diagnostics.
-        relevant_indices.sort_unstable();
-
-        // Enumerate only the parameters the relevant conditions actually
-        // reference. Varying any other parameter cannot change a relevant
-        // condition, so the satisfiability result is identical with far fewer
-        // combinations.
-        let mut relevant_param_values = self.relevant_param_values(&relevant_indices, cond_names);
-        // Apply per-query candidate-value overrides (e.g. AWS::Region pinned to
-        // the target region), but only for parameters this query actually
-        // references — an override for an unreferenced parameter cannot change any
-        // relevant condition and would needlessly enlarge the search.
-        for (param, values) in param_overrides {
-            if relevant_param_values.contains_key(param) {
-                relevant_param_values.insert(param.clone(), values.clone());
-            }
-        }
-
-        // If even that restricted parameter space is too large to enumerate,
-        // assume satisfiable instead of exploring it (the conservative-`true`
-        // contract documented on this method). This is the main guard against a
-        // condition whose closure references many parameters. The closure size
-        // is still charged to the budget so a flood of such queries stays
-        // bounded too.
-        let mut parameter_combinations: u64 = 1;
-        for values in relevant_param_values.values() {
-            parameter_combinations = parameter_combinations.saturating_mul(values.len() as u64);
-        }
-        if parameter_combinations > MAX_PARAM_COMBINATIONS {
-            // The cap short-circuits before the search, but the query has
-            // already walked the relevant closure: find_relevant_conditions
-            // (closure BFS) and relevant_param_values (which re-walks every
-            // relevant condition's expression). Charge that work — the condition
-            // count plus the relevant-closure size — so a flood of cap-tripped
-            // queries over a large condition graph draws the cumulative budget
-            // down in proportion to the work performed, not merely by `n`.
-            self.sat_iterations_used.fetch_add(n as u64 + relevant_indices.len() as u64, Ordering::Relaxed);
+        // If even the restricted parameter space this query depends on is too
+        // large to enumerate, assume satisfiable instead of exploring it (the
+        // conservative-`true` contract documented on `is_satisfiable`). The
+        // preparation already walked the query's dependency closure; charging
+        // that work keeps a flood of cap-tripped queries drawing the cumulative
+        // budget down in proportion to the work performed.
+        if query.parameter_point_count() > MAX_PARAM_COMBINATIONS {
+            self.charge_satisfiability_work(query.steps);
             return true;
         }
 
-        let mut assignment = vec![false; n];
-        for (&idx, &val) in &assumption_map {
-            assignment[idx] = val;
-        }
-        // Implications restricted to the relevant set, as index pairs, plus
-        // each index's position in the (sorted) relevant order. The search
-        // consults these per assigned node; precomputing keeps that check
-        // O(implications touching the node) instead of a scan of every
-        // implication times a scan of the relevant prefix.
-        let position_of: HashMap<usize, usize> =
-            relevant_indices.iter().enumerate().map(|(pos, &idx)| (idx, pos)).collect();
-        let mut implication_pairs: Vec<(usize, usize)> = self
-            .implications
-            .iter()
-            .filter_map(|imp| {
-                let a = name_to_idx.get(imp.antecedent.as_str()).copied()?;
-                let c = name_to_idx.get(imp.consequent.as_str()).copied()?;
-                (position_of.contains_key(&a) && position_of.contains_key(&c)).then_some((a, c))
-            })
-            .collect();
-        implication_pairs.sort_unstable();
-        implication_pairs.dedup();
-        let search = SearchContext {
-            cond_names,
-            name_to_idx: &name_to_idx,
-            assumptions: &assumption_map,
-            relevant: &relevant_indices,
-            param_values: &relevant_param_values,
-            implication_pairs: &implication_pairs,
-            position_of: &position_of,
-        };
-        let mut iterations = 0u64;
-        let satisfiable = self.search_relevant(0, &mut assignment, &search, &mut iterations);
-        self.sat_iterations_used.fetch_add(iterations + n as u64, Ordering::Relaxed);
-        if iterations > MAX_SAT_ITERATIONS
-            && let Ok(mut guard) = self.budget_exhausted_queries.lock()
-            && guard.len() < 5
-        {
+        let satisfiable = query.some_point_satisfies(&assumed);
+        let steps = query.steps;
+        self.charge_satisfiability_work(steps);
+        if steps > MAX_SAT_ITERATIONS {
             // Synthetic condition names (inline Fn::If expressions and
             // Rules-section conditions) are internal; describe them generically
             // rather than leaking `__`-prefixed identifiers into the advisory.
@@ -340,9 +288,29 @@ impl ConditionModel {
             };
             let query_desc =
                 assumptions.iter().map(|(n, v)| format!("{}={}", describe(n), v)).collect::<Vec<_>>().join(", ");
-            guard.push(query_desc);
+            self.record_curtailed_analysis(query_desc);
         }
         satisfiable
+    }
+
+    /// Charges satisfiability work to this model's cumulative budget, reporting the
+    /// crossing so an analysis that silently stops deciding conditions cannot go
+    /// unnoticed by the author of the template that caused it.
+    fn charge_satisfiability_work(&self, steps: u64) {
+        let before = self.sat_iterations_used.fetch_add(steps, Ordering::Relaxed);
+        if before < MAX_TOTAL_SAT_ITERATIONS && before.saturating_add(steps) >= MAX_TOTAL_SAT_ITERATIONS {
+            self.record_curtailed_analysis(WHOLE_CONDITION_SET_DESCRIPTION.to_string());
+        }
+    }
+
+    /// Records what a spent budget stopped short of deciding, for the advisory
+    /// diagnostic the validation reports.
+    fn record_curtailed_analysis(&self, description: String) {
+        if let Ok(mut curtailed) = self.budget_exhausted_queries.lock()
+            && curtailed.len() < MAX_REPORTED_BUDGET_EXHAUSTED_QUERIES
+        {
+            curtailed.push(description);
+        }
     }
 
     /// Whether this model has spent its cumulative satisfiability search budget.
@@ -367,134 +335,11 @@ impl ConditionModel {
     /// Test-only: advance the cumulative satisfiability counter directly, so the
     /// budget threshold and short-circuit behavior can be exercised without
     /// burning `MAX_TOTAL_SAT_ITERATIONS` of real search work (which would be
-    /// pointless seconds of computation).
+    /// pointless seconds of computation). Charged through the same path as real
+    /// work so the reporting that accompanies exhaustion is exercised too.
     #[cfg(test)]
     fn add_sat_iterations_for_test(&self, count: u64) {
-        self.sat_iterations_used.fetch_add(count, Ordering::Relaxed);
-    }
-
-    fn find_relevant_conditions(&self, assumptions: &[(String, bool)]) -> HashSet<String> {
-        let mut relevant = HashSet::new();
-        let mut queue: Vec<String> = assumptions.iter().map(|(n, _)| n.clone()).collect();
-        while let Some(name) = queue.pop() {
-            if !relevant.insert(name.clone()) {
-                continue;
-            }
-            if let Some(expr) = self.conditions.get(&name) {
-                collect_condition_refs(expr, &mut queue);
-            }
-            // Also add conditions in the same mutex group
-            for group in &self.mutex_groups {
-                if group.conditions.contains(&name) {
-                    for c in &group.conditions {
-                        if !relevant.contains(c) {
-                            queue.push(c.clone());
-                        }
-                    }
-                }
-            }
-        }
-        // Implication endpoints are deliberately NOT pulled into the closure:
-        // conditions over the same parameters already join through their mutex
-        // groups (which is how Rules-section synthetic conditions enter), and
-        // expanding through the implication graph would fuse every derived
-        // condition into one giant closure on templates with many And/Or
-        // conditions, exploding the search space. An implication whose
-        // endpoint is outside the closure is simply not enforced for this
-        // query — the conservative direction.
-        relevant
-    }
-
-    fn search_relevant(
-        &self,
-        rel_idx: usize,
-        assignment: &mut Vec<bool>,
-        search: &SearchContext<'_>,
-        iterations: &mut u64,
-    ) -> bool {
-        *iterations += 1;
-        if *iterations > MAX_SAT_ITERATIONS {
-            // Assume satisfiable to avoid false "unsatisfiable" which would suppress valid diagnostics
-            return true;
-        }
-
-        if rel_idx == search.relevant.len() {
-            return self.assignment_consistent_with_parameters(
-                assignment,
-                search.cond_names,
-                search.name_to_idx,
-                search.relevant,
-                search.param_values,
-                iterations,
-            );
-        }
-
-        let idx = search.relevant[rel_idx];
-        // An index is assigned once its position in the relevant order has been
-        // reached; positions above `rel_idx` still hold stale values.
-        let assigned = |i: usize, assignment: &[bool]| {
-            search.position_of.get(&i).is_some_and(|&p| p <= rel_idx).then(|| assignment[i])
-        };
-
-        for &val in &[false, true] {
-            if let Some(&required) = search.assumptions.get(&idx)
-                && val != required
-            {
-                continue;
-            }
-
-            assignment[idx] = val;
-
-            // Check mutex constraints
-            if val {
-                let mut violated = false;
-                for group in &self.mutex_groups {
-                    // A parameter can equal at most one value, so the conditions
-                    // that are simultaneously true may reference at most one
-                    // distinct value. Conditions that test the same value are
-                    // equivalent and may all hold together.
-                    let mut true_values: HashSet<&str> = HashSet::new();
-                    for (position, condition_name) in group.conditions.iter().enumerate() {
-                        let condition_holds = search
-                            .name_to_idx
-                            .get(condition_name.as_str())
-                            .and_then(|&i| assigned(i, assignment))
-                            .unwrap_or(false);
-                        if condition_holds {
-                            true_values.insert(group.values[position].as_str());
-                        }
-                    }
-                    if true_values.len() > 1 {
-                        violated = true;
-                        break;
-                    }
-                }
-                if violated {
-                    continue;
-                }
-            }
-
-            // Check implication constraints: `antecedent => consequent` prunes
-            // any assignment with the antecedent true and the consequent false
-            // once both endpoints have been assigned. This is what makes
-            // Rules-section assertions (registered as implications over
-            // synthetic conditions) actually constrain satisfiability. Only
-            // pairs whose endpoints are both in the relevant set are checked
-            // (precomputed), so the per-node cost is bounded by the number of
-            // implications actually in play.
-            let implication_violated = search.implication_pairs.iter().any(|&(ante, cons)| {
-                assigned(ante, assignment) == Some(true) && assigned(cons, assignment) == Some(false)
-            });
-            if implication_violated {
-                continue;
-            }
-
-            if self.search_relevant(rel_idx + 1, assignment, search, iterations) {
-                return true;
-            }
-        }
-
-        false
+        self.charge_satisfiability_work(count);
     }
 
     /// Builds, per parameter the conditions reference, the candidate values to
@@ -513,6 +358,11 @@ impl ConditionModel {
     ///   `Fn::Equals[AWS::Partition, "aws"]` would always evaluate true (the
     ///   default partition is "aws"), incorrectly marking the false branch
     ///   unreachable on templates that deploy to non-commercial partitions.
+    ///
+    /// Comparing a parameter against only the literals it is actually compared
+    /// against (plus the sentinel) is exact: two values a condition set never
+    /// distinguishes produce identical truth assignments, so one representative
+    /// of the "any other value" class suffices.
     ///
     /// Derived purely from the immutable condition set, parameter definitions,
     /// and pseudo-parameter overrides, so it is computed once and cached.
@@ -540,204 +390,10 @@ impl ConditionModel {
         param_values
     }
 
-    /// The parameters referenced by the given relevant conditions, paired with
-    /// their candidate values. Restricting the satisfiability search to these
-    /// parameters is exact — a parameter no relevant condition references cannot
-    /// change any relevant condition's value — and keeps the enumerated space as
-    /// small as the query actually requires.
-    fn relevant_param_values(&self, relevant_indices: &[usize], cond_names: &[String]) -> HashMap<String, Vec<String>> {
-        let all_values = self.referenced_param_values.get_or_init(|| self.collect_referenced_param_values());
-        let mut referenced: HashMap<String, Vec<String>> = HashMap::new();
-        for &i in relevant_indices {
-            collect_equals_pairs(&self.conditions[&cond_names[i]], &mut referenced);
-        }
-        referenced
-            .into_keys()
-            .filter_map(|param| all_values.get(&param).map(|values| (param, values.clone())))
-            .collect()
-    }
-
-    fn assignment_consistent_with_parameters(
-        &self,
-        assignment: &[bool],
-        cond_names: &[String],
-        name_to_idx: &HashMap<&str, usize>,
-        relevant: &[usize],
-        param_values: &HashMap<String, Vec<String>>,
-        iterations: &mut u64,
-    ) -> bool {
-        if param_values.is_empty() {
-            // No parameters — evaluate the relevant conditions directly. Other
-            // conditions are unconstrained for this query and their assignment
-            // entry is a placeholder, not a real value.
-            for &i in relevant {
-                let expr = &self.conditions[&cond_names[i]];
-                let evaluated =
-                    self.eval_expr_concrete(expr, &HashMap::new(), assignment, cond_names, name_to_idx, iterations);
-                // None means can't evaluate (e.g., depends on a pseudo-parameter) — treat as compatible
-                if let Some(eval_val) = evaluated
-                    && eval_val != assignment[i]
-                {
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        // Try all combinations of parameter values. Sort the parameter names:
-        // they come from a HashMap, and although the consistency result does not
-        // depend on enumeration order, the number of steps charged before a
-        // consistent assignment is found does. A stable order keeps per-query
-        // budget draw-down deterministic and engine-identical (see the matching
-        // sort of `relevant_indices` in `is_satisfiable`).
-        let mut param_names: Vec<String> = param_values.keys().cloned().collect();
-        param_names.sort_unstable();
-        let param_vals: Vec<Vec<String>> = param_names.iter().map(|n| param_values[n].clone()).collect();
-
-        let mut indices = vec![0usize; param_names.len()];
-        loop {
-            *iterations += 1;
-            if *iterations > MAX_SAT_ITERATIONS {
-                // The parameter cartesian product is exponential in the number
-                // of referenced parameters. Once the per-query search budget is
-                // spent, assume this assignment is consistent (satisfiable)
-                // instead of enumerating further — the conservative-`true`
-                // contract documented on `is_satisfiable`, which bounds the
-                // work.
-                return true;
-            }
-            // Build parameter assignment
-            let mut param_assignment: HashMap<String, String> = HashMap::new();
-            for (i, name) in param_names.iter().enumerate() {
-                if indices[i] < param_vals[i].len() {
-                    param_assignment.insert(name.clone(), param_vals[i][indices[i]].clone());
-                }
-            }
-
-            // Check if the relevant conditions evaluate consistently. Other
-            // conditions are unconstrained in this query and their default
-            // assignment is a placeholder, not a real value.
-            let mut consistent = true;
-            for &i in relevant {
-                let expr = &self.conditions[&cond_names[i]];
-                let evaluated =
-                    self.eval_expr_concrete(expr, &param_assignment, assignment, cond_names, name_to_idx, iterations);
-                // None means can't evaluate (e.g., depends on a pseudo-parameter) — treat as compatible
-                if let Some(eval_val) = evaluated
-                    && eval_val != assignment[i]
-                {
-                    consistent = false;
-                    break;
-                }
-            }
-            if consistent {
-                return true;
-            }
-
-            let mut carry = true;
-            for i in (0..indices.len()).rev() {
-                if carry {
-                    indices[i] += 1;
-                    if indices[i] < param_vals[i].len() {
-                        carry = false;
-                    } else {
-                        indices[i] = 0;
-                    }
-                }
-            }
-            if carry {
-                break; // exhausted all combinations
-            }
-        }
-
-        false
-    }
-
-    fn eval_expr_concrete(
-        &self,
-        expr: &ConditionExpr,
-        param_assignment: &HashMap<String, String>,
-        cond_assignment: &[bool],
-        _cond_names: &[String],
-        name_to_idx: &HashMap<&str, usize>,
-        iterations: &mut u64,
-    ) -> Option<bool> {
-        // Each evaluation is one unit of satisfiability work. Counting here, in
-        // the recursive core, keeps the search budget proportional to real
-        // effort: a deep condition closure draws the budget down faster than a
-        // shallow one, so the budget bounds actual work uniformly regardless of
-        // how the conditions are shaped.
-        *iterations += 1;
-        match expr {
-            ConditionExpr::Equals(a, b) => {
-                let av = self.eval_value_concrete(a, param_assignment)?;
-                let bv = self.eval_value_concrete(b, param_assignment)?;
-                Some(av == bv)
-            }
-            ConditionExpr::And(exprs) => {
-                let mut result = true;
-                for e in exprs {
-                    result = result
-                        && self.eval_expr_concrete(
-                            e,
-                            param_assignment,
-                            cond_assignment,
-                            _cond_names,
-                            name_to_idx,
-                            iterations,
-                        )?;
-                }
-                Some(result)
-            }
-            ConditionExpr::Or(exprs) => {
-                let mut result = false;
-                for e in exprs {
-                    result = result
-                        || self.eval_expr_concrete(
-                            e,
-                            param_assignment,
-                            cond_assignment,
-                            _cond_names,
-                            name_to_idx,
-                            iterations,
-                        )?;
-                }
-                Some(result)
-            }
-            ConditionExpr::Not(e) => Some(!self.eval_expr_concrete(
-                e,
-                param_assignment,
-                cond_assignment,
-                _cond_names,
-                name_to_idx,
-                iterations,
-            )?),
-            ConditionExpr::ConditionRef(name) => name_to_idx.get(name.as_str()).map(|&i| cond_assignment[i]),
-            // An invalid (non-boolean) condition body has no truth value; leave
-            // it unconstrained so it never falsifies a satisfiability query.
-            ConditionExpr::Invalid => None,
-        }
-    }
-
-    fn eval_value_concrete(&self, expr: &ValueExpr, param_assignment: &HashMap<String, String>) -> Option<String> {
-        match expr {
-            ValueExpr::Literal(s) => Some(s.clone()),
-            ValueExpr::ParamRef(name) => param_assignment.get(name).cloned(),
-            ValueExpr::PseudoParam(name) => {
-                param_assignment.get(name).cloned().or_else(|| self.pseudo_overrides.fixed_value(name))
-            }
-            ValueExpr::MappingLookup { map_name, key1, key2 } => {
-                let k1 = self.eval_value_concrete(key1, param_assignment)?;
-                let k2 = self.eval_value_concrete(key2, param_assignment)?;
-                let value = self.mappings.get(map_name)?.get(&k1)?.get(&k2)?;
-                // Convert JSON value to string for condition comparison
-                match value {
-                    serde_json::Value::String(s) => Some(s.clone()),
-                    other => Some(other.to_string()),
-                }
-            }
-            ValueExpr::Other => None,
-        }
+    /// The candidate values of every parameter any condition references,
+    /// computed once and cached (see [`Self::collect_referenced_param_values`]).
+    fn referenced_param_values(&self) -> &HashMap<String, Vec<String>> {
+        self.referenced_param_values.get_or_init(|| self.collect_referenced_param_values())
     }
 
     #[must_use]
@@ -825,22 +481,20 @@ impl ConditionModel {
         self.mutex_groups = extract_mutex_groups(&self.conditions);
         self.implications = extract_implications(&self.conditions);
         // Inserting a condition can introduce parameter references the cached
-        // map omits and changes the set of condition names, so invalidate both
-        // derived caches; they are rebuilt lazily on the next satisfiability
-        // query. The cumulative iteration counter is deliberately left untouched
-        // — it is a per-validation work budget, not state derived from the
-        // condition set, and resetting it would hand adversarial input a way to
-        // refill the budget.
+        // map omits, so invalidate it; it is rebuilt lazily on the next
+        // satisfiability query. The cumulative iteration counter is deliberately
+        // left untouched — it is a per-validation work budget, not state derived
+        // from the condition set, and resetting it would hand adversarial input a
+        // way to refill the budget.
         self.referenced_param_values = OnceLock::new();
-        self.sorted_condition_names = OnceLock::new();
     }
 
     pub fn register_rule_implications(&mut self, arena: &Arena, rules: &[(String, NodeRef, Vec<NodeRef>)]) {
         // A Rules-section `RuleCondition => Assertions` relationship becomes a set
-        // of implications `__rule_cond_<rule> => __rule_assert_<rule>_<i>`. These
-        // are collected separately because `extract_implications` (below) only
-        // derives implications from `And`/`Or` structure and cannot re-derive
-        // them — appending after the structural pass keeps both.
+        // of constraints `__rule_cond_<rule> => __rule_assert_<rule>_<i>`. They are
+        // kept in their own list because they restrict what a deployment may
+        // supply rather than following from the conditions' structure, so
+        // satisfiability has to apply them explicitly (see `rule_implications`).
         let mut rule_implications: Vec<Implication> = Vec::new();
         for (rule_name, condition_node, assertion_nodes) in rules {
             let antecedent = if *condition_node != NULL_REF {
@@ -868,9 +522,8 @@ impl ConditionModel {
 
         self.mutex_groups = extract_mutex_groups(&self.conditions);
         self.implications = extract_implications(&self.conditions);
-        self.implications.extend(rule_implications);
+        self.rule_implications = rule_implications;
         self.referenced_param_values = OnceLock::new();
-        self.sorted_condition_names = OnceLock::new();
     }
 
     pub fn undefined_condition_refs(&self) -> Vec<(String, String)> {
@@ -1246,16 +899,9 @@ fn collect_param_refs_from_value_into_pairs(expr: &ValueExpr, out: &mut HashMap<
 }
 
 fn collect_condition_refs(expr: &ConditionExpr, out: &mut Vec<String>) {
-    match expr {
-        ConditionExpr::ConditionRef(name) => out.push(name.clone()),
-        ConditionExpr::And(exprs) | ConditionExpr::Or(exprs) => {
-            for e in exprs {
-                collect_condition_refs(e, out);
-            }
-        }
-        ConditionExpr::Not(e) => collect_condition_refs(e, out),
-        ConditionExpr::Equals(_, _) | ConditionExpr::Invalid => {}
-    }
+    let mut borrowed = Vec::new();
+    condition_ref_names(expr, &mut borrowed);
+    out.extend(borrowed.into_iter().map(str::to_string));
 }
 
 pub fn collect_condition_deps(expr: &ConditionExpr, out: &mut Vec<String>) {
@@ -1310,18 +956,748 @@ fn extract_equals_test(expr: &ConditionExpr) -> Option<(String, String, bool)> {
     }
 }
 
-/// Immutable inputs of one satisfiability search, bundled so the recursive
-/// walk carries a single reference instead of seven parameters.
-struct SearchContext<'a> {
-    cond_names: &'a [String],
-    name_to_idx: &'a HashMap<&'a str, usize>,
-    assumptions: &'a HashMap<usize, bool>,
-    relevant: &'a [usize],
-    param_values: &'a HashMap<String, Vec<String>>,
-    /// Implications with both endpoints relevant, as `cond_names` index pairs.
-    implication_pairs: &'a [(usize, usize)],
-    /// Each relevant index's position in the sorted relevant order.
-    position_of: &'a HashMap<usize, usize>,
+/// One satisfiability query, prepared for enumeration.
+///
+/// A CloudFormation condition is a pure function of the template's parameters,
+/// pseudo-parameters, and mappings — a condition has no truth value of its own
+/// to choose. So "can these conditions hold simultaneously?" is decided over the
+/// *parameter* space: the assumptions hold exactly when some assignment of
+/// concrete values to the parameters they depend on makes every assumed
+/// condition take its assumed value.
+///
+/// Searching parameter assignments rather than condition assignments is what
+/// keeps the cost proportional to a template's real degrees of freedom. The
+/// number of parameter points is the product of a few candidate values per
+/// referenced parameter, while the space of condition truth assignments is
+/// exponential in the number of conditions — so a template that layers many
+/// conditions over a few shared inputs (a partition or region check reused
+/// across dozens of conditions) stays cheap no matter how many conditions are
+/// built on top of those inputs.
+///
+/// Enumerating points also removes the need to enforce derived constraints
+/// separately: a parameter takes exactly one value at a point, so mutually
+/// exclusive conditions cannot both hold there, and evaluating a condition at a
+/// point yields exactly the value its `And`/`Or`/`Not` structure entails. Only
+/// Rules-section constraints, which no condition expression entails, are applied
+/// as a filter on admissible points.
+struct SatisfiabilityQuery<'model> {
+    model: &'model ConditionModel,
+    /// Conditions whose value this query depends on: the assumed conditions, the
+    /// conditions reachable from them through condition references, and the
+    /// endpoints of every applicable Rules-section constraint. Positions in this
+    /// list index `value_at_point` and `being_evaluated`.
+    dependencies: Vec<&'model str>,
+    position_of_dependency: HashMap<&'model str, usize>,
+    /// Parameters the dependencies reference, each with the candidate values to
+    /// enumerate. Held in a deterministic order so the work charged to the
+    /// budget — and therefore which query first trips an exhausted budget — does
+    /// not depend on hash iteration order.
+    parameters: Vec<(&'model str, &'model [String])>,
+    position_of_parameter: HashMap<&'model str, usize>,
+    /// Which candidate value each parameter takes at the current point.
+    selected_value: Vec<usize>,
+    /// How many parameters are bound while the descent explores points: those at
+    /// positions below it have a value, those at or above it are still free and
+    /// read as undetermined.
+    bound_depth: usize,
+    /// Rules-section constraints to honor, as `(antecedent, consequent)` pairs of
+    /// dependency positions.
+    rule_constraints: Vec<(usize, usize)>,
+    value_at_point: Vec<PointValue>,
+    /// The value a condition is forced to take by the assumptions, for conditions
+    /// the point itself leaves undetermined. Such a condition acts as a free
+    /// choice — its value turns on data the model cannot resolve — and the
+    /// assumptions constrain that choice: assuming `And(a, b)` holds forces both
+    /// `a` and `b` to hold however little is known about them. Cleared for every
+    /// point.
+    forced_value: Vec<Option<bool>>,
+    /// How many values the assumptions have forced. Propagation repeats while this
+    /// keeps growing, so a value forced late still constrains what was examined
+    /// earlier.
+    forcings_made: u64,
+    being_evaluated: Vec<bool>,
+    /// How many reads returned something other than a property of the point alone:
+    /// a reference cut because it closes a cycle, or a value the assumptions forced.
+    /// Comparing this count before and after an evaluation is how that evaluation
+    /// detects its result must not be cached as the point's own value.
+    provisional_reads: u64,
+    /// Satisfiability work performed, charged to the model's per-query and
+    /// cumulative budgets by the caller.
+    steps: u64,
+}
+
+/// Cached value of one dependency at the current parameter point.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum PointValue {
+    NotEvaluated,
+    Determined(bool),
+    /// The point does not determine the condition: it compares a value the model
+    /// cannot resolve, references a condition the template does not define, or
+    /// sits on a condition-reference cycle.
+    Undetermined,
+}
+
+/// The precomputed inputs of one point enumeration, bundled so the recursive
+/// descent carries a single reference rather than three slices.
+struct PointEnumeration<'query> {
+    /// The value each assumed condition must take, by dependency position.
+    expectations: &'query [(usize, bool)],
+    /// The parameters each dependency's value depends on.
+    dependency_masks: &'query [u64],
+    /// The parameters still free at each depth, so the condition values that read
+    /// them can be discarded before a new value is tried.
+    unbound_masks: &'query [u64],
+}
+
+impl<'model> SatisfiabilityQuery<'model> {
+    fn prepare(
+        model: &'model ConditionModel,
+        assumed: &HashMap<&'model str, bool>,
+        param_overrides: &'model HashMap<String, Vec<String>>,
+    ) -> Self {
+        let mut assumed_names: Vec<&'model str> = assumed.keys().copied().collect();
+        assumed_names.sort_unstable();
+
+        let mut query = SatisfiabilityQuery {
+            model,
+            dependencies: Vec::new(),
+            position_of_dependency: HashMap::new(),
+            parameters: Vec::new(),
+            position_of_parameter: HashMap::new(),
+            selected_value: Vec::new(),
+            bound_depth: 0,
+            rule_constraints: Vec::new(),
+            value_at_point: Vec::new(),
+            forced_value: Vec::new(),
+            forcings_made: 0,
+            being_evaluated: Vec::new(),
+            provisional_reads: 0,
+            steps: 0,
+        };
+        query.add_dependencies_reachable_from(&assumed_names);
+        query.add_parameters_of_dependencies(param_overrides);
+        query.add_applicable_rule_constraints(param_overrides);
+        query.order_parameters_by_reader_count();
+        query.selected_value = vec![0; query.parameters.len()];
+        query.value_at_point = vec![PointValue::NotEvaluated; query.dependencies.len()];
+        query.forced_value = vec![None; query.dependencies.len()];
+        query.being_evaluated = vec![false; query.dependencies.len()];
+        query
+    }
+
+    /// Orders the parameters for the descent: those pinned to a single candidate
+    /// value first, since binding them can never branch, and the rest so that the
+    /// one the fewest conditions read is bound last. The descent re-evaluates only
+    /// conditions that read a parameter it just rebound, so varying the least-read
+    /// parameter innermost keeps the largest number of condition values valid.
+    fn order_parameters_by_reader_count(&mut self) {
+        if self.parameters.len() < 2 {
+            return;
+        }
+        let model = self.model;
+        let mut reader_count: HashMap<&'model str, usize> = HashMap::new();
+        let mut names: Vec<&'model str> = Vec::new();
+        for dependency in &self.dependencies {
+            let Some(expr) = model.conditions.get(*dependency) else {
+                continue;
+            };
+            names.clear();
+            parameter_names(expr, &mut names);
+            names.sort_unstable();
+            names.dedup();
+            for name in &names {
+                *reader_count.entry(name).or_default() += 1;
+            }
+        }
+        self.steps += self.dependencies.len() as u64;
+        // Ties break on the parameter name so the enumeration order — and with it
+        // the work charged before a budget trips — never depends on hash
+        // iteration order.
+        self.parameters.sort_by(|(left, left_candidates), (right, right_candidates)| {
+            (left_candidates.len() > 1)
+                .cmp(&(right_candidates.len() > 1))
+                .then_with(|| {
+                    let left_readers = reader_count.get(left).copied().unwrap_or_default();
+                    let right_readers = reader_count.get(right).copied().unwrap_or_default();
+                    right_readers.cmp(&left_readers)
+                })
+                .then_with(|| left.cmp(right))
+        });
+        self.position_of_parameter = self.parameters.iter().enumerate().map(|(at, (name, _))| (*name, at)).collect();
+    }
+
+    /// Adds `seeds` and every condition reachable from them through condition
+    /// references. Reachability is what makes the parameter search exact: a
+    /// condition no assumed condition can reach cannot influence the answer, and
+    /// a parameter only that condition reads is therefore irrelevant too.
+    fn add_dependencies_reachable_from(&mut self, seeds: &[&'model str]) {
+        let conditions = &self.model.conditions;
+        let mut pending: Vec<&'model str> = seeds.to_vec();
+        while let Some(name) = pending.pop() {
+            let Some((dependency, expr)) = conditions.get_key_value(name) else {
+                continue;
+            };
+            let dependency = dependency.as_str();
+            if self.position_of_dependency.contains_key(dependency) {
+                continue;
+            }
+            self.position_of_dependency.insert(dependency, self.dependencies.len());
+            self.dependencies.push(dependency);
+            self.steps += 1;
+            condition_ref_names(expr, &mut pending);
+        }
+    }
+
+    /// Registers the parameters the current dependencies read, with the candidate
+    /// values to enumerate for each.
+    fn add_parameters_of_dependencies(&mut self, param_overrides: &'model HashMap<String, Vec<String>>) {
+        let conditions = &self.model.conditions;
+        let mut names: Vec<&'model str> = Vec::new();
+        for dependency in &self.dependencies {
+            if let Some(expr) = conditions.get(*dependency) {
+                parameter_names(expr, &mut names);
+            }
+        }
+        names.sort_unstable();
+        names.dedup();
+        for name in names {
+            self.add_parameter(name, param_overrides);
+        }
+    }
+
+    /// Registers one parameter and the values the query will try for it. A
+    /// per-query override (e.g. a pinned target region) replaces the model's
+    /// derived candidates. A parameter with no candidate values is left out: it
+    /// is then undetermined at every point, which keeps the query conservative
+    /// rather than silently making every condition that reads it unsatisfiable.
+    fn add_parameter(&mut self, name: &'model str, param_overrides: &'model HashMap<String, Vec<String>>) {
+        if self.position_of_parameter.contains_key(name) {
+            return;
+        }
+        let candidates = param_overrides
+            .get(name)
+            .or_else(|| self.model.referenced_param_values().get(name))
+            .map_or(&[][..], Vec::as_slice);
+        if candidates.is_empty() {
+            return;
+        }
+        self.position_of_parameter.insert(name, self.parameters.len());
+        self.parameters.push((name, candidates));
+        self.steps += 1;
+    }
+
+    /// Adds the Rules-section constraints this query must honor. A Rules
+    /// assertion restricts which parameter values a deployment can supply, and no
+    /// condition expression entails it, so a point that violates one must be
+    /// excluded rather than accepted.
+    ///
+    /// A constraint applies once it reads a parameter this query already varies;
+    /// pulling it in can introduce further parameters, which can bring in further
+    /// constraints, so this runs to a fixpoint. A constraint over parameters the
+    /// query does not vary is left unenforced — its antecedent is undetermined at
+    /// every point, so enforcing it could only reject points the template allows.
+    fn add_applicable_rule_constraints(&mut self, param_overrides: &'model HashMap<String, Vec<String>>) {
+        let model = self.model;
+        if model.rule_implications.is_empty() {
+            return;
+        }
+        let mut applied = vec![false; model.rule_implications.len()];
+        loop {
+            let mut newly_applied = false;
+            for (position, implication) in model.rule_implications.iter().enumerate() {
+                if applied[position] {
+                    continue;
+                }
+                let (Some((antecedent, _)), Some((consequent, _))) = (
+                    model.conditions.get_key_value(implication.antecedent.as_str()),
+                    model.conditions.get_key_value(implication.consequent.as_str()),
+                ) else {
+                    applied[position] = true;
+                    continue;
+                };
+                let endpoints = [antecedent.as_str(), consequent.as_str()];
+                let mut steps = 0;
+                let constrained_parameters = reachable_parameter_names(&model.conditions, &endpoints, &mut steps);
+                self.steps += steps;
+                if !constrained_parameters.iter().any(|name| self.position_of_parameter.contains_key(name)) {
+                    continue;
+                }
+                applied[position] = true;
+                newly_applied = true;
+                self.add_dependencies_reachable_from(&endpoints);
+                self.add_parameters_of_dependencies(param_overrides);
+                self.rule_constraints
+                    .push((self.position_of_dependency[endpoints[0]], self.position_of_dependency[endpoints[1]]));
+            }
+            if !newly_applied {
+                return;
+            }
+        }
+    }
+
+    /// How many distinct parameter points this query would enumerate.
+    fn parameter_point_count(&self) -> u64 {
+        self.parameters.iter().fold(1u64, |points, (_, candidates)| points.saturating_mul(candidates.len() as u64))
+    }
+
+    /// Whether some parameter point makes every assumed condition take its
+    /// assumed value.
+    ///
+    /// Parameters are bound one at a time and the descent continues only while the
+    /// assumptions can still hold: a condition the parameters bound so far already
+    /// decide against its assumption cannot be rescued by the parameters still
+    /// unbound, so every point below that branch is skipped. That is what keeps a
+    /// wide parameter space affordable — the branches that could satisfy the query
+    /// are explored, the rest are cut at the level that decided them.
+    fn some_point_satisfies(&mut self, assumed: &HashMap<&'model str, bool>) -> bool {
+        let mut expectations: Vec<(usize, bool)> = assumed
+            .iter()
+            .filter_map(|(name, expected)| self.position_of_dependency.get(name).map(|&at| (at, *expected)))
+            .collect();
+        expectations.sort_unstable();
+        let parameter_masks = self.varying_parameter_masks();
+        let dependency_masks = self.dependency_parameter_masks(&parameter_masks);
+        let mut unbound_masks = vec![0u64; self.parameters.len() + 1];
+        for at in (0..self.parameters.len()).rev() {
+            unbound_masks[at] = unbound_masks[at + 1] | parameter_masks[at];
+        }
+        // Parameters pinned to a single candidate value are ordered first and are
+        // bound for the whole enumeration: their value cannot vary, so descending
+        // through them would only deepen the recursion without branching.
+        self.bound_depth = self.parameters.iter().take_while(|(_, candidates)| candidates.len() < 2).count();
+        let enumeration = PointEnumeration {
+            expectations: &expectations,
+            dependency_masks: &dependency_masks,
+            unbound_masks: &unbound_masks,
+        };
+        self.extend_point(&enumeration)
+    }
+
+    /// Explores the points that agree with the parameters bound so far, returning
+    /// whether any of them satisfies the query.
+    fn extend_point(&mut self, enumeration: &PointEnumeration<'_>) -> bool {
+        self.steps += 1;
+        if self.steps > MAX_SAT_ITERATIONS {
+            // The number of points is the product of the candidate values of every
+            // parameter the query reads, so it grows exponentially in that
+            // parameter count. Once the per-query budget is spent, assume
+            // satisfiable rather than explore further — the conservative-`true`
+            // contract documented on `is_satisfiable`.
+            return true;
+        }
+        if !self.assumptions_can_still_hold(enumeration.expectations) {
+            return false;
+        }
+        let at = self.bound_depth;
+        if at == self.parameters.len() {
+            return true;
+        }
+        for candidate in 0..self.parameters[at].1.len() {
+            self.selected_value[at] = candidate;
+            // Everything from this parameter inward is about to take a new value,
+            // so the condition values that read any of them no longer hold.
+            self.discard_values_affected_by(enumeration.unbound_masks[at], enumeration.dependency_masks);
+            self.bound_depth = at + 1;
+            let satisfied = self.extend_point(enumeration);
+            self.bound_depth = at;
+            if satisfied {
+                return true;
+            }
+        }
+        false
+    }
+
+    /// Whether the assumptions and the applicable Rules-section constraints can
+    /// still hold given the parameters bound so far. A condition that is already
+    /// determined against its assumption stays that way however the unbound
+    /// parameters are chosen, which is what makes cutting the branch sound.
+    ///
+    /// A condition the parameters leave undetermined is not simply accepted:
+    /// assuming it holds also constrains the conditions it is built from, so the
+    /// assumptions are propagated into those and any contradiction they force is a
+    /// contradiction of the assumptions. Propagation repeats while it keeps forcing
+    /// new values, so a value forced late still contradicts an assumption examined
+    /// earlier. Only contradictions that must hold are derived — where two operands
+    /// could each be the one satisfying a disjunction, nothing is forced — so the
+    /// answer degrades to the conservative "can still hold" rather than to a wrong
+    /// rejection.
+    fn assumptions_can_still_hold(&mut self, expectations: &[(usize, bool)]) -> bool {
+        self.forced_value.fill(None);
+        loop {
+            let forcings_before = self.forcings_made;
+            for &(dependency, expected) in expectations {
+                if !self.require_dependency(dependency, expected) {
+                    return false;
+                }
+            }
+            if !self.rule_constraints_hold() {
+                return false;
+            }
+            if self.forcings_made == forcings_before {
+                return true;
+            }
+        }
+    }
+
+    /// Requires a dependency to take a value, propagating into the conditions it is
+    /// built from when the point leaves it undetermined. Returns `false` when that
+    /// contradicts what the point determines or what the assumptions already forced.
+    fn require_dependency(&mut self, dependency: usize, expected: bool) -> bool {
+        self.steps += 1;
+        if let Some(determined) = self.dependency_value(dependency) {
+            return determined == expected;
+        }
+        match self.forced_value[dependency] {
+            Some(already_forced) => return already_forced == expected,
+            None => {
+                self.forced_value[dependency] = Some(expected);
+                self.forcings_made += 1;
+            }
+        }
+        let Some(expr) = self.model.conditions.get(self.dependencies[dependency]) else {
+            return true;
+        };
+        self.require(expr, expected)
+    }
+
+    /// Requires an expression to take a value, deriving the values its operands
+    /// must take. A conjunction that must hold requires every operand to hold, a
+    /// disjunction that must not hold requires every operand not to hold, and a
+    /// negation inverts the requirement; the remaining shapes need at least one
+    /// operand to comply, which forces nothing until only one candidate is left.
+    fn require(&mut self, expr: &'model ConditionExpr, expected: bool) -> bool {
+        self.steps += 1;
+        match expr {
+            ConditionExpr::ConditionRef(name) => match self.position_of_dependency.get(name.as_str()).copied() {
+                Some(dependency) => self.require_dependency(dependency, expected),
+                // A reference the template does not define constrains nothing.
+                None => true,
+            },
+            ConditionExpr::Not(operand) => self.require(operand, !expected),
+            ConditionExpr::And(operands) if expected => operands.iter().all(|operand| self.require(operand, true)),
+            ConditionExpr::Or(operands) if !expected => operands.iter().all(|operand| self.require(operand, false)),
+            ConditionExpr::And(operands) => self.require_any(operands, false),
+            ConditionExpr::Or(operands) => self.require_any(operands, true),
+            // A comparison is a leaf: when the point cannot decide it, the values it
+            // reads are simply unknown, and any requirement on it can be met.
+            ConditionExpr::Equals(_, _) | ConditionExpr::Invalid => true,
+        }
+    }
+
+    /// Requires at least one operand to take `satisfying`. Nothing is forced while
+    /// more than one operand could be the one that does — only the two certainties
+    /// are derived: a contradiction when every operand already rules it out, and the
+    /// value of the last operand that could still comply.
+    fn require_any(&mut self, operands: &'model [ConditionExpr], satisfying: bool) -> bool {
+        let mut undecided: Option<&'model ConditionExpr> = None;
+        let mut undecided_operands = 0usize;
+        for operand in operands {
+            match self.evaluate(operand) {
+                Some(value) if value == satisfying => return true,
+                Some(_) => {}
+                None => {
+                    undecided_operands += 1;
+                    undecided = Some(operand);
+                }
+            }
+        }
+        match (undecided_operands, undecided) {
+            (0, _) => false,
+            (1, Some(last_candidate)) => self.require(last_candidate, satisfying),
+            _ => true,
+        }
+    }
+
+    /// Whether the applicable Rules-section constraints hold, forcing what they
+    /// entail: a constraint whose antecedent holds requires its consequent to hold,
+    /// and one whose consequent cannot hold requires its antecedent not to.
+    fn rule_constraints_hold(&mut self) -> bool {
+        for at in 0..self.rule_constraints.len() {
+            let (antecedent, consequent) = self.rule_constraints[at];
+            if self.dependency_belief(antecedent) == Some(true) && !self.require_dependency(consequent, true) {
+                return false;
+            }
+            if self.dependency_belief(consequent) == Some(false) && !self.require_dependency(antecedent, false) {
+                return false;
+            }
+        }
+        true
+    }
+
+    /// One bit per parameter whose value varies across points. A parameter with a
+    /// single candidate value gets an empty mask because its value never changes.
+    /// Parameters past the width of the mask share its last bit, which
+    /// over-invalidates rather than under-invalidates.
+    fn varying_parameter_masks(&self) -> Vec<u64> {
+        let mut masks = Vec::with_capacity(self.parameters.len());
+        let mut next_bit = 0u32;
+        for (_, candidates) in &self.parameters {
+            if candidates.len() < 2 {
+                masks.push(0);
+                continue;
+            }
+            masks.push(1u64 << next_bit);
+            next_bit = (next_bit + 1).min(u64::BITS - 1);
+        }
+        masks
+    }
+
+    /// For each dependency, the parameters its value can depend on: those it reads
+    /// itself and those read by everything it references. Enumeration consults
+    /// this to keep the values a parameter change cannot have affected, which is
+    /// what makes the cost of a point proportional to the conditions that
+    /// actually moved rather than to the whole dependency closure.
+    fn dependency_parameter_masks(&mut self, parameter_masks: &[u64]) -> Vec<u64> {
+        let model = self.model;
+        let mut masks = vec![0u64; self.dependencies.len()];
+        let mut references: Vec<Vec<usize>> = vec![Vec::new(); self.dependencies.len()];
+        let mut names: Vec<&'model str> = Vec::new();
+        let mut referenced: Vec<&'model str> = Vec::new();
+        for (at, dependency) in self.dependencies.iter().enumerate() {
+            let Some(expr) = model.conditions.get(*dependency) else {
+                continue;
+            };
+            names.clear();
+            parameter_names(expr, &mut names);
+            for name in &names {
+                if let Some(&position) = self.position_of_parameter.get(*name) {
+                    masks[at] |= parameter_masks[position];
+                }
+            }
+            referenced.clear();
+            condition_ref_names(expr, &mut referenced);
+            references[at] =
+                referenced.iter().filter_map(|name| self.position_of_dependency.get(*name).copied()).collect();
+        }
+        self.steps += self.dependencies.len() as u64;
+
+        // Propagate to a fixpoint: masks only grow, so this terminates even when
+        // the references form a cycle.
+        loop {
+            let mut grew = false;
+            for at in 0..masks.len() {
+                let propagated = references[at].iter().fold(masks[at], |mask, &reference| mask | masks[reference]);
+                if propagated != masks[at] {
+                    masks[at] = propagated;
+                    grew = true;
+                }
+            }
+            self.steps += masks.len() as u64;
+            if !grew {
+                return masks;
+            }
+        }
+    }
+
+    /// Drops the cached values of every dependency that reads one of the
+    /// parameters that just changed.
+    fn discard_values_affected_by(&mut self, changed_parameters: u64, dependency_masks: &[u64]) {
+        for (at, value) in self.value_at_point.iter_mut().enumerate() {
+            if dependency_masks[at] & changed_parameters != 0 {
+                *value = PointValue::NotEvaluated;
+            }
+        }
+    }
+
+    /// The value of one dependency at the current point, memoized for the rest of
+    /// this point's evaluation. Only what the point itself determines is cached;
+    /// values that came from a cut cycle or from what the assumptions forced are
+    /// left out, because they hold for one reference rather than for the point.
+    fn dependency_value(&mut self, dependency: usize) -> Option<bool> {
+        match self.value_at_point[dependency] {
+            PointValue::Determined(value) => return Some(value),
+            PointValue::Undetermined => return None,
+            PointValue::NotEvaluated => {}
+        }
+        if self.being_evaluated[dependency] {
+            // A condition that transitively references itself has no value to
+            // read here; leaving this reference undetermined keeps evaluation
+            // total and terminating. The cycle itself is reported as a template
+            // defect by the reference-graph analysis.
+            self.provisional_reads += 1;
+            return None;
+        }
+        let Some(expr) = self.model.conditions.get(self.dependencies[dependency]) else {
+            self.value_at_point[dependency] = PointValue::Undetermined;
+            return None;
+        };
+        self.being_evaluated[dependency] = true;
+        let provisional_reads_before = self.provisional_reads;
+        let value = self.evaluate(expr);
+        self.being_evaluated[dependency] = false;
+        if self.provisional_reads == provisional_reads_before {
+            self.value_at_point[dependency] = value.map_or(PointValue::Undetermined, PointValue::Determined);
+        }
+        value
+    }
+
+    /// What is currently believed about a dependency: the value the point
+    /// determines, or failing that the value the assumptions have forced on it.
+    fn dependency_belief(&mut self, dependency: usize) -> Option<bool> {
+        if let Some(determined) = self.dependency_value(dependency) {
+            return Some(determined);
+        }
+        let forced = self.forced_value[dependency];
+        if forced.is_some() {
+            self.provisional_reads += 1;
+        }
+        forced
+    }
+
+    /// Evaluates a condition expression at the current point. `None` means the
+    /// point does not determine the expression; it propagates except where an
+    /// operand already decides the result — a false operand of `And`, a true
+    /// operand of `Or` — so an unresolvable comparison in one branch does not
+    /// discard what the rest of the expression proves.
+    fn evaluate(&mut self, expr: &'model ConditionExpr) -> Option<bool> {
+        // Each evaluation step is one unit of satisfiability work. Counting here,
+        // in the recursive core, keeps the budget proportional to real effort: a
+        // deep condition closure draws the budget down faster than a shallow one,
+        // so the budget bounds actual work uniformly regardless of how the
+        // conditions are shaped.
+        self.steps += 1;
+        match expr {
+            ConditionExpr::Equals(left, right) => {
+                let left = self.value_at_current_point(left)?;
+                let right = self.value_at_current_point(right)?;
+                Some(left == right)
+            }
+            ConditionExpr::And(operands) => {
+                let mut all_determined = true;
+                for operand in operands {
+                    match self.evaluate(operand) {
+                        Some(false) => return Some(false),
+                        Some(true) => {}
+                        None => all_determined = false,
+                    }
+                }
+                all_determined.then_some(true)
+            }
+            ConditionExpr::Or(operands) => {
+                let mut all_determined = true;
+                for operand in operands {
+                    match self.evaluate(operand) {
+                        Some(true) => return Some(true),
+                        Some(false) => {}
+                        None => all_determined = false,
+                    }
+                }
+                all_determined.then_some(false)
+            }
+            ConditionExpr::Not(operand) => self.evaluate(operand).map(|value| !value),
+            ConditionExpr::ConditionRef(name) => {
+                // A reference to a condition the template does not define has no
+                // value; it is reported as an undefined reference elsewhere.
+                let dependency = self.position_of_dependency.get(name.as_str()).copied()?;
+                self.dependency_belief(dependency)
+            }
+            // A condition body that is not a boolean has no truth value, so it
+            // never decides a query.
+            ConditionExpr::Invalid => None,
+        }
+    }
+
+    /// The concrete value of a value expression at the current point, or `None`
+    /// when the point does not determine it.
+    fn value_at_current_point(&mut self, expr: &'model ValueExpr) -> Option<String> {
+        match expr {
+            ValueExpr::Literal(literal) => Some(literal.clone()),
+            ValueExpr::ParamRef(name) => self.selected_parameter_value(name).map(str::to_string),
+            ValueExpr::PseudoParam(name) => self
+                .selected_parameter_value(name)
+                .map(str::to_string)
+                .or_else(|| self.model.pseudo_overrides.fixed_value(name)),
+            ValueExpr::MappingLookup { map_name, key1, key2 } => {
+                let top_level_key = self.value_at_current_point(key1)?;
+                let second_level_key = self.value_at_current_point(key2)?;
+                let mapped = self.model.mappings.get(map_name)?.get(&top_level_key)?.get(&second_level_key)?;
+                match mapped {
+                    serde_json::Value::String(text) => Some(text.clone()),
+                    other => Some(other.to_string()),
+                }
+            }
+            ValueExpr::Other => None,
+        }
+    }
+
+    /// The value the parameters bound so far assign to a parameter, or `None` when
+    /// the query does not vary it or has not bound it yet.
+    fn selected_parameter_value(&self, name: &str) -> Option<&'model str> {
+        let position = *self.position_of_parameter.get(name)?;
+        if position >= self.bound_depth {
+            return None;
+        }
+        self.parameters[position].1.get(self.selected_value[position]).map(String::as_str)
+    }
+}
+
+/// Names of the conditions `expr` references, borrowed from `expr` so the
+/// satisfiability hot path collects them without allocating.
+fn condition_ref_names<'expr>(expr: &'expr ConditionExpr, out: &mut Vec<&'expr str>) {
+    match expr {
+        ConditionExpr::ConditionRef(name) => out.push(name.as_str()),
+        ConditionExpr::And(operands) | ConditionExpr::Or(operands) => {
+            for operand in operands {
+                condition_ref_names(operand, out);
+            }
+        }
+        ConditionExpr::Not(operand) => condition_ref_names(operand, out),
+        ConditionExpr::Equals(_, _) | ConditionExpr::Invalid => {}
+    }
+}
+
+/// Names of the parameters and pseudo-parameters `expr` reads directly — not
+/// those read by the conditions it references.
+fn parameter_names<'expr>(expr: &'expr ConditionExpr, out: &mut Vec<&'expr str>) {
+    match expr {
+        ConditionExpr::Equals(left, right) => {
+            parameter_names_of_value(left, out);
+            parameter_names_of_value(right, out);
+        }
+        ConditionExpr::And(operands) | ConditionExpr::Or(operands) => {
+            for operand in operands {
+                parameter_names(operand, out);
+            }
+        }
+        ConditionExpr::Not(operand) => parameter_names(operand, out),
+        ConditionExpr::ConditionRef(_) | ConditionExpr::Invalid => {}
+    }
+}
+
+fn parameter_names_of_value<'expr>(expr: &'expr ValueExpr, out: &mut Vec<&'expr str>) {
+    match expr {
+        ValueExpr::ParamRef(name) | ValueExpr::PseudoParam(name) => out.push(name.as_str()),
+        ValueExpr::MappingLookup { key1, key2, .. } => {
+            parameter_names_of_value(key1, out);
+            parameter_names_of_value(key2, out);
+        }
+        ValueExpr::Literal(_) | ValueExpr::Other => {}
+    }
+}
+
+/// Names of the parameters and pseudo-parameters reachable from `seeds` through
+/// condition references, with the traversal cost added to `steps`.
+fn reachable_parameter_names<'conditions>(
+    conditions: &'conditions HashMap<String, ConditionExpr>,
+    seeds: &[&'conditions str],
+    steps: &mut u64,
+) -> Vec<&'conditions str> {
+    let mut visited: HashSet<&'conditions str> = HashSet::new();
+    let mut pending: Vec<&'conditions str> = seeds.to_vec();
+    let mut names = Vec::new();
+    while let Some(name) = pending.pop() {
+        if !visited.insert(name) {
+            continue;
+        }
+        *steps += 1;
+        if let Some(expr) = conditions.get(name) {
+            parameter_names(expr, &mut names);
+            condition_ref_names(expr, &mut pending);
+        }
+    }
+    names.sort_unstable();
+    names.dedup();
+    names
 }
 
 /// Derives `antecedent => consequent` pairs from `And`/`Or` condition
@@ -2221,46 +2597,251 @@ Resources:
     }
 
     #[test]
-    fn satisfiability_search_is_bounded_by_iteration_budget() {
-        // `Contra = And(Top, Not(Top))` is unsatisfiable. Proving that requires
-        // exhausting the assignment space of Top's dependency closure, which is
-        // exponential in the chain length.
+    fn contradiction_over_a_long_condition_chain_is_decided_exactly_and_cheaply() {
+        // `Contra = And(Top, Not(Top))` is unsatisfiable, and Top depends on the
+        // whole chain, so deciding it requires reasoning over every condition in
+        // the chain. The chain is built over two binary parameters no matter how
+        // long it gets, so the answer is decided by four parameter assignments —
+        // the work must therefore grow with the chain's length, not with the
+        // number of truth assignments its conditions could take.
         //
-        // Over a short chain the solver explores the whole space within the
-        // iteration budget and returns the correct answer: unsatisfiable.
+        // This is the shape that made a real build hang: conditions layered over a
+        // handful of shared inputs, where searching condition assignments costs
+        // exponentially more than searching the inputs themselves.
         const SHORT_CHAIN: usize = 8;
-        let short_model = build_condition_model(&chain_with_contradiction(SHORT_CHAIN));
-        assert!(
-            !short_model.is_satisfiable(&[("Contra".to_string(), true)]),
-            "a contradiction over a short chain must be proven unsatisfiable within the budget"
-        );
-
-        // Over a long chain the space is astronomically large (2^len). Without a
-        // budget the search would run effectively forever; the MAX_SAT_ITERATIONS
-        // cap cuts it off and the solver returns its conservative answer
-        // (satisfiable). The flip from `false` to `true` for the same kind of
-        // (still unsatisfiable) query is the observable signature of the budget
-        // engaging. The query runs on a worker thread so that a regression which
-        // removed the budget fails this test by timing out rather than hanging
-        // the whole suite.
         const LONG_CHAIN: usize = 32;
-        const SEARCH_CEILING: std::time::Duration = std::time::Duration::from_secs(30);
-        let (sender, receiver) = std::sync::mpsc::channel();
-        std::thread::spawn(move || {
-            let long_model = build_condition_model(&chain_with_contradiction(LONG_CHAIN));
-            let _ = sender.send(long_model.is_satisfiable(&[("Contra".to_string(), true)]));
-        });
-        match receiver.recv_timeout(SEARCH_CEILING) {
-            Ok(conservative_result) => assert!(
-                conservative_result,
-                "once the iteration budget is exceeded the solver must return the conservative \
-                 satisfiable result, not the (correct but unaffordable) unsatisfiable one"
-            ),
-            Err(_) => panic!(
-                "satisfiability search did not finish within {SEARCH_CEILING:?}; the iteration \
-                 budget is not bounding the search"
-            ),
+        const DOUBLED_CHAIN: usize = 64;
+
+        for chain_length in [SHORT_CHAIN, LONG_CHAIN, DOUBLED_CHAIN] {
+            let model = build_condition_model(&chain_with_contradiction(chain_length));
+            assert!(
+                !model.is_satisfiable(&[("Contra".to_string(), true)]),
+                "a contradiction over a {chain_length}-condition chain must be proven \
+                 unsatisfiable, not conceded as satisfiable because the search was too expensive"
+            );
         }
+
+        // Doubling the chain may at most double the work a few times over —
+        // anything exponential in the condition count would exceed this by orders
+        // of magnitude. Iteration counts are deterministic and machine-independent,
+        // so this is a stable bound rather than a timing assertion.
+        const MAX_GROWTH_FROM_DOUBLING: u64 = 4;
+        let long_model = build_condition_model(&chain_with_contradiction(LONG_CHAIN));
+        let _ = long_model.is_satisfiable(&[("Contra".to_string(), true)]);
+        let doubled_model = build_condition_model(&chain_with_contradiction(DOUBLED_CHAIN));
+        let _ = doubled_model.is_satisfiable(&[("Contra".to_string(), true)]);
+        let long_chain_work = long_model.sat_iterations_used();
+        let doubled_chain_work = doubled_model.sat_iterations_used();
+        assert!(
+            doubled_chain_work <= long_chain_work * MAX_GROWTH_FROM_DOUBLING,
+            "doubling the chain length must not multiply the work by more than \
+             {MAX_GROWTH_FROM_DOUBLING}x; {LONG_CHAIN} conditions cost {long_chain_work} steps and \
+             {DOUBLED_CHAIN} cost {doubled_chain_work}"
+        );
+        assert!(
+            doubled_chain_work < MAX_SAT_ITERATIONS,
+            "deciding a chain of {DOUBLED_CHAIN} conditions over two binary parameters must stay \
+             far inside the per-query budget; cost {doubled_chain_work} of {MAX_SAT_ITERATIONS}"
+        );
+    }
+
+    /// Builds a template shaped like the deployment templates that made CDK's
+    /// default validation hang: `layered` conditions, each an `And`/`Or` over
+    /// conditions that all test the same few pseudo-parameters, so every condition
+    /// is reachable from every other through the inputs they share.
+    fn conditions_layered_over_shared_pseudo_parameters(layered: usize) -> String {
+        const PARTITIONS: [&str; 4] = ["aws", "aws-us-gov", "aws-cn", "aws-iso"];
+        const REGIONS: [&str; 4] = ["us-east-1", "us-west-2", "us-gov-west-1", "cn-north-1"];
+        let mut template = String::from("Parameters:\n  Stage:\n    Type: String\nConditions:\n");
+        let mut base_names = Vec::new();
+        for (index, partition) in PARTITIONS.iter().enumerate() {
+            let _ = write!(template, "  IsPartition{index}:\n    Fn::Equals: [!Ref 'AWS::Partition', {partition}]\n");
+            base_names.push(format!("IsPartition{index}"));
+        }
+        for (index, region) in REGIONS.iter().enumerate() {
+            let _ = write!(template, "  IsRegion{index}:\n    Fn::Equals: [!Ref 'AWS::Region', {region}]\n");
+            base_names.push(format!("IsRegion{index}"));
+        }
+        let _ = write!(template, "  IsProd:\n    Fn::Equals: [!Ref Stage, prod]\n");
+        base_names.push("IsProd".to_string());
+
+        let mut names = base_names.clone();
+        for index in 0..layered {
+            let operator = if index % 2 == 0 { "Fn::And" } else { "Fn::Or" };
+            let operands: Vec<&String> = (0..3).map(|offset| &names[(index * 7 + offset * 3) % names.len()]).collect();
+            let _ = write!(template, "  Layered{index:03}:\n    {operator}:\n");
+            for operand in operands {
+                let _ = writeln!(template, "      - Condition: {operand}");
+            }
+            names.push(format!("Layered{index:03}"));
+        }
+        let _ = write!(
+            template,
+            "Resources:\n  R:\n    Type: AWS::SNS::Topic\n    Condition: {}\n",
+            names[names.len() - 1]
+        );
+        template
+    }
+
+    #[test]
+    fn conditions_layered_over_shared_inputs_are_analyzed_in_full() {
+        // The regression guard for the incident: a hundred conditions built over
+        // nine base conditions that test three shared inputs. Analyzing this by
+        // searching condition assignments cost so much that the cumulative budget
+        // ran out partway through the pairwise pass, silently leaving most
+        // condition pairs undecided. Searching parameter assignments instead must
+        // decide every pair well inside the budget. The same shape at the
+        // two-hundred-condition CloudFormation maximum is covered end to end by the
+        // security fixtures.
+        const LAYERED_CONDITIONS: usize = 91;
+        let model = build_condition_model(&conditions_layered_over_shared_pseudo_parameters(LAYERED_CONDITIONS));
+
+        let mut names: Vec<&str> = model.names().collect();
+        names.sort_unstable();
+        assert_eq!(names.len(), LAYERED_CONDITIONS + 9, "the fixture must reach the scale under test");
+
+        let mut decided_pairs = 0u64;
+        for (offset, first) in names.iter().enumerate() {
+            for second in &names[offset + 1..] {
+                let _ = model.conditions_compatible(first, second);
+                decided_pairs += 1;
+            }
+        }
+
+        assert!(
+            !model.satisfiability_budget_exhausted(),
+            "the full pairwise pass over {} conditions must fit in the cumulative budget; it spent \
+             {} of {MAX_TOTAL_SAT_ITERATIONS} deciding {decided_pairs} pairs",
+            names.len(),
+            model.sat_iterations_used()
+        );
+        assert!(
+            model.budget_exhausted_queries().is_empty(),
+            "no query over conditions layered on shared inputs may exceed its budget: {:?}",
+            model.budget_exhausted_queries()
+        );
+        // Two conditions testing the same pseudo-parameter against different values
+        // can never hold together. Proving that is what the pass exists for, and
+        // what a budget-exhausted analysis silently stopped doing.
+        assert!(
+            !model.conditions_compatible("IsPartition0", "IsPartition1"),
+            "conditions comparing the same pseudo-parameter with different values must be proven \
+             incompatible"
+        );
+    }
+
+    #[test]
+    fn cumulative_budget_exhaustion_is_reported_rather_than_silently_narrowing_analysis() {
+        // Exhausting the cumulative budget makes every later question about the
+        // condition set take the conservative answer, so the template's author has
+        // to be told the analysis was curtailed — the failure that made a
+        // multi-hour hang produce no output at all.
+        let model = build_condition_model(&chain_with_contradiction(8));
+        assert!(model.budget_exhausted_queries().is_empty(), "nothing is curtailed before any work is charged");
+
+        model.add_sat_iterations_for_test(MAX_TOTAL_SAT_ITERATIONS);
+
+        assert!(model.satisfiability_budget_exhausted(), "the budget must register as spent");
+        assert!(
+            !model.budget_exhausted_queries().is_empty(),
+            "spending the cumulative budget must be reported so a curtailed analysis is never silent"
+        );
+    }
+
+    #[test]
+    fn self_referential_conditions_are_undetermined_rather_than_looping() {
+        // Two conditions that reference each other have no value to read. Deciding
+        // a query over them must terminate — treating the cycle as undetermined,
+        // the conservative direction — rather than recurse forever. The cycle
+        // itself is reported by the reference-graph analysis.
+        let model = build_condition_model(
+            "Parameters:\n  Env:\n    Type: String\n    AllowedValues: [prod, dev]\n\
+             Conditions:\n  Looping:\n    Fn::And:\n      - Condition: AlsoLooping\n      \
+             - Fn::Equals: [!Ref Env, prod]\n  \
+             AlsoLooping:\n    Fn::Or:\n      - Condition: Looping\n      \
+             - Fn::Equals: [!Ref Env, dev]\n\
+             Resources:\n  R:\n    Type: T\n",
+        );
+        assert!(
+            model.is_satisfiable(&[("Looping".to_string(), true)]),
+            "a condition on a reference cycle cannot be decided, so it must be assumed satisfiable"
+        );
+        assert!(model.is_satisfiable(&[("Looping".to_string(), false)]), "the same holds for the negated assumption");
+        assert!(
+            model.sat_iterations_used() < MAX_SAT_ITERATIONS,
+            "a cycle must be cut immediately, not explored until the budget runs out; cost {}",
+            model.sat_iterations_used()
+        );
+    }
+
+    #[test]
+    fn condition_over_an_unresolvable_value_does_not_constrain_a_query() {
+        // A condition comparing something the model cannot resolve has no value at
+        // any parameter assignment. It must not falsify a query — that would
+        // suppress diagnostics for resources it guards — and must not make the
+        // conditions it is combined with undecidable either.
+        let model = build_condition_model(
+            "Parameters:\n  Subnets:\n    Type: CommaDelimitedList\n  \
+             Env:\n    Type: String\n    AllowedValues: [prod, dev]\n\
+             Conditions:\n  \
+             FirstSubnetIsReserved:\n    Fn::Equals: [!Select [0, !Ref Subnets], reserved]\n  \
+             IsProd:\n    Fn::Equals: [!Ref Env, prod]\n  \
+             IsDev:\n    Fn::Equals: [!Ref Env, dev]\n  \
+             ReservedInProd:\n    Fn::And:\n      - Condition: FirstSubnetIsReserved\n      \
+             - Condition: IsProd\n\
+             Resources:\n  R:\n    Type: T\n",
+        );
+        assert!(
+            model.is_satisfiable(&[("FirstSubnetIsReserved".to_string(), true)]),
+            "an unresolvable comparison must be assumed able to hold"
+        );
+        assert!(
+            model.conditions_compatible("ReservedInProd", "IsProd"),
+            "an unresolvable operand must not make a combined condition look impossible"
+        );
+        assert!(
+            !model.conditions_compatible("ReservedInProd", "IsDev"),
+            "the resolvable operand must still constrain the combination: the And requires prod, \
+             which excludes dev"
+        );
+    }
+
+    #[test]
+    fn conditions_sharing_a_parameter_through_derived_conditions_stay_exact() {
+        // Two derived conditions that reach the same parameter through different
+        // chains of references. Their compatibility follows only from the values
+        // that parameter can take, so it must be decided exactly however deeply the
+        // conditions are layered.
+        let model = build_condition_model(
+            "Parameters:\n  Env:\n    Type: String\n    AllowedValues: [prod, gamma, dev]\n  \
+             Feature:\n    Type: String\n    AllowedValues: ['on', 'off']\n\
+             Conditions:\n  \
+             IsProd:\n    Fn::Equals: [!Ref Env, prod]\n  \
+             IsDev:\n    Fn::Equals: [!Ref Env, dev]\n  \
+             FeatureOn:\n    Fn::Equals: [!Ref Feature, 'on']\n  \
+             ProdWithFeature:\n    Fn::And:\n      - Condition: IsProd\n      - Condition: FeatureOn\n  \
+             DevWithFeature:\n    Fn::And:\n      - Condition: IsDev\n      - Condition: FeatureOn\n  \
+             EitherWithFeature:\n    Fn::Or:\n      - Condition: ProdWithFeature\n      \
+             - Condition: DevWithFeature\n\
+             Resources:\n  R:\n    Type: T\n",
+        );
+        assert!(
+            !model.conditions_compatible("ProdWithFeature", "DevWithFeature"),
+            "conditions requiring different values of the same parameter cannot both hold, however \
+             many references separate them from that parameter"
+        );
+        assert!(
+            model.conditions_compatible("ProdWithFeature", "EitherWithFeature"),
+            "a condition and a disjunction it satisfies must remain compatible"
+        );
+        assert!(
+            model.condition_implies("ProdWithFeature", "FeatureOn"),
+            "a conjunction must be proven to imply its operand"
+        );
+        assert!(
+            !model.condition_implies("EitherWithFeature", "IsProd"),
+            "a disjunction must not be proven to imply only one of its branches"
+        );
     }
 
     /// Builds a model with `param_count` binary parameters, one base condition
