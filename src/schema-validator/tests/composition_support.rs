@@ -1269,6 +1269,43 @@ fn kms_format_any_of_rejects_invalid_value() {
 }
 
 #[test]
+fn kms_format_any_of_rejects_invalid_static_join() {
+    let sv = validator(vec![(
+        "AWS::Test::KmsFormat",
+        json!({
+            "properties": {
+                "KmsKeyId": {
+                    "type": "string",
+                    "anyOf": [
+                        { "format": "AWS::KMS::Key.Arn" },
+                        { "format": "AWS::KMS::Key.Id" },
+                        { "format": "AWS::KMS::Alias.AliasName" }
+                    ]
+                }
+            },
+            "additionalProperties": false
+        }),
+    )]);
+    let template = r#"
+Resources:
+  R:
+    Type: AWS::Test::KmsFormat
+    Properties:
+      KmsKeyId:
+        Fn::Join:
+          - ""
+          - - "arn:aws:kms:us-east-1:123456789012:key/"
+            - "12345"
+"#;
+    let diags = validate(&sv, template);
+    assert!(
+        mentions(&diags, "F3017", "not valid under any"),
+        "a fully resolved invalid Fn::Join should trigger F3017: {:?}",
+        diags.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
+    );
+}
+
+#[test]
 fn kms_format_any_of_skips_dynamic_ref_value() {
     // A dynamic value (!Ref to a parameter) cannot be evaluated at author-time;
     // the validator must conservatively skip composition branch matching rather

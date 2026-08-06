@@ -544,7 +544,7 @@ fn intrinsic_built_kms_alias_arn_is_not_rejected_by_format_composition() {
                 && diagnostic.resource_logical_id() == Some("ddbstreamtopic7821AF6E")
                 && diagnostic.property_path.as_deref() == Some("Properties.KmsMasterKeyId")
         }),
-        "an intrinsic-built KMS alias ARN cannot be proven invalid: {diagnostics:?}"
+        "a valid intrinsic-built KMS alias ARN must pass format composition: {diagnostics:?}"
     );
 }
 
