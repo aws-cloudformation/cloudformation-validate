@@ -41274,6 +41274,7 @@
       "AWS::SNS::Topic": true,
       "AWS::SNS::TopicPolicy": true,
       "AWS::SQS::Queue": true,
+      "AWS::SQS::QueueInlinePolicy": true,
       "AWS::SQS::QueuePolicy": true,
       "AWS::SSM::Association": true,
       "AWS::SSM::Document": true,

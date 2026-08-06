@@ -2335,10 +2335,7 @@ fn validate_prop(
                     || is_unresolved_intrinsic(val)
                     || (!val.is_object() && !val.is_array())
             });
-            let has_format_branch =
-                schema.all_of.iter().chain(&schema.any_of).chain(&schema.one_of).any(|branch| branch.format.is_some());
-            let is_intrinsic_format_value = has_format_branch && m.is_from_intrinsic(rid, prop_path);
-            if has_only_scalars && !is_intrinsic_format_value {
+            if has_only_scalars {
                 validate_prop_composition(out, m, rid, prop_path, schema, defs, &scenarios);
             }
         }
@@ -2852,12 +2849,23 @@ static FORMAT_PATTERNS: LazyLock<HashMap<&'static str, Arc<CompiledPattern>>> = 
 /// Formats already in `FORMAT_PATTERNS` are reused from there.
 static BRANCH_FORMAT_PATTERNS: LazyLock<HashMap<&'static str, Arc<CompiledPattern>>> = LazyLock::new(|| {
     let sources: &[(&str, &str)] = &[
-        // KMS key ARN: arn:partition:kms:region:account:key/key-id
-        ("AWS::KMS::Key.Arn", r"^arn:(aws[a-zA-Z-]*)?:kms:[a-z0-9-]+:\d{12}:key/[a-f0-9-]{36}$"),
-        // KMS key ID: standard UUID or multi-Region mrk- prefixed UUID
-        ("AWS::KMS::Key.Id", r"^(mrk-)?[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"),
-        // KMS alias: alias/<name>
-        ("AWS::KMS::Alias.AliasName", r"^alias/[a-zA-Z0-9/_-]{1,249}$"),
+        // KMS key ARN: arn:partition:kms:region:account:key/<key-id>, where the
+        // key ID is a UUID or a multi-Region `mrk-` + 32 hex digits. An alias ARN
+        // (arn:...:alias/<name>) identifies a key just as a key ARN does, and
+        // key-identifier properties whose composition carries this format accept
+        // alias ARNs, so the ARN branch admits both suffix forms.
+        (
+            "AWS::KMS::Key.Arn",
+            r"^arn:aws[a-zA-Z-]*:kms:[a-z0-9-]+:\d{12}:(key/(mrk-[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})|alias/[a-zA-Z0-9:/_-]{1,250})$",
+        ),
+        // KMS key ID: standard UUID, multi-Region `mrk-` + 32 hex digits (no
+        // dashes), or an alias name — the scalar identifiers KMS accepts for a key
+        (
+            "AWS::KMS::Key.Id",
+            r"^(mrk-[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}|alias/[a-zA-Z0-9:/_-]{1,250})$",
+        ),
+        // KMS alias name: alias/<name>, at most 256 chars including the prefix
+        ("AWS::KMS::Alias.AliasName", r"^alias/[a-zA-Z0-9:/_-]{1,250}$"),
         // Security group name
         ("AWS::EC2::SecurityGroup.Name", SECURITY_GROUP_NAME_PATTERN),
         // IPv4 CIDR notation

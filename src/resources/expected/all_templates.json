@@ -135321,6 +135321,220 @@
       }
     ]
   },
+  "good/kms_key_identifier_forms.yaml": {
+    "filePath": "good/kms_key_identifier_forms.yaml",
+    "status": "OK",
+    "version": "1.7.0",
+    "metadata": {
+      "resourcesScanned": 7,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 3,
+        "informational": 7,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "W9013",
+        "severity": "WARN",
+        "message": "Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "TopicKeyArn",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "category": "Security",
+        "startLine": 8,
+        "startColumn": 3,
+        "endLine": 8,
+        "endColumn": 14,
+        "ruleDescription": "Hardcoded account ID in ARN",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W9013",
+        "severity": "WARN",
+        "message": "Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "TopicAliasArn",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "category": "Security",
+        "startLine": 16,
+        "startColumn": 3,
+        "endLine": 16,
+        "endColumn": 16,
+        "ruleDescription": "Hardcoded account ID in ARN",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W9013",
+        "severity": "WARN",
+        "message": "Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "TopicMultiRegionKeyArn",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "category": "Security",
+        "startLine": 24,
+        "startColumn": 3,
+        "endLine": 24,
+        "endColumn": 25,
+        "ruleDescription": "Hardcoded account ID in ARN",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'TopicKeyId' of type 'AWS::SNS::Topic' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "TopicKeyId",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 6,
+        "startColumn": 5,
+        "endLine": 6,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'TopicKeyArn' of type 'AWS::SNS::Topic' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "TopicKeyArn",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 10,
+        "startColumn": 5,
+        "endLine": 10,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'TopicAliasName' of type 'AWS::SNS::Topic' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "TopicAliasName",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 14,
+        "startColumn": 5,
+        "endLine": 14,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'TopicAliasArn' of type 'AWS::SNS::Topic' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "TopicAliasArn",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 18,
+        "startColumn": 5,
+        "endLine": 18,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'TopicMultiRegionKeyId' of type 'AWS::SNS::Topic' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "TopicMultiRegionKeyId",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 22,
+        "startColumn": 5,
+        "endLine": 22,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'TopicMultiRegionKeyArn' of type 'AWS::SNS::Topic' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "TopicMultiRegionKeyArn",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 26,
+        "startColumn": 5,
+        "endLine": 26,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'TopicIntrinsicAliasArn' of type 'AWS::SNS::Topic' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "TopicIntrinsicAliasArn",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 30,
+        "startColumn": 5,
+        "endLine": 30,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
   "good/lambda_permission_source_account.yaml": {
     "filePath": "good/lambda_permission_source_account.yaml",
     "status": "OK",

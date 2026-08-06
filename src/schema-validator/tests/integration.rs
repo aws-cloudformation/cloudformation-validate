@@ -549,6 +549,21 @@ fn intrinsic_built_kms_alias_arn_is_not_rejected_by_format_composition() {
 }
 
 #[test]
+fn every_valid_kms_key_identifier_form_passes_format_composition() {
+    let diagnostics = validate_fixture("good/kms_key_identifier_forms.yaml");
+    let rejected: Vec<_> = diagnostics
+        .iter()
+        .filter(|diagnostic| {
+            diagnostic.rule_id == "F3017" && diagnostic.property_path.as_deref() == Some("Properties.KmsMasterKeyId")
+        })
+        .collect();
+    assert!(
+        rejected.is_empty(),
+        "key ID, key ARN, alias name, alias ARN, and multi-Region forms are all valid: {rejected:?}"
+    );
+}
+
+#[test]
 fn malformed_literal_kms_key_arn_is_rejected_by_format_composition() {
     let diagnostics = validate_fixture("bad/hardcoded_partition.yaml");
     assert!(

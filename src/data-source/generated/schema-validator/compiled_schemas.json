@@ -315221,7 +315221,6 @@
       "SourceDBInstanceAutomatedBackupsArn",
       "SourceDBInstanceIdentifier",
       "SourceDbiResourceId",
-      "StorageType",
       "UseLatestRestorableTime"
     ],
     "primary_identifier": [

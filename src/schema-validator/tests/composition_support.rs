@@ -1204,7 +1204,7 @@ fn kms_format_any_of_accepts_mrk_key_id() {
             "additionalProperties": false
         }),
     )]);
-    let template = "Resources:\n  R:\n    Type: AWS::Test::KmsFormat\n    Properties:\n      KmsKeyId: mrk-12345678-1234-1234-1234-123456789012\n";
+    let template = "Resources:\n  R:\n    Type: AWS::Test::KmsFormat\n    Properties:\n      KmsKeyId: mrk-1234abcd12ab34cd56ef1234567890ab\n";
     let diags = validate(&sv, template);
     assert!(
         !mentions(&diags, "F3017", ""),
