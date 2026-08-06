@@ -221,6 +221,14 @@ fn resolve_concrete(m: &SemanticModel, rid: &str, path: &str) -> Option<serde_js
     scenarios.into_iter().next().map(|(v, _)| v)
 }
 
+fn resolve_json_preserving_conditionals(m: &SemanticModel, rid: &str, path: &str) -> Option<serde_json::Value> {
+    if let Some(resolved) = m.resolve_deep(rid, path).or_else(|| m.resolve(rid, path).cloned()) {
+        return Some(resolved_to_json_preserving_conditionals(&resolved));
+    }
+    let scenarios = m.resolve_scenarios_json(rid, path);
+    scenarios.into_iter().next().map(|(value, _)| value)
+}
+
 /// The authored JSON form of a resource property, reconstructed from the resolved
 /// value: `{"Ref": target}` for a `Ref`, `{"Fn::GetAtt": [target, attr]}` for a
 /// `GetAtt`, or the literal for a concrete value. A `Ref` to a parameter resolves
@@ -3097,7 +3105,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             match rtype.as_str() {
                 "A" => {
                     if let Some(serde_json::Value::Array(records)) =
-                        resolve_concrete(m, name, "Properties.ResourceRecords")
+                        resolve_json_preserving_conditionals(m, name, "Properties.ResourceRecords")
                     {
                         for (i, rec) in records.iter().enumerate() {
                             if let Some(s) = rec.as_str()
@@ -3117,7 +3125,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                 }
                 "AAAA" => {
                     if let Some(serde_json::Value::Array(records)) =
-                        resolve_concrete(m, name, "Properties.ResourceRecords")
+                        resolve_json_preserving_conditionals(m, name, "Properties.ResourceRecords")
                     {
                         for (i, rec) in records.iter().enumerate() {
                             if let Some(s) = rec.as_str()
@@ -3157,7 +3165,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                         }
                     }
                     if let Some(serde_json::Value::Array(records)) =
-                        resolve_concrete(m, name, "Properties.ResourceRecords")
+                        resolve_json_preserving_conditionals(m, name, "Properties.ResourceRecords")
                         && records.len() > 1
                     {
                         out.push(make_resource_diagnostic(
@@ -3172,7 +3180,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                 }
                 "TXT" => {
                     if let Some(serde_json::Value::Array(records)) =
-                        resolve_concrete(m, name, "Properties.ResourceRecords")
+                        resolve_json_preserving_conditionals(m, name, "Properties.ResourceRecords")
                     {
                         for (i, rec) in records.iter().enumerate() {
                             if let Some(s) = rec.as_str()
@@ -3192,7 +3200,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                 }
                 "CAA" => {
                     if let Some(serde_json::Value::Array(records)) =
-                        resolve_concrete(m, name, "Properties.ResourceRecords")
+                        resolve_json_preserving_conditionals(m, name, "Properties.ResourceRecords")
                     {
                         for (i, rec) in records.iter().enumerate() {
                             if let Some(s) = rec.as_str()
@@ -3212,7 +3220,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                 }
                 "MX" => {
                     if let Some(serde_json::Value::Array(records)) =
-                        resolve_concrete(m, name, "Properties.ResourceRecords")
+                        resolve_json_preserving_conditionals(m, name, "Properties.ResourceRecords")
                     {
                         for (i, rec) in records.iter().enumerate() {
                             if let Some(s) = rec.as_str()
@@ -3237,7 +3245,9 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     // RecordSetGroup — validate records within RecordSets[]
     for name in m.resources_of_type("AWS::Route53::RecordSetGroup") {
-        if let Some(serde_json::Value::Array(rsets)) = resolve_concrete(m, name, "Properties.RecordSets") {
+        if let Some(serde_json::Value::Array(rsets)) =
+            resolve_json_preserving_conditionals(m, name, "Properties.RecordSets")
+        {
             for (si, rset) in rsets.iter().enumerate() {
                 let rtype = rset.get("Type").and_then(|t| t.as_str()).unwrap_or("");
                 let records = rset.get("ResourceRecords").and_then(|r| r.as_array());
@@ -3373,9 +3383,11 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     // Route53 RecordSet Alias validation
     for name in m.resources_of_type("AWS::Route53::RecordSet") {
-        let has_alias = resolve_concrete(m, name, "Properties.AliasTarget").is_some();
-        if has_alias {
-            if resolve_concrete(m, name, "Properties.TTL").is_some() {
+        let Some(resource) = m.resources.get(name) else {
+            continue;
+        };
+        if resource.properties.contains_key("AliasTarget") {
+            if resource.properties.contains_key("TTL") {
                 out.push(make_resource_diagnostic(
                     "E3029",
                     "TTL must not be set when AliasTarget is specified",
@@ -3386,8 +3398,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                 ));
             }
             if let Some(serde_json::Value::String(rtype)) = resolve_concrete(m, name, "Properties.Type")
-                && rtype != "A"
-                && rtype != "AAAA"
+                && matches!(rtype.as_str(), "NS" | "SOA")
             {
                 out.push(make_resource_diagnostic(
                     "E3029",

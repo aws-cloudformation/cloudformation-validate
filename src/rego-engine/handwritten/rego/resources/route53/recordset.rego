@@ -9,7 +9,7 @@ violation contains make_diag_at("E3023", "ERROR", name,
     some name in resources_of_type("AWS::Route53::RecordSet")
     rtype := resolve(name, "Properties.Type")
     rtype == "A"
-    records := resolve(name, "Properties.ResourceRecords")
+    records := resolve_preserving_conditionals(name, "Properties.ResourceRecords")
     is_array(records)
     some i, rec in records
     is_string(rec)
@@ -25,7 +25,7 @@ violation contains make_diag_at("E3023", "ERROR", name,
     some name in resources_of_type("AWS::Route53::RecordSet")
     rtype := resolve(name, "Properties.Type")
     rtype == "AAAA"
-    records := resolve(name, "Properties.ResourceRecords")
+    records := resolve_preserving_conditionals(name, "Properties.ResourceRecords")
     is_array(records)
     some i, rec in records
     is_string(rec)
@@ -141,7 +141,7 @@ violation contains make_diag_at("E3023", "ERROR", name,
     some name in resources_of_type("AWS::Route53::RecordSet")
     rtype := resolve(name, "Properties.Type")
     rtype == "TXT"
-    records := resolve(name, "Properties.ResourceRecords")
+    records := resolve_preserving_conditionals(name, "Properties.ResourceRecords")
     is_array(records)
     some i, rec in records
     is_string(rec)
@@ -155,7 +155,7 @@ violation contains make_diag_at("E3023", "ERROR", name,
     some name in resources_of_type("AWS::Route53::RecordSet")
     rtype := resolve(name, "Properties.Type")
     rtype == "CAA"
-    records := resolve(name, "Properties.ResourceRecords")
+    records := resolve_preserving_conditionals(name, "Properties.ResourceRecords")
     is_array(records)
     some i, rec in records
     is_string(rec)
@@ -169,7 +169,7 @@ violation contains make_diag_at("E3023", "ERROR", name,
     some name in resources_of_type("AWS::Route53::RecordSet")
     rtype := resolve(name, "Properties.Type")
     rtype == "MX"
-    records := resolve(name, "Properties.ResourceRecords")
+    records := resolve_preserving_conditionals(name, "Properties.ResourceRecords")
     is_array(records)
     some i, rec in records
     is_string(rec)
@@ -182,7 +182,7 @@ violation contains make_diag_at("E3023", "ERROR", name,
     sprintf("Properties.RecordSets.%d.ResourceRecords.%d", [si, ri]),
     sprintf("'%s' is not a valid IPv4 address for record type 'A'", [rec])) if {
     some name in resources_of_type("AWS::Route53::RecordSetGroup")
-    rsets := resolve(name, "Properties.RecordSets")
+    rsets := resolve_preserving_conditionals(name, "Properties.RecordSets")
     is_array(rsets)
     some si, rset in rsets
     is_object(rset)
@@ -198,7 +198,7 @@ violation contains make_diag_at("E3023", "ERROR", name,
     sprintf("Properties.RecordSets.%d.ResourceRecords.%d", [si, ri]),
     sprintf("'%s' is not a valid IPv6 address for record type 'AAAA'", [rec])) if {
     some name in resources_of_type("AWS::Route53::RecordSetGroup")
-    rsets := resolve(name, "Properties.RecordSets")
+    rsets := resolve_preserving_conditionals(name, "Properties.RecordSets")
     is_array(rsets)
     some si, rset in rsets
     is_object(rset)
@@ -214,7 +214,7 @@ violation contains make_diag_at("E3023", "ERROR", name,
     sprintf("Properties.RecordSets.%d.ResourceRecords.%d", [si, ri]),
     sprintf("TXT record value '%s' must be enclosed in double quotes", [rec])) if {
     some name in resources_of_type("AWS::Route53::RecordSetGroup")
-    rsets := resolve(name, "Properties.RecordSets")
+    rsets := resolve_preserving_conditionals(name, "Properties.RecordSets")
     is_array(rsets)
     some si, rset in rsets
     is_object(rset)
@@ -230,7 +230,7 @@ violation contains make_diag_at("E3023", "ERROR", name,
     sprintf("Properties.RecordSets.%d.ResourceRecords.%d", [si, ri]),
     sprintf("CAA record value '%s' must match format: flag tag 'value'", [rec])) if {
     some name in resources_of_type("AWS::Route53::RecordSetGroup")
-    rsets := resolve(name, "Properties.RecordSets")
+    rsets := resolve_preserving_conditionals(name, "Properties.RecordSets")
     is_array(rsets)
     some si, rset in rsets
     is_object(rset)
@@ -246,7 +246,7 @@ violation contains make_diag_at("E3023", "ERROR", name,
     sprintf("Properties.RecordSets.%d.ResourceRecords.%d", [si, ri]),
     sprintf("MX record value '%s' must match format: priority domain", [rec])) if {
     some name in resources_of_type("AWS::Route53::RecordSetGroup")
-    rsets := resolve(name, "Properties.RecordSets")
+    rsets := resolve_preserving_conditionals(name, "Properties.RecordSets")
     is_array(rsets)
     some si, rset in rsets
     is_object(rset)
@@ -262,7 +262,7 @@ violation contains make_diag_at("E3023", "ERROR", name,
     sprintf("Properties.RecordSets.%d.ResourceRecords", [si]),
     "CNAME records must have at most 1 ResourceRecord") if {
     some name in resources_of_type("AWS::Route53::RecordSetGroup")
-    rsets := resolve(name, "Properties.RecordSets")
+    rsets := resolve_preserving_conditionals(name, "Properties.RecordSets")
     is_array(rsets)
     some si, rset in rsets
     is_object(rset)

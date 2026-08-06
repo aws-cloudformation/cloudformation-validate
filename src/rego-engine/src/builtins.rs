@@ -302,6 +302,11 @@ fn register_resolve_preserving_conditionals(rego: &mut regorus::Engine, holder: 
             if let Some(val) = resolved {
                 return Ok(serde_json_to_rego_value(&resolved_to_json_preserving_conditionals(&val)));
             }
+            // A conditional wrapping the entire Properties block stores values only at branch-qualified paths.
+            let scenarios = model.resolve_scenarios_json(rid, path);
+            if let Some((first, _)) = scenarios.into_iter().next() {
+                return Ok(serde_json_to_rego_value(&first));
+            }
             Ok(Value::Undefined)
         }),
     );

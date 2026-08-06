@@ -2,26 +2,21 @@ package resources
 
 import rego.v1
 
-# E3029: Route53 RecordSet - TTL must not be set when AliasTarget is specified
+# Alias records inherit their target's TTL, so an authored TTL is invalid even when either value is dynamic.
 violation contains make_diag_at("E3029", "ERROR", name,
     "Properties.TTL",
     "TTL must not be set when AliasTarget is specified") if {
     some name in resources_of_type("AWS::Route53::RecordSet")
-    alias := resolve(name, "Properties.AliasTarget")
-    alias != null
-    ttl := resolve(name, "Properties.TTL")
-    ttl != null
+    has_property(name, "AliasTarget")
+    has_property(name, "TTL")
 }
 
-# E3029: Route53 RecordSet - AliasTarget only valid for A and AAAA
+# Route53 never permits NS or SOA alias records; other types depend on the target and cannot be rejected globally.
 violation contains make_diag_at("E3029", "ERROR", name,
     "Properties.AliasTarget",
     sprintf("AliasTarget cannot be used with record type '%s'", [rtype])) if {
     some name in resources_of_type("AWS::Route53::RecordSet")
-    alias := resolve(name, "Properties.AliasTarget")
-    alias != null
+    has_property(name, "AliasTarget")
     rtype := resolve(name, "Properties.Type")
-    is_string(rtype)
-    rtype != "A"
-    rtype != "AAAA"
+    rtype in {"NS", "SOA"}
 }

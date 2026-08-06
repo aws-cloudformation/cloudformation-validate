@@ -1648,3 +1648,211 @@ fn issue_235_w9008_handles_all_rds_storage_encryption_modes() {
         assert_eq!(actual, expected, "[{engine}] W9008 fired on the wrong RDS instances");
     }
 }
+
+/// Issue #246: CloudFront supports Route53 HTTPS aliases, including when the target name is a
+/// deployment-time attribute rather than a literal.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/246
+#[test]
+fn issue_246_cloudfront_https_alias_is_valid() {
+    let diags = validate_both("issue-246.yaml");
+    assert_absent(&diags, "E3029");
+}
+
+/// Issue #246: same-zone aliases inherit their target record type, so types other than address
+/// records are valid when the target has that type.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/246
+#[test]
+fn issue_246_same_zone_txt_alias_is_valid() {
+    const TEMPLATE: &[u8] = br#"
+Resources:
+  TxtAlias:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: Z123456789EXAMPLE
+      Name: alias.example.com.
+      Type: TXT
+      AliasTarget:
+        DNSName: target.example.com.
+        EvaluateTargetHealth: false
+        HostedZoneId: Z123456789EXAMPLE
+"#;
+    let diags = validate_both_bytes(TEMPLATE);
+    assert_absent(&diags, "E3029");
+}
+
+/// Issue #246 positive boundary: authored alias and TTL properties conflict even when both values
+/// are only known at deployment time.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/246
+#[test]
+fn issue_246_dynamic_alias_with_ttl_is_rejected() {
+    const TEMPLATE: &[u8] = br#"
+Parameters:
+  AliasName:
+    Type: String
+  RecordTtl:
+    Type: String
+Resources:
+  Alias:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: Z123456789EXAMPLE
+      Name: alias.example.com.
+      Type: HTTPS
+      TTL: !Ref RecordTtl
+      AliasTarget:
+        DNSName: !Ref AliasName
+        EvaluateTargetHealth: false
+        HostedZoneId: Z2FDTNDATAQYW2
+"#;
+    let diags = validate_both_bytes(TEMPLATE);
+    assert_count(&diags, "E3029", 1);
+    assert_fires_on_property(&diags, "E3029", "Properties.TTL");
+}
+
+/// Issue #246 positive boundary: Route53 does not permit NS or SOA alias records for any target.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/246
+#[test]
+fn issue_246_ns_and_soa_aliases_are_rejected() {
+    const TEMPLATE: &[u8] = br#"
+Resources:
+  NsAlias:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: Z123456789EXAMPLE
+      Name: ns.example.com.
+      Type: NS
+      AliasTarget:
+        DNSName: target.example.com.
+        EvaluateTargetHealth: false
+        HostedZoneId: Z123456789EXAMPLE
+  SoaAlias:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: Z123456789EXAMPLE
+      Name: soa.example.com.
+      Type: SOA
+      AliasTarget:
+        DNSName: target.example.com.
+        EvaluateTargetHealth: false
+        HostedZoneId: Z123456789EXAMPLE
+"#;
+    let diags = validate_both_bytes(TEMPLATE);
+    assert_count(&diags, "E3029", 2);
+    assert_fires_on_property(&diags, "E3029", "Properties.AliasTarget");
+}
+
+/// Issue #264: unresolved record values are not literals and must not be checked using their
+/// logical IDs. The fixture covers resource Ref, GetAtt, parameter Ref, standalone records, and a
+/// record-set group across every implemented value format.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/264
+#[test]
+fn issue_264_unresolved_record_values_are_not_format_checked() {
+    let diags = validate_both("issue-264.yaml");
+    assert_absent(&diags, "E3023");
+}
+
+/// Issue #264 positive boundary: an unresolved entry does not hide a concrete invalid sibling.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/264
+#[test]
+fn issue_264_mixed_record_values_validate_concrete_siblings() {
+    const TEMPLATE: &[u8] = br#"
+Resources:
+  EIP:
+    Type: AWS::EC2::EIP
+    Properties: {}
+  MixedA:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: Z123456789EXAMPLE
+      Name: mixed.example.com.
+      Type: A
+      TTL: '300'
+      ResourceRecords:
+        - !GetAtt EIP.PublicIp
+        - 999.0.2.1
+"#;
+    let diags = validate_both_bytes(TEMPLATE);
+    assert_count(&diags, "E3023", 1);
+    assert_fires_on_property(&diags, "E3023", "Properties.ResourceRecords.1");
+}
+
+/// Issue #264 positive boundary: nested record sets preserve the same per-entry behavior.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/264
+#[test]
+fn issue_264_grouped_mixed_values_validate_concrete_siblings() {
+    const TEMPLATE: &[u8] = br#"
+Resources:
+  EIP:
+    Type: AWS::EC2::EIP
+    Properties: {}
+  Group:
+    Type: AWS::Route53::RecordSetGroup
+    Properties:
+      HostedZoneId: Z123456789EXAMPLE
+      RecordSets:
+        - Name: mixed.example.com.
+          Type: A
+          TTL: '300'
+          ResourceRecords:
+            - !GetAtt EIP.PublicIp
+            - 999.0.2.1
+"#;
+    let diags = validate_both_bytes(TEMPLATE);
+    assert_count(&diags, "E3023", 1);
+    assert_fires_on_property(&diags, "E3023", "Properties.RecordSets.0.ResourceRecords.1");
+}
+
+/// Issue #264 positive boundary: a statically resolved intrinsic has a known final value and is
+/// still subject to record-format validation.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/264
+#[test]
+fn issue_264_concrete_intrinsic_record_value_is_validated() {
+    const TEMPLATE: &[u8] = br#"
+Resources:
+  Record:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: Z123456789EXAMPLE
+      Name: joined.example.com.
+      Type: A
+      TTL: '300'
+      ResourceRecords:
+        - !Join ['', ['999.0.2.1']]
+"#;
+    let diags = validate_both_bytes(TEMPLATE);
+    assert_count(&diags, "E3023", 1);
+    assert_fires_on_property(&diags, "E3023", "Properties.ResourceRecords.0");
+}
+
+/// Issue #264: a condition wrapping the entire Properties block still exposes concrete record
+/// values for validation, and both engines choose the same feasible scenario.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/264
+#[test]
+fn issue_264_properties_conditional_retains_engine_parity() {
+    const TEMPLATE: &[u8] = br#"
+Parameters:
+  Environment:
+    Type: String
+    AllowedValues: [production, development]
+Conditions:
+  IsProduction: !Equals [!Ref Environment, production]
+Resources:
+  Record:
+    Type: AWS::Route53::RecordSet
+    Properties: !If
+      - IsProduction
+      - HostedZoneId: Z123456789EXAMPLE
+        Name: conditional.example.com.
+        Type: A
+        TTL: '300'
+        ResourceRecords: [999.0.2.1]
+      - HostedZoneId: Z123456789EXAMPLE
+        Name: conditional.example.com.
+        Type: A
+        TTL: '300'
+        ResourceRecords: [192.0.2.1]
+"#;
+    let diags = validate_both_bytes(TEMPLATE);
+    assert_count(&diags, "E3023", 1);
+    assert_fires_on_property(&diags, "E3023", "Properties.ResourceRecords.0");
+}
