@@ -835,7 +835,7 @@ impl SemanticModel {
         diagnostics.extend(rule_diagnostics);
         let sam_globals = sam::extract_sam_globals(&ir.arena, ir.globals);
         if !sam_globals.is_empty() {
-            sam::apply_sam_globals(&mut resources, &sam_globals);
+            sam::apply_sam_globals(&mut resources, &sam_globals, &mut ir.span_index);
         }
         let sam_implicit_resources =
             if is_sam { sam::collect_sam_implicit_resources(&resources) } else { HashSet::new() };

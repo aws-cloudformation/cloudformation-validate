@@ -232,14 +232,41 @@ impl CfnYamlLoader {
         }
     }
 
-    fn wrap_with_tag(tag_name: &str, value: Yaml) -> Yaml {
-        let fn_key = SHORT_TAG_TO_FN_KEY
+    fn cfn_tag_key(tag_name: &str) -> String {
+        SHORT_TAG_TO_FN_KEY
             .iter()
             .find(|(short, _)| *short == tag_name)
             .map(|(_, fn_key)| (*fn_key).to_string())
-            .unwrap_or_else(|| format!("{}{}", FN_PREFIX, tag_name));
+            .unwrap_or_else(|| format!("{}{}", FN_PREFIX, tag_name))
+    }
+
+    fn record_tagged_spans(&mut self, tag_name: &str) {
+        let base_path = self.current_path();
+        if base_path.is_empty() {
+            return;
+        }
+
+        let tagged_path = format!("{}/{}", base_path, Self::cfn_tag_key(tag_name));
+        if let Some(span) = self.span_map.get(&base_path).copied() {
+            self.span_map.entry(tagged_path.clone()).or_insert(span);
+        }
+
+        let descendant_prefix = format!("{}/", base_path);
+        let descendant_spans: Vec<(String, (u32, u32))> = self
+            .span_map
+            .iter()
+            .filter_map(|(path, span)| {
+                path.strip_prefix(&descendant_prefix).map(|suffix| (format!("{}/{}", tagged_path, suffix), *span))
+            })
+            .collect();
+        for (path, span) in descendant_spans {
+            self.span_map.entry(path).or_insert(span);
+        }
+    }
+
+    fn wrap_with_tag(tag_name: &str, value: Yaml) -> Yaml {
         let mut hash = Hash::new();
-        hash.insert(Yaml::String(fn_key), value);
+        hash.insert(Yaml::String(Self::cfn_tag_key(tag_name)), value);
         Yaml::Hash(hash)
     }
 
@@ -254,6 +281,7 @@ impl CfnYamlLoader {
             // so any unknown tag warrants the unknown-function warning here,
             // where the tag context still exists.
             self.warn_unknown_tag(&tag_name);
+            self.record_tagged_spans(&tag_name);
             let wrapped = Self::wrap_with_tag(&tag_name, node_val);
             node_val = wrapped;
         }
@@ -415,6 +443,7 @@ impl MarkedEventReceiver for CfnYamlLoader {
 
                 if let Some(tag_name) = cfn_tag {
                     self.warn_unknown_tag(&tag_name);
+                    self.record_tagged_spans(&tag_name);
                     let wrapped = Self::wrap_with_tag(&tag_name, node);
                     self.insert_new_node((wrapped, aid), mark);
                 } else {
@@ -743,6 +772,16 @@ mod tests {
         assert!(line("Resources/R/Properties/Ingress/Port").is_none(), "index-less array key must not exist");
         // A scalar array element is anchored at itself.
         assert_eq!(line("Resources/R/Properties/Cidrs/0"), Some(9));
+    }
+
+    #[test]
+    fn shorthand_intrinsic_sequence_child_spans_include_function_path() {
+        let input = "Resources:\n  R:\n    Type: T\n    Properties:\n      AvailabilityZone: !Select\n      - invalid-index\n      - !GetAZs ''\n";
+        let ir = parse_yaml(input.as_bytes()).unwrap();
+        let line = |path: &str| ir.span_index.get(path).map(|span| span.start_line);
+
+        assert_eq!(line("Resources/R/Properties/AvailabilityZone/Fn::Select/0"), Some(6));
+        assert_eq!(line("Resources/R/Properties/AvailabilityZone/Fn::Select/1/Fn::GetAZs"), Some(7));
     }
 
     #[test]

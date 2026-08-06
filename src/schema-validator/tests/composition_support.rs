@@ -1204,7 +1204,7 @@ fn kms_format_any_of_accepts_mrk_key_id() {
             "additionalProperties": false
         }),
     )]);
-    let template = "Resources:\n  R:\n    Type: AWS::Test::KmsFormat\n    Properties:\n      KmsKeyId: mrk-12345678-1234-1234-1234-123456789012\n";
+    let template = "Resources:\n  R:\n    Type: AWS::Test::KmsFormat\n    Properties:\n      KmsKeyId: mrk-1234abcd12ab34cd56ef1234567890ab\n";
     let diags = validate(&sv, template);
     assert!(
         !mentions(&diags, "F3017", ""),
@@ -1264,6 +1264,43 @@ fn kms_format_any_of_rejects_invalid_value() {
     assert!(
         mentions(&diags, "F3017", "not valid under any"),
         "invalid KMS value should trigger F3017: {:?}",
+        diags.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
+    );
+}
+
+#[test]
+fn kms_format_any_of_rejects_invalid_static_join() {
+    let sv = validator(vec![(
+        "AWS::Test::KmsFormat",
+        json!({
+            "properties": {
+                "KmsKeyId": {
+                    "type": "string",
+                    "anyOf": [
+                        { "format": "AWS::KMS::Key.Arn" },
+                        { "format": "AWS::KMS::Key.Id" },
+                        { "format": "AWS::KMS::Alias.AliasName" }
+                    ]
+                }
+            },
+            "additionalProperties": false
+        }),
+    )]);
+    let template = r#"
+Resources:
+  R:
+    Type: AWS::Test::KmsFormat
+    Properties:
+      KmsKeyId:
+        Fn::Join:
+          - ""
+          - - "arn:aws:kms:us-east-1:123456789012:key/"
+            - "12345"
+"#;
+    let diags = validate(&sv, template);
+    assert!(
+        mentions(&diags, "F3017", "not valid under any"),
+        "a fully resolved invalid Fn::Join should trigger F3017: {:?}",
         diags.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
     );
 }
