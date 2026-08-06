@@ -1,6 +1,6 @@
 # cloudformation-validate vs cfn-lint — Parity Report
 
-> Generated: 2026-08-06 01:45:14  
+> Generated: 2026-08-06 12:49:13  
 > Engine: **cel**  
 > Detail level: **detailed**  
 > Matching: `(rule_id, resource_id, path)` two-pass with `(rule_id, resource_id)` fallback + aliases  
@@ -46,25 +46,25 @@
 
 | Metric | Value |
 |--------|------:|
-| Total wall time | 6100.5644 ms |
-| Throughput | 104.95 validations/sec |
-| Templates | 593 ok, 8 failed |
+| Total wall time | 6920.5323 ms |
+| Throughput | 90.46 validations/sec |
+| Templates | 594 ok, 8 failed |
 | Iterations per template | 1 |
-| Engine init (p99) | 36.2999 ms |
-| Engine init (max) | 36.2999 ms |
-| Schema init (p99) | 77.2274 ms |
-| Schema init (max) | 77.2274 ms |
+| Engine init (p99) | 36.7550 ms |
+| Engine init (max) | 36.7550 ms |
+| Schema init (p99) | 77.9452 ms |
+| Schema init (max) | 77.9452 ms |
 
 ### Latency Distribution (ms)
 
 | Phase | Min | Avg | Median | P90 | P95 | P99 | Max |
 |-------|----:|----:|-------:|----:|----:|----:|----:|
-| Model Build | 0.0034 | 0.2336 | 0.0539 | 0.7158 | 1.0741 | 2.0842 | 3.5602 |
-| Schema Validate | 0.0000 | 0.9208 | 0.1949 | 1.4423 | 2.0030 | 4.7430 | 192.9760 |
-| Rule Evaluation | 7.4134 | 8.3103 | 8.1290 | 9.1278 | 9.4204 | 10.4749 | 19.5324 |
-| Diagnostic Finalize | 0.0013 | 0.0177 | 0.0082 | 0.0382 | 0.0641 | 0.1597 | 0.2884 |
-| Engine Internal | 7.4692 | 9.5273 | 8.5321 | 11.2614 | 12.6247 | 20.7269 | 202.0253 |
-| Wall Clock | 7.4698 | 9.5281 | 8.5331 | 11.2626 | 12.6259 | 20.7279 | 202.0261 |
+| Model Build | 0.0035 | 0.2554 | 0.0630 | 0.7812 | 1.1553 | 2.2564 | 3.8546 |
+| Schema Validate | 0.0003 | 1.0133 | 0.2246 | 1.5542 | 2.1571 | 5.2811 | 212.7749 |
+| Rule Evaluation | 8.4600 | 9.7101 | 9.4481 | 10.8260 | 11.4000 | 13.3359 | 15.0845 |
+| Diagnostic Finalize | 0.0027 | 0.0227 | 0.0110 | 0.0485 | 0.0768 | 0.1961 | 0.3959 |
+| Engine Internal | 8.5400 | 11.0531 | 10.0111 | 13.0400 | 14.2721 | 21.2593 | 222.2207 |
+| Wall Clock | 8.5412 | 11.0543 | 10.0124 | 13.0411 | 14.2734 | 21.2605 | 222.2215 |
 
 ## False Negatives — 357 missed findings across 83 rules
 
@@ -312,6 +312,25 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **W1030** `rAutoScalingConfigWeb` → `Properties.KeyName.Ref` L515 in `quickstart_nist_application_yaml`
   > {'Ref': 'pEC2KeyPair'} is shorter than 1 when 'Ref' is resolved
 
+### E1001 — 8 missed — Basic CloudFormation Template Configuration
+
+- **E1001** → `Conditions.TestAndNull.Fn::And` L22 in `bad_conditions_and_yaml`
+  > None is not of type 'array', 'boolean', 'integer', 'number', 'object', 'string'
+- **E1001** → `Conditions.TestNotNull.Fn::Not` L30 in `bad_conditions_condition_functions_json`
+  > None is not of type 'array', 'boolean', 'integer', 'number', 'object', 'string'
+- **E1001** → `Conditions.NullEquals.Fn::Equals` L23 in `bad_conditions_equals_yaml`
+  > None is not of type 'array', 'boolean', 'integer', 'number', 'object', 'string'
+- **E1001** → `Conditions.NullCondition` L51 in `bad_conditions_yaml`
+  > None is not of type 'array', 'boolean', 'integer', 'number', 'object', 'string'
+- **E1001** → `NotEven` L2 in `bad_not_cloudformation_yaml`
+  > Additional properties are not allowed ('NotEven' was unexpected)
+- **E1001** → `Globals` L2 in `bad_sam_globals_not_dict_yaml`
+  > 'notadict' is not of type 'object'
+- **E1001** → `AWSTemplateFormatVersion` L1 in `bad_templates_base_null_yaml`
+  > None is not of type 'string', 'date'
+- **E1001** L1-7 in `gh-issues_issue-201_json`
+  > 'Resources' is a required property
+
 ### F3012 — 8 missed — Check resource properties values
 
 - **F3012** (cfn-lint: E3012) `ExampleLambda` → `Properties.Environment.Variables` L14 in `bad_resources_properties_primitive_types_map_yaml`
@@ -406,23 +425,6 @@ These are diagnostics cfn-lint expects but the engine does not report.
   > Specified parameter "Three" doesn't exist in nested stack template when condition "IsUsWest2" is False and when condition "IsUsEast1" is False
 - **E3043** `Stack3` → `Properties.Parameters` L18 in `bad_resources_cloudformation_stacks_yaml`
   > Nested stack template parameter "Two" is not specified when condition "IsUsWest2" is False and when condition "IsUsEast1" is False
-
-### E1001 — 7 missed — Basic CloudFormation Template Configuration
-
-- **E1001** → `Conditions.TestAndNull.Fn::And` L22 in `bad_conditions_and_yaml`
-  > None is not of type 'array', 'boolean', 'integer', 'number', 'object', 'string'
-- **E1001** → `Conditions.NullEquals.Fn::Equals` L23 in `bad_conditions_equals_yaml`
-  > None is not of type 'array', 'boolean', 'integer', 'number', 'object', 'string'
-- **E1001** → `Conditions.NullCondition` L51 in `bad_conditions_yaml`
-  > None is not of type 'array', 'boolean', 'integer', 'number', 'object', 'string'
-- **E1001** → `NotEven` L2 in `bad_not_cloudformation_yaml`
-  > Additional properties are not allowed ('NotEven' was unexpected)
-- **E1001** → `Globals` L2 in `bad_sam_globals_not_dict_yaml`
-  > 'notadict' is not of type 'object'
-- **E1001** → `AWSTemplateFormatVersion` L1 in `bad_templates_base_null_yaml`
-  > None is not of type 'string', 'date'
-- **E1001** L1-7 in `gh-issues_issue-201_json`
-  > 'Resources' is a required property
 
 ### W1028 — 7 missed — Check Fn::If has a path that cannot be reached
 
@@ -747,15 +749,6 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **F3030** (cfn-lint: E3030) `CLBA83A883E` → `Properties.Listeners.0.Protocol` L12 in `gh-issues_issue-186-clb_json`
   > 'tcp' is not one of ['HTTP', 'HTTPS', 'TCP', 'SSL']
 
-### E8003 — 3 missed — Check Fn::Equals structure for validity
-
-- **E8003** → `Conditions.TestEqualBadArgs.Fn::Equals.0` L24 in `bad_conditions_condition_functions_json`
-  > [{'Ref': 'AWS::Region'}] is not of type 'string'
-- **E8003** → `Conditions.TestEqualBadArgs.Fn::Equals.1` L25 in `bad_conditions_condition_functions_json`
-  > {'Bad': 'Value'} is not of type 'string'
-- **E8003** → `Conditions.TestEqualNull.Fn::Equals` L28 in `bad_conditions_condition_functions_json`
-  > None is not of type 'array'
-
 ### F0000 — 3 missed — Parsing error found when parsing the template
 
 - **F0000** (cfn-lint: E0000) L18 in `bad_core_parse_invalid_map_yaml`
@@ -825,6 +818,13 @@ These are diagnostics cfn-lint expects but the engine does not report.
   > ['arn:aws:iam::aws:policy/AdministratorPolicy', 'arn:aws:iam::aws:policy/AdministratorPolicy', {'Ref': 'IamPolicy'}, {'Ref': 'IamPolicy'}] has non-unique elements
 - **F3037** (cfn-lint: E3037) `IamGroupWithConditions` → `Properties.ManagedPolicyArns` L22 in `bad_resources_properties_list_duplicates_yaml`
   > ['arn:aws:iam::aws:policy/AdministratorPolicy', 'arn:aws:iam::aws:policy/AdministratorPolicy', {'Ref': 'IamPolicy'}, {'Ref': 'IamPolicy'}] has non-unique elements
+
+### E8005 — 2 missed — Check Fn::Not structure for validity
+
+- **E8005** → `Conditions.TestNotEmpty.Fn::Not` L29 in `bad_conditions_condition_functions_json`
+  > expected minimum item count: 1, found: 0
+- **E8005** → `Conditions.TestNotNull.Fn::Not` L30 in `bad_conditions_condition_functions_json`
+  > None is not of type 'array'
 
 ### F3002 — 2 missed — Resource properties are invalid
 
@@ -13303,7 +13303,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 ### `bad_conditions_condition_functions_json` — 3 mismatches (31 TP, 0 FP, 1 EE, 3 FN)
 
-- FN: `E8003` ×3
+- FN: `E8005` ×2, `E1001`
 - EE: `I9040`
 
 ### `bad_functions_sub_needed_yaml` — 3 mismatches (9 TP, 0 FP, 10 EE, 3 FN)
@@ -13855,10 +13855,10 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 | Cause | Count | % of FN | Rules |
 |-------|------:|--------:|-------|
-| Other | 163 | 45.66% | E0002, E2001, E2531, E2533, E5001, E6001, E7001, E8003, E9004, F0000, F0013, F0018, F1018, F1020, F2015, F3002, F3003, F3006, F3012, F3014, F3016, F3017, F3018, F3030, F3031, F3037, F6101 |
+| Other | 162 | 45.38% | E0002, E2001, E2531, E2533, E5001, E6001, E7001, E8005, E9004, F0000, F0013, F0018, F1018, F1020, F2015, F3002, F3003, F3006, F3012, F3014, F3016, F3017, F3018, F3030, F3031, F3037, F6101 |
 | Resource property validation | 101 | 28.29% | E3001, E3016, E3022, E3023, E3024, E3026, E3039, E3043, E3048, E3065, E3504, E3510, E3513, E3530, E3639, E3673, E3678, E3682, E3685, E3692, E3698, E3699, E3700, E3701, E3707, E3712, E3719, E3720, E3724 |
 | Warning-level checks | 56 | 15.69% | W1001, W1028, W1030, W1031, W1032, W1034, W1036, W2001, W2002, W3037, W3691, W3698, W6001 |
-| Intrinsic function validation | 29 | 8.12% | E1001, E1005, E1011, E1016, E1017, E1021, E1041, E1150, E1152, E1161, E1701 |
+| Intrinsic function validation | 30 | 8.40% | E1001, E1005, E1011, E1016, E1017, E1021, E1041, E1150, E1152, E1161, E1701 |
 | Informational checks | 8 | 2.24% | I3010, I3013, I3510 |
 
 ### False Positive Root Causes
