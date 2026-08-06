@@ -15,7 +15,9 @@ mod common;
 use std::time::Duration;
 
 use cel_engine::CelEngine;
+use diagnostics::DetailLevel;
 use rego_engine::RegoEngine;
+use rules::Severity;
 use schema_validator::SchemaValidator;
 use template_model::SemanticModel;
 use validation_engine::{
@@ -56,11 +58,16 @@ fn validate_within(budget: Duration, engine_name: &'static str, bytes: Vec<u8>) 
         let outcome = match build_engine(engine_name) {
             Ok(engine) => {
                 let schema_validator = SchemaValidator::default();
+                let config = ValidateConfig {
+                    detail_level: DetailLevel::Detailed,
+                    severity_level: Severity::Debug,
+                    ..ValidateConfig::default()
+                };
                 validate_bytes_with_path(
                     engine.as_ref(),
                     &schema_validator,
                     &bytes,
-                    ValidateConfig::default(),
+                    config,
                     "security-fixture".to_string(),
                 )
                 .map(|report| report.diagnostics.iter().map(|d| d.rule_id.clone()).collect::<Vec<String>>())
@@ -71,6 +78,19 @@ fn validate_within(budget: Duration, engine_name: &'static str, bytes: Vec<u8>) 
         let _ = sender.send(outcome);
     });
     receiver.recv_timeout(budget).ok()
+}
+
+fn collect_security_templates(directory: &std::path::Path, templates: &mut Vec<std::path::PathBuf>) {
+    let entries = std::fs::read_dir(directory)
+        .unwrap_or_else(|error| panic!("failed to read security fixture directory {}: {error}", directory.display()));
+    for entry in entries {
+        let path = entry.expect("security fixture directory entry must be readable").path();
+        if path.is_dir() {
+            collect_security_templates(&path, templates);
+        } else if matches!(path.extension().and_then(|extension| extension.to_str()), Some("json" | "yaml" | "yml")) {
+            templates.push(path);
+        }
+    }
 }
 
 #[test]
@@ -101,6 +121,35 @@ fn deeply_nested_template_does_not_overflow_the_stack() {
                 || message.contains("nest"),
             "deep nesting should fail gracefully with a structured parse error, got: {error}"
         );
+    }
+}
+
+#[test]
+fn every_security_template_is_exercised_by_both_engines() {
+    let mut templates = Vec::new();
+    collect_security_templates(&common::security_dir(), &mut templates);
+    templates.sort();
+    assert!(!templates.is_empty(), "security fixture directory must contain templates");
+
+    for engine_name in ["rego", "cel"] {
+        for template in &templates {
+            let bytes = std::fs::read(template)
+                .unwrap_or_else(|error| panic!("failed to read security fixture {}: {error}", template.display()));
+            let finished = validate_within(COMPLETION_BUDGET, engine_name, bytes).unwrap_or_else(|| {
+                panic!(
+                    "{engine_name}: security fixture {} must validate within {COMPLETION_BUDGET:?}",
+                    template.display()
+                )
+            });
+            if let Err(error) = finished {
+                assert_eq!(
+                    template.file_name().and_then(|name| name.to_str()),
+                    Some("deep_nesting.json"),
+                    "{engine_name}: security fixture {} returned an unexpected error: {error}",
+                    template.display()
+                );
+            }
+        }
     }
 }
 
@@ -378,6 +427,41 @@ fn large_resource_count_validates_to_a_bounded_result_on_both_engines() {
                  report, not an error: {e}"
             )
         });
+    }
+}
+
+#[test]
+fn condition_chain_boundary_resolves_within_budget() {
+    // 20 parameters, 40 acyclic chained conditions matching the public CDK repro
+    // shape, 10 gated resources, and nested Fn::If depth 2 in properties. This
+    // exercises the condition-resolution hot path on a real-world shape without
+    // triggering pathological exponential blowup.
+    for engine_name in ["rego", "cel"] {
+        let bytes = common::load_security("condition_chain_boundary.yaml");
+        let finished = validate_within(COMPLETION_BUDGET, engine_name, bytes);
+        assert!(
+            finished.is_some(),
+            "{engine_name}: condition chain boundary fixture (20 params, 40 conditions) must \
+             resolve within {COMPLETION_BUDGET:?}"
+        );
+        finished.unwrap().expect("validation should return a structured report");
+    }
+}
+
+#[test]
+fn condition_chain_wide_resolves_within_budget() {
+    // 73 parameters with 40 chained conditions — the reported 73-parameter case.
+    // The parameter space (>2^20 paths) exercises the per-query parameter cap and
+    // cumulative iteration budget.
+    for engine_name in ["rego", "cel"] {
+        let bytes = common::load_security("condition_chain_wide.yaml");
+        let finished = validate_within(COMPLETION_BUDGET, engine_name, bytes);
+        assert!(
+            finished.is_some(),
+            "{engine_name}: condition chain wide fixture (73 params, 40 chained conditions) must \
+             resolve within {COMPLETION_BUDGET:?}"
+        );
+        finished.unwrap().expect("validation should return a structured report");
     }
 }
 
