@@ -113,6 +113,60 @@ fn assert_fires_on_property(by_engine: &[(&str, Vec<Diagnostic>)], rule_id: &str
     }
 }
 
+fn rule_diagnostic_signatures(diags: &[Diagnostic], rule_id: &str) -> Vec<String> {
+    let mut signatures: Vec<String> = diags
+        .iter()
+        .filter(|diagnostic| diagnostic.rule_id == rule_id)
+        .map(|diagnostic| {
+            serde_json::to_string(&diagnostic.to_detailed()).expect("diagnostic serialization should succeed")
+        })
+        .collect();
+    signatures.sort();
+    signatures
+}
+
+fn assert_rule_parity(by_engine: &[(&str, Vec<Diagnostic>)], rule_id: &str) {
+    let Some((reference_engine, reference_diags)) = by_engine.first() else {
+        panic!("expected at least one engine result");
+    };
+    let reference_signatures = rule_diagnostic_signatures(reference_diags, rule_id);
+    for (engine, diags) in &by_engine[1..] {
+        assert_eq!(
+            rule_diagnostic_signatures(diags, rule_id),
+            reference_signatures,
+            "[{engine}] {rule_id} diagnostics differ from {reference_engine}"
+        );
+    }
+}
+
+fn assert_rule_targets_on_resources(
+    by_engine: &[(&str, Vec<Diagnostic>)],
+    rule_id: &str,
+    resource_ids: &[&str],
+    expected_targets: &[(&str, &str)],
+) {
+    let mut expected: Vec<(String, String)> = expected_targets
+        .iter()
+        .map(|(resource_id, property_path)| ((*resource_id).to_string(), (*property_path).to_string()))
+        .collect();
+    expected.sort();
+
+    for (engine, diags) in by_engine {
+        let mut actual: Vec<(String, String)> = diags
+            .iter()
+            .filter(|diagnostic| diagnostic.rule_id == rule_id)
+            .filter_map(|diagnostic| {
+                let resource_id = diagnostic.resource_logical_id()?;
+                resource_ids
+                    .contains(&resource_id)
+                    .then(|| (resource_id.to_string(), diagnostic.property_path.clone().unwrap_or_default()))
+            })
+            .collect();
+        actual.sort();
+        assert_eq!(actual, expected, "[{engine}] unexpected {rule_id} targets for {resource_ids:?}");
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Per-issue regression tests
 // ---------------------------------------------------------------------------
@@ -1855,4 +1909,85 @@ Resources:
     let diags = validate_both_bytes(TEMPLATE);
     assert_count(&diags, "E3023", 1);
     assert_fires_on_property(&diags, "E3023", "Properties.ResourceRecords.0");
+}
+
+#[test]
+fn issue_264_conditional_record_arrays_validate_invalid_true_branches() {
+    let template = load_template("bad/route53_conditional_record_arrays.yaml");
+    let diags = validate_both_bytes(&template);
+
+    assert_rule_parity(&diags, "E3023");
+    assert_rule_targets_on_resources(
+        &diags,
+        "E3023",
+        &["StandaloneInvalidTrue", "GroupInvalidTrue"],
+        &[
+            ("StandaloneInvalidTrue", "Properties.ResourceRecords.0"),
+            ("GroupInvalidTrue", "Properties.RecordSets.0.ResourceRecords.0"),
+        ],
+    );
+}
+
+#[test]
+fn issue_264_conditional_record_arrays_validate_invalid_false_branches() {
+    let template = load_template("bad/route53_conditional_record_arrays.yaml");
+    let diags = validate_both_bytes(&template);
+
+    assert_rule_parity(&diags, "E3023");
+    assert_rule_targets_on_resources(
+        &diags,
+        "E3023",
+        &["StandaloneInvalidFalse", "GroupInvalidFalse"],
+        &[
+            ("StandaloneInvalidFalse", "Properties.ResourceRecords.0"),
+            ("GroupInvalidFalse", "Properties.RecordSets.0.ResourceRecords.0"),
+        ],
+    );
+}
+
+#[test]
+fn issue_264_conditional_record_arrays_preserve_mixed_entry_indexes() {
+    let template = load_template("bad/route53_conditional_record_arrays.yaml");
+    let diags = validate_both_bytes(&template);
+
+    assert_rule_parity(&diags, "E3023");
+    assert_rule_targets_on_resources(
+        &diags,
+        "E3023",
+        &[
+            "StandaloneMixedInvalidTrue",
+            "StandaloneMixedInvalidFalse",
+            "GroupMixedInvalidTrue",
+            "GroupMixedInvalidFalse",
+        ],
+        &[
+            ("StandaloneMixedInvalidTrue", "Properties.ResourceRecords.1"),
+            ("StandaloneMixedInvalidFalse", "Properties.ResourceRecords.1"),
+            ("GroupMixedInvalidTrue", "Properties.RecordSets.0.ResourceRecords.1"),
+            ("GroupMixedInvalidFalse", "Properties.RecordSets.0.ResourceRecords.1"),
+        ],
+    );
+}
+
+#[test]
+fn issue_264_conditional_record_arrays_accept_both_valid_branches() {
+    let template = load_template("good/route53_conditional_record_arrays.yaml");
+    let diags = validate_both_bytes(&template);
+
+    assert_rule_parity(&diags, "E3023");
+    assert_rule_targets_on_resources(&diags, "E3023", &["StandaloneBothBranchesValid", "GroupBothBranchesValid"], &[]);
+}
+
+#[test]
+fn issue_264_conditional_record_arrays_skip_unreachable_invalid_branches() {
+    let template = load_template("good/route53_conditional_record_arrays.yaml");
+    let diags = validate_both_bytes(&template);
+
+    assert_rule_parity(&diags, "E3023");
+    assert_rule_targets_on_resources(
+        &diags,
+        "E3023",
+        &["StandaloneUnreachableInvalid", "GroupUnreachableInvalid"],
+        &[],
+    );
 }

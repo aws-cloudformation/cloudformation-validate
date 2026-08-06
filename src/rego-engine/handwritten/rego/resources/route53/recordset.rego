@@ -2,14 +2,34 @@ package resources
 
 import rego.v1
 
+_route53_scenario_reachable(name, conditions) if {
+    resource_condition := object.get(input.resources[name], "condition", "")
+    resource_condition == ""
+    is_satisfiable(conditions)
+}
+
+_route53_scenario_reachable(name, conditions) if {
+    resource_condition := object.get(input.resources[name], "condition", "")
+    resource_condition != ""
+    object.get(conditions, resource_condition, true) == true
+    is_satisfiable(object.union(conditions, {resource_condition: true}))
+}
+
+_route53_record_set_scenarios(name) := {scenario |
+    some scenario in properties_scenarios(name, ["HostedZoneName", "Name", "ResourceRecords", "Type"])
+    _route53_scenario_reachable(name, scenario.conditions)
+}
+
 # E3023: Route53 RecordSet - A record must have valid IPv4
 violation contains make_diag_at("E3023", "ERROR", name,
     sprintf("Properties.ResourceRecords.%d", [i]),
     sprintf("'%s' is not a valid IPv4 address for record type 'A'", [rec])) if {
     some name in resources_of_type("AWS::Route53::RecordSet")
-    rtype := resolve(name, "Properties.Type")
+    some scenario in _route53_record_set_scenarios(name)
+    properties := scenario.properties
+    rtype := object.get(properties, "Type", null)
     rtype == "A"
-    records := resolve_preserving_conditionals(name, "Properties.ResourceRecords")
+    records := object.get(properties, "ResourceRecords", null)
     is_array(records)
     some i, rec in records
     is_string(rec)
@@ -23,9 +43,11 @@ violation contains make_diag_at("E3023", "ERROR", name,
     sprintf("Properties.ResourceRecords.%d", [i]),
     sprintf("'%s' is not a valid IPv6 address for record type 'AAAA'", [rec])) if {
     some name in resources_of_type("AWS::Route53::RecordSet")
-    rtype := resolve(name, "Properties.Type")
+    some scenario in _route53_record_set_scenarios(name)
+    properties := scenario.properties
+    rtype := object.get(properties, "Type", null)
     rtype == "AAAA"
-    records := resolve_preserving_conditionals(name, "Properties.ResourceRecords")
+    records := object.get(properties, "ResourceRecords", null)
     is_array(records)
     some i, rec in records
     is_string(rec)
@@ -113,10 +135,12 @@ violation contains make_diag_at("E3023", "ERROR", name,
     "Properties.Name",
     sprintf("CNAME record Name '%s' must not match HostedZoneName '%s' exactly", [rec_name, hz_name])) if {
     some name in resources_of_type("AWS::Route53::RecordSet")
-    rtype := resolve(name, "Properties.Type")
+    some scenario in _route53_record_set_scenarios(name)
+    properties := scenario.properties
+    rtype := object.get(properties, "Type", null)
     rtype == "CNAME"
-    rec_name := resolve(name, "Properties.Name")
-    hz_name := resolve(name, "Properties.HostedZoneName")
+    rec_name := object.get(properties, "Name", null)
+    hz_name := object.get(properties, "HostedZoneName", null)
     is_string(rec_name)
     is_string(hz_name)
     trim_suffix(rec_name, ".") == trim_suffix(hz_name, ".")
@@ -127,11 +151,13 @@ violation contains make_diag_at("E3023", "ERROR", name,
     "Properties.ResourceRecords",
     "CNAME records must have at most 1 ResourceRecord") if {
     some name in resources_of_type("AWS::Route53::RecordSet")
-    rtype := resolve(name, "Properties.Type")
+    some scenario in _route53_record_set_scenarios(name)
+    properties := scenario.properties
+    rtype := object.get(properties, "Type", null)
     rtype == "CNAME"
-    all_vals := resolve_all(name, "Properties.ResourceRecords")
-    count(all_vals) > 0
-    every val in all_vals { is_array(val); count(val) > 1 }
+    records := object.get(properties, "ResourceRecords", null)
+    is_array(records)
+    count(records) > 1
 }
 
 # E3023: TXT record values must be double-quoted strings
@@ -139,9 +165,11 @@ violation contains make_diag_at("E3023", "ERROR", name,
     sprintf("Properties.ResourceRecords.%d", [i]),
     sprintf("TXT record value '%s' must be enclosed in double quotes", [rec])) if {
     some name in resources_of_type("AWS::Route53::RecordSet")
-    rtype := resolve(name, "Properties.Type")
+    some scenario in _route53_record_set_scenarios(name)
+    properties := scenario.properties
+    rtype := object.get(properties, "Type", null)
     rtype == "TXT"
-    records := resolve_preserving_conditionals(name, "Properties.ResourceRecords")
+    records := object.get(properties, "ResourceRecords", null)
     is_array(records)
     some i, rec in records
     is_string(rec)
@@ -153,9 +181,11 @@ violation contains make_diag_at("E3023", "ERROR", name,
     sprintf("Properties.ResourceRecords.%d", [i]),
     sprintf("CAA record value '%s' must match format: flag tag 'value'", [rec])) if {
     some name in resources_of_type("AWS::Route53::RecordSet")
-    rtype := resolve(name, "Properties.Type")
+    some scenario in _route53_record_set_scenarios(name)
+    properties := scenario.properties
+    rtype := object.get(properties, "Type", null)
     rtype == "CAA"
-    records := resolve_preserving_conditionals(name, "Properties.ResourceRecords")
+    records := object.get(properties, "ResourceRecords", null)
     is_array(records)
     some i, rec in records
     is_string(rec)
@@ -167,9 +197,11 @@ violation contains make_diag_at("E3023", "ERROR", name,
     sprintf("Properties.ResourceRecords.%d", [i]),
     sprintf("MX record value '%s' must match format: priority domain", [rec])) if {
     some name in resources_of_type("AWS::Route53::RecordSet")
-    rtype := resolve(name, "Properties.Type")
+    some scenario in _route53_record_set_scenarios(name)
+    properties := scenario.properties
+    rtype := object.get(properties, "Type", null)
     rtype == "MX"
-    records := resolve_preserving_conditionals(name, "Properties.ResourceRecords")
+    records := object.get(properties, "ResourceRecords", null)
     is_array(records)
     some i, rec in records
     is_string(rec)
@@ -182,7 +214,9 @@ violation contains make_diag_at("E3023", "ERROR", name,
     sprintf("Properties.RecordSets.%d.ResourceRecords.%d", [si, ri]),
     sprintf("'%s' is not a valid IPv4 address for record type 'A'", [rec])) if {
     some name in resources_of_type("AWS::Route53::RecordSetGroup")
-    rsets := resolve_preserving_conditionals(name, "Properties.RecordSets")
+    some scenario in properties_scenarios(name, ["RecordSets"])
+    _route53_scenario_reachable(name, scenario.conditions)
+    rsets := object.get(scenario.properties, "RecordSets", null)
     is_array(rsets)
     some si, rset in rsets
     is_object(rset)
@@ -198,7 +232,9 @@ violation contains make_diag_at("E3023", "ERROR", name,
     sprintf("Properties.RecordSets.%d.ResourceRecords.%d", [si, ri]),
     sprintf("'%s' is not a valid IPv6 address for record type 'AAAA'", [rec])) if {
     some name in resources_of_type("AWS::Route53::RecordSetGroup")
-    rsets := resolve_preserving_conditionals(name, "Properties.RecordSets")
+    some scenario in properties_scenarios(name, ["RecordSets"])
+    _route53_scenario_reachable(name, scenario.conditions)
+    rsets := object.get(scenario.properties, "RecordSets", null)
     is_array(rsets)
     some si, rset in rsets
     is_object(rset)
@@ -214,7 +250,9 @@ violation contains make_diag_at("E3023", "ERROR", name,
     sprintf("Properties.RecordSets.%d.ResourceRecords.%d", [si, ri]),
     sprintf("TXT record value '%s' must be enclosed in double quotes", [rec])) if {
     some name in resources_of_type("AWS::Route53::RecordSetGroup")
-    rsets := resolve_preserving_conditionals(name, "Properties.RecordSets")
+    some scenario in properties_scenarios(name, ["RecordSets"])
+    _route53_scenario_reachable(name, scenario.conditions)
+    rsets := object.get(scenario.properties, "RecordSets", null)
     is_array(rsets)
     some si, rset in rsets
     is_object(rset)
@@ -230,7 +268,9 @@ violation contains make_diag_at("E3023", "ERROR", name,
     sprintf("Properties.RecordSets.%d.ResourceRecords.%d", [si, ri]),
     sprintf("CAA record value '%s' must match format: flag tag 'value'", [rec])) if {
     some name in resources_of_type("AWS::Route53::RecordSetGroup")
-    rsets := resolve_preserving_conditionals(name, "Properties.RecordSets")
+    some scenario in properties_scenarios(name, ["RecordSets"])
+    _route53_scenario_reachable(name, scenario.conditions)
+    rsets := object.get(scenario.properties, "RecordSets", null)
     is_array(rsets)
     some si, rset in rsets
     is_object(rset)
@@ -246,7 +286,9 @@ violation contains make_diag_at("E3023", "ERROR", name,
     sprintf("Properties.RecordSets.%d.ResourceRecords.%d", [si, ri]),
     sprintf("MX record value '%s' must match format: priority domain", [rec])) if {
     some name in resources_of_type("AWS::Route53::RecordSetGroup")
-    rsets := resolve_preserving_conditionals(name, "Properties.RecordSets")
+    some scenario in properties_scenarios(name, ["RecordSets"])
+    _route53_scenario_reachable(name, scenario.conditions)
+    rsets := object.get(scenario.properties, "RecordSets", null)
     is_array(rsets)
     some si, rset in rsets
     is_object(rset)
@@ -262,7 +304,9 @@ violation contains make_diag_at("E3023", "ERROR", name,
     sprintf("Properties.RecordSets.%d.ResourceRecords", [si]),
     "CNAME records must have at most 1 ResourceRecord") if {
     some name in resources_of_type("AWS::Route53::RecordSetGroup")
-    rsets := resolve_preserving_conditionals(name, "Properties.RecordSets")
+    some scenario in properties_scenarios(name, ["RecordSets"])
+    _route53_scenario_reachable(name, scenario.conditions)
+    rsets := object.get(scenario.properties, "RecordSets", null)
     is_array(rsets)
     some si, rset in rsets
     is_object(rset)

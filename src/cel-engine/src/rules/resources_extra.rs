@@ -221,12 +221,99 @@ fn resolve_concrete(m: &SemanticModel, rid: &str, path: &str) -> Option<serde_js
     scenarios.into_iter().next().map(|(v, _)| v)
 }
 
-fn resolve_json_preserving_conditionals(m: &SemanticModel, rid: &str, path: &str) -> Option<serde_json::Value> {
-    if let Some(resolved) = m.resolve_deep(rid, path).or_else(|| m.resolve(rid, path).cloned()) {
-        return Some(resolved_to_json_preserving_conditionals(&resolved));
+fn scenario_is_reachable(m: &SemanticModel, resource_id: &str, conditions: &HashMap<String, bool>) -> bool {
+    let mut assumptions: Vec<(String, bool)> = conditions.iter().map(|(name, value)| (name.clone(), *value)).collect();
+    if let Some(resource_condition) = m.resources.get(resource_id).and_then(|resource| resource.condition.as_ref()) {
+        match conditions.get(resource_condition) {
+            Some(false) => return false,
+            Some(true) => {}
+            None => assumptions.push((resource_condition.clone(), true)),
+        }
     }
-    let scenarios = m.resolve_scenarios_json(rid, path);
-    scenarios.into_iter().next().map(|(value, _)| value)
+    assumptions.is_empty() || m.conditions.is_satisfiable(&assumptions)
+}
+
+fn scenario_has_effective_property(properties: &ResolvedValue, property_name: &str) -> bool {
+    match properties {
+        ResolvedValue::Concrete { value } => {
+            value.get(property_name).is_some_and(|property_value| !property_value.is_null())
+        }
+        ResolvedValue::Map { entries } => entries.iter().any(|entry| {
+            entry.key == property_name && !matches!(&entry.value, ResolvedValue::Concrete { value } if value.is_null())
+        }),
+        _ => false,
+    }
+}
+
+fn scenario_property_json(properties: &ResolvedValue, property_name: &str) -> Option<serde_json::Value> {
+    match properties {
+        ResolvedValue::Concrete { value } => {
+            value.get(property_name).filter(|property_value| !property_value.is_null()).cloned()
+        }
+        ResolvedValue::Map { entries } => {
+            let property_value = &entries.iter().find(|entry| entry.key == property_name)?.value;
+            if matches!(property_value, ResolvedValue::Concrete { value } if value.is_null()) {
+                None
+            } else {
+                Some(resolved_to_json_best_effort(property_value))
+            }
+        }
+        _ => None,
+    }
+}
+
+fn push_route53_record_value_diagnostics(
+    diagnostics: &mut Vec<Diagnostic>,
+    m: &SemanticModel,
+    resource_id: &str,
+    record_type: &str,
+    records: &[serde_json::Value],
+    records_path: &str,
+) {
+    for (record_index, record) in records.iter().enumerate() {
+        let Some(record) = record.as_str() else {
+            continue;
+        };
+        let message = match record_type {
+            "A" if record.parse::<Ipv4Addr>().is_err() => {
+                Some(format!("'{}' is not a valid IPv4 address for record type 'A'", record))
+            }
+            "AAAA" if record.parse::<Ipv6Addr>().is_err() => {
+                Some(format!("'{}' is not a valid IPv6 address for record type 'AAAA'", record))
+            }
+            "TXT" if !TXT_RECORD_RE.is_match(record) => {
+                Some(format!("TXT record value '{}' must be enclosed in double quotes", record))
+            }
+            "CAA" if !CAA_RECORD_RE.is_match(record) => {
+                Some(format!("CAA record value '{}' must match format: flag tag 'value'", record))
+            }
+            "MX" if !MX_RECORD_RE.is_match(record) => {
+                Some(format!("MX record value '{}' must match format: priority domain", record))
+            }
+            _ => None,
+        };
+        if let Some(message) = message {
+            diagnostics.push(make_resource_diagnostic(
+                "E3023",
+                &message,
+                m,
+                resource_id,
+                &format!("{}.{}", records_path, record_index),
+                None,
+            ));
+        }
+    }
+
+    if record_type == "CNAME" && records.len() > 1 {
+        diagnostics.push(make_resource_diagnostic(
+            "E3023",
+            "CNAME records must have at most 1 ResourceRecord",
+            m,
+            resource_id,
+            records_path,
+            None,
+        ));
+    }
 }
 
 /// The authored JSON form of a resource property, reconstructed from the resolved
@@ -3101,233 +3188,65 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     // Route53 RecordSet validation
     for name in m.resources_of_type("AWS::Route53::RecordSet") {
-        if let Some(serde_json::Value::String(rtype)) = resolve_concrete(m, name, "Properties.Type") {
-            match rtype.as_str() {
-                "A" => {
-                    if let Some(serde_json::Value::Array(records)) =
-                        resolve_json_preserving_conditionals(m, name, "Properties.ResourceRecords")
-                    {
-                        for (i, rec) in records.iter().enumerate() {
-                            if let Some(s) = rec.as_str()
-                                && s.parse::<Ipv4Addr>().is_err()
-                            {
-                                out.push(make_resource_diagnostic(
-                                    "E3023",
-                                    &format!("'{}' is not a valid IPv4 address for record type 'A'", s),
-                                    m,
-                                    name,
-                                    &format!("Properties.ResourceRecords.{}", i),
-                                    None,
-                                ));
-                            }
-                        }
-                    }
-                }
-                "AAAA" => {
-                    if let Some(serde_json::Value::Array(records)) =
-                        resolve_json_preserving_conditionals(m, name, "Properties.ResourceRecords")
-                    {
-                        for (i, rec) in records.iter().enumerate() {
-                            if let Some(s) = rec.as_str()
-                                && s.parse::<Ipv6Addr>().is_err()
-                            {
-                                out.push(make_resource_diagnostic(
-                                    "E3023",
-                                    &format!("'{}' is not a valid IPv6 address for record type 'AAAA'", s),
-                                    m,
-                                    name,
-                                    &format!("Properties.ResourceRecords.{}", i),
-                                    None,
-                                ));
-                            }
-                        }
-                    }
-                }
-                "CNAME" => {
-                    if let (Some(serde_json::Value::String(rec_name)), Some(serde_json::Value::String(hz_name))) = (
-                        resolve_concrete(m, name, "Properties.Name"),
-                        resolve_concrete(m, name, "Properties.HostedZoneName"),
-                    ) {
-                        let trimmed_rec = rec_name.trim_end_matches('.');
-                        let trimmed_hz = hz_name.trim_end_matches('.');
-                        if trimmed_rec == trimmed_hz {
-                            out.push(make_resource_diagnostic(
-                                "E3023",
-                                &format!(
-                                    "CNAME record Name '{}' must not match HostedZoneName '{}' exactly",
-                                    rec_name, hz_name
-                                ),
-                                m,
-                                name,
-                                "Properties.Name",
-                                None,
-                            ));
-                        }
-                    }
-                    if let Some(serde_json::Value::Array(records)) =
-                        resolve_json_preserving_conditionals(m, name, "Properties.ResourceRecords")
-                        && records.len() > 1
-                    {
-                        out.push(make_resource_diagnostic(
-                            "E3023",
-                            "CNAME records must have at most 1 ResourceRecord",
-                            m,
-                            name,
-                            "Properties.ResourceRecords",
-                            None,
-                        ));
-                    }
-                }
-                "TXT" => {
-                    if let Some(serde_json::Value::Array(records)) =
-                        resolve_json_preserving_conditionals(m, name, "Properties.ResourceRecords")
-                    {
-                        for (i, rec) in records.iter().enumerate() {
-                            if let Some(s) = rec.as_str()
-                                && !TXT_RECORD_RE.is_match(s)
-                            {
-                                out.push(make_resource_diagnostic(
-                                    "E3023",
-                                    &format!("TXT record value '{}' must be enclosed in double quotes", s),
-                                    m,
-                                    name,
-                                    &format!("Properties.ResourceRecords.{}", i),
-                                    None,
-                                ));
-                            }
-                        }
-                    }
-                }
-                "CAA" => {
-                    if let Some(serde_json::Value::Array(records)) =
-                        resolve_json_preserving_conditionals(m, name, "Properties.ResourceRecords")
-                    {
-                        for (i, rec) in records.iter().enumerate() {
-                            if let Some(s) = rec.as_str()
-                                && !CAA_RECORD_RE.is_match(s)
-                            {
-                                out.push(make_resource_diagnostic(
-                                    "E3023",
-                                    &format!("CAA record value '{}' must match format: flag tag 'value'", s),
-                                    m,
-                                    name,
-                                    &format!("Properties.ResourceRecords.{}", i),
-                                    None,
-                                ));
-                            }
-                        }
-                    }
-                }
-                "MX" => {
-                    if let Some(serde_json::Value::Array(records)) =
-                        resolve_json_preserving_conditionals(m, name, "Properties.ResourceRecords")
-                    {
-                        for (i, rec) in records.iter().enumerate() {
-                            if let Some(s) = rec.as_str()
-                                && !MX_RECORD_RE.is_match(s)
-                            {
-                                out.push(make_resource_diagnostic(
-                                    "E3023",
-                                    &format!("MX record value '{}' must match format: priority domain", s),
-                                    m,
-                                    name,
-                                    &format!("Properties.ResourceRecords.{}", i),
-                                    None,
-                                ));
-                            }
-                        }
-                    }
-                }
-                _ => {}
+        for (properties, conditions) in m.resolve_properties_scenarios(name) {
+            if !scenario_is_reachable(m, name, &conditions) {
+                continue;
+            }
+            let Some(serde_json::Value::String(record_type)) = scenario_property_json(&properties, "Type") else {
+                continue;
+            };
+            if record_type == "CNAME"
+                && let (Some(serde_json::Value::String(record_name)), Some(serde_json::Value::String(hosted_zone_name))) =
+                    (scenario_property_json(&properties, "Name"), scenario_property_json(&properties, "HostedZoneName"))
+                && record_name.trim_end_matches('.') == hosted_zone_name.trim_end_matches('.')
+            {
+                out.push(make_resource_diagnostic(
+                    "E3023",
+                    &format!(
+                        "CNAME record Name '{}' must not match HostedZoneName '{}' exactly",
+                        record_name, hosted_zone_name
+                    ),
+                    m,
+                    name,
+                    "Properties.Name",
+                    None,
+                ));
+            }
+            if let Some(serde_json::Value::Array(records)) = scenario_property_json(&properties, "ResourceRecords") {
+                push_route53_record_value_diagnostics(
+                    &mut out,
+                    m,
+                    name,
+                    &record_type,
+                    &records,
+                    "Properties.ResourceRecords",
+                );
             }
         }
     }
 
     // RecordSetGroup — validate records within RecordSets[]
     for name in m.resources_of_type("AWS::Route53::RecordSetGroup") {
-        if let Some(serde_json::Value::Array(rsets)) =
-            resolve_json_preserving_conditionals(m, name, "Properties.RecordSets")
-        {
-            for (si, rset) in rsets.iter().enumerate() {
-                let rtype = rset.get("Type").and_then(|t| t.as_str()).unwrap_or("");
-                let records = rset.get("ResourceRecords").and_then(|r| r.as_array());
-                if let Some(records) = records {
-                    for (ri, rec) in records.iter().enumerate() {
-                        if let Some(s) = rec.as_str() {
-                            let path = format!("Properties.RecordSets.{}.ResourceRecords.{}", si, ri);
-                            match rtype {
-                                "A" => {
-                                    if s.parse::<Ipv4Addr>().is_err() {
-                                        out.push(make_resource_diagnostic(
-                                            "E3023",
-                                            &format!("'{}' is not a valid IPv4 address for record type 'A'", s),
-                                            m,
-                                            name,
-                                            &path,
-                                            None,
-                                        ));
-                                    }
-                                }
-                                "AAAA" => {
-                                    if s.parse::<Ipv6Addr>().is_err() {
-                                        out.push(make_resource_diagnostic(
-                                            "E3023",
-                                            &format!("'{}' is not a valid IPv6 address for record type 'AAAA'", s),
-                                            m,
-                                            name,
-                                            &path,
-                                            None,
-                                        ));
-                                    }
-                                }
-                                "TXT" => {
-                                    if !TXT_RECORD_RE.is_match(s) {
-                                        out.push(make_resource_diagnostic(
-                                            "E3023",
-                                            &format!("TXT record value '{}' must be enclosed in double quotes", s),
-                                            m,
-                                            name,
-                                            &path,
-                                            None,
-                                        ));
-                                    }
-                                }
-                                "CAA" => {
-                                    if !CAA_RECORD_RE.is_match(s) {
-                                        out.push(make_resource_diagnostic(
-                                            "E3023",
-                                            &format!("CAA record value '{}' must match format: flag tag 'value'", s),
-                                            m,
-                                            name,
-                                            &path,
-                                            None,
-                                        ));
-                                    }
-                                }
-                                "MX" if !MX_RECORD_RE.is_match(s) => {
-                                    out.push(make_resource_diagnostic(
-                                        "E3023",
-                                        &format!("MX record value '{}' must match format: priority domain", s),
-                                        m,
-                                        name,
-                                        &path,
-                                        None,
-                                    ));
-                                }
-                                _ => {}
-                            }
-                        }
-                    }
-                    if rtype == "CNAME" && records.len() > 1 {
-                        out.push(make_resource_diagnostic(
-                            "E3023",
-                            "CNAME records must have at most 1 ResourceRecord",
-                            m,
-                            name,
-                            &format!("Properties.RecordSets.{}.ResourceRecords", si),
-                            None,
-                        ));
-                    }
+        for (properties, conditions) in m.resolve_properties_scenarios(name) {
+            if !scenario_is_reachable(m, name, &conditions) {
+                continue;
+            }
+            let Some(serde_json::Value::Array(record_sets)) = scenario_property_json(&properties, "RecordSets") else {
+                continue;
+            };
+            for (set_index, record_set) in record_sets.iter().enumerate() {
+                let Some(record_type) = record_set.get("Type").and_then(|value| value.as_str()) else {
+                    continue;
+                };
+                if let Some(records) = record_set.get("ResourceRecords").and_then(|value| value.as_array()) {
+                    push_route53_record_value_diagnostics(
+                        &mut out,
+                        m,
+                        name,
+                        record_type,
+                        records,
+                        &format!("Properties.RecordSets.{}.ResourceRecords", set_index),
+                    );
                 }
             }
         }
@@ -3383,32 +3302,45 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     // Route53 RecordSet Alias validation
     for name in m.resources_of_type("AWS::Route53::RecordSet") {
-        let Some(resource) = m.resources.get(name) else {
-            continue;
-        };
-        if resource.properties.contains_key("AliasTarget") {
-            if resource.properties.contains_key("TTL") {
-                out.push(make_resource_diagnostic(
-                    "E3029",
-                    "TTL must not be set when AliasTarget is specified",
-                    m,
-                    name,
-                    "Properties.TTL",
-                    None,
-                ));
-            }
-            if let Some(serde_json::Value::String(rtype)) = resolve_concrete(m, name, "Properties.Type")
-                && matches!(rtype.as_str(), "NS" | "SOA")
-            {
-                out.push(make_resource_diagnostic(
-                    "E3029",
-                    &format!("AliasTarget cannot be used with record type '{}'", rtype),
-                    m,
-                    name,
-                    "Properties.AliasTarget",
-                    None,
-                ));
-            }
+        let property_scenarios = m.resolve_properties_scenarios(name);
+        let has_alias_ttl_conflict = property_scenarios.iter().any(|(properties, conditions)| {
+            scenario_is_reachable(m, name, conditions)
+                && scenario_has_effective_property(properties, "AliasTarget")
+                && scenario_has_effective_property(properties, "TTL")
+        });
+        if has_alias_ttl_conflict {
+            out.push(make_resource_diagnostic(
+                "E3029",
+                "TTL must not be set when AliasTarget is specified",
+                m,
+                name,
+                "Properties.TTL",
+                None,
+            ));
+        }
+
+        let invalid_alias_types: BTreeSet<String> = property_scenarios
+            .iter()
+            .filter_map(|(properties, conditions)| {
+                if !scenario_is_reachable(m, name, conditions)
+                    || !scenario_has_effective_property(properties, "AliasTarget")
+                {
+                    return None;
+                }
+                let record_type = scenario_property_json(properties, "Type")?;
+                let record_type = record_type.as_str()?;
+                matches!(record_type, "NS" | "SOA").then(|| record_type.to_string())
+            })
+            .collect();
+        for record_type in invalid_alias_types {
+            out.push(make_resource_diagnostic(
+                "E3029",
+                &format!("AliasTarget cannot be used with record type '{}'", record_type),
+                m,
+                name,
+                "Properties.AliasTarget",
+                None,
+            ));
         }
     }
 
