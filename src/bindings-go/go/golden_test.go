@@ -73,7 +73,7 @@ func loadGolden(t *testing.T) map[string]map[string]any {
 }
 
 // stripGoldenExcludedFields removes the report fields the golden file excludes
-// (version, performance, metadata.rulesEvaluated) and normalizes filePath.
+// (version, performance, and changing metadata provenance) and normalizes filePath.
 func stripGoldenExcludedFields(report map[string]any, filePath string) map[string]any {
 	if filePath != "" {
 		report["filePath"] = filePath
@@ -82,6 +82,8 @@ func stripGoldenExcludedFields(report map[string]any, filePath string) map[strin
 	delete(report, "performance")
 	if metadata, ok := report["metadata"].(map[string]any); ok {
 		delete(metadata, "rulesEvaluated")
+		delete(metadata, "cfnLintVersion")
+		delete(metadata, "resourceSchemaVersion")
 	}
 	return report
 }

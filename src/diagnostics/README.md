@@ -88,8 +88,9 @@ mappings, conditions, and template rules).
 All report types share: `file_path`, `status` (`Ok`/`Error`), `version`, `metadata`, `performance`,
 `diagnostics`.
 
-`ReportMetadata`: `rules_evaluated`, `resources_scanned`, `counts` (Summary by severity), `suppressed`, `strict`,
-`severity_level`.
+`ReportMetadata`: `rules_evaluated`, `cfn_lint_version`, `resource_schema_version`, `resources_scanned`, `counts`
+(Summary by severity), `suppressed`, `strict`, `severity_level`. `rules_evaluated` is `0` when no rules ran. Source
+versions use canonical `https://github.com/aws-cloudformation/<source>@<version>` values.
 
 ## Detail Level
 

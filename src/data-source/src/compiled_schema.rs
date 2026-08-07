@@ -23,7 +23,7 @@
 //! that type's enriched schema.
 //!
 //! This module is intentionally dependency-free (only `serde`/`serde_json` +
-//! `std`) and is **not** behind the `full` feature, so the runtime can use the
+//! `std`) and is **not** behind the `maintenance` feature, so the runtime can use the
 //! transform without pulling in the build pipeline's heavy dependencies.
 
 use serde::{Deserialize, Serialize};

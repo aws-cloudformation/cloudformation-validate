@@ -382,9 +382,17 @@ pub struct PerformanceMetrics {
 #[serde(rename_all = "camelCase")]
 pub struct ReportMetadata {
     /// Number of rules that were active for this run after any category exclusions.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
-    pub rules_evaluated: Option<u32>,
+    pub rules_evaluated: u32,
+    /// Source-qualified cfn-lint version used to sync bundled derived data.
+    #[serde(default)]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
+    pub cfn_lint_version: String,
+    /// Source-qualified enhanced resource-schema version used for the bundled provider schemas.
+    #[serde(default)]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
+    pub resource_schema_version: String,
     pub resources_scanned: u32,
     /// Tally of reported diagnostics by severity.
     pub counts: Summary,
@@ -665,6 +673,30 @@ mod tests {
         assert!(!json.contains("conditionScenario"), "None conditionScenario should be omitted");
         assert!(!json.contains("propertyPath"), "None propertyPath should be omitted");
         assert!(!json.contains("category"), "None category should be omitted");
+    }
+
+    #[test]
+    fn report_metadata_serializes_all_required_fields() {
+        let metadata = ReportMetadata {
+            rules_evaluated: 0,
+            cfn_lint_version: "https://github.com/aws-cloudformation/cfn-lint@1.54.0".to_string(),
+            resource_schema_version:
+                "https://github.com/aws-cloudformation/resource-provider-enhanced-schemas@2026-08-07T18:20:13Z"
+                    .to_string(),
+            resources_scanned: 0,
+            counts: Summary { fatal: 0, errors: 0, warnings: 0, informational: 0, debug: 0 },
+            suppressed: 0,
+            strict: false,
+            severity_level: Severity::Info,
+        };
+
+        let json = serde_json::to_value(metadata).expect("metadata should serialize");
+        assert_eq!(json["rulesEvaluated"], 0);
+        assert_eq!(json["cfnLintVersion"], "https://github.com/aws-cloudformation/cfn-lint@1.54.0");
+        assert_eq!(
+            json["resourceSchemaVersion"],
+            "https://github.com/aws-cloudformation/resource-provider-enhanced-schemas@2026-08-07T18:20:13Z"
+        );
     }
 
     #[test]

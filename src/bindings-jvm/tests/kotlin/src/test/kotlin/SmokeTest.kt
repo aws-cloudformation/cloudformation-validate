@@ -446,6 +446,8 @@ class SmokeTest {
         if (metadata != null) {
             val trimmed = LinkedHashMap(metadata)
             trimmed.remove("rulesEvaluated")
+            trimmed.remove("cfnLintVersion")
+            trimmed.remove("resourceSchemaVersion")
             out["metadata"] = trimmed
         }
         return out
