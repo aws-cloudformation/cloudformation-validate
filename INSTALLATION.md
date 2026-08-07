@@ -21,11 +21,11 @@ environment drift.
 | JDK                             | 21+     | JVM binding build/test                                    | Corretto in CI; provides `java` and `jar`                                                                       |
 | Kotlin (`kotlinc`)              | 2.4.0   | JVM binding build                                         |                                                                                                                 |
 | `ktlint`                        | 1.8.0   | JVM binding formatting                                    |                                                                                                                 |
-| Gradle                          | 9.6.1   | JVM binding build/test                                    | Must be on `PATH` — `bindings-jvm/build.sh` and the JVM test runner invoke `gradle`                             |
+| Gradle                          | 9.6.1   | JVM binding build/test                                    | Must be on `PATH` - `bindings-jvm/build.sh` and the JVM test runner invoke `gradle`                             |
 | Python                          | 3.12+   | Python binding build/test, license generation, `scripts/` | `setuptools` for the wheel build; no other packages required                                                    |
 | Go                              | 1.26+   | Go binding build/test                                     | cgo must be enabled (default); Windows also needs `rustup target add x86_64-pc-windows-gnu` and MinGW-w64 `gcc` |
 | `uniffi-bindgen-go`             | 0.7.1   | Go binding generation                                     | `cargo install --git https://github.com/NordSecurity/uniffi-bindgen-go --tag v0.7.1+v0.31.0`                    |
-| `git`, `curl`, `openssl`        | —       | source control, fetching JVM deps, verifying releases     | Usually preinstalled                                                                                            |
+| `git`, `curl`, `openssl`        | -       | source control, fetching JVM deps, verifying releases     | Usually preinstalled                                                                                            |
 
 ## 1. Rust toolchain
 

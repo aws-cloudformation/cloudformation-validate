@@ -241,7 +241,7 @@ publishing {
 }
 
 // The published main artifact is the prebuilt merged jar, not this project's own jar
-// task output — guard against publishing an accidentally host-only jar.
+// task output - guard against publishing an accidentally host-only jar.
 fun requireMergedJar() = require(mergedJar.asFile.exists()) {
     "Merged jar not found at ${mergedJar.asFile}. Run ./build.sh (and merge-jars.sh in CI) first."
 }
