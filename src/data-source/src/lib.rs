@@ -6,45 +6,45 @@ pub mod embedded {
 uniffi::setup_scaffolding!();
 
 pub mod additional_schema_source;
-#[cfg(feature = "full")]
+#[cfg(feature = "maintenance")]
 pub mod additional_specs;
-#[cfg(feature = "full")]
+#[cfg(feature = "maintenance")]
 pub mod cfnlint_tables;
-#[cfg(feature = "full")]
+#[cfg(feature = "maintenance")]
 pub mod codegen_cel;
-#[cfg(feature = "full")]
+#[cfg(feature = "maintenance")]
 pub mod codegen_schema_validator;
 pub mod compiled_schema;
-#[cfg(feature = "full")]
+#[cfg(feature = "maintenance")]
 pub mod extensions;
-#[cfg(feature = "full")]
+#[cfg(feature = "maintenance")]
 pub mod process;
-#[cfg(feature = "full")]
+#[cfg(feature = "maintenance")]
 pub mod regions;
-#[cfg(feature = "full")]
+#[cfg(feature = "maintenance")]
 pub mod schema;
-#[cfg(feature = "full")]
+#[cfg(feature = "maintenance")]
 mod source_versions;
 pub mod types;
 
 pub use additional_schema_source::{AdditionalSchemaSource, SchemaSourceError};
 
-#[cfg(feature = "full")]
+#[cfg(feature = "maintenance")]
 use log::{error, info};
-#[cfg(feature = "full")]
+#[cfg(feature = "maintenance")]
 use std::fs;
-#[cfg(feature = "full")]
+#[cfg(feature = "maintenance")]
 use std::path::{Path, PathBuf};
 
 /// Convert a rule-source resource type directory name (e.g., "aws_rds_dbinstance")
 /// to the normalized form used by this project (e.g., "aws-rds-dbinstance").
-#[cfg(feature = "full")]
+#[cfg(feature = "maintenance")]
 pub fn rule_source_dir_to_name(dir_name: &str) -> String {
     dir_name.to_lowercase().replace('_', "-")
 }
 
 /// Resolve the rule-source root directory, returning an error if not provided or missing.
-#[cfg(feature = "full")]
+#[cfg(feature = "maintenance")]
 pub fn resolve_rule_source_dir(path: Option<&str>) -> anyhow::Result<PathBuf> {
     let p = path.ok_or_else(|| anyhow::anyhow!("Pass --cfn-lint-root to the cfn-lint repo root"))?;
     let pb = PathBuf::from(p);
@@ -52,7 +52,7 @@ pub fn resolve_rule_source_dir(path: Option<&str>) -> anyhow::Result<PathBuf> {
     Ok(pb)
 }
 
-#[cfg(feature = "full")]
+#[cfg(feature = "maintenance")]
 #[derive(Debug, Default)]
 pub struct SyncStats {
     pub files_written: usize,
@@ -60,7 +60,7 @@ pub struct SyncStats {
     pub errors: Vec<String>,
 }
 
-#[cfg(feature = "full")]
+#[cfg(feature = "maintenance")]
 impl SyncStats {
     pub fn log(&self, label: &str) {
         info!(
@@ -84,7 +84,7 @@ impl SyncStats {
     }
 }
 
-#[cfg(feature = "full")]
+#[cfg(feature = "maintenance")]
 fn write_source_versions(path: &Path, versions: source_versions::SourceVersions) -> anyhow::Result<()> {
     let versions = source_versions::SourceVersions::new(versions.cfn_lint_version, versions.resource_schema_version)
         .map_err(anyhow::Error::msg)?;
@@ -94,7 +94,7 @@ fn write_source_versions(path: &Path, versions: source_versions::SourceVersions)
     Ok(())
 }
 
-#[cfg(feature = "full")]
+#[cfg(feature = "maintenance")]
 pub fn sync_upstream(upstream_dir: &Path, rule_source_root: &str) -> anyhow::Result<()> {
     info!("=== Sync phase ===");
 
@@ -134,7 +134,7 @@ pub fn sync_upstream(upstream_dir: &Path, rule_source_root: &str) -> anyhow::Res
     Ok(())
 }
 
-#[cfg(feature = "full")]
+#[cfg(feature = "maintenance")]
 pub fn generate_all(upstream_dir: &Path, generated_dir: &Path, handwritten_dir: &Path) -> anyhow::Result<()> {
     info!("=== Generate phase ===");
 
@@ -159,7 +159,7 @@ pub fn generate_all(upstream_dir: &Path, generated_dir: &Path, handwritten_dir: 
 /// them with real content.
 
 /// Files produced by sync_upstream (extensions, regions, additional specs).
-#[cfg(feature = "full")]
+#[cfg(feature = "maintenance")]
 const REQUIRED_SYNC_FILES: &[&str] = &[
     // Enum data documents (from the upstream rule-source extensions)
     "aws_amazonmq_broker_instancetype_enum",
@@ -194,7 +194,7 @@ const REQUIRED_SYNC_FILES: &[&str] = &[
 ];
 
 /// Files produced by generate_all (schema processing, codegen).
-#[cfg(feature = "full")]
+#[cfg(feature = "maintenance")]
 const REQUIRED_GENERATE_FILES: &[&str] = &[
     "compiled_schemas",
     "ref_types",
@@ -207,7 +207,7 @@ const REQUIRED_GENERATE_FILES: &[&str] = &[
     "known_resource_types",
 ];
 
-#[cfg(feature = "full")]
+#[cfg(feature = "maintenance")]
 const REQUIRED_HANDWRITTEN_FILES: &[&str] = &[
     "deprecated_resource_types",
     "getatt_return_type_overrides",
@@ -216,14 +216,14 @@ const REQUIRED_HANDWRITTEN_FILES: &[&str] = &[
     "sensitive_ports",
 ];
 
-#[cfg(feature = "full")]
+#[cfg(feature = "maintenance")]
 fn verify_sync_outputs(data_dir: &Path) -> anyhow::Result<()> {
     source_versions::SourceVersions::read(&data_dir.join(source_versions::SOURCE_VERSIONS_FILE))
         .map_err(anyhow::Error::msg)?;
     verify_files_exist_and_populated(REQUIRED_SYNC_FILES, data_dir, None, "Sync")
 }
 
-#[cfg(feature = "full")]
+#[cfg(feature = "maintenance")]
 fn verify_outputs(generated_dir: &Path, handwritten_dir: &Path) -> anyhow::Result<()> {
     let data_dir = generated_dir.join("data");
     let sv_dir = generated_dir.join("schema-validator");
@@ -238,7 +238,7 @@ fn verify_outputs(generated_dir: &Path, handwritten_dir: &Path) -> anyhow::Resul
     Ok(())
 }
 
-#[cfg(feature = "full")]
+#[cfg(feature = "maintenance")]
 fn verify_files_exist_and_populated(
     names: &[&str],
     primary_dir: &Path,
@@ -289,7 +289,7 @@ fn verify_files_exist_and_populated(
 }
 
 /// A file is a stub if it's just `{}` or `[]` (created by build.rs for clean-workspace builds).
-#[cfg(feature = "full")]
+#[cfg(feature = "maintenance")]
 fn is_stub(path: &Path) -> bool {
     match fs::read_to_string(path) {
         Ok(content) => {
