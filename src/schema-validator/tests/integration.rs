@@ -598,3 +598,90 @@ fn extension_cfn_gather_no_duplicate_numeric_constraint() {
         diags.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
     );
 }
+
+#[test]
+fn i9001_conditional_create_only_emitted_for_instance_tenancy() {
+    let diagnostics = validate_fixture("bad/I9001_conditional_create_only.yaml");
+    let conditional_diagnostics: Vec<_> = diagnostics
+        .iter()
+        .filter(|diagnostic| {
+            diagnostic.rule_id == "I9001"
+                && diagnostic.resource_logical_id() == Some("VpcWithConditionalCreateOnly")
+                && diagnostic.property_path.as_deref() == Some("Properties.InstanceTenancy")
+        })
+        .collect();
+    assert_eq!(
+        conditional_diagnostics.len(),
+        1,
+        "expected exactly one I9001 for InstanceTenancy, got: {conditional_diagnostics:?}"
+    );
+    let diagnostic = conditional_diagnostics[0];
+    assert_eq!(diagnostic.severity, Severity::Info, "conditional replacement risk must be informational");
+    assert_eq!(diagnostic.property_path.as_deref(), Some("Properties.InstanceTenancy"));
+    assert_eq!(
+        diagnostic.message,
+        "Property 'InstanceTenancy' is conditionally create-only; updating it may cause resource replacement"
+    );
+    let location = diagnostic.location.as_ref().expect("conditional replacement risk must have a source location");
+    assert_eq!(
+        (location.start_line, location.start_column, location.end_line, location.end_column),
+        (9, 7, 9, 22),
+        "conditional replacement risk must point to the InstanceTenancy key"
+    );
+}
+
+#[test]
+fn i9001_context_distinguishes_conditional_from_unconditional_create_only() {
+    let full = format!("{}/bad/I9001_conditional_create_only.yaml", TEMPLATES);
+    let bytes = std::fs::read(&full).unwrap();
+    let model = Arc::new(SemanticModel::from_bytes(&bytes).unwrap());
+    let mut result = SV.validate(&model, Some("us-east-1"));
+    SV.enrich_context(&mut result.diagnostics, &model);
+
+    let conditional_diagnostic = result
+        .diagnostics
+        .iter()
+        .find(|diagnostic| {
+            diagnostic.rule_id == "I9001"
+                && diagnostic.resource_logical_id() == Some("VpcWithConditionalCreateOnly")
+                && diagnostic.property_path.as_deref() == Some("Properties.InstanceTenancy")
+        })
+        .expect("expected I9001 for InstanceTenancy");
+    let conditional_context =
+        conditional_diagnostic.context.as_ref().expect("expected context on enriched InstanceTenancy diagnostic");
+    assert_eq!(conditional_context.lifecycle.as_deref(), Some("conditional-create-only"));
+
+    let unconditional_diagnostic = result
+        .diagnostics
+        .iter()
+        .find(|diagnostic| {
+            diagnostic.rule_id == "I9001"
+                && diagnostic.resource_logical_id() == Some("VpcWithConditionalCreateOnly")
+                && diagnostic.property_path.as_deref() == Some("Properties.CidrBlock")
+        })
+        .expect("expected I9001 for CidrBlock");
+    let unconditional_context =
+        unconditional_diagnostic.context.as_ref().expect("expected context on enriched CidrBlock diagnostic");
+    assert_eq!(unconditional_context.lifecycle.as_deref(), Some("create-only"));
+    assert_eq!(
+        unconditional_diagnostic.message,
+        "Property 'CidrBlock' is create-only; updating it will cause resource replacement"
+    );
+}
+
+#[test]
+fn i9001_conditional_create_only_not_emitted_when_property_is_absent() {
+    let diagnostics = validate_fixture("bad/I9001_conditional_create_only.yaml");
+    let control_diagnostics: Vec<_> = diagnostics
+        .iter()
+        .filter(|diagnostic| {
+            diagnostic.rule_id == "I9001"
+                && diagnostic.resource_logical_id() == Some("VpcControl")
+                && diagnostic.property_path.as_deref() == Some("Properties.InstanceTenancy")
+        })
+        .collect();
+    assert!(
+        control_diagnostics.is_empty(),
+        "control VPC without InstanceTenancy must not emit I9001 for InstanceTenancy, got: {control_diagnostics:?}"
+    );
+}
