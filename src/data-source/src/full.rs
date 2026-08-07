@@ -33,12 +33,13 @@ fn main() -> anyhow::Result<()> {
         i += 1;
     }
 
+    let rule_source_root = rule_source_root.ok_or_else(|| anyhow::anyhow!("--cfn-lint-root <DIR> is required"))?;
     let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let upstream_dir = manifest.join("upstream");
     let generated_dir = manifest.join("generated");
     let handwritten_dir = manifest.join("handwritten");
 
-    sync_upstream(&upstream_dir, rule_source_root.as_deref())?;
+    sync_upstream(&upstream_dir, &rule_source_root)?;
 
     generate_all(&upstream_dir, &generated_dir, &handwritten_dir)?;
 
@@ -48,12 +49,12 @@ fn main() -> anyhow::Result<()> {
 
 fn print_usage() {
     eprintln!(
-        "Usage: cargo run -p data-source --example full [-- OPTIONS]
+        "Usage: cargo run -p data-source --example full -- --cfn-lint-root <DIR>
 
 Full pipeline: sync upstream sources then generate all outputs.
 
 Options:
-  --cfn-lint-root <DIR>         Path to cfn-lint repo (enables extensions/additional-specs sync)
+  --cfn-lint-root <DIR>         Path to cfn-lint repo (required)
   -h, --help                    Show this help"
     );
 }

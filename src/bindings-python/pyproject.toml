@@ -1,6 +1,3 @@
-# Python package metadata for the cloudformation-validate bindings.
-# The version is a placeholder: build.sh stamps the workspace version from
-# src/Cargo.toml when assembling the build context in generated/.
 [build-system]
 requires = ["setuptools==80.9.0"]
 build-backend = "setuptools.build_meta"
@@ -50,7 +47,4 @@ Issues = "https://github.com/aws-cloudformation/cloudformation-validate/issues"
 packages = ["cloudformation_validate"]
 
 [tool.setuptools.package-data]
-# Every platform wheel uses the same resource layout while carrying only its
-# matching native library. The README remains directly inspectable in the
-# installed package; license files use the wheel's standard dist-info/licenses.
 cloudformation_validate = ["README.md", "natives/*/*"]

@@ -23,6 +23,8 @@ pub mod process;
 pub mod regions;
 #[cfg(feature = "full")]
 pub mod schema;
+#[cfg(feature = "full")]
+mod source_versions;
 pub mod types;
 
 pub use additional_schema_source::{AdditionalSchemaSource, SchemaSourceError};
@@ -83,37 +85,51 @@ impl SyncStats {
 }
 
 #[cfg(feature = "full")]
-pub fn sync_upstream(upstream_dir: &Path, rule_source_root: Option<&str>) -> anyhow::Result<()> {
+fn write_source_versions(path: &Path, versions: source_versions::SourceVersions) -> anyhow::Result<()> {
+    let versions = source_versions::SourceVersions::new(versions.cfn_lint_version, versions.resource_schema_version)
+        .map_err(anyhow::Error::msg)?;
+    let mut contents = serde_json::to_string_pretty(&versions)?;
+    contents.push('\n');
+    fs::write(path, contents)?;
+    Ok(())
+}
+
+#[cfg(feature = "full")]
+pub fn sync_upstream(upstream_dir: &Path, rule_source_root: &str) -> anyhow::Result<()> {
     info!("=== Sync phase ===");
 
-    info!("Step 1: Downloading enhanced CloudFormation schemas (fully patched, with region maps)");
-    schema::download_schemas(upstream_dir)?.fail_on_errors("Download")?;
-
-    let generated_data = upstream_dir.parent().unwrap().join("generated").join("data");
+    let generated_root = upstream_dir
+        .parent()
+        .ok_or_else(|| anyhow::anyhow!("upstream directory must have a parent: {}", upstream_dir.display()))?;
+    let generated_data = generated_root.join("generated").join("data");
     fs::create_dir_all(&generated_data)?;
+    let source_versions_path = generated_data.join(source_versions::SOURCE_VERSIONS_FILE);
+    let rule_source_dir = resolve_rule_source_dir(Some(rule_source_root))?;
+
+    info!("Step 1: Downloading enhanced CloudFormation schemas (fully patched, with region maps)");
+    let (schema_stats, resource_schema_version) = schema::download_schemas(upstream_dir)?;
+    schema_stats.fail_on_errors("Download")?;
 
     info!("Step 2: Building region resource types from downloaded provider maps");
     regions::sync_regions(&schema::providers_dir(upstream_dir), &generated_data)?.fail_on_errors("Regions")?;
 
-    if let Some(root) = rule_source_root {
-        let rule_source_dir = resolve_rule_source_dir(Some(root))?;
+    info!("Step 3: Syncing extensions from {}", rule_source_dir.display());
+    extensions::sync_extensions(&rule_source_dir, &upstream_dir.join("extensions"), &generated_data)?
+        .fail_on_errors("Extensions")?;
 
-        info!("Step 3: Syncing extensions from {}", rule_source_dir.display());
-        extensions::sync_extensions(&rule_source_dir, &upstream_dir.join("extensions"), &generated_data)?
-            .fail_on_errors("Extensions")?;
+    info!("Step 4: Syncing additional specs from {}", rule_source_dir.display());
+    additional_specs::sync_additional_specs(&rule_source_dir, &generated_data, upstream_dir)?
+        .fail_on_errors("AdditionalSpecs")?;
 
-        info!("Step 4: Syncing additional specs from {}", rule_source_dir.display());
-        additional_specs::sync_additional_specs(&rule_source_dir, &generated_data, upstream_dir)?
-            .fail_on_errors("AdditionalSpecs")?;
+    info!("Step 5: Extracting data tables embedded in cfn-lint rule code");
+    let (table_stats, cfn_lint_version) = cfnlint_tables::sync_cfnlint_tables(&rule_source_dir, &generated_data)?;
+    table_stats.fail_on_errors("CfnLintTables")?;
 
-        info!("Step 5: Extracting data tables embedded in cfn-lint rule code");
-        cfnlint_tables::sync_cfnlint_tables(&rule_source_dir, &generated_data)?.fail_on_errors("CfnLintTables")?;
-
-        info!("Step 6: Verifying sync produced expected data files");
-        verify_sync_outputs(&generated_data)?;
-    } else {
-        info!("Skipping rule-source sync (no --cfn-lint-root provided); region types still built from schema download");
-    }
+    verify_files_exist_and_populated(REQUIRED_SYNC_FILES, &generated_data, None, "Sync")?;
+    let source_versions =
+        source_versions::SourceVersions::new(cfn_lint_version, resource_schema_version).map_err(anyhow::Error::msg)?;
+    write_source_versions(&source_versions_path, source_versions)?;
+    info!("Recorded complete data source provenance in {}", source_versions_path.display());
 
     Ok(())
 }
@@ -202,6 +218,8 @@ const REQUIRED_HANDWRITTEN_FILES: &[&str] = &[
 
 #[cfg(feature = "full")]
 fn verify_sync_outputs(data_dir: &Path) -> anyhow::Result<()> {
+    source_versions::SourceVersions::read(&data_dir.join(source_versions::SOURCE_VERSIONS_FILE))
+        .map_err(anyhow::Error::msg)?;
     verify_files_exist_and_populated(REQUIRED_SYNC_FILES, data_dir, None, "Sync")
 }
 
@@ -210,12 +228,12 @@ fn verify_outputs(generated_dir: &Path, handwritten_dir: &Path) -> anyhow::Resul
     let data_dir = generated_dir.join("data");
     let sv_dir = generated_dir.join("schema-validator");
 
-    verify_files_exist_and_populated(REQUIRED_SYNC_FILES, &data_dir, None, "Sync")?;
+    verify_sync_outputs(&data_dir)?;
     // Check generate-produced files
     verify_files_exist_and_populated(REQUIRED_GENERATE_FILES, &data_dir, Some(&sv_dir), "Generate")?;
     verify_files_exist_and_populated(REQUIRED_HANDWRITTEN_FILES, handwritten_dir, None, "Handwritten")?;
 
-    let total = REQUIRED_SYNC_FILES.len() + REQUIRED_GENERATE_FILES.len() + REQUIRED_HANDWRITTEN_FILES.len();
+    let total = REQUIRED_SYNC_FILES.len() + REQUIRED_GENERATE_FILES.len() + REQUIRED_HANDWRITTEN_FILES.len() + 1;
     info!("Verified {total} required data files");
     Ok(())
 }

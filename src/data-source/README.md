@@ -8,21 +8,21 @@ compile time. Everything compiles into the binary - no runtime fetching.
 ## Commands
 
 ```bash
-# Sync only - download schemas, sync rule-source upstream data
-cargo run -p data-source --features full --example sync -- [--cfn-lint-root <DIR>]
+# Sync only - download schemas and sync all upstream data (cfn-lint root is required)
+cargo run -p data-source --features full --example sync -- --cfn-lint-root <DIR>
 
 # Generate only - run all codegens from existing upstream data
 cargo run -p data-source --features full --example generate
 
-# Full - sync then generate
-cargo run -p data-source --features full --example full -- [--cfn-lint-root <DIR>]
+# Full - sync all sources then generate
+cargo run -p data-source --features full --example full -- --cfn-lint-root <DIR>
 ```
 
 The `sync`, `generate`, and `full` examples require the `full` cargo feature (it pulls in the network and archive
 dependencies used only at build/sync time).
 
-`--cfn-lint-root` is optional. Without it, the sync still downloads schemas and builds per-region resource-type data,
-but skips the rule-source steps (extensions, additional specs, and cfn-lint tables).
+`--cfn-lint-root` is required by both `sync` and `full`; each command fails before starting work when it is absent.
+A successful sync records both strict, source-qualified values together only after all source processing succeeds.
 
 ## Directory Structure
 

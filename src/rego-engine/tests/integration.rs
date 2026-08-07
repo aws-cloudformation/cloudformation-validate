@@ -234,8 +234,8 @@ fn e2e_rules_evaluated_nonzero() {
     let config = ValidateConfig { ..Default::default() };
     let report = validate_with_config("good/minimal.yaml", config);
     assert!(
-        report.metadata.rules_evaluated.unwrap_or(0) > 0,
-        "Expected rules_evaluated > 0, got {:?}",
+        report.metadata.rules_evaluated > 0,
+        "Expected rules_evaluated > 0, got {}",
         report.metadata.rules_evaluated
     );
 }
