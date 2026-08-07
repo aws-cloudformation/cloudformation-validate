@@ -120,6 +120,7 @@ fi
 # ── Package metadata ──────────────────────────────────────────────────────────
 echo "Staging license and readme metadata..."
 cp "$WORKSPACE/../LICENSE" "$GO_DIR/LICENSE"
+cp "$WORKSPACE/../NOTICE" "$GO_DIR/NOTICE"
 cp "$SCRIPT_DIR/README.md" "$GO_DIR/README.md"
 
 # ── Verify the module compiles ────────────────────────────────────────────────
