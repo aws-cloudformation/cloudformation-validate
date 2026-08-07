@@ -1030,6 +1030,11 @@
       "UpdatedAt",
       "WorkloadIdentityDetails"
     ],
+    "AWS::BedrockAgentCore::GatewayRateLimit": [
+      "CreatedAt",
+      "Status",
+      "UpdatedAt"
+    ],
     "AWS::BedrockAgentCore::GatewayRule": [
       "CreatedAt",
       "GatewayArn",
@@ -3955,9 +3960,6 @@
       "Id"
     ],
     "AWS::Glue::Connection": [
-      "Id"
-    ],
-    "AWS::Glue::CustomEntityType": [
       "Id"
     ],
     "AWS::Glue::DataQualityRuleset": [
@@ -10648,6 +10650,15 @@
       "StatusReasons": "array",
       "UpdatedAt": "string"
     },
+    "AWS::BedrockAgentCore::GatewayRateLimit": {
+      "CreatedAt": "string",
+      "Description": "string",
+      "DimensionKeys": "array",
+      "Entries": "array",
+      "GatewayIdentifier": "string",
+      "RateLimitId": "string",
+      "UpdatedAt": "string"
+    },
     "AWS::BedrockAgentCore::GatewayRule": {
       "Actions": "array",
       "Conditions": "array",
@@ -13588,6 +13599,7 @@
       "DirectConnectGatewayId": "string",
       "EnableSiteLink": "boolean",
       "Mtu": "integer",
+      "RateLimit": "string",
       "Tags": "array",
       "VirtualGatewayId": "string",
       "VirtualInterfaceArn": "string",
@@ -13599,6 +13611,7 @@
       "AllocatePublicVirtualInterfaceRoleArn": "string",
       "BgpPeers": "array",
       "ConnectionId": "string",
+      "RateLimit": "string",
       "RouteFilterPrefixes": "array",
       "Tags": "array",
       "VirtualInterfaceArn": "string",
@@ -13613,6 +13626,7 @@
       "DirectConnectGatewayId": "string",
       "EnableSiteLink": "boolean",
       "Mtu": "integer",
+      "RateLimit": "string",
       "Tags": "array",
       "VirtualInterfaceArn": "string",
       "VirtualInterfaceId": "string",
@@ -16310,7 +16324,6 @@
     },
     "AWS::Glue::CustomEntityType": {
       "ContextWords": "array",
-      "Id": "string",
       "Name": "string",
       "RegexString": "string"
     },

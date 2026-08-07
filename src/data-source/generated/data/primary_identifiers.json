@@ -146,6 +146,10 @@
     "AWS::Bedrock::ResourcePolicy": [
       "ResourceArn"
     ],
+    "AWS::BedrockAgentCore::GatewayRateLimit": [
+      "GatewayIdentifier",
+      "RateLimitId"
+    ],
     "AWS::BedrockAgentCore::ResourcePolicy": [
       "ResourceArn"
     ],
@@ -640,6 +644,9 @@
       "Name"
     ],
     "AWS::Glue::Crawler": [
+      "Name"
+    ],
+    "AWS::Glue::CustomEntityType": [
       "Name"
     ],
     "AWS::Glue::DataCatalogEncryptionSettings": [

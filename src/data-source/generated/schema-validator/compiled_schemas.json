@@ -10917,11 +10917,13 @@
       },
       "AudienceDescription": {
         "type": "string",
+        "min_length": 0,
         "max_length": 1024,
         "description": "Human-readable description of the audience."
       },
       "AudienceRule": {
         "type": "string",
+        "min_length": 1,
         "max_length": 16384,
         "description": "Rule expression defining the experiment audience."
       },
@@ -10946,12 +10948,14 @@
       },
       "FlagKey": {
         "type": "string",
+        "pattern": "^[a-z][a-zA-Z0-9_-]{1,64}$",
         "min_length": 1,
         "max_length": 64,
         "description": "The key of the existing flag in the configuration profile to experiment on."
       },
       "Hypothesis": {
         "type": "string",
+        "min_length": 0,
         "max_length": 1024,
         "description": "The hypothesis of the experiment."
       },
@@ -10962,11 +10966,13 @@
       },
       "LaunchCriteria": {
         "type": "string",
+        "min_length": 0,
         "max_length": 1024,
         "description": "Criteria for launching the experiment."
       },
       "Name": {
         "type": "string",
+        "pattern": "^(?!AWS\\.).{1,64}$",
         "min_length": 1,
         "max_length": 64,
         "description": "A name for the experiment definition."
@@ -11074,6 +11080,7 @@
           },
           "Description": {
             "type": "string",
+            "min_length": 0,
             "max_length": 1024
           },
           "Enabled": {
@@ -11086,6 +11093,7 @@
           },
           "Weight": {
             "type": "number",
+            "minimum": 0.0,
             "description": "Traffic weight percentage."
           }
         },
@@ -20054,10 +20062,6 @@
     "read_only_properties": [
       "Id"
     ],
-    "create_only_properties": [
-      "FleetName",
-      "StackName"
-    ],
     "primary_identifier": [
       "Id"
     ],
@@ -22950,7 +22954,7 @@
           "StepScaling",
           "TargetTrackingScaling"
         ],
-        "description": "The scaling policy type.\n The following policy types are supported: \n ``TargetTrackingScaling``-Not supported for Amazon EMR\n ``StepScaling``-Not supported for DynamoDB, Amazon Comprehend, Lambda, Amazon Keyspaces, Amazon MSK, Amazon ElastiCache, or Neptune.\n ``PredictiveScaling``-Only supported for Amazon ECS"
+        "description": "The scaling policy type.\n The following policy types are supported: \n ``TargetTrackingScaling``—Not supported for Amazon EMR\n ``StepScaling``—Not supported for DynamoDB, Amazon Comprehend, Lambda, Amazon Keyspaces, Amazon MSK, Amazon ElastiCache, or Neptune.\n ``PredictiveScaling``—Only supported for Amazon ECS"
       },
       "PredictiveScalingPolicyConfiguration": {
         "ref_name": "PredictiveScalingPolicyConfiguration"
@@ -48015,7 +48019,7 @@
       },
       "GatewayArn": {
         "type": "string",
-        "pattern": "^arn:[a-z0-9-]{1,20}:bedrock-agentcore:[a-z0-9-]{1,20}:[0-9]{12}:gateway/([0-9a-z][-]?){1,100}-[a-z0-9]{10}$"
+        "pattern": "^arn:aws(|-cn|-us-gov):bedrock-agentcore:[a-z0-9-]{1,20}:[0-9]{12}:gateway/([0-9a-z][-]?){1,48}-[a-z0-9]{10}$"
       },
       "GatewayIdentifier": {
         "type": "string",
@@ -48036,14 +48040,14 @@
       },
       "KmsKeyArn": {
         "type": "string",
-        "pattern": "^arn:[a-z0-9-]{1,20}:kms:[a-zA-Z0-9-]*:[0-9]{12}:key/[a-zA-Z0-9-]{36}$",
+        "pattern": "^arn:aws(|-cn|-us-gov):kms:[a-zA-Z0-9-]*:[0-9]{12}:key/[a-zA-Z0-9-]{36}$",
         "min_length": 1,
         "max_length": 2048,
         "format": "AWS::KMS::Key.Arn"
       },
       "Name": {
         "type": "string",
-        "pattern": "^([0-9a-zA-Z][-]?){1,100}$"
+        "pattern": "^([0-9a-zA-Z][-]?){1,48}$"
       },
       "PolicyEngineConfiguration": {
         "ref_name": "GatewayPolicyEngineConfiguration"
@@ -48061,7 +48065,7 @@
       },
       "RoleArn": {
         "type": "string",
-        "pattern": "^arn:[a-z0-9-]{1,20}:iam::([0-9]{12})?:role/.+$",
+        "pattern": "^arn:aws(-[^:]+)?:iam::([0-9]{12})?:role/.+$",
         "min_length": 1,
         "max_length": 2048,
         "format": "AWS::IAM::Role.Arn"
@@ -48089,10 +48093,20 @@
       }
     },
     "definitions": {
-      "AllowedScope": {
-        "type": "string",
-        "pattern": "[\\x21\\x23-\\x5B\\x5D-\\x7E]+",
-        "description": "Allowed scope value"
+      "AdvertisedScopeMappingType": {
+        "type": "object",
+        "min_properties": 1,
+        "max_properties": 50,
+        "description": "Maps an originalScope (from allowedScopes) to an advertisedScope\nexposed in WWW-Authenticate / Protected Resource Metadata.",
+        "additional_properties": false,
+        "pattern_properties": {
+          "^[\\x21\\x23-\\x5B\\x5D-\\x7E]+$": {
+            "type": "string",
+            "pattern": "^[\\x21\\x23-\\x5B\\x5D-\\x7E]+$",
+            "min_length": 1,
+            "max_length": 255
+          }
+        }
       },
       "AuthorizerConfiguration": {
         "one_of": [
@@ -48121,10 +48135,9 @@
       },
       "AuthorizingClaimMatchValueType": {
         "type": "object",
-        "description": "The value or values in the custom claim to match and relationship of match",
         "properties": {
           "ClaimMatchOperator": {
-            "ref_name": "ClaimMatchOperator"
+            "ref_name": "ClaimMatchOperatorType"
           },
           "ClaimMatchValue": {
             "ref_name": "ClaimMatchValueType"
@@ -48136,49 +48149,63 @@
         ],
         "additional_properties": false
       },
-      "ClaimMatchOperator": {
+      "ClaimMatchOperatorType": {
         "type": "string",
         "enum": [
           "EQUALS",
           "CONTAINS",
           "CONTAINS_ANY"
-        ],
-        "description": "The relationship between the claim field value and the value or values being matched"
+        ]
       },
       "ClaimMatchValueType": {
-        "type": "object",
-        "description": "The value or values in the custom claim to match for",
-        "properties": {
-          "MatchValueString": {
-            "ref_name": "MatchValueString"
-          },
-          "MatchValueStringList": {
-            "ref_name": "MatchValueStringList"
-          }
-        },
-        "additional_properties": false,
         "one_of": [
           {
+            "type": "object",
+            "properties": {
+              "MatchValueString": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_.:/-]+$",
+                "min_length": 1,
+                "max_length": 255
+              }
+            },
             "required": [
               "MatchValueString"
-            ]
+            ],
+            "additional_properties": false
           },
           {
+            "type": "object",
+            "properties": {
+              "MatchValueStringList": {
+                "type": "array",
+                "min_items": 1,
+                "items": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_.:/-]+$",
+                  "min_length": 1,
+                  "max_length": 255
+                }
+              }
+            },
             "required": [
               "MatchValueStringList"
-            ]
+            ],
+            "additional_properties": false
           }
         ]
       },
       "CustomClaimValidationType": {
         "type": "object",
-        "description": "Required custom claim",
         "properties": {
           "AuthorizingClaimMatchValue": {
             "ref_name": "AuthorizingClaimMatchValueType"
           },
           "InboundTokenClaimName": {
-            "ref_name": "InboundTokenClaimName"
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_.-:]+$",
+            "min_length": 1,
+            "max_length": 255
           },
           "InboundTokenClaimValueType": {
             "ref_name": "InboundTokenClaimValueType"
@@ -48194,6 +48221,9 @@
       "CustomJWTAuthorizerConfiguration": {
         "type": "object",
         "properties": {
+          "AdvertisedScopeMapping": {
+            "ref_name": "AdvertisedScopeMappingType"
+          },
           "AllowedAudience": {
             "type": "array",
             "min_items": 1,
@@ -48212,7 +48242,10 @@
             "type": "array",
             "min_items": 1,
             "items": {
-              "ref_name": "AllowedScope"
+              "type": "string",
+              "pattern": "^[\\x21\\x23-\\x5B\\x5D-\\x7E]+$",
+              "min_length": 1,
+              "max_length": 255
             }
           },
           "CustomClaims": {
@@ -48274,21 +48307,19 @@
           }
         },
         "required": [
-          "Interceptor",
-          "InterceptionPoints"
+          "InterceptionPoints",
+          "Interceptor"
         ],
         "additional_properties": false
       },
       "GatewayPolicyEngineConfiguration": {
         "type": "object",
-        "description": "The configuration for a policy engine associated with a gateway. A policy engine is a collection of policies that evaluates and authorizes agent tool calls. When associated with a gateway, the policy engine intercepts all agent requests and determines whether to allow or deny each action based on the defined policies.",
         "properties": {
           "Arn": {
             "type": "string",
-            "pattern": "^arn:[a-z0-9-]{1,20}:bedrock-agentcore:[a-z0-9-]+:[0-9]{12}:policy-engine/[a-zA-Z][a-zA-Z0-9-_]{0,99}-[a-zA-Z0-9_]{10}$",
+            "pattern": "^arn:aws:bedrock-agentcore:[a-z0-9-]+:[0-9]{12}:policy-engine\\/[a-zA-Z][a-zA-Z0-9-_]{0,99}-[a-zA-Z0-9_]{10}$",
             "min_length": 1,
-            "max_length": 170,
-            "description": "The ARN of the policy engine. The policy engine contains Cedar policies that define fine-grained authorization rules specifying who can perform what actions on which resources as agents interact through the gateway."
+            "max_length": 170
           },
           "Mode": {
             "ref_name": "GatewayPolicyEngineMode"
@@ -48305,8 +48336,7 @@
         "enum": [
           "LOG_ONLY",
           "ENFORCE"
-        ],
-        "description": "The enforcement mode for the policy engine. LOG_ONLY - The policy engine evaluates each action against your policies and adds traces on whether tool calls would be allowed or denied, but does not enforce the decision. Use this mode to test and validate policies before enabling enforcement. ENFORCE - The policy engine evaluates actions against your policies and enforces decisions by allowing or denying agent operations. Test and validate policies in LOG_ONLY mode before enabling enforcement to avoid unintended denials or adversely affecting production traffic."
+        ]
       },
       "GatewayProtocolConfiguration": {
         "one_of": [
@@ -48341,18 +48371,12 @@
           "FAILED"
         ]
       },
-      "InboundTokenClaimName": {
-        "type": "string",
-        "pattern": "[A-Za-z0-9_.-:]+",
-        "description": "The name of the custom claim to validate"
-      },
       "InboundTokenClaimValueType": {
         "type": "string",
         "enum": [
           "STRING",
           "STRING_ARRAY"
-        ],
-        "description": "Token claim data type"
+        ]
       },
       "InterceptorConfiguration": {
         "one_of": [
@@ -48375,10 +48399,52 @@
         "properties": {
           "PassRequestHeaders": {
             "type": "boolean"
+          },
+          "PayloadFilter": {
+            "ref_name": "InterceptorPayloadFilter"
           }
         },
         "required": [
           "PassRequestHeaders"
+        ],
+        "additional_properties": false
+      },
+      "InterceptorPayloadExclusion": {
+        "type": "string",
+        "enum": [
+          "RESPONSE_BODY"
+        ]
+      },
+      "InterceptorPayloadExclusionSelector": {
+        "one_of": [
+          {
+            "type": "object",
+            "properties": {
+              "Field": {
+                "ref_name": "InterceptorPayloadExclusion"
+              }
+            },
+            "required": [
+              "Field"
+            ],
+            "additional_properties": false
+          }
+        ]
+      },
+      "InterceptorPayloadFilter": {
+        "type": "object",
+        "properties": {
+          "Exclude": {
+            "type": "array",
+            "min_items": 1,
+            "max_items": 1,
+            "items": {
+              "ref_name": "InterceptorPayloadExclusionSelector"
+            }
+          }
+        },
+        "required": [
+          "Exclude"
         ],
         "additional_properties": false
       },
@@ -48387,7 +48453,7 @@
         "properties": {
           "Arn": {
             "type": "string",
-            "pattern": "^arn:[a-z0-9-]{1,20}:lambda:([a-z]{2}(-gov)?-[a-z]+-\\d{1}):(\\d{12}):function:([a-zA-Z0-9-_.]+)(:(\\$LATEST|[a-zA-Z0-9-_]+))?$",
+            "pattern": "^arn:(aws[a-zA-Z-]*)?:lambda:([a-z]{2}(-gov)?-[a-z]+-\\d{1}):(\\d{12}):function:([a-zA-Z0-9-_.]+)(:(\\$LATEST|[a-zA-Z0-9-_]+))?$",
             "min_length": 1,
             "max_length": 170
           }
@@ -48447,10 +48513,9 @@
           },
           "SubnetIds": {
             "type": "array",
-            "min_items": 1,
             "items": {
               "type": "string",
-              "pattern": "^subnet-(([0-9a-z]{8})|([0-9a-z]{17}))$"
+              "pattern": "^subnet-[0-9a-zA-Z]{8,17}$"
             }
           },
           "VpcIdentifier": {
@@ -48464,20 +48529,6 @@
           "VpcIdentifier"
         ],
         "additional_properties": false
-      },
-      "MatchValueString": {
-        "type": "string",
-        "pattern": "[A-Za-z0-9_.-]+",
-        "description": "The string value to match for"
-      },
-      "MatchValueStringList": {
-        "type": "array",
-        "min_items": 1,
-        "max_items": 255,
-        "description": "The list of strings to check for a match",
-        "items": {
-          "ref_name": "MatchValueString"
-        }
       },
       "PrivateEndpoint": {
         "one_of": [
@@ -48536,7 +48587,7 @@
         "type": "object",
         "properties": {
           "SessionTimeoutInSeconds": {
-            "type": "integer",
+            "type": "number",
             "minimum": 900.0,
             "maximum": 28800.0
           }
@@ -48601,6 +48652,175 @@
       "GatewayIdentifier"
     ],
     "description": "Definition of AWS::BedrockAgentCore::Gateway Resource Type"
+  },
+  "AWS::BedrockAgentCore::GatewayRateLimit": {
+    "type_name": "AWS::BedrockAgentCore::GatewayRateLimit",
+    "properties": {
+      "CreatedAt": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "Description": {
+        "type": "string",
+        "min_length": 0,
+        "max_length": 512,
+        "description": "Optional human-readable description for this limit."
+      },
+      "DimensionKeys": {
+        "type": "array",
+        "min_items": 1,
+        "max_items": 10,
+        "description": "Ordered list of dimension names defining the scope of this limit.\nUnique per gateway — no two limits can share the same dimensionKeys.",
+        "items": {
+          "type": "string",
+          "pattern": "^(targetName|toolName|qualifiedModelId|\\$\\.context\\.iam\\.principal|\\$\\.context\\.iam\\.sourceIdentity|\\$\\.context\\.jwt\\.[a-zA-Z_][a-zA-Z0-9_\\-\\.]{0,61}[a-zA-Z0-9_])$",
+          "min_length": 1,
+          "max_length": 80,
+          "description": "A dimension key specifying the scope dimension for rate limiting.\nAllowed values: \"targetName\", \"toolName\", \"qualifiedModelId\",\nor context-path expressions: \"$.context.iam.principal\", \"$.context.iam.sourceIdentity\",\n\"$.context.jwt.<claim>\" where <claim> is a JWT claim name (e.g., \"$.context.jwt.sub\").\nValidated server-side to enforce allowed prefixes and patterns."
+        }
+      },
+      "Entries": {
+        "type": "array",
+        "min_items": 1,
+        "max_items": 1000,
+        "description": "Rule entries mapping dimension values to rate configurations.",
+        "items": {
+          "ref_name": "LimitEntry"
+        }
+      },
+      "GatewayIdentifier": {
+        "type": "string",
+        "pattern": "^([0-9a-z][-]?){1,100}-[0-9a-z]{10}$"
+      },
+      "RateLimitId": {
+        "type": "string",
+        "pattern": "^[a-zA-Z0-9][a-zA-Z0-9\\-_\\.]{0,62}[a-zA-Z0-9]$",
+        "min_length": 2,
+        "max_length": 64,
+        "description": "Limit identifier. Optional on Create (system-generates if not provided by customer).\nAlways present in responses."
+      },
+      "Status": {
+        "ref_name": "GatewayRateLimitStatus"
+      },
+      "UpdatedAt": {
+        "type": "string",
+        "format": "date-time"
+      }
+    },
+    "definitions": {
+      "Dimensions": {
+        "type": "object",
+        "min_properties": 1,
+        "max_properties": 10,
+        "description": "Map of dimension name to dimension value for a rule entry",
+        "additional_properties": false,
+        "pattern_properties": {
+          "^(targetName|toolName|qualifiedModelId|\\$\\.context\\.iam\\.principal|\\$\\.context\\.iam\\.sourceIdentity|\\$\\.context\\.jwt\\.[a-zA-Z_][a-zA-Z0-9_\\-\\.]{0,61}[a-zA-Z0-9_])$": {
+            "type": "string",
+            "min_length": 1,
+            "max_length": 256,
+            "description": "A dimension value in a rule entry (exact value or \"*\" wildcard)"
+          }
+        }
+      },
+      "GatewayRateLimitStatus": {
+        "type": "string",
+        "enum": [
+          "CREATING",
+          "ACTIVE",
+          "UPDATING",
+          "DELETING"
+        ],
+        "description": "Status of a gateway limit"
+      },
+      "LimitEntry": {
+        "type": "object",
+        "description": "A single rule entry within a limit, mapping dimension values to rate configurations",
+        "properties": {
+          "Connections": {
+            "type": "array",
+            "min_items": 1,
+            "max_items": 1,
+            "description": "Connection rate limits (per second only). Limited to 1 entry for now. — P2",
+            "items": {
+              "ref_name": "RateConfig"
+            }
+          },
+          "Dimensions": {
+            "ref_name": "Dimensions"
+          },
+          "Requests": {
+            "type": "array",
+            "min_items": 1,
+            "max_items": 1,
+            "description": "Request rate limits (RPS or RPM). Limited to 1 entry for now.",
+            "items": {
+              "ref_name": "RateConfig"
+            }
+          },
+          "Tokens": {
+            "type": "array",
+            "min_items": 1,
+            "max_items": 1,
+            "description": "Token rate limits (TPM). Limited to 1 entry for now. — P1",
+            "items": {
+              "ref_name": "RateConfig"
+            }
+          }
+        },
+        "required": [
+          "Dimensions"
+        ],
+        "additional_properties": false
+      },
+      "Period": {
+        "type": "string",
+        "enum": [
+          "second",
+          "minute"
+        ],
+        "description": "Time period for rate limiting"
+      },
+      "RateConfig": {
+        "type": "object",
+        "description": "Rate configuration for a metric (requests or tokens)",
+        "properties": {
+          "Period": {
+            "ref_name": "Period"
+          },
+          "Rate": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 10000000.0
+          }
+        },
+        "required": [
+          "Period",
+          "Rate"
+        ],
+        "additional_properties": false
+      }
+    },
+    "required": [
+      "DimensionKeys",
+      "Entries"
+    ],
+    "additional_properties": false,
+    "read_only_properties": [
+      "CreatedAt",
+      "Status",
+      "UpdatedAt"
+    ],
+    "create_only_properties": [
+      "DimensionKeys",
+      "GatewayIdentifier",
+      "RateLimitId"
+    ],
+    "primary_identifier": [
+      "GatewayIdentifier",
+      "RateLimitId"
+    ],
+    "description": "Definition of AWS::BedrockAgentCore::GatewayRateLimit Resource Type"
   },
   "AWS::BedrockAgentCore::GatewayRule": {
     "type_name": "AWS::BedrockAgentCore::GatewayRule",
@@ -49064,7 +49284,7 @@
       },
       "GatewayArn": {
         "type": "string",
-        "pattern": "^arn:aws(|-cn|-us-gov):bedrock-agentcore:[a-z0-9-]{1,20}:[0-9]{12}:gateway/([0-9a-z][-]?){1,100}-[a-z0-9]{10}$"
+        "pattern": "^arn:aws(|-cn|-us-gov):bedrock-agentcore:[a-z0-9-]{1,20}:[0-9]{12}:gateway/([0-9a-z][-]?){1,48}-[a-z0-9]{10}$"
       },
       "GatewayIdentifier": {
         "type": "string",
@@ -49131,9 +49351,9 @@
           }
         },
         "required": [
+          "ApiGatewayToolConfiguration",
           "RestApiId",
-          "Stage",
-          "ApiGatewayToolConfiguration"
+          "Stage"
         ],
         "additional_properties": false
       },
@@ -49194,9 +49414,9 @@
           }
         },
         "required": [
+          "Method",
           "Name",
-          "Path",
-          "Method"
+          "Path"
         ],
         "additional_properties": false
       },
@@ -49295,9 +49515,7 @@
               "ref_name": "ConnectorParameterOverride"
             }
           },
-          "ParameterValues": {
-            "type": "object"
-          }
+          "ParameterValues": {}
         },
         "required": [
           "Name"
@@ -49604,6 +49822,13 @@
           }
         ]
       },
+      "ListingMode": {
+        "type": "string",
+        "enum": [
+          "DEFAULT",
+          "DYNAMIC"
+        ]
+      },
       "ManagedResourceDetails": {
         "type": "object",
         "properties": {
@@ -49645,11 +49870,13 @@
           },
           "SubnetIds": {
             "type": "array",
-            "min_items": 1,
             "items": {
               "type": "string",
               "pattern": "^subnet-[0-9a-zA-Z]{8,17}$"
             }
+          },
+          "Tags": {
+            "ref_name": "TagsMap"
           },
           "VpcIdentifier": {
             "type": "string",
@@ -49683,13 +49910,6 @@
         ],
         "additional_properties": false
       },
-      "McpServerListingMode": {
-        "type": "string",
-        "enum": [
-          "DEFAULT",
-          "DYNAMIC"
-        ]
-      },
       "McpServerTargetConfiguration": {
         "type": "object",
         "properties": {
@@ -49698,13 +49918,13 @@
             "pattern": "^https://.*"
           },
           "ListingMode": {
-            "ref_name": "McpServerListingMode"
+            "ref_name": "ListingMode"
           },
           "McpToolSchema": {
             "ref_name": "McpToolSchemaConfiguration"
           },
           "ResourcePriority": {
-            "type": "integer",
+            "type": "number",
             "minimum": 0.0,
             "maximum": 1000.0
           }
@@ -49823,20 +50043,35 @@
         "properties": {
           "AllowedQueryParameters": {
             "type": "array",
+            "min_items": 1,
+            "max_items": 10,
+            "unique_items": true,
             "items": {
-              "type": "string"
+              "type": "string",
+              "min_length": 1,
+              "max_length": 40
             }
           },
           "AllowedRequestHeaders": {
             "type": "array",
+            "min_items": 1,
+            "max_items": 10,
+            "unique_items": true,
             "items": {
-              "type": "string"
+              "type": "string",
+              "min_length": 1,
+              "max_length": 100
             }
           },
           "AllowedResponseHeaders": {
             "type": "array",
+            "min_items": 1,
+            "max_items": 10,
+            "unique_items": true,
             "items": {
-              "type": "string"
+              "type": "string",
+              "min_length": 1,
+              "max_length": 100
             }
           }
         },
@@ -49892,13 +50127,17 @@
           },
           "DefaultReturnUrl": {
             "type": "string",
-            "pattern": "\\w+:(\\/?\\/?)[^\\s]+",
+            "pattern": "^\\w+:(\\/?\\/?)[^\\s]+$",
             "min_length": 1,
-            "max_length": 2048,
-            "description": "Return URL for OAuth callback."
+            "max_length": 2048
           },
           "GrantType": {
-            "ref_name": "OAuthGrantType"
+            "all_of": [
+              {
+                "ref_name": "OAuthGrantType"
+              },
+              {}
+            ]
           },
           "ProviderArn": {
             "type": "string",
@@ -49936,8 +50175,8 @@
       "OAuthGrantType": {
         "type": "string",
         "enum": [
-          "AUTHORIZATION_CODE",
           "CLIENT_CREDENTIALS",
+          "AUTHORIZATION_CODE",
           "TOKEN_EXCHANGE"
         ]
       },
@@ -50038,7 +50277,7 @@
           },
           "Qualifier": {
             "type": "string",
-            "pattern": "^(([1-9][0-9]{0,4})|([a-zA-Z][a-zA-Z0-9_]{0,47}))$"
+            "pattern": "([1-9][0-9]{0,4})|([a-zA-Z][a-zA-Z0-9_]{0,47})"
           },
           "Schema": {
             "ref_name": "HttpApiSchemaConfiguration"
@@ -50138,7 +50377,7 @@
             "max_length": 256
           },
           "Timeout": {
-            "type": "integer",
+            "type": "number",
             "minimum": 1.0,
             "maximum": 86400.0
           }
@@ -50147,6 +50386,20 @@
           "Identifier"
         ],
         "additional_properties": false
+      },
+      "TagsMap": {
+        "type": "object",
+        "max_properties": 50,
+        "description": "Tags applied to the AWS-managed VPC Lattice resource gateway when it is created on your behalf (tag-on-create). Useful for cost allocation. These tags are forwarded to VPC Lattice and are not stored on the gateway target itself.",
+        "additional_properties": false,
+        "pattern_properties": {
+          "^[a-zA-Z0-9\\s._:/=+@-]{1,128}$": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9\\s._:/=+@-]*$",
+            "min_length": 0,
+            "max_length": 256
+          }
+        }
       },
       "TargetConfiguration": {
         "one_of": [
@@ -50192,8 +50445,7 @@
         "type": "string",
         "enum": [
           "MCP",
-          "HTTP",
-          "INFERENCE"
+          "HTTP"
         ]
       },
       "TargetStatus": {
@@ -50272,16 +50524,19 @@
     ],
     "additional_properties": false,
     "read_only_properties": [
+      "AuthorizationData",
       "CreatedAt",
       "GatewayArn",
       "LastSynchronizedAt",
+      "PrivateEndpointManagedResources",
+      "ProtocolType",
       "Status",
       "StatusReasons",
       "TargetId",
-      "PrivateEndpointManagedResources",
-      "UpdatedAt",
-      "AuthorizationData",
-      "ProtocolType"
+      "UpdatedAt"
+    ],
+    "write_only_properties": [
+      "PrivateEndpoint.ManagedVpcResource.Tags"
     ],
     "create_only_properties": [
       "GatewayIdentifier"
@@ -50290,7 +50545,7 @@
       "GatewayIdentifier",
       "TargetId"
     ],
-    "description": "Resource Type definition for AWS::BedrockAgentCore::GatewayTarget"
+    "description": "Definition of AWS::BedrockAgentCore::GatewayTarget Resource Type"
   },
   "AWS::BedrockAgentCore::Harness": {
     "type_name": "AWS::BedrockAgentCore::Harness",
@@ -69775,7 +70030,7 @@
       },
       "ViewerCertificate": {
         "type": "object",
-        "description": "A complex type that determines the distribution's SSL/TLS configuration for communicating with viewers.\n If the distribution doesn't use ``Aliases`` (also known as alternate domain names or CNAMEs)-that is, if the distribution uses the CloudFront domain name such as ``d111111abcdef8.cloudfront.net``-set ``CloudFrontDefaultCertificate`` to ``true`` and leave all other fields empty.\n If the distribution uses ``Aliases`` (alternate domain names or CNAMEs), use the fields in this type to specify the following settings:\n  +  Which viewers the distribution accepts HTTPS connections from: only viewers that support [server name indication (SNI)](https://docs.aws.amazon.com/https://en.wikipedia.org/wiki/Server_Name_Indication) (recommended), or all viewers including those that don't support SNI.\n  +  To accept HTTPS connections from only viewers that support SNI, set ``SSLSupportMethod`` to ``sni-only``. This is recommended. Most browsers and clients support SNI. (In CloudFormation, the field name is ``SslSupportMethod``. Note the different capitalization.)\n  +  To accept HTTPS connections from all viewers, including those that don't support SNI, set ``SSLSupportMethod`` to ``vip``. This is not recommended, and results in additional monthly charges from CloudFront. (In CloudFormation, the field name is ``SslSupportMethod``. Note the different capitalization.)\n  \n  +  The minimum SSL/TLS protocol version that the distribution can use to communicate with viewers. To specify a minimum version, choose a value for ``MinimumProtocolVersion``. For more information, see [Security Policy](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/distribution-web-values-specify.html#DownloadDistValues-security-policy) in the *Amazon CloudFront Developer Guide*.\n  +  The location of the SSL/TLS certificate, [(ACM)](https://docs.aws.amazon.com/acm/latest/userguide/acm-overview.html) (recommended) or [(IAM)](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_server-certs.html). You specify the location by setting a value in one of the following fields (not both):\n  +  ``ACMCertificateArn`` (In CloudFormation, this field name is ``AcmCertificateArn``. Note the different capitalization.)\n  +  ``IAMCertificateId`` (In CloudFormation, this field name is ``IamCertificateId``. Note the different capitalization.)\n  \n  \n All distributions support HTTPS connections from viewers. To require viewers to use HTTPS only, or to redirect them from HTTP to HTTPS, use ``ViewerProtocolPolicy`` in the ``CacheBehavior`` or ``DefaultCacheBehavior``. To specify how CloudFront should use SSL/TLS to communicate with your custom origin, use ``CustomOriginConfig``.\n For more information, see [Using HTTPS with CloudFront](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-https.html) and [Using Alternate Domain Names and HTTPS](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-https-alternate-domain-names.html) in the *Amazon CloudFront Developer Guide*.",
+        "description": "A complex type that determines the distribution's SSL/TLS configuration for communicating with viewers.\n If the distribution doesn't use ``Aliases`` (also known as alternate domain names or CNAMEs)—that is, if the distribution uses the CloudFront domain name such as ``d111111abcdef8.cloudfront.net``—set ``CloudFrontDefaultCertificate`` to ``true`` and leave all other fields empty.\n If the distribution uses ``Aliases`` (alternate domain names or CNAMEs), use the fields in this type to specify the following settings:\n  +  Which viewers the distribution accepts HTTPS connections from: only viewers that support [server name indication (SNI)](https://docs.aws.amazon.com/https://en.wikipedia.org/wiki/Server_Name_Indication) (recommended), or all viewers including those that don't support SNI.\n  +  To accept HTTPS connections from only viewers that support SNI, set ``SSLSupportMethod`` to ``sni-only``. This is recommended. Most browsers and clients support SNI. (In CloudFormation, the field name is ``SslSupportMethod``. Note the different capitalization.)\n  +  To accept HTTPS connections from all viewers, including those that don't support SNI, set ``SSLSupportMethod`` to ``vip``. This is not recommended, and results in additional monthly charges from CloudFront. (In CloudFormation, the field name is ``SslSupportMethod``. Note the different capitalization.)\n  \n  +  The minimum SSL/TLS protocol version that the distribution can use to communicate with viewers. To specify a minimum version, choose a value for ``MinimumProtocolVersion``. For more information, see [Security Policy](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/distribution-web-values-specify.html#DownloadDistValues-security-policy) in the *Amazon CloudFront Developer Guide*.\n  +  The location of the SSL/TLS certificate, [(ACM)](https://docs.aws.amazon.com/acm/latest/userguide/acm-overview.html) (recommended) or [(IAM)](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_server-certs.html). You specify the location by setting a value in one of the following fields (not both):\n  +  ``ACMCertificateArn`` (In CloudFormation, this field name is ``AcmCertificateArn``. Note the different capitalization.)\n  +  ``IAMCertificateId`` (In CloudFormation, this field name is ``IamCertificateId``. Note the different capitalization.)\n  \n  \n All distributions support HTTPS connections from viewers. To require viewers to use HTTPS only, or to redirect them from HTTP to HTTPS, use ``ViewerProtocolPolicy`` in the ``CacheBehavior`` or ``DefaultCacheBehavior``. To specify how CloudFront should use SSL/TLS to communicate with your custom origin, use ``CustomOriginConfig``.\n For more information, see [Using HTTPS with CloudFront](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-https.html) and [Using Alternate Domain Names and HTTPS](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-https-alternate-domain-names.html) in the *Amazon CloudFront Developer Guide*.",
         "properties": {
           "AcmCertificateArn": {
             "type": "string",
@@ -94314,7 +94569,7 @@
         "properties": {
           "Name": {
             "type": "string",
-            "pattern": "^[a-zA-Z0-9_-]+$",
+            "pattern": "^[a-zA-Z0-9_.-]+$",
             "min_length": 1,
             "max_length": 64
           },
@@ -94410,7 +94665,8 @@
                 "LOYALTY_TRANSACTION",
                 "LOYALTY_PROMOTION",
                 "WEB_ANALYTICS",
-                "DEVICE"
+                "DEVICE",
+                "COMMUNICATION_RECORD"
               ]
             }
           }
@@ -114188,6 +114444,11 @@
         "type": "integer",
         "description": "The maximum transmission unit (MTU), in bytes. The supported values are 1500 and 9001. The default value is 1500."
       },
+      "RateLimit": {
+        "type": "string",
+        "pattern": "^[0-9]+\\.?[0-9]*(Mbps|Gbps|Tbps)$",
+        "description": "The rate limit (bandwidth allocation) for the virtual interface. The value must be one of the supported bandwidth values (e.g., 50Mbps, 1Gbps, 10Gbps) and cannot exceed the bandwidth of the parent connection or LAG."
+      },
       "Tags": {
         "type": "array",
         "min_items": 1,
@@ -114358,6 +114619,11 @@
           {},
           {}
         ]
+      },
+      "RateLimit": {
+        "type": "string",
+        "pattern": "^[0-9]+\\.?[0-9]*(Mbps|Gbps|Tbps)$",
+        "description": "The rate limit (bandwidth allocation) for the virtual interface. The value must be one of the supported bandwidth values (e.g., 50Mbps, 1Gbps, 10Gbps) and cannot exceed the bandwidth of the parent connection or LAG."
       },
       "RouteFilterPrefixes": {
         "type": "array",
@@ -114539,6 +114805,11 @@
       "Mtu": {
         "type": "integer",
         "description": "The maximum transmission unit (MTU), in bytes. The supported values are 1500 and 9001. The default value is 1500."
+      },
+      "RateLimit": {
+        "type": "string",
+        "pattern": "^[0-9]+\\.?[0-9]*(Mbps|Gbps|Tbps)$",
+        "description": "The rate limit (bandwidth allocation) for the virtual interface. The value must be one of the supported bandwidth values (e.g., 50Mbps, 1Gbps, 10Gbps) and cannot exceed the bandwidth of the parent connection or LAG."
       },
       "Tags": {
         "type": "array",
@@ -116119,10 +116390,19 @@
             "ref_name": "ResourcePolicy"
           }
         },
-        "required": [
-          "ResourcePolicy"
-        ],
-        "additional_properties": false
+        "additional_properties": false,
+        "any_of": [
+          {
+            "required": [
+              "ResourcePolicy"
+            ]
+          },
+          {
+            "required": [
+              "Tags"
+            ]
+          }
+        ]
       },
       "ResourcePolicy": {
         "type": "object",
@@ -117451,6 +117731,7 @@
               "internet-gateway",
               "ipam",
               "ipam-external-resource-verification-token",
+              "ipam-internet-registry-association",
               "ipam-policy",
               "ipam-pool",
               "ipam-pool-allocation",
@@ -117738,6 +118019,7 @@
               "internet-gateway",
               "ipam",
               "ipam-external-resource-verification-token",
+              "ipam-internet-registry-association",
               "ipam-policy",
               "ipam-pool",
               "ipam-pool-allocation",
@@ -123263,6 +123545,7 @@
               "internet-gateway",
               "ipam",
               "ipam-external-resource-verification-token",
+              "ipam-internet-registry-association",
               "ipam-policy",
               "ipam-pool",
               "ipam-pool-allocation",
@@ -123834,6 +124117,7 @@
               "internet-gateway",
               "ipam",
               "ipam-external-resource-verification-token",
+              "ipam-internet-registry-association",
               "ipam-policy",
               "ipam-pool",
               "ipam-pool-allocation",
@@ -137594,7 +137878,7 @@
           },
           "MinimumHealthyPercent": {
             "type": "integer",
-            "description": "If a service is using the rolling update (``ECS``) deployment type, the ``minimumHealthyPercent`` represents a lower limit on the number of your service's tasks that must remain in the ``RUNNING`` state during a deployment, as a percentage of the ``desiredCount`` (rounded up to the nearest integer). This parameter enables you to deploy without using additional cluster capacity. For example, if your service has a ``desiredCount`` of four tasks and a ``minimumHealthyPercent`` of 50%, the service scheduler may stop two existing tasks to free up cluster capacity before starting two new tasks. \n  If any tasks are unhealthy and if ``maximumPercent`` doesn't allow the Amazon ECS scheduler to start replacement tasks, the scheduler stops the unhealthy tasks one-by-one - using the ``minimumHealthyPercent`` as a constraint - to clear up capacity to launch replacement tasks. For more information about how the scheduler replaces unhealthy tasks, see [Amazon ECS services](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs_services.html). \n For services that *do not* use a load balancer, the following should be noted:\n  +  A service is considered healthy if all essential containers within the tasks in the service pass their health checks.\n  +  If a task has no essential containers with a health check defined, the service scheduler will wait for 40 seconds after a task reaches a ``RUNNING`` state before the task is counted towards the minimum healthy percent total.\n  +  If a task has one or more essential containers with a health check defined, the service scheduler will wait for the task to reach a healthy status before counting it towards the minimum healthy percent total. A task is considered healthy when all essential containers within the task have passed their health checks. The amount of time the service scheduler can wait for is determined by the container health check settings. \n  \n For services that *do* use a load balancer, the following should be noted:\n  +  If a task has no essential containers with a health check defined, the service scheduler will wait for the load balancer target group health check to return a healthy status before counting the task towards the minimum healthy percent total.\n  +  If a task has an essential container with a health check defined, the service scheduler will wait for both the task to reach a healthy status and the load balancer target group health check to return a healthy status before counting the task towards the minimum healthy percent total.\n  \n The default value for a replica service for ``minimumHealthyPercent`` is 100%. The default ``minimumHealthyPercent`` value for a service using the ``DAEMON`` service schedule is 0% for the CLI, the AWS SDKs, and the APIs and 50% for the AWS Management Console.\n The minimum number of healthy tasks during a deployment is the ``desiredCount`` multiplied by the ``minimumHealthyPercent``/100, rounded up to the nearest integer value.\n If a service is using either the blue/green (``CODE_DEPLOY``) or ``EXTERNAL`` deployment types and is running tasks that use the EC2 launch type, the *minimum healthy percent* value is set to the default value. The *minimum healthy percent* value is used to define the lower limit on the number of the tasks in the service that remain in the ``RUNNING`` state while the container instances are in the ``DRAINING`` state.\n  You can't specify a custom ``minimumHealthyPercent`` value for a service that uses either the blue/green (``CODE_DEPLOY``) or ``EXTERNAL`` deployment types and has tasks that use the EC2 launch type.\n  If a service is using either the blue/green (``CODE_DEPLOY``) or ``EXTERNAL`` deployment types and is running tasks that use the Fargate launch type, the minimum healthy percent value is not used, although it is returned when describing your service."
+            "description": "If a service is using the rolling update (``ECS``) deployment type, the ``minimumHealthyPercent`` represents a lower limit on the number of your service's tasks that must remain in the ``RUNNING`` state during a deployment, as a percentage of the ``desiredCount`` (rounded up to the nearest integer). This parameter enables you to deploy without using additional cluster capacity. For example, if your service has a ``desiredCount`` of four tasks and a ``minimumHealthyPercent`` of 50%, the service scheduler may stop two existing tasks to free up cluster capacity before starting two new tasks. \n  If any tasks are unhealthy and if ``maximumPercent`` doesn't allow the Amazon ECS scheduler to start replacement tasks, the scheduler stops the unhealthy tasks one-by-one — using the ``minimumHealthyPercent`` as a constraint — to clear up capacity to launch replacement tasks. For more information about how the scheduler replaces unhealthy tasks, see [Amazon ECS services](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs_services.html). \n For services that *do not* use a load balancer, the following should be noted:\n  +  A service is considered healthy if all essential containers within the tasks in the service pass their health checks.\n  +  If a task has no essential containers with a health check defined, the service scheduler will wait for 40 seconds after a task reaches a ``RUNNING`` state before the task is counted towards the minimum healthy percent total.\n  +  If a task has one or more essential containers with a health check defined, the service scheduler will wait for the task to reach a healthy status before counting it towards the minimum healthy percent total. A task is considered healthy when all essential containers within the task have passed their health checks. The amount of time the service scheduler can wait for is determined by the container health check settings. \n  \n For services that *do* use a load balancer, the following should be noted:\n  +  If a task has no essential containers with a health check defined, the service scheduler will wait for the load balancer target group health check to return a healthy status before counting the task towards the minimum healthy percent total.\n  +  If a task has an essential container with a health check defined, the service scheduler will wait for both the task to reach a healthy status and the load balancer target group health check to return a healthy status before counting the task towards the minimum healthy percent total.\n  \n The default value for a replica service for ``minimumHealthyPercent`` is 100%. The default ``minimumHealthyPercent`` value for a service using the ``DAEMON`` service schedule is 0% for the CLI, the AWS SDKs, and the APIs and 50% for the AWS Management Console.\n The minimum number of healthy tasks during a deployment is the ``desiredCount`` multiplied by the ``minimumHealthyPercent``/100, rounded up to the nearest integer value.\n If a service is using either the blue/green (``CODE_DEPLOY``) or ``EXTERNAL`` deployment types and is running tasks that use the EC2 launch type, the *minimum healthy percent* value is set to the default value. The *minimum healthy percent* value is used to define the lower limit on the number of the tasks in the service that remain in the ``RUNNING`` state while the container instances are in the ``DRAINING`` state.\n  You can't specify a custom ``minimumHealthyPercent`` value for a service that uses either the blue/green (``CODE_DEPLOY``) or ``EXTERNAL`` deployment types and has tasks that use the EC2 launch type.\n  If a service is using either the blue/green (``CODE_DEPLOY``) or ``EXTERNAL`` deployment types and is running tasks that use the Fargate launch type, the minimum healthy percent value is not used, although it is returned when describing your service."
           },
           "Strategy": {
             "type": "string",
@@ -166373,18 +166657,26 @@
     "properties": {
       "ContextWords": {
         "type": "array",
+        "min_items": 1,
+        "max_items": 20,
+        "description": "A list of context words.",
         "items": {
-          "type": "string"
+          "type": "string",
+          "min_length": 1,
+          "max_length": 255
         }
       },
-      "Id": {
-        "type": "string"
-      },
       "Name": {
-        "type": "string"
+        "type": "string",
+        "min_length": 1,
+        "max_length": 255,
+        "description": "The name of the custom entity type."
       },
       "RegexString": {
-        "type": "string"
+        "type": "string",
+        "min_length": 1,
+        "max_length": 255,
+        "description": "A regular expression string that is used for detecting sensitive data in a custom pattern."
       },
       "Tags": {
         "type": [
@@ -166397,12 +166689,17 @@
     "definitions": {},
     "required": [],
     "additional_properties": false,
-    "read_only_properties": [
-      "Id"
+    "read_only_properties": [],
+    "write_only_properties": [
+      "Tags"
+    ],
+    "create_only_properties": [
+      "Name"
     ],
     "primary_identifier": [
-      "Id"
+      "Name"
     ],
+    "source_url": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-glue",
     "description": "Resource Type definition for AWS::Glue::CustomEntityType"
   },
   "AWS::Glue::DataCatalogEncryptionSettings": {
@@ -207676,7 +207973,8 @@
             "enum": [
               "COPY",
               "REFERENCE"
-            ]
+            ],
+            "description": "Specifies the storage mode for the deployment package. Use ``COPY`` to store the package in LAMlong-managed storage. Use ``REFERENCE`` to read the package directly from the Amazon S3 bucket. If omitted, the default is ``COPY``."
           },
           "S3ObjectVersion": {
             "type": "string",
@@ -207714,7 +208012,7 @@
       },
       "DurableConfig": {
         "type": "object",
-        "description": "Configuration settings for [durable functions](https://docs.aws.amazon.com/lambda/latest/dg/durable-functions.html), including execution timeout and retention period for execution history.",
+        "description": "Configuration settings for [durable functions](https://docs.aws.amazon.com/lambda/latest/dg/durable-functions.html), including execution timeout, retention period for execution history, and an optional ARN of the KMSlong (KMS) customer managed key that is used to encrypt your durable execution's payload data, including input, output, and error payloads.",
         "properties": {
           "ExecutionTimeout": {
             "type": "integer",
@@ -207726,7 +208024,8 @@
             "type": "string",
             "pattern": "^(arn:(aws[a-zA-Z-]*)?:[a-z0-9-.]+:.*)|()$",
             "min_length": 0,
-            "max_length": 10000
+            "max_length": 10000,
+            "description": "The ARN of the KMSlong (KMS) customer managed key that is used to encrypt your durable execution's payload data, including input, output, and error payloads."
           },
           "RetentionPeriodInDays": {
             "type": "integer",
@@ -220599,6 +220898,21 @@
       }
     },
     "definitions": {
+      "AuthorizerLogs": {
+        "type": "object",
+        "properties": {
+          "CloudWatchLogs": {
+            "ref_name": "CloudWatchLogs"
+          },
+          "Firehose": {
+            "ref_name": "Firehose"
+          },
+          "S3": {
+            "ref_name": "S3"
+          }
+        },
+        "additional_properties": false
+      },
       "BrokerLogs": {
         "type": "object",
         "properties": {
@@ -220815,13 +221129,13 @@
       "LoggingInfo": {
         "type": "object",
         "properties": {
+          "AuthorizerLogs": {
+            "ref_name": "AuthorizerLogs"
+          },
           "BrokerLogs": {
             "ref_name": "BrokerLogs"
           }
         },
-        "required": [
-          "BrokerLogs"
-        ],
         "additional_properties": false
       },
       "NetworkType": {
@@ -319656,14 +319970,14 @@
             "pattern": "^[A-Za-z0-9._~-]+$",
             "min_length": 1,
             "max_length": 128,
-            "description": "Query string key - RFC 3986 unreserved characters."
+            "description": "Query string key — RFC 3986 unreserved characters."
           },
           "Value": {
             "type": "string",
             "pattern": "^[A-Za-z0-9._~-]+$",
             "min_length": 1,
             "max_length": 128,
-            "description": "Query string value - RFC 3986 unreserved characters."
+            "description": "Query string value — RFC 3986 unreserved characters."
           }
         },
         "required": [
@@ -319681,28 +319995,28 @@
             "pattern": "^[A-Za-z0-9._~-]+$",
             "min_length": 1,
             "max_length": 255,
-            "description": "Exact host match - RFC 3986 unreserved characters. Mutually exclusive with HostHeaderWildcard."
+            "description": "Exact host match — RFC 3986 unreserved characters. Mutually exclusive with HostHeaderWildcard."
           },
           "HostHeaderWildcard": {
             "type": "string",
             "pattern": "^[A-Za-z0-9._~*-]+$",
             "min_length": 3,
             "max_length": 255,
-            "description": "Wildcard host pattern (e.g., *.example.com) - RFC 3986 unreserved characters plus *. Mutually exclusive with HostHeader."
+            "description": "Wildcard host pattern (e.g., *.example.com) — RFC 3986 unreserved characters plus *. Mutually exclusive with HostHeader."
           },
           "PathExact": {
             "type": "string",
             "pattern": "^/[A-Za-z0-9._~/-]*$",
             "min_length": 1,
             "max_length": 128,
-            "description": "Exact path match - must start with /. Mutually exclusive with PathPrefix."
+            "description": "Exact path match — must start with /. Mutually exclusive with PathPrefix."
           },
           "PathPrefix": {
             "type": "string",
             "pattern": "^/[A-Za-z0-9._~/-]*$",
             "min_length": 1,
             "max_length": 128,
-            "description": "Path prefix matching - strict starts-with, must start with /. Mutually exclusive with PathExact."
+            "description": "Path prefix matching — strict starts-with, must start with /. Mutually exclusive with PathExact."
           },
           "QueryStringEquals": {
             "ref_name": "QueryStringKeyValuePair"
@@ -344259,6 +344573,7 @@
       },
       "Tags": {
         "type": "array",
+        "min_items": 0,
         "max_items": 50,
         "description": "Tags to apply to the cloud connector.",
         "items": {
@@ -344371,11 +344686,13 @@
         "properties": {
           "Key": {
             "type": "string",
+            "pattern": "^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$",
             "min_length": 1,
             "max_length": 128
           },
           "Value": {
             "type": "string",
+            "pattern": "^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$",
             "min_length": 0,
             "max_length": 256
           }
@@ -349132,6 +349449,12 @@
                 "ml.g6e.4xlarge",
                 "ml.g6e.8xlarge",
                 "ml.g6e.xlarge",
+                "ml.g7.12xlarge",
+                "ml.g7.24xlarge",
+                "ml.g7.2xlarge",
+                "ml.g7.48xlarge",
+                "ml.g7.4xlarge",
+                "ml.g7.8xlarge",
                 "ml.g7e.12xlarge",
                 "ml.g7e.24xlarge",
                 "ml.g7e.2xlarge",
