@@ -1,6 +1,6 @@
 // Golden-file validation, mirroring the wasm and JVM suites: every template in
 // the corpus is validated through both engines at both detail levels, and the
-// result must match resources/expected/all_templates.json exactly (up to the
+// result must match resources/expected/validation_reports.json exactly (up to the
 // fields the golden file intentionally excludes). Reports round-trip through
 // the typed Go structs before comparison, so this also proves the Go type
 // surface is faithful to the serialized report shape.
@@ -61,7 +61,7 @@ func discoverGoldenTemplates(t *testing.T) []string {
 
 func loadGolden(t *testing.T) map[string]map[string]any {
 	t.Helper()
-	content, err := os.ReadFile(filepath.Join(workspaceDir, "resources", "expected", "all_templates.json"))
+	content, err := os.ReadFile(filepath.Join(workspaceDir, "resources", "expected", "validation_reports.json"))
 	if err != nil {
 		t.Fatalf("reading golden file: %v", err)
 	}

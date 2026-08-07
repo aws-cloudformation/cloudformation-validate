@@ -51,8 +51,8 @@ src/
 │   ├── native/                 # Hand-maintained cgo link directives copied into the generated package
 │   └── tests/                  # Go test runner (run.sh)
 └── resources/                  # Test-fixture CRATE (workspace member)
-    ├── src/                    # Corpus discovery API (templates_dir, golden_file, GOLDEN_DIRS, …)
-    ├── examples/               # generate_golden.rs — golden-file regeneration
+    ├── src/                    # Corpus discovery API (templates_dir, validation_reports_file, GOLDEN_DIRS, …)
+    ├── examples/               # generate_validation_reports.rs — golden-file regeneration
     ├── templates/              # Test corpus
     │   ├── good/               # Valid templates — expect zero diagnostics
     │   ├── bad/                # Invalid templates — named after the rule/behavior they test
@@ -63,7 +63,7 @@ src/
     │   ├── quickstart/         # AWS QuickStart templates (performance corpus)
     │   ├── public/             # Public example templates
     │   └── cdk/                # CDK-synthesized templates
-    ├── expected/               # all_templates.json — the golden file (both engines must agree)
+    ├── expected/               # validation_reports.json — the golden file (both engines must agree)
     ├── rules/                  # Custom rule fixtures for testing (Rego, CEL, Guard)
     └── security/               # Security/stress fixtures (pathological conditions, deep nesting)
 ```

@@ -67,10 +67,10 @@ Apply these rules when choosing validation:
   exercise the changed diagnostics. A file being non-Rust does not remove those domain-specific requirements, but it
   also does not justify unrelated Cargo tests.
 
-Regenerate the golden file (`resources/expected/all_templates.json`) after any change that alters diagnostics:
+Regenerate the golden file (`resources/expected/validation_reports.json`) after any change that alters diagnostics:
 
 ```bash
-cargo run --release -p resources --example generate_golden
+cargo run --release -p resources --example generate_validation_reports
 ```
 
 It runs both engines on the whole corpus in parallel, verifies they agree, and rewrites the golden file.

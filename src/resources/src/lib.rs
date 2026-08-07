@@ -1,7 +1,7 @@
 //! Test-fixture crate for `cloudformation-validate`.
 //!
 //! The template corpus, rule fixtures, security fixtures, and the golden
-//! `expected/all_templates.json` all live on disk under this crate's root. This
+//! `expected/validation_reports.json` all live on disk under this crate's root. This
 //! library exposes their locations and the canonical template-discovery order so
 //! that the golden-generation example and downstream tests agree on exactly which
 //! files make up the corpus.
@@ -33,9 +33,9 @@ pub fn expected_dir() -> PathBuf {
     resources_root().join("expected")
 }
 
-/// Path to the golden report file produced by the `generate_golden` example.
-pub fn golden_file() -> PathBuf {
-    expected_dir().join("all_templates.json")
+/// Path to the golden report file produced by the `generate_validation_reports` example.
+pub fn validation_reports_file() -> PathBuf {
+    expected_dir().join("validation_reports.json")
 }
 
 /// Discover every template under [`GOLDEN_DIRS`], returned as forward-slash paths

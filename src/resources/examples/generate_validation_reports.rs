@@ -1,4 +1,4 @@
-//! Regenerate the golden `expected/all_templates.json` from `cfn-validate`
+//! Regenerate the golden `expected/validation_reports.json` from `cfn-validate`
 //! `--format detailed` output - a Rust port of the former `generate.py`, run in
 //! parallel across CPU cores because serial Python (≈1000 engine-initializing
 //! subprocess launches) is too slow.
@@ -7,7 +7,7 @@
 //! identical diagnostics. Fails loudly on any divergence or missing output.
 //!
 //! Run from the workspace root, in release (the generator itself is CPU-bound):
-//!     cargo run --release -p resources --example generate_golden
+//!     cargo run --release -p resources --example generate_validation_reports
 //!
 //! The example first builds the release `cfn-validate` binary it drives, so no
 //! separate build step is required.
@@ -18,7 +18,7 @@ use std::process::Command;
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use resources::{discover_templates, golden_file, templates_dir, workspace_root};
+use resources::{discover_templates, templates_dir, validation_reports_file, workspace_root};
 use serde_json::{Map, Value};
 
 /// Engines that must agree on every template. Rego is the reference persisted to
@@ -54,7 +54,7 @@ fn main() {
     };
 
     let templates = discover_templates();
-    println!("Output file: {}", golden_file().display());
+    println!("Output file: {}", validation_reports_file().display());
     println!("Discovered {} templates", templates.len());
     println!("Running both engines ({}) on each template...\n", ENGINES.join(" + "));
 
@@ -97,11 +97,11 @@ fn main() {
     let count = persisted.len();
     let rendered = serde_json::to_string_pretty(&Value::Object(persisted))
         .unwrap_or_else(|e| fail(&format!("serialize golden: {e}")));
-    if let Err(e) = std::fs::write(golden_file(), rendered + "\n") {
-        fail(&format!("write {}: {e}", golden_file().display()));
+    if let Err(e) = std::fs::write(validation_reports_file(), rendered + "\n") {
+        fail(&format!("write {}: {e}", validation_reports_file().display()));
     }
 
-    println!("\nWrote {count} template results to {}", golden_file().display());
+    println!("\nWrote {count} template results to {}", validation_reports_file().display());
     println!("Engine parity verified: rego == cel on all {count} templates");
 }
 
