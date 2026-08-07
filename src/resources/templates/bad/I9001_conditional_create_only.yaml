@@ -1,0 +1,20 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Tests conditional-create-only property detection (InstanceTenancy on AWS::EC2::VPC)
+
+Resources:
+  VpcWithConditionalCreateOnly:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: "10.0.0.0/16"
+      InstanceTenancy: dedicated
+      Tags:
+        - Key: Name
+          Value: conditional-create-only-test
+
+  VpcControl:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: "10.1.0.0/16"
+      Tags:
+        - Key: Name
+          Value: control-vpc

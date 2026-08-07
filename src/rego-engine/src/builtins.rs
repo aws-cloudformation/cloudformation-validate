@@ -2060,7 +2060,7 @@ fn register_make_diag_conditional(rego: &mut regorus::Engine, holder: SharedMode
 }
 
 /// `estimated_string_length_bounds(resource, path) -> {"shortest": n, "longest": n}`
-/// - undefined when the length cannot be pinned for every possibility, or when the
+/// Returns undefined when the length cannot be pinned for every possibility, or when the
 /// template states the value literally.
 fn register_estimated_string_length_bounds(rego: &mut regorus::Engine, holder: SharedModel) {
     let _ = rego.add_extension(

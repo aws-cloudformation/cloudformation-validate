@@ -307,7 +307,14 @@ pub fn enrich_schema_context(diagnostics: &mut [Diagnostic], store: &CompiledSch
             }
             "I9001" => {
                 let ctx = ensure_ctx!(d);
-                ctx.lifecycle = Some("create-only".into());
+                let lifecycle = if schema.create_only_properties.iter().any(|pointer| pointer == prop_path) {
+                    Some("create-only")
+                } else if schema.conditional_create_only_properties.iter().any(|pointer| pointer == prop_path) {
+                    Some("conditional-create-only")
+                } else {
+                    None
+                };
+                ctx.lifecycle = lifecycle.map(String::from);
                 if let Some(ref rs) = schema.replacement_strategy {
                     ctx.extra
                         .get_or_insert_with(HashMap::new)
@@ -441,6 +448,26 @@ fn validate_resource(
             out.push(build_diagnostic(
                 "I9001",
                 &format!("Property '{}' is create-only; updating it will cause resource replacement", pointer),
+                m,
+                rid,
+                &format!("{}.{}", base, pointer),
+                None,
+            ));
+        }
+    }
+
+    for conditional_pointer in &schema.conditional_create_only_properties {
+        // Unconditional list takes precedence: skip if already reported above.
+        if schema.create_only_properties.contains(conditional_pointer) {
+            continue;
+        }
+        if let Some(pointer) = present_lifecycle_pointer(m, rid, base, conditional_pointer) {
+            out.push(build_diagnostic(
+                "I9001",
+                &format!(
+                    "Property '{}' is conditionally create-only; updating it may cause resource replacement",
+                    pointer
+                ),
                 m,
                 rid,
                 &format!("{}.{}", base, pointer),
