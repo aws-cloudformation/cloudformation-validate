@@ -14,7 +14,7 @@ violation contains make_diag_at("E3679", "ERROR", name,
     proto in {"HTTPS", "SSL"}
     # The schema requires only that the key be PRESENT (a JSON Schema
     # `required`); an explicit empty-string certificate id satisfies it. Test for
-    # an absent key, not an empty value — `not object.get(..., null)` never holds
+    # an absent key, not an empty value - `not object.get(..., null)` never holds
     # (null is truthy in Rego), so check the key set directly.
     not "SSLCertificateId" in object.keys(listener)
 }

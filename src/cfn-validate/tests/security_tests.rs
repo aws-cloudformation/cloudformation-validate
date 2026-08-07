@@ -27,9 +27,9 @@ use validation_engine::{
 
 /// Generous wall-clock ceiling. These tests guard against unbounded/exponential
 /// blow-up (a denial-of-service regression), not a precise latency SLA. The real
-/// safeguard is deterministic and machine-independent — a cumulative
+/// safeguard is deterministic and machine-independent - a cumulative
 /// satisfiability-iteration budget and a per-query parameter cap in
-/// `template-model` — so this ceiling only has to be loose enough to never flake
+/// `template-model` - so this ceiling only has to be loose enough to never flake
 /// on debug builds or loaded CI hosts while still failing fast on a true hang.
 const COMPLETION_BUDGET: Duration = Duration::from_secs(120);
 
@@ -176,7 +176,7 @@ fn pathological_condition_closures_resolve_within_budget() {
     // per-query parameter cap and cumulative iteration budget in template-model
     // make the solver fall back to its conservative "assume satisfiable" answer
     // and stay bounded. This guards that such a template still validates to a
-    // structured report — on both engines — instead of hanging.
+    // structured report - on both engines - instead of hanging.
     for engine_name in ["rego", "cel"] {
         let bytes = common::load_security("pathological_conditions.yaml");
         let finished = validate_within(COMPLETION_BUDGET, engine_name, bytes);
@@ -195,7 +195,7 @@ fn conditions_layered_over_shared_inputs_are_analyzed_without_curtailing() {
     // hundred conditions all reaching the same three inputs, so the whole
     // condition set is connected through them. The deterministic,
     // machine-independent signature that the analysis stayed affordable is the
-    // absence of the advisory that reports a curtailed satisfiability analysis —
+    // absence of the advisory that reports a curtailed satisfiability analysis -
     // if deciding these conditions ever costs more than the budgets allow, the
     // validator says so, and this test fails instead of merely getting slower.
     const CURTAILED_ANALYSIS_ADVISORY: &str = "I9052";
@@ -259,7 +259,7 @@ fn custom_rule_reaching_a_host_builtin_is_a_hard_error_not_a_diagnostic() {
     // network egress (http.send), DNS (net.lookup_ip_addr), and host
     // runtime/environment (opa.runtime). The interpreter registers none of
     // them, so evaluating the rule fails with an unknown-function error. That
-    // failure must surface as a hard validation error (an exception) — never be
+    // failure must surface as a hard validation error (an exception) - never be
     // silently swallowed, and never be reported as a diagnostic. A failed
     // escape attempt must not be able to masquerade as a finding.
     let escape_rule = common::load_security_rule("rego_sandbox_escape.rego");
@@ -293,7 +293,7 @@ fn custom_rule_reaching_a_host_builtin_is_a_hard_error_not_a_diagnostic() {
 fn benign_custom_rule_runs_and_fires() {
     // Control: a custom rule of the same shape but WITHOUT a host-builtin call
     // must evaluate cleanly and fire. This proves custom rules are actually run,
-    // so the hard error above is caused by the absent host builtin — not by
+    // so the hard error above is caused by the absent host builtin - not by
     // custom rules being skipped or by a misconfiguration.
     let control_rule = "package sandbox_control\n\
 import rego.v1\n\
@@ -324,7 +324,7 @@ violation contains make_diag(\"CTRL001\", \"WARN\", name, \"control rule fired\"
 fn custom_cel_rule_reaching_an_unknown_function_is_a_hard_error_not_a_diagnostic() {
     // The CEL counterpart to the Rego sandbox-escape test: a custom CEL rule
     // whose expression calls a function the interpreter does not provide is a
-    // hard error — never silently dropped, never reported as a diagnostic. A
+    // hard error - never silently dropped, never reported as a diagnostic. A
     // failed escape attempt must not be able to masquerade as a finding.
     //
     // Unlike Rego (whose missing builtins only surface at evaluation), CEL can
@@ -362,7 +362,7 @@ fn custom_cel_rule_reaching_an_unknown_function_is_a_hard_error_not_a_diagnostic
 #[test]
 fn benign_custom_cel_rule_runs_and_fires() {
     // Control: a custom CEL rule whose expression executes cleanly and is true
-    // must fire, proving custom CEL rules are actually evaluated — so the hard
+    // must fire, proving custom CEL rules are actually evaluated - so the hard
     // error above is caused by the failed execution, not by rules being skipped.
     let control_rule = r#"{"rules": [
         {
@@ -397,8 +397,8 @@ fn benign_custom_cel_rule_runs_and_fires() {
 
 #[test]
 fn large_resource_count_validates_to_a_bounded_result_on_both_engines() {
-    // The bound under test is the resource count itself — a fixed,
-    // machine-independent quantity — not wall-clock time. A template at the
+    // The bound under test is the resource count itself - a fixed,
+    // machine-independent quantity - not wall-clock time. A template at the
     // 500-resource scale must parse to exactly that many resources and validate
     // to a structured report (never hang, panic, or error) on both engines.
     const SCALE_RESOURCES: usize = 500;
@@ -450,7 +450,7 @@ fn condition_chain_boundary_resolves_within_budget() {
 
 #[test]
 fn condition_chain_wide_resolves_within_budget() {
-    // 73 parameters with 40 chained conditions — the reported 73-parameter case.
+    // 73 parameters with 40 chained conditions - the reported 73-parameter case.
     // The parameter space (>2^20 paths) exercises the per-query parameter cap and
     // cumulative iteration budget.
     for engine_name in ["rego", "cel"] {
@@ -468,7 +468,7 @@ fn condition_chain_wide_resolves_within_budget() {
 #[test]
 fn cross_resource_pair_comparison_produces_a_deterministic_bounded_count() {
     // 500 resources that all share one primary-identifier value put every pair
-    // in a single group — the worst case for the cross-resource uniqueness
+    // in a single group - the worst case for the cross-resource uniqueness
     // rule. The deterministic, machine-independent signature that the quadratic
     // pair comparison ran to completion and stayed bounded is the exact
     // diagnostic count: exactly one uniqueness diagnostic per resource in the
@@ -495,7 +495,7 @@ fn cross_resource_pair_comparison_produces_a_deterministic_bounded_count() {
         assert_eq!(
             uniqueness_diagnostics, SHARED_IDENTIFIER_RESOURCES,
             "{engine_name}: every resource sharing the identifier must get exactly one uniqueness \
-             diagnostic — proving the quadratic pair-comparison ran to completion and produced a \
+             diagnostic - proving the quadratic pair-comparison ran to completion and produced a \
              bounded, deterministic result; got {uniqueness_diagnostics}"
         );
     }

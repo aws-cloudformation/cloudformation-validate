@@ -67,8 +67,8 @@ pub struct ConditionModel {
     pub implications: Vec<Implication>,
     /// Constraints a `Rules` section imposes on the parameters, as
     /// `rule condition => assertion` pairs over synthetic conditions. Kept apart
-    /// from `implications` — which the `And`/`Or` structure of the conditions
-    /// entails and satisfiability therefore rederives on its own — because these
+    /// from `implications` - which the `And`/`Or` structure of the conditions
+    /// entails and satisfiability therefore rederives on its own - because these
     /// are external restrictions on what a deployment may supply and are the only
     /// constraints the satisfiability search has to apply itself. Separate
     /// storage also means recomputing the derived `implications` cannot discard
@@ -85,7 +85,7 @@ pub struct ConditionModel {
     /// condition set and parameter definitions. Every satisfiability query reads
     /// the candidate values of the parameters it depends on, so caching this
     /// avoids rederiving the same map across queries. Computed once on first use
-    /// and invalidated by `register_inline` — the only path that mutates the
+    /// and invalidated by `register_inline` - the only path that mutates the
     /// condition set after construction.
     referenced_param_values: OnceLock<HashMap<String, Vec<String>>>,
     budget_exhausted_queries: std::sync::Mutex<Vec<String>>,
@@ -184,12 +184,12 @@ impl ConditionModel {
     ///   scenario-reachability filters in `resolve_scenarios_json` and the schema
     ///   validator) a conservative `true` treats two conditions as able to
     ///   coexist / a scenario as reachable, so it keeps a pair or scenario a full
-    ///   search might have eliminated — at worst surfacing an extra
+    ///   search might have eliminated - at worst surfacing an extra
     ///   (false-positive) diagnostic.
     /// - Used negated to prove *unreachability* (`find_unreachable_branches`,
     ///   which emits when `!is_satisfiable(branch_assumptions)`) a conservative
     ///   `true` makes the branch look reachable and therefore *suppresses* an
-    ///   unreachable-branch diagnostic — a false negative, the opposite
+    ///   unreachable-branch diagnostic - a false negative, the opposite
     ///   direction.
     /// - Used negated to prove *implication* (`condition_implies`, i.e.
     ///   `!is_satisfiable(a = true, b = false)`; the conditional-reference guard
@@ -201,8 +201,8 @@ impl ConditionModel {
     /// budget is recorded (see [`Self::budget_exhausted_queries`]) so a curtailed
     /// analysis is reported rather than silently narrowing what validation proves.
     ///
-    /// A condition the parameters cannot decide — one comparing a value the model
-    /// cannot resolve, or sitting on a reference cycle — is treated as compatible
+    /// A condition the parameters cannot decide - one comparing a value the model
+    /// cannot resolve, or sitting on a reference cycle - is treated as compatible
     /// with any assumption about it, the same conservative direction.
     #[must_use]
     pub fn is_satisfiable(&self, assumptions: &[(String, bool)]) -> bool {
@@ -210,13 +210,13 @@ impl ConditionModel {
     }
 
     /// Like [`Self::is_satisfiable`], but with the target region pinned as the
-    /// only candidate value for the `AWS::Region` pseudo-parameter — a per-region
+    /// only candidate value for the `AWS::Region` pseudo-parameter - a per-region
     /// satisfiability query that asks whether a condition can hold *in that
     /// region*, not whether the region could be anything. Used by the
     /// region-availability check so a resource guarded by a
     /// condition that cannot hold in the target region (e.g.
     /// `!Equals [AWS::Region, other-region]`) is correctly treated as never
-    /// created there — even when no explicit `--region` override pins the
+    /// created there - even when no explicit `--region` override pins the
     /// pseudo-parameter globally (where it stays a free variable to avoid
     /// false unreachable-branch diagnostics).
     #[must_use]
@@ -238,7 +238,7 @@ impl ConditionModel {
         // Once the cumulative search budget for this model is spent, assume
         // satisfiable instead of searching further (the conservative-`true`
         // contract documented above). Checked before any per-query setup so an
-        // exhausted query costs O(1) — this is what keeps a template with a huge
+        // exhausted query costs O(1) - this is what keeps a template with a huge
         // number of conditions (a quadratic flood of queries) bounded.
         if self.satisfiability_budget_exhausted() {
             return true;
@@ -483,7 +483,7 @@ impl ConditionModel {
         // Inserting a condition can introduce parameter references the cached
         // map omits, so invalidate it; it is rebuilt lazily on the next
         // satisfiability query. The cumulative iteration counter is deliberately
-        // left untouched — it is a per-validation work budget, not state derived
+        // left untouched - it is a per-validation work budget, not state derived
         // from the condition set, and resetting it would hand adversarial input a
         // way to refill the budget.
         self.referenced_param_values = OnceLock::new();
@@ -545,7 +545,7 @@ impl ConditionModel {
 
     /// Names of top-level conditions whose body does not produce a boolean
     /// (e.g. a bare `Fn::Ref`), for the not-a-boolean condition diagnostic.
-    /// Synthetic conditions (`__`-prefixed) are excluded — they are never
+    /// Synthetic conditions (`__`-prefixed) are excluded - they are never
     /// user-visible. Returned sorted for deterministic diagnostic ordering.
     pub fn invalid_condition_bodies(&self) -> Vec<String> {
         let mut names: Vec<String> = self
@@ -830,7 +830,7 @@ fn parse_value_expr(arena: &Arena, node_ref: NodeRef, parameters: &HashMap<Strin
         }
         // FindInMap can resolve to a concrete value, so it gets a dedicated
         // variant the SAT solver understands. Every other intrinsic produces
-        // a value that cannot be known statically — it must be treated as an
+        // a value that cannot be known statically - it must be treated as an
         // opaque unknown (`Other`), never a comparable literal. Treating, say,
         // `Fn::Sub(...)` as the literal string "Sub(...)" would make
         // `Fn::Equals[!Sub ..., "x"]` look like a literal-vs-literal compare and
@@ -915,7 +915,7 @@ fn extract_mutex_groups(conditions: &HashMap<String, ConditionExpr>) -> Vec<Mute
 
     for (name, expr) in conditions {
         if let Some((param, _lit, is_positive)) = extract_equals_test(expr) {
-            // Only positive tests (Equals) form mutex groups — two conditions
+            // Only positive tests (Equals) form mutex groups - two conditions
             // testing Equals(Param, "X") and Equals(Param, "Y") are mutex.
             // Not(Equals(Param, "X")) is compatible with Equals(Param, "Y").
             if is_positive {
@@ -959,7 +959,7 @@ fn extract_equals_test(expr: &ConditionExpr) -> Option<(String, String, bool)> {
 /// One satisfiability query, prepared for enumeration.
 ///
 /// A CloudFormation condition is a pure function of the template's parameters,
-/// pseudo-parameters, and mappings — a condition has no truth value of its own
+/// pseudo-parameters, and mappings - a condition has no truth value of its own
 /// to choose. So "can these conditions hold simultaneously?" is decided over the
 /// *parameter* space: the assumptions hold exactly when some assignment of
 /// concrete values to the parameters they depend on makes every assumed
@@ -969,7 +969,7 @@ fn extract_equals_test(expr: &ConditionExpr) -> Option<(String, String, bool)> {
 /// keeps the cost proportional to a template's real degrees of freedom. The
 /// number of parameter points is the product of a few candidate values per
 /// referenced parameter, while the space of condition truth assignments is
-/// exponential in the number of conditions — so a template that layers many
+/// exponential in the number of conditions - so a template that layers many
 /// conditions over a few shared inputs (a partition or region check reused
 /// across dozens of conditions) stays cheap no matter how many conditions are
 /// built on top of those inputs.
@@ -990,7 +990,7 @@ struct SatisfiabilityQuery<'model> {
     position_of_dependency: HashMap<&'model str, usize>,
     /// Parameters the dependencies reference, each with the candidate values to
     /// enumerate. Held in a deterministic order so the work charged to the
-    /// budget — and therefore which query first trips an exhausted budget — does
+    /// budget - and therefore which query first trips an exhausted budget - does
     /// not depend on hash iteration order.
     parameters: Vec<(&'model str, &'model [String])>,
     position_of_parameter: HashMap<&'model str, usize>,
@@ -1006,7 +1006,7 @@ struct SatisfiabilityQuery<'model> {
     value_at_point: Vec<PointValue>,
     /// The value a condition is forced to take by the assumptions, for conditions
     /// the point itself leaves undetermined. Such a condition acts as a free
-    /// choice — its value turns on data the model cannot resolve — and the
+    /// choice - its value turns on data the model cannot resolve - and the
     /// assumptions constrain that choice: assuming `And(a, b)` holds forces both
     /// `a` and `b` to hold however little is known about them. Cleared for every
     /// point.
@@ -1110,8 +1110,8 @@ impl<'model> SatisfiabilityQuery<'model> {
             }
         }
         self.steps += self.dependencies.len() as u64;
-        // Ties break on the parameter name so the enumeration order — and with it
-        // the work charged before a budget trips — never depends on hash
+        // Ties break on the parameter name so the enumeration order - and with it
+        // the work charged before a budget trips - never depends on hash
         // iteration order.
         self.parameters.sort_by(|(left, left_candidates), (right, right_candidates)| {
             (left_candidates.len() > 1)
@@ -1194,7 +1194,7 @@ impl<'model> SatisfiabilityQuery<'model> {
     /// A constraint applies once it reads a parameter this query already varies;
     /// pulling it in can introduce further parameters, which can bring in further
     /// constraints, so this runs to a fixpoint. A constraint over parameters the
-    /// query does not vary is left unenforced — its antecedent is undetermined at
+    /// query does not vary is left unenforced - its antecedent is undetermined at
     /// every point, so enforcing it could only reject points the template allows.
     fn add_applicable_rule_constraints(&mut self, param_overrides: &'model HashMap<String, Vec<String>>) {
         let model = self.model;
@@ -1247,7 +1247,7 @@ impl<'model> SatisfiabilityQuery<'model> {
     /// assumptions can still hold: a condition the parameters bound so far already
     /// decide against its assumption cannot be rescued by the parameters still
     /// unbound, so every point below that branch is skipped. That is what keeps a
-    /// wide parameter space affordable — the branches that could satisfy the query
+    /// wide parameter space affordable - the branches that could satisfy the query
     /// are explored, the rest are cut at the level that decided them.
     fn some_point_satisfies(&mut self, assumed: &HashMap<&'model str, bool>) -> bool {
         let mut expectations: Vec<(usize, bool)> = assumed
@@ -1281,7 +1281,7 @@ impl<'model> SatisfiabilityQuery<'model> {
             // The number of points is the product of the candidate values of every
             // parameter the query reads, so it grows exponentially in that
             // parameter count. Once the per-query budget is spent, assume
-            // satisfiable rather than explore further — the conservative-`true`
+            // satisfiable rather than explore further - the conservative-`true`
             // contract documented on `is_satisfiable`.
             return true;
         }
@@ -1317,8 +1317,8 @@ impl<'model> SatisfiabilityQuery<'model> {
     /// assumptions are propagated into those and any contradiction they force is a
     /// contradiction of the assumptions. Propagation repeats while it keeps forcing
     /// new values, so a value forced late still contradicts an assumption examined
-    /// earlier. Only contradictions that must hold are derived — where two operands
-    /// could each be the one satisfying a disjunction, nothing is forced — so the
+    /// earlier. Only contradictions that must hold are derived - where two operands
+    /// could each be the one satisfying a disjunction, nothing is forced - so the
     /// answer degrades to the conservative "can still hold" rather than to a wrong
     /// rejection.
     fn assumptions_can_still_hold(&mut self, expectations: &[(usize, bool)]) -> bool {
@@ -1385,7 +1385,7 @@ impl<'model> SatisfiabilityQuery<'model> {
     }
 
     /// Requires at least one operand to take `satisfying`. Nothing is forced while
-    /// more than one operand could be the one that does — only the two certainties
+    /// more than one operand could be the one that does - only the two certainties
     /// are derived: a contradiction when every operand already rules it out, and the
     /// value of the last operand that could still comply.
     fn require_any(&mut self, operands: &'model [ConditionExpr], satisfying: bool) -> bool {
@@ -1546,8 +1546,8 @@ impl<'model> SatisfiabilityQuery<'model> {
 
     /// Evaluates a condition expression at the current point. `None` means the
     /// point does not determine the expression; it propagates except where an
-    /// operand already decides the result — a false operand of `And`, a true
-    /// operand of `Or` — so an unresolvable comparison in one branch does not
+    /// operand already decides the result - a false operand of `And`, a true
+    /// operand of `Or` - so an unresolvable comparison in one branch does not
     /// discard what the rest of the expression proves.
     fn evaluate(&mut self, expr: &'model ConditionExpr) -> Option<bool> {
         // Each evaluation step is one unit of satisfiability work. Counting here,
@@ -1646,7 +1646,7 @@ fn condition_ref_names<'expr>(expr: &'expr ConditionExpr, out: &mut Vec<&'expr s
     }
 }
 
-/// Names of the parameters and pseudo-parameters `expr` reads directly — not
+/// Names of the parameters and pseudo-parameters `expr` reads directly - not
 /// those read by the conditions it references.
 fn parameter_names<'expr>(expr: &'expr ConditionExpr, out: &mut Vec<&'expr str>) {
     match expr {
@@ -1705,7 +1705,7 @@ fn reachable_parameter_names<'conditions>(
 /// logically sound pairs may be produced:
 ///
 /// * `X = And(...)` implies each condition reference reachable through nested
-///   `And`s (`And(And(A, B), C)` implies `A`, `B`, and `C`) — but nothing
+///   `And`s (`And(And(A, B), C)` implies `A`, `B`, and `C`) - but nothing
 ///   under an `Or` or `Not` child, whose references are not individually
 ///   entailed.
 /// * Symmetrically, each condition reference reachable through nested `Or`s
@@ -2193,7 +2193,7 @@ Resources:
         assert!(
             model.is_satisfiable(&[("IsUsEast1".into(), false)]),
             "IsUsEast1=false must be reachable: AWS::Region can equal anything other than 'us-east-1' \
-             (the auto-derived default region must not pin the pseudo-parameter to a constant — that \
+             (the auto-derived default region must not pin the pseudo-parameter to a constant - that \
              produced false-positive W1028 unreachable-branch diagnostics on partition/region branches)"
         );
         assert!(
@@ -2220,7 +2220,7 @@ Resources:
         // With AWS::Region left free, the region-equals condition can hold either
         // way; pinning the region resolves it. This is what the region-availability
         // check relies on to skip a resource whose condition cannot hold in the
-        // target region — even when no explicit --region override is set.
+        // target region - even when no explicit --region override is set.
         assert!(
             model.is_satisfiable_in_region(&[("IsUsEast1".into(), true)], "us-east-1"),
             "IsUsEast1=true must hold when the target region IS us-east-1"
@@ -2563,7 +2563,7 @@ Resources:
     ///
     /// Each link is written in De Morgan form (`Not(Or(Not(a), Not(b)))` for
     /// `And`, `Not(And(Not(a), Not(b)))` for `Or`) so the implication extractor
-    /// — which only reads top-level `And`/`Or` structure — derives nothing from
+    /// - which only reads top-level `And`/`Or` structure - derives nothing from
     /// the chain. That keeps implication pruning out of the search, which is
     /// the point: this test exercises the *raw iteration budget*, not the
     /// implication constraints (covered by their own tests).
@@ -2601,7 +2601,7 @@ Resources:
         // `Contra = And(Top, Not(Top))` is unsatisfiable, and Top depends on the
         // whole chain, so deciding it requires reasoning over every condition in
         // the chain. The chain is built over two binary parameters no matter how
-        // long it gets, so the answer is decided by four parameter assignments —
+        // long it gets, so the answer is decided by four parameter assignments -
         // the work must therefore grow with the chain's length, not with the
         // number of truth assignments its conditions could take.
         //
@@ -2621,7 +2621,7 @@ Resources:
             );
         }
 
-        // Doubling the chain may at most double the work a few times over —
+        // Doubling the chain may at most double the work a few times over -
         // anything exponential in the condition count would exceed this by orders
         // of magnitude. Iteration counts are deterministic and machine-independent,
         // so this is a stable bound rather than a timing assertion.
@@ -2734,7 +2734,7 @@ Resources:
     fn cumulative_budget_exhaustion_is_reported_rather_than_silently_narrowing_analysis() {
         // Exhausting the cumulative budget makes every later question about the
         // condition set take the conservative answer, so the template's author has
-        // to be told the analysis was curtailed — the failure that made a
+        // to be told the analysis was curtailed - the failure that made a
         // multi-hour hang produce no output at all.
         let model = build_condition_model(&chain_with_contradiction(8));
         assert!(model.budget_exhausted_queries().is_empty(), "nothing is curtailed before any work is charged");
@@ -2751,8 +2751,8 @@ Resources:
     #[test]
     fn self_referential_conditions_are_undetermined_rather_than_looping() {
         // Two conditions that reference each other have no value to read. Deciding
-        // a query over them must terminate — treating the cycle as undetermined,
-        // the conservative direction — rather than recurse forever. The cycle
+        // a query over them must terminate - treating the cycle as undetermined,
+        // the conservative direction - rather than recurse forever. The cycle
         // itself is reported by the reference-graph analysis.
         let model = build_condition_model(
             "Parameters:\n  Env:\n    Type: String\n    AllowedValues: [prod, dev]\n\
@@ -2777,8 +2777,8 @@ Resources:
     #[test]
     fn condition_over_an_unresolvable_value_does_not_constrain_a_query() {
         // A condition comparing something the model cannot resolve has no value at
-        // any parameter assignment. It must not falsify a query — that would
-        // suppress diagnostics for resources it guards — and must not make the
+        // any parameter assignment. It must not falsify a query - that would
+        // suppress diagnostics for resources it guards - and must not make the
         // conditions it is combined with undecidable either.
         let model = build_condition_model(
             "Parameters:\n  Subnets:\n    Type: CommaDelimitedList\n  \
@@ -2846,7 +2846,7 @@ Resources:
 
     /// Builds a model with `param_count` binary parameters, one base condition
     /// per parameter, and a `Wide` condition that is the conjunction of every
-    /// base — so a query over `Wide` has a dependency closure spanning all of
+    /// base - so a query over `Wide` has a dependency closure spanning all of
     /// the parameters.
     fn wide_parameter_closure(param_count: usize) -> String {
         let mut s = String::from("Parameters:\n");
@@ -2867,7 +2867,7 @@ Resources:
 
     #[test]
     fn satisfiability_with_wide_parameter_closure_is_capped_conservatively() {
-        // 24 binary parameters means 2^24 value combinations — far above
+        // 24 binary parameters means 2^24 value combinations - far above
         // MAX_PARAM_COMBINATIONS. Enumerating them at every search leaf is the
         // denial-of-service shape the parameter cap defends against.
         const WIDE_PARAMS: usize = 24;
@@ -2896,7 +2896,7 @@ Resources:
     fn satisfiability_with_narrow_parameter_closure_stays_exact() {
         // A contradiction over a single parameter is well under the cap, so the
         // solver must still prove it unsatisfiable rather than fall back to the
-        // conservative answer — proving the cap does not over-trigger.
+        // conservative answer - proving the cap does not over-trigger.
         let model = build_condition_model(
             "Parameters:\n  Env:\n    Type: String\n    AllowedValues: [prod, dev]\n\
              Conditions:\n  IsProd:\n    Fn::Equals: [!Ref Env, prod]\n  \
@@ -2914,7 +2914,7 @@ Resources:
     fn cumulative_satisfiability_budget_accumulates_across_queries_then_halts_search() {
         // A small contradiction chain whose query completes exactly and cheaply
         // while still charging a non-zero, deterministic amount to the model's
-        // shared cumulative counter — enough to prove queries accumulate without
+        // shared cumulative counter - enough to prove queries accumulate without
         // spending the full per-query budget on every call.
         const CHAIN: usize = 8;
         let model = build_condition_model(&chain_with_contradiction(CHAIN));
@@ -2922,7 +2922,7 @@ Resources:
         assert_eq!(model.sat_iterations_used(), 0, "a freshly built model has spent none of its cumulative budget");
         assert!(!model.satisfiability_budget_exhausted(), "a freshly built model's cumulative budget is not exhausted");
 
-        // (1) Real queries accumulate across queries — a per-query reset would
+        // (1) Real queries accumulate across queries - a per-query reset would
         // be a silent denial-of-service regression. Issuing the same saturating
         // query repeatedly must strictly increase the shared counter.
         let mut previous = 0u64;
@@ -2980,7 +2980,7 @@ Resources:
 
     #[test]
     fn rules_section_implication_eliminates_impossible_scenario() {
-        // Rules: when Env == prod, an assertion requires Env == dev — so a
+        // Rules: when Env == prod, an assertion requires Env == dev - so a
         // condition equivalent to Env == prod can never hold. The implication
         // must actually constrain the SAT search, not merely be recorded.
         let yaml = b"

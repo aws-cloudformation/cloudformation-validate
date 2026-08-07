@@ -10,7 +10,7 @@ import rego.v1
 # surfaces that failure as a hard validation error rather than a diagnostic.
 # They exist to verify that a custom rule cannot reach the network, DNS, the
 # filesystem, or the environment. Each rule is written so it WOULD fire if the
-# built-in were available, so an evaluation error — not a finding — is the
+# built-in were available, so an evaluation error - not a finding - is the
 # evidence that the sandbox holds.
 
 # Network egress over HTTP.

@@ -64,7 +64,7 @@ if [ -n "$CARGO_TARGET" ]; then
         # A GNU host is required so build scripts run as GNU; an MSVC host aborts because
         # msvc_spectre_libs looks for cl.exe for the GNU target. The workspace's
         # rust-toolchain.toml pins a host-less channel, so rustup resolves it against the
-        # machine's default host (MSVC on Windows) — that override outranks the rustup
+        # machine's default host (MSVC on Windows) - that override outranks the rustup
         # default, so even an installed GNU-host toolchain is not the active one here.
         # Re-pin to the same channel on the GNU host via RUSTUP_TOOLCHAIN, which outranks
         # rust-toolchain.toml, so cargo and every build script run on the GNU host.
@@ -105,7 +105,7 @@ mkdir -p "$LIBS_DIR"
 cp "$RELEASE_DIR/$LIB_NAME" "$LIBS_DIR/"
 # Static archives never go through a link step, so the debug sections of
 # prebuilt standard-library members survive into the archive. Strip them from
-# the staged copy — consumers only need the symbol table and machine code.
+# the staged copy - consumers only need the symbol table and machine code.
 command -v strip &>/dev/null || { echo "Error: strip not found on PATH" >&2; exit 1; }
 case "$OS" in
     darwin) strip -S "$LIBS_DIR/$LIB_NAME" ;;

@@ -8,9 +8,9 @@ import rego.v1
 # Every branch whose `if.required` consts (Engine/LicenseModel) match this
 # resource applies, so the class must be in ALL matching branches' enums (the
 # intersection). `region_conditional_invalid` returns the rendered diagnostic
-# message when the class is invalid for the effective scope — the configured
+# message when the class is invalid for the effective scope - the configured
 # region, or the union of all regions when none is configured (flagged only when
-# invalid in every region) — or is undefined when it is valid or no branch
+# invalid in every region) - or is undefined when it is valid or no branch
 # matches (so a dynamic or unmatched Engine is not validated). The Engine is
 # matched case-insensitively for DBInstance.
 violation contains make_diag_full("E3025", "ERROR", name,

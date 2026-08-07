@@ -10,8 +10,8 @@ Rule metadata crate: rule definitions, severity model, category enum, and diagno
 | `Debug` | 0   | Internal diagnostic detail                         |
 | `Info`  | 1   | Best practice suggestion (default)                 |
 | `Warn`  | 2   | Security concern, deprecation, or risky pattern    |
-| `Error` | 3   | Semantic error — likely deployment failure         |
-| `Fatal` | 4   | Structural schema violation — deployment will fail |
+| `Error` | 3   | Semantic error - likely deployment failure         |
+| `Fatal` | 4   | Structural schema violation - deployment will fail |
 
 Severity is derived from the first character of a rule ID: `F`→Fatal, `E`→Error, `W`→Warn, `I`→Info, `D`→Debug.
 
@@ -53,7 +53,7 @@ Custom and guard rules use freeform category strings.
 
 | Variant   | Meaning                                                                                          |
 |-----------|--------------------------------------------------------------------------------------------------|
-| `Schema`  | From CloudFormation's own definitions — provider schemas or template-language structure/syntax/shape rules that CloudFormation itself rejects |
+| `Schema`  | From CloudFormation's own definitions - provider schemas or template-language structure/syntax/shape rules that CloudFormation itself rejects |
 | `CfnLint` | Lint judgment ported from cfn-lint (the template would still deploy, or the check's data originates in cfn-lint) |
 | `Engine`  | Implemented in this validation engine                                                            |
 | `Custom`  | User-supplied custom rule                                                                        |
@@ -76,7 +76,7 @@ Custom and guard rules use freeform category strings.
 
 The resource-ID, logical-ID, resource-type, and service dimensions each carry an optional `rule_id`: set it to scope
 the filter to a single rule, or omit it to scope the filter to every rule on that entity, resource, type, or service.
-The service is matched verbatim against the `service-provider::service-name` prefix of the resource type — its first
+The service is matched verbatim against the `service-provider::service-name` prefix of the resource type - its first
 two `::`-delimited segments (e.g. `AWS::AutoScaling` in `AWS::AutoScaling::LaunchConfiguration`).
 
 The resource-ID dimension matches only diagnostics attributed to a resource; the logical-ID dimension additionally

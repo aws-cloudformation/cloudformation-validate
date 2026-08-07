@@ -26,7 +26,7 @@ WORKSPACE = PROJECT_ROOT / "src"
 
 SEPARATOR = "\n\n******************************\n\n"
 
-# Workspace crates — exclude from third-party license files.
+# Workspace crates - exclude from third-party license files.
 WORKSPACE_CRATES = {
     "bindings-go",
     "bindings-jvm",

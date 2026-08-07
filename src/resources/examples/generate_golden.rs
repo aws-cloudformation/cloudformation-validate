@@ -1,5 +1,5 @@
 //! Regenerate the golden `expected/all_templates.json` from `cfn-validate`
-//! `--format detailed` output — a Rust port of the former `generate.py`, run in
+//! `--format detailed` output - a Rust port of the former `generate.py`, run in
 //! parallel across CPU cores because serial Python (≈1000 engine-initializing
 //! subprocess launches) is too slow.
 //!

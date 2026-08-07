@@ -24,7 +24,7 @@ pub fn generate(generated_dir: &Path, upstream_dir: &Path) -> anyhow::Result<()>
             continue;
         }
         // These are schemas this pipeline just wrote to patched_schemas/, so a
-        // read/parse failure or missing typeName is corruption — fail loudly.
+        // read/parse failure or missing typeName is corruption - fail loudly.
         let content = fs::read_to_string(&p).map_err(|e| anyhow::anyhow!("failed to read {}: {}", p.display(), e))?;
         let json: serde_json::Value =
             serde_json::from_str(&content).map_err(|e| anyhow::anyhow!("failed to parse {}: {}", p.display(), e))?;
@@ -37,7 +37,7 @@ pub fn generate(generated_dir: &Path, upstream_dir: &Path) -> anyhow::Result<()>
 
     let mut compiled: BTreeMap<String, CompiledSchema> = BTreeMap::new();
     for (tn, schema) in &raw {
-        // Bundled schemas compile with `$ref` evaluation — keywords
+        // Bundled schemas compile with `$ref` evaluation - keywords
         // beside a reference are ignored, matching what the CloudFormation
         // registry itself enforces. Overlay schemas opt into enforcing them.
         compiled.insert(tn.clone(), compile_schema_with(tn, schema, RefSiblings::Ignore));

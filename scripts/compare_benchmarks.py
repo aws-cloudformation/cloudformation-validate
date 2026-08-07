@@ -192,7 +192,7 @@ def aggregate_path(engine, fmt, binding):
 def load_aggregate(path, run_start_epoch):
     if not path.exists():
         sys.exit(f"expected aggregate not found: {path}")
-    # Reject aggregates older than the current run — prevents comparing stale numbers.
+    # Reject aggregates older than the current run - prevents comparing stale numbers.
     mtime = path.stat().st_mtime
     if mtime < run_start_epoch - 1:
         sys.exit(f"stale aggregate {path} (mtime={mtime} < run_start={run_start_epoch})")
@@ -202,7 +202,7 @@ def load_aggregate(path, run_start_epoch):
 
 def enforce_corpus_parity(all_loaded, bindings):
     """Every binding of every engine must have scanned the same bytes.
-    If fingerprints differ, the downstream comparison is meaningless — abort."""
+    If fingerprints differ, the downstream comparison is meaningless - abort."""
     fps = {}
     for engine, by_binding in all_loaded.items():
         for binding, agg in by_binding.items():
@@ -213,13 +213,13 @@ def enforce_corpus_parity(all_loaded, bindings):
             fps.setdefault(fp, []).append(f"{engine}/{binding}")
     if len(fps) > 1:
         lines = [f"  {fp}: {', '.join(who)}" for fp, who in fps.items()]
-        sys.exit("corpus fingerprint mismatch across bindings — cannot compare:\n"
+        sys.exit("corpus fingerprint mismatch across bindings - cannot compare:\n"
                  + "\n".join(lines))
 
 
 def enforce_run_metadata_parity(all_loaded, bindings):
     """Every selected run must agree on iteration count, detail level, corpus totals,
-    and failure lists. Differences indicate non-comparable runs — abort."""
+    and failure lists. Differences indicate non-comparable runs - abort."""
     reference_key = None
     reference_meta = None
     for engine, by_binding in all_loaded.items():
@@ -249,7 +249,7 @@ def enforce_run_metadata_parity(all_loaded, bindings):
                         )
                 sys.exit(
                     f"run metadata mismatch between {reference_key} and {key} "
-                    f"— cannot compare:\n" + "\n".join(diffs)
+                    f"- cannot compare:\n" + "\n".join(diffs)
                 )
 
 
@@ -265,12 +265,12 @@ def stat(stats_dict, key):
 
 
 def ms(val, present=True, digits=4):
-    return f"{val:.{digits}f}" if present else "—"
+    return f"{val:.{digits}f}" if present else "-"
 
 
 def pct(base, base_present, v, v_present):
     if not (base_present and v_present) or base < PCT_FLOOR_MS:
-        return "—"
+        return "-"
     p = ((v - base) / base) * 100
     return f"{'+' if p >= 0 else ''}{p:.1f}%"
 
@@ -312,7 +312,7 @@ def stat_cols(d, stats=STATS):
 def _first_steady_tables(all_loaded, engine, key_prefix, bindings):
     """First-measured/steady-state tables for a single engine (per-template phases).
     The first sample occurs after one global harness warmup iteration, so it is
-    not a cold start — label it accordingly. Subsequent samples are steady state."""
+    not a cold start - label it accordingly. Subsequent samples are steady state."""
     def build(mode, mode_key):
         header = ["Binding"] + [s for s in STATS]
         rows = []
@@ -322,12 +322,12 @@ def _first_steady_tables(all_loaded, engine, key_prefix, bindings):
         return table(header, rows)
 
     lines = [
-        "**First measured (after harness warmup)** — first per-template sample (ms)", "",
+        "**First measured (after harness warmup)** - first per-template sample (ms)", "",
     ]
     lines += build("first", "cold")
     lines += [
         "",
-        "**Steady state** — subsequent iterations per template (ms)", "",
+        "**Steady state** - subsequent iterations per template (ms)", "",
     ]
     lines += build("steady", "warm")
     lines += [""]
@@ -348,8 +348,8 @@ def _cold_warm_tables_init(all_loaded, engine, bindings):
 
 def headline_section(all_loaded, engine, bindings):
     """Validation = full validate() call for one engine."""
-    lines = ["### Validation — full `validate()` call (wall_clock per template, ms)", "",
-             "Host-timer around the full `validate()` call — the latency a consumer sees.", ""]
+    lines = ["### Validation - full `validate()` call (wall_clock per template, ms)", "",
+             "Host-timer around the full `validate()` call - the latency a consumer sees.", ""]
     lines += _first_steady_tables(all_loaded, engine, "wall_clock", bindings)
     header = ["Binding", "Throughput (val/sec)"]
     rows = []
@@ -363,12 +363,12 @@ def headline_section(all_loaded, engine, bindings):
 def executive_summary(all_loaded, engines, bindings):
     """Top-of-report one-glance table per engine: p99 per phase per binding."""
     iterations = all_loaded[engines[0]][bindings[0][0]].get("iterations_per_template", "?")
-    lines = ["## Executive Summary — p99 per phase (ms)", "",
-            "One-glance view. **Init** shows the cold (first) construction cost — paid once "
+    lines = ["## Executive Summary - p99 per phase (ms)", "",
+            "One-glance view. **Init** shows the cold (first) construction cost - paid once "
             "per process; includes WASM module instantiation / JNI library load / Python "
             "cdylib FFI load for non-native bindings (Go is statically linked: "
             "module_load_ms = 0). **Model** and **Validate** show steady-state "
-            "p99 — the consumer-visible latency after the global harness warmup "
+            "p99 - the consumer-visible latency after the global harness warmup "
             f"(first measured == steady state when iterations={iterations}). "
             "Detailed breakdowns are in the per-engine sections below.", ""]
     header = ["Binding", "Module Load (ms)", "Init cold (ms)", "Model steady p99 (ms)",
@@ -395,7 +395,7 @@ def executive_summary(all_loaded, engines, bindings):
 
 def model_section(all_loaded, engine, bindings):
     """Template modeling for one engine."""
-    lines = ["### Template Modeling — host-timed `SemanticModel::parse` (ms)", "",
+    lines = ["### Template Modeling - host-timed `SemanticModel::parse` (ms)", "",
              "Host timer around `SemanticModel::parse` (bytes → resolved model). "
              "Standalone measurement; does not include the re-parse inside `validate()`.", ""]
     lines += _first_steady_tables(all_loaded, engine, "host_model", bindings)
@@ -407,22 +407,22 @@ def init_section(all_loaded, engine, bindings):
     cold_header = ["Binding", "Module Load (ms)", "Cold init_ms (ms)"]
     component_header = ["Binding", "Schema median", "Schema p99", "Engine median", "Engine p99"]
 
-    lines = ["### Initialization — consumer-visible setup cost (ms)", "",
+    lines = ["### Initialization - consumer-visible setup cost (ms)", "",
              "**init_ms** is the actual validation setup a consumer constructs before "
              "calling `validate()`. What it measures differs by binding:", "",
              "- **Native:** standalone `SchemaValidator` construction + standalone engine "
              "construction (two separate objects the consumer creates).",
-             "- **FFI bindings (WASM / JVM / Python / Go):** engine constructor only — "
+             "- **FFI bindings (WASM / JVM / Python / Go):** engine constructor only - "
              "the FFI engine constructors already embed schema initialization internally, "
              "so `init_ms` is the single engine constructor call the consumer makes.", "",
              "**Module Load** is the one-time cost of loading the native library (JNI / "
              "Python cdylib) or WASM module (V8 compile + `#[start]`). Native = 0; "
              "Go = 0 (statically linked via cgo, no dynamic module load). "
-             "**Cold** = module load + first `init_ms` — the total first-use cost a "
+             "**Cold** = module load + first `init_ms` - the total first-use cost a "
              "consumer pays. **Warm** = subsequent constructions.", "",
              "**Component timing** below shows `schema_init_ms` and `engine_init_ms` as "
              "standalone component measurements. For FFI bindings, `schema_init_ms` is "
-             "already embedded inside `engine_init_ms` — these are independent timers, "
+             "already embedded inside `engine_init_ms` - these are independent timers, "
              "not additive components of `init_ms`.", ""]
 
     cold_rows = []
@@ -442,13 +442,13 @@ def init_section(all_loaded, engine, bindings):
             ms(*stat(si, "median")), ms(*stat(si, "p99")),
             ms(*stat(ei, "median")), ms(*stat(ei, "p99")),
         ])
-    lines += ["**Cold** — first construction (ms)", ""] + table(cold_header, cold_rows)
+    lines += ["**Cold** - first construction (ms)", ""] + table(cold_header, cold_rows)
     warm_header = ["Binding"] + [s for s in STATS]
-    lines += ["", "**Warm** — subsequent constructions (ms)", ""] + table(warm_header, warm_rows)
-    lines += ["", "**Component timing** — schema_init_ms / engine_init_ms (ms)", "",
+    lines += ["", "**Warm** - subsequent constructions (ms)", ""] + table(warm_header, warm_rows)
+    lines += ["", "**Component timing** - schema_init_ms / engine_init_ms (ms)", "",
               "Standalone component measurements. For native, these are the two separate "
               "objects the consumer constructs. For FFI bindings, schema is already embedded "
-              "in the engine constructor — `schema_init_ms` must not be added to "
+              "in the engine constructor - `schema_init_ms` must not be added to "
               "`engine_init_ms`.", ""]
     lines += table(component_header, component_rows)
     lines += [""]
@@ -457,7 +457,7 @@ def init_section(all_loaded, engine, bindings):
 
 def phase_table(all_loaded, engine, bindings):
     """Per-engine sub-phase breakdown. Rows = phase, columns = binding × median/p99/max.
-    Single stat-mode per table (no first/steady split for sub-phases — they're Rust-internal
+    Single stat-mode per table (no first/steady split for sub-phases - they're Rust-internal
     timers aggregated across all iterations)."""
     lines = ["### Sub-phases (per-template medians across iterations, ms)", ""]
     header = ["Phase"]
@@ -497,7 +497,7 @@ def _per_template_dir(engine, binding):
 
 
 def _diag_sort_key(d):
-    """Stable ordering for pairing diagnostics between binding outputs — identity
+    """Stable ordering for pairing diagnostics between binding outputs - identity
     that should be binding-invariant (rule id + source span + message)."""
     entity = d.get("entity") or {}
     return (
@@ -514,18 +514,18 @@ def _diag_sort_key(d):
 
 def _field_diff(a, b):
     """Return {field: (native_val, other_val)} for every top-level field that
-    differs — including presence/absence and case (e.g. 'Error' vs 'ERROR')."""
+    differs - including presence/absence and case (e.g. 'Error' vs 'ERROR')."""
     keys = set(a.keys()) | set(b.keys())
     return {k: (a.get(k, "<missing>"), b.get(k, "<missing>")) for k in keys if a.get(k) != b.get(k)}
 
 
 def diagnostics_parity(all_loaded, engine, bindings):
-    """Full parity check across all binding pairs — covers every pair among all
+    """Full parity check across all binding pairs - covers every pair among all
     selected bindings, so any field divergence surfaces even when two bindings
     happen to agree:
       1. Aggregate diagnostic totals across all bindings.
       2. Per-template, per-diagnostic full-dict equality across every binding pair.
-    Every JSON field is compared — including case ('Error' vs 'ERROR') and
+    Every JSON field is compared - including case ('Error' vs 'ERROR') and
     absence-vs-empty ('' vs missing). Reports are NOT coerced; what each
     binding actually emits is what gets compared.
 
@@ -544,7 +544,7 @@ def diagnostics_parity(all_loaded, engine, bindings):
 
     pairs = [(a, b) for i, (a, _) in enumerate(bindings) for (b, _) in bindings[i + 1:]]
     per_pair_diffs = {pair: [] for pair in pairs}
-    # Aggregate field-diff frequency across all pairs — surfaces systemic patterns.
+    # Aggregate field-diff frequency across all pairs - surfaces systemic patterns.
     field_freq = {}
     template_count = 0
 
@@ -555,13 +555,13 @@ def diagnostics_parity(all_loaded, engine, bindings):
     for b, lbl in bindings:
         d = dirs[b]
         if not d.exists():
-            missing_dirs.append(f"{lbl} ({b}): directory missing — {d}")
+            missing_dirs.append(f"{lbl} ({b}): directory missing - {d}")
         elif not any(d.glob("*.json")):
-            missing_dirs.append(f"{lbl} ({b}): directory empty — {d}")
+            missing_dirs.append(f"{lbl} ({b}): directory empty - {d}")
 
     if missing_dirs:
         lines = [
-            f"**{engine.upper()} diagnostic parity:** ❌ FAILED — missing/empty report dirs:",
+            f"**{engine.upper()} diagnostic parity:** ❌ FAILED - missing/empty report dirs:",
             "",
         ]
         for msg in missing_dirs:
@@ -625,7 +625,7 @@ def diagnostics_parity(all_loaded, engine, bindings):
                     examples))
 
     totals = get(all_loaded[engine][bindings[0][0]], "diagnostics", default={})
-    counts = " / ".join(f"{lvl.replace('total_', '')}={totals.get(lvl, '—')}" for lvl in levels)
+    counts = " / ".join(f"{lvl.replace('total_', '')}={totals.get(lvl, '-')}" for lvl in levels)
 
     any_diffs = total_mismatches or any(per_pair_diffs.values())
     if not any_diffs:
@@ -637,7 +637,7 @@ def diagnostics_parity(all_loaded, engine, bindings):
             "",
         ], True
 
-    lines = [f"**{engine.upper()} diagnostic parity:** ❌ MISMATCH — parity bug:", ""]
+    lines = [f"**{engine.upper()} diagnostic parity:** ❌ MISMATCH - parity bug:", ""]
     if total_mismatches:
         lines.append("**Aggregate totals differ:**")
         for lvl, vals in total_mismatches:
@@ -657,7 +657,7 @@ def diagnostics_parity(all_loaded, engine, bindings):
             ov_s = repr(ov) if ov != "<missing>" else "(absent)"
             lines.append(
                 f"- `{fname}`: {labels[a]}={nv_s} vs {labels[b]}={ov_s} "
-                f"— {count} occurrence(s)"
+                f"- {count} occurrence(s)"
             )
         lines.append("")
 
@@ -726,7 +726,7 @@ def main():
     template_dir = args.template_dir
 
     if args.report_only:
-        print("Report-only mode — using existing aggregate files", file=sys.stderr)
+        print("Report-only mode - using existing aggregate files", file=sys.stderr)
     elif not args.skip_build:
         build_all(bindings)
     else:
@@ -765,14 +765,14 @@ def main():
         "",
         "Five bindings are measured with the host language's own clock so numbers are "
         "directly comparable across native / wasm / jvm / python / go:",
-        "1. **Init** — load native module (WASM/JNI/cdylib; Go is statically linked, "
+        "1. **Init** - load native module (WASM/JNI/cdylib; Go is statically linked, "
         "no module load) + construct the validation setup a consumer creates. "
         "Native: standalone `SchemaValidator` + standalone engine (two objects). "
         "FFI bindings: engine constructor only (schema is already embedded inside "
         "the FFI engine constructor).",
-        "2. **Template Modeling** — `SemanticModel::parse(bytes)` (standalone parse of "
+        "2. **Template Modeling** - `SemanticModel::parse(bytes)` (standalone parse of "
         "one template).",
-        "3. **Validate** — full `validate(bytes)` call (everything — re-parses + schema "
+        "3. **Validate** - full `validate(bytes)` call (everything - re-parses + schema "
         "+ rules + finalize).",
         "",
         "Each phase reports first measured (after one global harness warmup) and "
@@ -799,7 +799,7 @@ def main():
 
     lines += executive_summary(all_loaded, engines, bindings)
 
-    # Track parity results — exit nonzero after writing report if any fail
+    # Track parity results - exit nonzero after writing report if any fail
     parity_all_passed = True
 
     for engine in engines:
@@ -824,7 +824,7 @@ def main():
 
     if not parity_all_passed:
         print(
-            "\n❌ Diagnostics parity check FAILED — see report for details.",
+            "\n❌ Diagnostics parity check FAILED - see report for details.",
             file=sys.stderr,
         )
         sys.exit(1)

@@ -2,7 +2,7 @@
 
 Parses CloudFormation JSON/YAML templates into a rich semantic model. Resolves all intrinsic functions, builds a
 reference graph with cycle detection, and models conditions with a SAT solver. Has zero knowledge of CloudFormation
-resource schemas — it is purely a modeling library.
+resource schemas - it is purely a modeling library.
 
 ## How It Works
 
@@ -10,10 +10,10 @@ resource schemas — it is purely a modeling library.
   bytes ──▶ Parse (JSON/YAML) ──▶ Resolve intrinsics ──▶ Build reference graph ──▶ SemanticModel
 ```
 
-1. **Parse** — Reads JSON or YAML (auto-detected), extracts all template sections (Parameters, Mappings, Conditions,
+1. **Parse** - Reads JSON or YAML (auto-detected), extracts all template sections (Parameters, Mappings, Conditions,
    Resources, Outputs, Rules, Metadata, Transforms, Globals).
-2. **Resolve** — Walks each resource and output, resolving all intrinsic functions into `ResolvedValue` variants.
-3. **Validate** — Builds a reference graph, detects cycles, validates intrinsic function nesting, and emits parse-time
+2. **Resolve** - Walks each resource and output, resolving all intrinsic functions into `ResolvedValue` variants.
+3. **Validate** - Builds a reference graph, detects cycles, validates intrinsic function nesting, and emits parse-time
    diagnostics (`F3004` cycles, `E1028` undefined conditions, `E1101` invalid nesting, `W8003` tautological conditions).
 
 ## Intrinsic Function Support
@@ -93,16 +93,16 @@ let model = result.model;
 
 | Field               | Type / Purpose                                                            |
 |---------------------|---------------------------------------------------------------------------|
-| `format_version`    | `Option<String>` — `AWSTemplateFormatVersion` value                       |
-| `description`       | `Option<String>` — template `Description`                                 |
-| `transforms`        | `Vec<String>` — declared transforms                                       |
-| `parameters`        | `HashMap<String, ParameterInfo>` — parsed parameter definitions           |
+| `format_version`    | `Option<String>` - `AWSTemplateFormatVersion` value                       |
+| `description`       | `Option<String>` - template `Description`                                 |
+| `transforms`        | `Vec<String>` - declared transforms                                       |
+| `parameters`        | `HashMap<String, ParameterInfo>` - parsed parameter definitions           |
 | `mappings`          | 3-level `MappingData` HashMap                                             |
 | `conditions`        | `ConditionModel` with SAT solver                                          |
-| `resources`         | `HashMap<String, ResolvedResource>` — resolved resources with diagnostics |
-| `outputs`           | `HashMap<String, ResolvedOutput>` — resolved outputs                      |
+| `resources`         | `HashMap<String, ResolvedResource>` - resolved resources with diagnostics |
+| `outputs`           | `HashMap<String, ResolvedOutput>` - resolved outputs                      |
 | `graph`             | `ReferenceGraph` with cycle information                                   |
-| `resources_by_type` | `HashMap<String, Vec<String>>` — logical IDs grouped by resource type     |
+| `resources_by_type` | `HashMap<String, Vec<String>>` - logical IDs grouped by resource type     |
 | `diagnostics`       | All parse-time findings, as plain `ParseDefect` values                    |
 | `template_metadata` | Raw JSON of the Metadata section                                          |
 
@@ -110,7 +110,7 @@ let model = result.model;
 
 | Field               | Default                    | Effect                                                                                          |
 |---------------------|----------------------------|-------------------------------------------------------------------------------------------------|
-| `parameters`        | empty `HashMap`            | Parameter overrides — `Ref` resolves to `Concrete` instead of `Enum`/`TypedDynamic`             |
+| `parameters`        | empty `HashMap`            | Parameter overrides - `Ref` resolves to `Concrete` instead of `Enum`/`TypedDynamic`             |
 | `pseudo_parameters` | all `None` (uses defaults) | Override `AWS::Region` (`us-east-1`), `AWS::AccountId` (`123456789012`), `AWS::Partition`, etc. |
 
 Supports AWS SAM templates with automatic handling of SAM transforms and implicit resources.

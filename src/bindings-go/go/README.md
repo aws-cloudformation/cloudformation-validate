@@ -1,11 +1,11 @@
 # CloudFormation Validate for Go
 
 Validate AWS CloudFormation templates from Go and catch schema violations, security risks, and best-practice
-findings before deployment — in your editor, build, or CI.
+findings before deployment - in your editor, build, or CI.
 
-- **Offline** — all rules and resource schemas are bundled.
-- **Fast** — sub-second validation per template.
-- **Self-contained** — the Rust core is linked statically via cgo; there are no runtime dependencies.
+- **Offline** - all rules and resource schemas are bundled.
+- **Fast** - sub-second validation per template.
+- **Self-contained** - the Rust core is linked statically via cgo; there are no runtime dependencies.
 
 All types are exported from the `cfnvalidate` package (import path
 `github.com/aws-cloudformation/cloudformation-validate/src/bindings-go/go`).
@@ -22,12 +22,12 @@ import cfnvalidate "github.com/aws-cloudformation/cloudformation-validate/src/bi
 
 Requires Go 1.26+ with cgo enabled (the default) and a C toolchain for linking. The module bundles a prebuilt static
 library for each supported platform (Linux x86-64, macOS aarch64, Windows x86-64) and selects the right one per
-`GOOS`/`GOARCH`. On Windows, link with the MinGW-w64 toolchain — the bundled Windows library is built for the GNU ABI
+`GOOS`/`GOARCH`. On Windows, link with the MinGW-w64 toolchain - the bundled Windows library is built for the GNU ABI
 and cannot be consumed by MSVC.
 
 ## Quick start
 
-Native objects hold off-heap memory — call `Destroy()` when done with each engine, model, or validator:
+Native objects hold off-heap memory - call `Destroy()` when done with each engine, model, or validator:
 
 ```go
 engine, err := cfnvalidate.NewRegoEngine(nil)
@@ -45,14 +45,14 @@ for _, d := range report.Diagnostics {
 }
 ```
 
-Each diagnostic identifies the rule, severity, affected resource and property, and source location — see
+Each diagnostic identifies the rule, severity, affected resource and property, and source location - see
 [StandardDiagnostic](#standarddiagnostic). Engines are expensive to construct (rules compile once) and cheap to reuse
-— create one engine and validate many templates. Errors from the native side are returned as Go `error` values;
+- create one engine and validate many templates. Errors from the native side are returned as Go `error` values;
 internal panics are caught at the FFI boundary and surface the same way, never a process abort.
 
 ## Engine
 
-`NewRegoEngine` and `NewCelEngine` both return an `*Engine` and are interchangeable — they produce identical
+`NewRegoEngine` and `NewCelEngine` both return an `*Engine` and are interchangeable - they produce identical
 diagnostics for the same template and config. A `nil` config uses only the built-in rules.
 
 | Method                                                                       | Returns                    | Description                                                                                     |
@@ -63,7 +63,7 @@ diagnostics for the same template and config. A `nil` config uses only the built
 | `ValidateDetailedFile(path string, config *ValidateConfig)`                  | `(*DetailedReport, error)` | Reads a template from disk, then validates it (detailed)                                        |
 | `ListRules()`                                                                | `([]RuleInfo, error)`      | Returns metadata for every built-in and loaded custom rule                                      |
 | `EngineName()`                                                               | `string`                   | `"rego"` or `"cel"`                                                                             |
-| `Destroy()`                                                                  | —                          | Releases the native engine; the engine must not be used afterwards                              |
+| `Destroy()`                                                                  | -                          | Releases the native engine; the engine must not be used afterwards                              |
 
 ### EngineConfig
 
@@ -72,7 +72,7 @@ Passed to `NewRegoEngine` / `NewCelEngine`. The zero value (or `nil`) uses only 
 ```go
 type EngineConfig struct {
     CustomRules     []ExternalRuleSource   // engine-native rules (Rego for Rego, CEL for CEL)
-    GuardRules      []ExternalRuleSource   // CloudFormation Guard DSL rules — translated internally by each engine
+    GuardRules      []ExternalRuleSource   // CloudFormation Guard DSL rules - translated internally by each engine
     SchemaValidatorConfig *SchemaValidatorConfig // optional schema validator configuration
 }
 
@@ -147,7 +147,7 @@ type ValidateConfig struct {
 
 ### RuleFilterConfig
 
-Both `Include` and `Exclude` use this structure. All fields are additive — a rule matches if it hits any criterion.
+Both `Include` and `Exclude` use this structure. All fields are additive - a rule matches if it hits any criterion.
 
 ```go
 type RuleFilterConfig struct {
@@ -169,7 +169,7 @@ type ResourceTypeFilter struct { RuleID *string; ResourceType string }
 type ServiceFilter       struct { RuleID *string; Service string }
 ```
 
-The `Service` is matched verbatim against the `service-provider::service-name` prefix of the resource type — its first
+The `Service` is matched verbatim against the `service-provider::service-name` prefix of the resource type - its first
 two `::`-delimited segments (e.g. `AWS::AutoScaling` in `AWS::AutoScaling::LaunchConfiguration`).
 
 The `ResourceIDs` dimension matches only diagnostics attributed to a resource; `LogicalIDs` additionally matches
@@ -179,7 +179,7 @@ the same value). A non-nil `EntityType` scopes a `LogicalIdFilter` to entities o
 
 ### PseudoParameterOverrides
 
-Override CloudFormation pseudo-parameters used during intrinsic function resolution. All fields optional — when `nil`,
+Override CloudFormation pseudo-parameters used during intrinsic function resolution. All fields optional - when `nil`,
 the engine uses built-in defaults (e.g. region defaults to `us-east-1`).
 
 ```go
@@ -196,7 +196,7 @@ type PseudoParameterOverrides struct {
 
 ## TemplateModel
 
-Parses a template into the resolved `SemanticModel` for direct inspection — the same model the engines evaluate rules
+Parses a template into the resolved `SemanticModel` for direct inspection - the same model the engines evaluate rules
 against. Structured sections are returned as raw JSON (`json.RawMessage`) for the caller to decode.
 
 ```go
@@ -219,7 +219,7 @@ defer model.Destroy()
 | `Description()`                              | `*string`                  | Template description                                                                            |
 | `DiagnosticModel()`                          | `(json.RawMessage, error)` | Full diagnostic model including reference graph, condition implications, and resolution sources |
 | `SourceLocation(path string)`                | `(*SourceSpan, error)`     | Source line/column span for a JSON path (e.g. `Resources/MyBucket/Properties/BucketName`)       |
-| `Destroy()`                                  | —                          | Releases the native model; it must not be used afterwards                                       |
+| `Destroy()`                                  | -                          | Releases the native model; it must not be used afterwards                                       |
 
 ## SchemaValidator
 
@@ -238,7 +238,7 @@ diagnostics, err := validator.Validate(templateBytes, nil)
 | `Validate(template []byte, region *string)` | `([]StandardDiagnostic, error)` | Schema diagnostics. `nil` region defaults to `"us-east-1"`.   |
 | `ListRules()`                               | `([]RuleInfo, error)`           | Schema rule metadata                                          |
 | `SchemaCount()`                             | `uint32`                        | Number of compiled provider schemas                           |
-| `Destroy()`                                 | —                               | Releases the native validator; it must not be used afterwards |
+| `Destroy()`                                 | -                               | Releases the native validator; it must not be used afterwards |
 
 ## Report Types
 

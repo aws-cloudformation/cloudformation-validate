@@ -205,7 +205,7 @@ def _run_fingerprint(corpus_fp: str, engine: str, fmt: str, iterations: int) -> 
 
 
 # ---------------------------------------------------------------------------
-# Error-result helper — single source of truth for failed-template entries.
+# Error-result helper - single source of truth for failed-template entries.
 # ---------------------------------------------------------------------------
 def _error_result(rel_path: str, size_bytes: int, status: str, error_msg: str) -> Dict[str, Any]:
     """Construct a result entry for a template that could not be benchmarked."""
@@ -301,7 +301,7 @@ def main() -> None:
     template_dir = Path(args.template_dir).resolve()
 
     # -----------------------------------------------------------------------
-    # Module load timing — measure import + native library load.
+    # Module load timing - measure import + native library load.
     # -----------------------------------------------------------------------
     import_start = time.perf_counter()
 
@@ -346,7 +346,7 @@ def main() -> None:
     #
     # The Python engine constructor (RegoEngine/CelEngine) already embeds a
     # SchemaValidator internally, so the actual consumer setup cost is just the
-    # engine constructor — that is what init_samples measures.
+    # engine constructor - that is what init_samples measures.
     #
     # schema_init_samples is measured separately as a standalone SchemaValidator
     # construction to give visibility into schema decompression cost in
@@ -372,7 +372,7 @@ def main() -> None:
         engine_init_samples_ms.append((time.perf_counter() - t1) * 1000.0)
         del eng
 
-    # init_samples equals engine_init_samples — the engine constructor IS the
+    # init_samples equals engine_init_samples - the engine constructor IS the
     # consumer validation setup (it embeds schema validation internally).
     init_samples_ms = list(engine_init_samples_ms)
     cold_init_ms = import_elapsed_ms + init_samples_ms[0]
@@ -403,7 +403,7 @@ def main() -> None:
 
     # -----------------------------------------------------------------------
     # Warmup: amortize first-call costs for both TemplateModel and validate.
-    # Warmup exceptions are intentionally ignored — they do not affect the
+    # Warmup exceptions are intentionally ignored - they do not affect the
     # benchmark results; some templates may legitimately fail to parse.
     # -----------------------------------------------------------------------
     if template_data:
@@ -444,7 +444,7 @@ def main() -> None:
         failed = False
 
         for i in range(iterations):
-            # Standalone model parse — classify failures as parse_error,
+            # Standalone model parse - classify failures as parse_error,
             # record one result, and skip validation for this template.
             tm0 = time.perf_counter()
             try:
@@ -637,7 +637,7 @@ def main() -> None:
     failed_results = [r for r in results if r["status"] != "ok"]
 
     # Throughput based ONLY on the sum of timed successful validate calls.
-    # Computed from per-template totals — excludes partial iterations from
+    # Computed from per-template totals - excludes partial iterations from
     # templates that eventually failed.
     total_measured_validation_ms = sum(
         r["_wall_clock_total_ms"] for r in successful_results

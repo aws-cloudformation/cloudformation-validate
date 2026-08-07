@@ -24,7 +24,7 @@ pub const PSEUDO_PARAMETERS: &[&str] = &[
 pub const DEFAULT_ACCOUNT_ID: &str = "123456789012";
 pub const DEFAULT_STACK_NAME: &str = "teststack";
 
-// Section keys derive from the shared `TopLevelSection` enum — the single
+// Section keys derive from the shared `TopLevelSection` enum - the single
 // definition of the documented template sections. `Globals` is SAM-only and
 // not part of the documented template anatomy, so it stays a plain constant.
 pub const SECTION_PARAMETERS: &str = TopLevelSection::Parameters.name();
@@ -179,7 +179,7 @@ pub const MAX_TEMPLATE_SIZE_BYTES: usize = 10 * 1024 * 1024;
 /// value may resolve into before that value's scenario enumeration is
 /// truncated. A value composed from or gated by many conditions/parameters can
 /// take many concrete forms; this bounds that set so per-scenario rule
-/// evaluation stays bounded. This is a *per-value* cap only — the cumulative
+/// evaluation stays bounded. This is a *per-value* cap only - the cumulative
 /// scenario work across an entire validation is bounded separately by
 /// `MAX_TOTAL_SCENARIO_COMBINATIONS`. Sits above `MAX_ENUM_EXPANSION` (per-value
 /// variant expansion) and below the parameter/satisfiability bounds.
@@ -188,13 +188,13 @@ pub const MAX_SCENARIO_COMBINATIONS: usize = 262_144;
 /// Cumulative scenario-expansion budget across all values resolved during a
 /// single validation. `MAX_SCENARIO_COMBINATIONS` bounds one value's expansion,
 /// but scenario resolution runs per resource property and per rule, so the
-/// *number* of expansions is itself unbounded on adversarial input — a template
+/// *number* of expansions is itself unbounded on adversarial input - a template
 /// packed with many heavily-gated values would otherwise drive up to
 /// `num_values * MAX_SCENARIO_COMBINATIONS` of work with no global ceiling. This
 /// caps the total scenarios materialized for one model; once it is reached,
 /// further scenario resolution yields no scenarios rather than continuing to
-/// expand. Sized far above the worst legitimate template — real values resolve
-/// to a single scenario and conditional ones to a handful — while still cutting
+/// expand. Sized far above the worst legitimate template - real values resolve
+/// to a single scenario and conditional ones to a handful - while still cutting
 /// off a pathological blow-up. Mirrors the SAT path's `MAX_TOTAL_SAT_ITERATIONS`
 /// (here 128x the per-value cap).
 pub const MAX_TOTAL_SCENARIO_COMBINATIONS: u64 = 33_554_432;
@@ -204,24 +204,24 @@ pub const MAX_RESOLVE_DEPTH: u32 = 512;
 /// Maximum number of concrete variants a single value may expand to during
 /// intrinsic resolution (e.g. an `Fn::Join` over enumerated elements). Bounds
 /// per-value combinatorial blow-up and the memory a resolved value holds;
-/// beyond it the expansion is truncated. The narrowest analysis bound — it
+/// beyond it the expansion is truncated. The narrowest analysis bound - it
 /// operates on a single value.
 pub const MAX_ENUM_EXPANSION: usize = 4_096;
 
 /// Per-query budget for a single satisfiability search: the maximum number of
 /// evaluation steps `ConditionModel::is_satisfiable` performs before returning a
-/// conservative `true`. This is the *effective* per-query work bound —
+/// conservative `true`. This is the *effective* per-query work bound -
 /// `MAX_PARAM_COMBINATIONS` is only an O(1) pre-filter on the size of a query's
 /// parameter space, so a query that passes that pre-filter is still explored only
 /// up to this budget.
 ///
 /// A query searches parameter assignments, abandons a branch as soon as the values
 /// bound so far decide an assumed condition against its assumption, and derives
-/// what the assumptions force on conditions the parameters leave undetermined — so
+/// what the assumptions force on conditions the parameters leave undetermined - so
 /// the steps a real template needs are far fewer than its parameter space is wide.
-/// Measured across templates built to be expensive on purpose — two hundred
+/// Measured across templates built to be expensive on purpose - two hundred
 /// conditions layered over a few shared pseudo-parameters, two hundred independent
-/// flags, six parameters with twenty values each combined six at a time — and a
+/// flags, six parameters with twenty values each combined six at a time - and a
 /// real deployment template with over two hundred conditions and ninety
 /// parameters, no single query exceeded ~18K steps. This budget sits roughly fifty
 /// times above that, so exactness is never traded away on a template anyone would
@@ -240,15 +240,15 @@ pub const MAX_SAT_ITERATIONS: u64 = 1_000_000;
 /// the number of such assignments is the product of each parameter's candidate
 /// values, and so is exponential in the number of distinct parameters. When that
 /// product exceeds this cap the query returns a conservative `true` without
-/// searching — see `ConditionModel::is_satisfiable` for the exact
+/// searching - see `ConditionModel::is_satisfiable` for the exact
 /// diagnostic-direction guarantee, including that through a negated use
 /// (`condition_implies`) a conservative `true` can surface an extra false-positive
 /// diagnostic.
 ///
 /// Because of that false-positive risk the cap is sized generously: 2^20 covers a
 /// query reading up to twenty binary parameters (or, e.g., eight five-valued
-/// ones), well beyond any realistic condition — a condition rarely reads more
-/// than a handful of parameters — so legitimate templates resolve exactly and
+/// ones), well beyond any realistic condition - a condition rarely reads more
+/// than a handful of parameters - so legitimate templates resolve exactly and
 /// never reach the conservative path. This cap is only an O(1) pre-filter on the
 /// size of the space; the per-query budget (`MAX_SAT_ITERATIONS`) bounds the work
 /// actually performed inside it, and the cumulative budget
@@ -258,8 +258,8 @@ pub const MAX_PARAM_COMBINATIONS: u64 = 1_048_576;
 
 /// Cumulative satisfiability search budget across all queries of a single
 /// validation. `MAX_SAT_ITERATIONS` bounds one query, but the condition model
-/// issues a query per pairwise condition-compatibility check — quadratic in the
-/// condition count — plus per-resource and per-rule checks, so the *number* of
+/// issues a query per pairwise condition-compatibility check - quadratic in the
+/// condition count - plus per-resource and per-rule checks, so the *number* of
 /// queries is itself unbounded on adversarial input. This caps the total search
 /// work for one model so no template can drive validation into a denial of
 /// service.
@@ -268,8 +268,8 @@ pub const MAX_PARAM_COMBINATIONS: u64 = 1_048_576;
 /// conditions, so it is sized from measurement rather than from a round number. A
 /// real deployment template with over two hundred conditions and ninety
 /// parameters, whose quadratic pairwise pass is analyzed in full, consumes about 7M
-/// steps; the most expensive shape built on purpose — two hundred conditions all
-/// connected through three shared inputs, with resources gated on them — consumes
+/// steps; the most expensive shape built on purpose - two hundred conditions all
+/// connected through three shared inputs, with resources gated on them - consumes
 /// about 17M. This budget sits about six times above that worst measured case:
 /// enough that a template anyone would write always resolves exactly, while the
 /// worst case adversarial input can reach stays in seconds rather than minutes.
@@ -381,7 +381,7 @@ pub const INTRINSIC_FN_PATH_SEGMENTS: &[&str] = &[
 ];
 
 /// Resource property paths where an `ssm-secure` dynamic reference is
-/// supported — the fixed set CloudFormation documents for secure-string
+/// supported - the fixed set CloudFormation documents for secure-string
 /// resolution. Paths use the resource *type*
 /// (not the logical ID) and `*` for array indices.
 pub const SSM_SECURE_ALLOWED_PROPERTY_PATHS: &[&str] = &[
@@ -403,7 +403,7 @@ pub const SSM_SECURE_ALLOWED_PROPERTY_PATHS: &[&str] = &[
 /// over merged ones and earlier merge sources winning over later ones.
 pub const YAML_MERGE_KEY: &str = "<<";
 
-// Short (bare) intrinsic names — the suffix after the `Fn::` prefix that appears in
+// Short (bare) intrinsic names - the suffix after the `Fn::` prefix that appears in
 // YAML shorthand tags (`!GetAtt`) and in the serialized reference graph. `Ref` and
 // `Condition` have no `Fn::` form, so their short and long spellings coincide.
 pub const TAG_REF: &str = "Ref";

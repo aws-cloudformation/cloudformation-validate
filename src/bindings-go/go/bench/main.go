@@ -90,12 +90,12 @@ func run() error {
 	fmt.Fprintf(os.Stderr, "Benchmarking %d templates, %d iterations, engine=%s, format=DETAILED\n",
 		len(templates), iterations, engineFlag)
 
-	// Go is statically linked — there is no dynamic module load.
+	// Go is statically linked - there is no dynamic module load.
 	const moduleLoadMs = 0.0
 
 	// Measure standalone init costs. The engine constructor already embeds a
 	// SchemaValidator internally, so standalone schema init timing is purely
-	// informational — it is NOT additive to engine init. A consumer only calls
+	// informational - it is NOT additive to engine init. A consumer only calls
 	// the engine constructor; the schema validator is created inside it. We
 	// time standalone schema init separately to show its isolated cost, but
 	// initSamples reflects actual consumer setup: one engine constructor call.

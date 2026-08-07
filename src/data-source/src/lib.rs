@@ -262,7 +262,7 @@ fn verify_files_exist_and_populated(
             msg.push_str(&format!("  Empty stubs: {}\n", stubs.join(", ")));
         }
         anyhow::bail!(
-            "{label} verification failed — {}/{} files not populated:\n{msg}",
+            "{label} verification failed - {}/{} files not populated:\n{msg}",
             missing.len() + stubs.len(),
             names.len()
         );

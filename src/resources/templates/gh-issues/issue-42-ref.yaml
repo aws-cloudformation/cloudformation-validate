@@ -1,7 +1,7 @@
 AWSTemplateFormatVersion: '2010-09-09'
 # Issue #42 counter-example: HealthCheckPort is a deploy-time value (a Ref to a
 # parameter with no default). Its value is unknowable at validation time, so the
-# dynamic-port health-check rule must stay silent — flagging an opaque value the
+# dynamic-port health-check rule must stay silent - flagging an opaque value the
 # way a fixed port is flagged would be a false positive.
 Parameters:
   HealthCheckPort:

@@ -8,7 +8,7 @@ pub const IAM_ROLE_ARN_PATTERN: &str = r"^arn:aws[a-zA-Z-]*:iam::\d{12}:role/.+$
 
 /// Regex for the resource-property IAM role-ARN *rule* check: the partition group is
 /// optional and the role name is constrained to the IAM role-name character class. This is
-/// intentionally stricter than [`IAM_ROLE_ARN_PATTERN`] — the two correspond to two distinct checks
+/// intentionally stricter than [`IAM_ROLE_ARN_PATTERN`] - the two correspond to two distinct checks
 /// and must not be conflated.
 pub const IAM_ROLE_ARN_RULE_PATTERN: &str = r"^arn:(aws[a-zA-Z-]*)?:iam::\d{12}:role/[a-zA-Z_0-9+=,.@\-_/]+$";
 

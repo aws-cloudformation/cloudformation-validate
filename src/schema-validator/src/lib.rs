@@ -176,7 +176,7 @@ impl SchemaValidator {
         Ok(Self::try_with_additional_schemas(overlays)?)
     }
 
-    /// Infallible constructor with no overlay schemas — used by `Default`.
+    /// Infallible constructor with no overlay schemas - used by `Default`.
     fn new_default() -> Self {
         let start = web_time::Instant::now();
         let store = CompiledSchemaStore::new();
@@ -260,7 +260,7 @@ impl SchemaValidator {
     }
 
     /// Validates every resource. `region` is the configured AWS region, or `None`
-    /// when the caller supplied none — in which case region-scoped checks widen to
+    /// when the caller supplied none - in which case region-scoped checks widen to
     /// the union of all regions (a resource type or enum value is flagged only when
     /// it is unavailable in every region) rather than assuming a default region.
     pub fn validate(&self, model: &Arc<SemanticModel>, region: Option<&str>) -> SchemaValidationResult {
@@ -291,9 +291,9 @@ impl SchemaValidator {
 
 /// Whether inserting a previously unknown type should be logged at `warn` level.
 ///
-/// Unknown AWS::* types are likely a misspelled type name — warn so the caller
+/// Unknown AWS::* types are likely a misspelled type name - warn so the caller
 /// notices. Private/custom provider types (e.g. `MyOrg::Network::Firewall`) are
-/// intentionally new and insertion is the expected outcome — info is sufficient.
+/// intentionally new and insertion is the expected outcome - info is sufficient.
 pub(crate) fn should_warn_for_inserted_type(type_name: &str) -> bool {
     type_name.starts_with("AWS::")
 }
@@ -388,7 +388,7 @@ Resources:
     fn should_warn_for_aws_types_but_not_private_providers() {
         assert!(
             should_warn_for_inserted_type("AWS::S3::NewBucket"),
-            "unknown AWS::* types should warn — likely typo or unpublished"
+            "unknown AWS::* types should warn - likely typo or unpublished"
         );
         assert!(
             should_warn_for_inserted_type("AWS::EC2::Instance"),

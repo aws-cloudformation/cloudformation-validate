@@ -115,11 +115,11 @@ gradle --no-daemon --console=plain jar
 # Gradle source-set regression that drops the compilation output) still packages,
 # uploads, and publishes successfully, then fails every consumer at class-load time.
 # Assert both are present so that failure surfaces here rather than downstream.
-# There are no .java entries by design — the bindings are Kotlin-only.
+# There are no .java entries by design - the bindings are Kotlin-only.
 CLASS_COUNT=$(jar tf "$JAR_FILE" | grep -c '\.class$' || true)
 KT_COUNT=$(jar tf "$JAR_FILE" | grep -c '\.kt$' || true)
 if [ "$CLASS_COUNT" -eq 0 ] || [ "$KT_COUNT" -eq 0 ]; then
-    echo "Error: $JAR_FILE is missing compiled output — $CLASS_COUNT .class and $KT_COUNT .kt entries (both must be non-zero)." >&2
+    echo "Error: $JAR_FILE is missing compiled output - $CLASS_COUNT .class and $KT_COUNT .kt entries (both must be non-zero)." >&2
     exit 1
 fi
 for required_metadata in LICENSE NOTICE README.md THIRD-PARTY-LICENSES.txt; do

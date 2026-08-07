@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: Minimal example stack — an S3 bucket and a security group
+Description: Minimal example stack - an S3 bucket and a security group
 
 Resources:
   DataBucket:

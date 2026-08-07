@@ -113,7 +113,7 @@ fn artifact_count_scenarios(value: Option<&serde_json::Value>) -> Vec<usize> {
                 out.insert(a.len());
             }
             Some(serde_json::Value::Object(o)) if o.len() == 1 && o.contains_key("Fn::If") => {
-                // Fn::If: [condition, then, else] — enumerate both value branches.
+                // Fn::If: [condition, then, else] - enumerate both value branches.
                 if let Some(branches) = o.get("Fn::If").and_then(|v| v.as_array()) {
                     walk(branches.get(1), out);
                     walk(branches.get(2), out);
@@ -217,7 +217,7 @@ fn resolve_concrete(m: &SemanticModel, rid: &str, path: &str) -> Option<serde_js
         };
     }
     // `Properties` wrapped in `Fn::If` stores values only under the synthetic
-    // branch path — fall back to scenario resolution so rules that look up
+    // branch path - fall back to scenario resolution so rules that look up
     // properties by name still see per-branch values.
     let scenarios = m.resolve_scenarios_json(rid, path);
     scenarios.into_iter().next().map(|(v, _)| v)
@@ -481,7 +481,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     if !ctx.cached_data.known_types.is_empty() {
         for (name, res) in &m.resources {
             // An AWS-namespaced type absent from the compiled schema set is a
-            // typo or nonexistent type — CloudFormation owns the reserved
+            // typo or nonexistent type - CloudFormation owns the reserved
             // `AWS::` namespace, so the embedded catalog is authoritative for
             // it. Types in any other namespace (private registry types,
             // `Custom::` resources, modules, hook-shaped names) may be
@@ -608,7 +608,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             }
         };
 
-        // Inline SecurityGroup ingress/egress rules — access raw properties
+        // Inline SecurityGroup ingress/egress rules - access raw properties
         // to handle arrays containing dynamic Refs that resolve_concrete skips
         for name in m.resources_of_type("AWS::EC2::SecurityGroup") {
             let Some(res) = m.resources.get(name.as_str()) else {
@@ -1127,7 +1127,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     // itself pin the calling account. That is the case when the SourceArn either
     // references an S3 bucket (bucket ARNs carry no account id) or is a literal
     // ARN string with no ':<12-digit-account>:' segment. The Principal is
-    // irrelevant — keying on it (e.g. "s3.amazonaws.com") both misses the string
+    // irrelevant - keying on it (e.g. "s3.amazonaws.com") both misses the string
     // case and over-fires when SourceArn is absent entirely.
     for name in m.resources_of_type("AWS::Lambda::Permission") {
         let source_account_set =
@@ -1142,7 +1142,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             .unwrap_or(false);
         // The string branch only tests a genuinely literal SourceArn. A value
         // supplied via a Ref/GetAtt/Sub (even one that resolves to a concrete
-        // account-less string) is not folded into the pattern check — only a
+        // account-less string) is not folded into the pattern check - only a
         // literal string is pattern-matched here.
         let source_arn_string_without_account = !m.is_from_intrinsic(name, "Properties.SourceArn")
             && resolve_concrete(m, name, "Properties.SourceArn")
@@ -1842,7 +1842,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     // before deployment is settled by its contents, and an entry that stays opaque
     // is settled by the expression that produces it, since two entries written the
     // same way always read the same thing. When any entry offers neither, the
-    // property is left alone — entries that merely look alike because their values
+    // property is left alone - entries that merely look alike because their values
     // are unknowable are not a duplicate.
     for (name, res) in &m.resources {
         for prop in res.properties.keys() {
@@ -2299,7 +2299,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                     };
                     // Preserve Fn::If as `{"Fn::If": [cond, then, else]}` (rather
                     // than collapsing to one branch) so the action-format check
-                    // can consider every branch's ARN — a resource is acceptable
+                    // can consider every branch's ARN - a resource is acceptable
                     // if any reachable branch matches the action.
                     let doc = resolved_to_json_preserving_conditionals(&rv);
                     check_iam_action_resources(&mut out, m, name, &doc, &iam_patterns);
@@ -2599,7 +2599,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     for name in m.resources_of_type("AWS::ApiGateway::Method") {
         // The check applies only when the Method references an Authorizer that
-        // resolves to a resource (a Ref/GetAtt to an Authorizer) — a Method whose
+        // resolves to a resource (a Ref/GetAtt to an Authorizer) - a Method whose
         // AuthorizerId is a literal or opaque function has no in-template
         // Authorizer to compare against.
         let Some(authorizer_name) = m.follow_ref(name, "Properties.AuthorizerId") else {
@@ -2727,9 +2727,9 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             // A container-image function must not set Handler, Runtime, or Layers.
             // Report this once with a fixed message, anchored at the first
             // offending property present (schema order), no matter how many are
-            // set — so collapse to a single diagnostic. Presence is keyed on the
+            // set - so collapse to a single diagnostic. Presence is keyed on the
             // property being SET (key-presence), not on it resolving to a concrete
-            // value — so an excluded property whose value is an unresolved
+            // value - so an excluded property whose value is an unresolved
             // Ref/intrinsic still anchors the finding.
             let props = m.resources.get(name.as_str()).map(|r| &r.properties);
             if let Some(first_excluded) = ["Handler", "Runtime", "Layers"]
@@ -2768,7 +2768,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     // 100..=256000); gp3 does not require Iops but bounds it (3000..=16000).
     // This applies to the `BlockDeviceMappings[*].Ebs` blocks of launch
     // configurations, instances, launch templates, spot fleets, and OpsWorks
-    // instances — NOT to a standalone AWS::EC2::Volume (whose Iops rules are
+    // instances - NOT to a standalone AWS::EC2::Volume (whose Iops rules are
     // enforced by the resource schema directly).
     let emit_ebs_iops = |name: &str, bdm_path: &str, ebs: &serde_json::Value, out: &mut Vec<Diagnostic>| {
         let Some(vtype) = ebs.get("VolumeType").and_then(|v| v.as_str()) else {
@@ -2787,7 +2787,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         let iops_path = format!("{}.Ebs.Iops", bdm_path);
         // The numeric bounds only apply to a literal Iops. An Iops supplied via a
         // parameter Ref (whose default happens to be out of range) or another
-        // intrinsic is not flagged — the parameter default is not folded into the
+        // intrinsic is not flagged - the parameter default is not folded into the
         // bound check. The required-when-absent check still holds regardless,
         // since absence is unambiguous.
         let iops_is_literal = !m.is_from_parameter(name, &iops_path) && !m.is_from_intrinsic(name, &iops_path);
@@ -2889,7 +2889,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     // Instance type enum validation per region. With no region configured the
     // value is validated against the union of all regions (flagged only when
-    // invalid everywhere); with a region set, that one region — see
+    // invalid everywhere); with a region set, that one region - see
     // `template_model::region_enums`.
     {
         let region = ctx.region.as_deref();
@@ -3218,7 +3218,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    // IAM ManagedPolicy — Statement should have Resource when Action is present
+    // IAM ManagedPolicy - Statement should have Resource when Action is present
     for name in m.resources_of_type("AWS::IAM::ManagedPolicy") {
         if let Some(doc) = resolve_concrete(m, name, "Properties.PolicyDocument")
             && let Some(stmts) = doc.get("Statement").and_then(|s| s.as_array())
@@ -3289,7 +3289,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    // RecordSetGroup — validate records within RecordSets[]
+    // RecordSetGroup - validate records within RecordSets[]
     for name in m.resources_of_type("AWS::Route53::RecordSetGroup") {
         for (properties, conditions) in m.resolve_properties_scenarios(name) {
             if !scenario_is_reachable(m, name, &conditions) {
@@ -3351,7 +3351,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     // Events Rule ScheduleExpression validation: a value that is invalid service-side (e.g. a plural
     // unit with value 1, a non-integer value, or a cron pinning both day fields) is caught here. A
-    // value built from a parameter or intrinsic is only known at deploy time, so it is skipped —
+    // value built from a parameter or intrinsic is only known at deploy time, so it is skipped -
     // validating the pre-resolution literal would flag a value the service never sees.
     for name in m.resources_of_type("AWS::Events::Rule") {
         let path = "Properties.ScheduleExpression";
@@ -3627,7 +3627,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    // RDS DBCluster — SnapshotIdentifier makes MasterUsername ignored
+    // RDS DBCluster - SnapshotIdentifier makes MasterUsername ignored
     for name in m.resources_of_type("AWS::RDS::DBCluster") {
         if resolve_concrete(m, name, "Properties.SnapshotIdentifier").is_some()
             && resolve_concrete(m, name, "Properties.MasterUsername").is_some()
@@ -3643,7 +3643,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    // RDS DBCluster — SourceDBClusterIdentifier makes several properties ignored
+    // RDS DBCluster - SourceDBClusterIdentifier makes several properties ignored
     for name in m.resources_of_type("AWS::RDS::DBCluster") {
         if resolve_concrete(m, name, "Properties.SourceDBClusterIdentifier").is_some() {
             for ignored in &["MasterUserPassword", "MasterUsername", "StorageEncrypted"] {
@@ -3661,7 +3661,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    // RDS DBCluster — Aurora serverless ignores PerformanceInsights properties
+    // RDS DBCluster - Aurora serverless ignores PerformanceInsights properties
     for name in m.resources_of_type("AWS::RDS::DBCluster") {
         let engine = resolve_concrete(m, name, "Properties.Engine")
             .and_then(|v| if let serde_json::Value::String(s) = v { Some(s) } else { None });
@@ -4010,7 +4010,7 @@ fn primary_id_scenarios(m: &Arc<SemanticModel>, rid: &str, id_props: &[String]) 
 }
 
 /// First scalar (string/number/bool) value that repeats in the array, formatted
-/// the way the diagnostic renders it. Non-scalar items and nulls are ignored —
+/// the way the diagnostic renders it. Non-scalar items and nulls are ignored -
 /// only repeated primitives are advisory.
 fn first_duplicate_scalar(items: &[serde_json::Value]) -> Option<String> {
     let mut seen = HashSet::new();
@@ -4117,7 +4117,7 @@ struct IamResourceClassification {
 
 /// Classifies one `Resource`/`NotResource` entry. When `at_top_level` (the entry
 /// is the property's scalar value, not a list element), an `Fn::If` is enumerated
-/// so every reachable branch contributes — a resource is acceptable if any branch
+/// so every reachable branch contributes - a resource is acceptable if any branch
 /// matches. As a list element, an `Fn::If` is instead an opaque function whose
 /// ARN is unknowable. A concrete ARN is a match candidate unless it was
 /// synthesized by an intrinsic (its real ARN is only known at deploy time); a
@@ -4358,7 +4358,7 @@ fn check_dynamic_ref_spaces(
                 // that prevent CloudFormation from resolving them.
                 // Valid: {{resolve:ssm:...}}  Invalid: {{ resolve:ssm:...}}
                 if s.contains("resolve:") && s.contains("{{") && s.contains("}}") {
-                    // Has a valid dynamic ref — no warning needed
+                    // Has a valid dynamic ref - no warning needed
                     if s.contains("{{resolve:") {
                         return;
                     }

@@ -72,7 +72,7 @@ impl CelEngine {
 
     /// Constructs the engine reusing metadata from an already-built
     /// [`SchemaValidator`]. The validator's overlay catalog is treated as
-    /// authoritative — the engine does not re-resolve overlay schemas.
+    /// authoritative - the engine does not re-resolve overlay schemas.
     ///
     /// This entry point is intended for language bindings and the CLI, which
     /// construct a `SchemaValidator` once and share it with the engine.
@@ -302,7 +302,7 @@ fn load_custom_rules(source: &str, origin: RuleOrigin) -> anyhow::Result<Vec<Cus
             return Err(anyhow::anyhow!("Custom rule has an empty 'rule_id'"));
         }
         // A custom rule ID may be any run of letters, digits, and the separators
-        // `_`, `.`, `-` — it need not follow the built-in ID convention — but must
+        // `_`, `.`, `-` - it need not follow the built-in ID convention - but must
         // exclude whitespace and other punctuation that would corrupt formatting,
         // filtering, and de-duplication of diagnostics.
         if !is_valid_custom_rule_id(&def.rule_id) {

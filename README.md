@@ -6,8 +6,8 @@
 
 Fast, offline, embeddable validation for AWS CloudFormation templates.
 
-`cloudformation-validate` parses a CloudFormation template (JSON or YAML) and returns structured diagnostics — schema
-violations, semantic errors, security concerns, and best-practice suggestions — before you deploy. It runs entirely
+`cloudformation-validate` parses a CloudFormation template (JSON or YAML) and returns structured diagnostics - schema
+violations, semantic errors, security concerns, and best-practice suggestions - before you deploy. It runs entirely
 offline: every rule and resource schema is compiled into the binary, so there is no network access, no credentials, and
 no runtime fetching.
 
@@ -18,7 +18,7 @@ JVM library (Kotlin/Java) - all backed by the same validation core.
 
 - **Offline-first.** Rules and AWS resource schemas are baked into the binary. Nothing is fetched at runtime.
 - **Structured diagnostics.** Every finding carries a stable rule ID, severity, precise source span (line/column),
-  resource path, and an optional suggested fix — designed for IDEs, CI, and agents, not just humans.
+  resource path, and an optional suggested fix - designed for IDEs, CI, and agents, not just humans.
 - **Two interchangeable engines.** A [Rego](https://www.openpolicyagent.org/docs/latest/policy-language/) engine and a
   [CEL](https://cel.dev/) engine evaluate the same rule set and produce identical results.
 - **Additional schemas.** Merge your own CloudFormation resource provider schemas on top of the bundled ones, so
@@ -33,16 +33,16 @@ JVM library (Kotlin/Java) - all backed by the same validation core.
 
 When a template is submitted, `cloudformation-validate` runs a fixed pipeline:
 
-1. **Parse** — read JSON/YAML, resolve intrinsic functions (`Ref`, `Fn::GetAtt`, `Fn::Sub`, `Fn::If`, …), build a
+1. **Parse** - read JSON/YAML, resolve intrinsic functions (`Ref`, `Fn::GetAtt`, `Fn::Sub`, `Fn::If`, …), build a
    reference graph with cycle detection, and model conditions with a SAT solver, producing a semantic model.
-2. **Schema validate** — check each resource against the compiled CloudFormation provider schemas, producing
+2. **Schema validate** - check each resource against the compiled CloudFormation provider schemas, producing
    Fatal-severity diagnostics for structural violations (type mismatches, missing required properties, invalid enums,
    pattern and constraint failures).
-3. **Evaluate rules** — the selected engine (Rego or CEL) evaluates lint rules against the semantic model, producing
+3. **Evaluate rules** - the selected engine (Rego or CEL) evaluates lint rules against the semantic model, producing
    Error/Warning/Info diagnostics for semantic issues, cross-resource references, security risks, and best practices.
-4. **Validate Step Functions** — check `AWS::StepFunctions::StateMachine` definitions (state types, `StartAt`/`Next`
+4. **Validate Step Functions** - check `AWS::StepFunctions::StateMachine` definitions (state types, `StartAt`/`Next`
    references, required fields).
-5. **Enrich, filter, report** — attach rule descriptions and context, apply include/exclude filters and severity
+5. **Enrich, filter, report** - attach rule descriptions and context, apply include/exclude filters and severity
    gating, sort by source location, deduplicate, and assemble a structured JSON report.
 
 ## Installation
@@ -99,7 +99,7 @@ let report = validate_bytes_with_path(
 ) ?;
 
 for d in & report.diagnostics {
-    println!("[{}] {} — {}", d.severity, d.rule_id, d.message);
+    println!("[{}] {} - {}", d.severity, d.rule_id, d.message);
 }
 ```
 
@@ -161,11 +161,11 @@ for (d in report.diagnostics) {
 
 ## Rules
 
-Bring your own rules in any of three formats — all loadable from the CLI and the library:
+Bring your own rules in any of three formats - all loadable from the CLI and the library:
 
-- **CEL** (`.json`) — property and data-driven checks, evaluated by the CEL engine.
-- **Rego** (`.rego`) — complex cross-resource logic, evaluated by the Rego engine.
-- **Guard DSL** (`.guard`) — declarative compliance rules, translated automatically and usable with either engine.
+- **CEL** (`.json`) - property and data-driven checks, evaluated by the CEL engine.
+- **Rego** (`.rego`) - complex cross-resource logic, evaluated by the Rego engine.
+- **Guard DSL** (`.guard`) - declarative compliance rules, translated automatically and usable with either engine.
 
 See [RULES](src/rules/README.md) and [CUSTOM_RULES.md](src/CUSTOM_RULES.md) for the formats, available context, and
 examples.

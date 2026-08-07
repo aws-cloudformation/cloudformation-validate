@@ -67,7 +67,7 @@ val bindingReadme = layout.projectDirectory.file("README.md")
 sourceSets {
     main {
         kotlin.setSrcDirs(listOf(generatedDir))
-        // generated/ also holds the emitted jar and staged natives — only .kt is source.
+        // generated/ also holds the emitted jar and staged natives - only .kt is source.
         kotlin.exclude("**/*.jar", "natives/**")
     }
 }
@@ -250,7 +250,7 @@ tasks.withType<AbstractPublishToMaven>().configureEach {
     doFirst { requireMergedJar() }
 }
 
-// ── PGP signing — required by Maven Central, engaged only when a key is present ──
+// ── PGP signing - required by Maven Central, engaged only when a key is present ──
 // signingKey / signingPassword resolve from -PsigningKey=... or the environment
 // variables ORG_GRADLE_PROJECT_signingKey / ORG_GRADLE_PROJECT_signingPassword.
 // signingKey must be the full ASCII-armored private key block.

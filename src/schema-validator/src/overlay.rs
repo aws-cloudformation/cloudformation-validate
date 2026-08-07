@@ -4,8 +4,8 @@
 //! Bundled schemas are compiled at build time from raw CloudFormation registry
 //! JSON into the compiled representation baked into the binary. This module runs
 //! the *same* transform at engine construction time, so callers can supply
-//! additional schemas — for example properties a service has shipped but not yet
-//! published to the CloudFormation registry — and have templates using them
+//! additional schemas - for example properties a service has shipped but not yet
+//! published to the CloudFormation registry - and have templates using them
 //! validate without false findings.
 //!
 //! # Merge model
@@ -20,20 +20,20 @@
 //!
 //! | Field kind | Rule |
 //! |------------|------|
-//! | Keyed collections — `properties`, `definitions`, `patternProperties` | deep-merged by key: new keys are added, shared keys recurse |
-//! | `required` | replaced when the overlay states the keyword (even as `[]` — that is how a requirement is cleared, and a removal is logged); unioned into the base when the keyword is omitted |
-//! | Independent-fact collections — the `/properties/...` lifecycle metadata lists, and each key of `dependentRequired`/`dependentExcluded` | unioned, order-preserving, deduplicated |
-//! | Single-valued constraints — `type`, `pattern`, `const`, numeric bounds, lengths, item and property counts, `uniqueItems`, `format`, `description`, `additionalProperties`, `not.enum` | replaced when the overlay supplies them, inherited otherwise |
-//! | Logical groups — `requiredOr`, `requiredXor`, `primaryIdentifier` | replaced as a whole when supplied. Each is *one* group ("at least one of", "exactly one of", "these properties identify the resource"), so unioning two groups would fabricate a third constraint that neither schema states |
-//! | Composition — `allOf`/`anyOf`/`oneOf`/`if`-`then`-`else` | replaced when supplied, because a complete overlay restates the whole composition and appending would duplicate branches. `allOf` splits into plain and conditional entries during compilation, so an overlay supplying `allOf` replaces both halves together |
-//! | Singleton subschemas — `items` (the schema every array element must satisfy) | deep-merged, like one keyed entry: an overlay stating only `pattern` narrows the element schema without discarding the rest of it |
-//! | Schema-level metadata — `replacementStrategy`, `documentationUrl`, `sourceUrl` | replaced when supplied. These enrich reporting and constrain nothing |
+//! | Keyed collections - `properties`, `definitions`, `patternProperties` | deep-merged by key: new keys are added, shared keys recurse |
+//! | `required` | replaced when the overlay states the keyword (even as `[]` - that is how a requirement is cleared, and a removal is logged); unioned into the base when the keyword is omitted |
+//! | Independent-fact collections - the `/properties/...` lifecycle metadata lists, and each key of `dependentRequired`/`dependentExcluded` | unioned, order-preserving, deduplicated |
+//! | Single-valued constraints - `type`, `pattern`, `const`, numeric bounds, lengths, item and property counts, `uniqueItems`, `format`, `description`, `additionalProperties`, `not.enum` | replaced when the overlay supplies them, inherited otherwise |
+//! | Logical groups - `requiredOr`, `requiredXor`, `primaryIdentifier` | replaced as a whole when supplied. Each is *one* group ("at least one of", "exactly one of", "these properties identify the resource"), so unioning two groups would fabricate a third constraint that neither schema states |
+//! | Composition - `allOf`/`anyOf`/`oneOf`/`if`-`then`-`else` | replaced when supplied, because a complete overlay restates the whole composition and appending would duplicate branches. `allOf` splits into plain and conditional entries during compilation, so an overlay supplying `allOf` replaces both halves together |
+//! | Singleton subschemas - `items` (the schema every array element must satisfy) | deep-merged, like one keyed entry: an overlay stating only `pattern` narrows the element schema without discarding the rest of it |
+//! | Schema-level metadata - `replacementStrategy`, `documentationUrl`, `sourceUrl` | replaced when supplied. These enrich reporting and constrain nothing |
 //! | Enums | `enum` and `enumCaseInsensitive` are two representations of one field and are never both populated for a property. Supplying either replaces whichever the bundled schema used, keeping the bundled comparison semantics: widening a case-insensitive enum with a plain `enum` stays case-insensitive, so previously accepted casings keep validating |
 //!
 //! A `$ref` is never folded into the property that points at it. An overlay
 //! extending a `$ref` property has its fields merged *beside* the reference, and
 //! `PropSchema::resolve` combines the
-//! whole chain at validation time — each hop's own constraints applied over its
+//! whole chain at validation time - each hop's own constraints applied over its
 //! target, nearest hop winning. So a constraint-only overlay (say, just `enum`)
 //! takes effect, a chain of references is followed to its end, and a definition
 //! changed by a later overlay still reaches every property referencing it. It
@@ -53,7 +53,7 @@
 //!
 //! # Scope limits
 //!
-//! - An overlay cannot remove an entry from a lifecycle metadata list — those
+//! - An overlay cannot remove an entry from a lifecycle metadata list - those
 //!   collections only ever grow. `required` is the one collection with
 //!   replacement semantics (below), and any requirement a replacement removes
 //!   is logged.
@@ -61,9 +61,9 @@
 //!   schemas: branch `required`, `additionalProperties`, dependency maps, value
 //!   constraints, and nested conditionals are all evaluated when the branch is
 //!   matched or (for a selected `then`/`else` branch) enforced.
-//! - Constructs the compiled model does not represent — a `$ref` outside
+//! - Constructs the compiled model does not represent - a `$ref` outside
 //!   `#/definitions/`, tuple-form `items`, an unknown property type, malformed
-//!   keyword values, or invalid regular expressions — are rejected.
+//!   keyword values, or invalid regular expressions - are rejected.
 //! - Validation keywords with no compiled representation (`propertyNames`,
 //!   `contains`, and `not` other than `not.enum`) are rejected.
 //!   `multipleOf` and `dependencies` (array-form property dependencies) ARE
@@ -87,7 +87,7 @@
 //!   fragments are validated from a separate embedded artifact that overlays do
 //!   not merge into, so an overlay cannot suppress a finding originating there.
 //! - Schema-level metadata (`description`, `documentationUrl`, `sourceUrl`,
-//!   `replacementStrategy`) alone is not sufficient — the overlay must carry at
+//!   `replacementStrategy`) alone is not sufficient - the overlay must carry at
 //!   least one validatable constraint. Metadata enriches diagnostic context only
 //!   when combined with properties, required, or other constraints.
 //! - Overlay-derived resource types, GetAtt attributes and types, Ref return
@@ -122,7 +122,7 @@ const REF_ANNOTATION_KEYWORDS: &[&str] = keywords::REF_ANNOTATION_KEYWORDS;
 
 /// Validation keywords the compiled schema model has no field for, so nothing
 /// enforces them. An overlay stating one would silently weaken the author's
-/// intent — rejected so embedders cannot accidentally rely on a constraint that
+/// intent - rejected so embedders cannot accidentally rely on a constraint that
 /// nothing checks. `not` is handled separately because only its nested `enum` is
 /// modelled.
 ///
@@ -132,7 +132,7 @@ const UNREPRESENTED_CONSTRAINT_KEYWORDS: &[&str] = keywords::UNREPRESENTED_VALID
 /// The set of fields the runtime evaluates when matching a composition branch.
 /// Since composition branches are now full `PropSchema`s, the runtime evaluates
 /// all representable constraint fields. This list gates what the overlay
-/// preflight accepts — any field not here is rejected so the overlay author
+/// preflight accepts - any field not here is rejected so the overlay author
 /// knows it would not fire.
 const COMPOSITION_ALLOWED_FIELDS: &[&str] = &[
     keywords::REF,
@@ -213,7 +213,7 @@ const CONDITIONAL_THEN_ELSE_ALLOWED_FIELDS: &[&str] = COMPOSITION_ALLOWED_FIELDS
 /// could exhaust the stack and abort the host process. The bound matches the
 /// nesting limit `serde_json` applies when parsing, so a programmatically built
 /// `serde_json::Value` is held to the same limit as the same schema supplied as
-/// text. Real provider schemas nest far shallower — the deepest published
+/// text. Real provider schemas nest far shallower - the deepest published
 /// schema measures 18 levels.
 pub const MAX_OVERLAY_DEPTH: usize = 128;
 
@@ -310,7 +310,7 @@ impl Error for SchemaOverlayError {}
 /// The raw → compiled transform is single-sourced in `data_source`, the same
 /// function the build pipeline uses for bundled schemas; the result is converted
 /// into the runtime type field by field. The transform is shared but the input is
-/// not enriched the way the build pipeline enriches bundled schemas — see the
+/// not enriched the way the build pipeline enriches bundled schemas - see the
 /// `data_source::compiled_schema` module docs.
 pub(crate) fn compile(type_name: &str, raw: &Value) -> Result<CompiledSchema, SchemaOverlayError> {
     if type_name.trim().is_empty() {
@@ -358,7 +358,7 @@ pub(crate) fn compile(type_name: &str, raw: &Value) -> Result<CompiledSchema, Sc
     // Propagate required_present into property-level and definition-level schemas
     // where `required` was explicitly stated in their source objects.
     propagate_required_present(raw, &mut compiled);
-    // Conditionals an overlay author states are enforced in full — no dedicated
+    // Conditionals an overlay author states are enforced in full - no dedicated
     // rule covers them, unlike bundled conditionals (see
     // `IfThenElse::enforce_full_branch`).
     mark_conditionals_for_full_enforcement(&mut compiled);
@@ -368,9 +368,9 @@ pub(crate) fn compile(type_name: &str, raw: &Value) -> Result<CompiledSchema, Sc
     Ok(compiled)
 }
 
-/// Marks every conditional in the compiled overlay — at the schema root, on
+/// Marks every conditional in the compiled overlay - at the schema root, on
 /// properties and definitions at any nesting depth, and inside composition
-/// branches — for full branch enforcement.
+/// branches - for full branch enforcement.
 fn mark_conditionals_for_full_enforcement(schema: &mut CompiledSchema) {
     for ite in &mut schema.if_then_else {
         mark_ite(ite);
@@ -406,7 +406,7 @@ fn mark_prop_conditionals(prop: &mut PropSchema) {
 }
 
 /// Whether a compiled overlay carries no information that would affect
-/// validation — the shape a misspelled or wrong-format JSON object compiles to.
+/// validation - the shape a misspelled or wrong-format JSON object compiles to.
 /// Destructured exhaustively so a new field cannot be omitted from the check.
 ///
 /// Schema-level metadata that enriches reporting but constrains nothing
@@ -518,8 +518,8 @@ fn check_depth(type_name: &str, raw: &Value) -> Result<(), SchemaOverlayError> {
 /// and reduces a shape it does not model to an empty one. That is invisible on
 /// curated input and unacceptable on caller input: an overlay that silently
 /// validates less than it states is worse than a rejected one. The walk follows
-/// schema positions only — `properties`, `definitions`, `patternProperties`,
-/// `items`, and composition entries — so a value that merely happens to contain a
+/// schema positions only - `properties`, `definitions`, `patternProperties`,
+/// `items`, and composition entries - so a value that merely happens to contain a
 /// key like `type` is not mistaken for a schema.
 fn check_supported(type_name: &str, raw: &Value) -> Result<(), SchemaOverlayError> {
     let reject = |path: &str, detail: &str| SchemaOverlayError::Unsupported {
@@ -551,7 +551,7 @@ fn check_supported(type_name: &str, raw: &Value) -> Result<(), SchemaOverlayErro
                 None => return Err(reject(&path, "'$ref' must be a string")),
             }
             // compile_prop now preserves represented constraint siblings beside
-            // a $ref — they are merged at validation time via PropSchema::resolve.
+            // a $ref - they are merged at validation time via PropSchema::resolve.
             // Only reject siblings that are genuinely unrepresented (keywords with
             // no compiled field), so the overlay author is warned rather than
             // silently weakened.
@@ -728,7 +728,7 @@ fn validate_keyword_types(
         let obj = val.as_object().ok_or_else(|| reject("'dependencies' must be an object"))?;
         for (key, dep_value) in obj {
             if dep_value.is_array() {
-                // Array-form: property dependencies — accepted
+                // Array-form: property dependencies - accepted
                 let arr = dep_value.as_array().expect("confirmed array");
                 for item in arr {
                     if !item.is_string() {
@@ -975,7 +975,7 @@ fn validate_conditional_allof_entry(
 /// Rejects direct `if`/`then`/`else` at root or property level.
 ///
 /// Standalone `if`/`then`/`else` (outside `allOf`) is not supported in the
-/// compiled model — it is only recognized inside `allOf` entries. Accepting it
+/// compiled model - it is only recognized inside `allOf` entries. Accepting it
 /// silently would drop the constraint.
 fn reject_direct_if_then_else(
     type_name: &str,
@@ -987,7 +987,7 @@ fn reject_direct_if_then_else(
             // Direct if/then/else is supported at property level (compiled into
             // if_then_else) and inside allOf entries. At the schema root the
             // compiler only reads conditionals from inside `allOf`, so a
-            // root-level standalone conditional would be silently dropped — a
+            // root-level standalone conditional would be silently dropped - a
             // sibling `allOf` key does not move the root conditional into that
             // array.
             if path.is_empty() {
@@ -1122,7 +1122,7 @@ pub(crate) fn validate_schema(schema: &CompiledSchema) -> Result<(), SchemaOverl
 
 /// Maximum `$ref` hops in a chain of definitions. One shorter than
 /// [`MAX_REF_CHAIN`], because resolution starts at the property referencing the
-/// first definition — so a chain of this length still resolves in full instead of
+/// first definition - so a chain of this length still resolves in full instead of
 /// being cut short.
 const MAX_DEFINITION_REF_CHAIN: usize = MAX_REF_CHAIN - 1;
 
@@ -1165,7 +1165,7 @@ fn find_ref_chain_defect(defs: &HashMap<String, PropSchema>) -> Option<RefChainD
 /// An overlay that states `required` replaces the base's list at that schema
 /// level; a complete provider schema does this deliberately, while a partial
 /// overlay that restates `required` does it by accident. Either way a bundled
-/// constraint disappearing is worth saying out loud — silently weakening the
+/// constraint disappearing is worth saying out loud - silently weakening the
 /// schema is the failure mode this module exists to prevent.
 pub(crate) fn warn_removed_required(base: &CompiledSchema, merged: &CompiledSchema) {
     for (path, removed) in removed_required(base, merged) {
@@ -1251,7 +1251,7 @@ pub(crate) fn warn_dangling_refs(schema: &CompiledSchema) {
 ///
 /// Walked per overlay for a warning (a later overlay in the sequence may supply
 /// the definition) and again after the whole sequence, where a survivor is
-/// rejected — a property referencing nothing validates nothing, which is the
+/// rejected - a property referencing nothing validates nothing, which is the
 /// silent weakening this module exists to prevent.
 pub(crate) fn find_dangling_refs(schema: &CompiledSchema) -> Vec<(String, String)> {
     let mut dangling: Vec<(String, String)> = Vec::new();
@@ -1336,7 +1336,7 @@ pub(crate) fn merge_into(base: &mut CompiledSchema, overlay: CompiledSchema) {
     merge_prop_map(&mut base.properties, overlay.properties);
 
     // An overlay that explicitly states `required` (even as `[]`) authoritatively
-    // replaces the prior required list — this is how an overlay clears required
+    // replaces the prior required list - this is how an overlay clears required
     // properties. Omitting `required` from the overlay preserves the base.
     // `apply_overlay` reports any requirement a replacement removes, so a
     // partial overlay that restates `required` carelessly is called out.
@@ -1369,14 +1369,14 @@ pub(crate) fn merge_into(base: &mut CompiledSchema, overlay: CompiledSchema) {
 
     // `allOf` is split during compilation into plain subschemas and conditional
     // `if`/`then`/`else` entries. They come from one keyword, so an overlay that
-    // supplies it replaces both halves together — replacing only the half it
+    // supplies it replaces both halves together - replacing only the half it
     // happens to populate would leave a composition matching neither schema.
     //
     // This replacement does NOT suppress extension-origin findings: conditional
     // constraints from the build pipeline's extension fragments are stored in a
     // separately embedded ExtensionStore that overlays do not merge into. An
     // overlay replacing `allOf` here only affects the main schema's composition
-    // — the extension-contributed conditionals remain validated independently.
+    // - the extension-contributed conditionals remain validated independently.
     if !overlay.all_of.is_empty() || !overlay.if_then_else.is_empty() {
         base.all_of = overlay.all_of;
         base.if_then_else = overlay.if_then_else;
@@ -1397,7 +1397,7 @@ pub(crate) fn merge_into(base: &mut CompiledSchema, overlay: CompiledSchema) {
 ///
 /// New definitions are inserted and shared ones are merged in place. Nothing here
 /// depends on the order definitions are visited, because a `$ref` is never folded
-/// into the property or definition that points at it — resolution happens at
+/// into the property or definition that points at it - resolution happens at
 /// validation time against the final definition set (see
 /// `PropSchema::resolve`).
 fn merge_definitions(base: &mut HashMap<String, PropSchema>, overlay: HashMap<String, PropSchema>) {
@@ -1415,7 +1415,7 @@ fn merge_definitions(base: &mut HashMap<String, PropSchema>, overlay: HashMap<St
 pub(crate) fn merge_prop(base: &mut PropSchema, overlay: PropSchema) {
     let mut overlay = overlay;
     // An overlay that supplies a `$ref` updates the reference target, and its
-    // remaining fields merge normally below — constraint siblings the overlay
+    // remaining fields merge normally below - constraint siblings the overlay
     // states beside its reference are preserved, not discarded. The base's
     // existing inline constraints also survive, so redirecting a reference
     // never silently weakens the property.
@@ -1479,7 +1479,7 @@ pub(crate) fn merge_prop(base: &mut PropSchema, overlay: PropSchema) {
 /// `enum` and `enumCaseInsensitive` are the same field in two comparison modes,
 /// evaluated independently by the validator, so leaving both populated would
 /// report a value twice with contradictory allowed sets. When the bundled schema
-/// compares case-insensitively — because the service accepts any casing — a
+/// compares case-insensitively - because the service accepts any casing - a
 /// plain `enum` overlay keeps that mode: the overlay author is widening the value
 /// list, not tightening the comparison, and reinterpreting it as case-sensitive
 /// would reject casings that validate today.

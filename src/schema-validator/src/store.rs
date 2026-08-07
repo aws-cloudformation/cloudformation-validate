@@ -7,8 +7,8 @@ use template_model::regions::AWS_REGIONS;
 /// What applying an overlay did to the store.
 ///
 /// An overlay whose type name matches no bundled schema is registered as a new
-/// resource type — the supported way to describe a type CloudFormation has not
-/// published yet — but it is also what a misspelled type name produces, so the
+/// resource type - the supported way to describe a type CloudFormation has not
+/// published yet - but it is also what a misspelled type name produces, so the
 /// distinction is reported rather than swallowed.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OverlayOutcome {
@@ -95,7 +95,7 @@ impl CompiledSchemaStore {
     /// matched nothing. See the [`crate::overlay`] module for the merge
     /// model and its scope limits.
     ///
-    /// Input is validated before anything is committed — an empty type name,
+    /// Input is validated before anything is committed - an empty type name,
     /// non-object JSON, nesting past [`MAX_OVERLAY_DEPTH`](crate::overlay::MAX_OVERLAY_DEPTH),
     /// a cyclic definition graph, or an overlay that would change nothing is an
     /// error and leaves the store untouched. The merge therefore runs on a copy
@@ -128,7 +128,7 @@ impl CompiledSchemaStore {
         }
     }
 
-    /// Registers a schema directly, bypassing the embedded artifacts — lets
+    /// Registers a schema directly, bypassing the embedded artifacts - lets
     /// unit tests exercise validation against schema shapes the committed
     /// artifacts do not yet contain.
     #[cfg(test)]
@@ -432,7 +432,7 @@ impl RegionEnumStore {
     }
 
     /// Allowed values for a property in the effective scope: the single `region`
-    /// when configured, or the union across all AWS regions when not (`None`) — so
+    /// when configured, or the union across all AWS regions when not (`None`) - so
     /// with no region a value is accepted when it is valid in any region. Returns
     /// `None` when the property has no regional override, or when a configured
     /// region has no entry, so the caller falls back to the region-agnostic enum.

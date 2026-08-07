@@ -489,7 +489,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
     // parameters in ways not visible before expansion, so an unreferenced
     // parameter is not a reliable signal once any transform is present.
     //
-    // A parameter can be referenced from a section the parser could not read —
+    // A parameter can be referenced from a section the parser could not read -
     // an unexpanded Fn::ForEach key (the transform that would expand it is
     // missing) or a malformed Conditions section (e.g. authored as a list). In
     // those cases the reference graph is incomplete, so the unused-parameter
@@ -688,7 +688,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                         && ret_type != "string"
                     {
                         // An array-returning GetAtt in an output is consumed by
-                        // Fn::Select to extract a string element — the array
+                        // Fn::Select to extract a string element - the array
                         // itself is never the output value, so it is not a
                         // string-type violation. Only scalar non-string returns
                         // (integer, boolean) are reported.
@@ -805,7 +805,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     // Tautological Fn::Equals is detected by template-model and emitted as a
-    // parser-level diagnostic — no engine rule needed.
+    // parser-level diagnostic - no engine rule needed.
 
     for (pname, info) in &m.parameters {
         let def = match &info.default {
@@ -920,7 +920,7 @@ fn eval_template_size_and_transforms(ctx: &EvalContext) -> Vec<Diagnostic> {
         // CloudFormation validates AllowedPattern with a PCRE-style engine that supports
         // lookaround, backreferences, `\Z`, POSIX classes and large Unicode classes. A pattern
         // that only uses those constructs is still valid service-side, so report I2003 only for a
-        // pattern that no compilation strategy can accept — i.e. one that is genuinely malformed.
+        // pattern that no compilation strategy can accept - i.e. one that is genuinely malformed.
         if let Some(ref pattern) = param.allowed_pattern
             && !is_service_valid(pattern)
         {

@@ -104,7 +104,7 @@ fn additional_properties_rejected() {
 #[test]
 fn additional_properties_typo_suggestion() {
     let diags = validate_fixture("bad/schema_additional_props.yaml");
-    // "BukcetName" has similarity 0.8 to "BucketName" — threshold is > 0.8, so no suggestion
+    // "BukcetName" has similarity 0.8 to "BucketName" - threshold is > 0.8, so no suggestion
     let typo_diag = diags.iter().find(|d| d.rule_id == "F3002" && d.message.contains("BukcetName"));
     let typo_diag = typo_diag.expect("expected F3002 for BukcetName");
     assert!(
@@ -195,7 +195,7 @@ fn format_validation_with_refs() {
 // A reference whose target resource produces the wrong destination ARN format
 // is a semantic, cross-resource concern owned by the rule engine, not the schema
 // validator. The schema validator only proves structural type incompatibility,
-// which a string-typed reference name does not violate — so it must not raise an
+// which a string-typed reference name does not violate - so it must not raise an
 // ARN-format violation here.
 #[test]
 fn ref_to_wrong_arn_format_is_not_a_schema_format_violation() {
@@ -258,7 +258,7 @@ fn enrich_context_adds_allowed_values_for_enum() {
 }
 
 /// A value that is unknown until deployment is described by what actually
-/// produced it. Only a parameter is called a parameter, and it is named — the
+/// produced it. Only a parameter is called a parameter, and it is named - the
 /// explanation of why the value is unknown never stands in for a name.
 #[test]
 fn enrich_context_describes_a_deploy_time_value_by_its_real_source() {

@@ -369,7 +369,7 @@ fn assert_metadata_maps_identical(
     assert_eq!(
         cel_meta.len(),
         rego_meta.len(),
-        "{label}: entry count differs — cel={} rego={}",
+        "{label}: entry count differs - cel={} rego={}",
         cel_meta.len(),
         rego_meta.len()
     );
@@ -377,7 +377,7 @@ fn assert_metadata_maps_identical(
         let rego_entry = rego_meta.get(id).unwrap_or_else(|| panic!("{label}: rule {id} in cel but not rego"));
         assert_eq!(
             cel_entry, rego_entry,
-            "{label}: rule {id} metadata differs — cel={cel_entry:?} rego={rego_entry:?}"
+            "{label}: rule {id} metadata differs - cel={cel_entry:?} rego={rego_entry:?}"
         );
     }
     for id in rego_meta.keys() {
@@ -545,7 +545,7 @@ fn good_sam_templates_are_clean_on_both_engines() {
 
 /// Every `bad/sam` template must produce identical diagnostics on both engines,
 /// and each must fire the SAM transform-error rule (E0001) or the
-/// missing-transform rule (E3038) — the engines stay at parity on SAM handling.
+/// missing-transform rule (E3038) - the engines stay at parity on SAM handling.
 #[test]
 fn bad_sam_templates_fire_identically_on_both_engines() {
     let sv = SchemaValidator::default();

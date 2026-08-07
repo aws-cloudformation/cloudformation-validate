@@ -4,7 +4,7 @@ use std::io::Cursor;
 use std::path::{Path, PathBuf};
 
 /// All data files are minified, zstd-compressed (level 9), and embedded as
-/// `pub static NAME_BYTES: LazyLock<Vec<u8>>` — decompressed lazily on first access.
+/// `pub static NAME_BYTES: LazyLock<Vec<u8>>` - decompressed lazily on first access.
 const GENERATED_JSON: &[(&str, &str)] = &[
     // schema-validator
     ("compiled_schemas", "COMPILED_SCHEMAS"),

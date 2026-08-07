@@ -1,11 +1,11 @@
 # CloudFormation Validate for Python
 
 Validate AWS CloudFormation templates from Python and catch schema violations, security risks, and best-practice
-findings before deployment — in your editor, build, or CI.
+findings before deployment - in your editor, build, or CI.
 
-- **Offline** — all rules and resource schemas are bundled.
-- **Fast** — sub-second validation per template.
-- **Self-contained** — each platform wheel bundles its matching native library.
+- **Offline** - all rules and resource schemas are bundled.
+- **Fast** - sub-second validation per template.
+- **Self-contained** - each platform wheel bundles its matching native library.
 
 All types are importable from the top-level `cloudformation_validate` package.
 
@@ -33,10 +33,10 @@ for d in report.diagnostics:
     print(f"[{d.severity.name}] {d.rule_id}: {d.message}")
 ```
 
-Each diagnostic identifies the rule, severity, affected resource and property, and source location — see
+Each diagnostic identifies the rule, severity, affected resource and property, and source location - see
 [StandardDiagnostic](#standarddiagnostic).
 
-Engines are expensive to construct (rules compile once) and cheap to reuse — create one engine and validate many
+Engines are expensive to construct (rules compile once) and cheap to reuse - create one engine and validate many
 templates. A template is passed either as a file path (`str` or `os.PathLike`, read from disk) or as raw `bytes`:
 
 ```python
@@ -45,7 +45,7 @@ report = engine.validate_standard(b"Resources: {}")
 
 ## Engine
 
-`RegoEngine` and `CelEngine` both subclass `Engine` and are interchangeable — they produce identical diagnostics for
+`RegoEngine` and `CelEngine` both subclass `Engine` and are interchangeable - they produce identical diagnostics for
 the same template and config.
 
 | Method                                     | Returns          | Description                                                                                                      |
@@ -69,7 +69,7 @@ engine = CelEngine(EngineConfig(guard_rules=[my_rule]))  # with Guard rules
 | Field                     | Default | Description                                                                      |
 |---------------------------|---------|----------------------------------------------------------------------------------|
 | `custom_rules`            | `[]`    | Engine-native rules (Rego for `RegoEngine`, CEL for `CelEngine`)                 |
-| `guard_rules`             | `[]`    | CloudFormation Guard DSL rules — translated internally by each engine            |
+| `guard_rules`             | `[]`    | CloudFormation Guard DSL rules - translated internally by each engine            |
 | `schema_validator_config` | `None`  | Optional `SchemaValidatorConfig`; configures the validator bundled by the engine |
 
 The optional `schema_validator_config` field accepts a `SchemaValidatorConfig` containing additional schemas. Each
@@ -88,8 +88,8 @@ engine = RegoEngine(
 )
 ```
 
-Each rule is an `ExternalRuleSource`. Load one from a file with `file_to_external_rule_source(path)` — the same
-pattern as passing a template path to `validate_standard` — or construct it from explicit values with
+Each rule is an `ExternalRuleSource`. Load one from a file with `file_to_external_rule_source(path)` - the same
+pattern as passing a template path to `validate_standard` - or construct it from explicit values with
 `ExternalRuleSource(name, content)`, where `name` identifies the rule in diagnostics and `content` is the full rule
 source text. The two can be mixed freely:
 
@@ -106,7 +106,7 @@ engine = CelEngine(
 
 ## ValidateConfig
 
-Controls filtering, severity, parameter overrides, and behavior. All fields have defaults — passing `ValidateConfig()`
+Controls filtering, severity, parameter overrides, and behavior. All fields have defaults - passing `ValidateConfig()`
 uses them.
 
 ```python
@@ -129,7 +129,7 @@ report = engine.validate_standard("template.yaml", config)
 
 ### RuleFilterConfig
 
-Both `include` and `exclude` use this structure. All fields are additive — a rule matches if it hits any criterion.
+Both `include` and `exclude` use this structure. All fields are additive - a rule matches if it hits any criterion.
 
 ```python
 class RuleFilterConfig:
@@ -167,7 +167,7 @@ class ServiceFilter:
     service: str
 ```
 
-The `service` is matched verbatim against the `service-provider::service-name` prefix of the resource type — its first
+The `service` is matched verbatim against the `service-provider::service-name` prefix of the resource type - its first
 two `::`-delimited segments (e.g. `AWS::AutoScaling` in `AWS::AutoScaling::LaunchConfiguration`).
 
 The `resource_ids` dimension matches only diagnostics attributed to a resource; `logical_ids` additionally matches
@@ -177,7 +177,7 @@ the same value). A non-`None` `entity_type` scopes a `LogicalIdFilter` to entiti
 
 ### PseudoParameterOverrides
 
-Override CloudFormation pseudo-parameters used during intrinsic function resolution. All fields optional — when `None`,
+Override CloudFormation pseudo-parameters used during intrinsic function resolution. All fields optional - when `None`,
 the engine uses built-in defaults (e.g. region defaults to `us-east-1`).
 
 ```python
@@ -194,7 +194,7 @@ class PseudoParameterOverrides:
 
 ## TemplateModel
 
-Parses a template into the resolved `SemanticModel` for direct inspection — the same model the engines evaluate rules
+Parses a template into the resolved `SemanticModel` for direct inspection - the same model the engines evaluate rules
 against.
 
 ```python
@@ -284,5 +284,5 @@ class Entity:
 ```
 
 `Severity` and `RuleOrigin` are enums; use `.name` for the string form (e.g. `severity.name == "WARN"`). Every fallible
-call raises `ValidationError` — internal panics are caught at the FFI boundary and surface as the same exception, never
+call raises `ValidationError` - internal panics are caught at the FFI boundary and surface as the same exception, never
 a process abort.

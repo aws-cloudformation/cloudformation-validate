@@ -192,7 +192,7 @@ macro_rules! define_flattened_diagnostic {
             pub message: String,
             /// Where the rule came from, such as a provider schema, the built-in engine, or a user-supplied rule.
             pub source: RuleOrigin,
-            /// The named template entity this finding targets — a resource, parameter, output, mapping, condition, or template rule — if any.
+            /// The named template entity this finding targets - a resource, parameter, output, mapping, condition, or template rule - if any.
             #[serde(default, skip_serializing_if = "Option::is_none")]
             #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
             pub entity: Option<Entity>,

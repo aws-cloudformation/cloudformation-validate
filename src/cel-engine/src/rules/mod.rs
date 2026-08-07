@@ -228,7 +228,7 @@ impl CachedData {
         Ok(())
     }
 
-    /// Lazy accessor — parses the 14MB `schema_metadata` JSON on first call.
+    /// Lazy accessor - parses the 14MB `schema_metadata` JSON on first call.
     pub fn schema_metadata(&self) -> &serde_json::Value {
         self.schema_metadata_lazy.get_or_init(|| {
             serde_json::from_slice(&embedded::SCHEMA_METADATA_BYTES).expect("Failed to parse schema_metadata JSON")

@@ -4,7 +4,7 @@ import rego.v1
 
 # ECS dynamic host port (0) registers each task with an ephemeral port, so the
 # target group's health check must follow that port. It does so only when
-# HealthCheckPort is 'traffic-port' — which is also the default when the
+# HealthCheckPort is 'traffic-port' - which is also the default when the
 # property is omitted. The finding is anchored on the target group's
 # HealthCheckPort (the property that governs the health check), with the
 # service as a related location.
@@ -56,7 +56,7 @@ _scalar_port(x) := sprintf("%v", [x]) if is_number(x)
 # HealthCheckPort pinned to a concrete port other than 'traffic-port' (in any
 # branch): health checks target that fixed port instead of the ephemeral traffic
 # port. A deploy-time value (Ref/dynamic reference) is not concrete, so it is
-# left unflagged — its value is unknowable here.
+# left unflagged - its value is unknowable here.
 violation contains make_diag_related("W3049", "WARN", b.tg_name,
     "Properties.HealthCheckPort",
     sprintf("Container '%s' uses dynamic host port 0, so each task registers on an ephemeral port, but TargetGroup '%s' health-checks the fixed port '%s'. The health check will not follow the traffic port unless '%s' is separately served on every target. Use HealthCheckPort 'traffic-port' to health-check the port each target actually receives traffic on",
@@ -69,7 +69,7 @@ violation contains make_diag_related("W3049", "WARN", b.tg_name,
 }
 
 # HealthCheckPort omitted: defaults to 'traffic-port', the correct setting for
-# dynamic port mapping. Advisory only — the template deploys and works. An absent
+# dynamic port mapping. Advisory only - the template deploys and works. An absent
 # property has no concrete port, so this never overlaps the wrong-port warning.
 violation contains make_diag_related("I3049", "INFO", b.tg_name,
     "Properties.HealthCheckPort",

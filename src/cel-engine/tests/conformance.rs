@@ -177,7 +177,7 @@ Resources:
             ids
         );
         let f3012_count = ids.iter().filter(|id| *id == "F3012").count();
-        assert_eq!(f3012_count, 0, "String '443' should be coerced, not rejected — got {} F3012s", f3012_count);
+        assert_eq!(f3012_count, 0, "String '443' should be coerced, not rejected - got {} F3012s", f3012_count);
     }
 
     #[test]
@@ -223,7 +223,7 @@ Resources:
         let has_w3012 = ids.iter().any(|id| id == "W9003");
         assert!(has_w3012, "Expected W9003 coercion warning for string 'true' on PropagateAtLaunch, got: {:?}", ids);
         let has_f3012 = ids.iter().any(|id| id == "F3012");
-        assert!(!has_f3012, "String 'true' should be coerced, not rejected — got F3012 in: {:?}", ids);
+        assert!(!has_f3012, "String 'true' should be coerced, not rejected - got F3012 in: {:?}", ids);
     }
 
     #[test]

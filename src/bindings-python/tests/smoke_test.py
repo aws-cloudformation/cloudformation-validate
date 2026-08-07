@@ -3,7 +3,7 @@
 Runs against the assembled package in ../generated (see run.sh), exercising the
 public API end to end: engine construction, validation reports, engine parity,
 the semantic model, the schema validator, custom rules, and error handling.
-Standard library only — no test dependencies.
+Standard library only - no test dependencies.
 """
 
 import os

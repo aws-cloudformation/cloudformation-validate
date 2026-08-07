@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 # Issue #42 conditional case: HealthCheckPort is an Fn::If whose branches are
-# both concrete — one pins a fixed port ('8080'), the other is 'traffic-port'.
+# both concrete - one pins a fixed port ('8080'), the other is 'traffic-port'.
 # The fixed branch would health-check the wrong port under dynamic port mapping,
 # so W3049 fires (both engines must explore every branch and agree). The
 # reference linter also flags this on the HealthCheckPort property.

@@ -236,7 +236,7 @@ pub mod keywords {
     // `compile_sub` now compiles a composition branch into a full `PropSchema`,
     // so it reads every constraint keyword that `compile_prop` reads. The
     // overlay's `COMPOSITION_ALLOWED_FIELDS` is validated against what the
-    // runtime actually *evaluates* for composition entries — a separate,
+    // runtime actually *evaluates* for composition entries - a separate,
     // narrower set managed in `schema-validator`.
 
     /// Fields read by `compile_sub`: since `SubSchema` is now `PropSchema`, this
@@ -402,7 +402,7 @@ fn skip_unless_true(value: &Option<bool>) -> bool {
     *value != Some(true)
 }
 
-/// A composition branch is now a full property schema — every constraint that
+/// A composition branch is now a full property schema - every constraint that
 /// `compile_prop` produces is available in a branch and evaluated by the runtime.
 /// This alias maintains naming clarity at usage sites.
 pub type SubSchema = PropSchema;
@@ -431,8 +431,8 @@ fn convert_property_paths(raw: &serde_json::Value) -> Vec<String> {
 
 /// How to treat constraint keywords written beside a `$ref`.
 ///
-/// Draft-07 — the dialect provider schemas are written against, and the one the
-/// CloudFormation registry itself validates with — ignores every keyword beside
+/// Draft-07 - the dialect provider schemas are written against, and the one the
+/// CloudFormation registry itself validates with - ignores every keyword beside
 /// a `$ref`. The build pipeline compiles bundled schemas with [`Self::Ignore`]
 /// so the engine never enforces more than CloudFormation's own contract. Overlay
 /// schemas are compiled with [`Self::Enforce`]: the author supplied the sibling
@@ -446,7 +446,7 @@ pub enum RefSiblings {
     Ignore,
 }
 
-/// Compiles a raw provider schema with [`RefSiblings::Enforce`] — the overlay
+/// Compiles a raw provider schema with [`RefSiblings::Enforce`] - the overlay
 /// path. The build pipeline uses [`compile_schema_with`] and
 /// [`RefSiblings::Ignore`] instead; see [`RefSiblings`].
 pub fn compile_schema(type_name: &str, raw: &serde_json::Value) -> CompiledSchema {
@@ -612,8 +612,8 @@ fn compile_prop_with(raw: &serde_json::Value, ref_siblings: RefSiblings) -> Prop
     // When a $ref is present, compile it as the ref_name. Under
     // [`RefSiblings::Enforce`], represented sibling constraints beside the
     // reference are additionally compiled and merged at validation time via
-    // `PropSchema::resolve`. Under [`RefSiblings::Ignore`] — draft-07
-    // evaluation, used for bundled schemas — everything beside the reference is
+    // `PropSchema::resolve`. Under [`RefSiblings::Ignore`] - draft-07
+    // evaluation, used for bundled schemas - everything beside the reference is
     // dropped. Annotations beside a $ref are ignored either way.
     let raw_ref = obj.get(keywords::REF).and_then(|v| v.as_str());
     let ref_name = raw_ref.and_then(|ref_str| ref_str.strip_prefix(keywords::DEFINITIONS_REF_PREFIX).map(String::from));
@@ -1133,7 +1133,7 @@ mod tests {
 
     #[test]
     fn ref_siblings_ignore_drops_everything_beside_a_ref() {
-        // Draft-07 — the dialect the CloudFormation registry validates with —
+        // Draft-07 - the dialect the CloudFormation registry validates with -
         // ignores keywords beside a `$ref`. The build pipeline compiles bundled
         // schemas this way so the engine never enforces more than
         // CloudFormation's own contract.

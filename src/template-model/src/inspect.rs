@@ -235,7 +235,7 @@ fn inspect_file(path: &str) {
         for (cond_name, always_val) in model.conditions.tautological_equals() {
             println!("  ⚠ Tautological: {} always {}", cond_name, if always_val { "True" } else { "False" });
         }
-        // Pairwise compatibility (SAT analysis) — cap at 20 conditions
+        // Pairwise compatibility (SAT analysis) - cap at 20 conditions
         // Skip conditions that are tautologically always-false (already flagged above)
         let tautological: HashSet<String> =
             model.conditions.tautological_equals().into_iter().filter(|(_, v)| !v).map(|(n, _)| n).collect();
@@ -315,7 +315,7 @@ fn inspect_file(path: &str) {
             }
         }
         if res.properties_dynamic {
-            println!("  │  Properties: <dynamic — resolved at deploy time>");
+            println!("  │  Properties: <dynamic - resolved at deploy time>");
         }
 
         if !res.diagnostics.find_in_map_refs.is_empty() {
@@ -440,7 +440,7 @@ fn inspect_file(path: &str) {
                 print!(" [export: {}]", format_resolved(e));
             }
             if let Some(ref d) = out.description {
-                print!(" — {}", d);
+                print!(" - {}", d);
             }
             println!("{}", span_suffix);
         }

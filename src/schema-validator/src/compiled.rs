@@ -16,7 +16,7 @@ pub struct CompiledSchema {
     /// Whether root-level `required` was explicitly stated in the source that
     /// produced this schema. When `true`, merging replaces the base's root
     /// required list (even if the list is empty, which clears it); when `false`,
-    /// merging preserves the base. Not serialized — existing committed artifacts
+    /// merging preserves the base. Not serialized - existing committed artifacts
     /// deserialize with the default (`false`), which is correct: bundled schemas
     /// are never overlay sources.
     #[serde(default, skip_serializing, skip_deserializing)]
@@ -76,7 +76,7 @@ pub struct IfThenElse {
     /// conditionals stay dependencies-only, because their richer semantics are
     /// owned by dedicated resource-specific rules (with their own IDs and
     /// severities) and enforcing them generically would double-report. Never
-    /// serialized — the committed artifact stays unchanged and deserializes to
+    /// serialized - the committed artifact stays unchanged and deserializes to
     /// dependencies-only.
     #[serde(skip)]
     pub enforce_full_branch: bool,
@@ -108,12 +108,12 @@ pub struct PropSchema {
     pub prop_type: Option<PropType>,
     #[serde(default, rename = "enum", skip_serializing_if = "Vec::is_empty")]
     pub enum_values: Vec<serde_json::Value>,
-    /// Allowed values compared case-insensitively — used for properties whose
+    /// Allowed values compared case-insensitively - used for properties whose
     /// service accepts any casing of the documented value. A schema carries
     /// either this or `enum_values` for a given property, never both.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub enum_case_insensitive: Vec<serde_json::Value>,
-    /// JSON Schema `not: { enum: [...] }` — value must NOT match any of these.
+    /// JSON Schema `not: { enum: [...] }` - value must NOT match any of these.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub not_enum: Vec<serde_json::Value>,
     #[serde(default, rename = "const", skip_serializing_if = "Option::is_none")]
@@ -158,7 +158,7 @@ pub struct PropSchema {
     /// Whether `required` was explicitly stated at this property, definition, or
     /// item schema level. When `true`, merging replaces the corresponding nested
     /// required list (even if the list is empty, which clears it); when `false`,
-    /// merging preserves the base. Not serialized — existing artifacts
+    /// merging preserves the base. Not serialized - existing artifacts
     /// deserialize unchanged.
     #[serde(default, skip_serializing, skip_deserializing)]
     pub required_present: bool,
@@ -186,7 +186,7 @@ fn skip_unless_true(value: &Option<bool>) -> bool {
     *value != Some(true)
 }
 
-/// A composition branch is now a full property schema — every constraint that
+/// A composition branch is now a full property schema - every constraint that
 /// can appear on a property is available in a branch and evaluated at runtime.
 /// This alias preserves naming clarity at usage sites.
 pub type SubSchema = PropSchema;
@@ -202,7 +202,7 @@ impl PropSchema {
     /// its `$ref` chain, with any fields stated alongside the reference merged on
     /// top.
     ///
-    /// A property may carry both a `$ref` and its own constraints — that is what
+    /// A property may carry both a `$ref` and its own constraints - that is what
     /// an overlay extending a referenced property produces. Resolving them here,
     /// rather than folding the referenced definition into the property when the
     /// overlay is applied, keeps the reference live: a later overlay that changes
@@ -212,7 +212,7 @@ impl PropSchema {
     /// Resolution is iterative and cycle-safe: a definition graph that loops back
     /// on itself, or a chain longer than [`MAX_REF_CHAIN`], stops at the last
     /// schema reached instead of recursing forever. Cyclic graphs are rejected
-    /// when an overlay is applied, so this is the second line of defence — a
+    /// when an overlay is applied, so this is the second line of defence - a
     /// caller-supplied schema must never be able to exhaust the stack and abort
     /// the process.
     pub fn resolve<'a>(&'a self, defs: &'a HashMap<String, PropSchema>) -> Cow<'a, PropSchema> {

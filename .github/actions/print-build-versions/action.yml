@@ -1,7 +1,7 @@
 name: Log tool versions
 description: >
   Logs the versions of every toolchain and build tool present on the runner.
-  When wasm-bindgen CLI is not installed (the common case — wasm-pack bundles
+  When wasm-bindgen CLI is not installed (the common case - wasm-pack bundles
   its own copy), the version is derived from Cargo.lock so the line is always
   informative.
 

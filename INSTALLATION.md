@@ -4,7 +4,7 @@ This guide covers everything needed to build, test, and develop `cloudformation-
 download and verify signed release artifacts.
 
 Pinned tool versions live in [`.github/workflows/configs.yml`](.github/workflows/configs.yml) and
-[`src/rust-toolchain.toml`](src/rust-toolchain.toml). The versions below match CI — staying on them avoids
+[`src/rust-toolchain.toml`](src/rust-toolchain.toml). The versions below match CI - staying on them avoids
 environment drift.
 
 ## Required tools
@@ -46,7 +46,7 @@ cargo install cargo-about@0.9.1 cargo-audit@0.22.2 wasm-pack@0.15.0
 
 ## 3. Node.js (Node/WASM binding)
 
-Install Node.js 22.x — any version manager works:
+Install Node.js 22.x - any version manager works:
 
 ```bash
 # macOS (Homebrew)
@@ -61,7 +61,7 @@ nvm install 22 && nvm use 22
 Install a JDK (21+), the Kotlin compiler, ktlint, and Gradle.
 
 ```bash
-# macOS (Homebrew) — installs current releases
+# macOS (Homebrew) - installs current releases
 brew install openjdk@21 kotlin ktlint gradle
 ```
 
@@ -116,12 +116,12 @@ cargo build
 
 Each GitHub release attaches the prebuilt artifacts as signed assets (`<version>` is the release tag, e.g. `1.6.0`):
 
-- `cloudformation-validate-<version>.jar` — the JVM (Kotlin/Java) binding
-- `cloudformation-validate-wasm-<version>.zip` — the Node.js (WASM) binding
-- `cloudformation_validate-<version>-py3-none-<platform>.whl` — the Python binding, with one wheel per supported
+- `cloudformation-validate-<version>.jar` - the JVM (Kotlin/Java) binding
+- `cloudformation-validate-wasm-<version>.zip` - the Node.js (WASM) binding
+- `cloudformation_validate-<version>-py3-none-<platform>.whl` - the Python binding, with one wheel per supported
   native target so installers download only the compatible library; a `-beta` release ships as `<version>b0`
-- `cloudformation-validate-go-<version>.zip` — the Go module, carrying every supported platform's static library
-- `cfn-validate-<version>-<os>-<arch>` — the CLI binary, one per supported platform (e.g.
+- `cloudformation-validate-go-<version>.zip` - the Go module, carrying every supported platform's static library
+- `cfn-validate-<version>-<os>-<arch>` - the CLI binary, one per supported platform (e.g.
   `cfn-validate-1.6.0-linux-x64`, `cfn-validate-1.6.0-darwin-aarch64`)
 
 Alongside each artifact are a detached signature (`<artifact>.sig`), the public key (`signing-key.pem`), and the key's
@@ -135,7 +135,7 @@ openssl dgst -sha256 -verify signing-key.pem -signature <artifact>.sig <artifact
 # e.g. openssl dgst -sha256 -verify signing-key.pem -signature cloudformation-validate-wasm-1.6.0.zip.sig cloudformation-validate-wasm-1.6.0.zip
 ```
 
-A valid artifact prints `Verified OK`. Any other output means verification failed — do not use the artifact.
+A valid artifact prints `Verified OK`. Any other output means verification failed - do not use the artifact.
 
 Optionally, confirm the bundled key is the real signing key by matching its fingerprint against one you trust:
 

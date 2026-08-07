@@ -61,7 +61,7 @@ fn check_detailed(engine_name: &str, engine: &dyn ValidationEngine) {
 
     assert!(
         missing_goldens.is_empty(),
-        "{engine_name} detailed: {} template(s) missing from all_templates.json — run `cargo run --release -p resources --example generate_golden`:\n{}",
+        "{engine_name} detailed: {} template(s) missing from all_templates.json - run `cargo run --release -p resources --example generate_golden`:\n{}",
         missing_goldens.len(),
         missing_goldens.iter().take(20).cloned().collect::<Vec<_>>().join("\n")
     );
@@ -99,7 +99,7 @@ fn check_standard(engine_name: &str, engine: &dyn ValidationEngine) {
 
     assert!(
         missing_goldens.is_empty(),
-        "{engine_name} standard: {} template(s) missing from all_templates.json — run `cargo run --release -p resources --example generate_golden`:\n{}",
+        "{engine_name} standard: {} template(s) missing from all_templates.json - run `cargo run --release -p resources --example generate_golden`:\n{}",
         missing_goldens.len(),
         missing_goldens.iter().take(20).cloned().collect::<Vec<_>>().join("\n")
     );

@@ -4,7 +4,7 @@
 //! `schema-validator`) so that overlays are specified once and applied
 //! identically everywhere.
 //!
-//! The struct contains only pre-read data and pure resolution logic — no
+//! The struct contains only pre-read data and pure resolution logic - no
 //! filesystem access. Host layers (CLI, language bindings) read files and
 //! populate the struct before passing it in. Feature-gated derives expose the
 //! same record shape through WASM and UniFFI bindings. `type_name` is optional:
@@ -67,7 +67,7 @@ impl AdditionalSchemaSource {
     ///
     /// Returns an error when the schema is not valid JSON, is not a JSON object,
     /// provides no resource type name at all, or names one type explicitly and a
-    /// different one in the schema body — a contradiction that is far more likely
+    /// different one in the schema body - a contradiction that is far more likely
     /// to be a copy/paste mistake than an intentional rename.
     pub fn resolve(&self) -> Result<(String, serde_json::Value), SchemaSourceError> {
         // An absent (`None`) or empty explicit name both mean "take the type name

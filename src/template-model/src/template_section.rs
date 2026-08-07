@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 /// A top-level CloudFormation template section, as documented in the template
 /// anatomy (<https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-anatomy.html>).
 ///
-/// This is the canonical, single definition of the section names — section
+/// This is the canonical, single definition of the section names - section
 /// constants in other crates derive from it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Hash)]
 #[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
@@ -51,7 +51,7 @@ impl TopLevelSection {
         }
     }
 
-    /// Parses a template key into its section — the inverse of [`Self::name`].
+    /// Parses a template key into its section - the inverse of [`Self::name`].
     pub fn from_name(name: &str) -> Option<TopLevelSection> {
         Self::ALL.into_iter().find(|section| section.name() == name)
     }
@@ -73,7 +73,7 @@ impl TopLevelSection {
     }
 }
 
-/// The kind of template entity a diagnostic targets — the singular form of the
+/// The kind of template entity a diagnostic targets - the singular form of the
 /// top-level section the entity is declared in. Every documented section has a
 /// variant; the ones whose children are addressable by logical ID (resources,
 /// parameters, outputs, mappings, conditions, rules, and metadata keys) are
@@ -108,7 +108,7 @@ impl EntityType {
         EntityType::Description,
     ];
 
-    /// The entity type's name — the singular form used in serialized
+    /// The entity type's name - the singular form used in serialized
     /// diagnostics and filter configurations.
     pub const fn name(self) -> &'static str {
         match self {
@@ -162,7 +162,7 @@ impl std::str::FromStr for EntityType {
 /// `Parameters/MyParam/Type` or `Outputs/MyOutput/Value`) into the entity type
 /// of the section's children and the logical ID of the entity it addresses.
 /// Returns `None` for paths that are not rooted at a documented top-level
-/// section — resource-relative dotted paths like `Properties.BucketName` — or
+/// section - resource-relative dotted paths like `Properties.BucketName` - or
 /// that name a section with no child segment.
 pub fn entity_identity(path: &str) -> Option<(EntityType, &str)> {
     let mut segments = path.split('/');

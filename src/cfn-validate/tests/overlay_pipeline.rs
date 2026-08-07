@@ -92,7 +92,7 @@ const DUPLICATE_PRIMARY_ID_SCHEMA: &str = r#"{
 }"#;
 
 /// Template that triggers schema validation on a type with overlay-defined
-/// property constraints — the schema validator uses the merged metadata.
+/// property constraints - the schema validator uses the merged metadata.
 const SCHEMA_METADATA_TEMPLATE: &[u8] = br#"
 Resources:
   R:
@@ -400,7 +400,7 @@ fn overlay_property_constraints_are_enforced() {
     for (engine, diagnostics) in [("rego", &rego), ("cel", &cel)] {
         // Must not report unknown type
         assert!(!rule_ids(diagnostics).contains(&"F3006"), "{engine}: overlay type must be known");
-        // The Name "x" is only 1 char but minLength is 3 — triggers string length violation
+        // The Name "x" is only 1 char but minLength is 3 - triggers string length violation
         let constraint_diags: Vec<&Diagnostic> =
             diagnostics.iter().filter(|d| d.rule_id == "F3033" || d.rule_id == "F3034").collect();
         assert!(

@@ -4,8 +4,8 @@
 //! losslessly re-serialized to YAML and validated again. For each engine, the two
 //! runs must produce the same diagnostics. Source locations legitimately differ
 //! between the two formats (byte offsets in JSON vs YAML markers), so they are
-//! excluded from the comparison; everything else — rule id, severity, message,
-//! resource, property path, context — must match exactly. A divergence is a
+//! excluded from the comparison; everything else - rule id, severity, message,
+//! resource, property path, context - must match exactly. A divergence is a
 //! parser bug.
 
 mod common;
@@ -24,7 +24,7 @@ use validation_engine::{EngineConfig, ValidateConfig, ValidationEngine, validate
 /// therefore cannot be compared this way. The first two are intentionally
 /// malformed JSON (they exercise the parse-error path and never yield a model to
 /// convert); the third relies on a duplicate object key, which any structural
-/// re-serialization collapses — erasing the very condition it tests.
+/// re-serialization collapses - erasing the very condition it tests.
 const NON_ROUNDTRIPPABLE: &[&str] = &["bad/json_parse.json", "bad/core/config_invalid_json.json", "bad/duplicate.json"];
 
 /// Guards against the discovery walk silently finding nothing and the test
@@ -62,7 +62,7 @@ fn collect_json(dir: &std::path::Path, root: &std::path::Path, out: &mut Vec<Str
 
 /// Re-serializes a parsed JSON template as block-style YAML that re-parses to the
 /// identical logical content. Every string and key is double-quoted so the YAML
-/// front-end never re-infers a scalar's type — a bare `1` is an integer, but the
+/// front-end never re-infers a scalar's type - a bare `1` is an integer, but the
 /// JSON string `"1"` must stay a string. Numbers use their canonical `serde_json`
 /// spelling so float text cannot drift between the two front-ends. The escape set
 /// `serde_json` emits for a string is a subset of YAML's double-quoted escapes, so
@@ -235,7 +235,7 @@ fn check_engine(engine_name: &str, engine: &dyn ValidationEngine) {
     let templates = discover_json_templates();
     assert!(
         templates.len() >= MIN_JSON_TEMPLATES,
-        "discovered only {} JSON templates under {} — expected at least {MIN_JSON_TEMPLATES}",
+        "discovered only {} JSON templates under {} - expected at least {MIN_JSON_TEMPLATES}",
         templates.len(),
         templates_dir().display()
     );
@@ -281,7 +281,7 @@ fn cel_json_and_yaml_diagnostics_match() {
     check_engine("cel", &engine);
 }
 
-/// The converter must produce YAML — not accidentally re-emit something the format
+/// The converter must produce YAML - not accidentally re-emit something the format
 /// dispatcher routes back to the JSON front-end (only a leading `{` selects JSON).
 #[test]
 fn converter_emits_yaml_not_json() {

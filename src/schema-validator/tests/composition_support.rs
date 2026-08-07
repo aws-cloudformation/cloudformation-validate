@@ -62,7 +62,7 @@ fn multiple_of_accepts_valid_multiple() {
 
 #[test]
 fn multiple_of_tolerates_floating_point_imprecision() {
-    // 0.3 / 0.1 = 2.9999... in IEEE 754 — the check must tolerate this.
+    // 0.3 / 0.1 = 2.9999... in IEEE 754 - the check must tolerate this.
     let sv = validator(vec![(
         "AWS::Test::MultipleOfFloat",
         json!({
@@ -136,7 +136,7 @@ fn any_of_with_required_validates_correctly() {
             "additionalProperties": false
         }),
     )]);
-    // Template has C but neither A nor B — should fail anyOf
+    // Template has C but neither A nor B - should fail anyOf
     let template = "Resources:\n  R:\n    Type: AWS::Test::AnyOf\n    Properties:\n      C: val\n";
     let diags = validate(&sv, template);
     assert!(
@@ -163,7 +163,7 @@ fn one_of_with_properties_and_additional_properties() {
             "additionalProperties": false
         }),
     )]);
-    // Template has neither ConfigA nor ConfigB — should fail oneOf
+    // Template has neither ConfigA nor ConfigB - should fail oneOf
     let template = "Resources:\n  R:\n    Type: AWS::Test::OneOf\n    Properties:\n      Mode: test\n";
     let diags = validate(&sv, template);
     assert!(
@@ -221,7 +221,7 @@ fn ref_siblings_are_enforced_at_validation_time() {
             "additionalProperties": false
         }),
     )]);
-    // Name is 10 chars — exceeds maxLength of 5 stated beside the $ref
+    // Name is 10 chars - exceeds maxLength of 5 stated beside the $ref
     let template = "Resources:\n  R:\n    Type: AWS::Test::RefSibling\n    Properties:\n      Name: TooLongName\n";
     let diags = validate(&sv, template);
     assert!(
@@ -251,7 +251,7 @@ fn nested_any_of_inside_one_of_is_compiled() {
             "additionalProperties": false
         }),
     )]);
-    // Template has B only — does not satisfy either top-level oneOf branch
+    // Template has B only - does not satisfy either top-level oneOf branch
     let template = "Resources:\n  R:\n    Type: AWS::Test::Nested\n    Properties:\n      B: val\n";
     let diags = validate(&sv, template);
     assert!(
@@ -279,7 +279,7 @@ fn any_of_discriminated_by_type_and_enum_rejects_wrong_enum() {
             "additionalProperties": false
         }),
     )]);
-    // Mode is "broken" — matches neither branch
+    // Mode is "broken" - matches neither branch
     let template =
         "Resources:\n  R:\n    Type: AWS::Test::AnyOfTypeEnum\n    Properties:\n      Mode: broken\n      Value: x\n";
     let diags = validate(&sv, template);
@@ -306,7 +306,7 @@ fn any_of_discriminated_by_type_and_enum_accepts_matching_enum() {
             "additionalProperties": false
         }),
     )]);
-    // Mode is "fast" — matches first branch
+    // Mode is "fast" - matches first branch
     let template =
         "Resources:\n  R:\n    Type: AWS::Test::AnyOfTypeEnum\n    Properties:\n      Mode: fast\n      Value: x\n";
     let diags = validate(&sv, template);
@@ -334,7 +334,7 @@ fn one_of_enum_discriminator_rejects_ambiguous_value() {
             "additionalProperties": false
         }),
     )]);
-    // Engine is "oracle" — matches neither branch
+    // Engine is "oracle" - matches neither branch
     let template = "Resources:\n  R:\n    Type: AWS::Test::OneOfEnum\n    Properties:\n      Engine: oracle\n";
     let diags = validate(&sv, template);
     assert!(
@@ -359,7 +359,7 @@ fn one_of_enum_discriminator_accepts_exactly_one_match() {
             "additionalProperties": false
         }),
     )]);
-    // Engine is "mysql" — matches exactly one branch
+    // Engine is "mysql" - matches exactly one branch
     let template = "Resources:\n  R:\n    Type: AWS::Test::OneOfEnum\n    Properties:\n      Engine: mysql\n";
     let diags = validate(&sv, template);
     assert!(
@@ -384,7 +384,7 @@ fn one_of_enum_discriminator_rejects_multiple_matches() {
             "additionalProperties": false
         }),
     )]);
-    // Engine is "postgres" — matches BOTH branches
+    // Engine is "postgres" - matches BOTH branches
     let template = "Resources:\n  R:\n    Type: AWS::Test::OneOfEnumOverlap\n    Properties:\n      Engine: postgres\n";
     let diags = validate(&sv, template);
     assert!(
@@ -411,7 +411,7 @@ fn any_of_numeric_bounds_rejects_out_of_range() {
             "additionalProperties": false
         }),
     )]);
-    // Port is 5000 — falls between both ranges
+    // Port is 5000 - falls between both ranges
     let template = "Resources:\n  R:\n    Type: AWS::Test::AnyOfNumeric\n    Properties:\n      Port: 5000\n";
     let diags = validate(&sv, template);
     assert!(
@@ -436,7 +436,7 @@ fn any_of_numeric_bounds_accepts_in_range() {
             "additionalProperties": false
         }),
     )]);
-    // Port is 443 — falls in first range
+    // Port is 443 - falls in first range
     let template = "Resources:\n  R:\n    Type: AWS::Test::AnyOfNumeric\n    Properties:\n      Port: 443\n";
     let diags = validate(&sv, template);
     assert!(
@@ -461,7 +461,7 @@ fn any_of_multiple_of_branch_matching() {
             "additionalProperties": false
         }),
     )]);
-    // Size is 7 — not a multiple of 64 or 100
+    // Size is 7 - not a multiple of 64 or 100
     let template = "Resources:\n  R:\n    Type: AWS::Test::AnyOfMultipleOf\n    Properties:\n      Size: 7\n";
     let diags = validate(&sv, template);
     assert!(
@@ -470,7 +470,7 @@ fn any_of_multiple_of_branch_matching() {
         diags.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
     );
 
-    // Size is 128 — multiple of 64
+    // Size is 128 - multiple of 64
     let template2 = "Resources:\n  R:\n    Type: AWS::Test::AnyOfMultipleOf\n    Properties:\n      Size: 128\n";
     let diags2 = validate(&sv, template2);
     assert!(
@@ -506,7 +506,7 @@ fn any_of_nested_object_property_constraint_rejects_mismatch() {
             "additionalProperties": false
         }),
     )]);
-    // Config.Type is "C" — matches neither branch
+    // Config.Type is "C" - matches neither branch
     let template =
         r#"{"Resources":{"R":{"Type":"AWS::Test::AnyOfNested","Properties":{"Config":{"Type":"C","Value":"x"}}}}}"#;
     let diags = validate(&sv, template);
@@ -541,7 +541,7 @@ fn any_of_nested_object_property_constraint_accepts_match() {
             "additionalProperties": false
         }),
     )]);
-    // Config.Type is "A" — matches first branch
+    // Config.Type is "A" - matches first branch
     let template =
         r#"{"Resources":{"R":{"Type":"AWS::Test::AnyOfNested","Properties":{"Config":{"Type":"A","Value":"x"}}}}}"#;
     let diags = validate(&sv, template);
@@ -569,7 +569,7 @@ fn any_of_array_items_constraint_rejects_wrong_item_type() {
             "additionalProperties": false
         }),
     )]);
-    // Tags contains a string — neither object nor integer items (string→integer coercion
+    // Tags contains a string - neither object nor integer items (string→integer coercion
     // only works for numeric strings; "hello" is not coercible to integer)
     let template = r#"{"Resources":{"R":{"Type":"AWS::Test::AnyOfItems","Properties":{"Tags":["hello"]}}}}"#;
     let diags = validate(&sv, template);
@@ -595,7 +595,7 @@ fn any_of_array_items_constraint_accepts_matching_items() {
             "additionalProperties": false
         }),
     )]);
-    // Tags contains integers — matches second branch
+    // Tags contains integers - matches second branch
     let template = r#"{"Resources":{"R":{"Type":"AWS::Test::AnyOfItems","Properties":{"Tags":[1,2,3]}}}}"#;
     let diags = validate(&sv, template);
     assert!(
@@ -631,7 +631,7 @@ fn any_of_with_if_then_else_branch_constraint() {
             "additionalProperties": false
         }),
     )]);
-    // Engine mysql with Port — the conditional branch's then is satisfied.
+    // Engine mysql with Port - the conditional branch's then is satisfied.
     let satisfied = "Resources:\n  R:\n    Type: AWS::Test::AnyOfConditional\n    Properties:\n      Engine: mysql\n      Port: 3306\n";
     let diags = validate(&sv, satisfied);
     assert!(
@@ -640,8 +640,8 @@ fn any_of_with_if_then_else_branch_constraint() {
         diags.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
     );
 
-    // Engine mysql WITHOUT Port — then requires Port, so the conditional branch
-    // fails; the enum branch fails too (not postgres) — anyOf reports.
+    // Engine mysql WITHOUT Port - then requires Port, so the conditional branch
+    // fails; the enum branch fails too (not postgres) - anyOf reports.
     let violating = "Resources:\n  R:\n    Type: AWS::Test::AnyOfConditional\n    Properties:\n      Engine: mysql\n";
     let diags = validate(&sv, violating);
     assert!(
@@ -671,7 +671,7 @@ fn any_of_with_conditional_allof_constraint() {
             "additionalProperties": false
         }),
     )]);
-    // Engine is mysql but Port is missing — should flag dependentRequired
+    // Engine is mysql but Port is missing - should flag dependentRequired
     let template = "Resources:\n  R:\n    Type: AWS::Test::ConditionalAllOf\n    Properties:\n      Engine: mysql\n";
     let diags = validate(&sv, template);
     assert!(
@@ -699,7 +699,7 @@ fn any_of_dangling_ref_marks_branch_non_matching() {
             "additionalProperties": false
         }),
     )]);
-    // Name is "valid" — second branch matches despite first being dangling
+    // Name is "valid" - second branch matches despite first being dangling
     let template = "Resources:\n  R:\n    Type: AWS::Test::DanglingRef\n    Properties:\n      Name: valid\n";
     let diags = validate(&sv, template);
     // The dangling ref branch emits F3003 into the tmp vec, so the second branch
@@ -742,7 +742,7 @@ fn any_of_all_branches_dangling_ref_fails() {
 fn overlay_acceptance_gate_under_threshold() {
     use std::path::Path;
     // The provider-schema corpus is a maintainer-local input (gitignored under
-    // `data-source/upstream/`), so a clean checkout — CI included — has no
+    // `data-source/upstream/`), so a clean checkout - CI included - has no
     // directory to read. The gate runs only where the corpus exists; when it
     // does, it must be non-empty so the test cannot pass vacuously against an
     // empty directory.
@@ -780,7 +780,7 @@ fn overlay_acceptance_gate_under_threshold() {
 // ─── Property-level scalar composition ──────────────────────────────────────
 // These tests validate anyOf/oneOf/allOf/if_then_else placed DIRECTLY on a
 // property schema (not the root resource schema) where the property value is a
-// scalar — the case that validate_prop_composition handles.
+// scalar - the case that validate_prop_composition handles.
 
 #[test]
 fn prop_any_of_scalar_enum_mismatch_emits_f3017() {
@@ -850,7 +850,7 @@ fn prop_any_of_type_mismatch_emits_f3017() {
             "additionalProperties": false
         }),
     )]);
-    // "hello" is a string — not coercible to integer or boolean
+    // "hello" is a string - not coercible to integer or boolean
     let template = r#"{"Resources":{"R":{"Type":"AWS::Test::PropAnyOfType","Properties":{"Value":"hello"}}}}"#;
     let diags = validate(&sv, template);
     assert!(
@@ -1012,7 +1012,7 @@ fn prop_object_if_then_else_rejects_failing_then_branch() {
 
 #[test]
 fn prop_object_if_then_else_accepts_passing_then_branch() {
-    // Same schema — Mode is "strict" and Threshold is within the then-branch limit.
+    // Same schema - Mode is "strict" and Threshold is within the then-branch limit.
     let sv = validator(vec![(
         "AWS::Test::PropObjConditional",
         json!({
@@ -1419,7 +1419,7 @@ fn prop_any_of_on_array_items_accepts_valid_elements() {
 #[test]
 fn one_of_is_decided_per_condition_scenario() {
     // Mode is A in one scenario and B in the other; each scenario matches
-    // exactly one oneOf branch, so the template is valid — deciding the group
+    // exactly one oneOf branch, so the template is valid - deciding the group
     // across scenarios would falsely report "valid under more than one".
     let sv = validator(vec![(
         "AWS::Test::OneOfScenario",
@@ -1491,7 +1491,7 @@ fn any_of_reports_the_invalid_condition_scenario() {
 #[test]
 fn property_level_conditional_then_required_is_enforced() {
     // A conditional stated by an overlay on an object property enforces the
-    // selected branch in full — including its `required` list.
+    // selected branch in full - including its `required` list.
     let sv = validator(vec![(
         "AWS::Test::PropCondRequired",
         json!({

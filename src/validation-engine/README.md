@@ -1,7 +1,7 @@
 # validation-engine
 
 Defines the `ValidationEngine` trait and orchestrates the full validation pipeline: schema validation → engine rule
-evaluation → Step Functions validation → diagnostic enrichment → filtering → report assembly. Engine-agnostic — any
+evaluation → Step Functions validation → diagnostic enrichment → filtering → report assembly. Engine-agnostic - any
 engine ([rego-engine](../rego-engine/README.md), [cel-engine](../cel-engine/README.md)) implements the trait and plugs
 into this pipeline.
 
@@ -45,16 +45,16 @@ the [SemanticModel](../template-model/README.md). The orchestration pipeline han
 
 ## Pipeline
 
-1. **Schema validation** — Fatal-severity diagnostics for structural violations.
-2. **Engine rule evaluation** — Error/Warning/Info diagnostics from lint rules.
-3. **Step Functions validation** — Validates `AWS::StepFunctions::StateMachine` definitions (rule `E3601`): StartAt
+1. **Schema validation** - Fatal-severity diagnostics for structural violations.
+2. **Engine rule evaluation** - Error/Warning/Info diagnostics from lint rules.
+3. **Step Functions validation** - Validates `AWS::StepFunctions::StateMachine` definitions (rule `E3601`): StartAt
    references, state types, required fields, JSONata mode restrictions, recursive into Parallel/Map.
-4. **Model diagnostics** — Parse-time diagnostics (duplicate keys, cycles, structure errors).
-5. **Enrichment** — Adds section, phase, rule description. For `Detailed` level, attaches resolved property values
+4. **Model diagnostics** - Parse-time diagnostics (duplicate keys, cycles, structure errors).
+5. **Enrichment** - Adds section, phase, rule description. For `Detailed` level, attaches resolved property values
    and schema constraints as context.
-6. **Finalization** — Applies include/exclude filters, severity gating, strict mode (Warn→Error), sorts by source
+6. **Finalization** - Applies include/exclude filters, severity gating, strict mode (Warn→Error), sorts by source
    location, deduplicates.
-7. **Report assembly** — Severity counts, metadata, per-phase performance metrics.
+7. **Report assembly** - Severity counts, metadata, per-phase performance metrics.
 
 **Parse error handling**: When `validate_bytes_with_path` encounters a parse failure, it creates a synthetic `F1101`
 diagnostic and returns a `ValidationReport` with `status=Error` rather than returning `Err`.

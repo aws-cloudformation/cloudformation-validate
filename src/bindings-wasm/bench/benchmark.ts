@@ -18,7 +18,7 @@ type WasmEngine = WasmRegoEngineType | WasmCelEngineType;
 
 const { SchemaValidator } = wasmBindings;
 
-// Raw WASM bindings — accept Uint8Array directly, no file I/O.
+// Raw WASM bindings - accept Uint8Array directly, no file I/O.
 // The public package re-exports wrapper classes that read from File/TemplateFile;
 // the benchmark needs the inner classes to pass pre-read bytes.
 const wasmRaw = require('@aws/cloudformation-validate/bindings_wasm');
@@ -67,7 +67,7 @@ const formatDir = 'detailed';
 const iterationsRaw = argValue('--iterations');
 const iterations: number = (() => {
     if (iterationsRaw === undefined) {
-        // Flag absent — use default.
+        // Flag absent - use default.
         if (args.includes('--iterations')) {
             // Flag present but no value follows.
             console.error('Error: --iterations requires a value');
@@ -251,7 +251,7 @@ console.error(
 // --- Initialization timing ---
 // Schema init is timed standalone for informational comparison, but is NOT additive for FFI
 // consumers: the engine constructor already embeds a SchemaValidator, so real-world init cost
-// is just engine construction.  init_ms/cold_init/warm_init reflect engine-only samples —
+// is just engine construction.  init_ms/cold_init/warm_init reflect engine-only samples -
 // what an actual consumer pays to set up validation.
 const schemaInitSamples: number[] = [];
 const engineInitSamples: number[] = [];
@@ -330,7 +330,7 @@ for (const tpl of templates) {
     let failed = false;
 
     for (let i = 0; i < iterations; i++) {
-        // Standalone model parse — classify failures distinctly as parse_error.
+        // Standalone model parse - classify failures distinctly as parse_error.
         let parsedModel: { free(): void } | null = null;
         try {
             const tm0 = performance.now();
@@ -590,7 +590,7 @@ function generateMarkdown(
     const lines: string[] = [];
     const push = (s: string) => lines.push(s);
 
-    push(`# WASM Benchmark Report — ${engineFlag} engine (${formatFlag})\n`);
+    push(`# WASM Benchmark Report - ${engineFlag} engine (${formatFlag})\n`);
     push(`Generated: ${new Date().toISOString().replace(/\.\d+Z$/, 'Z')}\n`);
     push(`Corpus fingerprint: \`${corpusFingerprint}\` (${corpusFileCount} files)\n`);
 
@@ -629,12 +629,12 @@ function generateMarkdown(
     push('| Metric | Median | P99 | Max |\n|---|---|---|---|');
     const row = (label: string, s: Stats) =>
         `| ${label} | ${s.median.toFixed(4)} | ${s.p99.toFixed(4)} | ${s.max.toFixed(4)} |`;
-    push(row('host_model — first (after warmup)', coldHostModelStats));
-    push(row('host_model — steady', warmHostModelStats));
-    push(row('engine_internal — first (after warmup)', coldEngineInternalStats));
-    push(row('engine_internal — steady', warmEngineInternalStats));
-    push(row('wall_clock — first (after warmup)', coldWallClockStats));
-    push(row('wall_clock — steady', warmWallClockStats));
+    push(row('host_model - first (after warmup)', coldHostModelStats));
+    push(row('host_model - steady', warmHostModelStats));
+    push(row('engine_internal - first (after warmup)', coldEngineInternalStats));
+    push(row('engine_internal - steady', warmEngineInternalStats));
+    push(row('wall_clock - first (after warmup)', coldWallClockStats));
+    push(row('wall_clock - steady', warmWallClockStats));
     push(row('host_model (per-template median)', hostModelStats));
     push(row('engine_internal (per-template median)', engineInternalStats));
     push(row('wall_clock (per-template median)', wallClockStats));
@@ -671,7 +671,7 @@ function generateMarkdown(
     if (failedResults.length > 0) {
         push('\n## Failures\n');
         for (const r of failedResults) {
-            push(`- **${r.file}**: ${r.status} — ${r.errorMsg ?? 'unknown'}`);
+            push(`- **${r.file}**: ${r.status} - ${r.errorMsg ?? 'unknown'}`);
         }
     }
 

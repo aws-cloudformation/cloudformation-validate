@@ -24,7 +24,7 @@ to Rego at engine initialization.
 
 ## Custom Builtins
 
-These builtins are registered with the Regorus interpreter and called as bare functions in Rego policies — there is no
+These builtins are registered with the Regorus interpreter and called as bare functions in Rego policies - there is no
 namespace prefix. For example, a policy calls `resolve(name, "Properties.BucketName")`, not `cfn.resolve(...)`.
 
 ### Template Resolution
