@@ -125,12 +125,14 @@ type Summary struct {
 
 // ReportMetadata describes the validation run.
 type ReportMetadata struct {
-	RulesEvaluated   *int     `json:"rulesEvaluated,omitempty"`
-	ResourcesScanned int      `json:"resourcesScanned"`
-	Counts           Summary  `json:"counts"`
-	Suppressed       int      `json:"suppressed"`
-	Strict           bool     `json:"strict"`
-	SeverityLevel    Severity `json:"severityLevel"`
+	RulesEvaluated        int      `json:"rulesEvaluated"`
+	CfnLintVersion        string   `json:"cfnLintVersion"`
+	ResourceSchemaVersion string   `json:"resourceSchemaVersion"`
+	ResourcesScanned      int      `json:"resourcesScanned"`
+	Counts                Summary  `json:"counts"`
+	Suppressed            int      `json:"suppressed"`
+	Strict                bool     `json:"strict"`
+	SeverityLevel         Severity `json:"severityLevel"`
 }
 
 // PhaseMetric is the duration of one pipeline phase.

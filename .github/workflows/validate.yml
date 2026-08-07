@@ -12,6 +12,11 @@ on:
         required: false
         type: boolean
         default: false
+      rust-tests-only:
+        description: 'Run only Rust core tests'
+        required: false
+        type: boolean
+        default: false
 
   workflow_dispatch:
     inputs:
@@ -21,6 +26,11 @@ on:
         type: string
       fail-fast:
         description: 'Cancel remaining matrix jobs as soon as one fails'
+        required: false
+        type: boolean
+        default: false
+      rust-tests-only:
+        description: 'Run only Rust core tests'
         required: false
         type: boolean
         default: false
@@ -148,6 +158,7 @@ jobs:
       run: cargo llvm-cov --locked --release --workspace --no-fail-fast
 
   test-jvm:
+    if: ${{ !inputs.rust-tests-only }}
     needs: [ get-configs ]
     strategy:
       fail-fast: ${{ inputs.fail-fast }}
@@ -199,6 +210,7 @@ jobs:
       run: ./run.sh
 
   test-wasm:
+    if: ${{ !inputs.rust-tests-only }}
     needs: [ get-configs ]
     strategy:
       fail-fast: ${{ inputs.fail-fast }}
@@ -249,6 +261,7 @@ jobs:
       run: ./run.sh
 
   test-python:
+    if: ${{ !inputs.rust-tests-only }}
     needs: [ get-configs ]
     strategy:
       fail-fast: ${{ inputs.fail-fast }}
@@ -294,6 +307,7 @@ jobs:
       run: ./bindings-python/tests/run.sh
 
   test-go:
+    if: ${{ !inputs.rust-tests-only }}
     needs: [ get-configs ]
     strategy:
       fail-fast: ${{ inputs.fail-fast }}

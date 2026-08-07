@@ -19,3 +19,4 @@ jobs:
       contents: read
     with:
       ref: ${{ github.sha }}
+      rust-tests-only: true

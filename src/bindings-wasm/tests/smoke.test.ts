@@ -87,6 +87,8 @@ function stripGoldenExcludedFields(report: any, filePath?: string): unknown {
     delete clone.performance;
     if (clone.metadata && typeof clone.metadata === 'object') {
         delete clone.metadata.rulesEvaluated;
+        delete clone.metadata.cfnLintVersion;
+        delete clone.metadata.resourceSchemaVersion;
     }
     return clone;
 }

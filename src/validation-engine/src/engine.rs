@@ -1,5 +1,6 @@
 #[cfg(test)]
 use data_source::AdditionalSchemaSource;
+use data_source::embedded::{CFN_LINT_VERSION, RESOURCE_SCHEMA_VERSION};
 use diagnostics::{
     DetailLevel, Diagnostic, Entity, PerformanceMetrics, Phase, PhaseMetric, RegisteredDiagnostic, RelatedResource,
     ReportMetadata, ReportStatus, ResourceRef, Summary, ValidationReport, ViolationContext, apply_filters,
@@ -350,6 +351,19 @@ pub(crate) fn validate(
     Ok(report)
 }
 
+struct DataSourceVersions {
+    cfn_lint_version: &'static str,
+    resource_schema_version: &'static str,
+    available: bool,
+}
+
+static DATA_SOURCE_VERSIONS: DataSourceVersions = match (CFN_LINT_VERSION, RESOURCE_SCHEMA_VERSION) {
+    (Some(cfn_lint_version), Some(resource_schema_version)) => {
+        DataSourceVersions { cfn_lint_version, resource_schema_version, available: true }
+    }
+    _ => DataSourceVersions { cfn_lint_version: "", resource_schema_version: "", available: false },
+};
+
 #[cfg(any(test, feature = "test"))]
 pub fn validate_bytes(
     engine: &dyn ValidationEngine,
@@ -367,6 +381,11 @@ pub fn validate_bytes_with_path(
     config: ValidateConfig,
     file_path: String,
 ) -> Result<ValidationReport, ValidationError> {
+    if !DATA_SOURCE_VERSIONS.available {
+        return Err(ValidationError::Engine(
+            "data source versions are unavailable; run the full data-source sync with --cfn-lint-root".to_string(),
+        ));
+    }
     let total_start = Instant::now();
     let result = match SemanticModel::parse(
         bytes,
@@ -389,7 +408,9 @@ pub fn validate_bytes_with_path(
                 version: env!("CARGO_PKG_VERSION").to_string(),
                 diagnostics: diags,
                 metadata: ReportMetadata {
-                    rules_evaluated: None,
+                    rules_evaluated: 0,
+                    cfn_lint_version: DATA_SOURCE_VERSIONS.cfn_lint_version.to_owned(),
+                    resource_schema_version: DATA_SOURCE_VERSIONS.resource_schema_version.to_owned(),
                     resources_scanned: 0,
                     counts: Summary { fatal: 1, errors: 0, warnings: 0, informational: 0, debug: 0 },
                     suppressed: 0,
@@ -624,6 +645,30 @@ pub(crate) fn build_report(
     severity_level: Severity,
     file_path: String,
 ) -> ValidationReport {
+    build_report_with_versions(
+        diagnostics,
+        model,
+        suppressed,
+        rules_evaluated,
+        strict,
+        severity_level,
+        file_path,
+        DATA_SOURCE_VERSIONS.cfn_lint_version.to_owned(),
+        DATA_SOURCE_VERSIONS.resource_schema_version.to_owned(),
+    )
+}
+
+fn build_report_with_versions(
+    diagnostics: Vec<Diagnostic>,
+    model: &SemanticModel,
+    suppressed: u32,
+    rules_evaluated: Option<u32>,
+    strict: bool,
+    severity_level: Severity,
+    file_path: String,
+    cfn_lint_version: String,
+    resource_schema_version: String,
+) -> ValidationReport {
     let fatal = diagnostics.iter().filter(|d| d.severity == Severity::Fatal).count() as u32;
     let errors = diagnostics.iter().filter(|d| d.severity == Severity::Error).count() as u32;
     let warnings = diagnostics.iter().filter(|d| d.severity == Severity::Warn).count() as u32;
@@ -635,7 +680,9 @@ pub(crate) fn build_report(
         version: env!("CARGO_PKG_VERSION").to_string(),
         diagnostics,
         metadata: ReportMetadata {
-            rules_evaluated,
+            rules_evaluated: rules_evaluated.unwrap_or(0),
+            cfn_lint_version,
+            resource_schema_version,
             resources_scanned: model.resources.len() as u32,
             counts: Summary { fatal, errors, warnings, informational, debug },
             suppressed,
@@ -1056,6 +1103,9 @@ mod tests {
     use rules::{Category, build_rule_metadata_map, lookup_rule};
     use template_model::{SAM_TRANSFORM_ERROR_PREFIX, SAM_TRANSFORM_ERROR_RULE_ID};
 
+    const TEST_CFN_LINT_VERSION: &str = "https://github.com/aws-cloudformation/cfn-lint@1.54.0";
+    const TEST_RESOURCE_SCHEMA_VERSION: &str =
+        "https://github.com/aws-cloudformation/resource-provider-enhanced-schemas@2026-08-07T18:20:13Z";
     #[test]
     fn additional_schema_resolve_uses_explicit_type_name() {
         let src = AdditionalSchemaSource {
@@ -1605,13 +1655,25 @@ Resources:
             Diagnostic { rule_id: "W3045".into(), severity: Severity::Warn, message: "warn".into(), ..default_diag() },
             Diagnostic { severity: Severity::Info, message: "info".into(), ..default_diag() },
         ];
-        let report = build_report(diags, &model, 3, Some(50), false, Severity::Info, String::new());
+        let report = build_report_with_versions(
+            diags,
+            &model,
+            3,
+            Some(50),
+            false,
+            Severity::Info,
+            String::new(),
+            TEST_CFN_LINT_VERSION.to_string(),
+            TEST_RESOURCE_SCHEMA_VERSION.to_string(),
+        );
         assert_eq!(report.metadata.counts.fatal, 1);
         assert_eq!(report.metadata.counts.errors, 2);
         assert_eq!(report.metadata.counts.warnings, 1);
         assert_eq!(report.metadata.counts.informational, 1);
         assert_eq!(report.metadata.suppressed, 3);
-        assert_eq!(report.metadata.rules_evaluated, Some(50));
+        assert_eq!(report.metadata.rules_evaluated, 50);
+        assert_eq!(report.metadata.cfn_lint_version, TEST_CFN_LINT_VERSION);
+        assert_eq!(report.metadata.resource_schema_version, TEST_RESOURCE_SCHEMA_VERSION);
         assert!(!report.metadata.strict, "default mode should not be strict");
         assert_eq!(report.metadata.severity_level, Severity::Info);
         assert_eq!(report.metadata.resources_scanned, 1);
@@ -1621,7 +1683,18 @@ Resources:
     #[test]
     fn build_report_empty_diagnostics() {
         let model = minimal_model();
-        let report = build_report(vec![], &model, 0, None, true, Severity::Error, String::new());
+        let report = build_report_with_versions(
+            vec![],
+            &model,
+            0,
+            None,
+            true,
+            Severity::Error,
+            String::new(),
+            TEST_CFN_LINT_VERSION.to_string(),
+            TEST_RESOURCE_SCHEMA_VERSION.to_string(),
+        );
+        assert_eq!(report.metadata.rules_evaluated, 0);
         assert_eq!(report.metadata.counts.fatal, 0);
         assert_eq!(report.metadata.counts.errors, 0);
         assert_eq!(report.metadata.counts.warnings, 0);
@@ -1634,7 +1707,17 @@ Resources:
     fn build_report_debug_severity_counted() {
         let model = minimal_model();
         let diags = vec![Diagnostic { severity: Severity::Debug, message: "dbg".into(), ..default_diag() }];
-        let report = build_report(diags, &model, 0, None, false, Severity::Debug, String::new());
+        let report = build_report_with_versions(
+            diags,
+            &model,
+            0,
+            None,
+            false,
+            Severity::Debug,
+            String::new(),
+            TEST_CFN_LINT_VERSION.to_string(),
+            TEST_RESOURCE_SCHEMA_VERSION.to_string(),
+        );
         assert_eq!(report.metadata.counts.debug, 1);
         assert_eq!(report.metadata.counts.informational, 0);
     }
@@ -2489,10 +2572,20 @@ Resources:
     fn validate_catching_panics_passes_success_through_unchanged() {
         let model = minimal_model();
         let report = validate_catching_panics(|| {
-            Ok(build_report(vec![], &model, 0, Some(7), false, Severity::Info, "inline".to_string()))
+            Ok(build_report_with_versions(
+                vec![],
+                &model,
+                0,
+                Some(7),
+                false,
+                Severity::Info,
+                "inline".to_string(),
+                TEST_CFN_LINT_VERSION.to_string(),
+                TEST_RESOURCE_SCHEMA_VERSION.to_string(),
+            ))
         })
         .expect("a non-panicking Ok result must pass through the guard unchanged");
-        assert_eq!(report.metadata.rules_evaluated, Some(7), "the guard must return the closure's report verbatim");
+        assert_eq!(report.metadata.rules_evaluated, 7, "the guard must return the closure's report verbatim");
     }
 
     /// A test engine that fails on demand, to prove that engine failures surface

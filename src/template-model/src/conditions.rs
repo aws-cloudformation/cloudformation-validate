@@ -2563,7 +2563,7 @@ Resources:
     ///
     /// Each link is written in De Morgan form (`Not(Or(Not(a), Not(b)))` for
     /// `And`, `Not(And(Not(a), Not(b)))` for `Or`) so the implication extractor
-    /// - which only reads top-level `And`/`Or` structure - derives nothing from
+    /// (which only reads top-level `And`/`Or` structure) derives nothing from
     /// the chain. That keeps implication pruning out of the search, which is
     /// the point: this test exercises the *raw iteration budget*, not the
     /// implication constraints (covered by their own tests).

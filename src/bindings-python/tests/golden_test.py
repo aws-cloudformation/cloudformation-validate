@@ -96,6 +96,8 @@ def strip_golden_excluded_fields(report, file_path=None):
     report.pop("performance", None)
     if isinstance(report.get("metadata"), dict):
         report["metadata"].pop("rulesEvaluated", None)
+        report["metadata"].pop("cfnLintVersion", None)
+        report["metadata"].pop("resourceSchemaVersion", None)
     return report
 
 

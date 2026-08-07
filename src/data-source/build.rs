@@ -1,3 +1,7 @@
+#[path = "src/source_versions.rs"]
+mod source_versions;
+
+use source_versions::{SOURCE_VERSIONS_FILE, SourceVersions};
 use std::env;
 use std::fs;
 use std::io::Cursor;
@@ -84,6 +88,27 @@ fn main() {
 
     let mut code = String::new();
 
+    let source_versions_path = generated_data_dir.join(SOURCE_VERSIONS_FILE);
+    println!("cargo:rerun-if-changed={}", source_versions_path.display());
+    let source_versions = if source_versions_path.exists() {
+        let versions = SourceVersions::read(&source_versions_path)
+            .and_then(|versions| SourceVersions::new(versions.cfn_lint_version, versions.resource_schema_version))
+            .unwrap_or_else(|error| panic!("failed to load required data source versions: {error}"));
+        Some(versions)
+    } else {
+        None
+    };
+    emit_optional_version(
+        "CFN_LINT_VERSION",
+        source_versions.as_ref().map(|versions| versions.cfn_lint_version.as_str()),
+        &mut code,
+    );
+    emit_optional_version(
+        "RESOURCE_SCHEMA_VERSION",
+        source_versions.as_ref().map(|versions| versions.resource_schema_version.as_str()),
+        &mut code,
+    );
+
     for (filename, const_name) in GENERATED_JSON {
         let path = resolve_json_file(&generated_data_dir, &generated_sv_dir, filename);
         embed_minified_json(&path, const_name, &out_dir, &mut code);
@@ -120,6 +145,13 @@ fn main() {
     code.push_str("}\n");
 
     fs::write(out_dir.join("embedded_data.rs"), code).unwrap();
+}
+
+fn emit_optional_version(const_name: &str, version: Option<&str>, code: &mut String) {
+    match version {
+        Some(version) => code.push_str(&format!("pub const {const_name}: Option<&str> = Some({version:?});\n")),
+        None => code.push_str(&format!("pub const {const_name}: Option<&str> = None;\n")),
+    }
 }
 
 /// Find a JSON file in either the generated data or schema-validator directory.

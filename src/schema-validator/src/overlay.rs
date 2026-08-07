@@ -1354,10 +1354,9 @@ pub(crate) fn merge_into(base: &mut CompiledSchema, overlay: CompiledSchema) {
 
     // Property-path metadata lists only ever grow: an overlay that names one
     // more deprecated property must not delete the bundled deprecations.
-    // `write_only`/`create_only`/`deprecated` drive their own diagnostics;
-    // `read_only` and the primary identifier feed the overlay catalog (GetAtt
-    // and Ref metadata for the rule engines); `conditional_create_only` is
-    // carried for completeness and has no runtime consumer today.
+    // `write_only`/`create_only`/`deprecated`/`conditional_create_only` drive
+    // their own diagnostics; `read_only` and the primary identifier feed the
+    // overlay catalog (GetAtt and Ref metadata for the rule engines).
     union_extend(&mut base.read_only_properties, overlay.read_only_properties);
     union_extend(&mut base.write_only_properties, overlay.write_only_properties);
     union_extend(&mut base.create_only_properties, overlay.create_only_properties);

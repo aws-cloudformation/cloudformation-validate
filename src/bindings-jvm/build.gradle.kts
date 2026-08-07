@@ -8,12 +8,6 @@ plugins {
     id("org.jetbrains.dokka-javadoc") version "2.2.0" // keep in sync with configs.yml dokka-version
 }
 
-// ── Coordinates + bundled runtime dependency versions.
-//    Static publishing identity (groupId, artifactId) lives in gradle.properties.
-//    The version and bundled dependency versions come from version.properties, which
-//    build.sh generates from Cargo.toml (the single source of truth) so they cannot
-//    drift. Every value is required: the build fails loudly if one is missing rather
-//    than substituting a baked-in default. A -P override still wins over both files.
 val generatedVersions = Properties().apply {
     val file = layout.projectDirectory.file("version.properties").asFile
     if (file.exists()) file.inputStream().use { load(it) }
@@ -67,21 +61,17 @@ val bindingReadme = layout.projectDirectory.file("README.md")
 sourceSets {
     main {
         kotlin.setSrcDirs(listOf(generatedDir))
-        // generated/ also holds the emitted jar and staged natives - only .kt is source.
         kotlin.exclude("**/*.jar", "natives/**")
     }
 }
 
-// The main jar written to generated/cloudformation-validate.jar, matching the name and
-// contents build.sh previously produced by hand: classes + .kt sources (IDE nav) +
-// host native under the JNA <os>-<arch>/ path + license/readme metadata.
 tasks.named<Jar>("jar") {
     archiveFileName.set("cloudformation-validate.jar")
     destinationDirectory.set(generatedDir)
     includeEmptyDirs = false
 
     from(generatedDir) {
-        include("**/*.kt") // bundle sources for IDE navigation, mirroring the old build
+        include("**/*.kt")
     }
     from(nativesDir) // contents land at the jar root as <os>-<arch>/lib*.{dylib,so,dll}
     from(repoLicense) { into("META-INF") }
@@ -251,9 +241,6 @@ tasks.withType<AbstractPublishToMaven>().configureEach {
 }
 
 // ── PGP signing - required by Maven Central, engaged only when a key is present ──
-// signingKey / signingPassword resolve from -PsigningKey=... or the environment
-// variables ORG_GRADLE_PROJECT_signingKey / ORG_GRADLE_PROJECT_signingPassword.
-// signingKey must be the full ASCII-armored private key block.
 val signingKey = findProperty("signingKey") as String?
 val signingPassword = (findProperty("signingPassword") as String?) ?: ""
 signing {
@@ -265,9 +252,6 @@ signing {
 }
 
 // ── Central Publisher Portal upload bundle ──────────────────────────────────────
-// Zips the staged Maven layout into a single archive whose internal folder structure
-// follows the Maven Repository Layout, as the Portal upload API requires.
-// maven-metadata.* files are repository bookkeeping the Portal does not accept.
 val centralBundle = tasks.register<Zip>("centralBundle") {
     group = "publishing"
     description = "Assembles the Central Publisher Portal upload bundle from the staged Maven layout."

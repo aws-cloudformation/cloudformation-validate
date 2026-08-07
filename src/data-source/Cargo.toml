@@ -15,17 +15,12 @@ path = "src/lib.rs"
 [[example]]
 name = "sync"
 path = "src/sync.rs"
-required-features = ["full"]
+required-features = ["maintenance"]
 
 [[example]]
 name = "generate"
 path = "src/generate.rs"
-required-features = ["full"]
-
-[[example]]
-name = "full"
-path = "src/full.rs"
-required-features = ["full"]
+required-features = ["maintenance"]
 
 [[example]]
 name = "embedding_format_bench"
@@ -34,7 +29,7 @@ required-features = ["bench"]
 
 [features]
 default = []
-full = ["ureq", "zip", "chrono", "env_logger", "dep:log", "anyhow", "dep:zstd"]
+maintenance = ["ureq", "zip", "chrono", "env_logger", "dep:log", "anyhow", "dep:zstd"]
 bench = ["dep:zstd", "dep:lz4_flex"]
 wasm-bindings = ["dep:tsify", "dep:wasm-bindgen"]
 uniffi-bindings = ["dep:uniffi"]
@@ -56,6 +51,7 @@ wasm-bindgen = { version = "0.2", optional = true }
 uniffi = { workspace = true, optional = true }
 
 [build-dependencies]
+serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
 zstd = { version = "0.13", default-features = false }
 

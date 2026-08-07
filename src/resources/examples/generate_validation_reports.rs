@@ -31,8 +31,9 @@ const PARITY_IGNORED_FIELDS: &[&str] = &["performance", "benchmarkMetrics", "sup
 /// Top-level fields compared across engines but not persisted to the golden file.
 const OUTPUT_ONLY_TOP_LEVEL_FIELDS: &[&str] = &["performance"];
 
-/// `metadata` fields compared across engines but not persisted to the golden file.
-const OUTPUT_ONLY_METADATA_FIELDS: &[&str] = &["rulesEvaluated"];
+/// `metadata` fields compared across engines but not persisted to the golden file because they describe
+/// the current binary's rule and data-source bundle.
+const OUTPUT_ONLY_METADATA_FIELDS: &[&str] = &["rulesEvaluated", "cfnLintVersion", "resourceSchemaVersion"];
 
 /// Identity of a single diagnostic, used only to describe parity divergences.
 type DiagnosticKey = (String, String, String, String, String);
@@ -236,7 +237,7 @@ fn strip_fields(value: &Value, drop: &[&str]) -> Value {
 }
 
 /// Remove the fields that are compared across engines but not persisted: the
-/// top-level output-only fields and `metadata.rulesEvaluated`.
+/// top-level output-only fields and metadata fields describing the current rule and data-source bundle.
 fn strip_output_only_fields(report: &Value) -> Value {
     let Value::Object(map) = report else {
         return report.clone();
