@@ -59,10 +59,12 @@ pub(crate) fn register_all(
     register_has_transform(rego, holder.clone());
     register_make_diag(rego, holder.clone());
     register_make_diag_at(rego, holder.clone());
+    register_make_diag_at_source(rego, holder.clone());
     register_make_diag_full(rego, holder.clone());
     register_make_diag_related(rego, holder.clone());
     register_make_diag_conditional(rego, holder.clone());
     register_resolve_scenarios(rego, holder.clone());
+    register_scenario_source_path(rego, holder.clone());
     register_properties_scenarios(rego, holder.clone());
     register_is_satisfiable(rego, holder.clone());
     register_get_resource(rego, holder.clone());
@@ -467,6 +469,35 @@ fn register_resolve_scenarios(rego: &mut regorus::Engine, holder: SharedModel) {
                 })
                 .collect();
             Ok(Value::from(results))
+        }),
+    );
+}
+
+fn register_scenario_source_path(rego: &mut regorus::Engine, holder: SharedModel) {
+    let _ = rego.add_extension(
+        "scenario_source_path".into(),
+        3,
+        Box::new(move |params: Vec<Value>| {
+            let Some(model) = get_model(&holder) else {
+                return Ok(Value::Undefined);
+            };
+            let resource_id = params[0].as_string()?;
+            let effective_path = params[1].as_string()?;
+            let conditions_json = params[2].to_json_str()?;
+            let conditions_value: serde_json::Value = serde_json::from_str(&conditions_json).unwrap_or_default();
+            let conditions: HashMap<String, bool> = conditions_value
+                .as_object()
+                .map(|values| {
+                    values
+                        .iter()
+                        .filter_map(|(name, value)| value.as_bool().map(|value| (name.clone(), value)))
+                        .collect()
+                })
+                .unwrap_or_default();
+            let source_path = model
+                .scenario_source_path(resource_id.as_ref(), effective_path.as_ref(), &conditions)
+                .unwrap_or_else(|| effective_path.to_string());
+            Ok(Value::from(source_path))
         }),
     );
 }
@@ -1880,6 +1911,38 @@ fn register_make_diag_at(rego: &mut regorus::Engine, holder: SharedModel) {
 
 fn resolve_span(model: &SemanticModel, resource_id: &str, prop_path: &str) -> SourceSpan {
     model.resource_span(resource_id, prop_path)
+}
+
+fn register_make_diag_at_source(rego: &mut regorus::Engine, holder: SharedModel) {
+    let _ = rego.add_extension(
+        "make_diag_at_source".into(),
+        6,
+        Box::new(move |params: Vec<Value>| {
+            let Some(model) = get_model(&holder) else {
+                return Ok(Value::Undefined);
+            };
+            let rule_id = params[0].as_string()?;
+            let severity = params[1].as_string()?;
+            let resource_id = params[2].as_string()?;
+            let prop_path = params[3].as_string()?;
+            let source_path = params[4].as_string()?;
+            let message = params[5].as_string()?;
+            let span = resolve_span(&model, resource_id, source_path);
+            let mut obj = serde_json::json!({
+                "rule_id": rule_id.as_ref(), "severity": severity.as_ref(),
+                "message": message.as_ref(), "resource_id": resource_id.as_ref(),
+                "resource_path": prop_path.as_ref(),
+            });
+            if span != UNKNOWN_SPAN {
+                let fields = obj.as_object_mut().unwrap();
+                fields.insert("start_line".into(), span.start_line.into());
+                fields.insert("start_column".into(), span.start_column.into());
+                fields.insert("end_line".into(), span.end_line.into());
+                fields.insert("end_column".into(), span.end_column.into());
+            }
+            Value::from_json_str(&obj.to_string())
+        }),
+    );
 }
 
 fn register_make_diag_full(rego: &mut regorus::Engine, holder: SharedModel) {

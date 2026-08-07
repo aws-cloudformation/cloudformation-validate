@@ -1,6 +1,6 @@
 # cloudformation-validate vs cfn-lint — Parity Report
 
-> Generated: 2026-08-06 22:54:10  
+> Generated: 2026-08-06 23:20:54  
 > Engine: **cel**  
 > Detail level: **detailed**  
 > Matching: `(rule_id, resource_id, path)` two-pass with `(rule_id, resource_id)` fallback + aliases  
@@ -31,7 +31,7 @@
 | F1 | 91.55% |
 | Unique rules detected | 224 |
 | Perfect templates | 450/600 |
-| Location mismatches (matched pairs) | 6 |
+| Location mismatches (matched pairs) | 4 |
 
 ### By Severity
 
@@ -46,25 +46,25 @@
 
 | Metric | Value |
 |--------|------:|
-| Total wall time | 6791.9998 ms |
-| Throughput | 94.35 validations/sec |
+| Total wall time | 6353.1580 ms |
+| Throughput | 100.76 validations/sec |
 | Templates | 600 ok, 8 failed |
 | Iterations per template | 1 |
-| Engine init (p99) | 35.8455 ms |
-| Engine init (max) | 35.8455 ms |
-| Schema init (p99) | 78.4985 ms |
-| Schema init (max) | 78.4985 ms |
+| Engine init (p99) | 36.4450 ms |
+| Engine init (max) | 36.4450 ms |
+| Schema init (p99) | 79.7210 ms |
+| Schema init (max) | 79.7210 ms |
 
 ### Latency Distribution (ms)
 
 | Phase | Min | Avg | Median | P90 | P95 | P99 | Max |
 |-------|----:|----:|-------:|----:|----:|----:|----:|
-| Model Build | 0.0035 | 0.2736 | 0.0660 | 0.7590 | 1.2065 | 2.6563 | 8.5948 |
-| Schema Validate | 0.0000 | 0.9862 | 0.2251 | 1.4869 | 2.0761 | 4.9965 | 210.7033 |
-| Rule Evaluation | 7.8284 | 9.2670 | 8.7714 | 10.8278 | 12.0080 | 15.0292 | 29.5300 |
-| Diagnostic Finalize | 0.0025 | 0.0207 | 0.0094 | 0.0444 | 0.0741 | 0.1799 | 0.2805 |
-| Engine Internal | 7.8550 | 10.5973 | 9.2666 | 12.5815 | 14.8162 | 23.3746 | 220.1570 |
-| Wall Clock | 7.8557 | 10.5984 | 9.2676 | 12.5826 | 14.8172 | 23.3756 | 220.1579 |
+| Model Build | 0.0045 | 0.2504 | 0.0637 | 0.7254 | 1.1066 | 2.2090 | 3.6270 |
+| Schema Validate | 0.0003 | 0.9732 | 0.2168 | 1.4203 | 2.0680 | 5.6909 | 209.0387 |
+| Rule Evaluation | 7.5574 | 8.6357 | 8.4263 | 9.2338 | 9.8069 | 12.0556 | 39.8820 |
+| Diagnostic Finalize | 0.0012 | 0.0188 | 0.0083 | 0.0412 | 0.0674 | 0.1845 | 0.2807 |
+| Engine Internal | 7.5889 | 9.9240 | 8.7849 | 11.5750 | 12.8316 | 22.3615 | 218.5374 |
+| Wall Clock | 7.5893 | 9.9249 | 8.7854 | 11.5763 | 12.8330 | 22.3627 | 218.5382 |
 
 ## False Negatives — 359 missed findings across 85 rules
 
@@ -1120,13 +1120,13 @@ These are diagnostics the engine reports but cfn-lint does not expect (potential
 
 ### E3023 — 6 extra — Validate Route53 RecordSets
 
-- **E3023** `StandaloneMixedInvalidTrue` (AWS::Route53::RecordSet) → `Properties.ResourceRecords.1` L43 in `bad_route53_conditional_record_arrays_yaml`
+- **E3023** `StandaloneMixedInvalidTrue` (AWS::Route53::RecordSet) → `Properties.ResourceRecords.1` L41 in `bad_route53_conditional_record_arrays_yaml`
   > 'invalid-standalone-mixed-true' is not a valid IPv4 address for record type 'A'
-- **E3023** `StandaloneMixedInvalidFalse` (AWS::Route53::RecordSet) → `Properties.ResourceRecords.1` L55 in `bad_route53_conditional_record_arrays_yaml`
+- **E3023** `StandaloneMixedInvalidFalse` (AWS::Route53::RecordSet) → `Properties.ResourceRecords.1` L53 in `bad_route53_conditional_record_arrays_yaml`
   > 'invalid-standalone-mixed-false' is not a valid IPv4 address for record type 'A'
-- **E3023** `GroupMixedInvalidTrue` (AWS::Route53::RecordSetGroup) → `Properties.RecordSets.0.ResourceRecords.1` L91 in `bad_route53_conditional_record_arrays_yaml`
+- **E3023** `GroupMixedInvalidTrue` (AWS::Route53::RecordSetGroup) → `Properties.RecordSets.0.ResourceRecords.1` L97 in `bad_route53_conditional_record_arrays_yaml`
   > 'invalid-group-mixed-true' is not a valid IPv4 address for record type 'A'
-- **E3023** `GroupMixedInvalidFalse` (AWS::Route53::RecordSetGroup) → `Properties.RecordSets.0.ResourceRecords.1` L107 in `bad_route53_conditional_record_arrays_yaml`
+- **E3023** `GroupMixedInvalidFalse` (AWS::Route53::RecordSetGroup) → `Properties.RecordSets.0.ResourceRecords.1` L117 in `bad_route53_conditional_record_arrays_yaml`
   > 'invalid-group-mixed-false' is not a valid IPv4 address for record type 'A'
 - **E3023** `StandaloneUnresolvedCnameCardinality` (AWS::Route53::RecordSet) → `Properties.ResourceRecords` L125 in `bad_route53_conditional_record_arrays_yaml`
   > CNAME records must have at most 1 ResourceRecord
@@ -14084,7 +14084,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 | Other | 35 | 81.40% | E0001, F3017 |
 | Over-reporting property/intrinsic errors | 8 | 18.60% | E3023, E3029 |
 
-## Location Mismatches — 6 matched pairs disagree on line
+## Location Mismatches — 4 matched pairs disagree on line
 
 Same rule ID + resource + path, but the engine start line differs from
 the reference. (Messages are not compared — wording may differ freely.)
@@ -14094,8 +14094,6 @@ findings at the resource's first line because the
 transform loses property line fidelity; the engine anchors at the
 actual property line — deliberately more precise, not a defect.
 
-- **E3023** `StandaloneInvalidTrue` → `Properties.ResourceRecords.0` in `bad_route53_conditional_record_arrays_yaml`: reference L19 vs engine L20
-- **E3023** `StandaloneInvalidFalse` → `Properties.ResourceRecords.0` in `bad_route53_conditional_record_arrays_yaml`: reference L30 vs engine L31
 - **I3042** `myKms` → `Properties.KeyPolicy.Statement.2.Principal.AWS.0.Fn::Sub` in `bad_resources_circular_dependency_yaml`: reference L191 vs engine L192
 - **I3042** `CognitoAuthorizer` → `Properties.ProviderARNs.0.Fn::Sub` in `integration_cfn-gather_yaml`: reference L60 vs engine L61
 - **W1028** `ProductionBucket` → `Properties.PublicAccessBlockConfiguration.BlockPublicAcls.Fn::If.2` in `lsp_condition-usage_yaml`: reference L66 vs engine L69

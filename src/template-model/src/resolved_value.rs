@@ -75,6 +75,80 @@ pub fn resolved_value_at_path(val: &ResolvedValue, path: &str) -> Option<Resolve
     }
 }
 
+pub fn scenario_source_path_at(
+    value: &ResolvedValue,
+    effective_path: &str,
+    conditions: &HashMap<String, bool>,
+    source_path: &str,
+) -> Option<String> {
+    let segments: Vec<&str> = effective_path.split('.').filter(|segment| !segment.is_empty()).collect();
+    scenario_source_path_segments(value, &segments, conditions, source_path)
+}
+
+fn scenario_source_path_segments(
+    value: &ResolvedValue,
+    segments: &[&str],
+    conditions: &HashMap<String, bool>,
+    source_path: &str,
+) -> Option<String> {
+    match value {
+        ResolvedValue::Conditional { condition, if_true, if_false } => {
+            let is_true = *conditions.get(condition)?;
+            let branch_index = if is_true { 1 } else { 2 };
+            let branch = if is_true { if_true } else { if_false };
+            scenario_source_path_segments(
+                branch,
+                segments,
+                conditions,
+                &append_source_path(source_path, &format!("Fn::If.{branch_index}")),
+            )
+        }
+        ResolvedValue::Map { entries } => {
+            let (segment, remaining) = segments.split_first()?;
+            let entry = entries.iter().find(|entry| entry.key == *segment)?;
+            scenario_source_path_segments(
+                &entry.value,
+                remaining,
+                conditions,
+                &append_source_path(source_path, segment),
+            )
+        }
+        ResolvedValue::List { items } => {
+            let (segment, remaining) = segments.split_first()?;
+            let index: usize = segment.parse().ok()?;
+            scenario_source_path_segments(
+                items.get(index)?,
+                remaining,
+                conditions,
+                &append_source_path(source_path, segment),
+            )
+        }
+        ResolvedValue::Concrete { value } => json_scenario_source_path(value, segments, source_path),
+        ResolvedValue::Enum { variants } => variants
+            .iter()
+            .find_map(|variant| scenario_source_path_segments(variant, segments, conditions, source_path)),
+        ResolvedValue::Reference { .. } | ResolvedValue::Dynamic { .. } | ResolvedValue::TypedDynamic { .. } => {
+            segments.is_empty().then(|| source_path.to_string())
+        }
+    }
+}
+
+fn json_scenario_source_path(value: &serde_json::Value, segments: &[&str], source_path: &str) -> Option<String> {
+    let Some((segment, remaining)) = segments.split_first() else {
+        return Some(source_path.to_string());
+    };
+    let child = match value {
+        serde_json::Value::Object(map) => map.get(*segment)?,
+        serde_json::Value::Array(items) => items.get(segment.parse::<usize>().ok()?)?,
+        _ => return None,
+    };
+    json_scenario_source_path(child, remaining, &append_source_path(source_path, segment))
+}
+
+fn append_source_path(source_path: &str, segment: &str) -> String {
+    if source_path.is_empty() { segment.to_string() } else { format!("{source_path}.{segment}") }
+}
+
 pub fn collect_condition_refs_from_resolved(val: &ResolvedValue, out: &mut Vec<String>) {
     match val {
         ResolvedValue::Conditional { condition: cond, if_true: t, if_false: f } => {
@@ -641,6 +715,42 @@ mod tests {
         collect_condition_refs_from_resolved(&val, &mut refs);
         refs.sort();
         assert_eq!(refs, vec!["C1", "C2"]);
+    }
+
+    #[test]
+    fn scenario_source_path_selects_conditional_list_branch() {
+        let value = ResolvedValue::Conditional {
+            condition: "ChooseFirst".into(),
+            if_true: Box::new(ResolvedValue::Concrete { value: json!(["bad"]).into() }),
+            if_false: Box::new(ResolvedValue::Concrete { value: json!(["good"]).into() }),
+        };
+        let mut conditions = HashMap::new();
+        conditions.insert("ChooseFirst".to_string(), true);
+        assert_eq!(
+            scenario_source_path_at(&value, "0", &conditions, "Properties.ResourceRecords"),
+            Some("Properties.ResourceRecords.Fn::If.1.0".to_string())
+        );
+        conditions.insert("ChooseFirst".to_string(), false);
+        assert_eq!(
+            scenario_source_path_at(&value, "0", &conditions, "Properties.ResourceRecords"),
+            Some("Properties.ResourceRecords.Fn::If.2.0".to_string())
+        );
+    }
+
+    #[test]
+    fn scenario_source_path_selects_conditional_list_item_branch() {
+        let value = ResolvedValue::List {
+            items: vec![ResolvedValue::Conditional {
+                condition: "UseValue".into(),
+                if_true: Box::new(ResolvedValue::Concrete { value: json!("value").into() }),
+                if_false: Box::new(ResolvedValue::Concrete { value: json!(null).into() }),
+            }],
+        };
+        let conditions = HashMap::from([("UseValue".to_string(), true)]);
+        assert_eq!(
+            scenario_source_path_at(&value, "0", &conditions, "Properties.ResourceRecords"),
+            Some("Properties.ResourceRecords.0.Fn::If.1".to_string())
+        );
     }
 
     #[test]

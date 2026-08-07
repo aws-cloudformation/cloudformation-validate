@@ -1034,39 +1034,53 @@ impl SemanticModel {
         self.scenario_combinations_used.fetch_add(count, Ordering::Relaxed);
     }
 
+    fn resolved_properties_value(&self, resource_id: &str) -> Option<ResolvedValue> {
+        let resource = self.resources.get(resource_id)?;
+        if resource.properties_dynamic {
+            return None;
+        }
+        if resource.properties.len() == 1
+            && let Some(conditional) = resource.properties.get(FN_IF)
+        {
+            return Some(conditional.clone());
+        }
+        let mut entries: Vec<MapEntry> = resource
+            .properties
+            .iter()
+            .map(|(key, value)| MapEntry { key: key.clone(), value: value.clone() })
+            .collect();
+        entries.sort_by(|left, right| left.key.cmp(&right.key));
+        Some(ResolvedValue::Map { entries })
+    }
+
     pub fn resolve_properties_scenarios(&self, resource_id: &str) -> Vec<(ResolvedValue, HashMap<String, bool>)> {
         if self.scenario_budget_exhausted() {
             return vec![];
         }
-        let Some(resource) = self.resources.get(resource_id) else {
+        let Some(properties) = self.resolved_properties_value(resource_id) else {
             return vec![];
         };
-        if resource.properties_dynamic {
-            return vec![];
-        }
-
-        let properties = if resource.properties.len() == 1 {
-            resource.properties.get(FN_IF).cloned().unwrap_or_else(|| ResolvedValue::Map {
-                entries: resource
-                    .properties
-                    .iter()
-                    .map(|(key, value)| MapEntry { key: key.clone(), value: value.clone() })
-                    .collect(),
-            })
-        } else {
-            let mut entries: Vec<MapEntry> = resource
-                .properties
-                .iter()
-                .map(|(key, value)| MapEntry { key: key.clone(), value: value.clone() })
-                .collect();
-            entries.sort_by(|left, right| left.key.cmp(&right.key));
-            ResolvedValue::Map { entries }
-        };
-
         let mut results = Vec::new();
         collect_scenarios(&properties, &HashMap::new(), &mut results);
         self.scenario_combinations_used.fetch_add(results.len() as u64, Ordering::Relaxed);
         results
+    }
+
+    /// Returns the authored, branch-qualified source path for an effective path in
+    /// one resolved scenario. The returned path uses the same dotted form as
+    /// resolver source paths and can be passed to [`Self::resource_span`].
+    pub fn scenario_source_path(
+        &self,
+        resource_id: &str,
+        effective_path: &str,
+        conditions: &HashMap<String, bool>,
+    ) -> Option<String> {
+        let properties = self.resolved_properties_value(resource_id)?;
+        let relative_path = effective_path
+            .strip_prefix("Properties.")
+            .or_else(|| (effective_path == KEY_PROPERTIES).then_some(""))
+            .unwrap_or(effective_path);
+        scenario_source_path_at(&properties, relative_path, conditions, KEY_PROPERTIES)
     }
 
     pub fn resolve_scenarios(&self, resource_id: &str, path: &str) -> Vec<(ResolvedValue, HashMap<String, bool>)> {
@@ -2040,6 +2054,28 @@ Resources:
             Some(ResolvedValue::Reference { target, kind: _ }) => assert_eq!(target, "TD"),
             other => panic!("Expected Reference, got {:?}", other),
         }
+    }
+
+    #[test]
+    fn scenario_source_path_maps_effective_indexes_to_authored_branches() {
+        let input = br#"{
+            "Parameters": {"Mode": {"Type": "String"}},
+            "Conditions": {"ChooseFirst": {"Fn::Equals": [{"Ref": "Mode"}, "first"]}},
+            "Resources": {"R": {"Type": "T", "Properties": {
+                "Values": {"Fn::If": ["ChooseFirst", ["bad"], ["good"]]}
+            }}}
+        }"#;
+        let model = SemanticModel::from_bytes(input).unwrap();
+        let true_conditions = HashMap::from([("ChooseFirst".to_string(), true)]);
+        let false_conditions = HashMap::from([("ChooseFirst".to_string(), false)]);
+        assert_eq!(
+            model.scenario_source_path("R", "Properties.Values.0", &true_conditions),
+            Some("Properties.Values.Fn::If.1.0".to_string())
+        );
+        assert_eq!(
+            model.scenario_source_path("R", "Properties.Values.0", &false_conditions),
+            Some("Properties.Values.Fn::If.2.0".to_string())
+        );
     }
 
     #[test]

@@ -167,6 +167,35 @@ fn assert_rule_targets_on_resources(
     }
 }
 
+fn assert_rule_start_locations(
+    by_engine: &[(&str, Vec<Diagnostic>)],
+    rule_id: &str,
+    expected_locations: &[(&str, u32, u32)],
+) {
+    let mut expected: Vec<(String, u32, u32)> = expected_locations
+        .iter()
+        .map(|(resource_id, line, column)| ((*resource_id).to_string(), *line, *column))
+        .collect();
+    expected.sort();
+    let resource_ids: Vec<&str> = expected_locations.iter().map(|(resource_id, _, _)| *resource_id).collect();
+
+    for (engine, diags) in by_engine {
+        let mut actual: Vec<(String, u32, u32)> = diags
+            .iter()
+            .filter(|diagnostic| diagnostic.rule_id == rule_id)
+            .filter_map(|diagnostic| {
+                let resource_id = diagnostic.resource_logical_id()?;
+                let location = diagnostic.location.as_ref()?;
+                resource_ids
+                    .contains(&resource_id)
+                    .then(|| (resource_id.to_string(), location.start_line, location.start_column))
+            })
+            .collect();
+        actual.sort();
+        assert_eq!(actual, expected, "[{engine}] unexpected {rule_id} source locations");
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Per-issue regression tests
 // ---------------------------------------------------------------------------
@@ -1883,6 +1912,16 @@ fn issue_264_conditional_record_arrays_validate_reachable_branches() {
             ("GroupInvalidFalse", "Properties.RecordSets.0.ResourceRecords.0"),
             ("GroupMixedInvalidTrue", "Properties.RecordSets.0.ResourceRecords.1"),
             ("GroupMixedInvalidFalse", "Properties.RecordSets.0.ResourceRecords.1"),
+        ],
+    );
+    assert_rule_start_locations(
+        &invalid_diags,
+        "E3023",
+        &[
+            ("StandaloneInvalidTrue", 19, 7),
+            ("StandaloneInvalidFalse", 30, 7),
+            ("GroupInvalidTrue", 67, 31),
+            ("GroupInvalidFalse", 85, 31),
         ],
     );
 

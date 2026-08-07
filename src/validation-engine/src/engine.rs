@@ -497,23 +497,27 @@ pub(crate) fn parse_diagnostic(
     let property_path =
         val.get("resource_path").and_then(|v| v.as_str()).filter(|s| !s.is_empty()).map(|s| s.to_string());
 
-    let span = if let Some(ref rid) = resource_id {
-        model.resource_span(rid, property_path.as_deref().unwrap_or(""))
-    } else {
-        let sl = val.get("start_line").and_then(|v| v.as_u64());
-        let sc = val.get("start_column").and_then(|v| v.as_u64());
-        match (sl, sc) {
-            (Some(l), Some(c)) => SourceSpan {
-                start_line: l as u32,
-                start_column: c as u32,
-                end_line: val.get("end_line").and_then(|v| v.as_u64()).unwrap_or(l) as u32,
-                end_column: val.get("end_column").and_then(|v| v.as_u64()).unwrap_or(c) as u32,
-            },
-            _ => model
-                .diagnostic_span(None, property_path.as_deref().unwrap_or(""))
-                .unwrap_or_else(|| resolve_section_span(&rule_id, model)),
-        }
+    let explicit_span = match (
+        val.get("start_line").and_then(|value| value.as_u64()),
+        val.get("start_column").and_then(|value| value.as_u64()),
+    ) {
+        (Some(line), Some(column)) => Some(SourceSpan {
+            start_line: line as u32,
+            start_column: column as u32,
+            end_line: val.get("end_line").and_then(|value| value.as_u64()).unwrap_or(line) as u32,
+            end_column: val.get("end_column").and_then(|value| value.as_u64()).unwrap_or(column) as u32,
+        }),
+        _ => None,
     };
+    let span = explicit_span.unwrap_or_else(|| {
+        if let Some(ref resource_id) = resource_id {
+            model.resource_span(resource_id, property_path.as_deref().unwrap_or(""))
+        } else {
+            model
+                .diagnostic_span(None, property_path.as_deref().unwrap_or(""))
+                .unwrap_or_else(|| resolve_section_span(&rule_id, model))
+        }
+    });
 
     let is_custom_or_guard = source_override.is_some_and(|o| matches!(o, RuleOrigin::Custom | RuleOrigin::Guard));
 
@@ -1012,16 +1016,30 @@ pub fn make_resource_diagnostic(
     prop_path: &str,
     suggested_fix: Option<&str>,
 ) -> Diagnostic {
+    make_resource_diagnostic_at_source(rule_id, message, model, resource_id, prop_path, prop_path, suggested_fix)
+}
+
+/// Builds a resource diagnostic whose public property path and source-span anchor differ.
+/// Scenario-aware rules use this when an effective path maps to an authored intrinsic branch.
+pub fn make_resource_diagnostic_at_source(
+    rule_id: &str,
+    message: &str,
+    model: &SemanticModel,
+    resource_id: &str,
+    prop_path: &str,
+    source_path: &str,
+    suggested_fix: Option<&str>,
+) -> Diagnostic {
     // With no resource, a section-absolute path (`Parameters/MyParam/Type`)
     // anchors the finding at the named entity; without one the section span from
     // the rule-ID table is the closest known location.
     let span = if resource_id.is_empty() {
-        match model.diagnostic_span(None, prop_path) {
+        match model.diagnostic_span(None, source_path) {
             Some(found) => found,
             None => resolve_section_span(rule_id, model),
         }
     } else {
-        model.resource_span(resource_id, prop_path)
+        model.resource_span(resource_id, source_path)
     };
     RegisteredDiagnostic::new(rule_id, message)
         .property_path(prop_path)
@@ -1432,6 +1450,24 @@ Resources:
         let diag = parse_diagnostic(&val, &model, None).unwrap();
         assert_eq!(diag.location.as_ref().unwrap().start_line, 42);
         assert_eq!(diag.location.as_ref().unwrap().start_column, 7);
+    }
+
+    #[test]
+    fn parse_diagnostic_resource_preserves_explicit_location() {
+        let model = minimal_model();
+        let val = serde_json::json!({
+            "rule_id": "E3012",
+            "severity": Severity::Error.as_str(),
+            "message": "x",
+            "resource_id": "Bucket",
+            "resource_path": "Properties.BucketName",
+            "start_line": 42,
+            "start_column": 7,
+            "end_line": 43,
+            "end_column": 9
+        });
+        let diag = parse_diagnostic(&val, &model, None).unwrap();
+        assert_eq!(diag.location, Some(SourceSpan { start_line: 42, start_column: 7, end_line: 43, end_column: 9 }));
     }
 
     #[test]
