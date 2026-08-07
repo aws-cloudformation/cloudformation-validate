@@ -115,3 +115,24 @@ Resources:
             ResourceRecords:
               - !Ref DynamicRecord
               - invalid-group-mixed-false
+  StandaloneUnresolvedCnameCardinality:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneName: example.com.
+      Name: standalone-unresolved-cname.example.com.
+      Type: CNAME
+      TTL: "300"
+      ResourceRecords:
+        - !Ref DynamicRecord
+        - fixed.example.com.
+  GroupUnresolvedCnameCardinality:
+    Type: AWS::Route53::RecordSetGroup
+    Properties:
+      HostedZoneName: example.com.
+      RecordSets:
+        - Name: group-unresolved-cname.example.com.
+          Type: CNAME
+          TTL: "300"
+          ResourceRecords:
+            - !Ref DynamicRecord
+            - fixed.example.com.

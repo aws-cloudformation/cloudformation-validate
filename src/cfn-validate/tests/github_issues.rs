@@ -1795,75 +1795,41 @@ Resources:
     assert_fires_on_property(&diags, "E3029", "Properties.AliasTarget");
 }
 
-/// Issue #264: unresolved record values are not literals and must not be checked using their
-/// logical IDs. The fixture covers resource Ref, GetAtt, parameter Ref, standalone records, and a
-/// record-set group across every implemented value format.
+/// Issue #264: unresolved values are skipped for format checks, but they do not hide concrete
+/// invalid siblings; statically resolved intrinsics remain subject to validation.
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/264
 #[test]
-fn issue_264_unresolved_record_values_are_not_format_checked() {
-    let diags = validate_both("issue-264.yaml");
-    assert_absent(&diags, "E3023");
-}
+fn issue_264_unresolved_values_skip_checks_without_hiding_concrete_siblings() {
+    let unresolved_diags = validate_both("issue-264.yaml");
+    assert_absent(&unresolved_diags, "E3023");
 
-/// Issue #264 positive boundary: an unresolved entry does not hide a concrete invalid sibling.
-/// https://github.com/aws-cloudformation/cloudformation-validate/issues/264
-#[test]
-fn issue_264_mixed_record_values_validate_concrete_siblings() {
     const TEMPLATE: &[u8] = br#"
 Resources:
   EIP:
     Type: AWS::EC2::EIP
     Properties: {}
-  MixedA:
+  MixedStandalone:
     Type: AWS::Route53::RecordSet
     Properties:
       HostedZoneId: Z123456789EXAMPLE
-      Name: mixed.example.com.
+      Name: mixed-standalone.example.com.
       Type: A
       TTL: '300'
       ResourceRecords:
         - !GetAtt EIP.PublicIp
         - 999.0.2.1
-"#;
-    let diags = validate_both_bytes(TEMPLATE);
-    assert_count(&diags, "E3023", 1);
-    assert_fires_on_property(&diags, "E3023", "Properties.ResourceRecords.1");
-}
-
-/// Issue #264 positive boundary: nested record sets preserve the same per-entry behavior.
-/// https://github.com/aws-cloudformation/cloudformation-validate/issues/264
-#[test]
-fn issue_264_grouped_mixed_values_validate_concrete_siblings() {
-    const TEMPLATE: &[u8] = br#"
-Resources:
-  EIP:
-    Type: AWS::EC2::EIP
-    Properties: {}
-  Group:
+  MixedGroup:
     Type: AWS::Route53::RecordSetGroup
     Properties:
       HostedZoneId: Z123456789EXAMPLE
       RecordSets:
-        - Name: mixed.example.com.
+        - Name: mixed-group.example.com.
           Type: A
           TTL: '300'
           ResourceRecords:
             - !GetAtt EIP.PublicIp
-            - 999.0.2.1
-"#;
-    let diags = validate_both_bytes(TEMPLATE);
-    assert_count(&diags, "E3023", 1);
-    assert_fires_on_property(&diags, "E3023", "Properties.RecordSets.0.ResourceRecords.1");
-}
-
-/// Issue #264 positive boundary: a statically resolved intrinsic has a known final value and is
-/// still subject to record-format validation.
-/// https://github.com/aws-cloudformation/cloudformation-validate/issues/264
-#[test]
-fn issue_264_concrete_intrinsic_record_value_is_validated() {
-    const TEMPLATE: &[u8] = br#"
-Resources:
-  Record:
+            - 999.0.2.2
+  ConcreteIntrinsic:
     Type: AWS::Route53::RecordSet
     Properties:
       HostedZoneId: Z123456789EXAMPLE
@@ -1871,19 +1837,77 @@ Resources:
       Type: A
       TTL: '300'
       ResourceRecords:
-        - !Join ['', ['999.0.2.1']]
+        - !Join ['', ['999.0.2.3']]
 "#;
-    let diags = validate_both_bytes(TEMPLATE);
-    assert_count(&diags, "E3023", 1);
-    assert_fires_on_property(&diags, "E3023", "Properties.ResourceRecords.0");
+    let mixed_diags = validate_both_bytes(TEMPLATE);
+    assert_rule_parity(&mixed_diags, "E3023");
+    assert_rule_targets_on_resources(
+        &mixed_diags,
+        "E3023",
+        &["MixedStandalone", "MixedGroup", "ConcreteIntrinsic"],
+        &[
+            ("MixedStandalone", "Properties.ResourceRecords.1"),
+            ("MixedGroup", "Properties.RecordSets.0.ResourceRecords.1"),
+            ("ConcreteIntrinsic", "Properties.ResourceRecords.0"),
+        ],
+    );
 }
 
-/// Issue #264: a condition wrapping the entire Properties block still exposes concrete record
-/// values for validation, and both engines choose the same feasible scenario.
+/// Issue #264: every reachable branch of standalone and grouped conditional record arrays is
+/// validated, while valid and resource-condition-unreachable branches remain clean.
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/264
 #[test]
-fn issue_264_properties_conditional_retains_engine_parity() {
-    const TEMPLATE: &[u8] = br#"
+fn issue_264_conditional_record_arrays_validate_reachable_branches() {
+    let invalid_template = load_template("bad/route53_conditional_record_arrays.yaml");
+    let invalid_diags = validate_both_bytes(&invalid_template);
+    assert_rule_parity(&invalid_diags, "E3023");
+    assert_rule_targets_on_resources(
+        &invalid_diags,
+        "E3023",
+        &[
+            "StandaloneInvalidTrue",
+            "StandaloneInvalidFalse",
+            "StandaloneMixedInvalidTrue",
+            "StandaloneMixedInvalidFalse",
+            "GroupInvalidTrue",
+            "GroupInvalidFalse",
+            "GroupMixedInvalidTrue",
+            "GroupMixedInvalidFalse",
+        ],
+        &[
+            ("StandaloneInvalidTrue", "Properties.ResourceRecords.0"),
+            ("StandaloneInvalidFalse", "Properties.ResourceRecords.0"),
+            ("StandaloneMixedInvalidTrue", "Properties.ResourceRecords.1"),
+            ("StandaloneMixedInvalidFalse", "Properties.ResourceRecords.1"),
+            ("GroupInvalidTrue", "Properties.RecordSets.0.ResourceRecords.0"),
+            ("GroupInvalidFalse", "Properties.RecordSets.0.ResourceRecords.0"),
+            ("GroupMixedInvalidTrue", "Properties.RecordSets.0.ResourceRecords.1"),
+            ("GroupMixedInvalidFalse", "Properties.RecordSets.0.ResourceRecords.1"),
+        ],
+    );
+
+    let valid_template = load_template("good/route53_conditional_record_arrays.yaml");
+    let valid_diags = validate_both_bytes(&valid_template);
+    assert_rule_parity(&valid_diags, "E3023");
+    assert_rule_targets_on_resources(
+        &valid_diags,
+        "E3023",
+        &[
+            "StandaloneBothBranchesValid",
+            "StandaloneUnreachableInvalid",
+            "GroupBothBranchesValid",
+            "GroupUnreachableInvalid",
+        ],
+        &[],
+    );
+}
+
+/// Issue #264: conditionals wrapping the entire Properties object expose every reachable record
+/// scenario to both engines, regardless of branch order.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/264
+#[test]
+fn issue_264_whole_properties_conditionals_validate_all_scenarios() {
+    const STANDALONE_TEMPLATE: &[u8] = br#"
 Parameters:
   Environment:
     Type: String
@@ -1906,88 +1930,54 @@ Resources:
         TTL: '300'
         ResourceRecords: [192.0.2.1]
 "#;
-    let diags = validate_both_bytes(TEMPLATE);
-    assert_count(&diags, "E3023", 1);
-    assert_fires_on_property(&diags, "E3023", "Properties.ResourceRecords.0");
-}
-
-#[test]
-fn issue_264_conditional_record_arrays_validate_invalid_true_branches() {
-    let template = load_template("bad/route53_conditional_record_arrays.yaml");
-    let diags = validate_both_bytes(&template);
-
-    assert_rule_parity(&diags, "E3023");
+    let standalone_diags = validate_both_bytes(STANDALONE_TEMPLATE);
+    assert_rule_parity(&standalone_diags, "E3023");
     assert_rule_targets_on_resources(
-        &diags,
+        &standalone_diags,
         "E3023",
-        &["StandaloneInvalidTrue", "GroupInvalidTrue"],
+        &["Record"],
+        &[("Record", "Properties.ResourceRecords.0")],
+    );
+
+    let grouped_template = load_template("bad/route53_conditional_scenarios.yaml");
+    let grouped_diags = validate_both_bytes(&grouped_template);
+    assert_rule_parity(&grouped_diags, "E3023");
+    assert_rule_targets_on_resources(
+        &grouped_diags,
+        "E3023",
+        &["WholePropertiesRecordsInvalidFirst", "WholePropertiesRecordsInvalidSecond"],
         &[
-            ("StandaloneInvalidTrue", "Properties.ResourceRecords.0"),
-            ("GroupInvalidTrue", "Properties.RecordSets.0.ResourceRecords.0"),
+            ("WholePropertiesRecordsInvalidFirst", "Properties.RecordSets.0.ResourceRecords.0"),
+            ("WholePropertiesRecordsInvalidSecond", "Properties.RecordSets.0.ResourceRecords.0"),
         ],
     );
 }
 
+/// Issue #264: CNAME cardinality counts only effective non-null entries, while unresolved entries
+/// still represent records and contribute to the limit.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/264
 #[test]
-fn issue_264_conditional_record_arrays_validate_invalid_false_branches() {
-    let template = load_template("bad/route53_conditional_record_arrays.yaml");
-    let diags = validate_both_bytes(&template);
-
-    assert_rule_parity(&diags, "E3023");
+fn issue_264_cname_cardinality_counts_effective_records() {
+    let valid_template = load_template("good/route53_conditional_record_arrays.yaml");
+    let valid_diags = validate_both_bytes(&valid_template);
+    assert_rule_parity(&valid_diags, "E3023");
     assert_rule_targets_on_resources(
-        &diags,
+        &valid_diags,
         "E3023",
-        &["StandaloneInvalidFalse", "GroupInvalidFalse"],
-        &[
-            ("StandaloneInvalidFalse", "Properties.ResourceRecords.0"),
-            ("GroupInvalidFalse", "Properties.RecordSets.0.ResourceRecords.0"),
-        ],
-    );
-}
-
-#[test]
-fn issue_264_conditional_record_arrays_preserve_mixed_entry_indexes() {
-    let template = load_template("bad/route53_conditional_record_arrays.yaml");
-    let diags = validate_both_bytes(&template);
-
-    assert_rule_parity(&diags, "E3023");
-    assert_rule_targets_on_resources(
-        &diags,
-        "E3023",
-        &[
-            "StandaloneMixedInvalidTrue",
-            "StandaloneMixedInvalidFalse",
-            "GroupMixedInvalidTrue",
-            "GroupMixedInvalidFalse",
-        ],
-        &[
-            ("StandaloneMixedInvalidTrue", "Properties.ResourceRecords.1"),
-            ("StandaloneMixedInvalidFalse", "Properties.ResourceRecords.1"),
-            ("GroupMixedInvalidTrue", "Properties.RecordSets.0.ResourceRecords.1"),
-            ("GroupMixedInvalidFalse", "Properties.RecordSets.0.ResourceRecords.1"),
-        ],
-    );
-}
-
-#[test]
-fn issue_264_conditional_record_arrays_accept_both_valid_branches() {
-    let template = load_template("good/route53_conditional_record_arrays.yaml");
-    let diags = validate_both_bytes(&template);
-
-    assert_rule_parity(&diags, "E3023");
-    assert_rule_targets_on_resources(&diags, "E3023", &["StandaloneBothBranchesValid", "GroupBothBranchesValid"], &[]);
-}
-
-#[test]
-fn issue_264_conditional_record_arrays_skip_unreachable_invalid_branches() {
-    let template = load_template("good/route53_conditional_record_arrays.yaml");
-    let diags = validate_both_bytes(&template);
-
-    assert_rule_parity(&diags, "E3023");
-    assert_rule_targets_on_resources(
-        &diags,
-        "E3023",
-        &["StandaloneUnreachableInvalid", "GroupUnreachableInvalid"],
+        &["StandaloneMutuallyExclusiveCnameItems", "GroupMutuallyExclusiveCnameItems"],
         &[],
+    );
+
+    let invalid_template = load_template("bad/route53_conditional_record_arrays.yaml");
+    let invalid_diags = validate_both_bytes(&invalid_template);
+    assert_rule_parity(&invalid_diags, "E3023");
+    assert_rule_targets_on_resources(
+        &invalid_diags,
+        "E3023",
+        &["StandaloneUnresolvedCnameCardinality", "GroupUnresolvedCnameCardinality"],
+        &[
+            ("StandaloneUnresolvedCnameCardinality", "Properties.ResourceRecords"),
+            ("GroupUnresolvedCnameCardinality", "Properties.RecordSets.0.ResourceRecords"),
+        ],
     );
 }

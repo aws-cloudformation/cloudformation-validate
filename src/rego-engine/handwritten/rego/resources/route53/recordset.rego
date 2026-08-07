@@ -20,6 +20,8 @@ _route53_record_set_scenarios(name) := {scenario |
     _route53_scenario_reachable(name, scenario.conditions)
 }
 
+_route53_effective_record_count(records) := count([record | some record in records; record != null])
+
 # E3023: Route53 RecordSet - A record must have valid IPv4
 violation contains make_diag_at("E3023", "ERROR", name,
     sprintf("Properties.ResourceRecords.%d", [i]),
@@ -157,7 +159,7 @@ violation contains make_diag_at("E3023", "ERROR", name,
     rtype == "CNAME"
     records := object.get(properties, "ResourceRecords", null)
     is_array(records)
-    count(records) > 1
+    _route53_effective_record_count(records) > 1
 }
 
 # E3023: TXT record values must be double-quoted strings
@@ -312,5 +314,5 @@ violation contains make_diag_at("E3023", "ERROR", name,
     is_object(rset)
     rset.Type == "CNAME"
     is_array(rset.ResourceRecords)
-    count(rset.ResourceRecords) > 1
+    _route53_effective_record_count(rset.ResourceRecords) > 1
 }

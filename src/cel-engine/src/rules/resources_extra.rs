@@ -15,7 +15,9 @@ use template_model::consts::{
 };
 use template_model::message::{render_str_list, render_value};
 use template_model::resolver::{RefKind, ResolvedValue};
-use template_model::{CAA_RECORD_PATTERN, IAM_ROLE_ARN_RULE_PATTERN, MX_RECORD_PATTERN, SourceSpan};
+use template_model::{
+    CAA_RECORD_PATTERN, IAM_ROLE_ARN_RULE_PATTERN, MARKER_DYNAMIC, MARKER_PARAM_TYPE, MX_RECORD_PATTERN, SourceSpan,
+};
 use template_model::{hardcoded_az, region_enums, schedule_expression_errors};
 use validation_engine::make_resource_diagnostic;
 
@@ -245,6 +247,31 @@ fn scenario_has_effective_property(properties: &ResolvedValue, property_name: &s
     }
 }
 
+fn resolved_to_route53_scenario_json(value: &ResolvedValue) -> serde_json::Value {
+    match value {
+        ResolvedValue::Concrete { value } => value.0.clone(),
+        ResolvedValue::List { items } => {
+            serde_json::Value::Array(items.iter().map(resolved_to_route53_scenario_json).collect())
+        }
+        ResolvedValue::Map { entries } => serde_json::Value::Object(
+            entries.iter().map(|entry| (entry.key.clone(), resolved_to_route53_scenario_json(&entry.value))).collect(),
+        ),
+        ResolvedValue::Enum { variants } => variants
+            .iter()
+            .find_map(|variant| match variant {
+                ResolvedValue::Concrete { value } => Some(value.0.clone()),
+                _ => None,
+            })
+            .unwrap_or(serde_json::Value::Null),
+        ResolvedValue::Conditional { if_true, .. } => resolved_to_route53_scenario_json(if_true),
+        ResolvedValue::Reference { target, .. } => serde_json::json!({(FN_REF): target}),
+        ResolvedValue::Dynamic { reason } => serde_json::json!({(MARKER_DYNAMIC): reason}),
+        ResolvedValue::TypedDynamic { reason, param_type } => {
+            serde_json::json!({(MARKER_DYNAMIC): reason, (MARKER_PARAM_TYPE): param_type})
+        }
+    }
+}
+
 fn scenario_property_json(properties: &ResolvedValue, property_name: &str) -> Option<serde_json::Value> {
     match properties {
         ResolvedValue::Concrete { value } => {
@@ -255,7 +282,7 @@ fn scenario_property_json(properties: &ResolvedValue, property_name: &str) -> Op
             if matches!(property_value, ResolvedValue::Concrete { value } if value.is_null()) {
                 None
             } else {
-                Some(resolved_to_json_best_effort(property_value))
+                Some(resolved_to_route53_scenario_json(property_value))
             }
         }
         _ => None,
@@ -304,7 +331,8 @@ fn push_route53_record_value_diagnostics(
         }
     }
 
-    if record_type == "CNAME" && records.len() > 1 {
+    let effective_record_count = records.iter().filter(|record| !record.is_null()).count();
+    if record_type == "CNAME" && effective_record_count > 1 {
         diagnostics.push(make_resource_diagnostic(
             "E3023",
             "CNAME records must have at most 1 ResourceRecord",
