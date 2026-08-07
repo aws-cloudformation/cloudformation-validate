@@ -330,7 +330,6 @@ pub(crate) fn validate(
         .filter(|(_, entry)| !entry.category.as_deref().is_some_and(|c| excluded_cats.contains(c)))
         .count() as u32;
 
-    let (cfn_lint_version, resource_schema_version) = required_data_source_versions()?;
     let mut report = build_report(
         all_diagnostics,
         &model,
@@ -339,8 +338,6 @@ pub(crate) fn validate(
         config.strict,
         config.severity_level,
         file_path,
-        cfn_lint_version,
-        resource_schema_version,
     );
     let finalize_metric = phase_metric(t_post);
 
@@ -354,16 +351,18 @@ pub(crate) fn validate(
     Ok(report)
 }
 
-fn required_data_source_versions() -> Result<(String, String), ValidationError> {
-    match (CFN_LINT_VERSION, RESOURCE_SCHEMA_VERSION) {
-        (Some(cfn_lint_version), Some(resource_schema_version)) => {
-            Ok((cfn_lint_version.to_owned(), resource_schema_version.to_owned()))
-        }
-        _ => Err(ValidationError::Engine(
-            "data source versions are unavailable; run the full data-source sync with --cfn-lint-root".to_string(),
-        )),
-    }
+struct DataSourceVersions {
+    cfn_lint_version: &'static str,
+    resource_schema_version: &'static str,
+    available: bool,
 }
+
+static DATA_SOURCE_VERSIONS: DataSourceVersions = match (CFN_LINT_VERSION, RESOURCE_SCHEMA_VERSION) {
+    (Some(cfn_lint_version), Some(resource_schema_version)) => {
+        DataSourceVersions { cfn_lint_version, resource_schema_version, available: true }
+    }
+    _ => DataSourceVersions { cfn_lint_version: "", resource_schema_version: "", available: false },
+};
 
 #[cfg(any(test, feature = "test"))]
 pub fn validate_bytes(
@@ -382,6 +381,11 @@ pub fn validate_bytes_with_path(
     config: ValidateConfig,
     file_path: String,
 ) -> Result<ValidationReport, ValidationError> {
+    if !DATA_SOURCE_VERSIONS.available {
+        return Err(ValidationError::Engine(
+            "data source versions are unavailable; run the full data-source sync with --cfn-lint-root".to_string(),
+        ));
+    }
     let total_start = Instant::now();
     let result = match SemanticModel::parse(
         bytes,
@@ -398,7 +402,6 @@ pub fn validate_bytes_with_path(
             };
             let diag = RegisteredDiagnostic::new("F1101", e.message).location(span).phase(Phase::Parse).build();
             let diags = vec![diag];
-            let (cfn_lint_version, resource_schema_version) = required_data_source_versions()?;
             let report = ValidationReport {
                 file_path,
                 status: ReportStatus::Error,
@@ -406,8 +409,8 @@ pub fn validate_bytes_with_path(
                 diagnostics: diags,
                 metadata: ReportMetadata {
                     rules_evaluated: 0,
-                    cfn_lint_version,
-                    resource_schema_version,
+                    cfn_lint_version: DATA_SOURCE_VERSIONS.cfn_lint_version.to_owned(),
+                    resource_schema_version: DATA_SOURCE_VERSIONS.resource_schema_version.to_owned(),
                     resources_scanned: 0,
                     counts: Summary { fatal: 1, errors: 0, warnings: 0, informational: 0, debug: 0 },
                     suppressed: 0,
@@ -634,6 +637,28 @@ pub fn extract_diagnostics(
 }
 
 pub(crate) fn build_report(
+    diagnostics: Vec<Diagnostic>,
+    model: &SemanticModel,
+    suppressed: u32,
+    rules_evaluated: Option<u32>,
+    strict: bool,
+    severity_level: Severity,
+    file_path: String,
+) -> ValidationReport {
+    build_report_with_versions(
+        diagnostics,
+        model,
+        suppressed,
+        rules_evaluated,
+        strict,
+        severity_level,
+        file_path,
+        DATA_SOURCE_VERSIONS.cfn_lint_version.to_owned(),
+        DATA_SOURCE_VERSIONS.resource_schema_version.to_owned(),
+    )
+}
+
+fn build_report_with_versions(
     diagnostics: Vec<Diagnostic>,
     model: &SemanticModel,
     suppressed: u32,
@@ -1630,7 +1655,7 @@ Resources:
             Diagnostic { rule_id: "W3045".into(), severity: Severity::Warn, message: "warn".into(), ..default_diag() },
             Diagnostic { severity: Severity::Info, message: "info".into(), ..default_diag() },
         ];
-        let report = build_report(
+        let report = build_report_with_versions(
             diags,
             &model,
             3,
@@ -1658,7 +1683,7 @@ Resources:
     #[test]
     fn build_report_empty_diagnostics() {
         let model = minimal_model();
-        let report = build_report(
+        let report = build_report_with_versions(
             vec![],
             &model,
             0,
@@ -1682,7 +1707,7 @@ Resources:
     fn build_report_debug_severity_counted() {
         let model = minimal_model();
         let diags = vec![Diagnostic { severity: Severity::Debug, message: "dbg".into(), ..default_diag() }];
-        let report = build_report(
+        let report = build_report_with_versions(
             diags,
             &model,
             0,
@@ -2547,7 +2572,7 @@ Resources:
     fn validate_catching_panics_passes_success_through_unchanged() {
         let model = minimal_model();
         let report = validate_catching_panics(|| {
-            Ok(build_report(
+            Ok(build_report_with_versions(
                 vec![],
                 &model,
                 0,
