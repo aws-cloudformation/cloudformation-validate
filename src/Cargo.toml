@@ -21,11 +21,8 @@ resolver = "2"
 [workspace.metadata]
 name = "cloudformation-validate"
 
-[workspace.dependencies]
-uniffi = "=0.32.0"
-
 [workspace.package]
-version = "1.7.0"
+version = "1.8.0"
 edition = "2024"
 license = "Apache-2.0"
 description = "AWS CloudFormation Validate"
@@ -43,6 +40,9 @@ categories = [
     "parser-implementations",
     "config"
 ]
+
+[workspace.dependencies]
+uniffi = "=0.32.0"
 
 [profile.dev]
 incremental = true

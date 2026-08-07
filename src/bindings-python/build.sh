@@ -159,6 +159,7 @@ cp "$RELEASE_DIR/$LIB_NAME" "$NATIVES_DIR/"
 VERSION=$(grep '^version' "$WORKSPACE/Cargo.toml" | head -1 | sed 's/.*"\(.*\)".*/\1/')
 sed "s/^version = \"0.0.0\"/version = \"$VERSION\"/" "$SCRIPT_DIR/pyproject.toml" > "$GENERATED_DIR/pyproject.toml"
 cp "$WORKSPACE/../LICENSE" "$GENERATED_DIR/LICENSE"
+cp "$WORKSPACE/../NOTICE" "$GENERATED_DIR/NOTICE"
 # Scoped to this binding's dependencies; the Build Artifacts workflow
 # refreshes it before invoking this script.
 cp "$SCRIPT_DIR/THIRD-PARTY-LICENSES.txt" "$GENERATED_DIR/THIRD-PARTY-LICENSES.txt"
@@ -260,8 +261,10 @@ if [ "$PY_COUNT" -eq 0 ] || [ "$LIB_COUNT" -ne 1 ] || ! grep -Fxq "$HOST_NATIVE"
     exit 1
 fi
 if ! grep -Fxq 'cloudformation_validate/README.md' <<<"$WHEEL_ENTRIES" \
-    || ! grep -Eq '^cloudformation_validate-[^/]+\.dist-info/licenses/LICENSE$' <<<"$WHEEL_ENTRIES"; then
-    echo "Error: wheel is missing README.md or LICENSE" >&2
+    || ! grep -Eq '^cloudformation_validate-[^/]+\.dist-info/licenses/LICENSE$' <<<"$WHEEL_ENTRIES" \
+    || ! grep -Eq '^cloudformation_validate-[^/]+\.dist-info/licenses/NOTICE$' <<<"$WHEEL_ENTRIES" \
+    || ! grep -Eq '^cloudformation_validate-[^/]+\.dist-info/licenses/THIRD-PARTY-LICENSES.txt$' <<<"$WHEEL_ENTRIES"; then
+    echo "Error: wheel is missing README.md, LICENSE, NOTICE, or THIRD-PARTY-LICENSES.txt" >&2
     exit 1
 fi
 case "$WHEEL_FILE" in

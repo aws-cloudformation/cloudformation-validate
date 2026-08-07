@@ -238,7 +238,7 @@ checksum = "4372b9543397a4b86050cc5e7ee36953edf4bac9518e8a774c2da694977fb6e4"
 
 [[package]]
 name = "bindings-go"
-version = "1.7.0"
+version = "1.8.0"
 dependencies = [
  "cel-engine",
  "data-source",
@@ -256,7 +256,7 @@ dependencies = [
 
 [[package]]
 name = "bindings-jvm"
-version = "1.7.0"
+version = "1.8.0"
 dependencies = [
  "cel-engine",
  "data-source",
@@ -272,7 +272,7 @@ dependencies = [
 
 [[package]]
 name = "bindings-python"
-version = "1.7.0"
+version = "1.8.0"
 dependencies = [
  "cel-engine",
  "data-source",
@@ -288,7 +288,7 @@ dependencies = [
 
 [[package]]
 name = "bindings-wasm"
-version = "1.7.0"
+version = "1.8.0"
 dependencies = [
  "cel-engine",
  "console_error_panic_hook",
@@ -450,7 +450,7 @@ dependencies = [
 
 [[package]]
 name = "cel-engine"
-version = "1.7.0"
+version = "1.8.0"
 dependencies = [
  "anyhow",
  "cel-interpreter",
@@ -504,7 +504,7 @@ checksum = "9330f8b2ff13f34540b44e946ef35111825727b38d33286ef986142615121801"
 
 [[package]]
 name = "cfn-validate"
-version = "1.7.0"
+version = "1.8.0"
 dependencies = [
  "cel-engine",
  "chrono",
@@ -667,7 +667,7 @@ dependencies = [
 
 [[package]]
 name = "data-source"
-version = "1.7.0"
+version = "1.8.0"
 dependencies = [
  "anyhow",
  "chrono",
@@ -719,7 +719,7 @@ dependencies = [
 
 [[package]]
 name = "diagnostics"
-version = "1.7.0"
+version = "1.8.0"
 dependencies = [
  "log",
  "rules",
@@ -986,7 +986,7 @@ dependencies = [
 
 [[package]]
 name = "guard-translator"
-version = "1.7.0"
+version = "1.8.0"
 dependencies = [
  "guard-lang",
  "indexmap 2.14.0",
@@ -1529,7 +1529,7 @@ checksum = "d6f6ff9a378485b298a5286656da665ba74413d36db0979633275d2e708145d4"
 
 [[package]]
 name = "rego-engine"
-version = "1.7.0"
+version = "1.8.0"
 dependencies = [
  "anyhow",
  "data-source",
@@ -1569,7 +1569,7 @@ dependencies = [
 
 [[package]]
 name = "resources"
-version = "1.7.0"
+version = "1.8.0"
 dependencies = [
  "serde_json",
 ]
@@ -1590,7 +1590,7 @@ dependencies = [
 
 [[package]]
 name = "rules"
-version = "1.7.0"
+version = "1.8.0"
 dependencies = [
  "log",
  "regex",
@@ -1685,7 +1685,7 @@ checksum = "9774ba4a74de5f7b1c1451ed6cd5285a32eddb5cccb8cc655a4e50009e06477f"
 
 [[package]]
 name = "schema-validator"
-version = "1.7.0"
+version = "1.8.0"
 dependencies = [
  "data-source",
  "diagnostics",
@@ -1942,7 +1942,7 @@ dependencies = [
 
 [[package]]
 name = "template-model"
-version = "1.7.0"
+version = "1.8.0"
 dependencies = [
  "base64",
  "env_logger",
@@ -2431,7 +2431,7 @@ dependencies = [
 
 [[package]]
 name = "validation-engine"
-version = "1.7.0"
+version = "1.8.0"
 dependencies = [
  "data-source",
  "diagnostics",
