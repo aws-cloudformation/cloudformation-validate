@@ -4,7 +4,7 @@
 //! (`COMPOSITION_ALLOWED_FIELDS`), conditional `if` schemas
 //! (`CONDITION_ALLOWED_FIELDS`), condition properties
 //! (`CONDITION_PROPERTY_ALLOWED_FIELDS`), and conditional `then`/`else`
-//! branches. Every admitted field must actually participate in validation —
+//! branches. Every admitted field must actually participate in validation -
 //! a field the gate accepts but the evaluator ignores silently weakens the
 //! overlay (or over-matches a condition), which is exactly the failure mode
 //! the preflight exists to prevent.
@@ -53,7 +53,7 @@ fn assert_cases(type_name_prefix: &str, cases: Vec<Case>) {
         let violating_diags = findings(&sv, &violating);
         if violating_diags.is_empty() {
             failures.push(format!(
-                "{}: the violating template produced no finding — the field is not evaluated",
+                "{}: the violating template produced no finding - the field is not evaluated",
                 case.name
             ));
         }
@@ -313,7 +313,7 @@ fn composition_branch_fields_are_evaluated() {
 
 /// Every field `CONDITION_PROPERTY_ALLOWED_FIELDS` admits in an `if` property
 /// participates in condition matching. Each case pairs a template where the
-/// condition must NOT match (violating the condition constraint — the then
+/// condition must NOT match (violating the condition constraint - the then
 /// branch, whose dependency would fire, must stay silent) with one where it
 /// must match (the then branch fires). The `conforming` template here is the
 /// non-matching one; the `violating` template is the matching-and-then-violated

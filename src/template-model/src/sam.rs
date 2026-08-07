@@ -473,7 +473,7 @@ fn state_machine_definition_exactly_one(ctx: &TransformErrorContext, out: &mut V
 
 /// A `SimpleTable` PrimaryKey, when present, must declare a `Type`, and that
 /// type must be a valid DynamoDB attribute type. Only literal types are checked
-/// — an intrinsic-valued type cannot be validated pre-deployment.
+/// - an intrinsic-valued type cannot be validated pre-deployment.
 fn simple_table_primary_key_type(ctx: &TransformErrorContext, out: &mut Vec<ParseDefect>) {
     for name in ctx.resources_of_type(SAM_SIMPLE_TABLE_TYPE) {
         let Some(primary_key) =
@@ -1248,7 +1248,7 @@ Resources:
     #[test]
     fn multi_key_map_alias_emits_type_invalid_message() {
         // A multi-key map fails resource-property typing in samtranslator
-        // before resolution, surfacing as the type-invalid message — distinct
+        // before resolution, surfacing as the type-invalid message - distinct
         // from the unresolvable-intrinsic message.
         let template = r#"
 Transform: AWS::Serverless-2016-10-31
@@ -1477,7 +1477,7 @@ Resources:
 
     #[test]
     fn non_schedule_events_are_ignored_by_schedule_check() {
-        // S3 and Api events do not require a 'Schedule' property — only the
+        // S3 and Api events do not require a 'Schedule' property - only the
         // schedule event check should fire when present, and it must not
         // false-positive on other event types.
         let template = r#"
@@ -2039,7 +2039,7 @@ Resources:
     #[test]
     fn wrong_transform_date_does_not_emit_transform_error() {
         // A non-SAM transform id must not trigger the transform-error
-        // validators — those only apply under the exact SAM transform.
+        // validators - those only apply under the exact SAM transform.
         let template = r#"
 Transform: AWS::Serverless-2016-10-30
 Resources:

@@ -1,7 +1,7 @@
 # schema-validator
 
 Validates CloudFormation resources against precompiled JSON Schema definitions derived from AWS resource provider
-schemas. Produces diagnostics for structural violations — type mismatches, missing required properties,
+schemas. Produces diagnostics for structural violations - type mismatches, missing required properties,
 invalid enum values, pattern failures, constraint violations, lifecycle issues, and cross-resource constraints.
 
 ## API
@@ -36,7 +36,7 @@ Key semantics:
 - **Catalog/config separation:** The overlay catalog exposes overlay-aware metadata (type names, GetAtt/Ref types,
   primary identifiers) without re-merging. `SchemaValidatorConfig` can be serialized/deserialized to rebuild.
 - **Metadata alone is not sufficient:** `description`, `documentationUrl`, `sourceUrl`, and `replacementStrategy`
-  alone are rejected — the overlay must carry at least one validatable constraint.
+  alone are rejected - the overlay must carry at least one validatable constraint.
 
 The merge model, its scope limits, and the input the module rejects are documented on the `overlay` module
 (`cargo doc -p schema-validator`). Library and binding callers construct a `SchemaValidator` via

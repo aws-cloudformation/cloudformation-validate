@@ -1,7 +1,7 @@
 # diagnostics
 
 Shared type definitions for validation diagnostics, report structures, detail levels, filtering, and performance
-metrics. Every reporting crate in the workspace depends on `diagnostics` — it defines the common language for reporting
+metrics. Every reporting crate in the workspace depends on `diagnostics` - it defines the common language for reporting
 validation results, building on the template vocabulary (`SourceSpan`, `JsonValue`, `EntityType`) owned by
 `template-model` and the rule metadata owned by `rules`.
 
@@ -31,8 +31,8 @@ for serialization.
 
 | Level   | Ord | Meaning                                                          |
 |---------|-----|------------------------------------------------------------------|
-| `Fatal` | 4   | Structural schema violation — deployment will fail               |
-| `Error` | 3   | Semantic error — likely deployment failure or incorrect behavior |
+| `Fatal` | 4   | Structural schema violation - deployment will fail               |
+| `Error` | 3   | Semantic error - likely deployment failure or incorrect behavior |
 | `Warn`  | 2   | Security concern, deprecation, or risky pattern                  |
 | `Info`  | 1   | Best practice suggestion                                         |
 | `Debug` | 0   | Internal diagnostic detail                                       |
@@ -65,8 +65,8 @@ Each `Diagnostic` contains:
 Drops `documentation_url`, `rule_description`, `phase`, and `context`.
 
 `EntityType` (defined in `template-model` alongside `TopLevelSection`) has one variant per documented template
-section — `Resource`, `Parameter`, `Output`, `Mapping`, `Metadata`, `Rule`, `Condition`, `Transform`,
-`FormatVersion`, `Description` — the singular form of the section the entity is declared in. Built-in rules currently
+section - `Resource`, `Parameter`, `Output`, `Mapping`, `Metadata`, `Rule`, `Condition`, `Transform`,
+`FormatVersion`, `Description` - the singular form of the section the entity is declared in. Built-in rules currently
 attribute findings to the sections whose children are addressable by a logical ID (resources, parameters, outputs,
 mappings, conditions, and template rules).
 

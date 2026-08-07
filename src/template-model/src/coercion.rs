@@ -73,11 +73,11 @@ pub fn coerce_to_bool(val: &Value) -> Option<bool> {
 /// integer scalars.
 ///
 /// Some rules compare port-like values (host/container ports, target-group
-/// ports) by their string form — a quoted `"80"` and an unquoted `80` are the
+/// ports) by their string form - a quoted `"80"` and an unquoted `80` are the
 /// same port. Only strings and integers participate: a non-integer number
 /// (e.g. `80.0`), a boolean, or a composite is not a valid port form and yields
 /// `None` so the comparison is skipped rather than matched on a coerced value.
-/// An integer-valued float such as `80.0` is deliberately excluded — the value
+/// An integer-valued float such as `80.0` is deliberately excluded - the value
 /// is only treated as a port when written as an integer or a string.
 pub fn coerce_port_to_string(val: &Value) -> Option<String> {
     match val {
@@ -92,10 +92,10 @@ pub fn coerce_port_to_string(val: &Value) -> Option<String> {
 /// CloudFormation stringifies scalar values before comparison, so `512` and
 /// `"512"`, or `true` and `"true"`, are equal. Numeric scalars compare
 /// numerically when either operand is a native number, so `30`, `30.0`, and
-/// `"30.0"` are all the same value — an integral float must never mismatch its
+/// `"30.0"` are all the same value - an integral float must never mismatch its
 /// integer form just because they stringify differently. Two string operands
 /// keep exact string comparison. Non-scalar values have no coercion, so
-/// distinct arrays/objects/nulls never collapse together — only native
+/// distinct arrays/objects/nulls never collapse together - only native
 /// equality can make them match.
 pub fn scalar_eq(a: &Value, b: &Value) -> bool {
     if a == b {
@@ -148,7 +148,7 @@ pub fn type_compatible(val: &Value, expected: &str) -> bool {
 /// Result of attempting to coerce a JSON value to match an expected schema type.
 #[derive(Debug, Clone, PartialEq)]
 pub enum CoerceResult {
-    /// Value already matches the expected type — no coercion needed.
+    /// Value already matches the expected type - no coercion needed.
     AlreadyCorrect,
     /// Value was coerced to the expected type. Contains the coerced value and
     /// a human-readable description of the conversion (e.g. "string to integer").
@@ -340,7 +340,7 @@ mod tests {
 
     #[test]
     fn scalar_eq_integral_float_equals_integer() {
-        // A whole number is the same value in every written form —
+        // A whole number is the same value in every written form -
         // 30, 30.0, and "30.0" must all compare equal (issue: a Number
         // parameter resolving to 30.0 failed the integer enum [.., 30, ..]).
         assert!(scalar_eq(&json!(30.0), &json!(30)), "30.0 must equal 30");

@@ -213,7 +213,7 @@ impl RegoEngine {
 
     /// Constructs the engine reusing metadata from an already-built
     /// [`SchemaValidator`](schema_validator::SchemaValidator). The validator's
-    /// overlay catalog is treated as authoritative — the engine does not
+    /// overlay catalog is treated as authoritative - the engine does not
     /// re-resolve overlay schemas.
     ///
     /// This entry point is intended for language bindings and the CLI, which
@@ -374,7 +374,7 @@ impl RegoEngine {
     /// Evaluates a single Rego package and appends its diagnostics to `out`.
     ///
     /// Any evaluation or serialization failure is returned as a structured
-    /// [`ValidationError`] — an exception the caller can handle — and is never
+    /// [`ValidationError`] - an exception the caller can handle - and is never
     /// converted into a diagnostic. A rule that fails to run must surface as an
     /// error, not masquerade as a finding.
     fn eval_package_into(
@@ -686,7 +686,7 @@ Resources:
     fn guard_rule_exists_check_ignores_properties_prefix() {
         // BUG: Guard DSL `Properties.BucketName EXISTS` translates to
         // `has_property(name, "Properties.BucketName")` but has_property looks up
-        // `resource.properties["Properties.BucketName"]` — the actual key is just
+        // `resource.properties["Properties.BucketName"]` - the actual key is just
         // "BucketName", so the check always fails and the violation always fires.
         let guard_source = r#"
 rule check_bucket_name {
@@ -1419,7 +1419,7 @@ violation contains v if {
 
     #[test]
     fn builtin_estimated_string_length_bounds_returns_both_bounds() {
-        // `!If [IsProd, "production", "development"]` — the deployment picks one of
+        // `!If [IsProd, "production", "development"]` - the deployment picks one of
         // two known values, so the length is bounded but not fixed.
         let diags = eval_builtin_policy(
             r#"

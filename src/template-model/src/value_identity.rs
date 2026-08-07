@@ -10,7 +10,7 @@
 //!
 //! The fingerprint below is therefore built from the authored expression rather
 //! than from any human-readable description of the resolved value. A description
-//! is lossy — several unrelated expressions share one wording — and two distinct
+//! is lossy - several unrelated expressions share one wording - and two distinct
 //! reads that share a wording would otherwise look like a duplicate.
 
 use crate::consts::KEY_ROLE_ARN;
@@ -271,7 +271,7 @@ mod tests {
         format!(r#"{{"Resources":{{"R":{{"Type":"T","Properties":{{"V":[{first},{second}]}}}}}}}}"#)
     }
 
-    /// The two entries of `V` share an identity — they are provably one value.
+    /// The two entries of `V` share an identity - they are provably one value.
     fn entries_share_identity(first: &str, second: &str) -> bool {
         let template = two_item_template(first, second);
         let left = identity_of(&template, "Properties.V.0");

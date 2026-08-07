@@ -1,6 +1,6 @@
 ---
 name: cloudformation-validate-development
-description: Development workflow, correctness rules, and code-quality standards for the cloudformation-validate repository — a Rust workspace that validates AWS CloudFormation templates with two parity rule engines (Rego and CEL). Use when writing, modifying, reviewing, or debugging any code in this repo; when adding or fixing validation rules; when running builds, tests, or lints; when regenerating the golden file; or when validating a fix against cfn-lint or cloudformation-guard baselines.
+description: Development workflow, correctness rules, and code-quality standards for the cloudformation-validate repository - a Rust workspace that validates AWS CloudFormation templates with two parity rule engines (Rego and CEL). Use when writing, modifying, reviewing, or debugging any code in this repo; when adding or fixing validation rules; when running builds, tests, or lints; when regenerating the golden file; or when validating a fix against cfn-lint or cloudformation-guard baselines.
 license: Apache-2.0
 metadata:
   repository: cloudformation-validate
@@ -9,19 +9,19 @@ metadata:
 # cloudformation-validate development
 
 `cloudformation-validate` is a fast, offline validator for AWS CloudFormation templates: parse JSON/YAML →
-structured diagnostics (schema, semantic, security, best-practice). Rules and schemas compile into the binary — no
+structured diagnostics (schema, semantic, security, best-practice). Rules and schemas compile into the binary - no
 network, no credentials. Ships as a Rust CLI, Rust library, Node WASM package, Python package, Go module, and JVM
 (Kotlin/Java) library over one shared core.
 
-## Code quality — read the references first
+## Code quality - read the references first
 
 Before writing or modifying code, read the applicable reference file and apply every rule in it:
 
-- [references/source-code-rules.md](references/source-code-rules.md) — applies to ALL source code
-- [references/test-code-rules.md](references/test-code-rules.md) — applies to ALL test code
+- [references/source-code-rules.md](references/source-code-rules.md) - applies to ALL source code
+- [references/test-code-rules.md](references/test-code-rules.md) - applies to ALL test code
 
 Also read sibling files in the directory you are editing to learn existing patterns, naming, error handling, and
-style — then match them. Always follow the code style of the project.
+style - then match them. Always follow the code style of the project.
 
 ## Commands and validation selection
 
@@ -36,8 +36,8 @@ cd src
 cargo build                                   # whole workspace (debug)
 cargo build -p cfn-validate                   # CLI -> target/debug/cfn-validate (add --release for optimized)
 
-# Core Rust tests — only when they cover the changed behavior
-cargo test -p cel-engine <name>               # single crate / filtered test — preferred while iterating
+# Core Rust tests - only when they cover the changed behavior
+cargo test -p cel-engine <name>               # single crate / filtered test - preferred while iterating
 cargo test --workspace 2>&1 | tee ../tmp/test-output.txt   # broad core changes only; at most once at completion
 # CI runs coverage, not plain test: cargo llvm-cov --locked --release --workspace --no-fail-fast
 
@@ -73,22 +73,22 @@ Apply these rules when choosing validation:
 ## Debugging tools (use these, not `println!`)
 
 ```bash
-# Dump the full SemanticModel — ALWAYS start here. If the model is wrong, fix template-model.
+# Dump the full SemanticModel - ALWAYS start here. If the model is wrong, fix template-model.
 cargo run -p template-model --example inspect -- <template>
 
-# Accuracy vs cfn-lint. Requires a local cfn-lint checkout — first check whether cfn-lint is available on the
+# Accuracy vs cfn-lint. Requires a local cfn-lint checkout - first check whether cfn-lint is available on the
 # machine (`cfn-lint --version`), then ask the user for the checkout path; never assume or hardcode a location.
 CFN_LINT_ROOT=<path> python3 scripts/compare_cfnlint.py --engine rego|cel
 ```
 
 If deeper investigation is needed, write a small standalone script or Rust example that isolates the behavior.
-Scratch files, debug output, and tool artifacts go in `./tmp/` at the project root — never scatter them in the tree.
+Scratch files, debug output, and tool artifacts go in `./tmp/` at the project root - never scatter them in the tree.
 Prefer LSP operations (goto definition, find references, symbol search) over text grep for symbol-level navigation.
 
 ## Architecture (the non-obvious rules)
 
 - **The two engines must stay at parity.** `EngineType::Rego` (default) and `EngineType::Cel` must produce identical
-  diagnostics (ID, severity, location, message) for any template — divergence is a bug. Every rule exists in both
+  diagnostics (ID, severity, location, message) for any template - divergence is a bug. Every rule exists in both
   engines or in neither; add/fix it in both in the same change. Rego rules are hand-written policies in
   `rego-engine/handwritten/rego/`; CEL rules are native Rust in `cel-engine/src/rules/` (the CEL interpreter is only
   for user-supplied custom rules).
@@ -96,7 +96,7 @@ Prefer LSP operations (goto definition, find references, symbol search) over tex
   and description. A rule that evaluates but isn't registered is a bug. IDs match `[FEWID]\d{4}` (F=Fatal, E=Error,
   W=Warn, I=Info, D=Debug; enum variant `Warn`, serialized `WARN`).
 - **Never hand-edit `data-source/generated/`, and never run the regeneration pipeline yourself.** It is committed
-  generated code; regeneration is a maintainer-run operation — if a change requires regenerating these artifacts,
+  generated code; regeneration is a maintainer-run operation - if a change requires regenerating these artifacts,
   stop and ask the user to run it. `data-source/handwritten/` holds reusable JSON reference tables; add one only when
   a rule needs a data table.
 - **Generated binding artifacts are workflow-owned.** The `build-artifacts` workflow commits them. Local generation
@@ -104,12 +104,12 @@ Prefer LSP operations (goto definition, find references, symbol search) over tex
 - **Custom rules** load from CLI/library as CEL (`.json`), Rego (`.rego`), or Guard DSL (`.guard`, translated to an
   engine-agnostic IR by `guard-translator`). See `src/CUSTOM_RULES.md`.
 
-## Correctness rules — non-negotiable
+## Correctness rules - non-negotiable
 
 - Derive expected validation behavior from first principles using compiled CloudFormation schemas and template syntax,
   official documentation and resource specifications, intrinsic/resource semantics, and focused valid and invalid
   examples. External implementations are comparison evidence, not unquestionable truth.
-- **Fatal (F)** rules must reflect what CloudFormation itself rejects per the compiled resource schemas — no semantic
+- **Fatal (F)** rules must reflect what CloudFormation itself rejects per the compiled resource schemas - no semantic
   interpretation or cross-resource analysis. cfn-lint has no Fatal severity: both Fatal and Error here map to a
   cfn-lint Error. A promoted rule keeps the number with E→F (for example, `F3006` ↔ cfn-lint `E3006`).
 - **A rule whose number matches cfn-lint SHOULD implement the same check and behave similarly on firing and location.**
@@ -134,10 +134,10 @@ Prefer LSP operations (goto definition, find references, symbol search) over tex
 
 For each rule in `rules/src/registry.rs`, its TRUE origin is, in priority order:
 
-1. **Schema** — grounded in compiled CloudFormation resource schemas or CloudFormation-defined template syntax and
+1. **Schema** - grounded in compiled CloudFormation resource schemas or CloudFormation-defined template syntax and
    shape, even if cfn-lint performs the same check. Schema rules are Fatal or Error; a promoted rule keeps the
    cfn-lint number with E→F.
-2. **Exact cfn-lint ID → CfnLint** — only when not schema-grounded.
+2. **Exact cfn-lint ID → CfnLint** - only when not schema-grounded.
 3. **Engine ID that aliases a cfn-lint rule → CfnLint** (split/generic, for example `E9003`/`E9004` ← `E1010`,
    `E9006` ← `E3690`), again only when not schema-grounded.
 4. **Otherwise → Engine** (or `Engine(collision)` if the number exists under another prefix).
@@ -150,7 +150,7 @@ divergence: cfn-lint coerces silently while this engine warns.
 ## Fix priority order
 
 Fix at the highest-leverage layer: `template-model` first (benefits everything downstream), then the `data-source`
-pipeline (both engines inherit it), then — only if neither applies — `schema-validator`/`rego-engine`/`cel-engine`,
+pipeline (both engines inherit it), then - only if neither applies - `schema-validator`/`rego-engine`/`cel-engine`,
 applied to both engines in the same change.
 
 ## Validating a diagnostic behavior fix
@@ -175,12 +175,12 @@ Apply every relevant step below; do not apply this procedure wholesale to docume
 
 - Self-documenting names; no `data`/`info`/`temp`/`result`/`manager`/`processor`. Comments explain *why*, never *what*.
   Full rules are in [references/source-code-rules.md](references/source-code-rules.md).
-- **No hardcoded rule IDs in code comments** — IDs can change and the comment goes stale. Describe the behavior, not
+- **No hardcoded rule IDs in code comments** - IDs can change and the comment goes stale. Describe the behavior, not
   the ID.
-- **Do not reference cfn-lint in code comments** — not by name and not by euphemism ("reference linter", "the
+- **Do not reference cfn-lint in code comments** - not by name and not by euphemism ("reference linter", "the
   linter", "the baseline tool", etc.). This is a standalone tool; cfn-lint may only be named in Python scripts
   (`scripts/`), in `src/data-source`, and in the rule registry (`rules/src/registry.rs`).
 - **Never reference CEL in `rego-engine` or Rego in `cel-engine`.** The engines are standalone.
-- Imports from other workspace crates always at the top of the file — no inline `crate::` paths. External crates follow
+- Imports from other workspace crates always at the top of the file - no inline `crate::` paths. External crates follow
   standard Rust conventions. Does not apply to `bindings-jvm` or `bindings-wasm`.
 - `unsafe_code` is forbidden workspace-wide.

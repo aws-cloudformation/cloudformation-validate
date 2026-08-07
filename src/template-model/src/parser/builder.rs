@@ -75,7 +75,7 @@ impl Builder {
         ));
     }
 
-    /// A malformed boolean condition function — `Fn::And`/`Or`/`Not`/`Equals`.
+    /// A malformed boolean condition function - `Fn::And`/`Or`/`Not`/`Equals`.
     /// Anchored at the function node so it lands where a property-level error
     /// would.
     fn condition_fn_error(&mut self, fn_name: &str, reason: &str, path: &str) {
@@ -94,7 +94,7 @@ impl Builder {
         ));
     }
 
-    /// A malformed `Fn::GetStackOutput` argument (error). No function-name prefix —
+    /// A malformed `Fn::GetStackOutput` argument (error). No function-name prefix -
     /// the message uses standard JSON-Schema wording.
     /// Anchored at `at_path` (the function node, or a specific offending key) so it
     /// lands exactly where the offending value is written.
@@ -151,7 +151,7 @@ impl Builder {
     /// Recognizes `key` as a CloudFormation intrinsic and builds its node, or returns
     /// `None` to fall through to a plain map. `None` is also returned for malformed
     /// uses that downstream rules report with better resource context (so the node is
-    /// kept as a plain map) — those cases are commented inline.
+    /// kept as a plain map) - those cases are commented inline.
     fn try_intrinsic<V: ParseValue>(&mut self, key: &str, val: &V, path: &str) -> Option<NodeRef> {
         let intrinsic = match key {
             FN_REF => IntrinsicFn::Ref(self.required_string(val, FN_REF, path)?),
@@ -198,7 +198,7 @@ impl Builder {
                 // it may equally be a data key (e.g. a Lambda environment
                 // variable named `Fn::Custom`), which the schema validator
                 // handles as a plain object. Warn only when the name is a
-                // near-miss of a real function — a case slip or small typo —
+                // near-miss of a real function - a case slip or small typo -
                 // where the author almost certainly meant the function.
                 if key.starts_with(FN_PREFIX)
                     && !key.starts_with(FN_FOR_EACH_KEY_PREFIX)
@@ -416,8 +416,8 @@ impl Builder {
     }
 
     fn check_select_index<V: ParseValue>(&mut self, first: &V, path: &str) {
-        // CloudFormation coerces a numeric string index — the official
-        // Fn::Select documentation itself uses `"1"` — so only a value that is
+        // CloudFormation coerces a numeric string index - the official
+        // Fn::Select documentation itself uses `"1"` - so only a value that is
         // neither a number, an intrinsic, nor an integer-valued string is
         // reported as an error.
         let is_integer_string = matches!(first.kind(), ValueKind::String)
@@ -561,7 +561,7 @@ impl Builder {
     /// Region?, RoleArn? }`. The intrinsic node is built regardless so nested
     /// references still resolve; argument-shape violations (E1033) are reported
     /// only where the call is itself evaluated (see
-    /// [`Self::is_get_stack_output_validation_position`]) — reporting elsewhere
+    /// [`Self::is_get_stack_output_validation_position`]) - reporting elsewhere
     /// (e.g. inside another function, or in a parameter `Default`) would be a
     /// false positive.
     fn build_get_stack_output<V: ParseValue>(&mut self, val: &V, path: &str) -> Option<IntrinsicFn> {
@@ -616,7 +616,7 @@ impl Builder {
         if !matches!(segments.next(), Some(KEY_PROPERTIES | SECTION_METADATA)) {
             return false;
         }
-        // No remaining segment may itself be an intrinsic key — that would mean the
+        // No remaining segment may itself be an intrinsic key - that would mean the
         // call is an argument to another function, which owns the validation.
         !segments.any(|seg| seg.starts_with(FN_PREFIX) || seg == FN_REF || seg == FN_CONDITION)
     }

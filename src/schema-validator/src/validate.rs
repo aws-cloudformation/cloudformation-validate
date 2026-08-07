@@ -45,7 +45,7 @@ const TYPE_CHECK_EXEMPT_PATHS: &[(&str, &str)] = &[
 
 /// Returns true if the value is an unresolved or malformed intrinsic function:
 /// a JSON object with a single *known* function key (`Fn::<name>`, `Ref`,
-/// `Condition`, or an `Fn::ForEach::` loop key). Only known names are skipped —
+/// `Condition`, or an `Fn::ForEach::` loop key). Only known names are skipped -
 /// a single-key object whose key merely starts with `Fn::` (e.g. a map entry
 /// literally named `Fn::Custom`) is plain data and must be schema-validated
 /// like any other object.
@@ -74,7 +74,7 @@ pub fn validate_all_resources(
     for rtype in &relevant {
         // Custom resources, modules, and SAM resources (rewritten by the SAM
         // transform before deployment) are not region-scoped provider types, so
-        // the region check skips them — CloudFormation validates the
+        // the region check skips them - CloudFormation validates the
         // post-transform template.
         if rtype.ends_with("::MODULE") || rtype.starts_with("Custom::") || rtype.starts_with(SAM_SERVERLESS_TYPE_PREFIX)
         {
@@ -87,7 +87,7 @@ pub fn validate_all_resources(
         // problem and must not be reported here, or good templates regress. With
         // no region configured the type is validated against the union of all
         // regions: available if it exists in any region, so a type known in some
-        // region is never flagged — the availability check only runs for a
+        // region is never flagged - the availability check only runs for a
         // configured region.
         if let Some(region) = region
             && store.is_known_in_any_region(rtype)
@@ -100,7 +100,7 @@ pub fn validate_all_resources(
                 // AWS::Region to the target region and asks whether the condition
                 // can hold there, so a condition like
                 // `!Equals [AWS::Region, us-east-1]` is unsatisfiable at any other
-                // region and the finding is skipped — even at the DEFAULT region,
+                // region and the finding is skipped - even at the DEFAULT region,
                 // where AWS::Region is otherwise a free SAT variable.
                 if let Some(res) = model.resources.get(rid.as_str())
                     && let Some(cond) = res.condition.as_deref()
@@ -421,8 +421,8 @@ fn validate_resource(
     // Lifecycle pointers (deprecated/create-only/write-only) address a specific
     // property, which for many resources is a nested sub-property (e.g. MediaConnect
     // Flow deprecates only `Source.Decryption.Url`, never the required `Source`
-    // itself). Matching on the leaf's actual presence — not merely the top-level
-    // parent's — is required to avoid flagging correct templates.
+    // itself). Matching on the leaf's actual presence - not merely the top-level
+    // parent's - is required to avoid flagging correct templates.
     for dp in &schema.deprecated_properties {
         if let Some(pointer) = present_lifecycle_pointer(m, rid, base, dp) {
             out.push(build_diagnostic(
@@ -504,7 +504,7 @@ fn validate_resource(
         validate_prop(out, store, m, rid, &res.resource_type, &prop_path, &resolved, defs, region);
     }
 
-    // Also validate properties that exist only inside conditional branches —
+    // Also validate properties that exist only inside conditional branches -
     // when Properties is wrapped in Fn::If, res.properties has only the
     // synthetic "Fn::If" key so the loop above would miss per-branch props.
     let branch_property_names: HashSet<String> =
@@ -527,9 +527,9 @@ fn validate_resource(
         let sub = if matches { &ite.then_schema } else { &ite.else_schema };
         if let Some(sub) = sub {
             if ite.enforce_full_branch {
-                // An overlay-stated conditional is enforced in full — its
+                // An overlay-stated conditional is enforced in full - its
                 // `required` list, `additionalProperties`, dependency maps, and
-                // property value constraints — so nothing the author wrote is
+                // property value constraints - so nothing the author wrote is
                 // silently dropped.
                 validate_sub(out, m, rid, &res.resource_type, &actual_keys, sub, defs, base, 0);
             } else {
@@ -730,7 +730,7 @@ fn validate_object_keys_inner(
     // anyOf/oneOf group decisions are made per template condition scenario. A
     // property valued through `Fn::If` has a different concrete value in each
     // reachable scenario, and each scenario may legitimately satisfy a
-    // different branch — deciding the group from values across mutually
+    // different branch - deciding the group from values across mutually
     // exclusive scenarios both invents findings (each scenario matches exactly
     // one branch, yet globally two branches look satisfied) and misses them (an
     // invalid scenario is masked by a valid sibling scenario).
@@ -859,7 +859,7 @@ fn object_key_scenarios(
         keys.sort();
         out.push((keys, conds));
     }
-    // Deduplicate scenarios that produce the same key set — when both
+    // Deduplicate scenarios that produce the same key set - when both
     // branches of a condition have identical keys, the condition does not
     // affect key validation, so a single unconditioned entry suffices.
     let mut seen_keysets: HashMap<Vec<String>, HashMap<String, bool>> = HashMap::new();
@@ -868,7 +868,7 @@ fn object_key_scenarios(
             .entry(keys)
             .and_modify(|existing| {
                 // When two scenarios reach the same keys under complementary
-                // assumptions, the result is unconditioned — drop shared vars
+                // assumptions, the result is unconditioned - drop shared vars
                 // where the two assumption maps disagree.
                 existing.retain(|k, v| conds.get(k) == Some(v));
             })
@@ -878,7 +878,7 @@ fn object_key_scenarios(
 }
 
 /// Top-level properties of a resource may themselves be wrapped in an
-/// `Fn::If` — e.g. `Properties: {Fn::If: [Cond, {a: 1}, {b: 2}]}`. Return one
+/// `Fn::If` - e.g. `Properties: {Fn::If: [Cond, {a: 1}, {b: 2}]}`. Return one
 /// entry per reachable branch: each entry lists the concrete top-level keys
 /// a branch exposes plus the condition assumptions that reach it. When
 /// properties are not wrapped in `Fn::If`, returns a single unconditioned
@@ -921,7 +921,7 @@ fn validate_sub(
     if depth > MAX_MATCH_DEPTH {
         return;
     }
-    // Resolve $ref in the branch — a branch that references a definition uses
+    // Resolve $ref in the branch - a branch that references a definition uses
     // the definition's constraints. A dangling ref (definition not found) makes
     // the branch fail validation (never vacuously match).
     let resolved;
@@ -951,7 +951,7 @@ fn validate_sub(
         if !actual_keys.contains(req) {
             // A requirement a dedicated resource-specific rule already reports
             // under its own ID (e.g. the S3 access-control rule for
-            // OwnershipControls) must not additionally raise the generic Fatal —
+            // OwnershipControls) must not additionally raise the generic Fatal -
             // the same exclusion the extension-fragment path applies.
             if extension_required_covered_by_dedicated_rule(rtype, req) {
                 continue;
@@ -1040,7 +1040,7 @@ fn schema_value_matches(
         return true; // conservative: stop recursing
     }
 
-    // Resolve $ref — dangling ref means the schema cannot be evaluated, which
+    // Resolve $ref - dangling ref means the schema cannot be evaluated, which
     // is a non-match (the branch references something that doesn't exist).
     let resolved;
     let effective = if schema.ref_name.is_some() {
@@ -1053,7 +1053,7 @@ fn schema_value_matches(
         schema
     };
 
-    // Null values are conservative — they represent AWS::NoValue or absent
+    // Null values are conservative - they represent AWS::NoValue or absent
     // and should not cause a branch to mismatch.
     if value.is_null() {
         return true;
@@ -1066,7 +1066,7 @@ fn schema_value_matches(
         // Check coercion: if the value can be coerced, it's still a match
         if let Some(expected) = pt.primary() {
             match coerce_value(value, expected) {
-                CoerceResult::Coerced(_, _) => {} // coercible — still matches
+                CoerceResult::Coerced(_, _) => {} // coercible - still matches
                 _ => return false,
             }
         } else {
@@ -1108,7 +1108,7 @@ fn schema_value_matches(
         return false;
     }
 
-    // Format — enforce known formats as branch discriminators; unknown formats
+    // Format - enforce known formats as branch discriminators; unknown formats
     // remain annotations (conservative true).
     if let Some(ref fmt) = effective.format
         && let Some(s) = coerce_to_string(value)
@@ -1247,7 +1247,7 @@ fn schema_value_matches(
             }
         }
 
-        // additionalProperties — a closed object admits only declared or
+        // additionalProperties - a closed object admits only declared or
         // pattern-matched keys. Enforced whenever the schema declares either
         // shape vocabulary, so `patternProperties` alone also closes the object.
         if effective.additional_properties == Some(false)
@@ -1278,7 +1278,7 @@ fn schema_value_matches(
         }
     }
 
-    // Nested composition: allOf — all branches must match
+    // Nested composition: allOf - all branches must match
     if !effective.all_of.is_empty() {
         for branch in &effective.all_of {
             if !schema_value_matches(value, branch, defs, depth + 1) {
@@ -1287,7 +1287,7 @@ fn schema_value_matches(
         }
     }
 
-    // Nested anyOf — at least one branch must match
+    // Nested anyOf - at least one branch must match
     if !effective.any_of.is_empty() {
         let any_match = effective.any_of.iter().any(|branch| schema_value_matches(value, branch, defs, depth + 1));
         if !any_match {
@@ -1295,7 +1295,7 @@ fn schema_value_matches(
         }
     }
 
-    // Nested oneOf — exactly one branch must match
+    // Nested oneOf - exactly one branch must match
     if !effective.one_of.is_empty() {
         let match_count = effective.one_of.iter().filter(|b| schema_value_matches(value, b, defs, depth + 1)).count();
         if match_count != 1 {
@@ -1303,7 +1303,7 @@ fn schema_value_matches(
         }
     }
 
-    // if/then/else — evaluate condition against value. Only overlay-stated
+    // if/then/else - evaluate condition against value. Only overlay-stated
     // conditionals participate; bundled ones are owned by dedicated rules
     // (see `IfThenElse::enforce_full_branch`).
     for ite in effective.if_then_else.iter().filter(|ite| ite.enforce_full_branch) {
@@ -1364,7 +1364,7 @@ fn condition_schema_value_matches(
                 return false;
             }
         } else {
-            // Property not present but the condition constrains it — only fail
+            // Property not present but the condition constrains it - only fail
             // if the constraint is a concrete value check (enum/const/pattern).
             let has_value_constraint = !resolved.enum_values.is_empty()
                 || !resolved.enum_case_insensitive.is_empty()
@@ -1382,7 +1382,7 @@ fn condition_schema_value_matches(
 /// Check value-level constraints in a composition branch against the concrete
 /// resolved values at `base_path`. This produces a synthetic diagnostic into
 /// `out` when no satisfiable scenario matches the branch's property value
-/// constraints — making the branch non-matching for anyOf/oneOf evaluation.
+/// constraints - making the branch non-matching for anyOf/oneOf evaluation.
 ///
 /// Called after structural checks (required/additional/dependencies) so that
 /// structural failures are not duplicated: if structural checks already failed,
@@ -1421,7 +1421,7 @@ fn validate_sub_value_constraints(
             .collect();
 
         // When the property is absent from the template and not required, it
-        // does not contribute a mismatch — the constraint is vacuously true.
+        // does not contribute a mismatch - the constraint is vacuously true.
         if scenarios.is_empty() {
             continue;
         }
@@ -1436,7 +1436,7 @@ fn validate_sub_value_constraints(
 
         if !any_scenario_matches {
             // Marks this branch non-matching for the anyOf/oneOf predicates (which
-            // discard the message) — and is the user-facing finding when the
+            // discard the message) - and is the user-facing finding when the
             // branch came from `allOf`, where every branch must hold. The message
             // therefore names the offending value and what the branch expects.
             let offending = scenarios
@@ -1459,7 +1459,7 @@ fn validate_sub_value_constraints(
     }
 
     // Also check branch-level scalar constraints (type/enum/const on the branch
-    // itself, not on a named property — used when the branch constrains the value
+    // itself, not on a named property - used when the branch constrains the value
     // at the composition point rather than a sub-property).
     let branch_has_scalar_self_constraint = sub_self_constrains_value(sub);
     if branch_has_scalar_self_constraint {
@@ -1537,7 +1537,7 @@ fn branch_scenario_assignments<'a>(
     }
     // The observed conditional assignments cover the reachable branches (each
     // is the condition set of a concrete `Fn::If` value), so when any exist the
-    // group is decided per assignment and the unconditional pass is dropped —
+    // group is decided per assignment and the unconditional pass is dropped -
     // evaluating the group once more against the union of mutually exclusive
     // values is exactly the cross-scenario mixing this partitioning prevents.
     // Unconditionally-valued properties are consistent with every assignment
@@ -1614,8 +1614,8 @@ fn scenario_consistent_with_filter(m: &Arc<SemanticModel>, conds: &HashMap<Strin
 /// itself (rather than on named properties). Destructured exhaustively so a
 /// newly added constraint field cannot be silently skipped.
 ///
-/// Structural fields — `properties`, `required`, `additional_properties`,
-/// `pattern_properties`, and the dependency maps — are deliberately excluded:
+/// Structural fields - `properties`, `required`, `additional_properties`,
+/// `pattern_properties`, and the dependency maps - are deliberately excluded:
 /// `validate_sub` enforces them directly with their own rule IDs, and running
 /// the value matcher for them here would double-report. `ref_name` is excluded
 /// because the caller resolves the branch before the self-check, and
@@ -1829,7 +1829,7 @@ fn validate_prop(
 
     let res_suffix = describe_resolution(m, rid, prop_path).map(|s| format!(" (from {})", s)).unwrap_or_default();
 
-    // Type check — coerce before rejecting since string↔number, string↔boolean,
+    // Type check - coerce before rejecting since string↔number, string↔boolean,
     // bool→string, number→string are silently coerced at deploy time.
     // Successful coercion → Warn; failed coercion → Fatal.
     if let Some(ref pt) = schema.prop_type
@@ -1837,7 +1837,7 @@ fn validate_prop(
     {
         let is_packaging_path = PACKAGING_PROPERTY_PATHS.iter().any(|(rt, pp)| *rt == rtype && *pp == prop_path);
         // Skip type checks for array elements whose parent array or the element itself
-        // came from an intrinsic function — those are validated by function-specific rules.
+        // came from an intrinsic function - those are validated by function-specific rules.
         let from_intrinsic = m.is_from_intrinsic(rid, prop_path)
             || prop_path
                 .rsplit_once('.')
@@ -1854,11 +1854,11 @@ fn validate_prop(
             if !is_satisfiable(m, conds) || val.is_null() {
                 continue;
             }
-            // Skip unresolved/malformed intrinsics — already validated by structure rules
+            // Skip unresolved/malformed intrinsics - already validated by structure rules
             if is_unresolved_intrinsic(val) {
                 continue;
             }
-            // Skip packaging properties when value is a string — valid with `package` command
+            // Skip packaging properties when value is a string - valid with `package` command
             if is_packaging_path && val.is_string() {
                 continue;
             }
@@ -2263,7 +2263,7 @@ fn validate_prop(
             );
             // Property-level if/then/else on an object property: evaluate the
             // condition against the nested keys and enforce the selected branch
-            // — in full for an overlay-stated conditional, dependencies-only
+            // - in full for an overlay-stated conditional, dependencies-only
             // for a bundled one (see `IfThenElse::enforce_full_branch`).
             for ite in &schema.if_then_else {
                 let matches = condition_matches_at(&ite.condition, &nested_keys, m, rid, defs, prop_path);
@@ -2279,7 +2279,7 @@ fn validate_prop(
         } else if !schema.required.is_empty()
             && !matches!(m.resolve_deep(rid, prop_path), Some(ResolvedValue::Conditional { .. }))
         {
-            // Empty concrete object scenario (e.g. a literal `{}`) — still
+            // Empty concrete object scenario (e.g. a literal `{}`) - still
             // validate required properties. An empty object has no keys but
             // required properties must still be present.
             //
@@ -2322,7 +2322,7 @@ fn validate_prop(
         // allOf/if_then_else, validate each concrete scenario against the
         // composition branches using schema_value_matches. This covers schemas
         // like KMS key identifiers where anyOf branches discriminate by format.
-        // Skip when any scenario has an array/object value — those are validated
+        // Skip when any scenario has an array/object value - those are validated
         // through the object-key or items paths instead.
         let has_scalar_composition = !schema.all_of.is_empty()
             || !schema.any_of.is_empty()
@@ -2501,7 +2501,7 @@ fn enum_matches_case_insensitive(val: &serde_json::Value, allowed: &[serde_json:
 
 /// True when property `prop` under `base` resolves to a concrete (non-null)
 /// value in at least one satisfiable scenario. A property set to `AWS::NoValue`
-/// resolves to null in every scenario and is treated as absent — CloudFormation
+/// resolves to null in every scenario and is treated as absent - CloudFormation
 /// strips it before deployment. When resolution yields no scenarios (the value
 /// is opaque/dynamic), the property is conservatively considered present so a
 /// genuinely-specified property is never miscounted as absent.
@@ -2640,7 +2640,7 @@ fn condition_matches_at(
         }
         let scenarios = m.resolve_scenarios_json(rid, &prop_path);
         // When the value is dynamic (unresolvable) and the condition has a concrete
-        // constraint (pattern/enum/const), we cannot confirm the match — return false
+        // constraint (pattern/enum/const), we cannot confirm the match - return false
         // to avoid incorrectly activating the then branch.
         let has_concrete_constraint = resolved.pattern.is_some()
             || !resolved.enum_values.is_empty()
@@ -2659,7 +2659,7 @@ fn condition_matches_at(
         if pattern_uncompilable {
             return false;
         }
-        // Every constraint the condition states must hold — a condition combining,
+        // Every constraint the condition states must hold - a condition combining,
         // say, `type: array` with `minItems: 1` only matches a non-empty array.
         let any_match = scenarios.iter().any(|(val, conds)| {
             if !is_satisfiable(m, conds) {
@@ -2697,8 +2697,8 @@ fn condition_matches_at(
 
 /// Whether `val` satisfies the length/count bounds a condition property states.
 ///
-/// Draft-07 scopes each bound to one instance type — `minItems` to arrays,
-/// `minLength` to strings, `minProperties` to objects — and an instance of any
+/// Draft-07 scopes each bound to one instance type - `minItems` to arrays,
+/// `minLength` to strings, `minProperties` to objects - and an instance of any
 /// other type passes vacuously.
 fn condition_bounds_match(val: &serde_json::Value, schema: &PropSchema) -> bool {
     if let Some(items) = val.as_array() {
@@ -2780,7 +2780,7 @@ fn validate_reference_type(
             let source = cfn_param_type_to_schema_type(param_type);
             if !types_compatible(source, expected_type) {
                 let expected = expected_type.primary().unwrap_or("unknown");
-                // Parameters are coerced at deploy time — warn rather than error
+                // Parameters are coerced at deploy time - warn rather than error
                 out.push(build_diagnostic(
                     "W9003",
                     &format!("Parameter type '{}' may not be compatible with expected type '{}'", param_type, expected),
@@ -2859,7 +2859,7 @@ static BRANCH_FORMAT_PATTERNS: LazyLock<HashMap<&'static str, Arc<CompiledPatter
             r"^arn:aws[a-zA-Z-]*:kms:[a-z0-9-]+:\d{12}:(key/(mrk-[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})|alias/[a-zA-Z0-9:/_-]{1,250})$",
         ),
         // KMS key ID: standard UUID, multi-Region `mrk-` + 32 hex digits (no
-        // dashes), or an alias name — the scalar identifiers KMS accepts for a key
+        // dashes), or an alias name - the scalar identifiers KMS accepts for a key
         (
             "AWS::KMS::Key.Id",
             r"^(mrk-[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}|alias/[a-zA-Z0-9:/_-]{1,250})$",
@@ -2870,7 +2870,7 @@ static BRANCH_FORMAT_PATTERNS: LazyLock<HashMap<&'static str, Arc<CompiledPatter
         ("AWS::EC2::SecurityGroup.Name", SECURITY_GROUP_NAME_PATTERN),
         // IPv4 CIDR notation
         ("ipv4-network", r"^(\d{1,3}\.){3}\d{1,3}/\d{1,2}$"),
-        // IPv6 CIDR notation (simplified — accepts valid hex groups with prefix length)
+        // IPv6 CIDR notation (simplified - accepts valid hex groups with prefix length)
         ("ipv6-network", r"^[0-9a-fA-F:]+/\d{1,3}$"),
         // ISO 8601 date-time
         ("date-time", r"^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(:\d{2})?(\.\d+)?(Z|[+-]\d{2}:?\d{2})?$"),
@@ -2884,7 +2884,7 @@ static BRANCH_FORMAT_PATTERNS: LazyLock<HashMap<&'static str, Arc<CompiledPatter
 /// branch discrimination in `schema_value_matches`. Reuses `FORMAT_PATTERNS`
 /// for known diagnostic formats, falls back to `BRANCH_FORMAT_PATTERNS` for
 /// composition-specific formats. Unknown formats are treated as annotations
-/// (conservative true — no mismatch).
+/// (conservative true - no mismatch).
 ///
 /// List-level formats (e.g. `.Ids`, `.Names`) are handled by matching each
 /// element against the singular form when the value is a scalar string.
@@ -2907,7 +2907,7 @@ fn format_value_matches(value: &str, format: &str) -> bool {
         }
         // json format: value must be syntactically valid JSON
         "json" => serde_json::from_str::<serde_json::Value>(value).is_ok(),
-        // Unknown formats are annotations — conservative true
+        // Unknown formats are annotations - conservative true
         _ => true,
     }
 }
@@ -3343,7 +3343,7 @@ fn validate_extension_if_then_else(
         for (prop_name, constraint) in props {
             if constraint == &serde_json::Value::Bool(false) && res.properties.contains_key(prop_name) {
                 // Extension marks the property as non-applicable in this configuration.
-                // CloudFormation does not reject such properties — it ignores them.
+                // CloudFormation does not reject such properties - it ignores them.
                 // Emit as Info so the finding is surfaced but does not block deployment
                 // or cause `good/` fixtures to fail the no-errors contract.
                 out.push(build_diagnostic(
@@ -3373,7 +3373,7 @@ fn validate_extension_if_then_else(
                     continue;
                 }
                 // NOTE: these extension enums use per-enum case
-                // sensitivity — case-insensitive for engine names
+                // sensitivity - case-insensitive for engine names
                 // (Engine: "MySQL" is accepted against "mysql") but case-sensitive
                 // for others (ReplicaMode: "Mounted" is rejected against
                 // "mounted"). Distinguishing them requires the per-rule mapping
@@ -3731,7 +3731,7 @@ fn describe_resolution(m: &Arc<SemanticModel>, rid: &str, prop_path: &str) -> Op
         // the model says a parameter produced it. A cross-stack import and a
         // dynamic reference are just as unknown and carry the same declared type,
         // so naming them a parameter would report something the template does not
-        // contain — and would print the explanation where a name belongs.
+        // contain - and would print the explanation where a name belongs.
         ResolvedValue::TypedDynamic { reason: desc, param_type: typ } => match m.parameter_name_at(rid, value_path) {
             Some(parameter) => Some(format!("parameter '{}' (type {})", parameter, typ)),
             None => Some(format!("dynamic ({})", desc)),

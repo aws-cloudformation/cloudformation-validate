@@ -1,5 +1,5 @@
 //! Owned, engine-agnostic intermediate representation of Guard DSL rules.
-//! All types are `'static` — no borrowed references to the parser AST.
+//! All types are `'static` - no borrowed references to the parser AST.
 
 use indexmap::IndexMap;
 use rules::Severity;

@@ -4,7 +4,7 @@ Parameters:
 Resources:
   # A container-image function that sets Handler via an unresolved intrinsic.
   # E3685 must fire and anchor at Handler (the first excluded property PRESENT in
-  # schema order) in BOTH engines — presence, not resolvability, picks the anchor.
+  # schema order) in BOTH engines - presence, not resolvability, picks the anchor.
   Fn:
     Type: AWS::Lambda::Function
     Properties:

@@ -11,8 +11,8 @@ use std::sync::LazyLock;
 /// Resource types mapped to the property descriptor whose value is a hardcoded
 /// availability-zone name to flag. A descriptor is a `.`-separated path under
 /// `Properties` with two wildcard segments:
-/// - `*` — the value at this path is a list whose every element is itself an AZ.
-/// - `{}` — the value at this path is a list; descend into every element and
+/// - `*` - the value at this path is a list whose every element is itself an AZ.
+/// - `{}` - the value at this path is a list; descend into every element and
 ///   continue matching the remaining segments.
 pub const AZ_PATHS: &[(&str, &str)] = &[
     ("AWS::AutoScaling::AutoScalingGroup", "AvailabilityZones.*"),

@@ -4,7 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 WORKSPACE="$(cd "$SCRIPT_DIR/.." && pwd)"
 # The published CLI binaries live outside the cargo workspace, in release-bin/ at
-# the repository root — the same directory the release workflow reads them from.
+# the repository root - the same directory the release workflow reads them from.
 RELEASE_DIR="$(cd "$WORKSPACE/.." && pwd)/release-bin"
 TARGET_RELEASE="$WORKSPACE/target/release"
 

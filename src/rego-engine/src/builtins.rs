@@ -276,7 +276,7 @@ fn register_resolve(rego: &mut regorus::Engine, holder: SharedModel) {
                 return Ok(resolved_to_rego(val));
             }
             // `Properties` wrapped in `Fn::If` stores values only under the
-            // synthetic branch path — fall back to scenario resolution so the
+            // synthetic branch path - fall back to scenario resolution so the
             // rule still sees a per-branch value.
             let scenarios = model.resolve_scenarios_json(rid, path);
             if let Some((first, _)) = scenarios.into_iter().next() {
@@ -601,7 +601,7 @@ fn register_follow_ref(rego: &mut regorus::Engine, holder: SharedModel) {
 }
 
 /// `authored_form(rid, path)`: the authored JSON form of a resource property,
-/// reconstructed from the resolved value — `{"Ref": target}` for a `Ref`,
+/// reconstructed from the resolved value - `{"Ref": target}` for a `Ref`,
 /// `{"Fn::GetAtt": [target, attr]}` for a `GetAtt`, or the literal for a concrete
 /// value. A `Ref`/`GetAtt` to a parameter resolves to a dynamic value rather than
 /// a reference, so the reference graph is consulted to recover the authored form.
@@ -1041,7 +1041,7 @@ fn register_arn_matches(rego: &mut regorus::Engine) {
 /// padded to six colon parts with "*" (a shorter ARN, e.g. missing region or
 /// account, is not a mismatch), `${Partition}`/`${Region}`/`${Account}`
 /// placeholders match anything, and the sixth part is compared per its `:` or
-/// `/` delimiter — the shared ARN-matching behavior every engine agrees on.
+/// `/` delimiter - the shared ARN-matching behavior every engine agrees on.
 fn register_arn_matches_format(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "arn_matches_format".into(),
@@ -1200,7 +1200,7 @@ fn register_render_value(rego: &mut regorus::Engine) {
 /// first `allOf` branch whose `if.required` consts all match, or `undefined`
 /// when no branch matches.
 /// Registers `property_can_be_absent(rid, path)`: true when a property is not
-/// set in every satisfiable scenario — either its key is missing, or it resolves
+/// set in every satisfiable scenario - either its key is missing, or it resolves
 /// to `AWS::NoValue`/null in at least one satisfiable `Fn::If` branch. Rules that
 /// require a property to always be present (e.g. retention periods) use this so
 /// an `Fn::If [cond, X, AWS::NoValue]` is correctly treated as possibly-absent.
@@ -1246,7 +1246,7 @@ fn register_is_valid_region(rego: &mut regorus::Engine) {
 /// enum document, returns the E-diagnostic message when `value` is invalid for the
 /// effective scope, or `undefined` when it is valid or the document does not apply.
 /// The effective scope is the configured region, or the union of all regions when
-/// none is configured (`input_region()` is null) — a value is flagged only when it
+/// none is configured (`input_region()` is null) - a value is flagged only when it
 /// is invalid in every region. The message text is produced by the shared
 /// `region_enums` helper.
 fn register_region_flat_invalid(rego: &mut regorus::Engine, holder: SharedRegion) {
@@ -2060,7 +2060,7 @@ fn register_make_diag_conditional(rego: &mut regorus::Engine, holder: SharedMode
 }
 
 /// `estimated_string_length_bounds(resource, path) -> {"shortest": n, "longest": n}`
-/// — undefined when the length cannot be pinned for every possibility, or when the
+/// - undefined when the length cannot be pinned for every possibility, or when the
 /// template states the value literally.
 fn register_estimated_string_length_bounds(rego: &mut regorus::Engine, holder: SharedModel) {
     let _ = rego.add_extension(
@@ -2117,7 +2117,7 @@ fn register_schema_string_length(rego: &mut regorus::Engine, registry: LazySchem
     );
 }
 
-/// `schema_requires_unique_items(resource_type, property) -> bool` — true when
+/// `schema_requires_unique_items(resource_type, property) -> bool` - true when
 /// the property's schema constraint sets `uniqueItems: true`.
 fn register_schema_requires_unique_items(rego: &mut regorus::Engine, registry: LazySchemaRegistry) {
     let _ = rego.add_extension(
@@ -2204,7 +2204,7 @@ fn collect_unreachable_branches(
             let mut true_assumptions = assumptions.to_vec();
             true_assumptions.push((cond.clone(), true));
             // Flag the branch only when the surrounding assumptions make this
-            // condition value unreachable — not when the condition can never take
+            // condition value unreachable - not when the condition can never take
             // the value on its own. A condition that is constant (a literal
             // tautology, or a parameter pinned to a single value) is the concern
             // of equality rules, not of branch reachability.

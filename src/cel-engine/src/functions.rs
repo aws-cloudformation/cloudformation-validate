@@ -12,7 +12,7 @@ use template_model::resolver::ResolvedValue;
 /// Function names available to custom and translated-Guard CEL rules: the
 /// interpreter's standard-library functions, the parse-time macros, and the
 /// `type` function registered by [`build_custom_context`]. Used to reject a rule
-/// that calls a function that would never resolve — closing the gap where an
+/// that calls a function that would never resolve - closing the gap where an
 /// unknown-function error only surfaced if a matching resource happened to exist.
 const SUPPORTED_FUNCTIONS: &[&str] = &[
     // CEL macros. These are expanded into comprehensions at parse time and so
@@ -333,7 +333,7 @@ mod tests {
             "parameters": {}
         });
         let ctx = build_custom_context(&input, None, None);
-        // Should not panic — variables are bound
+        // Should not panic - variables are bound
         let prog = cel_interpreter::Program::compile("resources").unwrap();
         let result = prog.execute(&ctx);
         result.expect("executing 'resources' should succeed");

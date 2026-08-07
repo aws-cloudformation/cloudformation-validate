@@ -1,11 +1,11 @@
 # CloudFormation Validate for JVM
 
 Validate AWS CloudFormation templates from Kotlin or Java and catch schema violations, security risks, and
-best-practice findings before deployment — in your editor, build, or CI.
+best-practice findings before deployment - in your editor, build, or CI.
 
-- **Offline** — all rules and resource schemas are bundled.
-- **Fast** — sub-second validation per template.
-- **Self-contained** — native libraries for all supported platforms are included.
+- **Offline** - all rules and resource schemas are bundled.
+- **Fast** - sub-second validation per template.
+- **Self-contained** - native libraries for all supported platforms are included.
 
 All types live in the `software.amazon.cloudformation.validate` package.
 
@@ -47,13 +47,13 @@ for (d in report.diagnostics) {
 }
 ```
 
-Each diagnostic identifies the rule, severity, affected resource and property, and source location — see
+Each diagnostic identifies the rule, severity, affected resource and property, and source location - see
 [StandardDiagnostic](#standarddiagnostic). A complete, runnable project is in
 [examples](https://github.com/aws-cloudformation/cloudformation-validate/tree/main/src/bindings-jvm/examples).
 
 ## Engine
 
-`RegoEngine` and `CelEngine` both implement the `Engine` interface and are interchangeable — they produce identical
+`RegoEngine` and `CelEngine` both implement the `Engine` interface and are interchangeable - they produce identical
 diagnostics for the same template and config.
 
 ### `Engine` interface
@@ -74,7 +74,7 @@ interface Engine {
 | `listRules()`                        | `List<RuleInfo>` | Returns metadata for every built-in and loaded custom rule                                                       |
 | `engineName()`                       | `String`         | `"rego"` or `"cel"`                                                                                              |
 
-`template` is a `java.io.File` — the engine reads the bytes and uses the file path for diagnostic source locations.
+`template` is a `java.io.File` - the engine reads the bytes and uses the file path for diagnostic source locations.
 
 ### `EngineConfig`
 
@@ -88,7 +88,7 @@ val engine = CelEngine(EngineConfig(guardRules = listOf(myRule)))  // with Guard
 | Field                   | Default       | Description                                                                          |
 |-------------------------|---------------|--------------------------------------------------------------------------------------|
 | `customRules`           | `emptyList()` | Engine-native rules (Rego for `RegoEngine`, CEL for `CelEngine`)                     |
-| `guardRules`            | `emptyList()` | CloudFormation Guard DSL rules — translated internally by each engine                |
+| `guardRules`            | `emptyList()` | CloudFormation Guard DSL rules - translated internally by each engine                |
 | `schemaValidatorConfig` | `null`        | Optional `SchemaValidatorConfig` with additional schemas merged over bundled schemas |
 
 Load an additional schema with `fileToAdditionalSchemaSource(file, typeName = null)`, or construct an
@@ -104,8 +104,8 @@ val engine = RegoEngine(
 )
 ```
 
-Each rule is an `ExternalRuleSource`, loaded from a `java.io.File` with `fileToExternalRuleSource(file)` — the same
-pattern as passing a template `File` to `validateStandard` — or constructed from explicit values with
+Each rule is an `ExternalRuleSource`, loaded from a `java.io.File` with `fileToExternalRuleSource(file)` - the same
+pattern as passing a template `File` to `validateStandard` - or constructed from explicit values with
 `ExternalRuleSource(name, content)`, where `name` identifies the rule in diagnostics and `content` is the full source
 text. The two can be mixed freely:
 
@@ -120,7 +120,7 @@ val engine = CelEngine(
 
 ## ValidateConfig
 
-Controls filtering, severity, parameter overrides, and behavior. All fields have defaults — passing `ValidateConfig()`
+Controls filtering, severity, parameter overrides, and behavior. All fields have defaults - passing `ValidateConfig()`
 uses them.
 
 ```kotlin
@@ -143,7 +143,7 @@ val report = engine.validateStandard(File("template.yaml"), config)
 
 ### RuleFilterConfig
 
-Both `include` and `exclude` use this structure. All fields are additive — a rule matches if it hits any criterion.
+Both `include` and `exclude` use this structure. All fields are additive - a rule matches if it hits any criterion.
 
 ```kotlin
 data class RuleFilterConfig(
@@ -165,7 +165,7 @@ data class ResourceTypeFilter(val ruleId: String? = null, val resourceType: Stri
 data class ServiceFilter(val ruleId: String? = null, val service: String)
 ```
 
-The `service` is matched verbatim against the `service-provider::service-name` prefix of the resource type — its first
+The `service` is matched verbatim against the `service-provider::service-name` prefix of the resource type - its first
 two `::`-delimited segments (e.g. `AWS::AutoScaling` in `AWS::AutoScaling::LaunchConfiguration`).
 
 The `resourceIds` dimension matches only diagnostics attributed to a resource; `logicalIds` additionally matches
@@ -175,7 +175,7 @@ the same value). A non-null `entityType` scopes a `LogicalIdFilter` to entities 
 
 ### PseudoParameterOverrides
 
-Override CloudFormation pseudo-parameters used during intrinsic function resolution. All fields optional — when `null`,
+Override CloudFormation pseudo-parameters used during intrinsic function resolution. All fields optional - when `null`,
 the engine uses built-in defaults (e.g. region defaults to `us-east-1`).
 
 ```kotlin
@@ -192,7 +192,7 @@ data class PseudoParameterOverrides(
 
 ## TemplateModel
 
-Parses a template into the resolved `SemanticModel` for direct inspection — the same model the engines evaluate rules
+Parses a template into the resolved `SemanticModel` for direct inspection - the same model the engines evaluate rules
 against.
 
 ```kotlin

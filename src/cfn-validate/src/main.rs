@@ -265,7 +265,7 @@ fn main() {
     // Engine construction compiles user-supplied custom and Guard rules, so an
     // internal invariant violation on adversarial rule input could panic. Catch it
     // here so it surfaces as a structured error and a clean exit code rather than an
-    // uncaught abort — matching how the library bindings guard the same entry point.
+    // uncaught abort - matching how the library bindings guard the same entry point.
     let engine_init: Result<Box<dyn ValidationEngine>, ValidationError> = catch_panics(
         || {
             let engine: Box<dyn ValidationEngine> = match engine_type {

@@ -7,7 +7,7 @@ WHEEL_DIR="$BINDINGS_DIR/generated/dist"
 VENV_DIR="$SCRIPT_DIR/.venv"
 
 if ! compgen -G "$WHEEL_DIR/cloudformation_validate-*.whl" >/dev/null; then
-    echo "Error: no wheel in $WHEEL_DIR — run build.sh first" >&2
+    echo "Error: no wheel in $WHEEL_DIR - run build.sh first" >&2
     exit 1
 fi
 

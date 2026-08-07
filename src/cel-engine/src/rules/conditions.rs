@@ -160,7 +160,7 @@ fn find_unreachable_branches(
             let mut true_assumptions = assumptions.to_vec();
             true_assumptions.push((cond.clone(), true));
             // Flag the branch only when the surrounding assumptions make this
-            // condition value unreachable — not when the condition can never take
+            // condition value unreachable - not when the condition can never take
             // the value on its own. A condition that is constant (a literal
             // tautology, or a parameter pinned to a single value) is the concern
             // of equality rules, not of branch reachability.

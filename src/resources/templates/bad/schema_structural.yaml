@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Resources:
-  # F3020: dependentExcluded — ExtendedStatistic and Statistic are mutually exclusive
+  # F3020: dependentExcluded - ExtendedStatistic and Statistic are mutually exclusive
   AlarmBothStats:
     Type: AWS::CloudWatch::Alarm
     Properties:
@@ -13,13 +13,13 @@ Resources:
       ExtendedStatistic: p99
       Threshold: 80
 
-  # F3058: requiredOr — Subnet needs at least one of CidrBlock, Ipv4IpamPoolId, etc.
+  # F3058: requiredOr - Subnet needs at least one of CidrBlock, Ipv4IpamPoolId, etc.
   SubnetNoCidr:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: vpc-12345678
 
-  # F3014: requiredXor — ScalingPolicy needs exactly one of ScalingTargetId or ResourceId
+  # F3014: requiredXor - ScalingPolicy needs exactly one of ScalingTargetId or ResourceId
   ScalingPolicyBothIds:
     Type: AWS::ApplicationAutoScaling::ScalingPolicy
     Properties:
@@ -30,7 +30,7 @@ Resources:
       ScalableDimension: ecs:service:DesiredCount
       ServiceNamespace: ecs
 
-  # F3021: dependentRequired — ResourceId requires ScalableDimension and ServiceNamespace
+  # F3021: dependentRequired - ResourceId requires ScalableDimension and ServiceNamespace
   ScalingPolicyMissingDeps:
     Type: AWS::ApplicationAutoScaling::ScalingPolicy
     Properties:

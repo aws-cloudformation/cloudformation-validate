@@ -255,7 +255,7 @@ fn issue_37_w3697_fires_on_autoscaling_launchconfiguration() {
 }
 
 /// Issue #37: a per-service exclude filter silences W3697 for every AutoScaling
-/// resource — the resolution the issue asked for. The filter is applied after
+/// resource - the resolution the issue asked for. The filter is applied after
 /// evaluation in both engines, so the two agree. The `service` string is
 /// the fully qualified `service-provider::service-name` prefix (`AWS::AutoScaling`)
 /// matched verbatim against the resource type; the rule id scopes it to W3697,
@@ -339,7 +339,7 @@ fn issue_39_no_false_positive_on_vpc_cidrblock_getatt() {
 }
 
 /// Issue #40: E1150 fires only on a concrete, inspectable value (`sg-1`), never
-/// on a `Ref` to a deploy-time value — the two concerns are now separate rules.
+/// on a `Ref` to a deploy-time value - the two concerns are now separate rules.
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/40
 #[test]
 fn issue_40_e1150_only_on_concrete_value_not_on_ref() {
@@ -350,7 +350,7 @@ fn issue_40_e1150_only_on_concrete_value_not_on_ref() {
 }
 
 /// Issue #41: W9013 must not fire on an ARN built via `Fn::Join` with
-/// `Ref: AWS::AccountId` — the account segment comes from a pseudo-parameter,
+/// `Ref: AWS::AccountId` - the account segment comes from a pseudo-parameter,
 /// not a literal the author hardcoded. The resolver now records the intrinsic
 /// provenance so both engines skip the value.
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/41
@@ -362,7 +362,7 @@ fn issue_41_no_w9013_on_join_ref_accountid() {
 }
 
 /// Issue #42: an omitted `HealthCheckPort` on an ECS dynamic-port (HostPort 0)
-/// TargetGroup defaults to `traffic-port` — the correct setting — so the finding
+/// TargetGroup defaults to `traffic-port` - the correct setting - so the finding
 /// is advisory (I3049 INFO), not an Error. The ECS dynamic-port health-check
 /// check is severity-split: an omitted port is informational (I3049), a concrete
 /// non-`traffic-port` value is a warning (W3049, exercised by the `bad/` corpus).
@@ -380,7 +380,7 @@ fn issue_42_omitted_healthcheckport_is_info_not_error() {
 
 /// Issue #42 (counter-example): a `HealthCheckPort` that is a deploy-time value
 /// (a `Ref` to a no-default parameter) is unknowable at validation time, so the
-/// dynamic-port health-check rule must stay silent in both engines — neither the
+/// dynamic-port health-check rule must stay silent in both engines - neither the
 /// advisory I3049 nor the warning W3049 fires. Guards the false-positive fix: an
 /// opaque value must not be treated like a fixed non-`traffic-port` port, because
 /// CloudFormation cannot know the value at deploy time.
@@ -398,7 +398,7 @@ fn issue_42_no_finding_on_deploy_time_healthcheckport() {
 /// `8080` (wrong for dynamic port mapping) and the other is `traffic-port`, so the
 /// warning W3049 fires (on the fixed branch) and the omitted-default advisory
 /// I3049 does not (the property is present). Guards that both engines agree on
-/// conditionals — one engine reading only a single branch would be a bug.
+/// conditionals - one engine reading only a single branch would be a bug.
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/42
 #[test]
 fn issue_42_conditional_healthcheckport_warns_on_wrong_branch() {
@@ -434,7 +434,7 @@ fn issue_45_no_false_positive_on_array_getatt_wrapped_in_join() {
 }
 
 /// Issue #46: E1150 must not fire on `Fn::GetAtt` to an EKS cluster's
-/// `ClusterSecurityGroupId` used as a SecurityGroupId — it is a deploy-time value.
+/// `ClusterSecurityGroupId` used as a SecurityGroupId - it is a deploy-time value.
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/46
 #[test]
 fn issue_46_no_false_positive_on_eks_securitygroupid_getatt() {
@@ -485,7 +485,7 @@ fn issue_50_no_false_positive_on_fn_split_ref_iam_resource() {
 }
 
 /// Issue #50 (fixed-behavior guard): a `String` parameter Ref'd directly into an
-/// IAM policy `Resource` — with no `Fn::Split` and no ARN-shaped Default — must
+/// IAM policy `Resource` - with no `Fn::Split` and no ARN-shaped Default - must
 /// not trip W1030 either. This is the general form of the removed ARN branch
 /// (PR #51): W1030's surviving arms key only off `ImageId`/CIDR/`VpcId` property
 /// paths, so an ARN-position String Ref is never inspected. Both engines agree.
@@ -517,7 +517,7 @@ fn issue_50_no_w1030_on_string_ref_in_iam_resource() {
 }
 
 /// Issue #52: two distinct `Fn::ImportValue` items in an array must not be
-/// flagged as duplicates by W9007 — each import now carries its export name, so
+/// flagged as duplicates by W9007 - each import now carries its export name, so
 /// the two values are distinct symbolic imports rather than one collapsed value.
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/52
 #[test]
@@ -551,7 +551,7 @@ fn issue_52_w9007_still_fires_on_literal_duplicates() {
 }
 
 /// Issue #52 (positive boundary): the SAME export imported twice resolves to one
-/// identical symbolic value, so W9007 must still flag it as a duplicate — only
+/// identical symbolic value, so W9007 must still flag it as a duplicate - only
 /// *distinct* export names are treated as distinct.
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/52
 #[test]
@@ -580,7 +580,7 @@ fn issue_52_w9007_still_fires_on_repeated_import_of_same_export() {
 /// invisible to Ref/GetAtt-only graph tools because the loop is closed by
 /// `DependsOn` edges. The cycle here is a two-node loop between the kubectl-ready
 /// barrier and the cluster creation-role default policy. A finding is anchored on
-/// each resource whose edge closes the loop — the two directions of that edge —
+/// each resource whose edge closes the loop - the two directions of that edge -
 /// so exactly two findings surface, one per edge, rather than one per member of
 /// the surrounding strongly connected component. Each message traces the loop
 /// back to its own resource so a reader can verify every edge.
@@ -626,7 +626,7 @@ fn issue_54_f3003_false_required_ownershipcontrols() {
 }
 
 /// Issue #54 (counter-example): the reporter's proof that the requirement is
-/// hallucinated — a property-less `AWS::S3::Bucket` is a valid resource, so
+/// hallucinated - a property-less `AWS::S3::Bucket` is a valid resource, so
 /// neither F3003 nor the access-control rule fires when no `AccessControl` is
 /// set. Pins that the false positive is scoped to the non-Private path and does
 /// not leak onto an empty bucket.
@@ -648,7 +648,7 @@ fn issue_54_no_required_ownershipcontrols_on_bare_bucket() {
 }
 
 /// Issue #54 (positive case): a non-Private bucket that DOES configure
-/// `OwnershipControls.Rules` is clean — neither F3003 nor E3045 fires, because
+/// `OwnershipControls.Rules` is clean - neither F3003 nor E3045 fires, because
 /// the OwnershipControl requirement is satisfied. This guards the bug's scope:
 /// the false positive must be tied to *missing* OwnershipControls, and the data
 /// constraint must not regress into firing on a valid bucket. Only the W3045
@@ -667,7 +667,7 @@ fn issue_54_no_f3003_when_ownershipcontrols_present() {
 /// parameter with no default, the property IS present so the deprecation warning
 /// W3045 should fire (the deprecation is about presence of the property, not its
 /// value). CEL does fire it; rego does not (it keys on the resolved value, which
-/// is unresolvable here) — a rego false-negative and a rego/cel divergence. Pinned with inline
+/// is unresolvable here) - a rego false-negative and a rego/cel divergence. Pinned with inline
 /// bytes because the fixture diverges between engines and so cannot live in the
 /// rego==cel golden corpus. Tighten to both-fire once rego keys on presence.
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/54
@@ -715,7 +715,7 @@ fn issue_56_no_fatal_on_unrecognized_getstackoutput_intrinsic() {
 }
 
 /// Issue #57: a `TargetOriginId` that references an `OriginGroups.Items[].Id`
-/// must be accepted — the valid-target set now includes OriginGroup ids, not
+/// must be accepted - the valid-target set now includes OriginGroup ids, not
 /// just `Origins[].Id`, so E3057 no longer fires on this distribution.
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/57
 #[test]
@@ -788,8 +788,8 @@ fn issue_62_f3032_fatal_on_empty_unconstrained_array() {
 
 /// Issue #62 (retention collapse): a `AWS::Synthetics::Canary` requires two
 /// retention properties (`SuccessRetentionPeriod` and `FailureRetentionPeriod`).
-/// When both are missing, exactly one I3013 fires — for the first missing
-/// property in declaration order, anchored on the properties object — rather than
+/// When both are missing, exactly one I3013 fires - for the first missing
+/// property in declaration order, anchored on the properties object - rather than
 /// one per property: the retention check collapses to a single finding per
 /// resource.
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/62
@@ -838,7 +838,7 @@ fn issue_67_f3014_promql_alarm() {
 }
 
 /// Issue #68: the Lambda ZipFile runtime rule (E3677) already uses a
-/// forward-looking `nodejs`/`python` prefix — it fires on `node99.x` but not on
+/// forward-looking `nodejs`/`python` prefix - it fires on `node99.x` but not on
 /// `nodejs99.x`. The baked-in Runtime enum (W3030) warns on both unknown
 /// runtimes without blocking, since the enum is a point-in-time snapshot.
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/68
@@ -870,8 +870,8 @@ fn issue_69_f3037_f3032_content_constraints_are_fatal() {
 /// the top-level parent. `AWS::MediaConnect::Flow` requires `Source` and
 /// deprecates only `Source.SenderIpAddress` / `Source.Decryption.*`; a template
 /// that sets none of those leaves must produce no W9009. The create-only
-/// `Source.Name` IS set, so I9001 must report that exact leaf — not the bare
-/// `Source` — confirming the fix pinpoints the real property rather than
+/// `Source.Name` IS set, so I9001 must report that exact leaf - not the bare
+/// `Source` - confirming the fix pinpoints the real property rather than
 /// collapsing to the parent. Both engines agree (the check lives in the shared
 /// schema-validator).
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/144
@@ -890,7 +890,7 @@ fn issue_144_no_w9009_when_only_nested_subproperty_deprecated() {
 }
 
 /// Issue #144 (positive boundary): when the deprecated nested leaf IS present,
-/// W9009 still fires — and reports the full leaf path, not the parent. Setting
+/// W9009 still fires - and reports the full leaf path, not the parent. Setting
 /// `Source.Decryption.Url` (a deprecated pointer) must surface exactly that path.
 /// Both engines agree.
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/144
@@ -924,7 +924,7 @@ Resources:
 /// and fail the enum comparison ("30.0 is not one of [1, 3, ..., 30, ...]").
 /// Whole numbers now stay integers through the parameter path and numeric
 /// scalars compare numerically, so W3030 must not fire on either the
-/// parameter-sourced or the literal 30.0 form — both are valid values.
+/// parameter-sourced or the literal 30.0 form - both are valid values.
 /// Handled in template-model, so both engines agree.
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/185
 #[test]
@@ -937,7 +937,7 @@ fn issue_185_no_w3030_on_number_parameter_default() {
 }
 
 /// Issue #185 (positive boundary): a genuinely invalid retention value coming
-/// through the same Number-parameter path must still fire W3030 — the numeric
+/// through the same Number-parameter path must still fire W3030 - the numeric
 /// equality fix must not silence real enum violations.
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/185
 #[test]
@@ -962,10 +962,10 @@ Resources:
 }
 
 /// Issue #183: W3663 must not fire when a Lambda Permission's literal SourceArn
-/// carries a proper 12-digit account id — that ARN pins the calling account by
+/// carries a proper 12-digit account id - that ARN pins the calling account by
 /// itself. The issue's original ARN had a 10-digit account field, which is not
 /// a valid account id: it cannot pin the account, so W3663 fires for that
-/// resource only (and the ARN also fails the schema pattern, F3031) — the
+/// resource only (and the ARN also fails the schema pattern, F3031) - the
 /// extension schema uses the ':\d{12}:' trigger.
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/183
 #[test]
@@ -982,7 +982,7 @@ fn issue_183_w3663_fires_only_for_source_arn_without_valid_account_id() {
         assert!(!on_valid, "[{engine}] W3663 must not fire on the permission whose ARN has a 12-digit account id");
     }
     // The invalid 10-digit account field also fails the ARN schema pattern,
-    // and only there — the valid ARN passes it.
+    // and only there - the valid ARN passes it.
     assert_count(&diags, "F3031", 1);
     assert_fires_on_resource(&diags, "F3031", "PermissionInvalidAccountId");
 }
@@ -1013,7 +1013,7 @@ fn issue_186_lowercase_imagebuilder_onfailure_keeps_enum_warning() {
 }
 
 /// Issue #194: an `Fn::ImportValue` object as a String parameter's `Default`
-/// is a template format error — CloudFormation's ValidateTemplate API rejects
+/// is a template format error - CloudFormation's ValidateTemplate API rejects
 /// it with "Every Default member must be a string" (intrinsic functions are
 /// not supported in the Parameters section), so the parameter-configuration
 /// Error stands with the parameter's identity attached.
@@ -1033,7 +1033,7 @@ fn issue_194_importvalue_as_parameter_default_is_an_error() {
 }
 
 /// Issue #247: three `Fn::GetStackOutput` entries that read different outputs of
-/// the same stack must not be flagged as duplicates by W9007 — the same class of
+/// the same stack must not be flagged as duplicates by W9007 - the same class of
 /// bug fixed for `Fn::ImportValue` in #52, which was never extended to
 /// `Fn::GetStackOutput`. Each call now carries the stack, region and output it
 /// reads, so the three values are distinct symbolic reads.
@@ -1102,7 +1102,7 @@ fn issue_247_each_identifying_argument_distinguishes_on_its_own() {
 }
 
 /// Issue #247 (positive boundary): the fix that distinguishes distinct reads must
-/// not silence W9007 on two reads of the SAME output of the same stack — those
+/// not silence W9007 on two reads of the SAME output of the same stack - those
 /// resolve to one identical symbolic value and are a genuine duplicate.
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/247
 #[test]
@@ -1240,7 +1240,7 @@ fn w9007_still_fires_when_two_entries_read_one_deploy_time_value() {
 }
 
 // ---------------------------------------------------------------------------
-// Issue #36 — the IAM-role-ARN checks use a future-proof `arn:aws[a-zA-Z-]*`
+// Issue #36 - the IAM-role-ARN checks use a future-proof `arn:aws[a-zA-Z-]*`
 // partition prefix, so ADC-partition ARNs no longer false-positive and the two
 // engines agree. The committed fixture uses `arn:aws-iso:` (golden-compatible);
 // the previously-divergent E3511 path is exercised here with inline bytes using
@@ -1248,7 +1248,7 @@ fn w9007_still_fires_when_two_entries_read_one_deploy_time_value() {
 // ---------------------------------------------------------------------------
 
 /// Issue #36: the schema-validator's `AWS::IAM::Role.Arn` format check (E1156)
-/// must not fire on an `arn:aws-iso:` ADC-partition ARN in either engine — the
+/// must not fire on an `arn:aws-iso:` ADC-partition ARN in either engine - the
 /// partition list is no longer hardcoded.
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/36
 #[test]
@@ -1260,7 +1260,7 @@ fn issue_36_no_e1156_on_iso_partition_arn() {
 
 /// Issue #36 (continued): the engine ARN rule (E3511) and the schema-validator
 /// format check (E1156) both accept an `arn:aws-isob:` ARN, and the two engines
-/// agree — the prior rego/cel divergence (CEL hardcoded the partition list) is
+/// agree - the prior rego/cel divergence (CEL hardcoded the partition list) is
 /// gone. A genuinely malformed ARN still fires E3511 in both engines, so the
 /// future-proof prefix did not become a catch-all.
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/36
@@ -1284,7 +1284,7 @@ Resources:
     }
 
     // A malformed ARN (no partition at all) must still be rejected by E3511 in
-    // both engines — the future-proof prefix is not a catch-all.
+    // both engines - the future-proof prefix is not a catch-all.
     const MALFORMED: &[u8] = br#"
 AWSTemplateFormatVersion: "2010-09-09"
 Resources:
@@ -1300,12 +1300,12 @@ Resources:
 }
 
 // ---------------------------------------------------------------------------
-// Issue #65 — needs a non-12-digit AWS::AccountId override to surface the bug.
+// Issue #65 - needs a non-12-digit AWS::AccountId override to surface the bug.
 // ---------------------------------------------------------------------------
 
 /// Issue #65: `Ref: AWS::AccountId` must resolve to a symbolic 12-digit value,
 /// not a bare literal that schema validation checks against. Even with a
-/// non-12-digit account override (the case that surfaced the bug — e.g. CDK's
+/// non-12-digit account override (the case that surfaced the bug - e.g. CDK's
 /// environment-agnostic stack), the `Lambda::Permission` SourceAccount must not
 /// trip F3031 (pattern) or F3033 (length) in either engine.
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/65
@@ -1417,14 +1417,14 @@ fn valid_overrides_emit_no_w9012() {
 // FATAL rules are suppressible.
 //
 // FATAL diagnostics are filtered by the same include/exclude mechanism as every
-// other severity — there is no severity gate that exempts them. These tests pin
+// other severity - there is no severity gate that exempts them. These tests pin
 // that contract across all three exclude dimensions (rule id, category, id range)
 // in both engines, using a bare `AWS::EC2::Volume` that deterministically yields
 // the FATAL schema rule F3017.
 // ---------------------------------------------------------------------------
 
 /// A bare `AWS::EC2::Volume` (no Properties) yields exactly one FATAL F3017 in
-/// both engines — the fixture for the suppressibility tests.
+/// both engines - the fixture for the suppressibility tests.
 fn fatal_baseline(engine: &dyn ValidationEngine) -> Vec<Diagnostic> {
     validate_with(engine, "issue-61.json", debug_config())
 }
@@ -1576,7 +1576,7 @@ Outputs:
 /// String-valued outputs, and shapes that only look non-string, must NOT fire
 /// F6101 in either engine: scalars coerce to strings; `Ref`, `Fn::Sub`,
 /// `Fn::Join`, `Fn::Select`, and `Fn::FindInMap` produce (or are treated as)
-/// strings — including a `Fn::FindInMap` that resolves to a list, which is not
+/// strings - including a `Fn::FindInMap` that resolves to a list, which is not
 /// flagged here. Empty containers are also accepted.
 #[test]
 fn string_output_values_not_flagged_in_either_engine() {
@@ -1610,8 +1610,8 @@ Outputs:
 }
 
 /// Issue #201: diagnostics on non-resource entities (here a Parameter) must
-/// carry a structured `entity` — not just the entity name buried in the
-/// message — and must anchor at the entity's own span, not the section key.
+/// carry a structured `entity` - not just the entity name buried in the
+/// message - and must anchor at the entity's own span, not the section key.
 #[test]
 fn issue_201_parameter_diagnostics_carry_entity() {
     let by_engine = validate_both("issue-201.json");

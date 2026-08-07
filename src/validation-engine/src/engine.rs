@@ -425,10 +425,10 @@ pub fn validate_bytes_with_path(
 /// keeping the guard reusable across every binding without coupling it to one
 /// error type.
 ///
-/// The guard only works under the `unwind` panic strategy — [`catch_unwind`]
+/// The guard only works under the `unwind` panic strategy - [`catch_unwind`]
 /// intercepts unwinding panics, not aborts. The workspace pins `panic = "unwind"`
 /// in both the dev and release profiles (`src/Cargo.toml`), so on native targets
-/// a panic is caught here before it can unwind across an FFI boundary — which
+/// a panic is caught here before it can unwind across an FFI boundary - which
 /// would be undefined behavior.
 ///
 /// On `wasm32-unknown-unknown` the standard library is compiled with
@@ -684,7 +684,7 @@ pub(crate) fn finalize_diagnostics(diagnostics: &mut Vec<Diagnostic>, config: &V
     // the dedup key but are separated by a sibling that compares equal on the sort key,
     // stable sort leaves them non-adjacent and dedup_by silently misses them.
     // Seen in the wild: the same rule fired twice for the same parameter (two distinct usages)
-    // with a sibling diagnostic for a different parameter at the same line/col in between —
+    // with a sibling diagnostic for a different parameter at the same line/col in between -
     // native HashMap iteration order put them in [A, B, A] layout, dedup skipped.
     let line = |d: &Diagnostic| d.location.as_ref().map(|l| l.start_line).unwrap_or(0);
     let column = |d: &Diagnostic| d.location.as_ref().map(|l| l.start_column).unwrap_or(0);
@@ -837,7 +837,7 @@ pub(crate) fn build_context(
         // stage of its lifecycle, mirroring how resource-type deprecation (W9009)
         // and property lifecycle (I9001/W9054) carry a lifecycle marker. The runtime
         // is emitted once per condition branch, so only attach the value when every
-        // branch agrees — otherwise the message alone names the branch's runtime.
+        // branch agrees - otherwise the message alone names the branch's runtime.
         "E2533" => {
             actual_value = unambiguous_val(property_path).map(Into::into);
             lifecycle = Some("end-of-life".into());
@@ -915,8 +915,8 @@ fn gate_cdk_suppressed_rules(diagnostics: &mut Vec<Diagnostic>, model: &Semantic
 /// an output/parameter path that `resource_span` cannot resolve (it only roots at
 /// `Resources/`), and template-model findings that never pass through
 /// `parse_diagnostic`'s section fallback. This is the single place that repairs
-/// them. The resolution is best-effort and monotonic — it only ever fills a `None`
-/// location, never overrides an existing one — so it cannot move a diagnostic that
+/// them. The resolution is best-effort and monotonic - it only ever fills a `None`
+/// location, never overrides an existing one - so it cannot move a diagnostic that
 /// already points at the right place.
 fn backfill_locations(diagnostics: &mut [Diagnostic], model: &SemanticModel) {
     for d in diagnostics.iter_mut() {
@@ -937,7 +937,7 @@ fn backfill_locations(diagnostics: &mut [Diagnostic], model: &SemanticModel) {
 /// logical ID from its section-absolute property path (`Parameters/MyParam/…`).
 /// Resource entities emitted before the model existed (parse- and
 /// transform-time) carry no CloudFormation type, so it is filled in from the
-/// model here. Like `backfill_locations`, the resolution is monotonic — an
+/// model here. Like `backfill_locations`, the resolution is monotonic - an
 /// already-set entity or resource type is never overridden.
 fn backfill_entities(diagnostics: &mut [Diagnostic], model: &SemanticModel) {
     for d in diagnostics.iter_mut() {
@@ -1207,7 +1207,7 @@ mod tests {
                     .into(),
             }],
         });
-        // The engine builds successfully — the nested schema config was resolved.
+        // The engine builds successfully - the nested schema config was resolved.
         let catalog = config.build_overlay_catalog().expect("nested config builds");
         assert!(!catalog.is_empty(), "the catalog must be populated from nested config");
     }
@@ -1800,7 +1800,7 @@ Resources:
         ];
         finalize_diagnostics(&mut diags, &config);
         assert_eq!(diags.len(), 3);
-        // Severity orders first: Fatal, then Error, then Warn — regardless of location.
+        // Severity orders first: Fatal, then Error, then Warn - regardless of location.
         assert_eq!(diags[0].rule_id, "F3012");
         assert_eq!(diags[1].rule_id, "E3012");
         assert_eq!(diags[2].rule_id, "W3045");
@@ -1875,7 +1875,7 @@ Resources:
     /// the sort key was (line, col, severity, rule_id) which treated all three as equal;
     /// stable sort preserved insertion order [M, M', M] and `dedup_by` (consecutive-only)
     /// skipped the outer pair. HashMap iteration order means insertion order is random,
-    /// so the dedup worked or failed per-process — native fired twice, WASM once.
+    /// so the dedup worked or failed per-process - native fired twice, WASM once.
     #[test]
     fn finalize_dedups_same_rule_message_across_sibling_with_different_message() {
         let config = ValidateConfig::default();

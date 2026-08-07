@@ -14,7 +14,7 @@ use std::path::{Path, PathBuf};
 pub const GOLDEN_DIRS: &[&str] =
     &["bad", "cdk", "good", "gh-issues", "integration", "issues", "lsp", "public", "quickstart"];
 
-/// Root of this crate — the directory holding `templates/`, `rules/`, `security/`,
+/// Root of this crate - the directory holding `templates/`, `rules/`, `security/`,
 /// and `expected/`.
 pub fn resources_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))

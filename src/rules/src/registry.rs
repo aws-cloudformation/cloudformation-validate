@@ -36,7 +36,7 @@ pub struct RuleInfo {
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum RuleOrigin {
     /// From CloudFormation's own definitions: the resource provider schemas or
-    /// the template language's structural/syntax/shape rules — anything
+    /// the template language's structural/syntax/shape rules - anything
     /// CloudFormation itself rejects, regardless of whether cfn-lint also
     /// implements the check
     Schema,
@@ -70,7 +70,7 @@ impl fmt::Display for RuleOrigin {
 
 impl RuleDefinition {
     /// Derive severity from the first character of the rule ID.
-    /// Panics if the rule ID is empty — every registered rule must have a valid ID.
+    /// Panics if the rule ID is empty - every registered rule must have a valid ID.
     pub fn severity(&self) -> Severity {
         let prefix = self.id.chars().next().unwrap_or_else(|| panic!("RuleDefinition has empty ID"));
         Severity::from_prefix(prefix)

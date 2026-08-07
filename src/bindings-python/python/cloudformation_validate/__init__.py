@@ -1,4 +1,4 @@
-"""AWS CloudFormation Validate — Python bindings.
+"""AWS CloudFormation Validate - Python bindings.
 
 Fast, offline validation for AWS CloudFormation templates. Wraps the
 uniffi-generated modules with a convenience API mirroring the Node.js and JVM
@@ -195,7 +195,7 @@ def file_to_additional_schema_source(
 def file_to_external_rule_source(path: typing.Union[str, os.PathLike]) -> ExternalRuleSource:
     """Reads a rule file into an :class:`ExternalRuleSource` for an engine's custom or Guard rules.
 
-    The file path becomes the rule source name — the file-based counterpart to passing a
+    The file path becomes the rule source name - the file-based counterpart to passing a
     template path to :meth:`Engine.validate_standard`.
     """
     resolved = os.fspath(path)

@@ -1,4 +1,4 @@
-// Package cfnvalidate validates AWS CloudFormation templates — fast, offline,
+// Package cfnvalidate validates AWS CloudFormation templates - fast, offline,
 // and embeddable, backed by the same Rust core as the cfn-validate CLI and the
 // Node.js, Python, and JVM bindings.
 //

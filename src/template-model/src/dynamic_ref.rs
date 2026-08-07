@@ -10,7 +10,7 @@
 //!   own behavior).
 //! * A dynamic reference that appears as an argument to another intrinsic
 //!   function (e.g. inside `Fn::Sub` or `Fn::Join`) is **not** structurally
-//!   validated — the enclosing function owns it. `Fn::If` is the sole exception.
+//!   validated - the enclosing function owns it. `Fn::If` is the sole exception.
 //! * The `resolve:` payload is split on `:` and validated per service:
 //!   `ssm`/`ssm-secure`, `secretsmanager` (bare secret-id form), and
 //!   `secretsmanager` ARN form.
@@ -139,8 +139,8 @@ fn string_is_function_argument(path: &str) -> bool {
 /// first violation.
 ///
 /// Only the sections where CloudFormation resolves dynamic references are
-/// checked — parameter `Default`/`AllowedValues`, resource
-/// `Properties`/`Metadata`, and output `Value`/`Export` — so no finding is
+/// checked - parameter `Default`/`AllowedValues`, resource
+/// `Properties`/`Metadata`, and output `Value`/`Export` - so no finding is
 /// produced in other sections
 /// (Conditions, DependsOn, Mappings). `Fn::Sub` and `Fn::If` wrappers are
 /// transparent (the location of the string is what matters); any other
@@ -292,7 +292,7 @@ fn dynamic_reference_error(s: &str) -> Option<String> {
 
 /// `_ssm`: `["resolve", service, name, version]` with `name` containing an
 /// allowed character (the reference schema uses an unanchored search, so any
-/// substring match is accepted — spaces and other characters are tolerated as
+/// substring match is accepted - spaces and other characters are tolerated as
 /// long as one allowed character is present), `version` all digits, maxItems 4.
 fn ssm_error(parts: &[&str], payload: &str) -> Option<String> {
     if parts.len() > 4 {
@@ -311,7 +311,7 @@ fn ssm_error(parts: &[&str], payload: &str) -> Option<String> {
 }
 
 /// `_secrets_manager` (bare secret-id form): `["resolve", "secretsmanager",
-/// secret-id, secret-string?, json-key?, version?, version?]` — secret-id may be
+/// secret-id, secret-string?, json-key?, version?, version?]` - secret-id may be
 /// any printable string (including empty), secret-string is `SecretString` or
 /// empty, minItems 3, maxItems 7.
 fn secretsmanager_error(parts: &[&str], payload: &str) -> Option<String> {
@@ -327,7 +327,7 @@ fn secretsmanager_error(parts: &[&str], payload: &str) -> Option<String> {
 }
 
 /// `_secrets_manager_arn`: `["resolve", "secretsmanager", "arn", partition,
-/// service, region, account, "secret", secret-id, secret-string?, ...]` —
+/// service, region, account, "secret", secret-id, secret-string?, ...]` -
 /// parts[7] is the literal `secret`, minItems 9, maxItems 13.
 fn secretsmanager_arn_error(parts: &[&str], payload: &str) -> Option<String> {
     if parts.len() < 9 {
@@ -529,7 +529,7 @@ mod tests {
         );
         assert!(!ids.contains(&"E1052".to_string()), "ssm in an output value is allowed: {:?}", ids);
 
-        // Conditions are not a dynamic-reference location — no finding.
+        // Conditions are not a dynamic-reference location - no finding.
         let ids = model_rule_ids(
             "Parameters:\n  P:\n    Type: String\nConditions:\n  C: !Equals [\"{{resolve:ssm:/p}}\", x]\nResources:\n  B:\n    Type: AWS::S3::Bucket\n    Condition: C\n",
         );

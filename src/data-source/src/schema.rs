@@ -64,7 +64,7 @@ pub fn download_schemas(upstream_dir: &Path) -> anyhow::Result<SyncStats> {
 
     // Pass 2: write one schema file per resource type, looked up by content hash.
     // A provider map that references a hash absent from the archive is a corrupt
-    // or truncated download — fail rather than silently dropping the type.
+    // or truncated download - fail rather than silently dropping the type.
     for (type_name, hash) in &type_to_hash {
         let resource_path = format!("resources/{hash}.json");
         let mut entry = archive.by_name(&resource_path).map_err(|e| {

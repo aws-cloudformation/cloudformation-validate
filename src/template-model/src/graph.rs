@@ -159,8 +159,8 @@ impl ReferenceGraph {
     }
 
     /// Builds the resource-to-resource adjacency used for cycle reporting. Each
-    /// source's neighbours are ordered by reference kind — DependsOn, then Ref,
-    /// then GetAtt, then Sub — and within a kind by the order the edges were
+    /// source's neighbours are ordered by reference kind - DependsOn, then Ref,
+    /// then GetAtt, then Sub - and within a kind by the order the edges were
     /// discovered, with duplicates removed.
     fn cycle_adjacency(&self) -> HashMap<&str, Vec<&str>> {
         let resource_set: BTreeSet<&str> = self.resource_order.iter().map(|s| s.as_str()).collect();
@@ -645,8 +645,8 @@ mod tests {
     /// every node of every simple cycle in the component, exploding a tangled
     /// component into many findings for a single underlying problem. Here A, B and
     /// C are mutually reachable, but the first loop found from A is the two-node
-    /// `A <-> B` cycle, so exactly its two edges are reported and C — reachable but
-    /// not on that first loop — is not.
+    /// `A <-> B` cycle, so exactly its two edges are reported and C - reachable but
+    /// not on that first loop - is not.
     #[test]
     fn graph_cycle_diagnostics_report_edges_not_scc_members() {
         let edges = vec![make_edge("A", "B"), make_edge("B", "A"), make_edge("B", "C"), make_edge("C", "A")];
@@ -660,8 +660,8 @@ mod tests {
         );
     }
 
-    /// Neighbours are visited by reference kind — DependsOn, then Ref, then GetAtt,
-    /// then Sub — before insertion order, because a depth-first walk returns the
+    /// Neighbours are visited by reference kind - DependsOn, then Ref, then GetAtt,
+    /// then Sub - before insertion order, because a depth-first walk returns the
     /// first back-edge it closes and that ordering decides which loop through a
     /// resource surfaces. Resource A closes a loop through both a Ref (to B) and a
     /// DependsOn (to C); the DependsOn neighbour is explored first, so the reported

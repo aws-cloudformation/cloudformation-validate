@@ -33,8 +33,8 @@ pub struct ResourceIdFilter {
     pub resource_id: String,
 }
 
-/// Suppress a rule for a specific named template entity — a resource,
-/// parameter, output, mapping, condition, or template rule — identified by its
+/// Suppress a rule for a specific named template entity - a resource,
+/// parameter, output, mapping, condition, or template rule - identified by its
 /// logical ID. An absent `rule_id` scopes the filter to every rule on that
 /// entity; an absent `entity_type` scopes it to entities of every type with
 /// that logical ID.
@@ -70,7 +70,7 @@ pub struct ResourceTypeFilter {
     pub resource_type: String,
 }
 
-/// Suppress a rule for every resource belonging to a service — the
+/// Suppress a rule for every resource belonging to a service - the
 /// `service-provider::service-name` prefix of the resource type (its first two
 /// `::`-delimited segments, for example `AWS::AutoScaling` in
 /// `AWS::AutoScaling::LaunchConfiguration`, or `Alexa::ASK` in
@@ -195,7 +195,7 @@ fn rule_scope_matches(scope: &Option<String>, rule_id: &str) -> bool {
     scope.as_deref().is_none_or(|id| id == rule_id)
 }
 
-/// The `service-provider::service-name` prefix of a resource type — its first two
+/// The `service-provider::service-name` prefix of a resource type - its first two
 /// `::`-delimited segments (for example `AWS::AutoScaling` in
 /// `AWS::AutoScaling::LaunchConfiguration`), or `None` when the type has no second
 /// segment or an empty service-name segment.
@@ -571,7 +571,7 @@ mod tests {
     #[test]
     fn logical_id_filter_matches_resources_alongside_resource_id_filter() {
         // A resource finding carries the same value in both slots, so either
-        // filter dimension suppresses it — the resource-id filter is unchanged.
+        // filter dimension suppresses it - the resource-id filter is unchanged.
         let f = FilterConfig {
             exclude: RuleFilterConfig {
                 logical_ids: vec![LogicalIdFilter { rule_id: None, logical_id: "MyBucket".into(), entity_type: None }],
@@ -710,7 +710,7 @@ mod tests {
 
     #[test]
     fn service_filter_requires_the_full_provider_and_service_prefix() {
-        // The bare service segment does not match — the filter is the fully
+        // The bare service segment does not match - the filter is the fully
         // qualified `service-provider::service-name` prefix, so `AutoScaling`
         // alone must not silence `AWS::AutoScaling::LaunchConfiguration`.
         let f = FilterConfig {
@@ -753,8 +753,8 @@ mod tests {
 
     #[test]
     fn service_filter_matches_by_string_equality_on_the_prefix() {
-        // Matching is pure string equality on the service prefix, so any prefix —
-        // including a custom namespace — is honored as written.
+        // Matching is pure string equality on the service prefix, so any prefix -
+        // including a custom namespace - is honored as written.
         let f = FilterConfig {
             exclude: RuleFilterConfig {
                 services: vec![ServiceFilter { rule_id: None, service: "AWS::MadeUpService".into() }],

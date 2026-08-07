@@ -44,7 +44,7 @@ pub(crate) fn apply_getatt_return_type_overrides(type_name: &str, attr_types: &m
 /// Catalog of rule-engine metadata for overlaid resource types.
 ///
 /// All vectors are sorted and deduplicated. The catalog is derived from the
-/// *merged* store, so it reflects the bundled schema with overlays on top —
+/// *merged* store, so it reflects the bundled schema with overlays on top -
 /// exactly what the schema validator sees.
 #[doc(hidden)]
 #[derive(Debug, Clone, Default)]
@@ -185,7 +185,7 @@ impl OverlayCatalog {
 ///
 /// Each entry in `read_only_properties` is a dot-delimited path like
 /// `"Arn"` or `"Nested.Id"` (the `/properties/` prefix is stripped during
-/// compilation). GetAtt attributes are the full dot paths — matching how
+/// compilation). GetAtt attributes are the full dot paths - matching how
 /// `Fn::GetAtt` uses them. Result is sorted and deduplicated.
 fn derive_getatt_attributes(schema: &CompiledSchema) -> Vec<String> {
     let mut attrs: Vec<String> = schema.read_only_properties.clone();
@@ -277,7 +277,7 @@ fn derive_ref_return_type(schema: &CompiledSchema, read_only_set: &HashSet<&str>
         return Some("string".to_string());
     }
 
-    // Single primary identifier — resolve type or fall back to "string"
+    // Single primary identifier - resolve type or fall back to "string"
     match resolve_property_type(schema, id_prop) {
         Some(t) => Some(t),
         None => Some("string".to_string()),
@@ -647,7 +647,7 @@ mod tests {
         let attrs = catalog.getatt_attributes.get("AWS::Test::OverlayOnly").expect("attrs");
         assert_eq!(attrs, &vec!["Arn".to_string()]);
 
-        // GetAtt attribute types — ALL top-level properties
+        // GetAtt attribute types - ALL top-level properties
         let attr_types = catalog.getatt_attribute_types.get("AWS::Test::OverlayOnly").expect("attr types");
         assert_eq!(attr_types.get("Arn"), Some(&"string".to_string()));
         assert_eq!(attr_types.get("Name"), Some(&"string".to_string()));
@@ -657,7 +657,7 @@ mod tests {
         let pids = catalog.primary_identifiers.get("AWS::Test::OverlayOnly").expect("pids");
         assert_eq!(pids, &vec!["Name".to_string()]);
 
-        // Ref return type — single string primary identifier
+        // Ref return type - single string primary identifier
         assert_eq!(catalog.ref_returns.get("AWS::Test::OverlayOnly"), Some(&"string".to_string()));
 
         // Schema metadata
@@ -694,12 +694,12 @@ mod tests {
 
         let catalog = OverlayCatalog::from_store(&store, &["AWS::Test::ReadOnlyPrimary".to_string()]);
 
-        // Should have no primary_identifiers entry — the primary ID is readOnly
+        // Should have no primary_identifiers entry - the primary ID is readOnly
         assert!(
             !catalog.primary_identifiers.contains_key("AWS::Test::ReadOnlyPrimary"),
             "readOnly primary identifier must exclude the whole entry"
         );
-        // Ref returns should be "string" — the schema has a primary identifier
+        // Ref returns should be "string" - the schema has a primary identifier
         // but it's readOnly (matches build-time semantics)
         assert_eq!(
             catalog.ref_returns.get("AWS::Test::ReadOnlyPrimary"),

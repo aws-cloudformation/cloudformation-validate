@@ -760,7 +760,7 @@ impl<'a> Resolver<'a> {
             }
             IntrinsicFn::RefAll(_) => ResolvedValue::Dynamic { reason: "rules-only function".into() },
             IntrinsicFn::ValueOf(param_name, _attr) | IntrinsicFn::ValueOfAll(param_name, _attr) => {
-                // The first argument is a parameter (or parameter group) name —
+                // The first argument is a parameter (or parameter group) name -
                 // record a Ref edge so the parameter is counted as referenced.
                 self.record_edge(param_name, RefKind::Ref, span);
                 ResolvedValue::Dynamic { reason: "rules-only function".into() }
@@ -1199,7 +1199,7 @@ impl<'a> Resolver<'a> {
                     }
                     // A variable fires when it names a known ref target
                     // (parameter,
-                    // resource, pseudo-parameter, or `Resource.Attr`) — or,
+                    // resource, pseudo-parameter, or `Resource.Attr`) - or,
                     // regardless of target validity, inside a Step Functions
                     // `DefinitionString`, where every `${...}` placeholder is
                     // expected to come from `DefinitionSubstitutions` (that
@@ -1213,7 +1213,7 @@ impl<'a> Resolver<'a> {
                             && var.split('.').next().map(|prefix| self.resource_ids.contains(prefix)).unwrap_or(false));
                     // A Step Functions definition placeholder is exempt when it
                     // names one of the resource's DefinitionSubstitutions keys
-                    // — and reportable otherwise, whether or not it names a
+                    // - and reportable otherwise, whether or not it names a
                     // known ref target.
                     let in_definition = path.contains("DefinitionString") || path.contains("Definition");
                     if in_definition && self.is_definition_substitution(var) {
@@ -1347,7 +1347,7 @@ impl<'a> Resolver<'a> {
             // Fn::Sub variables share Ref resolution, but an unresolved Sub
             // variable is not an invalid Ref, so resolve it without recording
             // it as one. When the variable names a resource, `lookup_ref` has
-            // already recorded a `Ref` edge — CloudFormation treats a bare
+            // already recorded a `Ref` edge - CloudFormation treats a bare
             // `${Resource}` substitution as a `Ref`, so recording an extra `Sub`
             // edge would double-count the dependency (surfacing a spurious second
             // dependency finding under a `Sub` label that misrepresents the edge).
@@ -1520,7 +1520,7 @@ fn param_string_to_json(value: &str, param_type: &str) -> serde_json::Value {
     }
     match param_type {
         // Parse whole numbers as integers so a Number parameter value of "30"
-        // resolves to 30, not 30.0 — the float form would fail integer enum
+        // resolves to 30, not 30.0 - the float form would fail integer enum
         // comparisons and render as '30.0' in diagnostics.
         PARAM_TYPE_NUMBER => value
             .parse::<i64>()
@@ -2232,7 +2232,7 @@ mod tests {
     #[test]
     fn param_number_whole_value_resolves_to_integer() {
         // A whole-number Number parameter must resolve to a JSON integer, not a
-        // float — 30.0 fails integer enum comparisons and renders as '30.0'.
+        // float - 30.0 fails integer enum comparisons and renders as '30.0'.
         assert_eq!(param_string_to_json("30", "Number"), serde_json::json!(30));
         assert!(param_string_to_json("30", "Number").is_i64(), "whole number must be an integer");
         assert_eq!(param_string_to_json("1.5", "Number"), serde_json::json!(1.5));

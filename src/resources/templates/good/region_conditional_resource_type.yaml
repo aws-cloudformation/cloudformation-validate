@@ -1,7 +1,7 @@
 Conditions:
   # True only in us-west-2. At the default region (us-east-1) the guarded resource
   # is never created, so its type's absence there is not a region-availability
-  # error — F3006 must NOT fire. (Guards the default-region condition-skip: the
+  # error - F3006 must NOT fire. (Guards the default-region condition-skip: the
   # check pins AWS::Region to the target region when testing satisfiability.)
   IsUsWest2:
     !Equals [!Ref "AWS::Region", us-west-2]

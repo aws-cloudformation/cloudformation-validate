@@ -1,6 +1,6 @@
 //! Parse-time validation that each intrinsic's operands match CloudFormation's
 //! published per-function operand schema. Only operands that are themselves
-//! intrinsics are checked here — plain scalars and collections of the wrong
+//! intrinsics are checked here - plain scalars and collections of the wrong
 //! type are the schema validator's responsibility.
 
 use crate::consts::*;

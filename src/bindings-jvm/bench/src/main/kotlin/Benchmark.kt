@@ -94,7 +94,7 @@ fun main(args: Array<String>) {
     // --- Initialization timing ---
     // Schema init is timed standalone for informational comparison, but is NOT additive for FFI
     // consumers: the engine constructor already embeds a SchemaValidator, so real-world init cost
-    // is just engine construction.  init_ms/cold_init/warm_init reflect engine-only samples —
+    // is just engine construction.  init_ms/cold_init/warm_init reflect engine-only samples -
     // what an actual consumer pays to set up validation.
     val schemaInitSamples = mutableListOf<Double>()
     val engineInitSamples = mutableListOf<Double>()
@@ -127,7 +127,7 @@ fun main(args: Array<String>) {
         dir.mkdirs()
     }
 
-    // Single ValidateConfig instance reused across all iterations — avoids allocation per call.
+    // Single ValidateConfig instance reused across all iterations - avoids allocation per call.
     val benchValidateConfig = validateConfig()
 
     // Warm up JIT + UniFFI vtables so the first timed call doesn't pay codegen costs.
@@ -170,11 +170,11 @@ fun main(args: Array<String>) {
         val iterSchemaValidate = mutableListOf<Double>()
         val iterRuleEval = mutableListOf<Double>()
         val iterFinalize = mutableListOf<Double>()
-        // Host-timed model parse — Kotlin-side nanoTime around JvmSemanticModel.parse.
+        // Host-timed model parse - Kotlin-side nanoTime around JvmSemanticModel.parse.
         // Includes JNI dispatch + UniFFI marshalling of the parse call.
         val iterHostModel = mutableListOf<Double>()
         val iterEngineInternal = mutableListOf<Double>()
-        // wall_clock = Kotlin-side nanoTime around validateDetailed() — includes JNI dispatch,
+        // wall_clock = Kotlin-side nanoTime around validateDetailed() - includes JNI dispatch,
         // ByteArray→Rust Vec<u8> copy, UniFFI DetailedReport decoding.
         val iterWallClock = mutableListOf<Double>()
         var lastReport: DetailedReport? = null
@@ -182,7 +182,7 @@ fun main(args: Array<String>) {
 
         repeat(iterations) { i ->
             if (failed) return@repeat
-            // Standalone model parse — classify failures distinctly as parse_error.
+            // Standalone model parse - classify failures distinctly as parse_error.
             try {
                 val tm0 = System.nanoTime()
                 val parsed = JvmSemanticModel.parse(bytes)
@@ -323,7 +323,7 @@ fun main(args: Array<String>) {
     val totalWallMs = (System.nanoTime() - benchStart) / 1_000_000.0
 
     // Flush per-template JSON dumps AFTER wall-clock stops.
-    // Uses the report captured during the last timed iteration — no re-validation.
+    // Uses the report captured during the last timed iteration - no re-validation.
     val dumpGson = buildBindingsGson(prettyPrinting = true)
     for (pr in pendingReports) {
         val reportElement = dumpGson.toJsonTree(pr.report).asJsonObject
@@ -630,7 +630,7 @@ private fun generateMarkdown(
     totalWallMs: Double, throughputPerSec: Double, engineName: String, iterations: Int,
     corpusFingerprint: String, corpusFileCount: Int,
 ): String = buildString {
-    appendLine("# cloudformation-validate JVM Benchmark Report — $engineName engine (DETAILED)\n")
+    appendLine("# cloudformation-validate JVM Benchmark Report - $engineName engine (DETAILED)\n")
     appendLine("Generated: ${isoNow()}\n")
     appendLine("Corpus fingerprint: `$corpusFingerprint` ($corpusFileCount files)\n")
 
@@ -677,12 +677,12 @@ private fun generateMarkdown(
     appendLine("| Metric | Median | P99 | Max |\n|---|---|---|---|")
     fun row(label: String, vals: List<Double>) =
         "| $label | ${medianOf(vals).format(4)} | ${percentileOf(vals, 99.0).format(4)} | ${maxOf(vals).format(4)} |"
-    appendLine(row("host_model — first (after warmup)", coldHostModel))
-    appendLine(row("host_model — steady", warmHostModel))
-    appendLine(row("engine_internal — first (after warmup)", coldEngineInternal))
-    appendLine(row("engine_internal — steady", warmEngineInternal))
-    appendLine(row("wall_clock — first (after warmup)", coldWallClock))
-    appendLine(row("wall_clock — steady", warmWallClock))
+    appendLine(row("host_model - first (after warmup)", coldHostModel))
+    appendLine(row("host_model - steady", warmHostModel))
+    appendLine(row("engine_internal - first (after warmup)", coldEngineInternal))
+    appendLine(row("engine_internal - steady", warmEngineInternal))
+    appendLine(row("wall_clock - first (after warmup)", coldWallClock))
+    appendLine(row("wall_clock - steady", warmWallClock))
     appendLine(row("host_model (per-template median)", hostModel))
     appendLine(row("engine_internal (per-template median)", engineInternal))
     appendLine(row("wall_clock (per-template median)", wallClock))
@@ -723,7 +723,7 @@ private fun generateMarkdown(
     if (failedResults.isNotEmpty()) {
         appendLine("\n## Failures\n")
         for (r in failedResults) {
-            appendLine("- **${r.file}**: ${r.status} — ${r.errorMsg ?: "unknown"}")
+            appendLine("- **${r.file}**: ${r.status} - ${r.errorMsg ?: "unknown"}")
         }
     }
 }

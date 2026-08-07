@@ -69,7 +69,7 @@ fn restricted_children(intrinsic: &IntrinsicFn, in_rules: bool) -> Vec<(NodeRef,
         }
         // Fn::FindInMap operand validation is owned by the intrinsic
         // argument-shape check, which applies the per-function operand schema
-        // (including the LanguageExtensions expansion) — re-validating the keys
+        // (including the LanguageExtensions expansion) - re-validating the keys
         // here would double-report the same operand under two rule IDs.
         _ => Vec::new(),
     }
@@ -247,7 +247,7 @@ mod tests {
     #[test]
     fn rules_only_function_outside_rules_produces_invalid_nesting() {
         // Fn::Contains is a boolean function, but only valid in the Rules
-        // section — in a Conditions-section Fn::And it is the nesting check's
+        // section - in a Conditions-section Fn::And it is the nesting check's
         // finding (the parser's boolean-operand check accepts it everywhere).
         let mut arena = Arena::new();
         let a = arena.alloc(SpannedNode {

@@ -6,8 +6,8 @@
 //! so templates using properties or values CloudFormation has not published yet
 //! validate without false findings.
 //!
-//! Overlay properties are deliberately named `TestForOverride` — a name that will
-//! never exist in a real registry schema — so the tests keep exercising the
+//! Overlay properties are deliberately named `TestForOverride` - a name that will
+//! never exist in a real registry schema - so the tests keep exercising the
 //! overlay path even after any particular unpublished property ships.
 //!
 //! The suite is organised as: happy paths, the merge model per field kind, `$ref`
@@ -510,7 +510,7 @@ fn mutually_referencing_definitions_see_each_others_updates() {
 #[test]
 fn a_ref_with_sibling_keywords_is_accepted_and_resolves_to_its_target() {
     // Published provider schemas routinely document a referenced property in
-    // place, and draft-07 — which they are written against — ignores keywords
+    // place, and draft-07 - which they are written against - ignores keywords
     // beside a `$ref`. Such a schema must be usable as an overlay; the reference
     // simply resolves to its target.
     let sv = validator(vec![(
@@ -585,7 +585,7 @@ fn a_constraining_keyword_beside_a_ref_is_rejected() {
 #[test]
 fn a_keyword_the_model_cannot_represent_is_rejected() {
     // `propertyNames` has no field in the compiled model, so stating it in an
-    // overlay is still rejected — the constraint would be silently dropped.
+    // overlay is still rejected - the constraint would be silently dropped.
     let error = rejection(vec![(
         "AWS::Test::Unrepresented",
         json!({
@@ -617,8 +617,8 @@ fn a_keyword_the_model_cannot_represent_does_not_silently_weaken_the_overlay() {
 fn an_intermediate_hop_overrides_the_constraint_at_the_end_of_the_chain() {
     // P -> Middle -> Base, where a second overlay relaxes on Middle what Base
     // forbids. The nearer statement wins, so the relaxation is what applies.
-    // Stating it beside the `$ref` in the first schema would not work — draft-07
-    // ignores that — so it has to arrive as an overlay on the definition.
+    // Stating it beside the `$ref` in the first schema would not work - draft-07
+    // ignores that - so it has to arrive as an overlay on the definition.
     let seed = json!({
         "properties": { "Cfg": { "$ref": "#/definitions/Middle" } },
         "definitions": {
@@ -644,7 +644,7 @@ fn a_blank_type_name_is_rejected() {
 #[test]
 fn a_ref_chain_too_long_to_resolve_is_rejected() {
     // Resolution follows a bounded number of hops. A chain longer than that would
-    // be cut short, leaving the constraints at its end unenforced — so it is
+    // be cut short, leaving the constraints at its end unenforced - so it is
     // rejected rather than silently truncated.
     let hops = REF_CHAIN_LIMIT + 2;
     let mut definitions = serde_json::Map::new();
@@ -684,7 +684,7 @@ fn a_chain_at_the_resolution_limit_is_accepted_and_enforced() {
 #[test]
 fn a_reference_still_dangling_after_the_final_overlay_is_rejected() {
     // A property referencing a definition no overlay supplies would validate
-    // nothing — a typoed definition name must fail construction, not become a
+    // nothing - a typoed definition name must fail construction, not become a
     // silent no-op.
     let error = rejection(vec![(
         "AWS::Test::Dangling",
@@ -808,7 +808,7 @@ fn multi_node_cyclic_definition_graph_is_rejected() {
 
 #[test]
 fn overlay_nested_past_the_depth_limit_is_rejected() {
-    // Depth 200 is over the limit and shallow enough to build and drop safely —
+    // Depth 200 is over the limit and shallow enough to build and drop safely -
     // `serde_json::Value` itself cannot be constructed thousands of levels deep.
     let mut node = json!({ "type": "string" });
     for _ in 0..200 {
@@ -938,8 +938,8 @@ fn corpus_overlays() -> Vec<(&'static str, Value)> {
 /// template dirty would be caught here.
 ///
 /// The overlays used here all widen, because that is what the feature exists for.
-/// An overlay may also *state* a constraint — adding to `required` or a dependency
-/// list, or replacing a logical group — and then a new finding is correct rather
+/// An overlay may also *state* a constraint - adding to `required` or a dependency
+/// list, or replacing a logical group - and then a new finding is correct rather
 /// than a defect, so those belong in the targeted tests above instead of here.
 #[test]
 fn overlays_never_introduce_a_diagnostic_on_the_good_corpus() {
@@ -1052,7 +1052,7 @@ Resources:
 fn a_ref_overlay_with_siblings_on_an_occupied_property_applies_both() {
     // The occupied-entry merge path: a second overlay redirects an existing
     // property to a `$ref` AND states a constraint sibling beside it. The
-    // reference target updates and the sibling is enforced — neither half of
+    // reference target updates and the sibling is enforced - neither half of
     // the overlay is discarded.
     let sv = validator(vec![
         (

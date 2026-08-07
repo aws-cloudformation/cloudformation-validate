@@ -87,9 +87,9 @@ fn e2e_bad_circular_deps() {
 #[test]
 fn e2e_integration_ref_no_value() {
     let report = validate_fixture("integration/ref-no-value.yaml");
-    // IamRole2 has Properties: !Ref AWS::NoValue — schema rules correctly flag missing required props
-    // CloudFront1 has Properties: !Ref AWS::NoValue — also correctly flagged
-    // CloudFront2 has conditional DefaultCacheBehavior — nested required may fire
+    // IamRole2 has Properties: !Ref AWS::NoValue - schema rules correctly flag missing required props
+    // CloudFront1 has Properties: !Ref AWS::NoValue - also correctly flagged
+    // CloudFront2 has conditional DefaultCacheBehavior - nested required may fire
     // The template parses without crashes, which is the key validation
     let allowed_resources = ["IamRole1", "IamRole2", "IamRole3", "CloudFront1", "CloudFront2"];
     assert!(
@@ -1199,7 +1199,7 @@ fn e2e_guard_rule_source() {
         ..Default::default()
     };
     let engine = RegoEngine::new(config).unwrap();
-    // Template with versioning NOT enabled — guard check `Status == "Enabled"` will not match,
+    // Template with versioning NOT enabled - guard check `Status == "Enabled"` will not match,
     // but the translator emits this as a violation condition (fires when condition is true).
     // Use a template where the condition IS true to verify the plumbing works.
     let template = b"AWSTemplateFormatVersion: '2010-09-09'\nResources:\n  Bucket:\n    Type: AWS::S3::Bucket\n    Properties:\n      VersioningConfiguration:\n        Status: Enabled\n";
@@ -1273,7 +1273,7 @@ fn e6101_non_string_getatt_in_output() {
 #[test]
 fn e1015_invalid_getatt_attribute_type() {
     let report = validate_fixture("integration/getatt-types.yaml");
-    assert!(!has_rule(&report, "E9003"), "E9003 is disabled — CloudFormation auto-converts non-string GetAtt values");
+    assert!(!has_rule(&report, "E9003"), "E9003 is disabled - CloudFormation auto-converts non-string GetAtt values");
 }
 
 #[test]

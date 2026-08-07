@@ -50,7 +50,7 @@ _lambda_reserved_env_keys := {
 # E3685: Container image Lambda functions cannot specify Handler, Runtime, or
 # Layers. A single finding is emitted with a fixed message, anchored at the
 # first offending property present (in schema order), regardless of how many are
-# set — so collapse to one diagnostic rather than one per property.
+# set - so collapse to one diagnostic rather than one per property.
 violation contains make_diag_at("E3685", "ERROR", name,
     sprintf("Properties.%s", [first_prop]),
     "Container image functions cannot specify Handler, Runtime, or Layers properties") if {

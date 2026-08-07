@@ -4,8 +4,8 @@
 //!
 //! Each embedded enum document is a `{ "<region>": ... }` map. When a region is
 //! configured, a value is checked against that one region's allowed set. When no
-//! region is configured, it is checked against the **union of every region** —
-//! flagged only when it is invalid in every region — so a value valid in the
+//! region is configured, it is checked against the **union of every region** -
+//! flagged only when it is invalid in every region - so a value valid in the
 //! caller's actual target region is not reported just because it is unavailable
 //! in the platform-default region. The synthetic non-region keys some documents
 //! carry (`all`, `description`) are excluded by intersecting the document's keys
@@ -69,7 +69,7 @@ pub const REGION_SCOPED_TYPE_PATHS: &[(&str, &str)] = &[
 ];
 
 /// Whether the template contains at least one region-scoped instance-type /
-/// node-type value that resolves to a concrete string — i.e. a value that the
+/// node-type value that resolves to a concrete string - i.e. a value that the
 /// region-scoped enum rules actually validate. Used to decide whether the
 /// no-region best-effort advisory is worth emitting: a template with no such
 /// value had nothing validated best-effort, so the advisory would be noise. The
@@ -82,7 +82,7 @@ pub fn template_has_region_scoped_value(model: &SemanticModel) -> bool {
 
 /// Whether `path` on `rid` resolves to any concrete string, collapsing an
 /// `Fn::If` to its true branch and treating a `{}` wildcard as a match against
-/// every list element — mirroring how the enum rules read the value.
+/// every list element - mirroring how the enum rules read the value.
 fn resolves_to_concrete_string(model: &SemanticModel, rid: &str, path: &str) -> bool {
     let Some(resolved) = resolve_for_detection(model, rid, path) else {
         return false;
@@ -158,7 +158,7 @@ pub fn conditional_invalid_message(value: &str, allowed_sorted: &[String], regio
 /// The allowed values from a flat enum document for the effective scope: the
 /// single `region` when configured, or the union across all AWS regions when not.
 /// Returns `None` when the document has no entry for the effective scope, so the
-/// caller skips validation — a dynamic or unknown configured region is not
+/// caller skips validation - a dynamic or unknown configured region is not
 /// validated, matching today's per-region lookup that returns `None` for a
 /// missing region.
 pub fn flat_allowed_values<'a>(
@@ -178,7 +178,7 @@ pub fn flat_allowed_values<'a>(
                 }
             }
             // An empty union means no region contributed any allowed value, so
-            // there is nothing to validate against — skip (return `None`) rather
+            // there is nothing to validate against - skip (return `None`) rather
             // than flag every value as invalid, mirroring the per-region arm which
             // returns `None` when the region has no enum.
             (!union.is_empty()).then_some(union)
@@ -196,7 +196,7 @@ pub fn flat_allowed_values<'a>(
 /// matching-branch intersection (today's behavior). With no region configured, a
 /// value is valid when it is valid in *any* region, so it is flagged only when it
 /// fails in every region; the rendered enum is then the largest failing branch
-/// across all regions — the most informative candidate list.
+/// across all regions - the most informative candidate list.
 pub fn conditional_invalid_enum<F>(
     doc: &serde_json::Map<String, serde_json::Value>,
     region: Option<&str>,
@@ -221,7 +221,7 @@ where
             // contains it. Report the largest branch enum the value is missing
             // from, across all regions. If no region has a matching branch (no
             // region key present, or a dynamic/unmatched Engine), the value is not
-            // validated — `had_matching_branch` stays false.
+            // validated - `had_matching_branch` stays false.
             let mut valid_somewhere = false;
             let mut had_matching_branch = false;
             let mut failing_largest: Option<Vec<String>> = None;
@@ -258,7 +258,7 @@ where
 /// Collects every `then.<target_prop>.enum` from a conditional region document
 /// whose `allOf` branch `if.required` consts all match the resolved properties.
 /// Returns one enum per matching branch (the whole schema is evaluated, so EVERY
-/// matching branch applies), or empty when no branch matches — so a resource with
+/// matching branch applies), or empty when no branch matches - so a resource with
 /// a dynamic or unmatched Engine is not validated. The `Engine` const is matched
 /// case-insensitively when `normalize_engine_case` is set.
 fn conditional_branch_enums<F>(

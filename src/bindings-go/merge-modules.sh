@@ -19,7 +19,7 @@ cp -R "$BASE_DIR"/. "$OUTPUT_DIR"/
 
 # The base module provides all shared files and every other module contributes
 # only its platform static library. Shared files are not byte-compared across
-# modules — build hosts produce benign differences — and the generated bindings
+# modules - build hosts produce benign differences - and the generated bindings
 # verify their API checksums against the linked library at runtime, so real
 # ABI drift still fails loudly.
 

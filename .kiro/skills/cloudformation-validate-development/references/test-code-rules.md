@@ -48,15 +48,15 @@ Apply all rules below when writing or modifying test code. Do not apply source c
 
 ### 8. Test Code Hygiene
 
-- Simplify setup with test utilities or builders — reduce boilerplate
+- Simplify setup with test utilities or builders - reduce boilerplate
 - Do not write comments that restate the test name
 - Use the simplest mocking approach that works
 - Follow the project's existing testing style, framework, and utilities
 
-### 9. Determinism — No Flaky Tests
+### 9. Determinism - No Flaky Tests
 
 - A test must produce the same result on every run, in any order, on any machine
-- Control time, randomness, and concurrency — inject clocks and seeds; never rely on wall-clock timing or `sleep` to
+- Control time, randomness, and concurrency - inject clocks and seeds; never rely on wall-clock timing or `sleep` to
   synchronize
 - No dependence on execution order or state left behind by other tests
 - No real network calls and no reliance on live external services or data
@@ -69,7 +69,7 @@ Apply all rules below when writing or modifying test code. Do not apply source c
 
 ### 11. Cover Edge and Failure Paths
 
-- Test the happy path, boundary values, and the error/exception paths — not just the success case
+- Test the happy path, boundary values, and the error/exception paths - not just the success case
 - Include empty, null, zero, maximum, and malformed inputs where applicable
 - Assert that the correct error is raised for invalid input, with the expected type and message
 

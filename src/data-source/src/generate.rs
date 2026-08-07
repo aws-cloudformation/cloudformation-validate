@@ -21,6 +21,6 @@ fn main() -> anyhow::Result<()> {
 
     generate_all(&upstream_dir, &generated_dir, &handwritten_dir)?;
 
-    info!("Done — all outputs in data-source/generated/");
+    info!("Done - all outputs in data-source/generated/");
     Ok(())
 }

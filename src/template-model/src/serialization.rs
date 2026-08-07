@@ -48,7 +48,7 @@ impl SemanticModel {
             // Synthetic conditions (`__`-prefixed, added for inline Fn::If and
             // Rules-section assertions) drive the internal SAT model but are
             // filtered out of the serialized `conditions` map, so they must be
-            // filtered out of every serialized structure that names conditions —
+            // filtered out of every serialized structure that names conditions -
             // otherwise engines and language bindings see implications/mutex
             // groups referencing condition names that do not exist in the model.
             condition_implications: self
@@ -73,8 +73,8 @@ impl SemanticModel {
                 // Sort the condition names before the pairwise pass. HashMap
                 // iteration order is randomized per run, so if the cumulative
                 // satisfiability budget is exhausted partway through, an
-                // unsorted order would make the set of pairs examined — and thus
-                // the exclusions found — differ across runs. A stable order keeps
+                // unsorted order would make the set of pairs examined - and thus
+                // the exclusions found - differ across runs. A stable order keeps
                 // budget-truncated output deterministic and engine-identical,
                 // mirroring the deterministic per-type resource ordering in
                 // `model`.
@@ -475,7 +475,7 @@ fn ref_kind_to_str(kind: &RefKind) -> (&'static str, Option<String>) {
 }
 
 /// Collects GetAtt references that occupy a *string position* of an output
-/// value — the value itself, or a value reached only through `Fn::If` branches.
+/// value - the value itself, or a value reached only through `Fn::If` branches.
 /// A GetAtt nested inside a literal list or map is skipped: the container is a
 /// non-string output value reported in its own right, and CloudFormation never
 /// treats the inner GetAtt as the output's string value. `Fn::If` is transparent
@@ -494,7 +494,7 @@ fn collect_getatt_refs_string_position(val: &ResolvedValue, out: &mut Vec<(Strin
 /// Whether a GetAtt reference edge whose source path is `source_path` occupies a
 /// string position of the output (see [`collect_getatt_refs_string_position`]).
 /// The path is `Value` optionally followed by segments; a GetAtt is in string
-/// position unless it sits inside a literal list/map — i.e. the path descends
+/// position unless it sits inside a literal list/map - i.e. the path descends
 /// through a bare index or key that is not an argument of a string-building
 /// function. `Fn::If` branch segments are transparent; any other `Fn::…` segment
 /// (e.g. `Fn::Join`, `Fn::Sub`) marks a string-building consumer, so a GetAtt

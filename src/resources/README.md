@@ -11,7 +11,7 @@ which files make up the corpus.
 | `templates/`| CloudFormation templates grouped by intent (`bad/`, `good/`, `cdk/`, `public/`, …) |
 | `rules/`    | Custom-rule fixtures loaded by rule tests                                       |
 | `security/` | Security-scenario fixtures                                                      |
-| `expected/` | The golden `all_templates.json` — the recorded detailed report for every template |
+| `expected/` | The golden `all_templates.json` - the recorded detailed report for every template |
 
 ## Golden generation
 

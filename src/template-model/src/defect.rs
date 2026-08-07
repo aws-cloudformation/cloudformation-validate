@@ -1,7 +1,7 @@
 //! Parse-time findings emitted while building the semantic model.
 //!
 //! A [`ParseDefect`] is plain data: a rule ID, a message, and locating anchors.
-//! It deliberately carries no severity, category, or origin — those are rule
+//! It deliberately carries no severity, category, or origin - those are rule
 //! metadata that downstream reporting layers source from the rule registry when
 //! they convert defects into full diagnostics. This keeps the template model a
 //! leaf crate with no knowledge of the reporting vocabulary.
@@ -13,7 +13,7 @@ use crate::span::{SourceSpan, UNKNOWN_SPAN};
 ///
 /// Most defects are found while parsing and resolving the template
 /// ([`DefectPhase::Parse`]). Findings produced by whole-template analysis over
-/// the finished model — such as reference-cycle detection — belong to the lint
+/// the finished model - such as reference-cycle detection - belong to the lint
 /// stage ([`DefectPhase::Lint`]). A defect may also leave the phase unset, in
 /// which case downstream enrichment derives it from the rule's severity.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

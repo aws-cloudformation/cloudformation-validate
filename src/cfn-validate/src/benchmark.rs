@@ -624,7 +624,7 @@ fn generate_markdown(
 ) -> String {
     let mut report_markdown = String::new();
     report_markdown
-        .push_str(&format!("# cloudformation-validate Benchmark Report — {} engine (DETAILED)\n\n", engine_name));
+        .push_str(&format!("# cloudformation-validate Benchmark Report - {} engine (DETAILED)\n\n", engine_name));
     report_markdown.push_str(&format!("Generated: {}\n\n", chrono::Utc::now().format("%Y-%m-%dT%H:%M:%SZ")));
     report_markdown
         .push_str(&format!("Corpus fingerprint: `{}` ({} files)\n\n", corpus_fingerprint, corpus_file_count));
@@ -739,7 +739,7 @@ fn generate_markdown(
         report_markdown.push_str("\n## Failures\n\n");
         for r in failed_results {
             report_markdown.push_str(&format!(
-                "- **{}**: {} — {}\n",
+                "- **{}**: {} - {}\n",
                 r.file,
                 r.status,
                 r.error_msg.as_deref().unwrap_or("unknown")
@@ -824,7 +824,7 @@ fn fmt_bytes(n: usize) -> String {
     }
 }
 
-/// Lowercase, zero-padded hex of a SHA-256 digest — the standard encoding every
+/// Lowercase, zero-padded hex of a SHA-256 digest - the standard encoding every
 /// harness (native/TS/JVM/Python/Go) shares, so fingerprints compare byte-for-byte.
 fn to_hex(digest: impl AsRef<[u8]>) -> String {
     const HEX_CHARS: &[u8; 16] = b"0123456789abcdef";

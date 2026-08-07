@@ -3,9 +3,9 @@ package resources
 import rego.v1
 
 # E3671: an EBS block device mapping's Iops must satisfy the per-VolumeType
-# rules — io1/io2 require Iops and bound it, gp3 bounds it without requiring it.
+# rules - io1/io2 require Iops and bound it, gp3 bounds it without requiring it.
 # This applies to the BlockDeviceMappings[*].Ebs blocks of launch configurations,
-# instances, launch templates, spot fleets, and OpsWorks instances — not to a
+# instances, launch templates, spot fleets, and OpsWorks instances - not to a
 # standalone AWS::EC2::Volume (whose rules are enforced by the resource schema).
 
 _ebs_bdm_paths := {
@@ -41,7 +41,7 @@ violation contains make_diag_at("E3671", "ERROR", name,
 }
 
 # Iops below the minimum for its VolumeType. The bound only applies to a literal
-# Iops — a value supplied via a parameter Ref/intrinsic has no known value at
+# Iops - a value supplied via a parameter Ref/intrinsic has no known value at
 # validation time, so it is not folded into the check.
 violation contains make_diag_at("E3671", "ERROR", name,
     sprintf("%s.%d.Ebs.Iops", [base_path, i]),

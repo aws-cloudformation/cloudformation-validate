@@ -180,7 +180,7 @@ pseudo-functions and are **not** available to customer CEL rules.
       "rule_id": "CUSTOM003",
       "severity": "INFO",
       "expression": "size(resources) > 200",
-      "message": "Template has over 200 resources — consider nested stacks"
+      "message": "Template has over 200 resources - consider nested stacks"
     }
   ]
 }

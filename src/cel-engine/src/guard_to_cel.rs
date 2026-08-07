@@ -393,7 +393,7 @@ mod tests {
 
     #[test]
     fn negate_already_negated_in_unchanged() {
-        // Already starts with `!(` — should fall through to default
+        // Already starts with `!(` - should fall through to default
         let expr = "!(resource.X in [\"a\"])";
         assert_eq!(negate_cel_expr(expr), "(!(resource.X in [\"a\"])) == false");
     }
@@ -645,7 +645,7 @@ mod tests {
             custom_message: None,
         });
         let result = guard_clause_to_cel_expr(&gc);
-        // Must be a bare `true` with no embedded comment — the CEL parser aborts on
+        // Must be a bare `true` with no embedded comment - the CEL parser aborts on
         // block comments inside an expression, so the rule-name is intentionally dropped.
         assert_eq!(result, "true");
         assert!(!result.contains("/*"), "generated CEL must not contain block comments");

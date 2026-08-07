@@ -98,7 +98,7 @@ echo "Generating Python bindings..."
 #      to _native.py's natives/<os>-<arch>/ directory so the wheel keeps a stable
 #      resource layout across platforms. Fails loudly if the uniffi template changes.
 #   2. uniffi emits sibling-module imports ("from . import <name>") in the order it
-#      discovers external types while walking the library's symbols — an order that
+#      discovers external types while walking the library's symbols - an order that
 #      is not stable across hosts. Sort each contiguous import block so the
 #      generated code is deterministic regardless of build host; these bindings
 #      are order-independent, so this is safe.
@@ -140,7 +140,7 @@ if not modules:
 for module in modules:
     text = module.read_text(encoding="utf-8")
     if OLD not in text:
-        sys.exit(f"error: expected loader line not found in {module.name} — did the uniffi template change?")
+        sys.exit(f"error: expected loader line not found in {module.name} - did the uniffi template change?")
     module.write_text(sort_relative_imports(text.replace(OLD, NEW)), encoding="utf-8", newline="\n")
 print(f"  patched {len(modules)} modules")
 EOF
@@ -225,7 +225,7 @@ record_path, wheel_path = record_paths[0], wheel_paths[0]
 info, content = entries[wheel_path]
 text = content.decode("utf-8")
 if "Tag: py3-none-any\n" not in text or "Root-Is-Purelib: true\n" not in text:
-    sys.exit("error: unexpected WHEEL metadata — did the wheel builder change?")
+    sys.exit("error: unexpected WHEEL metadata - did the wheel builder change?")
 text = text.replace("Root-Is-Purelib: true\n", "Root-Is-Purelib: false\n")
 text = text.replace("Tag: py3-none-any\n", f"Tag: py3-none-{platform_tag}\n")
 entries[wheel_path] = (info, text.encode("utf-8"))

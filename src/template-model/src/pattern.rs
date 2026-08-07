@@ -3,14 +3,14 @@
 //! CloudFormation validates patterns with a PCRE-style engine that supports lookaround,
 //! backreferences, `\Z`, `\uXXXX` escapes, POSIX classes and possessive quantifiers. Rust's `regex`
 //! crate is RE2-style and rejects those, so a provider-supplied pattern that is perfectly valid
-//! service-side would fail to compile and — if the caller swallows the error — silently drop the
+//! service-side would fail to compile and - if the caller swallows the error - silently drop the
 //! constraint (a false negative) or be treated as non-matching (a false positive).
 //!
 //! [`compile`] closes that gap. It tries, cheapest first: the `regex` crate with a raised
 //! compiled-size limit, then a normalization pass that rewrites Rust-incompatible-but-equivalent
 //! syntax, then the `fancy-regex` backtracking engine (which understands lookaround/backreferences)
-//! on the raw and normalized forms. Every pattern shipped in the compiled schemas — and every
-//! service-valid `AllowedPattern` — compiles through one of these paths, so a constraint is never
+//! on the raw and normalized forms. Every pattern shipped in the compiled schemas - and every
+//! service-valid `AllowedPattern` - compiles through one of these paths, so a constraint is never
 //! silently discarded. [`is_service_valid`] reports whether a pattern is enforceable this way, for
 //! the rule that flags genuinely-malformed `AllowedPattern`s.
 
@@ -59,7 +59,7 @@ impl CompiledPattern {
 ///
 /// The result is memoized: each distinct pattern is compiled once and the shared [`CompiledPattern`]
 /// is returned on subsequent calls. Returns `None` only when the pattern cannot be made to compile by
-/// any strategy — which, for the schemas shipped in this crate's consumers, does not occur (enforced
+/// any strategy - which, for the schemas shipped in this crate's consumers, does not occur (enforced
 /// by a corpus test). Callers treat `None` as "constraint could not be enforced" and must not
 /// silently accept the value.
 #[must_use]
@@ -89,7 +89,7 @@ fn compile_uncached(pattern: &str) -> Option<CompiledPattern> {
     None
 }
 
-/// Whether a pattern is a valid regular expression that this tool can enforce — i.e. it either
+/// Whether a pattern is a valid regular expression that this tool can enforce - i.e. it either
 /// compiles directly or compiles after equivalence-preserving normalization / on the backtracking
 /// engine. A pattern that is genuinely malformed (unbalanced groups, dangling quantifier the source
 /// engine also rejects) returns `false`. Used by the rule that reports invalid `AllowedPattern`s so
@@ -115,7 +115,7 @@ pub fn anchor_allowed_pattern(pattern: &str) -> String {
 /// Whether every element of `value` matches `pattern` (auto-anchored). For a scalar parameter
 /// `value` is the whole default; for a `CommaDelimitedList`/`List<>` parameter it is the raw default
 /// and each comma-separated, trimmed element must match. Returns `None` when the pattern cannot be
-/// compiled at all — the caller reports that as an invalid pattern rather than a match failure.
+/// compiled at all - the caller reports that as an invalid pattern rather than a match failure.
 #[must_use]
 pub fn default_matches_pattern(pattern: &str, value: &str, is_comma_delimited: bool) -> Option<bool> {
     let compiled = compile(&anchor_allowed_pattern(pattern))?;
@@ -134,7 +134,7 @@ static QUANTIFIED_LOOKAROUND: LazyLock<regex::Regex> =
     LazyLock::new(|| regex::Regex::new(r"(\(\?[=!][^)]*\))[+*]").expect("QUANTIFIED_LOOKAROUND is a valid regex"));
 
 /// Rewrite PCRE/Python constructs the Rust engines reject into an equivalent form, without ever
-/// narrowing the set of real (UTF-8) strings that match — narrowing would turn a passing template
+/// narrowing the set of real (UTF-8) strings that match - narrowing would turn a passing template
 /// into a spurious violation, which is never acceptable.
 fn normalize(pattern: &str) -> String {
     let mut out = pattern.replace(r"\Z", r"\z");
@@ -152,7 +152,7 @@ fn normalize(pattern: &str) -> String {
 /// surrogate code unit (`D800`–`DFFF`) is not a Unicode scalar value and cannot stand alone in a Rust
 /// `&str`; schemas emit them only as surrogate-pair ranges (the XML `Char` production), which denote
 /// the astral planes. A run of such escapes inside a character class is therefore collapsed to the
-/// single scalar range `\u{10000}-\u{10FFFF}` those pairs encode — this compiles and matches every
+/// single scalar range `\u{10000}-\u{10FFFF}` those pairs encode - this compiles and matches every
 /// astral character the pattern admits, whereas clamping each surrogate half to a BMP boundary would
 /// both drop the astral planes (a spurious violation) and, when the low half precedes the high half,
 /// invert the range into an uncompilable pattern.
@@ -200,8 +200,8 @@ fn is_surrogate(code_point: u32) -> bool {
     (0xD800..=0xDFFF).contains(&code_point)
 }
 
-/// The escape's own code point, or — for a lone surrogate half that reaches the single-escape path
-/// rather than a surrogate-pair range — the nearest scalar boundary, since a surrogate cannot be
+/// The escape's own code point, or - for a lone surrogate half that reaches the single-escape path
+/// rather than a surrogate-pair range - the nearest scalar boundary, since a surrogate cannot be
 /// emitted as a `\u{...}` scalar. Clamping a single half rather than dropping it keeps the class
 /// well-formed; a real surrogate-pair range is handled separately and never lands here.
 fn nearest_scalar(code_point: u32) -> u32 {
@@ -243,7 +243,7 @@ fn end_of_surrogate_run(chars: &[char], mut index: usize) -> usize {
 /// POSIX-shorthand character classes that PCRE-style engines accept but Rust does not. Each is
 /// expanded to the exact set of Unicode general categories the class denotes, so no character the
 /// service would accept is rejected and none it rejects is admitted. `\p{Graph}` is every visible
-/// character — letters, marks, numbers, punctuation, symbols, plus format (`Cf`) and private-use
+/// character - letters, marks, numbers, punctuation, symbols, plus format (`Cf`) and private-use
 /// (`Co`) code points; `\p{Print}` additionally allows the space separator (`Zs`). The replacement
 /// is emitted as class members so it works both bare and inside an existing `[...]`.
 fn expand_posix_classes(pattern: &str) -> String {
@@ -284,7 +284,7 @@ fn expand_posix_classes(pattern: &str) -> String {
     out
 }
 
-/// If `token` (e.g. `\p{Graph}`) starts at `index` in `chars`, produce its expansion — wrapped in
+/// If `token` (e.g. `\p{Graph}`) starts at `index` in `chars`, produce its expansion - wrapped in
 /// `[...]` when it appears bare so it stays a single matchable unit, or as raw members when already
 /// inside a character class.
 fn posix_expansion(chars: &[char], index: usize, token: &[char], members: &str, inside_class: bool) -> Option<String> {
@@ -438,7 +438,7 @@ mod tests {
     fn surrogate_pair_range_admits_astral_characters() {
         // The XML `Char` production shipped in schemas encodes the astral planes as a UTF-16
         // surrogate-pair range. Collapsing it to the scalar astral range must keep those characters
-        // matchable — dropping them would make a value the service accepts fail spuriously.
+        // matchable - dropping them would make a value the service accepts fail spuriously.
         let compiled = compile(r"^[ -퟿-�𐀀-􏿿\r\n\t]*$").expect("surrogate pattern compiles");
         assert!(compiled.is_match("normal text"));
         assert!(

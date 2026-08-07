@@ -298,8 +298,8 @@ impl PseudoParameterOverrides {
     }
 
     /// Returns the user-supplied override for `name` only when the caller
-    /// explicitly set the corresponding field. Auto-derived defaults — e.g. the
-    /// commercial-vs-cn-vs-gov partition implied by `region` — are *not*
+    /// explicitly set the corresponding field. Auto-derived defaults - e.g. the
+    /// commercial-vs-cn-vs-gov partition implied by `region` - are *not*
     /// returned here.
     ///
     /// The satisfiability solver uses this to decide whether a pseudo-parameter
@@ -308,7 +308,7 @@ impl PseudoParameterOverrides {
     /// value". `get` always returns a default and would force the solver to
     /// treat every pseudo-parameter as a constant, producing false-positive
     /// "unreachable branch" diagnostics for templates that branch on
-    /// `AWS::Partition`, `AWS::Region`, etc. — see `ConditionModel::eval_value_concrete`.
+    /// `AWS::Partition`, `AWS::Region`, etc. - see `ConditionModel::eval_value_concrete`.
     pub fn fixed_value(&self, name: &str) -> Option<String> {
         match name {
             PSEUDO_ACCOUNT_ID => self.account_id.clone(),
@@ -542,7 +542,7 @@ impl SemanticModel {
                 Node::Intrinsic(IntrinsicFn::If(cond_name, _, _)) => {
                     fn_if_conditions.push(cond_name.clone());
                     // Inside a Conditions-section body, Fn::If is not a valid
-                    // condition function at all — that is the not-a-boolean
+                    // condition function at all - that is the not-a-boolean
                     // finding's territory, so the name of a function that is
                     // itself rejected there is not checked.
                     let in_conditions_body =
@@ -564,7 +564,7 @@ impl SemanticModel {
                 // A structurally malformed Fn::If (wrong arity, wrong type) is
                 // rejected by the parser and left as a plain `Fn::If` map node
                 // rather than an `IntrinsicFn::If`. Its condition is still
-                // referenced, so collect the name here too — otherwise the
+                // referenced, so collect the name here too - otherwise the
                 // unused-condition check would wrongly flag a condition that the
                 // template does reference.
                 Node::Map(entries) if entries.len() == 1 && entries[0].0 == FN_IF => {
@@ -573,7 +573,7 @@ impl SemanticModel {
                     {
                         fn_if_conditions.push(cond_name.to_string());
                         // The structure error is reported separately; the
-                        // undefined condition name is its own finding — a
+                        // undefined condition name is its own finding - a
                         // malformed Fn::If gets both. Conditions-section
                         // bodies are excluded for the same reason as the
                         // well-formed arm.
@@ -652,7 +652,7 @@ impl SemanticModel {
         // Neither section is walked by the resolver (it only visits resources
         // and outputs), so scan their string nodes directly. `Ref` targets are
         // not string nodes in the arena, so `Ref: AWS::Region` is naturally
-        // exempt — only a pseudo-parameter used as plain string data fires.
+        // exempt - only a pseudo-parameter used as plain string data fires.
         for idx in 0..ir.arena.len() {
             let spanned = ir.arena.get(idx as NodeRef);
             let Node::String(s) = &spanned.node else {
@@ -661,7 +661,7 @@ impl SemanticModel {
             let section = spanned.path.split('/').next().unwrap_or("");
             // A string that is a `Ref` target (path ends in the Ref key, e.g. a
             // raw `{"Ref": "AWS::Region"}` map the parser could not
-            // canonicalize) is already a reference — only plain string *data*
+            // canonicalize) is already a reference - only plain string *data*
             // warrants the use-Ref-instead advice.
             let is_ref_target = spanned.path.rsplit('/').next() == Some(FN_REF);
             if (section == SECTION_MAPPINGS || section == SECTION_CONDITIONS)
@@ -725,7 +725,7 @@ impl SemanticModel {
             ));
         }
         // A `Condition:` key that names a condition absent from the Conditions
-        // section is reported here — a distinct rule for the resource case and
+        // section is reported here - a distinct rule for the resource case and
         // the output case, since they are separate concerns. Emitting both
         // during model build anchors each at its own source location and keeps
         // the two engines identical. Names are sorted for deterministic
@@ -933,8 +933,8 @@ impl SemanticModel {
 
     /// The parameter whose declaration stood in for the value at `path`, or `None`
     /// when the value came from somewhere else. A value that is only known at
-    /// deployment is not necessarily a parameter — a cross-stack import and a
-    /// dynamic reference are equally unknown — so callers that describe a value to
+    /// deployment is not necessarily a parameter - a cross-stack import and a
+    /// dynamic reference are equally unknown - so callers that describe a value to
     /// a reader must ask rather than assume.
     #[must_use]
     pub fn parameter_name_at(&self, resource_id: &str, path: &str) -> Option<&str> {
@@ -1088,7 +1088,7 @@ impl SemanticModel {
         // materializing scenarios (the conservative truncation documented on
         // `MAX_TOTAL_SCENARIO_COMBINATIONS`). Checked before any resolution so an
         // exhausted call costs O(1), keeping a template with a flood of
-        // heavily-gated values bounded — the per-value `MAX_SCENARIO_COMBINATIONS`
+        // heavily-gated values bounded - the per-value `MAX_SCENARIO_COMBINATIONS`
         // cap alone does not bound the number of such values.
         if self.scenario_budget_exhausted() {
             return vec![];
@@ -1182,7 +1182,7 @@ impl SemanticModel {
     ///
     /// The span index is keyed with slash-separated paths, so a dotted,
     /// resource-relative path (`Properties.BucketName`) is normalized to slash
-    /// form before lookup — the same normalization [`Self::diagnostic_span`]
+    /// form before lookup - the same normalization [`Self::diagnostic_span`]
     /// applies. Callers pass paths in either form, so accepting only slash form
     /// here would silently mislocate every dotted-path diagnostic onto the
     /// resource declaration line.
@@ -1202,8 +1202,8 @@ impl SemanticModel {
             format!("Resources/{}/{}", resource_id, prop_path.replace('.', "/"))
         };
         // Walk up from the exact path to the nearest indexed ancestor, so a leaf that
-        // carries no span of its own — a synthetic intrinsic key (`…/Topic/Fn::Sub`),
-        // an `Fn::If` branch index — anchors at its closest real parent rather than
+        // carries no span of its own - a synthetic intrinsic key (`…/Topic/Fn::Sub`),
+        // an `Fn::If` branch index - anchors at its closest real parent rather than
         // collapsing straight to the resource declaration. The resource path itself is
         // the final ancestor, preserving the previous resource-level fallback.
         self.walk_up_span(&specific).unwrap_or(UNKNOWN_SPAN)
@@ -1211,7 +1211,7 @@ impl SemanticModel {
 
     /// Walks up `key` (a `/`-separated span-index path), trimming one trailing
     /// segment at a time, and returns the first ancestor with a known span. This
-    /// anchors a diagnostic as close to the offending node as the index allows —
+    /// anchors a diagnostic as close to the offending node as the index allows -
     /// an unindexed leaf (e.g. an `Fn::If` branch index) falls back to its parent
     /// property, then the resource, then the section.
     fn walk_up_span(&self, key: &str) -> Option<SourceSpan> {
@@ -1239,7 +1239,7 @@ impl SemanticModel {
     /// * A **slash** form (`Outputs/X/Value`, `Conditions/C/Fn::And`) is already an
     ///   absolute, section-rooted span-index key and is resolved as written.
     /// * A **dotted** or bare form (`Properties.Foo`, `Metadata`) is relative to the
-    ///   resource, so it is rooted at `Resources/<rid>` before lookup — never
+    ///   resource, so it is rooted at `Resources/<rid>` before lookup - never
     ///   matched against a same-named top-level section.
     ///
     /// Returns `None` when nothing along the chosen candidate is indexed, so callers
@@ -1272,7 +1272,7 @@ impl SemanticModel {
     }
 
     /// Bounds on the length of a string value the template does not state
-    /// literally — one built by an intrinsic, or chosen from a parameter's
+    /// literally - one built by an intrinsic, or chosen from a parameter's
     /// AllowedValues. `None` when the length cannot be pinned for every
     /// possibility, and also when the template does state the value literally,
     /// because schema validation checks a literal against the constraint directly.
@@ -1404,7 +1404,7 @@ fn parameter_name_from_source(source: &str) -> Option<&str> {
     if name.is_empty() { None } else { Some(name) }
 }
 
-/// Some intrinsic nodes stand in for a whole object — most notably
+/// Some intrinsic nodes stand in for a whole object - most notably
 /// `Properties: {Fn::If: [...]}` which the parser folds into an
 /// `IntrinsicFn::If` node. Return the CloudFormation function-name key
 /// (`Fn::If`, `Fn::ForEach::*`, etc.) when the node is one of these
@@ -1582,7 +1582,7 @@ fn resolve_resource(arena: &Arena, name: &str, node_ref: NodeRef, resolver: &mut
 ///
 /// When several `Fn::Sub` ARNs are list elements of the same property (e.g.
 /// `Principal.AWS.0.Fn::Sub`, `Principal.AWS.1.Fn::Sub`), they map to the same
-/// source span — the list's location — so they are one observable finding, not
+/// source span - the list's location - so they are one observable finding, not
 /// several. Paths whose only difference is the list index immediately before the
 /// trailing `.Fn::Sub` segment are therefore folded to the smallest index.
 fn collapse_list_sibling_arn_paths(paths: Vec<String>) -> Vec<String> {
@@ -1627,7 +1627,7 @@ fn split_trailing_list_index(path: &str) -> Option<(String, usize, String)> {
 /// the offending branch. Empty containers are accepted (they carry no members to
 /// stringify) and every other function (`Ref`, `Fn::Sub`, `Fn::Join`,
 /// `Fn::Select`, `Fn::FindInMap`, `Fn::ImportValue`, …) is treated as
-/// string-producing here — a `Fn::GetAtt` returning a non-string is caught later
+/// string-producing here - a `Fn::GetAtt` returning a non-string is caught later
 /// against the resource schema, which this parse-time shape check cannot see.
 fn check_output_value_is_string(arena: &Arena, value_ref: NodeRef, output_name: &str, resolver: &mut Resolver) {
     let build_path = format!("Outputs/{}/Value", output_name);
@@ -2108,7 +2108,7 @@ Resources:
     fn cumulative_scenario_budget_accumulates_across_queries_then_halts_expansion() {
         // A conditional property resolves into more than one scenario, so each
         // resolve_scenarios call charges a non-zero, deterministic amount to the
-        // model's shared cumulative scenario counter — enough to prove queries
+        // model's shared cumulative scenario counter - enough to prove queries
         // accumulate. resolve_scenarios is not memoized, so repeating the same
         // query re-charges.
         let input = br#"{
@@ -2124,7 +2124,7 @@ Resources:
             "a freshly built model's cumulative scenario budget is not exhausted"
         );
 
-        // (1) Real queries accumulate across queries — a per-query reset would
+        // (1) Real queries accumulate across queries - a per-query reset would
         // be a silent denial-of-service regression. The conditional value must
         // expand into more than one scenario, and the counter must reflect
         // exactly what was produced.
@@ -2236,7 +2236,7 @@ Resources:
         let input = "Resources:\n  R:\n    Type: T\n    Properties:\n      Name: hello\n";
         let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
         // A dotted, resource-relative path must resolve to the SAME specific span
-        // as its slash-form equivalent — not fall back to the resource span.
+        // as its slash-form equivalent - not fall back to the resource span.
         let dotted = model.resource_span("R", "Properties.Name");
         let slashed = model.resource_span("R", "Properties/Name");
         let resource = model.resource_span("R", "");
@@ -2277,7 +2277,7 @@ Resources:
             "Outputs:\n  Combined:\n    Value: !Join [\"\", [\"a\", \"b\"]]\n", // lines 4-6
         );
         let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
-        // The `Value` node is indexed (line 6) — resolution lands on it exactly.
+        // The `Value` node is indexed (line 6) - resolution lands on it exactly.
         let value = model.resource_span("", "Outputs/Combined/Value");
         assert_eq!(value.start_line, 6, "Outputs/Combined/Value is on line 6, got {:?}", value);
         // The output key itself resolves to its own line (line 5).
@@ -2292,7 +2292,7 @@ Resources:
         // keys contain literal dots inside a single segment (e.g. API Gateway's
         // `method.request.path.proxy`), so splitting on dots would shred those paths and
         // mis-anchor. The walk-up therefore trims the whole `Value.Fn::Join` segment on
-        // the nearest `/`, landing on the enclosing output — still within Outputs, never
+        // the nearest `/`, landing on the enclosing output - still within Outputs, never
         // on the Resources block. Both engines resolve this identically, which is what
         // keeps them at parity.
         let input = concat!(
@@ -2389,8 +2389,8 @@ Resources:
 
     /// `fixed_value` underpins the SAT-solver decision "treat this pseudo-param
     /// as a constant or a free variable". It must return `Some` only when the
-    /// caller pinned the corresponding field — never for region-derived
-    /// defaults — otherwise `Fn::Equals[Ref AWS::Partition, "aws"]` would be
+    /// caller pinned the corresponding field - never for region-derived
+    /// defaults - otherwise `Fn::Equals[Ref AWS::Partition, "aws"]` would be
     /// falsely deterministic and `find_unreachable_branches` would emit
     /// false-positive unreachable-branch diagnostics.
     #[test]
@@ -2476,7 +2476,7 @@ Resources:
         assert_eq!(
             overrides.fixed_value("AWS::Partition"),
             None,
-            "region override must not propagate to partition — partition stays free unless the caller pins it"
+            "region override must not propagate to partition - partition stays free unless the caller pins it"
         );
     }
 

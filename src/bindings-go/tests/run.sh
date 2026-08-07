@@ -6,7 +6,7 @@ BINDINGS_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 GO_DIR="$BINDINGS_DIR/go"
 
 [ -d "$GO_DIR/internal/bindings_go" ] && compgen -G "$GO_DIR/libs/*/libbindings_go.a" >/dev/null \
-    || { echo "Error: generated bindings or static library missing — run build.sh first" >&2; exit 1; }
+    || { echo "Error: generated bindings or static library missing - run build.sh first" >&2; exit 1; }
 
 echo "Running smoke tests with coverage..."
 cd "$GO_DIR"
