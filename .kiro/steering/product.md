@@ -111,6 +111,11 @@ These apply to every change. No exceptions.
 - Fatal rules must reflect what CloudFormation itself rejects based on the compiled resource schemas.
 - Investigate cfn-lint mismatches; preserve compatibility when it is correct and intentionally diverge when stronger
   evidence proves that it is not.
-- Rego and CEL engines must have parity — same rules, results, severities, messages.
+- Rego and CEL engines must have parity — same rules, results, severities, messages — but parity is a consequence of
+  correctness, not permission to align on an incorrect result.
+- For every engine mismatch, determine the correct behavior from first principles, preserve an engine that already
+  implements it, and fix the incorrect engine or shared layer. Never regress the correct engine or remove or suppress
+  a valid finding solely to make the outputs match. Remove a finding only when authoritative evidence proves that it is
+  a false positive, with focused regression coverage for the corrected behavior.
 - Zero false positives against valid CloudFormation behavior and `resources/templates/good/`.
 - Every validation-behavior fix is validated end-to-end on a real template with both `inspect` and `cfn-validate`.
