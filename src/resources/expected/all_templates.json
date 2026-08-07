@@ -32948,7 +32948,7 @@
       "resourcesScanned": 11,
       "counts": {
         "fatal": 0,
-        "errors": 29,
+        "errors": 30,
         "warnings": 1,
         "informational": 20,
         "debug": 0
@@ -33163,6 +33163,25 @@
         "startLine": 79,
         "startColumn": 7,
         "endLine": 79,
+        "endColumn": 22,
+        "ruleDescription": "Validate Route53 RecordSets",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3023",
+        "severity": "ERROR",
+        "message": "CNAME records must have at most 1 ResourceRecord",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "MyCNAMERecordSetConditions",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.ResourceRecords",
+        "category": "Resource",
+        "startLine": 90,
+        "startColumn": 7,
+        "endLine": 90,
         "endColumn": 22,
         "ruleDescription": "Validate Route53 RecordSets",
         "phase": "LINT"
@@ -33976,6 +33995,806 @@
         "endColumn": 10,
         "ruleDescription": "Property is ignored in this configuration (from extension)",
         "phase": "SCHEMA"
+      }
+    ]
+  },
+  "bad/route53_conditional_record_arrays.yaml": {
+    "filePath": "bad/route53_conditional_record_arrays.yaml",
+    "status": "OK",
+    "version": "1.7.0",
+    "metadata": {
+      "resourcesScanned": 10,
+      "counts": {
+        "fatal": 0,
+        "errors": 10,
+        "warnings": 0,
+        "informational": 15,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E3023",
+        "severity": "ERROR",
+        "message": "'invalid-standalone-true' is not a valid IPv4 address for record type 'A'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "StandaloneInvalidTrue",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.ResourceRecords.0",
+        "category": "Resource",
+        "startLine": 19,
+        "startColumn": 7,
+        "endLine": 19,
+        "endColumn": 22,
+        "ruleDescription": "Validate Route53 RecordSets",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3023",
+        "severity": "ERROR",
+        "message": "'invalid-standalone-false' is not a valid IPv4 address for record type 'A'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "StandaloneInvalidFalse",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.ResourceRecords.0",
+        "category": "Resource",
+        "startLine": 30,
+        "startColumn": 7,
+        "endLine": 30,
+        "endColumn": 22,
+        "ruleDescription": "Validate Route53 RecordSets",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3023",
+        "severity": "ERROR",
+        "message": "'invalid-standalone-mixed-true' is not a valid IPv4 address for record type 'A'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "StandaloneMixedInvalidTrue",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.ResourceRecords.1",
+        "category": "Resource",
+        "startLine": 41,
+        "startColumn": 7,
+        "endLine": 41,
+        "endColumn": 22,
+        "ruleDescription": "Validate Route53 RecordSets",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3023",
+        "severity": "ERROR",
+        "message": "'invalid-standalone-mixed-false' is not a valid IPv4 address for record type 'A'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "StandaloneMixedInvalidFalse",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.ResourceRecords.1",
+        "category": "Resource",
+        "startLine": 53,
+        "startColumn": 7,
+        "endLine": 53,
+        "endColumn": 22,
+        "ruleDescription": "Validate Route53 RecordSets",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3023",
+        "severity": "ERROR",
+        "message": "'invalid-group-true' is not a valid IPv4 address for record type 'A'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "GroupInvalidTrue",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSetGroup"
+        },
+        "propertyPath": "Properties.RecordSets.0.ResourceRecords.0",
+        "category": "Resource",
+        "startLine": 67,
+        "startColumn": 31,
+        "endLine": 67,
+        "endColumn": 32,
+        "ruleDescription": "Validate Route53 RecordSets",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3023",
+        "severity": "ERROR",
+        "message": "'invalid-group-false' is not a valid IPv4 address for record type 'A'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "GroupInvalidFalse",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSetGroup"
+        },
+        "propertyPath": "Properties.RecordSets.0.ResourceRecords.0",
+        "category": "Resource",
+        "startLine": 85,
+        "startColumn": 31,
+        "endLine": 85,
+        "endColumn": 32,
+        "ruleDescription": "Validate Route53 RecordSets",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3023",
+        "severity": "ERROR",
+        "message": "'invalid-group-mixed-true' is not a valid IPv4 address for record type 'A'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "GroupMixedInvalidTrue",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSetGroup"
+        },
+        "propertyPath": "Properties.RecordSets.0.ResourceRecords.1",
+        "category": "Resource",
+        "startLine": 97,
+        "startColumn": 17,
+        "endLine": 97,
+        "endColumn": 18,
+        "ruleDescription": "Validate Route53 RecordSets",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3023",
+        "severity": "ERROR",
+        "message": "'invalid-group-mixed-false' is not a valid IPv4 address for record type 'A'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "GroupMixedInvalidFalse",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSetGroup"
+        },
+        "propertyPath": "Properties.RecordSets.0.ResourceRecords.1",
+        "category": "Resource",
+        "startLine": 117,
+        "startColumn": 17,
+        "endLine": 117,
+        "endColumn": 18,
+        "ruleDescription": "Validate Route53 RecordSets",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3023",
+        "severity": "ERROR",
+        "message": "CNAME records must have at most 1 ResourceRecord",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "StandaloneUnresolvedCnameCardinality",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.ResourceRecords",
+        "category": "Resource",
+        "startLine": 125,
+        "startColumn": 7,
+        "endLine": 125,
+        "endColumn": 22,
+        "ruleDescription": "Validate Route53 RecordSets",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3023",
+        "severity": "ERROR",
+        "message": "CNAME records must have at most 1 ResourceRecord",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "GroupUnresolvedCnameCardinality",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSetGroup"
+        },
+        "propertyPath": "Properties.RecordSets.0.ResourceRecords",
+        "category": "Resource",
+        "startLine": 136,
+        "startColumn": 11,
+        "endLine": 136,
+        "endColumn": 26,
+        "ruleDescription": "Validate Route53 RecordSets",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'HostedZoneName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "StandaloneInvalidTrue",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.HostedZoneName",
+        "category": "Best Practice",
+        "startLine": 15,
+        "startColumn": 7,
+        "endLine": 15,
+        "endColumn": 21,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Name' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "StandaloneInvalidTrue",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.Name",
+        "category": "Best Practice",
+        "startLine": 16,
+        "startColumn": 7,
+        "endLine": 16,
+        "endColumn": 11,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'HostedZoneName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "StandaloneInvalidFalse",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.HostedZoneName",
+        "category": "Best Practice",
+        "startLine": 26,
+        "startColumn": 7,
+        "endLine": 26,
+        "endColumn": 21,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Name' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "StandaloneInvalidFalse",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.Name",
+        "category": "Best Practice",
+        "startLine": 27,
+        "startColumn": 7,
+        "endLine": 27,
+        "endColumn": 11,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'HostedZoneName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "StandaloneMixedInvalidTrue",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.HostedZoneName",
+        "category": "Best Practice",
+        "startLine": 37,
+        "startColumn": 7,
+        "endLine": 37,
+        "endColumn": 21,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Name' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "StandaloneMixedInvalidTrue",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.Name",
+        "category": "Best Practice",
+        "startLine": 38,
+        "startColumn": 7,
+        "endLine": 38,
+        "endColumn": 11,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'HostedZoneName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "StandaloneMixedInvalidFalse",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.HostedZoneName",
+        "category": "Best Practice",
+        "startLine": 49,
+        "startColumn": 7,
+        "endLine": 49,
+        "endColumn": 21,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Name' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "StandaloneMixedInvalidFalse",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.Name",
+        "category": "Best Practice",
+        "startLine": 50,
+        "startColumn": 7,
+        "endLine": 50,
+        "endColumn": 11,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'HostedZoneName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "GroupInvalidTrue",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSetGroup"
+        },
+        "propertyPath": "Properties.HostedZoneName",
+        "category": "Best Practice",
+        "startLine": 61,
+        "startColumn": 7,
+        "endLine": 61,
+        "endColumn": 21,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'HostedZoneName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "GroupInvalidFalse",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSetGroup"
+        },
+        "propertyPath": "Properties.HostedZoneName",
+        "category": "Best Practice",
+        "startLine": 75,
+        "startColumn": 7,
+        "endLine": 75,
+        "endColumn": 21,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'HostedZoneName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "GroupMixedInvalidTrue",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSetGroup"
+        },
+        "propertyPath": "Properties.HostedZoneName",
+        "category": "Best Practice",
+        "startLine": 89,
+        "startColumn": 7,
+        "endLine": 89,
+        "endColumn": 21,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'HostedZoneName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "GroupMixedInvalidFalse",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSetGroup"
+        },
+        "propertyPath": "Properties.HostedZoneName",
+        "category": "Best Practice",
+        "startLine": 105,
+        "startColumn": 7,
+        "endLine": 105,
+        "endColumn": 21,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'HostedZoneName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "StandaloneUnresolvedCnameCardinality",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.HostedZoneName",
+        "category": "Best Practice",
+        "startLine": 121,
+        "startColumn": 7,
+        "endLine": 121,
+        "endColumn": 21,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Name' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "StandaloneUnresolvedCnameCardinality",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.Name",
+        "category": "Best Practice",
+        "startLine": 122,
+        "startColumn": 7,
+        "endLine": 122,
+        "endColumn": 11,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'HostedZoneName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "GroupUnresolvedCnameCardinality",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSetGroup"
+        },
+        "propertyPath": "Properties.HostedZoneName",
+        "category": "Best Practice",
+        "startLine": 131,
+        "startColumn": 7,
+        "endLine": 131,
+        "endColumn": 21,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      }
+    ]
+  },
+  "bad/route53_conditional_scenarios.yaml": {
+    "filePath": "bad/route53_conditional_scenarios.yaml",
+    "status": "OK",
+    "version": "1.7.0",
+    "metadata": {
+      "resourcesScanned": 7,
+      "counts": {
+        "fatal": 0,
+        "errors": 8,
+        "warnings": 0,
+        "informational": 4,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E3023",
+        "severity": "ERROR",
+        "message": "'not-an-ipv4-address' is not a valid IPv4 address for record type 'A'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ConditionalRecordSetsInvalidFirst",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSetGroup"
+        },
+        "propertyPath": "Properties.RecordSets.0.ResourceRecords.0",
+        "category": "Resource",
+        "startLine": 60,
+        "startColumn": 31,
+        "endLine": 60,
+        "endColumn": 32,
+        "ruleDescription": "Validate Route53 RecordSets",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3023",
+        "severity": "ERROR",
+        "message": "'still-not-an-ipv4-address' is not a valid IPv4 address for record type 'A'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ConditionalRecordSetsInvalidSecond",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSetGroup"
+        },
+        "propertyPath": "Properties.RecordSets.0.ResourceRecords.0",
+        "category": "Resource",
+        "startLine": 78,
+        "startColumn": 31,
+        "endLine": 78,
+        "endColumn": 32,
+        "ruleDescription": "Validate Route53 RecordSets",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3023",
+        "severity": "ERROR",
+        "message": "'invalid-first-branch' is not a valid IPv4 address for record type 'A'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "WholePropertiesRecordsInvalidFirst",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSetGroup"
+        },
+        "propertyPath": "Properties.RecordSets.0.ResourceRecords.0",
+        "category": "Resource",
+        "startLine": 88,
+        "startColumn": 31,
+        "endLine": 88,
+        "endColumn": 32,
+        "ruleDescription": "Validate Route53 RecordSets",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3023",
+        "severity": "ERROR",
+        "message": "'invalid-second-branch' is not a valid IPv4 address for record type 'A'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "WholePropertiesRecordsInvalidSecond",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSetGroup"
+        },
+        "propertyPath": "Properties.RecordSets.0.ResourceRecords.0",
+        "category": "Resource",
+        "startLine": 110,
+        "startColumn": 31,
+        "endLine": 110,
+        "endColumn": 32,
+        "ruleDescription": "Validate Route53 RecordSets",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3029",
+        "severity": "ERROR",
+        "message": "TTL must not be set when AliasTarget is specified",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "AliasConflictFirst",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.TTL",
+        "category": "Resource",
+        "startLine": 12,
+        "startColumn": 5,
+        "endLine": 12,
+        "endColumn": 15,
+        "ruleDescription": "Validate Route53 record set aliases",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3029",
+        "severity": "ERROR",
+        "message": "TTL must not be set when AliasTarget is specified",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "AliasConflictSecond",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.TTL",
+        "category": "Resource",
+        "startLine": 28,
+        "startColumn": 5,
+        "endLine": 28,
+        "endColumn": 15,
+        "ruleDescription": "Validate Route53 record set aliases",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3029",
+        "severity": "ERROR",
+        "message": "AliasTarget cannot be used with record type 'NS'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ConditionalInvalidAliasTypes",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.AliasTarget",
+        "category": "Resource",
+        "startLine": 48,
+        "startColumn": 7,
+        "endLine": 48,
+        "endColumn": 18,
+        "ruleDescription": "Validate Route53 record set aliases",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3029",
+        "severity": "ERROR",
+        "message": "AliasTarget cannot be used with record type 'SOA'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ConditionalInvalidAliasTypes",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.AliasTarget",
+        "category": "Resource",
+        "startLine": 48,
+        "startColumn": 7,
+        "endLine": 48,
+        "endColumn": 18,
+        "ruleDescription": "Validate Route53 record set aliases",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'HostedZoneName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ConditionalInvalidAliasTypes",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.HostedZoneName",
+        "category": "Best Practice",
+        "startLine": 45,
+        "startColumn": 7,
+        "endLine": 45,
+        "endColumn": 21,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Name' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ConditionalInvalidAliasTypes",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.Name",
+        "category": "Best Practice",
+        "startLine": 46,
+        "startColumn": 7,
+        "endLine": 46,
+        "endColumn": 11,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'HostedZoneName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ConditionalRecordSetsInvalidFirst",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSetGroup"
+        },
+        "propertyPath": "Properties.HostedZoneName",
+        "category": "Best Practice",
+        "startLine": 54,
+        "startColumn": 7,
+        "endLine": 54,
+        "endColumn": 21,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'HostedZoneName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ConditionalRecordSetsInvalidSecond",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSetGroup"
+        },
+        "propertyPath": "Properties.HostedZoneName",
+        "category": "Best Practice",
+        "startLine": 68,
+        "startColumn": 7,
+        "endLine": 68,
+        "endColumn": 21,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
       }
     ]
   },
@@ -121527,6 +122346,90 @@
       }
     ]
   },
+  "gh-issues/issue-246.yaml": {
+    "filePath": "gh-issues/issue-246.yaml",
+    "status": "OK",
+    "version": "1.7.0",
+    "metadata": {
+      "resourcesScanned": 2,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 3,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'HostedZoneId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "HttpsAlias",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.HostedZoneId",
+        "category": "Best Practice",
+        "startLine": 20,
+        "startColumn": 7,
+        "endLine": 20,
+        "endColumn": 19,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Name' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "HttpsAlias",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.Name",
+        "category": "Best Practice",
+        "startLine": 21,
+        "startColumn": 7,
+        "endLine": 21,
+        "endColumn": 11,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Distribution' of type 'AWS::CloudFront::Distribution' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Distribution",
+          "entityType": "Resource",
+          "resourceType": "AWS::CloudFront::Distribution"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
   "gh-issues/issue-247.json": {
     "filePath": "gh-issues/issue-247.json",
     "status": "OK",
@@ -121585,6 +122488,376 @@
         "startColumn": 7,
         "endLine": 5,
         "endColumn": 18,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
+  "gh-issues/issue-264.yaml": {
+    "filePath": "gh-issues/issue-264.yaml",
+    "status": "OK",
+    "version": "1.7.0",
+    "metadata": {
+      "resourcesScanned": 9,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 16,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'HostedZoneId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "AGetAtt",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.HostedZoneId",
+        "category": "Best Practice",
+        "startLine": 12,
+        "startColumn": 7,
+        "endLine": 12,
+        "endColumn": 19,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Name' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "AGetAtt",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.Name",
+        "category": "Best Practice",
+        "startLine": 13,
+        "startColumn": 7,
+        "endLine": 13,
+        "endColumn": 11,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'HostedZoneId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "AResourceRef",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.HostedZoneId",
+        "category": "Best Practice",
+        "startLine": 21,
+        "startColumn": 7,
+        "endLine": 21,
+        "endColumn": 19,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Name' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "AResourceRef",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.Name",
+        "category": "Best Practice",
+        "startLine": 22,
+        "startColumn": 7,
+        "endLine": 22,
+        "endColumn": 11,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'HostedZoneId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "AaaaGetAtt",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.HostedZoneId",
+        "category": "Best Practice",
+        "startLine": 30,
+        "startColumn": 7,
+        "endLine": 30,
+        "endColumn": 19,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Name' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "AaaaGetAtt",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.Name",
+        "category": "Best Practice",
+        "startLine": 31,
+        "startColumn": 7,
+        "endLine": 31,
+        "endColumn": 11,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'HostedZoneId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "TxtGetAtt",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.HostedZoneId",
+        "category": "Best Practice",
+        "startLine": 39,
+        "startColumn": 7,
+        "endLine": 39,
+        "endColumn": 19,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Name' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "TxtGetAtt",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.Name",
+        "category": "Best Practice",
+        "startLine": 40,
+        "startColumn": 7,
+        "endLine": 40,
+        "endColumn": 11,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'HostedZoneId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "MxGetAtt",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.HostedZoneId",
+        "category": "Best Practice",
+        "startLine": 48,
+        "startColumn": 7,
+        "endLine": 48,
+        "endColumn": 19,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Name' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "MxGetAtt",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.Name",
+        "category": "Best Practice",
+        "startLine": 49,
+        "startColumn": 7,
+        "endLine": 49,
+        "endColumn": 11,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'HostedZoneId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "CaaGetAtt",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.HostedZoneId",
+        "category": "Best Practice",
+        "startLine": 57,
+        "startColumn": 7,
+        "endLine": 57,
+        "endColumn": 19,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Name' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "CaaGetAtt",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.Name",
+        "category": "Best Practice",
+        "startLine": 58,
+        "startColumn": 7,
+        "endLine": 58,
+        "endColumn": 11,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'HostedZoneId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "DynamicParameter",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.HostedZoneId",
+        "category": "Best Practice",
+        "startLine": 66,
+        "startColumn": 7,
+        "endLine": 66,
+        "endColumn": 19,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Name' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "DynamicParameter",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.Name",
+        "category": "Best Practice",
+        "startLine": 67,
+        "startColumn": 7,
+        "endLine": 67,
+        "endColumn": 11,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'HostedZoneId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Group",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSetGroup"
+        },
+        "propertyPath": "Properties.HostedZoneId",
+        "category": "Best Practice",
+        "startLine": 75,
+        "startColumn": 7,
+        "endLine": 75,
+        "endColumn": 19,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'EIP' of type 'AWS::EC2::EIP' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "EIP",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::EIP"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 8,
+        "startColumn": 5,
+        "endLine": 8,
+        "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"
       }
@@ -144777,6 +146050,477 @@
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"
+      }
+    ]
+  },
+  "good/route53_conditional_record_arrays.yaml": {
+    "filePath": "good/route53_conditional_record_arrays.yaml",
+    "status": "OK",
+    "version": "1.7.0",
+    "metadata": {
+      "resourcesScanned": 6,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 2,
+        "informational": 9,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'ChooseFirst' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "StandaloneUnreachableInvalid",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.ResourceRecords.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 32,
+        "startColumn": 11,
+        "endLine": 32,
+        "endColumn": 12,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'ChooseFirst' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "GroupUnreachableInvalid",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSetGroup"
+        },
+        "propertyPath": "Properties.RecordSets.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 58,
+        "startColumn": 11,
+        "endLine": 58,
+        "endColumn": 12,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'HostedZoneName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "StandaloneBothBranchesValid",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.HostedZoneName",
+        "category": "Best Practice",
+        "startLine": 13,
+        "startColumn": 7,
+        "endLine": 13,
+        "endColumn": 21,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Name' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "StandaloneBothBranchesValid",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.Name",
+        "category": "Best Practice",
+        "startLine": 14,
+        "startColumn": 7,
+        "endLine": 14,
+        "endColumn": 11,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'HostedZoneName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "StandaloneUnreachableInvalid",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.HostedZoneName",
+        "category": "Best Practice",
+        "startLine": 25,
+        "startColumn": 7,
+        "endLine": 25,
+        "endColumn": 21,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Name' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "StandaloneUnreachableInvalid",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.Name",
+        "category": "Best Practice",
+        "startLine": 26,
+        "startColumn": 7,
+        "endLine": 26,
+        "endColumn": 11,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'HostedZoneName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "GroupBothBranchesValid",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSetGroup"
+        },
+        "propertyPath": "Properties.HostedZoneName",
+        "category": "Best Practice",
+        "startLine": 36,
+        "startColumn": 7,
+        "endLine": 36,
+        "endColumn": 21,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'HostedZoneName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "GroupUnreachableInvalid",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSetGroup"
+        },
+        "propertyPath": "Properties.HostedZoneName",
+        "category": "Best Practice",
+        "startLine": 51,
+        "startColumn": 7,
+        "endLine": 51,
+        "endColumn": 21,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'HostedZoneName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "StandaloneMutuallyExclusiveCnameItems",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.HostedZoneName",
+        "category": "Best Practice",
+        "startLine": 65,
+        "startColumn": 7,
+        "endLine": 65,
+        "endColumn": 21,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Name' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "StandaloneMutuallyExclusiveCnameItems",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.Name",
+        "category": "Best Practice",
+        "startLine": 66,
+        "startColumn": 7,
+        "endLine": 66,
+        "endColumn": 11,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'HostedZoneName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "GroupMutuallyExclusiveCnameItems",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSetGroup"
+        },
+        "propertyPath": "Properties.HostedZoneName",
+        "category": "Best Practice",
+        "startLine": 75,
+        "startColumn": 7,
+        "endLine": 75,
+        "endColumn": 21,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      }
+    ]
+  },
+  "good/route53_conditional_scenarios.yaml": {
+    "filePath": "good/route53_conditional_scenarios.yaml",
+    "status": "OK",
+    "version": "1.7.0",
+    "metadata": {
+      "resourcesScanned": 4,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 9,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'HostedZoneName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ConditionalProperties",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.HostedZoneName",
+        "category": "Best Practice",
+        "startLine": 14,
+        "startColumn": 7,
+        "endLine": 14,
+        "endColumn": 21,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Name' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ConditionalProperties",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.Name",
+        "category": "Best Practice",
+        "startLine": 15,
+        "startColumn": 7,
+        "endLine": 15,
+        "endColumn": 11,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'HostedZoneName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "MutuallyExclusiveConditions",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.HostedZoneName",
+        "category": "Best Practice",
+        "startLine": 30,
+        "startColumn": 7,
+        "endLine": 30,
+        "endColumn": 21,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Name' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "MutuallyExclusiveConditions",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.Name",
+        "category": "Best Practice",
+        "startLine": 31,
+        "startColumn": 7,
+        "endLine": 31,
+        "endColumn": 11,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'HostedZoneName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "LiteralNoValueAlias",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.HostedZoneName",
+        "category": "Best Practice",
+        "startLine": 61,
+        "startColumn": 7,
+        "endLine": 61,
+        "endColumn": 21,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Name' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "LiteralNoValueAlias",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.Name",
+        "category": "Best Practice",
+        "startLine": 62,
+        "startColumn": 7,
+        "endLine": 62,
+        "endColumn": 11,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9002",
+        "severity": "INFO",
+        "message": "'TTL' is ignored in this configuration (from extension)",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ConditionalProperties",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.TTL",
+        "category": "Best Practice",
+        "startLine": 22,
+        "startColumn": 7,
+        "endLine": 22,
+        "endColumn": 10,
+        "ruleDescription": "Property is ignored in this configuration (from extension)",
+        "phase": "SCHEMA",
+        "context": {
+          "resolutionSource": "Fn::If on condition 'IsAlias'"
+        }
+      },
+      {
+        "ruleId": "I9002",
+        "severity": "INFO",
+        "message": "'TTL' is ignored in this configuration (from extension)",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "MutuallyExclusiveConditions",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.TTL",
+        "category": "Best Practice",
+        "startLine": 38,
+        "startColumn": 7,
+        "endLine": 38,
+        "endColumn": 10,
+        "ruleDescription": "Property is ignored in this configuration (from extension)",
+        "phase": "SCHEMA",
+        "context": {
+          "resolutionSource": "Fn::If on condition 'IsStandard'"
+        }
+      },
+      {
+        "ruleId": "I9002",
+        "severity": "INFO",
+        "message": "'TTL' is ignored in this configuration (from extension)",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "LiteralNoValueAlias",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.TTL",
+        "category": "Best Practice",
+        "startLine": 65,
+        "startColumn": 7,
+        "endLine": 65,
+        "endColumn": 10,
+        "ruleDescription": "Property is ignored in this configuration (from extension)",
+        "phase": "SCHEMA"
       }
     ]
   },

@@ -632,14 +632,31 @@ def fmt_diag(d, template):
     return f"- {' '.join(parts)}\n  > {msg}"
 
 
+def require_matched_template_coverage(cfnlint_all, engine_all):
+    """Return comparable keys and fail when an engine report has no baseline result."""
+    matched_keys = sorted(set(cfnlint_all) & set(engine_all))
+    cfnlint_only = sorted(set(cfnlint_all) - set(engine_all))
+    engine_only = sorted(set(engine_all) - set(cfnlint_all))
+    if engine_only:
+        displayed = engine_only[:20]
+        omitted_count = len(engine_only) - len(displayed)
+        details = "\n".join(f"  - {key}" for key in displayed)
+        if omitted_count:
+            details += f"\n  - ... and {omitted_count} more"
+        raise RuntimeError(
+            f"{len(engine_only)} engine template report(s) have no matching cfn-lint result; "
+            "the parity report would silently omit them. Generate matching results for:\n"
+            f"{details}"
+        )
+    return matched_keys, cfnlint_only
+
+
 def run_single():
     cfnlint_all = {**load_cfnlint_inline_results(), **load_cfnlint_results_from_files()}
     engine_all = load_engine_results()
     agg_perf = load_aggregate_perf()
 
-    matched_keys = sorted(set(cfnlint_all) & set(engine_all))
-    cfnlint_only = sorted(set(cfnlint_all) - set(engine_all))
-    engine_only = sorted(set(engine_all) - set(cfnlint_all))
+    matched_keys, cfnlint_only = require_matched_template_coverage(cfnlint_all, engine_all)
 
     # Aggregate per-template comparison
     total_tp = total_fp = total_fn = total_ee = 0

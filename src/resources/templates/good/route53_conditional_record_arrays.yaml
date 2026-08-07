@@ -1,0 +1,82 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Parameters:
+  Mode:
+    Type: String
+    AllowedValues: [first, second]
+    Default: first
+Conditions:
+  ChooseFirst: !Equals [!Ref Mode, first]
+Resources:
+  StandaloneBothBranchesValid:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneName: example.com.
+      Name: standalone-both-valid.example.com.
+      Type: A
+      TTL: "300"
+      ResourceRecords: !If
+        - ChooseFirst
+        - [192.0.2.30]
+        - [192.0.2.31]
+  StandaloneUnreachableInvalid:
+    Type: AWS::Route53::RecordSet
+    Condition: ChooseFirst
+    Properties:
+      HostedZoneName: example.com.
+      Name: standalone-unreachable-invalid.example.com.
+      Type: A
+      TTL: "300"
+      ResourceRecords: !If
+        - ChooseFirst
+        - [192.0.2.32]
+        - [unreachable-standalone-invalid]
+  GroupBothBranchesValid:
+    Type: AWS::Route53::RecordSetGroup
+    Properties:
+      HostedZoneName: example.com.
+      RecordSets: !If
+        - ChooseFirst
+        - - Name: group-both-valid-true.example.com.
+            Type: A
+            TTL: "300"
+            ResourceRecords: [192.0.2.40]
+        - - Name: group-both-valid-false.example.com.
+            Type: A
+            TTL: "300"
+            ResourceRecords: [192.0.2.41]
+  GroupUnreachableInvalid:
+    Type: AWS::Route53::RecordSetGroup
+    Condition: ChooseFirst
+    Properties:
+      HostedZoneName: example.com.
+      RecordSets: !If
+        - ChooseFirst
+        - - Name: group-reachable-valid.example.com.
+            Type: A
+            TTL: "300"
+            ResourceRecords: [192.0.2.42]
+        - - Name: group-unreachable-invalid.example.com.
+            Type: A
+            TTL: "300"
+            ResourceRecords: [unreachable-group-invalid]
+  StandaloneMutuallyExclusiveCnameItems:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneName: example.com.
+      Name: standalone-mutually-exclusive-cname.example.com.
+      Type: CNAME
+      TTL: "300"
+      ResourceRecords:
+        - !If [ChooseFirst, a.example.com., !Ref AWS::NoValue]
+        - !If [ChooseFirst, !Ref AWS::NoValue, b.example.com.]
+  GroupMutuallyExclusiveCnameItems:
+    Type: AWS::Route53::RecordSetGroup
+    Properties:
+      HostedZoneName: example.com.
+      RecordSets:
+        - Name: group-mutually-exclusive-cname.example.com.
+          Type: CNAME
+          TTL: "300"
+          ResourceRecords:
+            - !If [ChooseFirst, a.example.com., !Ref AWS::NoValue]
+            - !If [ChooseFirst, !Ref AWS::NoValue, b.example.com.]

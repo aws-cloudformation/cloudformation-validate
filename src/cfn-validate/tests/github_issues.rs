@@ -113,6 +113,89 @@ fn assert_fires_on_property(by_engine: &[(&str, Vec<Diagnostic>)], rule_id: &str
     }
 }
 
+fn rule_diagnostic_signatures(diags: &[Diagnostic], rule_id: &str) -> Vec<String> {
+    let mut signatures: Vec<String> = diags
+        .iter()
+        .filter(|diagnostic| diagnostic.rule_id == rule_id)
+        .map(|diagnostic| {
+            serde_json::to_string(&diagnostic.to_detailed()).expect("diagnostic serialization should succeed")
+        })
+        .collect();
+    signatures.sort();
+    signatures
+}
+
+fn assert_rule_parity(by_engine: &[(&str, Vec<Diagnostic>)], rule_id: &str) {
+    let Some((reference_engine, reference_diags)) = by_engine.first() else {
+        panic!("expected at least one engine result");
+    };
+    let reference_signatures = rule_diagnostic_signatures(reference_diags, rule_id);
+    for (engine, diags) in &by_engine[1..] {
+        assert_eq!(
+            rule_diagnostic_signatures(diags, rule_id),
+            reference_signatures,
+            "[{engine}] {rule_id} diagnostics differ from {reference_engine}"
+        );
+    }
+}
+
+fn assert_rule_targets_on_resources(
+    by_engine: &[(&str, Vec<Diagnostic>)],
+    rule_id: &str,
+    resource_ids: &[&str],
+    expected_targets: &[(&str, &str)],
+) {
+    let mut expected: Vec<(String, String)> = expected_targets
+        .iter()
+        .map(|(resource_id, property_path)| ((*resource_id).to_string(), (*property_path).to_string()))
+        .collect();
+    expected.sort();
+
+    for (engine, diags) in by_engine {
+        let mut actual: Vec<(String, String)> = diags
+            .iter()
+            .filter(|diagnostic| diagnostic.rule_id == rule_id)
+            .filter_map(|diagnostic| {
+                let resource_id = diagnostic.resource_logical_id()?;
+                resource_ids
+                    .contains(&resource_id)
+                    .then(|| (resource_id.to_string(), diagnostic.property_path.clone().unwrap_or_default()))
+            })
+            .collect();
+        actual.sort();
+        assert_eq!(actual, expected, "[{engine}] unexpected {rule_id} targets for {resource_ids:?}");
+    }
+}
+
+fn assert_rule_start_locations(
+    by_engine: &[(&str, Vec<Diagnostic>)],
+    rule_id: &str,
+    expected_locations: &[(&str, u32, u32)],
+) {
+    let mut expected: Vec<(String, u32, u32)> = expected_locations
+        .iter()
+        .map(|(resource_id, line, column)| ((*resource_id).to_string(), *line, *column))
+        .collect();
+    expected.sort();
+    let resource_ids: Vec<&str> = expected_locations.iter().map(|(resource_id, _, _)| *resource_id).collect();
+
+    for (engine, diags) in by_engine {
+        let mut actual: Vec<(String, u32, u32)> = diags
+            .iter()
+            .filter(|diagnostic| diagnostic.rule_id == rule_id)
+            .filter_map(|diagnostic| {
+                let resource_id = diagnostic.resource_logical_id()?;
+                let location = diagnostic.location.as_ref()?;
+                resource_ids
+                    .contains(&resource_id)
+                    .then(|| (resource_id.to_string(), location.start_line, location.start_column))
+            })
+            .collect();
+        actual.sort();
+        assert_eq!(actual, expected, "[{engine}] unexpected {rule_id} source locations");
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Per-issue regression tests
 // ---------------------------------------------------------------------------
@@ -1647,4 +1730,293 @@ fn issue_235_w9008_handles_all_rds_storage_encryption_modes() {
         actual.sort_unstable();
         assert_eq!(actual, expected, "[{engine}] W9008 fired on the wrong RDS instances");
     }
+}
+
+/// Issue #246: CloudFront supports Route53 HTTPS aliases, including when the target name is a
+/// deployment-time attribute rather than a literal.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/246
+#[test]
+fn issue_246_cloudfront_https_alias_is_valid() {
+    let diags = validate_both("issue-246.yaml");
+    assert_absent(&diags, "E3029");
+}
+
+/// Issue #246: same-zone aliases inherit their target record type, so types other than address
+/// records are valid when the target has that type.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/246
+#[test]
+fn issue_246_same_zone_txt_alias_is_valid() {
+    const TEMPLATE: &[u8] = br#"
+Resources:
+  TxtAlias:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: Z123456789EXAMPLE
+      Name: alias.example.com.
+      Type: TXT
+      AliasTarget:
+        DNSName: target.example.com.
+        EvaluateTargetHealth: false
+        HostedZoneId: Z123456789EXAMPLE
+"#;
+    let diags = validate_both_bytes(TEMPLATE);
+    assert_absent(&diags, "E3029");
+}
+
+/// Issue #246 positive boundary: authored alias and TTL properties conflict even when both values
+/// are only known at deployment time.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/246
+#[test]
+fn issue_246_dynamic_alias_with_ttl_is_rejected() {
+    const TEMPLATE: &[u8] = br#"
+Parameters:
+  AliasName:
+    Type: String
+  RecordTtl:
+    Type: String
+Resources:
+  Alias:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: Z123456789EXAMPLE
+      Name: alias.example.com.
+      Type: HTTPS
+      TTL: !Ref RecordTtl
+      AliasTarget:
+        DNSName: !Ref AliasName
+        EvaluateTargetHealth: false
+        HostedZoneId: Z2FDTNDATAQYW2
+"#;
+    let diags = validate_both_bytes(TEMPLATE);
+    assert_count(&diags, "E3029", 1);
+    assert_fires_on_property(&diags, "E3029", "Properties.TTL");
+}
+
+/// Issue #246 positive boundary: Route53 does not permit NS or SOA alias records for any target.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/246
+#[test]
+fn issue_246_ns_and_soa_aliases_are_rejected() {
+    const TEMPLATE: &[u8] = br#"
+Resources:
+  NsAlias:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: Z123456789EXAMPLE
+      Name: ns.example.com.
+      Type: NS
+      AliasTarget:
+        DNSName: target.example.com.
+        EvaluateTargetHealth: false
+        HostedZoneId: Z123456789EXAMPLE
+  SoaAlias:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: Z123456789EXAMPLE
+      Name: soa.example.com.
+      Type: SOA
+      AliasTarget:
+        DNSName: target.example.com.
+        EvaluateTargetHealth: false
+        HostedZoneId: Z123456789EXAMPLE
+"#;
+    let diags = validate_both_bytes(TEMPLATE);
+    assert_count(&diags, "E3029", 2);
+    assert_fires_on_property(&diags, "E3029", "Properties.AliasTarget");
+}
+
+/// Issue #264: unresolved values are skipped for format checks, but they do not hide concrete
+/// invalid siblings; statically resolved intrinsics remain subject to validation.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/264
+#[test]
+fn issue_264_unresolved_values_skip_checks_without_hiding_concrete_siblings() {
+    let unresolved_diags = validate_both("issue-264.yaml");
+    assert_absent(&unresolved_diags, "E3023");
+
+    const TEMPLATE: &[u8] = br#"
+Resources:
+  EIP:
+    Type: AWS::EC2::EIP
+    Properties: {}
+  MixedStandalone:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: Z123456789EXAMPLE
+      Name: mixed-standalone.example.com.
+      Type: A
+      TTL: '300'
+      ResourceRecords:
+        - !GetAtt EIP.PublicIp
+        - 999.0.2.1
+  MixedGroup:
+    Type: AWS::Route53::RecordSetGroup
+    Properties:
+      HostedZoneId: Z123456789EXAMPLE
+      RecordSets:
+        - Name: mixed-group.example.com.
+          Type: A
+          TTL: '300'
+          ResourceRecords:
+            - !GetAtt EIP.PublicIp
+            - 999.0.2.2
+  ConcreteIntrinsic:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: Z123456789EXAMPLE
+      Name: joined.example.com.
+      Type: A
+      TTL: '300'
+      ResourceRecords:
+        - !Join ['', ['999.0.2.3']]
+"#;
+    let mixed_diags = validate_both_bytes(TEMPLATE);
+    assert_rule_parity(&mixed_diags, "E3023");
+    assert_rule_targets_on_resources(
+        &mixed_diags,
+        "E3023",
+        &["MixedStandalone", "MixedGroup", "ConcreteIntrinsic"],
+        &[
+            ("MixedStandalone", "Properties.ResourceRecords.1"),
+            ("MixedGroup", "Properties.RecordSets.0.ResourceRecords.1"),
+            ("ConcreteIntrinsic", "Properties.ResourceRecords.0"),
+        ],
+    );
+}
+
+/// Issue #264: every reachable branch of standalone and grouped conditional record arrays is
+/// validated, while valid and resource-condition-unreachable branches remain clean.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/264
+#[test]
+fn issue_264_conditional_record_arrays_validate_reachable_branches() {
+    let invalid_template = load_template("bad/route53_conditional_record_arrays.yaml");
+    let invalid_diags = validate_both_bytes(&invalid_template);
+    assert_rule_parity(&invalid_diags, "E3023");
+    assert_rule_targets_on_resources(
+        &invalid_diags,
+        "E3023",
+        &[
+            "StandaloneInvalidTrue",
+            "StandaloneInvalidFalse",
+            "StandaloneMixedInvalidTrue",
+            "StandaloneMixedInvalidFalse",
+            "GroupInvalidTrue",
+            "GroupInvalidFalse",
+            "GroupMixedInvalidTrue",
+            "GroupMixedInvalidFalse",
+        ],
+        &[
+            ("StandaloneInvalidTrue", "Properties.ResourceRecords.0"),
+            ("StandaloneInvalidFalse", "Properties.ResourceRecords.0"),
+            ("StandaloneMixedInvalidTrue", "Properties.ResourceRecords.1"),
+            ("StandaloneMixedInvalidFalse", "Properties.ResourceRecords.1"),
+            ("GroupInvalidTrue", "Properties.RecordSets.0.ResourceRecords.0"),
+            ("GroupInvalidFalse", "Properties.RecordSets.0.ResourceRecords.0"),
+            ("GroupMixedInvalidTrue", "Properties.RecordSets.0.ResourceRecords.1"),
+            ("GroupMixedInvalidFalse", "Properties.RecordSets.0.ResourceRecords.1"),
+        ],
+    );
+    assert_rule_start_locations(
+        &invalid_diags,
+        "E3023",
+        &[
+            ("StandaloneInvalidTrue", 19, 7),
+            ("StandaloneInvalidFalse", 30, 7),
+            ("GroupInvalidTrue", 67, 31),
+            ("GroupInvalidFalse", 85, 31),
+        ],
+    );
+
+    let valid_template = load_template("good/route53_conditional_record_arrays.yaml");
+    let valid_diags = validate_both_bytes(&valid_template);
+    assert_rule_parity(&valid_diags, "E3023");
+    assert_rule_targets_on_resources(
+        &valid_diags,
+        "E3023",
+        &[
+            "StandaloneBothBranchesValid",
+            "StandaloneUnreachableInvalid",
+            "GroupBothBranchesValid",
+            "GroupUnreachableInvalid",
+        ],
+        &[],
+    );
+}
+
+/// Issue #264: conditionals wrapping the entire Properties object expose every reachable record
+/// scenario to both engines, regardless of branch order.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/264
+#[test]
+fn issue_264_whole_properties_conditionals_validate_all_scenarios() {
+    const STANDALONE_TEMPLATE: &[u8] = br#"
+Parameters:
+  Environment:
+    Type: String
+    AllowedValues: [production, development]
+Conditions:
+  IsProduction: !Equals [!Ref Environment, production]
+Resources:
+  Record:
+    Type: AWS::Route53::RecordSet
+    Properties: !If
+      - IsProduction
+      - HostedZoneId: Z123456789EXAMPLE
+        Name: conditional.example.com.
+        Type: A
+        TTL: '300'
+        ResourceRecords: [999.0.2.1]
+      - HostedZoneId: Z123456789EXAMPLE
+        Name: conditional.example.com.
+        Type: A
+        TTL: '300'
+        ResourceRecords: [192.0.2.1]
+"#;
+    let standalone_diags = validate_both_bytes(STANDALONE_TEMPLATE);
+    assert_rule_parity(&standalone_diags, "E3023");
+    assert_rule_targets_on_resources(
+        &standalone_diags,
+        "E3023",
+        &["Record"],
+        &[("Record", "Properties.ResourceRecords.0")],
+    );
+
+    let grouped_template = load_template("bad/route53_conditional_scenarios.yaml");
+    let grouped_diags = validate_both_bytes(&grouped_template);
+    assert_rule_parity(&grouped_diags, "E3023");
+    assert_rule_targets_on_resources(
+        &grouped_diags,
+        "E3023",
+        &["WholePropertiesRecordsInvalidFirst", "WholePropertiesRecordsInvalidSecond"],
+        &[
+            ("WholePropertiesRecordsInvalidFirst", "Properties.RecordSets.0.ResourceRecords.0"),
+            ("WholePropertiesRecordsInvalidSecond", "Properties.RecordSets.0.ResourceRecords.0"),
+        ],
+    );
+}
+
+/// Issue #264: CNAME cardinality counts only effective non-null entries, while unresolved entries
+/// still represent records and contribute to the limit.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/264
+#[test]
+fn issue_264_cname_cardinality_counts_effective_records() {
+    let valid_template = load_template("good/route53_conditional_record_arrays.yaml");
+    let valid_diags = validate_both_bytes(&valid_template);
+    assert_rule_parity(&valid_diags, "E3023");
+    assert_rule_targets_on_resources(
+        &valid_diags,
+        "E3023",
+        &["StandaloneMutuallyExclusiveCnameItems", "GroupMutuallyExclusiveCnameItems"],
+        &[],
+    );
+
+    let invalid_template = load_template("bad/route53_conditional_record_arrays.yaml");
+    let invalid_diags = validate_both_bytes(&invalid_template);
+    assert_rule_parity(&invalid_diags, "E3023");
+    assert_rule_targets_on_resources(
+        &invalid_diags,
+        "E3023",
+        &["StandaloneUnresolvedCnameCardinality", "GroupUnresolvedCnameCardinality"],
+        &[
+            ("StandaloneUnresolvedCnameCardinality", "Properties.ResourceRecords"),
+            ("GroupUnresolvedCnameCardinality", "Properties.RecordSets.0.ResourceRecords"),
+        ],
+    );
 }

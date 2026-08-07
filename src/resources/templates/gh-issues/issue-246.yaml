@@ -1,0 +1,26 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+  Distribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        DefaultCacheBehavior:
+          TargetOriginId: origin
+          ViewerProtocolPolicy: redirect-to-https
+          ForwardedValues:
+            QueryString: false
+        Origins:
+          - Id: origin
+            DomainName: example-bucket.s3.amazonaws.com
+            S3OriginConfig: {}
+  HttpsAlias:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: Z123456789EXAMPLE
+      Name: www.example.com.
+      Type: HTTPS
+      AliasTarget:
+        DNSName: !GetAtt Distribution.DomainName
+        EvaluateTargetHealth: false
+        HostedZoneId: Z2FDTNDATAQYW2
