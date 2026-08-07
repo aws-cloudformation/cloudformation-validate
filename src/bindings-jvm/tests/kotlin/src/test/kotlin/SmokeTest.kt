@@ -487,7 +487,7 @@ class SmokeTest {
         private val GOLDEN_DIRS = listOf("bad", "cdk", "good", "gh-issues", "integration", "issues", "lsp", "public", "quickstart")
 
         init {
-            val goldenFile = File(expectedDir, "all_templates.json")
+            val goldenFile = File(expectedDir, "validation_reports.json")
             @Suppress("UNCHECKED_CAST")
             COMBINED_GOLDEN = JsonParser(goldenFile.readText()).parseValue() as Map<String, Any?>
             EXPECTED_TEMPLATES = discoverAllTemplates()

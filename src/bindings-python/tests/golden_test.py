@@ -1,7 +1,7 @@
 """Golden-file validation, mirroring the wasm and JVM suites.
 
 Every template in the corpus is validated through both engines at both detail
-levels, and the result must match resources/expected/all_templates.json exactly
+levels, and the result must match resources/expected/validation_reports.json exactly
 (up to the fields the golden file intentionally excludes). The typed uniffi
 records are serialized back into serde's JSON shape (camelCase names, enum
 names, unwrapped JsonValue variants, Nones omitted), so this also proves the
@@ -27,7 +27,7 @@ from cloudformation_validate import (
 TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
 WORKSPACE = os.path.dirname(os.path.dirname(TESTS_DIR))
 TEMPLATES_ROOT = os.path.join(WORKSPACE, "resources", "templates")
-GOLDEN_FILE = os.path.join(WORKSPACE, "resources", "expected", "all_templates.json")
+GOLDEN_FILE = os.path.join(WORKSPACE, "resources", "expected", "validation_reports.json")
 
 GOLDEN_DIRS = ["bad", "cdk", "good", "gh-issues", "integration", "issues", "lsp", "public", "quickstart"]
 

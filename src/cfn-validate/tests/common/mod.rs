@@ -75,7 +75,7 @@ fn walk_collect(dir: &std::path::Path, root: &std::path::Path, out: &mut Vec<Str
 pub const MIN_GOLDEN_TEMPLATES: usize = 400;
 
 pub fn load_combined_golden() -> serde_json::Map<String, Value> {
-    let path = resources_root().join("expected").join("all_templates.json");
+    let path = resources_root().join("expected").join("validation_reports.json");
     let bytes = std::fs::read(&path).unwrap_or_else(|e| panic!("read golden {}: {e}", path.display()));
     let val: Value = serde_json::from_slice(&bytes).unwrap_or_else(|e| panic!("parse golden {}: {e}", path.display()));
     let map = val.as_object().cloned().unwrap_or_default();

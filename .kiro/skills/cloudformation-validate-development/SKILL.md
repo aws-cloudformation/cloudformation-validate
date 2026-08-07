@@ -50,7 +50,7 @@ cargo run -p cfn-validate -- <template|dir> --engine rego|cel --format standard|
 cargo run -p cfn-validate -- --list-rules
 
 # Regenerate after a change that alters diagnostics; verifies engine parity and rewrites the golden file.
-cargo run --release -p resources --example generate_golden
+cargo run --release -p resources --example generate_validation_reports
 ```
 
 Apply these rules when choosing validation:

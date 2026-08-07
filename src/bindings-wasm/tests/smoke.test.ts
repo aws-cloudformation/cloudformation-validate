@@ -26,7 +26,7 @@ function loadRule(filename: string): string {
 }
 
 const COMBINED_GOLDEN: Record<string, unknown> = JSON.parse(
-    fs.readFileSync(path.join(EXPECTED_DIR, 'all_templates.json'), 'utf-8'),
+    fs.readFileSync(path.join(EXPECTED_DIR, 'validation_reports.json'), 'utf-8'),
 );
 
 const GOLDEN_DIRS = ['bad', 'cdk', 'good', 'gh-issues', 'integration', 'issues', 'lsp', 'public', 'quickstart'];
