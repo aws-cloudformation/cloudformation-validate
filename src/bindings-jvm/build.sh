@@ -100,6 +100,7 @@ cp "$RELEASE_DIR/$LIB_NAME" "$NATIVES_DIR/"
 "$SCRIPT_DIR/generate-version-properties.sh"
 JNA_VERSION=$(grep '^jnaVersion=' "$SCRIPT_DIR/version.properties" | cut -d= -f2)
 GSON_VERSION=$(grep '^gsonVersion=' "$SCRIPT_DIR/version.properties" | cut -d= -f2)
+KOTLIN_VERSION=$(grep '^kotlinVersion=' "$SCRIPT_DIR/version.properties" | cut -d= -f2)
 
 # ── Compile + package JAR via Gradle ───────────────────────────────────────────
 # Gradle compiles the generated Kotlin (resolving JNA/Gson), bundles the .kt sources,
@@ -121,6 +122,12 @@ if [ "$CLASS_COUNT" -eq 0 ] || [ "$KT_COUNT" -eq 0 ]; then
     echo "Error: $JAR_FILE is missing compiled output — $CLASS_COUNT .class and $KT_COUNT .kt entries (both must be non-zero)." >&2
     exit 1
 fi
+for required_metadata in LICENSE NOTICE README.md THIRD-PARTY-LICENSES.txt; do
+    if ! jar tf "$JAR_FILE" | grep -Fxq "META-INF/$required_metadata"; then
+        echo "Error: $JAR_FILE is missing META-INF/$required_metadata" >&2
+        exit 1
+    fi
+done
 
 # ── Summary ───────────────────────────────────────────────────────────────────
 KT_SIZE=$(find "$GENERATED_DIR" -name '*.kt' -type f -exec cat {} + | wc -c | awk '{printf "%.1fM", $1/1048576}')
@@ -134,7 +141,7 @@ echo "  Compiled classes: $CLASS_COUNT .class entries bundled"
 echo "  Native library: $LIB_SIZE ($LIB_NAME, bundled in jar)"
 echo "  JAR:            $JAR_SIZE ($(basename "$JAR_FILE"))"
 echo ""
-echo "Consumer dependency: net.java.dev.jna:jna:${JNA_VERSION}, com.google.code.gson:gson:${GSON_VERSION}"
+echo "Consumer dependencies: net.java.dev.jna:jna:${JNA_VERSION}, com.google.code.gson:gson:${GSON_VERSION}, org.jetbrains.kotlin:kotlin-stdlib:${KOTLIN_VERSION}"
 find "$GENERATED_DIR" -name '*.kt' -type f | sed 's/^/  /'
 
 # ── Analyze JAR (optional) ───────────────────────────────────────────────────

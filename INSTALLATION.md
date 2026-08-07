@@ -14,22 +14,18 @@ environment drift.
 | Rust (`cargo`, `rustc`)         | 1.96.0  | everything                                                | Pinned by `src/rust-toolchain.toml`; rustup installs it for you                                                 |
 | `rustfmt`                       | bundled | `cargo fmt` lint                                          | Declared as a component in the toolchain file                                                                   |
 | `wasm32-unknown-unknown` target | bundled | WASM binding                                              | Added automatically by the toolchain file                                                                       |
-| `wasm-pack`                     | 0.14.0  | WASM binding build/test                                   | `cargo install`                                                                                                 |
-| `cargo-about`                   | 0.9.0   | third-party license generation (Build Artifacts workflow) | `cargo install`                                                                                                 |
+| `wasm-pack`                     | 0.15.0  | WASM binding build/test                                   | `cargo install`                                                                                                 |
+| `cargo-about`                   | 0.9.1   | third-party license generation (Build Artifacts workflow) | `cargo install`                                                                                                 |
 | `cargo-audit`                   | 0.22.2  | dependency vulnerability audit                            | `cargo install`                                                                                                 |
 | Node.js + npm                   | 22.x    | WASM binding build/test                                   | `npm` ships with Node                                                                                           |
 | JDK                             | 21+     | JVM binding build/test                                    | Corretto in CI; provides `java` and `jar`                                                                       |
-| Kotlin (`kotlinc`)              | 2.3.10  | JVM binding build                                         |                                                                                                                 |
+| Kotlin (`kotlinc`)              | 2.4.0   | JVM binding build                                         |                                                                                                                 |
 | `ktlint`                        | 1.8.0   | JVM binding formatting                                    |                                                                                                                 |
-| Gradle                          | 8.14    | JVM binding build/test                                    | Must be on `PATH` — `bindings-jvm/build.sh` and the JVM test runner invoke `gradle`                             |
+| Gradle                          | 9.6.1   | JVM binding build/test                                    | Must be on `PATH` — `bindings-jvm/build.sh` and the JVM test runner invoke `gradle`                             |
 | Python                          | 3.12+   | Python binding build/test, license generation, `scripts/` | `setuptools` for the wheel build; no other packages required                                                    |
 | Go                              | 1.26+   | Go binding build/test                                     | cgo must be enabled (default); Windows also needs `rustup target add x86_64-pc-windows-gnu` and MinGW-w64 `gcc` |
 | `uniffi-bindgen-go`             | 0.7.1   | Go binding generation                                     | `cargo install --git https://github.com/NordSecurity/uniffi-bindgen-go --tag v0.7.1+v0.31.0`                    |
 | `git`, `curl`, `openssl`        | —       | source control, fetching JVM deps, verifying releases     | Usually preinstalled                                                                                            |
-
-JNA (`5.18.1`) and Gson (`2.14.0`) — the JVM binding's runtime dependencies — are downloaded automatically from Maven
-Central by `bindings-jvm/build.sh`; you do not install them yourself. The `uniffi-bindgen` tool used to generate the
-Kotlin bindings is built from the workspace as part of the JVM binding build.
 
 ## 1. Rust toolchain
 
@@ -45,7 +41,7 @@ time you run a cargo command inside `src/`.
 ## 2. Cargo tools
 
 ```bash
-cargo install cargo-about@0.9.0 cargo-audit@0.22.2 wasm-pack@0.14.0
+cargo install cargo-about@0.9.1 cargo-audit@0.22.2 wasm-pack@0.15.0
 ```
 
 ## 3. Node.js (Node/WASM binding)
@@ -74,8 +70,8 @@ To match CI versions exactly (recommended for the JVM binding), use SDKMAN for t
 ```bash
 curl -s "https://get.sdkman.io" | bash && source "$HOME/.sdkman/bin/sdkman-init.sh"
 sdk install java 21-amzn        # Amazon Corretto 21 (pick a 21.x build from `sdk list java`)
-sdk install kotlin 2.3.10
-sdk install gradle 8.14
+sdk install kotlin 2.4.0
+sdk install gradle 9.6.1
 
 # ktlint 1.8.0 (pinned release binary)
 curl -sSLO https://github.com/pinterest/ktlint/releases/download/1.8.0/ktlint \

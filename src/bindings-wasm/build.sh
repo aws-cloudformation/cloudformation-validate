@@ -46,6 +46,7 @@ PKG_VERSION="$VERSION" node -e "
     description: pkg.description,
     keywords: pkg.keywords,
     author: pkg.author,
+    bugs: pkg.bugs,
     license: pkg.license,
     engines: pkg.engines,
     repository: pkg.repository,
@@ -66,6 +67,7 @@ for f in "$DIST_DIR/index.js" "$DIST_DIR/index.d.ts"; do
 done
 
 cp "$WORKSPACE/../LICENSE" "$DIST_DIR/LICENSE"
+cp "$WORKSPACE/../NOTICE" "$DIST_DIR/NOTICE"
 cp "$SCRIPT_DIR/README.md" "$DIST_DIR/README.md"
 
 echo "Build complete: $DIST_DIR ($(du -sh "$DIST_DIR" | cut -f1))"

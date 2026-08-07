@@ -45,31 +45,35 @@ WORKSPACE_CRATES = {
     "validation-engine",
 }
 
-# Maven runtime dependencies the JVM JAR consumers need on their classpath.
+APACHE_LICENSE_REFERENCE = (
+    "                                 Apache License\n"
+    "                           Version 2.0, January 2004\n"
+    "                        http://www.apache.org/licenses/\n\n"
+    "   See full text in any Apache License 2.0 entry in this file."
+)
+
+# Maven dependencies the JVM JAR consumers need on their classpath.
 JVM_EXTRA_DEPS = [
     {
         "name": "com.google.code.gson:gson",
         "version": "2.14.0",
         "url": "https://github.com/google/gson",
         "license": "Apache-2.0",
-        "text": (
-            "                                 Apache License\n"
-            "                           Version 2.0, January 2004\n"
-            "                        http://www.apache.org/licenses/\n\n"
-            "   See full text in any Apache License 2.0 entry in this file."
-        ),
+        "text": APACHE_LICENSE_REFERENCE,
     },
     {
         "name": "net.java.dev.jna:jna",
-        "version": "5.18.1",
+        "version": "5.19.1",
         "url": "https://github.com/java-native-access/jna",
         "license": "Apache-2.0",
-        "text": (
-            "                                 Apache License\n"
-            "                           Version 2.0, January 2004\n"
-            "                        http://www.apache.org/licenses/\n\n"
-            "   See full text in any Apache License 2.0 entry in this file."
-        ),
+        "text": APACHE_LICENSE_REFERENCE,
+    },
+    {
+        "name": "org.jetbrains.kotlin:kotlin-stdlib",
+        "version": "2.4.0",
+        "url": "https://github.com/JetBrains/kotlin",
+        "license": "Apache-2.0",
+        "text": APACHE_LICENSE_REFERENCE,
     },
 ]
 

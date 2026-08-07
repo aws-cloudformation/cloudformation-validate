@@ -12,7 +12,7 @@ offline: every rule and resource schema is compiled into the binary, so there is
 no runtime fetching.
 
 It ships as a Rust CLI, an embeddable Rust library, a Node.js package (WASM), a Python package, a Go module, and a
-JVM library (Kotlin/Java) — all backed by the same validation core.
+JVM library (Kotlin/Java) - all backed by the same validation core.
 
 ## Features
 
@@ -75,9 +75,6 @@ cargo run -p cfn-validate -- --list-rules
 cargo run -p cfn-validate -- template.yaml --guard-rule-source ./my-rules/
 ```
 
-The CLI prints a JSON report to stdout and exits `0` when clean, `1` when errors or fatal diagnostics are found, and
-`2` on usage errors. For the full option reference, see the [cfn-validate README](src/cfn-validate/README.md).
-
 ## Embedding as a library
 
 ### Rust
@@ -90,7 +87,7 @@ use schema_validator::SchemaValidator;
 use validation_engine::{validate_bytes_with_path, EngineConfig, ValidateConfig};
 
 let schema_validator = SchemaValidator::default();
-let engine = RegoEngine::new(EngineConfig::default ()) ?;
+let engine = RegoEngine::new(EngineConfig::default())?;
 
 let bytes = std::fs::read("template.yaml") ?;
 let report = validate_bytes_with_path(
@@ -108,10 +105,10 @@ for d in & report.diagnostics {
 
 See [validation-engine/API.md](src/validation-engine/API.md) for the full embedding API.
 
-### Node.js
+### Node.js [(bindings-wasm)](src/bindings-wasm/README.md)
 
 ```typescript
-import { RegoEngine, TemplateFile } from "@aws/cloudformation-validate";
+import {RegoEngine, TemplateFile} from "@aws/cloudformation-validate";
 
 const engine = new RegoEngine();
 const report = engine.validateStandard(new TemplateFile("template.yaml"));
@@ -121,7 +118,7 @@ for (const d of report.diagnostics) {
 engine.free();
 ```
 
-### Python
+### Python [(bindings-python)](src/bindings-python/README.md)
 
 ```python
 from cloudformation_validate import RegoEngine
@@ -132,7 +129,7 @@ for d in report.diagnostics:
     print(f"[{d.severity.name}] {d.rule_id}: {d.message}")
 ```
 
-### Go
+### Go [(bindings-go)](src/bindings-go/README.md)
 
 ```go
 import cfnvalidate "github.com/aws-cloudformation/cloudformation-validate/src/bindings-go/go"
@@ -149,7 +146,7 @@ for _, d := range report.Diagnostics {
 }
 ```
 
-### JVM (Kotlin)
+### JVM Java/Kotlin [(bindings-jvm)](src/bindings-jvm/README.md)
 
 ```kotlin
 import software.amazon.cloudformation.validate.*
@@ -173,13 +170,13 @@ Bring your own rules in any of three formats — all loadable from the CLI and t
 See [RULES](src/rules/README.md) and [CUSTOM_RULES.md](src/CUSTOM_RULES.md) for the formats, available context, and
 examples.
 
-## Repository layout
+## Modules
 
 This is a Cargo workspace. The main crates:
 
 | Crate                                                | Role                                                                                                                          |
 |------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------|
-| [cfn-validate](src/cfn-validate/README.md)           | `cfn-validate` CLI and `cfn-benchmark` binary                                                                                 |
+| [cfn-validate](src/cfn-validate/README.md)           | `cfn-validate` CLI                                                                                                            |
 | [validation-engine](src/validation-engine/README.md) | `ValidationEngine` trait, orchestration pipeline, Step Functions validation                                                   |
 | [template-model](src/template-model/README.md)       | Template parser, intrinsic resolver, condition SAT solver, reference graph                                                    |
 | [rules](src/rules/README.md)                         | Rule registry, severity model, categories, and diagnostic filtering                                                           |
@@ -188,10 +185,6 @@ This is a Cargo workspace. The main crates:
 | [rego-engine](src/rego-engine/README.md)             | Rego-based rule evaluation with custom builtins                                                                               |
 | [cel-engine](src/cel-engine/README.md)               | Native Rust rules plus a CEL interpreter for custom rules                                                                     |
 | [guard-translator](src/guard-translator/README.md)   | Parses Guard DSL into an engine-agnostic intermediate representation                                                          |
-| [bindings-wasm](src/bindings-wasm/README.md)         | WASM bindings for Node.js                                                                                                     |
-| [bindings-jvm](src/bindings-jvm/README.md)           | JVM bindings (Kotlin/Java) via UniFFI                                                                                         |
-| [bindings-python](src/bindings-python/README.md)     | Python bindings via UniFFI                                                                                                    |
-| [bindings-go](src/bindings-go/README.md)             | Go bindings via UniFFI (cgo, static linking)                                                                                  |
 | [data-source](src/data-source/README.md)             | Build-time pipeline: downloads and processes CloudFormation schemas, generates the validation artifacts baked into the binary |
 
 ## Security

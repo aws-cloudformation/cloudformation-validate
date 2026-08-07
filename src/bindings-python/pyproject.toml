@@ -8,12 +8,12 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "cloudformation-validate"
 version = "0.0.0"
-description = "AWS CloudFormation Validate"
+description = "Fast, offline, embeddable validation for AWS CloudFormation templates"
 readme = "README.md"
 license = "Apache-2.0"
-license-files = ["LICENSE", "THIRD-PARTY-LICENSES.txt"]
+license-files = ["LICENSE", "NOTICE", "THIRD-PARTY-LICENSES.txt"]
 requires-python = ">=3.12"
-authors = [{ name = "Amazon Web Services", email = "aws-cloudformation-validate@amazon.com" }]
+authors = [{ name = "Amazon Web Services" }]
 keywords = [
     "aws",
     "amazon",
@@ -28,18 +28,23 @@ keywords = [
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
+    "Natural Language :: English",
     "Operating System :: MacOS",
     "Operating System :: Microsoft :: Windows",
     "Operating System :: POSIX :: Linux",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Rust",
+    "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Software Development :: Quality Assurance",
 ]
 
 [project.urls]
-Homepage = "https://github.com/aws-cloudformation/cloudformation-validate#readme"
+Homepage = "https://github.com/aws-cloudformation/cloudformation-validate"
 Repository = "https://github.com/aws-cloudformation/cloudformation-validate"
+Documentation = "https://github.com/aws-cloudformation/cloudformation-validate#readme"
+Issues = "https://github.com/aws-cloudformation/cloudformation-validate/issues"
+"Release Notes" = "https://github.com/aws-cloudformation/cloudformation-validate/releases"
 
 [tool.setuptools]
 packages = ["cloudformation_validate"]
