@@ -63,11 +63,16 @@ the tree.
 
 ## Architecture (the non-obvious rules)
 
-- **The two engines must stay at parity.** `EngineType::Rego` (default) and `EngineType::Cel` must produce
-  identical diagnostics (ID, severity, location, message) for any template — divergence is a bug. Every rule
-  exists in both engines or in neither; add/fix it in both in the same change. Rego rules are hand-written
-  policies in `rego-engine/handwritten/rego/`; CEL rules are native Rust in `cel-engine/src/rules/` (the CEL
-  interpreter is only for user-supplied custom rules).
+- **The two engines must stay at parity, but parity must preserve correctness.** `EngineType::Rego` (default) and
+  `EngineType::Cel` must produce identical diagnostics (ID, severity, location, message) for any template — divergence
+  is a bug. A mismatch is a signal to investigate, not permission to make the outputs agree mechanically. Establish
+  the correct behavior from CloudFormation's contracts and semantics first, preserve an engine that already implements
+  that behavior, and fix the incorrect engine or the shared lower-level implementation. Never regress the correct
+  engine or remove or suppress a valid finding solely because the other engine misses it. Remove a finding only when
+  first-principles evidence establishes that it is a false positive, with focused regression coverage for the corrected
+  behavior. Every rule exists in both engines or in neither; add/fix it in both in the same change. Rego rules are
+  hand-written policies in `rego-engine/handwritten/rego/`; CEL rules are native Rust in `cel-engine/src/rules/` (the
+  CEL interpreter is only for user-supplied custom rules).
 - **`rules/src/registry.rs` (`RULE_REGISTRY`) is the single source of truth** for every rule's ID, severity,
   category, and description. A rule that evaluates but isn't registered is a bug. IDs match `[FEWID]\d{4}`
   (F=Fatal, E=Error, W=Warn, I=Info, D=Debug; enum variant `Warn`, serialized `WARN`).

@@ -112,6 +112,12 @@ src/
 - Every rule exists in both `rego-engine` and `cel-engine`, or in neither. No exceptions.
 - The same template must produce the same diagnostics (rule ID, severity, location, message) through both engines.
   Divergence is a bug.
+- Parity is achieved by making both engines correct, not by making one copy the other's output. For every mismatch,
+  derive the expected behavior first from CloudFormation schemas, documentation, specifications, and semantics; then
+  fix the incorrect engine or the shared layer where the defect originates.
+- Never regress an engine that already has the correct behavior, and never remove or suppress a valid finding solely
+  because the other engine misses it. A finding may be removed only when first-principles evidence proves that it is a
+  false positive, with focused regression coverage for the corrected behavior.
 
 ### Diagnostics
 

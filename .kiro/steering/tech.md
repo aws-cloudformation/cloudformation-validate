@@ -133,12 +133,19 @@ grep/search for anything involving symbols, types, call sites, or trait implemen
 
 ## Fix priority order
 
+Engine parity is a correctness invariant, not an instruction to force identical output by any means. When the engines
+mismatch, first derive the expected behavior from CloudFormation schemas, documentation, specifications, and semantics.
+Preserve an engine that already has the correct behavior, and fix the incorrect engine or the shared layer where the
+defect originates. Never regress the correct engine or remove or suppress a valid finding merely because the other
+engine misses it. Remove a finding only when first-principles evidence establishes that it is a false positive, and add
+focused regression coverage for the corrected behavior.
+
 Apply fixes at the highest-leverage layer, in this order:
 
 1. `template-model` first — benefits every downstream engine and schema validator simultaneously.
 2. `data-source` pipeline enrichment — both engines inherit the fix automatically.
-3. Only if neither applies — `schema-validator`, `rego-engine`, or `cel-engine`. The fix MUST be applied to both engines
-   in the same change. Parity is non-negotiable.
+3. Only if neither applies — `schema-validator`, `rego-engine`, or `cel-engine`. Apply the behavior fix wherever it is
+   needed so both engines are correct in the same change. Parity is non-negotiable.
 
 ## Validation procedure for diagnostic behavior changes
 
