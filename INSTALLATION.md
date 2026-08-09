@@ -86,6 +86,19 @@ scripts under `scripts/`. The binding build itself needs only `setuptools`; the 
 (`bindings-python/tests/run.sh`) additionally fetches `coverage` into a throwaway virtualenv, so running the Python
 tests needs network access.
 
+## 6. Go (Go binding)
+
+Install Go 1.26 or later with cgo enabled. Consumers can install the latest tagged Go module directly from the
+repository or pin a specific release:
+
+```bash
+go get github.com/aws-cloudformation/cloudformation-validate/src/bindings-go/go@latest
+go get github.com/aws-cloudformation/cloudformation-validate/src/bindings-go/go@v1.8.0
+```
+
+Production releases use `vX.Y.Z`; beta releases use `vX.Y.Z-beta`. Release tags select a version of the generated
+module in `src/bindings-go/go/` without storing versioned source directories in the repository.
+
 ## Build
 
 Run cargo commands from the `src/` directory.
