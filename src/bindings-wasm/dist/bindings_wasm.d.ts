@@ -428,7 +428,7 @@ export interface ResolvedResource {
  * A top-level CloudFormation template section, as documented in the template
  * anatomy (<https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-anatomy.html>).
  *
- * This is the canonical, single definition of the section names — section
+ * This is the canonical, single definition of the section names - section
  * constants in other crates derive from it.
  */
 export type TopLevelSection =
@@ -788,8 +788,8 @@ export interface ResourceIdFilter {
 }
 
 /**
- * Suppress a rule for a specific named template entity — a resource,
- * parameter, output, mapping, condition, or template rule — identified by its
+ * Suppress a rule for a specific named template entity - a resource,
+ * parameter, output, mapping, condition, or template rule - identified by its
  * logical ID. An absent `rule_id` scopes the filter to every rule on that
  * entity; an absent `entity_type` scopes it to entities of every type with
  * that logical ID.
@@ -810,7 +810,7 @@ export interface ResourceTypeFilter {
 }
 
 /**
- * Suppress a rule for every resource belonging to a service — the
+ * Suppress a rule for every resource belonging to a service - the
  * `service-provider::service-name` prefix of the resource type (its first two
  * `::`-delimited segments, for example `AWS::AutoScaling` in
  * `AWS::AutoScaling::LaunchConfiguration`, or `Alexa::ASK` in
@@ -825,7 +825,7 @@ export interface ServiceFilter {
 }
 
 /**
- * The kind of template entity a diagnostic targets — the singular form of the
+ * The kind of template entity a diagnostic targets - the singular form of the
  * top-level section the entity is declared in. Every documented section has a
  * variant; the ones whose children are addressable by logical ID (resources,
  * parameters, outputs, mappings, conditions, rules, and metadata keys) are
@@ -956,7 +956,7 @@ export interface StandardDiagnostic {
      */
     source: RuleOrigin;
     /**
-     * The named template entity this finding targets — a resource, parameter, output, mapping, condition, or template rule — if any.
+     * The named template entity this finding targets - a resource, parameter, output, mapping, condition, or template rule - if any.
      */
     entity?: Entity;
     /**
@@ -994,7 +994,7 @@ export interface DetailedDiagnostic {
      */
     source: RuleOrigin;
     /**
-     * The named template entity this finding targets — a resource, parameter, output, mapping, condition, or template rule — if any.
+     * The named template entity this finding targets - a resource, parameter, output, mapping, condition, or template rule - if any.
      */
     entity?: Entity;
     /**
@@ -1049,6 +1049,14 @@ export interface ReportMetadata {
      * Number of rules that were active for this run after any category exclusions.
      */
     rulesEvaluated?: number;
+    /**
+     * Source-qualified cfn-lint version used to sync bundled derived data.
+     */
+    cfnLintVersion?: string;
+    /**
+     * Source-qualified enhanced resource-schema version used for the bundled provider schemas.
+     */
+    resourceSchemaVersion?: string;
     resourcesScanned: number;
     /**
      * Tally of reported diagnostics by severity.
