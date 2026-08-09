@@ -4,7 +4,7 @@
 //
 // Usage:
 //
-//	go run ./bench [TEMPLATE|DIR] --engine rego|cel --iterations N
+//	go run . [TEMPLATE|DIR] --engine rego|cel --iterations N
 //
 // The default corpus is src/resources/templates (relative to the workspace
 // root). Reports are written to src/bindings-go/reports/{engine}/.
@@ -571,7 +571,7 @@ func resolveDefaultCorpus() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	corpus := filepath.Join(dir, "..", "..", "..", "resources", "templates")
+	corpus := filepath.Join(dir, "..", "..", "resources", "templates")
 	abs, err := filepath.Abs(corpus)
 	if err != nil {
 		return "", fmt.Errorf("resolving absolute path for corpus: %w", err)
@@ -591,7 +591,7 @@ func resolveReportDir(engine string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	reportDir := filepath.Join(dir, "..", "..", "reports", engine)
+	reportDir := filepath.Join(dir, "..", "reports", engine)
 	abs, err := filepath.Abs(reportDir)
 	if err != nil {
 		return "", fmt.Errorf("resolving absolute path for report dir: %w", err)

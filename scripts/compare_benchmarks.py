@@ -175,9 +175,9 @@ def run_benchmark(binding, engine, iterations, template_dir):
                  "--iterations", str(iterations)],
                 bench_dir, "python benchmark")
     elif binding == "go":
-        run_cmd(["go", "run", "./bench", str(template_dir), "--engine", engine,
+        run_cmd(["go", "run", ".", str(template_dir), "--engine", engine,
                  "--iterations", str(iterations)],
-                SRC_DIR / "bindings-go" / "go", "go benchmark")
+                SRC_DIR / "bindings-go" / "bench", "go benchmark")
     else:
         sys.exit(f"unknown binding: {binding}")
 

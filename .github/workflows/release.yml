@@ -39,6 +39,7 @@ jobs:
       release-version: ${{ steps.validate-release.outputs.release-version }}
       python-version: ${{ steps.validate-release.outputs.python-version }}
     env:
+      GO_MODULE_TAG: src/bindings-go/go/v${{ inputs.tag }}
       RELEASE_SOURCE_REF: ${{ inputs.ref }}
       RELEASE_TAG: ${{ inputs.tag }}
       WORKING_DIR: ${{ needs.get-configs.outputs.working-dir }}
@@ -98,38 +99,51 @@ jobs:
           } >> "$GITHUB_OUTPUT"
           echo "Tag $RELEASE_TAG is a $release_kind release; Python version is $python_version."
 
-      - name: Check release tag
-        id: check-tag
+      - name: Check release tags
+        id: check-tags
         run: |
           set -euo pipefail
           source_commit="$(git rev-parse HEAD^{commit})"
-          if git rev-parse -q --verify "refs/tags/$RELEASE_TAG" >/dev/null; then
-            tag_commit="$(git rev-parse "refs/tags/$RELEASE_TAG^{commit}")"
-            if [ "$tag_commit" != "$source_commit" ]; then
-              echo "::error::Existing tag $RELEASE_TAG points to $tag_commit, not source commit $source_commit."
-              exit 1
+          missing_tags=false
+
+          for tag in "$RELEASE_TAG" "$GO_MODULE_TAG"; do
+            if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+              tag_commit="$(git rev-parse "refs/tags/$tag^{commit}")"
+              if [ "$tag_commit" != "$source_commit" ]; then
+                echo "::error::Existing tag $tag points to $tag_commit, not source commit $source_commit."
+                exit 1
+              fi
+              echo "Existing tag $tag already points to source commit $source_commit."
+            else
+              missing_tags=true
             fi
-            echo "exists=true" >> "$GITHUB_OUTPUT"
-            echo "Existing tag $RELEASE_TAG already points to source commit $source_commit."
-          else
-            echo "exists=false" >> "$GITHUB_OUTPUT"
-          fi
+          done
+
+          echo "missing=$missing_tags" >> "$GITHUB_OUTPUT"
 
       - name: Configure Git
-        if: steps.check-tag.outputs.exists != 'true'
+        if: steps.check-tags.outputs.missing == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Create and push tag
-        if: steps.check-tag.outputs.exists != 'true'
+      - name: Create and push release tags
+        if: steps.check-tags.outputs.missing == 'true'
         run: |
           set -euo pipefail
-          git tag "$RELEASE_TAG"
-          echo "Created tag from commit=$(git rev-parse HEAD), tag=$(git describe --tags --exact-match)"
+          source_commit="$(git rev-parse HEAD^{commit})"
+          tag_refs=()
 
-          git push origin "refs/tags/$RELEASE_TAG"
-          echo "Pushed tag=$RELEASE_TAG"
+          for tag in "$RELEASE_TAG" "$GO_MODULE_TAG"; do
+            if ! git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+              git tag "$tag" "$source_commit"
+              tag_refs+=("refs/tags/$tag")
+              echo "Created tag $tag at commit $source_commit."
+            fi
+          done
+
+          git push --atomic origin "${tag_refs[@]}"
+          printf 'Pushed tag ref=%s\n' "${tag_refs[@]}"
 
   release:
     needs: [ get-configs, version-and-tag ]
