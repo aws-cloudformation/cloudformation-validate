@@ -48,8 +48,9 @@ src/
 ├── bindings-go/                # Go bindings (UniFFI via uniffi-bindgen-go) — JSON-over-FFI, cgo static linking
 │   ├── go/                     # The published Go module: hand-maintained API + types, generated
 │   │                           # internal/bindings_go, and per-platform libs/ static libraries (committed)
-│   ├── native/                 # Hand-maintained cgo link directives copied into the generated package
-│   └── tests/                  # Go test runner (run.sh)
+│   ├── tests/                  # Go test harness module (smoke, golden, config, security tests; run.sh)
+│   ├── bench/                  # Go benchmark harness module (main.go — corpus/report benchmark)
+│   └── native/                 # Hand-maintained cgo link directives copied into the generated package
 └── resources/                  # Test-fixture CRATE (workspace member)
     ├── src/                    # Corpus discovery API (templates_dir, validation_reports_file, GOLDEN_DIRS, …)
     ├── examples/               # generate_validation_reports.rs — golden-file regeneration

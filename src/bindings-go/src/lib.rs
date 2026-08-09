@@ -422,7 +422,7 @@ mod tests {
     }
 
     /// The JSON a fully populated Go `ValidateConfig` marshals to. Kept in sync
-    /// with `FULL_VALIDATE_CONFIG_JSON` in `go/config_test.go`, which asserts
+    /// with `FULL_VALIDATE_CONFIG_JSON` in `tests/config_test.go`, which asserts
     /// the Go structs produce exactly this document - together the two tests pin
     /// the wire contract from both sides.
     const FULL_VALIDATE_OPTIONS_JSON: &str = r#"{

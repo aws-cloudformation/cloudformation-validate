@@ -108,6 +108,12 @@ func TestVersionMatchesWorkspaceCargoToml(t *testing.T) {
 	}
 }
 
+func TestPackageVersionReportsLocalReplacementAsDevelopment(t *testing.T) {
+	if got, want := cfnvalidate.PackageVersion(), "(devel)"; got != want {
+		t.Errorf("PackageVersion() = %q, want %q", got, want)
+	}
+}
+
 func TestEngineNames(t *testing.T) {
 	for want, engine := range bothEngines(t) {
 		if got := engine.EngineName(); got != want {
