@@ -382,16 +382,10 @@ pub struct PerformanceMetrics {
 #[serde(rename_all = "camelCase")]
 pub struct ReportMetadata {
     /// Number of rules that were active for this run after any category exclusions.
-    #[serde(default)]
-    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub rules_evaluated: u32,
     /// Source-qualified cfn-lint version used to sync bundled derived data.
-    #[serde(default)]
-    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub cfn_lint_version: String,
     /// Source-qualified enhanced resource-schema version used for the bundled provider schemas.
-    #[serde(default)]
-    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub resource_schema_version: String,
     pub resources_scanned: u32,
     /// Tally of reported diagnostics by severity.
@@ -703,5 +697,35 @@ mod tests {
     fn report_status_serializes_as_screaming_snake_case() {
         assert_eq!(serde_json::to_string(&ReportStatus::Ok).unwrap(), "\"OK\"");
         assert_eq!(serde_json::to_string(&ReportStatus::Error).unwrap(), "\"ERROR\"");
+    }
+
+    #[test]
+    fn report_metadata_rejects_missing_required_fields() {
+        let complete = serde_json::json!({
+            "rulesEvaluated": 0,
+            "cfnLintVersion": "v",
+            "resourceSchemaVersion": "v",
+            "resourcesScanned": 0,
+            "counts": {
+                "fatal": 0,
+                "errors": 0,
+                "warnings": 0,
+                "informational": 0,
+                "debug": 0
+            },
+            "suppressed": 0,
+            "strict": false,
+            "severityLevel": "INFO"
+        });
+
+        for required_field in ["rulesEvaluated", "cfnLintVersion", "resourceSchemaVersion"] {
+            let mut incomplete = complete.clone();
+            incomplete.as_object_mut().unwrap().remove(required_field);
+            let error = serde_json::from_value::<ReportMetadata>(incomplete).unwrap_err();
+            assert!(
+                error.to_string().contains(required_field),
+                "missing field error must name {required_field}: {error}"
+            );
+        }
     }
 }
