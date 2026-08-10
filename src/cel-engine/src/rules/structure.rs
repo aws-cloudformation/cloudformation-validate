@@ -1,4 +1,3 @@
-use super::intrinsics::getatt_attr_is_map_member;
 use super::{EvalContext, NativeRuleRegistry};
 use diagnostics::Diagnostic;
 use rules::Category;
@@ -8,7 +7,6 @@ use template_model::consts::{
     EDGE_KIND_REF, EDGE_KIND_SUB, FIELD_CONDITION, FIELD_CONDITIONS, FIELD_DELETION_POLICY, FIELD_EDGES, FIELD_KIND,
     FIELD_MAPPINGS, FIELD_OUTGOING_REFS, FIELD_OUTPUTS, FIELD_PARAMETERS, FIELD_RESOURCE_TYPE, FIELD_RESOURCES,
     FIELD_SOURCE_PATH, FIELD_TARGET, FIELD_UPDATE_REPLACE_POLICY, FN_FOR_EACH, FN_FOR_EACH_KEY_PREFIX,
-    KEY_DELETION_POLICY, KEY_UPDATE_REPLACE_POLICY, MARKER_CONDITIONAL, MARKER_DYNAMIC, MARKER_ENUM, MARKER_REF,
     PARAM_TYPE_COMMA_DELIMITED_LIST, PARAM_TYPE_NUMBER, PARAM_TYPE_STRING, POLICY_DELETE, POLICY_RETAIN,
     POLICY_RETAIN_EXCEPT_ON_CREATE, POLICY_SNAPSHOT, SECTION_CONDITIONS, SECTION_DESCRIPTION, SECTION_FORMAT_VERSION,
     SECTION_GLOBALS, SECTION_MAPPINGS, SECTION_METADATA, SECTION_OUTPUTS, SECTION_PARAMETERS, SECTION_RESOURCES,
@@ -139,7 +137,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                     &format!("'{}' is not a valid top-level template section", key),
                     m,
                     "",
-                    key,
+                    "",
                     None,
                 ));
             }
@@ -381,18 +379,6 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     for (map_name, level1) in &m.mappings {
-        // The mapping's own name is limited to alphanumeric characters — a name
-        // that violates the pattern cannot be addressed by Fn::FindInMap.
-        if !ALPHANUM_RE.is_match(map_name) {
-            out.push(make_resource_diagnostic(
-                "E7001",
-                &format!("Mapping name '{}' does not match format '^[a-zA-Z0-9]+$'", map_name),
-                m,
-                "",
-                &format!("{}/{}", SECTION_MAPPINGS, map_name),
-                None,
-            ));
-        }
         for (k1, level2) in level1 {
             if !MAPPING_TOP_KEY_RE.is_match(k1) {
                 out.push(make_resource_diagnostic(
@@ -435,56 +421,34 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
         for (name, res) in resources {
             let rtype = res.get(FIELD_RESOURCE_TYPE).and_then(|t| t.as_str()).unwrap_or("");
             let snapshot_ok = SNAPSHOT_CAPABLE_TYPES.contains(&rtype);
-            if let Some(v) = res.get(FIELD_DELETION_POLICY) {
-                let allowed = if snapshot_ok {
-                    "Delete, Retain, RetainExceptOnCreate, Snapshot"
-                } else {
-                    "Delete, Retain, RetainExceptOnCreate"
-                };
-                if let Some(dp) = v.as_str() {
-                    let valid = base_deletion.contains(&dp) || (snapshot_ok && dp == POLICY_SNAPSHOT);
-                    if !valid {
-                        out.push(make_resource_diagnostic(
-                            "F3016",
-                            &format!("DeletionPolicy must be one of {}, got '{}'", allowed, dp),
-                            m,
-                            name,
-                            KEY_DELETION_POLICY,
-                            None,
-                        ));
-                    }
-                } else if let Some(shape) = non_string_policy_shape(v) {
+            if let Some(dp) = res.get(FIELD_DELETION_POLICY).and_then(|v| v.as_str()) {
+                let valid = base_deletion.contains(&dp) || (snapshot_ok && dp == POLICY_SNAPSHOT);
+                if !valid {
+                    let allowed = if snapshot_ok {
+                        "Delete, Retain, RetainExceptOnCreate, Snapshot"
+                    } else {
+                        "Delete, Retain, RetainExceptOnCreate"
+                    };
                     out.push(make_resource_diagnostic(
                         "F3016",
-                        &format!("DeletionPolicy must be one of {}, got {}", allowed, shape),
+                        &format!("DeletionPolicy must be one of {}, got '{}'", allowed, dp),
                         m,
                         name,
-                        KEY_DELETION_POLICY,
+                        "",
                         None,
                     ));
                 }
             }
-            if let Some(v) = res.get(FIELD_UPDATE_REPLACE_POLICY) {
-                let allowed = if snapshot_ok { "Delete, Retain, Snapshot" } else { "Delete, Retain" };
-                if let Some(urp) = v.as_str() {
-                    let valid = base_update.contains(&urp) || (snapshot_ok && urp == POLICY_SNAPSHOT);
-                    if !valid {
-                        out.push(make_resource_diagnostic(
-                            "F0018",
-                            &format!("UpdateReplacePolicy must be one of {}, got '{}'", allowed, urp),
-                            m,
-                            name,
-                            KEY_UPDATE_REPLACE_POLICY,
-                            None,
-                        ));
-                    }
-                } else if let Some(shape) = non_string_policy_shape(v) {
+            if let Some(urp) = res.get(FIELD_UPDATE_REPLACE_POLICY).and_then(|v| v.as_str()) {
+                let valid = base_update.contains(&urp) || (snapshot_ok && urp == POLICY_SNAPSHOT);
+                if !valid {
+                    let allowed = if snapshot_ok { "Delete, Retain, Snapshot" } else { "Delete, Retain" };
                     out.push(make_resource_diagnostic(
                         "F0018",
-                        &format!("UpdateReplacePolicy must be one of {}, got {}", allowed, shape),
+                        &format!("UpdateReplacePolicy must be one of {}, got '{}'", allowed, urp),
                         m,
                         name,
-                        KEY_UPDATE_REPLACE_POLICY,
+                        "",
                         None,
                     ));
                 }
@@ -718,35 +682,9 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                 for ga_ref in refs {
                     let resource = ga_ref.get("resource").and_then(|r| r.as_str()).unwrap_or("");
                     let attribute = ga_ref.get("attribute").and_then(|a| a.as_str()).unwrap_or("");
-                    let Some(res) = m.resources.get(resource) else {
-                        continue;
-                    };
-                    // An attribute the resource type does not expose fails the
-                    // deploy regardless of where the output value uses it. The
-                    // exemptions mirror the resource-side attribute check:
-                    // custom resources, macros, and nested stacks expose
-                    // caller-defined attributes, and two types expose an
-                    // open-ended `Outputs.<key>` map.
-                    if let Some(valid_list) = ctx.cached_data.getatt_attrs.get(&res.resource_type)
-                        && !valid_list.iter().any(|a| a == attribute)
-                        && !getatt_attr_is_map_member(attribute, &res.resource_type)
-                        && !res.resource_type.starts_with("Custom::")
-                        && !res.resource_type.starts_with("AWS::CloudFormation::CustomResource")
-                        && res.resource_type != "AWS::CloudFormation::Stack"
-                        && res.resource_type != "AWS::CloudFormation::Macro"
-                    {
-                        out.push(make_resource_diagnostic(
-                            "F6101",
-                            &format!("'{}' is not one of {}", attribute, render_str_list(valid_list)),
-                            m,
-                            "",
-                            &format!("{}/{}/Value", SECTION_OUTPUTS, name),
-                            None,
-                        ));
-                        continue;
-                    }
-                    if let Some(ret_type) =
-                        ctx.cached_data.getatt_attr_types.get(&res.resource_type).and_then(|t| t.get(attribute))
+                    if let Some(res) = m.resources.get(resource)
+                        && let Some(ret_type) =
+                            ctx.cached_data.getatt_attr_types.get(&res.resource_type).and_then(|t| t.get(attribute))
                         && ret_type != "string"
                     {
                         // An array-returning GetAtt in an output is consumed by
@@ -769,23 +707,6 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                             None,
                         ));
                     }
-                }
-            }
-            // A recorded Sub variable is one that resolved to nothing in the
-            // template — the output value cannot be produced.
-            if let Some(vars) = out_val.get("subRefs").and_then(|r| r.as_array()) {
-                for var in vars.iter().filter_map(|v| v.as_str()) {
-                    out.push(make_resource_diagnostic(
-                        "F6101",
-                        &format!(
-                            "Fn::Sub variable '${{{}}}' does not reference a valid resource, parameter, or pseudo-parameter",
-                            var
-                        ),
-                        m,
-                        "",
-                        &format!("{}/{}/Value", SECTION_OUTPUTS, name),
-                        None,
-                    ));
                 }
             }
         }
@@ -1063,27 +984,6 @@ fn condition_is_referenced(
         }
     }
     false
-}
-
-/// How a non-string resource policy value should be described in a diagnostic,
-/// or `None` when it is not reportable. A list or a plain object can never be a
-/// policy. A resolved-intrinsic marker is never reported: CloudFormation accepts
-/// `Ref`, `Fn::If`, `Fn::FindInMap`, `Fn::Sub`, and `Fn::Select` in these
-/// attributes, and the resolved form no longer says which function was written.
-fn non_string_policy_shape(value: &serde_json::Value) -> Option<&'static str> {
-    match value {
-        serde_json::Value::Array(_) => Some("a list"),
-        serde_json::Value::Object(map) => {
-            let is_marker = map.contains_key(MARKER_DYNAMIC)
-                || map.contains_key(MARKER_REF)
-                || map.contains_key(MARKER_ENUM)
-                || map.contains_key(MARKER_CONDITIONAL);
-            if is_marker { None } else { Some("an object") }
-        }
-        serde_json::Value::Number(_) => Some("a number"),
-        serde_json::Value::Bool(_) => Some("a boolean"),
-        _ => None,
-    }
 }
 
 fn is_valid_parameter_type(ptype: &str) -> bool {

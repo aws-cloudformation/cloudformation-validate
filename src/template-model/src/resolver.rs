@@ -337,7 +337,8 @@ impl<'a> Resolver<'a> {
         match intrinsic {
             IntrinsicFn::Ref(target) => self.resolve_ref(target, span),
             IntrinsicFn::GetAtt(resource, attr) => {
-                self.record_edge(resource, RefKind::GetAtt { attr: attr.clone() }, span);
+                let source_path = format!("{}.Fn::GetAtt.1", self.current_path);
+                self.record_edge_at(resource, RefKind::GetAtt { attr: attr.clone() }, span, &source_path);
                 ResolvedValue::Reference { target: resource.clone(), kind: RefKind::GetAtt { attr: attr.clone() } }
             }
             IntrinsicFn::If(cond, t_ref, f_ref) => {
@@ -1298,7 +1299,7 @@ impl<'a> Resolver<'a> {
                 let start = i + 2;
                 if let Some(end) = template[start..].find('}') {
                     let name = template[start..start + end].trim().to_string();
-                    // `${!Name}` is the literal-escape form — it renders as the text
+                    // `${!Name}` is the literal-escape form - it renders as the text
                     // `${Name}` and never references anything.
                     if !name.starts_with('!') {
                         vars.push(name);
@@ -1345,7 +1346,8 @@ impl<'a> Resolver<'a> {
                 let resource = &var[..dot_pos];
                 let attr = &var[dot_pos + 1..];
                 if self.resource_ids.contains(resource) {
-                    self.record_edge(resource, RefKind::GetAtt { attr: attr.to_string() }, span);
+                    let source_path = format!("{}.Fn::Sub", self.current_path);
+                    self.record_edge_at(resource, RefKind::GetAtt { attr: attr.to_string() }, span, &source_path);
                     sub_map.insert(
                         var.clone(),
                         ResolvedValue::Reference {
@@ -1370,7 +1372,8 @@ impl<'a> Resolver<'a> {
                 Some(value) => value,
                 None => {
                     if map_values_are_clean {
-                        self.record_edge(var, RefKind::Sub { var: var.clone() }, span);
+                        let source_path = format!("{}.Fn::Sub", self.current_path);
+                        self.record_edge_at(var, RefKind::Sub { var: var.clone() }, span, &source_path);
                     }
                     ResolvedValue::Dynamic { reason: format!("unknown sub variable: {}", var) }
                 }
@@ -1507,24 +1510,32 @@ impl<'a> Resolver<'a> {
         }
     }
 
-    /// Total invalid-Ref records across all resources — a cheap before/after
+    /// Total invalid-Ref records across all resources - a cheap before/after
     /// probe for whether resolving a subtree registered any new invalid Ref.
     fn invalid_ref_count(&self) -> usize {
         self.invalid_refs.values().map(Vec::len).sum()
     }
 
     fn record_edge(&mut self, target: &str, kind: RefKind, span: &SourceSpan) {
-        if let Some(ref resource) = self.current_resource.clone() {
+        let source_path = self.current_path.clone();
+        self.record_edge_at(target, kind, span, &source_path);
+    }
+
+    fn record_edge_at(&mut self, target: &str, kind: RefKind, span: &SourceSpan, source_path: &str) {
+        if let Some(resource) = self.current_resource.clone() {
             let condition_context = if self.condition_stack.is_empty() {
                 None
             } else {
-                let ctx: Vec<String> =
-                    self.condition_stack.iter().map(|(c, b)| if *b { c.clone() } else { format!("!{}", c) }).collect();
-                Some(ctx.join(","))
+                let context: Vec<String> = self
+                    .condition_stack
+                    .iter()
+                    .map(|(condition, is_true)| if *is_true { condition.clone() } else { format!("!{}", condition) })
+                    .collect();
+                Some(context.join(","))
             };
             self.edges.push(ResolverEdge {
-                source_resource: resource.clone(),
-                source_path: self.current_path.clone(),
+                source_resource: resource,
+                source_path: source_path.to_string(),
                 target: target.to_string(),
                 kind,
                 span: *span,

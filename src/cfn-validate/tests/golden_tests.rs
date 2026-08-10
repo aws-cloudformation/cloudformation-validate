@@ -136,7 +136,7 @@ fn cel_standard_matches_golden() {
     check_standard("cel", &engine);
 }
 
-const EXPECTED_RULES_EVALUATED: u64 = 304;
+const EXPECTED_RULES_EVALUATED: u64 = 303;
 
 #[test]
 fn rules_evaluated_is_full_rule_count() {

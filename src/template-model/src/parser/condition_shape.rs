@@ -2,8 +2,8 @@
 //!
 //! A condition must evaluate to a boolean, which CloudFormation expresses as one
 //! of the condition functions (`Fn::And`, `Fn::Equals`, `Fn::Not`, `Fn::Or`) or a
-//! reference to another condition. Anything else — a bare string, a map of
-//! several functions, an unknown function name — cannot be evaluated, so every
+//! reference to another condition. Anything else - a bare string, a map of
+//! several functions, an unknown function name - cannot be evaluated, so every
 //! resource gated on that condition fails to deploy. The condition model drops
 //! such a body, so reporting it here is what keeps the failure visible.
 
@@ -71,8 +71,8 @@ fn body_defect_reason(arena: &Arena, body_ref: NodeRef) -> Option<String> {
         Node::Map(entries) if entries.len() == 1 && entries[0].0 == FN_CONDITION => None,
         // A function whose arguments are malformed does not parse into an
         // intrinsic and stays a plain map. The body names a function the parser
-        // validates in its own right — including `Fn::If`, which is not a
-        // condition function but does carry its own structural check — so the
+        // validates in its own right - including `Fn::If`, which is not a
+        // condition function but does carry its own structural check - so the
         // argument defect is already reported; saying "not a condition" on top of
         // that would double-report one mistake.
         Node::Map(entries) if entries.len() == 1 && is_separately_validated(&entries[0].0) => None,

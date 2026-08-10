@@ -24,7 +24,6 @@ pub mod region_enums;
 pub mod regions;
 pub mod resolved_value;
 pub mod resolver;
-pub mod route_table;
 pub(crate) mod rules;
 pub(crate) mod sam;
 pub mod schedule;
@@ -54,6 +53,7 @@ pub use regions::{
     availability_zones_for_region, is_known_region, partition_for_region, url_suffix_for_region,
 };
 pub use schedule::schedule_expression_errors;
+pub use serialization::resolved_value_to_json;
 pub use span::{SourceSpan, SpanProvider, UNKNOWN_SPAN, span_to_option};
 pub use template_section::{EntityType, TopLevelSection, entity_identity};
 pub use value_patterns::{

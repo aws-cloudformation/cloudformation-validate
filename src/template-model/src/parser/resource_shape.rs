@@ -1,4 +1,4 @@
-//! Validation of a resource's declared attributes — the keys CloudFormation
+//! Validation of a resource's declared attributes - the keys CloudFormation
 //! accepts alongside `Type`, and the shape each one's value must take.
 //!
 //! These are contract violations CloudFormation itself rejects, so they are
@@ -359,6 +359,12 @@ mod tests {
     fn transform_macro_key_is_accepted() {
         let template = "Resources:\n  R:\n    Type: AWS::S3::Bucket\n    Fn::Transform:\n      Name: AWS::Include\n      Parameters:\n        Location: s3://b/k\n";
         assert!(messages(template).is_empty(), "a resource-level macro is not an attribute violation");
+    }
+
+    #[test]
+    fn sam_resource_attributes_are_accepted() {
+        let template = "Resources:\n  Function:\n    Type: AWS::Serverless::Function\n    Connectors:\n      TableRead:\n        Properties:\n          Destination: {Id: Table}\n          Permissions: [Read]\n    IgnoreGlobals: [Timeout]\n    Properties:\n      Runtime: python3.12\n      Handler: index.handler\n      CodeUri: s3://bucket/code.zip\n";
+        assert!(messages(template).is_empty(), "SAM resource attributes must not be rejected");
     }
 
     #[test]

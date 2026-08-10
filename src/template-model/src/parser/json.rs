@@ -133,7 +133,7 @@ fn scan_json_byte_spans(
     let mut array_idx: Vec<usize> = Vec::new();
     // Every key committed so far in each open object, with its first occurrence's
     // span and whether that occurrence has been diagnosed. A duplicated key is
-    // flagged at *every* occurrence — the first duplicate retroactively flags the
+    // flagged at *every* occurrence - the first duplicate retroactively flags the
     // original occurrence too, so a reader sees all the colliding definitions.
     let mut seen_keys: Vec<HashMap<String, (SourceSpan, bool)>> = Vec::new();
 
@@ -221,8 +221,8 @@ fn scan_json_byte_spans(
                     };
                     if let Some(keys) = seen_keys.last_mut() {
                         match keys.get_mut(&decoded) {
-                            // Duplicate: flag it at this occurrence, and — the first
-                            // time — retroactively at the original occurrence too.
+                            // Duplicate: flag it at this occurrence, and - the first
+                            // time - retroactively at the original occurrence too.
                             Some((first_span, emitted)) => {
                                 if !*emitted {
                                     *emitted = true;
@@ -671,8 +671,8 @@ mod tests {
         );
     }
 
-    /// A literal duplicate string key is flagged at *both* occurrences — the
-    /// original and the duplicate — the baseline the escaped-key case must match.
+    /// A literal duplicate string key is flagged at *both* occurrences - the
+    /// original and the duplicate - the baseline the escaped-key case must match.
     #[test]
     fn literal_duplicate_string_key_flags_both_occurrences() {
         let input = r#"{"A":1,"A":2}"#;

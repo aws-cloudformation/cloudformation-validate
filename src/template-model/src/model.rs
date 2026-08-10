@@ -1002,7 +1002,10 @@ impl SemanticModel {
             }
             // A reference edge (Ref, GetAtt, Sub) anchored at this path means the
             // value is produced by an intrinsic rather than written as a literal.
-            if edges.iter().any(|e| e.source_path == p) {
+            if edges.iter().any(|edge| {
+                edge.source_path == p
+                    || edge.source_path.strip_prefix(&p).is_some_and(|suffix| suffix.starts_with(".Fn::"))
+            }) {
                 return true;
             }
             match p.rfind('.') {
@@ -2497,6 +2500,25 @@ Resources:
             Err(e) => assert!(e.message.contains("maximum size")),
             Ok(_) => panic!("Expected error for oversized template"),
         }
+    }
+
+    #[test]
+    fn intrinsic_origin_matches_descendant_edge_path_without_matching_siblings() {
+        let input = r#"{
+            "Resources": {
+                "Target": {"Type": "T"},
+                "R": {
+                    "Type": "T",
+                    "Properties": {
+                        "Generated": {"Fn::GetAtt": ["Target", "Arn"]},
+                        "Literal": "literal"
+                    }
+                }
+            }
+        }"#;
+        let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        assert!(model.is_from_intrinsic("R", "Properties.Generated"));
+        assert!(!model.is_from_intrinsic("R", "Properties.Literal"));
     }
 
     #[test]

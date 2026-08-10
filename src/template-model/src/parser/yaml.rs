@@ -25,7 +25,7 @@ const CORE_TAG_HANDLE: &str = "tag:yaml.org,2002:";
 
 /// Base for the synthetic alias ids used as mapping keys for *plain* `<<` merge
 /// keys. A plain `<<` scalar in key position is the YAML 1.1 merge indicator, but a
-/// quoted `'<<'` is an ordinary key — the two must stay distinguishable through the
+/// quoted `'<<'` is an ordinary key - the two must stay distinguishable through the
 /// loaded tree, and `Yaml::Alias` never otherwise appears as a key (aliases resolve
 /// to their anchored value at load time). Each merge key gets a unique id so several
 /// merge entries in one mapping neither collide in the hash nor lose their order.
@@ -121,7 +121,7 @@ fn digit_run_or_empty(s: &str) -> bool {
     s.bytes().all(|b| b.is_ascii_digit() || b == b'_')
 }
 
-/// Matches a YAML 1.1 float exponent: `[eE][-+][0-9]+`. The sign is mandatory —
+/// Matches a YAML 1.1 float exponent: `[eE][-+][0-9]+`. The sign is mandatory -
 /// `1e5` and `1.5e10` are *strings* in YAML 1.1, unlike YAML 1.2.
 fn signed_exponent(s: &str) -> bool {
     let rest = match s.strip_prefix('e').or_else(|| s.strip_prefix('E')) {
@@ -144,7 +144,7 @@ fn split_exponent(body: &str) -> (&str, &str) {
     }
 }
 
-/// Parses a YAML 1.1 float, returning the token to store in [`Yaml::Real`] —
+/// Parses a YAML 1.1 float, returning the token to store in [`Yaml::Real`] -
 /// normalized (separators stripped, sexagesimal evaluated) so `Yaml::as_f64` can
 /// re-parse it. Mirrors the YAML 1.1 resolver CloudFormation's parser uses:
 /// the exponent requires a sign, `.5` has no signed form, and `.inf`/`.nan`
@@ -198,7 +198,7 @@ fn parse_yaml11_float(v: &str) -> Option<String> {
     None
 }
 
-/// Resolves a plain (unquoted, untagged) YAML scalar per the YAML 1.1 schema —
+/// Resolves a plain (unquoted, untagged) YAML scalar per the YAML 1.1 schema -
 /// the resolution CloudFormation's template parser applies. Notable differences
 /// from YAML 1.2: `yes`/`no`/`on`/`off` (and case variants) are booleans, a
 /// leading zero means octal, `_` separates digits, `1:30` is the integer 90, and
@@ -221,28 +221,29 @@ fn resolve_plain_scalar(v: &str) -> Yaml {
     Yaml::String(v.to_string())
 }
 
-/// Resolves a scalar carrying an explicit core-schema tag (`!!str`, `!!int`, …).
-/// The tag overrides both style and content-based resolution, exactly as the YAML
-/// spec requires: `!!str 123` is the string "123" and `!!int '5'` is the integer 5.
-/// A value the tag cannot represent falls back to the string form rather than
-/// aborting the parse — the schema validator then reports the type mismatch at the
-/// use site with a precise span.
-fn resolve_core_tagged_scalar(suffix: &str, v: &str) -> Option<Yaml> {
+/// Resolves a scalar carrying an explicit core-schema tag (`!!str`, `!!int`, etc.).
+/// The tag overrides both style and content-based resolution. A recognized tag
+/// whose lexical value is invalid fails the parse rather than being silently
+/// reinterpreted as a string.
+fn resolve_core_tagged_scalar(suffix: &str, value: &str) -> Result<Option<Yaml>, String> {
+    let invalid = || format!("'{}' is not a valid value for !!{}", value, suffix);
     match suffix {
-        "str" => Some(Yaml::String(v.to_string())),
-        "null" => Some(Yaml::Null),
-        "bool" => match resolve_plain_scalar(v) {
-            b @ Yaml::Boolean(_) => Some(b),
-            _ => Some(Yaml::String(v.to_string())),
+        "str" => Ok(Some(Yaml::String(value.to_string()))),
+        "null" => match resolve_plain_scalar(value) {
+            Yaml::Null => Ok(Some(Yaml::Null)),
+            _ => Err(invalid()),
         },
-        "int" => Some(parse_yaml11_int(v).map(Yaml::Integer).unwrap_or_else(|| Yaml::String(v.to_string()))),
-        "float" => Some(
-            parse_yaml11_float(v)
-                .map(Yaml::Real)
-                .or_else(|| parse_yaml11_int(v).map(|i| Yaml::Real(format!("{}", i as f64))))
-                .unwrap_or_else(|| Yaml::String(v.to_string())),
-        ),
-        _ => None,
+        "bool" => match resolve_plain_scalar(value) {
+            boolean @ Yaml::Boolean(_) => Ok(Some(boolean)),
+            _ => Err(invalid()),
+        },
+        "int" => parse_yaml11_int(value).map(Yaml::Integer).map(Some).ok_or_else(invalid),
+        "float" => parse_yaml11_float(value)
+            .map(Yaml::Real)
+            .or_else(|| parse_yaml11_int(value).map(|integer| Yaml::Real(format!("{}", integer as f64))))
+            .map(Some)
+            .ok_or_else(invalid),
+        _ => Ok(None),
     }
 }
 
@@ -303,7 +304,7 @@ struct CfnYamlLoader {
     key_marks: Vec<Option<(u32, u32)>>,
     /// Every key committed so far in each open mapping (parallel to `key_stack`),
     /// with its first occurrence's position and whether that first occurrence has
-    /// already been diagnosed. A duplicated key is flagged at *every* occurrence —
+    /// already been diagnosed. A duplicated key is flagged at *every* occurrence -
     /// the first duplicate retroactively flags the original occurrence too, so a
     /// reader sees all the colliding definitions, not just the later ones.
     seen_keys: Vec<Vec<(Yaml, Option<(u32, u32)>, bool)>>,
@@ -327,7 +328,7 @@ struct CfnYamlLoader {
     merge_key_count: usize,
     /// First structurally-fatal defect found while loading (a null or non-scalar
     /// mapping key). CloudFormation cannot represent such a template as JSON, so
-    /// the whole parse fails — mirroring the scanner's own hard errors.
+    /// the whole parse fails - mirroring the scanner's own hard errors.
     load_error: Option<ParseError>,
     /// Where a second YAML document begins, when the stream has more than one.
     /// A CloudFormation template is a single document; extra documents fail the
@@ -611,7 +612,7 @@ impl CfnYamlLoader {
                         }
                     }
                     // A repeated key would be silently overwritten by yaml_rust2, so
-                    // duplicates are flagged here — at every occurrence, the original
+                    // duplicates are flagged here - at every occurrence, the original
                     // included (it is flagged retroactively when the first duplicate
                     // appears). Buffered per mapping so the whole set can be dropped
                     // if the mapping turns out to merge.
@@ -626,7 +627,7 @@ impl CfnYamlLoader {
                     };
                     // At this point every enclosing frame's slot is committed and
                     // the innermost slot holds the duplicated key, so the path
-                    // names the duplicated entry itself — anchoring the diagnostic
+                    // names the duplicated entry itself - anchoring the diagnostic
                     // at the entity it duplicates.
                     let duplicated_path = path_from_frames(&self.path_frames);
                     if h.insert(key.clone(), node_val).is_some() {
@@ -728,18 +729,31 @@ impl MarkedEventReceiver for CfnYamlLoader {
             Event::Scalar(v, style, aid, ref tag) => {
                 let cfn_tag = Self::cfn_tag_name(tag);
                 let is_key = self.placing_map_key();
-                // An explicit core-schema tag (`!!str`, `!!int`, …) overrides both
-                // style and content; otherwise a non-plain scalar is a string and a
-                // plain one resolves per the YAML 1.1 schema — the resolution
-                // CloudFormation's template parser applies.
+                // A recognized explicit core-schema tag overrides both style and
+                // content. Invalid lexical content records a hard parse error at
+                // the tagged scalar; unknown core tags retain their prior scalar
+                // handling because this parser does not assign them a type.
                 let core_tagged = tag
                     .as_ref()
-                    .filter(|t| t.handle == CORE_TAG_HANDLE)
-                    .and_then(|t| resolve_core_tagged_scalar(&t.suffix, &v));
+                    .filter(|tag| tag.handle == CORE_TAG_HANDLE)
+                    .map(|tag| resolve_core_tagged_scalar(&tag.suffix, &v));
                 let node = match core_tagged {
-                    Some(resolved) => resolved,
-                    None if style != yaml_rust2::scanner::TScalarStyle::Plain => Yaml::String(v.clone()),
-                    None => resolve_plain_scalar(&v),
+                    Some(Ok(Some(resolved))) => resolved,
+                    Some(Err(message)) => {
+                        if self.load_error.is_none() {
+                            let (line, column) = Self::mark_position(mark);
+                            self.load_error = Some(ParseError {
+                                message: format!("YAML parse error: {}", message),
+                                line: Some(line),
+                                column: Some(column),
+                            });
+                        }
+                        Yaml::BadValue
+                    }
+                    Some(Ok(None)) | None if style != yaml_rust2::scanner::TScalarStyle::Plain => {
+                        Yaml::String(v.clone())
+                    }
+                    Some(Ok(None)) | None => resolve_plain_scalar(&v),
                 };
                 // Only a *plain*, untagged `<<` in key position is the YAML 1.1 merge
                 // indicator; a quoted `'<<'` is an ordinary key. Carry the merge as a
@@ -757,8 +771,8 @@ impl MarkedEventReceiver for CfnYamlLoader {
                     // This scalar names the slot its sibling value will occupy; put it in
                     // the frame so the value's path is complete, then anchor the property
                     // at the key (object-property diagnostics anchor at the key). The
-                    // slot uses the key's *coerced string form* — the same string
-                    // [`yaml_key_as_string`] later gives the builder — so a key that
+                    // slot uses the key's *coerced string form* - the same string
+                    // [`yaml_key_as_string`] later gives the builder - so a key that
                     // resolves to a non-string scalar (`On:`, `010:`) is anchored at the
                     // path the builder actually produces.
                     let slot_name = yaml_key_as_string(&node).unwrap_or_else(|| v.clone());
@@ -1073,7 +1087,7 @@ mod tests {
                 .map(|d| (d.message.clone(), d.span.start_line))
                 .collect()
         };
-        // Both occurrences are flagged — the original line and the duplicate line.
+        // Both occurrences are flagged - the original line and the duplicate line.
         assert_eq!(entries(&json), [("Duplicate key 'A'".to_string(), 3), ("Duplicate key 'A'".to_string(), 4)]);
         assert_eq!(entries(&yaml), [("Duplicate key 'A'".to_string(), 2), ("Duplicate key 'A'".to_string(), 3)]);
     }
@@ -1588,7 +1602,7 @@ mod tests {
     }
 
     /// The merge fix must not weaken duplicate detection in mappings that do NOT
-    /// merge: a genuine literal duplicate elsewhere is still flagged — at both the
+    /// merge: a genuine literal duplicate elsewhere is still flagged - at both the
     /// original and the duplicate occurrence.
     #[test]
     fn yaml_literal_duplicate_without_merge_still_emits_f0000() {
@@ -1711,7 +1725,7 @@ mod tests {
         ir.arena.node(v).clone()
     }
 
-    /// Plain scalars resolve per the YAML 1.1 schema — the resolution
+    /// Plain scalars resolve per the YAML 1.1 schema - the resolution
     /// CloudFormation's own parser applies. `yes`/`no`/`on`/`off` variants are
     /// booleans; single letters `y`/`n` are not.
     #[test]
@@ -1728,7 +1742,7 @@ mod tests {
     }
 
     /// YAML 1.1 integer forms: octal via leading zero, binary, hex, `_`
-    /// separators, and sexagesimal — and the strings YAML 1.1 does *not*
+    /// separators, and sexagesimal - and the strings YAML 1.1 does *not*
     /// treat as numbers (`0o10`, invalid octal digits).
     #[test]
     fn yaml11_integer_forms_resolve() {
@@ -1783,10 +1797,28 @@ mod tests {
         assert_eq!(scalar_property_node("!!int '5'"), Node::Int(5));
         assert_eq!(scalar_property_node("!!bool 'yes'"), Node::Bool(true));
         assert_eq!(scalar_property_node("!!float '2'"), Node::Float(2.0));
-        assert_eq!(scalar_property_node("!!null anything"), Node::Null);
+        assert_eq!(scalar_property_node("!!null ~"), Node::Null);
     }
 
-    /// Mapping keys resolve like values, then coerce to their string form — so a
+    #[test]
+    fn malformed_recognized_core_tags_fail_at_the_scalar() {
+        for (tagged_value, expected_column) in [
+            ("!!bool definitely", 26),
+            ("!!int not_an_integer", 25),
+            ("!!float not_a_float", 27),
+            ("!!null not_null", 26),
+        ] {
+            let template = format!(
+                "Resources:\n  R:\n    Type: AWS::S3::Bucket\n    Properties:\n      BucketName: {tagged_value}\n"
+            );
+            let error = parse_yaml(template.as_bytes()).expect_err("malformed explicit tag must fail parsing");
+            assert!(error.message.contains("not a valid value"), "{tagged_value}: {}", error.message);
+            assert_eq!(error.line, Some(5), "{tagged_value}");
+            assert_eq!(error.column, Some(expected_column), "{tagged_value}");
+        }
+    }
+
+    /// Mapping keys resolve like values, then coerce to their string form - so a
     /// key spelled `On:` is the property "true" and its span lands on the path the
     /// builder produces.
     #[test]
@@ -1840,7 +1872,7 @@ mod tests {
         assert!(ir.diagnostics.iter().all(|d| d.rule_id != "W1100"), "no merge warning for a literal '<<' key");
     }
 
-    /// Two plain `<<` entries in one mapping both merge, earlier source first —
+    /// Two plain `<<` entries in one mapping both merge, earlier source first -
     /// the second must not silently replace the first.
     #[test]
     fn multiple_merge_keys_in_one_mapping_all_merge() {

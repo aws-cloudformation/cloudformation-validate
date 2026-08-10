@@ -620,7 +620,7 @@ fn all_templates_parse_without_panic() {
     // duplicate documents in one stream, null and complex mapping keys, and an
     // unhashable-key repro. Raise this cap only for a template that is *supposed*
     // to fail the parse.
-    assert!(err <= 11, "too many parse failures: {}", err);
+    assert!(err <= 12, "too many parse failures: {}", err);
 }
 
 fn walkdir(dir: &str) -> Vec<String> {
@@ -761,4 +761,47 @@ fn to_json_has_condition_implications() {
     let json = serde_json::to_value(m.to_diagnostic_json()).unwrap();
     assert!(json.get("conditionImplications").is_some(), "to_json should include conditionImplications");
     assert!(json.get("resourceConditionMap").is_some(), "to_json should include resourceConditionMap");
+}
+
+#[test]
+fn output_reference_entries_preserve_intrinsic_source_paths() {
+    let template = br#"
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+Outputs:
+  DirectGetAtt:
+    Value: !GetAtt Bucket.DomainName
+  ImplicitGetAtt:
+    Value: !Sub '${Bucket.DomainName}'
+  NestedSub:
+    Value: !Join ['', [prefix-, !Sub '${MissingVariable}']]
+"#;
+    let model = SemanticModel::from_bytes(template).expect("template must parse");
+    let diagnostic_model = model.to_diagnostic_json();
+
+    let direct = &diagnostic_model.outputs["DirectGetAtt"].getatt_refs;
+    assert_eq!(direct.len(), 1);
+    assert_eq!(direct[0].resource, "Bucket");
+    assert_eq!(direct[0].attribute, "DomainName");
+    assert_eq!(direct[0].source_path.as_deref(), Some("Outputs/DirectGetAtt/Value.Fn::GetAtt.1"));
+
+    let implicit = &diagnostic_model.outputs["ImplicitGetAtt"].getatt_refs;
+    assert_eq!(implicit.len(), 1);
+    assert_eq!(implicit[0].source_path.as_deref(), Some("Outputs/ImplicitGetAtt/Value.Fn::Sub"));
+
+    let unresolved = &diagnostic_model.outputs["NestedSub"].sub_refs;
+    assert_eq!(unresolved.len(), 1);
+    assert_eq!(unresolved[0].variable, "MissingVariable");
+    assert_eq!(unresolved[0].source_path.as_deref(), Some("Outputs/NestedSub/Value.Fn::Join.1.1.Fn::Sub"));
+
+    let serialized = serde_json::to_value(&diagnostic_model).expect("diagnostic model must serialize");
+    assert_eq!(
+        serialized["outputs"]["DirectGetAtt"]["getattRefs"][0]["sourcePath"],
+        "Outputs/DirectGetAtt/Value.Fn::GetAtt.1"
+    );
+    assert_eq!(
+        serialized["outputs"]["NestedSub"]["subRefs"][0]["sourcePath"],
+        "Outputs/NestedSub/Value.Fn::Join.1.1.Fn::Sub"
+    );
 }

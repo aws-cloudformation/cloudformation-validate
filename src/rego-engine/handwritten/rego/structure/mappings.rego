@@ -45,15 +45,6 @@ violation contains make_diag_at("F0050", "FATAL", "",
     cnt > 200
 }
 
-# E7001: The mapping's own name is limited to alphanumeric characters - a name
-# that violates the pattern cannot be addressed by Fn::FindInMap.
-violation contains make_diag_at("E7001", "ERROR", "",
-    sprintf("Mappings/%s", [map_name]),
-    sprintf("Mapping name '%s' does not match format '^[a-zA-Z0-9]+$'", [map_name])) if {
-    some map_name in object.keys(input.mappings)
-    not regex.match(`^[a-zA-Z0-9]+$`, map_name)
-}
-
 # E7001: Mapping second-level keys must match ^[a-zA-Z0-9.-]+$
 violation contains make_diag_at("E7001", "ERROR", "",
     sprintf("Mappings/%s/%s", [map_name, k1]),

@@ -8,8 +8,8 @@ pseudo_params_sub := {
     "AWS::Partition", "AWS::Region", "AWS::StackId", "AWS::StackName", "AWS::URLSuffix"
 }
 
-violation contains make_diag_full("F1018", "FATAL", name, edge.sourcePath,
-    sprintf("Fn::Sub variable '${%s}' does not reference a valid resource, parameter, or pseudo-parameter", [target]), "", "") if {
+violation contains make_diag("F1018", "FATAL", name,
+    sprintf("Fn::Sub variable '${%s}' does not reference a valid resource, parameter, or pseudo-parameter", [target])) if {
     some name, res in input.resources
     some edge in res.outgoingRefs
     edge.kind == "Sub"

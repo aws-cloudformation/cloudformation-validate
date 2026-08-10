@@ -462,7 +462,7 @@ impl Builder {
         }
         let cond_str = arr[0].as_coerced_str();
         if cond_str.is_none() && self.invalid_if_depth == 0 {
-            // CloudFormation only accepts a condition *name* here — a nested
+            // CloudFormation only accepts a condition *name* here - a nested
             // boolean function (`Fn::And`, `Fn::Or`, …) is rejected at deploy
             // time; such expressions are legal only inside the Conditions
             // section. Only the outermost offender is reported: a nested

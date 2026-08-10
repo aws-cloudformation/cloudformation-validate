@@ -1,11 +1,9 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: >
-  I3510 must NOT fire when a statement's Resource ARN is produced by an
-  intrinsic function (Fn::Sub, Fn::GetAtt, ...). Even when the intrinsic fully
-  resolves to a concrete literal at analysis time, its real ARN is only known at
-  deploy time, so the action-format check must be skipped - matching cfn-lint,
-  which treats any function-valued Resource as opaque. This file must stay clean
-  in both engines.
+Description: Identity-policy Resource values produced by intrinsics remain opaque to static content checks.
+Parameters:
+  PolicyResource:
+    Type: String
+    Default: not-an-arn
 Resources:
   SomeBucket:
     Type: AWS::S3::Bucket
@@ -38,3 +36,16 @@ Resources:
               - !GetAtt SomeBucket.Arn
       Roles:
         - some-role
+
+  JoinResource:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: joined-resource
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Effect: Allow
+          Action: s3:GetObject
+          Resource: !Join ["/", [!Ref PolicyResource, "*"]]
+      Roles:
+      - some-role

@@ -7,13 +7,12 @@
 //! enum, exactly-one-of `Action`/`NotAction` and `Resource`/`NotResource`
 //! pairs, value types, and the resource-ARN format.
 //!
-//! Both rule engines evaluate through this one implementation so their
-//! findings are identical. Values carrying resolved-intrinsic markers (a
-//! `Ref` that could not be resolved, a conditional, or any dynamic value) are
-//! skipped: only what the author literally wrote is judged.
+//! This engine-agnostic implementation lets every consumer apply the same
+//! policy-document semantics. Marker-bearing fields are skipped individually:
+//! independent literal fields remain statically verifiable.
 
+use crate::consts::{MARKER_CONDITIONAL, MARKER_DYNAMIC, MARKER_ENUM, MARKER_INTRINSIC, MARKER_REF};
 use crate::message::render_str_list;
-use crate::resolved_value::json_contains_markers;
 use serde_json::Value;
 use std::collections::HashSet;
 use std::sync::LazyLock;
@@ -39,6 +38,51 @@ const RESOURCE_ARN_PATTERN: &str = "^(arn:(aws[A-Za-z\\-]*?|\\*):[^:]+:[^:]*(:(?
 
 static RESOURCE_ARN_RE: LazyLock<Option<regex::Regex>> = LazyLock::new(|| regex::Regex::new(RESOURCE_ARN_PATTERN).ok());
 
+/// Recognized IAM Condition operator patterns.
+static CONDITION_OPERATOR_RE: LazyLock<Option<regex::Regex>> = LazyLock::new(|| {
+    regex::Regex::new(concat!(
+        "^(?:(ForAnyValue:|ForAllValues:)?(",
+        "(Not)?IpAddress(Exists)?(IfExists)?",
+        "|Arn(Not)?Equals(Exists)?(IfExists)?",
+        "|Arn(Not)?Like(Exists)?(IfExists)?",
+        "|Bool(IfExists)?",
+        "|Date(Less|Greater)Than(Equals)?(IfExists)?",
+        "|Date(Not)?Equals(IfExists)?",
+        "|Null(IfExists)?",
+        "|Numeric(Less|Greater)Than(Equals)?(Exists)?(IfExists)?",
+        "|Numeric(Not)?Equals(Exists)?(IfExists)?",
+        "|String(Not)?Equals(IgnoreCase)?(Exists)?(IfExists)?",
+        "|String(Not)?Like(Exists)?(IfExists)?",
+        ")|BinaryEquals)$",
+    ))
+    .ok()
+});
+
+/// Whether a path is covered by (equal to, an ancestor of, or a descendant of)
+/// any substituted path. This treats any subtree touched by intrinsic resolution
+/// as generated, suppressing literal-content checks on the whole subtree.
+fn path_is_intrinsic_generated(path: &str, substituted: &HashSet<String>) -> bool {
+    for sub_path in substituted {
+        if path == sub_path
+            || path.starts_with(&format!("{}.", sub_path))
+            || sub_path.starts_with(&format!("{}.", path))
+        {
+            return true;
+        }
+    }
+    false
+}
+
+fn is_resolution_marker(value: &Value) -> bool {
+    value.as_object().is_some_and(|object| {
+        object.contains_key(MARKER_DYNAMIC)
+            || object.contains_key(MARKER_REF)
+            || object.contains_key(MARKER_INTRINSIC)
+            || object.contains_key(MARKER_CONDITIONAL)
+            || object.contains_key(MARKER_ENUM)
+    })
+}
+
 /// Validates an IAM *identity* policy document (no `Principal` allowed).
 /// The document must already be concrete JSON; values containing
 /// resolved-intrinsic markers are skipped rather than judged.
@@ -49,15 +93,12 @@ static RESOURCE_ARN_RE: LazyLock<Option<regex::Regex>> = LazyLock::new(|| regex:
 /// author wrote a reference, not the substituted text.
 pub fn validate_identity_policy(doc: &Value, substituted: &HashSet<String>) -> Vec<PolicyFinding> {
     let mut out = Vec::new();
+    if is_resolution_marker(doc) {
+        return out;
+    }
     let Some(obj) = doc.as_object() else {
         return out;
     };
-    if json_contains_markers(doc) {
-        // Any unresolved intrinsic anywhere in the document leaves its true
-        // shape unknown; judging the rest risks flagging what CloudFormation
-        // would accept once the intrinsic resolves.
-        return out;
-    }
 
     for key in obj.keys() {
         if !DOCUMENT_KEYS.contains(&key.as_str()) {
@@ -68,7 +109,9 @@ pub fn validate_identity_policy(doc: &Value, substituted: &HashSet<String>) -> V
         }
     }
 
-    if let Some(version) = obj.get("Version") {
+    if let Some(version) = obj.get("Version")
+        && !is_resolution_marker(version)
+    {
         if let Some(v) = version.as_str() {
             if !VERSION_VALUES.contains(&v) {
                 out.push(PolicyFinding {
@@ -84,26 +127,58 @@ pub fn validate_identity_policy(doc: &Value, substituted: &HashSet<String>) -> V
         }
     }
 
+    if let Some(id) = obj.get("Id")
+        && !is_resolution_marker(id)
+        && !id.is_string()
+    {
+        out.push(PolicyFinding {
+            path: "Id".to_string(),
+            message: format!("{} is not of type 'string'", describe_value(id)),
+        });
+    }
+
     match obj.get("Statement") {
         None => {
             out.push(PolicyFinding { path: String::new(), message: "'Statement' is a required property".to_string() })
         }
         Some(Value::Array(stmts)) => {
+            let mut seen_sids: Vec<(String, usize)> = Vec::new();
             for (idx, stmt) in stmts.iter().enumerate() {
                 validate_identity_statement(stmt, &format!("Statement.{}", idx), substituted, &mut out);
+                if let Some(statement) = stmt.as_object()
+                    && let Some(Value::String(sid)) = statement.get("Sid")
+                    && !sid.is_empty()
+                    && !path_is_intrinsic_generated(&format!("Statement.{}.Sid", idx), substituted)
+                {
+                    if let Some((_, first_index)) = seen_sids.iter().find(|(seen_sid, _)| seen_sid == sid) {
+                        out.push(PolicyFinding {
+                            path: format!("Statement.{}.Sid", idx),
+                            message: format!("'{}' is a duplicate of Statement.{}.Sid", sid, first_index),
+                        });
+                    } else {
+                        seen_sids.push((sid.clone(), idx));
+                    }
+                }
             }
         }
         Some(stmt @ Value::Object(_)) => validate_identity_statement(stmt, "Statement", substituted, &mut out),
-        Some(other) => out.push(PolicyFinding {
-            path: "Statement".to_string(),
-            message: format!("{} is not of type 'object', 'array'", describe_value(other)),
-        }),
+        Some(other) => {
+            if !is_resolution_marker(other) {
+                out.push(PolicyFinding {
+                    path: "Statement".to_string(),
+                    message: format!("{} is not of type 'object', 'array'", describe_value(other)),
+                });
+            }
+        }
     }
 
     out
 }
 
 fn validate_identity_statement(stmt: &Value, path: &str, substituted: &HashSet<String>, out: &mut Vec<PolicyFinding>) {
+    if is_resolution_marker(stmt) {
+        return;
+    }
     let Some(obj) = stmt.as_object() else {
         out.push(PolicyFinding {
             path: path.to_string(),
@@ -125,30 +200,42 @@ fn validate_identity_statement(stmt: &Value, path: &str, substituted: &HashSet<S
         None => {
             out.push(PolicyFinding { path: path.to_string(), message: "'Effect' is a required property".to_string() })
         }
-        Some(Value::String(effect)) => {
-            if !EFFECT_VALUES.contains(&effect.as_str()) && !substituted.contains(&format!("{}.Effect", path)) {
-                out.push(PolicyFinding {
-                    path: format!("{}.Effect", path),
-                    message: format!("'{}' is not one of {}", effect, render_str_list(EFFECT_VALUES)),
-                });
+        Some(effect_val) => {
+            if !is_resolution_marker(effect_val) {
+                match effect_val.as_str() {
+                    Some(effect) => {
+                        if !EFFECT_VALUES.contains(&effect)
+                            && !path_is_intrinsic_generated(&format!("{}.Effect", path), substituted)
+                        {
+                            out.push(PolicyFinding {
+                                path: format!("{}.Effect", path),
+                                message: format!("'{}' is not one of {}", effect, render_str_list(EFFECT_VALUES)),
+                            });
+                        }
+                    }
+                    None => out.push(PolicyFinding {
+                        path: format!("{}.Effect", path),
+                        message: format!("{} is not of type 'string'", describe_value(effect_val)),
+                    }),
+                }
             }
         }
-        Some(other) => out.push(PolicyFinding {
-            path: format!("{}.Effect", path),
-            message: format!("{} is not of type 'string'", describe_value(other)),
-        }),
     }
 
     check_required_xor(obj, path, &["Action", "NotAction"], out);
     check_required_xor(obj, path, &["Resource", "NotResource"], out);
 
     for key in ["Action", "NotAction"] {
-        if let Some(value) = obj.get(key) {
-            check_string_or_string_list(value, &format!("{}.{}", path, key), None, substituted, out);
+        if let Some(value) = obj.get(key)
+            && !is_resolution_marker(value)
+        {
+            check_string_or_string_list_with_min_items(value, &format!("{}.{}", path, key), None, substituted, out);
         }
     }
     for key in ["Resource", "NotResource"] {
-        if let Some(value) = obj.get(key) {
+        if let Some(value) = obj.get(key)
+            && !is_resolution_marker(value)
+        {
             check_string_or_string_list(
                 value,
                 &format!("{}.{}", path, key),
@@ -159,12 +246,16 @@ fn validate_identity_statement(stmt: &Value, path: &str, substituted: &HashSet<S
         }
     }
 
-    if let Some(sid) = obj.get("Sid") {
+    if let Some(sid) = obj.get("Sid")
+        && !is_resolution_marker(sid)
+    {
         match sid.as_str() {
-            Some(s) if !s.chars().all(|c| c.is_ascii_alphanumeric()) => out.push(PolicyFinding {
-                path: format!("{}.Sid", path),
-                message: format!("'{}' does not match '^[A-Za-z0-9]+$'", s),
-            }),
+            Some(s) if s.is_empty() || !s.chars().all(|c| c.is_ascii_alphanumeric()) => {
+                out.push(PolicyFinding {
+                    path: format!("{}.Sid", path),
+                    message: format!("'{}' does not match '^[A-Za-z0-9]+$'", s),
+                });
+            }
             Some(_) => {}
             None => out.push(PolicyFinding {
                 path: format!("{}.Sid", path),
@@ -173,13 +264,143 @@ fn validate_identity_statement(stmt: &Value, path: &str, substituted: &HashSet<S
         }
     }
 
-    if let Some(cond) = obj.get("Condition")
-        && !cond.is_object()
-    {
+    if let Some(condition) = obj.get("Condition") {
+        validate_condition_block(condition, &format!("{}.Condition", path), out);
+    }
+}
+
+/// Validates the IAM Condition block structure and each context value that can
+/// be decided statically.
+fn validate_condition_block(condition: &Value, path: &str, out: &mut Vec<PolicyFinding>) {
+    if is_resolution_marker(condition) && !condition.is_object() {
+        return;
+    }
+    let Some(operators) = condition.as_object() else {
         out.push(PolicyFinding {
-            path: format!("{}.Condition", path),
-            message: format!("{} is not of type 'object'", describe_value(cond)),
+            path: path.to_string(),
+            message: format!("{} is not of type 'object'", describe_value(condition)),
         });
+        return;
+    };
+
+    for (operator, context_values) in operators {
+        let operator_path = format!("{}.{}", path, operator);
+        if !CONDITION_OPERATOR_RE.as_ref().is_some_and(|pattern| pattern.is_match(operator)) {
+            out.push(PolicyFinding {
+                path: operator_path.clone(),
+                message: format!("'{}' is not a valid IAM condition operator", operator),
+            });
+        }
+        if is_resolution_marker(context_values) && !context_values.is_object() {
+            continue;
+        }
+        let Some(context_values) = context_values.as_object() else {
+            out.push(PolicyFinding {
+                path: operator_path,
+                message: format!("{} is not of type 'object'", describe_value(context_values)),
+            });
+            continue;
+        };
+        let is_null_operator = operator == "Null";
+        for (context_key, context_value) in context_values {
+            if is_resolution_marker(context_value) {
+                continue;
+            }
+            let context_path = format!("{}.{}", operator_path, context_key);
+            if is_null_operator {
+                validate_null_condition_value(context_value, &context_path, out);
+            } else {
+                validate_condition_value(context_value, &context_path, out);
+            }
+        }
+    }
+}
+
+fn validate_condition_value(value: &Value, path: &str, out: &mut Vec<PolicyFinding>) {
+    match value {
+        Value::String(_) | Value::Number(_) | Value::Bool(_) => {}
+        Value::Array(items) => {
+            for (index, item) in items.iter().enumerate() {
+                if is_resolution_marker(item) {
+                    continue;
+                }
+                if !item.is_string() {
+                    out.push(PolicyFinding {
+                        path: format!("{}.{}", path, index),
+                        message: format!("{} is not of type 'string'", describe_value(item)),
+                    });
+                }
+            }
+        }
+        _ => out.push(PolicyFinding {
+            path: path.to_string(),
+            message: format!("{} is not of type 'boolean', 'number', 'string', 'array'", describe_value(value)),
+        }),
+    }
+}
+
+fn validate_null_condition_value(value: &Value, path: &str, out: &mut Vec<PolicyFinding>) {
+    let is_boolean = |candidate: &Value| candidate.is_boolean() || matches!(candidate.as_str(), Some("true" | "false"));
+    match value {
+        Value::Array(items) => {
+            for (index, item) in items.iter().enumerate() {
+                if is_resolution_marker(item) {
+                    continue;
+                }
+                if !is_boolean(item) {
+                    out.push(PolicyFinding {
+                        path: format!("{}.{}", path, index),
+                        message: format!("{} is not one of ['true', 'false', true, false]", describe_value(item)),
+                    });
+                }
+            }
+        }
+        candidate if is_boolean(candidate) => {}
+        _ => out.push(PolicyFinding {
+            path: path.to_string(),
+            message: format!("{} is not one of ['true', 'false', true, false]", describe_value(value)),
+        }),
+    }
+}
+
+/// A value that must be a string or a non-empty list of strings, enforcing
+/// minItems: 1 on the array form (for Action/NotAction).
+fn check_string_or_string_list_with_min_items(
+    value: &Value,
+    path: &str,
+    pattern: Option<&regex::Regex>,
+    substituted: &HashSet<String>,
+    out: &mut Vec<PolicyFinding>,
+) {
+    match value {
+        Value::String(s) => check_string_pattern(s, path, pattern, substituted, out),
+        Value::Array(items) => {
+            if items.is_empty() {
+                out.push(PolicyFinding {
+                    path: path.to_string(),
+                    message: "[] is too short (minimum 1 item)".to_string(),
+                });
+                return;
+            }
+            for (idx, item) in items.iter().enumerate() {
+                if is_resolution_marker(item) {
+                    continue;
+                }
+                match item {
+                    Value::String(s) => {
+                        check_string_pattern(s, &format!("{}.{}", path, idx), pattern, substituted, out)
+                    }
+                    other => out.push(PolicyFinding {
+                        path: format!("{}.{}", path, idx),
+                        message: format!("{} is not of type 'string'", describe_value(other)),
+                    }),
+                }
+            }
+        }
+        other => out.push(PolicyFinding {
+            path: path.to_string(),
+            message: format!("{} is not of type 'string', 'array'", describe_value(other)),
+        }),
     }
 }
 
@@ -217,6 +438,9 @@ fn check_string_or_string_list(
         Value::String(s) => check_string_pattern(s, path, pattern, substituted, out),
         Value::Array(items) => {
             for (idx, item) in items.iter().enumerate() {
+                if is_resolution_marker(item) {
+                    continue;
+                }
                 match item {
                     Value::String(s) => {
                         check_string_pattern(s, &format!("{}.{}", path, idx), pattern, substituted, out)
@@ -242,7 +466,7 @@ fn check_string_pattern(
     substituted: &HashSet<String>,
     out: &mut Vec<PolicyFinding>,
 ) {
-    if s.contains("${") || substituted.contains(path) {
+    if s.contains("${") || path_is_intrinsic_generated(path, substituted) {
         return;
     }
     if let Some(re) = pattern
@@ -386,8 +610,270 @@ mod tests {
     }
 
     #[test]
-    fn dynamic_documents_are_skipped() {
+    fn marker_bearing_field_is_skipped_when_literal_siblings_are_valid() {
         let doc = json!({"Statement": [{"Effect": "Allow", "Action": {"__dynamic": "unknown"}, "Resource": "*"}]});
         assert!(findings(doc).is_empty(), "a document carrying resolution markers must not be judged");
+    }
+
+    #[test]
+    fn dynamic_subtrees_are_skipped_but_sibling_literals_are_validated() {
+        // Action has markers (dynamic), but Effect is a literal invalid value --
+        // the literal Effect must still be reported.
+        let doc = json!({
+            "Statement": [{
+                "Effect": "Invalid",
+                "Action": {"__dynamic": "unknown"},
+                "Resource": "*"
+            }]
+        });
+        let found = findings(doc);
+        assert!(
+            found.iter().any(|(p, m)| p == "Statement.0.Effect" && m.contains("'Invalid'")),
+            "an invalid literal Effect alongside dynamic Action must still be reported: {:?}",
+            found
+        );
+    }
+
+    #[test]
+    fn wholly_dynamic_document_is_skipped() {
+        assert!(findings(json!({"__dynamic": "unknown policy"})).is_empty());
+    }
+
+    #[test]
+    fn dynamic_array_item_does_not_hide_invalid_literal_sibling() {
+        let doc = json!({
+            "Statement": [{
+                "Effect": "Allow",
+                "Action": [{"__dynamic": "unknown action"}, 7],
+                "Resource": "*"
+            }]
+        });
+        let found = findings(doc);
+        assert!(
+            found
+                .iter()
+                .any(|(path, message)| { path == "Statement.0.Action.1" && message.contains("not of type 'string'") }),
+            "a dynamic array item must not hide an invalid literal sibling: {found:?}"
+        );
+    }
+
+    #[test]
+    fn whole_document_with_markers_only_skips_marked_subtrees() {
+        let doc = json!({
+            "Version": "invalid",
+            "Statement": [{
+                "Effect": "Allow",
+                "Action": {"__dynamic": "ref"},
+                "Resource": "*"
+            }]
+        });
+        let found = findings(doc);
+        assert!(
+            found.iter().any(|(p, _)| p == "Version"),
+            "literal Version must still be validated even when Statement has markers"
+        );
+    }
+
+    #[test]
+    fn empty_action_array_reports_min_items() {
+        let doc = json!({"Statement": [{"Effect": "Allow", "Action": [], "Resource": "*"}]});
+        let found = findings(doc);
+        assert!(
+            found.iter().any(|(p, m)| p == "Statement.0.Action" && m.contains("too short")),
+            "empty Action array must report minItems violation: {:?}",
+            found
+        );
+    }
+
+    #[test]
+    fn empty_not_action_array_reports_min_items() {
+        let doc = json!({"Statement": [{"Effect": "Allow", "NotAction": [], "Resource": "*"}]});
+        let found = findings(doc);
+        assert!(
+            found.iter().any(|(p, m)| p == "Statement.0.NotAction" && m.contains("too short")),
+            "empty NotAction array must report minItems violation: {:?}",
+            found
+        );
+    }
+
+    #[test]
+    fn duplicate_sid_across_statements_is_reported() {
+        let doc = json!({
+            "Statement": [
+                {"Sid": "ReadOnly", "Effect": "Allow", "Action": "s3:Get*", "Resource": "*"},
+                {"Sid": "ReadOnly", "Effect": "Deny", "Action": "s3:Put*", "Resource": "*"}
+            ]
+        });
+        let found = findings(doc);
+        assert!(
+            found.iter().any(|(p, m)| p == "Statement.1.Sid" && m.contains("duplicate")),
+            "duplicate Sid must be reported: {:?}",
+            found
+        );
+    }
+
+    #[test]
+    fn non_string_id_is_reported() {
+        let doc = json!({"Id": 123, "Statement": [{"Effect": "Allow", "Action": "s3:*", "Resource": "*"}]});
+        let found = findings(doc);
+        assert!(
+            found.iter().any(|(p, m)| p == "Id" && m.contains("'string'")),
+            "non-string Id must be reported: {:?}",
+            found
+        );
+    }
+
+    #[test]
+    fn string_id_is_accepted() {
+        let doc = json!({"Id": "my-policy", "Statement": [{"Effect": "Allow", "Action": "s3:*", "Resource": "*"}]});
+        assert!(findings(doc).is_empty());
+    }
+
+    #[test]
+    fn valid_condition_operators_are_accepted() {
+        let doc = json!({
+            "Statement": [{
+                "Effect": "Allow",
+                "Action": "s3:*",
+                "Resource": "*",
+                "Condition": {
+                    "StringEquals": {"aws:RequestedRegion": ["us-east-1"]},
+                    "ForAnyValue:ArnLike": {"aws:PrincipalOrgPaths": ["o-*/r-*/ou-*"]},
+                    "Null": {"aws:TokenIssueTime": ["true"]}
+                }
+            }]
+        });
+        assert!(findings(doc).is_empty());
+    }
+
+    #[test]
+    fn invalid_condition_operator_is_reported() {
+        let doc = json!({
+            "Statement": [{
+                "Effect": "Allow",
+                "Action": "s3:*",
+                "Resource": "*",
+                "Condition": {
+                    "InvalidOperator": {"key": ["value"]}
+                }
+            }]
+        });
+        let found = findings(doc);
+        assert!(
+            found.iter().any(|(_, m)| m.contains("not a valid IAM condition operator")),
+            "invalid operator must be reported: {:?}",
+            found
+        );
+    }
+
+    #[test]
+    fn condition_operator_value_must_be_object() {
+        let doc = json!({
+            "Statement": [{
+                "Effect": "Allow",
+                "Action": "s3:*",
+                "Resource": "*",
+                "Condition": {
+                    "StringEquals": "not-an-object"
+                }
+            }]
+        });
+        let found = findings(doc);
+        assert!(
+            found.iter().any(|(_, m)| m.contains("is not of type 'object'")),
+            "non-object operator value must be reported: {:?}",
+            found
+        );
+    }
+
+    #[test]
+    fn condition_context_values_follow_operator_schema() {
+        let doc = json!({
+            "Statement": [{
+                "Effect": "Allow",
+                "Action": "s3:*",
+                "Resource": "*",
+                "Condition": {
+                    "StringEquals": {
+                        "aws:RequestedRegion": ["us-east-1", 7],
+                        "aws:PrincipalTag/dynamic": {"__dynamic": "unknown"}
+                    },
+                    "Null": {"aws:TokenIssueTime": "not-a-boolean"}
+                }
+            }]
+        });
+        let found = findings(doc);
+        assert!(
+            found
+                .iter()
+                .any(|(path, message)| path.ends_with("aws:RequestedRegion.1")
+                    && message.contains("not of type 'string'")),
+            "non-string array member must be reported: {:?}",
+            found
+        );
+        assert!(
+            found.iter().any(|(path, message)| path.ends_with("aws:TokenIssueTime") && message.contains("not one of")),
+            "Null values must be boolean spellings: {:?}",
+            found
+        );
+        assert!(
+            found.iter().all(|(path, _)| !path.contains("aws:PrincipalTag/dynamic")),
+            "a dynamic context value must not suppress or create sibling findings: {:?}",
+            found
+        );
+    }
+
+    #[test]
+    fn sid_must_be_non_empty() {
+        let doc = json!({
+            "Statement": [{"Sid": "", "Effect": "Allow", "Action": "s3:*", "Resource": "*"}]
+        });
+        let found = findings(doc);
+        assert!(
+            found.iter().any(|(path, message)| path == "Statement.0.Sid" && message.contains("does not match")),
+            "empty Sid must be rejected: {:?}",
+            found
+        );
+    }
+
+    #[test]
+    fn substituted_ancestor_path_suppresses_descendant_check() {
+        let doc = json!({"Statement": [{"Effect": "Allow", "Action": "s3:*", "Resource": ["not-an-arn"]}]});
+        let substituted: HashSet<String> = [String::from("Statement.0.Resource")].into_iter().collect();
+        let found = validate_identity_policy(&doc, &substituted);
+        assert!(
+            !found.iter().any(|f| f.path.starts_with("Statement.0.Resource")),
+            "descendant of substituted path must be suppressed: {:?}",
+            found
+        );
+    }
+
+    #[test]
+    fn substituted_descendant_path_suppresses_generated_ancestor_check() {
+        let doc = json!({"Statement": [{"Effect": "Allow", "Action": "s3:*", "Resource": "not-an-arn"}]});
+        let substituted: HashSet<String> = [String::from("Statement.0.Resource.Fn::Join.1.0")].into_iter().collect();
+        let found = validate_identity_policy(&doc, &substituted);
+        assert!(
+            !found.iter().any(|finding| finding.path == "Statement.0.Resource"),
+            "an intrinsic nested beneath the checked path generated the ancestor value: {:?}",
+            found
+        );
+    }
+
+    #[test]
+    fn dynamic_action_does_not_suppress_effect_validation() {
+        let doc = json!({
+            "Statement": [{
+                "Effect": "BadValue",
+                "Action": {"__dynamic": "generated by Fn::Join"},
+                "Resource": "*"
+            }]
+        });
+        let found = findings(doc);
+        assert!(
+            found.iter().any(|(p, m)| p == "Statement.0.Effect" && m.contains("'BadValue'")),
+            "invalid Effect must still be reported when Action is dynamic: {:?}",
+            found
+        );
     }
 }

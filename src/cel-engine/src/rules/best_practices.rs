@@ -163,14 +163,7 @@ fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
     };
 
     for (name, res) in &m.resources {
-        // A serverless resource deploys as its transformed CloudFormation
-        // type; statefulness follows the deployed type, not the shorthand.
-        let effective_type = match res.resource_type.as_str() {
-            "AWS::Serverless::SimpleTable" => "AWS::DynamoDB::Table",
-            "AWS::Serverless::Application" => "AWS::CloudFormation::Stack",
-            other => other,
-        };
-        if stateful_types.iter().any(|t| t == effective_type) && effective_type != "AWS::S3::Bucket" {
+        if stateful_types.contains(&res.resource_type) && res.resource_type != "AWS::S3::Bucket" {
             if res.deletion_policy.is_none() {
                 out.push(make_resource_diagnostic("I3011",
                     "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",

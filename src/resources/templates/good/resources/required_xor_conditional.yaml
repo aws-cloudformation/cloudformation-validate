@@ -1,0 +1,16 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Parameters:
+  AddressFamily:
+    Type: String
+Conditions:
+  UseIpv4: !Equals [!Ref AddressFamily, ipv4]
+Resources:
+  ConditionalNetworkAclEntry:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      NetworkAclId: acl-0123456789abcdef0
+      RuleAction: allow
+      RuleNumber: 100
+      Protocol: -1
+      CidrBlock: !If [UseIpv4, 0.0.0.0/0, !Ref AWS::NoValue]
+      Ipv6CidrBlock: !If [UseIpv4, !Ref AWS::NoValue, "::/0"]

@@ -315,21 +315,23 @@ fn build_outputs(
     outputs: &HashMap<String, ResolvedOutput>,
     graph: &crate::graph::ReferenceGraph,
 ) -> HashMap<String, DiagnosticOutput> {
-    let mut output_getatt_refs: HashMap<String, Vec<(String, String)>> = HashMap::new();
-    let mut output_sub_refs: HashMap<String, Vec<String>> = HashMap::new();
+    let mut output_getatt_refs: HashMap<String, Vec<(String, String, String)>> = HashMap::new();
+    let mut output_sub_refs: HashMap<String, Vec<(String, String)>> = HashMap::new();
     for edge in &graph.edges {
         if let Some(output_name) = edge.source_resource.strip_prefix(OUTPUT_PSEUDO_RESOURCE_PREFIX) {
             match &edge.kind {
                 RefKind::GetAtt { attr } if getatt_is_in_string_position(&edge.source_path) => {
-                    output_getatt_refs
+                    output_getatt_refs.entry(output_name.to_string()).or_default().push((
+                        edge.target.clone(),
+                        attr.clone(),
+                        edge.source_path.clone(),
+                    ));
+                }
+                RefKind::Sub { var } => {
+                    output_sub_refs
                         .entry(output_name.to_string())
                         .or_default()
-                        .push((edge.target.clone(), attr.clone()));
-                }
-                // A Sub edge is only recorded for a variable that resolved to
-                // nothing, so its presence is itself the finding.
-                RefKind::Sub { var } => {
-                    output_sub_refs.entry(output_name.to_string()).or_default().push(var.clone());
+                        .push((var.clone(), edge.source_path.clone()));
                 }
                 _ => {}
             }
@@ -339,18 +341,23 @@ fn build_outputs(
     outputs
         .iter()
         .map(|(name, output)| {
-            // A GetAtt sitting directly inside a literal list/map output value is
-            // not collected for the string-type check: the enclosing container is
-            // itself a non-string value and is reported on its own, so descending
-            // into it would double-report the same defect. GetAtts reached only
-            // through Fn::If branches or string-building functions stay in scope.
-            let mut getatt_refs = Vec::new();
-            collect_getatt_refs_string_position(&output.value, &mut getatt_refs);
+            let mut getatt_refs: Vec<(String, String, Option<String>)> = Vec::new();
             if let Some(edge_refs) = output_getatt_refs.get(name) {
-                for (t, a) in edge_refs {
-                    if !getatt_refs.iter().any(|(rt, ra)| rt == t && ra == a) {
-                        getatt_refs.push((t.clone(), a.clone()));
+                for (resource, attribute, source_path) in edge_refs {
+                    let occurrence = (resource.clone(), attribute.clone(), Some(source_path.clone()));
+                    if !getatt_refs.contains(&occurrence) {
+                        getatt_refs.push(occurrence);
                     }
+                }
+            }
+
+            let mut resolved_refs = Vec::new();
+            collect_getatt_refs_string_position(&output.value, &mut resolved_refs);
+            for (resource, attribute, _) in resolved_refs {
+                if !getatt_refs.iter().any(|(existing_resource, existing_attribute, _)| {
+                    existing_resource == &resource && existing_attribute == &attribute
+                }) {
+                    getatt_refs.push((resource, attribute, None));
                 }
             }
             (
@@ -362,9 +369,16 @@ fn build_outputs(
                     export_name: output.export_name.as_ref().map(|v| JsonValue(resolved_value_to_json(v))),
                     getatt_refs: getatt_refs
                         .into_iter()
-                        .map(|(r, a)| GetAttRef { resource: r, attribute: a })
+                        .map(|(r, a, sp)| GetAttRef { resource: r, attribute: a, source_path: sp })
                         .collect(),
-                    sub_refs: output_sub_refs.get(name).cloned().unwrap_or_default(),
+                    sub_refs: output_sub_refs
+                        .get(name)
+                        .map(|refs| {
+                            refs.iter()
+                                .map(|(var, sp)| SubRef { variable: var.clone(), source_path: Some(sp.clone()) })
+                                .collect()
+                        })
+                        .unwrap_or_default(),
                     condition_refs: {
                         let mut crefs = Vec::new();
                         collect_condition_refs_from_resolved(&output.value, &mut crefs);
@@ -492,9 +506,11 @@ fn ref_kind_to_str(kind: &RefKind) -> (&'static str, Option<String>) {
 /// non-string output value reported in its own right, and CloudFormation never
 /// treats the inner GetAtt as the output's string value. `Fn::If` is transparent
 /// (a branch is a string position), mirroring the output value-type check.
-fn collect_getatt_refs_string_position(val: &ResolvedValue, out: &mut Vec<(String, String)>) {
+fn collect_getatt_refs_string_position(val: &ResolvedValue, out: &mut Vec<(String, String, Option<String>)>) {
     match val {
-        ResolvedValue::Reference { target, kind: RefKind::GetAtt { attr } } => out.push((target.clone(), attr.clone())),
+        ResolvedValue::Reference { target, kind: RefKind::GetAtt { attr } } => {
+            out.push((target.clone(), attr.clone(), None))
+        }
         ResolvedValue::Conditional { condition: _, if_true: t, if_false: f } => {
             collect_getatt_refs_string_position(t, out);
             collect_getatt_refs_string_position(f, out);

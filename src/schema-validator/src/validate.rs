@@ -8,8 +8,8 @@ use std::sync::{Arc, LazyLock};
 use template_model::coercion::{CoerceResult, coerce_to_number, coerce_to_string, coerce_value, scalar_eq};
 use template_model::consts::{
     FN_CONDITION, FN_FOR_EACH_KEY_PREFIX, FN_IF, FN_REF, INTRINSIC_FN_PATH_SEGMENTS, KEY_PROPERTIES, KEY_TYPE,
-    PARAM_TYPE_COMMA_DELIMITED_LIST, PARAM_TYPE_NUMBER, PARAM_TYPE_STRING, SAM_FUNCTION_TYPE,
-    SAM_SERVERLESS_TYPE_PREFIX, is_custom_resource_type,
+    MAX_SCENARIO_COMBINATIONS, PARAM_TYPE_COMMA_DELIMITED_LIST, PARAM_TYPE_NUMBER, PARAM_TYPE_STRING,
+    SAM_FUNCTION_TYPE, SAM_SERVERLESS_TYPE_PREFIX, is_custom_resource_type,
 };
 use template_model::message::{render_str_list, render_value, render_value_list};
 use template_model::model::ResolvedResource;
@@ -714,41 +714,61 @@ fn validate_object_keys_inner(
         }
     }
 
-    if !req_or.is_empty() && !req_or.iter().any(|p| actual_keys.contains(p)) {
-        let names = req_or.iter().map(|s| format!("'{}'", s)).collect::<Vec<_>>().join(", ");
-        out.push(build_diagnostic(
-            "F3058",
-            &format!("One of [{}] is a required property", names),
-            m,
-            rid,
-            base_path,
-            None,
-        ));
+    if !req_or.is_empty()
+        && let Some(assignments) = required_group_scenarios(m, rid, req_or, base_path, scenario)
+    {
+        let names = req_or.iter().map(|name| format!("'{}'", name)).collect::<Vec<_>>().join(", ");
+        for assignment in &assignments {
+            let any_present = req_or.iter().any(|property| {
+                actual_keys.contains(property)
+                    && property_present_in_assignment(m, rid, base_path, property, assignment)
+            });
+            if !any_present {
+                let diagnostic = build_diagnostic(
+                    "F3058",
+                    &format!("One of [{}] is a required property", names),
+                    m,
+                    rid,
+                    base_path,
+                    None,
+                );
+                append_unique_assignment_diagnostics(out, vec![diagnostic], assignment);
+            }
+        }
     }
 
-    if !req_xor.is_empty() {
-        // A property whose value resolves to `AWS::NoValue` (null) is removed by
-        // CloudFormation at deploy time, so it does not count toward the
-        // "exactly one" tally even though its key is present in the source. Count
-        // only members that resolve to a concrete value in some satisfiable
-        // scenario.
-        let count =
-            req_xor.iter().filter(|p| actual_keys.contains(p) && property_present(m, rid, base_path, p)).count();
-        if count != 1 {
-            let names = req_xor.iter().map(|s| format!("'{}'", s)).collect::<Vec<_>>().join(", ");
-            out.push(build_diagnostic(
-                "F3014",
-                &format!("Exactly one of [{}] must be specified", names),
-                m,
-                rid,
-                base_path,
-                None,
-            ));
+    if !req_xor.is_empty()
+        && let Some(assignments) = required_group_scenarios(m, rid, req_xor, base_path, scenario)
+    {
+        let names = req_xor.iter().map(|name| format!("'{}'", name)).collect::<Vec<_>>().join(", ");
+        for assignment in &assignments {
+            let present_count = req_xor
+                .iter()
+                .filter(|property| {
+                    actual_keys.contains(property)
+                        && property_present_in_assignment(m, rid, base_path, property, assignment)
+                })
+                .count();
+            if present_count != 1 {
+                let diagnostic = build_diagnostic(
+                    "F3014",
+                    &format!("Exactly one of [{}] must be specified", names),
+                    m,
+                    rid,
+                    base_path,
+                    None,
+                );
+                append_unique_assignment_diagnostics(out, vec![diagnostic], assignment);
+            }
         }
     }
 
     for sub in all_of {
-        validate_sub(out, m, rid, rtype, actual_keys, sub, defs, base_path, 0);
+        if let Some(assignment) = scenario {
+            validate_sub_under_assignment(out, m, rid, rtype, actual_keys, sub, defs, base_path, assignment);
+        } else {
+            validate_sub(out, m, rid, rtype, actual_keys, sub, defs, base_path, 0);
+        }
     }
 
     // anyOf/oneOf group decisions are made per template condition scenario. A
@@ -1010,36 +1030,52 @@ fn validate_sub(
     }
 
     if !effective_sub.required_or.is_empty()
-        && !effective_sub.required_or.iter().any(|property| actual_keys.contains(property))
+        && let Some(assignments) = required_group_scenarios(m, rid, &effective_sub.required_or, base_path, None)
     {
         let names = effective_sub.required_or.iter().map(|name| format!("'{}'", name)).collect::<Vec<_>>().join(", ");
-        out.push(build_diagnostic(
-            "F3058",
-            &format!("One of [{}] is a required property", names),
-            m,
-            rid,
-            base_path,
-            None,
-        ));
+        for assignment in &assignments {
+            let any_present = effective_sub.required_or.iter().any(|property| {
+                actual_keys.contains(property)
+                    && property_present_in_assignment(m, rid, base_path, property, assignment)
+            });
+            if !any_present {
+                let diagnostic = build_diagnostic(
+                    "F3058",
+                    &format!("One of [{}] is a required property", names),
+                    m,
+                    rid,
+                    base_path,
+                    None,
+                );
+                append_unique_assignment_diagnostics(out, vec![diagnostic], assignment);
+            }
+        }
     }
 
-    if !effective_sub.required_xor.is_empty() {
-        let count = effective_sub
-            .required_xor
-            .iter()
-            .filter(|property| actual_keys.contains(property) && property_present(m, rid, base_path, property))
-            .count();
-        if count != 1 {
-            let names =
-                effective_sub.required_xor.iter().map(|name| format!("'{}'", name)).collect::<Vec<_>>().join(", ");
-            out.push(build_diagnostic(
-                "F3014",
-                &format!("Exactly one of [{}] must be specified", names),
-                m,
-                rid,
-                base_path,
-                None,
-            ));
+    if !effective_sub.required_xor.is_empty()
+        && let Some(assignments) = required_group_scenarios(m, rid, &effective_sub.required_xor, base_path, None)
+    {
+        let names = effective_sub.required_xor.iter().map(|name| format!("'{}'", name)).collect::<Vec<_>>().join(", ");
+        for assignment in &assignments {
+            let present_count = effective_sub
+                .required_xor
+                .iter()
+                .filter(|property| {
+                    actual_keys.contains(property)
+                        && property_present_in_assignment(m, rid, base_path, property, assignment)
+                })
+                .count();
+            if present_count != 1 {
+                let diagnostic = build_diagnostic(
+                    "F3014",
+                    &format!("Exactly one of [{}] must be specified", names),
+                    m,
+                    rid,
+                    base_path,
+                    None,
+                );
+                append_unique_assignment_diagnostics(out, vec![diagnostic], assignment);
+            }
         }
     }
 
@@ -1687,9 +1723,9 @@ fn validate_sub_under_assignment(
     assignment: &HashMap<String, bool>,
 ) {
     SCENARIO_FILTER.with(|filter| {
-        *filter.borrow_mut() = Some(assignment.clone());
+        let previous = filter.replace(Some(assignment.clone()));
         validate_sub(out, m, rid, rtype, actual_keys, sub, defs, base_path, 0);
-        *filter.borrow_mut() = None;
+        filter.replace(previous);
     });
 }
 
@@ -2626,18 +2662,82 @@ fn enum_matches_case_insensitive(val: &serde_json::Value, allowed: &[serde_json:
     })
 }
 
-/// True when property `prop` under `base` resolves to a concrete (non-null)
-/// value in at least one satisfiable scenario. A property set to `AWS::NoValue`
-/// resolves to null in every scenario and is treated as absent - CloudFormation
-/// strips it before deployment. When resolution yields no scenarios (the value
-/// is opaque/dynamic), the property is conservatively considered present so a
-/// genuinely-specified property is never miscounted as absent.
-fn property_present(m: &Arc<SemanticModel>, rid: &str, base: &str, prop: &str) -> bool {
-    let scenarios = m.resolve_scenarios_json(rid, &format!("{}.{}", base, prop));
+/// Whether a group member survives deployment under one complete reachable
+/// condition assignment. An opaque authored value is conservatively present;
+/// only a concrete null is known to be removed as `AWS::NoValue`.
+fn property_present_in_assignment(
+    model: &Arc<SemanticModel>,
+    resource_id: &str,
+    base_path: &str,
+    property: &str,
+    assignment: &HashMap<String, bool>,
+) -> bool {
+    let scenarios = model.resolve_scenarios(resource_id, &format!("{}.{}", base_path, property));
     if scenarios.is_empty() {
         return true;
     }
-    scenarios.iter().any(|(val, conds)| is_satisfiable(m, conds) && !val.is_null())
+    scenarios.iter().any(|(value, conditions)| {
+        if !condition_assignments_are_compatible(assignment, conditions) {
+            return false;
+        }
+        let mut combined = assignment.clone();
+        combined.extend(conditions.iter().map(|(name, value)| (name.clone(), *value)));
+        is_satisfiable(model, &combined) && !matches!(value, ResolvedValue::Concrete { value } if value.is_null())
+    })
+}
+
+/// Complete reachable assignments for the conditions that can change group
+/// member presence. The established per-value scenario bound also caps this
+/// cross-product. If the bound would be exceeded, the group is left undecided
+/// rather than producing a speculative diagnostic.
+fn required_group_scenarios(
+    model: &Arc<SemanticModel>,
+    resource_id: &str,
+    members: &[String],
+    base_path: &str,
+    caller_scenario: Option<&HashMap<String, bool>>,
+) -> Option<Vec<HashMap<String, bool>>> {
+    let mut fixed_assignment = SCENARIO_FILTER.with(|filter| filter.borrow().clone()).unwrap_or_default();
+    if let Some(caller_scenario) = caller_scenario {
+        if !condition_assignments_are_compatible(&fixed_assignment, caller_scenario) {
+            return Some(Vec::new());
+        }
+        fixed_assignment.extend(caller_scenario.iter().map(|(name, value)| (name.clone(), *value)));
+    }
+    if !is_satisfiable(model, &fixed_assignment) {
+        return Some(Vec::new());
+    }
+
+    let mut condition_names = HashSet::new();
+    for member in members {
+        let property_path = format!("{}.{}", base_path, member);
+        for (_, conditions) in model.resolve_scenarios(resource_id, &property_path) {
+            condition_names.extend(conditions.into_keys().filter(|name| !fixed_assignment.contains_key(name)));
+        }
+    }
+    let mut condition_names: Vec<String> = condition_names.into_iter().collect();
+    condition_names.sort();
+
+    let combination_count = 1usize.checked_shl(condition_names.len() as u32)?;
+    if combination_count > MAX_SCENARIO_COMBINATIONS {
+        return None;
+    }
+
+    let mut assignments = Vec::new();
+    for bits in 0..combination_count {
+        let mut assignment = fixed_assignment.clone();
+        for (index, condition_name) in condition_names.iter().enumerate() {
+            assignment.insert(condition_name.clone(), bits & (1usize << index) != 0);
+        }
+        if is_satisfiable(model, &assignment) {
+            assignments.push(assignment);
+        }
+    }
+    Some(assignments)
+}
+
+fn condition_assignments_are_compatible(left: &HashMap<String, bool>, right: &HashMap<String, bool>) -> bool {
+    left.iter().all(|(name, value)| right.get(name).is_none_or(|right_value| right_value == value))
 }
 
 fn check_required_not_null(out: &mut Vec<Diagnostic>, m: &Arc<SemanticModel>, rid: &str, base: &str, req: &str) {

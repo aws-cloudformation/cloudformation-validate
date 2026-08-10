@@ -1,0 +1,12 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Parameters:
+  IncludeCidr:
+    Type: String
+Conditions:
+  HasCidr: !Equals [!Ref IncludeCidr, "yes"]
+Resources:
+  MissingConditionalCidr:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: vpc-0123456789abcdef0
+      CidrBlock: !If [HasCidr, 10.0.0.0/24, !Ref AWS::NoValue]

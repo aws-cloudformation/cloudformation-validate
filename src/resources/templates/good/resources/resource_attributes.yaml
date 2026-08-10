@@ -1,4 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
 Description: Every resource attribute CloudFormation accepts, in each accepted shape.
 
 Parameters:
@@ -83,3 +84,20 @@ Resources:
       LaunchTemplateData:
         ImageId: ami-0abcdef1234567890
         InstanceType: t3.micro
+
+  SamFunction:
+    Type: AWS::Serverless::Function
+    Connectors:
+      MyConnector:
+        Properties:
+          Destination:
+            Id: Provider
+          Permissions:
+          - Write
+    IgnoreGlobals:
+    - Timeout
+    - MemorySize
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      CodeUri: s3://bucket/code.zip

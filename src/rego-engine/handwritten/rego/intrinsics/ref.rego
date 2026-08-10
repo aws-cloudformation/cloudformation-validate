@@ -22,14 +22,6 @@ violation contains make_diag_full("F1010", "FATAL", name, "",
     not target in object.get(input, "samImplicitResources", [])
 }
 
-# An Fn::ForEach loop that survived to the model unexpanded (its collection
-# could not be enumerated) leaves the replicated logical IDs unknown, so a ref
-# that fails to resolve may target one of them - not an invalid target.
-_has_unexpanded_foreach if {
-    some k in object.keys(input.resources)
-    contains(k, "Fn::ForEach")
-}
-
 # Invalid Ref targets tracked by the resolver
 violation contains make_diag_full("F1020", "FATAL", name, entry.path,
     sprintf("'%s' is not one of %s", [entry.target, render_list(_all_valid_targets)]),
@@ -37,7 +29,7 @@ violation contains make_diag_full("F1020", "FATAL", name, entry.path,
     "") if {
     some name, res in input.resources
     not input.hasParseErrors
-    not _has_unexpanded_foreach
+    not has_transform("AWS::LanguageExtensions")
     some entry in res.invalidRefs
     entry.target != ""
     not entry.target in object.get(input, "samImplicitResources", [])

@@ -298,14 +298,6 @@ def compute_rule_origins(cfnlint_root: Path) -> RuleOrigins:
     _link("E1001", "F0002", "F0005", "E8001", "E8003", "E8004", "E8005", "E8006", "F0013")
     # cfn-lint E1028 covers Fn::If structure + condition existence; engine splits (F0013/E1028).
     _link("E1028", "F0013")
-    # cfn-lint E7001 covers all Mappings shape defects; the engine reports a
-    # non-map second-level value as F0017.
-    _link("E7001", "F0017")
-    # In Outputs, cfn-lint reports an Fn::If whose first element is an expression
-    # (not a condition name) as E6101 ("output value must be a string"); the
-    # engine reports the same construct at the same path as F0013. E6101
-    # translates to F6101, so the alias links the translated id.
-    _link("F6101", "F0013")
     # Undefined resource `Condition:` - cfn-lint E3015, engine E8002.
     _link("E8002", "E3015")
     # Undefined condition refs inside And/Not/Or - engine splits into E8007.

@@ -3,12 +3,12 @@ use diagnostics::{Diagnostic, RelatedResource, ResourceRef};
 use rules::Category;
 use template_model::SemanticModel;
 use template_model::SourceSpan;
+use template_model::coercion::coerce_to_integer;
 use template_model::consts::{
     FIELD_CREATION_POLICY, FIELD_RESOURCE_TYPE, FIELD_RESOURCES, FIELD_UPDATE_POLICY, KEY_CREATION_POLICY,
     KEY_UPDATE_POLICY,
 };
 use template_model::resolver::ResolvedValue;
-use template_model::{quote, render_str_list, render_value};
 use validation_engine::make_resource_diagnostic;
 
 pub fn register(reg: &mut NativeRuleRegistry) {
@@ -30,12 +30,6 @@ fn is_dynamic(m: &SemanticModel, rid: &str, path: &str) -> bool {
         .unwrap_or(false)
 }
 
-/// Whether the resource declares `property` at all, independent of the value it
-/// resolves to.
-fn has_property(m: &SemanticModel, rid: &str, property: &str) -> bool {
-    m.resources.get(rid).is_some_and(|r| r.properties.contains_key(property))
-}
-
 fn eval_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     let mut out = Vec::new();
     let m = ctx.model;
@@ -51,21 +45,21 @@ fn eval_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             }
             let cpu = resolve_concrete(m, name, "Properties.Cpu");
             let mem = resolve_concrete(m, name, "Properties.Memory");
-            if let (Some(cpu_val), Some(mem_val)) = (cpu, mem)
-                && !is_valid_fargate_task_size(&cpu_val, &mem_val)
-            {
-                out.push(make_resource_diagnostic(
-                    "E3047",
-                    &format!(
-                        "Cpu {} is not compatible with Memory {} for Fargate",
-                        render_value(&cpu_val),
-                        render_value(&mem_val)
-                    ),
-                    m,
-                    name,
-                    "Properties.Cpu",
-                    Some("Use a task size Fargate offers (e.g. Cpu 256 with Memory 512, 1024, or 2048)"),
-                ));
+            if let (Some(cpu_val), Some(mem_val)) = (cpu, mem) {
+                let cpu_n = coerce_to_integer(&cpu_val);
+                let mem_n = coerce_to_integer(&mem_val);
+                if let (Some(c), Some(me)) = (cpu_n, mem_n)
+                    && !valid_fargate_combo(c, me)
+                {
+                    out.push(make_resource_diagnostic(
+                            "E3047",
+                            &format!("Cpu {} is not compatible with Memory {} for Fargate", c, me),
+                            m,
+                            name,
+                            "Properties.Cpu",
+                            Some("Use a valid Fargate CPU/memory combination (e.g., Cpu: 256 with Memory: 512, 1024, or 2048)"),
+                        ));
+                }
             }
         }
     }
@@ -220,227 +214,20 @@ fn eval_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    out.extend(fargate_task_requirements(m));
-
     out
 }
 
-/// Log drivers a Fargate task can use.
-const FARGATE_LOG_DRIVERS: &[&str] = &["awslogs", "splunk", "awsfirelens"];
-
-/// The networking mode Fargate requires.
-const FARGATE_NETWORK_MODE: &str = "awsvpc";
-
-/// A Fargate task definition must declare awsvpc networking, a task-level Cpu
-/// and Memory size drawn from the sizes Fargate offers, must not pin placement
-/// (Fargate selects the infrastructure), and may only use the log drivers
-/// Fargate supports.
-fn fargate_task_requirements(m: &SemanticModel) -> Vec<Diagnostic> {
-    let mut out = Vec::new();
-    for name in m.resources_of_type("AWS::ECS::TaskDefinition") {
-        let Some(serde_json::Value::Array(compatibilities)) =
-            resolve_concrete(m, name, "Properties.RequiresCompatibilities")
-        else {
-            continue;
-        };
-        if !compatibilities.iter().any(|v| v.as_str() == Some("FARGATE")) {
-            continue;
-        }
-
-        for property in ["NetworkMode", "Cpu", "Memory"] {
-            if !has_property(m, name, property) {
-                out.push(make_resource_diagnostic(
-                    "E3048",
-                    &format!("{} is a required property for a Fargate task", quote(property)),
-                    m,
-                    name,
-                    "Properties",
-                    None,
-                ));
-            }
-        }
-
-        if let Some(serde_json::Value::String(mode)) = resolve_concrete(m, name, "Properties.NetworkMode")
-            && mode != FARGATE_NETWORK_MODE
-        {
-            out.push(make_resource_diagnostic(
-                "E3048",
-                &format!("{} is not one of {}", quote(&mode), render_str_list([FARGATE_NETWORK_MODE])),
-                m,
-                name,
-                "Properties.NetworkMode",
-                Some(&format!("Set NetworkMode to {}", quote(FARGATE_NETWORK_MODE))),
-            ));
-        }
-
-        if let Some(cpu) = fargate_cpu_text(m, name) {
-            out.extend(invalid_fargate_cpu(m, name, &cpu));
-        }
-
-        if has_property(m, name, "PlacementConstraints") {
-            out.push(make_resource_diagnostic(
-                "E3048",
-                &format!("{} is not supported for a Fargate task", quote("PlacementConstraints")),
-                m,
-                name,
-                "Properties.PlacementConstraints",
-                Some("Remove PlacementConstraints; Fargate selects the infrastructure"),
-            ));
-        }
-
-        out.extend(unsupported_fargate_log_drivers(m, name));
-    }
-    out
-}
-
-/// The declared `Cpu` as text, so the CPU-unit and vCPU forms can be told apart
-/// whether the template wrote a number or a string. A value that is only known
-/// at deploy time yields `None`.
-fn fargate_cpu_text(m: &SemanticModel, name: &str) -> Option<String> {
-    if is_dynamic(m, name, "Properties.Cpu") {
-        return None;
-    }
-    match resolve_concrete(m, name, "Properties.Cpu")? {
-        serde_json::Value::String(text) => Some(text),
-        serde_json::Value::Number(number) => Some(number.to_string()),
-        _ => None,
-    }
-}
-
-fn invalid_fargate_cpu(m: &SemanticModel, name: &str, cpu: &str) -> Vec<Diagnostic> {
-    if let Some(units) = parse_unsigned_integer(cpu) {
-        if FARGATE_TASK_SIZES.iter().any(|(offered, _)| *offered == units) {
-            return Vec::new();
-        }
-        return vec![make_resource_diagnostic(
-            "E3048",
-            &format!("Cpu {} is not one of {}", quote(cpu), render_str_list(fargate_cpu_unit_sizes())),
-            m,
-            name,
-            "Properties.Cpu",
-            Some("Use a task-level Cpu size Fargate offers"),
-        )];
-    }
-    if fargate_cpu_units(&serde_json::Value::String(cpu.to_string())).is_some() {
-        return Vec::new();
-    }
-    vec![make_resource_diagnostic(
-        "E3048",
-        &format!("Cpu {} is not a vCPU size Fargate offers", quote(cpu)),
-        m,
-        name,
-        "Properties.Cpu",
-        Some("Use a vCPU size such as '.25 vCPU', '1 vCPU', or '16 vCPU'"),
-    )]
-}
-
-/// The CPU-unit spelling of every task size Fargate offers, for listing in a
-/// message.
-fn fargate_cpu_unit_sizes() -> Vec<String> {
-    FARGATE_TASK_SIZES.iter().map(|(units, _)| units.to_string()).collect()
-}
-
-fn unsupported_fargate_log_drivers(m: &SemanticModel, name: &str) -> Vec<Diagnostic> {
-    let Some(serde_json::Value::Array(containers)) = resolve_concrete(m, name, "Properties.ContainerDefinitions")
-    else {
-        return Vec::new();
-    };
-    let mut out = Vec::new();
-    for (index, container) in containers.iter().enumerate() {
-        let Some(serde_json::Value::String(driver)) =
-            container.get("LogConfiguration").and_then(|c| c.get("LogDriver"))
-        else {
-            continue;
-        };
-        if FARGATE_LOG_DRIVERS.contains(&driver.as_str()) {
-            continue;
-        }
-        out.push(make_resource_diagnostic(
-            "E3048",
-            &format!("{} is not one of {}", quote(driver), render_str_list(FARGATE_LOG_DRIVERS)),
-            m,
-            name,
-            &format!("Properties.ContainerDefinitions.{}.LogConfiguration.LogDriver", index),
-            Some(&format!("Use a log driver Fargate supports: {}", render_str_list(FARGATE_LOG_DRIVERS))),
-        ));
-    }
-    out
-}
-
-/// The task sizes Fargate offers, each pairing the CPU-unit value with the vCPU
-/// spelling of the same size. A template may write either spelling.
-const FARGATE_TASK_SIZES: &[(i64, &str)] =
-    &[(256, ".25"), (512, ".5"), (1024, "1"), (2048, "2"), (4096, "4"), (8192, "8"), (16384, "16")];
-
-/// Whether the declared task size is one Fargate offers. Cpu may be written in
-/// CPU units or vCPU, and Memory in MiB or GB; a value in a form Fargate does
-/// not accept at all is not a valid size either.
-fn is_valid_fargate_task_size(cpu: &serde_json::Value, memory: &serde_json::Value) -> bool {
-    match (fargate_cpu_units(cpu), fargate_memory_mib(memory)) {
-        (Some(cpu_units), Some(memory_mib)) => valid_fargate_combo(cpu_units, memory_mib),
+fn valid_fargate_combo(cpu: i64, mem: i64) -> bool {
+    match cpu {
+        256 => [512, 1024, 2048].contains(&mem),
+        512 => (1024..=4096).contains(&mem),
+        1024 => (2048..=8192).contains(&mem),
+        2048 => (4096..=16384).contains(&mem),
+        4096 => (8192..=30720).contains(&mem),
+        8192 => (16384..=61440).contains(&mem),
+        16384 => (32768..=122880).contains(&mem),
         _ => false,
     }
-}
-
-/// The declared Cpu in CPU units, accepting either the CPU-unit spelling
-/// (`1024`, `"1024"`) or the vCPU spelling (`"1 vCPU"`), or `None` when the
-/// value is in neither form.
-fn fargate_cpu_units(cpu: &serde_json::Value) -> Option<i64> {
-    let text = scalar_text(cpu)?;
-    if let Some(units) = parse_unsigned_integer(&text) {
-        return Some(units);
-    }
-    let size = text.to_ascii_lowercase().strip_suffix("vcpu")?.trim_end().to_string();
-    FARGATE_TASK_SIZES.iter().find(|(_, vcpu)| *vcpu == size).map(|(units, _)| *units)
-}
-
-/// The declared Memory in MiB, accepting either the MiB spelling (`2048`,
-/// `"2048"`) or the GB spelling (`"2GB"`, `"0.5 GB"`), or `None` when the value
-/// is in neither form.
-fn fargate_memory_mib(memory: &serde_json::Value) -> Option<i64> {
-    const MIB_PER_GB: i64 = 1024;
-    let text = scalar_text(memory)?;
-    if let Some(mib) = parse_unsigned_integer(&text) {
-        return Some(mib);
-    }
-    let size = text.to_ascii_lowercase().strip_suffix("gb")?.trim_end().to_string();
-    if size == "0.5" {
-        return Some(MIB_PER_GB / 2);
-    }
-    parse_unsigned_integer(&size).map(|gigabytes| gigabytes * MIB_PER_GB)
-}
-
-/// A scalar property value as the text the template author wrote, so numeric and
-/// unit-suffixed spellings can be told apart.
-fn scalar_text(value: &serde_json::Value) -> Option<String> {
-    match value {
-        serde_json::Value::String(text) => Some(text.clone()),
-        serde_json::Value::Number(number) => Some(number.to_string()),
-        _ => None,
-    }
-}
-
-fn parse_unsigned_integer(text: &str) -> Option<i64> {
-    if text.is_empty() || !text.bytes().all(|b| b.is_ascii_digit()) {
-        return None;
-    }
-    text.parse().ok()
-}
-
-/// The Memory range each Cpu size supports, in MiB, and the step between the
-/// sizes offered within that range.
-fn valid_fargate_combo(cpu: i64, mem: i64) -> bool {
-    let (range, step) = match cpu {
-        256 => return [512, 1024, 2048].contains(&mem),
-        512 => (1024..=4096, 1024),
-        1024 => (2048..=8192, 1024),
-        2048 => (4096..=16384, 1024),
-        4096 => (8192..=30720, 1024),
-        8192 => (16384..=61440, 4096),
-        16384 => (32768..=122880, 8192),
-        _ => return false,
-    };
-    range.contains(&mem) && mem % step == 0
 }
 
 fn is_zip_deployment(m: &SemanticModel, name: &str) -> bool {
@@ -457,8 +244,6 @@ fn is_zip_deployment(m: &SemanticModel, name: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use serde_json::json;
-
     use super::*;
 
     #[test]
@@ -508,54 +293,5 @@ mod tests {
     fn fargate_unknown_cpu() {
         assert!(!valid_fargate_combo(128, 512));
         assert!(!valid_fargate_combo(0, 0));
-    }
-
-    #[test]
-    fn fargate_memory_must_land_on_an_offered_step() {
-        assert!(!valid_fargate_combo(512, 1500), "1500 MiB is between the 1 GB and 2 GB sizes offered");
-        assert!(!valid_fargate_combo(8192, 20480 + 1024), "the 8 vCPU sizes step by 4 GB");
-        assert!(valid_fargate_combo(8192, 20480));
-        assert!(!valid_fargate_combo(16384, 32768 + 4096), "the 16 vCPU sizes step by 8 GB");
-        assert!(valid_fargate_combo(16384, 40960));
-    }
-
-    #[test]
-    fn cpu_accepts_both_spellings() {
-        assert_eq!(fargate_cpu_units(&json!("1024")), Some(1024));
-        assert_eq!(fargate_cpu_units(&json!(1024)), Some(1024));
-        assert_eq!(fargate_cpu_units(&json!(".25 vCPU")), Some(256));
-        assert_eq!(fargate_cpu_units(&json!("16vcpu")), Some(16384));
-        assert_eq!(fargate_cpu_units(&json!("2 VCPU")), Some(2048));
-    }
-
-    #[test]
-    fn cpu_rejects_sizes_fargate_does_not_offer() {
-        assert_eq!(fargate_cpu_units(&json!("3 vCPU")), None);
-        assert_eq!(fargate_cpu_units(&json!("abc")), None);
-        assert_eq!(fargate_cpu_units(&json!("")), None);
-    }
-
-    #[test]
-    fn memory_accepts_both_spellings() {
-        assert_eq!(fargate_memory_mib(&json!("2048")), Some(2048));
-        assert_eq!(fargate_memory_mib(&json!(2048)), Some(2048));
-        assert_eq!(fargate_memory_mib(&json!("0.5GB")), Some(512));
-        assert_eq!(fargate_memory_mib(&json!("2 GB")), Some(2048));
-        assert_eq!(fargate_memory_mib(&json!("30gb")), Some(30720));
-    }
-
-    #[test]
-    fn memory_rejects_forms_fargate_does_not_accept() {
-        assert_eq!(fargate_memory_mib(&json!("2 TB")), None);
-        assert_eq!(fargate_memory_mib(&json!("half a gb")), None);
-    }
-
-    #[test]
-    fn task_size_pairs_the_two_spellings() {
-        assert!(is_valid_fargate_task_size(&json!(".25 vCPU"), &json!("0.5GB")));
-        assert!(is_valid_fargate_task_size(&json!("256"), &json!("0.5GB")));
-        assert!(is_valid_fargate_task_size(&json!(".25 vCPU"), &json!(2048)));
-        assert!(!is_valid_fargate_task_size(&json!(".25 vCPU"), &json!("3GB")));
-        assert!(!is_valid_fargate_task_size(&json!("abc"), &json!("512")));
     }
 }
