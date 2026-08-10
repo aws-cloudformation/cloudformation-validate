@@ -9,7 +9,6 @@ pub mod diagnostic;
 pub(crate) mod dynamic_ref;
 pub(crate) mod graph;
 pub mod hardcoded_az;
-pub mod iam_policy;
 pub(crate) mod intrinsic_arg_shapes;
 pub mod ir;
 pub mod json_value;
@@ -36,9 +35,9 @@ pub mod value_patterns;
 
 pub use consts::PSEUDO_PARAMETERS;
 pub use consts::{
-    CUSTOM_RESOURCE_TYPE, DEFAULT_ACCOUNT_ID, DEFAULT_STACK_NAME, FORMAT_VERSION, MARKER_CONDITIONAL, MARKER_DYNAMIC,
-    MARKER_ENUM, MARKER_IF_FALSE, MARKER_IF_TRUE, MARKER_INTRINSIC, MARKER_KIND, MARKER_PARAM_TYPE, MARKER_REF,
-    SAM_TRANSFORM_ERROR_PREFIX, SAM_TRANSFORM_ERROR_RULE_ID, is_custom_resource_type, is_sam_transform_error_message,
+    DEFAULT_ACCOUNT_ID, DEFAULT_STACK_NAME, FORMAT_VERSION, MARKER_CONDITIONAL, MARKER_DYNAMIC, MARKER_ENUM,
+    MARKER_IF_FALSE, MARKER_IF_TRUE, MARKER_INTRINSIC, MARKER_KIND, MARKER_PARAM_TYPE, MARKER_REF,
+    SAM_TRANSFORM_ERROR_PREFIX, SAM_TRANSFORM_ERROR_RULE_ID, is_sam_transform_error_message,
 };
 pub use defect::{DefectPhase, ParseDefect};
 pub use ir::*;
@@ -53,7 +52,6 @@ pub use regions::{
     availability_zones_for_region, is_known_region, partition_for_region, url_suffix_for_region,
 };
 pub use schedule::schedule_expression_errors;
-pub use serialization::resolved_value_to_json;
 pub use span::{SourceSpan, SpanProvider, UNKNOWN_SPAN, span_to_option};
 pub use template_section::{EntityType, TopLevelSection, entity_identity};
 pub use value_patterns::{

@@ -293,9 +293,8 @@ def compute_rule_origins(cfnlint_root: Path) -> RuleOrigins:
     # emits F0002 (format version) / F0005 (top-level section). F0001 (empty
     # Resources) is intentionally NOT linked - cfn-lint does not flag it, so it
     # stays a genuine engine-extra finding.
-    # E1001 also covers null condition-function operands (engine: E8001, E8003-E8006)
-    # and a null condition body (engine: F0013).
-    _link("E1001", "F0002", "F0005", "E8001", "E8003", "E8004", "E8005", "E8006", "F0013")
+    # E1001 also covers null condition-function operands (engine: E8001, E8003-E8006).
+    _link("E1001", "F0002", "F0005", "E8001", "E8003", "E8004", "E8005", "E8006")
     # cfn-lint E1028 covers Fn::If structure + condition existence; engine splits (F0013/E1028).
     _link("E1028", "F0013")
     # Undefined resource `Condition:` - cfn-lint E3015, engine E8002.
@@ -439,11 +438,6 @@ def compute_rule_origins(cfnlint_root: Path) -> RuleOrigins:
         # Also covers Fn::If branches with invalid conditions that cfn-lint skips.
         if (diag.get("rule_id") == "F3002"
                 and diag.get("resource_id") in ("myBucketPass", "myBucketFirstAndLastPass")):
-            return True
-        # E3001 on resources with cfn-lint ignore directives: the engine validates
-        # resource attributes that cfn-lint suppresses via metadata directives.
-        if (diag.get("rule_id") == "E3001"
-                and diag.get("resource_id") == "myBucketFirstAndLastPass"):
             return True
         # F3002 inside Fn::If branches with invalid condition names: cfn-lint
         # skips validation when the condition doesn't exist. Engine validates anyway.

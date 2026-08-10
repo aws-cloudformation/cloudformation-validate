@@ -13,10 +13,8 @@ use template_model::consts::{
     FIELD_CONDITION, FIELD_DEPENDS_ON, FIELD_KIND, FIELD_PROPERTIES, FIELD_RESOURCE_TYPE, FIELD_SOURCE,
     FIELD_SOURCE_PATH, FIELD_TARGET, FN_IF,
 };
-use template_model::iam_policy::validate_identity_policy;
 use template_model::region_enums;
 use template_model::resolved_value::json_contains_markers;
-use template_model::resolved_value_to_json;
 use template_model::resolver::{MapEntry, RefKind, ResolvedValue};
 use template_model::{MARKER_DYNAMIC, MARKER_PARAM_TYPE, MARKER_REF};
 use template_model::{SourceSpan, UNKNOWN_SPAN, render_value, render_value_list};
@@ -36,7 +34,6 @@ pub(crate) fn register_all(
     overlay_catalog: &OverlayCatalog,
 ) {
     register_resolve(rego, holder.clone());
-    register_iam_identity_policy_findings(rego, holder.clone());
     register_resolve_preserving_conditionals(rego, holder.clone());
     register_resolve_all(rego, holder.clone());
     register_is_dynamic(rego, holder.clone());
@@ -262,51 +259,6 @@ fn contains_dynamic(rv: &ResolvedValue) -> bool {
         ResolvedValue::Concrete { value: v } => json_contains_markers(v),
     }
 }
-fn register_iam_identity_policy_findings(rego: &mut regorus::Engine, holder: SharedModel) {
-    let _ = rego.add_extension(
-        "iam_identity_policy_findings".into(),
-        2,
-        Box::new(move |params: Vec<Value>| {
-            let Some(model) = get_model(&holder) else {
-                return Ok(Value::from(Vec::<Value>::new()));
-            };
-            let resource_id = params[0].as_string()?;
-            let document_path = params[1].as_string()?;
-            let document = model
-                .resolve_deep(resource_id, document_path)
-                .or_else(|| model.resolve(resource_id, document_path).cloned())
-                .map(|value| resolved_value_to_json(&value))
-                .or_else(|| {
-                    model.resolve_scenarios_json(resource_id, document_path).into_iter().next().map(|(v, _)| v)
-                });
-            let Some(document) = document else {
-                return Ok(Value::from(Vec::<Value>::new()));
-            };
-
-            let prefix = format!("{}.", document_path);
-            let substituted: HashSet<String> = model
-                .graph
-                .outgoing(resource_id)
-                .iter()
-                .filter_map(|edge| edge.source_path.strip_prefix(&prefix))
-                .map(String::from)
-                .collect();
-            let findings = validate_identity_policy(&document, &substituted)
-                .into_iter()
-                .map(|finding| {
-                    let path = if finding.path.is_empty() {
-                        document_path.to_string()
-                    } else {
-                        format!("{}.{}", document_path, finding.path)
-                    };
-                    json_to_value(&serde_json::json!({"path": path, "message": finding.message}))
-                })
-                .collect::<Vec<_>>();
-            Ok(Value::from(findings))
-        }),
-    );
-}
-
 fn register_resolve(rego: &mut regorus::Engine, holder: SharedModel) {
     let _ = rego.add_extension(
         "resolve".into(),

@@ -92,8 +92,10 @@ impl From<build::PropSchema> for PropSchema {
             if_then_else,
             dependent_required,
             dependent_excluded,
-            required_or,
-            required_xor,
+            // Nested required groups remain build-time data here; runtime
+            // composition enforcement is intentionally outside this change.
+            required_or: _,
+            required_xor: _,
         } = source;
         PropSchema {
             ref_name,
@@ -129,8 +131,6 @@ impl From<build::PropSchema> for PropSchema {
             if_then_else: if_then_else.into_iter().map(Into::into).collect(),
             dependent_required: map(dependent_required),
             dependent_excluded: map(dependent_excluded),
-            required_or,
-            required_xor,
         }
     }
 }
@@ -213,14 +213,7 @@ mod tests {
                 "Relaxed": { "type": "array", "uniqueItems": false },
                 "Cfg": { "$ref": "#/definitions/Config" }
             },
-            "definitions": {
-                "Config": {
-                    "type": "object",
-                    "required": ["Inner"],
-                    "requiredOr": ["First", "Second"],
-                    "requiredXor": ["Left", "Right"]
-                }
-            },
+            "definitions": { "Config": { "type": "object", "required": ["Inner"] } },
             "required": ["Name"],
             "additionalProperties": false,
             "readOnlyProperties": ["/properties/Arn"],
@@ -244,8 +237,6 @@ mod tests {
         assert_eq!(compiled.one_of.len(), 1);
         assert_eq!(compiled.if_then_else.len(), 1);
         assert_eq!(compiled.definitions["Config"].required, vec!["Inner".to_string()]);
-        assert_eq!(compiled.definitions["Config"].required_or, vec!["First".to_string(), "Second".to_string()]);
-        assert_eq!(compiled.definitions["Config"].required_xor, vec!["Left".to_string(), "Right".to_string()]);
         assert_eq!(compiled.properties["Cfg"].ref_name.as_deref(), Some("Config"));
 
         let name = &compiled.properties["Name"];

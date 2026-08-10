@@ -554,11 +554,10 @@ impl SemanticModel {
                         // each engine keeps the two engines identical and covers
                         // the no-Conditions-section case, where a condition-name
                         // reference is still invalid.
-                        diagnostics.push(crate::make_parse_defect_at(
+                        diagnostics.push(crate::make_parse_defect(
                             "E1028",
                             format!("Fn::If condition '{}' does not exist in Conditions section", cond_name),
                             ir.arena.span(idx as NodeRef),
-                            &ir.arena.get(idx as NodeRef).path,
                         ));
                     }
                 }
@@ -581,11 +580,10 @@ impl SemanticModel {
                         let in_conditions_body =
                             ir.arena.get(idx as NodeRef).path.split('/').next() == Some(SECTION_CONDITIONS);
                         if !in_conditions_body && !conditions.conditions.contains_key(cond_name) {
-                            diagnostics.push(crate::make_parse_defect_at(
+                            diagnostics.push(crate::make_parse_defect(
                                 "E1028",
                                 format!("Fn::If condition '{}' does not exist in Conditions section", cond_name),
                                 ir.arena.span(idx as NodeRef),
-                                &ir.arena.get(idx as NodeRef).path,
                             ));
                         }
                     }
@@ -1002,10 +1000,7 @@ impl SemanticModel {
             }
             // A reference edge (Ref, GetAtt, Sub) anchored at this path means the
             // value is produced by an intrinsic rather than written as a literal.
-            if edges.iter().any(|edge| {
-                edge.source_path == p
-                    || edge.source_path.strip_prefix(&p).is_some_and(|suffix| suffix.starts_with(".Fn::"))
-            }) {
+            if edges.iter().any(|e| e.source_path == p) {
                 return true;
             }
             match p.rfind('.') {
@@ -1266,13 +1261,6 @@ impl SemanticModel {
                 format!("Resources/{}/{}", rid, property_path.replace('.', "/"))
             };
             if let Some(span) = self.walk_up_span(&key) {
-                return Some(span);
-            }
-        } else if !property_path.is_empty() {
-            // No resource and a single bare segment: the path names a top-level
-            // key (a section, or an unknown key being flagged), so resolve it
-            // directly against the index.
-            if let Some(span) = self.walk_up_span(property_path) {
                 return Some(span);
             }
         }
@@ -2500,25 +2488,6 @@ Resources:
             Err(e) => assert!(e.message.contains("maximum size")),
             Ok(_) => panic!("Expected error for oversized template"),
         }
-    }
-
-    #[test]
-    fn intrinsic_origin_matches_descendant_edge_path_without_matching_siblings() {
-        let input = r#"{
-            "Resources": {
-                "Target": {"Type": "T"},
-                "R": {
-                    "Type": "T",
-                    "Properties": {
-                        "Generated": {"Fn::GetAtt": ["Target", "Arn"]},
-                        "Literal": "literal"
-                    }
-                }
-            }
-        }"#;
-        let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
-        assert!(model.is_from_intrinsic("R", "Properties.Generated"));
-        assert!(!model.is_from_intrinsic("R", "Properties.Literal"));
     }
 
     #[test]

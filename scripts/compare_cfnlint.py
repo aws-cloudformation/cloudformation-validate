@@ -395,12 +395,6 @@ def load_engine_results():
                 resource_id = ""
             elif resource_id and resource_path.startswith("Outputs."):
                 resource_id = ""
-            elif "/" in resource_path and resource_path.split("/", 1)[0] in (
-                "Conditions", "Mappings", "Parameters", "Rules", "Metadata", "Transform",
-            ):
-                # Section-level engine paths use '/' separators; cfn-lint join
-                # paths use '.'. Normalize so exact-path matching works.
-                resource_path = resource_path.replace("/", ".")
             diags.append({
                 "rule_id": rule_id,
                 "rule_description": d.get("ruleDescription", ""),
@@ -692,10 +686,8 @@ def run_single():
         # short-circuits nested chains and skips branches under parent schema
         # failures. Unmatched engine E1028 is engine-extra only when cfn-lint
         # fired E1028 on this template or quotes the same condition; else FP.
-        # cfn-lint records carry their own id in `cfnlint_rule_id` (`rule_id`
-        # holds the engine id they map to, F0013 for E1028).
         cfnlint_fired_e1028 = any(
-            d.get("cfnlint_rule_id") == "E1028" for d in cfnlint_all[key]
+            d.get("rule_id") == "E1028" for d in cfnlint_all[key]
         )
 
         def _cfnlint_saw_condition(engine_diag):
@@ -765,11 +757,11 @@ def run_single():
     # ── Header ───────────────────────────────────────────────────────────
     w("# cloudformation-validate vs cfn-lint - Parity Report")
     w("")
-    w(f"> Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    w(f"> Engine: **{ENGINE_NAME}**")
-    w(f"> Detail level: **{OUTPUT_FORMAT}**")
-    w("> Matching: `(rule_id, resource_id, path)` two-pass with `(rule_id, resource_id)` fallback + aliases")
-    w(f"> Templates compared: **{len(matched_keys)}**")
+    w(f"> Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}  ")
+    w(f"> Engine: **{ENGINE_NAME}**  ")
+    w(f"> Detail level: **{OUTPUT_FORMAT}**  ")
+    w(f"> Matching: `(rule_id, resource_id, path)` two-pass with `(rule_id, resource_id)` fallback + aliases  ")
+    w(f"> Templates compared: **{len(matched_keys)}**  ")
     w("")
 
     # ── Glossary ─────────────────────────────────────────────────────────

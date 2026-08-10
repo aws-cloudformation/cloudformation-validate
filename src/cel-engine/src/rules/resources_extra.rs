@@ -13,9 +13,7 @@ use template_model::consts::{
     FIELD_PROPERTIES, FIELD_RESOURCE_TYPE, FIELD_RESOURCES, FIELD_SOURCE_PATH, FIELD_TARGET, FN_IF, FN_REF,
     KEY_PROPERTIES, PARAM_TYPE_STRING, TRANSFORM_SERVERLESS,
 };
-use template_model::iam_policy::validate_identity_policy;
 use template_model::message::{render_str_list, render_value};
-use template_model::resolved_value_to_json;
 use template_model::resolver::{RefKind, ResolvedValue};
 use template_model::{
     CAA_RECORD_PATTERN, IAM_ROLE_ARN_RULE_PATTERN, MARKER_DYNAMIC, MARKER_PARAM_TYPE, MX_RECORD_PATTERN, SourceSpan,
@@ -208,38 +206,6 @@ fn health_check_port_scalar(value: &serde_json::Value) -> Option<String> {
         serde_json::Value::String(s) => Some(s.clone()),
         serde_json::Value::Number(n) => Some(n.to_string()),
         _ => None,
-    }
-}
-
-fn resolve_with_markers(m: &SemanticModel, resource_id: &str, path: &str) -> Option<serde_json::Value> {
-    m.resolve_deep(resource_id, path)
-        .or_else(|| m.resolve(resource_id, path).cloned())
-        .map(|value| resolved_value_to_json(&value))
-        .or_else(|| m.resolve_scenarios_json(resource_id, path).into_iter().next().map(|(value, _)| value))
-}
-
-fn push_identity_policy_findings(
-    out: &mut Vec<Diagnostic>,
-    model: &SemanticModel,
-    resource_id: &str,
-    document_path: &str,
-    document: &serde_json::Value,
-) {
-    let prefix = format!("{}.", document_path);
-    let substituted: HashSet<String> = model
-        .graph
-        .outgoing(resource_id)
-        .iter()
-        .filter_map(|edge| edge.source_path.strip_prefix(&prefix))
-        .map(String::from)
-        .collect();
-    for finding in validate_identity_policy(document, &substituted) {
-        let path = if finding.path.is_empty() {
-            document_path.to_string()
-        } else {
-            format!("{}.{}", document_path, finding.path)
-        };
-        out.push(make_resource_diagnostic("E3510", &finding.message, model, resource_id, &path, None));
     }
 }
 
@@ -809,33 +775,19 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    let single_document_types = [
-        ("AWS::IAM::Policy", "Properties.PolicyDocument"),
-        ("AWS::IAM::ManagedPolicy", "Properties.PolicyDocument"),
-        ("AWS::IAM::UserPolicy", "Properties.PolicyDocument"),
-        ("AWS::IAM::RolePolicy", "Properties.PolicyDocument"),
-        ("AWS::IAM::GroupPolicy", "Properties.PolicyDocument"),
-        ("AWS::SSO::PermissionSet", "Properties.InlinePolicy"),
-    ];
-    for (resource_type, document_path) in single_document_types {
-        for name in m.resources_of_type(resource_type) {
-            if let Some(document) = resolve_with_markers(m, name, document_path) {
-                push_identity_policy_findings(&mut out, m, name, document_path, &document);
-            }
-        }
-    }
-    for resource_type in ["AWS::IAM::Role", "AWS::IAM::User", "AWS::IAM::Group"] {
-        for name in m.resources_of_type(resource_type) {
-            let Some(serde_json::Value::Array(policies)) = resolve_with_markers(m, name, "Properties.Policies") else {
-                continue;
-            };
-            for (index, policy) in policies.iter().enumerate() {
-                let Some(document) = policy.get("PolicyDocument") else {
-                    continue;
-                };
-                let document_path = format!("Properties.Policies.{}.PolicyDocument", index);
-                push_identity_policy_findings(&mut out, m, name, &document_path, document);
-            }
+    for name in m.resources_of_type("AWS::IAM::Policy") {
+        if let Some(doc) = resolve_concrete(m, name, "Properties.PolicyDocument")
+            && doc.is_object()
+            && doc.get("Statement").is_none()
+        {
+            out.push(make_resource_diagnostic(
+                "E3510",
+                "IAM identity policy must have a Statement property",
+                m,
+                name,
+                "Properties.PolicyDocument",
+                Some("Add a Statement array to the PolicyDocument"),
+            ));
         }
     }
 

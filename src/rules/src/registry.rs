@@ -215,7 +215,7 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
     RuleDefinition {
         id: "F0013",
         category: Category::Intrinsic,
-        description: "Conditions must be well-formed: a condition body must evaluate to a boolean and Fn::If must have exactly 3 elements",
+        description: "Fn::If must have exactly 3 elements",
         origin: RuleOrigin::Schema,
     },
     RuleDefinition {
@@ -785,7 +785,7 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
     RuleDefinition {
         id: "E3001",
         category: Category::Resource,
-        description: "Resource attributes must be recognized and correctly shaped",
+        description: "Basic CloudFormation Resource Check",
         origin: RuleOrigin::CfnLint,
     },
     RuleDefinition {

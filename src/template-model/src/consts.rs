@@ -47,42 +47,6 @@ pub const KEY_DELETION_POLICY: &str = "DeletionPolicy";
 pub const KEY_UPDATE_REPLACE_POLICY: &str = "UpdateReplacePolicy";
 pub const KEY_UPDATE_POLICY: &str = "UpdatePolicy";
 pub const KEY_CREATION_POLICY: &str = "CreationPolicy";
-/// Resource attribute naming the provider version of a custom resource.
-pub const KEY_VERSION: &str = "Version";
-/// SAM resource attribute declaring inter-resource connectors.
-pub const KEY_CONNECTORS: &str = "Connectors";
-/// SAM resource attribute opting a resource out of Globals inheritance.
-pub const KEY_IGNORE_GLOBALS: &str = "IgnoreGlobals";
-
-/// Every attribute CloudFormation (and SAM) accepts alongside a resource's `Type`.
-pub const RESOURCE_ATTRIBUTES: &[&str] = &[
-    KEY_TYPE,
-    KEY_PROPERTIES,
-    KEY_CONDITION,
-    KEY_DEPENDS_ON,
-    KEY_DELETION_POLICY,
-    KEY_UPDATE_REPLACE_POLICY,
-    KEY_UPDATE_POLICY,
-    KEY_CREATION_POLICY,
-    SECTION_METADATA,
-    KEY_VERSION,
-    KEY_CONNECTORS,
-    KEY_IGNORE_GLOBALS,
-];
-
-/// The generic custom resource type. Together with [`CUSTOM_RESOURCE_TYPE_PREFIX`]
-/// this identifies the resources whose lifecycle CloudFormation delegates to a
-/// provider rather than managing itself.
-pub const CUSTOM_RESOURCE_TYPE: &str = "AWS::CloudFormation::CustomResource";
-/// Prefix of a named custom resource type, as in `Custom::MyProvider`.
-pub const CUSTOM_RESOURCE_TYPE_PREFIX: &str = "Custom::";
-
-/// Whether `resource_type` names a custom resource, in either the generic
-/// `AWS::CloudFormation::CustomResource` form or the `Custom::<Name>` form.
-#[must_use]
-pub fn is_custom_resource_type(resource_type: &str) -> bool {
-    resource_type == CUSTOM_RESOURCE_TYPE || resource_type.starts_with(CUSTOM_RESOURCE_TYPE_PREFIX)
-}
 
 pub const KEY_DEFAULT: &str = "Default";
 pub const KEY_ALLOWED_VALUES: &str = "AllowedValues";
@@ -196,13 +160,6 @@ pub const CDK_METADATA_TYPE: &str = "AWS::CDK::Metadata";
 
 pub const OUTPUT_PSEUDO_RESOURCE_PREFIX: &str = "__output__";
 pub const OUTPUTS_PSEUDO_RESOURCE: &str = "__outputs__";
-
-/// Prefix of the synthetic condition names minted for an `Fn::If` whose first
-/// element is an inline boolean expression rather than a condition name. The
-/// expression form itself is invalid (reported at parse time), so
-/// reachability findings over these synthetic names would leak an internal
-/// label and double-report the same mistake.
-pub const INLINE_CONDITION_PREFIX: &str = "__inline_cond_";
 
 /// Sentinel value used by the satisfiability search to represent "any value
 /// other than the literals the parameter is compared against". Added to the
@@ -527,16 +484,6 @@ pub const SHORT_TAG_TO_FN_KEY: &[(&str, &str)] = &[
 /// `validate_allowed_functions`.
 pub const BOOLEAN_FN_KEYS: &[&str] =
     &[FN_CONDITION, FN_EQUALS, FN_AND, FN_OR, FN_NOT, FN_CONTAINS, FN_EACH_MEMBER_EQUALS, FN_EACH_MEMBER_IN];
-
-/// The functions a named condition's body may use. A condition must evaluate to
-/// a boolean, and these are the only functions CloudFormation evaluates in the
-/// `Conditions` section; a body may also be a reference to another condition
-/// (`Condition`), which is listed separately because it names a condition rather
-/// than combining one.
-pub const CONDITION_FUNCTIONS: &[&str] = &[FN_AND, FN_EQUALS, FN_NOT, FN_OR];
-
-/// Longest condition name CloudFormation accepts.
-pub const MAX_CONDITION_NAME_LENGTH: usize = 255;
 
 /// Intrinsic functions whose output can stand in for an `Fn::Equals` argument.
 /// An `Fn::Equals` argument that is a single-key mapping must use one of these

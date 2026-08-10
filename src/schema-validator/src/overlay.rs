@@ -1470,8 +1470,6 @@ pub(crate) fn merge_prop(base: &mut PropSchema, overlay: PropSchema) {
     replace_if_present(&mut base.if_then_else, overlay.if_then_else);
     merge_dependency_map(&mut base.dependent_required, overlay.dependent_required);
     merge_dependency_map(&mut base.dependent_excluded, overlay.dependent_excluded);
-    replace_if_present(&mut base.required_or, overlay.required_or);
-    replace_if_present(&mut base.required_xor, overlay.required_xor);
 }
 
 /// Applies the overlay's allowed-value list, keeping the two enum
@@ -1556,8 +1554,6 @@ fn is_no_op(prop: &PropSchema) -> bool {
         if_then_else,
         dependent_required,
         dependent_excluded,
-        required_or,
-        required_xor,
     } = prop;
     ref_name.is_none()
         && prop_type.is_none()
@@ -1592,8 +1588,6 @@ fn is_no_op(prop: &PropSchema) -> bool {
         && if_then_else.is_empty()
         && dependent_required.is_empty()
         && dependent_excluded.is_empty()
-        && required_or.is_empty()
-        && required_xor.is_empty()
 }
 
 /// Append items from `extra` not already present in `base`.

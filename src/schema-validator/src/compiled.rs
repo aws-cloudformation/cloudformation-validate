@@ -180,12 +180,6 @@ pub struct PropSchema {
     pub dependent_required: HashMap<String, Vec<String>>,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub dependent_excluded: HashMap<String, Vec<String>>,
-    /// At least one of these properties must be present (`requiredOr`).
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub required_or: Vec<String>,
-    /// Exactly one of these properties must be present (`requiredXor`).
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub required_xor: Vec<String>,
 }
 
 fn skip_unless_true(value: &Option<bool>) -> bool {
@@ -310,8 +304,6 @@ impl PropSchema {
             if_then_else,
             dependent_required,
             dependent_excluded,
-            required_or,
-            required_xor,
         } = self;
         ref_name.is_some()
             || prop_type.is_some()
@@ -344,8 +336,6 @@ impl PropSchema {
             || !if_then_else.is_empty()
             || !dependent_required.is_empty()
             || !dependent_excluded.is_empty()
-            || !required_or.is_empty()
-            || !required_xor.is_empty()
     }
 
     fn has_own_constraints(&self) -> bool {
@@ -383,8 +373,6 @@ impl PropSchema {
             if_then_else,
             dependent_required,
             dependent_excluded,
-            required_or,
-            required_xor,
         } = self;
         prop_type.is_some()
             || !enum_values.is_empty()
@@ -417,8 +405,6 @@ impl PropSchema {
             || !if_then_else.is_empty()
             || !dependent_required.is_empty()
             || !dependent_excluded.is_empty()
-            || !required_or.is_empty()
-            || !required_xor.is_empty()
     }
 }
 

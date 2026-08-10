@@ -290,24 +290,6 @@ pub struct GetAttRef {
     /// Logical ID of the resource whose attribute is referenced.
     pub resource: String,
     pub attribute: String,
-    /// Property path within the output where the GetAtt reference occurs.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
-    pub source_path: Option<String>,
-}
-
-/// An unresolved Fn::Sub variable reference in an output value.
-#[derive(Debug, Clone, Serialize)]
-#[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
-#[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Record))]
-#[serde(rename_all = "camelCase")]
-pub struct SubRef {
-    /// The variable name that could not be resolved.
-    pub variable: String,
-    /// Property path within the output where the Sub reference occurs.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
-    pub source_path: Option<String>,
 }
 
 /// A template output after intrinsic resolution, with its references.
@@ -330,10 +312,6 @@ pub struct DiagnosticOutput {
     pub export_name: Option<JsonValue>,
     /// Fn::GetAtt references appearing in the output value.
     pub getatt_refs: Vec<GetAttRef>,
-    /// `Fn::Sub` variables in the output value that resolve to nothing in the
-    /// template -- CloudFormation rejects the output, so these are the
-    /// unresolved-variable findings for this output.
-    pub sub_refs: Vec<SubRef>,
     /// Names of conditions referenced within the output value.
     pub condition_refs: Vec<String>,
 }
