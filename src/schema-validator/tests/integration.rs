@@ -9,7 +9,7 @@ use template_model::SemanticModel;
 
 const TEMPLATES: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../resources/templates");
 
-static SV: LazyLock<SchemaValidator> = LazyLock::new(SchemaValidator::new);
+static SV: LazyLock<SchemaValidator> = LazyLock::new(SchemaValidator::default);
 
 fn validate_fixture(path: &str) -> Vec<Diagnostic> {
     let full = format!("{}/{}", TEMPLATES, path);
@@ -104,7 +104,7 @@ fn additional_properties_rejected() {
 #[test]
 fn additional_properties_typo_suggestion() {
     let diags = validate_fixture("bad/schema_additional_props.yaml");
-    // "BukcetName" has similarity 0.8 to "BucketName" — threshold is > 0.8, so no suggestion
+    // "BukcetName" has similarity 0.8 to "BucketName" - threshold is > 0.8, so no suggestion
     let typo_diag = diags.iter().find(|d| d.rule_id == "F3002" && d.message.contains("BukcetName"));
     let typo_diag = typo_diag.expect("expected F3002 for BukcetName");
     assert!(
@@ -195,7 +195,7 @@ fn format_validation_with_refs() {
 // A reference whose target resource produces the wrong destination ARN format
 // is a semantic, cross-resource concern owned by the rule engine, not the schema
 // validator. The schema validator only proves structural type incompatibility,
-// which a string-typed reference name does not violate — so it must not raise an
+// which a string-typed reference name does not violate - so it must not raise an
 // ARN-format violation here.
 #[test]
 fn ref_to_wrong_arn_format_is_not_a_schema_format_violation() {
@@ -255,6 +255,44 @@ fn enrich_context_adds_allowed_values_for_enum() {
             "expected allowed_values in context for W3030"
         );
     }
+}
+
+/// A value that is unknown until deployment is described by what actually
+/// produced it. Only a parameter is called a parameter, and it is named - the
+/// explanation of why the value is unknown never stands in for a name.
+#[test]
+fn enrich_context_describes_a_deploy_time_value_by_its_real_source() {
+    const TEMPLATE: &[u8] = br#"{
+  "Parameters": { "SubnetParam": { "Type": "AWS::EC2::Subnet::Id" } },
+  "Resources": {
+    "FromParameter": {
+      "Type": "AWS::EC2::NetworkInterface",
+      "Properties": { "SubnetId": { "Ref": "SubnetParam" }, "PrivateIpAddress": 10 }
+    },
+    "FromImport": {
+      "Type": "AWS::EC2::NetworkInterface",
+      "Properties": { "SubnetId": { "Fn::ImportValue": "SharedSubnet" }, "PrivateIpAddress": 10 }
+    }
+  }
+}"#;
+    let model = Arc::new(SemanticModel::from_bytes(TEMPLATE).unwrap());
+    let mut result = SV.validate(&model, Some("us-east-1"));
+    SV.enrich_context(&mut result.diagnostics, &model);
+
+    let source_for = |logical_id: &str| -> String {
+        result
+            .diagnostics
+            .iter()
+            .filter(|d| d.entity.as_ref().is_some_and(|e| e.logical_id == logical_id))
+            .find_map(|d| d.context.as_ref().and_then(|c| c.resolution_source.clone()))
+            .unwrap_or_else(|| panic!("expected a resolution source for {logical_id}"))
+    };
+
+    assert_eq!(source_for("FromParameter"), "parameter 'SubnetParam' (type AWS::EC2::Subnet::Id)");
+
+    let import_source = source_for("FromImport");
+    assert!(!import_source.starts_with("parameter "), "a cross-stack import is not a parameter, got {import_source:?}");
+    assert!(import_source.contains("cross-stack import"), "expected the import to be named, got {import_source:?}");
 }
 
 #[test]
@@ -498,6 +536,47 @@ fn composition_f3018_one_of_zero_matches() {
 }
 
 #[test]
+fn intrinsic_built_kms_alias_arn_is_not_rejected_by_format_composition() {
+    let diagnostics = validate_fixture("cdk/ddb-stream-lambda-sns--DdbStreamStack.template.json");
+    assert!(
+        !diagnostics.iter().any(|diagnostic| {
+            diagnostic.rule_id == "F3017"
+                && diagnostic.resource_logical_id() == Some("ddbstreamtopic7821AF6E")
+                && diagnostic.property_path.as_deref() == Some("Properties.KmsMasterKeyId")
+        }),
+        "a valid intrinsic-built KMS alias ARN must pass format composition: {diagnostics:?}"
+    );
+}
+
+#[test]
+fn every_valid_kms_key_identifier_form_passes_format_composition() {
+    let diagnostics = validate_fixture("good/kms_key_identifier_forms.yaml");
+    let rejected: Vec<_> = diagnostics
+        .iter()
+        .filter(|diagnostic| {
+            diagnostic.rule_id == "F3017" && diagnostic.property_path.as_deref() == Some("Properties.KmsMasterKeyId")
+        })
+        .collect();
+    assert!(
+        rejected.is_empty(),
+        "key ID, key ARN, alias name, alias ARN, and multi-Region forms are all valid: {rejected:?}"
+    );
+}
+
+#[test]
+fn malformed_literal_kms_key_arn_is_rejected_by_format_composition() {
+    let diagnostics = validate_fixture("bad/hardcoded_partition.yaml");
+    assert!(
+        diagnostics.iter().any(|diagnostic| {
+            diagnostic.rule_id == "F3017"
+                && diagnostic.resource_logical_id() == Some("Topic")
+                && diagnostic.property_path.as_deref() == Some("Properties.KmsMasterKeyId")
+        }),
+        "the malformed literal KMS key ARN must remain rejected: {diagnostics:?}"
+    );
+}
+
+#[test]
 fn composition_f3017_any_of_no_match() {
     let diags = validate_fixture("bad/schema_composition.yaml");
     let f3017: Vec<_> =
@@ -517,5 +596,92 @@ fn extension_cfn_gather_no_duplicate_numeric_constraint() {
         !diags.iter().any(|d| d.rule_id == "F3034"),
         "F3034 must not double-report a gather constraint, got: {:?}",
         diags.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
+    );
+}
+
+#[test]
+fn i9001_conditional_create_only_emitted_for_instance_tenancy() {
+    let diagnostics = validate_fixture("bad/I9001_conditional_create_only.yaml");
+    let conditional_diagnostics: Vec<_> = diagnostics
+        .iter()
+        .filter(|diagnostic| {
+            diagnostic.rule_id == "I9001"
+                && diagnostic.resource_logical_id() == Some("VpcWithConditionalCreateOnly")
+                && diagnostic.property_path.as_deref() == Some("Properties.InstanceTenancy")
+        })
+        .collect();
+    assert_eq!(
+        conditional_diagnostics.len(),
+        1,
+        "expected exactly one I9001 for InstanceTenancy, got: {conditional_diagnostics:?}"
+    );
+    let diagnostic = conditional_diagnostics[0];
+    assert_eq!(diagnostic.severity, Severity::Info, "conditional replacement risk must be informational");
+    assert_eq!(diagnostic.property_path.as_deref(), Some("Properties.InstanceTenancy"));
+    assert_eq!(
+        diagnostic.message,
+        "Property 'InstanceTenancy' is conditionally create-only; updating it may cause resource replacement"
+    );
+    let location = diagnostic.location.as_ref().expect("conditional replacement risk must have a source location");
+    assert_eq!(
+        (location.start_line, location.start_column, location.end_line, location.end_column),
+        (9, 7, 9, 22),
+        "conditional replacement risk must point to the InstanceTenancy key"
+    );
+}
+
+#[test]
+fn i9001_context_distinguishes_conditional_from_unconditional_create_only() {
+    let full = format!("{}/bad/I9001_conditional_create_only.yaml", TEMPLATES);
+    let bytes = std::fs::read(&full).unwrap();
+    let model = Arc::new(SemanticModel::from_bytes(&bytes).unwrap());
+    let mut result = SV.validate(&model, Some("us-east-1"));
+    SV.enrich_context(&mut result.diagnostics, &model);
+
+    let conditional_diagnostic = result
+        .diagnostics
+        .iter()
+        .find(|diagnostic| {
+            diagnostic.rule_id == "I9001"
+                && diagnostic.resource_logical_id() == Some("VpcWithConditionalCreateOnly")
+                && diagnostic.property_path.as_deref() == Some("Properties.InstanceTenancy")
+        })
+        .expect("expected I9001 for InstanceTenancy");
+    let conditional_context =
+        conditional_diagnostic.context.as_ref().expect("expected context on enriched InstanceTenancy diagnostic");
+    assert_eq!(conditional_context.lifecycle.as_deref(), Some("conditional-create-only"));
+
+    let unconditional_diagnostic = result
+        .diagnostics
+        .iter()
+        .find(|diagnostic| {
+            diagnostic.rule_id == "I9001"
+                && diagnostic.resource_logical_id() == Some("VpcWithConditionalCreateOnly")
+                && diagnostic.property_path.as_deref() == Some("Properties.CidrBlock")
+        })
+        .expect("expected I9001 for CidrBlock");
+    let unconditional_context =
+        unconditional_diagnostic.context.as_ref().expect("expected context on enriched CidrBlock diagnostic");
+    assert_eq!(unconditional_context.lifecycle.as_deref(), Some("create-only"));
+    assert_eq!(
+        unconditional_diagnostic.message,
+        "Property 'CidrBlock' is create-only; updating it will cause resource replacement"
+    );
+}
+
+#[test]
+fn i9001_conditional_create_only_not_emitted_when_property_is_absent() {
+    let diagnostics = validate_fixture("bad/I9001_conditional_create_only.yaml");
+    let control_diagnostics: Vec<_> = diagnostics
+        .iter()
+        .filter(|diagnostic| {
+            diagnostic.rule_id == "I9001"
+                && diagnostic.resource_logical_id() == Some("VpcControl")
+                && diagnostic.property_path.as_deref() == Some("Properties.InstanceTenancy")
+        })
+        .collect();
+    assert!(
+        control_diagnostics.is_empty(),
+        "control VPC without InstanceTenancy must not emit I9001 for InstanceTenancy, got: {control_diagnostics:?}"
     );
 }

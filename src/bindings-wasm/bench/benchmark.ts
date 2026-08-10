@@ -18,7 +18,7 @@ type WasmEngine = WasmRegoEngineType | WasmCelEngineType;
 
 const { SchemaValidator } = wasmBindings;
 
-// Raw WASM bindings — accept Uint8Array directly, no file I/O.
+// Raw WASM bindings - accept Uint8Array directly, no file I/O.
 // The public package re-exports wrapper classes that read from File/TemplateFile;
 // the benchmark needs the inner classes to pass pre-read bytes.
 const wasmRaw = require('@aws/cloudformation-validate/bindings_wasm');
@@ -49,10 +49,39 @@ const templateDirArg = (() => {
 })();
 const templateDir = templateDirArg ?? DEFAULT_TEMPLATE_DIR;
 
-const engineFlag = argValue('--engine') ?? 'rego';
+const engineFlag: string = (() => {
+    if (!args.includes('--engine')) return 'rego';
+    const val = argValue('--engine');
+    if (val === undefined || val.startsWith('-')) {
+        console.error('Error: --engine requires a value');
+        process.exit(2);
+    }
+    return val;
+})();
+if (engineFlag !== 'rego' && engineFlag !== 'cel') {
+    console.error(`Error: --engine must be 'rego' or 'cel', got '${engineFlag}'`);
+    process.exit(2);
+}
 const formatFlag = 'DETAILED';
 const formatDir = 'detailed';
-const iterations = Math.max(1, parseInt(argValue('--iterations') ?? '20', 10));
+const iterationsRaw = argValue('--iterations');
+const iterations: number = (() => {
+    if (iterationsRaw === undefined) {
+        // Flag absent - use default.
+        if (args.includes('--iterations')) {
+            // Flag present but no value follows.
+            console.error('Error: --iterations requires a value');
+            process.exit(2);
+        }
+        return 20;
+    }
+    const parsed = Number(iterationsRaw);
+    if (!Number.isInteger(parsed) || parsed <= 0) {
+        console.error(`Error: --iterations must be a positive integer, got '${iterationsRaw}'`);
+        process.exit(2);
+    }
+    return parsed;
+})();
 
 function round4(v: number): number {
     return Math.round(v * 10000) / 10000;
@@ -166,6 +195,8 @@ interface TemplateResult {
     readonly wallClockMs: number;
     readonly coldWallClockMs: number;
     readonly warmWallClockMs: number;
+    /** Sum of all host-timed validate calls (all iterations) for this template. */
+    readonly wallClockTotalMs: number;
     readonly bindingOverheadMs: number;
     readonly errorMsg?: string;
 }
@@ -194,6 +225,7 @@ function errorResult(file: string, status: string, msg: string): TemplateResult 
         wallClockMs: 0,
         coldWallClockMs: 0,
         warmWallClockMs: 0,
+        wallClockTotalMs: 0,
         bindingOverheadMs: 0,
         errorMsg: msg,
     };
@@ -216,6 +248,11 @@ console.error(
     `Benchmarking ${templates.length} templates, ${iterations} iterations, engine=${engineFlag}, format=${formatFlag}`,
 );
 
+// --- Initialization timing ---
+// Schema init is timed standalone for informational comparison, but is NOT additive for FFI
+// consumers: the engine constructor already embeds a SchemaValidator, so real-world init cost
+// is just engine construction.  init_ms/cold_init/warm_init reflect engine-only samples -
+// what an actual consumer pays to set up validation.
 const schemaInitSamples: number[] = [];
 const engineInitSamples: number[] = [];
 for (let i = 0; i < iterations; i++) {
@@ -229,15 +266,21 @@ for (let i = 0; i < iterations; i++) {
     engineInitSamples.push(performance.now() - t1);
     eng.free();
 }
-const initSamples = schemaInitSamples.map((s, i) => s + engineInitSamples[i]);
-// cold_init_ms includes WASM module instantiation + first schema init + first engine init.
+// init_ms = engine_init samples only (actual consumer validation setup cost).
+const initSamples = engineInitSamples.slice();
+// cold_init_ms = WASM module instantiation + first engine construction.
 const coldInitMs = moduleLoadMs + initSamples[0];
+// warm_init_ms = subsequent engine constructions (module already loaded, JIT warm).
 const warmInitSamples = initSamples.length > 1 ? initSamples.slice(1) : initSamples.slice();
 
 const engine = newEngine();
 
 const reportDir = path.resolve(__dirname, `../reports/${engineFlag}`);
 const jsonDir = path.join(reportDir, `json_${formatDir}`);
+// Clean previous output so stale reports from dropped/renamed templates are not left behind.
+if (fs.existsSync(jsonDir)) {
+    fs.rmSync(jsonDir, { recursive: true, force: true });
+}
 fs.mkdirSync(jsonDir, { recursive: true });
 
 const validateConfig: ValidateConfig = {
@@ -248,7 +291,10 @@ const validateConfig: ValidateConfig = {
 if (templates.length > 0) {
     const warmupBytes = fs.readFileSync(templates[0]);
     try {
-        WasmSemanticModel.parse(warmupBytes);
+        const warmupModel = WasmSemanticModel.parse(warmupBytes);
+        try {
+            warmupModel.free();
+        } catch {}
     } catch {}
     try {
         engine.validateDetailed(warmupBytes, validateConfig, templates[0]);
@@ -260,7 +306,7 @@ const results: TemplateResult[] = [];
 const benchStart = performance.now();
 
 for (const tpl of templates) {
-    const rel = path.relative(templateDir, tpl).replace(/^\//, '') || path.basename(tpl);
+    const rel = path.relative(templateDir, tpl).replace(/\\/g, '/').replace(/^\//, '') || path.basename(tpl);
     process.stderr.write(`  ${rel}`);
 
     let sizeBytes: number;
@@ -284,14 +330,23 @@ for (const tpl of templates) {
     let failed = false;
 
     for (let i = 0; i < iterations; i++) {
+        // Standalone model parse - classify failures distinctly as parse_error.
+        let parsedModel: { free(): void } | null = null;
         try {
             const tm0 = performance.now();
-            const parsed = WasmSemanticModel.parse(bytes);
+            parsedModel = WasmSemanticModel.parse(bytes);
             iterHostModel.push(performance.now() - tm0);
+        } catch (e: any) {
+            results.push(errorResult(rel, 'parse_error', e.message ?? String(e)));
+            failed = true;
+            break;
+        } finally {
             try {
-                parsed.free();
+                parsedModel?.free();
             } catch {}
+        }
 
+        try {
             const t0 = performance.now();
             const report = engine.validateDetailed(bytes, validateConfig, rel);
             const wallMs = performance.now() - t0;
@@ -321,9 +376,18 @@ for (const tpl of templates) {
     const coldHostModelMs = iterHostModel[0];
     const warmHostModelMs = iterations > 1 ? new Stats(iterHostModel.slice(1)).median : coldHostModelMs;
     const medianHostModel = new Stats(iterHostModel).median;
-    const bindingOverheadMs = round4(medianWallClock - medianEngineInternal);
+    // Binding overhead: median of per-iteration (wall_clock − engine_internal) differences.
+    // This captures JNI/WASM dispatch + marshalling cost for each individual call.
+    const perIterOverhead = iterWallClock.map((w, idx) => w - iterEngineInternal[idx]);
+    const bindingOverheadMs = round4(new Stats(perIterOverhead).median);
 
-    const jsonStem = rel.replace(/\//g, '_').replace(/\.(yaml|json|yml)$/g, '');
+    const jsonStem = (() => {
+        const flat = rel.replace(/\//g, '_');
+        // Robust suffix replacement: strip the last known extension and append a tag.
+        const extMatch = flat.match(/^(.+)\.(yaml|yml|json)$/i);
+        if (extMatch) return `${extMatch[1]}_${extMatch[2].toLowerCase()}`;
+        return flat;
+    })();
     pendingWrites.push([
         path.join(jsonDir, `${jsonStem}.json`),
         {
@@ -334,6 +398,7 @@ for (const tpl of templates) {
             detailLevel: formatFlag,
             benchmarkMetrics: {
                 iterations,
+                // "firstIteration" = first iteration for this template (after global JIT warmup).
                 firstIteration: {
                     hostModelMs: round4(iterHostModel[0]),
                     modelBuildMs: round4(iterModelBuild[0]),
@@ -343,6 +408,7 @@ for (const tpl of templates) {
                     engineInternalMs: round4(coldEngineInternalMs),
                     wallClockMs: round4(coldWallClockMs),
                 },
+                // "steadyState" = median of iterations 2..N (template-local steady state).
                 steadyState: {
                     hostModelMs: round4(warmHostModelMs),
                     modelBuildMs: round4(
@@ -388,6 +454,7 @@ for (const tpl of templates) {
         wallClockMs: medianWallClock,
         coldWallClockMs,
         warmWallClockMs,
+        wallClockTotalMs: new Stats(iterWallClock).total,
         bindingOverheadMs,
     };
     process.stderr.write(
@@ -428,7 +495,10 @@ const coldHostModelStats = new Stats(ok.map((r) => r.coldHostModelMs));
 const warmHostModelStats = new Stats(ok.map((r) => r.warmHostModelMs));
 const overheadStats = new Stats(ok.map((r) => r.bindingOverheadMs));
 
-const throughputPerSec = totalWallMs > 0 ? (ok.length * iterations) / (totalWallMs / 1000) : 0;
+// Throughput denominator: sum of host-timed validate calls for successful templates only.
+// This excludes file I/O, standalone model benchmarks, logging overhead, and failures.
+const measuredValidationWallMs = ok.reduce((s, r) => s + r.wallClockTotalMs, 0);
+const throughputPerSec = measuredValidationWallMs > 0 ? (ok.length * iterations) / (measuredValidationWallMs / 1000) : 0;
 
 const { fingerprint: corpusFingerprint, fileCount: corpusFileCount } = computeCorpusFingerprint(templateDir);
 const runFingerprint = crypto
@@ -457,6 +527,7 @@ const aggregate = {
         schema_init_ms: schemaInitStats.toJson(),
         engine_init_ms: engineInitStats.toJson(),
         total_wall_ms: round4(totalWallMs),
+        measured_validation_wall_ms: round4(measuredValidationWallMs),
         throughput_per_sec: round4(throughputPerSec),
         model_build_ms: modelBuildStats.toJson(),
         schema_validate_ms: schemaValidateStats.toJson(),
@@ -505,7 +576,7 @@ function computeCorpusFingerprint(root: string): { fingerprint: string; fileCoun
     for (const f of files) {
         const content = fs.readFileSync(f);
         const fileHash = crypto.createHash('sha256').update(content).digest('hex');
-        const rel = path.relative(root, f) || path.basename(f);
+        const rel = (path.relative(root, f) || path.basename(f)).replace(/\\/g, '/');
         outer.update(`${rel}\t${fileHash}\n`);
     }
     return { fingerprint: outer.digest('hex'), fileCount: files.length };
@@ -519,7 +590,7 @@ function generateMarkdown(
     const lines: string[] = [];
     const push = (s: string) => lines.push(s);
 
-    push(`# WASM Benchmark Report — ${engineFlag} engine (${formatFlag})\n`);
+    push(`# WASM Benchmark Report - ${engineFlag} engine (${formatFlag})\n`);
     push(`Generated: ${new Date().toISOString().replace(/\.\d+Z$/, 'Z')}\n`);
     push(`Corpus fingerprint: \`${corpusFingerprint}\` (${corpusFileCount} files)\n`);
 
@@ -533,7 +604,13 @@ function generateMarkdown(
     push(`| Detail level | ${formatFlag} |`);
 
     push('\n## Initialization (ms)\n');
-    push('| Stat | Schema Init | Engine Init | Combined |\n|---|---|---|---|');
+    push(
+        'Schema init is timed standalone for comparison but is **not additive** for FFI consumers:',
+    );
+    push(
+        'the engine constructor already embeds a SchemaValidator. `init_ms` = engine construction only (actual consumer setup cost).\n',
+    );
+    push('| Stat | Schema Init (standalone) | Engine Init | Init (engine only) |\n|---|---|---|---|');
     push(
         `| Median | ${schemaInitStats.median.toFixed(4)} | ${engineInitStats.median.toFixed(4)} | ${initStats.median.toFixed(4)} |`,
     );
@@ -545,15 +622,19 @@ function generateMarkdown(
     );
 
     push('\n## Validation Latency (ms, median / p99 / max per template)\n');
+    push('host_model = JS-side timer around WasmSemanticModel.parse (includes WASM dispatch).');
+    push('wall_clock = JS-side timer around validateDetailed() (includes WASM dispatch + marshalling).');
+    push('engine_internal = Rust-internal `report.performance.validateTotal` (engine work only).');
+    push('binding_overhead = median of per-iteration (wall_clock − engine_internal) differences.\n');
     push('| Metric | Median | P99 | Max |\n|---|---|---|---|');
     const row = (label: string, s: Stats) =>
         `| ${label} | ${s.median.toFixed(4)} | ${s.p99.toFixed(4)} | ${s.max.toFixed(4)} |`;
-    push(row('Cold host_model (first iter)', coldHostModelStats));
-    push(row('Warm host_model (steady)', warmHostModelStats));
-    push(row('Cold engine_internal (first iter)', coldEngineInternalStats));
-    push(row('Warm engine_internal (steady)', warmEngineInternalStats));
-    push(row('Cold wall_clock (first iter)', coldWallClockStats));
-    push(row('Warm wall_clock (steady)', warmWallClockStats));
+    push(row('host_model - first (after warmup)', coldHostModelStats));
+    push(row('host_model - steady', warmHostModelStats));
+    push(row('engine_internal - first (after warmup)', coldEngineInternalStats));
+    push(row('engine_internal - steady', warmEngineInternalStats));
+    push(row('wall_clock - first (after warmup)', coldWallClockStats));
+    push(row('wall_clock - steady', warmWallClockStats));
     push(row('host_model (per-template median)', hostModelStats));
     push(row('engine_internal (per-template median)', engineInternalStats));
     push(row('wall_clock (per-template median)', wallClockStats));
@@ -590,7 +671,7 @@ function generateMarkdown(
     if (failedResults.length > 0) {
         push('\n## Failures\n');
         for (const r of failedResults) {
-            push(`- **${r.file}**: ${r.status} — ${r.errorMsg ?? 'unknown'}`);
+            push(`- **${r.file}**: ${r.status} - ${r.errorMsg ?? 'unknown'}`);
         }
     }
 

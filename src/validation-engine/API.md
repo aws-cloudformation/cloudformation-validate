@@ -1,18 +1,18 @@
-# validation-engine — Public API
+# validation-engine - Public API
 
 ## Validating a Template
 
-`validate_bytes_with_path` is the main entry point — pass raw template bytes and get a complete report.
+`validate_bytes_with_path` is the main entry point - pass raw template bytes and get a complete report.
 It requires an engine and a `SchemaValidator`, both of which should be created once and reused:
 
 ```rust
 use rego_engine::RegoEngine;
 // or cel_engine::CelEngine
-use schema_validator::SchemaValidator;
+use schema_validator::{SchemaValidator, SchemaValidatorConfig};
 use validation_engine::{validate_bytes_with_path, EngineConfig, ValidateConfig};
 
 // One-time setup (reuse across validations)
-let schema_validator = SchemaValidator::new();
+let schema_validator = SchemaValidator::default();
 let engine = RegoEngine::new(EngineConfig::default())?;
 
 // Validate
@@ -26,7 +26,7 @@ let report = validate_bytes_with_path(
 )?;
 
 for d in &report.diagnostics {
-    println!("[{}] {} — {}", d.severity, d.rule_id, d.message);
+    println!("[{}] {} - {}", d.severity, d.rule_id, d.message);
 }
 ```
 
@@ -42,14 +42,24 @@ use validation_engine::{EngineConfig, ExternalRuleSource};
 use rego_engine::RegoEngine;
 use cel_engine::CelEngine;
 
-// No custom rules — built-in rules only
+// No custom rules - built-in rules only
 let engine = RegoEngine::new(EngineConfig::default())?;
 
 // With custom rules
 let engine = CelEngine::new(EngineConfig {
     custom_rules: vec![ExternalRuleSource { name: "my_rules.cel".into(), content: cel_source }],
     guard_rules:  vec![ExternalRuleSource { name: "policy.guard".into(), content: guard_source }],
+    ..Default::default()
 })?;
+```
+
+`EngineConfig` gains fields as the engine gains options - a field is added whenever one is needed for correctness or
+ease of use. The constructor and its `with_*` methods let you name only the options you set:
+
+```rust
+let config = EngineConfig::new()
+    .with_custom_rules([ExternalRuleSource { name: "my_rules.cel".into(), content: cel_source }])
+    .with_guard_rules([ExternalRuleSource { name: "policy.guard".into(), content: guard_source }]);
 ```
 
 | Engine                                 | `custom_rules` format     | `guard_rules` handling                   |
@@ -57,7 +67,81 @@ let engine = CelEngine::new(EngineConfig {
 | [RegoEngine](../rego-engine/README.md) | Native Rego source        | Parsed and translated to Rego internally |
 | [CelEngine](../cel-engine/README.md)   | JSON with CEL expressions | Parsed and translated to CEL internally  |
 
-Both engines parse and translate `guard_rules` from raw Guard DSL source text — no pre-parsing needed.
+Both engines parse and translate `guard_rules` from raw Guard DSL source text - no pre-parsing needed.
+
+## Additional Resource Provider Schemas
+
+Additional schemas extend the bundled CloudFormation resource schemas, so templates using properties or types
+CloudFormation has not published yet validate without false findings.
+
+Supply overlay schemas through `SchemaValidatorConfig::additional_schemas`. The optional
+`EngineConfig::schema_validator_config` field holds this same config type: when present, a standalone engine built via
+`new(EngineConfig)` derives overlay-aware metadata (type names, GetAtt attributes, primary identifiers) from it.
+Language bindings and the CLI construct a `SchemaValidator` from the config once at their layer, then pass it to the
+engine so the already-built metadata is shared without redundant work.
+
+```rust
+use data_source::AdditionalSchemaSource;
+use rego_engine::RegoEngine;
+use schema_validator::{SchemaValidator, SchemaValidatorConfig};
+use validation_engine::EngineConfig;
+
+let overlay = AdditionalSchemaSource {
+    type_name: None, // take typeName from the schema itself
+    schema: std::fs::read_to_string("aws-lambda-function.json")?,
+};
+
+let schema_config = SchemaValidatorConfig {
+    additional_schemas: vec![overlay.clone()],
+};
+
+// Standalone engine: nested schema config derives metadata automatically.
+let engine = RegoEngine::new(
+    EngineConfig::new().with_schema_validator_config(schema_config.clone()),
+)?;
+
+// Or: build a SchemaValidator separately for standalone schema validation.
+let schema_validator = SchemaValidator::new(schema_config)?;
+```
+
+Construction fails, rather than degrading quietly, when a schema is malformed, names contradictory or non-canonical
+types, nests too deeply, defines an unsafe `$ref` graph, states nothing enforceable, contains conflicting enum
+representations, uses an invalid regular expression, or states a keyword/composition constraint the compiled model
+cannot enforce. Annotations beside a `$ref` are accepted; constraining siblings are rejected because draft-07 would
+ignore them. Apply a separate overlay to the property or referenced definition instead.
+
+**Merge model.** An overlay may add entries to a collection and restate a single-valued constraint or a logical group;
+a bundled constraint never disappears silently - the one merge that can remove entries (`required` replacement) logs
+every removal. Adding to `required` or to a dependency list states a constraint, so it can legitimately produce a
+finding on a template that violates it.
+
+| Field kind | Rule |
+|------------|------|
+| `properties`, `definitions`, `patternProperties` | deep-merged by key |
+| `required` | replaced when the overlay states the keyword (even as `[]`, which clears it - removals are logged); unioned when the keyword is omitted |
+| `/properties/...` lifecycle metadata lists, each `dependentRequired`/`dependentExcluded` key | unioned |
+| single-valued constraints (`type`, `pattern`, bounds, lengths, `uniqueItems`, `format`, `additionalProperties`, …) | replaced when supplied |
+| `requiredOr`, `requiredXor`, `primaryIdentifier` | replaced as a whole group when supplied |
+| `allOf`/`anyOf`/`oneOf`/`if`-`then`-`else` | replaced when supplied |
+| `items` (the schema every array element must satisfy) | deep-merged, like one keyed entry |
+| `replacementStrategy`, `documentationUrl`, `sourceUrl` | replaced when supplied; these enrich reporting and constrain nothing |
+| `enum` / `enumCaseInsensitive` | one mutually exclusive field; supplying either replaces the other. A plain `enum` over a bundled case-insensitive list keeps case-insensitive comparison, so casings that validate today keep validating; supplying `enumCaseInsensitive` switches comparison to case-insensitive, which only ever accepts more |
+
+A `$ref` is never folded into the property pointing at it: overlay fields are merged beside the reference and combined
+with the whole chain at validation time. The table above decides each field within the chain too, so a hop that restates
+a single-valued constraint overrides the one further along while collections accumulate across every hop. A
+constraint-only overlay therefore applies, chains are followed to their end, and a definition changed by a later overlay
+still reaches every property referencing it. A chain longer than the resolver can follow is rejected rather than cut
+short. Overlays for one type apply in order.
+
+**Scope limits.** An overlay cannot remove a lifecycle metadata entry, and cannot switch a case-insensitive enum to
+case-sensitive comparison. An overlay that states `required` replaces the prior list at that schema level (removals
+are logged); omitting the keyword preserves the base. Composition branches are full property schemas and are
+evaluated in full - branch `required`, dependency maps, value constraints, and nested `if`/`then`/`else` all
+participate in matching, and a selected conditional branch is enforced. Unrepresentable constructs and validation
+keywords are rejected. Conditional constraints from the separate build-time extension artifact remain independently
+enforced. Overlay-derived type, GetAtt, Ref, primary identifier, and schema metadata catalogs are propagated to both
+engines; regional availability and enum snapshots remain bundled.
 
 ## Configuring Validation
 
@@ -93,7 +177,7 @@ Performance metrics are always collected unconditionally.
 ```rust
 report.file_path            // path to the validated template
 report.status               // ReportStatus::Ok or ReportStatus::Error
-report.diagnostics          // Vec<Diagnostic> — all findings
+report.diagnostics          // Vec<Diagnostic> - all findings
 report.metadata.counts      // Summary { fatal, errors, warnings, informational, debug }
 report.metadata.suppressed  // diagnostics removed by filters/severity gating
 report.metadata.resources_scanned
@@ -122,12 +206,12 @@ d.property_path     // e.g. "Properties.BucketName"
 d.location          // Option<SourceSpan> { start_line, start_column, end_line, end_column }
 d.suggested_fix     // Option<String>
 d.documentation_url // Option<String>
-d.category          // Option<String> — e.g. "Schema", "Best Practice", "Structure"
-d.phase             // Option<Phase> — Parse, Schema, or Lint
-d.rule_description  // Option<String> — human-readable rule description
-d.related_resources // Option<Vec<RelatedResource>> — cross-resource references
-d.condition_scenario // Option<HashMap<String, bool>> — condition values that trigger this
-d.context           // Option<ViolationContext> — resolved values (Detailed level only)
+d.category          // Option<String> - e.g. "Schema", "Best Practice", "Structure"
+d.phase             // Option<Phase> - Parse, Schema, or Lint
+d.rule_description  // Option<String> - human-readable rule description
+d.related_resources // Option<Vec<RelatedResource>> - cross-resource references
+d.condition_scenario // Option<HashMap<String, bool>> - condition values that trigger this
+d.context           // Option<ViolationContext> - resolved values (Detailed level only)
 ```
 
 ## Diagnostic Helpers
@@ -149,9 +233,9 @@ For engines that produce JSON diagnostics:
 
 | Type                 | Description                                                                 |
 |--------------------|-----------------------------------------------------------------------------|
-| `ValidationEngine` | Trait that engines implement — provides `evaluate_rules` and rule metadata  |
-| `EngineType`       | `Rego` (default) or `Cel` — selects which validation engine evaluates rules |
+| `ValidationEngine` | Trait that engines implement - provides `evaluate_rules` and rule metadata  |
+| `EngineType`       | `Rego` (default) or `Cel` - selects which validation engine evaluates rules |
 | `EngineConfig`     | Engine construction config: `custom_rules` and `guard_rules` as `ExternalRuleSource` |
 | `ValidateConfig`   | Per-call config: filters, detail level, severity level, parameter overrides, strict, disable_builtin_rules |
-| `ExternalRuleSource` | `{ name: String, content: String }` — a pre-read rule file's identifier and raw content |
+| `ExternalRuleSource` | `{ name: String, content: String }` - a pre-read rule file's identifier and raw content |
 | `ValidationError`  | `Parse(ParseError)` or `Engine(String)`                                     |

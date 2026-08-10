@@ -1,4 +1,4 @@
-//! Rules section validation — structural checks, function allowlisting, and
+//! Rules section validation - structural checks, function allowlisting, and
 //! static assertion evaluation.
 //!
 //! CloudFormation Rules validate parameter values at stack-creation time.

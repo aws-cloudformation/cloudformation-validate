@@ -105,11 +105,16 @@ pub fn sync_additional_specs(
             }
             for (action_name, action_val) in actions {
                 if let Some(action_resources) = action_val.get("Resources").and_then(|v| v.as_array()) {
+                    // Distinct resources can share an ARN format; the candidate
+                    // list is a set, so drop duplicates to keep diagnostic
+                    // messages and matching free of repeated formats.
                     let mut arn_formats = Vec::new();
                     for res_ref in action_resources {
                         if let Some(res_name) = res_ref.as_str() {
                             if let Some(arn) = res_last_arn.get(&res_name.to_lowercase()) {
-                                arn_formats.push(arn.clone());
+                                if !arn_formats.contains(arn) {
+                                    arn_formats.push(arn.clone());
+                                }
                             }
                         }
                     }

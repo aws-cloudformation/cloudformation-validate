@@ -2,7 +2,7 @@ use cel_engine::CelEngine;
 use diagnostics::DetailLevel;
 use rego_engine::RegoEngine;
 use rules::{FilterConfig, RuleFilterConfig, Severity};
-use schema_validator::SchemaValidator;
+use schema_validator::{SchemaValidator, SchemaValidatorConfig};
 use serde::Deserialize;
 use template_model::{PseudoParameterOverrides, SemanticModel};
 use validation_engine::{EngineConfig, ValidationEngine, catch_panics, validate_bytes_with_path};
@@ -84,8 +84,14 @@ pub struct WasmSchemaValidator {
 #[wasm_bindgen]
 impl WasmSchemaValidator {
     #[wasm_bindgen(constructor)]
-    pub fn new() -> WasmSchemaValidator {
-        WasmSchemaValidator { inner: SchemaValidator::new() }
+    pub fn new(config: SchemaValidatorConfig) -> Result<WasmSchemaValidator, JsValue> {
+        catch_panics(
+            || {
+                let inner = SchemaValidator::new(config).map_err(to_js_err)?;
+                Ok(WasmSchemaValidator { inner })
+            },
+            wasm_panic_err,
+        )
     }
 
     #[wasm_bindgen(js_name = "listRules")]
@@ -124,8 +130,11 @@ macro_rules! wasm_engine {
             pub fn new(config: EngineConfig) -> Result<$wrapper, JsValue> {
                 catch_panics(
                     || {
-                        let engine = <$inner>::new(config).map_err(to_js_err)?;
-                        Ok($wrapper { engine, schema_validator: SchemaValidator::new() })
+                        let schema_config = config.schema_validator_config.clone().unwrap_or_default();
+                        let schema_validator = SchemaValidator::new(schema_config).map_err(to_js_err)?;
+                        let engine =
+                            <$inner>::new_with_schema_validator(config, &schema_validator).map_err(to_js_err)?;
+                        Ok($wrapper { engine, schema_validator })
                     },
                     wasm_panic_err,
                 )

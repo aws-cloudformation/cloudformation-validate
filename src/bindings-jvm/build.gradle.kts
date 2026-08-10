@@ -8,17 +8,10 @@ plugins {
     id("org.jetbrains.dokka-javadoc") version "2.2.0" // keep in sync with configs.yml dokka-version
 }
 
-// ── Coordinates + bundled runtime dependency versions.
-//    Static publishing identity (groupId, artifactId) lives in gradle.properties.
-//    The version and bundled dependency versions come from version.properties, which
-//    build.sh generates from Cargo.toml (the single source of truth) so they cannot
-//    drift. Every value is required: the build fails loudly if one is missing rather
-//    than substituting a baked-in default. A -P override still wins over both files.
-val generatedVersions =
-    Properties().apply {
-        val file = layout.projectDirectory.file("version.properties").asFile
-        if (file.exists()) file.inputStream().use { load(it) }
-    }
+val generatedVersions = Properties().apply {
+    val file = layout.projectDirectory.file("version.properties").asFile
+    if (file.exists()) file.inputStream().use { load(it) }
+}
 
 fun requiredProperty(name: String): String =
     (providers.gradleProperty(name).orNull ?: generatedVersions.getProperty(name))
@@ -34,6 +27,7 @@ val publishArtifactId = requiredProperty("publishArtifactId")
 val publishVersion = requiredProperty("publishVersion")
 val jnaVersion = requiredProperty("jnaVersion")
 val gsonVersion = requiredProperty("gsonVersion")
+val kotlinVersion = requiredProperty("kotlinVersion")
 
 group = publishGroupId
 version = publishVersion
@@ -45,6 +39,7 @@ repositories {
 dependencies {
     implementation("net.java.dev.jna:jna:$jnaVersion")
     implementation("com.google.code.gson:gson:$gsonVersion")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion")
 }
 
 kotlin {
@@ -66,24 +61,21 @@ val bindingReadme = layout.projectDirectory.file("README.md")
 sourceSets {
     main {
         kotlin.setSrcDirs(listOf(generatedDir))
-        // generated/ also holds the emitted jar and staged natives — only .kt is source.
         kotlin.exclude("**/*.jar", "natives/**")
     }
 }
 
-// The main jar written to generated/cloudformation-validate.jar, matching the name and
-// contents build.sh previously produced by hand: classes + .kt sources (IDE nav) +
-// host native under the JNA <os>-<arch>/ path + license/readme metadata.
 tasks.named<Jar>("jar") {
     archiveFileName.set("cloudformation-validate.jar")
     destinationDirectory.set(generatedDir)
     includeEmptyDirs = false
 
     from(generatedDir) {
-        include("**/*.kt") // bundle sources for IDE navigation, mirroring the old build
+        include("**/*.kt")
     }
     from(nativesDir) // contents land at the jar root as <os>-<arch>/lib*.{dylib,so,dll}
     from(repoLicense) { into("META-INF") }
+    from(repoNotice) { into("META-INF") }
     from(bindingReadme) { into("META-INF") }
     from(thirdPartyLicenses) { into("META-INF") }
 
@@ -92,8 +84,11 @@ tasks.named<Jar>("jar") {
             "Implementation-Title" to "cloudformation-validate",
             "Implementation-Version" to publishVersion,
             "Implementation-Vendor" to "Amazon Web Services (AWS)",
+            "Build-Jdk-Spec" to "21",
             "License" to "Apache-2.0",
-            "Requires" to "net.java.dev.jna:jna:$jnaVersion, com.google.code.gson:gson:$gsonVersion",
+            "Requires" to "net.java.dev.jna:jna:$jnaVersion, " +
+                "com.google.code.gson:gson:$gsonVersion, " +
+                "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion",
         )
     }
 }
@@ -165,15 +160,15 @@ publishing {
 
             pom {
                 name.set("CloudFormation Validate")
-                description.set(
-                    "Fast, offline validator for AWS CloudFormation templates, for Kotlin and Java. " +
-                        "Returns structured diagnostics — schema errors, security risks, and best-practice " +
-                        "findings. Bundles native libraries for each supported platform.",
-                )
+                description.set("Fast, offline, embeddable validation for AWS CloudFormation templates")
                 url.set("https://github.com/aws-cloudformation/cloudformation-validate")
+                organization {
+                    name.set("Amazon Web Services")
+                    url.set("https://aws.amazon.com")
+                }
                 licenses {
                     license {
-                        name.set("Apache License, Version 2.0")
+                        name.set("Apache-2.0")
                         url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
                         distribution.set("repo")
                     }
@@ -182,30 +177,43 @@ publishing {
                     developer {
                         id.set("aws-cloudformation")
                         name.set("AWS CloudFormation")
+                        url.set("https://github.com/aws-cloudformation/cloudformation-validate")
                         organization.set("Amazon Web Services")
-                        organizationUrl.set("https://aws.amazon.com")
+                        organizationUrl.set("https://aws.amazon.com/")
                     }
+                }
+                issueManagement {
+                    system.set("GitHub")
+                    url.set("https://github.com/aws-cloudformation/cloudformation-validate/issues")
+                }
+                ciManagement {
+                    system.set("GitHub Actions")
+                    url.set("https://github.com/aws-cloudformation/cloudformation-validate/actions")
                 }
                 scm {
                     connection.set("scm:git:https://github.com/aws-cloudformation/cloudformation-validate.git")
                     developerConnection.set("scm:git:ssh://git@github.com/aws-cloudformation/cloudformation-validate.git")
                     url.set("https://github.com/aws-cloudformation/cloudformation-validate")
+                    tag.set(publishVersion)
                 }
-                // No software component is attached (the published jar is the prebuilt
-                // merged jar, not this project's compiled output), so the consumer runtime
-                // dependencies are written into the POM explicitly.
                 withXml {
                     val dependencies = asNode().appendNode("dependencies")
-                    fun runtimeDependency(group: String, name: String, dependencyVersion: String) {
+                    fun publicationDependency(
+                        group: String,
+                        name: String,
+                        dependencyVersion: String,
+                        scope: String,
+                    ) {
                         dependencies.appendNode("dependency").apply {
                             appendNode("groupId", group)
                             appendNode("artifactId", name)
                             appendNode("version", dependencyVersion)
-                            appendNode("scope", "runtime")
+                            appendNode("scope", scope)
                         }
                     }
-                    runtimeDependency("net.java.dev.jna", "jna", jnaVersion)
-                    runtimeDependency("com.google.code.gson", "gson", gsonVersion)
+                    publicationDependency("net.java.dev.jna", "jna", jnaVersion, "runtime")
+                    publicationDependency("com.google.code.gson", "gson", gsonVersion, "runtime")
+                    publicationDependency("org.jetbrains.kotlin", "kotlin-stdlib", kotlinVersion, "compile")
                 }
             }
         }
@@ -223,20 +231,16 @@ publishing {
 }
 
 // The published main artifact is the prebuilt merged jar, not this project's own jar
-// task output — guard against publishing an accidentally host-only jar.
-fun requireMergedJar() =
-    require(mergedJar.asFile.exists()) {
-        "Merged jar not found at ${mergedJar.asFile}. Run ./build.sh (and merge-jars.sh in CI) first."
-    }
+// task output - guard against publishing an accidentally host-only jar.
+fun requireMergedJar() = require(mergedJar.asFile.exists()) {
+    "Merged jar not found at ${mergedJar.asFile}. Run ./build.sh (and merge-jars.sh in CI) first."
+}
 
 tasks.withType<AbstractPublishToMaven>().configureEach {
     doFirst { requireMergedJar() }
 }
 
-// ── PGP signing — required by Maven Central, engaged only when a key is present ──
-// signingKey / signingPassword resolve from -PsigningKey=... or the environment
-// variables ORG_GRADLE_PROJECT_signingKey / ORG_GRADLE_PROJECT_signingPassword.
-// signingKey must be the full ASCII-armored private key block.
+// ── PGP signing - required by Maven Central, engaged only when a key is present ──
 val signingKey = findProperty("signingKey") as String?
 val signingPassword = (findProperty("signingPassword") as String?) ?: ""
 signing {
@@ -248,9 +252,6 @@ signing {
 }
 
 // ── Central Publisher Portal upload bundle ──────────────────────────────────────
-// Zips the staged Maven layout into a single archive whose internal folder structure
-// follows the Maven Repository Layout, as the Portal upload API requires.
-// maven-metadata.* files are repository bookkeeping the Portal does not accept.
 val centralBundle = tasks.register<Zip>("centralBundle") {
     group = "publishing"
     description = "Assembles the Central Publisher Portal upload bundle from the staged Maven layout."

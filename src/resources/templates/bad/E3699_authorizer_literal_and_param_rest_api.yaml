@@ -1,7 +1,7 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: >
   E3699 must fire when the Method's and Authorizer's RestApiId values refer to
-  different REST APIs even when one side is not a Ref to a resource — a literal
+  different REST APIs even when one side is not a Ref to a resource - a literal
   id or a Ref to a parameter. CloudFormation compares the authored values, so a
   mismatch is a deploy failure. Both engines must agree and render the Method's
   authored RestApiId in the message.

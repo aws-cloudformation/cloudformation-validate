@@ -1,0 +1,53 @@
+{
+  "Parameters": {
+    "FirstStack": { "Type": "String" },
+    "SecondStack": { "Type": "String" },
+    "FirstExport": { "Type": "String" },
+    "SecondExport": { "Type": "String" },
+    "SubnetList": { "Type": "CommaDelimitedList" }
+  },
+  "Resources": {
+    "StackOutputSubnets": {
+      "Type": "AWS::RDS::DBSubnetGroup",
+      "Properties": {
+        "DBSubnetGroupDescription": "Subnets read from two different stacks",
+        "SubnetIds": [
+          {
+            "Fn::GetStackOutput": {
+              "StackName": { "Ref": "FirstStack" },
+              "Region": "ap-northeast-1",
+              "OutputName": "PublicSubnet"
+            }
+          },
+          {
+            "Fn::GetStackOutput": {
+              "StackName": { "Ref": "SecondStack" },
+              "Region": "ap-northeast-1",
+              "OutputName": "PublicSubnet"
+            }
+          }
+        ]
+      }
+    },
+    "ImportedSubnets": {
+      "Type": "AWS::RDS::DBSubnetGroup",
+      "Properties": {
+        "DBSubnetGroupDescription": "Subnets imported under two different export names",
+        "SubnetIds": [
+          { "Fn::ImportValue": { "Ref": "FirstExport" } },
+          { "Fn::ImportValue": { "Ref": "SecondExport" } }
+        ]
+      }
+    },
+    "SelectedSubnets": {
+      "Type": "AWS::RDS::DBSubnetGroup",
+      "Properties": {
+        "DBSubnetGroupDescription": "Two different entries of one deploy-time list",
+        "SubnetIds": [
+          { "Fn::Select": ["0", { "Ref": "SubnetList" }] },
+          { "Fn::Select": ["1", { "Ref": "SubnetList" }] }
+        ]
+      }
+    }
+  }
+}

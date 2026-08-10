@@ -250,7 +250,7 @@ fn resolve_core_tagged_scalar(suffix: &str, v: &str) -> Option<Yaml> {
 /// runs parallel to `doc_stack`, and each frame records the slot the *next* child
 /// value will occupy: a mapping's current key, or a sequence's next index. Joining
 /// every frame's slot yields the canonical `/`-separated path the shared builder
-/// assigns each node — so a span keyed here (e.g. `Ingress/0/SourceSecurityGroupId`)
+/// assigns each node - so a span keyed here (e.g. `Ingress/0/SourceSecurityGroupId`)
 /// lands on exactly the node the builder produces, array indices included.
 enum PathFrame {
     /// The key currently awaiting its value, or `None` while awaiting a key.
@@ -309,17 +309,17 @@ struct CfnYamlLoader {
     seen_keys: Vec<Vec<(Yaml, Option<(u32, u32)>, bool)>>,
     /// Duplicate-key diagnostics found while a mapping is still open, one buffer per
     /// open mapping (parallel to `key_stack`). Flushed to `dup_key_diagnostics` when
-    /// the mapping closes — unless that mapping used a YAML merge key (`<<`), in which
+    /// the mapping closes - unless that mapping used a YAML merge key (`<<`), in which
     /// case the buffer is dropped. A mapping that merges is not required to have unique
     /// keys, so its duplicate check is suppressed for the whole mapping.
     pending_dup_diagnostics: Vec<Vec<ParseDefect>>,
     /// Whether the correspondingly-open mapping contains a `<<` merge key (parallel to
-    /// `key_stack`). Set from any position in the mapping — before or after a
-    /// duplicate — so the suppression covers every ordering.
+    /// `key_stack`). Set from any position in the mapping - before or after a
+    /// duplicate - so the suppression covers every ordering.
     mapping_uses_merge: Vec<bool>,
     /// `yaml_rust2` silently keeps the last value for a duplicate key, so duplicates
-    /// are detected here at load time — matching how the JSON front-end pre-scans for
-    /// them. One diagnostic per occurrence after the first, like the JSON path.
+    /// are detected here at load time. Every colliding occurrence is diagnosed,
+    /// matching the JSON front-end's byte pre-scan.
     dup_key_diagnostics: Vec<ParseDefect>,
     /// Source positions of YAML merge keys (`<<`) encountered during loading.
     merge_key_spans: Vec<SourceSpan>,
@@ -406,7 +406,7 @@ impl CfnYamlLoader {
     }
 
     /// Anchors a mapping value at its key's position, overwriting any earlier entry so
-    /// a duplicate key resolves to the surviving (last) occurrence — matching how the
+    /// a duplicate key resolves to the surviving (last) occurrence - matching how the
     /// loaded `Hash` keeps the last value written for a repeated key. Object-property
     /// diagnostics anchor at the key, so this is where the value's span lives.
     fn record_key_span(&mut self, mark: Marker) {
@@ -416,8 +416,8 @@ impl CfnYamlLoader {
         }
     }
 
-    /// Anchors a value that no key precedes — a sequence element, or a container opened
-    /// directly inside a sequence — at its own position. Never overwrites a span a key
+    /// Anchors a value that no key precedes - a sequence element, or a container opened
+    /// directly inside a sequence - at its own position. Never overwrites a span a key
     /// already assigned to the same path (a container that is a mapping *value* is
     /// reached here too, but its key recorded the authoritative position first).
     fn record_value_span(&mut self, mark: Marker) {
@@ -451,7 +451,7 @@ impl CfnYamlLoader {
     /// candidate intrinsic shorthand: recognized suffixes map through
     /// [`SHORT_TAG_TO_FN_KEY`], and an unrecognized suffix is still wrapped as
     /// `{ Fn::<suffix>: value }` by [`Self::wrap_with_tag`] so the shared builder can
-    /// flag it as an unsupported function — mirroring how a typo'd `Fn::` key is
+    /// flag it as an unsupported function - mirroring how a typo'd `Fn::` key is
     /// caught in the long form and in JSON, instead of silently dropping the tag.
     fn cfn_tag_name(tag: &Option<Tag>) -> Option<String> {
         let tag = tag.as_ref()?;
@@ -483,7 +483,7 @@ impl CfnYamlLoader {
             || fn_key.starts_with(crate::consts::FN_FOR_EACH_KEY_PREFIX);
         // A near-miss of a known function is warned (with a suggestion) by the
         // builder when it sees the wrapped map, so only warn here for names far
-        // from every function — otherwise the same tag would warn twice.
+        // from every function - otherwise the same tag would warn twice.
         if !known && super::builder::closest_function_name(&fn_key).is_none() {
             self.dup_key_diagnostics.push(crate::make_parse_defect(
                 "W1103",
@@ -493,14 +493,41 @@ impl CfnYamlLoader {
         }
     }
 
-    fn wrap_with_tag(tag_name: &str, value: Yaml) -> Yaml {
-        let fn_key = SHORT_TAG_TO_FN_KEY
+    fn cfn_tag_key(tag_name: &str) -> String {
+        SHORT_TAG_TO_FN_KEY
             .iter()
             .find(|(short, _)| *short == tag_name)
             .map(|(_, fn_key)| (*fn_key).to_string())
-            .unwrap_or_else(|| format!("{}{}", FN_PREFIX, tag_name));
+            .unwrap_or_else(|| format!("{}{}", FN_PREFIX, tag_name))
+    }
+
+    fn record_tagged_spans(&mut self, tag_name: &str) {
+        let base_path = self.current_path();
+        if base_path.is_empty() {
+            return;
+        }
+
+        let tagged_path = format!("{}/{}", base_path, Self::cfn_tag_key(tag_name));
+        if let Some(span) = self.span_map.get(&base_path).copied() {
+            self.span_map.entry(tagged_path.clone()).or_insert(span);
+        }
+
+        let descendant_prefix = format!("{}/", base_path);
+        let descendant_spans: Vec<(String, (u32, u32))> = self
+            .span_map
+            .iter()
+            .filter_map(|(path, span)| {
+                path.strip_prefix(&descendant_prefix).map(|suffix| (format!("{}/{}", tagged_path, suffix), *span))
+            })
+            .collect();
+        for (path, span) in descendant_spans {
+            self.span_map.entry(path).or_insert(span);
+        }
+    }
+
+    fn wrap_with_tag(tag_name: &str, value: Yaml) -> Yaml {
         let mut hash = Hash::new();
-        hash.insert(Yaml::String(fn_key), value);
+        hash.insert(Yaml::String(Self::cfn_tag_key(tag_name)), value);
         Yaml::Hash(hash)
     }
 
@@ -510,11 +537,12 @@ impl CfnYamlLoader {
             && self.doc_stack.len() == *depth
         {
             let (tag_name, _) = self.pending_tags.pop().unwrap();
-            // A `!Name` shorthand tag is unambiguously a function invocation —
-            // unlike a long-form `Fn::Name` map key, which may be a data key —
+            // A `!Name` shorthand tag is unambiguously a function invocation -
+            // unlike a long-form `Fn::Name` map key, which may be a data key -
             // so any unknown tag warrants the unknown-function warning here,
             // where the tag context still exists.
             self.warn_unknown_tag(&tag_name);
+            self.record_tagged_spans(&tag_name);
             let wrapped = Self::wrap_with_tag(&tag_name, node_val);
             node_val = wrapped;
         }
@@ -750,6 +778,7 @@ impl MarkedEventReceiver for CfnYamlLoader {
 
                 if let Some(tag_name) = cfn_tag {
                     self.warn_unknown_tag(&tag_name);
+                    self.record_tagged_spans(&tag_name);
                     let wrapped = Self::wrap_with_tag(&tag_name, node);
                     self.insert_new_node((wrapped, aid), mark);
                 } else {
@@ -815,7 +844,7 @@ impl<'a> ParseValue for YamlValue<'a> {
         // Distinct YAML scalar keys can coerce to the same string (e.g. the bare
         // integer `1` and the quoted `"1"`). CloudFormation, JSON, and every
         // downstream consumer treat a mapping as string-keyed with the last entry
-        // winning, so collapse such collisions here — keeping the last occurrence —
+        // winning, so collapse such collisions here - keeping the last occurrence -
         // rather than emit a `Node::Map` carrying two identical string keys. This is
         // purely structural: it changes no diagnostic (duplicate-key detection runs
         // over the raw YAML keys at load time, where `1` and `"1"` are already
@@ -860,7 +889,7 @@ impl<'a> ParseValue for YamlValue<'a> {
             Yaml::Boolean(b) => Node::Bool(*b),
             Yaml::Integer(i) => Node::Int(*i),
             // Reuse yaml_rust2's own float parser so the numeric value matches the
-            // source token that as_coerced_str/describe_scalar report — it maps the
+            // source token that as_coerced_str/describe_scalar report - it maps the
             // YAML float spellings `.inf`/`.nan`/`-.inf` that Rust's std parser
             // rejects. A Yaml::Real is only produced when that parser accepted the
             // string, so as_f64 is always Some here; NAN (never a silently-plausible
@@ -1031,7 +1060,7 @@ mod tests {
     use super::*;
 
     /// A genuine same-string-key duplicate produces the identical F0000 message in
-    /// both formats — the two duplicate detectors (JSON byte scan, YAML load-time
+    /// both formats - the two duplicate detectors (JSON byte scan, YAML load-time
     /// Hash) must agree on which duplicates fire.
     #[test]
     fn duplicate_string_key_matches_across_formats() {
@@ -1084,6 +1113,16 @@ mod tests {
         assert!(line("Resources/R/Properties/Ingress/Port").is_none(), "index-less array key must not exist");
         // A scalar array element is anchored at itself.
         assert_eq!(line("Resources/R/Properties/Cidrs/0"), Some(9));
+    }
+
+    #[test]
+    fn shorthand_intrinsic_sequence_child_spans_include_function_path() {
+        let input = "Resources:\n  R:\n    Type: T\n    Properties:\n      AvailabilityZone: !Select\n      - invalid-index\n      - !GetAZs ''\n";
+        let ir = parse_yaml(input.as_bytes()).unwrap();
+        let line = |path: &str| ir.span_index.get(path).map(|span| span.start_line);
+
+        assert_eq!(line("Resources/R/Properties/AvailabilityZone/Fn::Select/0"), Some(6));
+        assert_eq!(line("Resources/R/Properties/AvailabilityZone/Fn::Select/1/Fn::GetAZs"), Some(7));
     }
 
     #[test]
@@ -1182,7 +1221,7 @@ mod tests {
     }
 
     /// Full-form `Fn::Not: [{Fn::Contains: ...}]` in YAML must not produce
-    /// a type error — `Fn::Contains` is a boolean-producing Rules-section
+    /// a type error - `Fn::Contains` is a boolean-producing Rules-section
     /// intrinsic, not a non-boolean expression.
     #[test]
     fn fn_not_accepts_fn_contains_argument_no_e8005() {
@@ -1324,7 +1363,7 @@ mod tests {
     }
 
     /// The full `Fn::GetStackOutput` form and the `!GetStackOutput` shorthand must
-    /// build the identical IR — the shared builder guarantees JSON/YAML parity, and
+    /// build the identical IR - the shared builder guarantees JSON/YAML parity, and
     /// this pins that the YAML tag path funnels through it too.
     #[test]
     fn parse_get_stack_output_short_tag_matches_full_form() {
@@ -1371,7 +1410,7 @@ mod tests {
     #[test]
     fn unknown_fn_short_tag_form_emits_w1103() {
         // A `!Name` tag is unambiguously a function attempt, so any unknown
-        // tag warns — unlike the ambiguous long map-key form.
+        // tag warns - unlike the ambiguous long map-key form.
         let input = "Resources:\n  R:\n    Type: T\n    Properties:\n      P: !Bogus hello\n";
         let ir = parse_yaml(input.as_bytes()).unwrap();
         let w1103: Vec<&str> =
@@ -1381,7 +1420,7 @@ mod tests {
 
     /// A wrong-case shorthand tag (`!GetAttt`, a typo of `!GetAtt`) is not in the
     /// recognized-tag table, so it is wrapped as `{ Fn::GetAttt: ... }` and flagged
-    /// as unsupported — matching both the long `Fn::GetAttt` form and JSON.
+    /// as unsupported - matching both the long `Fn::GetAttt` form and JSON.
     #[test]
     fn wrong_case_short_tag_emits_w1103() {
         let input =
@@ -1393,7 +1432,7 @@ mod tests {
     }
 
     /// The unknown-tag YAML shorthand and the equivalent JSON long form emit the
-    /// identical W1103 — the shared builder guarantees the diagnostic cannot drift
+    /// identical W1103 - the shared builder guarantees the diagnostic cannot drift
     /// between formats once the tag is wrapped.
     #[test]
     fn unknown_short_tag_warns_where_long_form_is_data() {
@@ -1409,7 +1448,7 @@ mod tests {
     }
 
     /// A secondary-handle tag (`!!str`) is not a CloudFormation intrinsic shorthand
-    /// and must not be wrapped into an `Fn::` map or trigger W1103 — only primary
+    /// and must not be wrapped into an `Fn::` map or trigger W1103 - only primary
     /// (`!`-handle) tags are intrinsic candidates.
     #[test]
     fn secondary_handle_tag_is_not_wrapped() {
@@ -1526,7 +1565,7 @@ mod tests {
     }
 
     /// A merge whose aliased member collides with an explicit key must NOT emit
-    /// F0000 — the two are distinct source keys (`<<` vs the explicit name), and a
+    /// F0000 - the two are distinct source keys (`<<` vs the explicit name), and a
     /// merge-bearing mapping suppresses the duplicate-key check entirely.
     #[test]
     fn yaml_merge_key_collision_emits_no_f0000() {

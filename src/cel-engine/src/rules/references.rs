@@ -172,7 +172,7 @@ fn eval_references(ctx: &EvalContext) -> Vec<Diagnostic> {
                     None => false,
                 };
                 if !implies {
-                    // An output is not a resource — the edge's section-absolute
+                    // An output is not a resource - the edge's section-absolute
                     // source path identifies it.
                     out.push(make_resource_diagnostic(
                         "W1001",

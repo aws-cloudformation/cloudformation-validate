@@ -28,7 +28,7 @@ violation contains make_diag_full("E9004", "ERROR", name, edge.sourcePath,
 # both expose Outputs.<OutputKey>. Nested stacks (AWS::CloudFormation::Stack) are
 # already in _skip_getatt_types, so the only type that reaches here needing the
 # exemption is the provisioned product. Every other dotted attribute (e.g. Tags.0
-# on a bucket) is a real attribute-validity error — an object/array attribute is
+# on a bucket) is a real attribute-validity error - an object/array attribute is
 # NOT itself indexable via GetAtt.
 _is_map_member_attr(attr, target_type) if {
     target_type == "AWS::ServiceCatalog::CloudFormationProvisionedProduct"

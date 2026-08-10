@@ -1,0 +1,48 @@
+{
+  "Parameters": {
+    "NamePrefix": { "Type": "String" },
+    "SizeChoice": {
+      "Type": "String",
+      "AllowedValues": ["short-enough-name", "this-name-is-deliberately-longer-than-the-other-allowed-value"]
+    }
+  },
+  "Resources": {
+    "NameProviderWithADeliberatelyLongLogicalIdentifierForThisTest": {
+      "Type": "AWS::SNS::Topic"
+    },
+    "JoinedFromAReference": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "BucketName": {
+          "Fn::Join": ["-", [{ "Ref": "NameProviderWithADeliberatelyLongLogicalIdentifierForThisTest" }, "data"]]
+        }
+      }
+    },
+    "JoinedFromAParameter": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "BucketName": {
+          "Fn::Join": [
+            "-",
+            [
+              { "Ref": "NamePrefix" },
+              "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            ]
+          ]
+        }
+      }
+    },
+    "SubstitutedFromAParameter": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "BucketName": { "Fn::Sub": "${NamePrefix}-data" }
+      }
+    },
+    "OnlySomeChoicesTooLong": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "BucketName": { "Ref": "SizeChoice" }
+      }
+    }
+  }
+}

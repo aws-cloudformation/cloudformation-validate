@@ -43,7 +43,7 @@ mod tests {
 
     /// A non-object root is rejected in both formats. The dispatch heuristic routes
     /// only a leading `{` to the JSON front-end, so a JSON array root is parsed as
-    /// YAML and reports the YAML-worded error; either way the outcome is the same —
+    /// YAML and reports the YAML-worded error; either way the outcome is the same -
     /// a `ParseError` at 1:1 with no model.
     #[test]
     fn non_object_root_is_rejected_in_both_formats() {

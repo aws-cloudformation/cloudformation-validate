@@ -1,0 +1,14 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  Task:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      ContainerDefinitions:
+        - Name: app
+          Image: public.ecr.aws/docker/library/busybox:latest
+          Memory: 128
+      PlacementConstraints:
+        - Type: memberOf
+          Expression: "attribute:ecs.instance-type =~ t3.*"
+        - Expression: "attribute:ecs.instance-type =~ t3.*"
+          Type: memberOf

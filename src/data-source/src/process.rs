@@ -71,7 +71,7 @@ pub fn process_schemas(upstream_dir: &Path, generated_dir: &Path, handwritten_di
             continue;
         }
         let content = fs::read_to_string(&path)?;
-        // These are our own downloaded schema files — a parse failure means a
+        // These are our own downloaded schema files - a parse failure means a
         // corrupt download, not an optional file, so surface it rather than
         // silently dropping a resource type.
         let json: serde_json::Value = serde_json::from_str(&content)
@@ -184,7 +184,7 @@ pub fn process_schemas(upstream_dir: &Path, generated_dir: &Path, handwritten_di
 fn read_region_resource_types_union(data_dir: &Path) -> anyhow::Result<BTreeSet<String>> {
     let region_file = data_dir.join("region_resource_types.json");
     if !region_file.exists() {
-        warn!("{} not found — known_resource_types will not include per-region types", region_file.display());
+        warn!("{} not found - known_resource_types will not include per-region types", region_file.display());
         return Ok(BTreeSet::new());
     }
     let content = fs::read_to_string(&region_file)?;
@@ -395,7 +395,7 @@ fn generate_getatt_data(
                 }
             }
         }
-        // Include types for ALL properties — used by output type checking
+        // Include types for ALL properties - used by output type checking
         // and type mismatch detection. Attribute validity uses getatt_attributes
         // (readOnly only), not this map.
         let mut tt = BTreeMap::new();
@@ -557,7 +557,7 @@ fn generate_primary_identifiers(raw: &HashMap<String, serde_json::Value>) -> Str
             .filter_map(|p| {
                 let s = p.as_str()?;
                 let name = s.strip_prefix("/properties/")?;
-                // Skip nested paths — only root-level properties
+                // Skip nested paths - only root-level properties
                 if name.contains('/') {
                     return None;
                 }
@@ -619,7 +619,7 @@ mod tests {
 
     #[test]
     fn resolve_schema_circular_ref_terminates() {
-        // A references B, B references A — must not infinite-loop
+        // A references B, B references A - must not infinite-loop
         let mut defs = HashMap::new();
         defs.insert("A".to_string(), json!({"$ref": "#/definitions/B"}));
         defs.insert("B".to_string(), json!({"$ref": "#/definitions/A"}));
@@ -664,7 +664,7 @@ mod tests {
 
     #[test]
     fn extract_primary_type_array_multiple_non_null() {
-        // Ambiguous — should return None
+        // Ambiguous - should return None
         assert_eq!(extract_primary_type(&json!(["string", "integer"])), None);
     }
 
@@ -708,7 +708,7 @@ mod tests {
 
     #[test]
     fn build_property_schema_obj_deeply_nested_no_truncation() {
-        // Build a 6-level deep schema — previously truncated at depth 4
+        // Build a 6-level deep schema - previously truncated at depth 4
         fn make_nested(depth: usize) -> serde_json::Value {
             if depth == 0 {
                 return json!({"type": "string", "pattern": "^leaf$"});
@@ -725,7 +725,7 @@ mod tests {
         properties.insert("root".to_string(), make_nested(6));
         let result = build_property_schema_obj(Some(&properties), None, None, None, &mut HashSet::new());
 
-        // Walk down all 6 levels — none should be truncated
+        // Walk down all 6 levels - none should be truncated
         let mut current = &result["property_constraints"]["root"];
         for _ in 0..6 {
             assert!(current.get("sub_properties").is_some(), "Nested level was truncated");

@@ -1,0 +1,66 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Parameters:
+  Mode:
+    Type: String
+    AllowedValues: [alias, standard]
+    Default: alias
+Conditions:
+  IsAlias: !Equals [!Ref Mode, alias]
+  IsStandard: !Equals [!Ref Mode, standard]
+Resources:
+  ConditionalProperties:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneName: example.com.
+      Name: conditional-properties.example.com.
+      Type: A
+      AliasTarget: !If
+        - IsAlias
+        - DNSName: target.example.com.
+          HostedZoneId: Z1234567890
+        - !Ref AWS::NoValue
+      TTL: !If [IsAlias, !Ref AWS::NoValue, "300"]
+      ResourceRecords: !If
+        - IsAlias
+        - !Ref AWS::NoValue
+        - [192.0.2.1]
+  MutuallyExclusiveConditions:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneName: example.com.
+      Name: mutually-exclusive-conditions.example.com.
+      Type: A
+      AliasTarget: !If
+        - IsAlias
+        - DNSName: target.example.com.
+          HostedZoneId: Z1234567890
+        - !Ref AWS::NoValue
+      TTL: !If [IsStandard, "300", !Ref AWS::NoValue]
+      ResourceRecords: !If
+        - IsStandard
+        - [192.0.2.2]
+        - !Ref AWS::NoValue
+  ConditionalWholeProperties:
+    Type: AWS::Route53::RecordSet
+    Properties: !If
+      - IsAlias
+      - HostedZoneName: example.com.
+        Name: whole-properties.example.com.
+        Type: A
+        AliasTarget:
+          DNSName: target.example.com.
+          HostedZoneId: Z1234567890
+      - HostedZoneName: example.com.
+        Name: whole-properties.example.com.
+        Type: A
+        TTL: "300"
+        ResourceRecords: [192.0.2.3]
+  LiteralNoValueAlias:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneName: example.com.
+      Name: literal-no-value.example.com.
+      Type: A
+      AliasTarget: !Ref AWS::NoValue
+      TTL: "300"
+      ResourceRecords: [192.0.2.4]

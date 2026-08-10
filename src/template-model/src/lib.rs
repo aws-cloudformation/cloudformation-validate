@@ -32,6 +32,7 @@ pub(crate) mod serialization;
 pub mod span;
 pub mod template_section;
 pub(crate) mod transform_expansion;
+pub(crate) mod value_identity;
 pub mod value_patterns;
 
 pub use consts::PSEUDO_PARAMETERS;

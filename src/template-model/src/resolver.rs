@@ -143,6 +143,9 @@ pub(crate) struct Resolver<'a> {
     pub(crate) extra_condition_refs: HashMap<String, Vec<String>>,
     pub(crate) inline_conditions: Vec<(String, crate::conditions::ConditionExpr)>,
     resolution_source_map: HashMap<(String, String), String>, // (resource_id, property_path) → source description
+    /// (resource_id, property_path) → the authored expression behind a value that
+    /// stayed opaque, used to establish whether two such values are one value.
+    value_node_map: HashMap<(String, String), NodeRef>,
     parameter_overrides: &'a HashMap<String, String>,
     pseudo_parameter_overrides: &'a crate::model::PseudoParameterOverrides,
 
@@ -187,6 +190,7 @@ impl<'a> Resolver<'a> {
             extra_condition_refs: HashMap::new(),
             inline_conditions: Vec::new(),
             resolution_source_map: HashMap::new(),
+            value_node_map: HashMap::new(),
             parameter_overrides,
             pseudo_parameter_overrides,
 
@@ -203,6 +207,10 @@ impl<'a> Resolver<'a> {
         self.resolution_source_map.clone()
     }
 
+    pub fn value_nodes(&self) -> HashMap<(String, String), NodeRef> {
+        self.value_node_map.clone()
+    }
+
     pub fn resolve_node(&mut self, node_ref: NodeRef) -> ResolvedValue {
         if node_ref == NULL_REF {
             warn!("Attempted to resolve NULL_REF node at path '{}'", self.current_path);
@@ -215,7 +223,17 @@ impl<'a> Resolver<'a> {
         self.depth += 1;
         let result = self.resolve_node_inner(node_ref);
         self.depth -= 1;
-        opaque_if_dynamic_reference(result)
+        let result = opaque_if_dynamic_reference(result);
+        // A value that stays opaque carries no contents to compare, so the
+        // expression that produced it is kept: it is the only thing that can
+        // later show whether two such values are the same value. A value that
+        // resolved to contents needs no such record.
+        if !matches!(result, ResolvedValue::Concrete { value: _ })
+            && let Some(ref resource_id) = self.current_resource
+        {
+            self.value_node_map.insert((resource_id.clone(), self.current_path.clone()), node_ref);
+        }
+        result
     }
 
     fn resolve_node_inner(&mut self, node_ref: NodeRef) -> ResolvedValue {
@@ -434,13 +452,15 @@ impl<'a> Resolver<'a> {
                                 .map(|v| match v {
                                     ResolvedValue::Concrete { value: cv } => cv.as_str().unwrap_or("").to_string(),
                                     ResolvedValue::Reference { target, .. } => {
-                                        format!("{{ref:{}}}", target)
+                                        format!("{}{}}}", UNRESOLVED_REF_PLACEHOLDER_PREFIX, target)
                                     }
-                                    _ => "{dynamic}".to_string(),
+                                    _ => UNRESOLVED_DYNAMIC_PLACEHOLDER.to_string(),
                                 })
                                 .collect();
                             self.collect_extra_condition_refs(&values);
-                            return ResolvedValue::Dynamic { reason: format!("Join:{}", parts.join(ds)) };
+                            return ResolvedValue::Dynamic {
+                                reason: format!("{}{}", JOIN_PARTIAL_PREFIX, parts.join(ds)),
+                            };
                         }
                         self.collect_extra_condition_refs(&values);
                         ResolvedValue::Dynamic { reason: "Join with unresolvable arguments".into() }
@@ -572,12 +592,37 @@ impl<'a> Resolver<'a> {
             }
             IntrinsicFn::GetStackOutput(args) => {
                 let saved = self.current_path.clone();
+                let mut concrete_arguments: Vec<(&str, String)> = Vec::with_capacity(args.len());
                 for (key, arg) in args {
                     self.current_path = format!("{}.{}", saved, key);
-                    let _ = self.resolve_node(*arg);
+                    if let ResolvedValue::Concrete { value } = self.resolve_node(*arg)
+                        && let Some(literal) = value.as_str()
+                    {
+                        concrete_arguments.push((key.as_str(), literal.to_string()));
+                    }
                 }
                 self.current_path = saved;
-                ResolvedValue::Dynamic { reason: "cross-stack output".into() }
+
+                // Fixed key order, not template order, so two calls that list the same
+                // arguments in a different order stay equal. RoleArn is left out: it does
+                // not change which output is read, so two calls differing only there are
+                // still the same value. Quoting keeps a separator inside a value from
+                // reading as a field boundary.
+                let identity: Vec<String> = [KEY_STACK_NAME, KEY_REGION, KEY_OUTPUT_NAME]
+                    .into_iter()
+                    .filter_map(|key| {
+                        concrete_arguments
+                            .iter()
+                            .find(|(name, _)| *name == key)
+                            .map(|(_, literal)| format!("{key}={literal:?}"))
+                    })
+                    .collect();
+                let reason = if identity.is_empty() {
+                    "cross-stack output".to_string()
+                } else {
+                    format!("cross-stack output: {}", identity.join(", "))
+                };
+                ResolvedValue::Dynamic { reason }
             }
             IntrinsicFn::Transform(_, _) => ResolvedValue::Dynamic { reason: "macro output".into() },
             IntrinsicFn::GetAZs(region_ref) => {
@@ -715,7 +760,7 @@ impl<'a> Resolver<'a> {
             }
             IntrinsicFn::RefAll(_) => ResolvedValue::Dynamic { reason: "rules-only function".into() },
             IntrinsicFn::ValueOf(param_name, _attr) | IntrinsicFn::ValueOfAll(param_name, _attr) => {
-                // The first argument is a parameter (or parameter group) name —
+                // The first argument is a parameter (or parameter group) name -
                 // record a Ref edge so the parameter is counted as referenced.
                 self.record_edge(param_name, RefKind::Ref, span);
                 ResolvedValue::Dynamic { reason: "rules-only function".into() }
@@ -1154,7 +1199,7 @@ impl<'a> Resolver<'a> {
                     }
                     // A variable fires when it names a known ref target
                     // (parameter,
-                    // resource, pseudo-parameter, or `Resource.Attr`) — or,
+                    // resource, pseudo-parameter, or `Resource.Attr`) - or,
                     // regardless of target validity, inside a Step Functions
                     // `DefinitionString`, where every `${...}` placeholder is
                     // expected to come from `DefinitionSubstitutions` (that
@@ -1168,7 +1213,7 @@ impl<'a> Resolver<'a> {
                             && var.split('.').next().map(|prefix| self.resource_ids.contains(prefix)).unwrap_or(false));
                     // A Step Functions definition placeholder is exempt when it
                     // names one of the resource's DefinitionSubstitutions keys
-                    // — and reportable otherwise, whether or not it names a
+                    // - and reportable otherwise, whether or not it names a
                     // known ref target.
                     let in_definition = path.contains("DefinitionString") || path.contains("Definition");
                     if in_definition && self.is_definition_substitution(var) {
@@ -1314,7 +1359,7 @@ impl<'a> Resolver<'a> {
             // Fn::Sub variables share Ref resolution, but an unresolved Sub
             // variable is not an invalid Ref, so resolve it without recording
             // it as one. When the variable names a resource, `lookup_ref` has
-            // already recorded a `Ref` edge — CloudFormation treats a bare
+            // already recorded a `Ref` edge - CloudFormation treats a bare
             // `${Resource}` substitution as a `Ref`, so recording an extra `Sub`
             // edge would double-count the dependency (surfacing a spurious second
             // dependency finding under a `Sub` label that misrepresents the edge).
@@ -1424,7 +1469,7 @@ impl<'a> Resolver<'a> {
                         }
                         // If unresolved vars remain, produce Dynamic with partial info
                         if result.contains("${") {
-                            ResolvedValue::Dynamic { reason: format!("Sub:{}", result) }
+                            ResolvedValue::Dynamic { reason: format!("{}{}", SUB_PARTIAL_PREFIX, result) }
                         } else {
                             ResolvedValue::Concrete { value: serde_json::Value::String(result).into() }
                         }
@@ -1447,7 +1492,7 @@ impl<'a> Resolver<'a> {
         for val in sub_map.values() {
             self.collect_extra_condition_refs(val);
         }
-        ResolvedValue::Dynamic { reason: format!("Sub:{}", partial) }
+        ResolvedValue::Dynamic { reason: format!("{}{}", SUB_PARTIAL_PREFIX, partial) }
     }
 
     fn collect_extra_condition_refs(&mut self, val: &ResolvedValue) {
@@ -1505,7 +1550,7 @@ fn param_string_to_json(value: &str, param_type: &str) -> serde_json::Value {
     }
     match param_type {
         // Parse whole numbers as integers so a Number parameter value of "30"
-        // resolves to 30, not 30.0 — the float form would fail integer enum
+        // resolves to 30, not 30.0 - the float form would fail integer enum
         // comparisons and render as '30.0' in diagnostics.
         PARAM_TYPE_NUMBER => value
             .parse::<i64>()
@@ -2219,7 +2264,7 @@ mod tests {
     #[test]
     fn param_number_whole_value_resolves_to_integer() {
         // A whole-number Number parameter must resolve to a JSON integer, not a
-        // float — 30.0 fails integer enum comparisons and renders as '30.0'.
+        // float - 30.0 fails integer enum comparisons and renders as '30.0'.
         assert_eq!(param_string_to_json("30", "Number"), serde_json::json!(30));
         assert!(param_string_to_json("30", "Number").is_i64(), "whole number must be an integer");
         assert_eq!(param_string_to_json("1.5", "Number"), serde_json::json!(1.5));
@@ -2556,6 +2601,62 @@ mod tests {
             ) => assert_ne!(ra, rb, "distinct exports must produce distinct symbolic values"),
             other => panic!("Expected two TypedDynamic, got {:?}", other),
         }
+    }
+
+    #[test]
+    fn resolve_get_stack_output_carries_source_identity() {
+        let input = r#"{"Resources":{"R":{"Type":"T","Properties":{"V":{"Fn::GetStackOutput":{
+            "StackName":"VpcStack","Region":"ap-northeast-1","OutputName":"PublicSubnetOne"
+        }}}}}}"#;
+        let model = crate::model::SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        match model.resolve("R", "Properties.V") {
+            Some(ResolvedValue::Dynamic { reason }) => {
+                // The source is carried so distinct outputs stay distinct.
+                for field in ["VpcStack", "ap-northeast-1", "PublicSubnetOne"] {
+                    assert!(reason.contains(field), "reason should carry {field}, got {reason:?}");
+                }
+            }
+            other => panic!("Expected Dynamic, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn resolve_get_stack_output_distinct_sources_differ() {
+        let input = r#"{"Resources":{"R":{"Type":"T","Properties":{
+            "Baseline":{"Fn::GetStackOutput":{
+                "StackName":"VpcStack","Region":"ap-northeast-1","OutputName":"PublicSubnetOne"
+            }},
+            "OtherStack":{"Fn::GetStackOutput":{
+                "StackName":"OtherVpcStack","Region":"ap-northeast-1","OutputName":"PublicSubnetOne"
+            }},
+            "OtherRegion":{"Fn::GetStackOutput":{
+                "StackName":"VpcStack","Region":"us-east-1","OutputName":"PublicSubnetOne"
+            }},
+            "OtherOutput":{"Fn::GetStackOutput":{
+                "StackName":"VpcStack","Region":"ap-northeast-1","OutputName":"PublicSubnetTwo"
+            }},
+            "Reordered":{"Fn::GetStackOutput":{
+                "OutputName":"PublicSubnetOne","StackName":"VpcStack","Region":"ap-northeast-1"
+            }},
+            "OtherRole":{"Fn::GetStackOutput":{
+                "StackName":"VpcStack","Region":"ap-northeast-1","OutputName":"PublicSubnetOne",
+                "RoleArn":"arn:aws:iam::444455556666:role/Lookup"
+            }}
+        }}}}"#;
+        let model = crate::model::SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        let source_of = |property: &str| match model.resolve("R", &format!("Properties.{property}")) {
+            Some(ResolvedValue::Dynamic { reason }) => reason.clone(),
+            other => panic!("Expected Dynamic for {property}, got {other:?}"),
+        };
+
+        let baseline = source_of("Baseline");
+        for distinct in ["OtherStack", "OtherRegion", "OtherOutput"] {
+            assert_ne!(baseline, source_of(distinct), "{distinct} must not collapse onto the baseline output");
+        }
+        assert_eq!(baseline, source_of("Reordered"), "argument order must not make the same output distinct");
+        // RoleArn selects nothing about which output is read, so a call that differs
+        // only there is still the same value and must stay a duplicate.
+        assert_eq!(baseline, source_of("OtherRole"), "RoleArn must not make the same output distinct");
     }
 
     #[test]

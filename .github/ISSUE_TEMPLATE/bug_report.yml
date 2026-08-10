@@ -1,0 +1,99 @@
+name: Bug report
+description: Report incorrect validation, crashes, or other unexpected behavior
+title: "bug: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve cloudformation-validate.
+
+        **Do not include credentials, account IDs, secrets, security vulnerabilities, or other sensitive information.** Report security vulnerabilities privately through [AWS Vulnerability Reporting](https://aws.amazon.com/security/vulnerability-reporting/).
+
+  - type: input
+    id: summary
+    attributes:
+      label: Bug summary
+      description: Briefly describe the incorrect or unexpected behavior.
+      placeholder: The CEL engine reports a diagnostic that the Rego engine does not.
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      description: Provide the exact release version or Git commit.
+      placeholder: v0.1.0 or 0123456789abcdef
+    validations:
+      required: false
+
+  - type: dropdown
+    id: interface
+    attributes:
+      label: Affected interface
+      description: Where did you observe the problem?
+      options:
+        - CLI
+        - Rust library
+        - Node.js / WASM
+        - Python
+        - Go
+        - JVM / Kotlin / Java
+        - Custom rules / Guard DSL
+        - Other
+    validations:
+      required: false
+
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Include the operating system, architecture, and relevant runtime version.
+      placeholder: macOS 15, arm64, Rust 1.88
+    validations:
+      required: false
+
+  - type: dropdown
+    id: engine
+    attributes:
+      label: Validation engine
+      description: Select the engine or validation stage that exhibits the problem.
+      options:
+        - Rego
+        - CEL
+        - Both engines
+        - Schema validation
+        - Not sure
+    validations:
+      required: false
+
+  - type: textarea
+    id: template
+    attributes:
+      label: Minimal CloudFormation template
+      description: Provide the smallest template that reproduces the problem. Remove account IDs, secrets, and other sensitive data.
+      render: yaml
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction details
+      description: Include the steps to reproduce, actual behavior, and expected behavior. Provide exact commands, diagnostics, and relevant CloudFormation documentation when available.
+      placeholder: |
+        Steps to reproduce:
+        1. Save the template as template.yaml.
+        2. Run `cfn-validate template.yaml --engine cel`.
+
+        Actual behavior:
+
+        Expected behavior:
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: Additional context
+      description: Add logs, comparison output, or other context that may help diagnose the root cause.

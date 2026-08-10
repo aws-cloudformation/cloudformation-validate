@@ -11,7 +11,7 @@ Parameters:
     AllowedValues:
       - dev
       - staging
-      # 'prod' deliberately omitted — IsProd cannot be true
+      # 'prod' deliberately omitted - IsProd cannot be true
     Default: dev
 
 Conditions:

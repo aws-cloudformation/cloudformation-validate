@@ -26,7 +26,7 @@ violation contains make_diag_at("E3504", "ERROR", name,
 # success and a failure retention period). The retention check collapses to a
 # single best-match finding anchored on the properties object, so report only
 # the first missing property in declaration
-# order — emitting one per missing property would over-report a single concern.
+# order - emitting one per missing property would over-report a single concern.
 violation contains make_diag_at("I3013", "INFO", name,
     "Properties",
     sprintf("'%s' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)", [props[first_missing]])) if {

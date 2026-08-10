@@ -1,0 +1,110 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Parameters:
+  Mode:
+    Type: String
+    AllowedValues: [first, second]
+    Default: first
+Conditions:
+  ChooseFirst: !Equals [!Ref Mode, first]
+Resources:
+  AliasConflictFirst:
+    Type: AWS::Route53::RecordSet
+    Properties: !If
+      - ChooseFirst
+      - HostedZoneName: example.com.
+        Name: alias-conflict-first.example.com.
+        Type: A
+        AliasTarget:
+          DNSName: target.example.com.
+          HostedZoneId: Z1234567890
+        TTL: "300"
+      - HostedZoneName: example.com.
+        Name: alias-conflict-first.example.com.
+        Type: A
+        TTL: "300"
+        ResourceRecords: [192.0.2.10]
+  AliasConflictSecond:
+    Type: AWS::Route53::RecordSet
+    Properties: !If
+      - ChooseFirst
+      - HostedZoneName: example.com.
+        Name: alias-conflict-second.example.com.
+        Type: A
+        TTL: "300"
+        ResourceRecords: [192.0.2.11]
+      - HostedZoneName: example.com.
+        Name: alias-conflict-second.example.com.
+        Type: A
+        AliasTarget:
+          DNSName: target.example.com.
+          HostedZoneId: Z1234567890
+        TTL: "300"
+  ConditionalInvalidAliasTypes:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneName: example.com.
+      Name: conditional-invalid-alias-types.example.com.
+      Type: !If [ChooseFirst, NS, SOA]
+      AliasTarget:
+        DNSName: target.example.com.
+        HostedZoneId: Z1234567890
+  ConditionalRecordSetsInvalidFirst:
+    Type: AWS::Route53::RecordSetGroup
+    Properties:
+      HostedZoneName: example.com.
+      RecordSets: !If
+        - ChooseFirst
+        - - Name: invalid-first.example.com.
+            Type: A
+            TTL: "300"
+            ResourceRecords: [not-an-ipv4-address]
+        - - Name: valid-first.example.com.
+            Type: A
+            TTL: "300"
+            ResourceRecords: [192.0.2.20]
+  ConditionalRecordSetsInvalidSecond:
+    Type: AWS::Route53::RecordSetGroup
+    Properties:
+      HostedZoneName: example.com.
+      RecordSets: !If
+        - ChooseFirst
+        - - Name: valid-second.example.com.
+            Type: A
+            TTL: "300"
+            ResourceRecords: [192.0.2.21]
+        - - Name: invalid-second.example.com.
+            Type: A
+            TTL: "300"
+            ResourceRecords: [still-not-an-ipv4-address]
+  WholePropertiesRecordsInvalidFirst:
+    Type: AWS::Route53::RecordSetGroup
+    Properties: !If
+      - ChooseFirst
+      - HostedZoneName: example.com.
+        RecordSets:
+          - Name: whole-invalid-first.example.com.
+            Type: A
+            TTL: "300"
+            ResourceRecords: [invalid-first-branch]
+      - HostedZoneName: example.com.
+        RecordSets:
+          - Name: whole-valid-first.example.com.
+            Type: A
+            TTL: "300"
+            ResourceRecords: [192.0.2.30]
+  WholePropertiesRecordsInvalidSecond:
+    Type: AWS::Route53::RecordSetGroup
+    Properties: !If
+      - ChooseFirst
+      - HostedZoneName: example.com.
+        RecordSets:
+          - Name: whole-valid-second.example.com.
+            Type: A
+            TTL: "300"
+            ResourceRecords: [192.0.2.31]
+      - HostedZoneName: example.com.
+        RecordSets:
+          - Name: whole-invalid-second.example.com.
+            Type: A
+            TTL: "300"
+            ResourceRecords: [invalid-second-branch]

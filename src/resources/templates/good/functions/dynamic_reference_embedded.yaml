@@ -2,7 +2,7 @@ AWSTemplateFormatVersion: "2010-09-09"
 Description: >
   Embedded dynamic references resolve at deploy time, so value-format rules
   (schedule, security-group name, bucket name, etc.) must treat them as opaque
-  and not flag them — even when the reference is not the entire property value or
+  and not flag them - even when the reference is not the entire property value or
   is produced by an intrinsic.
 Resources:
   Sg:

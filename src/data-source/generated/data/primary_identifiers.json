@@ -81,10 +81,6 @@
     "AWS::AppStream::Stack": [
       "Name"
     ],
-    "AWS::AppStream::StackFleetAssociation": [
-      "FleetName",
-      "StackName"
-    ],
     "AWS::AppStream::StackUserAssociation": [
       "StackName",
       "UserName",
@@ -149,6 +145,10 @@
     ],
     "AWS::Bedrock::ResourcePolicy": [
       "ResourceArn"
+    ],
+    "AWS::BedrockAgentCore::GatewayRateLimit": [
+      "GatewayIdentifier",
+      "RateLimitId"
     ],
     "AWS::BedrockAgentCore::ResourcePolicy": [
       "ResourceArn"
@@ -351,6 +351,9 @@
       "DomainName",
       "SegmentDefinitionName"
     ],
+    "AWS::DMS::EventSubscription": [
+      "SubscriptionName"
+    ],
     "AWS::DataBrew::Dataset": [
       "Name"
     ],
@@ -462,6 +465,10 @@
     "AWS::EC2::TransitGatewayPolicyTableAssociation": [
       "TransitGatewayPolicyTableId",
       "TransitGatewayAttachmentId"
+    ],
+    "AWS::EC2::TransitGatewayPolicyTableEntry": [
+      "TransitGatewayPolicyTableId",
+      "PolicyRuleNumber"
     ],
     "AWS::EC2::TransitGatewayRoute": [
       "TransitGatewayRouteTableId",
@@ -639,6 +646,9 @@
     "AWS::Glue::Crawler": [
       "Name"
     ],
+    "AWS::Glue::CustomEntityType": [
+      "Name"
+    ],
     "AWS::Glue::DataCatalogEncryptionSettings": [
       "CatalogId"
     ],
@@ -657,6 +667,9 @@
       "Name"
     ],
     "AWS::Glue::UsageProfile": [
+      "Name"
+    ],
+    "AWS::Glue::Workflow": [
       "Name"
     ],
     "AWS::GuardDuty::Filter": [
@@ -1012,6 +1025,9 @@
       "FlowArn",
       "Name"
     ],
+    "AWS::MediaConvert::Preset": [
+      "Name"
+    ],
     "AWS::MediaLive::Multiplexprogram": [
       "ProgramName",
       "MultiplexId"
@@ -1045,6 +1061,9 @@
     ],
     "AWS::MediaTailor::ChannelPolicy": [
       "ChannelName"
+    ],
+    "AWS::MediaTailor::Function": [
+      "FunctionId"
     ],
     "AWS::MediaTailor::LiveSource": [
       "LiveSourceName",
@@ -1203,6 +1222,10 @@
       "ActionConnectorId",
       "AwsAccountId"
     ],
+    "AWS::QuickSight::Agent": [
+      "AwsAccountId",
+      "AgentId"
+    ],
     "AWS::QuickSight::Analysis": [
       "AnalysisId",
       "AwsAccountId"
@@ -1231,6 +1254,10 @@
       "AwsAccountId",
       "KnowledgeBaseId"
     ],
+    "AWS::QuickSight::Space": [
+      "AwsAccountId",
+      "SpaceId"
+    ],
     "AWS::QuickSight::Template": [
       "AwsAccountId",
       "TemplateId"
@@ -1240,6 +1267,10 @@
       "AwsAccountId"
     ],
     "AWS::QuickSight::Topic": [
+      "AwsAccountId",
+      "TopicId"
+    ],
+    "AWS::QuickSight::TopicV2": [
       "AwsAccountId",
       "TopicId"
     ],

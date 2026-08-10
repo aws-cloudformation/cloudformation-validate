@@ -17,9 +17,11 @@ use template_model::iam_policy::validate_identity_policy;
 use template_model::message::{render_str_list, render_value};
 use template_model::resolver::{RefKind, ResolvedValue};
 use template_model::route_table::duplicate_subnet_associations;
-use template_model::{CAA_RECORD_PATTERN, IAM_ROLE_ARN_RULE_PATTERN, MX_RECORD_PATTERN, SourceSpan};
+use template_model::{
+    CAA_RECORD_PATTERN, IAM_ROLE_ARN_RULE_PATTERN, MARKER_DYNAMIC, MARKER_PARAM_TYPE, MX_RECORD_PATTERN, SourceSpan,
+};
 use template_model::{hardcoded_az, region_enums, schedule_expression_errors};
-use validation_engine::make_resource_diagnostic;
+use validation_engine::{make_resource_diagnostic, make_resource_diagnostic_at_source};
 
 static DOMAIN_RE: LazyLock<regex::Regex> = LazyLock::new(|| {
     regex::Regex::new(r"^(?:[a-z0-9\*](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$")
@@ -113,7 +115,7 @@ fn artifact_count_scenarios(value: Option<&serde_json::Value>) -> Vec<usize> {
                 out.insert(a.len());
             }
             Some(serde_json::Value::Object(o)) if o.len() == 1 && o.contains_key("Fn::If") => {
-                // Fn::If: [condition, then, else] — enumerate both value branches.
+                // Fn::If: [condition, then, else] - enumerate both value branches.
                 if let Some(branches) = o.get("Fn::If").and_then(|v| v.as_array()) {
                     walk(branches.get(1), out);
                     walk(branches.get(2), out);
@@ -238,10 +240,163 @@ fn resolve_concrete(m: &SemanticModel, rid: &str, path: &str) -> Option<serde_js
         };
     }
     // `Properties` wrapped in `Fn::If` stores values only under the synthetic
-    // branch path — fall back to scenario resolution so rules that look up
+    // branch path - fall back to scenario resolution so rules that look up
     // properties by name still see per-branch values.
     let scenarios = m.resolve_scenarios_json(rid, path);
     scenarios.into_iter().next().map(|(v, _)| v)
+}
+
+fn scenario_is_reachable(m: &SemanticModel, resource_id: &str, conditions: &HashMap<String, bool>) -> bool {
+    let mut assumptions: Vec<(String, bool)> = conditions.iter().map(|(name, value)| (name.clone(), *value)).collect();
+    if let Some(resource_condition) = m.resources.get(resource_id).and_then(|resource| resource.condition.as_ref()) {
+        match conditions.get(resource_condition) {
+            Some(false) => return false,
+            Some(true) => {}
+            None => assumptions.push((resource_condition.clone(), true)),
+        }
+    }
+    assumptions.is_empty() || m.conditions.is_satisfiable(&assumptions)
+}
+
+fn scenario_has_effective_property(properties: &ResolvedValue, property_name: &str) -> bool {
+    match properties {
+        ResolvedValue::Concrete { value } => {
+            value.get(property_name).is_some_and(|property_value| !property_value.is_null())
+        }
+        ResolvedValue::Map { entries } => entries.iter().any(|entry| {
+            entry.key == property_name && !matches!(&entry.value, ResolvedValue::Concrete { value } if value.is_null())
+        }),
+        _ => false,
+    }
+}
+
+fn resolved_to_route53_scenario_json(value: &ResolvedValue) -> serde_json::Value {
+    match value {
+        ResolvedValue::Concrete { value } => value.0.clone(),
+        ResolvedValue::List { items } => {
+            serde_json::Value::Array(items.iter().map(resolved_to_route53_scenario_json).collect())
+        }
+        ResolvedValue::Map { entries } => serde_json::Value::Object(
+            entries.iter().map(|entry| (entry.key.clone(), resolved_to_route53_scenario_json(&entry.value))).collect(),
+        ),
+        ResolvedValue::Enum { variants } => variants
+            .iter()
+            .find_map(|variant| match variant {
+                ResolvedValue::Concrete { value } => Some(value.0.clone()),
+                _ => None,
+            })
+            .unwrap_or(serde_json::Value::Null),
+        ResolvedValue::Conditional { if_true, .. } => resolved_to_route53_scenario_json(if_true),
+        ResolvedValue::Reference { target, .. } => serde_json::json!({(FN_REF): target}),
+        ResolvedValue::Dynamic { reason } => serde_json::json!({(MARKER_DYNAMIC): reason}),
+        ResolvedValue::TypedDynamic { reason, param_type } => {
+            serde_json::json!({(MARKER_DYNAMIC): reason, (MARKER_PARAM_TYPE): param_type})
+        }
+    }
+}
+
+fn scenario_property_json(properties: &ResolvedValue, property_name: &str) -> Option<serde_json::Value> {
+    match properties {
+        ResolvedValue::Concrete { value } => {
+            value.get(property_name).filter(|property_value| !property_value.is_null()).cloned()
+        }
+        ResolvedValue::Map { entries } => {
+            let property_value = &entries.iter().find(|entry| entry.key == property_name)?.value;
+            if matches!(property_value, ResolvedValue::Concrete { value } if value.is_null()) {
+                None
+            } else {
+                Some(resolved_to_route53_scenario_json(property_value))
+            }
+        }
+        _ => None,
+    }
+}
+
+fn route53_scenario_source_path(
+    m: &SemanticModel,
+    resource_id: &str,
+    effective_path: &str,
+    conditions: &HashMap<String, bool>,
+) -> String {
+    m.scenario_source_path(resource_id, effective_path, conditions).unwrap_or_else(|| effective_path.to_string())
+}
+
+fn standalone_route53_record_source_path(
+    m: &SemanticModel,
+    resource_id: &str,
+    effective_path: &str,
+    conditions: &HashMap<String, bool>,
+) -> String {
+    let source_path = route53_scenario_source_path(m, resource_id, effective_path, conditions);
+    let direct_conditional_prefix = format!("Properties.ResourceRecords.{}.", FN_IF);
+    if source_path.starts_with(&direct_conditional_prefix) {
+        "Properties.ResourceRecords".to_string()
+    } else {
+        source_path
+    }
+}
+
+fn push_route53_record_value_diagnostics<F>(
+    diagnostics: &mut Vec<Diagnostic>,
+    m: &SemanticModel,
+    resource_id: &str,
+    record_type: &str,
+    records: &[serde_json::Value],
+    records_path: &str,
+    source_path_for: F,
+) where
+    F: Fn(&str) -> String,
+{
+    for (record_index, record) in records.iter().enumerate() {
+        let Some(record) = record.as_str() else {
+            continue;
+        };
+        let message = match record_type {
+            "A" if record.parse::<Ipv4Addr>().is_err() => {
+                Some(format!("'{}' is not a valid IPv4 address for record type 'A'", record))
+            }
+            "AAAA" if record.parse::<Ipv6Addr>().is_err() => {
+                Some(format!("'{}' is not a valid IPv6 address for record type 'AAAA'", record))
+            }
+            "TXT" if !TXT_RECORD_RE.is_match(record) => {
+                Some(format!("TXT record value '{}' must be enclosed in double quotes", record))
+            }
+            "CAA" if !CAA_RECORD_RE.is_match(record) => {
+                Some(format!("CAA record value '{}' must match format: flag tag 'value'", record))
+            }
+            "MX" if !MX_RECORD_RE.is_match(record) => {
+                Some(format!("MX record value '{}' must match format: priority domain", record))
+            }
+            _ => None,
+        };
+        if let Some(message) = message {
+            let property_path = format!("{}.{}", records_path, record_index);
+            let source_path = source_path_for(&property_path);
+            diagnostics.push(make_resource_diagnostic_at_source(
+                "E3023",
+                &message,
+                m,
+                resource_id,
+                &property_path,
+                &source_path,
+                None,
+            ));
+        }
+    }
+
+    let effective_record_count = records.iter().filter(|record| !record.is_null()).count();
+    if record_type == "CNAME" && effective_record_count > 1 {
+        let source_path = source_path_for(records_path);
+        diagnostics.push(make_resource_diagnostic_at_source(
+            "E3023",
+            "CNAME records must have at most 1 ResourceRecord",
+            m,
+            resource_id,
+            records_path,
+            &source_path,
+            None,
+        ));
+    }
 }
 
 /// The authored JSON form of a resource property, reconstructed from the resolved
@@ -349,7 +504,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     if !ctx.cached_data.known_types.is_empty() {
         for (name, res) in &m.resources {
             // An AWS-namespaced type absent from the compiled schema set is a
-            // typo or nonexistent type — CloudFormation owns the reserved
+            // typo or nonexistent type - CloudFormation owns the reserved
             // `AWS::` namespace, so the embedded catalog is authoritative for
             // it. Types in any other namespace (private registry types,
             // `Custom::` resources, modules, hook-shaped names) may be
@@ -476,7 +631,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             }
         };
 
-        // Inline SecurityGroup ingress/egress rules — access raw properties
+        // Inline SecurityGroup ingress/egress rules - access raw properties
         // to handle arrays containing dynamic Refs that resolve_concrete skips
         for name in m.resources_of_type("AWS::EC2::SecurityGroup") {
             let Some(res) = m.resources.get(name.as_str()) else {
@@ -1080,7 +1235,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     // itself pin the calling account. That is the case when the SourceArn either
     // references an S3 bucket (bucket ARNs carry no account id) or is a literal
     // ARN string with no ':<12-digit-account>:' segment. The Principal is
-    // irrelevant — keying on it (e.g. "s3.amazonaws.com") both misses the string
+    // irrelevant - keying on it (e.g. "s3.amazonaws.com") both misses the string
     // case and over-fires when SourceArn is absent entirely.
     for name in m.resources_of_type("AWS::Lambda::Permission") {
         let source_account_set =
@@ -1095,7 +1250,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             .unwrap_or(false);
         // The string branch only tests a genuinely literal SourceArn. A value
         // supplied via a Ref/GetAtt/Sub (even one that resolves to a concrete
-        // account-less string) is not folded into the pattern check — only a
+        // account-less string) is not folded into the pattern check - only a
         // literal string is pattern-matched here.
         let source_arn_string_without_account = !m.is_from_intrinsic(name, "Properties.SourceArn")
             && resolve_concrete(m, name, "Properties.SourceArn")
@@ -1790,6 +1945,13 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         "RequiresCompatibilities",
         "PlacementConstraints",
     ];
+    // A property whose items must be unique must not repeat a value. Two entries
+    // are only reported when they are provably one value: an entry that resolves
+    // before deployment is settled by its contents, and an entry that stays opaque
+    // is settled by the expression that produces it, since two entries written the
+    // same way always read the same thing. When any entry offers neither, the
+    // property is left alone - entries that merely look alike because their values
+    // are unknowable are not a duplicate.
     for (name, res) in &m.resources {
         for prop in res.properties.keys() {
             if !UNIQUE_ARRAY_PROPS.contains(&prop.as_str()) {
@@ -1800,23 +1962,24 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             let Some(rv) = resolved else {
                 continue;
             };
-            let items: Vec<String> = match &rv {
-                ResolvedValue::Concrete { value: v } => {
-                    let Some(arr) = v.as_array() else {
-                        continue;
-                    };
-                    arr.iter().map(|x| x.to_string()).collect()
-                }
-                ResolvedValue::List { items } => {
-                    items.iter().map(|it| serde_json::to_string(it).unwrap_or_default()).collect()
-                }
+            let item_count = match &rv {
+                ResolvedValue::Concrete { value: v } => match v.as_array() {
+                    Some(arr) => arr.len(),
+                    None => continue,
+                },
+                ResolvedValue::List { items } => items.len(),
                 _ => continue,
             };
-            if items.len() < 2 {
+            if item_count < 2 {
+                continue;
+            }
+            let identities: Vec<String> =
+                (0..item_count).filter_map(|index| m.value_identity(name, &format!("{}.{}", path, index))).collect();
+            if identities.len() != item_count {
                 continue;
             }
             let mut seen = HashSet::new();
-            let has_dup = items.iter().any(|s| !seen.insert(s.clone()));
+            let has_dup = identities.iter().any(|identity| !seen.insert(identity.clone()));
             if has_dup {
                 out.push(make_resource_diagnostic(
                     "W9007",
@@ -2244,7 +2407,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                     };
                     // Preserve Fn::If as `{"Fn::If": [cond, then, else]}` (rather
                     // than collapsing to one branch) so the action-format check
-                    // can consider every branch's ARN — a resource is acceptable
+                    // can consider every branch's ARN - a resource is acceptable
                     // if any reachable branch matches the action.
                     let doc = resolved_to_json_preserving_conditionals(&rv);
                     check_iam_action_resources(&mut out, m, name, &doc, &iam_patterns);
@@ -2391,20 +2554,22 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                             continue;
                         }
                         let path = format!("Properties.{}", prop);
-                        // Skip concrete strings — already covered by generated schema string-length rules.
-                        // Only estimate through intrinsics (Fn::Sub, Fn::Join, etc.).
-                        if let Some(ResolvedValue::Concrete { value: v }) = m.resolve(name, &path)
-                            && v.is_string()
-                        {
-                            continue;
-                        }
-                        if let Some(len) = m.estimate_string_length(name, &path) {
+                        // Only reported when the constraint is broken whichever
+                        // value the deployment picks: the shortest possibility
+                        // still too long, or the longest still too short. A value
+                        // the template states literally is checked against the
+                        // constraint by schema validation instead, and a value with
+                        // any unknown possibility yields no bounds at all.
+                        if let Some((shortest, longest)) = m.estimated_string_length_bounds(name, &path) {
                             if let Some(max) = max_len
-                                && len as u64 > max
+                                && shortest as u64 > max
                             {
                                 out.push(make_resource_diagnostic(
                                     "W9006",
-                                    &format!("String length {} exceeds maximum {} for property '{}'", len, max, prop),
+                                    &format!(
+                                        "String length {} exceeds maximum {} for property '{}'",
+                                        shortest, max, prop
+                                    ),
                                     m,
                                     name,
                                     &path,
@@ -2412,11 +2577,14 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                                 ));
                             }
                             if let Some(min) = min_len
-                                && (len as u64) < min
+                                && (longest as u64) < min
                             {
                                 out.push(make_resource_diagnostic(
                                     "W9006",
-                                    &format!("String length {} is below minimum {} for property '{}'", len, min, prop),
+                                    &format!(
+                                        "String length {} is below minimum {} for property '{}'",
+                                        longest, min, prop
+                                    ),
                                     m,
                                     name,
                                     &path,
@@ -2539,7 +2707,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     for name in m.resources_of_type("AWS::ApiGateway::Method") {
         // The check applies only when the Method references an Authorizer that
-        // resolves to a resource (a Ref/GetAtt to an Authorizer) — a Method whose
+        // resolves to a resource (a Ref/GetAtt to an Authorizer) - a Method whose
         // AuthorizerId is a literal or opaque function has no in-template
         // Authorizer to compare against.
         let Some(authorizer_name) = m.follow_ref(name, "Properties.AuthorizerId") else {
@@ -2667,9 +2835,9 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             // A container-image function must not set Handler, Runtime, or Layers.
             // Report this once with a fixed message, anchored at the first
             // offending property present (schema order), no matter how many are
-            // set — so collapse to a single diagnostic. Presence is keyed on the
+            // set - so collapse to a single diagnostic. Presence is keyed on the
             // property being SET (key-presence), not on it resolving to a concrete
-            // value — so an excluded property whose value is an unresolved
+            // value - so an excluded property whose value is an unresolved
             // Ref/intrinsic still anchors the finding.
             let props = m.resources.get(name.as_str()).map(|r| &r.properties);
             if let Some(first_excluded) = ["Handler", "Runtime", "Layers"]
@@ -2708,7 +2876,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     // 100..=256000); gp3 does not require Iops but bounds it (3000..=16000).
     // This applies to the `BlockDeviceMappings[*].Ebs` blocks of launch
     // configurations, instances, launch templates, spot fleets, and OpsWorks
-    // instances — NOT to a standalone AWS::EC2::Volume (whose Iops rules are
+    // instances - NOT to a standalone AWS::EC2::Volume (whose Iops rules are
     // enforced by the resource schema directly).
     let emit_ebs_iops = |name: &str, bdm_path: &str, ebs: &serde_json::Value, out: &mut Vec<Diagnostic>| {
         let Some(vtype) = ebs.get("VolumeType").and_then(|v| v.as_str()) else {
@@ -2727,7 +2895,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         let iops_path = format!("{}.Ebs.Iops", bdm_path);
         // The numeric bounds only apply to a literal Iops. An Iops supplied via a
         // parameter Ref (whose default happens to be out of range) or another
-        // intrinsic is not flagged — the parameter default is not folded into the
+        // intrinsic is not flagged - the parameter default is not folded into the
         // bound check. The required-when-absent check still holds regardless,
         // since absence is unambiguous.
         let iops_is_literal = !m.is_from_parameter(name, &iops_path) && !m.is_from_intrinsic(name, &iops_path);
@@ -2829,7 +2997,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     // Instance type enum validation per region. With no region configured the
     // value is validated against the union of all regions (flagged only when
-    // invalid everywhere); with a region set, that one region — see
+    // invalid everywhere); with a region set, that one region - see
     // `template_model::region_enums`.
     {
         let region = ctx.region.as_deref();
@@ -3158,7 +3326,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    // IAM ManagedPolicy — Statement should have Resource when Action is present
+    // IAM ManagedPolicy - Statement should have Resource when Action is present
     for name in m.resources_of_type("AWS::IAM::ManagedPolicy") {
         if let Some(doc) = resolve_concrete(m, name, "Properties.PolicyDocument")
             && let Some(stmts) = doc.get("Statement").and_then(|s| s.as_array())
@@ -3188,231 +3356,70 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     // Route53 RecordSet validation
     for name in m.resources_of_type("AWS::Route53::RecordSet") {
-        if let Some(serde_json::Value::String(rtype)) = resolve_concrete(m, name, "Properties.Type") {
-            match rtype.as_str() {
-                "A" => {
-                    if let Some(serde_json::Value::Array(records)) =
-                        resolve_concrete(m, name, "Properties.ResourceRecords")
-                    {
-                        for (i, rec) in records.iter().enumerate() {
-                            if let Some(s) = rec.as_str()
-                                && s.parse::<Ipv4Addr>().is_err()
-                            {
-                                out.push(make_resource_diagnostic(
-                                    "E3023",
-                                    &format!("'{}' is not a valid IPv4 address for record type 'A'", s),
-                                    m,
-                                    name,
-                                    &format!("Properties.ResourceRecords.{}", i),
-                                    None,
-                                ));
-                            }
-                        }
-                    }
-                }
-                "AAAA" => {
-                    if let Some(serde_json::Value::Array(records)) =
-                        resolve_concrete(m, name, "Properties.ResourceRecords")
-                    {
-                        for (i, rec) in records.iter().enumerate() {
-                            if let Some(s) = rec.as_str()
-                                && s.parse::<Ipv6Addr>().is_err()
-                            {
-                                out.push(make_resource_diagnostic(
-                                    "E3023",
-                                    &format!("'{}' is not a valid IPv6 address for record type 'AAAA'", s),
-                                    m,
-                                    name,
-                                    &format!("Properties.ResourceRecords.{}", i),
-                                    None,
-                                ));
-                            }
-                        }
-                    }
-                }
-                "CNAME" => {
-                    if let (Some(serde_json::Value::String(rec_name)), Some(serde_json::Value::String(hz_name))) = (
-                        resolve_concrete(m, name, "Properties.Name"),
-                        resolve_concrete(m, name, "Properties.HostedZoneName"),
-                    ) {
-                        let trimmed_rec = rec_name.trim_end_matches('.');
-                        let trimmed_hz = hz_name.trim_end_matches('.');
-                        if trimmed_rec == trimmed_hz {
-                            out.push(make_resource_diagnostic(
-                                "E3023",
-                                &format!(
-                                    "CNAME record Name '{}' must not match HostedZoneName '{}' exactly",
-                                    rec_name, hz_name
-                                ),
-                                m,
-                                name,
-                                "Properties.Name",
-                                None,
-                            ));
-                        }
-                    }
-                    if let Some(serde_json::Value::Array(records)) =
-                        resolve_concrete(m, name, "Properties.ResourceRecords")
-                        && records.len() > 1
-                    {
-                        out.push(make_resource_diagnostic(
-                            "E3023",
-                            "CNAME records must have at most 1 ResourceRecord",
-                            m,
-                            name,
-                            "Properties.ResourceRecords",
-                            None,
-                        ));
-                    }
-                }
-                "TXT" => {
-                    if let Some(serde_json::Value::Array(records)) =
-                        resolve_concrete(m, name, "Properties.ResourceRecords")
-                    {
-                        for (i, rec) in records.iter().enumerate() {
-                            if let Some(s) = rec.as_str()
-                                && !TXT_RECORD_RE.is_match(s)
-                            {
-                                out.push(make_resource_diagnostic(
-                                    "E3023",
-                                    &format!("TXT record value '{}' must be enclosed in double quotes", s),
-                                    m,
-                                    name,
-                                    &format!("Properties.ResourceRecords.{}", i),
-                                    None,
-                                ));
-                            }
-                        }
-                    }
-                }
-                "CAA" => {
-                    if let Some(serde_json::Value::Array(records)) =
-                        resolve_concrete(m, name, "Properties.ResourceRecords")
-                    {
-                        for (i, rec) in records.iter().enumerate() {
-                            if let Some(s) = rec.as_str()
-                                && !CAA_RECORD_RE.is_match(s)
-                            {
-                                out.push(make_resource_diagnostic(
-                                    "E3023",
-                                    &format!("CAA record value '{}' must match format: flag tag 'value'", s),
-                                    m,
-                                    name,
-                                    &format!("Properties.ResourceRecords.{}", i),
-                                    None,
-                                ));
-                            }
-                        }
-                    }
-                }
-                "MX" => {
-                    if let Some(serde_json::Value::Array(records)) =
-                        resolve_concrete(m, name, "Properties.ResourceRecords")
-                    {
-                        for (i, rec) in records.iter().enumerate() {
-                            if let Some(s) = rec.as_str()
-                                && !MX_RECORD_RE.is_match(s)
-                            {
-                                out.push(make_resource_diagnostic(
-                                    "E3023",
-                                    &format!("MX record value '{}' must match format: priority domain", s),
-                                    m,
-                                    name,
-                                    &format!("Properties.ResourceRecords.{}", i),
-                                    None,
-                                ));
-                            }
-                        }
-                    }
-                }
-                _ => {}
+        for (properties, conditions) in m.resolve_properties_scenarios(name) {
+            if !scenario_is_reachable(m, name, &conditions) {
+                continue;
+            }
+            let Some(serde_json::Value::String(record_type)) = scenario_property_json(&properties, "Type") else {
+                continue;
+            };
+            if record_type == "CNAME"
+                && let (Some(serde_json::Value::String(record_name)), Some(serde_json::Value::String(hosted_zone_name))) =
+                    (scenario_property_json(&properties, "Name"), scenario_property_json(&properties, "HostedZoneName"))
+                && record_name.trim_end_matches('.') == hosted_zone_name.trim_end_matches('.')
+            {
+                let property_path = "Properties.Name";
+                let source_path = route53_scenario_source_path(m, name, property_path, &conditions);
+                out.push(make_resource_diagnostic_at_source(
+                    "E3023",
+                    &format!(
+                        "CNAME record Name '{}' must not match HostedZoneName '{}' exactly",
+                        record_name, hosted_zone_name
+                    ),
+                    m,
+                    name,
+                    property_path,
+                    &source_path,
+                    None,
+                ));
+            }
+            if let Some(serde_json::Value::Array(records)) = scenario_property_json(&properties, "ResourceRecords") {
+                push_route53_record_value_diagnostics(
+                    &mut out,
+                    m,
+                    name,
+                    &record_type,
+                    &records,
+                    "Properties.ResourceRecords",
+                    |property_path| standalone_route53_record_source_path(m, name, property_path, &conditions),
+                );
             }
         }
     }
 
-    // RecordSetGroup — validate records within RecordSets[]
+    // RecordSetGroup - validate records within RecordSets[]
     for name in m.resources_of_type("AWS::Route53::RecordSetGroup") {
-        if let Some(serde_json::Value::Array(rsets)) = resolve_concrete(m, name, "Properties.RecordSets") {
-            for (si, rset) in rsets.iter().enumerate() {
-                let rtype = rset.get("Type").and_then(|t| t.as_str()).unwrap_or("");
-                let records = rset.get("ResourceRecords").and_then(|r| r.as_array());
-                if let Some(records) = records {
-                    for (ri, rec) in records.iter().enumerate() {
-                        if let Some(s) = rec.as_str() {
-                            let path = format!("Properties.RecordSets.{}.ResourceRecords.{}", si, ri);
-                            match rtype {
-                                "A" => {
-                                    if s.parse::<Ipv4Addr>().is_err() {
-                                        out.push(make_resource_diagnostic(
-                                            "E3023",
-                                            &format!("'{}' is not a valid IPv4 address for record type 'A'", s),
-                                            m,
-                                            name,
-                                            &path,
-                                            None,
-                                        ));
-                                    }
-                                }
-                                "AAAA" => {
-                                    if s.parse::<Ipv6Addr>().is_err() {
-                                        out.push(make_resource_diagnostic(
-                                            "E3023",
-                                            &format!("'{}' is not a valid IPv6 address for record type 'AAAA'", s),
-                                            m,
-                                            name,
-                                            &path,
-                                            None,
-                                        ));
-                                    }
-                                }
-                                "TXT" => {
-                                    if !TXT_RECORD_RE.is_match(s) {
-                                        out.push(make_resource_diagnostic(
-                                            "E3023",
-                                            &format!("TXT record value '{}' must be enclosed in double quotes", s),
-                                            m,
-                                            name,
-                                            &path,
-                                            None,
-                                        ));
-                                    }
-                                }
-                                "CAA" => {
-                                    if !CAA_RECORD_RE.is_match(s) {
-                                        out.push(make_resource_diagnostic(
-                                            "E3023",
-                                            &format!("CAA record value '{}' must match format: flag tag 'value'", s),
-                                            m,
-                                            name,
-                                            &path,
-                                            None,
-                                        ));
-                                    }
-                                }
-                                "MX" if !MX_RECORD_RE.is_match(s) => {
-                                    out.push(make_resource_diagnostic(
-                                        "E3023",
-                                        &format!("MX record value '{}' must match format: priority domain", s),
-                                        m,
-                                        name,
-                                        &path,
-                                        None,
-                                    ));
-                                }
-                                _ => {}
-                            }
-                        }
-                    }
-                    if rtype == "CNAME" && records.len() > 1 {
-                        out.push(make_resource_diagnostic(
-                            "E3023",
-                            "CNAME records must have at most 1 ResourceRecord",
-                            m,
-                            name,
-                            &format!("Properties.RecordSets.{}.ResourceRecords", si),
-                            None,
-                        ));
-                    }
+        for (properties, conditions) in m.resolve_properties_scenarios(name) {
+            if !scenario_is_reachable(m, name, &conditions) {
+                continue;
+            }
+            let Some(serde_json::Value::Array(record_sets)) = scenario_property_json(&properties, "RecordSets") else {
+                continue;
+            };
+            for (set_index, record_set) in record_sets.iter().enumerate() {
+                let Some(record_type) = record_set.get("Type").and_then(|value| value.as_str()) else {
+                    continue;
+                };
+                if let Some(records) = record_set.get("ResourceRecords").and_then(|value| value.as_array()) {
+                    push_route53_record_value_diagnostics(
+                        &mut out,
+                        m,
+                        name,
+                        record_type,
+                        records,
+                        &format!("Properties.RecordSets.{}.ResourceRecords", set_index),
+                        |property_path| route53_scenario_source_path(m, name, property_path, &conditions),
+                    );
                 }
             }
         }
@@ -3452,7 +3459,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     // Events Rule ScheduleExpression validation: a value that is invalid service-side (e.g. a plural
     // unit with value 1, a non-integer value, or a cron pinning both day fields) is caught here. A
-    // value built from a parameter or intrinsic is only known at deploy time, so it is skipped —
+    // value built from a parameter or intrinsic is only known at deploy time, so it is skipped -
     // validating the pre-resolution literal would flag a value the service never sees.
     for name in m.resources_of_type("AWS::Events::Rule") {
         let path = "Properties.ScheduleExpression";
@@ -3468,31 +3475,45 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     // Route53 RecordSet Alias validation
     for name in m.resources_of_type("AWS::Route53::RecordSet") {
-        let has_alias = resolve_concrete(m, name, "Properties.AliasTarget").is_some();
-        if has_alias {
-            if resolve_concrete(m, name, "Properties.TTL").is_some() {
-                out.push(make_resource_diagnostic(
-                    "E3029",
-                    "TTL must not be set when AliasTarget is specified",
-                    m,
-                    name,
-                    "Properties.TTL",
-                    None,
-                ));
-            }
-            if let Some(serde_json::Value::String(rtype)) = resolve_concrete(m, name, "Properties.Type")
-                && rtype != "A"
-                && rtype != "AAAA"
-            {
-                out.push(make_resource_diagnostic(
-                    "E3029",
-                    &format!("AliasTarget cannot be used with record type '{}'", rtype),
-                    m,
-                    name,
-                    "Properties.AliasTarget",
-                    None,
-                ));
-            }
+        let property_scenarios = m.resolve_properties_scenarios(name);
+        let has_alias_ttl_conflict = property_scenarios.iter().any(|(properties, conditions)| {
+            scenario_is_reachable(m, name, conditions)
+                && scenario_has_effective_property(properties, "AliasTarget")
+                && scenario_has_effective_property(properties, "TTL")
+        });
+        if has_alias_ttl_conflict {
+            out.push(make_resource_diagnostic(
+                "E3029",
+                "TTL must not be set when AliasTarget is specified",
+                m,
+                name,
+                "Properties.TTL",
+                None,
+            ));
+        }
+
+        let invalid_alias_types: BTreeSet<String> = property_scenarios
+            .iter()
+            .filter_map(|(properties, conditions)| {
+                if !scenario_is_reachable(m, name, conditions)
+                    || !scenario_has_effective_property(properties, "AliasTarget")
+                {
+                    return None;
+                }
+                let record_type = scenario_property_json(properties, "Type")?;
+                let record_type = record_type.as_str()?;
+                matches!(record_type, "NS" | "SOA").then(|| record_type.to_string())
+            })
+            .collect();
+        for record_type in invalid_alias_types {
+            out.push(make_resource_diagnostic(
+                "E3029",
+                &format!("AliasTarget cannot be used with record type '{}'", record_type),
+                m,
+                name,
+                "Properties.AliasTarget",
+                None,
+            ));
         }
     }
 
@@ -3714,7 +3735,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    // RDS DBCluster — SnapshotIdentifier makes MasterUsername ignored
+    // RDS DBCluster - SnapshotIdentifier makes MasterUsername ignored
     for name in m.resources_of_type("AWS::RDS::DBCluster") {
         if resolve_concrete(m, name, "Properties.SnapshotIdentifier").is_some()
             && resolve_concrete(m, name, "Properties.MasterUsername").is_some()
@@ -3730,7 +3751,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    // RDS DBCluster — SourceDBClusterIdentifier makes several properties ignored
+    // RDS DBCluster - SourceDBClusterIdentifier makes several properties ignored
     for name in m.resources_of_type("AWS::RDS::DBCluster") {
         if resolve_concrete(m, name, "Properties.SourceDBClusterIdentifier").is_some() {
             for ignored in &["MasterUserPassword", "MasterUsername", "StorageEncrypted"] {
@@ -3748,7 +3769,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    // RDS DBCluster — Aurora serverless ignores PerformanceInsights properties
+    // RDS DBCluster - Aurora serverless ignores PerformanceInsights properties
     for name in m.resources_of_type("AWS::RDS::DBCluster") {
         let engine = resolve_concrete(m, name, "Properties.Engine")
             .and_then(|v| if let serde_json::Value::String(s) = v { Some(s) } else { None });
@@ -4097,7 +4118,7 @@ fn primary_id_scenarios(m: &Arc<SemanticModel>, rid: &str, id_props: &[String]) 
 }
 
 /// First scalar (string/number/bool) value that repeats in the array, formatted
-/// the way the diagnostic renders it. Non-scalar items and nulls are ignored —
+/// the way the diagnostic renders it. Non-scalar items and nulls are ignored -
 /// only repeated primitives are advisory.
 fn first_duplicate_scalar(items: &[serde_json::Value]) -> Option<String> {
     let mut seen = HashSet::new();
@@ -4204,7 +4225,7 @@ struct IamResourceClassification {
 
 /// Classifies one `Resource`/`NotResource` entry. When `at_top_level` (the entry
 /// is the property's scalar value, not a list element), an `Fn::If` is enumerated
-/// so every reachable branch contributes — a resource is acceptable if any branch
+/// so every reachable branch contributes - a resource is acceptable if any branch
 /// matches. As a list element, an `Fn::If` is instead an opaque function whose
 /// ARN is unknowable. A concrete ARN is a match candidate unless it was
 /// synthesized by an intrinsic (its real ARN is only known at deploy time); a
@@ -4340,12 +4361,13 @@ fn check_iam_action_resources(
             if !matched {
                 let formats_display =
                     candidate_formats.iter().map(|s| format!("'{}'", s)).collect::<Vec<_>>().join(", ");
+                let resource_field = if stmt.get("Resource").is_some() { "Resource" } else { "NotResource" };
                 out.push(make_resource_diagnostic(
                     "I3510",
                     &format!("action '{}' requires a resource of [{}]", action, formats_display),
                     m,
                     name,
-                    &format!("Properties.PolicyDocument.Statement.{}.Resource", stmt_idx),
+                    &format!("Properties.PolicyDocument.Statement.{}.{}", stmt_idx, resource_field),
                     None,
                 ));
             }
@@ -4444,7 +4466,7 @@ fn check_dynamic_ref_spaces(
                 // that prevent CloudFormation from resolving them.
                 // Valid: {{resolve:ssm:...}}  Invalid: {{ resolve:ssm:...}}
                 if s.contains("resolve:") && s.contains("{{") && s.contains("}}") {
-                    // Has a valid dynamic ref — no warning needed
+                    // Has a valid dynamic ref - no warning needed
                     if s.contains("{{resolve:") {
                         return;
                     }

@@ -128,7 +128,7 @@ fn satisfiable(m: &SemanticModel, conds: &HashMap<String, bool>) -> bool {
 fn evaluate_rule(out: &mut Vec<Diagnostic>, m: &Arc<SemanticModel>, rid: &str, rtype: &str, rule: &RuleDescriptor) {
     let expr = &rule.expression;
 
-    // Simple expression: "true" — always fires (e.g., deprecated resource type)
+    // Simple expression: "true" - always fires (e.g., deprecated resource type)
     if expr == "true" {
         out.push(make_diag(rule, m, rid, rtype, None));
         return;
@@ -421,7 +421,7 @@ fn evaluate_rule(out: &mut Vec<Diagnostic>, m: &Arc<SemanticModel>, rid: &str, r
         return;
     }
 
-    // runtime_in_list(name, [...]) — for lambda runtime checks
+    // runtime_in_list(name, [...]) - for lambda runtime checks
     if let Some(rest) = expr.strip_prefix("runtime_in_list(name, ") {
         let json_str = rest.strip_suffix(')').unwrap_or(rest);
         if let Ok(runtimes) = serde_json::from_str::<Vec<String>>(json_str) {

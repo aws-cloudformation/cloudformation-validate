@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 
 const {
     RegoEngine,
     CelEngine,
     SchemaValidator,
+    SchemaFile,
     TemplateModel,
     TemplateFile,
     version,
@@ -24,7 +26,7 @@ function loadRule(filename: string): string {
 }
 
 const COMBINED_GOLDEN: Record<string, unknown> = JSON.parse(
-    fs.readFileSync(path.join(EXPECTED_DIR, 'all_templates.json'), 'utf-8'),
+    fs.readFileSync(path.join(EXPECTED_DIR, 'validation_reports.json'), 'utf-8'),
 );
 
 const GOLDEN_DIRS = ['bad', 'cdk', 'good', 'gh-issues', 'integration', 'issues', 'lsp', 'public', 'quickstart'];
@@ -54,6 +56,24 @@ const FULL_ONLY_DIAGNOSTIC_FIELDS = ['documentationUrl', 'context', 'ruleDescrip
 const CEL = new CelEngine();
 const REGO = new RegoEngine();
 
+const TEMPLATE_WITH_OVERLAY_PROPERTY = `
+Resources:
+  Function:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        ZipFile: "exports.handler = async () => {};"
+      Role: arn:aws:iam::123456789012:role/lambda-role
+      Runtime: nodejs18.x
+      Handler: index.handler
+      TestForOverride: enabled
+`;
+
+const LAMBDA_OVERLAY_SCHEMA = `{
+  "typeName": "AWS::Lambda::Function",
+  "properties": {"TestForOverride": {"type": "string"}}
+}`;
+
 function loadGolden(rel: string): unknown {
     return COMBINED_GOLDEN[rel];
 }
@@ -67,6 +87,8 @@ function stripGoldenExcludedFields(report: any, filePath?: string): unknown {
     delete clone.performance;
     if (clone.metadata && typeof clone.metadata === 'object') {
         delete clone.metadata.rulesEvaluated;
+        delete clone.metadata.cfnLintVersion;
+        delete clone.metadata.resourceSchemaVersion;
     }
     return clone;
 }
@@ -208,6 +230,43 @@ describe('invalid input', () => {
         expect(report.status).toBe('ERROR');
         expect(report.diagnostics[0].ruleId).toBe('F1101');
         expect(report.diagnostics[0].severity).toBe('FATAL');
+    });
+});
+
+// ── Additional schema overlays ──────────────────────────────────────────────
+
+describe('additional schemas', () => {
+    it('SchemaFile applies through the public config on both engines', () => {
+        const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'cloudformation-validate-overlay-'));
+        try {
+            const templatePath = path.join(directory, 'template.yaml');
+            const schemaPath = path.join(directory, 'schema.json');
+            fs.writeFileSync(templatePath, TEMPLATE_WITH_OVERLAY_PROPERTY);
+            fs.writeFileSync(schemaPath, LAMBDA_OVERLAY_SCHEMA);
+            const template = new TemplateFile(templatePath);
+
+            for (const [name, baseline, EngineType] of [
+                ['rego', REGO, RegoEngine],
+                ['cel', CEL, CelEngine],
+            ] as const) {
+                expect(
+                    baseline
+                        .validateStandard(template)
+                        .diagnostics.some((diagnostic: any) => diagnostic.ruleId === 'F3002'),
+                    `${name} baseline must report the unpublished property`,
+                ).toBe(true);
+
+                const engine = new EngineType({ schemaValidatorConfig: { additionalSchemas: [new SchemaFile(schemaPath)] } });
+                const report = engine.validateStandard(template);
+                expect(
+                    report.diagnostics.some((diagnostic: any) => diagnostic.ruleId === 'F3002'),
+                    `${name} public config must apply the overlay`,
+                ).toBe(false);
+                engine.free();
+            }
+        } finally {
+            fs.rmSync(directory, { recursive: true, force: true });
+        }
     });
 });
 

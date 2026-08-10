@@ -13,11 +13,12 @@ name = "validation_engine"
 path = "src/lib.rs"
 
 [features]
-wasm-bindings = ["dep:tsify", "dep:wasm-bindgen"]
-uniffi-bindings = ["dep:uniffi"]
+wasm-bindings = ["dep:tsify", "dep:wasm-bindgen", "schema-validator/wasm-bindings"]
+uniffi-bindings = ["dep:uniffi", "schema-validator/uniffi-bindings"]
 test = []
 
 [dependencies]
+data-source = { path = "../data-source", default-features = false }
 diagnostics = { path = "../diagnostics" }
 rules = { path = "../rules" }
 template-model = { path = "../template-model" }
@@ -29,7 +30,7 @@ log = "0.4"
 web-time = "1"
 tsify = { version = "0.5", optional = true, features = ["js"] }
 wasm-bindgen = { version = "0.2", optional = true }
-uniffi = { git = "https://github.com/mozilla/uniffi-rs", branch = "main", optional = true }
+uniffi = { workspace = true, optional = true }
 
 [lints]
 workspace = true

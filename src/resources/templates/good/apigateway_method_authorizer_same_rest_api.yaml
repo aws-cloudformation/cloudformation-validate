@@ -3,7 +3,7 @@ Description: >
   E3699/E3698 must not fire when a Method/Authorizer (or Stage/Deployment) refer
   to the SAME RestApi even when authored with different intrinsics. For
   AWS::ApiGateway::RestApi, `Ref` and `Fn::GetAtt <api>.RestApiId` resolve to the
-  same API id, so identity comparison must treat them as equal — comparing the
+  same API id, so identity comparison must treat them as equal - comparing the
   authored values structurally (as a stricter linter does) would be a false
   positive that real CloudFormation does not hit. This file must stay clean.
 Resources:

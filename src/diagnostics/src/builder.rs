@@ -7,7 +7,7 @@ use template_model::{ParseDefect, SourceSpan, span_to_option};
 /// Builds a [`Diagnostic`] for a rule that is registered in the rule registry.
 ///
 /// Severity, category, origin, and description are taken from the registry entry
-/// for `rule_id` — this is the single place those four fields are sourced for
+/// for `rule_id` - this is the single place those four fields are sourced for
 /// built-in diagnostics, so every built-in finding is consistent regardless of
 /// which crate produced it. [`build`](Self::build) panics if the rule is not
 /// registered, turning an unregistered built-in rule into a loud failure instead
@@ -48,7 +48,7 @@ impl RegisteredDiagnostic {
 
     /// Attaches the offending resource as the targeted entity: its logical ID
     /// and, when known, its CloudFormation type. An empty ID is dropped so
-    /// callers can pass through an ID that may be blank — mirrors
+    /// callers can pass through an ID that may be blank - mirrors
     /// [`property_path`](Self::property_path).
     pub fn resource(mut self, resource_id: impl Into<String>, resource_type: Option<String>) -> Self {
         self.entity = Entity::resource(resource_id, resource_type);

@@ -5,7 +5,7 @@ mod tests {
     use std::sync::LazyLock;
     use validation_engine::{EngineConfig, ValidateConfig, ValidationEngine, validate_bytes};
 
-    static SV: LazyLock<SchemaValidator> = LazyLock::new(SchemaValidator::new);
+    static SV: LazyLock<SchemaValidator> = LazyLock::new(SchemaValidator::default);
 
     fn validate(template: &str) -> Vec<String> {
         let engine = CelEngine::new(EngineConfig::default()).unwrap();
@@ -140,7 +140,7 @@ mod nested_schema_tests {
     use std::sync::LazyLock;
     use validation_engine::{EngineConfig, ValidateConfig, validate_bytes};
 
-    static SV2: LazyLock<SchemaValidator> = LazyLock::new(SchemaValidator::new);
+    static SV2: LazyLock<SchemaValidator> = LazyLock::new(SchemaValidator::default);
 
     fn diags(template: &str) -> Vec<(String, String)> {
         let engine = CelEngine::new(EngineConfig::default()).unwrap();
@@ -177,7 +177,7 @@ Resources:
             ids
         );
         let f3012_count = ids.iter().filter(|id| *id == "F3012").count();
-        assert_eq!(f3012_count, 0, "String '443' should be coerced, not rejected — got {} F3012s", f3012_count);
+        assert_eq!(f3012_count, 0, "String '443' should be coerced, not rejected - got {} F3012s", f3012_count);
     }
 
     #[test]
@@ -223,7 +223,7 @@ Resources:
         let has_w3012 = ids.iter().any(|id| id == "W9003");
         assert!(has_w3012, "Expected W9003 coercion warning for string 'true' on PropagateAtLaunch, got: {:?}", ids);
         let has_f3012 = ids.iter().any(|id| id == "F3012");
-        assert!(!has_f3012, "String 'true' should be coerced, not rejected — got F3012 in: {:?}", ids);
+        assert!(!has_f3012, "String 'true' should be coerced, not rejected - got F3012 in: {:?}", ids);
     }
 
     #[test]
@@ -260,7 +260,7 @@ mod guard_tests {
     use validation_engine::guard::resolve_guard_config;
     use validation_engine::{EngineConfig, ExternalRuleSource, ValidateConfig, ValidationEngine, validate_bytes};
 
-    static SV: LazyLock<SchemaValidator> = LazyLock::new(SchemaValidator::new);
+    static SV: LazyLock<SchemaValidator> = LazyLock::new(SchemaValidator::default);
 
     const GUARD_S3_VERSIONING: &str = r#"
 rule s3_versioning_check {
@@ -372,7 +372,7 @@ mod rule_category_tests {
     use std::sync::LazyLock;
     use validation_engine::{EngineConfig, ValidateConfig, validate_bytes};
 
-    static SV: LazyLock<SchemaValidator> = LazyLock::new(SchemaValidator::new);
+    static SV: LazyLock<SchemaValidator> = LazyLock::new(SchemaValidator::default);
 
     fn validate(template: &str) -> Vec<String> {
         let engine = CelEngine::new(EngineConfig::default()).unwrap();

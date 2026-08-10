@@ -1,8 +1,8 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: >
   I3510 must not false-positive when a statement's Resource is an Fn::If. A scalar
-  Fn::If is a union of its branches — a resource is acceptable if any reachable
-  branch matches the action — and an Fn::If inside a list is an opaque function
+  Fn::If is a union of its branches - a resource is acceptable if any reachable
+  branch matches the action - and an Fn::If inside a list is an opaque function
   whose ARN is unknowable. Both mirror how the reference model treats conditional
   resource values; this file must stay clean of I3510 in both engines.
 Parameters:
@@ -31,7 +31,7 @@ Resources:
                 - "arn:aws:cloudformation:us-east-1:123456789012:stack/s/*"
       Roles:
         - some-role
-  # Fn::If as a list element is an opaque function — the whole statement's
+  # Fn::If as a list element is an opaque function - the whole statement's
   # action-format check is skipped, exactly as for any other unresolved function.
   ListIfPolicy:
     Type: AWS::IAM::Policy

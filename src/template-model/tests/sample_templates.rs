@@ -711,7 +711,7 @@ fn select_on_comma_delimited_list_resolves_element() {
     let m = load("lsp/comprehensive.yaml");
     // SubnetCidrs is a CommaDelimitedList (default "10.0.1.0/24,10.0.2.0/24"),
     // so it resolves to an array and `!Select [0, !Ref SubnetCidrs]` yields the
-    // first element — a concrete value, just as CloudFormation would.
+    // first element - a concrete value, just as CloudFormation would.
     let subnet = m.resource("PublicSubnet").unwrap();
     let cidr = &subnet.properties["CidrBlock"];
     match cidr {
@@ -729,7 +729,7 @@ fn condition_intrinsic_value_is_opaque_not_literal() {
     // The !Select result cannot be known statically, so it must be modeled as an
     // opaque value (Other), NOT a descriptive literal like "Select(...)".
     // Treating it as a literal made the always-true/false check compare a
-    // description string against "" and fire a false positive — the SAT solver
+    // description string against "" and fire a false positive - the SAT solver
     // must instead see an unknown.
     let expr = m.conditions.get("HasMultipleAZs").unwrap();
     let formatted = format!("{:?}", expr);

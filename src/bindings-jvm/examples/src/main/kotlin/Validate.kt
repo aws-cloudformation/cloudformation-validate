@@ -10,7 +10,7 @@ import java.io.File
 fun main(args: Array<String>) {
     val template = if (args.isNotEmpty()) File(args[0]) else File("template.yaml")
 
-    // RegoEngine and CelEngine are interchangeable — both produce identical diagnostics.
+    // RegoEngine and CelEngine are interchangeable - both produce identical diagnostics.
     val engine = RegoEngine()
     val report = engine.validateStandard(template)
 

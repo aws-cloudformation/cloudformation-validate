@@ -1,5 +1,8 @@
 use crate::SyncStats;
+use crate::source_versions::RESOURCE_SCHEMA_SOURCE;
+use chrono::DateTime;
 use log::{debug, info};
+use serde::Deserialize;
 use serde_json::{Map, Value};
 use std::collections::{BTreeMap, HashSet};
 use std::fs;
@@ -12,7 +15,29 @@ use std::path::{Path, PathBuf};
 /// laid out as `providers/{region}.json` (resource-type → content hash) plus
 /// `resources/{hash}.json` (the schema bodies).
 const CFN_SCHEMA_ZIP_URL: &str = "https://github.com/aws-cloudformation/resource-provider-enhanced-schemas/releases/download/latest/schemas-cfn-lint.zip";
+const CFN_SCHEMA_VERSION_URL: &str =
+    "https://github.com/aws-cloudformation/resource-provider-enhanced-schemas/releases/download/latest/version.json";
 const SAM_SCHEMA_URL: &str = "https://raw.githubusercontent.com/aws/serverless-application-model/refs/heads/develop/samtranslator/schema/schema.json";
+
+#[derive(Deserialize)]
+struct ResourceSchemaVersion {
+    schema_date: String,
+}
+
+fn parse_resource_schema_version(body: &[u8]) -> anyhow::Result<String> {
+    let document: ResourceSchemaVersion = serde_json::from_slice(body)?;
+    let version = document.schema_date.trim();
+    anyhow::ensure!(!version.is_empty(), "enhanced schema version has a blank schema_date");
+    DateTime::parse_from_rfc3339(version)
+        .map_err(|error| anyhow::anyhow!("enhanced schema version has an invalid schema_date: {error}"))?;
+    Ok(format!("{RESOURCE_SCHEMA_SOURCE}@{version}"))
+}
+
+fn download_resource_schema_version() -> anyhow::Result<String> {
+    let response = ureq::get(CFN_SCHEMA_VERSION_URL).call()?;
+    let body = response.into_body().read_to_vec()?;
+    parse_resource_schema_version(&body)
+}
 
 /// Download and assemble CloudFormation schemas into `upstream_dir`.
 ///
@@ -20,16 +45,24 @@ const SAM_SCHEMA_URL: &str = "https://raw.githubusercontent.com/aws/serverless-a
 /// type name, preferring the us-east-1 variant when a type appears in multiple
 /// regions) and the per-region type→hash maps to `upstream/providers/`, then
 /// appends the region-independent SAM resource schemas.
-pub fn download_schemas(upstream_dir: &Path) -> anyhow::Result<SyncStats> {
+pub fn download_schemas(upstream_dir: &Path) -> anyhow::Result<(SyncStats, String)> {
     let mut stats = SyncStats::default();
     let schemas_out = schema_dir(upstream_dir);
     let providers_out = providers_dir(upstream_dir);
     fs::create_dir_all(&schemas_out)?;
     fs::create_dir_all(&providers_out)?;
 
+    let version_before_download = download_resource_schema_version()?;
     info!("Downloading enhanced schemas from {}", CFN_SCHEMA_ZIP_URL);
     let resp = ureq::get(CFN_SCHEMA_ZIP_URL).call()?;
     let bytes = resp.into_body().read_to_vec()?;
+    let resource_schema_version = download_resource_schema_version()?;
+    anyhow::ensure!(
+        version_before_download == resource_schema_version,
+        "enhanced schema version changed while downloading the archive ({} to {}); retry the sync",
+        version_before_download,
+        resource_schema_version
+    );
     info!("Downloaded {} bytes, reading archive", bytes.len());
 
     let mut archive = zip::ZipArchive::new(Cursor::new(bytes))?;
@@ -64,7 +97,7 @@ pub fn download_schemas(upstream_dir: &Path) -> anyhow::Result<SyncStats> {
 
     // Pass 2: write one schema file per resource type, looked up by content hash.
     // A provider map that references a hash absent from the archive is a corrupt
-    // or truncated download — fail rather than silently dropping the type.
+    // or truncated download - fail rather than silently dropping the type.
     for (type_name, hash) in &type_to_hash {
         let resource_path = format!("resources/{hash}.json");
         let mut entry = archive.by_name(&resource_path).map_err(|e| {
@@ -83,7 +116,7 @@ pub fn download_schemas(upstream_dir: &Path) -> anyhow::Result<SyncStats> {
     stats.files_written += sam_count;
     info!("Wrote {} SAM resource type schemas", sam_count);
 
-    Ok(stats)
+    Ok((stats, resource_schema_version))
 }
 
 fn download_sam_schemas(output_dir: &Path) -> anyhow::Result<usize> {
@@ -192,4 +225,42 @@ pub(crate) fn schema_dir(upstream_dir: &Path) -> PathBuf {
 /// Per-region provider-map directory within the upstream output.
 pub(crate) fn providers_dir(upstream_dir: &Path) -> PathBuf {
     upstream_dir.join("providers")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn resource_schema_version_parses_schema_date() {
+        let version = parse_resource_schema_version(br#"{"schema_date":"2026-08-07T18:20:13Z"}"#)
+            .expect("version payload should parse");
+        assert_eq!(
+            version,
+            "https://github.com/aws-cloudformation/resource-provider-enhanced-schemas@2026-08-07T18:20:13Z"
+        );
+    }
+
+    #[test]
+    fn resource_schema_version_rejects_missing_date() {
+        assert!(parse_resource_schema_version(br#"{}"#).is_err());
+    }
+
+    #[test]
+    fn resource_schema_version_rejects_blank_date() {
+        let error = parse_resource_schema_version(br#"{"schema_date":"  "}"#).expect_err("blank date must fail");
+        assert!(error.to_string().contains("blank schema_date"));
+    }
+
+    #[test]
+    fn resource_schema_version_rejects_malformed_json() {
+        assert!(parse_resource_schema_version(b"not json").is_err());
+    }
+
+    #[test]
+    fn resource_schema_version_rejects_invalid_timestamp() {
+        let error = parse_resource_schema_version(br#"{"schema_date":"not-a-timestamp"}"#)
+            .expect_err("invalid timestamp must fail");
+        assert!(error.to_string().contains("invalid schema_date"));
+    }
 }

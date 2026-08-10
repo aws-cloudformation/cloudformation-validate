@@ -41,10 +41,19 @@ src/
 │   ├── generated/              # Built jar (cloudformation-validate.jar)
 │   ├── tests/                  # Kotlin test suite (run.sh)
 │   └── examples/               # Usage examples
-├── release/                    # Prebuilt per-platform `cfn-validate` CLI binaries (committed)
+├── bindings-python/            # Python bindings (UniFFI) — wheel with per-platform natives
+│   ├── python/                 # Hand-maintained public API (wrappers, re-exports, native dispatch)
+│   ├── generated/              # Build output: assembled package + dist/*.whl (only the wheel is committed)
+│   └── tests/                  # Python test suite (run.sh)
+├── bindings-go/                # Go bindings (UniFFI via uniffi-bindgen-go) — JSON-over-FFI, cgo static linking
+│   ├── go/                     # The published Go module: hand-maintained API + types, generated
+│   │                           # internal/bindings_go, and per-platform libs/ static libraries (committed)
+│   ├── tests/                  # Go test harness module (smoke, golden, config, security tests; run.sh)
+│   ├── bench/                  # Go benchmark harness module (main.go — corpus/report benchmark)
+│   └── native/                 # Hand-maintained cgo link directives copied into the generated package
 └── resources/                  # Test-fixture CRATE (workspace member)
-    ├── src/                    # Corpus discovery API (templates_dir, golden_file, GOLDEN_DIRS, …)
-    ├── examples/               # generate_golden.rs — golden-file regeneration
+    ├── src/                    # Corpus discovery API (templates_dir, validation_reports_file, GOLDEN_DIRS, …)
+    ├── examples/               # generate_validation_reports.rs — golden-file regeneration
     ├── templates/              # Test corpus
     │   ├── good/               # Valid templates — expect zero diagnostics
     │   ├── bad/                # Invalid templates — named after the rule/behavior they test
@@ -55,7 +64,7 @@ src/
     │   ├── quickstart/         # AWS QuickStart templates (performance corpus)
     │   ├── public/             # Public example templates
     │   └── cdk/                # CDK-synthesized templates
-    ├── expected/               # all_templates.json — the golden file (both engines must agree)
+    ├── expected/               # validation_reports.json — the golden file (both engines must agree)
     ├── rules/                  # Custom rule fixtures for testing (Rego, CEL, Guard)
     └── security/               # Security/stress fixtures (pathological conditions, deep nesting)
 ```
@@ -63,7 +72,10 @@ src/
 ## Top-level directories
 
 - `scripts/` — Python comparison/audit scripts and their `snapshots/` data (see `tech.md` for usage)
-- `.github/workflows/` — CI: format check, clippy, cargo audit, coverage tests on all supported OSes, JVM + WASM test jobs
+- `.github/workflows/` — CI: format check, clippy, cargo audit, coverage tests on all supported OSes, JVM + WASM +
+  Python + Go test jobs
+- `release-bin/` — prebuilt per-platform `cfn-validate` CLI binaries (committed); written by `cfn-validate/build.sh`
+  and read by the release workflow
 - `tmp/` — scratch files, debug output, tool artifacts (gitignored)
 
 ## Conventions — follow these exactly
@@ -101,6 +113,12 @@ src/
 - Every rule exists in both `rego-engine` and `cel-engine`, or in neither. No exceptions.
 - The same template must produce the same diagnostics (rule ID, severity, location, message) through both engines.
   Divergence is a bug.
+- Parity is achieved by making both engines correct, not by making one copy the other's output. For every mismatch,
+  derive the expected behavior first from CloudFormation schemas, documentation, specifications, and semantics; then
+  fix the incorrect engine or the shared layer where the defect originates.
+- Never regress an engine that already has the correct behavior, and never remove or suppress a valid finding solely
+  because the other engine misses it. A finding may be removed only when first-principles evidence proves that it is a
+  false positive, with focused regression coverage for the corrected behavior.
 
 ### Diagnostics
 
@@ -116,8 +134,9 @@ src/
   are reserved for problems in the template under validation — a parse error is the only failure that surfaces as a
   diagnostic instead of an `Err`.
 - **No panics, no hard crashes.** Errors are propagated as `Result`s through the language boundary layers and surface
-  to embedders as catchable errors (Kotlin/Java `ValidationError` exceptions via UniFFI, thrown JS errors via
-  wasm-bindgen) — never a process abort. Every fallible FFI entry point in `bindings-jvm` and `bindings-wasm` is
-  wrapped in `validation_engine::catch_panics` with a panic-to-error mapper as a last-resort backstop; new entry
-  points must follow the same pattern.
+  to embedders as catchable errors (Kotlin/Java `ValidationError` exceptions and Python `ValidationError` via UniFFI,
+  returned Go `error` values, thrown JS errors via wasm-bindgen) — never a process abort. Every fallible FFI entry
+  point in `bindings-jvm`, `bindings-python`, `bindings-go`, and `bindings-wasm` is wrapped in
+  `validation_engine::catch_panics` with a panic-to-error mapper as a last-resort backstop; new entry points must
+  follow the same pattern.
 - `unwrap()`/`expect()`/`panic!` are not error handling — on any reachable failure path, return an `Err` instead.

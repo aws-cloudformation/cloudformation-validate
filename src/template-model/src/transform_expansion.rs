@@ -389,7 +389,7 @@ fn resolve_collection(
                 }
                 // A non-literal member cannot be resolved offline; fall back to
                 // a placeholder. Placeholders are indexed so distinct members
-                // stay distinct — a shared placeholder would collapse the
+                // stay distinct - a shared placeholder would collapse the
                 // generated keys and report a duplicate that does not exist.
                 _ => values.push(placeholder(values.len())),
             }
@@ -431,7 +431,7 @@ fn placeholder(index: usize) -> String {
 
 /// Returns the comma-delimited list value of a parameter when it is a
 /// `CommaDelimitedList` (or `List<...>`): the `Default` when present, else the
-/// first `AllowedValues` entry — the same fallback order the transform uses
+/// first `AllowedValues` entry - the same fallback order the transform uses
 /// when it expands a loop over a parameter collection.
 fn parameter_collection(arena: &Arena, name: &str, parameters: NodeRef) -> Option<Vec<String>> {
     if parameters == NULL_REF {
@@ -456,7 +456,7 @@ fn parameter_collection(arena: &Arena, name: &str, parameters: NodeRef) -> Optio
 /// mapping value is a list of scalars. The transform's
 /// fallbacks: an unresolvable *top* key is satisfied by scanning the mapping's
 /// top-level entries for one that contains the (literal) second key, preferring
-/// the entry with the longest list — so `!FindInMap [M, !Ref Env, Names]`
+/// the entry with the longest list - so `!FindInMap [M, !Ref Env, Names]`
 /// resolves through whichever environment block defines `Names`.
 fn findinmap_list(
     arena: &Arena,

@@ -1,0 +1,15 @@
+{
+  "Resources": {
+    "ALB": {
+      "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "Properties": {
+        "Type": "application",
+        "Subnets": [
+          { "Fn::GetStackOutput": { "StackName": "VpcStack", "Region": "ap-northeast-1", "OutputName": "PublishOutputRefVpcPublicSubnet1Subnet5C2D37C4F5EE3F2D" } },
+          { "Fn::GetStackOutput": { "StackName": "VpcStack", "Region": "ap-northeast-1", "OutputName": "PublishOutputRefVpcPublicSubnet2Subnet691E08A328131BFA" } },
+          { "Fn::GetStackOutput": { "StackName": "VpcStack", "Region": "ap-northeast-1", "OutputName": "PublishOutputRefVpcPublicSubnet3SubnetBE12F0B6AC1253B4" } }
+        ]
+      }
+    }
+  }
+}

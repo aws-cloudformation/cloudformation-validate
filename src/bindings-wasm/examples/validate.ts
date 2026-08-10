@@ -9,7 +9,7 @@ import { RegoEngine, TemplateFile } from '@aws/cloudformation-validate';
 
 const templatePath = process.argv[2] ?? path.join(__dirname, 'template.yaml');
 
-// RegoEngine and CelEngine are interchangeable — both produce identical diagnostics.
+// RegoEngine and CelEngine are interchangeable - both produce identical diagnostics.
 const engine = new RegoEngine();
 try {
     const report = engine.validateStandard(new TemplateFile(templatePath));

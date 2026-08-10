@@ -432,7 +432,7 @@ fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    // Parameter used as a password without NoEcho — emit at the parameter location.
+    // Parameter used as a password without NoEcho - emit at the parameter location.
     if let Some(resources) = ctx.input.get(FIELD_RESOURCES).and_then(|r| r.as_object()) {
         for (_rname, res) in resources {
             let Some(edges) = res.get(FIELD_OUTGOING_REFS).and_then(|r| r.as_array()) else {
@@ -592,7 +592,7 @@ fn eval_retention_period_rules(ctx: &EvalContext) -> Vec<Diagnostic> {
             // both a success and a failure retention period). The retention check
             // collapses to a single best-match finding
             // anchored on the properties object, so report only the first missing
-            // one — emitting one per missing property would over-report a single
+            // one - emitting one per missing property would over-report a single
             // underlying concern.
             let first_missing = required_props.iter().find(|prop| {
                 let key_present = m
@@ -603,7 +603,7 @@ fn eval_retention_period_rules(ctx: &EvalContext) -> Vec<Diagnostic> {
                 // The property is only "set" if it resolves to a real value in
                 // every satisfiable scenario. A value supplied through
                 // `Fn::If [cond, X, AWS::NoValue]` is absent in the NoValue
-                // branch, so the retention period can still lapse — the reference
+                // branch, so the retention period can still lapse - the reference
                 // linter flags that, and treating mere key presence as "set" would
                 // miss it.
                 let path = format!("Properties.{}", prop);

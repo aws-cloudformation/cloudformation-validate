@@ -2,7 +2,7 @@ use rules::{RuleOrigin, lookup_rule, section_for_rule_id};
 use template_model::{SourceSpan, SpanProvider, UNKNOWN_SPAN};
 
 /// Looks up the `RuleOrigin` for a rule ID from the registry.
-/// Panics if the rule is not registered — every built-in rule must be in the registry.
+/// Panics if the rule is not registered - every built-in rule must be in the registry.
 /// For custom/guard rules (not in the registry), callers must set `source` directly.
 pub fn source_for_rule(rule_id: &str) -> RuleOrigin {
     lookup_rule(rule_id).unwrap_or_else(|| panic!("Rule '{}' not found in RULE_REGISTRY", rule_id)).origin

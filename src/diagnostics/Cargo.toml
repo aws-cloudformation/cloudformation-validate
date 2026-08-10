@@ -25,7 +25,7 @@ serde_json = "1"
 web-time = "1"
 tsify = { version = "0.5", optional = true, features = ["js"] }
 wasm-bindgen = { version = "0.2", optional = true }
-uniffi = { git = "https://github.com/mozilla/uniffi-rs", branch = "main", optional = true }
+uniffi = { workspace = true, optional = true }
 
 [lints]
 workspace = true

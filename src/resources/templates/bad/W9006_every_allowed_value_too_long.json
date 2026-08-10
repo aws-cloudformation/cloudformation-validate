@@ -1,0 +1,17 @@
+{
+  "Parameters": {
+    "BucketNameChoice": {
+      "Type": "String",
+      "AllowedValues": [
+        "this-allowed-value-is-deliberately-longer-than-the-sixty-three-character-limit",
+        "this-other-allowed-value-is-also-deliberately-longer-than-the-limit-for-buckets"
+      ]
+    }
+  },
+  "Resources": {
+    "Bucket": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": { "BucketName": { "Ref": "BucketNameChoice" } }
+    }
+  }
+}

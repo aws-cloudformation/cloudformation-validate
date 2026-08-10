@@ -1,17 +1,17 @@
-//! Embedding format benchmark — measures compression/serialization candidates
+//! Embedding format benchmark - measures compression/serialization candidates
 //! to drive the embedded-data format decision.
 //!
 //! Evaluates each candidate across four axes:
 //!   1. Bundle size (WASM/JVM distribution cost)
-//!   2. Cold start — single-shot decompress + deserialize (first-validation latency)
-//!   3. Warm throughput — p50/p99 over N iterations (steady-state per-validation cost)
-//!   4. Memory residency — RSS delta from holding the deserialized value
+//!   2. Cold start - single-shot decompress + deserialize (first-validation latency)
+//!   3. Warm throughput - p50/p99 over N iterations (steady-state per-validation cost)
+//!   4. Memory residency - RSS delta from holding the deserialized value
 //!
 //! Candidates:
-//!   - json                (baseline — no compression, serde_json)
+//!   - json                (baseline - no compression, serde_json)
 //!   - postcard            (typed only, no compression)
-//!   - zstd9+libzstd       (C libzstd — reference speed, not available in WASM)
-//!   - zstd9+ruzstd        (pure-Rust zstd — ACTUAL runtime decoder used in WASM/JVM)
+//!   - zstd9+libzstd       (C libzstd - reference speed, not available in WASM)
+//!   - zstd9+ruzstd        (pure-Rust zstd - ACTUAL runtime decoder used in WASM/JVM)
 //!   - zstd9+postcard      (typed only, zstd9 + ruzstd + postcard)
 //!   - lz4+json            (lz4_flex + serde_json)
 //!   - lz4+postcard        (typed only, lz4_flex + postcard)
@@ -308,7 +308,7 @@ fn main() {
             warm_p99_us: json_p99,
         };
 
-        // zstd level 9 + libzstd (native C decoder — reference, not available in WASM)
+        // zstd level 9 + libzstd (native C decoder - reference, not available in WASM)
         let zstd_compressed = compress_zstd(&minified_json, 9);
         let (libzstd_cold, libzstd_p50, libzstd_p99) = bench_json_decompress(decompress_libzstd, &zstd_compressed);
         let zstd9_libzstd = FormatCandidate {
@@ -318,7 +318,7 @@ fn main() {
             warm_p99_us: libzstd_p99,
         };
 
-        // zstd level 9 + ruzstd (pure-Rust — ACTUAL production decoder for WASM/JVM)
+        // zstd level 9 + ruzstd (pure-Rust - ACTUAL production decoder for WASM/JVM)
         let (ruzstd_cold, ruzstd_p50, ruzstd_p99) = bench_json_decompress(decompress_ruzstd, &zstd_compressed);
         let zstd9_ruzstd = FormatCandidate {
             compressed_bytes: zstd_compressed.len(),
@@ -337,7 +337,7 @@ fn main() {
             warm_p99_us: lz4_p99,
         };
 
-        // Postcard (typed only) — uncompressed, zstd-compressed, and lz4-compressed
+        // Postcard (typed only) - uncompressed, zstd-compressed, and lz4-compressed
         let (postcard_only, zstd9_postcard, lz4_postcard) = match try_postcard_encode(file_stem, &minified_json) {
             Some(postcard_bytes) => {
                 let (pc_cold, pc_p50, pc_p99) = bench_postcard_deserialize(file_stem, &postcard_bytes, None);
@@ -393,15 +393,15 @@ fn main() {
     }
 
     let mut report = String::new();
-    report.push_str("# Embedding Format Benchmark — Decision Report\n\n");
+    report.push_str("# Embedding Format Benchmark - Decision Report\n\n");
     report.push_str(&format!(
         "Warm iterations: {WARM_ITERATIONS}. Cold = single-shot, no warmup.  \nBuild: release.  \n\n"
     ));
     report.push_str("`n/a*` = postcard incompatible (file contains `serde_json::Value`).  \n");
-    report.push_str("**zstd9+ruzstd** is the decoder used by the production WASM/JVM runtime — this is the number that matters for customers.\n\n");
+    report.push_str("**zstd9+ruzstd** is the decoder used by the production WASM/JVM runtime - this is the number that matters for customers.\n\n");
 
-    // Axis 1 — Bundle Size
-    report.push_str("## Axis 1 — Bundle Size\n\n");
+    // Axis 1 - Bundle Size
+    report.push_str("## Axis 1 - Bundle Size\n\n");
     report.push_str(&format!(
         "| {:<55} | {:>10} | {:>10} | {:>10} | {:>10} | {:>10} | {:>10} |\n",
         "File", "json", "postcard", "zstd9", "zstd9+pc", "lz4", "lz4+pc"
@@ -439,35 +439,35 @@ fn main() {
         "| {:<55} | {:>10} | {:>10} | {:>10} | {:>10} | {:>10} | {:>10} |\n",
         "TOTAL",
         format_bytes(total_json_bytes),
-        "—",
+        "-",
         format_bytes(total_zstd_bytes),
-        "—",
+        "-",
         format_bytes(total_lz4_bytes),
-        "—"
+        "-"
     ));
     report.push_str(&format!(
         "| {:<55} | {:>10} | {:>10} | {:>10} | {:>10} | {:>10} | {:>10} |\n",
         "  vs json",
         "1.00x",
-        "—",
+        "-",
         format!("{:.2}x", total_zstd_bytes as f64 / total_json_bytes as f64),
-        "—",
+        "-",
         format!("{:.2}x", total_lz4_bytes as f64 / total_json_bytes as f64),
-        "—"
+        "-"
     ));
     report.push_str(&format!(
         "| {:<55} | {:>10} | {:>10} | {:>10} | {:>10} | {:>10} | {:>10} |\n",
         "SUBTOTAL (postcard-eligible)",
         format_bytes(typed_json_bytes),
         format_bytes(typed_postcard_bytes),
-        "—",
-        "—",
-        "—",
+        "-",
+        "-",
+        "-",
         format_bytes(typed_lz4pc_bytes)
     ));
 
-    // Axis 2 — Cold Start
-    report.push_str("\n## Axis 2 — Cold Start (decompress + deserialize, single shot)\n\n");
+    // Axis 2 - Cold Start
+    report.push_str("\n## Axis 2 - Cold Start (decompress + deserialize, single shot)\n\n");
     report.push_str(&format!(
         "| {:<55} | {:>10} | {:>10} | {:>10} | {:>10} | {:>10} | {:>10} | {:>10} |\n",
         "File", "json", "postcard", "zstd9+lib", "zstd9+ru", "zstd9+pc", "lz4+json", "lz4+pc"
@@ -506,16 +506,16 @@ fn main() {
         "| {:<55} | {:>10} | {:>10} | {:>10} | {:>10} | {:>10} | {:>10} | {:>10} |\n",
         "TOTAL cold (all files)",
         format_microseconds(cold_json_total),
-        "—",
+        "-",
         format_microseconds(cold_libzstd_total),
         format_microseconds(cold_ruzstd_total),
-        "—",
+        "-",
         format_microseconds(cold_lz4_total),
-        "—"
+        "-"
     ));
 
-    // Axis 3 — Warm Throughput (p50 / p99)
-    report.push_str("\n## Axis 3 — Warm Throughput (p50 / p99)\n\n");
+    // Axis 3 - Warm Throughput (p50 / p99)
+    report.push_str("\n## Axis 3 - Warm Throughput (p50 / p99)\n\n");
     report.push_str(&format!(
         "| {:<55} | {:>16} | {:>16} | {:>16} | {:>16} | {:>16} | {:>16} | {:>16} |\n",
         "File", "json", "postcard", "zstd9+lib", "zstd9+ru", "zstd9+pc", "lz4+json", "lz4+pc"
@@ -596,14 +596,14 @@ fn main() {
         ruzstd_cold_overhead,
     ));
     report.push_str(&format!(
-        "2. **lz4 delivers ~{:.0}x bundle reduction** ({} → {}) for ~{:.0}% cold-start overhead — nearly free.\n",
+        "2. **lz4 delivers ~{:.0}x bundle reduction** ({} → {}) for ~{:.0}% cold-start overhead - nearly free.\n",
         1.0 / lz4_size_ratio,
         format_bytes(total_json_bytes),
         format_bytes(total_lz4_bytes),
         lz4_cold_overhead.max(0.0),
     ));
     report.push_str(&format!(
-        "3. **ruzstd is {:.2}x slower than libzstd** on cold start. This is the WASM/JVM tax — \
+        "3. **ruzstd is {:.2}x slower than libzstd** on cold start. This is the WASM/JVM tax - \
          customers pay ruzstd, not libzstd.\n",
         ruzstd_vs_libzstd_ratio,
     ));
@@ -613,7 +613,7 @@ fn main() {
         sorted_by_cold[0].name, sorted_by_cold[1].name, top_two_cold_pct,
     ));
     report.push_str(
-        "5. **postcard helps only typed files** — the two dominant files are `serde_json::Value` \
+        "5. **postcard helps only typed files** - the two dominant files are `serde_json::Value` \
          blobs and cannot use postcard. For typed files, postcard + lz4 is fastest but the \
          absolute savings are small since those files are already fast.\n",
     );

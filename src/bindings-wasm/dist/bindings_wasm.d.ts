@@ -271,6 +271,31 @@ export interface DiagnosticCondition {
 }
 
 /**
+ * A single additional CloudFormation resource provider schema to overlay on top
+ * of the bundled schemas.
+ *
+ * `type_name` identifies the resource type (e.g., `\"AWS::Lambda::Function\"`).
+ * When absent (`None`), the `typeName` field inside the schema JSON is used
+ * instead. When both are present they must agree.
+ *
+ * `schema` is the complete resource provider schema as a JSON string, in the
+ * standard CloudFormation registry format.
+ */
+export interface AdditionalSchemaSource {
+    /**
+     * The resource type name (e.g., `\"AWS::Lambda::Function\"`). When absent, the
+     * `typeName` field of the schema JSON is used instead. When both are
+     * present they must agree.
+     */
+    typeName?: string;
+    /**
+     * The complete resource provider schema as a JSON string, in the standard
+     * CloudFormation registry format.
+     */
+    schema: string;
+}
+
+/**
  * A single assertion within a template rule.
  */
 export interface DiagnosticRuleAssertion {
@@ -577,6 +602,19 @@ export interface RelatedResource {
      */
     location?: SourceSpan;
     message: string;
+}
+
+/**
+ * Configuration for constructing a [`SchemaValidator`] with optional overlay
+ * schemas. Bindings and the CLI use this to build the validator separately from
+ * the rule engine.
+ */
+export interface SchemaValidatorConfig {
+    /**
+     * Additional CloudFormation resource provider schemas to merge on top of the
+     * bundled schemas before schema validation.
+     */
+    additionalSchemas?: AdditionalSchemaSource[];
 }
 
 /**
@@ -992,6 +1030,13 @@ export interface EngineConfig {
      * Guard DSL rules as raw source text, usable regardless of the selected engine.
      */
     guardRules?: ExternalRuleSource[];
+    /**
+     * Optional schema validator configuration. A standalone engine derives its
+     * schema-aware rule metadata from this config. Language APIs also use it to
+     * construct the schema validator bundled with the engine, so both components
+     * observe the same additional schemas.
+     */
+    schemaValidatorConfig?: SchemaValidatorConfig;
 }
 
 export interface MapEntry {
@@ -1072,7 +1117,7 @@ export class WasmSchemaValidator {
     free(): void;
     [Symbol.dispose](): void;
     listRules(): any;
-    constructor();
+    constructor(config: SchemaValidatorConfig);
     schemaCount(): number;
     validate(model: WasmSemanticModel, region?: string | null): any;
 }

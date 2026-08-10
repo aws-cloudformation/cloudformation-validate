@@ -9,7 +9,7 @@ use validation_engine::{EngineConfig, ValidationEngine, validate_bytes};
 
 static REGO: LazyLock<RegoEngine> = LazyLock::new(|| RegoEngine::new(EngineConfig::default()).unwrap());
 static CEL: LazyLock<CelEngine> = LazyLock::new(|| CelEngine::new(EngineConfig::default()).unwrap());
-static SCHEMA_VALIDATOR: LazyLock<SchemaValidator> = LazyLock::new(SchemaValidator::new);
+static SCHEMA_VALIDATOR: LazyLock<SchemaValidator> = LazyLock::new(SchemaValidator::default);
 
 /// Rule IDs (with severity) emitted for `template`, sorted, for one engine.
 fn diagnostics_for(engine: &dyn ValidationEngine, template: &str) -> Vec<(String, Severity)> {
@@ -223,8 +223,8 @@ Resources:
 // The following guard against regressions found while re-verifying the regex fix. Each exercises an
 // edge case the template corpus does not contain.
 
-/// A `\p{Print}`-patterned property value containing a format (`Cf`) character — e.g. a zero-width
-/// space — is valid service-side, so the expansion must not narrow it away and fire a spurious
+/// A `\p{Print}`-patterned property value containing a format (`Cf`) character - e.g. a zero-width
+/// space - is valid service-side, so the expansion must not narrow it away and fire a spurious
 /// pattern violation.
 #[test]
 fn print_class_accepts_format_characters() {

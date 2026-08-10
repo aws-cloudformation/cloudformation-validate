@@ -117,8 +117,8 @@ fn record_array_element_span(
 }
 
 /// Walks the raw bytes once, assigning source spans to every path and
-/// detecting duplicate object keys. Duplicates are diagnosed here — rather
-/// than in a second walker — because this scan already tracks the full path of
+/// detecting duplicate object keys. Duplicates are diagnosed here - rather
+/// than in a second walker - because this scan already tracks the full path of
 /// every key, which anchors each duplicate at the entry it duplicates.
 fn scan_json_byte_spans(
     _arena: &mut Arena,
@@ -142,7 +142,7 @@ fn scan_json_byte_spans(
         match bytes[i] {
             b'{' => {
                 // A container that is itself an array element carries no key to anchor
-                // it, so record its span at the opening brace — mirroring how a scalar
+                // it, so record its span at the opening brace - mirroring how a scalar
                 // array element is recorded below. Without this a diagnostic on an
                 // object element (e.g. an `Fn::If` branch) has no span of its own and
                 // walks up to the enclosing array instead of the element.
@@ -279,7 +279,7 @@ fn scan_json_byte_spans(
 /// string it represents, so that escaped and literal spellings of the same key
 /// compare equal. The quoted byte range is itself valid JSON, so `serde_json`
 /// performs exactly the same unescaping (`\uXXXX`, surrogate pairs, `\n`, `\"`,
-/// `\\`, …) it applies when building the parsed object — the same key identity
+/// `\\`, …) it applies when building the parsed object - the same key identity
 /// CloudFormation sees. Falls back to a lossy view only if the token is not
 /// decodable, which cannot happen once the full document has parsed successfully.
 fn decode_json_key(quoted: &[u8]) -> String {
@@ -699,7 +699,7 @@ mod tests {
     }
 
     /// Distinct keys that merely contain escape sequences must NOT be flagged as
-    /// duplicates — decoding must not collapse genuinely different keys.
+    /// duplicates - decoding must not collapse genuinely different keys.
     #[test]
     fn escaped_distinct_string_keys_emit_no_f0000() {
         let input = r#"{"\u0041":1,"\u0042":2}"#;
@@ -713,7 +713,7 @@ mod tests {
     #[test]
     fn unknown_fn_prefix_far_from_any_function_is_data_not_w1103() {
         // `Fn::Bogus` is not a near-miss of any real function, so it is treated
-        // as a data key: no parse warning — the schema validator reports the
+        // as a data key: no parse warning - the schema validator reports the
         // type mismatch where one exists.
         let input =
             r#"{"Resources":{"R":{"Type":"AWS::SNS::Topic","Properties":{"TopicName":{"Fn::Bogus":"hello"}}}}}"#;
@@ -750,7 +750,7 @@ mod tests {
     #[test]
     fn non_fn_prefix_single_key_object_does_not_emit_w1103() {
         // A single-key object whose key doesn't start with "Fn::" is a normal map
-        // (e.g. a tag value), not an intrinsic attempt — must not trigger W1103.
+        // (e.g. a tag value), not an intrinsic attempt - must not trigger W1103.
         let input = r#"{"Resources":{"R":{"Type":"AWS::SNS::Topic","Properties":{"TopicName":{"NotAnFn":"val"}}}}}"#;
         let ir = parse_json(input.as_bytes()).unwrap();
         assert!(ir.diagnostics.iter().all(|d| d.rule_id != "W1103"), "Non-Fn:: single-key map must not trigger W1103");

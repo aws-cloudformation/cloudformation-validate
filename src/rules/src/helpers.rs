@@ -18,7 +18,7 @@ pub const CUSTOM_RULE_ID_SEPARATORS: [char; 3] = ['_', '.', '-'];
 /// run of ASCII letters, digits, and the separators `_`, `.`, or `-`.
 ///
 /// Custom (CEL/Rego/Guard) rule IDs are intentionally NOT required to follow the
-/// built-in `[FEWID]\d{4}` convention — an author may name a rule anything in that
+/// built-in `[FEWID]\d{4}` convention - an author may name a rule anything in that
 /// character set. The restriction only rejects whitespace and other punctuation that
 /// would corrupt diagnostic formatting, rule-ID filtering, and de-duplication.
 pub fn is_valid_custom_rule_id(rule_id: &str) -> bool {
@@ -249,6 +249,6 @@ mod tests {
         // The helper uses prefix heuristics; the registry is authoritative.
         // Many rules override the prefix convention. This test ensures
         // divergences don't grow unexpectedly.
-        assert!(divergences > 0, "If all agree, the helper covers everything — great!");
+        assert!(divergences > 0, "If all agree, the helper covers everything - great!");
     }
 }

@@ -14,9 +14,9 @@ Generated: 2026-04-23T00:09:14Z
 - **corpus fingerprint**: `1a83e4bfadd4724ac9af8e3fa41776dddda9ccb3df3a5a4f8eb7d5d14048859e` (343 files)
 
 Three phases are measured with the host language's own clock so numbers are directly comparable across native / wasm / jvm:
-1. **Init** — construct `SchemaValidator + engine` (one-time setup).
-2. **Template Modeling** — `SemanticModel::parse(bytes)` (standalone parse of one template).
-3. **Validate** — full `validate(bytes)` call (everything — re-parses + schema + rules + finalize).
+1. **Init** - construct `SchemaValidator + engine` (one-time setup).
+2. **Template Modeling** - `SemanticModel::parse(bytes)` (standalone parse of one template).
+3. **Validate** - full `validate(bytes)` call (everything - re-parses + schema + rules + finalize).
 
 Each phase reports cold (first iteration per template) and warm (subsequent iterations). The Rust-internal sub-phase breakdown inside validate (model_build / schema_validate / rule_evaluation / diagnostic_finalize) is surfaced under Per-Engine Detail. `engine_internal` is the Rust-internal total (identical across bindings); `wall_clock` is the host-timed validate total; `binding_overhead = wall_clock − engine_internal`.
 
@@ -27,9 +27,9 @@ Each phase reports cold (first iteration per template) and warm (subsequent iter
 - [CEL Engine](#cel-engine)
 - [Data Sources](#data-sources)
 
-## Executive Summary — p99 per phase (ms)
+## Executive Summary - p99 per phase (ms)
 
-One-glance view. **Init** shows the cold (first) construction cost — paid once per process. **Model** and **Validate** show warm p99 — the steady-state consumer-visible latency (warm == cold when iterations=50). Detailed breakdowns are in the per-engine sections below.
+One-glance view. **Init** shows the cold (first) construction cost - paid once per process. **Model** and **Validate** show warm p99 - the steady-state consumer-visible latency (warm == cold when iterations=50). Detailed breakdowns are in the per-engine sections below.
 
 ### REGO
 
@@ -49,11 +49,11 @@ One-glance view. **Init** shows the cold (first) construction cost — paid once
 
 ## REGO Engine
 
-### Initialization — schema + engine construction (ms)
+### Initialization - schema + engine construction (ms)
 
 Cold pays V8 WASM codegen / JVM class-loading the first time; warm is subsequent constructions in the same process.
 
-**Cold** — first construction (ms)
+**Cold** - first construction (ms)
 
 | Binding | Cold (ms) |
 |---|---|
@@ -61,7 +61,7 @@ Cold pays V8 WASM codegen / JVM class-loading the first time; warm is subsequent
 | WASM (Node.js) | 245.5249 |
 | JVM (JNI) | 652.8883 |
 
-**Warm** — subsequent constructions (ms)
+**Warm** - subsequent constructions (ms)
 
 | Binding | median | p99 | max |
 |---|---|---|---|
@@ -69,7 +69,7 @@ Cold pays V8 WASM codegen / JVM class-loading the first time; warm is subsequent
 | WASM (Node.js) | 81.6934 | 88.0486 | 89.3776 |
 | JVM (JNI) | 77.0370 | 85.2876 | 85.4838 |
 
-**Breakdown** — schema init vs engine init (ms)
+**Breakdown** - schema init vs engine init (ms)
 
 | Binding | Schema median | Schema p99 | Engine median | Engine p99 |
 |---|---|---|---|---|
@@ -77,11 +77,11 @@ Cold pays V8 WASM codegen / JVM class-loading the first time; warm is subsequent
 | WASM (Node.js) | 39.4455 | 80.7605 | 42.2046 | 88.5216 |
 | JVM (JNI) | 40.2307 | 326.4579 | 36.8695 | 48.6414 |
 
-### Template Modeling — host-timed `SemanticModel::parse` (ms)
+### Template Modeling - host-timed `SemanticModel::parse` (ms)
 
 Host timer around `SemanticModel::parse` (bytes → resolved model). Standalone measurement; does not include the re-parse inside `validate()`.
 
-**Cold** — first iteration per template (ms)
+**Cold** - first iteration per template (ms)
 
 | Binding | median | p99 | max |
 |---|---|---|---|
@@ -89,7 +89,7 @@ Host timer around `SemanticModel::parse` (bytes → resolved model). Standalone 
 | WASM (Node.js) | 0.0675 | 1.9258 | 2.5231 |
 | JVM (JNI) | 0.0746 | 1.7334 | 2.5380 |
 
-**Warm** — subsequent iterations per template (ms)
+**Warm** - subsequent iterations per template (ms)
 
 | Binding | median | p99 | max |
 |---|---|---|---|
@@ -97,11 +97,11 @@ Host timer around `SemanticModel::parse` (bytes → resolved model). Standalone 
 | WASM (Node.js) | 0.0416 | 1.6749 | 2.4030 |
 | JVM (JNI) | 0.0443 | 1.6132 | 2.3158 |
 
-### Validation — full `validate()` call (wall_clock per template, ms)
+### Validation - full `validate()` call (wall_clock per template, ms)
 
-Host-timer around the full `validate()` call — the latency a consumer sees.
+Host-timer around the full `validate()` call - the latency a consumer sees.
 
-**Cold** — first iteration per template (ms)
+**Cold** - first iteration per template (ms)
 
 | Binding | median | p99 | max |
 |---|---|---|---|
@@ -109,7 +109,7 @@ Host-timer around the full `validate()` call — the latency a consumer sees.
 | WASM (Node.js) | 2.3051 | 31.6824 | 2345.0003 |
 | JVM (JNI) | 2.1755 | 28.6712 | 1107.9574 |
 
-**Warm** — subsequent iterations per template (ms)
+**Warm** - subsequent iterations per template (ms)
 
 | Binding | median | p99 | max |
 |---|---|---|---|
@@ -148,11 +148,11 @@ Host-timer around the full `validate()` call — the latency a consumer sees.
 
 ## CEL Engine
 
-### Initialization — schema + engine construction (ms)
+### Initialization - schema + engine construction (ms)
 
 Cold pays V8 WASM codegen / JVM class-loading the first time; warm is subsequent constructions in the same process.
 
-**Cold** — first construction (ms)
+**Cold** - first construction (ms)
 
 | Binding | Cold (ms) |
 |---|---|
@@ -160,7 +160,7 @@ Cold pays V8 WASM codegen / JVM class-loading the first time; warm is subsequent
 | WASM (Node.js) | 200.4493 |
 | JVM (JNI) | 386.1712 |
 
-**Warm** — subsequent constructions (ms)
+**Warm** - subsequent constructions (ms)
 
 | Binding | median | p99 | max |
 |---|---|---|---|
@@ -168,7 +168,7 @@ Cold pays V8 WASM codegen / JVM class-loading the first time; warm is subsequent
 | WASM (Node.js) | 56.5523 | 59.4895 | 59.6776 |
 | JVM (JNI) | 56.9715 | 77.2326 | 86.3805 |
 
-**Breakdown** — schema init vs engine init (ms)
+**Breakdown** - schema init vs engine init (ms)
 
 | Binding | Schema median | Schema p99 | Engine median | Engine p99 |
 |---|---|---|---|---|
@@ -176,11 +176,11 @@ Cold pays V8 WASM codegen / JVM class-loading the first time; warm is subsequent
 | WASM (Node.js) | 37.9540 | 86.0409 | 18.6720 | 45.7338 |
 | JVM (JNI) | 39.1779 | 204.2622 | 17.6821 | 35.0116 |
 
-### Template Modeling — host-timed `SemanticModel::parse` (ms)
+### Template Modeling - host-timed `SemanticModel::parse` (ms)
 
 Host timer around `SemanticModel::parse` (bytes → resolved model). Standalone measurement; does not include the re-parse inside `validate()`.
 
-**Cold** — first iteration per template (ms)
+**Cold** - first iteration per template (ms)
 
 | Binding | median | p99 | max |
 |---|---|---|---|
@@ -188,7 +188,7 @@ Host timer around `SemanticModel::parse` (bytes → resolved model). Standalone 
 | WASM (Node.js) | 0.0779 | 1.7641 | 2.5607 |
 | JVM (JNI) | 0.0790 | 1.6626 | 2.5059 |
 
-**Warm** — subsequent iterations per template (ms)
+**Warm** - subsequent iterations per template (ms)
 
 | Binding | median | p99 | max |
 |---|---|---|---|
@@ -196,11 +196,11 @@ Host timer around `SemanticModel::parse` (bytes → resolved model). Standalone 
 | WASM (Node.js) | 0.0387 | 1.6915 | 2.4181 |
 | JVM (JNI) | 0.0478 | 1.6436 | 2.3012 |
 
-### Validation — full `validate()` call (wall_clock per template, ms)
+### Validation - full `validate()` call (wall_clock per template, ms)
 
-Host-timer around the full `validate()` call — the latency a consumer sees.
+Host-timer around the full `validate()` call - the latency a consumer sees.
 
-**Cold** — first iteration per template (ms)
+**Cold** - first iteration per template (ms)
 
 | Binding | median | p99 | max |
 |---|---|---|---|
@@ -208,7 +208,7 @@ Host-timer around the full `validate()` call — the latency a consumer sees.
 | WASM (Node.js) | 2.7204 | 19.6045 | 3335.1073 |
 | JVM (JNI) | 2.5205 | 17.5817 | 2507.8577 |
 
-**Warm** — subsequent iterations per template (ms)
+**Warm** - subsequent iterations per template (ms)
 
 | Binding | median | p99 | max |
 |---|---|---|---|

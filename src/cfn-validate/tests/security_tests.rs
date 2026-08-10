@@ -3,8 +3,9 @@
 //! These tests confirm the validator stays bounded and structured on adversarial
 //! input: oversized templates are rejected, deep nesting does not overflow the
 //! stack, pathological condition counts and closures resolve within a bounded
-//! budget, internal panics surface as structured errors, custom rules cannot
-//! reach host resources, and large templates validate without runaway cost.
+//! budget, conditions layered over shared inputs are still analyzed in full,
+//! internal panics surface as structured errors, custom rules cannot reach host
+//! resources, and large templates validate without runaway cost.
 //!
 //! The large/pathological fixtures live in `resources/security/` and are produced
 //! by `resources/security/generate.py`.
@@ -14,7 +15,9 @@ mod common;
 use std::time::Duration;
 
 use cel_engine::CelEngine;
+use diagnostics::DetailLevel;
 use rego_engine::RegoEngine;
+use rules::Severity;
 use schema_validator::SchemaValidator;
 use template_model::SemanticModel;
 use validation_engine::{
@@ -24,9 +27,9 @@ use validation_engine::{
 
 /// Generous wall-clock ceiling. These tests guard against unbounded/exponential
 /// blow-up (a denial-of-service regression), not a precise latency SLA. The real
-/// safeguard is deterministic and machine-independent — a cumulative
+/// safeguard is deterministic and machine-independent - a cumulative
 /// satisfiability-iteration budget and a per-query parameter cap in
-/// `template-model` — so this ceiling only has to be loose enough to never flake
+/// `template-model` - so this ceiling only has to be loose enough to never flake
 /// on debug builds or loaded CI hosts while still failing fast on a true hang.
 const COMPLETION_BUDGET: Duration = Duration::from_secs(120);
 
@@ -54,12 +57,17 @@ fn validate_within(budget: Duration, engine_name: &'static str, bytes: Vec<u8>) 
     std::thread::spawn(move || {
         let outcome = match build_engine(engine_name) {
             Ok(engine) => {
-                let schema_validator = SchemaValidator::new();
+                let schema_validator = SchemaValidator::default();
+                let config = ValidateConfig {
+                    detail_level: DetailLevel::Detailed,
+                    severity_level: Severity::Debug,
+                    ..ValidateConfig::default()
+                };
                 validate_bytes_with_path(
                     engine.as_ref(),
                     &schema_validator,
                     &bytes,
-                    ValidateConfig::default(),
+                    config,
                     "security-fixture".to_string(),
                 )
                 .map(|report| report.diagnostics.iter().map(|d| d.rule_id.clone()).collect::<Vec<String>>())
@@ -70,6 +78,19 @@ fn validate_within(budget: Duration, engine_name: &'static str, bytes: Vec<u8>) 
         let _ = sender.send(outcome);
     });
     receiver.recv_timeout(budget).ok()
+}
+
+fn collect_security_templates(directory: &std::path::Path, templates: &mut Vec<std::path::PathBuf>) {
+    let entries = std::fs::read_dir(directory)
+        .unwrap_or_else(|error| panic!("failed to read security fixture directory {}: {error}", directory.display()));
+    for entry in entries {
+        let path = entry.expect("security fixture directory entry must be readable").path();
+        if path.is_dir() {
+            collect_security_templates(&path, templates);
+        } else if matches!(path.extension().and_then(|extension| extension.to_str()), Some("json" | "yaml" | "yml")) {
+            templates.push(path);
+        }
+    }
 }
 
 #[test]
@@ -104,6 +125,35 @@ fn deeply_nested_template_does_not_overflow_the_stack() {
 }
 
 #[test]
+fn every_security_template_is_exercised_by_both_engines() {
+    let mut templates = Vec::new();
+    collect_security_templates(&common::security_dir(), &mut templates);
+    templates.sort();
+    assert!(!templates.is_empty(), "security fixture directory must contain templates");
+
+    for engine_name in ["rego", "cel"] {
+        for template in &templates {
+            let bytes = std::fs::read(template)
+                .unwrap_or_else(|error| panic!("failed to read security fixture {}: {error}", template.display()));
+            let finished = validate_within(COMPLETION_BUDGET, engine_name, bytes).unwrap_or_else(|| {
+                panic!(
+                    "{engine_name}: security fixture {} must validate within {COMPLETION_BUDGET:?}",
+                    template.display()
+                )
+            });
+            if let Err(error) = finished {
+                assert_eq!(
+                    template.file_name().and_then(|name| name.to_str()),
+                    Some("deep_nesting.json"),
+                    "{engine_name}: security fixture {} returned an unexpected error: {error}",
+                    template.display()
+                );
+            }
+        }
+    }
+}
+
+#[test]
 fn pathological_conditions_resolve_within_budget() {
     for engine_name in ["rego", "cel"] {
         let bytes = common::load_security("many_conditions.yaml");
@@ -126,7 +176,7 @@ fn pathological_condition_closures_resolve_within_budget() {
     // per-query parameter cap and cumulative iteration budget in template-model
     // make the solver fall back to its conservative "assume satisfiable" answer
     // and stay bounded. This guards that such a template still validates to a
-    // structured report — on both engines — instead of hanging.
+    // structured report - on both engines - instead of hanging.
     for engine_name in ["rego", "cel"] {
         let bytes = common::load_security("pathological_conditions.yaml");
         let finished = validate_within(COMPLETION_BUDGET, engine_name, bytes);
@@ -136,6 +186,35 @@ fn pathological_condition_closures_resolve_within_budget() {
              resolve within {COMPLETION_BUDGET:?}; the satisfiability budget must cap the work"
         );
         finished.unwrap().expect("validation should return a structured report");
+    }
+}
+
+#[test]
+fn conditions_layered_over_shared_inputs_are_analyzed_without_curtailing() {
+    // The shape that made CDK's default template validation stall for hours: two
+    // hundred conditions all reaching the same three inputs, so the whole
+    // condition set is connected through them. The deterministic,
+    // machine-independent signature that the analysis stayed affordable is the
+    // absence of the advisory that reports a curtailed satisfiability analysis -
+    // if deciding these conditions ever costs more than the budgets allow, the
+    // validator says so, and this test fails instead of merely getting slower.
+    const CURTAILED_ANALYSIS_ADVISORY: &str = "I9052";
+    for engine_name in ["rego", "cel"] {
+        let bytes = common::load_security("condition_fusion.yaml");
+        let finished = validate_within(COMPLETION_BUDGET, engine_name, bytes);
+        let rule_ids = finished
+            .unwrap_or_else(|| {
+                panic!(
+                    "{engine_name}: conditions layered over shared inputs must validate within \
+                     {COMPLETION_BUDGET:?}"
+                )
+            })
+            .expect("validation should return a structured report");
+        assert!(
+            !rule_ids.iter().any(|rule_id| rule_id == CURTAILED_ANALYSIS_ADVISORY),
+            "{engine_name}: every condition pair in this template must be decided within budget, \
+             so no curtailed-analysis advisory may be reported"
+        );
     }
 }
 
@@ -155,7 +234,7 @@ fn internal_panic_becomes_a_structured_error() {
 
 #[test]
 fn successful_validation_passes_through_the_panic_guard() {
-    let schema_validator = SchemaValidator::new();
+    let schema_validator = SchemaValidator::default();
     let engine = RegoEngine::new(EngineConfig::default()).expect("engine must build");
     let report = validate_catching_panics(|| {
         validate_bytes_with_path(
@@ -180,16 +259,17 @@ fn custom_rule_reaching_a_host_builtin_is_a_hard_error_not_a_diagnostic() {
     // network egress (http.send), DNS (net.lookup_ip_addr), and host
     // runtime/environment (opa.runtime). The interpreter registers none of
     // them, so evaluating the rule fails with an unknown-function error. That
-    // failure must surface as a hard validation error (an exception) — never be
+    // failure must surface as a hard validation error (an exception) - never be
     // silently swallowed, and never be reported as a diagnostic. A failed
     // escape attempt must not be able to masquerade as a finding.
     let escape_rule = common::load_security_rule("rego_sandbox_escape.rego");
     let config = EngineConfig {
         custom_rules: vec![ExternalRuleSource { name: "sandbox_escape.rego".into(), content: escape_rule }],
         guard_rules: vec![],
+        ..Default::default()
     };
     let engine = RegoEngine::new(config).expect("engine must build even with a host-builtin-reaching custom rule");
-    let schema_validator = SchemaValidator::new();
+    let schema_validator = SchemaValidator::default();
     let error = validate_bytes_with_path(
         &engine,
         &schema_validator,
@@ -213,7 +293,7 @@ fn custom_rule_reaching_a_host_builtin_is_a_hard_error_not_a_diagnostic() {
 fn benign_custom_rule_runs_and_fires() {
     // Control: a custom rule of the same shape but WITHOUT a host-builtin call
     // must evaluate cleanly and fire. This proves custom rules are actually run,
-    // so the hard error above is caused by the absent host builtin — not by
+    // so the hard error above is caused by the absent host builtin - not by
     // custom rules being skipped or by a misconfiguration.
     let control_rule = "package sandbox_control\n\
 import rego.v1\n\
@@ -224,9 +304,10 @@ violation contains make_diag(\"CTRL001\", \"WARN\", name, \"control rule fired\"
     let config = EngineConfig {
         custom_rules: vec![ExternalRuleSource { name: "sandbox_control.rego".into(), content: control_rule }],
         guard_rules: vec![],
+        ..Default::default()
     };
     let engine = RegoEngine::new(config).expect("engine must build");
-    let schema_validator = SchemaValidator::new();
+    let schema_validator = SchemaValidator::default();
     let report = validate_bytes_with_path(
         &engine,
         &schema_validator,
@@ -243,7 +324,7 @@ violation contains make_diag(\"CTRL001\", \"WARN\", name, \"control rule fired\"
 fn custom_cel_rule_reaching_an_unknown_function_is_a_hard_error_not_a_diagnostic() {
     // The CEL counterpart to the Rego sandbox-escape test: a custom CEL rule
     // whose expression calls a function the interpreter does not provide is a
-    // hard error — never silently dropped, never reported as a diagnostic. A
+    // hard error - never silently dropped, never reported as a diagnostic. A
     // failed escape attempt must not be able to masquerade as a finding.
     //
     // Unlike Rego (whose missing builtins only surface at evaluation), CEL can
@@ -263,6 +344,7 @@ fn custom_cel_rule_reaching_an_unknown_function_is_a_hard_error_not_a_diagnostic
     let config = EngineConfig {
         custom_rules: vec![ExternalRuleSource { name: "sandbox_escape.celrules.json".into(), content: escape_rule }],
         guard_rules: vec![],
+        ..Default::default()
     };
     let error = CelEngine::new(config).err().expect(
         "a custom CEL rule referencing an unknown function must fail the engine build with an error, \
@@ -280,7 +362,7 @@ fn custom_cel_rule_reaching_an_unknown_function_is_a_hard_error_not_a_diagnostic
 #[test]
 fn benign_custom_cel_rule_runs_and_fires() {
     // Control: a custom CEL rule whose expression executes cleanly and is true
-    // must fire, proving custom CEL rules are actually evaluated — so the hard
+    // must fire, proving custom CEL rules are actually evaluated - so the hard
     // error above is caused by the failed execution, not by rules being skipped.
     let control_rule = r#"{"rules": [
         {
@@ -294,9 +376,10 @@ fn benign_custom_cel_rule_runs_and_fires() {
     let config = EngineConfig {
         custom_rules: vec![ExternalRuleSource { name: "sandbox_control.celrules.json".into(), content: control_rule }],
         guard_rules: vec![],
+        ..Default::default()
     };
     let engine = CelEngine::new(config).expect("engine must build");
-    let schema_validator = SchemaValidator::new();
+    let schema_validator = SchemaValidator::default();
     let report = validate_bytes_with_path(
         &engine,
         &schema_validator,
@@ -314,8 +397,8 @@ fn benign_custom_cel_rule_runs_and_fires() {
 
 #[test]
 fn large_resource_count_validates_to_a_bounded_result_on_both_engines() {
-    // The bound under test is the resource count itself — a fixed,
-    // machine-independent quantity — not wall-clock time. A template at the
+    // The bound under test is the resource count itself - a fixed,
+    // machine-independent quantity - not wall-clock time. A template at the
     // 500-resource scale must parse to exactly that many resources and validate
     // to a structured report (never hang, panic, or error) on both engines.
     const SCALE_RESOURCES: usize = 500;
@@ -330,7 +413,7 @@ fn large_resource_count_validates_to_a_bounded_result_on_both_engines() {
 
     for engine_name in ["rego", "cel"] {
         let engine = build_engine(engine_name).expect("engine must build");
-        let schema_validator = SchemaValidator::new();
+        let schema_validator = SchemaValidator::default();
         let _ = validate_bytes_with_path(
             engine.as_ref(),
             &schema_validator,
@@ -348,9 +431,44 @@ fn large_resource_count_validates_to_a_bounded_result_on_both_engines() {
 }
 
 #[test]
+fn condition_chain_boundary_resolves_within_budget() {
+    // 20 parameters, 40 acyclic chained conditions matching the public CDK repro
+    // shape, 10 gated resources, and nested Fn::If depth 2 in properties. This
+    // exercises the condition-resolution hot path on a real-world shape without
+    // triggering pathological exponential blowup.
+    for engine_name in ["rego", "cel"] {
+        let bytes = common::load_security("condition_chain_boundary.yaml");
+        let finished = validate_within(COMPLETION_BUDGET, engine_name, bytes);
+        assert!(
+            finished.is_some(),
+            "{engine_name}: condition chain boundary fixture (20 params, 40 conditions) must \
+             resolve within {COMPLETION_BUDGET:?}"
+        );
+        finished.unwrap().expect("validation should return a structured report");
+    }
+}
+
+#[test]
+fn condition_chain_wide_resolves_within_budget() {
+    // 73 parameters with 40 chained conditions - the reported 73-parameter case.
+    // The parameter space (>2^20 paths) exercises the per-query parameter cap and
+    // cumulative iteration budget.
+    for engine_name in ["rego", "cel"] {
+        let bytes = common::load_security("condition_chain_wide.yaml");
+        let finished = validate_within(COMPLETION_BUDGET, engine_name, bytes);
+        assert!(
+            finished.is_some(),
+            "{engine_name}: condition chain wide fixture (73 params, 40 chained conditions) must \
+             resolve within {COMPLETION_BUDGET:?}"
+        );
+        finished.unwrap().expect("validation should return a structured report");
+    }
+}
+
+#[test]
 fn cross_resource_pair_comparison_produces_a_deterministic_bounded_count() {
     // 500 resources that all share one primary-identifier value put every pair
-    // in a single group — the worst case for the cross-resource uniqueness
+    // in a single group - the worst case for the cross-resource uniqueness
     // rule. The deterministic, machine-independent signature that the quadratic
     // pair comparison ran to completion and stayed bounded is the exact
     // diagnostic count: exactly one uniqueness diagnostic per resource in the
@@ -361,7 +479,7 @@ fn cross_resource_pair_comparison_produces_a_deterministic_bounded_count() {
     for engine_name in ["rego", "cel"] {
         let bytes = common::load_security("cross_resource_scale.yaml");
         let engine = build_engine(engine_name).expect("engine must build");
-        let schema_validator = SchemaValidator::new();
+        let schema_validator = SchemaValidator::default();
         let report = validate_bytes_with_path(
             engine.as_ref(),
             &schema_validator,
@@ -377,7 +495,7 @@ fn cross_resource_pair_comparison_produces_a_deterministic_bounded_count() {
         assert_eq!(
             uniqueness_diagnostics, SHARED_IDENTIFIER_RESOURCES,
             "{engine_name}: every resource sharing the identifier must get exactly one uniqueness \
-             diagnostic — proving the quadratic pair-comparison ran to completion and produced a \
+             diagnostic - proving the quadratic pair-comparison ran to completion and produced a \
              bounded, deterministic result; got {uniqueness_diagnostics}"
         );
     }

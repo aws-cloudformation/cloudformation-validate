@@ -13,7 +13,7 @@ It produces three files in the data-source generated data directory:
       readOnlyProperties, mirroring cfn-lint's own GetAtt expansion
       (cfnlint.schema._getatts: _all_property_types + _exceptions). Only the
       delta over readOnlyProperties is written, since the schema already
-      contributes those — keeping the file free of duplicated data.
+      contributes those - keeping the file free of duplicated data.
 
   retention_period_requirements.json
       Resource type -> retention-period property names whose absence risks
@@ -23,7 +23,7 @@ It produces three files in the data-source generated data directory:
       Owner/Category/Provider -> input/output artifact count bounds for
       AWS::CodePipeline::Pipeline actions (cfn-lint rule PipelineArtifactCounts).
       Keyed on the full Owner/Category/Provider tuple, exactly as cfn-lint keys
-      it — a category-only key is ambiguous (e.g. AWS/Deploy/CloudFormation
+      it - a category-only key is ambiguous (e.g. AWS/Deploy/CloudFormation
       allows 0 input artifacts while AWS/Deploy/CodeDeploy requires 1).
 
 Usage:
@@ -47,7 +47,7 @@ def extract_getatt_additions(region: str = "us-east-1") -> dict:
 
     cfn-lint's GetAtts class returns the full attribute set for a type. The
     schema validator already derives readOnly attributes from the schema, so we
-    subtract those and keep only the additional names — the same delta the
+    subtract those and keep only the additional names - the same delta the
     hand-maintained file used to hold, but recomputed from cfn-lint directly.
     """
     from cfnlint.schema import PROVIDER_SCHEMA_MANAGER
@@ -57,7 +57,7 @@ def extract_getatt_additions(region: str = "us-east-1") -> dict:
     for type_name in sorted(set(_all_property_types) | set(_exceptions)):
         try:
             getatts = PROVIDER_SCHEMA_MANAGER.get_type_getatts(type_name, region)
-        except Exception as e:  # noqa: BLE001 — a missing type should not abort the whole sync
+        except Exception as e:  # noqa: BLE001 - a missing type should not abort the whole sync
             print(f"  warning: skipping {type_name}: {e}", file=sys.stderr)
             continue
         full_attrs = set(getatts.keys())

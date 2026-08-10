@@ -43,7 +43,7 @@ fn eval_intrinsics(ctx: &EvalContext) -> Vec<Diagnostic> {
         .map(|a| a.iter().filter_map(|v| v.as_str()).collect())
         .unwrap_or_default();
 
-    // Suppress ref validation when the template has parse errors — the model
+    // Suppress ref validation when the template has parse errors - the model
     // is incomplete and refs to unparsed sections would be false positives.
     let has_parse_errors = m.diagnostics.iter().any(|d| d.is_fatal() && d.phase == Some(DefectPhase::Parse));
 

@@ -9,7 +9,7 @@ including [schema-validator](../schema-validator/README.md)),
 and renders the resulting report as JSON.
 
 > To embed validation in your own Rust program, depend on `validation-engine`, an engine crate, and `schema-validator`
-> directly — see [validation-engine/API.md](../validation-engine/API.md). This crate is the CLI, not a library facade.
+> directly - see [validation-engine/API.md](../validation-engine/API.md). This crate is the CLI, not a library facade.
 
 ## How it works
 
@@ -74,6 +74,16 @@ touching a same-named entity of another type.
 | `--engine rego\|cel`         | Validation engine (default: rego)                         |
 | `--rule-source <PATH>`       | Load a custom Rego/CEL rule file (repeatable)             |
 | `--guard-rule-source <PATH>` | Load Guard (`.guard`) rule file or directory (repeatable) |
+| `--additional-schema <PATH>` | Merge a CloudFormation resource provider schema (`.json`) file, or every `.json` in a directory, on top of the bundled schemas (repeatable) |
+
+`--additional-schema` is for templates that use a property or allowed value CloudFormation has not published to the
+registry yet: the supplied schema is merged into the bundled schema for its `typeName`, and a `typeName` with no bundled
+schema is registered as a new resource type. An overlay never silently drops a bundled constraint, though stating an
+extra `required` or dependency entry does add one. Anything that cannot be applied exits `2` rather than being ignored -
+a malformed or unreadable schema, a path that does not exist, a directory containing no `.json` file, or a schema using a
+construct the validator cannot represent. Directories are scanned one level deep. See
+[validation-engine/API.md](../validation-engine/API.md#additional-resource-provider-schemas) for the merge model and its
+scope limits.
 
 **Parameter options:**
 
@@ -97,6 +107,6 @@ Supported pseudo-parameters: `AWS::AccountId`, `AWS::NotificationARNs`, `AWS::Pa
 
 **Exit codes:**
 
-- `0` — no errors or fatal diagnostics
-- `1` — errors or fatal diagnostics found
-- `2` — usage error (bad arguments, file not found, engine init failure)
+- `0` - no errors or fatal diagnostics
+- `1` - errors or fatal diagnostics found
+- `2` - usage error (bad arguments, file not found, engine init failure)

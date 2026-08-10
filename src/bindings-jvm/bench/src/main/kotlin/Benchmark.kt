@@ -1,7 +1,7 @@
 import software.amazon.cloudformation.validate.JvmCelEngine
 import software.amazon.cloudformation.validate.JvmRegoEngine
+import software.amazon.cloudformation.validate.JvmSchemaValidator
 import software.amazon.cloudformation.validate.JvmSemanticModel
-import software.amazon.cloudformation.validate.SchemaValidator
 import software.amazon.cloudformation.validate.ValidateConfig
 import software.amazon.cloudformation.validate.diagnostics.DetailedReport
 import software.amazon.cloudformation.validate.engine.EngineConfig
@@ -18,6 +18,7 @@ import java.time.Instant
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import kotlin.math.sqrt
+import kotlin.system.exitProcess
 
 fun main(args: Array<String>) {
     if (args.any { it == "-h" || it == "--help" }) {
@@ -26,8 +27,35 @@ fun main(args: Array<String>) {
     }
 
     val defaultTemplateDir = File(System.getProperty("user.dir")).resolve("../../resources/templates").canonicalPath
-    val engineFlag = argValue(args, "--engine") ?: "rego"
-    val iterations = (argValue(args, "--iterations")?.toIntOrNull() ?: 20).coerceAtLeast(1)
+    val engineFlag = run {
+        val idx = args.indexOf("--engine")
+        if (idx < 0) return@run "rego"
+        val value = args.getOrNull(idx + 1)
+        if (value == null || value.startsWith("-")) {
+            System.err.println("Error: --engine requires a value")
+            exitProcess(2)
+        }
+        value
+    }
+    if (engineFlag != "rego" && engineFlag != "cel") {
+        System.err.println("Error: --engine must be 'rego' or 'cel', got '$engineFlag'")
+        exitProcess(2)
+    }
+    val iterations = run {
+        val flagIdx = args.indexOf("--iterations")
+        if (flagIdx < 0) return@run 20
+        val raw = args.getOrNull(flagIdx + 1)
+        if (raw == null) {
+            System.err.println("Error: --iterations requires a value")
+            exitProcess(2)
+        }
+        val parsed = raw.toIntOrNull()
+        if (parsed == null || parsed <= 0) {
+            System.err.println("Error: --iterations must be a positive integer, got '$raw'")
+            exitProcess(2)
+        }
+        parsed
+    }
 
     val templateDir = run {
         val flagsWithValues = setOf("--engine", "--iterations")
@@ -63,37 +91,58 @@ fun main(args: Array<String>) {
         else -> JvmRegoEngine(engineConfig())
     }
 
+    // --- Initialization timing ---
+    // Schema init is timed standalone for informational comparison, but is NOT additive for FFI
+    // consumers: the engine constructor already embeds a SchemaValidator, so real-world init cost
+    // is just engine construction.  init_ms/cold_init/warm_init reflect engine-only samples -
+    // what an actual consumer pays to set up validation.
     val schemaInitSamples = mutableListOf<Double>()
     val engineInitSamples = mutableListOf<Double>()
     repeat(iterations) {
         val t0 = System.nanoTime()
-        SchemaValidator()
+        val sv = JvmSchemaValidator()
         schemaInitSamples.add((System.nanoTime() - t0) / 1_000_000.0)
+        sv.destroy()
 
         val t1 = System.nanoTime()
         val created = newEngine()
         engineInitSamples.add((System.nanoTime() - t1) / 1_000_000.0)
         if (created is AutoCloseable) created.close()
     }
-    val initSamples = schemaInitSamples.zip(engineInitSamples) { s, e -> s + e }
-    // cold_init_ms includes JNI module load + first schema init + first engine init.
+    // init_ms = engine_init samples only (actual consumer validation setup cost).
+    val initSamples = engineInitSamples.toList()
+    // cold_init_ms = JNI module load + first engine construction.
     val coldInitMs = moduleLoadMs + initSamples[0]
+    // warm_init_ms = subsequent engine constructions (module already loaded, JIT warm).
     val warmInitSamples = if (initSamples.size > 1) initSamples.drop(1) else initSamples
 
     val engine: Any = newEngine()
 
     val reportDir = File(System.getProperty("user.dir")).resolve("../reports/$engineFlag").also { it.mkdirs() }
-    val jsonDir = reportDir.resolve("json_$formatDir").also { it.mkdirs() }
+    val jsonDir = reportDir.resolve("json_$formatDir").also { dir ->
+        // Clean previous output so stale reports from dropped/renamed templates are not left behind.
+        if (dir.exists()) {
+            check(dir.deleteRecursively()) { "Failed to remove previous json_$formatDir dir: $dir" }
+        }
+        dir.mkdirs()
+    }
+
+    // Single ValidateConfig instance reused across all iterations - avoids allocation per call.
+    val benchValidateConfig = validateConfig()
 
     // Warm up JIT + UniFFI vtables so the first timed call doesn't pay codegen costs.
     if (templates.isNotEmpty()) {
         val warmupBytes = templates[0].readBytes()
         try {
-            JvmSemanticModel.parse(warmupBytes)
+            val warmupModel = JvmSemanticModel.parse(warmupBytes)
+            try {
+                warmupModel.destroy()
+            } catch (_: Exception) {
+            }
         } catch (_: Exception) {
         }
         try {
-            validateDetailed(engine, warmupBytes, validateConfig(), templates[0].name)
+            validateDetailed(engine, warmupBytes, benchValidateConfig, templates[0].name)
         } catch (_: Exception) {
         }
     }
@@ -107,7 +156,7 @@ fun main(args: Array<String>) {
     val benchStart = System.nanoTime()
 
     for (tpl in templates) {
-        val rel = File(templateDir).toPath().relativize(tpl.toPath()).toString().ifEmpty { tpl.name }
+        val rel = File(templateDir).toPath().relativize(tpl.toPath()).toString().replace('\\', '/').ifEmpty { tpl.name }
         System.err.print("  $rel")
 
         val sizeBytes = try {
@@ -121,11 +170,11 @@ fun main(args: Array<String>) {
         val iterSchemaValidate = mutableListOf<Double>()
         val iterRuleEval = mutableListOf<Double>()
         val iterFinalize = mutableListOf<Double>()
-        // Host-timed model parse — Kotlin-side nanoTime around JvmSemanticModel.parse.
+        // Host-timed model parse - Kotlin-side nanoTime around JvmSemanticModel.parse.
         // Includes JNI dispatch + UniFFI marshalling of the parse call.
         val iterHostModel = mutableListOf<Double>()
         val iterEngineInternal = mutableListOf<Double>()
-        // wall_clock = Kotlin-side nanoTime around validateDetailed() — includes JNI dispatch,
+        // wall_clock = Kotlin-side nanoTime around validateDetailed() - includes JNI dispatch,
         // ByteArray→Rust Vec<u8> copy, UniFFI DetailedReport decoding.
         val iterWallClock = mutableListOf<Double>()
         var lastReport: DetailedReport? = null
@@ -133,18 +182,24 @@ fun main(args: Array<String>) {
 
         repeat(iterations) { i ->
             if (failed) return@repeat
+            // Standalone model parse - classify failures distinctly as parse_error.
             try {
-                // Host-timed model parse (standalone, no I/O — bytes pre-read).
                 val tm0 = System.nanoTime()
                 val parsed = JvmSemanticModel.parse(bytes)
                 iterHostModel.add((System.nanoTime() - tm0) / 1_000_000.0)
                 try {
-                    (parsed as? AutoCloseable)?.close()
+                    parsed.destroy()
                 } catch (_: Exception) {
                 }
+            } catch (e: Exception) {
+                results.add(errorResult(rel, "parse_error", e.message ?: "unknown"))
+                failed = true
+                return@repeat
+            }
 
+            try {
                 val t0 = System.nanoTime()
-                val report = validateDetailed(engine, bytes, validateConfig(), rel)
+                val report = validateDetailed(engine, bytes, benchValidateConfig, rel)
                 val wallMs = (System.nanoTime() - t0) / 1_000_000.0
                 iterModelBuild.add(report.performance.modelBuild.durationMs)
                 iterSchemaValidate.add(report.performance.schemaValidate.durationMs)
@@ -176,9 +231,18 @@ fun main(args: Array<String>) {
         val warmHostModelMs =
             if (iterations > 1) medianOf(iterHostModel.subList(1, iterHostModel.size)) else coldHostModelMs
         val medianHostModel = medianOf(iterHostModel)
-        val bindingOverheadMs = round4(medianWallClock - medianEngineInternal)
+        // Binding overhead: median of per-iteration (wall_clock − engine_internal) differences.
+        // This captures JNI dispatch + UniFFI marshalling cost for each individual call.
+        val perIterOverhead = iterWallClock.zip(iterEngineInternal) { w, e -> w - e }
+        val bindingOverheadMs = round4(medianOf(perIterOverhead))
 
-        val jsonStem = rel.replace("/", "_").replace(Regex("\\.(yaml|json|yml)$"), "")
+        val jsonStem = run {
+            val flat = rel.replace("/", "_")
+            // Robust suffix replacement: strip the last known extension and append a tag.
+            val extMatch = Regex("""^(.+)\.(yaml|yml|json)$""", RegexOption.IGNORE_CASE).matchEntire(flat)
+            if (extMatch != null) "${extMatch.groupValues[1]}_${extMatch.groupValues[2].lowercase()}"
+            else flat
+        }
         fun iterObj(
             hostModel: Double,
             modelBuild: Double,
@@ -199,6 +263,7 @@ fun main(args: Array<String>) {
 
         val metrics = JsonObject().apply {
             addProperty("iterations", iterations)
+            // "firstIteration" = first iteration for this template (after global JIT warmup).
             add(
                 "firstIteration", iterObj(
                     iterHostModel[0],
@@ -210,6 +275,7 @@ fun main(args: Array<String>) {
                     coldWallClockMs
                 )
             )
+            // "steadyState" = median of iterations 2..N (template-local steady state).
             add(
                 "steadyState", iterObj(
                     warmHostModelMs,
@@ -247,6 +313,7 @@ fun main(args: Array<String>) {
             wallClockMs = medianWallClock,
             coldWallClockMs = coldWallClockMs,
             warmWallClockMs = warmWallClockMs,
+            wallClockTotalMs = iterWallClock.sum(),
             bindingOverheadMs = bindingOverheadMs,
         )
         System.err.println("  engine=${tr.engineInternalMs.format(4)}ms  wall=${tr.wallClockMs.format(4)}ms  ${tr.errors}E ${tr.warnings}W ${tr.informational}I")
@@ -256,18 +323,15 @@ fun main(args: Array<String>) {
     val totalWallMs = (System.nanoTime() - benchStart) / 1_000_000.0
 
     // Flush per-template JSON dumps AFTER wall-clock stops.
-    // Uses the report captured during the last timed iteration — no re-validation.
+    // Uses the report captured during the last timed iteration - no re-validation.
     val dumpGson = buildBindingsGson(prettyPrinting = true)
     for (pr in pendingReports) {
-        try {
-            val reportElement = dumpGson.toJsonTree(pr.report).asJsonObject
-            reportElement.addProperty("engine", engineFlag)
-            reportElement.addProperty("binding", "jvm")
-            reportElement.addProperty("detailLevel", formatFlag)
-            reportElement.add("benchmarkMetrics", pr.metrics)
-            pr.dest.writeText(dumpGson.toJson(reportElement))
-        } catch (_: Exception) { /* dump is best-effort */
-        }
+        val reportElement = dumpGson.toJsonTree(pr.report).asJsonObject
+        reportElement.addProperty("engine", engineFlag)
+        reportElement.addProperty("binding", "jvm")
+        reportElement.addProperty("detailLevel", formatFlag)
+        reportElement.add("benchmarkMetrics", pr.metrics)
+        pr.dest.writeText(dumpGson.toJson(reportElement))
     }
 
     val ok = results.filter { it.status == "ok" }
@@ -288,7 +352,13 @@ fun main(args: Array<String>) {
     val warmHostModelVec = ok.map { it.warmHostModelMs }
     val overheadVec = ok.map { it.bindingOverheadMs }
 
-    val throughputPerSec = if (totalWallMs > 0) ok.size * iterations / (totalWallMs / 1000.0) else 0.0
+    val throughputPerSec = run {
+        // Throughput denominator: sum of host-timed validate calls for successful templates only.
+        // This excludes file I/O, standalone model benchmarks, logging overhead, and failures.
+        val measuredValidationWallMs = ok.sumOf { it.wallClockTotalMs }
+        if (measuredValidationWallMs > 0) ok.size * iterations / (measuredValidationWallMs / 1000.0) else 0.0
+    }
+    val measuredValidationWallMs = ok.sumOf { it.wallClockTotalMs }
 
     val (corpusFingerprint, corpusFileCount) = computeCorpusFingerprint(File(templateDir))
     val runFingerprint = sha256Hex("$corpusFingerprint|$engineFlag|$formatFlag|$iterations")
@@ -317,6 +387,7 @@ fun main(args: Array<String>) {
         add("schema_init_ms", statsToJsonObject(schemaInitSamples))
         add("engine_init_ms", statsToJsonObject(engineInitSamples))
         addProperty("total_wall_ms", round4(totalWallMs))
+        addProperty("measured_validation_wall_ms", round4(measuredValidationWallMs))
         addProperty("throughput_per_sec", round4(throughputPerSec))
         add("model_build_ms", statsToJsonObject(modelBuildVec))
         add("schema_validate_ms", statsToJsonObject(schemaValidateVec))
@@ -425,6 +496,9 @@ fun main(args: Array<String>) {
     System.err.println("Throughput: ${throughputPerSec.format(2)} validations/sec")
     System.err.println("Corpus fingerprint: $corpusFingerprint ($corpusFileCount files)")
     System.err.println("Reports written to $reportDir")
+
+    // Release the engine after all report extraction and writes are complete.
+    if (engine is AutoCloseable) engine.close()
 }
 
 private fun computeCorpusFingerprint(root: File): Pair<String, Int> {
@@ -434,7 +508,7 @@ private fun computeCorpusFingerprint(root: File): Pair<String, Int> {
     for (f in files) {
         val content = f.readBytes()
         val fileHash = sha256Hex(content)
-        val rel = root.toPath().relativize(f.toPath()).toString().ifEmpty { f.name }
+        val rel = root.toPath().relativize(f.toPath()).toString().replace('\\', '/').ifEmpty { f.name }
         outer.update("$rel\t$fileHash\n".toByteArray(Charsets.UTF_8))
     }
     return outer.digest().joinToString("") { "%02x".format(it) } to files.size
@@ -527,6 +601,8 @@ private data class TemplateResult(
     val diagnosticFinalizeMs: Double,
     val engineInternalMs: Double, val coldEngineInternalMs: Double, val warmEngineInternalMs: Double,
     val wallClockMs: Double, val coldWallClockMs: Double, val warmWallClockMs: Double,
+    /** Sum of all host-timed validate calls (all iterations) for this template. */
+    val wallClockTotalMs: Double,
     val bindingOverheadMs: Double, val errorMsg: String? = null,
 )
 
@@ -538,6 +614,7 @@ private fun errorResult(file: String, status: String, msg: String) = TemplateRes
     schemaValidateMs = 0.0, ruleEvalMs = 0.0, diagnosticFinalizeMs = 0.0,
     engineInternalMs = 0.0, coldEngineInternalMs = 0.0, warmEngineInternalMs = 0.0,
     wallClockMs = 0.0, coldWallClockMs = 0.0, warmWallClockMs = 0.0,
+    wallClockTotalMs = 0.0,
     bindingOverheadMs = 0.0, errorMsg = msg,
 )
 
@@ -553,7 +630,7 @@ private fun generateMarkdown(
     totalWallMs: Double, throughputPerSec: Double, engineName: String, iterations: Int,
     corpusFingerprint: String, corpusFileCount: Int,
 ): String = buildString {
-    appendLine("# cloudformation-validate JVM Benchmark Report — $engineName engine (DETAILED)\n")
+    appendLine("# cloudformation-validate JVM Benchmark Report - $engineName engine (DETAILED)\n")
     appendLine("Generated: ${isoNow()}\n")
     appendLine("Corpus fingerprint: `$corpusFingerprint` ($corpusFileCount files)\n")
 
@@ -567,7 +644,9 @@ private fun generateMarkdown(
     appendLine("| Detail level | DETAILED |")
 
     appendLine("\n## Initialization (ms)\n")
-    appendLine("| Stat | Schema Init | Engine Init | Combined |\n|---|---|---|---|")
+    appendLine("Schema init is timed standalone for comparison but is **not additive** for FFI consumers:")
+    appendLine("the engine constructor already embeds a SchemaValidator. `init_ms` = engine construction only (actual consumer setup cost).\n")
+    appendLine("| Stat | Schema Init (standalone) | Engine Init | Init (engine only) |\n|---|---|---|---|")
     appendLine(
         "| Median | ${medianOf(schemaInitSamples).format(4)} | ${medianOf(engineInitSamples).format(4)} | ${
             medianOf(
@@ -593,16 +672,17 @@ private fun generateMarkdown(
     appendLine("\n## Validation Latency (ms, median / p99 / max per template)\n")
     appendLine("host_model = Kotlin-side timer around JvmSemanticModel.parse (includes JNI/UniFFI marshalling).")
     appendLine("wall_clock = Kotlin-side timer around validateDetailed() (includes JNI/UniFFI marshalling).")
-    appendLine("engine_internal = Rust-internal `report.performance.validateTotal` (engine work only).\n")
+    appendLine("engine_internal = Rust-internal `report.performance.validateTotal` (engine work only).")
+    appendLine("binding_overhead = median of per-iteration (wall_clock − engine_internal) differences.\n")
     appendLine("| Metric | Median | P99 | Max |\n|---|---|---|---|")
     fun row(label: String, vals: List<Double>) =
         "| $label | ${medianOf(vals).format(4)} | ${percentileOf(vals, 99.0).format(4)} | ${maxOf(vals).format(4)} |"
-    appendLine(row("Cold host_model (first iter)", coldHostModel))
-    appendLine(row("Warm host_model (steady)", warmHostModel))
-    appendLine(row("Cold engine_internal (first iter)", coldEngineInternal))
-    appendLine(row("Warm engine_internal (steady)", warmEngineInternal))
-    appendLine(row("Cold wall_clock (first iter)", coldWallClock))
-    appendLine(row("Warm wall_clock (steady)", warmWallClock))
+    appendLine(row("host_model - first (after warmup)", coldHostModel))
+    appendLine(row("host_model - steady", warmHostModel))
+    appendLine(row("engine_internal - first (after warmup)", coldEngineInternal))
+    appendLine(row("engine_internal - steady", warmEngineInternal))
+    appendLine(row("wall_clock - first (after warmup)", coldWallClock))
+    appendLine(row("wall_clock - steady", warmWallClock))
     appendLine(row("host_model (per-template median)", hostModel))
     appendLine(row("engine_internal (per-template median)", engineInternal))
     appendLine(row("wall_clock (per-template median)", wallClock))
@@ -643,7 +723,7 @@ private fun generateMarkdown(
     if (failedResults.isNotEmpty()) {
         appendLine("\n## Failures\n")
         for (r in failedResults) {
-            appendLine("- **${r.file}**: ${r.status} — ${r.errorMsg ?: "unknown"}")
+            appendLine("- **${r.file}**: ${r.status} - ${r.errorMsg ?: "unknown"}")
         }
     }
 }

@@ -12,6 +12,11 @@ on:
         required: false
         type: boolean
         default: false
+      rust-tests-only:
+        description: 'Run only Rust core tests'
+        required: false
+        type: boolean
+        default: false
 
   workflow_dispatch:
     inputs:
@@ -21,6 +26,11 @@ on:
         type: string
       fail-fast:
         description: 'Cancel remaining matrix jobs as soon as one fails'
+        required: false
+        type: boolean
+        default: false
+      rust-tests-only:
+        description: 'Run only Rust core tests'
         required: false
         type: boolean
         default: false
@@ -139,16 +149,27 @@ jobs:
     - name: Log tool versions
       uses: ./.github/actions/print-build-versions
 
+    - name: Test build support scripts
+      working-directory: scripts/build-support/tests
+      run: bash ./run.sh
+
     - name: Test
       working-directory: ${{ env.WORKING_DIR }}
       run: cargo llvm-cov --locked --release --workspace --no-fail-fast
 
   test-jvm:
+    if: ${{ !inputs.rust-tests-only }}
     needs: [ get-configs ]
     strategy:
       fail-fast: ${{ inputs.fail-fast }}
       matrix:
-        os: [ ubuntu-latest, macos-latest, windows-latest ]
+        include:
+        - { os: ubuntu-latest, platform: linux, arch: x64 }
+        - { os: ubuntu-24.04-arm, platform: linux, arch: aarch64 }
+        - { os: macos-latest, platform: darwin, arch: aarch64 }
+        - { os: macos-15-intel, platform: darwin, arch: x64 }
+        - { os: windows-latest, platform: win32, arch: x64 }
+        - { os: windows-11-arm, platform: win32, arch: aarch64, java-distribution: microsoft }
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -174,7 +195,7 @@ jobs:
       uses: ./.github/actions/setup-jvm-toolchain
       with:
         java-version: ${{ needs.get-configs.outputs.java-version }}
-        java-distribution: ${{ needs.get-configs.outputs.java-distribution }}
+        java-distribution: ${{ matrix.java-distribution || needs.get-configs.outputs.java-distribution }}
         kotlin-version: ${{ needs.get-configs.outputs.kotlin-version }}
         ktlint-version: ${{ needs.get-configs.outputs.ktlint-version }}
         gradle-version: ${{ needs.get-configs.outputs.gradle-version }}
@@ -189,11 +210,18 @@ jobs:
       run: ./run.sh
 
   test-wasm:
+    if: ${{ !inputs.rust-tests-only }}
     needs: [ get-configs ]
     strategy:
       fail-fast: ${{ inputs.fail-fast }}
       matrix:
-        os: [ ubuntu-latest, macos-latest, windows-latest ]
+        include:
+        - { os: ubuntu-latest, platform: linux, arch: x64 }
+        - { os: ubuntu-24.04-arm, platform: linux, arch: aarch64 }
+        - { os: macos-latest, platform: darwin, arch: aarch64 }
+        - { os: macos-15-intel, platform: darwin, arch: x64 }
+        - { os: windows-latest, platform: win32, arch: x64 }
+        - { os: windows-11-arm, platform: win32, arch: aarch64 }
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -231,3 +259,92 @@ jobs:
     - name: Test
       working-directory: ${{ env.WORKING_DIR }}/bindings-wasm/tests
       run: ./run.sh
+
+  test-python:
+    if: ${{ !inputs.rust-tests-only }}
+    needs: [ get-configs ]
+    strategy:
+      fail-fast: ${{ inputs.fail-fast }}
+      matrix:
+        include:
+        - { os: ubuntu-latest, platform: linux, arch: x64 }
+        - { os: ubuntu-24.04-arm, platform: linux, arch: aarch64 }
+        - { os: macos-latest, platform: darwin, arch: aarch64 }
+        - { os: macos-15-intel, platform: darwin, arch: x64 }
+        - { os: windows-latest, platform: win32, arch: x64 }
+        - { os: windows-11-arm, platform: win32, arch: aarch64 }
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    env:
+      WORKING_DIR: ${{ needs.get-configs.outputs.working-dir }}
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        ref: ${{ inputs.ref }}
+
+    - name: Install Rust ${{ needs.get-configs.outputs.rust-toolchain }}
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: ${{ needs.get-configs.outputs.rust-toolchain }}
+
+    - name: Cache Cargo
+      uses: Swatinem/rust-cache@v2
+      with:
+        workspaces: ${{ env.WORKING_DIR }}
+
+    - name: Setup Python ${{ needs.get-configs.outputs.python-version }}
+      uses: actions/setup-python@v6
+      with:
+        python-version: ${{ needs.get-configs.outputs.python-version }}
+
+    - name: Log tool versions
+      uses: ./.github/actions/print-build-versions
+
+    - name: Test
+      working-directory: ${{ env.WORKING_DIR }}
+      run: ./bindings-python/tests/run.sh
+
+  test-go:
+    if: ${{ !inputs.rust-tests-only }}
+    needs: [ get-configs ]
+    strategy:
+      fail-fast: ${{ inputs.fail-fast }}
+      matrix:
+        include:
+        - { os: ubuntu-latest, platform: linux, arch: x64 }
+        - { os: macos-latest, platform: darwin, arch: aarch64 }
+        - { os: windows-latest, platform: win32, arch: x64 }
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    env:
+      WORKING_DIR: ${{ needs.get-configs.outputs.working-dir }}
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        ref: ${{ inputs.ref }}
+
+    - name: Install Rust ${{ needs.get-configs.outputs.rust-toolchain }}
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: ${{ needs.get-configs.outputs.rust-toolchain }}
+
+    - name: Cache Cargo
+      uses: Swatinem/rust-cache@v2
+      with:
+        workspaces: ${{ env.WORKING_DIR }}
+
+    - name: Setup Go ${{ needs.get-configs.outputs.go-version }}
+      uses: actions/setup-go@v6
+      with:
+        go-version: ${{ needs.get-configs.outputs.go-version }}
+
+    - name: Log tool versions
+      uses: ./.github/actions/print-build-versions
+
+    - name: Test
+      working-directory: ${{ env.WORKING_DIR }}
+      run: ./bindings-go/tests/run.sh

@@ -1,20 +1,20 @@
 //! Detects intrinsic functions that require the `AWS::LanguageExtensions`
 //! transform but are used in a template that does not declare it. Runs on the
 //! raw arena (before intrinsic resolution) so the offending `Fn::` node is still
-//! present with its source span — by the time a value is resolved for the
+//! present with its source span - by the time a value is resolved for the
 //! engines, the raw key is gone. Emitting here means both engines report these
 //! findings identically from the shared model.
 //!
 //! Three functions are transform-gated:
-//! - `Fn::ForEach::<name>` — a section-level looping construct.
-//! - `Fn::Length` — length of a list.
-//! - `Fn::ToJsonString` — serialize a value to a JSON string.
+//! - `Fn::ForEach::<name>` - a section-level looping construct.
+//! - `Fn::Length` - length of a list.
+//! - `Fn::ToJsonString` - serialize a value to a JSON string.
 //!
 //! `Fn::Length`/`Fn::ToJsonString` are *position sensitive*: a value slot only
 //! accepts them where its argument schema lists them as permitted. In a slot
 //! that forbids them (e.g. an `Fn::Join` delimiter, an `Fn::Select` index, an
 //! `Fn::Sub` template) the value is a plain type mismatch, reported by the schema
-//! layer — flagging the missing transform there would be a false positive. This
+//! layer - flagging the missing transform there would be a false positive. This
 //! module therefore walks the value tree top-down carrying whether the current
 //! slot permits each function, mirroring the per-slot argument schemas, and fires
 //! only in permitting positions.
@@ -145,7 +145,7 @@ fn collect_length_and_to_json(arena: &Arena, out: &mut Vec<ParseDefect>) {
         let Node::Intrinsic(intrinsic) = arena.node(node_ref) else {
             continue;
         };
-        // Only start a descent at a root value position — a slot whose own parent
+        // Only start a descent at a root value position - a slot whose own parent
         // is not itself an intrinsic argument (those are visited through their
         // parent). Roots are recognised by their build path.
         if !is_open_value_root(&arena.get(node_ref).path) {
@@ -162,7 +162,7 @@ fn collect_length_and_to_json(arena: &Arena, out: &mut Vec<ParseDefect>) {
 ///
 /// A path is a root when its nearest enclosing structural segment is a resource
 /// `Properties`/`Metadata` value, an output `Value`, or a condition/rule
-/// expression — i.e. it is not itself a positional argument (`.../Fn::X/<n>`) of
+/// expression - i.e. it is not itself a positional argument (`.../Fn::X/<n>`) of
 /// another intrinsic, which is handled by that intrinsic's own descent.
 fn is_open_value_root(path: &str) -> bool {
     // A positional argument path ends in `/Fn::Something` or `/Fn::Something/<idx>`

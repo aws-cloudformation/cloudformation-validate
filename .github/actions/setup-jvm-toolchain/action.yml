@@ -1,6 +1,6 @@
 name: Setup JVM toolchain
 description: >
-  Installs a consistent JVM build toolchain at the versions provided — JDK,
+  Installs a consistent JVM build toolchain at the versions provided - JDK,
   Kotlin compiler (kotlinc), ktlint, and (optionally) Gradle. Centralizes the
   install logic so every workflow that touches the JVM bindings uses identical
   steps and versions. Kotlin and ktlint are installed under $RUNNER_TEMP without
@@ -21,7 +21,7 @@ inputs:
     required: true
   gradle-version:
     description: >
-      Gradle version. Leave empty to skip Gradle setup — e.g. for the kotlinc/jar
+      Gradle version. Leave empty to skip Gradle setup - e.g. for the kotlinc/jar
       based build.sh which does not use Gradle.
     required: false
     default: ""
@@ -61,3 +61,7 @@ runs:
       uses: gradle/actions/setup-gradle@v6
       with:
         gradle-version: ${{ inputs.gradle-version }}
+
+    - name: Put configured JDK first on PATH
+      shell: bash
+      run: printf '%s\n' "$JAVA_HOME/bin" >> "$GITHUB_PATH"

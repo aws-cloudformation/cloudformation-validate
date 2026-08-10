@@ -194,6 +194,9 @@ pub struct SemanticModel {
     /// specific mapping.
     pub has_dynamic_findinmap_name: bool,
     pub resolution_sources: HashMap<(String, String), String>,
+    /// (resource_id, property_path) → the authored expression behind a value that
+    /// stayed opaque. Consulted by [`SemanticModel::value_identity`].
+    value_nodes: HashMap<(String, String), NodeRef>,
     resolve_memo: Mutex<HashMap<(String, String), Option<ResolvedValue>>>,
     scenario_memo: Mutex<HashMap<(String, String), Vec<(serde_json::Value, HashMap<String, bool>)>>>,
     /// Cumulative count of scenarios materialized by `resolve_scenarios` across
@@ -295,8 +298,8 @@ impl PseudoParameterOverrides {
     }
 
     /// Returns the user-supplied override for `name` only when the caller
-    /// explicitly set the corresponding field. Auto-derived defaults — e.g. the
-    /// commercial-vs-cn-vs-gov partition implied by `region` — are *not*
+    /// explicitly set the corresponding field. Auto-derived defaults - e.g. the
+    /// commercial-vs-cn-vs-gov partition implied by `region` - are *not*
     /// returned here.
     ///
     /// The satisfiability solver uses this to decide whether a pseudo-parameter
@@ -305,7 +308,7 @@ impl PseudoParameterOverrides {
     /// value". `get` always returns a default and would force the solver to
     /// treat every pseudo-parameter as a constant, producing false-positive
     /// "unreachable branch" diagnostics for templates that branch on
-    /// `AWS::Partition`, `AWS::Region`, etc. — see `ConditionModel::eval_value_concrete`.
+    /// `AWS::Partition`, `AWS::Region`, etc. - see `ConditionModel::eval_value_concrete`.
     pub fn fixed_value(&self, name: &str) -> Option<String> {
         match name {
             PSEUDO_ACCOUNT_ID => self.account_id.clone(),
@@ -490,6 +493,7 @@ impl SemanticModel {
         }
 
         let resolution_sources = resolver.resolution_sources();
+        let value_nodes = resolver.value_nodes();
         let mut all_edges = resolver.edges;
         for (id, res) in &resources {
             for dep in &res.depends_on {
@@ -538,7 +542,7 @@ impl SemanticModel {
                 Node::Intrinsic(IntrinsicFn::If(cond_name, _, _)) => {
                     fn_if_conditions.push(cond_name.clone());
                     // Inside a Conditions-section body, Fn::If is not a valid
-                    // condition function at all — that is the not-a-boolean
+                    // condition function at all - that is the not-a-boolean
                     // finding's territory, so the name of a function that is
                     // itself rejected there is not checked.
                     let in_conditions_body =
@@ -561,7 +565,7 @@ impl SemanticModel {
                 // A structurally malformed Fn::If (wrong arity, wrong type) is
                 // rejected by the parser and left as a plain `Fn::If` map node
                 // rather than an `IntrinsicFn::If`. Its condition is still
-                // referenced, so collect the name here too — otherwise the
+                // referenced, so collect the name here too - otherwise the
                 // unused-condition check would wrongly flag a condition that the
                 // template does reference.
                 Node::Map(entries) if entries.len() == 1 && entries[0].0 == FN_IF => {
@@ -570,7 +574,7 @@ impl SemanticModel {
                     {
                         fn_if_conditions.push(cond_name.to_string());
                         // The structure error is reported separately; the
-                        // undefined condition name is its own finding — a
+                        // undefined condition name is its own finding - a
                         // malformed Fn::If gets both. Conditions-section
                         // bodies are excluded for the same reason as the
                         // well-formed arm.
@@ -650,7 +654,7 @@ impl SemanticModel {
         // Neither section is walked by the resolver (it only visits resources
         // and outputs), so scan their string nodes directly. `Ref` targets are
         // not string nodes in the arena, so `Ref: AWS::Region` is naturally
-        // exempt — only a pseudo-parameter used as plain string data fires.
+        // exempt - only a pseudo-parameter used as plain string data fires.
         for idx in 0..ir.arena.len() {
             let spanned = ir.arena.get(idx as NodeRef);
             let Node::String(s) = &spanned.node else {
@@ -659,7 +663,7 @@ impl SemanticModel {
             let section = spanned.path.split('/').next().unwrap_or("");
             // A string that is a `Ref` target (path ends in the Ref key, e.g. a
             // raw `{"Ref": "AWS::Region"}` map the parser could not
-            // canonicalize) is already a reference — only plain string *data*
+            // canonicalize) is already a reference - only plain string *data*
             // warrants the use-Ref-instead advice.
             let is_ref_target = spanned.path.rsplit('/').next() == Some(FN_REF);
             if (section == SECTION_MAPPINGS || section == SECTION_CONDITIONS)
@@ -723,7 +727,7 @@ impl SemanticModel {
             ));
         }
         // A `Condition:` key that names a condition absent from the Conditions
-        // section is reported here — a distinct rule for the resource case and
+        // section is reported here - a distinct rule for the resource case and
         // the output case, since they are separate concerns. Emitting both
         // during model build anchors each at its own source location and keeps
         // the two engines identical. Names are sorted for deterministic
@@ -833,7 +837,7 @@ impl SemanticModel {
         diagnostics.extend(rule_diagnostics);
         let sam_globals = sam::extract_sam_globals(&ir.arena, ir.globals);
         if !sam_globals.is_empty() {
-            sam::apply_sam_globals(&mut resources, &sam_globals);
+            sam::apply_sam_globals(&mut resources, &sam_globals, &mut ir.span_index);
         }
         let sam_implicit_resources =
             if is_sam { sam::collect_sam_implicit_resources(&resources) } else { HashSet::new() };
@@ -881,6 +885,7 @@ impl SemanticModel {
                 params_referenced_in_definitions,
                 has_dynamic_findinmap_name,
                 resolution_sources,
+                value_nodes,
                 resolve_memo: Mutex::new(HashMap::new()),
                 scenario_memo: Mutex::new(HashMap::new()),
                 scenario_combinations_used: AtomicU64::new(0),
@@ -925,9 +930,40 @@ impl SemanticModel {
 
     #[must_use]
     pub fn is_from_parameter(&self, resource_id: &str, path: &str) -> bool {
-        self.resolution_sources
-            .get(&(resource_id.to_string(), path.to_string()))
-            .is_some_and(|s| s.starts_with("Parameters/"))
+        self.parameter_name_at(resource_id, path).is_some()
+    }
+
+    /// The parameter whose declaration stood in for the value at `path`, or `None`
+    /// when the value came from somewhere else. A value that is only known at
+    /// deployment is not necessarily a parameter - a cross-stack import and a
+    /// dynamic reference are equally unknown - so callers that describe a value to
+    /// a reader must ask rather than assume.
+    #[must_use]
+    pub fn parameter_name_at(&self, resource_id: &str, path: &str) -> Option<&str> {
+        let source = self.resolution_sources.get(&(resource_id.to_string(), path.to_string()))?;
+        parameter_name_from_source(source)
+    }
+
+    /// A key that two values share only when they are provably the same value, or
+    /// `None` when nothing about the value settles the question.
+    ///
+    /// A value that resolves before deployment is keyed by its contents, so the
+    /// authored form does not matter. A value that stays opaque is keyed by the
+    /// expression that produces it, because that is the only thing that can show
+    /// two such values are one value. Callers that compare keys must treat `None`
+    /// and two differing keys alike: neither proves the values differ, so neither
+    /// permits a claim that they are the same.
+    #[must_use]
+    pub fn value_identity(&self, resource_id: &str, path: &str) -> Option<String> {
+        let resolved = self.resolve_deep(resource_id, path).or_else(|| self.resolve(resource_id, path).cloned())?;
+        let as_json = crate::serialization::resolved_value_to_json(&resolved);
+        if !json_contains_markers(&as_json) {
+            let fingerprint = crate::value_identity::concrete_value_fingerprint(&as_json);
+            return Some(format!("value:{fingerprint}"));
+        }
+        let node = *self.value_nodes.get(&(resource_id.to_string(), path.to_string()))?;
+        crate::value_identity::expression_fingerprint(&self.arena, node)
+            .map(|fingerprint| format!("expr:{fingerprint}"))
     }
 
     /// True when the value at `path` (or any ancestor up to the resource root) was
@@ -1000,39 +1036,53 @@ impl SemanticModel {
         self.scenario_combinations_used.fetch_add(count, Ordering::Relaxed);
     }
 
+    fn resolved_properties_value(&self, resource_id: &str) -> Option<ResolvedValue> {
+        let resource = self.resources.get(resource_id)?;
+        if resource.properties_dynamic {
+            return None;
+        }
+        if resource.properties.len() == 1
+            && let Some(conditional) = resource.properties.get(FN_IF)
+        {
+            return Some(conditional.clone());
+        }
+        let mut entries: Vec<MapEntry> = resource
+            .properties
+            .iter()
+            .map(|(key, value)| MapEntry { key: key.clone(), value: value.clone() })
+            .collect();
+        entries.sort_by(|left, right| left.key.cmp(&right.key));
+        Some(ResolvedValue::Map { entries })
+    }
+
     pub fn resolve_properties_scenarios(&self, resource_id: &str) -> Vec<(ResolvedValue, HashMap<String, bool>)> {
         if self.scenario_budget_exhausted() {
             return vec![];
         }
-        let Some(resource) = self.resources.get(resource_id) else {
+        let Some(properties) = self.resolved_properties_value(resource_id) else {
             return vec![];
         };
-        if resource.properties_dynamic {
-            return vec![];
-        }
-
-        let properties = if resource.properties.len() == 1 {
-            resource.properties.get(FN_IF).cloned().unwrap_or_else(|| ResolvedValue::Map {
-                entries: resource
-                    .properties
-                    .iter()
-                    .map(|(key, value)| MapEntry { key: key.clone(), value: value.clone() })
-                    .collect(),
-            })
-        } else {
-            let mut entries: Vec<MapEntry> = resource
-                .properties
-                .iter()
-                .map(|(key, value)| MapEntry { key: key.clone(), value: value.clone() })
-                .collect();
-            entries.sort_by(|left, right| left.key.cmp(&right.key));
-            ResolvedValue::Map { entries }
-        };
-
         let mut results = Vec::new();
         collect_scenarios(&properties, &HashMap::new(), &mut results);
         self.scenario_combinations_used.fetch_add(results.len() as u64, Ordering::Relaxed);
         results
+    }
+
+    /// Returns the authored, branch-qualified source path for an effective path in
+    /// one resolved scenario. The returned path uses the same dotted form as
+    /// resolver source paths and can be passed to [`Self::resource_span`].
+    pub fn scenario_source_path(
+        &self,
+        resource_id: &str,
+        effective_path: &str,
+        conditions: &HashMap<String, bool>,
+    ) -> Option<String> {
+        let properties = self.resolved_properties_value(resource_id)?;
+        let relative_path = effective_path
+            .strip_prefix("Properties.")
+            .or_else(|| (effective_path == KEY_PROPERTIES).then_some(""))
+            .unwrap_or(effective_path);
+        scenario_source_path_at(&properties, relative_path, conditions, KEY_PROPERTIES)
     }
 
     pub fn resolve_scenarios(&self, resource_id: &str, path: &str) -> Vec<(ResolvedValue, HashMap<String, bool>)> {
@@ -1040,7 +1090,7 @@ impl SemanticModel {
         // materializing scenarios (the conservative truncation documented on
         // `MAX_TOTAL_SCENARIO_COMBINATIONS`). Checked before any resolution so an
         // exhausted call costs O(1), keeping a template with a flood of
-        // heavily-gated values bounded — the per-value `MAX_SCENARIO_COMBINATIONS`
+        // heavily-gated values bounded - the per-value `MAX_SCENARIO_COMBINATIONS`
         // cap alone does not bound the number of such values.
         if self.scenario_budget_exhausted() {
             return vec![];
@@ -1134,7 +1184,7 @@ impl SemanticModel {
     ///
     /// The span index is keyed with slash-separated paths, so a dotted,
     /// resource-relative path (`Properties.BucketName`) is normalized to slash
-    /// form before lookup — the same normalization [`Self::diagnostic_span`]
+    /// form before lookup - the same normalization [`Self::diagnostic_span`]
     /// applies. Callers pass paths in either form, so accepting only slash form
     /// here would silently mislocate every dotted-path diagnostic onto the
     /// resource declaration line.
@@ -1154,8 +1204,8 @@ impl SemanticModel {
             format!("Resources/{}/{}", resource_id, prop_path.replace('.', "/"))
         };
         // Walk up from the exact path to the nearest indexed ancestor, so a leaf that
-        // carries no span of its own — a synthetic intrinsic key (`…/Topic/Fn::Sub`),
-        // an `Fn::If` branch index — anchors at its closest real parent rather than
+        // carries no span of its own - a synthetic intrinsic key (`…/Topic/Fn::Sub`),
+        // an `Fn::If` branch index - anchors at its closest real parent rather than
         // collapsing straight to the resource declaration. The resource path itself is
         // the final ancestor, preserving the previous resource-level fallback.
         self.walk_up_span(&specific).unwrap_or(UNKNOWN_SPAN)
@@ -1163,7 +1213,7 @@ impl SemanticModel {
 
     /// Walks up `key` (a `/`-separated span-index path), trimming one trailing
     /// segment at a time, and returns the first ancestor with a known span. This
-    /// anchors a diagnostic as close to the offending node as the index allows —
+    /// anchors a diagnostic as close to the offending node as the index allows -
     /// an unindexed leaf (e.g. an `Fn::If` branch index) falls back to its parent
     /// property, then the resource, then the section.
     fn walk_up_span(&self, key: &str) -> Option<SourceSpan> {
@@ -1191,7 +1241,7 @@ impl SemanticModel {
     /// * A **slash** form (`Outputs/X/Value`, `Conditions/C/Fn::And`) is already an
     ///   absolute, section-rooted span-index key and is resolved as written.
     /// * A **dotted** or bare form (`Properties.Foo`, `Metadata`) is relative to the
-    ///   resource, so it is rooted at `Resources/<rid>` before lookup — never
+    ///   resource, so it is rooted at `Resources/<rid>` before lookup - never
     ///   matched against a same-named top-level section.
     ///
     /// Returns `None` when nothing along the chosen candidate is indexed, so callers
@@ -1230,9 +1280,20 @@ impl SemanticModel {
             .copied()
     }
 
-    pub fn estimate_string_length(&self, resource_id: &str, path: &str) -> Option<usize> {
+    /// Bounds on the length of a string value the template does not state
+    /// literally - one built by an intrinsic, or chosen from a parameter's
+    /// AllowedValues. `None` when the length cannot be pinned for every
+    /// possibility, and also when the template does state the value literally,
+    /// because schema validation checks a literal against the constraint directly.
+    ///
+    /// Both engines decide what to report from this one answer, so neither can
+    /// reach a different conclusion about the same property.
+    pub fn estimated_string_length_bounds(&self, resource_id: &str, path: &str) -> Option<(usize, usize)> {
         let val = self.resolve_deep(resource_id, path).or_else(|| self.resolve(resource_id, path).cloned())?;
-        estimate_resolved_string_length(&val)
+        if matches!(&val, ResolvedValue::Concrete { value } if value.is_string()) {
+            return None;
+        }
+        estimate_resolved_string_length_bounds(&val)
     }
 }
 
@@ -1343,7 +1404,16 @@ fn collect_refs_in_subtree(
     }
 }
 
-/// Some intrinsic nodes stand in for a whole object — most notably
+/// The parameter name inside a `resolution_sources` entry that records a value
+/// taken from a parameter declaration, such as `Parameters/InstanceType/Default`.
+/// A logical id never contains a separator, so the first segment is the whole name.
+fn parameter_name_from_source(source: &str) -> Option<&str> {
+    let rest = source.strip_prefix(SECTION_PARAMETERS)?.strip_prefix('/')?;
+    let name = rest.split('/').next()?;
+    if name.is_empty() { None } else { Some(name) }
+}
+
+/// Some intrinsic nodes stand in for a whole object - most notably
 /// `Properties: {Fn::If: [...]}` which the parser folds into an
 /// `IntrinsicFn::If` node. Return the CloudFormation function-name key
 /// (`Fn::If`, `Fn::ForEach::*`, etc.) when the node is one of these
@@ -1521,7 +1591,7 @@ fn resolve_resource(arena: &Arena, name: &str, node_ref: NodeRef, resolver: &mut
 ///
 /// When several `Fn::Sub` ARNs are list elements of the same property (e.g.
 /// `Principal.AWS.0.Fn::Sub`, `Principal.AWS.1.Fn::Sub`), they map to the same
-/// source span — the list's location — so they are one observable finding, not
+/// source span - the list's location - so they are one observable finding, not
 /// several. Paths whose only difference is the list index immediately before the
 /// trailing `.Fn::Sub` segment are therefore folded to the smallest index.
 fn collapse_list_sibling_arn_paths(paths: Vec<String>) -> Vec<String> {
@@ -1566,7 +1636,7 @@ fn split_trailing_list_index(path: &str) -> Option<(String, usize, String)> {
 /// the offending branch. Empty containers are accepted (they carry no members to
 /// stringify) and every other function (`Ref`, `Fn::Sub`, `Fn::Join`,
 /// `Fn::Select`, `Fn::FindInMap`, `Fn::ImportValue`, …) is treated as
-/// string-producing here — a `Fn::GetAtt` returning a non-string is caught later
+/// string-producing here - a `Fn::GetAtt` returning a non-string is caught later
 /// against the resource schema, which this parse-time shape check cannot see.
 fn check_output_value_is_string(arena: &Arena, value_ref: NodeRef, output_name: &str, resolver: &mut Resolver) {
     let build_path = format!("Outputs/{}/Value", output_name);
@@ -1996,6 +2066,28 @@ Resources:
     }
 
     #[test]
+    fn scenario_source_path_maps_effective_indexes_to_authored_branches() {
+        let input = br#"{
+            "Parameters": {"Mode": {"Type": "String"}},
+            "Conditions": {"ChooseFirst": {"Fn::Equals": [{"Ref": "Mode"}, "first"]}},
+            "Resources": {"R": {"Type": "T", "Properties": {
+                "Values": {"Fn::If": ["ChooseFirst", ["bad"], ["good"]]}
+            }}}
+        }"#;
+        let model = SemanticModel::from_bytes(input).unwrap();
+        let true_conditions = HashMap::from([("ChooseFirst".to_string(), true)]);
+        let false_conditions = HashMap::from([("ChooseFirst".to_string(), false)]);
+        assert_eq!(
+            model.scenario_source_path("R", "Properties.Values.0", &true_conditions),
+            Some("Properties.Values.Fn::If.1.0".to_string())
+        );
+        assert_eq!(
+            model.scenario_source_path("R", "Properties.Values.0", &false_conditions),
+            Some("Properties.Values.Fn::If.2.0".to_string())
+        );
+    }
+
+    #[test]
     fn resolve_scenarios_json_filters_dynamic() {
         let input = r#"{"Resources":{"R":{"Type":"T","Properties":{"V":{"Fn::ImportValue":"Stack"}}}}}"#;
         let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
@@ -2025,7 +2117,7 @@ Resources:
     fn cumulative_scenario_budget_accumulates_across_queries_then_halts_expansion() {
         // A conditional property resolves into more than one scenario, so each
         // resolve_scenarios call charges a non-zero, deterministic amount to the
-        // model's shared cumulative scenario counter — enough to prove queries
+        // model's shared cumulative scenario counter - enough to prove queries
         // accumulate. resolve_scenarios is not memoized, so repeating the same
         // query re-charges.
         let input = br#"{
@@ -2041,7 +2133,7 @@ Resources:
             "a freshly built model's cumulative scenario budget is not exhausted"
         );
 
-        // (1) Real queries accumulate across queries — a per-query reset would
+        // (1) Real queries accumulate across queries - a per-query reset would
         // be a silent denial-of-service regression. The conditional value must
         // expand into more than one scenario, and the counter must reflect
         // exactly what was produced.
@@ -2108,17 +2200,35 @@ Resources:
     }
 
     #[test]
-    fn estimate_string_length_concrete_property() {
+    fn estimated_bounds_are_absent_for_a_literal_string() {
+        // Schema validation checks a literal against its constraint directly, so
+        // the estimating rule is deliberately given nothing for one.
         let input = r#"{"Resources":{"R":{"Type":"T","Properties":{"V":"hello"}}}}"#;
         let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
-        assert_eq!(model.estimate_string_length("R", "Properties.V"), Some(5));
+        assert_eq!(model.estimated_string_length_bounds("R", "Properties.V"), None);
+    }
+
+    #[test]
+    fn estimated_bounds_span_every_allowed_value() {
+        let input = r#"{"Parameters":{"Size":{"Type":"String","AllowedValues":["xs","large"]}},
+            "Resources":{"R":{"Type":"T","Properties":{"V":{"Ref":"Size"}}}}}"#;
+        let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        assert_eq!(model.estimated_string_length_bounds("R", "Properties.V"), Some((2, 5)));
+    }
+
+    #[test]
+    fn estimated_bounds_are_absent_when_a_possibility_is_unknown() {
+        let input = r#"{"Parameters":{"Free":{"Type":"String"}},
+            "Resources":{"R":{"Type":"T","Properties":{"V":{"Ref":"Free"}}}}}"#;
+        let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        assert_eq!(model.estimated_string_length_bounds("R", "Properties.V"), None);
     }
 
     #[test]
     fn estimate_string_length_missing_property() {
         let input = r#"{"Resources":{"R":{"Type":"T","Properties":{"V":"hello"}}}}"#;
         let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
-        assert!(model.estimate_string_length("R", "Properties.Missing").is_none());
+        assert!(model.estimated_string_length_bounds("R", "Properties.Missing").is_none());
     }
 
     #[test]
@@ -2135,7 +2245,7 @@ Resources:
         let input = "Resources:\n  R:\n    Type: T\n    Properties:\n      Name: hello\n";
         let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
         // A dotted, resource-relative path must resolve to the SAME specific span
-        // as its slash-form equivalent — not fall back to the resource span.
+        // as its slash-form equivalent - not fall back to the resource span.
         let dotted = model.resource_span("R", "Properties.Name");
         let slashed = model.resource_span("R", "Properties/Name");
         let resource = model.resource_span("R", "");
@@ -2176,7 +2286,7 @@ Resources:
             "Outputs:\n  Combined:\n    Value: !Join [\"\", [\"a\", \"b\"]]\n", // lines 4-6
         );
         let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
-        // The `Value` node is indexed (line 6) — resolution lands on it exactly.
+        // The `Value` node is indexed (line 6) - resolution lands on it exactly.
         let value = model.resource_span("", "Outputs/Combined/Value");
         assert_eq!(value.start_line, 6, "Outputs/Combined/Value is on line 6, got {:?}", value);
         // The output key itself resolves to its own line (line 5).
@@ -2191,7 +2301,7 @@ Resources:
         // keys contain literal dots inside a single segment (e.g. API Gateway's
         // `method.request.path.proxy`), so splitting on dots would shred those paths and
         // mis-anchor. The walk-up therefore trims the whole `Value.Fn::Join` segment on
-        // the nearest `/`, landing on the enclosing output — still within Outputs, never
+        // the nearest `/`, landing on the enclosing output - still within Outputs, never
         // on the Resources block. Both engines resolve this identically, which is what
         // keeps them at parity.
         let input = concat!(
@@ -2288,8 +2398,8 @@ Resources:
 
     /// `fixed_value` underpins the SAT-solver decision "treat this pseudo-param
     /// as a constant or a free variable". It must return `Some` only when the
-    /// caller pinned the corresponding field — never for region-derived
-    /// defaults — otherwise `Fn::Equals[Ref AWS::Partition, "aws"]` would be
+    /// caller pinned the corresponding field - never for region-derived
+    /// defaults - otherwise `Fn::Equals[Ref AWS::Partition, "aws"]` would be
     /// falsely deterministic and `find_unreachable_branches` would emit
     /// false-positive unreachable-branch diagnostics.
     #[test]
@@ -2311,6 +2421,36 @@ Resources:
                 "{name} must be a free variable when the user has not explicitly pinned it"
             );
         }
+    }
+
+    #[test]
+    fn parameter_name_at_names_the_parameter_behind_a_value() {
+        let input = r#"{"Parameters":{"BucketName":{"Type":"String"}},
+            "Resources":{"R":{"Type":"AWS::S3::Bucket","Properties":{"BucketName":{"Ref":"BucketName"}}}}}"#;
+        let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        assert_eq!(model.parameter_name_at("R", "Properties.BucketName"), Some("BucketName"));
+        assert!(model.is_from_parameter("R", "Properties.BucketName"));
+    }
+
+    #[test]
+    fn parameter_name_at_is_absent_for_a_value_no_parameter_produced() {
+        // A cross-stack import is unknown until deployment without being a
+        // parameter, so nothing may name one.
+        let input = r#"{"Resources":{"R":{"Type":"AWS::S3::Bucket",
+            "Properties":{"BucketName":{"Fn::ImportValue":"SharedName"}}}}}"#;
+        let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        assert_eq!(model.parameter_name_at("R", "Properties.BucketName"), None);
+        assert!(!model.is_from_parameter("R", "Properties.BucketName"));
+    }
+
+    #[test]
+    fn parameter_name_from_source_reads_only_a_parameter_entry() {
+        assert_eq!(parameter_name_from_source("Parameters/InstanceType/Default"), Some("InstanceType"));
+        assert_eq!(parameter_name_from_source("Parameters/InstanceType/AllowedValues"), Some("InstanceType"));
+        assert_eq!(parameter_name_from_source("Parameters/InstanceType"), Some("InstanceType"));
+        assert_eq!(parameter_name_from_source("Intrinsic/Ref"), None);
+        assert_eq!(parameter_name_from_source("Parameters/"), None);
+        assert_eq!(parameter_name_from_source("ParametersLookAlike/Name"), None);
     }
 
     #[test]
@@ -2345,7 +2485,7 @@ Resources:
         assert_eq!(
             overrides.fixed_value("AWS::Partition"),
             None,
-            "region override must not propagate to partition — partition stays free unless the caller pins it"
+            "region override must not propagate to partition - partition stays free unless the caller pins it"
         );
     }
 

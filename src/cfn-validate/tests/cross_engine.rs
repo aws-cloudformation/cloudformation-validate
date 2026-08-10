@@ -25,7 +25,7 @@ fn find_rule<'a>(rules: &'a [RuleInfo], id: &str) -> &'a RuleInfo {
 }
 
 fn validate_template(engine: &dyn ValidationEngine, template: &str) -> Vec<Diagnostic> {
-    let sv = SchemaValidator::new();
+    let sv = SchemaValidator::default();
     let bytes = load_template(template);
     validate_bytes(engine, &sv, &bytes, Default::default()).unwrap().diagnostics
 }
@@ -35,9 +35,65 @@ fn validate_template_with_config(
     template: &str,
     config: ValidateConfig,
 ) -> Vec<Diagnostic> {
-    let sv = SchemaValidator::new();
+    let sv = SchemaValidator::default();
     let bytes = load_template(template);
     validate_bytes(engine, &sv, &bytes, config).unwrap().diagnostics
+}
+
+/// A length constraint is only reported broken when it is broken whichever value
+/// the deployment picks, and both engines must reach that conclusion from the same
+/// evidence. Before both engines shared one estimate they disagreed here: one
+/// reported a length taken from an internal placeholder while the other stayed
+/// silent, and neither outcome came from what the template would actually deploy.
+#[test]
+fn string_length_findings_are_identical_between_engines() {
+    for template in ["bad/W9006_every_allowed_value_too_long.json", "good/string_length_unknowable_values.json"] {
+        let rego = validate_template(&*REGO, template);
+        let cel = validate_template(&*CEL, template);
+        let findings = |diags: &[Diagnostic]| -> Vec<String> {
+            let mut messages: Vec<String> =
+                diags.iter().filter(|d| d.rule_id == "W9006").map(|d| d.message.clone()).collect();
+            messages.sort();
+            messages
+        };
+        assert_eq!(findings(&rego), findings(&cel), "{template}: engines disagree on W9006");
+    }
+}
+
+/// The estimate may only cite a length some deployment actually produces.
+#[test]
+fn string_length_is_reported_only_when_every_possible_value_breaks_it() {
+    let expected = "String length 78 exceeds maximum 63 for property 'BucketName'";
+    for (engine_name, diags) in [
+        ("rego", validate_template(&*REGO, "bad/W9006_every_allowed_value_too_long.json")),
+        ("cel", validate_template(&*CEL, "bad/W9006_every_allowed_value_too_long.json")),
+    ] {
+        let messages: Vec<&str> = diags.iter().filter(|d| d.rule_id == "W9006").map(|d| d.message.as_str()).collect();
+        assert_eq!(messages, vec![expected], "[{engine_name}] every allowed value is too long, so W9006 stands");
+    }
+
+    for (engine_name, diags) in [
+        ("rego", validate_template(&*REGO, "good/string_length_unknowable_values.json")),
+        ("cel", validate_template(&*CEL, "good/string_length_unknowable_values.json")),
+    ] {
+        let messages: Vec<&str> = diags.iter().filter(|d| d.rule_id == "W9006").map(|d| d.message.as_str()).collect();
+        assert!(
+            messages.is_empty(),
+            "[{engine_name}] no length is known for every possible value, so nothing may be reported: {messages:?}"
+        );
+    }
+}
+
+#[test]
+fn duplicate_objects_are_compared_by_contents_in_both_engines() {
+    let template = "bad/W9007_duplicate_objects_different_key_order.yaml";
+    for (engine_name, diags) in
+        [("rego", validate_template(&*REGO, template)), ("cel", validate_template(&*CEL, template))]
+    {
+        let findings: Vec<&Diagnostic> = diags.iter().filter(|d| d.rule_id == "W9007").collect();
+        assert_eq!(findings.len(), 1, "[{engine_name}] equal object items must remain a duplicate");
+        assert_eq!(findings[0].property_path.as_deref(), Some("Properties.PlacementConstraints"));
+    }
 }
 
 fn custom_config(engine: &str) -> EngineConfig {
@@ -46,7 +102,11 @@ fn custom_config(engine: &str) -> EngineConfig {
     } else {
         ("cel_custom.json", load_rule("cel_custom.json"))
     };
-    EngineConfig { custom_rules: vec![ExternalRuleSource { name: name.into(), content }], guard_rules: vec![] }
+    EngineConfig {
+        custom_rules: vec![ExternalRuleSource { name: name.into(), content }],
+        guard_rules: vec![],
+        ..Default::default()
+    }
 }
 
 fn arbitrary_id_config(engine: &str) -> EngineConfig {
@@ -55,7 +115,11 @@ fn arbitrary_id_config(engine: &str) -> EngineConfig {
     } else {
         ("cel_arbitrary_id.json", load_rule("cel_arbitrary_id.json"))
     };
-    EngineConfig { custom_rules: vec![ExternalRuleSource { name: name.into(), content }], guard_rules: vec![] }
+    EngineConfig {
+        custom_rules: vec![ExternalRuleSource { name: name.into(), content }],
+        guard_rules: vec![],
+        ..Default::default()
+    }
 }
 
 fn guard_config() -> EngineConfig {
@@ -65,6 +129,7 @@ fn guard_config() -> EngineConfig {
             name: "guard_encryption.guard".into(),
             content: load_rule("guard_encryption.guard"),
         }],
+        ..Default::default()
     }
 }
 
@@ -80,6 +145,7 @@ fn single_combined_config(engine: &str) -> EngineConfig {
             name: "guard_encryption.guard".into(),
             content: load_rule("guard_encryption.guard"),
         }],
+        ..Default::default()
     }
 }
 
@@ -95,6 +161,7 @@ fn multi_combined_config(engine: &str) -> EngineConfig {
             ExternalRuleSource { name: "guard_encryption.guard".into(), content: load_rule("guard_encryption.guard") },
             ExternalRuleSource { name: "guard_multi.guard".into(), content: load_rule("guard_multi.guard") },
         ],
+        ..Default::default()
     }
 }
 
@@ -302,7 +369,7 @@ fn assert_metadata_maps_identical(
     assert_eq!(
         cel_meta.len(),
         rego_meta.len(),
-        "{label}: entry count differs — cel={} rego={}",
+        "{label}: entry count differs - cel={} rego={}",
         cel_meta.len(),
         rego_meta.len()
     );
@@ -310,7 +377,7 @@ fn assert_metadata_maps_identical(
         let rego_entry = rego_meta.get(id).unwrap_or_else(|| panic!("{label}: rule {id} in cel but not rego"));
         assert_eq!(
             cel_entry, rego_entry,
-            "{label}: rule {id} metadata differs — cel={cel_entry:?} rego={rego_entry:?}"
+            "{label}: rule {id} metadata differs - cel={cel_entry:?} rego={rego_entry:?}"
         );
     }
     for id in rego_meta.keys() {
@@ -384,6 +451,31 @@ fn multi_combined_external_rule_metadata_identical_between_engines() {
 }
 
 #[test]
+fn iam_action_resource_findings_target_authored_fields_in_both_engines() {
+    let template = "bad/functions/sub_needed.yaml";
+    for (engine_name, diagnostics) in
+        [("rego", validate_template(&*REGO, template)), ("cel", validate_template(&*CEL, template))]
+    {
+        let findings: Vec<&Diagnostic> = diagnostics.iter().filter(|d| d.rule_id == "I3510").collect();
+        assert_eq!(findings.len(), 2, "[{engine_name}] expected both incompatible IAM statements");
+        assert!(
+            findings.iter().any(|d| {
+                d.property_path.as_deref() == Some("Properties.PolicyDocument.Statement.0.Resource")
+                    && d.location.as_ref().is_some_and(|span| span.start_line == 25)
+            }),
+            "[{engine_name}] Resource finding should target line 25: {findings:?}"
+        );
+        assert!(
+            findings.iter().any(|d| {
+                d.property_path.as_deref() == Some("Properties.PolicyDocument.Statement.1.NotResource")
+                    && d.location.as_ref().is_some_and(|span| span.start_line == 29)
+            }),
+            "[{engine_name}] NotResource finding should target line 29: {findings:?}"
+        );
+    }
+}
+
+#[test]
 fn good_templates_produce_no_fatal_or_error_diagnostics() {
     let new_rule_ids: std::collections::HashSet<&str> = [
         "E1002", "E1005", "E1015", "E1016", "E1027", "F1030", "F1031", "F1032", "E1033", "E1051", "E1052", "E3011",
@@ -394,7 +486,7 @@ fn good_templates_produce_no_fatal_or_error_diagnostics() {
     .into_iter()
     .collect();
 
-    let sv = SchemaValidator::new();
+    let sv = SchemaValidator::default();
     let root = common::templates_dir().join("good");
     let mut failures = Vec::new();
     for (engine_name, engine) in [("cel", &*CEL as &dyn ValidationEngine), ("rego", &*REGO as &dyn ValidationEngine)] {
@@ -429,7 +521,7 @@ fn good_templates_produce_no_fatal_or_error_diagnostics() {
 /// implicit-resource handling does not false-positive on valid templates.
 #[test]
 fn good_sam_templates_are_clean_on_both_engines() {
-    let sv = SchemaValidator::new();
+    let sv = SchemaValidator::default();
     let root = common::templates_dir().join("good").join("sam");
     let mut failures = Vec::new();
     for (engine_name, engine) in [("cel", &*CEL as &dyn ValidationEngine), ("rego", &*REGO as &dyn ValidationEngine)] {
@@ -453,10 +545,10 @@ fn good_sam_templates_are_clean_on_both_engines() {
 
 /// Every `bad/sam` template must produce identical diagnostics on both engines,
 /// and each must fire the SAM transform-error rule (E0001) or the
-/// missing-transform rule (E3038) — the engines stay at parity on SAM handling.
+/// missing-transform rule (E3038) - the engines stay at parity on SAM handling.
 #[test]
 fn bad_sam_templates_fire_identically_on_both_engines() {
-    let sv = SchemaValidator::new();
+    let sv = SchemaValidator::default();
     let root = common::templates_dir().join("bad").join("sam");
     for entry in walkdir(&root) {
         let bytes = std::fs::read(&entry).unwrap();
@@ -487,7 +579,7 @@ fn intrinsic_and_condition_fixtures_fire_identically_on_both_engines() {
     // The intrinsic/condition rules reworked to emit from the shared model must
     // produce byte-identical diagnostics on both engines. Assert full parity
     // (all severities) on the fixtures that exercise them.
-    let sv = SchemaValidator::new();
+    let sv = SchemaValidator::default();
     let fixtures = [
         "bad/E1050_dynamic_ref_malformed.yaml",
         "bad/W1051_secretsmanager_at_arn.yaml",

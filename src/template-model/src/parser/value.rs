@@ -3,7 +3,7 @@
 //! Both the JSON (`serde_json::Value`) and YAML (`yaml_rust2::Yaml`) front-ends
 //! implement [`ParseValue`] so the intrinsic dispatch in [`super::builder`] can be
 //! written once. Keeping the two formats behind one trait is what guarantees JSON
-//! and YAML produce identical diagnostics — there is a single code path, so they
+//! and YAML produce identical diagnostics - there is a single code path, so they
 //! cannot drift.
 //!
 //! Scalar coercion follows YAML/CloudFormation semantics: an unquoted scalar where
@@ -73,7 +73,7 @@ pub trait ParseValue {
         self.kind() == ValueKind::Null
     }
 
-    /// True when this value is a single-key object — the shape every intrinsic
+    /// True when this value is a single-key object - the shape every intrinsic
     /// function takes (`{ "Fn::X": ... }` / `{ "Ref": ... }` / `{ "Condition": ... }`).
     fn single_key(&self) -> Option<(String, Self)>
     where
