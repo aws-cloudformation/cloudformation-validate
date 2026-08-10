@@ -1048,15 +1048,15 @@ export interface ReportMetadata {
     /**
      * Number of rules that were active for this run after any category exclusions.
      */
-    rulesEvaluated?: number;
+    rulesEvaluated: number;
     /**
      * Source-qualified cfn-lint version used to sync bundled derived data.
      */
-    cfnLintVersion?: string;
+    cfnLintVersion: string;
     /**
      * Source-qualified enhanced resource-schema version used for the bundled provider schemas.
      */
-    resourceSchemaVersion?: string;
+    resourceSchemaVersion: string;
     resourcesScanned: number;
     /**
      * Tally of reported diagnostics by severity.
