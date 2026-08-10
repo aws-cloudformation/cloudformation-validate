@@ -7448,15 +7448,15 @@
   },
   "bad/core/parse_invalid_map.yaml": {
     "filePath": "bad/core/parse_invalid_map.yaml",
-    "status": "ERROR",
+    "status": "OK",
     "version": "1.8.0",
     "metadata": {
-      "resourcesScanned": 0,
+      "resourcesScanned": 1,
       "counts": {
-        "fatal": 1,
+        "fatal": 5,
         "errors": 0,
-        "warnings": 0,
-        "informational": 0,
+        "warnings": 2,
+        "informational": 2,
         "debug": 0
       },
       "suppressed": 0,
@@ -7465,116 +7465,195 @@
     },
     "diagnostics": [
       {
-        "ruleId": "F1101",
+        "ruleId": "F1020",
         "severity": "FATAL",
-        "message": "Complex key not supported (line 18)",
+        "message": "Fn::GetAtt references non-existent resource 'NodeLaunchTemplate'",
         "source": "SCHEMA",
-        "category": "Structure",
-        "startLine": 18,
-        "startColumn": 54,
-        "endLine": 18,
-        "endColumn": 54,
-        "ruleDescription": "Invalid YAML/JSON syntax",
-        "phase": "PARSE"
-      }
-    ]
-  },
-  "bad/core/parse_malformed_core_tag.yaml": {
-    "filePath": "bad/core/parse_malformed_core_tag.yaml",
-    "status": "ERROR",
-    "version": "1.8.0",
-    "metadata": {
-      "resourcesScanned": 0,
-      "counts": {
-        "fatal": 1,
-        "errors": 0,
-        "warnings": 0,
-        "informational": 0,
-        "debug": 0
+        "entity": {
+          "logicalId": "NodeGroup",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::AutoScalingGroup"
+        },
+        "suggestedFix": "Check that the GetAtt target resource exists in the template",
+        "category": "Intrinsic Function",
+        "startLine": 2,
+        "startColumn": 3,
+        "endLine": 2,
+        "endColumn": 12,
+        "ruleDescription": "Ref/GetAtt target must exist",
+        "phase": "SCHEMA"
       },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
       {
-        "ruleId": "F1101",
+        "ruleId": "F1020",
         "severity": "FATAL",
-        "message": "YAML parse error: 'not_a_number' is not a valid value for !!int",
+        "message": "'NodeAutoScalingGroupDesiredCapacity' is not one of ['AWS::AccountId', 'AWS::NoValue', 'AWS::NotificationARNs', 'AWS::Partition', 'AWS::Region', 'AWS::StackId', 'AWS::StackName', 'AWS::URLSuffix', 'NodeGroup']",
         "source": "SCHEMA",
-        "category": "Structure",
-        "startLine": 8,
-        "startColumn": 25,
-        "endLine": 8,
-        "endColumn": 25,
-        "ruleDescription": "Invalid YAML/JSON syntax",
-        "phase": "PARSE"
-      }
-    ]
-  },
-  "bad/core/parse_multiple_documents.yaml": {
-    "filePath": "bad/core/parse_multiple_documents.yaml",
-    "status": "ERROR",
-    "version": "1.8.0",
-    "metadata": {
-      "resourcesScanned": 0,
-      "counts": {
-        "fatal": 1,
-        "errors": 0,
-        "warnings": 0,
-        "informational": 0,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "F1101",
-        "severity": "FATAL",
-        "message": "expected a single document in the stream but found another document",
-        "source": "SCHEMA",
-        "category": "Structure",
-        "startLine": 7,
-        "startColumn": 1,
-        "endLine": 7,
-        "endColumn": 1,
-        "ruleDescription": "Invalid YAML/JSON syntax",
-        "phase": "PARSE"
-      }
-    ]
-  },
-  "bad/core/parse_null_key.yaml": {
-    "filePath": "bad/core/parse_null_key.yaml",
-    "status": "ERROR",
-    "version": "1.8.0",
-    "metadata": {
-      "resourcesScanned": 0,
-      "counts": {
-        "fatal": 1,
-        "errors": 0,
-        "warnings": 0,
-        "informational": 0,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "F1101",
-        "severity": "FATAL",
-        "message": "Null key not supported (line 7)",
-        "source": "SCHEMA",
-        "category": "Structure",
-        "startLine": 7,
+        "entity": {
+          "logicalId": "NodeGroup",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::AutoScalingGroup"
+        },
+        "propertyPath": "Properties.DesiredCapacity",
+        "suggestedFix": "Check that the Ref target exists as a resource, parameter, or pseudo-parameter",
+        "category": "Intrinsic Function",
+        "startLine": 5,
         "startColumn": 7,
+        "endLine": 5,
+        "endColumn": 22,
+        "ruleDescription": "Ref/GetAtt target must exist",
+        "phase": "SCHEMA",
+        "context": {
+          "resolutionSource": "dynamic (unknown ref target: NodeAutoScalingGroupDesiredCapacity)"
+        }
+      },
+      {
+        "ruleId": "F1020",
+        "severity": "FATAL",
+        "message": "'NodeLaunchTemplate' is not one of ['AWS::AccountId', 'AWS::NoValue', 'AWS::NotificationARNs', 'AWS::Partition', 'AWS::Region', 'AWS::StackId', 'AWS::StackName', 'AWS::URLSuffix', 'NodeGroup']",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "NodeGroup",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::AutoScalingGroup"
+        },
+        "propertyPath": "Properties.LaunchTemplate.LaunchTemplateId",
+        "suggestedFix": "Check that the Ref target exists as a resource, parameter, or pseudo-parameter",
+        "category": "Intrinsic Function",
+        "startLine": 7,
+        "startColumn": 9,
         "endLine": 7,
-        "endColumn": 7,
-        "ruleDescription": "Invalid YAML/JSON syntax",
-        "phase": "PARSE"
+        "endColumn": 25,
+        "ruleDescription": "Ref/GetAtt target must exist",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F1020",
+        "severity": "FATAL",
+        "message": "'NodeAutoScalingGroupMaxSize' is not one of ['AWS::AccountId', 'AWS::NoValue', 'AWS::NotificationARNs', 'AWS::Partition', 'AWS::Region', 'AWS::StackId', 'AWS::StackName', 'AWS::URLSuffix', 'NodeGroup']",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "NodeGroup",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::AutoScalingGroup"
+        },
+        "propertyPath": "Properties.MaxSize",
+        "suggestedFix": "Check that the Ref target exists as a resource, parameter, or pseudo-parameter",
+        "category": "Intrinsic Function",
+        "startLine": 9,
+        "startColumn": 7,
+        "endLine": 9,
+        "endColumn": 14,
+        "ruleDescription": "Ref/GetAtt target must exist",
+        "phase": "SCHEMA",
+        "context": {
+          "resolutionSource": "dynamic (unknown ref target: NodeAutoScalingGroupMaxSize)"
+        }
+      },
+      {
+        "ruleId": "F1020",
+        "severity": "FATAL",
+        "message": "'NodeAutoScalingGroupMinSize' is not one of ['AWS::AccountId', 'AWS::NoValue', 'AWS::NotificationARNs', 'AWS::Partition', 'AWS::Region', 'AWS::StackId', 'AWS::StackName', 'AWS::URLSuffix', 'NodeGroup']",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "NodeGroup",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::AutoScalingGroup"
+        },
+        "propertyPath": "Properties.MinSize",
+        "suggestedFix": "Check that the Ref target exists as a resource, parameter, or pseudo-parameter",
+        "category": "Intrinsic Function",
+        "startLine": 10,
+        "startColumn": 7,
+        "endLine": 10,
+        "endColumn": 14,
+        "ruleDescription": "Ref/GetAtt target must exist",
+        "phase": "SCHEMA",
+        "context": {
+          "resolutionSource": "dynamic (unknown ref target: NodeAutoScalingGroupMinSize)"
+        }
+      },
+      {
+        "ruleId": "W1020",
+        "severity": "WARN",
+        "message": "Fn::Sub isn't needed because there are no variables",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "NodeGroup",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::AutoScalingGroup"
+        },
+        "propertyPath": "Properties.Tags.0.Value",
+        "category": "Best Practice",
+        "startLine": 14,
+        "startColumn": 11,
+        "endLine": 14,
+        "endColumn": 16,
+        "ruleDescription": "Sub isn't needed if it doesn't have a variable defined",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1020",
+        "severity": "WARN",
+        "message": "Fn::Sub isn't needed because there are no variables",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "NodeGroup",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::AutoScalingGroup"
+        },
+        "propertyPath": "Properties.Tags.1.Key",
+        "category": "Best Practice",
+        "startLine": 15,
+        "startColumn": 11,
+        "endLine": 15,
+        "endColumn": 14,
+        "ruleDescription": "Sub isn't needed if it doesn't have a variable defined",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'LaunchTemplate' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "NodeGroup",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::AutoScalingGroup"
+        },
+        "propertyPath": "Properties.LaunchTemplate",
+        "category": "Best Practice",
+        "startLine": 6,
+        "startColumn": 7,
+        "endLine": 6,
+        "endColumn": 21,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'VPCZoneIdentifier' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "NodeGroup",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::AutoScalingGroup"
+        },
+        "propertyPath": "Properties.VPCZoneIdentifier",
+        "category": "Best Practice",
+        "startLine": 18,
+        "startColumn": 7,
+        "endLine": 18,
+        "endColumn": 24,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only",
+          "resolutionSource": "dynamic (Join with non-string elements)"
+        }
       }
     ]
   },
@@ -8573,7 +8652,7 @@
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
-        "fatal": 3,
+        "fatal": 2,
         "errors": 0,
         "warnings": 0,
         "informational": 3,
@@ -8584,25 +8663,6 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
-      {
-        "ruleId": "F0000",
-        "severity": "FATAL",
-        "message": "Duplicate key 'MySNSTopic'",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "MySNSTopic",
-          "entityType": "Resource",
-          "resourceType": "AWS::SNS::Topic"
-        },
-        "propertyPath": "Resources/MySNSTopic",
-        "category": "Structure",
-        "startLine": 5,
-        "startColumn": 3,
-        "endLine": 5,
-        "endColumn": 14,
-        "ruleDescription": "Duplicate key in template",
-        "phase": "PARSE"
-      },
       {
         "ruleId": "F0000",
         "severity": "FATAL",
@@ -8713,7 +8773,7 @@
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
-        "fatal": 3,
+        "fatal": 2,
         "errors": 0,
         "warnings": 0,
         "informational": 2,
@@ -8724,25 +8784,6 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
-      {
-        "ruleId": "F0000",
-        "severity": "FATAL",
-        "message": "Duplicate key 'mySnsTopic'",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "mySnsTopic",
-          "entityType": "Resource",
-          "resourceType": "AWS::SNS::Topic"
-        },
-        "propertyPath": "Resources/mySnsTopic",
-        "category": "Structure",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 13,
-        "ruleDescription": "Duplicate key in template",
-        "phase": "PARSE"
-      },
       {
         "ruleId": "F0000",
         "severity": "FATAL",
@@ -137352,25 +137393,6 @@
         "phase": "LINT"
       }
     ]
-  },
-  "good/decode/yaml11_scalars.yaml": {
-    "filePath": "good/decode/yaml11_scalars.yaml",
-    "status": "OK",
-    "version": "1.8.0",
-    "metadata": {
-      "resourcesScanned": 1,
-      "counts": {
-        "fatal": 0,
-        "errors": 0,
-        "warnings": 0,
-        "informational": 0,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": []
   },
   "good/deletion_policies.yaml": {
     "filePath": "good/deletion_policies.yaml",
