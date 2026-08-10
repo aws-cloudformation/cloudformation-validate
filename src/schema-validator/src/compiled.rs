@@ -180,6 +180,10 @@ pub struct PropSchema {
     pub dependent_required: HashMap<String, Vec<String>>,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub dependent_excluded: HashMap<String, Vec<String>>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub required_or: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub required_xor: Vec<String>,
 }
 
 fn skip_unless_true(value: &Option<bool>) -> bool {
@@ -304,6 +308,8 @@ impl PropSchema {
             if_then_else,
             dependent_required,
             dependent_excluded,
+            required_or,
+            required_xor,
         } = self;
         ref_name.is_some()
             || prop_type.is_some()
@@ -336,6 +342,8 @@ impl PropSchema {
             || !if_then_else.is_empty()
             || !dependent_required.is_empty()
             || !dependent_excluded.is_empty()
+            || !required_or.is_empty()
+            || !required_xor.is_empty()
     }
 
     fn has_own_constraints(&self) -> bool {
@@ -373,6 +381,8 @@ impl PropSchema {
             if_then_else,
             dependent_required,
             dependent_excluded,
+            required_or,
+            required_xor,
         } = self;
         prop_type.is_some()
             || !enum_values.is_empty()
@@ -405,6 +415,8 @@ impl PropSchema {
             || !if_then_else.is_empty()
             || !dependent_required.is_empty()
             || !dependent_excluded.is_empty()
+            || !required_or.is_empty()
+            || !required_xor.is_empty()
     }
 }
 
@@ -486,6 +498,24 @@ mod tests {
         let schema = PropSchema { ref_name: Some("MyDef".into()), ..Default::default() };
         let resolved = schema.resolve(&defs);
         assert_eq!(resolved.prop_type.as_ref().unwrap().primary(), Some("integer"));
+    }
+
+    #[test]
+    fn resolve_keeps_required_groups_stated_beside_ref() {
+        let mut defs = HashMap::new();
+        defs.insert(
+            "Config".into(),
+            PropSchema { prop_type: Some(PropType::Single("object".into())), ..Default::default() },
+        );
+        let schema = PropSchema {
+            ref_name: Some("Config".into()),
+            required_or: vec!["A".into(), "B".into()],
+            required_xor: vec!["C".into(), "D".into()],
+            ..Default::default()
+        };
+        let resolved = schema.resolve(&defs);
+        assert_eq!(resolved.required_or, vec!["A".to_string(), "B".to_string()]);
+        assert_eq!(resolved.required_xor, vec!["C".to_string(), "D".to_string()]);
     }
 
     #[test]
@@ -663,5 +693,30 @@ mod tests {
         let json_str = serde_json::to_string(&sub).unwrap();
         let deserialized: SubSchema = serde_json::from_str(&json_str).unwrap();
         assert_eq!(deserialized.dependent_required.get("A").unwrap(), &vec!["B".to_string(), "C".to_string()]);
+    }
+
+    #[test]
+    fn required_or_xor_serialization_roundtrip_and_default_omission() {
+        let empty = PropSchema::default();
+        let json_str = serde_json::to_string(&empty).unwrap();
+        assert!(!json_str.contains("required_or"), "empty required_or must be omitted from serialized output");
+        assert!(!json_str.contains("required_xor"), "empty required_xor must be omitted from serialized output");
+
+        let schema = PropSchema {
+            required_or: vec!["A".into(), "B".into()],
+            required_xor: vec!["C".into(), "D".into()],
+            ..Default::default()
+        };
+        let json_str = serde_json::to_string(&schema).unwrap();
+        assert!(json_str.contains("required_or"), "populated required_or must be serialized, got: {}", json_str);
+        assert!(json_str.contains("required_xor"), "populated required_xor must be serialized, got: {}", json_str);
+
+        let deserialized: PropSchema = serde_json::from_str(&json_str).unwrap();
+        assert_eq!(deserialized.required_or, vec!["A".to_string(), "B".to_string()]);
+        assert_eq!(deserialized.required_xor, vec!["C".to_string(), "D".to_string()]);
+
+        let minimal: PropSchema = serde_json::from_str("{}").unwrap();
+        assert!(minimal.required_or.is_empty(), "missing required_or deserializes to empty");
+        assert!(minimal.required_xor.is_empty(), "missing required_xor deserializes to empty");
     }
 }
