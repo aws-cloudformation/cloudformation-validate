@@ -272,7 +272,7 @@ fn validate_identity_statement(stmt: &Value, path: &str, substituted: &HashSet<S
 /// Validates the IAM Condition block structure and each context value that can
 /// be decided statically.
 fn validate_condition_block(condition: &Value, path: &str, out: &mut Vec<PolicyFinding>) {
-    if is_resolution_marker(condition) && !condition.is_object() {
+    if is_resolution_marker(condition) {
         return;
     }
     let Some(operators) = condition.as_object() else {
@@ -291,7 +291,7 @@ fn validate_condition_block(condition: &Value, path: &str, out: &mut Vec<PolicyF
                 message: format!("'{}' is not a valid IAM condition operator", operator),
             });
         }
-        if is_resolution_marker(context_values) && !context_values.is_object() {
+        if is_resolution_marker(context_values) {
             continue;
         }
         let Some(context_values) = context_values.as_object() else {
@@ -744,6 +744,43 @@ mod tests {
             }]
         });
         assert!(findings(doc).is_empty());
+    }
+
+    #[test]
+    fn conditional_condition_block_marker_is_skipped() {
+        let doc = json!({
+            "Statement": [{
+                "Effect": "Allow",
+                "Action": "s3:*",
+                "Resource": "*",
+                "Condition": {
+                    "__conditional": "UseRegionCondition",
+                    "__if_true": {"StringEquals": {"aws:RequestedRegion": "us-east-1"}},
+                    "__if_false": {"ArnLike": {"aws:PrincipalArn": "arn:aws:iam::*:role/*"}}
+                }
+            }]
+        });
+        assert!(findings(doc).is_empty(), "an intrinsic-generated Condition block must stay opaque");
+    }
+
+    #[test]
+    fn conditional_condition_operator_value_marker_is_skipped() {
+        let doc = json!({
+            "Statement": [{
+                "Effect": "Allow",
+                "Action": "s3:*",
+                "Resource": "*",
+                "Condition": {
+                    "StringEquals": {
+                        "__conditional": "UseRegionCondition",
+                        "__if_true": {"aws:RequestedRegion": "us-east-1"},
+                        "__if_false": {"aws:RequestedRegion": "us-west-2"}
+                    },
+                    "Null": {"aws:TokenIssueTime": "false"}
+                }
+            }]
+        });
+        assert!(findings(doc).is_empty(), "an intrinsic-generated operator value must stay opaque");
     }
 
     #[test]

@@ -144707,9 +144707,9 @@
         "propertyPath": "Properties.Tags",
         "suggestedFix": "Add Tags to improve resource organization and cost tracking",
         "category": "Best Practice",
-        "startLine": 8,
+        "startLine": 13,
         "startColumn": 3,
-        "endLine": 8,
+        "endLine": 13,
         "endColumn": 13,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"

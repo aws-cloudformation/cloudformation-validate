@@ -4,6 +4,11 @@ Parameters:
   PolicyResource:
     Type: String
     Default: not-an-arn
+  RestrictByRegion:
+    Type: String
+    AllowedValues: ["true", "false"]
+Conditions:
+  UseRegionCondition: !Equals [!Ref RestrictByRegion, "true"]
 Resources:
   SomeBucket:
     Type: AWS::S3::Bucket
@@ -47,5 +52,11 @@ Resources:
         - Effect: Allow
           Action: s3:GetObject
           Resource: !Join ["/", [!Ref PolicyResource, "*"]]
+          Condition: !If
+            - UseRegionCondition
+            - StringEquals:
+                aws:RequestedRegion: us-east-1
+            - ArnLike:
+                aws:PrincipalArn: "arn:aws:iam::*:role/*"
       Roles:
       - some-role
