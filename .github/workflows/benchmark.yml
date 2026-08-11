@@ -119,9 +119,18 @@ jobs:
 
     - name: Run benchmarks
       working-directory: ${{ env.WORKING_DIR }}
+      shell: bash
+      env:
+        BENCHMARK_ITERATIONS: ${{ inputs.iterations }}
       run: |
-        python3 ../scripts/compare_benchmarks.py \
-          --iterations ${{ inputs.iterations }}
+        set -euo pipefail
+
+        benchmark_command=(python3 ../scripts/compare_benchmarks.py)
+        if [[ -n "$BENCHMARK_ITERATIONS" ]]; then
+          benchmark_command+=(--iterations "$BENCHMARK_ITERATIONS")
+        fi
+
+        "${benchmark_command[@]}"
 
     - name: Validate aggregates
       working-directory: ${{ env.WORKING_DIR }}
@@ -175,15 +184,3 @@ jobs:
         path: scripts/snapshots/benchmark_comparison.md
         if-no-files-found: warn
 
-    - name: Upload per-binding reports
-      if: always()
-      uses: actions/upload-artifact@v7
-      with:
-        name: benchmark-reports
-        path: |
-          src/cfn-validate/reports/
-          src/bindings-wasm/reports/
-          src/bindings-jvm/reports/
-          src/bindings-python/reports/
-          src/bindings-go/reports/
-        if-no-files-found: warn
