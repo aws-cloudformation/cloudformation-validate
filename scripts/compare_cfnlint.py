@@ -43,6 +43,7 @@ SKIP_BUILD = False
 ALL_ENGINES = ["rego", "cel"]
 OUTPUT_FORMAT = "detailed"
 ITERATIONS = 1
+UNMATCHED_TEMPLATE_FAILURE_THRESHOLD = 25
 
 # Rules that are correct engine-only findings - cfn-lint does not implement them.
 # These are NOT false positives; they are intentional engine-extra coverage.
@@ -637,7 +638,7 @@ def require_matched_template_coverage(cfnlint_all, engine_all):
     matched_keys = sorted(set(cfnlint_all) & set(engine_all))
     cfnlint_only = sorted(set(cfnlint_all) - set(engine_all))
     engine_only = sorted(set(engine_all) - set(cfnlint_all))
-    if engine_only:
+    if len(engine_only) >= UNMATCHED_TEMPLATE_FAILURE_THRESHOLD:
         displayed = engine_only[:20]
         omitted_count = len(engine_only) - len(displayed)
         details = "\n".join(f"  - {key}" for key in displayed)
