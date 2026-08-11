@@ -1,13 +1,176 @@
-# Installation & Development Setup
+# Installation
 
-This guide covers everything needed to build, test, and develop `cloudformation-validate` from source, plus how to
-download and verify signed release artifacts.
+`cloudformation-validate` is distributed as a prebuilt command-line tool and as packages for Node.js, Python, Go, and
+the JVM. All distributions contain the validation rules and CloudFormation resource schemas they need, so validation
+runs offline after installation without AWS credentials or runtime downloads.
 
-Pinned tool versions live in [`.github/workflows/configs.yml`](.github/workflows/configs.yml) and
-[`src/rust-toolchain.toml`](src/rust-toolchain.toml). The versions below match CI - staying on them avoids
-environment drift.
+## Command-line interface
 
-## Required tools
+Prebuilt `cfn-validate` binaries are attached to every release on the
+[GitHub Releases page](https://github.com/aws-cloudformation/cloudformation-validate/releases), with the newest release
+shown first. Open that release and download the asset for your platform:
+
+| Platform | Release asset |
+|----------|---------------|
+| Linux x86-64 | `cfn-validate-<version>-linux-x64` |
+| macOS Apple silicon | `cfn-validate-<version>-darwin-aarch64` |
+| Windows x86-64 | `cfn-validate-<version>-win32-x64.exe` |
+
+On Linux or macOS, make the downloaded file executable, rename it to `cfn-validate`, and move it to a directory on
+`PATH`. On Windows, rename it to `cfn-validate.exe` and move it to a directory on `PATH`.
+
+After installation, validate a template or a directory of templates:
+
+```bash
+cfn-validate template.yaml
+cfn-validate ./templates/
+```
+
+See the [CLI reference](src/cfn-validate/README.md) for all engines, filters, output formats, custom rules, and exit
+codes.
+
+## Language bindings
+
+Package-manager installation is recommended: it selects the compatible native artifact and resolves any runtime
+dependencies. Use an explicit version in applications that require reproducible builds.
+
+### Node.js
+
+The Node.js/WASM package is published to
+[npm as `@aws/cloudformation-validate`](https://www.npmjs.com/package/@aws/cloudformation-validate) and requires
+Node.js 20 or later.
+
+```bash
+# Latest release
+npm install @aws/cloudformation-validate
+
+# Specific release (replace <version>)
+npm install '@aws/cloudformation-validate@<version>'
+```
+
+See the [Node.js API and examples](src/bindings-wasm/README.md).
+
+### Python
+
+Production versions are published to [PyPI](https://pypi.org/project/cloudformation-validate/); prereleases are
+published to [TestPyPI](https://test.pypi.org/project/cloudformation-validate/). The package requires Python 3.12 or
+later, and its platform-specific wheels have no runtime package dependencies.
+
+```bash
+# Latest production release from PyPI
+python3 -m pip install cloudformation-validate
+
+# Latest prerelease from TestPyPI
+python3 -m pip install \
+  --index-url https://test.pypi.org/simple/ \
+  --pre cloudformation-validate
+
+# Specific production release (replace <version>)
+python3 -m pip install 'cloudformation-validate==<version>'
+```
+
+See the [Python API and examples](src/bindings-python/README.md).
+
+### Go
+
+The published [Go module](https://pkg.go.dev/github.com/aws-cloudformation/cloudformation-validate/src/bindings-go/go)
+requires Go 1.26 or later, cgo, and a C linker. It currently contains native libraries for Linux x86-64, macOS Apple
+silicon, and Windows x86-64; Windows uses the MinGW-w64 GNU ABI.
+
+```bash
+# Latest release
+go get github.com/aws-cloudformation/cloudformation-validate/src/bindings-go/go@latest
+
+# Specific release (replace <version>)
+go get 'github.com/aws-cloudformation/cloudformation-validate/src/bindings-go/go@v<version>'
+```
+
+```go
+import cfnvalidate "github.com/aws-cloudformation/cloudformation-validate/src/bindings-go/go"
+```
+
+See the [Go API and examples](src/bindings-go/README.md).
+
+### JVM (Kotlin/Java)
+
+The JVM library is published to
+[Maven Central as `software.amazon.cloudformation:cloudformation-validate`](https://central.sonatype.com/artifact/software.amazon.cloudformation/cloudformation-validate)
+and requires JDK 21 or later. The jar includes native libraries for all supported platforms; Maven or Gradle resolves
+JNA, Gson, and the Kotlin standard library.
+
+Gradle (Kotlin DSL):
+
+```kotlin
+dependencies {
+    implementation("software.amazon.cloudformation:cloudformation-validate:latest.release")
+}
+```
+
+Gradle (Groovy DSL):
+
+```groovy
+dependencies {
+    implementation 'software.amazon.cloudformation:cloudformation-validate:latest.release'
+}
+```
+
+Maven:
+
+```xml
+<dependency>
+    <groupId>software.amazon.cloudformation</groupId>
+    <artifactId>cloudformation-validate</artifactId>
+    <version>[0,)</version>
+</dependency>
+```
+
+`latest.release` and `[0,)` select the newest published version. Replace them with a version shown on Maven Central to
+pin the dependency. See the [JVM API and examples](src/bindings-jvm/README.md).
+
+## Versioned GitHub release assets
+
+The [GitHub Releases page](https://github.com/aws-cloudformation/cloudformation-validate/releases) also publishes raw,
+versioned artifacts. Package-manager installation is usually easier, but these assets support vendoring and offline
+installation (`<version>` is the release tag):
+
+* `cloudformation-validate-<version>.jar` - JVM binding
+* `cloudformation-validate-wasm-<version>.zip` - Node.js/WASM package
+* `cloudformation_validate-<version>-py3-none-<platform>.whl` - Python wheel for one native target; beta release tags
+  use Python's `<version>b0` form
+* `cloudformation-validate-go-<version>.zip` - Go module with the supported native libraries
+* `cfn-validate-<version>-<os>-<arch>` - CLI binary (with `.exe` on Windows)
+
+### Verify a downloaded release asset
+
+Each raw artifact has a detached `<artifact>.sig` signature. The same release includes `signing-key.pem` and its
+`signing-key.pem.sha256` fingerprint. Download all three files from that release and verify with OpenSSL:
+
+```bash
+openssl dgst -sha256 \
+  -verify signing-key.pem \
+  -signature '<artifact>.sig' \
+  '<artifact>'
+```
+
+A valid artifact prints `Verified OK`. Do not use an artifact if verification fails.
+
+To compare the bundled public key with a fingerprint obtained from a trusted source:
+
+```bash
+openssl pkey -pubin -in signing-key.pem -outform DER | openssl dgst -sha256
+cat signing-key.pem.sha256
+```
+
+The SHA-256 values must match.
+
+## Developer setup
+
+The installation methods above do not require a source checkout or development toolchain. Contributors building or
+testing the project from source need the tools below. Pinned versions live in
+[`.github/workflows/configs.yml`](.github/workflows/configs.yml) and
+[`src/rust-toolchain.toml`](src/rust-toolchain.toml); matching them avoids environment drift.
+
+### Required tools
 
 | Tool                            | Version | Required for                                              | Notes                                                                                                           |
 |---------------------------------|---------|-----------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------|
@@ -26,135 +189,3 @@ environment drift.
 | Go                              | 1.26+   | Go binding build/test                                     | cgo must be enabled (default); Windows also needs `rustup target add x86_64-pc-windows-gnu` and MinGW-w64 `gcc` |
 | `uniffi-bindgen-go`             | 0.7.1   | Go binding generation                                     | `cargo install --git https://github.com/NordSecurity/uniffi-bindgen-go --tag v0.7.1+v0.31.0`                    |
 | `git`, `curl`, `openssl`        | -       | source control, fetching JVM deps, verifying releases     | Usually preinstalled                                                                                            |
-
-## 1. Rust toolchain
-
-```bash
-# Install rustup (provides cargo + rustc)
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-```
-
-`src/rust-toolchain.toml` pins the channel to `1.96.0` and declares the `rustfmt` component and the
-`wasm32-unknown-unknown` target. rustup installs the correct toolchain, component, and target automatically the first
-time you run a cargo command inside `src/`.
-
-## 2. Cargo tools
-
-```bash
-cargo install cargo-about@0.9.1 cargo-audit@0.22.2 wasm-pack@0.15.0
-```
-
-## 3. Node.js (Node/WASM binding)
-
-Install Node.js 22.x - any version manager works:
-
-```bash
-# macOS (Homebrew)
-brew install node@22
-
-# or via nvm (any platform)
-nvm install 22 && nvm use 22
-```
-
-## 4. JVM toolchain (JVM binding)
-
-Install a JDK (21+), the Kotlin compiler, ktlint, and Gradle.
-
-```bash
-# macOS (Homebrew) - installs current releases
-brew install openjdk@21 kotlin ktlint gradle
-```
-
-To match CI versions exactly (recommended for the JVM binding), use SDKMAN for the JVM tools:
-
-```bash
-curl -s "https://get.sdkman.io" | bash && source "$HOME/.sdkman/bin/sdkman-init.sh"
-sdk install java 21-amzn        # Amazon Corretto 21 (pick a 21.x build from `sdk list java`)
-sdk install kotlin 2.4.0
-sdk install gradle 9.6.1
-
-# ktlint 1.8.0 (pinned release binary)
-curl -sSLO https://github.com/pinterest/ktlint/releases/download/1.8.0/ktlint \
-  && chmod +x ktlint && sudo mv ktlint /usr/local/bin/
-```
-
-## 5. Python (Python binding, license generation & helper scripts)
-
-Python 3.12+ is required for the Python binding build (`bindings-python/build.sh`, which needs `setuptools` for the
-wheel), for `scripts/generate_licenses.py` (invoked by the Build Artifacts workflow), and for the other developer
-scripts under `scripts/`. The binding build itself needs only `setuptools`; the test runner
-(`bindings-python/tests/run.sh`) additionally fetches `coverage` into a throwaway virtualenv, so running the Python
-tests needs network access.
-
-## 6. Go (Go binding)
-
-Install Go 1.26 or later with cgo enabled. Consumers can install the latest tagged Go module directly from the
-repository or pin a specific release:
-
-```bash
-go get github.com/aws-cloudformation/cloudformation-validate/src/bindings-go/go@latest
-go get github.com/aws-cloudformation/cloudformation-validate/src/bindings-go/go@v1.8.0
-```
-
-Production releases use `vX.Y.Z`; beta releases use `vX.Y.Z-beta`. Release tags select a version of the generated
-module in `src/bindings-go/go/` without storing versioned source directories in the repository.
-
-## Build
-
-Run cargo commands from the `src/` directory.
-
-```bash
-cd src
-
-# Build the entire workspace (debug)
-cargo build
-
-# Published CLI binary -> release-bin/cfn-validate-<os>-<arch> (repository root)
-./cfn-validate/build.sh
-
-# WASM binding (Node.js) -> bindings-wasm/dist/
-./bindings-wasm/build.sh
-
-# JVM binding (Kotlin/Java) -> bindings-jvm/generated/cloudformation-validate.jar
-./bindings-jvm/build.sh
-
-# Python binding -> bindings-python/generated/dist/*.whl
-./bindings-python/build.sh
-
-# Go binding -> bindings-go/go/ (generated FFI package + static library)
-./bindings-go/build.sh
-```
-
-## Download and verify release artifacts
-
-Each GitHub release attaches the prebuilt artifacts as signed assets (`<version>` is the release tag, e.g. `1.6.0`):
-
-- `cloudformation-validate-<version>.jar` - the JVM (Kotlin/Java) binding
-- `cloudformation-validate-wasm-<version>.zip` - the Node.js (WASM) binding
-- `cloudformation_validate-<version>-py3-none-<platform>.whl` - the Python binding, with one wheel per supported
-  native target so installers download only the compatible library; a `-beta` release ships as `<version>b0`
-- `cloudformation-validate-go-<version>.zip` - the Go module, carrying every supported platform's static library
-- `cfn-validate-<version>-<os>-<arch>` - the CLI binary, one per supported platform (e.g.
-  `cfn-validate-1.6.0-linux-x64`, `cfn-validate-1.6.0-darwin-aarch64`)
-
-Alongside each artifact are a detached signature (`<artifact>.sig`), the public key (`signing-key.pem`), and the key's
-SHA-256 fingerprint (`signing-key.pem.sha256`). Artifacts are signed with an AWS KMS RSA key
-(`RSASSA_PKCS1_V1_5_SHA_256`).
-
-Download the artifact you want, its `.sig`, and `signing-key.pem` from the same release, then verify the signature:
-
-```bash
-openssl dgst -sha256 -verify signing-key.pem -signature <artifact>.sig <artifact>
-# e.g. openssl dgst -sha256 -verify signing-key.pem -signature cloudformation-validate-wasm-1.6.0.zip.sig cloudformation-validate-wasm-1.6.0.zip
-```
-
-A valid artifact prints `Verified OK`. Any other output means verification failed - do not use the artifact.
-
-Optionally, confirm the bundled key is the real signing key by matching its fingerprint against one you trust:
-
-```bash
-openssl pkey -pubin -in signing-key.pem -outform DER | openssl dgst -sha256
-cat signing-key.pem.sha256
-```
-
-The two values must match.
