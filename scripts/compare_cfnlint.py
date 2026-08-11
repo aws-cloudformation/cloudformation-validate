@@ -23,7 +23,7 @@ import re
 import shutil
 import subprocess
 import sys
-from collections import Counter, defaultdict
+from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 
@@ -43,8 +43,6 @@ SKIP_BUILD = False
 ALL_ENGINES = ["rego", "cel"]
 OUTPUT_FORMAT = "detailed"
 ITERATIONS = 1
-UNMATCHED_TEMPLATE_FAILURE_THRESHOLD = 25
-
 # Rules that are correct engine-only findings - cfn-lint does not implement them.
 # These are NOT false positives; they are intentional engine-extra coverage.
 # Computed from audit_rule_categorization.compute_rule_origins() at init time.
@@ -349,6 +347,22 @@ _CFNLINT_SEV_MAP = {"warning": "Warning", "informational": "Info"}
 _ENGINE_SEV_MAP = {"WARN": "Warning", "ERROR": "Error", "FATAL": "Fatal", "INFO": "Info", "DEBUG": "Debug"}
 
 
+def _diag_sort_key(d):
+    """Deterministic sort key for a diagnostic dict.
+
+    Orders by (rule_id, resource_id, resource_path/json_path, line, end_line,
+    message) so that comparison and output are independent of input order.
+    """
+    return (
+        d.get("rule_id", ""),
+        d.get("resource_id", ""),
+        d.get("resource_path", "") or d.get("json_path", ""),
+        d.get("line", 0),
+        d.get("end_line", 0),
+        d.get("message", ""),
+    )
+
+
 def cfnlint_rule_to_engine(rule_id):
     """Translate a cfn-lint rule ID to the engine's canonical ID."""
     return _CFNLINT_TO_ENGINE.get(rule_id, rule_id)
@@ -414,17 +428,6 @@ def load_engine_results():
     return results
 
 
-def load_aggregate_perf():
-    """Load the aggregate benchmark JSON produced by cfn-benchmark."""
-    agg_path = ENGINE_REPORTS.parent / f"aggregate_{OUTPUT_FORMAT}.json"
-    if not agg_path.exists():
-        return None
-    try:
-        return json.loads(agg_path.read_text())
-    except (json.JSONDecodeError, UnicodeDecodeError):
-        return None
-
-
 # ── Comparison ───────────────────────────────────────────────────────────────
 
 
@@ -456,7 +459,7 @@ def _alias_keys(key):
     aliases = _RULE_ALIASES.get(rule_id)
     if not aliases:
         return [key]
-    return [(a, resource_id, path) for a in aliases]
+    return [(a, resource_id, path) for a in sorted(aliases)]
 
 
 def _is_engine_extra(d):
@@ -512,7 +515,7 @@ def compare_template(cfnlint_diags, engine_diags):
 
     # Pass 1: exact (rule_id, resource_id, path) matching with alias support
     matched_exp_keys = set()
-    for key in list(expected_full.keys()):
+    for key in sorted(expected_full.keys()):
         exp = expected_full[key]
         # Try the key itself and all aliases
         act = actual_full.get(key, [])
@@ -535,6 +538,7 @@ def compare_template(cfnlint_diags, engine_diags):
     for key, act_list in actual_full.items():
         if act_list:
             remaining_act.extend(act_list)
+    remaining_act.sort(key=_diag_sort_key)
 
     # Pass 2: fallback (rule_id, resource_id) matching for remaining
     exp_by_rr = defaultdict(list)
@@ -546,13 +550,13 @@ def compare_template(cfnlint_diags, engine_diags):
 
     fp, fn = [], []
     consumed_act = set()
-    for key in list(exp_by_rr.keys()):
+    for key in sorted(exp_by_rr.keys()):
         exp = exp_by_rr[key]
         # Try direct match and aliases
         act = [a for a in act_by_rr.get(key, []) if id(a) not in consumed_act]
         if not act:
             rule_id, resource_id = key
-            for alias in _RULE_ALIASES.get(rule_id, set()):
+            for alias in sorted(_RULE_ALIASES.get(rule_id, set())):
                 act = [a for a in act_by_rr.get((alias, resource_id), []) if id(a) not in consumed_act]
                 if act:
                     break
@@ -633,31 +637,30 @@ def fmt_diag(d, template):
     return f"- {' '.join(parts)}\n  > {msg}"
 
 
-def require_matched_template_coverage(cfnlint_all, engine_all):
-    """Return comparable keys and fail when an engine report has no baseline result."""
+def compute_template_coverage(cfnlint_all, engine_all):
+    """Partition template keys into matched, cfnlint-only, and engine-only sets.
+
+    Returns (matched_keys, cfnlint_only, engine_only). Unmatched sets are inputs
+    that cannot be compared because no counterpart exists; they are excluded from
+    parity scoring and reported in the markdown output.
+    """
     matched_keys = sorted(set(cfnlint_all) & set(engine_all))
     cfnlint_only = sorted(set(cfnlint_all) - set(engine_all))
     engine_only = sorted(set(engine_all) - set(cfnlint_all))
-    if len(engine_only) >= UNMATCHED_TEMPLATE_FAILURE_THRESHOLD:
-        displayed = engine_only[:20]
-        omitted_count = len(engine_only) - len(displayed)
-        details = "\n".join(f"  - {key}" for key in displayed)
-        if omitted_count:
-            details += f"\n  - ... and {omitted_count} more"
-        raise RuntimeError(
-            f"{len(engine_only)} engine template report(s) have no matching cfn-lint result; "
-            "the parity report would silently omit them. Generate matching results for:\n"
-            f"{details}"
-        )
-    return matched_keys, cfnlint_only
+    return matched_keys, cfnlint_only, engine_only
 
 
 def run_single():
     cfnlint_all = {**load_cfnlint_inline_results(), **load_cfnlint_results_from_files()}
     engine_all = load_engine_results()
-    agg_perf = load_aggregate_perf()
 
-    matched_keys, cfnlint_only = require_matched_template_coverage(cfnlint_all, engine_all)
+    # Sort diagnostics within each template for deterministic comparison/output
+    for key in cfnlint_all:
+        cfnlint_all[key] = sorted(cfnlint_all[key], key=_diag_sort_key)
+    for key in engine_all:
+        engine_all[key] = sorted(engine_all[key], key=_diag_sort_key)
+
+    matched_keys, cfnlint_only, engine_only = compute_template_coverage(cfnlint_all, engine_all)
 
     # Aggregate per-template comparison
     total_tp = total_fp = total_fn = total_ee = 0
@@ -816,42 +819,6 @@ def run_single():
         w(f"| {sev} | {tp} | {fp_s} | {ee_s} | {fn_s} | {p:.2f}% | {rc:.2f}% |")
     w("")
 
-    # ── Performance ──────────────────────────────────────────────────────
-    if agg_perf:
-        perf = agg_perf.get("performance", {})
-        w("## Performance")
-        w("")
-        w("| Metric | Value |")
-        w("|--------|------:|")
-        w(f"| Total wall time | {perf.get('total_wall_ms', 0):.4f} ms |")
-        w(f"| Throughput | {perf.get('throughput_per_sec', 0):.2f} validations/sec |")
-        w(f"| Templates | {agg_perf.get('templates_ok', 0)} ok, {agg_perf.get('templates_failed', 0)} failed |")
-        w(f"| Iterations per template | {agg_perf.get('iterations_per_template', 0)} |")
-        init_stats = perf.get('engine_init_ms', {})
-        if init_stats:
-            w(f"| Engine init (p99) | {init_stats.get('p99', 0):.4f} ms |")
-            w(f"| Engine init (max) | {init_stats.get('max', 0):.4f} ms |")
-        schema_init = perf.get('schema_init_ms', {})
-        if schema_init:
-            w(f"| Schema init (p99) | {schema_init.get('p99', 0):.4f} ms |")
-            w(f"| Schema init (max) | {schema_init.get('max', 0):.4f} ms |")
-        w("")
-
-        w("### Latency Distribution (ms)")
-        w("")
-        w("| Phase | Min | Avg | Median | P90 | P95 | P99 | Max |")
-        w("|-------|----:|----:|-------:|----:|----:|----:|----:|")
-        for phase in ["model_build_ms", "schema_validate_ms", "rule_evaluation_ms",
-                      "diagnostic_finalize_ms", "engine_internal_ms", "wall_clock_ms"]:
-            s = perf.get(phase, {})
-            if not s:
-                continue
-            label = phase.replace("_ms", "").replace("_", " ").title()
-            w(f"| {label} | {s.get('min', 0):.4f} | {s.get('avg', 0):.4f} | {s.get('median', 0):.4f} "
-              f"| {s.get('p90', 0):.4f} | {s.get('p95', 0):.4f} | {s.get('p99', 0):.4f} "
-              f"| {s.get('max', 0):.4f} |")
-        w("")
-
     # ── False Negatives (grouped by rule) ────────────────────────────────
     fn_rules = {rid: r for rid, r in rules.items() if r["fn"]}
     w(f"## False Negatives - {total_fn} missed findings across {len(fn_rules)} rules")
@@ -859,7 +826,7 @@ def run_single():
     w("These are diagnostics cfn-lint expects but the engine does not report.")
     w("")
 
-    for rid in sorted(fn_rules, key=lambda r: -len(fn_rules[r]["fn"])):
+    for rid in sorted(fn_rules, key=lambda r: (-len(fn_rules[r]["fn"]), r)):
         r = fn_rules[rid]
         header = f"### {rid} - {len(r['fn'])} missed"
         if r["description"]:
@@ -871,7 +838,7 @@ def run_single():
         for tpl, d in r["fn"]:
             by_tpl[tpl].append(d)
         for tpl in sorted(by_tpl):
-            for d in by_tpl[tpl]:
+            for d in sorted(by_tpl[tpl], key=_diag_sort_key):
                 w(fmt_diag(d, tpl))
         w("")
 
@@ -882,7 +849,7 @@ def run_single():
     w("These are diagnostics the engine reports but cfn-lint does not expect (potential bugs).")
     w("")
 
-    for rid in sorted(fp_rules, key=lambda r: -len(fp_rules[r]["fp"])):
+    for rid in sorted(fp_rules, key=lambda r: (-len(fp_rules[r]["fp"]), r)):
         r = fp_rules[rid]
         header = f"### {rid} - {len(r['fp'])} extra"
         if r["description"]:
@@ -894,7 +861,7 @@ def run_single():
         for tpl, d in r["fp"]:
             by_tpl[tpl].append(d)
         for tpl in sorted(by_tpl):
-            for d in by_tpl[tpl]:
+            for d in sorted(by_tpl[tpl], key=_diag_sort_key):
                 w(fmt_diag(d, tpl))
         w("")
 
@@ -905,7 +872,7 @@ def run_single():
     w("These are correct diagnostics the engine reports that cfn-lint does not cover.")
     w("")
 
-    for rid in sorted(ee_rules, key=lambda r: -len(ee_rules[r]["ee"])):
+    for rid in sorted(ee_rules, key=lambda r: (-len(ee_rules[r]["ee"]), r)):
         r = ee_rules[rid]
         header = f"### {rid} - {len(r['ee'])} findings"
         if r["description"]:
@@ -917,13 +884,13 @@ def run_single():
         for tpl, d in r["ee"]:
             by_tpl[tpl].append(d)
         for tpl in sorted(by_tpl):
-            for d in by_tpl[tpl]:
+            for d in sorted(by_tpl[tpl], key=_diag_sort_key):
                 w(fmt_diag(d, tpl))
         w("")
 
     # ── Per-Template Breakdown ───────────────────────────────────────────
     imperfect = [(k, s) for k, s in tpl_stats.items() if s["fp"] or s["fn"]]
-    imperfect.sort(key=lambda x: -(len(x[1]["fp"]) + len(x[1]["fn"])))
+    imperfect.sort(key=lambda x: (-(len(x[1]["fp"]) + len(x[1]["fn"])), x[0]))
 
     w(f"## Per-Template Breakdown - {len(imperfect)} templates with mismatches")
     w("")
@@ -935,27 +902,43 @@ def run_single():
             fn_rules_t = defaultdict(int)
             for rid, _ in s["fn"]:
                 fn_rules_t[rid] += 1
-            w(f"- FN: {', '.join(f'`{r}` ×{n}' if n > 1 else f'`{r}`' for r, n in sorted(fn_rules_t.items(), key=lambda x: -x[1]))}")
+            w(f"- FN: {', '.join(f'`{r}` ×{n}' if n > 1 else f'`{r}`' for r, n in sorted(fn_rules_t.items(), key=lambda x: (-x[1], x[0])))}")
         if s["fp"]:
             fp_rules_t = defaultdict(int)
             for rid, _ in s["fp"]:
                 fp_rules_t[rid] += 1
-            w(f"- FP: {', '.join(f'`{r}` ×{n}' if n > 1 else f'`{r}`' for r, n in sorted(fp_rules_t.items(), key=lambda x: -x[1]))}")
+            w(f"- FP: {', '.join(f'`{r}` ×{n}' if n > 1 else f'`{r}`' for r, n in sorted(fp_rules_t.items(), key=lambda x: (-x[1], x[0])))}")
         if s["ee"]:
             ee_rules_t = defaultdict(int)
             for rid, _ in s["ee"]:
                 ee_rules_t[rid] += 1
-            w(f"- EE: {', '.join(f'`{r}` ×{n}' if n > 1 else f'`{r}`' for r, n in sorted(ee_rules_t.items(), key=lambda x: -x[1]))}")
+            w(f"- EE: {', '.join(f'`{r}` ×{n}' if n > 1 else f'`{r}`' for r, n in sorted(ee_rules_t.items(), key=lambda x: (-x[1], x[0])))}")
         w("")
 
-    # ── Coverage Gaps ────────────────────────────────────────────────────
-    if cfnlint_only:
-        w("## Coverage Gaps")
+    # ── Inputs Excluded from Parity Comparison ─────────────────────────────
+    if cfnlint_only or engine_only:
+        w("## Inputs Excluded from Parity Comparison")
         w("")
-        w(f"{len(cfnlint_only)} cfn-lint templates with no engine report:")
+        w("These templates cannot be compared because no counterpart exists in the")
+        w("other tool's output. They are excluded from precision/recall scoring.")
+        w("")
+
+    if cfnlint_only:
+        total_cfnlint_only_diags = sum(len(cfnlint_all[k]) for k in cfnlint_only)
+        w(f"### cfn-lint results with no engine report — {len(cfnlint_only)} templates, "
+          f"{total_cfnlint_only_diags} diagnostics")
         w("")
         for k in cfnlint_only:
-            w(f"- `{k}` ({len(cfnlint_all[k])} expected diagnostics)")
+            w(f"- `{k}` ({len(cfnlint_all[k])} diagnostics)")
+        w("")
+
+    if engine_only:
+        total_engine_only_diags = sum(len(engine_all[k]) for k in engine_only)
+        w(f"### Engine reports with no cfn-lint result — {len(engine_only)} templates, "
+          f"{total_engine_only_diags} diagnostics")
+        w("")
+        for k in engine_only:
+            w(f"- `{k}` ({len(engine_all[k])} diagnostics)")
         w("")
 
     # ── Root-Cause Analysis ──────────────────────────────────────────────
@@ -1001,7 +984,7 @@ def run_single():
     w("")
     w("| Cause | Count | % of FN | Rules |")
     w("|-------|------:|--------:|-------|")
-    for cause, info in sorted(fn_by_cause.items(), key=lambda x: -x[1]["count"]):
+    for cause, info in sorted(fn_by_cause.items(), key=lambda x: (-x[1]["count"], x[0])):
         pct = info["count"] / total_fn * 100 if total_fn else 0
         rule_list = ", ".join(sorted(info["rules"]))
         w(f"| {cause} | {info['count']} | {pct:.2f}% | {rule_list} |")
@@ -1039,7 +1022,7 @@ def run_single():
     w("")
     w("| Cause | Count | % of FP | Rules |")
     w("|-------|------:|--------:|-------|")
-    for cause, info in sorted(fp_by_cause.items(), key=lambda x: -x[1]["count"]):
+    for cause, info in sorted(fp_by_cause.items(), key=lambda x: (-x[1]["count"], x[0])):
         pct = info["count"] / total_fp * 100 if total_fp else 0
         rule_list = ", ".join(sorted(info["rules"]))
         w(f"| {cause} | {info['count']} | {pct:.2f}% | {rule_list} |")
@@ -1062,7 +1045,12 @@ def run_single():
         w("transform loses property line fidelity; the engine anchors at the")
         w("actual property line - deliberately more precise, not a defect.")
         w("")
-        for key, exp, act in sorted(location_mismatches, key=lambda x: (x[1]["rule_id"], x[0])):
+        for key, exp, act in sorted(location_mismatches, key=lambda x: (
+            x[1]["rule_id"], x[0],
+            x[1].get("resource_id", ""), x[1].get("resource_path", ""),
+            x[1].get("line", 0), x[2].get("line", 0),
+            x[1].get("message", ""),
+        )):
             w(f"- **{exp['rule_id']}** `{exp.get('resource_id','')}` → "
               f"`{exp.get('resource_path','')}` in `{key}`: "
               f"reference L{exp.get('line','?')} vs engine L{act.get('line','?')}")
@@ -1075,6 +1063,7 @@ def run_single():
     print(f"  Precision: {precision:.2f}%  Recall: {recall:.2f}%  F1: {f1:.2f}%")
     print(f"  TP={total_tp}  FP={total_fp}  EE={total_ee}  FN={total_fn}")
     print(f"  LocationMismatch={len(location_mismatches)}")
+    print(f"  Unmatched: {len(cfnlint_only)} cfn-lint-only, {len(engine_only)} engine-only (excluded from comparison)")
 
 
 def main():

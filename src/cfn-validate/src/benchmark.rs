@@ -203,6 +203,14 @@ fn run() -> Result<(), String> {
         };
 
         let size_bytes = bytes.len();
+        // Keep the file extension as part of the key (".yaml" -> "_yaml") so a
+        // template authored in both JSON and YAML (e.g. format round-trip tests)
+        // produces two distinct reports instead of one overwriting the other.
+        let json_stem = relative_path.replace('/', "_");
+        let json_stem = replace_extension_suffix(&json_stem, ".yaml", "_yaml");
+        let json_stem = replace_extension_suffix(&json_stem, ".yml", "_yml");
+        let json_stem = replace_extension_suffix(&json_stem, ".json", "_json");
+        let json_path = json_dir.join(format!("{}.json", json_stem));
 
         let mut iter_model_build_ms: Vec<f64> = Vec::with_capacity(iterations);
         let mut iter_schema_validate_ms: Vec<f64> = Vec::with_capacity(iterations);
@@ -222,6 +230,52 @@ fn run() -> Result<(), String> {
                 Ok(m) => m,
                 Err(e) => {
                     warn!("{} parse failed: {}", relative_path, e);
+                    let mut report = validate_bytes_with_path(
+                        engine.as_ref(),
+                        &schema_validator,
+                        &bytes,
+                        benchmark_config.clone(),
+                        relative_path.clone(),
+                    )
+                    .map_err(|report_error| {
+                        format!("failed to create parse-failure report for '{relative_path}': {report_error}")
+                    })?;
+                    report.diagnostics.clear();
+                    report.metadata.counts.fatal = 0;
+                    report.metadata.counts.errors = 0;
+                    report.metadata.counts.warnings = 0;
+                    report.metadata.counts.informational = 0;
+                    report.metadata.counts.debug = 0;
+                    report.performance.schema_init.duration_ms = 0.0;
+                    report.performance.engine_init.duration_ms = 0.0;
+                    report.performance.model_build.duration_ms = 0.0;
+                    report.performance.schema_validate.duration_ms = 0.0;
+                    report.performance.rule_evaluation.duration_ms = 0.0;
+                    report.performance.diagnostic_finalize.duration_ms = 0.0;
+                    report.performance.validate_total.duration_ms = 0.0;
+                    let benchmark_metrics = serde_json::json!({
+                        "iterations": 0,
+                        "firstIteration": {
+                            "hostModelMs": 0.0,
+                            "modelBuildMs": 0.0,
+                            "schemaValidateMs": 0.0,
+                            "ruleEvaluationMs": 0.0,
+                            "diagnosticFinalizeMs": 0.0,
+                            "engineInternalMs": 0.0,
+                            "wallClockMs": 0.0,
+                        },
+                        "steadyState": {
+                            "hostModelMs": 0.0,
+                            "modelBuildMs": 0.0,
+                            "schemaValidateMs": 0.0,
+                            "ruleEvaluationMs": 0.0,
+                            "diagnosticFinalizeMs": 0.0,
+                            "engineInternalMs": 0.0,
+                            "wallClockMs": 0.0,
+                        },
+                        "bindingOverheadMs": 0.0,
+                    });
+                    deferred_writes.push((json_path.clone(), relative_path.clone(), (report, benchmark_metrics)));
                     results.push(TemplateResult::error(&relative_path, "parse_error", &e.to_string()));
                     failed = true;
                     break;
@@ -303,13 +357,6 @@ fn run() -> Result<(), String> {
         let report_diag_count = report.diagnostics.len();
 
         // Deferred until after the timed loop so disk I/O is not measured.
-        // Keep the file extension as part of the key (".yaml" -> "_yaml") so a
-        // template authored in both JSON and YAML (e.g. format round-trip tests)
-        // produces two distinct reports instead of one overwriting the other.
-        let json_stem = relative_path.replace('/', "_");
-        let json_stem = replace_extension_suffix(&json_stem, ".yaml", "_yaml");
-        let json_stem = replace_extension_suffix(&json_stem, ".yml", "_yml");
-        let json_stem = replace_extension_suffix(&json_stem, ".json", "_json");
         let dump_report = report;
         let benchmark_metrics = serde_json::json!({
             "iterations": iterations,
@@ -333,7 +380,6 @@ fn run() -> Result<(), String> {
             },
             "bindingOverheadMs": binding_overhead_ms,
         });
-        let json_path = json_dir.join(format!("{}.json", json_stem));
         deferred_writes.push((json_path, relative_path.clone(), (dump_report, benchmark_metrics)));
 
         let template_result = TemplateResult {
