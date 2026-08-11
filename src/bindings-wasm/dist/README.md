@@ -1,10 +1,10 @@
 # CloudFormation Validate for Node.js
 
 Validate AWS CloudFormation templates from JavaScript or TypeScript and catch schema violations, security risks, and
-best-practice findings before deployment — in your editor, build, or CI.
+best-practice findings before deployment - in your editor, build, or CI.
 
-- **Offline** — all rules and resource schemas are bundled.
-- **Fast** — sub-second validation per template.
+- **Offline** - all rules and resource schemas are bundled.
+- **Fast** - sub-second validation per template.
 
 ## Installation
 
@@ -16,7 +16,7 @@ npm install @aws/cloudformation-validate
 
 ## Quick start
 
-Engines, models, and validators hold off-heap memory — call `.free()` when done with each object:
+Engines, models, and validators hold off-heap memory - call `.free()` when done with each object:
 
 ```typescript
 import { RegoEngine, TemplateFile } from "@aws/cloudformation-validate";
@@ -32,13 +32,13 @@ try {
 }
 ```
 
-Each diagnostic identifies the rule, severity, affected resource and property, and source location — see
+Each diagnostic identifies the rule, severity, affected resource and property, and source location - see
 [StandardDiagnostic](#standarddiagnostic). A complete, runnable project is in
 [examples](https://github.com/aws-cloudformation/cloudformation-validate/tree/main/src/bindings-wasm/examples).
 
 ## Engine
 
-`RegoEngine` and `CelEngine` both implement the `Engine` interface and are interchangeable — they produce identical
+`RegoEngine` and `CelEngine` both implement the `Engine` interface and are interchangeable - they produce identical
 diagnostics for the same template and config.
 
 ### `Engine` interface
@@ -59,7 +59,7 @@ Passed to the constructor. All fields are optional; omitted rule arrays are empt
 ```typescript
 interface EngineConfig {
     customRules?: RuleSource[];                       // engine-native rules (Rego for RegoEngine, CEL for CelEngine)
-    guardRules?: RuleSource[];                        // CloudFormation Guard DSL rules — translated internally
+    guardRules?: RuleSource[];                        // CloudFormation Guard DSL rules - translated internally
     schemaValidatorConfig?: SchemaValidatorConfig;   // schema validation and overlay configuration
 }
 
@@ -89,7 +89,7 @@ interface AdditionalSchemaSource {
 }
 ```
 
-Pass a `RuleFile` to load a rule from disk — the same pattern as `TemplateFile` for templates — or an
+Pass a `RuleFile` to load a rule from disk - the same pattern as `TemplateFile` for templates - or an
 `ExternalRuleSource` when you already have the rule text in memory. `SchemaFile` does the same for an additional
 resource provider schema. Its optional constructor `typeName` may be omitted when the schema JSON contains its own
 `typeName`.
@@ -109,7 +109,7 @@ const engine = new CelEngine({
 
 ## ValidateConfig
 
-Controls filtering, severity, parameter overrides, and behavior. All fields optional — omitting the config or passing
+Controls filtering, severity, parameter overrides, and behavior. All fields optional - omitting the config or passing
 `{}` uses defaults.
 
 ```typescript
@@ -136,7 +136,7 @@ interface ValidateConfig {
 
 ### RuleFilterConfig
 
-Both `include` and `exclude` use this structure. All fields are additive — a rule matches if it hits any criterion.
+Both `include` and `exclude` use this structure. All fields are additive - a rule matches if it hits any criterion.
 
 ```typescript
 interface RuleFilterConfig {
@@ -158,7 +158,7 @@ interface ResourceTypeFilter { ruleId?: string; resourceType: string; }
 interface ServiceFilter      { ruleId?: string; service: string; }
 ```
 
-The `service` is matched verbatim against the `service-provider::service-name` prefix of the resource type — its first
+The `service` is matched verbatim against the `service-provider::service-name` prefix of the resource type - its first
 two `::`-delimited segments (e.g. `AWS::AutoScaling` in `AWS::AutoScaling::LaunchConfiguration`).
 
 The `resourceIds` dimension matches only diagnostics attributed to a resource; `logicalIds` additionally matches
@@ -168,7 +168,7 @@ the same value). An optional `entityType` scopes a `LogicalIdFilter` to entities
 
 ### PseudoParameterOverrides
 
-Override CloudFormation pseudo-parameters used during intrinsic function resolution. All fields optional — when
+Override CloudFormation pseudo-parameters used during intrinsic function resolution. All fields optional - when
 `undefined`, the engine uses built-in defaults (e.g. region defaults to `us-east-1`).
 
 ```typescript
@@ -193,7 +193,7 @@ const template = new TemplateFile("path/to/template.yaml");
 
 ## TemplateModel
 
-Parses a template into the resolved `SemanticModel` for direct inspection — the same model the engines evaluate rules
+Parses a template into the resolved `SemanticModel` for direct inspection - the same model the engines evaluate rules
 against.
 
 ```typescript
