@@ -47,8 +47,18 @@ When a template is submitted, `cloudformation-validate` runs a fixed pipeline:
 
 ## Installation
 
-See [INSTALLATION.md](INSTALLATION.md) for build instructions, prebuilt release artifacts (signed JVM jar, WASM zip,
-Python wheel, Go module zip, and per-platform `cfn-validate` CLI binaries), and signature verification.
+Use a prebuilt CLI or install a published language binding; Rust and this source repository are not required.
+
+| Interface | Published artifact | Install |
+|-----------|--------------------|---------|
+| CLI | [GitHub Releases](https://github.com/aws-cloudformation/cloudformation-validate/releases) | [Download the newest binary for Linux, macOS, or Windows](INSTALLATION.md#command-line-interface) |
+| Node.js | [npm: `@aws/cloudformation-validate`](https://www.npmjs.com/package/@aws/cloudformation-validate) | `npm install @aws/cloudformation-validate` |
+| Python | [PyPI](https://pypi.org/project/cloudformation-validate/) / [TestPyPI beta](https://test.pypi.org/project/cloudformation-validate/) | `python3 -m pip install cloudformation-validate` |
+| Go | [Go module](https://pkg.go.dev/github.com/aws-cloudformation/cloudformation-validate/src/bindings-go/go) | `go get github.com/aws-cloudformation/cloudformation-validate/src/bindings-go/go@latest` |
+| JVM | [Maven Central: `software.amazon.cloudformation:cloudformation-validate`](https://central.sonatype.com/artifact/software.amazon.cloudformation/cloudformation-validate) | `implementation("software.amazon.cloudformation:cloudformation-validate:latest.release")` |
+
+See [INSTALLATION.md](INSTALLATION.md) for platform-specific CLI download instructions, runtime requirements, prerelease
+channels, version pinning, Maven syntax, and release signature verification.
 
 ## Quick start
 
