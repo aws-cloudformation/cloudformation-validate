@@ -397,6 +397,10 @@ pub struct PropSchema {
     pub dependent_required: BTreeMap<String, Vec<String>>,
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub dependent_excluded: BTreeMap<String, Vec<String>>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub required_or: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub required_xor: Vec<String>,
 }
 fn skip_unless_true(value: &Option<bool>) -> bool {
     *value != Some(true)
@@ -735,6 +739,8 @@ fn compile_prop_with(raw: &serde_json::Value, ref_siblings: RefSiblings) -> Prop
         if_then_else,
         dependent_required: dep_req,
         dependent_excluded: str_map(obj.get(keywords::DEPENDENT_EXCLUDED).cloned().as_ref()),
+        required_or: str_arr(obj.get(keywords::REQUIRED_OR).cloned().as_ref()),
+        required_xor: str_arr(obj.get(keywords::REQUIRED_XOR).cloned().as_ref()),
     }
 }
 
@@ -776,7 +782,14 @@ mod tests {
                     "Cfg": { "$ref": "#/definitions/Config" },
                     "Kinds": { "type": ["string", "null"] }
                 },
-                "definitions": { "Config": { "type": "object", "required": ["Inner"] } },
+                "definitions": {
+                    "Config": {
+                        "type": "object",
+                        "required": ["Inner"],
+                        "requiredOr": ["First", "Second"],
+                        "requiredXor": ["Left", "Right"]
+                    }
+                },
                 "required": ["Name"],
                 "additionalProperties": false
             }),
@@ -786,6 +799,8 @@ mod tests {
         assert_eq!(compiled.additional_properties, Some(false));
         assert_eq!(compiled.properties["Cfg"].ref_name.as_deref(), Some("Config"));
         assert_eq!(compiled.definitions["Config"].required, vec!["Inner".to_string()]);
+        assert_eq!(compiled.definitions["Config"].required_or, vec!["First".to_string(), "Second".to_string()]);
+        assert_eq!(compiled.definitions["Config"].required_xor, vec!["Left".to_string(), "Right".to_string()]);
         assert_eq!(compiled.properties["Name"].pattern.as_deref(), Some("^a"));
         assert_eq!(compiled.properties["Name"].min_length, Some(1));
         match compiled.properties["Kinds"].prop_type.as_ref().expect("a multi type is compiled") {

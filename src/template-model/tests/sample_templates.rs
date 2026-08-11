@@ -616,7 +616,11 @@ fn all_templates_parse_without_panic() {
         }
     }
     assert!(ok >= 220, "expected >=220 parseable templates, got {}", ok);
-    assert!(err <= 10, "too many parse failures: {}", err);
+    // The bad/ corpus deliberately carries hard parse failures: malformed syntax,
+    // duplicate documents in one stream, null and complex mapping keys, and an
+    // unhashable-key repro. Raise this cap only for a template that is *supposed*
+    // to fail the parse.
+    assert!(err <= 12, "too many parse failures: {}", err);
 }
 
 fn walkdir(dir: &str) -> Vec<String> {

@@ -1,6 +1,6 @@
 # cloudformation-validate vs cfn-lint - Parity Report
 
-> Generated: 2026-08-10 21:06:29  
+> Generated: 2026-08-10 21:20:17  
 > Engine: **rego**  
 > Detail level: **detailed**  
 > Matching: `(rule_id, resource_id, path)` two-pass with `(rule_id, resource_id)` fallback + aliases  
@@ -22,51 +22,51 @@
 
 | Metric | Value |
 |--------|------:|
-| True Positives | 2177 |
+| True Positives | 2179 |
 | False Positives (engine bugs) | 43 |
-| Engine Extra (correct, cfn-lint gap) | 6401 |
-| False Negatives (engine misses) | 359 |
+| Engine Extra (correct, cfn-lint gap) | 6392 |
+| False Negatives (engine misses) | 356 |
 | Precision | 98.06% |
-| Recall | 85.84% |
-| F1 | 91.55% |
+| Recall | 85.96% |
+| F1 | 91.61% |
 | Unique rules detected | 224 |
-| Perfect templates | 451/601 |
+| Perfect templates | 454/601 |
 | Location mismatches (matched pairs) | 4 |
 
 ### By Severity
 
 | Severity | TP | FP | EE | FN | Precision | Recall |
 |----------|---:|---:|---:|---:|----------:|-------:|
-| Fatal | 386 | 1 | 56 | 136 | 99.74% | 73.95% |
+| Fatal | 388 | 1 | 51 | 133 | 99.74% | 74.47% |
 | Error | 429 | 42 | 7 | 159 | 91.08% | 72.96% |
-| Warning | 755 | 0 | 365 | 56 | 100.00% | 93.09% |
-| Info | 607 | 0 | 5973 | 8 | 100.00% | 98.70% |
+| Warning | 755 | 0 | 363 | 56 | 100.00% | 93.09% |
+| Info | 607 | 0 | 5971 | 8 | 100.00% | 98.70% |
 
 ## Performance
 
 | Metric | Value |
 |--------|------:|
-| Total wall time | 5329.6489 ms |
-| Throughput | 125.87 validations/sec |
-| Templates | 601 ok, 8 failed |
+| Total wall time | 7837.2974 ms |
+| Throughput | 86.97 validations/sec |
+| Templates | 601 ok, 12 failed |
 | Iterations per template | 1 |
-| Engine init (p99) | 68.1262 ms |
-| Engine init (max) | 68.1262 ms |
-| Schema init (p99) | 107.8237 ms |
-| Schema init (max) | 107.8237 ms |
+| Engine init (p99) | 55.3722 ms |
+| Engine init (max) | 55.3722 ms |
+| Schema init (p99) | 82.5845 ms |
+| Schema init (max) | 82.5845 ms |
 
 ### Latency Distribution (ms)
 
 | Phase | Min | Avg | Median | P90 | P95 | P99 | Max |
 |-------|----:|----:|-------:|----:|----:|----:|----:|
-| Model Build | 0.0037 | 0.2436 | 0.0582 | 0.7548 | 1.1073 | 2.1476 | 3.5268 |
-| Schema Validate | 0.0000 | 0.9829 | 0.2057 | 1.4653 | 2.1575 | 4.9267 | 215.4148 |
-| Rule Evaluation | 1.0198 | 6.6518 | 2.6200 | 16.3881 | 25.3692 | 56.8532 | 150.4888 |
-| Diagnostic Finalize | 0.0011 | 0.0199 | 0.0079 | 0.0466 | 0.0738 | 0.1724 | 0.2989 |
-| Engine Internal | 1.0327 | 7.9442 | 3.0307 | 19.1640 | 29.7974 | 58.5935 | 220.9756 |
-| Wall Clock | 1.0329 | 7.9450 | 3.0311 | 19.1652 | 29.7984 | 58.5948 | 220.9767 |
+| Model Build | 0.0038 | 0.3684 | 0.0949 | 1.0474 | 1.5549 | 3.4134 | 9.0902 |
+| Schema Validate | 0.0000 | 1.2529 | 0.2933 | 1.9761 | 3.1612 | 7.5229 | 221.6964 |
+| Rule Evaluation | 1.1359 | 9.7755 | 4.1949 | 22.1095 | 35.5041 | 83.0337 | 309.1404 |
+| Diagnostic Finalize | 0.0014 | 0.0266 | 0.0106 | 0.0562 | 0.1005 | 0.2423 | 1.3543 |
+| Engine Internal | 1.1836 | 11.4966 | 4.6211 | 26.1660 | 40.9248 | 91.5729 | 312.9585 |
+| Wall Clock | 1.1842 | 11.4982 | 4.6225 | 26.1672 | 40.9265 | 91.5745 | 312.9597 |
 
-## False Negatives - 359 missed findings across 85 rules
+## False Negatives - 356 missed findings across 84 rules
 
 These are diagnostics cfn-lint expects but the engine does not report.
 
@@ -749,15 +749,6 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **F3030** (cfn-lint: E3030) `CLBA83A883E` → `Properties.Listeners.0.Protocol` L12 in `gh-issues_issue-186-clb_json`
   > 'tcp' is not one of ['HTTP', 'HTTPS', 'TCP', 'SSL']
 
-### F0000 - 3 missed - Parsing error found when parsing the template
-
-- **F0000** (cfn-lint: E0000) L18 in `bad_core_parse_invalid_map_yaml`
-  > Unhashable type "{'Fn::ImportValue': 'Fn::Sub'}" (line 18)
-- **F0000** (cfn-lint: E0000) L23 in `bad_duplicate_json`
-  > Duplicate found 'MySNSTopic' (line 23)
-- **F0000** (cfn-lint: E0000) L13 in `bad_duplicate_yaml`
-  > Duplicate found 'mySnsTopic' (line 13)
-
 ### E3039 - 3 missed - AttributeDefinitions / KeySchemas mismatch
 
 - **E3039** `dynamoDBTable` → `Properties` L6 in `bad_resources_dynamodb_unused_attribute_definition_1_yaml`
@@ -1145,11 +1136,11 @@ These are diagnostics the engine reports but cfn-lint does not expect (potential
 - **F3017** `Topic` (AWS::SNS::Topic) → `Properties.KmsMasterKeyId` L11 in `bad_hardcoded_partition_yaml`
   > Value is not valid under any of the given schemas
 
-## Engine Extra - 6401 correct findings across 39 rules
+## Engine Extra - 6392 correct findings across 37 rules
 
 These are correct diagnostics the engine reports that cfn-lint does not cover.
 
-### I9001 - 4234 findings
+### I9001 - 4232 findings
 
 - **I9001** `MyBucket` (AWS::S3::Bucket) → `Properties.BucketName` L7 in `bad_E1050_dynamic_ref_malformed_yaml`
   > Property 'BucketName' is create-only; updating it will cause resource replacement
@@ -1285,10 +1276,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'TableName' is create-only; updating it will cause resource replacement
 - **I9001** `myTable` (AWS::DynamoDB::Table) → `Properties.KeySchema` L21 in `bad_core_config_configure_e3012_yaml`
   > Property 'KeySchema' is conditionally create-only; updating it may cause resource replacement
-- **I9001** `NodeGroup` (AWS::AutoScaling::AutoScalingGroup) → `Properties.LaunchTemplate` L6 in `bad_core_parse_invalid_map_yaml`
-  > Property 'LaunchTemplate' is conditionally create-only; updating it may cause resource replacement
-- **I9001** `NodeGroup` (AWS::AutoScaling::AutoScalingGroup) → `Properties.VPCZoneIdentifier` L18 in `bad_core_parse_invalid_map_yaml`
-  > Property 'VPCZoneIdentifier' is conditionally create-only; updating it may cause resource replacement
 - **I9001** `BadASG` (AWS::AutoScaling::AutoScalingGroup) → `Properties.LaunchConfigurationName` L10 in `bad_cross_resource_task10_yaml`
   > Property 'LaunchConfigurationName' is conditionally create-only; updating it may cause resource replacement
 - **I9001** `LC` (AWS::AutoScaling::LaunchConfiguration) → `Properties.ImageId` L14 in `bad_cross_resource_task10_yaml`
@@ -13884,19 +13871,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **F2012** → `Parameters/CDLAllowedValuesWithSpaceInDefault/Default` L71 in `good_parameters_default_yaml`
   > Parameter 'CDLAllowedValuesWithSpaceInDefault' Default 'one, two' is not in AllowedValues ['one', 'two', 'three,four']
 
-### F1020 - 5 findings - Ref validation of value
-
-- **F1020** `NodeGroup` (AWS::AutoScaling::AutoScalingGroup) L2 in `bad_core_parse_invalid_map_yaml`
-  > Fn::GetAtt references non-existent resource 'NodeLaunchTemplate'
-- **F1020** `NodeGroup` (AWS::AutoScaling::AutoScalingGroup) → `Properties.DesiredCapacity` L5 in `bad_core_parse_invalid_map_yaml`
-  > 'NodeAutoScalingGroupDesiredCapacity' is not one of ['AWS::AccountId', 'AWS::NoValue', 'AWS::NotificationARNs', 'AWS::Partition', 'AWS::Region', 'AWS::StackId', 'AWS::StackName', 'AWS::URLSuffix', 'No
-- **F1020** `NodeGroup` (AWS::AutoScaling::AutoScalingGroup) → `Properties.LaunchTemplate.LaunchTemplateId` L7 in `bad_core_parse_invalid_map_yaml`
-  > 'NodeLaunchTemplate' is not one of ['AWS::AccountId', 'AWS::NoValue', 'AWS::NotificationARNs', 'AWS::Partition', 'AWS::Region', 'AWS::StackId', 'AWS::StackName', 'AWS::URLSuffix', 'NodeGroup']
-- **F1020** `NodeGroup` (AWS::AutoScaling::AutoScalingGroup) → `Properties.MaxSize` L9 in `bad_core_parse_invalid_map_yaml`
-  > 'NodeAutoScalingGroupMaxSize' is not one of ['AWS::AccountId', 'AWS::NoValue', 'AWS::NotificationARNs', 'AWS::Partition', 'AWS::Region', 'AWS::StackId', 'AWS::StackName', 'AWS::URLSuffix', 'NodeGroup'
-- **F1020** `NodeGroup` (AWS::AutoScaling::AutoScalingGroup) → `Properties.MinSize` L10 in `bad_core_parse_invalid_map_yaml`
-  > 'NodeAutoScalingGroupMinSize' is not one of ['AWS::AccountId', 'AWS::NoValue', 'AWS::NotificationARNs', 'AWS::Partition', 'AWS::Region', 'AWS::StackId', 'AWS::StackName', 'AWS::URLSuffix', 'NodeGroup'
-
 ### I9002 - 5 findings
 
 - **I9002** `MyAliasRecordSet` (AWS::Route53::RecordSet) → `Properties.TTL` L113 in `bad_route53_yaml`
@@ -13977,13 +13951,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > 'Fn::Of' is not a supported function - did you mean 'Fn::If'?
 - **W1103** in `lsp_comprehensive_yaml`
   > '!Implies' is not a supported function
-
-### W1020 - 2 findings - Sub isn't needed if it doesn't have a variable defined
-
-- **W1020** `NodeGroup` (AWS::AutoScaling::AutoScalingGroup) → `Properties.Tags.0.Value` L14 in `bad_core_parse_invalid_map_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** `NodeGroup` (AWS::AutoScaling::AutoScalingGroup) → `Properties.Tags.1.Key` L15 in `bad_core_parse_invalid_map_yaml`
-  > Fn::Sub isn't needed because there are no variables
 
 ### W9009 - 2 findings
 
@@ -14068,7 +14035,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **E2504** `FifoQueue` (AWS::SQS::Queue) → `Properties.QueueName` L6 in `bad_sqs_fifo_no_suffix_yaml`
   > FIFO queue name 'my-queue' must end with '.fifo'
 
-## Per-Template Breakdown - 150 templates with mismatches
+## Per-Template Breakdown - 147 templates with mismatches
 
 ### `bad_resources_iam_iam_policy_yaml` - 18 mismatches (5 TP, 0 FP, 4 EE, 18 FN)
 
@@ -14489,21 +14456,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `E3001`
 - EE: `I9040` ×4, `F3002`, `W3030`
 
-### `bad_core_parse_invalid_map_yaml` - 1 mismatches (0 TP, 0 FP, 9 EE, 1 FN)
-
-- FN: `F0000`
-- EE: `F1020` ×5, `W1020` ×2, `I9001` ×2
-
-### `bad_duplicate_json` - 1 mismatches (2 TP, 0 FP, 3 EE, 1 FN)
-
-- FN: `F0000`
-- EE: `I9040` ×2, `I9001`
-
-### `bad_duplicate_yaml` - 1 mismatches (2 TP, 0 FP, 2 EE, 1 FN)
-
-- FN: `F0000`
-- EE: `I9040` ×2
-
 ### `bad_dynamodb_provisioned_no_throughput_yaml` - 1 mismatches (2 TP, 0 FP, 4 EE, 1 FN)
 
 - FN: `E3639`
@@ -14800,6 +14752,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 - `bad_core_config_invalid_json_json` (1 expected diagnostics)
 - `bad_core_config_invalid_yaml_yaml` (1 expected diagnostics)
+- `bad_core_parse_invalid_map_yaml` (1 expected diagnostics)
 - `bad_core_parse_malformed_core_tag_yaml` (1 expected diagnostics)
 - `bad_core_parse_multiple_documents_yaml` (1 expected diagnostics)
 - `bad_core_parse_null_key_yaml` (1 expected diagnostics)
@@ -14809,7 +14762,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - `bad_limit_size_yaml` (1198 expected diagnostics)
 - `bad_string_yaml` (1 expected diagnostics)
 - `bad_template_yaml` (1 expected diagnostics)
-- `good_decode_yaml11_scalars_yaml` (0 expected diagnostics)
 - `good_resources_dynamodb_attributes_transform_yaml` (6 expected diagnostics)
 - `good_transform_serverless_ignore_globals_yaml` (1 expected diagnostics)
 - `integration_get-stack-output_yaml` (2 expected diagnostics)
@@ -14821,11 +14773,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 | Cause | Count | % of FN | Rules |
 |-------|------:|--------:|-------|
-| Other | 162 | 45.13% | E0002, E2001, E2531, E2533, E5001, E6001, E7001, E8005, E9004, F0000, F0013, F0018, F1018, F1020, F2015, F3002, F3003, F3006, F3012, F3014, F3016, F3017, F3018, F3030, F3031, F3037, F6101 |
-| Resource property validation | 103 | 28.69% | E3001, E3016, E3022, E3023, E3024, E3026, E3039, E3043, E3048, E3065, E3504, E3510, E3512, E3513, E3514, E3530, E3639, E3673, E3678, E3682, E3685, E3692, E3698, E3699, E3700, E3701, E3707, E3712, E3719, E3720, E3724 |
-| Warning-level checks | 56 | 15.60% | W1001, W1028, W1030, W1031, W1032, W1034, W1036, W2001, W2002, W3037, W3691, W3698, W6001 |
-| Intrinsic function validation | 30 | 8.36% | E1001, E1005, E1011, E1016, E1017, E1021, E1041, E1150, E1152, E1161, E1701 |
-| Informational checks | 8 | 2.23% | I3010, I3013, I3510 |
+| Other | 159 | 44.66% | E0002, E2001, E2531, E2533, E5001, E6001, E7001, E8005, E9004, F0013, F0018, F1018, F1020, F2015, F3002, F3003, F3006, F3012, F3014, F3016, F3017, F3018, F3030, F3031, F3037, F6101 |
+| Resource property validation | 103 | 28.93% | E3001, E3016, E3022, E3023, E3024, E3026, E3039, E3043, E3048, E3065, E3504, E3510, E3512, E3513, E3514, E3530, E3639, E3673, E3678, E3682, E3685, E3692, E3698, E3699, E3700, E3701, E3707, E3712, E3719, E3720, E3724 |
+| Warning-level checks | 56 | 15.73% | W1001, W1028, W1030, W1031, W1032, W1034, W1036, W2001, W2002, W3037, W3691, W3698, W6001 |
+| Intrinsic function validation | 30 | 8.43% | E1001, E1005, E1011, E1016, E1017, E1021, E1041, E1150, E1152, E1161, E1701 |
+| Informational checks | 8 | 2.25% | I3010, I3013, I3510 |
 
 ### False Positive Root Causes
 

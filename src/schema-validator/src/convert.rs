@@ -92,6 +92,8 @@ impl From<build::PropSchema> for PropSchema {
             if_then_else,
             dependent_required,
             dependent_excluded,
+            required_or,
+            required_xor,
         } = source;
         PropSchema {
             ref_name,
@@ -127,6 +129,8 @@ impl From<build::PropSchema> for PropSchema {
             if_then_else: if_then_else.into_iter().map(Into::into).collect(),
             dependent_required: map(dependent_required),
             dependent_excluded: map(dependent_excluded),
+            required_or,
+            required_xor,
         }
     }
 }
@@ -209,7 +213,14 @@ mod tests {
                 "Relaxed": { "type": "array", "uniqueItems": false },
                 "Cfg": { "$ref": "#/definitions/Config" }
             },
-            "definitions": { "Config": { "type": "object", "required": ["Inner"] } },
+            "definitions": {
+                "Config": {
+                    "type": "object",
+                    "required": ["Inner"],
+                    "requiredOr": ["First", "Second"],
+                    "requiredXor": ["Left", "Right"]
+                }
+            },
             "required": ["Name"],
             "additionalProperties": false,
             "readOnlyProperties": ["/properties/Arn"],
@@ -217,7 +228,11 @@ mod tests {
             "primaryIdentifier": ["/properties/Name"],
             "dependentRequired": { "Name": ["Items"] },
             "requiredXor": ["Name", "Items"],
-            "oneOf": [{ "required": ["Name"] }],
+            "oneOf": [{
+                "required": ["Name"],
+                "requiredOr": ["First", "Second"],
+                "requiredXor": ["Left", "Right"]
+            }],
             "allOf": [{ "if": { "properties": { "Name": { "enum": ["a"] } } }, "then": { "required": ["Items"] } }]
         });
         let compiled: CompiledSchema = build::compile_schema("AWS::Test::Convert", &raw).into();
@@ -231,8 +246,20 @@ mod tests {
         assert_eq!(compiled.dependent_required.get("Name"), Some(&vec!["Items".to_string()]));
         assert_eq!(compiled.required_xor, vec!["Name".to_string(), "Items".to_string()]);
         assert_eq!(compiled.one_of.len(), 1);
+        assert_eq!(compiled.one_of[0].required_or, vec!["First".to_string(), "Second".to_string()]);
+        assert_eq!(compiled.one_of[0].required_xor, vec!["Left".to_string(), "Right".to_string()]);
         assert_eq!(compiled.if_then_else.len(), 1);
         assert_eq!(compiled.definitions["Config"].required, vec!["Inner".to_string()]);
+        assert_eq!(
+            compiled.definitions["Config"].required_or,
+            vec!["First".to_string(), "Second".to_string()],
+            "nested definition requiredOr must survive conversion"
+        );
+        assert_eq!(
+            compiled.definitions["Config"].required_xor,
+            vec!["Left".to_string(), "Right".to_string()],
+            "nested definition requiredXor must survive conversion"
+        );
         assert_eq!(compiled.properties["Cfg"].ref_name.as_deref(), Some("Config"));
 
         let name = &compiled.properties["Name"];

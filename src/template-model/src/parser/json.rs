@@ -2,7 +2,7 @@ use crate::ir::*;
 use crate::parser::builder::{Builder, TemplateSections};
 use crate::parser::value::{ParseValue, ValueKind};
 use log::{debug, info, warn};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::str::from_utf8;
 
 fn build_line_offsets(bytes: &[u8]) -> Vec<usize> {
@@ -131,7 +131,11 @@ fn scan_json_byte_spans(
     let mut path_to_span: HashMap<String, SourceSpan> = HashMap::new();
     let mut in_array: Vec<bool> = Vec::new();
     let mut array_idx: Vec<usize> = Vec::new();
-    let mut seen_keys: Vec<HashSet<String>> = Vec::new();
+    // Every key committed so far in each open object, with its first occurrence's
+    // span and whether that occurrence has been diagnosed. A duplicated key is
+    // flagged at *every* occurrence - the first duplicate retroactively flags the
+    // original occurrence too, so a reader sees all the colliding definitions.
+    let mut seen_keys: Vec<HashMap<String, (SourceSpan, bool)>> = Vec::new();
 
     let mut i = 0;
     while i < bytes.len() {
@@ -146,7 +150,7 @@ fn scan_json_byte_spans(
                 in_array.push(false);
                 array_idx.push(0);
                 path_stack.push(String::new());
-                seen_keys.push(HashSet::new());
+                seen_keys.push(HashMap::new());
                 i += 1;
             }
             b'}' => {
@@ -209,20 +213,37 @@ fn scan_json_byte_spans(
                     // Key identity uses the decoded string so escaped and literal
                     // spellings collide exactly as serde_json deduplicates them.
                     let decoded = decode_json_key(&bytes[start..=end]);
-                    if let Some(keys) = seen_keys.last_mut()
-                        && !keys.insert(decoded.clone())
-                    {
-                        diagnostics.push(crate::make_parse_defect_at(
-                            "F0000",
-                            format!("Duplicate key '{}'", decoded),
-                            SourceSpan {
-                                start_line: sl,
-                                start_column: sc,
-                                end_line: sl,
-                                end_column: sc + (end - start) as u32,
-                            },
-                            &full_path,
-                        ));
+                    let key_span = SourceSpan {
+                        start_line: sl,
+                        start_column: sc,
+                        end_line: sl,
+                        end_column: sc + (end - start) as u32,
+                    };
+                    if let Some(keys) = seen_keys.last_mut() {
+                        match keys.get_mut(&decoded) {
+                            // Duplicate: flag it at this occurrence, and - the first
+                            // time - retroactively at the original occurrence too.
+                            Some((first_span, emitted)) => {
+                                if !*emitted {
+                                    *emitted = true;
+                                    diagnostics.push(crate::make_parse_defect_at(
+                                        "F0000",
+                                        format!("Duplicate key '{}'", decoded),
+                                        *first_span,
+                                        &full_path,
+                                    ));
+                                }
+                                diagnostics.push(crate::make_parse_defect_at(
+                                    "F0000",
+                                    format!("Duplicate key '{}'", decoded),
+                                    key_span,
+                                    &full_path,
+                                ));
+                            }
+                            None => {
+                                keys.insert(decoded, (key_span, false));
+                            }
+                        }
                     }
                     path_to_span.insert(
                         full_path,
@@ -650,27 +671,31 @@ mod tests {
         );
     }
 
-    /// A literal duplicate string key yields exactly one F0000, anchored at the
-    /// second occurrence - the baseline the escaped-key case must match.
+    /// A literal duplicate string key is flagged at *both* occurrences - the
+    /// original and the duplicate - the baseline the escaped-key case must match.
     #[test]
-    fn literal_duplicate_string_key_emits_one_f0000() {
+    fn literal_duplicate_string_key_flags_both_occurrences() {
         let input = r#"{"A":1,"A":2}"#;
         let ir = parse_json(input.as_bytes()).unwrap();
-        let f0000: Vec<&str> =
-            ir.diagnostics.iter().filter(|d| d.rule_id == "F0000").map(|d| d.message.as_str()).collect();
-        assert_eq!(f0000, ["Duplicate key 'A'"]);
+        let f0000: Vec<(&str, u32)> = ir
+            .diagnostics
+            .iter()
+            .filter(|d| d.rule_id == "F0000")
+            .map(|d| (d.message.as_str(), d.span.start_column))
+            .collect();
+        assert_eq!(f0000, [("Duplicate key 'A'", 2), ("Duplicate key 'A'", 8)]);
     }
 
     /// The `A` escape decodes to `A`, so an escaped key and its literal
     /// twin are the same key and must collide exactly like the literal
-    /// duplicate above, anchored at the second occurrence.
+    /// duplicate above, flagged at both occurrences.
     #[test]
-    fn escaped_duplicate_string_key_emits_one_f0000() {
+    fn escaped_duplicate_string_key_flags_both_occurrences() {
         let input = r#"{"\u0041":1,"A":2}"#;
         let ir = parse_json(input.as_bytes()).unwrap();
         let f0000: Vec<&str> =
             ir.diagnostics.iter().filter(|d| d.rule_id == "F0000").map(|d| d.message.as_str()).collect();
-        assert_eq!(f0000, ["Duplicate key 'A'"]);
+        assert_eq!(f0000, ["Duplicate key 'A'", "Duplicate key 'A'"]);
     }
 
     /// Distinct keys that merely contain escape sequences must NOT be flagged as

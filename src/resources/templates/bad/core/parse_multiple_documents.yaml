@@ -1,0 +1,10 @@
+# A YAML stream carrying more than one document is not a CloudFormation
+# template; the parse fails rather than silently validating only the first
+# document.
+Resources:
+  First:
+    Type: AWS::S3::Bucket
+---
+Resources:
+  Second:
+    Type: AWS::S3::Bucket

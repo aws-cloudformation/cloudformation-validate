@@ -119,7 +119,7 @@ pub struct SpannedNode {
     pub path: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Node {
     Null,
     Bool(bool),
@@ -131,7 +131,7 @@ pub enum Node {
     Intrinsic(IntrinsicFn),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum IntrinsicFn {
     Ref(String),
     GetAtt(String, String),

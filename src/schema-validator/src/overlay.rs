@@ -165,6 +165,8 @@ const COMPOSITION_ALLOWED_FIELDS: &[&str] = &[
     keywords::ONE_OF,
     keywords::DEPENDENT_REQUIRED,
     keywords::DEPENDENT_EXCLUDED,
+    keywords::REQUIRED_OR,
+    keywords::REQUIRED_XOR,
     keywords::IF,
     keywords::THEN,
     keywords::ELSE,
@@ -1470,6 +1472,10 @@ pub(crate) fn merge_prop(base: &mut PropSchema, overlay: PropSchema) {
     replace_if_present(&mut base.if_then_else, overlay.if_then_else);
     merge_dependency_map(&mut base.dependent_required, overlay.dependent_required);
     merge_dependency_map(&mut base.dependent_excluded, overlay.dependent_excluded);
+    // Each is a single logical group, so a supplied group replaces the base;
+    // unioning would fabricate a constraint neither schema states.
+    replace_if_present(&mut base.required_or, overlay.required_or);
+    replace_if_present(&mut base.required_xor, overlay.required_xor);
 }
 
 /// Applies the overlay's allowed-value list, keeping the two enum
@@ -1554,6 +1560,8 @@ fn is_no_op(prop: &PropSchema) -> bool {
         if_then_else,
         dependent_required,
         dependent_excluded,
+        required_or,
+        required_xor,
     } = prop;
     ref_name.is_none()
         && prop_type.is_none()
@@ -1588,6 +1596,8 @@ fn is_no_op(prop: &PropSchema) -> bool {
         && if_then_else.is_empty()
         && dependent_required.is_empty()
         && dependent_excluded.is_empty()
+        && required_or.is_empty()
+        && required_xor.is_empty()
 }
 
 /// Append items from `extra` not already present in `base`.
@@ -2570,8 +2580,18 @@ mod tests {
 
     #[test]
     fn compile_accepts_composition_properties() {
-        compile("AWS::Test::T", &json!({ "oneOf": [{ "properties": { "A": { "enum": ["x"] } }, "required": ["A"] }] }))
-            .expect("composition branches with property constraints are now accepted and evaluated");
+        compile(
+            "AWS::Test::T",
+            &json!({
+                "oneOf": [{
+                    "properties": { "A": { "enum": ["x"] } },
+                    "required": ["A"],
+                    "requiredOr": ["A", "B"],
+                    "requiredXor": ["A", "C"]
+                }]
+            }),
+        )
+        .expect("composition branches with property constraints are now accepted and evaluated");
     }
 
     #[test]
@@ -2850,5 +2870,99 @@ mod tests {
         let mut unioned = base.clone();
         merge_into(&mut unioned, compiled(json!({ "properties": { "B": { "type": "string" } } })));
         assert!(removed_required(&base, &unioned).is_empty(), "an omitted 'required' keeps the base list");
+    }
+
+    #[test]
+    fn nested_prop_required_or_makes_merge_non_no_op() {
+        let overlay_prop = PropSchema { required_or: vec!["X".into(), "Y".into()], ..Default::default() };
+        assert!(!is_no_op(&overlay_prop), "a PropSchema with required_or must not be a no-op");
+    }
+
+    #[test]
+    fn nested_prop_required_xor_makes_merge_non_no_op() {
+        let overlay_prop = PropSchema { required_xor: vec!["X".into(), "Y".into()], ..Default::default() };
+        assert!(!is_no_op(&overlay_prop), "a PropSchema with required_xor must not be a no-op");
+    }
+
+    #[test]
+    fn nested_required_or_replaces_on_merge() {
+        let mut base = compiled(json!({
+            "properties": {
+                "Cfg": {
+                    "type": "object",
+                    "properties": { "A": { "type": "string" }, "B": { "type": "string" } },
+                    "requiredOr": ["A", "B"]
+                }
+            }
+        }));
+        merge_into(
+            &mut base,
+            compiled(json!({
+                "properties": {
+                    "Cfg": { "requiredOr": ["A", "B", "C"] }
+                }
+            })),
+        );
+        assert_eq!(
+            base.properties["Cfg"].required_or,
+            vec!["A".to_string(), "B".to_string(), "C".to_string()],
+            "nested requiredOr must be replaced by overlay"
+        );
+    }
+
+    #[test]
+    fn nested_required_xor_replaces_on_merge() {
+        let mut base = compiled(json!({
+            "properties": {
+                "Cfg": {
+                    "type": "object",
+                    "properties": { "A": { "type": "string" }, "B": { "type": "string" } },
+                    "requiredXor": ["A", "B"]
+                }
+            }
+        }));
+        merge_into(
+            &mut base,
+            compiled(json!({
+                "properties": {
+                    "Cfg": { "requiredXor": ["A", "B", "C"] }
+                }
+            })),
+        );
+        assert_eq!(
+            base.properties["Cfg"].required_xor,
+            vec!["A".to_string(), "B".to_string(), "C".to_string()],
+            "nested requiredXor must be replaced by overlay"
+        );
+    }
+
+    #[test]
+    fn nested_required_groups_preserved_when_overlay_omits_them() {
+        let mut base = compiled(json!({
+            "properties": {
+                "Cfg": {
+                    "type": "object",
+                    "properties": { "A": { "type": "string" }, "B": { "type": "string" } },
+                    "requiredOr": ["A", "B"],
+                    "requiredXor": ["A", "B"]
+                }
+            }
+        }));
+        merge_into(
+            &mut base,
+            compiled(json!({
+                "properties": { "Cfg": { "properties": { "C": { "type": "string" } } } }
+            })),
+        );
+        assert_eq!(
+            base.properties["Cfg"].required_or,
+            vec!["A".to_string(), "B".to_string()],
+            "nested requiredOr must be preserved when overlay omits it"
+        );
+        assert_eq!(
+            base.properties["Cfg"].required_xor,
+            vec!["A".to_string(), "B".to_string()],
+            "nested requiredXor must be preserved when overlay omits it"
+        );
     }
 }

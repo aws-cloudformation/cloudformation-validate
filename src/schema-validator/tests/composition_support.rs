@@ -1508,18 +1508,166 @@ fn property_level_conditional_then_required_is_enforced() {
         }),
     )]);
     let violating =
-        "Resources:\n  R:\n    Type: AWS::Test::PropCondRequired\n    Properties:\n      Cfg:\n        Mode: on\n";
+        "Resources:\n  R:\n    Type: AWS::Test::PropCondRequired\n    Properties:\n      Cfg:\n        Mode: 'on'\n";
     let diags = validate(&sv, violating);
     assert!(
         mentions(&diags, "F3003", "Extra"),
         "a property-level conditional's required list must be enforced: {:?}",
         diags.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
     );
-    let ok = "Resources:\n  R:\n    Type: AWS::Test::PropCondRequired\n    Properties:\n      Cfg:\n        Mode: on\n        Extra: x\n";
+    let ok = "Resources:\n  R:\n    Type: AWS::Test::PropCondRequired\n    Properties:\n      Cfg:\n        Mode: 'on'\n        Extra: x\n";
     let diags = validate(&sv, ok);
     assert!(
         diags.is_empty(),
         "a satisfied conditional must stay clean: {:?}",
         diags.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
+    );
+}
+
+fn nested_group_schema(keyword: &str) -> Value {
+    let mut schema = json!({
+        "properties": {
+            "Cfg": {
+                "type": "object",
+                "properties": { "A": { "type": "string" }, "B": { "type": "string" } }
+            }
+        }
+    });
+    schema["properties"]["Cfg"][keyword] = json!(["A", "B"]);
+    schema
+}
+
+fn nested_cfg_template(resource_type: &str, cfg: &str) -> String {
+    format!("Resources:\n  R:\n    Type: {resource_type}\n    Properties:\n      Cfg:{cfg}\n")
+}
+
+#[test]
+fn nested_required_or_counts_only_concrete_members() {
+    let resource_type = "AWS::Test::NestedReqOr";
+    let sv = validator(vec![(resource_type, nested_group_schema("requiredOr"))]);
+    for (cfg, should_fire) in [
+        (" {}", true),
+        ("\n        A: value", false),
+        ("\n        A: !Ref AWS::NoValue\n        B: !Ref AWS::NoValue", true),
+        ("\n        A: value\n        B: !Ref AWS::NoValue", false),
+    ] {
+        let diags = validate(&sv, &nested_cfg_template(resource_type, cfg));
+        assert_eq!(
+            mentions(&diags, "F3058", "One of"),
+            should_fire,
+            "unexpected requiredOr result for Cfg:{cfg}: {diags:?}"
+        );
+    }
+}
+
+#[test]
+fn nested_required_xor_counts_only_concrete_members() {
+    let resource_type = "AWS::Test::NestedReqXor";
+    let sv = validator(vec![(resource_type, nested_group_schema("requiredXor"))]);
+    for (cfg, should_fire) in [
+        (" {}", true),
+        ("\n        A: one\n        B: two", true),
+        ("\n        A: one", false),
+        ("\n        A: one\n        B: !Ref AWS::NoValue", false),
+    ] {
+        let diags = validate(&sv, &nested_cfg_template(resource_type, cfg));
+        assert_eq!(
+            mentions(&diags, "F3014", "Exactly one"),
+            should_fire,
+            "unexpected requiredXor result for Cfg:{cfg}: {diags:?}"
+        );
+    }
+}
+
+#[test]
+fn required_xor_participates_in_one_of_branch_matching() {
+    let resource_type = "AWS::Test::CompReqXor";
+    let sv = validator(vec![(
+        resource_type,
+        json!({
+            "properties": {
+                "Cfg": {
+                    "type": "object",
+                    "properties": {
+                        "A": { "type": "string" },
+                        "B": { "type": "string" },
+                        "C": { "type": "string" }
+                    },
+                    "oneOf": [{ "requiredXor": ["A", "B"] }, { "required": ["C"] }]
+                }
+            }
+        }),
+    )]);
+    for (cfg, should_fire) in [("\n        A: value", false), ("\n        C: value", false), (" {}", true)] {
+        let diags = validate(&sv, &nested_cfg_template(resource_type, cfg));
+        assert_eq!(
+            mentions(&diags, "F3018", "schema"),
+            should_fire,
+            "unexpected oneOf result for Cfg:{cfg}: {diags:?}"
+        );
+    }
+}
+
+#[test]
+fn required_or_branch_rejects_an_aws_novalue_member() {
+    let resource_type = "AWS::Test::CompReqOr";
+    let sv = validator(vec![(
+        resource_type,
+        json!({
+            "properties": {
+                "Cfg": {
+                    "type": "object",
+                    "properties": {
+                        "A": { "type": "string" },
+                        "B": { "type": "string" },
+                        "C": { "type": "string" }
+                    },
+                    "anyOf": [{ "requiredOr": ["A", "B"] }, { "required": ["C"] }]
+                }
+            }
+        }),
+    )]);
+    for (cfg, should_fire) in
+        [("\n        A: !Ref AWS::NoValue", true), ("\n        A: !Ref AWS::NoValue\n        C: value", false)]
+    {
+        let diags = validate(&sv, &nested_cfg_template(resource_type, cfg));
+        assert_eq!(
+            mentions(&diags, "F3017", "not valid under any"),
+            should_fire,
+            "unexpected anyOf result for Cfg:{cfg}: {diags:?}"
+        );
+    }
+}
+
+#[test]
+fn required_or_one_of_is_decided_per_condition_scenario() {
+    let resource_type = "AWS::Test::CompReqOrScenarios";
+    let sv = validator(vec![(
+        resource_type,
+        json!({
+            "properties": {
+                "Cfg": {
+                    "type": "object",
+                    "properties": { "A": { "type": "string" }, "B": { "type": "string" } },
+                    "oneOf": [{ "requiredOr": ["A"] }, { "requiredOr": ["B"] }]
+                }
+            }
+        }),
+    )]);
+    let template = concat!(
+        "Conditions:\n",
+        "  UseA: !Equals [!Ref AWS::Region, us-east-1]\n",
+        "Resources:\n",
+        "  R:\n",
+        "    Type: AWS::Test::CompReqOrScenarios\n",
+        "    Properties:\n",
+        "      Cfg:\n",
+        "        A: !If [UseA, a, !Ref AWS::NoValue]\n",
+        "        B: !If [UseA, !Ref AWS::NoValue, b]\n",
+    );
+    let diags = validate(&sv, template);
+    assert!(
+        !mentions(&diags, "F3018", "schema"),
+        "each satisfiable condition scenario must match exactly one requiredOr branch: {diags:?}"
     );
 }

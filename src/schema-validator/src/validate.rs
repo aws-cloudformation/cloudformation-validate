@@ -613,6 +613,44 @@ fn validate_object_keys(
     )
 }
 
+fn validate_required_groups(
+    out: &mut Vec<Diagnostic>,
+    m: &Arc<SemanticModel>,
+    rid: &str,
+    actual_keys: &[String],
+    required_or: &[String],
+    required_xor: &[String],
+    base_path: &str,
+) {
+    let member_is_present = |property: &str| {
+        actual_keys.iter().any(|actual| actual == property) && property_present(m, rid, base_path, property)
+    };
+
+    if !required_or.is_empty() && !required_or.iter().any(|property| member_is_present(property)) {
+        let names = required_or.iter().map(|name| format!("'{name}'")).collect::<Vec<_>>().join(", ");
+        out.push(build_diagnostic(
+            "F3058",
+            &format!("One of [{names}] is a required property"),
+            m,
+            rid,
+            base_path,
+            None,
+        ));
+    }
+
+    if !required_xor.is_empty() && required_xor.iter().filter(|property| member_is_present(property)).count() != 1 {
+        let names = required_xor.iter().map(|name| format!("'{name}'")).collect::<Vec<_>>().join(", ");
+        out.push(build_diagnostic(
+            "F3014",
+            &format!("Exactly one of [{names}] must be specified"),
+            m,
+            rid,
+            base_path,
+            None,
+        ));
+    }
+}
+
 /// Validate object keys, tagging any emitted diagnostics with the given
 /// condition scenario. When `scenario` is `None`, diagnostics are unconditioned.
 /// When `Some`, each emitted diagnostic records the condition assumptions that
@@ -717,38 +755,7 @@ fn validate_object_keys_inner(
         }
     }
 
-    if !req_or.is_empty() && !req_or.iter().any(|p| actual_keys.contains(p)) {
-        let names = req_or.iter().map(|s| format!("'{}'", s)).collect::<Vec<_>>().join(", ");
-        out.push(build_diagnostic(
-            "F3058",
-            &format!("One of [{}] is a required property", names),
-            m,
-            rid,
-            base_path,
-            None,
-        ));
-    }
-
-    if !req_xor.is_empty() {
-        // A property whose value resolves to `AWS::NoValue` (null) is removed by
-        // CloudFormation at deploy time, so it does not count toward the
-        // "exactly one" tally even though its key is present in the source. Count
-        // only members that resolve to a concrete value in some satisfiable
-        // scenario.
-        let count =
-            req_xor.iter().filter(|p| actual_keys.contains(p) && property_present(m, rid, base_path, p)).count();
-        if count != 1 {
-            let names = req_xor.iter().map(|s| format!("'{}'", s)).collect::<Vec<_>>().join(", ");
-            out.push(build_diagnostic(
-                "F3014",
-                &format!("Exactly one of [{}] must be specified", names),
-                m,
-                rid,
-                base_path,
-                None,
-            ));
-        }
-    }
+    validate_required_groups(out, m, rid, actual_keys, req_or, req_xor, base_path);
 
     for sub in all_of {
         validate_sub(out, m, rid, rtype, actual_keys, sub, defs, base_path, 0);
@@ -1021,6 +1028,16 @@ fn validate_sub(
 
     validate_sub_dependencies(out, m, rid, actual_keys, effective_sub, base_path);
 
+    validate_required_groups(
+        out,
+        m,
+        rid,
+        actual_keys,
+        &effective_sub.required_or,
+        &effective_sub.required_xor,
+        base_path,
+    );
+
     // Value-level matching: check each property constraint in the branch against
     // the concrete resolved values at base_path. This allows anyOf/oneOf branches
     // to discriminate by type, enum, const, numeric bounds, pattern, etc.
@@ -1271,6 +1288,22 @@ fn schema_value_matches(
                         return false;
                     }
                 }
+            }
+        }
+
+        // requiredOr - at least one member must be present with a non-null value
+        if !effective.required_or.is_empty()
+            && !effective.required_or.iter().any(|p| obj.get(p.as_str()).is_some_and(|v| !v.is_null()))
+        {
+            return false;
+        }
+
+        // requiredXor - exactly one member must be present with a non-null value
+        if !effective.required_xor.is_empty() {
+            let count =
+                effective.required_xor.iter().filter(|p| obj.get(p.as_str()).is_some_and(|v| !v.is_null())).count();
+            if count != 1 {
+                return false;
             }
         }
 
@@ -1542,6 +1575,8 @@ fn branch_scenario_assignments<'a>(
     let mut property_names: Vec<&String> = Vec::new();
     for branch in branches {
         property_names.extend(branch.properties.keys());
+        property_names.extend(&branch.required_or);
+        property_names.extend(&branch.required_xor);
     }
     property_names.sort();
     property_names.dedup();
@@ -1682,6 +1717,8 @@ fn sub_self_constrains_value(sub: &PropSchema) -> bool {
         if_then_else,
         dependent_required: _,
         dependent_excluded: _,
+        required_or: _,
+        required_xor: _,
     } = sub;
     prop_type.is_some()
         || !enum_values.is_empty()
@@ -2260,6 +2297,8 @@ fn validate_prop(
         || !schema.required.is_empty()
         || !schema.dependent_required.is_empty()
         || !schema.dependent_excluded.is_empty()
+        || !schema.required_or.is_empty()
+        || !schema.required_xor.is_empty()
         || !schema.all_of.is_empty()
         || !schema.any_of.is_empty()
         || !schema.one_of.is_empty()
@@ -2280,8 +2319,8 @@ fn validate_prop(
                 &schema.pattern_properties,
                 &schema.dependent_required,
                 &schema.dependent_excluded,
-                &[],
-                &[],
+                &schema.required_or,
+                &schema.required_xor,
                 &schema.all_of,
                 &schema.any_of,
                 &schema.one_of,
@@ -2303,12 +2342,9 @@ fn validate_prop(
                     }
                 }
             }
-        } else if !schema.required.is_empty()
-            && !matches!(m.resolve_deep(rid, prop_path), Some(ResolvedValue::Conditional { .. }))
-        {
-            // Empty concrete object scenario (e.g. a literal `{}`) - still
-            // validate required properties. An empty object has no keys but
-            // required properties must still be present.
+        } else if !matches!(m.resolve_deep(rid, prop_path), Some(ResolvedValue::Conditional { .. })) {
+            // An empty concrete object has no collected keys, but its object
+            // constraints and composition branches still need evaluation.
             //
             // The `Conditional` guard skips properties that are an `Fn::If`:
             // there the branch-aware required-property rule owns the check and
@@ -2332,8 +2368,8 @@ fn validate_prop(
                         &schema.pattern_properties,
                         &schema.dependent_required,
                         &schema.dependent_excluded,
-                        &[],
-                        &[],
+                        &schema.required_or,
+                        &schema.required_xor,
                         &schema.all_of,
                         &schema.any_of,
                         &schema.one_of,
@@ -2537,7 +2573,10 @@ fn property_present(m: &Arc<SemanticModel>, rid: &str, base: &str, prop: &str) -
     if scenarios.is_empty() {
         return true;
     }
-    scenarios.iter().any(|(val, conds)| is_satisfiable(m, conds) && !val.is_null())
+    scenarios
+        .iter()
+        .filter(|(_, conds)| scenario_consistent_with_filter(m, conds))
+        .any(|(val, conds)| is_satisfiable(m, conds) && !val.is_null())
 }
 
 fn check_required_not_null(out: &mut Vec<Diagnostic>, m: &Arc<SemanticModel>, rid: &str, base: &str, req: &str) {
@@ -4342,6 +4381,19 @@ mod tests {
         ).unwrap());
         let defs = HashMap::new();
         assert!(!condition_matches(&cond, &keys, &model, "R", &defs));
+    }
+
+    #[test]
+    fn schema_value_matches_required_groups_with_null_members_absent() {
+        let defs = HashMap::new();
+        let required_or = PropSchema { required_or: vec!["A".into(), "B".into()], ..Default::default() };
+        assert!(schema_value_matches(&json!({ "A": 1 }), &required_or, &defs, 0));
+        assert!(!schema_value_matches(&json!({ "A": null }), &required_or, &defs, 0));
+
+        let required_xor = PropSchema { required_xor: vec!["A".into(), "B".into()], ..Default::default() };
+        assert!(schema_value_matches(&json!({ "A": 1, "B": null }), &required_xor, &defs, 0));
+        assert!(!schema_value_matches(&json!({ "A": 1, "B": 2 }), &required_xor, &defs, 0));
+        assert!(!schema_value_matches(&json!({ "A": null, "B": null }), &required_xor, &defs, 0));
     }
 
     #[test]
