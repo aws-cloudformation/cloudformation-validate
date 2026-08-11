@@ -1,0 +1,113 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Tests E3048 Fargate task validation
+Conditions:
+  UseConstraints:
+    !Equals [!Ref "AWS::Region", "us-east-1"]
+Resources:
+  # Missing NetworkMode, Cpu, and Memory - should fire for all three
+  FargateMissingAll:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: missing-all
+      RequiresCompatibilities:
+        - FARGATE
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true
+
+  # Wrong NetworkMode
+  FargateWrongNetworkMode:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: wrong-nm
+      RequiresCompatibilities:
+        - FARGATE
+      NetworkMode: bridge
+      Cpu: "256"
+      Memory: "512"
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true
+
+  # Invalid Cpu size
+  FargateInvalidCpu:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: bad-cpu
+      RequiresCompatibilities:
+        - FARGATE
+      NetworkMode: awsvpc
+      Cpu: "128"
+      Memory: "512"
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true
+
+  # PlacementConstraints present (non-null)
+  FargatePlacementConstraints:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: has-pc
+      RequiresCompatibilities:
+        - FARGATE
+      NetworkMode: awsvpc
+      Cpu: "256"
+      Memory: "512"
+      PlacementConstraints:
+        - Type: memberOf
+          Expression: "attribute:ecs.os-type == linux"
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true
+
+  # Unsupported log driver
+  FargateUnsupportedLogDriver:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: bad-log
+      RequiresCompatibilities:
+        - FARGATE
+      NetworkMode: awsvpc
+      Cpu: "256"
+      Memory: "512"
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true
+          LogConfiguration:
+            LogDriver: syslog
+
+  # Null CPU via AWS::NoValue (both branches null) - should fire at Properties
+  FargateNullCpu:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: null-cpu
+      RequiresCompatibilities:
+        - FARGATE
+      NetworkMode: awsvpc
+      Cpu: !If [UseConstraints, !Ref "AWS::NoValue", !Ref "AWS::NoValue"]
+      Memory: "512"
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true
+
+  # Null PlacementConstraints via AWS::NoValue - should NOT fire (null = removed)
+  FargateNullPC:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: null-pc
+      RequiresCompatibilities:
+        - FARGATE
+      NetworkMode: awsvpc
+      Cpu: "256"
+      Memory: "512"
+      PlacementConstraints: !If [UseConstraints, !Ref "AWS::NoValue", !Ref "AWS::NoValue"]
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true

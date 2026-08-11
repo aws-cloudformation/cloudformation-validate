@@ -17,6 +17,7 @@ use template_model::region_enums;
 use template_model::resolver::{RefKind, ResolvedValue};
 use template_model::{
     CompiledPattern, IAM_ROLE_ARN_PATTERN, SECURITY_GROUP_NAME_PATTERN, SemanticModel, compile_pattern,
+    is_custom_resource_type,
 };
 
 /// Properties that accept a string value when used with `aws cloudformation package`.
@@ -622,33 +623,238 @@ fn validate_required_groups(
     required_xor: &[String],
     base_path: &str,
 ) {
-    let member_is_present = |property: &str| {
-        actual_keys.iter().any(|actual| actual == property) && property_present(m, rid, base_path, property)
-    };
-
-    if !required_or.is_empty() && !required_or.iter().any(|property| member_is_present(property)) {
-        let names = required_or.iter().map(|name| format!("'{name}'")).collect::<Vec<_>>().join(", ");
-        out.push(build_diagnostic(
-            "F3058",
-            &format!("One of [{names}] is a required property"),
-            m,
-            rid,
-            base_path,
-            None,
-        ));
+    if required_or.is_empty() && required_xor.is_empty() {
+        return;
     }
 
-    if !required_xor.is_empty() && required_xor.iter().filter(|property| member_is_present(property)).count() != 1 {
-        let names = required_xor.iter().map(|name| format!("'{name}'")).collect::<Vec<_>>().join(", ");
-        out.push(build_diagnostic(
-            "F3014",
-            &format!("Exactly one of [{names}] must be specified"),
-            m,
-            rid,
-            base_path,
-            None,
-        ));
+    // Collect scenario assignments for group evaluation.
+    // When an active SCENARIO_FILTER exists (inside validate_sub_under_assignment
+    // for oneOf/anyOf branch matching), it seeds the expansion so nested
+    // independent conditions are still evaluated across all their worlds
+    // relative to the outer constraint.
+    let members: Vec<&str> = required_or.iter().chain(required_xor.iter()).map(String::as_str).collect();
+    let assignments = required_group_scenario_assignments(m, rid, &members, base_path);
+
+    if !required_or.is_empty() {
+        for assignment in &assignments {
+            let any_present = required_or.iter().any(|property| {
+                actual_keys.iter().any(|actual| actual == property)
+                    && property_present_under(m, rid, base_path, property, assignment)
+            });
+            if !any_present {
+                let names = required_or.iter().map(|name| format!("'{name}'")).collect::<Vec<_>>().join(", ");
+                out.push(build_diagnostic_conditional(
+                    "F3058",
+                    &format!("One of [{names}] is a required property"),
+                    m,
+                    rid,
+                    base_path,
+                    None,
+                    assignment_condition_map(assignment),
+                ));
+            }
+        }
     }
+
+    if !required_xor.is_empty() {
+        for assignment in &assignments {
+            let count = required_xor
+                .iter()
+                .filter(|property| {
+                    actual_keys.iter().any(|actual| actual == property.as_str())
+                        && property_present_under(m, rid, base_path, property, assignment)
+                })
+                .count();
+            if count != 1 {
+                let names = required_xor.iter().map(|name| format!("'{name}'")).collect::<Vec<_>>().join(", ");
+                out.push(build_diagnostic_conditional(
+                    "F3014",
+                    &format!("Exactly one of [{names}] must be specified"),
+                    m,
+                    rid,
+                    base_path,
+                    None,
+                    assignment_condition_map(assignment),
+                ));
+            }
+        }
+    }
+}
+
+/// Collect the distinct condition assignments under which a `requiredOr` or
+/// `requiredXor` group must be evaluated. Delegates to the generic
+/// `property_scenario_assignments` helper with the group member paths.
+fn required_group_scenario_assignments(
+    m: &Arc<SemanticModel>,
+    rid: &str,
+    members: &[&str],
+    base_path: &str,
+) -> Vec<HashMap<String, bool>> {
+    let paths: Vec<String> = members.iter().map(|name| format!("{}.{}", base_path, name)).collect();
+    let refs: Vec<&str> = paths.iter().map(String::as_str).collect();
+    property_scenario_assignments(m, rid, &refs)
+}
+
+/// Generic helper that computes the set of satisfiable condition assignments
+/// under which a group of property paths must be evaluated.
+///
+/// Algorithm:
+/// 1. Seed from the active SCENARIO_FILTER (or empty).
+/// 2. For EACH property path independently, gather all distinct satisfiable
+///    scenario condition maps returned by resolve_scenarios_json, INCLUDING
+///    the empty map; discard maps inconsistent with the active filter.
+/// 3. If a property yields no scenario maps (missing/dynamic/opaque), leave
+///    the current assignments unchanged (conservative).
+/// 4. Otherwise Cartesian-cross the current assignments with that property's
+///    alternatives using a conflict-detecting merge, retain only
+///    satisfiable/filter-consistent merges, and deduplicate canonical maps.
+///    If no merge survives for a property, retain prior assignments so the
+///    property is treated absent/unknown under that seed.
+///
+/// This naturally preserves correlated maps within one property and combines
+/// independent maps across properties.
+fn property_scenario_assignments(
+    m: &Arc<SemanticModel>,
+    rid: &str,
+    property_paths: &[&str],
+) -> Vec<HashMap<String, bool>> {
+    let seed: HashMap<String, bool> = SCENARIO_FILTER.with(|f| f.borrow().clone().unwrap_or_default());
+    let mut assignments: Vec<HashMap<String, bool>> = vec![seed.clone()];
+
+    for prop_path in property_paths {
+        let scenarios = m.resolve_scenarios_json(rid, prop_path);
+        if scenarios.is_empty() {
+            // Property is missing/dynamic/opaque: leave assignments unchanged.
+            continue;
+        }
+
+        // Gather distinct satisfiable scenario maps for this property,
+        // including the empty map (unconditional scenario).
+        let mut property_maps: Vec<HashMap<String, bool>> = Vec::new();
+        let mut seen_canonical: Vec<Vec<(String, bool)>> = Vec::new();
+        for (_, conds) in &scenarios {
+            if !is_satisfiable(m, conds) {
+                continue;
+            }
+            if !scenario_consistent_with_filter(m, conds) {
+                continue;
+            }
+            let mut canonical: Vec<(String, bool)> = conds.iter().map(|(n, v)| (n.clone(), *v)).collect();
+            canonical.sort();
+            if !seen_canonical.contains(&canonical) {
+                seen_canonical.push(canonical);
+                property_maps.push(conds.clone());
+            }
+        }
+
+        if property_maps.is_empty() {
+            // All scenarios for this property were unsatisfiable or
+            // filter-inconsistent: leave assignments unchanged.
+            continue;
+        }
+
+        // Cartesian-cross current assignments with this property's alternatives.
+        let mut next_assignments: Vec<HashMap<String, bool>> = Vec::new();
+        for existing in &assignments {
+            for alt in &property_maps {
+                let merged = match try_merge_assignments(existing, alt) {
+                    Some(m) => m,
+                    None => continue,
+                };
+                if !is_satisfiable(m, &merged) || !scenario_consistent_with_filter(m, &merged) {
+                    continue;
+                }
+                // Deduplicate by canonical form.
+                let mut canonical: Vec<(String, bool)> = merged.iter().map(|(n, v)| (n.clone(), *v)).collect();
+                canonical.sort();
+                let already = next_assignments.iter().any(|r| {
+                    let mut rk: Vec<(String, bool)> = r.iter().map(|(n, v)| (n.clone(), *v)).collect();
+                    rk.sort();
+                    rk == canonical
+                });
+                if !already {
+                    next_assignments.push(merged);
+                }
+            }
+        }
+
+        if next_assignments.is_empty() {
+            // No merge survived: retain prior assignments (conservative).
+            continue;
+        }
+        assignments = next_assignments;
+    }
+
+    if assignments.is_empty() { vec![seed] } else { assignments }
+}
+
+/// Attempt to merge two condition assignments. Returns `None` if they
+/// contradict (same condition name, different boolean value).
+fn try_merge_assignments(a: &HashMap<String, bool>, b: &HashMap<String, bool>) -> Option<HashMap<String, bool>> {
+    let mut merged = a.clone();
+    for (name, val) in b {
+        if let Some(existing) = merged.get(name) {
+            if existing != val {
+                return None; // Contradiction
+            }
+        } else {
+            merged.insert(name.clone(), *val);
+        }
+    }
+    Some(merged)
+}
+
+/// Whether a property resolves to a concrete non-null value in at least one
+/// satisfiable scenario that is consistent with `assignment`. Restricts
+/// evaluation to the scenarios reachable under a given condition assignment, so
+/// that mutually exclusive branches are never mixed.
+///
+/// When called from within `validate_sub_under_assignment`, the active
+/// `SCENARIO_FILTER` is also respected - a scenario must be consistent with
+/// both the group assignment and the outer branch filter.
+///
+/// When resolution yields no scenarios (the value is opaque/dynamic), the
+/// property is conservatively considered present.
+fn property_present_under(
+    m: &Arc<SemanticModel>,
+    rid: &str,
+    base: &str,
+    prop: &str,
+    assignment: &HashMap<String, bool>,
+) -> bool {
+    let scenarios = m.resolve_scenarios_json(rid, &format!("{}.{}", base, prop));
+    if scenarios.is_empty() {
+        return true;
+    }
+    scenarios.iter().any(|(val, conds)| {
+        if !is_satisfiable(m, conds) {
+            return false;
+        }
+        // Check consistency with the active SCENARIO_FILTER (outer oneOf/anyOf
+        // assignment from validate_sub_under_assignment).
+        if !scenario_consistent_with_filter(m, conds) {
+            return false;
+        }
+        // Check no contradicting keys between scenario conditions and group assignment.
+        for (name, value) in assignment {
+            if let Some(scenario_value) = conds.get(name)
+                && scenario_value != value
+            {
+                return false;
+            }
+        }
+        // Verify the merged set is satisfiable.
+        if !assignment.is_empty() {
+            let mut merged = conds.clone();
+            for (name, value) in assignment {
+                merged.insert(name.clone(), *value);
+            }
+            if !is_satisfiable(m, &merged) {
+                return false;
+            }
+        }
+        !val.is_null()
+    })
 }
 
 /// Validate object keys, tagging any emitted diagnostics with the given
@@ -677,6 +883,34 @@ fn validate_object_keys_inner(
     base_path: &str,
     scenario: Option<&HashMap<String, bool>>,
 ) {
+    // When an outer key scenario is provided, install it as the SCENARIO_FILTER
+    // for the duration of this call. This ensures requiredOr/requiredXor and
+    // anyOf/oneOf evaluation inside this branch are constrained to the
+    // condition world that produced this key set. Restore any previous filter
+    // on exit so nested composition preserves outer constraints.
+    let previous_filter = SCENARIO_FILTER.with(|f| f.borrow().clone());
+    if let Some(outer_conds) = scenario {
+        let merged = match &previous_filter {
+            Some(existing) => {
+                let mut combined = existing.clone();
+                for (k, v) in outer_conds {
+                    if let Some(prev) = combined.get(k) {
+                        if prev != v {
+                            // Contradictory condition: skip installing filter.
+                            SCENARIO_FILTER.with(|f| *f.borrow_mut() = previous_filter.clone());
+                            return;
+                        }
+                    } else {
+                        combined.insert(k.clone(), *v);
+                    }
+                }
+                combined
+            }
+            None => outer_conds.clone(),
+        };
+        SCENARIO_FILTER.with(|f| *f.borrow_mut() = Some(merged));
+    }
+
     let before_len = out.len();
     for req in required {
         if !actual_keys.contains(req) {
@@ -693,10 +927,7 @@ fn validate_object_keys_inner(
         }
     }
 
-    if additional_properties == Some(false)
-        && !rtype.starts_with("Custom::")
-        && rtype != "AWS::CloudFormation::CustomResource"
-    {
+    if additional_properties == Some(false) && !is_custom_resource_type(rtype) {
         let known: HashSet<&str> = schema_props.keys().map(|s| s.as_str()).collect();
 
         let pattern_matchers: Vec<Option<std::sync::Arc<CompiledPattern>>> =
@@ -869,6 +1100,9 @@ fn validate_object_keys_inner(
             }
         }
     }
+
+    // Restore the previous SCENARIO_FILTER.
+    SCENARIO_FILTER.with(|f| *f.borrow_mut() = previous_filter);
 }
 
 /// Enumerate object key-sets visible at `prop_path`, one per condition
@@ -1558,14 +1792,8 @@ fn validate_sub_value_constraints(
 }
 
 /// The distinct template-condition assignments under which an `anyOf`/`oneOf`
-/// group must be decided.
-///
-/// Each concrete value scenario of a branch-referenced property carries the
-/// condition assignment that produces it (`Fn::If` branches). The group is
-/// evaluated once per distinct satisfiable assignment, so mutually exclusive
-/// values are never mixed into one decision. The unconditional assignment is
-/// always present: it decides the group for everything not driven by a
-/// condition.
+/// group must be decided. Delegates to the generic `property_scenario_assignments`
+/// helper with the union of property paths referenced by all branches.
 fn branch_scenario_assignments<'a>(
     m: &Arc<SemanticModel>,
     rid: &str,
@@ -1581,33 +1809,9 @@ fn branch_scenario_assignments<'a>(
     property_names.sort();
     property_names.dedup();
 
-    let mut assignments: Vec<HashMap<String, bool>> = vec![HashMap::new()];
-    let mut seen: Vec<Vec<(String, bool)>> = vec![Vec::new()];
-    for name in property_names {
-        let prop_path = format!("{}.{}", base_path, name);
-        for (_, conds) in m.resolve_scenarios_json(rid, &prop_path) {
-            if conds.is_empty() || !is_satisfiable(m, &conds) {
-                continue;
-            }
-            let mut key: Vec<(String, bool)> = conds.iter().map(|(n, v)| (n.clone(), *v)).collect();
-            key.sort();
-            if !seen.contains(&key) {
-                seen.push(key);
-                assignments.push(conds);
-            }
-        }
-    }
-    // The observed conditional assignments cover the reachable branches (each
-    // is the condition set of a concrete `Fn::If` value), so when any exist the
-    // group is decided per assignment and the unconditional pass is dropped -
-    // evaluating the group once more against the union of mutually exclusive
-    // values is exactly the cross-scenario mixing this partitioning prevents.
-    // Unconditionally-valued properties are consistent with every assignment
-    // and stay enforced in each.
-    if assignments.len() > 1 {
-        assignments.remove(0);
-    }
-    assignments
+    let paths: Vec<String> = property_names.iter().map(|name| format!("{}.{}", base_path, name)).collect();
+    let refs: Vec<&str> = paths.iter().map(String::as_str).collect();
+    property_scenario_assignments(m, rid, &refs)
 }
 
 /// The scenario tag for a group diagnostic: `None` for the unconditional
@@ -1620,6 +1824,10 @@ fn assignment_condition_map(assignment: &HashMap<String, bool>) -> Option<HashMa
 /// Runs `validate_sub` restricted to one condition assignment: only value
 /// scenarios consistent with `assignment` participate in branch matching, so a
 /// value from a mutually exclusive `Fn::If` branch cannot decide this one.
+///
+/// Preserves and restores any previously active SCENARIO_FILTER so that nested
+/// composition (e.g. requiredXor inside a oneOf branch inside an outer oneOf)
+/// retains the outer constraint rather than clearing it.
 #[allow(clippy::too_many_arguments)]
 fn validate_sub_under_assignment(
     out: &mut Vec<Diagnostic>,
@@ -1633,9 +1841,29 @@ fn validate_sub_under_assignment(
     assignment: &HashMap<String, bool>,
 ) {
     SCENARIO_FILTER.with(|filter| {
-        *filter.borrow_mut() = Some(assignment.clone());
+        let previous = filter.borrow().clone();
+        // Merge the new assignment with any existing outer filter using
+        // conflict-safe merge: never overwrite a contradictory prior condition.
+        let merged = match &previous {
+            Some(outer) => {
+                let mut combined = outer.clone();
+                for (k, v) in assignment {
+                    if let Some(prev) = combined.get(k) {
+                        if prev != v {
+                            // Contradictory: skip this assignment entirely.
+                            return;
+                        }
+                    } else {
+                        combined.insert(k.clone(), *v);
+                    }
+                }
+                combined
+            }
+            None => assignment.clone(),
+        };
+        *filter.borrow_mut() = Some(merged);
         validate_sub(out, m, rid, rtype, actual_keys, sub, defs, base_path, 0);
-        *filter.borrow_mut() = None;
+        *filter.borrow_mut() = previous;
     });
 }
 
@@ -2560,23 +2788,6 @@ fn enum_matches_case_insensitive(val: &serde_json::Value, allowed: &[serde_json:
         (Some(allowed_str), Some(val_str)) => allowed_str.eq_ignore_ascii_case(val_str),
         _ => scalar_eq(a, val),
     })
-}
-
-/// True when property `prop` under `base` resolves to a concrete (non-null)
-/// value in at least one satisfiable scenario. A property set to `AWS::NoValue`
-/// resolves to null in every scenario and is treated as absent - CloudFormation
-/// strips it before deployment. When resolution yields no scenarios (the value
-/// is opaque/dynamic), the property is conservatively considered present so a
-/// genuinely-specified property is never miscounted as absent.
-fn property_present(m: &Arc<SemanticModel>, rid: &str, base: &str, prop: &str) -> bool {
-    let scenarios = m.resolve_scenarios_json(rid, &format!("{}.{}", base, prop));
-    if scenarios.is_empty() {
-        return true;
-    }
-    scenarios
-        .iter()
-        .filter(|(_, conds)| scenario_consistent_with_filter(m, conds))
-        .any(|(val, conds)| is_satisfiable(m, conds) && !val.is_null())
 }
 
 fn check_required_not_null(out: &mut Vec<Diagnostic>, m: &Arc<SemanticModel>, rid: &str, base: &str, req: &str) {

@@ -500,11 +500,12 @@ fn collect_getatt_refs_string_position(val: &ResolvedValue, out: &mut Vec<(Strin
 /// (e.g. `Fn::Join`, `Fn::Sub`) marks a string-building consumer, so a GetAtt
 /// beneath it stays in scope.
 fn getatt_is_in_string_position(source_path: &str) -> bool {
-    // Edge source paths are section-rooted (`Outputs/<name>/Value…`); take the
-    // part after the output's `Value` node. The dotted tail (`.0`, `.Fn::If.1`)
-    // is what distinguishes a literal-container position from a string position.
+    // Edge source paths are section-rooted (`Outputs/<name>/Value...`); take the
+    // part after the terminal `/Value` node. Use last-occurrence splitting so an
+    // output name containing "Value" (e.g. `ValueFoo`) does not consume the
+    // output-name segment as part of the tail.
     let after_value = source_path
-        .split_once("/Value")
+        .rsplit_once("/Value")
         .map(|(_, tail)| tail)
         .or_else(|| source_path.strip_prefix("Value"))
         .unwrap_or("");
@@ -713,5 +714,31 @@ mod tests {
         assert!(!getatt_is_in_string_position("Outputs/O/Value.0"));
         assert!(!getatt_is_in_string_position("Outputs/O/Value.k"));
         assert!(!getatt_is_in_string_position("Outputs/O/Value.Fn::If.2.0"));
+        // Terminal intrinsic segments: GetAtt/Sub at the end of the path
+        assert!(getatt_is_in_string_position("Outputs/O/Value.Fn::GetAtt"));
+        assert!(getatt_is_in_string_position("Outputs/O/Value.Fn::Sub"));
+        assert!(getatt_is_in_string_position("Outputs/O/Value.Fn::Join.1.0.Fn::GetAtt"));
+        // A GetAtt inside a literal container stays out of scope even with terminal
+        assert!(!getatt_is_in_string_position("Outputs/O/Value.0.Fn::GetAtt"));
+    }
+
+    #[test]
+    fn getatt_string_position_value_prefixed_output_names() {
+        // Output names starting with "Value" must not confuse the last-occurrence
+        // split. The terminal `/Value` node is always the property key, never
+        // part of the output name.
+        assert!(getatt_is_in_string_position("Outputs/ValueFoo/Value"));
+        assert!(getatt_is_in_string_position("Outputs/ValueFoo/Value.Fn::Join.1.0"));
+        assert!(getatt_is_in_string_position("Outputs/ValueFoo/Value.Fn::If.1"));
+        assert!(!getatt_is_in_string_position("Outputs/ValueFoo/Value.0"));
+        assert!(!getatt_is_in_string_position("Outputs/ValueFoo/Value.k"));
+        // Ensure "Value" alone as an output name also works
+        assert!(getatt_is_in_string_position("Outputs/Value/Value"));
+        assert!(getatt_is_in_string_position("Outputs/Value/Value.Fn::Join.1.0"));
+        assert!(!getatt_is_in_string_position("Outputs/Value/Value.0"));
+        // Terminal intrinsic segments with Value-prefixed output names
+        assert!(getatt_is_in_string_position("Outputs/ValueFoo/Value.Fn::GetAtt"));
+        assert!(getatt_is_in_string_position("Outputs/ValueFoo/Value.Fn::Join.1.0.Fn::GetAtt"));
+        assert!(getatt_is_in_string_position("Outputs/ValueFoo/Value.Fn::Sub"));
     }
 }

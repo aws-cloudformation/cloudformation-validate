@@ -11,7 +11,7 @@ use template_model::consts::{
 };
 use template_model::message::render_str_list;
 use template_model::resolver::RefKind;
-use template_model::{PSEUDO_PARAMETERS, SemanticModel, is_known_region};
+use template_model::{PSEUDO_PARAMETERS, SemanticModel, is_custom_resource_type, is_known_region};
 use validation_engine::make_resource_diagnostic;
 
 pub fn register(reg: &mut NativeRuleRegistry) {
@@ -96,8 +96,7 @@ fn eval_intrinsics(ctx: &EvalContext) -> Vec<Diagnostic> {
                             && let Some(valid_list) = getatt_attrs.get(rtype)
                             && !valid_list.iter().any(|a| a == attr)
                             && !getatt_attr_is_map_member(attr, rtype)
-                            && !rtype.starts_with("Custom::")
-                            && !rtype.starts_with("AWS::CloudFormation::CustomResource")
+                            && !is_custom_resource_type(rtype)
                             && rtype != "AWS::CloudFormation::Stack"
                             && rtype != "AWS::CloudFormation::Macro"
                         {

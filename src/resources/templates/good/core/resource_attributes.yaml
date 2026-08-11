@@ -1,0 +1,69 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Exercises all valid resource-level attributes including SAM-specific
+  Connectors and IgnoreGlobals.
+
+Resources:
+  AllCfnAttributes:
+    Type: AWS::S3::Bucket
+    Condition: AlwaysTrue
+    DependsOn: BucketWithConnectors
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    UpdatePolicy:
+      AutoScalingRollingUpdate:
+        MaxBatchSize: 2
+    CreationPolicy:
+      ResourceSignal:
+        Count: 1
+    Metadata:
+      Note: valid
+    Properties:
+      BucketName: all-attrs-bucket
+
+  DependsOnSingleString:
+    Type: AWS::S3::Bucket
+    DependsOn: AllCfnAttributes
+    Properties:
+      BucketName: depends-single
+
+  DependsOnList:
+    Type: AWS::S3::Bucket
+    DependsOn:
+      - AllCfnAttributes
+      - DependsOnSingleString
+    Properties:
+      BucketName: depends-list
+
+  ResourceWithVersion:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    Version: "1.0"
+
+  BucketWithTransform:
+    Type: AWS::S3::Bucket
+    Transform:
+      Name: "AWS::Include"
+      Parameters:
+        Location: s3://my-bucket/include.yaml
+    Properties:
+      BucketName: transformed
+
+  BucketWithConnectors:
+    Type: AWS::Serverless::Function
+    Connectors:
+      MyConn:
+        Properties:
+          Destination:
+            Id: AllCfnAttributes
+          Permissions:
+            - Read
+    IgnoreGlobals: true
+    Properties:
+      Runtime: python3.11
+      Handler: index.handler
+      CodeUri: ./src
+
+Conditions:
+  AlwaysTrue: !Equals ["a", "a"]

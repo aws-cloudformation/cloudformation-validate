@@ -1,0 +1,132 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Valid Fargate and DynamoDB - no E3048/E3639
+Conditions:
+  IsProd:
+    !Equals [!Ref "AWS::Region", "us-east-1"]
+Resources:
+  # Valid Fargate task
+  ValidFargate:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: valid
+      RequiresCompatibilities:
+        - FARGATE
+      NetworkMode: awsvpc
+      Cpu: "256"
+      Memory: "512"
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: /ecs/app
+              awslogs-region: us-east-1
+
+  # Fargate with splunk log driver (valid)
+  ValidFargateSplunk:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: valid-splunk
+      RequiresCompatibilities:
+        - FARGATE
+      NetworkMode: awsvpc
+      Cpu: "1024"
+      Memory: "2048"
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true
+          LogConfiguration:
+            LogDriver: splunk
+
+  # Non-FARGATE task - Fargate checks should not apply
+  NonFargateTask:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: non-fargate
+      RequiresCompatibilities:
+        - EC2
+      NetworkMode: bridge
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true
+          LogConfiguration:
+            LogDriver: syslog
+
+  # Fargate with null PlacementConstraints (AWS::NoValue) - valid
+  FargateNullPC:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: null-pc-ok
+      RequiresCompatibilities:
+        - FARGATE
+      NetworkMode: awsvpc
+      Cpu: "512"
+      Memory: "1024"
+      PlacementConstraints: !If [IsProd, !Ref "AWS::NoValue", !Ref "AWS::NoValue"]
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true
+
+  # DynamoDB with PAY_PER_REQUEST - no ProvisionedThroughput needed
+  PayPerRequestTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: pay-per-request
+      BillingMode: PAY_PER_REQUEST
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+
+  # DynamoDB with PROVISIONED and ProvisionedThroughput - valid
+  ProvisionedTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: provisioned-ok
+      BillingMode: PROVISIONED
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+
+  # DynamoDB with default BillingMode and ProvisionedThroughput - valid
+  DefaultWithThroughput:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: default-ok
+      ProvisionedThroughput:
+        ReadCapacityUnits: 10
+        WriteCapacityUnits: 10
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+
+  # Fargate task with integer Cpu (float-like) - valid
+  FargateIntCpu:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: int-cpu
+      RequiresCompatibilities:
+        - FARGATE
+      NetworkMode: awsvpc
+      Cpu: "256"
+      Memory: "512"
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true

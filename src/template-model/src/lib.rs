@@ -9,6 +9,7 @@ pub mod diagnostic;
 pub(crate) mod dynamic_ref;
 pub(crate) mod graph;
 pub mod hardcoded_az;
+pub mod iam_policy;
 pub(crate) mod intrinsic_arg_shapes;
 pub mod ir;
 pub mod json_value;
@@ -52,6 +53,7 @@ pub use regions::{
     availability_zones_for_region, is_known_region, partition_for_region, url_suffix_for_region,
 };
 pub use schedule::schedule_expression_errors;
+pub use serialization::resolved_value_to_json;
 pub use span::{SourceSpan, SpanProvider, UNKNOWN_SPAN, span_to_option};
 pub use template_section::{EntityType, TopLevelSection, entity_identity};
 pub use value_patterns::{
@@ -60,3 +62,7 @@ pub use value_patterns::{
 };
 
 pub(crate) use defect::{make_parse_defect, make_parse_defect_at, make_parse_defect_for_resource};
+
+pub fn is_custom_resource_type(resource_type: &str) -> bool {
+    resource_type.starts_with("Custom::") || resource_type == "AWS::CloudFormation::CustomResource"
+}

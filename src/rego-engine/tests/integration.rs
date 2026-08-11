@@ -476,8 +476,11 @@ fn e2e_sg_port_range() {
 fn e2e_iam_bad_statement() {
     let report = validate_fixture("bad/iam_bad_statement.yaml");
     assert!(
-        has_rule(&report, "W3515") || has_rule(&report, "E3514") || has_rule(&report, "E3045"),
-        "Bad IAM statement should trigger E3043/E3514/E3045, got: {:?}",
+        has_rule(&report, "E3510")
+            || has_rule(&report, "W3515")
+            || has_rule(&report, "E3514")
+            || has_rule(&report, "E3045"),
+        "Bad IAM statement should trigger E3510/W3515/E3514/E3045, got: {:?}",
         report.diagnostics
     );
 }

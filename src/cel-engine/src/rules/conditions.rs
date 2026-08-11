@@ -156,7 +156,7 @@ fn find_unreachable_branches(
     assumptions: &[(String, bool)],
 ) {
     match value {
-        ResolvedValue::Conditional { condition: cond, if_true: _, if_false: _ } => {
+        ResolvedValue::Conditional { condition: cond, if_true, if_false } => {
             let mut true_assumptions = assumptions.to_vec();
             true_assumptions.push((cond.clone(), true));
             // Flag the branch only when the surrounding assumptions make this
@@ -164,9 +164,9 @@ fn find_unreachable_branches(
             // the value on its own. A condition that is constant (a literal
             // tautology, or a parameter pinned to a single value) is the concern
             // of equality rules, not of branch reachability.
-            if !model.conditions.is_satisfiable(&true_assumptions)
-                && model.conditions.is_satisfiable(&[(cond.clone(), true)])
-            {
+            let true_unreachable = !model.conditions.is_satisfiable(&true_assumptions)
+                && model.conditions.is_satisfiable(&[(cond.clone(), true)]);
+            if true_unreachable {
                 out.push(make_resource_diagnostic(
                     "W1028",
                     &format!("['Fn::If', 1] is not reachable. When setting condition '{}' to True", cond),
@@ -177,11 +177,24 @@ fn find_unreachable_branches(
                 ));
             }
 
+            // Recurse into the true branch. If the branch is unreachable, use the
+            // prior assumptions so that nested conditionals are evaluated in their
+            // own right rather than inheriting an impossible assumption set.
+            let true_recurse_assumptions = if true_unreachable { assumptions } else { &true_assumptions };
+            find_unreachable_branches(
+                out,
+                model,
+                resource_id,
+                if_true,
+                &format!("{}.Fn::If.1", path),
+                true_recurse_assumptions,
+            );
+
             let mut false_assumptions = assumptions.to_vec();
             false_assumptions.push((cond.clone(), false));
-            if !model.conditions.is_satisfiable(&false_assumptions)
-                && model.conditions.is_satisfiable(&[(cond.clone(), false)])
-            {
+            let false_unreachable = !model.conditions.is_satisfiable(&false_assumptions)
+                && model.conditions.is_satisfiable(&[(cond.clone(), false)]);
+            if false_unreachable {
                 let explanation = build_unreachable_explanation(cond, false, assumptions);
                 out.push(make_resource_diagnostic(
                     "W1028",
@@ -193,11 +206,17 @@ fn find_unreachable_branches(
                 ));
             }
 
-            // Only the reachability of the immediate Fn::If branches is checked;
-            // we do not recurse into an Fn::If nested inside a branch, so we stop
-            // here. Recursing would produce spurious findings (e.g.
-            // `Fn::If.2.Fn::If.1`) for branches whose reachability depends on the
-            // already-evaluated outer condition.
+            // Recurse into the false branch. Same logic: use prior assumptions
+            // when the branch itself is unreachable.
+            let false_recurse_assumptions = if false_unreachable { assumptions } else { &false_assumptions };
+            find_unreachable_branches(
+                out,
+                model,
+                resource_id,
+                if_false,
+                &format!("{}.Fn::If.2", path),
+                false_recurse_assumptions,
+            );
         }
         ResolvedValue::Map { entries } => {
             for e in entries {

@@ -337,7 +337,12 @@ impl<'a> Resolver<'a> {
         match intrinsic {
             IntrinsicFn::Ref(target) => self.resolve_ref(target, span),
             IntrinsicFn::GetAtt(resource, attr) => {
-                self.record_edge(resource, RefKind::GetAtt { attr: attr.clone() }, span);
+                if self.is_output_context() {
+                    let path = format!("{}.Fn::GetAtt", self.current_path);
+                    self.record_edge_at_path(resource, RefKind::GetAtt { attr: attr.clone() }, span, path);
+                } else {
+                    self.record_edge(resource, RefKind::GetAtt { attr: attr.clone() }, span);
+                }
                 ResolvedValue::Reference { target: resource.clone(), kind: RefKind::GetAtt { attr: attr.clone() } }
             }
             IntrinsicFn::If(cond, t_ref, f_ref) => {
@@ -1333,7 +1338,12 @@ impl<'a> Resolver<'a> {
                 let resource = &var[..dot_pos];
                 let attr = &var[dot_pos + 1..];
                 if self.resource_ids.contains(resource) {
-                    self.record_edge(resource, RefKind::GetAtt { attr: attr.to_string() }, span);
+                    if self.is_output_context() {
+                        let path = format!("{}.Fn::Sub", self.current_path);
+                        self.record_edge_at_path(resource, RefKind::GetAtt { attr: attr.to_string() }, span, path);
+                    } else {
+                        self.record_edge(resource, RefKind::GetAtt { attr: attr.to_string() }, span);
+                    }
                     sub_map.insert(
                         var.clone(),
                         ResolvedValue::Reference {
@@ -1484,6 +1494,14 @@ impl<'a> Resolver<'a> {
     }
 
     fn record_edge(&mut self, target: &str, kind: RefKind, span: &SourceSpan) {
+        self.record_edge_at_path(target, kind, span, self.current_path.clone());
+    }
+
+    /// Records a reference edge with an explicit source path. Use this when the
+    /// edge path must include a terminal intrinsic segment that differs from the
+    /// resolver's walking path (e.g. output edges that must carry the intrinsic
+    /// function name at the end for precise diagnostic locations).
+    fn record_edge_at_path(&mut self, target: &str, kind: RefKind, span: &SourceSpan, path: String) {
         if let Some(ref resource) = self.current_resource.clone() {
             let condition_context = if self.condition_stack.is_empty() {
                 None
@@ -1494,13 +1512,18 @@ impl<'a> Resolver<'a> {
             };
             self.edges.push(ResolverEdge {
                 source_resource: resource.clone(),
-                source_path: self.current_path.clone(),
+                source_path: path,
                 target: target.to_string(),
                 kind,
                 span: *span,
                 condition_context,
             });
         }
+    }
+
+    /// Whether the currently resolving resource is an output pseudo-resource.
+    fn is_output_context(&self) -> bool {
+        self.current_resource.as_ref().is_some_and(|r| r.starts_with(OUTPUT_PSEUDO_RESOURCE_PREFIX))
     }
 
     pub fn set_current_resource(&mut self, resource_id: &str) {
@@ -3270,5 +3293,94 @@ mod tests {
             Some(ResolvedValue::Dynamic { .. }) => {}
             other => panic!("Expected Dynamic, got {:?}", other),
         }
+    }
+
+    #[test]
+    fn output_getatt_edge_carries_terminal_intrinsic_path() {
+        // Output edges for explicit GetAtt must end with `.Fn::GetAtt` so
+        // diagnostics point at the intrinsic, not the parent value.
+        let input = r#"{
+            "Resources":{"R":{"Type":"T","Properties":{}}},
+            "Outputs":{
+                "DottedString":{"Value":{"Fn::GetAtt":["R","Arn"]}},
+                "ListForm":{"Value":{"Fn::GetAtt":["R","Arn"]}}
+            }
+        }"#;
+        let model = crate::model::SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        let edges: Vec<_> = model.graph.edges.iter().filter(|e| e.source_resource.starts_with("__output__")).collect();
+        assert_eq!(edges.len(), 2);
+        for edge in &edges {
+            assert!(
+                edge.source_path.ends_with(".Fn::GetAtt"),
+                "output GetAtt edge path should end with .Fn::GetAtt, got: {}",
+                edge.source_path,
+            );
+        }
+    }
+
+    #[test]
+    fn output_sub_implicit_getatt_edge_carries_fn_sub_path() {
+        // Implicit GetAtt inside Fn::Sub in an output must end with `.Fn::Sub`.
+        let input = r#"{
+            "Resources":{"R":{"Type":"T","Properties":{}}},
+            "Outputs":{
+                "SubOut":{"Value":{"Fn::Sub":"${R.Arn}"}}
+            }
+        }"#;
+        let model = crate::model::SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        let edges: Vec<_> = model
+            .graph
+            .edges
+            .iter()
+            .filter(|e| e.source_resource.starts_with("__output__"))
+            .filter(|e| matches!(&e.kind, RefKind::GetAtt { .. }))
+            .collect();
+        assert_eq!(edges.len(), 1);
+        assert_eq!(edges[0].source_path, "Outputs/SubOut/Value.Fn::Sub");
+    }
+
+    #[test]
+    fn output_join_nested_getatt_edge_path() {
+        // GetAtt nested inside Fn::Join in an output carries the full traversal
+        // path ending with the terminal `.Fn::GetAtt`.
+        let input = r#"{
+            "Resources":{"R":{"Type":"T","Properties":{}}},
+            "Outputs":{
+                "JoinOut":{"Value":{"Fn::Join":["",["ignored",{"Fn::GetAtt":["R","Arn"]}]]}}
+            }
+        }"#;
+        let model = crate::model::SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        let edges: Vec<_> = model
+            .graph
+            .edges
+            .iter()
+            .filter(|e| e.source_resource == "__output__JoinOut")
+            .filter(|e| matches!(&e.kind, RefKind::GetAtt { .. }))
+            .collect();
+        assert_eq!(edges.len(), 1);
+        assert_eq!(edges[0].source_path, "Outputs/JoinOut/Value.Fn::Join.1.1.Fn::GetAtt");
+    }
+
+    #[test]
+    fn resource_getatt_edge_path_unchanged() {
+        // Resource (non-output) GetAtt edges must NOT carry the terminal
+        // intrinsic segment, preserving existing behavior.
+        let input = r#"{
+            "Resources":{
+                "R":{"Type":"T","Properties":{"V":{"Fn::GetAtt":["Other","Arn"]}}},
+                "Other":{"Type":"T2","Properties":{}}
+            }
+        }"#;
+        let model = crate::model::SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        let edges: Vec<_> = model
+            .graph
+            .edges
+            .iter()
+            .filter(|e| e.source_resource == "R")
+            .filter(|e| matches!(&e.kind, RefKind::GetAtt { .. }))
+            .collect();
+        assert_eq!(edges.len(), 1);
+        assert_eq!(edges[0].source_path, "Properties.V");
+        assert!(!edges[0].source_path.contains("Fn::GetAtt"));
     }
 }

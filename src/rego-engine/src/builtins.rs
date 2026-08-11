@@ -13,8 +13,10 @@ use template_model::consts::{
     FIELD_CONDITION, FIELD_DEPENDS_ON, FIELD_KIND, FIELD_PROPERTIES, FIELD_RESOURCE_TYPE, FIELD_SOURCE,
     FIELD_SOURCE_PATH, FIELD_TARGET, FN_IF,
 };
+use template_model::iam_policy::validate_identity_policy;
 use template_model::region_enums;
 use template_model::resolved_value::json_contains_markers;
+use template_model::resolved_value_to_json;
 use template_model::resolver::{MapEntry, RefKind, ResolvedValue};
 use template_model::{MARKER_DYNAMIC, MARKER_PARAM_TYPE, MARKER_REF};
 use template_model::{SourceSpan, UNKNOWN_SPAN, render_value, render_value_list};
@@ -104,7 +106,8 @@ pub(crate) fn register_all(
     register_estimated_string_length_bounds(rego, holder.clone());
     register_schema_string_length(rego, schema_registry.clone());
     register_schema_requires_unique_items(rego, schema_registry);
-    register_unreachable_if_branches(rego, holder);
+    register_unreachable_if_branches(rego, holder.clone());
+    register_iam_identity_policy_findings(rego, holder);
 }
 
 fn resolved_to_rego(rv: &ResolvedValue) -> Value {
@@ -2200,7 +2203,7 @@ fn collect_unreachable_branches(
     results: &mut Vec<Value>,
 ) {
     match value {
-        ResolvedValue::Conditional { condition: cond, if_true: _, if_false: _ } => {
+        ResolvedValue::Conditional { condition: cond, if_true, if_false } => {
             let mut true_assumptions = assumptions.to_vec();
             true_assumptions.push((cond.clone(), true));
             // Flag the branch only when the surrounding assumptions make this
@@ -2208,9 +2211,9 @@ fn collect_unreachable_branches(
             // the value on its own. A condition that is constant (a literal
             // tautology, or a parameter pinned to a single value) is the concern
             // of equality rules, not of branch reachability.
-            if !model.conditions.is_satisfiable(&true_assumptions)
-                && model.conditions.is_satisfiable(&[(cond.clone(), true)])
-            {
+            let true_unreachable = !model.conditions.is_satisfiable(&true_assumptions)
+                && model.conditions.is_satisfiable(&[(cond.clone(), true)]);
+            if true_unreachable {
                 let mut map = serde_json::Map::new();
                 map.insert("resourceId".into(), serde_json::Value::String(resource_id.to_string()));
                 map.insert("path".into(), serde_json::Value::String(format!("{}.{}.1", path, FN_IF)));
@@ -2224,11 +2227,25 @@ fn collect_unreachable_branches(
                 results.push(json_to_value(&serde_json::Value::Object(map)));
             }
 
+            // Recurse into the true branch. If the branch is unreachable, use the
+            // prior assumptions so that nested conditionals are evaluated in their
+            // own right rather than inheriting an impossible assumption set.
+            let true_recurse_assumptions: &[(String, bool)] =
+                if true_unreachable { assumptions } else { &true_assumptions };
+            collect_unreachable_branches(
+                model,
+                resource_id,
+                if_true,
+                &format!("{}.{}.1", path, FN_IF),
+                true_recurse_assumptions,
+                results,
+            );
+
             let mut false_assumptions = assumptions.to_vec();
             false_assumptions.push((cond.clone(), false));
-            if !model.conditions.is_satisfiable(&false_assumptions)
-                && model.conditions.is_satisfiable(&[(cond.clone(), false)])
-            {
+            let false_unreachable = !model.conditions.is_satisfiable(&false_assumptions)
+                && model.conditions.is_satisfiable(&[(cond.clone(), false)]);
+            if false_unreachable {
                 let existing: Vec<String> = assumptions
                     .iter()
                     .filter(|(name, _)| name != cond)
@@ -2253,11 +2270,18 @@ fn collect_unreachable_branches(
                 results.push(json_to_value(&serde_json::Value::Object(map)));
             }
 
-            // Only the reachability of the immediate Fn::If branches is checked;
-            // we do not recurse into an Fn::If nested inside a branch, so we stop
-            // here. Recursing would produce spurious findings (e.g.
-            // `Fn::If.2.Fn::If.1`) for branches whose reachability depends on the
-            // already-evaluated outer condition.
+            // Recurse into the false branch. Same logic: use prior assumptions
+            // when the branch itself is unreachable.
+            let false_recurse_assumptions: &[(String, bool)] =
+                if false_unreachable { assumptions } else { &false_assumptions };
+            collect_unreachable_branches(
+                model,
+                resource_id,
+                if_false,
+                &format!("{}.{}.2", path, FN_IF),
+                false_recurse_assumptions,
+                results,
+            );
         }
         ResolvedValue::Map { entries } => {
             for MapEntry { key, value: val } in entries {
@@ -2278,6 +2302,47 @@ fn collect_unreachable_branches(
         }
         _ => {}
     }
+}
+
+/// `iam_identity_policy_findings(resource_id, document_path)` calls the shared
+/// identity-policy structural validator and returns an array of finding objects,
+/// each with `path` (absolute property path) and `message`.
+fn register_iam_identity_policy_findings(rego: &mut regorus::Engine, holder: SharedModel) {
+    let _ = rego.add_extension(
+        "iam_identity_policy_findings".into(),
+        2,
+        Box::new(move |params: Vec<Value>| {
+            let Some(model) = get_model(&holder) else {
+                return Ok(Value::from(Vec::<Value>::new()));
+            };
+            let resource_id = params[0].as_string()?;
+            let document_path = params[1].as_string()?;
+            let document = model
+                .resolve_deep(resource_id, document_path)
+                .or_else(|| model.resolve(resource_id, document_path).cloned())
+                .map(|value| resolved_value_to_json(&value))
+                .or_else(|| {
+                    model.resolve_scenarios_json(resource_id, document_path).into_iter().next().map(|(v, _)| v)
+                });
+            let Some(document) = document else {
+                return Ok(Value::from(Vec::<Value>::new()));
+            };
+
+            let substituted = model.substituted_paths_under(resource_id.as_ref(), document_path.as_ref());
+            let findings = validate_identity_policy(&document, &substituted)
+                .into_iter()
+                .map(|finding| {
+                    let path = if finding.path.is_empty() {
+                        document_path.to_string()
+                    } else {
+                        format!("{}.{}", document_path, finding.path)
+                    };
+                    json_to_value(&serde_json::json!({"path": path, "message": finding.message}))
+                })
+                .collect::<Vec<_>>();
+            Ok(Value::from(findings))
+        }),
+    );
 }
 
 #[cfg(test)]

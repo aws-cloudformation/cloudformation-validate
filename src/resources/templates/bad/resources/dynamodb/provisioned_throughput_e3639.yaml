@@ -1,0 +1,44 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Tests E3639 DynamoDB ProvisionedThroughput validation
+Conditions:
+  IsProd:
+    !Equals [!Ref "AWS::Region", "us-east-1"]
+Resources:
+  # Explicit PROVISIONED without ProvisionedThroughput
+  ExplicitProvisioned:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: explicit-provisioned
+      BillingMode: PROVISIONED
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+
+  # Default BillingMode (absent) without ProvisionedThroughput
+  DefaultProvisioned:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: default-provisioned
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+
+  # Null ProvisionedThroughput via AWS::NoValue
+  NullThroughput:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: null-throughput
+      BillingMode: PROVISIONED
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      ProvisionedThroughput: !If [IsProd, !Ref "AWS::NoValue", !Ref "AWS::NoValue"]

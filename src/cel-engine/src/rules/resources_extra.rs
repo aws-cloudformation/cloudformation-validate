@@ -13,6 +13,7 @@ use template_model::consts::{
     FIELD_PROPERTIES, FIELD_RESOURCE_TYPE, FIELD_RESOURCES, FIELD_SOURCE_PATH, FIELD_TARGET, FN_IF, FN_REF,
     KEY_PROPERTIES, PARAM_TYPE_STRING, TRANSFORM_SERVERLESS,
 };
+use template_model::iam_policy::validate_identity_policy;
 use template_model::message::{render_str_list, render_value};
 use template_model::resolver::{RefKind, ResolvedValue};
 use template_model::{
@@ -221,6 +222,41 @@ fn resolve_concrete(m: &SemanticModel, rid: &str, path: &str) -> Option<serde_js
     // properties by name still see per-branch values.
     let scenarios = m.resolve_scenarios_json(rid, path);
     scenarios.into_iter().next().map(|(v, _)| v)
+}
+
+/// Resolves a value including dynamic/marker-bearing content (unlike
+/// `resolve_concrete` which only returns fully concrete values). This is needed
+/// for IAM policy document validation where the shared validator must see
+/// marker objects to skip them per-field rather than bailing out entirely.
+fn resolve_with_markers(m: &SemanticModel, resource_id: &str, path: &str) -> Option<serde_json::Value> {
+    use template_model::resolved_value_to_json;
+    m.resolve_deep(resource_id, path)
+        .or_else(|| m.resolve(resource_id, path).cloned())
+        .map(|value| resolved_value_to_json(&value))
+        .or_else(|| m.resolve_scenarios_json(resource_id, path).into_iter().next().map(|(value, _)| value))
+}
+
+/// Runs the shared identity-policy structural validator against a resolved
+/// document and converts its findings into engine diagnostics. The `substituted`
+/// set is derived from the reference graph: any outgoing edge whose source_path
+/// is a descendant of the document path identifies a value produced by resolving
+/// an intrinsic rather than being authored literally.
+fn push_identity_policy_findings(
+    out: &mut Vec<Diagnostic>,
+    model: &SemanticModel,
+    resource_id: &str,
+    document_path: &str,
+    document: &serde_json::Value,
+) {
+    let substituted = model.substituted_paths_under(resource_id, document_path);
+    for finding in validate_identity_policy(document, &substituted) {
+        let path = if finding.path.is_empty() {
+            document_path.to_string()
+        } else {
+            format!("{}.{}", document_path, finding.path)
+        };
+        out.push(make_resource_diagnostic("E3510", &finding.message, model, resource_id, &path, None));
+    }
 }
 
 fn scenario_is_reachable(m: &SemanticModel, resource_id: &str, conditions: &HashMap<String, bool>) -> bool {
@@ -473,6 +509,38 @@ fn sg_protocol_has_ordered_port_range(protocol: Option<&serde_json::Value>) -> b
     }
 }
 
+/// Extracts string AttributeName values from a KeySchema array into the
+/// referenced set. Returns false if any entry lacks a resolvable string
+/// AttributeName, signaling the caller to bail conservatively.
+fn ddb_collect_key_schema(ks: &[serde_json::Value], referenced: &mut HashSet<String>) -> bool {
+    for k in ks {
+        match k.get("AttributeName").and_then(|n| n.as_str()) {
+            Some(n) => {
+                referenced.insert(n.to_string());
+            }
+            None => return false,
+        }
+    }
+    true
+}
+
+/// Processes an array of index items (GSI or LSI), collecting AttributeName
+/// strings from each item's KeySchema. Returns false if any item's KeySchema is
+/// not a resolvable array or contains non-string AttributeName entries.
+fn ddb_collect_index_key_schemas(indexes: &[serde_json::Value], referenced: &mut HashSet<String>) -> bool {
+    for idx in indexes {
+        match idx.get("KeySchema").and_then(|k| k.as_array()) {
+            Some(ks) => {
+                if !ddb_collect_key_schema(ks, referenced) {
+                    return false;
+                }
+            }
+            None => return false,
+        }
+    }
+    true
+}
+
 pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     let mut out = Vec::new();
     let m = ctx.model;
@@ -517,22 +585,35 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     for name in m.resources_of_type("AWS::IAM::Policy") {
-        if let Some(doc) = resolve_concrete(m, name, "Properties.PolicyDocument") {
-            check_iam_statements(&mut out, m, name, &doc, "Properties.PolicyDocument");
+        if let Some(doc) = resolve_with_markers(m, name, "Properties.PolicyDocument") {
+            push_identity_policy_findings(&mut out, m, name, "Properties.PolicyDocument", &doc);
         }
     }
-    for name in m.resources_of_type("AWS::IAM::Role") {
-        if let Some(serde_json::Value::Array(policies)) = resolve_concrete(m, name, "Properties.Policies") {
-            for (idx, pol) in policies.iter().enumerate() {
-                if let Some(doc) = pol.get("PolicyDocument") {
-                    check_iam_statements(
-                        &mut out,
-                        m,
-                        name,
-                        doc,
-                        &format!("Properties.Policies[{}].PolicyDocument", idx),
-                    );
-                }
+    let single_document_types = [
+        ("AWS::IAM::ManagedPolicy", "Properties.PolicyDocument"),
+        ("AWS::IAM::UserPolicy", "Properties.PolicyDocument"),
+        ("AWS::IAM::RolePolicy", "Properties.PolicyDocument"),
+        ("AWS::IAM::GroupPolicy", "Properties.PolicyDocument"),
+        ("AWS::SSO::PermissionSet", "Properties.InlinePolicy"),
+    ];
+    for (resource_type, document_path) in single_document_types {
+        for name in m.resources_of_type(resource_type) {
+            if let Some(document) = resolve_with_markers(m, name, document_path) {
+                push_identity_policy_findings(&mut out, m, name, document_path, &document);
+            }
+        }
+    }
+    for resource_type in ["AWS::IAM::Role", "AWS::IAM::User", "AWS::IAM::Group"] {
+        for name in m.resources_of_type(resource_type) {
+            let Some(serde_json::Value::Array(policies)) = resolve_with_markers(m, name, "Properties.Policies") else {
+                continue;
+            };
+            for (index, policy) in policies.iter().enumerate() {
+                let Some(document) = policy.get("PolicyDocument") else {
+                    continue;
+                };
+                let document_path = format!("Properties.Policies.{}.PolicyDocument", index);
+                push_identity_policy_findings(&mut out, m, name, &document_path, document);
             }
         }
     }
@@ -724,25 +805,91 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     for name in m.resources_of_type("AWS::DynamoDB::Table") {
-        if let (Some(serde_json::Value::Array(ks)), Some(serde_json::Value::Array(ad))) = (
-            resolve_concrete(m, name, "Properties.KeySchema"),
-            resolve_concrete(m, name, "Properties.AttributeDefinitions"),
-        ) {
-            let defined: HashSet<&str> =
-                ad.iter().filter_map(|a| a.get("AttributeName").and_then(|n| n.as_str())).collect();
-            for k in &ks {
-                if let Some(attr) = k.get("AttributeName").and_then(|n| n.as_str())
-                    && !defined.contains(attr)
-                {
-                    out.push(make_resource_diagnostic(
-                        "E3039",
-                        &format!("KeySchema attribute '{}' is not defined in AttributeDefinitions", attr),
-                        m,
-                        name,
-                        "Properties.KeySchema",
-                        Some("Add the attribute to AttributeDefinitions"),
+        if let Some(serde_json::Value::Array(ad)) = resolve_concrete(m, name, "Properties.AttributeDefinitions") {
+            // Collect defined attribute names; bail conservatively if any element
+            // is not a resolvable object with a string AttributeName.
+            let mut defined: HashSet<String> = HashSet::new();
+            let mut bail = false;
+            for a in &ad {
+                match a.get("AttributeName").and_then(|n| n.as_str()) {
+                    Some(n) => {
+                        defined.insert(n.to_string());
+                    }
+                    None => {
+                        bail = true;
+                        break;
+                    }
+                }
+            }
+            if bail {
+                continue;
+            }
+
+            // Collect referenced attribute names from all KeySchema arrays.
+            let mut referenced: HashSet<String> = HashSet::new();
+
+            // Table KeySchema
+            if let Some(serde_json::Value::Array(ks)) = resolve_concrete(m, name, "Properties.KeySchema") {
+                if !ddb_collect_key_schema(&ks, &mut referenced) {
+                    continue;
+                }
+            } else {
+                // Table KeySchema absent or dynamic -- skip this resource.
+                continue;
+            }
+
+            let res = m.resources.get(name.as_str());
+
+            // GlobalSecondaryIndexes: authored-but-unresolvable means skip entirely.
+            let gsi_authored = res.map(|r| r.properties.contains_key("GlobalSecondaryIndexes")).unwrap_or(false);
+            match resolve_concrete(m, name, "Properties.GlobalSecondaryIndexes") {
+                Some(serde_json::Value::Array(gsis)) => {
+                    if !ddb_collect_index_key_schemas(&gsis, &mut referenced) {
+                        continue;
+                    }
+                }
+                _ if gsi_authored => {
+                    // Authored but cannot resolve to an array -- bail.
+                    continue;
+                }
+                _ => {}
+            }
+
+            // LocalSecondaryIndexes: same logic.
+            let lsi_authored = res.map(|r| r.properties.contains_key("LocalSecondaryIndexes")).unwrap_or(false);
+            match resolve_concrete(m, name, "Properties.LocalSecondaryIndexes") {
+                Some(serde_json::Value::Array(lsis)) => {
+                    if !ddb_collect_index_key_schemas(&lsis, &mut referenced) {
+                        continue;
+                    }
+                }
+                _ if lsi_authored => {
+                    continue;
+                }
+                _ => {}
+            }
+
+            // Compare the two sets: emit one diagnostic per table when they differ.
+            if defined != referenced {
+                let missing: BTreeSet<&str> =
+                    referenced.iter().filter(|r| !defined.contains(r.as_str())).map(|s| s.as_str()).collect();
+                let unused: BTreeSet<&str> =
+                    defined.iter().filter(|d| !referenced.contains(d.as_str())).map(|s| s.as_str()).collect();
+                let mut parts: Vec<String> = Vec::new();
+                if !missing.is_empty() {
+                    parts.push(format!(
+                        "missing definitions: [{}]",
+                        missing.iter().copied().collect::<Vec<_>>().join(", ")
                     ));
                 }
+                if !unused.is_empty() {
+                    parts.push(format!(
+                        "unused definitions: [{}]",
+                        unused.iter().copied().collect::<Vec<_>>().join(", ")
+                    ));
+                }
+                let message = format!("AttributeDefinitions does not match KeySchema attributes. {}", parts.join("; "));
+                out.push(make_resource_diagnostic("E3039", &message, m, name, KEY_PROPERTIES, None));
             }
         }
     }
@@ -772,22 +919,6 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                     Some("Set TargetOriginId to match one of the Origin Ids defined in Origins"),
                 ));
             }
-        }
-    }
-
-    for name in m.resources_of_type("AWS::IAM::Policy") {
-        if let Some(doc) = resolve_concrete(m, name, "Properties.PolicyDocument")
-            && doc.is_object()
-            && doc.get("Statement").is_none()
-        {
-            out.push(make_resource_diagnostic(
-                "E3510",
-                "IAM identity policy must have a Statement property",
-                m,
-                name,
-                "Properties.PolicyDocument",
-                Some("Add a Statement array to the PolicyDocument"),
-            ));
         }
     }
 
@@ -3783,7 +3914,283 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
+    // Validate ECS Fargate tasks have required properties and values.
+    // When RequiresCompatibilities includes FARGATE:
+    //   1. NetworkMode must be awsvpc
+    //   2. Cpu must be present and one of the offered sizes
+    //   3. Memory must be present
+    //   4. PlacementConstraints must not be present (effective, i.e. non-null)
+    //   5. Container log drivers must be supported
+    {
+        const FARGATE_VALID_CPU: &[i64] = &[256, 512, 1024, 2048, 4096, 8192, 16384];
+        const FARGATE_SUPPORTED_LOG_DRIVERS: &[&str] = &["awslogs", "splunk", "awsfirelens"];
+
+        for name in m.resources_of_type("AWS::ECS::TaskDefinition") {
+            let compat_rv = m
+                .resolve_deep(name, "Properties.RequiresCompatibilities")
+                .or_else(|| m.resolve(name, "Properties.RequiresCompatibilities").cloned());
+            let is_fargate = match &compat_rv {
+                Some(ResolvedValue::Concrete { value: v }) => {
+                    v.as_array().map(|arr| arr.iter().any(|x| x.as_str() == Some("FARGATE"))).unwrap_or(false)
+                }
+                Some(ResolvedValue::List { items }) => items.iter().any(|it| match it {
+                    ResolvedValue::Concrete { value: v } => v.as_str() == Some("FARGATE"),
+                    _ => false,
+                }),
+                _ => false,
+            };
+            if !is_fargate {
+                continue;
+            }
+
+            // 1. NetworkMode must be awsvpc
+            let nm_rv = m
+                .resolve_deep(name, "Properties.NetworkMode")
+                .or_else(|| m.resolve(name, "Properties.NetworkMode").cloned());
+            match &nm_rv {
+                Some(ResolvedValue::Concrete { value: v }) => {
+                    if let Some(s) = v.as_str() {
+                        if s != "awsvpc" {
+                            out.push(make_resource_diagnostic(
+                                "E3048",
+                                &format!("Fargate requires NetworkMode 'awsvpc', got '{}'", s),
+                                m,
+                                name,
+                                "Properties.NetworkMode",
+                                Some("Set NetworkMode to 'awsvpc'"),
+                            ));
+                        }
+                    } else if v.is_null() {
+                        // Null (AWS::NoValue) means removed, so the required property is missing
+                        out.push(make_resource_diagnostic(
+                            "E3048",
+                            "Fargate requires NetworkMode to be specified as 'awsvpc'",
+                            m,
+                            name,
+                            KEY_PROPERTIES,
+                            Some("Set NetworkMode to 'awsvpc'"),
+                        ));
+                    }
+                    // Non-string, non-null scalars: dynamic or non-scalar, so skip
+                }
+                Some(ResolvedValue::Dynamic { .. } | ResolvedValue::TypedDynamic { .. }) => {}
+                None => {
+                    out.push(make_resource_diagnostic(
+                        "E3048",
+                        "Fargate requires NetworkMode to be specified as 'awsvpc'",
+                        m,
+                        name,
+                        KEY_PROPERTIES,
+                        Some("Set NetworkMode to 'awsvpc'"),
+                    ));
+                }
+                _ => {}
+            }
+
+            // 2. Cpu must be present and one of the offered sizes
+            let cpu_rv = m.resolve_deep(name, "Properties.Cpu").or_else(|| m.resolve(name, "Properties.Cpu").cloned());
+            match &cpu_rv {
+                Some(ResolvedValue::Concrete { value: v }) => {
+                    if v.is_null() {
+                        // Null (AWS::NoValue) means removed
+                        out.push(make_resource_diagnostic(
+                            "E3048",
+                            "Fargate requires Cpu to be specified",
+                            m,
+                            name,
+                            KEY_PROPERTIES,
+                            Some("Set Cpu to a valid Fargate value (256, 512, 1024, 2048, 4096, 8192, or 16384)"),
+                        ));
+                    } else if let Some(cpu_int) = coerce_to_integer(v)
+                        && !FARGATE_VALID_CPU.contains(&cpu_int)
+                    {
+                        out.push(make_resource_diagnostic(
+                            "E3048",
+                            &format!(
+                                "Fargate Cpu value {} is not valid. Must be one of {}",
+                                cpu_int,
+                                render_str_list(FARGATE_VALID_CPU.iter().map(|c| c.to_string()).collect::<Vec<_>>()),
+                            ),
+                            m,
+                            name,
+                            "Properties.Cpu",
+                            Some("Use a valid Fargate Cpu value (256, 512, 1024, 2048, 4096, 8192, or 16384)"),
+                        ));
+                    }
+                    // Non-coercible (e.g. array, object, bool), so skip
+                }
+                Some(ResolvedValue::Conditional { if_true, if_false, .. }) => {
+                    // If both branches are null, CPU is effectively missing
+                    if is_all_null_conditional(if_true) && is_all_null_conditional(if_false) {
+                        out.push(make_resource_diagnostic(
+                            "E3048",
+                            "Fargate requires Cpu to be specified",
+                            m,
+                            name,
+                            KEY_PROPERTIES,
+                            Some("Set Cpu to a valid Fargate value (256, 512, 1024, 2048, 4096, 8192, or 16384)"),
+                        ));
+                    }
+                }
+                Some(ResolvedValue::Dynamic { .. } | ResolvedValue::TypedDynamic { .. }) => {}
+                None => {
+                    out.push(make_resource_diagnostic(
+                        "E3048",
+                        "Fargate requires Cpu to be specified",
+                        m,
+                        name,
+                        KEY_PROPERTIES,
+                        Some("Set Cpu to a valid Fargate value (256, 512, 1024, 2048, 4096, 8192, or 16384)"),
+                    ));
+                }
+                _ => {}
+            }
+
+            // 3. Memory must be present
+            let mem_rv =
+                m.resolve_deep(name, "Properties.Memory").or_else(|| m.resolve(name, "Properties.Memory").cloned());
+            match &mem_rv {
+                Some(ResolvedValue::Concrete { value: v }) => {
+                    if v.is_null() {
+                        out.push(make_resource_diagnostic(
+                            "E3048",
+                            "Fargate requires Memory to be specified",
+                            m,
+                            name,
+                            KEY_PROPERTIES,
+                            Some("Set Memory to a valid Fargate value"),
+                        ));
+                    }
+                    // Non-null concrete is valid (actual combo is checked separately)
+                }
+                Some(ResolvedValue::Dynamic { .. } | ResolvedValue::TypedDynamic { .. }) => {}
+                None => {
+                    out.push(make_resource_diagnostic(
+                        "E3048",
+                        "Fargate requires Memory to be specified",
+                        m,
+                        name,
+                        KEY_PROPERTIES,
+                        Some("Set Memory to a valid Fargate value"),
+                    ));
+                }
+                _ => {}
+            }
+
+            // 4. PlacementConstraints must not be effective (non-null)
+            let pc_rv = m
+                .resolve_deep(name, "Properties.PlacementConstraints")
+                .or_else(|| m.resolve(name, "Properties.PlacementConstraints").cloned());
+            match &pc_rv {
+                Some(ResolvedValue::Concrete { value: v }) => {
+                    // Null (AWS::NoValue) counts as removed and is valid. Non-null is invalid.
+                    if !v.is_null() {
+                        out.push(make_resource_diagnostic(
+                            "E3048",
+                            "Fargate does not support PlacementConstraints",
+                            m,
+                            name,
+                            "Properties.PlacementConstraints",
+                            Some("Remove PlacementConstraints for Fargate tasks"),
+                        ));
+                    }
+                }
+                Some(ResolvedValue::List { items }) if !items.is_empty() => {
+                    out.push(make_resource_diagnostic(
+                        "E3048",
+                        "Fargate does not support PlacementConstraints",
+                        m,
+                        name,
+                        "Properties.PlacementConstraints",
+                        Some("Remove PlacementConstraints for Fargate tasks"),
+                    ));
+                }
+                _ => {
+                    // Absent (None) or dynamic is valid (absent means no constraints)
+                }
+            }
+
+            // 5. Validate supported log drivers in container definitions
+            if let Some(serde_json::Value::Array(cdefs)) = resolve_concrete(m, name, "Properties.ContainerDefinitions")
+            {
+                for (ci, cdef) in cdefs.iter().enumerate() {
+                    if let Some(log_config) = cdef.get("LogConfiguration")
+                        && let Some(driver) = log_config.get("LogDriver").and_then(|d| d.as_str())
+                        && !FARGATE_SUPPORTED_LOG_DRIVERS.contains(&driver)
+                    {
+                        out.push(make_resource_diagnostic(
+                            "E3048",
+                            &format!(
+                                "Fargate does not support log driver '{}'. Supported drivers: {}",
+                                driver,
+                                render_str_list(FARGATE_SUPPORTED_LOG_DRIVERS),
+                            ),
+                            m,
+                            name,
+                            &format!("Properties.ContainerDefinitions.{}.LogConfiguration.LogDriver", ci),
+                            Some("Use 'awslogs', 'splunk', or 'awsfirelens'"),
+                        ));
+                    }
+                }
+            }
+        }
+    }
+
+    // DynamoDB table with BillingMode PROVISIONED (or default) requires
+    // ProvisionedThroughput. AWS::NoValue counts as removed (null), so explicit
+    // null ProvisionedThroughput also fires.
+    for name in m.resources_of_type("AWS::DynamoDB::Table") {
+        let billing_mode_rv = m
+            .resolve_deep(name, "Properties.BillingMode")
+            .or_else(|| m.resolve(name, "Properties.BillingMode").cloned());
+        let is_provisioned = match &billing_mode_rv {
+            Some(ResolvedValue::Concrete { value: v }) => v.as_str() == Some("PROVISIONED") || v.is_null(),
+            Some(ResolvedValue::Dynamic { .. } | ResolvedValue::TypedDynamic { .. }) => false,
+            None => true, // absent defaults to PROVISIONED
+            _ => false,
+        };
+        if !is_provisioned {
+            continue;
+        }
+        let pt_rv = m
+            .resolve_deep(name, "Properties.ProvisionedThroughput")
+            .or_else(|| m.resolve(name, "Properties.ProvisionedThroughput").cloned());
+        let pt_effective = match &pt_rv {
+            Some(ResolvedValue::Concrete { value: v }) => !v.is_null(),
+            Some(ResolvedValue::Map { entries }) => !entries.is_empty(),
+            Some(ResolvedValue::Dynamic { .. } | ResolvedValue::TypedDynamic { .. }) => true,
+            Some(ResolvedValue::Conditional { if_true, if_false, .. }) => {
+                // A conditional is effective if any branch has a non-null value.
+                !is_all_null_conditional(if_true) || !is_all_null_conditional(if_false)
+            }
+            None => false,
+            _ => true,
+        };
+        if !pt_effective {
+            out.push(make_resource_diagnostic(
+                "E3639",
+                "ProvisionedThroughput is required when BillingMode is 'PROVISIONED'",
+                m,
+                name,
+                "Properties.ProvisionedThroughput",
+                Some("Add ProvisionedThroughput or set BillingMode to 'PAY_PER_REQUEST'"),
+            ));
+        }
+    }
+
     out
+}
+
+/// Returns true when a `ResolvedValue` is definitely null in all branches.
+/// Used to detect `Fn::If [cond, AWS::NoValue, AWS::NoValue]` patterns.
+fn is_all_null_conditional(rv: &ResolvedValue) -> bool {
+    match rv {
+        ResolvedValue::Concrete { value: v } => v.is_null(),
+        ResolvedValue::Conditional { if_true, if_false, .. } => {
+            is_all_null_conditional(if_true) && is_all_null_conditional(if_false)
+        }
+        _ => false,
+    }
 }
 
 fn check_bdm_iops_ignored(
@@ -4290,58 +4697,6 @@ fn is_subnet_of(sub: Ipv4Cidr, vpc: Ipv4Cidr) -> bool {
     } // subnet prefix must be >= vpc prefix (smaller or equal network)
     let vpc_mask = if vpc.1 == 0 { 0 } else { !0u32 << (32 - vpc.1) };
     (sub.0 & vpc_mask) == vpc.0
-}
-
-fn check_iam_statements(
-    out: &mut Vec<Diagnostic>,
-    m: &Arc<SemanticModel>,
-    name: &str,
-    doc: &serde_json::Value,
-    path: &str,
-) {
-    if let Some(stmts) = doc.get("Statement").and_then(|s| s.as_array()) {
-        for stmt in stmts {
-            if !stmt.is_object() {
-                continue;
-            }
-
-            if stmt.get("Effect").is_none() {
-                out.push(make_resource_diagnostic(
-                    "W3515",
-                    "IAM policy statement is missing required 'Effect' property",
-                    m,
-                    name,
-                    path,
-                    Some("Add Effect: Allow or Effect: Deny to the statement"),
-                ));
-            }
-
-            if let Some(effect) = stmt.get("Effect").and_then(|e| e.as_str())
-                && effect != "Allow"
-                && effect != "Deny"
-            {
-                out.push(make_resource_diagnostic(
-                    "E3514",
-                    &format!("IAM policy statement Effect must be 'Allow' or 'Deny', got '{}'", effect),
-                    m,
-                    name,
-                    path,
-                    Some("Set Effect to 'Allow' or 'Deny'"),
-                ));
-            }
-
-            if stmt.get("Action").is_none() && stmt.get("NotAction").is_none() {
-                out.push(make_resource_diagnostic(
-                    "E9005",
-                    "IAM policy statement must have 'Action' or 'NotAction'",
-                    m,
-                    name,
-                    path,
-                    Some("Add an Action or NotAction to the statement"),
-                ));
-            }
-        }
-    }
 }
 
 fn check_dynamic_ref_spaces(

@@ -2,18 +2,13 @@ package best_practices
 
 import rego.v1
 
-# W2512: IAM policy with NotAction (overly permissive).
-# Single canonical message across all IAM policy-carrying resource types.
-#
-# All call sites guard `Statement` with `is_array` before iterating - rego's `some x in y`
-# panics when `y` is not iterable (e.g. a bad `Statement: "Test"` string literal),
-# which otherwise aborts evaluation of the whole package for that template.
+# Allow statements with NotAction grant every action except those listed.
+# Statement must be an array before iteration because malformed policy documents
+# are diagnosed separately and must not abort evaluation of this package.
 
 _iam_policy_not_action_msg := "IAM policy uses NotAction which grants all actions except those listed - consider using Action instead"
 
-violation contains make_diag("W2512", "WARN", name, _iam_policy_not_action_msg) if {
-    some name in resources_of_type("AWS::IAM::Policy")
-    doc := resolve(name, "Properties.PolicyDocument")
+_has_allow_not_action(doc) if {
     is_object(doc)
     stmts := object.get(doc, "Statement", [])
     is_array(stmts)
@@ -24,15 +19,16 @@ violation contains make_diag("W2512", "WARN", name, _iam_policy_not_action_msg) 
 }
 
 violation contains make_diag("W2512", "WARN", name, _iam_policy_not_action_msg) if {
-    some name in resources_of_type("AWS::IAM::ManagedPolicy")
+    some rtype in {
+        "AWS::IAM::Policy",
+        "AWS::IAM::ManagedPolicy",
+        "AWS::SQS::QueuePolicy",
+        "AWS::SNS::TopicPolicy",
+        "AWS::S3::BucketPolicy",
+    }
+    some name in resources_of_type(rtype)
     doc := resolve(name, "Properties.PolicyDocument")
-    is_object(doc)
-    stmts := object.get(doc, "Statement", [])
-    is_array(stmts)
-    some stmt in stmts
-    is_object(stmt)
-    stmt.Effect == "Allow"
-    object.get(stmt, "NotAction", null) != null
+    _has_allow_not_action(doc)
 }
 
 violation contains make_diag("W2512", "WARN", name, _iam_policy_not_action_msg) if {
@@ -43,11 +39,11 @@ violation contains make_diag("W2512", "WARN", name, _iam_policy_not_action_msg) 
     some policy in policies
     is_object(policy)
     doc := object.get(policy, "PolicyDocument", {})
-    is_object(doc)
-    stmts := object.get(doc, "Statement", [])
-    is_array(stmts)
-    some stmt in stmts
-    is_object(stmt)
-    stmt.Effect == "Allow"
-    object.get(stmt, "NotAction", null) != null
+    _has_allow_not_action(doc)
+}
+
+violation contains make_diag("W2512", "WARN", name, _iam_policy_not_action_msg) if {
+    some name in resources_of_type("AWS::SSO::PermissionSet")
+    doc := resolve(name, "Properties.InlinePolicy")
+    _has_allow_not_action(doc)
 }

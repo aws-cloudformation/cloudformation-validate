@@ -1,0 +1,109 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  E3510 regression: IAM identity policy structural validation covering all scopes
+  and the three IAM findings (IAM-1 missing constraints, IAM-2 intrinsic suppression,
+  IAM-3 per-field dynamic suppression).
+Parameters:
+  BucketArn:
+    Type: String
+    Default: "arn:aws:s3:::my-bucket"
+Resources:
+  # IAM-1: Missing constraints - empty Action array (minItems:1)
+  PolicyEmptyAction:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: test
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: []
+            Resource: "*"
+
+  # IAM-1: Duplicate Sid across statements
+  PolicyDuplicateSid:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: ReadOnly
+            Effect: Allow
+            Action: "s3:GetObject"
+            Resource: "*"
+          - Sid: ReadOnly
+            Effect: Deny
+            Action: "s3:PutObject"
+            Resource: "*"
+
+  # IAM-1: Non-string Id and invalid condition operator
+  PolicyBadIdAndCondition:
+    Type: AWS::IAM::RolePolicy
+    Properties:
+      PolicyName: test
+      RoleName: my-role
+      PolicyDocument:
+        Id: 123
+        Statement:
+          - Effect: Allow
+            Action: "s3:*"
+            Resource: "*"
+            Condition:
+              InvalidOp:
+                "aws:key": "value"
+
+  # IAM-2: Intrinsic-generated Resource ARN must NOT be judged as literal
+  PolicyWithJoinResource:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: test
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: "s3:GetObject"
+            Resource:
+              Fn::Join:
+                - ""
+                - - !Ref BucketArn
+                  - "/*"
+
+  # IAM-3: Dynamic Action must NOT suppress sibling Effect validation
+  PolicyDynamicActionBadEffect:
+    Type: AWS::IAM::GroupPolicy
+    Properties:
+      GroupName: my-group
+      PolicyName: test
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: DefinitelyNotAllow
+            Action: !Ref BucketArn
+            Resource: "*"
+
+  # SSO PermissionSet with invalid InlinePolicy
+  PermissionSetBadPolicy:
+    Type: AWS::SSO::PermissionSet
+    Properties:
+      InstanceArn: "arn:aws:sso:::instance/ssoins-12345"
+      Name: TestPermSet
+      InlinePolicy:
+        Statement:
+          - Effect: Allow
+            Action: "s3:*"
+            NotAction: "ec2:*"
+            Resource: "*"
+
+  # Inline policy on IAM::User with bad version
+  UserInlinePolicy:
+    Type: AWS::IAM::User
+    Properties:
+      Policies:
+        - PolicyName: test
+          PolicyDocument:
+            Version: "invalid-version"
+            Statement:
+              - Effect: Allow
+                Action: "s3:*"
+                Resource: "*"

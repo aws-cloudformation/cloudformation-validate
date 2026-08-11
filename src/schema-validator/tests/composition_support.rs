@@ -3,6 +3,7 @@
 
 use schema_validator::{CompiledSchemaStore, SchemaOverlayError, SchemaValidator};
 use serde_json::{Value, json};
+use std::collections::HashMap;
 use std::sync::Arc;
 use template_model::SemanticModel;
 
@@ -569,7 +570,7 @@ fn any_of_array_items_constraint_rejects_wrong_item_type() {
             "additionalProperties": false
         }),
     )]);
-    // Tags contains a string - neither object nor integer items (string→integer coercion
+    // Tags contains a string - neither object nor integer items (string-to-integer coercion
     // only works for numeric strings; "hello" is not coercible to integer)
     let template = r#"{"Resources":{"R":{"Type":"AWS::Test::AnyOfItems","Properties":{"Tags":["hello"]}}}}"#;
     let diags = validate(&sv, template);
@@ -702,7 +703,7 @@ fn any_of_dangling_ref_marks_branch_non_matching() {
     // Name is "valid" - second branch matches despite first being dangling
     let template = "Resources:\n  R:\n    Type: AWS::Test::DanglingRef\n    Properties:\n      Name: valid\n";
     let diags = validate(&sv, template);
-    // The dangling ref branch emits F3003 into the tmp vec, so the second branch
+    // The dangling-reference branch emits its own finding, so the second branch
     // being valid means anyOf passes overall.
     assert!(
         !mentions(&diags, "F3017", ""),
@@ -1670,4 +1671,569 @@ fn required_or_one_of_is_decided_per_condition_scenario() {
         !mentions(&diags, "F3018", "schema"),
         "each satisfiable condition scenario must match exactly one requiredOr branch: {diags:?}"
     );
+}
+
+// requiredOr reports a defect when every candidate resolves to AWS::NoValue.
+
+#[test]
+fn required_or_emits_f3058_when_all_candidates_resolve_to_novalue() {
+    // All requiredOr members authored but every one resolves to AWS::NoValue
+    // unconditionally - CloudFormation strips them, so none survive deployment.
+    let sv = validator(vec![(
+        "AWS::Test::ReqOrNoValue",
+        json!({
+            "properties": {
+                "A": { "type": "string" },
+                "B": { "type": "string" },
+                "C": { "type": "string" }
+            },
+            "requiredOr": ["A", "B"],
+            "additionalProperties": false
+        }),
+    )]);
+    let template = concat!(
+        "Resources:\n",
+        "  R:\n",
+        "    Type: AWS::Test::ReqOrNoValue\n",
+        "    Properties:\n",
+        "      A: !Ref AWS::NoValue\n",
+        "      B: !Ref AWS::NoValue\n",
+        "      C: hello\n",
+    );
+    let diags = validate(&sv, template);
+    assert!(
+        mentions(&diags, "F3058", "required property"),
+        "expected F3058 when all requiredOr candidates are NoValue: {:?}",
+        diags.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
+    );
+}
+
+#[test]
+fn required_or_conditional_f3058_only_in_novalue_scenario() {
+    // One requiredOr member is conditionally NoValue: the scenario where
+    // the condition is false (member A resolves to NoValue) and no other candidate is
+    // present must produce a conditional required-property finding. The scenario where the
+    // condition is true (member A has a value) must not produce that finding.
+    let sv = validator(vec![(
+        "AWS::Test::ReqOrCondNoValue",
+        json!({
+            "properties": {
+                "A": { "type": "string" },
+                "B": { "type": "string" }
+            },
+            "requiredOr": ["A", "B"],
+            "additionalProperties": false
+        }),
+    )]);
+    let template = concat!(
+        "Conditions:\n",
+        "  UseA: !Equals [!Ref AWS::Region, us-east-1]\n",
+        "Resources:\n",
+        "  R:\n",
+        "    Type: AWS::Test::ReqOrCondNoValue\n",
+        "    Properties:\n",
+        "      A: !If [UseA, real-value, !Ref AWS::NoValue]\n",
+    );
+    let diags = validate(&sv, template);
+    let f3058_diags: Vec<_> = diags.iter().filter(|d| d.rule_id == "F3058").collect();
+    assert!(
+        !f3058_diags.is_empty(),
+        "expected conditional F3058 for the scenario where A is NoValue: {:?}",
+        diags.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
+    );
+    // The diagnostic must carry the condition scenario (UseA=false).
+    assert!(
+        f3058_diags.iter().any(|d| d.condition_scenario.is_some()),
+        "F3058 must have condition_scenario set for conditional findings: {:?}",
+        f3058_diags.iter().map(|d| (&d.condition_scenario,)).collect::<Vec<_>>()
+    );
+}
+
+#[test]
+fn required_or_no_diagnostic_when_one_candidate_has_value() {
+    // At least one requiredOr candidate has a concrete (non-null) value in
+    // every scenario, so no required-property finding should fire.
+    let sv = validator(vec![(
+        "AWS::Test::ReqOrOnePresent",
+        json!({
+            "properties": {
+                "A": { "type": "string" },
+                "B": { "type": "string" }
+            },
+            "requiredOr": ["A", "B"],
+            "additionalProperties": false
+        }),
+    )]);
+    let template = concat!(
+        "Resources:\n",
+        "  R:\n",
+        "    Type: AWS::Test::ReqOrOnePresent\n",
+        "    Properties:\n",
+        "      A: hello\n",
+        "      B: !Ref AWS::NoValue\n",
+    );
+    let diags = validate(&sv, template);
+    assert!(
+        !mentions(&diags, "F3058", ""),
+        "no F3058 when at least one candidate is concrete: {:?}",
+        diags.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
+    );
+}
+
+#[test]
+fn required_or_nested_in_composition_branch_evaluates_per_scenario() {
+    // requiredOr inside a oneOf branch must still evaluate per condition
+    // scenario when the member properties are conditional.
+    let sv = validator(vec![(
+        "AWS::Test::ReqOrNested",
+        json!({
+            "properties": {
+                "A": { "type": "string" },
+                "B": { "type": "string" },
+                "C": { "type": "string" }
+            },
+            "oneOf": [
+                { "requiredOr": ["A", "B"] },
+                { "required": ["C"] }
+            ],
+            "additionalProperties": false
+        }),
+    )]);
+    // A is conditionally NoValue, B absent, C absent - the first oneOf branch
+    // has no surviving member in the UseA=false scenario, triggering a violation in
+    // that branch's validate_sub call.
+    let template = concat!(
+        "Conditions:\n",
+        "  UseA: !Equals [!Ref AWS::Region, us-east-1]\n",
+        "Resources:\n",
+        "  R:\n",
+        "    Type: AWS::Test::ReqOrNested\n",
+        "    Properties:\n",
+        "      A: !If [UseA, value, !Ref AWS::NoValue]\n",
+    );
+    let diags = validate(&sv, template);
+    // Either the requiredOr violation or a no-branch-matched finding must fire.
+    let has_finding = mentions(&diags, "F3058", "") || mentions(&diags, "F3018", "");
+    assert!(
+        has_finding,
+        "expected F3058 or F3018 when nested requiredOr has no surviving candidate: {:?}",
+        diags.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
+    );
+}
+
+// requiredXor evaluates each condition scenario independently.
+
+#[test]
+fn required_xor_no_false_positive_for_mutually_exclusive_conditions() {
+    // Two requiredXor members, each present only in its own condition branch.
+    // In every deployable scenario exactly one is present, so no xor finding is expected.
+    let sv = validator(vec![(
+        "AWS::Test::ReqXorCond",
+        json!({
+            "properties": {
+                "A": { "type": "string" },
+                "B": { "type": "string" }
+            },
+            "requiredXor": ["A", "B"],
+            "additionalProperties": false
+        }),
+    )]);
+    let template = concat!(
+        "Conditions:\n",
+        "  UseA: !Equals [!Ref AWS::Region, us-east-1]\n",
+        "Resources:\n",
+        "  R:\n",
+        "    Type: AWS::Test::ReqXorCond\n",
+        "    Properties:\n",
+        "      A: !If [UseA, a-value, !Ref AWS::NoValue]\n",
+        "      B: !If [UseA, !Ref AWS::NoValue, b-value]\n",
+    );
+    let diags = validate(&sv, template);
+    assert!(
+        !mentions(&diags, "F3014", ""),
+        "no F3014 when each scenario has exactly one member: {:?}",
+        diags.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
+    );
+}
+
+#[test]
+fn required_xor_emits_f3014_when_zero_members_in_scenario() {
+    // Both requiredXor members resolve to NoValue in the same scenario.
+    let sv = validator(vec![(
+        "AWS::Test::ReqXorZero",
+        json!({
+            "properties": {
+                "A": { "type": "string" },
+                "B": { "type": "string" }
+            },
+            "requiredXor": ["A", "B"],
+            "additionalProperties": false
+        }),
+    )]);
+    let template = concat!(
+        "Resources:\n",
+        "  R:\n",
+        "    Type: AWS::Test::ReqXorZero\n",
+        "    Properties:\n",
+        "      A: !Ref AWS::NoValue\n",
+        "      B: !Ref AWS::NoValue\n",
+    );
+    let diags = validate(&sv, template);
+    assert!(
+        mentions(&diags, "F3014", "Exactly one"),
+        "expected F3014 when zero members survive deployment: {:?}",
+        diags.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
+    );
+}
+
+#[test]
+fn required_xor_emits_f3014_when_two_members_in_every_scenario() {
+    // Both requiredXor members are unconditionally concrete - always two present.
+    let sv = validator(vec![(
+        "AWS::Test::ReqXorTwo",
+        json!({
+            "properties": {
+                "A": { "type": "string" },
+                "B": { "type": "string" }
+            },
+            "requiredXor": ["A", "B"],
+            "additionalProperties": false
+        }),
+    )]);
+    let template = concat!(
+        "Resources:\n",
+        "  R:\n",
+        "    Type: AWS::Test::ReqXorTwo\n",
+        "    Properties:\n",
+        "      A: hello\n",
+        "      B: world\n",
+    );
+    let diags = validate(&sv, template);
+    assert!(
+        mentions(&diags, "F3014", "Exactly one"),
+        "expected F3014 when two members are unconditionally present: {:?}",
+        diags.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
+    );
+}
+
+#[test]
+fn required_xor_independent_conditions_evaluated_correctly() {
+    // Two truly independent conditions (based on different parameters) control
+    // two requiredXor members. The satisfiable scenarios include combinations
+    // where zero or two are present, which violate the xor constraint.
+    let sv = validator(vec![(
+        "AWS::Test::ReqXorIndep",
+        json!({
+            "properties": {
+                "A": { "type": "string" },
+                "B": { "type": "string" }
+            },
+            "requiredXor": ["A", "B"],
+            "additionalProperties": false
+        }),
+    )]);
+    let template = concat!(
+        "Parameters:\n",
+        "  ParamA:\n",
+        "    Type: String\n",
+        "  ParamB:\n",
+        "    Type: String\n",
+        "Conditions:\n",
+        "  CondA: !Equals [!Ref ParamA, yes]\n",
+        "  CondB: !Equals [!Ref ParamB, yes]\n",
+        "Resources:\n",
+        "  R:\n",
+        "    Type: AWS::Test::ReqXorIndep\n",
+        "    Properties:\n",
+        "      A: !If [CondA, a-value, !Ref AWS::NoValue]\n",
+        "      B: !If [CondB, b-value, !Ref AWS::NoValue]\n",
+    );
+    let diags = validate(&sv, template);
+    // With truly independent conditions, CondA=true/CondB=true gives two
+    // present (violates xor) and CondA=false/CondB=false gives zero present
+    // (also violates xor). The other two worlds are valid.
+    let f3014_diags: Vec<_> = diags.iter().filter(|d| d.rule_id == "F3014").collect();
+    assert_eq!(
+        f3014_diags.len(),
+        2,
+        "expected exactly 2 F3014 diagnostics (one per violating world), got {}: {:?}",
+        f3014_diags.len(),
+        f3014_diags.iter().map(|d| (&d.condition_scenario, &d.message)).collect::<Vec<_>>()
+    );
+    // All xor findings must carry condition_scenario metadata.
+    assert!(
+        f3014_diags.iter().all(|d| d.condition_scenario.is_some()),
+        "F3014 for conditional scenarios must have condition_scenario set: {:?}",
+        f3014_diags.iter().map(|d| (&d.condition_scenario,)).collect::<Vec<_>>()
+    );
+    // Assert the two violating worlds are exactly:
+    //   CondA=true, CondB=true (both present)
+    //   CondA=false, CondB=false (neither present)
+    let scenarios: Vec<&HashMap<String, bool>> =
+        f3014_diags.iter().map(|d| d.condition_scenario.as_ref().unwrap()).collect();
+    let both_true = scenarios.iter().any(|s| s.get("CondA") == Some(&true) && s.get("CondB") == Some(&true));
+    let both_false = scenarios.iter().any(|s| s.get("CondA") == Some(&false) && s.get("CondB") == Some(&false));
+    assert!(both_true, "expected a violation for CondA=true, CondB=true (two present): {:?}", scenarios);
+    assert!(both_false, "expected a violation for CondA=false, CondB=false (zero present): {:?}", scenarios);
+}
+
+#[test]
+fn required_xor_nested_in_composition_branch() {
+    // requiredXor inside a oneOf branch must still evaluate per scenario.
+    let sv = validator(vec![(
+        "AWS::Test::ReqXorNested",
+        json!({
+            "properties": {
+                "A": { "type": "string" },
+                "B": { "type": "string" },
+                "C": { "type": "string" }
+            },
+            "oneOf": [
+                { "requiredXor": ["A", "B"] },
+                { "required": ["C"] }
+            ],
+            "additionalProperties": false
+        }),
+    )]);
+    // In every scenario exactly one of A/B is present (mutually exclusive via
+    // condition) - the first oneOf branch should pass.
+    let template = concat!(
+        "Conditions:\n",
+        "  UseA: !Equals [!Ref AWS::Region, us-east-1]\n",
+        "Resources:\n",
+        "  R:\n",
+        "    Type: AWS::Test::ReqXorNested\n",
+        "    Properties:\n",
+        "      A: !If [UseA, a-val, !Ref AWS::NoValue]\n",
+        "      B: !If [UseA, !Ref AWS::NoValue, b-val]\n",
+    );
+    let diags = validate(&sv, template);
+    // The first oneOf branch should match in both scenarios (xor satisfied),
+    // so no no-branch-matched finding should fire.
+    assert!(
+        !mentions(&diags, "F3018", "not valid under any"),
+        "expected no F3018 when requiredXor is satisfied per scenario in nested branch: {:?}",
+        diags.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
+    );
+}
+
+#[test]
+fn required_xor_dynamic_value_conservatively_present() {
+    // When a requiredXor member has a dynamic value (e.g. Ref to a parameter),
+    // it must be conservatively treated as present, with no false xor finding.
+    let sv = validator(vec![(
+        "AWS::Test::ReqXorDynamic",
+        json!({
+            "properties": {
+                "A": { "type": "string" },
+                "B": { "type": "string" }
+            },
+            "requiredXor": ["A", "B"],
+            "additionalProperties": false
+        }),
+    )]);
+    let template = concat!(
+        "Parameters:\n",
+        "  MyParam:\n",
+        "    Type: String\n",
+        "Resources:\n",
+        "  R:\n",
+        "    Type: AWS::Test::ReqXorDynamic\n",
+        "    Properties:\n",
+        "      A: !Ref MyParam\n",
+    );
+    let diags = validate(&sv, template);
+    assert!(
+        !mentions(&diags, "F3014", ""),
+        "no F3014 when a dynamic member is conservatively present: {:?}",
+        diags.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
+    );
+}
+
+#[test]
+fn required_or_dynamic_value_conservatively_present() {
+    // When a requiredOr member has a dynamic value, it must be conservatively
+    // treated as present, with no false required-property finding.
+    let sv = validator(vec![(
+        "AWS::Test::ReqOrDynamic",
+        json!({
+            "properties": {
+                "A": { "type": "string" },
+                "B": { "type": "string" }
+            },
+            "requiredOr": ["A", "B"],
+            "additionalProperties": false
+        }),
+    )]);
+    let template = concat!(
+        "Parameters:\n",
+        "  MyParam:\n",
+        "    Type: String\n",
+        "Resources:\n",
+        "  R:\n",
+        "    Type: AWS::Test::ReqOrDynamic\n",
+        "    Properties:\n",
+        "      A: !Ref MyParam\n",
+    );
+    let diags = validate(&sv, template);
+    assert!(
+        !mentions(&diags, "F3058", ""),
+        "no F3058 when a dynamic member is conservatively present: {:?}",
+        diags.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
+    );
+}
+
+#[test]
+fn outer_key_scenario_constrains_required_xor_evaluation() {
+    // When Properties is wrapped in Fn::If, BOTH branches expose the same
+    // requiredXor key names but with different values/NoValue. This proves
+    // value scenarios are constrained by the outer key condition rather than
+    // relying on actual_keys gating.
+    let sv = validator(vec![(
+        "AWS::Test::OuterKeyXor",
+        json!({
+            "properties": {
+                "A": { "type": "string" },
+                "B": { "type": "string" }
+            },
+            "requiredXor": ["A", "B"],
+            "additionalProperties": false
+        }),
+    )]);
+    // Both branches expose A and B keys. CondX=true gives A=val, B=NoValue;
+    // CondX=false gives A=NoValue, B=val. Each branch has exactly one
+    // non-null requiredXor member - no violation in either world.
+    let template = r#"{
+        "Conditions": { "CondX": { "Fn::Equals": [{ "Ref": "AWS::Region" }, "us-east-1"] } },
+        "Resources": {
+            "R": {
+                "Type": "AWS::Test::OuterKeyXor",
+                "Properties": { "Fn::If": ["CondX",
+                    { "A": "val", "B": { "Ref": "AWS::NoValue" } },
+                    { "A": { "Ref": "AWS::NoValue" }, "B": "val" }
+                ] }
+            }
+        }
+    }"#;
+    let diags = validate(&sv, template);
+    assert!(
+        !mentions(&diags, "F3014", ""),
+        "no F3014 when each outer key branch satisfies requiredXor independently: {:?}",
+        diags.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
+    );
+}
+
+#[test]
+fn outer_key_scenario_constrains_required_or_evaluation() {
+    // Both Fn::If branches expose the SAME requiredOr key names but with
+    // different values/NoValue, proving value scenarios are constrained by
+    // the outer key condition rather than relying on actual_keys gating.
+    // Assert exactly one diagnostic tagged with the all-NoValue branch.
+    let sv = validator(vec![(
+        "AWS::Test::OuterKeyOr",
+        json!({
+            "properties": {
+                "A": { "type": "string" },
+                "B": { "type": "string" }
+            },
+            "requiredOr": ["A", "B"],
+            "additionalProperties": false
+        }),
+    )]);
+    // Both branches have A and B. CondX=true gives A=val, B=NoValue (at least
+    // one present, valid). CondX=false gives A=NoValue, B=NoValue (none present,
+    // violation). Exactly one finding should fire, tagged with the CondX=false
+    // scenario.
+    let template = r#"{
+        "Conditions": { "CondX": { "Fn::Equals": [{ "Ref": "AWS::Region" }, "us-east-1"] } },
+        "Resources": {
+            "R": {
+                "Type": "AWS::Test::OuterKeyOr",
+                "Properties": { "Fn::If": ["CondX",
+                    { "A": "val", "B": { "Ref": "AWS::NoValue" } },
+                    { "A": { "Ref": "AWS::NoValue" }, "B": { "Ref": "AWS::NoValue" } }
+                ] }
+            }
+        }
+    }"#;
+    let diags = validate(&sv, template);
+    let f3058_diags: Vec<_> = diags.iter().filter(|d| d.rule_id == "F3058").collect();
+    assert_eq!(
+        f3058_diags.len(),
+        1,
+        "expected exactly 1 F3058 (the all-NoValue branch), got {}: {:?}",
+        f3058_diags.len(),
+        f3058_diags.iter().map(|d| (&d.condition_scenario, &d.message)).collect::<Vec<_>>()
+    );
+    let conds = f3058_diags[0]
+        .condition_scenario
+        .as_ref()
+        .expect("the F3058 must carry the condition assignment for the all-NoValue branch");
+    assert_eq!(conds.get("CondX"), Some(&false), "the all-NoValue branch is CondX=false: {conds:?}");
+}
+
+#[test]
+fn nested_independent_conditions_inside_one_of_branch() {
+    // requiredXor inside a oneOf branch with independent conditions.
+    // The nested evaluation under the outer branch assignment must still
+    // expand the independent conditions within that branch's world.
+    let sv = validator(vec![(
+        "AWS::Test::NestedIndep",
+        json!({
+            "properties": {
+                "A": { "type": "string" },
+                "B": { "type": "string" },
+                "C": { "type": "string" }
+            },
+            "oneOf": [
+                { "requiredXor": ["A", "B"] },
+                { "required": ["C"] }
+            ],
+            "additionalProperties": false
+        }),
+    )]);
+    // A and B are controlled by independent conditions. The satisfiable worlds:
+    //   CondA=T, CondB=T: A present, B present (xor violated, 2 present)
+    //   CondA=T, CondB=F: A present, B absent (xor satisfied)
+    //   CondA=F, CondB=T: A absent, B present (xor satisfied)
+    //   CondA=F, CondB=F: A absent, B absent (xor violated, 0 present)
+    // In worlds where xor is violated AND C is absent, no oneOf branch is
+    // satisfied, producing a no-branch-matched finding. The violating assignments are exactly
+    // {CondA=T, CondB=T} and {CondA=F, CondB=F}.
+    let template = concat!(
+        "Parameters:\n",
+        "  ParamA:\n",
+        "    Type: String\n",
+        "  ParamB:\n",
+        "    Type: String\n",
+        "Conditions:\n",
+        "  CondA: !Equals [!Ref ParamA, yes]\n",
+        "  CondB: !Equals [!Ref ParamB, yes]\n",
+        "Resources:\n",
+        "  R:\n",
+        "    Type: AWS::Test::NestedIndep\n",
+        "    Properties:\n",
+        "      A: !If [CondA, a-val, !Ref AWS::NoValue]\n",
+        "      B: !If [CondB, b-val, !Ref AWS::NoValue]\n",
+    );
+    let diags = validate(&sv, template);
+    // Collect all oneOf branch-failure diagnostics.
+    let f3018_diags: Vec<_> = diags.iter().filter(|d| d.rule_id == "F3018").collect();
+    assert_eq!(
+        f3018_diags.len(),
+        2,
+        "expected exactly 2 F3018 diagnostics (one per violating world), got {}: {:?}",
+        f3018_diags.len(),
+        f3018_diags.iter().map(|d| (&d.condition_scenario, &d.message)).collect::<Vec<_>>()
+    );
+    // Assert the two violating worlds are exactly:
+    //   CondA=true, CondB=true (both present, xor violated)
+    //   CondA=false, CondB=false (neither present, xor violated)
+    let scenarios: Vec<&HashMap<String, bool>> =
+        f3018_diags.iter().filter_map(|d| d.condition_scenario.as_ref()).collect();
+    assert_eq!(scenarios.len(), 2, "both F3018 findings must carry condition_scenario: {:?}", f3018_diags);
+    let both_true = scenarios.iter().any(|s| s.get("CondA") == Some(&true) && s.get("CondB") == Some(&true));
+    let both_false = scenarios.iter().any(|s| s.get("CondA") == Some(&false) && s.get("CondB") == Some(&false));
+    assert!(both_true, "expected a violation for CondA=true, CondB=true: {:?}", scenarios);
+    assert!(both_false, "expected a violation for CondA=false, CondB=false: {:?}", scenarios);
 }

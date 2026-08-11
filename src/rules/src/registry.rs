@@ -1077,6 +1077,12 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         origin: RuleOrigin::CfnLint,
     },
     RuleDefinition {
+        id: "E3639",
+        category: Category::Resource,
+        description: "Validate DynamoDB table ProvisionedThroughput is set when BillingMode is PROVISIONED",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
         id: "E3641",
         category: Category::Resource,
         description: "Validate GameLift Fleet EC2 instance type",

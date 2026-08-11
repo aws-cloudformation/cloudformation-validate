@@ -3,6 +3,7 @@ use crate::consts::*;
 use crate::defect::ParseDefect;
 use crate::graph::ReferenceGraph;
 use crate::ir::*;
+use crate::is_custom_resource_type;
 use crate::json_value::JsonValue;
 use crate::regions::*;
 use crate::resolved_value::*;
@@ -409,6 +410,15 @@ impl SemanticModel {
                 }
             }
             for (name, node_ref) in entries.iter().cloned() {
+                // Validate resource body shape before resolution. `Fn::ForEach::`
+                // synthetic IDs are expanded by the language-extensions transform
+                // and do not have standard resource shapes.
+                if !name.starts_with(FN_FOR_EACH_KEY_PREFIX) {
+                    let has_sam_transform = ir.transforms.iter().any(|t| t == TRANSFORM_SERVERLESS);
+                    let shape_defects =
+                        validate_resource_shape(&ir.arena, &name, node_ref, has_sam_transform, &ir.span_index);
+                    resolver.diagnostics.extend(shape_defects);
+                }
                 resolver.set_current_resource(&name);
                 let resolved = resolve_resource(&ir.arena, &name, node_ref, &mut resolver);
                 resources.insert(name.clone(), resolved);
@@ -989,6 +999,20 @@ impl SemanticModel {
         false
     }
 
+    #[must_use]
+    pub fn substituted_paths_under(&self, resource_id: &str, base_path: &str) -> HashSet<String> {
+        let prefix = format!("{}.", base_path);
+        let relative_path = |path: &str| {
+            if path == base_path { Some(String::new()) } else { path.strip_prefix(&prefix).map(String::from) }
+        };
+        let mut paths: HashSet<String> =
+            self.graph.outgoing(resource_id).into_iter().filter_map(|edge| relative_path(&edge.source_path)).collect();
+        paths.extend(self.resolution_sources.iter().filter_map(|((source_resource, source_path), _)| {
+            (source_resource == resource_id).then(|| relative_path(source_path)).flatten()
+        }));
+        paths
+    }
+
     fn path_from_intrinsic(&self, resource_id: &str, path: &str) -> bool {
         let edges = self.graph.outgoing(resource_id);
         let mut p = path.to_string();
@@ -1419,6 +1443,200 @@ fn intrinsic_synthetic_key(arena: &Arena, node_ref: NodeRef) -> Option<String> {
         IntrinsicFn::ForEach(uid, _, _, _) => Some(format!("{}::{}", FN_FOR_EACH, uid)),
         _ => None,
     }
+}
+
+/// Valid resource-level attributes per the CloudFormation template anatomy.
+/// These are the keys CloudFormation accepts directly under a resource's logical
+/// ID in the `Resources` section.
+const VALID_RESOURCE_ATTRIBUTES: &[&str] = &[
+    KEY_TYPE,
+    KEY_PROPERTIES,
+    KEY_DEPENDS_ON,
+    KEY_CONDITION,
+    SECTION_METADATA,
+    KEY_DELETION_POLICY,
+    KEY_UPDATE_REPLACE_POLICY,
+    KEY_UPDATE_POLICY,
+    KEY_CREATION_POLICY,
+    "Version",
+];
+
+/// Additional resource-level attributes valid only when the SAM transform is
+/// declared. These are SAM-specific extensions that the Serverless transform
+/// processes before CloudFormation sees the resource.
+const SAM_RESOURCE_ATTRIBUTES: &[&str] = &["Connectors", "IgnoreGlobals"];
+
+/// Validates the structural shape of a resource body, producing diagnostics for
+/// bodies that CloudFormation would reject: a non-object resource, a missing
+/// `Type`, or unknown resource-level attribute keys.
+fn validate_resource_shape(
+    arena: &Arena,
+    name: &str,
+    node_ref: NodeRef,
+    is_sam: bool,
+    span_index: &SourceSpanIndex,
+) -> Vec<ParseDefect> {
+    let mut out = Vec::new();
+    let resource_span = span_index.get(&format!("Resources/{}", name)).copied().unwrap_or(UNKNOWN_SPAN);
+
+    // The resource body must be an object.
+    let entries = match arena.as_map(node_ref) {
+        Some(entries) => entries,
+        None => {
+            let shape = match arena.node(node_ref) {
+                Node::Null => "null",
+                Node::Bool(_) => "a boolean",
+                Node::Int(_) | Node::Float(_) => "a number",
+                Node::String(_) => "a string",
+                Node::List(_) => "a list",
+                Node::Intrinsic(_) => "an intrinsic function",
+                Node::Map(_) => return out,
+            };
+            out.push(crate::make_parse_defect_for_resource(
+                "E3001",
+                format!("Resource '{}' body must be an object, got {}", name, shape),
+                resource_span,
+                name,
+            ));
+            return out;
+        }
+    };
+
+    // `Type` is required and must be a string.
+    match entries.iter().find(|(k, _)| k == KEY_TYPE) {
+        None => {
+            out.push(crate::make_parse_defect_for_resource(
+                "E3001",
+                format!("Resource '{}' is missing required property 'Type'", name),
+                resource_span,
+                name,
+            ));
+        }
+        Some((_, type_ref)) if !matches!(arena.node(*type_ref), Node::String(_)) => {
+            let type_span = span_index.get(&format!("Resources/{}/Type", name)).copied().unwrap_or(resource_span);
+            out.push(crate::make_parse_defect_for_resource(
+                "E3001",
+                format!("Resource '{}' property 'Type' must be a string", name),
+                type_span,
+                name,
+            ));
+        }
+        _ => {}
+    }
+
+    // `Condition` must be a string when present.
+    if let Some((_, cond_ref)) = entries.iter().find(|(k, _)| k == KEY_CONDITION)
+        && !matches!(arena.node(*cond_ref), Node::String(_))
+    {
+        let cond_span = span_index.get(&format!("Resources/{}/Condition", name)).copied().unwrap_or(resource_span);
+        out.push(crate::make_parse_defect_for_resource(
+            "E3001",
+            format!("Resource '{}' property 'Condition' must be a string", name),
+            cond_span,
+            name,
+        ));
+    }
+
+    // `DependsOn` must be a string or a list of strings when present.
+    if let Some((_, dep_ref)) = entries.iter().find(|(k, _)| k == KEY_DEPENDS_ON) {
+        match arena.node(*dep_ref) {
+            Node::String(_) => {}
+            Node::List(items) => {
+                for item_ref in items {
+                    if !matches!(arena.node(*item_ref), Node::String(_)) {
+                        let dep_span =
+                            span_index.get(&format!("Resources/{}/DependsOn", name)).copied().unwrap_or(resource_span);
+                        out.push(crate::make_parse_defect_for_resource(
+                            "E3001",
+                            format!("Resource '{}' property 'DependsOn' list elements must be strings", name),
+                            dep_span,
+                            name,
+                        ));
+                        break;
+                    }
+                }
+            }
+            _ => {
+                let dep_span =
+                    span_index.get(&format!("Resources/{}/DependsOn", name)).copied().unwrap_or(resource_span);
+                out.push(crate::make_parse_defect_for_resource(
+                    "E3001",
+                    format!("Resource '{}' property 'DependsOn' must be a string or list of strings", name),
+                    dep_span,
+                    name,
+                ));
+            }
+        }
+    }
+
+    let resource_type = entries.iter().find(|(key, _)| key == KEY_TYPE).and_then(|(_, value)| arena.as_str(*value));
+    if let Some(resource_type) = resource_type {
+        let is_custom_resource = is_custom_resource_type(resource_type);
+        if entries.iter().any(|(key, _)| key == "Version") && !is_custom_resource {
+            let version_span = span_index.get(&format!("Resources/{}/Version", name)).copied().unwrap_or(resource_span);
+            out.push(crate::make_parse_defect_for_resource(
+                "E3001",
+                format!("Resource '{}' property 'Version' is only valid for custom resources", name),
+                version_span,
+                name,
+            ));
+        }
+
+        for policy_name in [KEY_CREATION_POLICY, KEY_UPDATE_POLICY] {
+            let Some((_, policy_ref)) = entries.iter().find(|(key, _)| key == policy_name) else {
+                continue;
+            };
+            let policy_span =
+                span_index.get(&format!("Resources/{}/{}", name, policy_name)).copied().unwrap_or(resource_span);
+            if is_custom_resource {
+                out.push(crate::make_parse_defect_for_resource(
+                    "E3001",
+                    format!("Resource '{}' property '{}' is not valid for custom resources", name, policy_name),
+                    policy_span,
+                    name,
+                ));
+            } else if !matches!(arena.node(*policy_ref), Node::Map(_) | Node::Intrinsic(_)) {
+                out.push(crate::make_parse_defect_for_resource(
+                    "E3001",
+                    format!("Resource '{}' property '{}' must be an object", name, policy_name),
+                    policy_span,
+                    name,
+                ));
+            }
+        }
+    }
+
+    for (key, _) in entries {
+        if VALID_RESOURCE_ATTRIBUTES.contains(&key.as_str()) {
+            continue;
+        }
+        if is_sam && SAM_RESOURCE_ATTRIBUTES.contains(&key.as_str()) {
+            continue;
+        }
+        let key_span = span_index.get(&format!("Resources/{}/{}", name, key)).copied().unwrap_or(resource_span);
+        out.push(crate::make_parse_defect_for_resource(
+            "E3001",
+            format!(
+                "Resource '{}' has invalid property '{}'. Valid resource attributes: {}",
+                name,
+                key,
+                valid_attributes_display(is_sam),
+            ),
+            key_span,
+            name,
+        ));
+    }
+
+    out
+}
+
+/// Builds the human-readable list of valid resource attributes for error messages.
+fn valid_attributes_display(is_sam: bool) -> String {
+    let mut attrs: Vec<&str> = VALID_RESOURCE_ATTRIBUTES.to_vec();
+    if is_sam {
+        attrs.extend_from_slice(SAM_RESOURCE_ATTRIBUTES);
+    }
+    attrs.join(", ")
 }
 
 fn resolve_resource(arena: &Arena, name: &str, node_ref: NodeRef, resolver: &mut Resolver) -> ResolvedResource {

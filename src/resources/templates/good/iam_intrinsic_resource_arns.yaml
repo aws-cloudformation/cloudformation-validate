@@ -1,40 +1,77 @@
+---
 AWSTemplateFormatVersion: "2010-09-09"
 Description: >
-  I3510 must NOT fire when a statement's Resource ARN is produced by an
-  intrinsic function (Fn::Sub, Fn::GetAtt, ...). Even when the intrinsic fully
-  resolves to a concrete literal at analysis time, its real ARN is only known at
-  deploy time, so the action-format check must be skipped - matching cfn-lint,
-  which treats any function-valued Resource as opaque. This file must stay clean
-  in both engines.
+  E3510 valid: intrinsic-generated Resource ARNs must not false-positive
+Parameters:
+  BucketName:
+    Type: String
+    Default: my-bucket
 Resources:
-  SomeBucket:
-    Type: AWS::S3::Bucket
-  # Fn::Sub referencing only pseudo-parameters resolves to a wrong-service ARN
-  # at analysis time; comparing that synthesized value would be a false positive.
-  SubFullyResolved:
+  PolicyWithJoinResource:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: sub-resolved
+      PolicyName: test
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
           - Effect: Allow
-            Action: "cloudformation:CreateStack"
+            Action: "s3:GetObject"
             Resource:
-              - !Sub "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:x"
-      Roles:
-        - some-role
-  # Fn::GetAtt-valued Resource is opaque to the action-format check.
-  GetAttResource:
-    Type: AWS::IAM::Policy
+              Fn::Join:
+                - ""
+                - - "arn:aws:s3:::"
+                  - !Ref BucketName
+                  - "/*"
+  PolicyWithSubResource:
+    Type: AWS::IAM::ManagedPolicy
     Properties:
-      PolicyName: getatt
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
           - Effect: Allow
-            Action: "cloudformation:CreateStack"
-            Resource:
-              - !GetAtt SomeBucket.Arn
-      Roles:
-        - some-role
+            Action: "s3:*"
+            Resource: !Sub "arn:aws:s3:::${BucketName}/*"
+  PolicyWithRefResource:
+    Type: AWS::IAM::UserPolicy
+    Properties:
+      UserName: test-user
+      PolicyName: test
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: "dynamodb:*"
+            Resource: !Ref BucketName
+  RoleInlinePolicy:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: test-role
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: "sts:AssumeRole"
+      Policies:
+        - PolicyName: inline
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                Resource:
+                  Fn::Sub: "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*"
+  SSOPermissionSet:
+    Type: AWS::SSO::PermissionSet
+    Properties:
+      InstanceArn: "arn:aws:sso:::instance/ssoins-12345"
+      Name: ValidPermSet
+      InlinePolicy:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AllowS3
+            Effect: Allow
+            Action: "s3:*"
+            Resource: "*"

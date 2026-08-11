@@ -828,3 +828,230 @@ Resources:
     assert_eq!(e8003, 1, "operand type finding fires once: {:?}", model.diagnostics);
     assert_eq!(f8611, 0, "allowlist walk must not double-report the operand: {:?}", model.diagnostics);
 }
+
+#[test]
+fn e3001_missing_type_produces_diagnostic() {
+    let input = br#"{"Resources":{"R":{"Properties":{"K":"V"}}}}"#;
+    let model = SemanticModel::from_bytes(input).unwrap();
+    let findings: Vec<_> = model.diagnostics.iter().filter(|d| d.rule_id == "E3001").collect();
+    assert_eq!(findings.len(), 1, "expected one E3001 for missing Type: {:?}", findings);
+    assert!(findings[0].message.contains("missing required property 'Type'"), "message: {}", findings[0].message);
+}
+
+#[test]
+fn e3001_non_object_resource_body_produces_diagnostic() {
+    let yaml = b"
+Resources:
+  R: a string value
+  S:
+    Type: AWS::S3::Bucket
+";
+    let model = SemanticModel::from_bytes(yaml).unwrap();
+    let findings: Vec<_> = model.diagnostics.iter().filter(|d| d.rule_id == "E3001").collect();
+    assert_eq!(findings.len(), 1, "expected one E3001 for non-object body: {:?}", findings);
+    assert!(findings[0].message.contains("must be an object"), "message: {}", findings[0].message);
+}
+
+#[test]
+fn e3001_non_string_type_produces_diagnostic() {
+    let input = br#"{"Resources":{"R":{"Type":42,"Properties":{"K":"V"}}}}"#;
+    let model = SemanticModel::from_bytes(input).unwrap();
+    let findings: Vec<_> = model.diagnostics.iter().filter(|d| d.rule_id == "E3001").collect();
+    assert_eq!(findings.len(), 1, "expected one E3001 for non-string Type: {:?}", findings);
+    assert!(findings[0].message.contains("'Type' must be a string"), "message: {}", findings[0].message);
+}
+
+#[test]
+fn e3001_unknown_attribute_produces_diagnostic() {
+    let input = br#"{"Resources":{"R":{"Type":"AWS::S3::Bucket","Bogus":"x","Properties":{}}}}"#;
+    let model = SemanticModel::from_bytes(input).unwrap();
+    let findings: Vec<_> = model.diagnostics.iter().filter(|d| d.rule_id == "E3001").collect();
+    assert_eq!(findings.len(), 1, "expected one E3001 for unknown attribute: {:?}", findings);
+    assert!(findings[0].message.contains("invalid property 'Bogus'"), "message: {}", findings[0].message);
+}
+
+#[test]
+fn e3001_condition_must_be_string() {
+    let yaml = b"
+Resources:
+  R:
+    Type: AWS::S3::Bucket
+    Condition: true
+";
+    let model = SemanticModel::from_bytes(yaml).unwrap();
+    let findings: Vec<_> = model.diagnostics.iter().filter(|d| d.rule_id == "E3001").collect();
+    assert_eq!(findings.len(), 1, "expected one E3001 for boolean Condition: {:?}", findings);
+    assert!(findings[0].message.contains("'Condition' must be a string"), "message: {}", findings[0].message);
+}
+
+#[test]
+fn e3001_depends_on_must_be_string_or_list() {
+    let input = br#"{"Resources":{"R":{"Type":"AWS::S3::Bucket","DependsOn":123}}}"#;
+    let model = SemanticModel::from_bytes(input).unwrap();
+    let findings: Vec<_> = model.diagnostics.iter().filter(|d| d.rule_id == "E3001").collect();
+    assert_eq!(findings.len(), 1, "expected one E3001 for numeric DependsOn: {:?}", findings);
+    assert!(findings[0].message.contains("must be a string or list of strings"), "message: {}", findings[0].message);
+}
+
+#[test]
+fn e3001_depends_on_list_elements_must_be_strings() {
+    let input = br#"{"Resources":{"R":{"Type":"AWS::S3::Bucket","DependsOn":["A",123]}}}"#;
+    let model = SemanticModel::from_bytes(input).unwrap();
+    let findings: Vec<_> = model.diagnostics.iter().filter(|d| d.rule_id == "E3001").collect();
+    assert_eq!(findings.len(), 1, "expected one E3001 for non-string list element: {:?}", findings);
+    assert!(findings[0].message.contains("list elements must be strings"), "message: {}", findings[0].message);
+}
+
+#[test]
+fn e3001_valid_resource_no_findings() {
+    let input = br#"{"Resources":{"R":{"Type":"AWS::S3::Bucket","Properties":{"BucketName":"b"},"Condition":"C","DependsOn":["X"],"Metadata":{},"DeletionPolicy":"Retain","UpdateReplacePolicy":"Retain","UpdatePolicy":{},"CreationPolicy":{}}}}"#;
+    let model = SemanticModel::from_bytes(input).unwrap();
+    let findings: Vec<_> = model.diagnostics.iter().filter(|d| d.rule_id == "E3001").collect();
+    assert!(findings.is_empty(), "no E3001 for valid resource: {:?}", findings);
+}
+
+#[test]
+fn e3001_version_attribute_accepted_for_custom_resource() {
+    let input = br#"{"Resources":{"R":{"Type":"Custom::Thing","Version":"1.0"}}}"#;
+    let model = SemanticModel::from_bytes(input).unwrap();
+    let findings: Vec<_> = model.diagnostics.iter().filter(|d| d.rule_id == "E3001").collect();
+    assert!(findings.is_empty(), "Version is valid for a custom resource: {:?}", findings);
+}
+
+#[test]
+fn e3001_version_attribute_rejected_for_standard_resource() {
+    let input = br#"{"Resources":{"R":{"Type":"AWS::S3::Bucket","Version":"1.0"}}}"#;
+    let model = SemanticModel::from_bytes(input).unwrap();
+    let findings: Vec<_> = model.diagnostics.iter().filter(|d| d.rule_id == "E3001").collect();
+    assert_eq!(findings.len(), 1, "Version is not valid for a standard resource: {:?}", findings);
+    assert!(findings[0].message.contains("only valid for custom resources"), "message: {}", findings[0].message);
+}
+
+#[test]
+fn e3001_plain_transform_attribute_is_rejected() {
+    let input =
+        br#"{"Resources":{"R":{"Type":"AWS::S3::Bucket","Transform":{"Name":"AWS::Include"},"Properties":{}}}}"#;
+    let model = SemanticModel::from_bytes(input).unwrap();
+    let findings: Vec<_> = model.diagnostics.iter().filter(|d| d.rule_id == "E3001").collect();
+    assert_eq!(findings.len(), 1, "plain Transform is not a resource attribute: {:?}", findings);
+    assert!(findings[0].message.contains("invalid property 'Transform'"), "message: {}", findings[0].message);
+}
+
+#[test]
+fn e3001_lifecycle_policies_must_be_objects() {
+    let yaml = b"
+Resources:
+  Creation:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    CreationPolicy: invalid
+  Update:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    UpdatePolicy: 7
+";
+    let model = SemanticModel::from_bytes(yaml).unwrap();
+    let findings: Vec<_> = model.diagnostics.iter().filter(|d| d.rule_id == "E3001").collect();
+    assert_eq!(findings.len(), 2, "both scalar lifecycle policies must be rejected: {:?}", findings);
+    assert!(findings.iter().any(|finding| finding.message.contains("'CreationPolicy' must be an object")));
+    assert!(findings.iter().any(|finding| finding.message.contains("'UpdatePolicy' must be an object")));
+}
+
+#[test]
+fn e3001_custom_resources_reject_lifecycle_policies() {
+    let yaml = b"
+Resources:
+  R:
+    Type: AWS::CloudFormation::CustomResource
+    CreationPolicy: {}
+    UpdatePolicy: {}
+";
+    let model = SemanticModel::from_bytes(yaml).unwrap();
+    let findings: Vec<_> = model.diagnostics.iter().filter(|d| d.rule_id == "E3001").collect();
+    assert_eq!(findings.len(), 2, "custom resources cannot use lifecycle policies: {:?}", findings);
+    assert!(findings.iter().all(|finding| finding.message.contains("not valid for custom resources")));
+}
+
+#[test]
+fn e3001_intrinsic_lifecycle_policy_shape_is_deferred() {
+    let yaml = b"
+Parameters:
+  Policy:
+    Type: String
+Resources:
+  R:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    CreationPolicy: !Ref Policy
+";
+    let model = SemanticModel::from_bytes(yaml).unwrap();
+    let findings: Vec<_> = model.diagnostics.iter().filter(|d| d.rule_id == "E3001").collect();
+    assert!(findings.is_empty(), "an intrinsic policy shape is not statically known: {:?}", findings);
+}
+
+#[test]
+fn e3001_sam_connectors_accepted_with_transform() {
+    let yaml = b"
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  F:
+    Type: AWS::Serverless::Function
+    Connectors:
+      MyConn:
+        Properties:
+          Destination:
+            Id: F
+          Permissions:
+            - Read
+    Properties:
+      Runtime: python3.11
+      Handler: index.handler
+      CodeUri: ./src
+";
+    let model = SemanticModel::from_bytes(yaml).unwrap();
+    let findings: Vec<_> = model.diagnostics.iter().filter(|d| d.rule_id == "E3001").collect();
+    assert!(findings.is_empty(), "Connectors is valid under SAM transform: {:?}", findings);
+}
+
+#[test]
+fn e3001_sam_ignore_globals_accepted_with_transform() {
+    let yaml = b"
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  F:
+    Type: AWS::Serverless::Function
+    IgnoreGlobals: true
+    Properties:
+      Runtime: python3.11
+      Handler: index.handler
+      CodeUri: ./src
+";
+    let model = SemanticModel::from_bytes(yaml).unwrap();
+    let findings: Vec<_> = model.diagnostics.iter().filter(|d| d.rule_id == "E3001").collect();
+    assert!(findings.is_empty(), "IgnoreGlobals is valid under SAM transform: {:?}", findings);
+}
+
+#[test]
+fn e3001_sam_connectors_rejected_without_transform() {
+    let yaml = b"
+Resources:
+  R:
+    Type: AWS::S3::Bucket
+    Connectors:
+      MyConn:
+        Properties:
+          Destination:
+            Id: R
+    Properties:
+      BucketName: b
+";
+    let model = SemanticModel::from_bytes(yaml).unwrap();
+    let findings: Vec<_> = model.diagnostics.iter().filter(|d| d.rule_id == "E3001").collect();
+    assert_eq!(findings.len(), 1, "Connectors without SAM transform is invalid: {:?}", findings);
+    assert!(findings[0].message.contains("invalid property 'Connectors'"), "message: {}", findings[0].message);
+}
+
+#[test]
+fn e3001_multiple_violations_per_resource() {
+    let input = br#"{"Resources":{"R":{"Properties":{"K":"V"},"Bogus":"x"}}}"#;
+    let model = SemanticModel::from_bytes(input).unwrap();
+    let findings: Vec<_> = model.diagnostics.iter().filter(|d| d.rule_id == "E3001").collect();
+    assert!(findings.len() >= 2, "expected at least 2 E3001 (missing Type + unknown attribute): {:?}", findings);
+}
