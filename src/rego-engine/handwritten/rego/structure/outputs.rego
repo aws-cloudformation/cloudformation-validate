@@ -11,6 +11,52 @@ violation contains make_diag_at("F0040", "FATAL", "",
     is_null(val)
 }
 
+# GetAtt in an output names an attribute the resource type does not expose.
+_output_skip_getatt_types := {
+    "AWS::CloudFormation::Stack",
+    "AWS::CloudFormation::CustomResource",
+    "AWS::CloudFormation::Macro",
+}
+
+violation contains make_diag_at("F6101", "FATAL", "",
+    edge.sourcePath,
+    sprintf("'%s' is not one of %s", [edge.attr, render_list(valid_attrs)])) if {
+    some edge in input.edges
+    edge.kind == "GetAtt"
+    startswith(edge.source, "__output__")
+    edge.target in object.keys(input.resources)
+    target_type := input.resources[edge.target].resourceType
+    not target_type in _output_skip_getatt_types
+    not startswith(target_type, "Custom::")
+    valid_attrs := data.getatt_attributes[target_type]
+    valid_attrs != null
+    not edge.attr in valid_attrs
+    not _output_attr_is_map_member(edge.attr, target_type)
+}
+
+_output_attr_is_map_member(attribute, target_type) if {
+    target_type == "AWS::ServiceCatalog::CloudFormationProvisionedProduct"
+    startswith(attribute, "Outputs.")
+}
+
+_output_pseudo_parameters := {
+    "AWS::AccountId", "AWS::NotificationARNs", "AWS::NoValue",
+    "AWS::Partition", "AWS::Region", "AWS::StackId", "AWS::StackName", "AWS::URLSuffix",
+}
+
+# A Sub edge is recorded only when the variable did not resolve.
+violation contains make_diag_at("F6101", "FATAL", "",
+    edge.sourcePath,
+    sprintf("Fn::Sub variable '${%s}' does not reference a valid resource, parameter, or pseudo-parameter", [edge.target])) if {
+    some edge in input.edges
+    edge.kind == "Sub"
+    startswith(edge.source, "__output__")
+    not edge.target in object.keys(input.resources)
+    not edge.target in object.keys(input.parameters)
+    not edge.target in _output_pseudo_parameters
+    not edge.target in object.get(input, "samImplicitResources", [])
+}
+
 # GetAtt in output returns a non-string type (direct or nested in Sub/Join).
 # Uses top-level edges where source is `__output__<name>` and kind is GetAtt to
 # obtain precise source paths. The string-position filter prevents duplicates

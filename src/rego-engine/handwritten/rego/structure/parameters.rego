@@ -78,8 +78,9 @@ _snapshot_capable_types := {
     "AWS::Redshift::Cluster"
 }
 
-violation contains make_diag("F3016", "FATAL", name,
-    sprintf("DeletionPolicy must be one of Delete, Retain, RetainExceptOnCreate, Snapshot, got '%s'", [dp])) if {
+violation contains make_diag_full("F3016", "FATAL", name, "DeletionPolicy",
+    sprintf("DeletionPolicy must be one of Delete, Retain, RetainExceptOnCreate, Snapshot, got '%s'", [dp]),
+    "", "") if {
     some name, res in input.resources
     dp := res.deletionPolicy
     dp != null
@@ -88,14 +89,37 @@ violation contains make_diag("F3016", "FATAL", name,
     not dp in (_base_deletion_policies | {"Snapshot"})
 }
 
-violation contains make_diag("F3016", "FATAL", name,
-    sprintf("DeletionPolicy must be one of Delete, Retain, RetainExceptOnCreate, got '%s'", [dp])) if {
+violation contains make_diag_full("F3016", "FATAL", name, "DeletionPolicy",
+    sprintf("DeletionPolicy must be one of Delete, Retain, RetainExceptOnCreate, got '%s'", [dp]),
+    "", "") if {
     some name, res in input.resources
     dp := res.deletionPolicy
     dp != null
     is_string(dp)
     not res.resourceType in _snapshot_capable_types
     not dp in _base_deletion_policies
+}
+
+violation contains make_diag_full("F3016", "FATAL", name, "DeletionPolicy",
+    sprintf("DeletionPolicy must be one of Delete, Retain, RetainExceptOnCreate, Snapshot, got %s", [shape]),
+    "", "") if {
+    some name, res in input.resources
+    policy := res.deletionPolicy
+    policy != null
+    not is_string(policy)
+    res.resourceType in _snapshot_capable_types
+    shape := policy_value_shape(policy)
+}
+
+violation contains make_diag_full("F3016", "FATAL", name, "DeletionPolicy",
+    sprintf("DeletionPolicy must be one of Delete, Retain, RetainExceptOnCreate, got %s", [shape]),
+    "", "") if {
+    some name, res in input.resources
+    policy := res.deletionPolicy
+    policy != null
+    not is_string(policy)
+    not res.resourceType in _snapshot_capable_types
+    shape := policy_value_shape(policy)
 }
 
 # W2506: ImageId parameters should use AWS::EC2::Image::Id type

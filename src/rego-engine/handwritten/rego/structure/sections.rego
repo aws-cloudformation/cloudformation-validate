@@ -22,8 +22,8 @@ valid_sections := {
     "Globals",
 }
 
-violation contains make_diag("F0005", "FATAL", "",
-    sprintf("'%s' is not a valid top-level template section", [key])) if {
+violation contains make_diag_full("F0005", "FATAL", "", key,
+    sprintf("'%s' is not a valid top-level template section", [key]), "", "") if {
     some key in input.template.rawTopLevelKeys
     not key in valid_sections
 }
@@ -49,6 +49,7 @@ violation contains make_diag("F0006", "FATAL", name,
     some name in object.keys(input.resources)
     is_string(name)
     not regex.match(`^[a-zA-Z0-9]+$`, name)
+    name != "Fn::Transform"
     not _is_foreach_with_language_extensions(name)
 }
 
