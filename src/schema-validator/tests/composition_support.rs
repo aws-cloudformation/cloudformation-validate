@@ -2237,3 +2237,184 @@ fn nested_independent_conditions_inside_one_of_branch() {
     assert!(both_true, "expected a violation for CondA=true, CondB=true: {:?}", scenarios);
     assert!(both_false, "expected a violation for CondA=false, CondB=false: {:?}", scenarios);
 }
+
+// ─── Customer-facing composition diagnostics ───────────────────────────────
+
+fn composition_extra<'a>(diagnostic: &'a diagnostics::Diagnostic, key: &str) -> &'a Value {
+    &diagnostic
+        .context
+        .as_ref()
+        .expect("composition diagnostic must carry violation context")
+        .extra
+        .as_ref()
+        .expect("composition diagnostic must carry structured extra context")
+        .get(key)
+        .unwrap_or_else(|| panic!("composition context must contain '{key}'"))
+        .0
+}
+
+#[test]
+fn any_of_zero_match_is_one_actionable_primary_diagnostic() {
+    let sv = validator(vec![(
+        "AWS::Test::ActionableAnyOf",
+        json!({
+            "properties": {
+                "A": { "type": "string" },
+                "B": { "type": "string" },
+                "Other": { "type": "string" }
+            },
+            "anyOf": [{ "required": ["A"] }, { "required": ["B"] }],
+            "additionalProperties": false
+        }),
+    )]);
+    let template = concat!(
+        "Resources:\n",
+        "  R:\n",
+        "    Type: AWS::Test::ActionableAnyOf\n",
+        "    Properties:\n",
+        "      Other: value\n",
+    );
+    let semantic_model = model(template);
+    let diags = sv.validate(&semantic_model, Some("us-east-1")).diagnostics;
+    let findings: Vec<_> = diags.iter().filter(|d| d.rule_id == "F3017").collect();
+    assert_eq!(findings.len(), 1, "anyOf must emit one primary finding: {diags:#?}");
+    assert!(
+        diags.iter().all(|d| d.rule_id != "F3003"),
+        "alternative-only requirements must not escape as standalone F3003 findings: {diags:#?}"
+    );
+
+    let finding = findings[0];
+    assert!(finding.message.contains("0 branches matched"), "zero-match outcome must be explicit: {}", finding.message);
+    assert!(
+        finding.message.contains("'A'") && finding.message.contains("'B'"),
+        "valid alternatives must be named: {}",
+        finding.message
+    );
+    assert!(
+        finding.message.contains("branch 1") && finding.message.contains("branch 2"),
+        "each failed branch must be explained: {}",
+        finding.message
+    );
+    assert_eq!(finding.property_path.as_deref(), Some("Properties"));
+    assert_eq!(finding.location, Some(semantic_model.resource_span("R", "Properties")));
+    assert_eq!(composition_extra(finding, "compositionKind"), &json!("anyOf"));
+    assert_eq!(composition_extra(finding, "matchOutcome"), &json!("zeroMatches"));
+    assert_eq!(composition_extra(finding, "validPropertyCombinations"), &json!([["A"], ["B"]]));
+
+    let branch_failures =
+        composition_extra(finding, "branchFailures").as_array().expect("branchFailures must be an array");
+    assert_eq!(branch_failures.len(), 2, "each failed branch needs structured reasons: {branch_failures:#?}");
+    assert_eq!(branch_failures[0]["branch"], json!(1));
+    assert_eq!(branch_failures[1]["branch"], json!(2));
+    assert_eq!(branch_failures[0]["reasons"].as_array().map(Vec::len), Some(1));
+    assert_eq!(branch_failures[1]["reasons"].as_array().map(Vec::len), Some(1));
+}
+
+#[test]
+fn one_of_zero_and_multiple_match_outcomes_are_distinct() {
+    let sv = validator(vec![(
+        "AWS::Test::ActionableOneOf",
+        json!({
+            "properties": {
+                "A": { "type": "string" },
+                "B": { "type": "string" },
+                "Other": { "type": "string" }
+            },
+            "oneOf": [{ "required": ["A"] }, { "required": ["B"] }],
+            "additionalProperties": false
+        }),
+    )]);
+
+    let zero =
+        validate(&sv, "Resources:\n  R:\n    Type: AWS::Test::ActionableOneOf\n    Properties:\n      Other: value\n");
+    let zero_finding = zero.iter().find(|d| d.rule_id == "F3018").expect("zero-match finding");
+    assert!(zero_finding.message.contains("0 branches matched"), "got: {}", zero_finding.message);
+    assert_eq!(composition_extra(zero_finding, "matchOutcome"), &json!("zeroMatches"));
+    assert!(zero.iter().all(|d| d.rule_id != "F3003"), "got: {zero:#?}");
+    assert!(composition_extra(zero_finding, "branchFailures").as_array().is_some_and(|v| v.len() == 2));
+
+    let multiple = validate(
+        &sv,
+        "Resources:\n  R:\n    Type: AWS::Test::ActionableOneOf\n    Properties:\n      A: one\n      B: two\n",
+    );
+    let multiple_finding = multiple.iter().find(|d| d.rule_id == "F3018").expect("multiple-match finding");
+    assert!(multiple_finding.message.contains("2 branches matched"), "got: {}", multiple_finding.message);
+    assert!(multiple_finding.message.contains("more than one"), "got: {}", multiple_finding.message);
+    assert_eq!(composition_extra(multiple_finding, "matchOutcome"), &json!("multipleMatches"));
+    assert_eq!(composition_extra(multiple_finding, "matchingBranches"), &json!([1, 2]));
+    assert!(multiple.iter().all(|d| d.rule_id != "F3003"), "got: {multiple:#?}");
+}
+
+#[test]
+fn scalar_any_of_reports_deduplicated_branch_reasons_at_property_location() {
+    let sv = validator(vec![(
+        "AWS::Test::ActionableScalarAnyOf",
+        json!({
+            "properties": {
+                "Mode": {
+                    "type": "string",
+                    "anyOf": [
+                        { "allOf": [{ "enum": ["A"] }, { "enum": ["A"] }] },
+                        { "enum": ["B"] }
+                    ]
+                }
+            },
+            "additionalProperties": false
+        }),
+    )]);
+    let template = concat!(
+        "Resources:\n",
+        "  R:\n",
+        "    Type: AWS::Test::ActionableScalarAnyOf\n",
+        "    Properties:\n",
+        "      Mode: C\n",
+    );
+    let semantic_model = model(template);
+    let diags = sv.validate(&semantic_model, Some("us-east-1")).diagnostics;
+    let findings: Vec<_> = diags.iter().filter(|d| d.rule_id == "F3017").collect();
+    assert_eq!(findings.len(), 1, "scalar anyOf must emit one primary finding: {diags:#?}");
+    let finding = findings[0];
+    assert!(finding.message.contains("branch 1") && finding.message.contains("branch 2"), "got: {}", finding.message);
+    assert!(finding.message.contains("'A'") && finding.message.contains("'B'"), "got: {}", finding.message);
+    assert_eq!(finding.property_path.as_deref(), Some("Properties.Mode"));
+    assert_eq!(finding.location, Some(semantic_model.resource_span("R", "Properties.Mode")));
+
+    let failures = composition_extra(finding, "branchFailures").as_array().expect("branchFailures array");
+    assert_eq!(failures.len(), 2);
+    assert_eq!(
+        failures[0]["reasons"].as_array().map(Vec::len),
+        Some(1),
+        "identical reasons from nested constraints must be deduplicated: {failures:#?}"
+    );
+    assert_eq!(failures[0]["reasons"][0]["propertyPath"], json!("Properties.Mode"));
+}
+
+#[test]
+fn actionable_any_of_preserves_the_invalid_condition_scenario() {
+    let sv = validator(vec![(
+        "AWS::Test::ActionableScenario",
+        json!({
+            "properties": { "Mode": { "type": "string" } },
+            "anyOf": [
+                { "properties": { "Mode": { "enum": ["A"] } }, "required": ["Mode"] },
+                { "properties": { "Mode": { "enum": ["B"] } }, "required": ["Mode"] }
+            ],
+            "additionalProperties": false
+        }),
+    )]);
+    let template = r#"{
+        "Conditions": { "IsA": { "Fn::Equals": [{ "Ref": "AWS::Region" }, "us-east-1"] } },
+        "Resources": {
+            "R": {
+                "Type": "AWS::Test::ActionableScenario",
+                "Properties": { "Mode": { "Fn::If": ["IsA", "A", "C"] } }
+            }
+        }
+    }"#;
+    let diags = validate(&sv, template);
+    let findings: Vec<_> = diags.iter().filter(|d| d.rule_id == "F3017").collect();
+    assert_eq!(findings.len(), 1, "only the invalid condition world should fail: {findings:#?}");
+    assert_eq!(findings[0].condition_scenario.as_ref().and_then(|c| c.get("IsA")), Some(&false));
+    assert_eq!(composition_extra(findings[0], "matchOutcome"), &json!("zeroMatches"));
+    assert!(composition_extra(findings[0], "branchFailures").as_array().is_some_and(|v| v.len() == 2));
+}

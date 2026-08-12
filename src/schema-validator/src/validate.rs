@@ -1007,38 +1007,17 @@ fn validate_object_keys_inner(
 
     if !any_of.is_empty() {
         for assignment in &group_assignments {
-            let any_valid = any_of.iter().any(|sub| {
-                let mut tmp = Vec::new();
-                validate_sub_under_assignment(&mut tmp, m, rid, rtype, actual_keys, sub, defs, base_path, assignment);
-                tmp.is_empty()
-            });
-            if !any_valid {
-                // Surface which property combinations would satisfy the schema, drawn
-                // from each branch's required set, so the bare "not valid under any
-                // schema" message is actionable. Branches with no required list (a
-                // shape constraint rather than a required-property one) are omitted.
-                let option_sets: Vec<String> = any_of
-                    .iter()
-                    .filter(|sub| !sub.required.is_empty())
-                    .map(|sub| {
-                        let props = sub.required.iter().map(|p| format!("'{}'", p)).collect::<Vec<_>>().join(", ");
-                        format!("[{}]", props)
-                    })
-                    .collect();
-                let message = if option_sets.is_empty() {
-                    format!("Value is not valid under any of the given schemas for {}", rtype)
-                } else {
-                    format!(
-                        "Value is not valid under any of the given schemas for {rtype} - specify one of the following property sets: {}",
-                        option_sets.join(" or ")
-                    )
-                };
-                out.push(build_diagnostic_conditional(
+            let evaluations =
+                evaluate_object_composition_branches(m, rid, rtype, actual_keys, any_of, defs, base_path, assignment);
+            if evaluations.iter().all(|evaluation| !evaluation.matched) {
+                out.push(build_composition_diagnostic(
                     "F3017",
-                    &message,
+                    CompositionKind::AnyOf,
+                    &evaluations,
                     m,
                     rid,
                     base_path,
+                    Some(rtype),
                     None,
                     assignment_condition_map(assignment),
                 ));
@@ -1048,41 +1027,18 @@ fn validate_object_keys_inner(
 
     if !one_of.is_empty() {
         for assignment in &group_assignments {
-            let valid_count = one_of
-                .iter()
-                .filter(|sub| {
-                    let mut tmp = Vec::new();
-                    validate_sub_under_assignment(
-                        &mut tmp,
-                        m,
-                        rid,
-                        rtype,
-                        actual_keys,
-                        sub,
-                        defs,
-                        base_path,
-                        assignment,
-                    );
-                    tmp.is_empty()
-                })
-                .count();
-            if valid_count == 0 {
-                out.push(build_diagnostic_conditional(
+            let evaluations =
+                evaluate_object_composition_branches(m, rid, rtype, actual_keys, one_of, defs, base_path, assignment);
+            let match_count = evaluations.iter().filter(|evaluation| evaluation.matched).count();
+            if match_count != 1 {
+                out.push(build_composition_diagnostic(
                     "F3018",
-                    "Value is not valid under any of the given schemas",
+                    CompositionKind::OneOf,
+                    &evaluations,
                     m,
                     rid,
                     base_path,
-                    None,
-                    assignment_condition_map(assignment),
-                ));
-            } else if valid_count > 1 {
-                out.push(build_diagnostic_conditional(
-                    "F3018",
-                    "Value is valid under more than one of the given schemas",
-                    m,
-                    rid,
-                    base_path,
+                    Some(rtype),
                     None,
                     assignment_condition_map(assignment),
                 ));
@@ -1314,306 +1270,419 @@ fn schema_value_matches(
     defs: &HashMap<String, PropSchema>,
     depth: usize,
 ) -> bool {
-    if depth > MAX_MATCH_DEPTH {
-        return true; // conservative: stop recursing
+    schema_value_failure_reasons(value, schema, defs, depth, "").is_empty()
+}
+
+fn evaluate_value_composition_branches(
+    value: &serde_json::Value,
+    branches: &[SubSchema],
+    defs: &HashMap<String, PropSchema>,
+    property_path: &str,
+) -> Vec<CompositionBranchEvaluation> {
+    branches
+        .iter()
+        .enumerate()
+        .map(|(index, branch)| {
+            let failure_reasons = schema_value_failure_reasons(value, branch, defs, 0, property_path);
+            let matched = failure_reasons.is_empty();
+            CompositionBranchEvaluation::new(
+                index + 1,
+                matched,
+                required_property_combinations(branch, defs, None),
+                failure_reasons,
+            )
+        })
+        .collect()
+}
+
+fn schema_value_failure_reasons(
+    value: &serde_json::Value,
+    schema: &PropSchema,
+    defs: &HashMap<String, PropSchema>,
+    depth: usize,
+    property_path: &str,
+) -> Vec<CompositionFailureReason> {
+    if depth > MAX_MATCH_DEPTH || value.is_null() {
+        return Vec::new();
     }
 
-    // Resolve $ref - dangling ref means the schema cannot be evaluated, which
-    // is a non-match (the branch references something that doesn't exist).
     let resolved;
     let effective = if schema.ref_name.is_some() {
         resolved = schema.resolve(defs);
-        if schema.ref_name.is_some() && resolved.ref_name.is_some() {
-            return false; // dangling ref
+        if resolved.ref_name.is_some() {
+            return vec![CompositionFailureReason::new(
+                format!(
+                    "Composition branch references undefined definition '{}'",
+                    schema.ref_name.as_deref().unwrap_or("")
+                ),
+                property_path,
+            )];
         }
         &*resolved
     } else {
         schema
     };
 
-    // Null values are conservative - they represent AWS::NoValue or absent
-    // and should not cause a branch to mismatch.
-    if value.is_null() {
-        return true;
-    }
-
-    // Type check with CloudFormation coercion semantics
-    if let Some(ref pt) = effective.prop_type
-        && !type_matches(value, pt)
+    let mut reasons = Vec::new();
+    if let Some(ref expected_type) = effective.prop_type
+        && !type_matches(value, expected_type)
     {
-        // Check coercion: if the value can be coerced, it's still a match
-        if let Some(expected) = pt.primary() {
-            match coerce_value(value, expected) {
-                CoerceResult::Coerced(_, _) => {} // coercible - still matches
-                _ => return false,
-            }
-        } else {
-            return false;
+        let coercible = expected_type
+            .primary()
+            .is_some_and(|expected| matches!(coerce_value(value, expected), CoerceResult::Coerced(_, _)));
+        if !coercible {
+            reasons.push(CompositionFailureReason::new(
+                format!(
+                    "{} has type '{}', expected type '{}'",
+                    format_value(value),
+                    json_value_type(value),
+                    expected_type.names().collect::<Vec<_>>().join("|")
+                ),
+                property_path,
+            ));
+            return reasons;
         }
     }
 
-    // Exact enum
     if !effective.enum_values.is_empty() && !enum_matches(value, &effective.enum_values) {
-        return false;
+        reasons.push(CompositionFailureReason::new(
+            format!("{} is not one of {}", format_value(value), format_allowed_values(&effective.enum_values)),
+            property_path,
+        ));
     }
-
-    // Case-insensitive enum
     if !effective.enum_case_insensitive.is_empty()
         && !enum_matches_case_insensitive(value, &effective.enum_case_insensitive)
     {
-        return false;
+        reasons.push(CompositionFailureReason::new(
+            format!(
+                "{} is not one of {} (case-insensitive)",
+                format_value(value),
+                format_allowed_values(&effective.enum_case_insensitive)
+            ),
+            property_path,
+        ));
     }
-
-    // not enum
     if !effective.not_enum.is_empty() && enum_matches(value, &effective.not_enum) {
-        return false;
+        reasons.push(CompositionFailureReason::new(
+            format!("{} must not be one of {}", format_value(value), format_allowed_values(&effective.not_enum)),
+            property_path,
+        ));
     }
-
-    // const
-    if let Some(ref cv) = effective.const_value
-        && !scalar_eq(value, cv)
+    if let Some(ref expected) = effective.const_value
+        && !scalar_eq(value, expected)
     {
-        return false;
+        reasons.push(CompositionFailureReason::new(
+            format!("{} must equal {}", format_value(value), format_value(expected)),
+            property_path,
+        ));
     }
-
-    // Pattern
-    if let Some(ref pat) = effective.pattern
-        && let Some(re) = compile_pattern(pat)
-        && let Some(s) = coerce_to_string(value)
-        && !s.contains("${")
-        && !re.is_match(&s)
+    if let Some(ref pattern) = effective.pattern
+        && let Some(compiled) = compile_pattern(pattern)
+        && let Some(actual) = coerce_to_string(value)
+        && !actual.contains("${")
+        && !compiled.is_match(&actual)
     {
-        return false;
+        reasons.push(CompositionFailureReason::new(
+            format!("{} does not match pattern '{pattern}'", format_value(value)),
+            property_path,
+        ));
     }
-
-    // Format - enforce known formats as branch discriminators; unknown formats
-    // remain annotations (conservative true).
-    if let Some(ref fmt) = effective.format
-        && let Some(s) = coerce_to_string(value)
-        && !s.contains("${")
-        && !format_value_matches(&s, fmt)
+    if let Some(ref format) = effective.format
+        && let Some(actual) = coerce_to_string(value)
+        && !actual.contains("${")
+        && !format_value_matches(&actual, format)
     {
-        return false;
+        reasons.push(CompositionFailureReason::new(
+            format!("{} does not match format '{format}'", format_value(value)),
+            property_path,
+        ));
     }
 
-    // Numeric bounds
-    if let Some(n) = coerce_to_number(value) {
-        if let Some(max) = effective.maximum
-            && n > max
+    if let Some(number) = coerce_to_number(value) {
+        if let Some(maximum) = effective.maximum
+            && number > maximum
         {
-            return false;
+            reasons.push(CompositionFailureReason::new(format!("{number} exceeds maximum {maximum}"), property_path));
         }
-        if let Some(min) = effective.minimum
-            && n < min
+        if let Some(minimum) = effective.minimum
+            && number < minimum
         {
-            return false;
+            reasons.push(CompositionFailureReason::new(format!("{number} is below minimum {minimum}"), property_path));
         }
-        if let Some(emax) = effective.exclusive_maximum
-            && n >= emax
+        if let Some(maximum) = effective.exclusive_maximum
+            && number >= maximum
         {
-            return false;
+            reasons.push(CompositionFailureReason::new(format!("{number} must be less than {maximum}"), property_path));
         }
-        if let Some(emin) = effective.exclusive_minimum
-            && n <= emin
+        if let Some(minimum) = effective.exclusive_minimum
+            && number <= minimum
         {
-            return false;
+            reasons
+                .push(CompositionFailureReason::new(format!("{number} must be greater than {minimum}"), property_path));
         }
-        if let Some(mult) = effective.multiple_of
-            && mult > 0.0
+        if let Some(multiple) = effective.multiple_of
+            && multiple > 0.0
         {
-            let remainder = (n / mult).round() * mult - n;
-            let epsilon = mult * 1e-9;
-            if remainder.abs() > epsilon && (mult - remainder.abs()).abs() > epsilon {
-                return false;
+            let remainder = (number / multiple).round() * multiple - number;
+            let epsilon = multiple * 1e-9;
+            if remainder.abs() > epsilon && (multiple - remainder.abs()).abs() > epsilon {
+                reasons.push(CompositionFailureReason::new(
+                    format!("{number} is not a multiple of {multiple}"),
+                    property_path,
+                ));
             }
         }
     }
 
-    // String length
     if (effective.min_length.is_some() || effective.max_length.is_some())
-        && let Some(s) = coerce_to_string(value)
-        && !s.contains("${")
+        && let Some(actual) = coerce_to_string(value)
+        && !actual.contains("${")
     {
-        let len = s.len() as u64;
-        if let Some(max) = effective.max_length
-            && len > max
+        let length = actual.len() as u64;
+        if let Some(maximum) = effective.max_length
+            && length > maximum
         {
-            return false;
+            reasons.push(CompositionFailureReason::new(
+                format!("String length {length} exceeds maximum {maximum}"),
+                property_path,
+            ));
         }
-        if let Some(min) = effective.min_length
-            && len < min
+        if let Some(minimum) = effective.min_length
+            && length < minimum
         {
-            return false;
+            reasons.push(CompositionFailureReason::new(
+                format!("String length {length} is below minimum {minimum}"),
+                property_path,
+            ));
         }
     }
 
-    // Array length
-    if let Some(arr) = value.as_array() {
-        let len = arr.len() as u64;
-        if let Some(max) = effective.max_items
-            && len > max
+    if let Some(items) = value.as_array() {
+        let length = items.len() as u64;
+        if let Some(maximum) = effective.max_items
+            && length > maximum
         {
-            return false;
+            reasons.push(CompositionFailureReason::new(
+                format!("Array length {length} exceeds maximum {maximum}"),
+                property_path,
+            ));
         }
-        if let Some(min) = effective.min_items
-            && len < min
+        if let Some(minimum) = effective.min_items
+            && length < minimum
         {
-            return false;
+            reasons.push(CompositionFailureReason::new(
+                format!("Array length {length} is below minimum {minimum}"),
+                property_path,
+            ));
         }
-        // uniqueItems
         if effective.unique_items == Some(true) {
-            let concrete: Vec<&serde_json::Value> = arr.iter().filter(|v| !v.is_null()).collect();
-            let mut seen = Vec::new();
-            for item in &concrete {
-                if seen.contains(item) {
-                    return false;
+            let mut duplicate_found = false;
+            for (index, item) in items.iter().enumerate() {
+                if item.is_null() {
+                    continue;
                 }
-                seen.push(*item);
+                if items[..index].iter().any(|previous| !previous.is_null() && previous == item) {
+                    duplicate_found = true;
+                    break;
+                }
+            }
+            if duplicate_found {
+                reasons.push(CompositionFailureReason::new("Array items must be unique", property_path));
             }
         }
-        // items schema
         if let Some(ref item_schema) = effective.items {
-            let resolved_item = item_schema.resolve(defs);
-            for item in arr {
-                if !schema_value_matches(item, &resolved_item, defs, depth + 1) {
-                    return false;
+            for (index, item) in items.iter().enumerate() {
+                if !schema_value_matches(item, item_schema, defs, depth + 1) {
+                    let item_path = append_property_path(property_path, &index.to_string());
+                    reasons.extend(schema_value_failure_reasons(item, item_schema, defs, depth + 1, &item_path));
                 }
             }
         }
     }
 
-    // Object constraints
-    if let Some(obj) = value.as_object() {
-        let obj_len = obj.len() as u64;
-        if let Some(max) = effective.max_properties
-            && obj_len > max
+    if let Some(object) = value.as_object() {
+        let property_count = object.len() as u64;
+        if let Some(maximum) = effective.max_properties
+            && property_count > maximum
         {
-            return false;
+            reasons.push(CompositionFailureReason::new(
+                format!("Object has {property_count} properties, maximum is {maximum}"),
+                property_path,
+            ));
         }
-        if let Some(min) = effective.min_properties
-            && obj_len < min
+        if let Some(minimum) = effective.min_properties
+            && property_count < minimum
         {
-            return false;
+            reasons.push(CompositionFailureReason::new(
+                format!("Object has {property_count} properties, minimum is {minimum}"),
+                property_path,
+            ));
         }
-
-        // required
-        for req in &effective.required {
-            if !obj.contains_key(req) {
-                return false;
+        for required in &effective.required {
+            if !object.contains_key(required) {
+                reasons
+                    .push(CompositionFailureReason::new(format!("'{required}' is a required property"), property_path));
             }
         }
-
-        // dependentRequired
-        for (trigger, deps) in &effective.dependent_required {
-            if obj.contains_key(trigger) {
-                for dep in deps {
-                    if !obj.contains_key(dep) {
-                        return false;
+        for (trigger, dependencies) in &effective.dependent_required {
+            if object.contains_key(trigger) {
+                for dependency in dependencies {
+                    if !object.contains_key(dependency) {
+                        reasons.push(CompositionFailureReason::new(
+                            format!("'{dependency}' is a dependency of '{trigger}'"),
+                            property_path,
+                        ));
                     }
                 }
             }
         }
-
-        // dependentExcluded
         for (trigger, excluded) in &effective.dependent_excluded {
-            if obj.contains_key(trigger) {
-                for dep in excluded {
-                    if obj.contains_key(dep) {
-                        return false;
+            if object.contains_key(trigger) {
+                for property in excluded {
+                    if object.contains_key(property) {
+                        reasons.push(CompositionFailureReason::new(
+                            format!("'{property}' should not be included with '{trigger}'"),
+                            append_property_path(property_path, property),
+                        ));
                     }
                 }
             }
         }
-
-        // requiredOr - at least one member must be present with a non-null value
         if !effective.required_or.is_empty()
-            && !effective.required_or.iter().any(|p| obj.get(p.as_str()).is_some_and(|v| !v.is_null()))
+            && !effective
+                .required_or
+                .iter()
+                .any(|property| object.get(property.as_str()).is_some_and(|candidate| !candidate.is_null()))
         {
-            return false;
+            reasons.push(CompositionFailureReason::new(
+                format!(
+                    "At least one of {} is required",
+                    effective.required_or.iter().map(|property| format!("'{property}'")).collect::<Vec<_>>().join(", ")
+                ),
+                property_path,
+            ));
         }
-
-        // requiredXor - exactly one member must be present with a non-null value
         if !effective.required_xor.is_empty() {
-            let count =
-                effective.required_xor.iter().filter(|p| obj.get(p.as_str()).is_some_and(|v| !v.is_null())).count();
-            if count != 1 {
-                return false;
+            let present = effective
+                .required_xor
+                .iter()
+                .filter(|property| object.get(property.as_str()).is_some_and(|candidate| !candidate.is_null()))
+                .count();
+            if present != 1 {
+                reasons.push(CompositionFailureReason::new(
+                    format!(
+                        "Exactly one of {} is required, but {present} are present",
+                        effective
+                            .required_xor
+                            .iter()
+                            .map(|property| format!("'{property}'"))
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    ),
+                    property_path,
+                ));
             }
         }
-
-        // additionalProperties - a closed object admits only declared or
-        // pattern-matched keys. Enforced whenever the schema declares either
-        // shape vocabulary, so `patternProperties` alone also closes the object.
         if effective.additional_properties == Some(false)
             && (!effective.properties.is_empty() || !effective.pattern_properties.is_empty())
         {
-            let pattern_matchers: Vec<Option<std::sync::Arc<CompiledPattern>>> =
-                effective.pattern_properties.keys().map(|p| compile_pattern(p)).collect();
-            for key in obj.keys() {
-                if effective.properties.contains_key(key) {
+            let pattern_matchers: Vec<Option<Arc<CompiledPattern>>> =
+                effective.pattern_properties.keys().map(|pattern| compile_pattern(pattern)).collect();
+            for property in object.keys() {
+                if effective.properties.contains_key(property) {
                     continue;
                 }
-                let allowed_by_pattern =
-                    pattern_matchers.iter().any(|matcher| matcher.as_ref().is_none_or(|re| re.is_match(key)));
-                if !allowed_by_pattern {
-                    return false;
+                let allowed = pattern_matchers
+                    .iter()
+                    .any(|matcher| matcher.as_ref().is_none_or(|compiled| compiled.is_match(property)));
+                if !allowed {
+                    reasons.push(CompositionFailureReason::new(
+                        format!("Additional property '{property}' is not allowed"),
+                        append_property_path(property_path, property),
+                    ));
                 }
             }
         }
-
-        // Validate property values against their schemas
-        for (prop_name, prop_schema) in &effective.properties {
-            if let Some(prop_value) = obj.get(prop_name) {
-                let resolved_prop = prop_schema.resolve(defs);
-                if !schema_value_matches(prop_value, &resolved_prop, defs, depth + 1) {
-                    return false;
-                }
+        for (property, property_schema) in &effective.properties {
+            if let Some(property_value) = object.get(property)
+                && !schema_value_matches(property_value, property_schema, defs, depth + 1)
+            {
+                let child_path = append_property_path(property_path, property);
+                reasons.extend(schema_value_failure_reasons(
+                    property_value,
+                    property_schema,
+                    defs,
+                    depth + 1,
+                    &child_path,
+                ));
             }
         }
     }
 
-    // Nested composition: allOf - all branches must match
-    if !effective.all_of.is_empty() {
-        for branch in &effective.all_of {
-            if !schema_value_matches(value, branch, defs, depth + 1) {
-                return false;
-            }
+    for branch in &effective.all_of {
+        if !schema_value_matches(value, branch, defs, depth + 1) {
+            reasons.extend(schema_value_failure_reasons(value, branch, defs, depth + 1, property_path));
         }
     }
-
-    // Nested anyOf - at least one branch must match
-    if !effective.any_of.is_empty() {
-        let any_match = effective.any_of.iter().any(|branch| schema_value_matches(value, branch, defs, depth + 1));
-        if !any_match {
-            return false;
+    if !effective.any_of.is_empty()
+        && !effective.any_of.iter().any(|branch| schema_value_matches(value, branch, defs, depth + 1))
+    {
+        for branch in &effective.any_of {
+            reasons.extend(schema_value_failure_reasons(value, branch, defs, depth + 1, property_path));
         }
     }
-
-    // Nested oneOf - exactly one branch must match
     if !effective.one_of.is_empty() {
-        let match_count = effective.one_of.iter().filter(|b| schema_value_matches(value, b, defs, depth + 1)).count();
-        if match_count != 1 {
-            return false;
+        let matching: Vec<usize> = effective
+            .one_of
+            .iter()
+            .enumerate()
+            .filter_map(|(index, branch)| schema_value_matches(value, branch, defs, depth + 1).then_some(index + 1))
+            .collect();
+        if matching.is_empty() {
+            for branch in &effective.one_of {
+                reasons.extend(schema_value_failure_reasons(value, branch, defs, depth + 1, property_path));
+            }
+        } else if matching.len() > 1 {
+            reasons.push(CompositionFailureReason::new(
+                format!(
+                    "Value matches nested oneOf branches {}; exactly one must match",
+                    render_branch_numbers(&matching)
+                ),
+                property_path,
+            ));
         }
     }
-
-    // if/then/else - evaluate condition against value. Only overlay-stated
-    // conditionals participate; bundled ones are owned by dedicated rules
-    // (see `IfThenElse::enforce_full_branch`).
-    for ite in effective.if_then_else.iter().filter(|ite| ite.enforce_full_branch) {
-        if let Some(obj) = value.as_object() {
-            let obj_keys: Vec<String> = obj.keys().cloned().collect();
-            let cond_matches = condition_schema_value_matches(&ite.condition, obj, &obj_keys, defs, depth + 1);
-            let branch = if cond_matches { &ite.then_schema } else { &ite.else_schema };
+    for conditional in effective.if_then_else.iter().filter(|conditional| conditional.enforce_full_branch) {
+        if let Some(object) = value.as_object() {
+            let object_keys: Vec<String> = object.keys().cloned().collect();
+            let condition_matches =
+                condition_schema_value_matches(&conditional.condition, object, &object_keys, defs, depth + 1);
+            let branch = if condition_matches { &conditional.then_schema } else { &conditional.else_schema };
             if let Some(branch_schema) = branch
                 && !schema_value_matches(value, branch_schema, defs, depth + 1)
             {
-                return false;
+                reasons.extend(schema_value_failure_reasons(value, branch_schema, defs, depth + 1, property_path));
             }
         }
     }
 
-    true
+    deduplicate_composition_reasons(reasons)
+}
+
+fn append_property_path(base: &str, segment: &str) -> String {
+    if base.is_empty() { segment.to_string() } else { format!("{base}.{segment}") }
+}
+
+fn json_value_type(value: &serde_json::Value) -> &'static str {
+    match value {
+        serde_json::Value::Null => "null",
+        serde_json::Value::Bool(_) => "boolean",
+        serde_json::Value::Number(number) if number.is_i64() || number.is_u64() => "integer",
+        serde_json::Value::Number(_) => "number",
+        serde_json::Value::String(_) => "string",
+        serde_json::Value::Array(_) => "array",
+        serde_json::Value::Object(_) => "object",
+    }
 }
 
 /// Evaluate a `ConditionSchema` against a concrete object value for use in
@@ -1729,19 +1798,21 @@ fn validate_sub_value_constraints(
         });
 
         if !any_scenario_matches {
-            // Marks this branch non-matching for the anyOf/oneOf predicates (which
-            // discard the message) - and is the user-facing finding when the
-            // branch came from `allOf`, where every branch must hold. The message
-            // therefore names the offending value and what the branch expects.
-            let offending = scenarios
+            // This diagnostic remains internal to an anyOf/oneOf decision and is
+            // surfaced directly only for allOf. Preserve the concrete constraint
+            // failure so the primary composition finding can explain this branch.
+            let (offending, failure_detail) = scenarios
                 .iter()
                 .find(|(val, conds)| is_satisfiable(m, conds) && !val.is_null())
-                .map(|(val, _)| format_value(val))
-                .unwrap_or_else(|| "Value".to_string());
+                .map(|(val, _)| {
+                    let reasons = schema_value_failure_reasons(val, &resolved, defs, 0, &prop_path);
+                    (format_value(val), render_composition_reasons(&reasons, &prop_path))
+                })
+                .unwrap_or_else(|| ("Value".to_string(), describe_prop_constraints(&resolved)));
             out.push(build_diagnostic(
                 "F3017",
                 &format!(
-                    "{offending} at '{prop_name}' does not satisfy the composition branch constraint ({})",
+                    "{offending} at '{prop_name}' does not satisfy the composition branch constraint ({}): {failure_detail}",
                     describe_prop_constraints(&resolved)
                 ),
                 m,
@@ -1770,15 +1841,18 @@ fn validate_sub_value_constraints(
                 schema_value_matches(val, sub, defs, 0)
             });
             if !any_scenario_matches {
-                let offending = scenarios
+                let (offending, failure_detail) = scenarios
                     .iter()
                     .find(|(val, conds)| is_satisfiable(m, conds) && !val.is_null())
-                    .map(|(val, _)| format_value(val))
-                    .unwrap_or_else(|| "Value".to_string());
+                    .map(|(val, _)| {
+                        let reasons = schema_value_failure_reasons(val, sub, defs, 0, base_path);
+                        (format_value(val), render_composition_reasons(&reasons, base_path))
+                    })
+                    .unwrap_or_else(|| ("Value".to_string(), describe_prop_constraints(sub)));
                 out.push(build_diagnostic(
                     "F3017",
                     &format!(
-                        "{offending} does not satisfy the composition branch constraint ({})",
+                        "{offending} does not satisfy the composition branch constraint ({}): {failure_detail}",
                         describe_prop_constraints(sub)
                     ),
                     m,
@@ -1819,6 +1893,320 @@ fn branch_scenario_assignments<'a>(
 /// grouping), the assignment itself otherwise.
 fn assignment_condition_map(assignment: &HashMap<String, bool>) -> Option<HashMap<String, bool>> {
     if assignment.is_empty() { None } else { Some(assignment.clone()) }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum CompositionKind {
+    AnyOf,
+    OneOf,
+}
+
+impl CompositionKind {
+    fn name(self) -> &'static str {
+        match self {
+            CompositionKind::AnyOf => "anyOf",
+            CompositionKind::OneOf => "oneOf",
+        }
+    }
+
+    fn expected_constraint(self) -> &'static str {
+        match self {
+            CompositionKind::AnyOf => "at least one anyOf branch",
+            CompositionKind::OneOf => "exactly one oneOf branch",
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+struct CompositionFailureReason {
+    message: String,
+    property_path: String,
+}
+
+impl CompositionFailureReason {
+    fn new(message: impl Into<String>, property_path: impl Into<String>) -> Self {
+        Self { message: message.into(), property_path: property_path.into() }
+    }
+}
+
+#[derive(Clone, Debug)]
+struct CompositionBranchEvaluation {
+    branch: usize,
+    matched: bool,
+    required_property_combinations: Vec<Vec<String>>,
+    failure_reasons: Vec<CompositionFailureReason>,
+}
+
+impl CompositionBranchEvaluation {
+    fn new(
+        branch: usize,
+        matched: bool,
+        mut required_property_combinations: Vec<Vec<String>>,
+        failure_reasons: Vec<CompositionFailureReason>,
+    ) -> Self {
+        for combination in &mut required_property_combinations {
+            combination.sort();
+            combination.dedup();
+        }
+        required_property_combinations.retain(|combination| !combination.is_empty());
+        required_property_combinations.sort();
+        required_property_combinations.dedup();
+        Self {
+            branch,
+            matched,
+            required_property_combinations,
+            failure_reasons: deduplicate_composition_reasons(failure_reasons),
+        }
+    }
+}
+
+fn deduplicate_composition_reasons(mut reasons: Vec<CompositionFailureReason>) -> Vec<CompositionFailureReason> {
+    reasons.sort();
+    reasons.dedup();
+    reasons
+}
+
+#[allow(clippy::too_many_arguments)]
+fn evaluate_object_composition_branches(
+    m: &Arc<SemanticModel>,
+    rid: &str,
+    rtype: &str,
+    actual_keys: &[String],
+    branches: &[SubSchema],
+    defs: &HashMap<String, PropSchema>,
+    base_path: &str,
+    assignment: &HashMap<String, bool>,
+) -> Vec<CompositionBranchEvaluation> {
+    branches
+        .iter()
+        .enumerate()
+        .map(|(index, branch)| {
+            let mut branch_diagnostics = Vec::new();
+            validate_sub_under_assignment(
+                &mut branch_diagnostics,
+                m,
+                rid,
+                rtype,
+                actual_keys,
+                branch,
+                defs,
+                base_path,
+                assignment,
+            );
+            let matched = branch_diagnostics.is_empty();
+            let mut failure_reasons: Vec<CompositionFailureReason> = branch_diagnostics
+                .into_iter()
+                .map(|diagnostic| {
+                    CompositionFailureReason::new(
+                        diagnostic.message,
+                        diagnostic.property_path.unwrap_or_else(|| base_path.to_string()),
+                    )
+                })
+                .collect();
+            if !matched && failure_reasons.is_empty() {
+                failure_reasons.push(CompositionFailureReason::new("The branch schema was not satisfied", base_path));
+            }
+            CompositionBranchEvaluation::new(
+                index + 1,
+                matched,
+                required_property_combinations(branch, defs, Some(rtype)),
+                failure_reasons,
+            )
+        })
+        .collect()
+}
+
+fn required_property_combinations(
+    branch: &SubSchema,
+    defs: &HashMap<String, PropSchema>,
+    rtype: Option<&str>,
+) -> Vec<Vec<String>> {
+    let resolved;
+    let effective = if branch.ref_name.is_some() {
+        resolved = branch.resolve(defs);
+        if resolved.ref_name.is_some() {
+            return Vec::new();
+        }
+        &*resolved
+    } else {
+        branch
+    };
+
+    let mut base: Vec<String> = effective
+        .required
+        .iter()
+        .filter(|property| {
+            rtype.is_none_or(|resource_type| !extension_required_covered_by_dedicated_rule(resource_type, property))
+        })
+        .cloned()
+        .collect();
+    base.sort();
+    base.dedup();
+
+    let mut combinations = vec![base];
+    expand_required_choice_group(&mut combinations, &effective.required_or, false);
+    expand_required_choice_group(&mut combinations, &effective.required_xor, true);
+    if effective.required.is_empty() && effective.required_or.is_empty() && effective.required_xor.is_empty() {
+        return Vec::new();
+    }
+    combinations
+}
+
+fn expand_required_choice_group(combinations: &mut Vec<Vec<String>>, choices: &[String], exactly_one: bool) {
+    if choices.is_empty() {
+        return;
+    }
+    let mut expanded = Vec::new();
+    for combination in combinations.iter() {
+        let present = choices.iter().filter(|choice| combination.contains(choice)).count();
+        if present > 0 {
+            if !exactly_one || present == 1 {
+                expanded.push(combination.clone());
+            }
+            continue;
+        }
+        for choice in choices {
+            let mut candidate = combination.clone();
+            candidate.push(choice.clone());
+            expanded.push(candidate);
+        }
+    }
+    *combinations = expanded;
+}
+
+#[allow(clippy::too_many_arguments)]
+fn build_composition_diagnostic(
+    rule_id: &str,
+    kind: CompositionKind,
+    evaluations: &[CompositionBranchEvaluation],
+    m: &Arc<SemanticModel>,
+    rid: &str,
+    property_path: &str,
+    resource_type: Option<&str>,
+    actual_value: Option<&serde_json::Value>,
+    condition_scenario: Option<HashMap<String, bool>>,
+) -> Diagnostic {
+    let matching_branches: Vec<usize> =
+        evaluations.iter().filter(|evaluation| evaluation.matched).map(|evaluation| evaluation.branch).collect();
+    let match_count = matching_branches.len();
+    let branch_count = evaluations.len();
+    let match_outcome = if match_count == 0 { "zeroMatches" } else { "multipleMatches" };
+
+    let target = resource_type.map(|rtype| format!(" for {rtype}")).unwrap_or_default();
+    let mut message = match (kind, match_count) {
+        (CompositionKind::AnyOf, _) => format!(
+            "Value is not valid under any of the {branch_count} anyOf schemas{target} (0 branches matched; at least one is required)."
+        ),
+        (CompositionKind::OneOf, 0) => format!(
+            "Value is not valid under any of the {branch_count} oneOf schemas{target} (0 branches matched; exactly one is required)."
+        ),
+        (CompositionKind::OneOf, _) => format!(
+            "Value is valid under more than one of the {branch_count} oneOf schemas{target} ({match_count} branches matched; exactly one is required). Matching branches: {}.",
+            render_branch_numbers(&matching_branches)
+        ),
+    };
+
+    let mut valid_combinations: Vec<Vec<String>> =
+        evaluations.iter().flat_map(|evaluation| evaluation.required_property_combinations.iter().cloned()).collect();
+    valid_combinations.sort();
+    valid_combinations.dedup();
+    if !valid_combinations.is_empty() {
+        message.push_str(" Required property combinations: ");
+        message.push_str(
+            &valid_combinations
+                .iter()
+                .map(|combination| {
+                    format!(
+                        "[{}]",
+                        combination.iter().map(|property| format!("'{property}'")).collect::<Vec<_>>().join(", ")
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join(" or "),
+        );
+        message.push('.');
+    }
+
+    if match_count == 0 {
+        let failure_summaries: Vec<String> = evaluations
+            .iter()
+            .filter(|evaluation| !evaluation.matched)
+            .map(|evaluation| {
+                let reasons = render_composition_reasons(&evaluation.failure_reasons, property_path);
+                format!("branch {}: {reasons}", evaluation.branch)
+            })
+            .collect();
+        if !failure_summaries.is_empty() {
+            message.push_str(" Branch failures: ");
+            message.push_str(&failure_summaries.join("; "));
+            message.push('.');
+        }
+    }
+
+    let mut extra = HashMap::new();
+    extra.insert("compositionKind".to_string(), serde_json::json!(kind.name()).into());
+    extra.insert("matchOutcome".to_string(), serde_json::json!(match_outcome).into());
+    extra.insert("branchCount".to_string(), serde_json::json!(branch_count).into());
+    extra.insert("matchCount".to_string(), serde_json::json!(match_count).into());
+    if !valid_combinations.is_empty() {
+        extra.insert("validPropertyCombinations".to_string(), serde_json::json!(valid_combinations).into());
+    }
+    if !matching_branches.is_empty() {
+        extra.insert("matchingBranches".to_string(), serde_json::json!(matching_branches).into());
+    }
+    let branch_failures: Vec<serde_json::Value> = evaluations
+        .iter()
+        .filter(|evaluation| !evaluation.matched)
+        .map(|evaluation| {
+            let reasons: Vec<serde_json::Value> = evaluation
+                .failure_reasons
+                .iter()
+                .map(|reason| {
+                    serde_json::json!({
+                        "message": reason.message,
+                        "propertyPath": reason.property_path,
+                    })
+                })
+                .collect();
+            serde_json::json!({
+                "branch": evaluation.branch,
+                "reasons": reasons,
+            })
+        })
+        .collect();
+    if !branch_failures.is_empty() {
+        extra.insert("branchFailures".to_string(), serde_json::json!(branch_failures).into());
+    }
+
+    let mut diagnostic =
+        build_diagnostic_conditional(rule_id, &message, m, rid, property_path, None, condition_scenario);
+    diagnostic.context = Some(ViolationContext {
+        actual_value: actual_value.cloned().map(Into::into),
+        expected_constraint: Some(kind.expected_constraint().to_string()),
+        property: None,
+        lifecycle: None,
+        resolution_source: None,
+        extra: Some(extra),
+    });
+    diagnostic
+}
+
+fn render_branch_numbers(branches: &[usize]) -> String {
+    branches.iter().map(usize::to_string).collect::<Vec<_>>().join(", ")
+}
+
+fn render_composition_reasons(reasons: &[CompositionFailureReason], default_path: &str) -> String {
+    reasons
+        .iter()
+        .map(|reason| {
+            if reason.property_path.is_empty() || reason.property_path == default_path {
+                reason.message.clone()
+            } else {
+                format!("at '{}': {}", reason.property_path, reason.message)
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(", ")
 }
 
 /// Runs `validate_sub` restricted to one condition assignment: only value
@@ -3231,15 +3619,17 @@ fn validate_prop_composition(
             if !is_satisfiable(m, conds) || val.is_null() || is_unresolved_intrinsic(val) {
                 continue;
             }
-            let any_match = schema.any_of.iter().any(|branch| schema_value_matches(val, branch, defs, 0));
-            if !any_match {
-                out.push(build_diagnostic_conditional(
+            let evaluations = evaluate_value_composition_branches(val, &schema.any_of, defs, prop_path);
+            if evaluations.iter().all(|evaluation| !evaluation.matched) {
+                out.push(build_composition_diagnostic(
                     "F3017",
-                    "Value is not valid under any of the given schemas",
+                    CompositionKind::AnyOf,
+                    &evaluations,
                     m,
                     rid,
                     prop_path,
                     None,
+                    Some(val),
                     condition_map(conds),
                 ));
             }
@@ -3252,25 +3642,18 @@ fn validate_prop_composition(
             if !is_satisfiable(m, conds) || val.is_null() || is_unresolved_intrinsic(val) {
                 continue;
             }
-            let match_count = schema.one_of.iter().filter(|b| schema_value_matches(val, b, defs, 0)).count();
-            if match_count == 0 {
-                out.push(build_diagnostic_conditional(
+            let evaluations = evaluate_value_composition_branches(val, &schema.one_of, defs, prop_path);
+            let match_count = evaluations.iter().filter(|evaluation| evaluation.matched).count();
+            if match_count != 1 {
+                out.push(build_composition_diagnostic(
                     "F3018",
-                    "Value is not valid under any of the given schemas",
+                    CompositionKind::OneOf,
+                    &evaluations,
                     m,
                     rid,
                     prop_path,
                     None,
-                    condition_map(conds),
-                ));
-            } else if match_count > 1 {
-                out.push(build_diagnostic_conditional(
-                    "F3018",
-                    "Value is valid under more than one of the given schemas",
-                    m,
-                    rid,
-                    prop_path,
-                    None,
+                    Some(val),
                     condition_map(conds),
                 ));
             }
