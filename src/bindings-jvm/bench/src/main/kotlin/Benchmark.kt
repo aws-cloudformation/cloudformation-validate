@@ -8,6 +8,7 @@ import software.amazon.cloudformation.validate.engine.EngineConfig
 import software.amazon.cloudformation.validate.gson.buildBindingsGson
 import software.amazon.cloudformation.validate.rules.RuleFilterConfig
 import software.amazon.cloudformation.validate.rules.Severity
+import software.amazon.cloudformation.validate.schemavalidator.SchemaValidatorConfig
 import software.amazon.cloudformation.validate.templatemodel.PseudoParameterOverrides
 import software.amazon.cloudformation.validate.version
 import com.google.gson.JsonArray
@@ -100,9 +101,9 @@ fun main(args: Array<String>) {
     val engineInitSamples = mutableListOf<Double>()
     repeat(iterations) {
         val t0 = System.nanoTime()
-        val sv = JvmSchemaValidator()
+        val sv = JvmSchemaValidator(SchemaValidatorConfig())
         schemaInitSamples.add((System.nanoTime() - t0) / 1_000_000.0)
-        sv.destroy()
+        sv.close()
 
         val t1 = System.nanoTime()
         val created = newEngine()
@@ -166,6 +167,7 @@ fun main(args: Array<String>) {
             continue
         }
         val bytes = tpl.readBytes()
+        val jsonPath = reportPath(jsonDir, rel)
         val iterModelBuild = mutableListOf<Double>()
         val iterSchemaValidate = mutableListOf<Double>()
         val iterRuleEval = mutableListOf<Double>()
@@ -192,6 +194,15 @@ fun main(args: Array<String>) {
                 } catch (_: Exception) {
                 }
             } catch (e: Exception) {
+                val parseFailureReport = validateDetailed(engine, bytes, benchValidateConfig, rel)
+                pendingReports.add(
+                    PendingReport(
+                        jsonPath,
+                        parseFailureReport,
+                        zeroBenchmarkMetrics(),
+                        normalizeParseFailure = true,
+                    )
+                )
                 results.add(errorResult(rel, "parse_error", e.message ?: "unknown"))
                 failed = true
                 return@repeat
@@ -236,13 +247,6 @@ fun main(args: Array<String>) {
         val perIterOverhead = iterWallClock.zip(iterEngineInternal) { w, e -> w - e }
         val bindingOverheadMs = round4(medianOf(perIterOverhead))
 
-        val jsonStem = run {
-            val flat = rel.replace("/", "_")
-            // Robust suffix replacement: strip the last known extension and append a tag.
-            val extMatch = Regex("""^(.+)\.(yaml|yml|json)$""", RegexOption.IGNORE_CASE).matchEntire(flat)
-            if (extMatch != null) "${extMatch.groupValues[1]}_${extMatch.groupValues[2].lowercase()}"
-            else flat
-        }
         fun iterObj(
             hostModel: Double,
             modelBuild: Double,
@@ -290,7 +294,7 @@ fun main(args: Array<String>) {
             addProperty("bindingOverheadMs", bindingOverheadMs)
         }
         // Deferred: serialize the last report post-benchmark via Gson.
-        pendingReports.add(PendingReport(jsonDir.resolve("$jsonStem.json"), rel, report, metrics))
+        pendingReports.add(PendingReport(jsonPath, report, metrics))
 
         val tr = TemplateResult(
             file = rel, status = "ok", sizeBytes = sizeBytes,
@@ -327,6 +331,7 @@ fun main(args: Array<String>) {
     val dumpGson = buildBindingsGson(prettyPrinting = true)
     for (pr in pendingReports) {
         val reportElement = dumpGson.toJsonTree(pr.report).asJsonObject
+        if (pr.normalizeParseFailure) normalizeParseFailureReport(reportElement)
         reportElement.addProperty("engine", engineFlag)
         reportElement.addProperty("binding", "jvm")
         reportElement.addProperty("detailLevel", formatFlag)
@@ -542,14 +547,68 @@ fun validateConfig() = ValidateConfig(
     strict = false,
 )
 
-private data class PendingReport(val dest: File, val rel: String, val report: DetailedReport, val metrics: JsonObject)
+private data class PendingReport(
+    val dest: File,
+    val report: DetailedReport,
+    val metrics: JsonObject,
+    val normalizeParseFailure: Boolean = false,
+)
 
 private val TEMPLATE_EXTENSIONS = setOf("yaml", "yml", "json")
 
 private fun collectFiles(fileOrDir: File): List<File> {
     if (fileOrDir.isFile) return listOf(fileOrDir)
-    return fileOrDir.walkTopDown().filter { it.isFile && it.extension.lowercase() in TEMPLATE_EXTENSIONS }.toList()
+    return fileOrDir.walkTopDown().filter { it.isFile && it.extension in TEMPLATE_EXTENSIONS }.toList()
         .sortedBy { it.path }
+}
+
+private fun reportPath(jsonDir: File, relativePath: String): File {
+    var stem = relativePath.replace("/", "_")
+    for ((extension, replacement) in listOf(".yaml" to "_yaml", ".yml" to "_yml", ".json" to "_json")) {
+        if (stem.endsWith(extension)) {
+            stem = stem.removeSuffix(extension) + replacement
+            break
+        }
+    }
+    return jsonDir.resolve("$stem.json")
+}
+
+private fun zeroBenchmarkMetrics(): JsonObject {
+    fun zeroIteration() = JsonObject().apply {
+        addProperty("hostModelMs", 0.0)
+        addProperty("modelBuildMs", 0.0)
+        addProperty("schemaValidateMs", 0.0)
+        addProperty("ruleEvaluationMs", 0.0)
+        addProperty("diagnosticFinalizeMs", 0.0)
+        addProperty("engineInternalMs", 0.0)
+        addProperty("wallClockMs", 0.0)
+    }
+    return JsonObject().apply {
+        addProperty("iterations", 0)
+        add("firstIteration", zeroIteration())
+        add("steadyState", zeroIteration())
+        addProperty("bindingOverheadMs", 0.0)
+    }
+}
+
+private fun normalizeParseFailureReport(report: JsonObject) {
+    report.add("diagnostics", JsonArray())
+    val counts = report.getAsJsonObject("metadata").getAsJsonObject("counts")
+    for (name in listOf("fatal", "errors", "warnings", "informational", "debug")) {
+        counts.addProperty(name, 0)
+    }
+    val performance = report.getAsJsonObject("performance")
+    for (name in listOf(
+        "schemaInit",
+        "engineInit",
+        "modelBuild",
+        "schemaValidate",
+        "ruleEvaluation",
+        "diagnosticFinalize",
+        "validateTotal",
+    )) {
+        performance.getAsJsonObject(name).addProperty("durationMs", 0.0)
+    }
 }
 
 

@@ -69,17 +69,6 @@ func run() error {
 		templateDir = defaultTemplateDir
 	}
 
-	info, err := os.Stat(templateDir)
-	if err != nil {
-		return fmt.Errorf("cannot stat template path %q: %w", templateDir, err)
-	}
-	if !info.IsDir() {
-		ext := strings.ToLower(filepath.Ext(templateDir))
-		if !templateExtensions[ext] {
-			return usageError(fmt.Sprintf("unsupported template extension %q; expected .yaml, .yml, or .json", ext))
-		}
-	}
-
 	templates, err := collectFiles(templateDir)
 	if err != nil {
 		return fmt.Errorf("collecting templates: %w", err)
@@ -183,6 +172,7 @@ func run() error {
 			continue
 		}
 		sizeBytes := len(bytes)
+		jsonPath := filepath.Join(jsonDir, toJSONStem(rel)+".json")
 
 		iterModelBuild := make([]float64, 0, iterations)
 		iterSchemaValidate := make([]float64, 0, iterations)
@@ -199,6 +189,21 @@ func run() error {
 			parsed, parseErr := cfnvalidate.ParseTemplate(bytes)
 			hostModelMs := elapsed(tm0)
 			if parseErr != nil {
+				parseFailureReport, reportErr := engine.ValidateDetailed(bytes, validateConfig, rel)
+				if reportErr != nil {
+					return fmt.Errorf("creating parse-failure report for %s: %w", rel, reportErr)
+				}
+				normalizeParseFailureReport(parseFailureReport)
+				payload, marshalErr := buildPerTemplatePayload(
+					parseFailureReport,
+					rel,
+					engineFlag,
+					zeroBenchmarkMetrics(),
+				)
+				if marshalErr != nil {
+					return fmt.Errorf("marshaling parse-failure payload for %s: %w", rel, marshalErr)
+				}
+				pendingWrites = append(pendingWrites, deferredWrite{path: jsonPath, payload: payload})
 				results = append(results, errorResult(rel, "parse_error", parseErr.Error()))
 				failed = true
 				break
@@ -258,7 +263,6 @@ func run() error {
 		}
 		bindingOverheadMs := round4(medianOf(perCallDiffs))
 
-		jsonStem := toJSONStem(rel)
 		benchmarkMetrics := map[string]interface{}{
 			"iterations": iterations,
 			"firstIteration": map[string]interface{}{
@@ -287,7 +291,7 @@ func run() error {
 			return fmt.Errorf("marshaling per-template payload for %s: %w", rel, marshalErr)
 		}
 		pendingWrites = append(pendingWrites, deferredWrite{
-			path:    filepath.Join(jsonDir, jsonStem+".json"),
+			path:    jsonPath,
 			payload: payload,
 		})
 
@@ -522,7 +526,7 @@ func collectFiles(root string) ([]string, error) {
 		if fi.IsDir() {
 			return nil
 		}
-		ext := strings.ToLower(filepath.Ext(fi.Name()))
+		ext := filepath.Ext(fi.Name())
 		if templateExtensions[ext] {
 			files = append(files, path)
 		}
@@ -607,14 +611,39 @@ func isoNow() string {
 }
 
 func toJSONStem(rel string) string {
-	// Replace path separators, then swap the file extension suffix for an
-	// underscore-delimited form: "foo/bar.yaml" -> "foo_bar_yaml".
 	s := strings.ReplaceAll(rel, "/", "_")
-	ext := filepath.Ext(s)
-	if ext != "" {
-		s = strings.TrimSuffix(s, ext) + "_" + strings.TrimPrefix(ext, ".")
+	for _, extension := range []string{".yaml", ".yml", ".json"} {
+		if strings.HasSuffix(s, extension) {
+			return strings.TrimSuffix(s, extension) + "_" + strings.TrimPrefix(extension, ".")
+		}
 	}
 	return s
+}
+
+func zeroBenchmarkMetrics() map[string]interface{} {
+	zeroIteration := func() map[string]interface{} {
+		return map[string]interface{}{
+			"hostModelMs":          0.0,
+			"modelBuildMs":         0.0,
+			"schemaValidateMs":     0.0,
+			"ruleEvaluationMs":     0.0,
+			"diagnosticFinalizeMs": 0.0,
+			"engineInternalMs":     0.0,
+			"wallClockMs":          0.0,
+		}
+	}
+	return map[string]interface{}{
+		"iterations":        0,
+		"firstIteration":    zeroIteration(),
+		"steadyState":       zeroIteration(),
+		"bindingOverheadMs": 0.0,
+	}
+}
+
+func normalizeParseFailureReport(report *cfnvalidate.DetailedReport) {
+	report.Metadata.Counts = cfnvalidate.Summary{}
+	report.Performance = cfnvalidate.PerformanceMetrics{}
+	report.Diagnostics = []cfnvalidate.DetailedDiagnostic{}
 }
 
 func buildPerTemplatePayload(report *cfnvalidate.DetailedReport, rel, engine string, benchmarkMetrics map[string]interface{}) (map[string]interface{}, error) {

@@ -164,7 +164,7 @@ function collectFiles(dirOrFile: string): string[] {
         for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
             const full = path.join(dir, entry.name);
             if (entry.isDirectory()) walk(full);
-            else if (entry.isFile() && TEMPLATE_EXTENSIONS.has(path.extname(entry.name).toLowerCase()))
+            else if (entry.isFile() && TEMPLATE_EXTENSIONS.has(path.extname(entry.name)))
                 results.push(full);
         }
     };
@@ -229,6 +229,66 @@ function errorResult(file: string, status: string, msg: string): TemplateResult 
         bindingOverheadMs: 0,
         errorMsg: msg,
     };
+}
+
+function zeroBenchmarkMetrics(): Record<string, unknown> {
+    const zeroIteration = () => ({
+        hostModelMs: 0,
+        modelBuildMs: 0,
+        schemaValidateMs: 0,
+        ruleEvaluationMs: 0,
+        diagnosticFinalizeMs: 0,
+        engineInternalMs: 0,
+        wallClockMs: 0,
+    });
+    return {
+        iterations: 0,
+        firstIteration: zeroIteration(),
+        steadyState: zeroIteration(),
+        bindingOverheadMs: 0,
+    };
+}
+
+function normalizeParseFailureReport(report: DetailedReport): DetailedReport {
+    const zeroPhase = () => ({ durationMs: 0 });
+    return {
+        ...report,
+        metadata: {
+            ...report.metadata,
+            counts: {
+                fatal: 0,
+                errors: 0,
+                warnings: 0,
+                informational: 0,
+                debug: 0,
+            },
+        },
+        performance: {
+            schemaInit: zeroPhase(),
+            engineInit: zeroPhase(),
+            modelBuild: zeroPhase(),
+            schemaValidate: zeroPhase(),
+            ruleEvaluation: zeroPhase(),
+            diagnosticFinalize: zeroPhase(),
+            validateTotal: zeroPhase(),
+        },
+        diagnostics: [],
+    };
+}
+
+function reportPath(jsonDir: string, relativePath: string): string {
+    let stem = relativePath.replace(/\//g, '_');
+    for (const [extension, replacement] of [
+        ['.yaml', '_yaml'],
+        ['.yml', '_yml'],
+        ['.json', '_json'],
+    ]) {
+        if (stem.endsWith(extension)) {
+            stem = `${stem.slice(0, -extension.length)}${replacement}`;
+            break;
+        }
+    }
+    return path.join(jsonDir, `${stem}.json`);
 }
 
 const engineConfig: EngineConfig = {
@@ -318,6 +378,7 @@ for (const tpl of templates) {
         results.push(errorResult(rel, 'read_error', e.message));
         continue;
     }
+    const jsonPath = reportPath(jsonDir, rel);
 
     const iterModelBuild: number[] = [];
     const iterSchemaValidate: number[] = [];
@@ -337,6 +398,20 @@ for (const tpl of templates) {
             parsedModel = WasmSemanticModel.parse(bytes);
             iterHostModel.push(performance.now() - tm0);
         } catch (e: any) {
+            const parseFailureReport = normalizeParseFailureReport(
+                engine.validateDetailed(bytes, validateConfig, rel),
+            );
+            pendingWrites.push([
+                jsonPath,
+                {
+                    ...parseFailureReport,
+                    filePath: rel,
+                    engine: engineFlag,
+                    binding: 'wasm',
+                    detailLevel: formatFlag,
+                    benchmarkMetrics: zeroBenchmarkMetrics(),
+                },
+            ]);
             results.push(errorResult(rel, 'parse_error', e.message ?? String(e)));
             failed = true;
             break;
@@ -381,15 +456,8 @@ for (const tpl of templates) {
     const perIterOverhead = iterWallClock.map((w, idx) => w - iterEngineInternal[idx]);
     const bindingOverheadMs = round4(new Stats(perIterOverhead).median);
 
-    const jsonStem = (() => {
-        const flat = rel.replace(/\//g, '_');
-        // Robust suffix replacement: strip the last known extension and append a tag.
-        const extMatch = flat.match(/^(.+)\.(yaml|yml|json)$/i);
-        if (extMatch) return `${extMatch[1]}_${extMatch[2].toLowerCase()}`;
-        return flat;
-    })();
     pendingWrites.push([
-        path.join(jsonDir, `${jsonStem}.json`),
+        jsonPath,
         {
             ...report,
             filePath: rel,
