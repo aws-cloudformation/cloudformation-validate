@@ -2,49 +2,80 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 Description: >
-  Exercises all valid resource-level attributes including SAM-specific
-  Connectors and IgnoreGlobals.
+  Exercises valid CloudFormation and SAM resource-level attributes.
+
+Parameters:
+  CreateConditionalResources:
+    Type: String
+    Default: "true"
+    AllowedValues: ["true", "false"]
+
+Conditions:
+  CreateResources: !Equals [!Ref CreateConditionalResources, "true"]
 
 Resources:
-  AllCfnAttributes:
+  CommonCfnAttributes:
     Type: AWS::S3::Bucket
-    Condition: AlwaysTrue
+    Condition: CreateResources
     DependsOn: BucketWithConnectors
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
-    UpdatePolicy:
-      AutoScalingRollingUpdate:
-        MaxBatchSize: 2
-    CreationPolicy:
-      ResourceSignal:
-        Count: 1
     Metadata:
       Note: valid
     Properties:
-      BucketName: all-attrs-bucket
+      BucketName: common-attrs-bucket
 
   DependsOnSingleString:
     Type: AWS::S3::Bucket
-    DependsOn: AllCfnAttributes
+    Condition: CreateResources
+    DependsOn: CommonCfnAttributes
     Properties:
       BucketName: depends-single
 
   DependsOnList:
     Type: AWS::S3::Bucket
+    Condition: CreateResources
     DependsOn:
-      - AllCfnAttributes
+      - CommonCfnAttributes
       - DependsOnSingleString
     Properties:
       BucketName: depends-list
 
+  LaunchTemplateForPolicies:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateData:
+        ImageId: ami-1234567890abcdef0
+
+  AutoScalingGroupWithPolicies:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    CreationPolicy:
+      ResourceSignal:
+        Count: 1
+        Timeout: PT1M
+    UpdatePolicy:
+      AutoScalingRollingUpdate:
+        MaxBatchSize: 1
+        MinInstancesInService: 0
+    Properties:
+      AvailabilityZones:
+        - !Select [0, !GetAZs ""]
+      LaunchTemplate:
+        LaunchTemplateId: !Ref LaunchTemplateForPolicies
+        Version: !GetAtt LaunchTemplateForPolicies.LatestVersionNumber
+      MinSize: "0"
+      MaxSize: "1"
+
   ResourceWithVersion:
-    Type: AWS::CloudFormation::WaitConditionHandle
+    Type: Custom::VersionedResource
     Version: "1.0"
+    Properties:
+      ServiceToken: !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:resource-attributes-test"
 
   BucketWithTransform:
     Type: AWS::S3::Bucket
-    Transform:
-      Name: "AWS::Include"
+    Fn::Transform:
+      Name: AWS::Include
       Parameters:
         Location: s3://my-bucket/include.yaml
     Properties:
@@ -56,14 +87,11 @@ Resources:
       MyConn:
         Properties:
           Destination:
-            Id: AllCfnAttributes
+            Id: CommonCfnAttributes
           Permissions:
             - Read
-    IgnoreGlobals: true
+    IgnoreGlobals: "*"
     Properties:
       Runtime: python3.11
       Handler: index.handler
       CodeUri: ./src
-
-Conditions:
-  AlwaysTrue: !Equals ["a", "a"]

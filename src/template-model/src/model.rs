@@ -356,6 +356,8 @@ impl SemanticModel {
         info!("Phase 1: Parsing IR ({} bytes)", bytes.len());
         let mut ir = crate::parser::parse(bytes)?;
         let foreach_diagnostics = crate::transform_expansion::expand_language_extensions(&mut ir);
+        let condition_shape_diagnostics =
+            crate::parser::condition_shape::validate_condition_bodies(&ir.arena, ir.conditions, &ir.span_index);
         let (parameters, parameter_diagnostics) = extract_parameters(&ir);
         // A parameter's definition can reference another parameter (e.g. a
         // Default given as `!Ref OtherParam`). Such a reference still counts as
@@ -413,7 +415,7 @@ impl SemanticModel {
                 // Validate resource body shape before resolution. `Fn::ForEach::`
                 // synthetic IDs are expanded by the language-extensions transform
                 // and do not have standard resource shapes.
-                if !name.starts_with(FN_FOR_EACH_KEY_PREFIX) {
+                if name != FN_TRANSFORM && !name.starts_with(FN_FOR_EACH_KEY_PREFIX) {
                     let has_sam_transform = ir.transforms.iter().any(|t| t == TRANSFORM_SERVERLESS);
                     let shape_defects =
                         validate_resource_shape(&ir.arena, &name, node_ref, has_sam_transform, &ir.span_index);
@@ -537,6 +539,7 @@ impl SemanticModel {
 
         let mut diagnostics = ir.diagnostics;
         diagnostics.extend(foreach_diagnostics);
+        diagnostics.extend(condition_shape_diagnostics);
         diagnostics.extend(mapping_diagnostics);
         diagnostics.extend(parameter_diagnostics);
 
@@ -564,10 +567,15 @@ impl SemanticModel {
                         // each engine keeps the two engines identical and covers
                         // the no-Conditions-section case, where a condition-name
                         // reference is still invalid.
-                        diagnostics.push(crate::make_parse_defect(
+                        let condition_path = format!("{}/{}/0", ir.arena.get(idx as NodeRef).path, FN_IF);
+                        diagnostics.push(crate::make_parse_defect_at(
                             "E1028",
                             format!("Fn::If condition '{}' does not exist in Conditions section", cond_name),
-                            ir.arena.span(idx as NodeRef),
+                            ir.span_index
+                                .get(&condition_path)
+                                .copied()
+                                .unwrap_or_else(|| ir.arena.span(idx as NodeRef)),
+                            &condition_path,
                         ));
                     }
                 }
@@ -590,10 +598,11 @@ impl SemanticModel {
                         let in_conditions_body =
                             ir.arena.get(idx as NodeRef).path.split('/').next() == Some(SECTION_CONDITIONS);
                         if !in_conditions_body && !conditions.conditions.contains_key(cond_name) {
-                            diagnostics.push(crate::make_parse_defect(
+                            diagnostics.push(crate::make_parse_defect_at(
                                 "E1028",
                                 format!("Fn::If condition '{}' does not exist in Conditions section", cond_name),
-                                ir.arena.span(idx as NodeRef),
+                                ir.arena.span(*first),
+                                &ir.arena.get(*first).path,
                             ));
                         }
                     }
@@ -769,13 +778,6 @@ impl SemanticModel {
                     ));
                 }
             }
-        }
-        for invalid in conditions.invalid_condition_bodies() {
-            diagnostics.push(crate::make_parse_defect(
-                "E8001",
-                format!("Condition '{}' must be a boolean expression", invalid),
-                ir.span_index.get(&format!("Conditions/{}", invalid)).copied().unwrap_or(UNKNOWN_SPAN),
-            ));
         }
         for (owner, undefined_ref) in conditions.undefined_condition_refs() {
             // Synthetic conditions (`__`-prefixed, inserted for inline Fn::If and
@@ -1262,16 +1264,18 @@ impl SemanticModel {
     /// like `Metadata` names both a top-level section and a resource property:
     /// * A **slash** form (`Outputs/X/Value`, `Conditions/C/Fn::And`) is already an
     ///   absolute, section-rooted span-index key and is resolved as written.
-    /// * A **dotted** or bare form (`Properties.Foo`, `Metadata`) is relative to the
-    ///   resource, so it is rooted at `Resources/<rid>` before lookup - never
-    ///   matched against a same-named top-level section.
+    /// * A **bare path with no resource** (`BogusSection`) is a top-level key and is
+    ///   also resolved directly.
+    /// * A **dotted** or bare form with a resource (`Properties.Foo`, `Metadata`) is
+    ///   relative to that resource, so it is rooted at `Resources/<rid>` before
+    ///   lookup - never matched against a same-named top-level section.
     ///
     /// Returns `None` when nothing along the chosen candidate is indexed, so callers
     /// can fall back to a section span.
     pub fn diagnostic_span(&self, resource_id: Option<&str>, property_path: &str) -> Option<SourceSpan> {
         let rid = resource_id.filter(|r| !r.is_empty());
 
-        if property_path.contains('/') {
+        if property_path.contains('/') || (rid.is_none() && !property_path.is_empty()) {
             // Absolute, section-rooted path: resolve directly.
             if let Some(span) = self.walk_up_span(property_path) {
                 return Some(span);
@@ -1458,6 +1462,7 @@ const VALID_RESOURCE_ATTRIBUTES: &[&str] = &[
     KEY_UPDATE_REPLACE_POLICY,
     KEY_UPDATE_POLICY,
     KEY_CREATION_POLICY,
+    FN_TRANSFORM,
     "Version",
 ];
 
@@ -1572,14 +1577,23 @@ fn validate_resource_shape(
     let resource_type = entries.iter().find(|(key, _)| key == KEY_TYPE).and_then(|(_, value)| arena.as_str(*value));
     if let Some(resource_type) = resource_type {
         let is_custom_resource = is_custom_resource_type(resource_type);
-        if entries.iter().any(|(key, _)| key == "Version") && !is_custom_resource {
+        if let Some((_, version_ref)) = entries.iter().find(|(key, _)| key == "Version") {
             let version_span = span_index.get(&format!("Resources/{}/Version", name)).copied().unwrap_or(resource_span);
-            out.push(crate::make_parse_defect_for_resource(
-                "E3001",
-                format!("Resource '{}' property 'Version' is only valid for custom resources", name),
-                version_span,
-                name,
-            ));
+            if !is_custom_resource {
+                out.push(crate::make_parse_defect_for_resource(
+                    "E3001",
+                    format!("Resource '{}' property 'Version' is only valid for custom resources", name),
+                    version_span,
+                    name,
+                ));
+            } else if !matches!(arena.node(*version_ref), Node::String(_) | Node::Int(_)) {
+                out.push(crate::make_parse_defect_for_resource(
+                    "E3001",
+                    format!("Resource '{}' property 'Version' must be a string or integer", name),
+                    version_span,
+                    name,
+                ));
+            }
         }
 
         for policy_name in [KEY_CREATION_POLICY, KEY_UPDATE_POLICY] {
@@ -2042,6 +2056,21 @@ Resources:
         let via_diag = model.diagnostic_span(Some("MyBucket"), "Properties.BucketName").expect("should resolve");
         let expected = model.source_location("Resources/MyBucket/Properties/BucketName").copied().expect("indexed");
         assert_eq!(via_diag, expected, "dotted path should resolve to the exact property span");
+    }
+
+    #[test]
+    fn diagnostic_span_resolves_bare_top_level_path_without_resource() {
+        let input = r#"
+BogusSection:
+  Value: invalid
+Resources:
+  MyBucket:
+    Type: AWS::S3::Bucket
+"#;
+        let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        let via_diag = model.diagnostic_span(None, "BogusSection").expect("should resolve");
+        let expected = model.source_location("BogusSection").copied().expect("indexed");
+        assert_eq!(via_diag, expected, "bare top-level path should resolve to its authored key");
     }
 
     #[test]

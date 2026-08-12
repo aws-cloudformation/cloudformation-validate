@@ -1302,7 +1302,10 @@ impl<'a> Resolver<'a> {
             if i + 1 < bytes.len() && bytes[i] == b'$' && bytes[i + 1] == b'{' {
                 let start = i + 2;
                 if let Some(end) = template[start..].find('}') {
-                    vars.push(template[start..start + end].trim().to_string());
+                    let variable = template[start..start + end].trim();
+                    if !variable.starts_with('!') {
+                        vars.push(variable.to_string());
+                    }
                     i = start + end + 1;
                 } else {
                     i += 1;
@@ -1313,6 +1316,7 @@ impl<'a> Resolver<'a> {
         }
 
         let mut sub_map: HashMap<String, ResolvedValue> = HashMap::new();
+        let invalid_refs_before = self.invalid_ref_count();
         if let Some(explicit_subs) = subs {
             for (k, v) in explicit_subs {
                 sub_map.insert(k.clone(), self.resolve_node(*v));
@@ -1328,6 +1332,7 @@ impl<'a> Resolver<'a> {
                 }
             }
         }
+        let sub_map_is_valid = self.invalid_ref_count() == invalid_refs_before;
 
         for var in &vars {
             if sub_map.contains_key(var) {
@@ -1361,9 +1366,20 @@ impl<'a> Resolver<'a> {
             // `${Resource}` substitution as a `Ref`, so recording an extra `Sub`
             // edge would double-count the dependency (surfacing a spurious second
             // dependency finding under a `Sub` label that misrepresents the edge).
-            let resolved = self
-                .lookup_ref(var, span)
-                .unwrap_or_else(|| ResolvedValue::Dynamic { reason: format!("unknown sub variable: {}", var) });
+            let resolved = match self.lookup_ref(var, span) {
+                Some(value) => value,
+                None => {
+                    if sub_map_is_valid {
+                        let path = if self.is_output_context() {
+                            format!("{}.Fn::Sub", self.current_path)
+                        } else {
+                            self.current_path.clone()
+                        };
+                        self.record_edge_at_path(var, RefKind::Sub { var: var.clone() }, span, path);
+                    }
+                    ResolvedValue::Dynamic { reason: format!("unknown sub variable: {}", var) }
+                }
+            };
             sub_map.insert(var.clone(), resolved);
         }
 
@@ -1379,6 +1395,7 @@ impl<'a> Resolver<'a> {
 
         if vars.is_empty()
             && subs.is_none()
+            && !template.contains("${!")
             && let Some(ref rid) = self.current_resource
         {
             self.redundant_subs.entry(rid.clone()).or_default().push(self.current_path.clone());
@@ -1396,7 +1413,7 @@ impl<'a> Resolver<'a> {
         }
 
         let all_concrete = sub_map.values().all(|v| matches!(v, ResolvedValue::Concrete { value: _ }));
-        if all_concrete && !sub_map.is_empty() {
+        if all_concrete {
             let mut result = template.to_string();
             for (var, val) in &sub_map {
                 if let ResolvedValue::Concrete { value: v } = val {
@@ -1404,7 +1421,9 @@ impl<'a> Resolver<'a> {
                     result = result.replace(&format!("${{{}}}", var), &replacement);
                 }
             }
-            return ResolvedValue::Concrete { value: serde_json::Value::String(result).into() };
+            return ResolvedValue::Concrete {
+                value: serde_json::Value::String(crate::transform_expansion::unescape_sub_literals(&result)).into(),
+            };
         }
 
         let has_enum = sub_map.values().any(|v| matches!(v, ResolvedValue::Enum { variants: _ }));
@@ -1454,10 +1473,15 @@ impl<'a> Resolver<'a> {
                             }
                         }
                         // If unresolved vars remain, produce Dynamic with partial info
-                        if result.contains("${") {
+                        if crate::transform_expansion::contains_sub_variable(&result) {
                             ResolvedValue::Dynamic { reason: format!("{}{}", SUB_PARTIAL_PREFIX, result) }
                         } else {
-                            ResolvedValue::Concrete { value: serde_json::Value::String(result).into() }
+                            ResolvedValue::Concrete {
+                                value: serde_json::Value::String(crate::transform_expansion::unescape_sub_literals(
+                                    &result,
+                                ))
+                                .into(),
+                            }
                         }
                     })
                     .collect();
@@ -1491,6 +1515,10 @@ impl<'a> Resolver<'a> {
         if !conds.is_empty() {
             self.extra_condition_refs.entry(key).or_default().append(&mut conds);
         }
+    }
+
+    fn invalid_ref_count(&self) -> usize {
+        self.invalid_refs.values().map(Vec::len).sum()
     }
 
     fn record_edge(&mut self, target: &str, kind: RefKind, span: &SourceSpan) {
@@ -2056,6 +2084,8 @@ pub fn extract_parameters(ir: &TemplateIR) -> (HashMap<String, ParameterInfo>, V
                         .filter_map(|r| match ir.arena.node(*r) {
                             Node::String(s) => Some(s.clone()),
                             Node::Int(i) => Some(i.to_string()),
+                            Node::Float(f) => Some(f.to_string()),
+                            Node::Bool(b) => Some(b.to_string()),
                             _ => None,
                         })
                         .collect()

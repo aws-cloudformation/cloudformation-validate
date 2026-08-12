@@ -1,4 +1,5 @@
 pub mod builder;
+pub(crate) mod condition_shape;
 pub mod json;
 pub mod value;
 pub mod yaml;

@@ -11,8 +11,9 @@ use template_model::coercion::{
 };
 use template_model::consts::{
     FIELD_CONDITION, FIELD_DEPENDS_ON, FIELD_KIND, FIELD_PROPERTIES, FIELD_RESOURCE_TYPE, FIELD_SOURCE,
-    FIELD_SOURCE_PATH, FIELD_TARGET, FN_IF,
+    FIELD_SOURCE_PATH, FIELD_TARGET, FN_IF, effective_deployed_resource_type,
 };
+use template_model::fargate::{cpu_is_offered, task_size_is_offered};
 use template_model::iam_policy::validate_identity_policy;
 use template_model::region_enums;
 use template_model::resolved_value::json_contains_markers;
@@ -45,6 +46,8 @@ pub(crate) fn register_all(
     register_follow_ref(rego, holder.clone());
     register_authored_form(rego, holder.clone());
     register_resources_of_type(rego, holder.clone());
+    register_effective_resource_type(rego);
+    register_duplicate_subnet_associations(rego, holder.clone());
     register_hardcoded_azs(rego, holder.clone());
     register_ref_targets(rego, holder.clone());
     register_ref_sources(rego, holder.clone());
@@ -102,6 +105,8 @@ pub(crate) fn register_all(
     register_coerce_to_string(rego);
     register_coerce_port_to_string(rego);
     register_coerce_to_bool(rego);
+    register_fargate_cpu_is_offered(rego);
+    register_fargate_task_size_is_offered(rego);
     register_cfn_type_compatible(rego);
     register_estimated_string_length_bounds(rego, holder.clone());
     register_schema_string_length(rego, schema_registry.clone());
@@ -649,6 +654,39 @@ fn authored_ref_form(target: &str, kind: &RefKind) -> Option<serde_json::Value> 
         RefKind::GetAtt { attr } => Some(serde_json::json!({ "Fn::GetAtt": [target, attr] })),
         _ => None,
     }
+}
+
+fn register_effective_resource_type(rego: &mut regorus::Engine) {
+    let _ = rego.add_extension(
+        "effective_resource_type".into(),
+        1,
+        Box::new(|params: Vec<Value>| {
+            let resource_type = params[0].as_string()?;
+            Ok(Value::from(effective_deployed_resource_type(resource_type.as_ref())))
+        }),
+    );
+}
+
+fn register_duplicate_subnet_associations(rego: &mut regorus::Engine, holder: SharedModel) {
+    let _ = rego.add_extension(
+        "duplicate_subnet_route_table_associations".into(),
+        0,
+        Box::new(move |_params: Vec<Value>| {
+            let Some(model) = get_model(&holder) else {
+                return Ok(Value::from(Vec::<Value>::new()));
+            };
+            let findings: Vec<Value> = template_model::route_table::duplicate_subnet_associations(&model)
+                .into_iter()
+                .map(|finding| {
+                    json_to_value(&serde_json::json!({
+                        "resourceId": finding.resource_id,
+                        "message": finding.message,
+                    }))
+                })
+                .collect();
+            Ok(Value::from(findings))
+        }),
+    );
 }
 
 fn register_resources_of_type(rego: &mut regorus::Engine, holder: SharedModel) {
@@ -1390,6 +1428,30 @@ fn register_coerce_to_bool(rego: &mut regorus::Engine) {
             let jv = rego_to_json(&params[0]);
             match coerce_to_bool(&jv) {
                 Some(b) => Ok(Value::from(b)),
+                None => Ok(Value::Undefined),
+            }
+        }),
+    );
+}
+
+fn register_fargate_cpu_is_offered(rego: &mut regorus::Engine) {
+    let _ = rego.add_extension(
+        "fargate_cpu_is_offered".into(),
+        1,
+        Box::new(|params: Vec<Value>| match cpu_is_offered(&rego_to_json(&params[0])) {
+            Some(is_offered) => Ok(Value::from(is_offered)),
+            None => Ok(Value::Undefined),
+        }),
+    );
+}
+
+fn register_fargate_task_size_is_offered(rego: &mut regorus::Engine) {
+    let _ = rego.add_extension(
+        "fargate_task_size_is_offered".into(),
+        2,
+        Box::new(|params: Vec<Value>| {
+            match task_size_is_offered(&rego_to_json(&params[0]), &rego_to_json(&params[1])) {
+                Some(is_offered) => Ok(Value::from(is_offered)),
                 None => Ok(Value::Undefined),
             }
         }),

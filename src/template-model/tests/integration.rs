@@ -286,12 +286,15 @@ fn parser_minimal_template_no_properties() {
 #[test]
 fn parser_fn_if_undefined_condition_produces_e1028() {
     // An undefined Fn::If condition is reported once, as E1028, even when no
-    // Conditions section is present.
-    let input = r#"{"Resources":{"R":{"Type":"T","Properties":{"V":{"Fn::If":["NonExistent",1,2]}}}}}"#;
+    // Conditions section is present, and points to the condition operand.
+    let input = "Resources:\n  R:\n    Type: T\n    Properties:\n      V: !If [NonExistent, 1, 2]\n";
     let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
     let e1028: Vec<_> = model.diagnostics.iter().filter(|d| d.rule_id == "E1028").collect();
     assert_eq!(e1028.len(), 1, "exactly one E1028 for an undefined Fn::If condition");
     assert!(e1028[0].message.contains("NonExistent"));
+    assert_eq!(e1028[0].resource_id.as_deref(), Some("R"));
+    assert_eq!(e1028[0].property_path.as_deref(), Some("Properties.V.Fn::If.0"));
+    assert_eq!((e1028[0].span.start_line, e1028[0].span.start_column), (5, 15));
     assert!(!model.diagnostics.iter().any(|d| d.rule_id == "F1104"), "F1104 must no longer fire for this case");
 }
 
@@ -1054,4 +1057,183 @@ fn e3001_multiple_violations_per_resource() {
     let model = SemanticModel::from_bytes(input).unwrap();
     let findings: Vec<_> = model.diagnostics.iter().filter(|d| d.rule_id == "E3001").collect();
     assert!(findings.len() >= 2, "expected at least 2 E3001 (missing Type + unknown attribute): {:?}", findings);
+}
+
+#[test]
+fn resource_macros_are_not_resource_shape_or_logical_id_errors() {
+    let yaml = b"
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Fn::Transform:
+      Name: AWS::Include
+      Parameters:
+        Location: s3://example/fragment.yaml
+  Fn::Transform:
+    Name: AWS::Include
+    Parameters:
+      Location: s3://example/resources.yaml
+";
+    let model = SemanticModel::from_bytes(yaml).expect("resource macros parse");
+    let resource_shape_findings: Vec<_> =
+        model.diagnostics.iter().filter(|finding| finding.rule_id == "E3001").collect();
+    assert!(
+        resource_shape_findings.is_empty(),
+        "valid resource macros must not be rejected: {resource_shape_findings:?}"
+    );
+}
+
+#[test]
+fn custom_resource_version_must_be_string_or_integer() {
+    let yaml = b"
+Resources:
+  ProviderBacked:
+    Type: Custom::Thing
+    Version: false
+    Properties:
+      ServiceToken: arn:aws:lambda:us-east-1:123456789012:function:provider
+";
+    let model = SemanticModel::from_bytes(yaml).expect("custom resource parses");
+    let findings: Vec<_> = model.diagnostics.iter().filter(|finding| finding.rule_id == "E3001").collect();
+    assert_eq!(findings.len(), 1, "invalid Version shape must produce one finding: {findings:?}");
+    assert_eq!(findings[0].resource_id.as_deref(), Some("ProviderBacked"));
+    assert!(findings[0].message.contains("must be a string or integer"), "unexpected message: {}", findings[0].message);
+}
+
+#[test]
+fn every_malformed_condition_body_is_reported_at_its_condition_path() {
+    let yaml = b"
+Parameters:
+  P:
+    Type: String
+Conditions:
+  ScalarBody: not-a-condition
+  EmptyBody: {}
+  MultiBody:
+    Fn::Equals: [!Ref P, prod]
+    Fn::Not: [!Equals [!Ref P, dev]]
+  UnknownFunction:
+    Fn::Of: [true]
+  BareRef: !Ref P
+Resources:
+  Topic:
+    Type: AWS::SNS::Topic
+";
+    let model = SemanticModel::from_bytes(yaml).expect("condition template parses");
+    let mut paths: Vec<_> = model
+        .diagnostics
+        .iter()
+        .filter(|finding| finding.rule_id == "E8001")
+        .filter_map(|finding| finding.property_path.clone())
+        .collect();
+    paths.sort();
+    assert_eq!(
+        paths,
+        [
+            "Conditions/BareRef",
+            "Conditions/EmptyBody",
+            "Conditions/MultiBody",
+            "Conditions/ScalarBody",
+            "Conditions/UnknownFunction",
+        ]
+    );
+}
+
+#[test]
+fn foreach_generated_condition_body_is_validated_after_expansion() {
+    let yaml = b"
+Transform: AWS::LanguageExtensions
+Conditions:
+  Fn::ForEach::Conditions:
+  - Identifier
+  - [One]
+  - Bad${Identifier}: not-a-condition
+Resources:
+  Topic:
+    Type: AWS::SNS::Topic
+";
+    let model = SemanticModel::from_bytes(yaml).expect("ForEach condition template parses");
+    let findings: Vec<_> = model.diagnostics.iter().filter(|finding| finding.rule_id == "E8001").collect();
+    assert_eq!(findings.len(), 1, "expanded malformed condition must be reported once: {findings:?}");
+    assert_eq!(findings[0].property_path.as_deref(), Some("Conditions/BadOne"));
+}
+
+#[test]
+fn intrinsic_argument_shape_errors_have_precise_paths() {
+    let yaml = b"
+Conditions:
+  IsProd: !Equals [!Ref AWS::Region, us-east-1]
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Metadata:
+      Encoded:
+        Fn::Base64: [not, a-string]
+    Properties:
+      BucketName:
+        Fn::If:
+        - Fn::Equals: [!Ref AWS::Region, us-east-1]
+        - prod-bucket
+        - other-bucket
+";
+    let model = SemanticModel::from_bytes(yaml).expect("intrinsic shape template parses");
+    let base64 = model.diagnostics.iter().find(|finding| finding.rule_id == "E1021").expect("Base64 list is rejected");
+    assert_eq!(base64.property_path.as_deref(), Some("Metadata.Encoded.Fn::Base64"));
+    let condition =
+        model.diagnostics.iter().find(|finding| finding.rule_id == "E1028").expect("If expression is rejected");
+    assert_eq!(condition.property_path.as_deref(), Some("Properties.BucketName.Fn::If.0"));
+}
+
+#[test]
+fn sub_literal_escapes_resolve_and_unresolved_variables_record_sub_edges() {
+    let yaml = b"
+Resources:
+  R:
+    Type: Test::Resource
+    Properties:
+      Escaped: !Sub 'literal-${!NotAReference}-end'
+      Missing: !Sub 'prefix-${MissingTarget}'
+";
+    let model = SemanticModel::from_bytes(yaml).expect("Sub template parses");
+    match model.resolve("R", "Properties.Escaped") {
+        Some(ResolvedValue::Concrete { value }) => {
+            assert_eq!(value.as_str(), Some("literal-${NotAReference}-end"));
+        }
+        other => panic!("literal escape must resolve concretely, got {other:?}"),
+    }
+    let missing_edge = model
+        .graph
+        .outgoing("R")
+        .into_iter()
+        .find(|edge| edge.target == "MissingTarget")
+        .expect("unresolved Sub variable records an edge");
+    assert!(matches!(missing_edge.kind, template_model::resolver::RefKind::Sub { .. }));
+    assert_eq!(missing_edge.source_path, "Properties.Missing");
+}
+
+#[test]
+fn parameter_allowed_values_preserve_float_and_boolean_scalars() {
+    let yaml = b"
+Parameters:
+  Fraction:
+    Type: Number
+    Default: 1.5
+    AllowedValues: [1.5, 2.5]
+  Flag:
+    Type: String
+    Default: true
+    AllowedValues: [true, false]
+Resources:
+  R:
+    Type: Test::Resource
+";
+    let model = SemanticModel::from_bytes(yaml).expect("parameter template parses");
+    assert_eq!(
+        model.parameters["Fraction"].allowed_values.as_deref(),
+        Some(&["1.5".to_string(), "2.5".to_string()][..])
+    );
+    assert_eq!(
+        model.parameters["Flag"].allowed_values.as_deref(),
+        Some(&["true".to_string(), "false".to_string()][..])
+    );
 }

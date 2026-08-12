@@ -808,8 +808,7 @@ pub fn parse_condition_expr(
                     _ => {}
                 }
             }
-            // Fallback
-            ConditionExpr::Equals(ValueExpr::Other, ValueExpr::Other)
+            ConditionExpr::Invalid
         }
     }
 }

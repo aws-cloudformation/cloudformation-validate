@@ -6,8 +6,8 @@ use std::sync::Arc;
 use template_model::DefectPhase;
 use template_model::consts::{
     EDGE_KIND_GET_ATT, EDGE_KIND_REF, EDGE_KIND_SUB, FIELD_ATTR, FIELD_KIND, FIELD_OUTGOING_REFS, FIELD_PARAMETERS,
-    FIELD_PROPERTIES, FIELD_RESOURCE_TYPE, FIELD_RESOURCES, FIELD_SOURCE_PATH, FIELD_TARGET, FN_GET_AZS,
-    FN_IMPORT_VALUE, KEY_PROPERTIES, OUTPUT_PSEUDO_RESOURCE_PREFIX, PSEUDO_STACK_NAME, TRANSFORM_LANGUAGE_EXTENSIONS,
+    FIELD_PROPERTIES, FIELD_RESOURCE_TYPE, FIELD_RESOURCES, FIELD_SOURCE_PATH, FIELD_TARGET, FN_FOR_EACH, FN_GET_AZS,
+    FN_IMPORT_VALUE, KEY_PROPERTIES, OUTPUT_PSEUDO_RESOURCE_PREFIX, PSEUDO_STACK_NAME,
 };
 use template_model::message::render_str_list;
 use template_model::resolver::RefKind;
@@ -30,7 +30,8 @@ fn eval_intrinsics(ctx: &EvalContext) -> Vec<Diagnostic> {
         Some(r) => r,
         None => return out,
     };
-    let resource_keys: HashSet<&str> = resources.keys().map(|k| k.as_str()).collect();
+    let resource_keys: HashSet<&str> = resources.keys().map(|key| key.as_str()).collect();
+    let has_unexpanded_foreach = resource_keys.iter().any(|key| key.contains(FN_FOR_EACH));
     let param_keys: HashSet<&str> = input
         .get(FIELD_PARAMETERS)
         .and_then(|p| p.as_object())
@@ -119,13 +120,18 @@ fn eval_intrinsics(ctx: &EvalContext) -> Vec<Diagnostic> {
                             && !pseudo.contains(target)
                             && !sam_implicit.contains(target) =>
                     {
-                        out.push(make_resource_diagnostic("F1018",
-                                &format!("Fn::Sub variable '${{{}}}' does not reference a valid resource, parameter, or pseudo-parameter", target),
-                                m,
-                                name,
-                                "",
-                                None,
-        ));
+                        let source_path = edge.get(FIELD_SOURCE_PATH).and_then(|path| path.as_str()).unwrap_or("");
+                        out.push(make_resource_diagnostic(
+                            "F1018",
+                            &format!(
+                                "Fn::Sub variable '${{{}}}' does not reference a valid resource, parameter, or pseudo-parameter",
+                                target
+                            ),
+                            m,
+                            name,
+                            source_path,
+                            None,
+                        ));
                     }
                     _ => {}
                 }
@@ -133,7 +139,7 @@ fn eval_intrinsics(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
 
         if !has_parse_errors
-            && !has_language_extensions(m)
+            && !has_unexpanded_foreach
             && let Some(invalid) = res.get("invalidRefs").and_then(|r| r.as_array())
         {
             let mut valid_targets: Vec<&str> =
@@ -213,10 +219,6 @@ fn eval_intrinsics(ctx: &EvalContext) -> Vec<Diagnostic> {
     out
 }
 
-fn has_language_extensions(model: &SemanticModel) -> bool {
-    model.transforms.iter().any(|t| t == TRANSFORM_LANGUAGE_EXTENSIONS)
-}
-
 /// Whether a dotted GetAtt attribute (e.g. `Outputs.SomeKey`) addresses a member
 /// of an open-ended map attribute that CloudFormation exposes as `<Attr>.<key>`
 /// for any key. Only two resource types have such an attribute: nested stacks and
@@ -226,7 +228,7 @@ fn has_language_extensions(model: &SemanticModel) -> bool {
 /// product. Every other dotted attribute (e.g. `Tags.0` on a bucket) is a real
 /// attribute-validity error, because CloudFormation does not expose an
 /// object/array attribute as itself indexable via GetAtt.
-fn getatt_attr_is_map_member(attr: &str, rtype: &str) -> bool {
+pub(super) fn getatt_attr_is_map_member(attr: &str, rtype: &str) -> bool {
     rtype == "AWS::ServiceCatalog::CloudFormationProvisionedProduct" && attr.starts_with("Outputs.")
 }
 

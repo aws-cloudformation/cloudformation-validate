@@ -111,3 +111,75 @@ Resources:
         - Name: app
           Image: nginx
           Essential: true
+
+
+  # Every branch must retain required NetworkMode.
+  FargateConditionalNetworkMode:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: conditional-network-mode
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: !If [UseConstraints, awsvpc, !Ref "AWS::NoValue"]
+      Cpu: "256"
+      Memory: "512"
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true
+
+  # Every branch must retain required Cpu.
+  FargateConditionalCpu:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: conditional-cpu
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: !If [UseConstraints, "256", !Ref "AWS::NoValue"]
+      Memory: "512"
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true
+
+  # Every branch must retain required Memory.
+  FargateConditionalMemory:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: conditional-memory
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: "256"
+      Memory: !If [UseConstraints, "512", !Ref "AWS::NoValue"]
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true
+
+  # Every concrete Cpu alternative must name an offered size.
+  FargateConditionalInvalidCpu:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: conditional-invalid-cpu
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: !If [UseConstraints, "256", "3 vCPU"]
+      Memory: "512"
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true
+
+  # Any non-null PlacementConstraints branch still declares the unsupported property.
+  FargateConditionalPlacementConstraints:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: conditional-placement-constraints
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: "256"
+      Memory: "512"
+      PlacementConstraints: !If [UseConstraints, [], !Ref "AWS::NoValue"]
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true

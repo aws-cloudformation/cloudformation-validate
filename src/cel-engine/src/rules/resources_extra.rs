@@ -13,9 +13,11 @@ use template_model::consts::{
     FIELD_PROPERTIES, FIELD_RESOURCE_TYPE, FIELD_RESOURCES, FIELD_SOURCE_PATH, FIELD_TARGET, FN_IF, FN_REF,
     KEY_PROPERTIES, PARAM_TYPE_STRING, TRANSFORM_SERVERLESS,
 };
+use template_model::fargate::{CPU_UNIT_LABELS, cpu_is_offered};
 use template_model::iam_policy::validate_identity_policy;
 use template_model::message::{render_str_list, render_value};
 use template_model::resolver::{RefKind, ResolvedValue};
+use template_model::route_table::duplicate_subnet_associations;
 use template_model::{
     CAA_RECORD_PATTERN, IAM_ROLE_ARN_RULE_PATTERN, MARKER_DYNAMIC, MARKER_PARAM_TYPE, MX_RECORD_PATTERN, SourceSpan,
 };
@@ -1172,29 +1174,15 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    let srta = m.resources_of_type("AWS::EC2::SubnetRouteTableAssociation");
-    for (i, a) in srta.iter().enumerate() {
-        for b in srta.iter().skip(i + 1) {
-            let a_sub = resolve_concrete(m, a, "Properties.SubnetId");
-            let b_sub = resolve_concrete(m, b, "Properties.SubnetId");
-            if a_sub.is_some()
-                && a_sub == b_sub
-                && !crate::functions::contains_unresolvable_content(
-                    &m.resolve_deep(a, "Properties.SubnetId")
-                        .or_else(|| m.resolve(a, "Properties.SubnetId").cloned())
-                        .unwrap_or(ResolvedValue::Dynamic { reason: "".into() }),
-                )
-            {
-                out.push(make_resource_diagnostic(
-                    "E3022",
-                    "Subnet has multiple SubnetRouteTableAssociations - only one is allowed",
-                    m,
-                    a,
-                    "Properties.SubnetId",
-                    None,
-                ));
-            }
-        }
+    for finding in duplicate_subnet_associations(m) {
+        out.push(make_resource_diagnostic(
+            "E3022",
+            &finding.message,
+            m,
+            &finding.resource_id,
+            "Properties.SubnetId",
+            Some("Associate each subnet with exactly one route table"),
+        ));
     }
 
     let creation_policy_types = [
@@ -3922,7 +3910,6 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     //   4. PlacementConstraints must not be present (effective, i.e. non-null)
     //   5. Container log drivers must be supported
     {
-        const FARGATE_VALID_CPU: &[i64] = &[256, 512, 1024, 2048, 4096, 8192, 16384];
         const FARGATE_SUPPORTED_LOG_DRIVERS: &[&str] = &["awslogs", "splunk", "awsfirelens"];
 
         for name in m.resources_of_type("AWS::ECS::TaskDefinition") {
@@ -3947,167 +3934,95 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             let nm_rv = m
                 .resolve_deep(name, "Properties.NetworkMode")
                 .or_else(|| m.resolve(name, "Properties.NetworkMode").cloned());
-            match &nm_rv {
-                Some(ResolvedValue::Concrete { value: v }) => {
-                    if let Some(s) = v.as_str() {
-                        if s != "awsvpc" {
-                            out.push(make_resource_diagnostic(
-                                "E3048",
-                                &format!("Fargate requires NetworkMode 'awsvpc', got '{}'", s),
-                                m,
-                                name,
-                                "Properties.NetworkMode",
-                                Some("Set NetworkMode to 'awsvpc'"),
-                            ));
-                        }
-                    } else if v.is_null() {
-                        // Null (AWS::NoValue) means removed, so the required property is missing
-                        out.push(make_resource_diagnostic(
-                            "E3048",
-                            "Fargate requires NetworkMode to be specified as 'awsvpc'",
-                            m,
-                            name,
-                            KEY_PROPERTIES,
-                            Some("Set NetworkMode to 'awsvpc'"),
-                        ));
-                    }
-                    // Non-string, non-null scalars: dynamic or non-scalar, so skip
-                }
-                Some(ResolvedValue::Dynamic { .. } | ResolvedValue::TypedDynamic { .. }) => {}
-                None => {
+            if nm_rv.as_ref().is_none_or(resolved_value_has_null_alternative) {
+                out.push(make_resource_diagnostic(
+                    "E3048",
+                    "Fargate requires NetworkMode to be specified as 'awsvpc'",
+                    m,
+                    name,
+                    KEY_PROPERTIES,
+                    Some("Set NetworkMode to 'awsvpc'"),
+                ));
+            }
+            let mut invalid_network_modes = HashSet::new();
+            for value in resolve_all_json(m, name, "Properties.NetworkMode") {
+                if let Some(network_mode) = value.as_str()
+                    && network_mode != "awsvpc"
+                    && invalid_network_modes.insert(network_mode.to_string())
+                {
                     out.push(make_resource_diagnostic(
                         "E3048",
-                        "Fargate requires NetworkMode to be specified as 'awsvpc'",
+                        &format!("Fargate requires NetworkMode 'awsvpc', got '{}'", network_mode),
                         m,
                         name,
-                        KEY_PROPERTIES,
+                        "Properties.NetworkMode",
                         Some("Set NetworkMode to 'awsvpc'"),
                     ));
                 }
-                _ => {}
             }
 
             // 2. Cpu must be present and one of the offered sizes
             let cpu_rv = m.resolve_deep(name, "Properties.Cpu").or_else(|| m.resolve(name, "Properties.Cpu").cloned());
-            match &cpu_rv {
-                Some(ResolvedValue::Concrete { value: v }) => {
-                    if v.is_null() {
-                        // Null (AWS::NoValue) means removed
-                        out.push(make_resource_diagnostic(
-                            "E3048",
-                            "Fargate requires Cpu to be specified",
-                            m,
-                            name,
-                            KEY_PROPERTIES,
-                            Some("Set Cpu to a valid Fargate value (256, 512, 1024, 2048, 4096, 8192, or 16384)"),
-                        ));
-                    } else if let Some(cpu_int) = coerce_to_integer(v)
-                        && !FARGATE_VALID_CPU.contains(&cpu_int)
-                    {
+            if cpu_rv.as_ref().is_none_or(resolved_value_has_null_alternative) {
+                out.push(make_resource_diagnostic(
+                    "E3048",
+                    "Fargate requires Cpu to be specified",
+                    m,
+                    name,
+                    KEY_PROPERTIES,
+                    Some("Set Cpu to a valid Fargate value (256, 512, 1024, 2048, 4096, 8192, 16384, or 32768)"),
+                ));
+            }
+            let mut invalid_cpu_values = HashSet::new();
+            for value in resolve_all_json(m, name, "Properties.Cpu") {
+                if matches!(cpu_is_offered(&value), Some(false)) {
+                    let rendered = render_value(&value);
+                    if invalid_cpu_values.insert(rendered.clone()) {
                         out.push(make_resource_diagnostic(
                             "E3048",
                             &format!(
                                 "Fargate Cpu value {} is not valid. Must be one of {}",
-                                cpu_int,
-                                render_str_list(FARGATE_VALID_CPU.iter().map(|c| c.to_string()).collect::<Vec<_>>()),
+                                rendered,
+                                render_str_list(CPU_UNIT_LABELS),
                             ),
                             m,
                             name,
                             "Properties.Cpu",
-                            Some("Use a valid Fargate Cpu value (256, 512, 1024, 2048, 4096, 8192, or 16384)"),
-                        ));
-                    }
-                    // Non-coercible (e.g. array, object, bool), so skip
-                }
-                Some(ResolvedValue::Conditional { if_true, if_false, .. }) => {
-                    // If both branches are null, CPU is effectively missing
-                    if is_all_null_conditional(if_true) && is_all_null_conditional(if_false) {
-                        out.push(make_resource_diagnostic(
-                            "E3048",
-                            "Fargate requires Cpu to be specified",
-                            m,
-                            name,
-                            KEY_PROPERTIES,
-                            Some("Set Cpu to a valid Fargate value (256, 512, 1024, 2048, 4096, 8192, or 16384)"),
+                            Some("Use a valid Fargate Cpu value (256, 512, 1024, 2048, 4096, 8192, 16384, or 32768)"),
                         ));
                     }
                 }
-                Some(ResolvedValue::Dynamic { .. } | ResolvedValue::TypedDynamic { .. }) => {}
-                None => {
-                    out.push(make_resource_diagnostic(
-                        "E3048",
-                        "Fargate requires Cpu to be specified",
-                        m,
-                        name,
-                        KEY_PROPERTIES,
-                        Some("Set Cpu to a valid Fargate value (256, 512, 1024, 2048, 4096, 8192, or 16384)"),
-                    ));
-                }
-                _ => {}
             }
 
             // 3. Memory must be present
             let mem_rv =
                 m.resolve_deep(name, "Properties.Memory").or_else(|| m.resolve(name, "Properties.Memory").cloned());
-            match &mem_rv {
-                Some(ResolvedValue::Concrete { value: v }) => {
-                    if v.is_null() {
-                        out.push(make_resource_diagnostic(
-                            "E3048",
-                            "Fargate requires Memory to be specified",
-                            m,
-                            name,
-                            KEY_PROPERTIES,
-                            Some("Set Memory to a valid Fargate value"),
-                        ));
-                    }
-                    // Non-null concrete is valid (actual combo is checked separately)
-                }
-                Some(ResolvedValue::Dynamic { .. } | ResolvedValue::TypedDynamic { .. }) => {}
-                None => {
-                    out.push(make_resource_diagnostic(
-                        "E3048",
-                        "Fargate requires Memory to be specified",
-                        m,
-                        name,
-                        KEY_PROPERTIES,
-                        Some("Set Memory to a valid Fargate value"),
-                    ));
-                }
-                _ => {}
+            if mem_rv.as_ref().is_none_or(resolved_value_has_null_alternative) {
+                out.push(make_resource_diagnostic(
+                    "E3048",
+                    "Fargate requires Memory to be specified",
+                    m,
+                    name,
+                    KEY_PROPERTIES,
+                    Some("Set Memory to a valid Fargate value"),
+                ));
             }
 
             // 4. PlacementConstraints must not be effective (non-null)
             let pc_rv = m
                 .resolve_deep(name, "Properties.PlacementConstraints")
                 .or_else(|| m.resolve(name, "Properties.PlacementConstraints").cloned());
-            match &pc_rv {
-                Some(ResolvedValue::Concrete { value: v }) => {
-                    // Null (AWS::NoValue) counts as removed and is valid. Non-null is invalid.
-                    if !v.is_null() {
-                        out.push(make_resource_diagnostic(
-                            "E3048",
-                            "Fargate does not support PlacementConstraints",
-                            m,
-                            name,
-                            "Properties.PlacementConstraints",
-                            Some("Remove PlacementConstraints for Fargate tasks"),
-                        ));
-                    }
-                }
-                Some(ResolvedValue::List { items }) if !items.is_empty() => {
-                    out.push(make_resource_diagnostic(
-                        "E3048",
-                        "Fargate does not support PlacementConstraints",
-                        m,
-                        name,
-                        "Properties.PlacementConstraints",
-                        Some("Remove PlacementConstraints for Fargate tasks"),
-                    ));
-                }
-                _ => {
-                    // Absent (None) or dynamic is valid (absent means no constraints)
-                }
+            if let Some(value) = &pc_rv
+                && resolved_value_has_non_null_alternative(value)
+            {
+                out.push(make_resource_diagnostic(
+                    "E3048",
+                    "Fargate does not support PlacementConstraints",
+                    m,
+                    name,
+                    "Properties.PlacementConstraints",
+                    Some("Remove PlacementConstraints for Fargate tasks"),
+                ));
             }
 
             // 5. Validate supported log drivers in container definitions
@@ -4179,6 +4094,36 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     out
+}
+
+/// Whether any authored alternative removes a property through a concrete null
+/// (`AWS::NoValue`). Required properties must remain present in every branch.
+fn resolved_value_has_null_alternative(value: &ResolvedValue) -> bool {
+    match value {
+        ResolvedValue::Concrete { value } => value.is_null(),
+        ResolvedValue::Conditional { if_true, if_false, .. } => {
+            resolved_value_has_null_alternative(if_true) || resolved_value_has_null_alternative(if_false)
+        }
+        ResolvedValue::Enum { variants } => variants.iter().any(resolved_value_has_null_alternative),
+        _ => false,
+    }
+}
+
+/// Whether any authored alternative leaves a property present. Opaque values
+/// are potentially present and therefore cannot make a forbidden property safe.
+fn resolved_value_has_non_null_alternative(value: &ResolvedValue) -> bool {
+    match value {
+        ResolvedValue::Concrete { value } => !value.is_null(),
+        ResolvedValue::Conditional { if_true, if_false, .. } => {
+            resolved_value_has_non_null_alternative(if_true) || resolved_value_has_non_null_alternative(if_false)
+        }
+        ResolvedValue::Enum { variants } => variants.iter().any(resolved_value_has_non_null_alternative),
+        ResolvedValue::List { .. }
+        | ResolvedValue::Map { .. }
+        | ResolvedValue::Reference { .. }
+        | ResolvedValue::Dynamic { .. }
+        | ResolvedValue::TypedDynamic { .. } => true,
+    }
 }
 
 /// Returns true when a `ResolvedValue` is definitely null in all branches.

@@ -82,6 +82,19 @@ pub const SAM_APPLICATION_TYPE: &str = "AWS::Serverless::Application";
 pub const SAM_STATE_MACHINE_TYPE: &str = "AWS::Serverless::StateMachine";
 pub const SAM_CONNECTOR_TYPE: &str = "AWS::Serverless::Connector";
 pub const SAM_GRAPHQL_API_TYPE: &str = "AWS::Serverless::GraphQLApi";
+
+pub const DYNAMODB_TABLE_TYPE: &str = "AWS::DynamoDB::Table";
+pub const CLOUDFORMATION_STACK_TYPE: &str = "AWS::CloudFormation::Stack";
+
+/// Returns the CloudFormation resource type a transform-backed shorthand
+/// deploys as when that type affects cross-resource semantics.
+pub fn effective_deployed_resource_type(resource_type: &str) -> &str {
+    match resource_type {
+        SAM_SIMPLE_TABLE_TYPE => DYNAMODB_TABLE_TYPE,
+        SAM_APPLICATION_TYPE => CLOUDFORMATION_STACK_TYPE,
+        _ => resource_type,
+    }
+}
 pub const SAM_EVENT_TYPE_API: &str = "Api";
 pub const SAM_EVENT_TYPE_HTTP_API: &str = "HttpApi";
 pub const SAM_EVENT_TYPE_SCHEDULE: &str = "Schedule";

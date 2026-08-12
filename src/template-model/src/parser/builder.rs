@@ -18,6 +18,7 @@ pub struct Builder {
     pub global_index: GlobalIndex,
     pub span_index: SourceSpanIndex,
     pub diagnostics: Vec<ParseDefect>,
+    invalid_if_depth: usize,
 }
 
 impl Builder {
@@ -27,6 +28,7 @@ impl Builder {
             global_index: GlobalIndex::new(),
             span_index: SourceSpanIndex::new(),
             diagnostics: Vec::new(),
+            invalid_if_depth: 0,
         }
     }
 
@@ -169,7 +171,17 @@ impl Builder {
             FN_IF => return self.build_if(val, path),
             FN_FIND_IN_MAP => self.build_find_in_map(val, path)?,
             FN_SPLIT => self.build_split(val, path)?,
-            FN_BASE64 => IntrinsicFn::Base64(self.build(val, &format!("{}/{}", path, FN_BASE64))),
+            FN_BASE64 => {
+                if val.kind() == ValueKind::Array {
+                    self.diagnostics.push(crate::make_parse_defect_at(
+                        "E1021",
+                        format!("{} is not of type 'string'", val.describe()),
+                        UNKNOWN_SPAN,
+                        &format!("{}/{}", path, FN_BASE64),
+                    ));
+                }
+                IntrinsicFn::Base64(self.build(val, &format!("{}/{}", path, FN_BASE64)))
+            }
             FN_CIDR => self.build_cidr(val, path)?,
             FN_GET_AZS => IntrinsicFn::GetAZs(self.build(val, &format!("{}/{}", path, FN_GET_AZS))),
             FN_IMPORT_VALUE => IntrinsicFn::ImportValue(self.build(val, &format!("{}/{}", path, FN_IMPORT_VALUE))),
@@ -443,14 +455,28 @@ impl Builder {
             self.fn_if_error(&format!("must have exactly 3 elements, got {}", arr.len()), path);
             return None;
         }
+        let condition_name = arr[0].as_coerced_str();
+        let condition_ref = if condition_name.is_none() {
+            if self.invalid_if_depth == 0 {
+                self.diagnostics.push(crate::make_parse_defect_at(
+                    "E1028",
+                    "Fn::If first element must be the name of a condition, not an expression".to_string(),
+                    UNKNOWN_SPAN,
+                    &format!("{}/{}/0", path, FN_IF),
+                ));
+            }
+            self.invalid_if_depth += 1;
+            let condition_ref = self.build(&arr[0], &format!("{}/{}/0", path, FN_IF));
+            self.invalid_if_depth -= 1;
+            condition_ref
+        } else {
+            NULL_REF
+        };
         let if_true = self.build(&arr[1], &format!("{}/{}/1", path, FN_IF));
         let if_false = self.build(&arr[2], &format!("{}/{}/2", path, FN_IF));
-        let intrinsic = match arr[0].as_coerced_str() {
-            Some(cond) => IntrinsicFn::If(cond, if_true, if_false),
-            None => {
-                let cond_node = self.build(&arr[0], &format!("{}/{}/0", path, FN_IF));
-                IntrinsicFn::IfExpr(cond_node, if_true, if_false)
-            }
+        let intrinsic = match condition_name {
+            Some(condition) => IntrinsicFn::If(condition, if_true, if_false),
+            None => IntrinsicFn::IfExpr(condition_ref, if_true, if_false),
         };
         Some(self.alloc(Node::Intrinsic(intrinsic), path))
     }
@@ -869,7 +895,7 @@ fn extract_transforms(arena: &Arena, root: NodeRef) -> Vec<String> {
 
 /// A human-readable name for a node's fundamental shape, used in section shape
 /// error messages.
-fn node_shape_name(node: &Node) -> &'static str {
+pub(super) fn node_shape_name(node: &Node) -> &'static str {
     match node {
         Node::Null => "null",
         Node::Bool(_) => "a boolean",
