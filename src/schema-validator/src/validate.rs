@@ -50,16 +50,19 @@ const TYPE_CHECK_EXEMPT_PATHS: &[(&str, &str)] = &[
 /// a single-key object whose key merely starts with `Fn::` (e.g. a map entry
 /// literally named `Fn::Custom`) is plain data and must be schema-validated
 /// like any other object.
+fn is_intrinsic_key(key: &str) -> bool {
+    INTRINSIC_FN_PATH_SEGMENTS.contains(&key)
+        || key == FN_REF
+        || key == FN_CONDITION
+        || key.starts_with(FN_FOR_EACH_KEY_PREFIX)
+}
+
 fn is_unresolved_intrinsic(val: &serde_json::Value) -> bool {
     let Some(obj) = val.as_object() else { return false };
     if obj.len() != 1 {
         return false;
     }
-    let key = obj.keys().next().unwrap();
-    INTRINSIC_FN_PATH_SEGMENTS.contains(&key.as_str())
-        || key == FN_REF
-        || key == FN_CONDITION
-        || key.starts_with(FN_FOR_EACH_KEY_PREFIX)
+    is_intrinsic_key(obj.keys().next().unwrap())
 }
 
 pub fn validate_all_resources(
@@ -3117,10 +3120,14 @@ fn collect_keys_deep(m: &Arc<SemanticModel>, rid: &str, path: &str) -> Vec<Strin
     let mut keys = HashSet::new();
     match m.resolve_deep(rid, path).or_else(|| m.resolve(rid, path).cloned()) {
         Some(ResolvedValue::Map { entries }) => {
+            if entries.len() == 1 && is_intrinsic_key(&entries[0].key) {
+                return Vec::new();
+            }
             for e in &entries {
                 keys.insert(e.key.clone());
             }
         }
+        Some(ResolvedValue::Concrete { value: ref v }) if is_unresolved_intrinsic(v) => return Vec::new(),
         Some(ResolvedValue::Concrete { value: ref v }) if v.is_object() => {
             for k in v.as_object().unwrap().keys() {
                 keys.insert(k.clone());
@@ -3130,7 +3137,7 @@ fn collect_keys_deep(m: &Arc<SemanticModel>, rid: &str, path: &str) -> Vec<Strin
     }
     if keys.is_empty() {
         for (val, conds) in &m.resolve_scenarios_json(rid, path) {
-            if !is_satisfiable(m, conds) || val.is_null() {
+            if !is_satisfiable(m, conds) || val.is_null() || is_unresolved_intrinsic(val) {
                 continue;
             }
             if let Some(obj) = val.as_object() {

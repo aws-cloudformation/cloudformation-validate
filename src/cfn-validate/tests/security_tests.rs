@@ -29,9 +29,10 @@ use validation_engine::{
 /// blow-up (a denial-of-service regression), not a precise latency SLA. The real
 /// safeguard is deterministic and machine-independent - a cumulative
 /// satisfiability-iteration budget and a per-query parameter cap in
-/// `template-model` - so this ceiling only has to be loose enough to never flake
-/// on debug builds or loaded CI hosts while still failing fast on a true hang.
-const COMPLETION_BUDGET: Duration = Duration::from_secs(120);
+/// `template-model`. A one-minute ceiling retains substantial headroom on debug
+/// builds and loaded CI hosts while rejecting the prior cross-resource scale
+/// regression, which required more than 90 seconds.
+const COMPLETION_BUDGET: Duration = Duration::from_secs(60);
 
 const SMALL_TEMPLATE: &[u8] = b"Resources:\n  Bucket:\n    Type: AWS::S3::Bucket\n";
 

@@ -128,3 +128,37 @@ Resources:
         );
     }
 }
+
+#[test]
+fn malformed_transform_does_not_create_schema_composition_cascade() {
+    let template = r#"
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  IncludeBaseUrl:
+    Type: String
+Resources:
+  Table:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+      KeySchema:
+        Fn::Transform:
+          - Name: AWS::Include
+            Parameters:
+              Location: !Sub '${IncludeBaseUrl}/key-schema.yaml'
+"#;
+
+    let diagnostics = validate_with_parity(template);
+    assert_eq!(
+        diagnostics.iter().filter(|diagnostic| diagnostic.rule_id == "F1101").count(),
+        1,
+        "the malformed intrinsic must retain its structural diagnostic"
+    );
+    assert!(
+        diagnostics.iter().all(|diagnostic| diagnostic.rule_id != "F3018"),
+        "a malformed intrinsic must not participate in schema composition analysis"
+    );
+}

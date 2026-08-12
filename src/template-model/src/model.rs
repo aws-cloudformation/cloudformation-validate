@@ -12,7 +12,7 @@ use crate::sam;
 use crate::span::SpanProvider;
 use log::{debug, info, warn};
 use serde::Serialize;
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -107,6 +107,11 @@ pub struct ResolvedResource {
     /// at deploy time, as distinct from a resource that simply declares no properties.
     pub properties_dynamic: bool,
     pub diagnostics: ResourceDiagnostics,
+}
+
+struct PrimaryIdentifierScenario {
+    tuple: Vec<String>,
+    assumptions: Vec<(String, bool)>,
 }
 
 /// An Fn::ForEach loop within a resource that expands a property over a collection.
@@ -930,6 +935,109 @@ impl SemanticModel {
     #[must_use]
     pub fn resource_condition_is_valid(&self, resource_id: &str) -> bool {
         !self.invalid_resource_conditions.contains(resource_id)
+    }
+
+    /// Groups resources that can simultaneously resolve to the same primary-identifier tuple.
+    /// Each tuple is paired with the ordered set of resources participating in at least one
+    /// satisfiable collision on that tuple.
+    #[must_use]
+    pub fn primary_identifier_conflicts(
+        &self,
+        resource_type: &str,
+        identifier_properties: &[String],
+    ) -> BTreeMap<Vec<String>, BTreeSet<String>> {
+        let mut per_resource = Vec::new();
+        for resource_id in self.resources_of_type(resource_type) {
+            let scenarios = self.primary_identifier_scenarios(resource_id, identifier_properties);
+            if !scenarios.is_empty() {
+                per_resource.push((resource_id, scenarios));
+            }
+        }
+
+        let mut conflicts: BTreeMap<Vec<String>, BTreeSet<String>> = BTreeMap::new();
+        for left_index in 0..per_resource.len() {
+            for right_index in (left_index + 1)..per_resource.len() {
+                let (left_resource, left_scenarios) = &per_resource[left_index];
+                let (right_resource, right_scenarios) = &per_resource[right_index];
+                for left in left_scenarios {
+                    for right in right_scenarios {
+                        if left.tuple != right.tuple {
+                            continue;
+                        }
+                        let mut assumptions = left.assumptions.clone();
+                        assumptions.extend(right.assumptions.iter().cloned());
+                        if assumptions.is_empty() || self.conditions.is_satisfiable(&assumptions) {
+                            let resources = conflicts.entry(left.tuple.clone()).or_default();
+                            resources.insert((*left_resource).clone());
+                            resources.insert((*right_resource).clone());
+                        }
+                    }
+                }
+            }
+        }
+        conflicts
+    }
+
+    fn primary_identifier_scenarios(
+        &self,
+        resource_id: &str,
+        identifier_properties: &[String],
+    ) -> Vec<PrimaryIdentifierScenario> {
+        if !self.resource_condition_is_valid(resource_id) {
+            return Vec::new();
+        }
+        let base_assumptions = self
+            .resources
+            .get(resource_id)
+            .and_then(|resource| resource.condition.as_deref())
+            .map(|condition| vec![(condition.to_string(), true)])
+            .unwrap_or_default();
+        let mut scenarios = vec![PrimaryIdentifierScenario {
+            tuple: Vec::with_capacity(identifier_properties.len()),
+            assumptions: base_assumptions,
+        }];
+
+        for property in identifier_properties {
+            let path = format!("Properties.{property}");
+            let property_scenarios = self.resolve_scenarios_json(resource_id, &path);
+            let mut next = Vec::new();
+            for existing in &scenarios {
+                for (value, conditions) in &property_scenarios {
+                    let value = match value {
+                        serde_json::Value::Null => continue,
+                        serde_json::Value::String(value) => value.clone(),
+                        other => other.to_string(),
+                    };
+                    let mut assumptions = existing.assumptions.clone();
+                    let mut consistent = true;
+                    for (condition, truth) in conditions {
+                        if let Some((_, prior)) = assumptions.iter().find(|(name, _)| name == condition) {
+                            if prior != truth {
+                                consistent = false;
+                                break;
+                            }
+                        } else {
+                            assumptions.push((condition.clone(), *truth));
+                        }
+                    }
+                    if consistent {
+                        let mut tuple = existing.tuple.clone();
+                        tuple.push(value);
+                        next.push(PrimaryIdentifierScenario { tuple, assumptions });
+                    }
+                }
+            }
+            scenarios = next;
+            if scenarios.is_empty() {
+                break;
+            }
+        }
+
+        scenarios.retain(|scenario| {
+            scenario.tuple.len() == identifier_properties.len()
+                && (scenario.assumptions.is_empty() || self.conditions.is_satisfiable(&scenario.assumptions))
+        });
+        scenarios
     }
 
     #[must_use]

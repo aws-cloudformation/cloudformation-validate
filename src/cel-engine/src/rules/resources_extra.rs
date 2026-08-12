@@ -3,7 +3,7 @@ use super::patterns::AMI_ID_RE;
 use diagnostics::Diagnostic;
 use diagnostics::RelatedResource;
 use diagnostics::ResourceRef;
-use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
+use std::collections::{BTreeSet, HashMap, HashSet};
 use std::net::{Ipv4Addr, Ipv6Addr};
 use std::sync::{Arc, LazyLock};
 use template_model::SemanticModel;
@@ -2465,60 +2465,17 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     {
-        for (rtype, id_props) in &ctx.cached_data.primary_identifiers {
-            let resources: Vec<&String> = m.resources_of_type(rtype).iter().collect();
-            if resources.len() < 2 {
-                continue;
-            }
-            // Build each resource's primary-id scenarios as (tuple, assumptions),
-            // where assumptions includes the condition assignment that produces the
-            // tuple plus the resource's own Condition. Comparing per scenario (not a
-            // single lex-min collapse across all branches) is required because two
-            // resources only collide when a satisfiable deploy-time assignment
-            // gives them the same identifier simultaneously.
-            let mut per_resource: Vec<(&String, Vec<PrimaryIdScenario>)> = Vec::new();
-            for r in &resources {
-                let scenarios = primary_id_scenarios(m, r, id_props);
-                if !scenarios.is_empty() {
-                    per_resource.push((*r, scenarios));
-                }
-            }
-
-            // tuple -> ordered set of resources that can collide on it.
-            let mut conflicts: BTreeMap<Vec<String>, BTreeSet<String>> = BTreeMap::new();
-            for i in 0..per_resource.len() {
-                for j in (i + 1)..per_resource.len() {
-                    let (name_a, scenarios_a) = &per_resource[i];
-                    let (name_b, scenarios_b) = &per_resource[j];
-                    for sa in scenarios_a {
-                        for sb in scenarios_b {
-                            if sa.tuple != sb.tuple {
-                                continue;
-                            }
-                            // Both resources take this identical identifier only if
-                            // their producing condition assignments are jointly
-                            // satisfiable. Mutually exclusive branches never coexist.
-                            let mut assumptions = sa.assumptions.clone();
-                            assumptions.extend(sb.assumptions.iter().cloned());
-                            if m.conditions.is_satisfiable(&assumptions) {
-                                let entry = conflicts.entry(sa.tuple.clone()).or_default();
-                                entry.insert((*name_a).clone());
-                                entry.insert((*name_b).clone());
-                            }
-                        }
-                    }
-                }
-            }
-
-            for (tuple, names) in &conflicts {
-                let instance_repr = render_primary_id_dict(id_props, tuple);
-                let resources_repr = render_resource_set(names);
-                let path = if id_props.len() == 1 {
-                    format!("Properties.{}", id_props[0])
+        for (resource_type, identifier_properties) in &ctx.cached_data.primary_identifiers {
+            let conflicts = m.primary_identifier_conflicts(resource_type, identifier_properties);
+            for (tuple, resources) in &conflicts {
+                let instance_repr = render_primary_id_dict(identifier_properties, tuple);
+                let resources_repr = render_resource_set(resources);
+                let path = if identifier_properties.len() == 1 {
+                    format!("Properties.{}", identifier_properties[0])
                 } else {
                     KEY_PROPERTIES.to_string()
                 };
-                for rname in names {
+                for resource_id in resources {
                     out.push(make_resource_diagnostic(
                         "E3019",
                         &format!(
@@ -2526,7 +2483,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                             instance_repr, resources_repr
                         ),
                         m,
-                        rname,
+                        resource_id,
                         &path,
                         None,
                     ));
@@ -4295,81 +4252,6 @@ fn render_primary_id_dict(props: &[String], values: &[String]) -> String {
 fn render_resource_set(names: &BTreeSet<String>) -> String {
     let quoted: Vec<String> = names.iter().map(|n| format!("'{}'", n)).collect();
     format!("{{{}}}", quoted.join(", "))
-}
-
-/// needed to detect primary-identifier duplication across templates that
-/// switch the identifier on a condition (e.g. `!If [cond, "x", !Ref AWS::NoValue]`).
-/// One way a resource's primary-identifier tuple can resolve, paired with the
-/// condition assignment (`assumptions`) that produces it. Used by the
-/// duplicate-identifier check to test whether two resources can share an
-/// identifier in a satisfiable deployment.
-struct PrimaryIdScenario {
-    tuple: Vec<String>,
-    assumptions: Vec<(String, bool)>,
-}
-
-fn scenario_value_to_string(v: &serde_json::Value) -> Option<String> {
-    if v.is_null() {
-        return None;
-    }
-    Some(match v {
-        serde_json::Value::String(s) => s.clone(),
-        other => other.to_string(),
-    })
-}
-
-/// Enumerate a resource's primary-identifier scenarios. Each property's
-/// `(value, condition_map)` scenarios are combined across all identifier
-/// properties; a scenario is kept only when every property resolves to a
-/// concrete value and the merged condition assignments are mutually consistent.
-/// The resource's own `Condition` (if any) is folded into every scenario.
-fn primary_id_scenarios(m: &Arc<SemanticModel>, rid: &str, id_props: &[String]) -> Vec<PrimaryIdScenario> {
-    if !m.resource_condition_is_valid(rid) {
-        return Vec::new();
-    }
-    let base_assumptions: Vec<(String, bool)> = match m.resources.get(rid).and_then(|r| r.condition.as_deref()) {
-        Some(cond) => vec![(cond.to_string(), true)],
-        None => Vec::new(),
-    };
-    let mut scenarios =
-        vec![PrimaryIdScenario { tuple: Vec::with_capacity(id_props.len()), assumptions: base_assumptions }];
-    for prop in id_props {
-        let path = format!("Properties.{}", prop);
-        let prop_scenarios = m.resolve_scenarios_json(rid, &path);
-        let mut next = Vec::new();
-        for existing in &scenarios {
-            for (value, cond_map) in &prop_scenarios {
-                let Some(val_str) = scenario_value_to_string(value) else {
-                    continue;
-                };
-                let mut assumptions = existing.assumptions.clone();
-                let mut consistent = true;
-                for (cond, truth) in cond_map {
-                    if let Some((_, prior)) = assumptions.iter().find(|(c, _)| c == cond) {
-                        if prior != truth {
-                            consistent = false;
-                            break;
-                        }
-                    } else {
-                        assumptions.push((cond.clone(), *truth));
-                    }
-                }
-                if !consistent {
-                    continue;
-                }
-                let mut tuple = existing.tuple.clone();
-                tuple.push(val_str);
-                next.push(PrimaryIdScenario { tuple, assumptions });
-            }
-        }
-        scenarios = next;
-        if scenarios.is_empty() {
-            break;
-        }
-    }
-    // Keep only scenarios with a complete tuple and a satisfiable assignment.
-    scenarios.retain(|s| s.tuple.len() == id_props.len() && m.conditions.is_satisfiable(&s.assumptions));
-    scenarios
 }
 
 /// First scalar (string/number/bool) value that repeats in the array, formatted

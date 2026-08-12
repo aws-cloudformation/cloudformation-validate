@@ -56,7 +56,7 @@ pub(crate) fn register_all(
     register_condition_implies(rego, holder.clone());
     register_conjunction_implies(rego, holder.clone());
     register_resource_condition(rego, holder.clone());
-    register_invalid_resource_conditions(rego, holder.clone());
+    register_primary_identifier_conflicts(rego, holder.clone());
     register_has_property(rego, holder.clone());
     register_property_can_be_absent(rego, holder.clone());
     register_param_allowed_values(rego, holder.clone());
@@ -863,21 +863,31 @@ fn register_resource_condition(rego: &mut regorus::Engine, holder: SharedModel) 
         }),
     );
 }
-fn register_invalid_resource_conditions(rego: &mut regorus::Engine, holder: SharedModel) {
+fn register_primary_identifier_conflicts(rego: &mut regorus::Engine, holder: SharedModel) {
     let _ = rego.add_extension(
-        "invalid_resource_conditions".into(),
-        0,
-        Box::new(move |_params: Vec<Value>| {
+        "primary_identifier_conflicts".into(),
+        2,
+        Box::new(move |params: Vec<Value>| {
             let Some(model) = get_model(&holder) else {
                 return Ok(Value::from(Vec::<Value>::new()));
             };
-            let invalid: Vec<Value> = model
-                .resources
-                .keys()
-                .filter(|resource_id| !model.resource_condition_is_valid(resource_id))
-                .map(|resource_id| Value::from(resource_id.as_str()))
-                .collect();
-            Ok(Value::from(invalid))
+            let resource_type = params[0].as_string()?;
+            let identifier_properties = params[1]
+                .as_array()?
+                .iter()
+                .map(|property| property.as_string().map(|property| property.to_string()))
+                .collect::<Result<Vec<_>, _>>()?;
+            let conflicts = model
+                .primary_identifier_conflicts(resource_type.as_ref(), &identifier_properties)
+                .into_iter()
+                .map(|(tuple, resources)| {
+                    json_to_value(&serde_json::json!({
+                        "tuple": tuple,
+                        "resources": resources,
+                    }))
+                })
+                .collect::<Vec<_>>();
+            Ok(Value::from(conflicts))
         }),
     );
 }
