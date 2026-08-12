@@ -1,0 +1,41 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  DDBTableTransformAttributeDefinitions:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        Fn::Transform:
+          Name: AWS::Include
+          Parameters:
+            Location: s3://test-bucket/attribute-definitions.yaml
+      KeySchema:
+        - AttributeName: "pk"
+          KeyType: "HASH"
+  DDBTableTransformKeySchema:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: "pk"
+          AttributeType: "S"
+      KeySchema:
+        Fn::Transform:
+          Name: AWS::Include
+          Parameters:
+            Location: s3://test-bucket/key-schema.yaml
+  DDBTableTransformBoth:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        Fn::Transform:
+          Name: AWS::Include
+          Parameters:
+            Location: s3://test-bucket/attribute-definitions.yaml
+      KeySchema:
+        Fn::Transform:
+          Name: AWS::Include
+          Parameters:
+            Location: s3://test-bucket/key-schema.yaml
