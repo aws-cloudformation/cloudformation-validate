@@ -29,7 +29,7 @@ pub struct PolicyFinding {
     pub message: String,
 }
 
-const DOCUMENT_KEYS: &[&str] = &["Id", "Statement", "Version"];
+const IDENTITY_DOCUMENT_KEYS: &[&str] = &["Statement", "Version"];
 const VERSION_VALUES: &[&str] = &["2008-10-17", "2012-10-17"];
 const EFFECT_VALUES: &[&str] = &["Allow", "Deny"];
 const IDENTITY_STATEMENT_KEYS: &[&str] =
@@ -157,7 +157,7 @@ pub fn validate_identity_policy(doc: &Value, substituted: &HashSet<String>) -> V
     };
 
     for key in obj.keys() {
-        if !DOCUMENT_KEYS.contains(&key.as_str()) {
+        if !IDENTITY_DOCUMENT_KEYS.contains(&key.as_str()) {
             out.push(PolicyFinding {
                 path: key.clone(),
                 message: format!("Additional properties are not allowed ('{}' was unexpected)", key),
@@ -181,16 +181,6 @@ pub fn validate_identity_policy(doc: &Value, substituted: &HashSet<String>) -> V
                 message: format!("{} is not of type 'string'", describe_value(version)),
             });
         }
-    }
-
-    if let Some(id) = obj.get("Id")
-        && !is_resolution_marker(id)
-        && !id.is_string()
-    {
-        out.push(PolicyFinding {
-            path: "Id".to_string(),
-            message: format!("{} is not of type 'string'", describe_value(id)),
-        });
     }
 
     match obj.get("Statement") {
@@ -777,22 +767,16 @@ mod tests {
         );
     }
 
-    /// A non-string Id is reported.
     #[test]
-    fn non_string_id_is_reported() {
-        let doc = json!({"Id": 123, "Statement": [{"Effect": "Allow", "Action": "s3:*", "Resource": "*"}]});
-        let found = findings(doc);
-        assert!(
-            found.iter().any(|(p, m)| p == "Id" && m.contains("'string'")),
-            "non-string Id must be reported: {:?}",
-            found
-        );
-    }
-
-    #[test]
-    fn string_id_is_accepted() {
-        let doc = json!({"Id": "my-policy", "Statement": [{"Effect": "Allow", "Action": "s3:*", "Resource": "*"}]});
-        assert!(findings(doc).is_empty());
+    fn identity_policy_id_is_rejected_regardless_of_scalar_type() {
+        for id in [json!("my-policy"), json!(123), json!(true)] {
+            let doc = json!({"Id": id, "Statement": [{"Effect": "Allow", "Action": "s3:*", "Resource": "*"}]});
+            assert_eq!(
+                findings(doc),
+                [("Id".to_string(), "Additional properties are not allowed ('Id' was unexpected)".to_string())],
+                "identity-policy Id must be rejected regardless of value type"
+            );
+        }
     }
 
     /// Condition operators are validated.

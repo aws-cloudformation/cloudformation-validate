@@ -198,6 +198,13 @@ pub struct SemanticModel {
     /// (resource_id, property_path) → the authored expression behind a value that
     /// stayed opaque. Consulted by [`SemanticModel::value_identity`].
     value_nodes: HashMap<(String, String), NodeRef>,
+    /// Resource IDs whose authored `Condition` attribute is present but is not a
+    /// condition-name string. Their deployment coexistence cannot be determined.
+    invalid_resource_conditions: HashSet<String>,
+    /// Synthetic condition names created for `Fn::If` first arguments that are
+    /// expressions rather than condition-name strings. The expressions remain
+    /// available for best-effort value resolution but cannot prove reachability.
+    invalid_inline_conditions: HashSet<String>,
     resolve_memo: Mutex<HashMap<(String, String), Option<ResolvedValue>>>,
     scenario_memo: Mutex<HashMap<(String, String), Vec<(serde_json::Value, HashMap<String, bool>)>>>,
     /// Cumulative count of scenarios materialized by `resolve_scenarios` across
@@ -388,6 +395,7 @@ impl SemanticModel {
             &config.pseudo_parameters,
         );
         let mut resources = HashMap::new();
+        let mut invalid_resource_conditions = HashSet::new();
         if ir.resources != NULL_REF
             && let Some(entries) = ir.arena.as_map(ir.resources)
         {
@@ -412,6 +420,9 @@ impl SemanticModel {
                 }
             }
             for (name, node_ref) in entries.iter().cloned() {
+                if invalid_resource_condition_ref(&ir.arena, node_ref).is_some() {
+                    invalid_resource_conditions.insert(name.clone());
+                }
                 // Validate resource body shape before resolution. `Fn::ForEach::`
                 // synthetic IDs are expanded by the language-extensions transform
                 // and do not have standard resource shapes.
@@ -483,7 +494,9 @@ impl SemanticModel {
         info!("Phase 3: Building reference graph from {} resolver edges", resolver.edges.len());
 
         // Register inline conditions (from IfExpr) into the condition model in
-        // one batch, so the derived mutex/implication passes run once.
+        // one batch, so the derived mutex/implication passes run once. Preserve
+        // their invalid authored origin separately from their best-effort model.
+        let invalid_inline_conditions = resolver.inline_conditions.iter().map(|(name, _)| name.clone()).collect();
         conditions.register_inline_batch(resolver.inline_conditions.drain(..));
 
         // Collect every mapping name referenced by an Fn::FindInMap anywhere in
@@ -896,6 +909,8 @@ impl SemanticModel {
                 has_dynamic_findinmap_name,
                 resolution_sources,
                 value_nodes,
+                invalid_resource_conditions,
+                invalid_inline_conditions,
                 resolve_memo: Mutex::new(HashMap::new()),
                 scenario_memo: Mutex::new(HashMap::new()),
                 scenario_combinations_used: AtomicU64::new(0),
@@ -910,6 +925,16 @@ impl SemanticModel {
 
     pub fn resources_of_type(&self, type_name: &str) -> &[String] {
         self.resources_by_type.get(type_name).map(|v| v.as_slice()).unwrap_or(&[])
+    }
+
+    #[must_use]
+    pub fn resource_condition_is_valid(&self, resource_id: &str) -> bool {
+        !self.invalid_resource_conditions.contains(resource_id)
+    }
+
+    #[must_use]
+    pub fn condition_is_valid_for_reachability(&self, condition: &str) -> bool {
+        !self.invalid_inline_conditions.contains(condition)
     }
 
     #[must_use]
@@ -1471,6 +1496,12 @@ const VALID_RESOURCE_ATTRIBUTES: &[&str] = &[
 /// processes before CloudFormation sees the resource.
 const SAM_RESOURCE_ATTRIBUTES: &[&str] = &["Connectors", "IgnoreGlobals"];
 
+fn invalid_resource_condition_ref(arena: &Arena, node_ref: NodeRef) -> Option<NodeRef> {
+    let entries = arena.as_map(node_ref)?;
+    let condition_ref = entries.iter().find(|(key, _)| key == KEY_CONDITION).map(|(_, value)| *value)?;
+    (!matches!(arena.node(condition_ref), Node::String(_))).then_some(condition_ref)
+}
+
 /// Validates the structural shape of a resource body, producing diagnostics for
 /// bodies that CloudFormation would reject: a non-object resource, a missing
 /// `Type`, or unknown resource-level attribute keys.
@@ -1530,9 +1561,7 @@ fn validate_resource_shape(
     }
 
     // `Condition` must be a string when present.
-    if let Some((_, cond_ref)) = entries.iter().find(|(k, _)| k == KEY_CONDITION)
-        && !matches!(arena.node(*cond_ref), Node::String(_))
-    {
+    if invalid_resource_condition_ref(arena, node_ref).is_some() {
         let cond_span = span_index.get(&format!("Resources/{}/Condition", name)).copied().unwrap_or(resource_span);
         out.push(crate::make_parse_defect_for_resource(
             "E3001",

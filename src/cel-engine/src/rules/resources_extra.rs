@@ -557,7 +557,10 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             // `Custom::` resources, modules, hook-shaped names) may be
             // registered per account/region, so they are skipped entirely
             // rather than guessed at.
-            if res.resource_type.starts_with("AWS::") && !ctx.cached_data.known_types.contains(&res.resource_type) {
+            if res.resource_type.starts_with("AWS::")
+                && !res.resource_type.ends_with("::MODULE")
+                && !ctx.cached_data.known_types.contains(&res.resource_type)
+            {
                 out.push(make_resource_diagnostic(
                     "F3006",
                     &format!("Unknown resource type '{}'", res.resource_type),
@@ -4058,15 +4061,20 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         let billing_mode_rv = m
             .resolve_deep(name, "Properties.BillingMode")
             .or_else(|| m.resolve(name, "Properties.BillingMode").cloned());
-        let is_provisioned = match &billing_mode_rv {
-            Some(ResolvedValue::Concrete { value: v }) => v.as_str() == Some("PROVISIONED") || v.is_null(),
-            Some(ResolvedValue::Dynamic { .. } | ResolvedValue::TypedDynamic { .. }) => false,
-            None => true, // absent defaults to PROVISIONED
-            _ => false,
+        let billing_mode_requirement_message = match &billing_mode_rv {
+            Some(ResolvedValue::Concrete { value }) if value.as_str() == Some("PROVISIONED") => {
+                Some("ProvisionedThroughput is required when BillingMode is 'PROVISIONED'")
+            }
+            Some(ResolvedValue::Concrete { value }) if value.is_null() => {
+                Some("ProvisionedThroughput is required when BillingMode defaults to 'PROVISIONED'")
+            }
+            Some(ResolvedValue::Dynamic { .. } | ResolvedValue::TypedDynamic { .. }) => None,
+            None => Some("ProvisionedThroughput is required when BillingMode defaults to 'PROVISIONED'"),
+            _ => None,
         };
-        if !is_provisioned {
+        let Some(billing_mode_requirement_message) = billing_mode_requirement_message else {
             continue;
-        }
+        };
         let pt_rv = m
             .resolve_deep(name, "Properties.ProvisionedThroughput")
             .or_else(|| m.resolve(name, "Properties.ProvisionedThroughput").cloned());
@@ -4084,7 +4092,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         if !pt_effective {
             out.push(make_resource_diagnostic(
                 "E3639",
-                "ProvisionedThroughput is required when BillingMode is 'PROVISIONED'",
+                billing_mode_requirement_message,
                 m,
                 name,
                 "Properties.ProvisionedThroughput",
@@ -4316,6 +4324,9 @@ fn scenario_value_to_string(v: &serde_json::Value) -> Option<String> {
 /// concrete value and the merged condition assignments are mutually consistent.
 /// The resource's own `Condition` (if any) is folded into every scenario.
 fn primary_id_scenarios(m: &Arc<SemanticModel>, rid: &str, id_props: &[String]) -> Vec<PrimaryIdScenario> {
+    if !m.resource_condition_is_valid(rid) {
+        return Vec::new();
+    }
     let base_assumptions: Vec<(String, bool)> = match m.resources.get(rid).and_then(|r| r.condition.as_deref()) {
         Some(cond) => vec![(cond.to_string(), true)],
         None => Vec::new(),

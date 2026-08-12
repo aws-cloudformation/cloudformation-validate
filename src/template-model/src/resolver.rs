@@ -629,7 +629,15 @@ impl<'a> Resolver<'a> {
                 };
                 ResolvedValue::Dynamic { reason }
             }
-            IntrinsicFn::Transform(_, _) => ResolvedValue::Dynamic { reason: "macro output".into() },
+            IntrinsicFn::Transform(_, parameters) => {
+                let saved = self.current_path.clone();
+                for (key, argument) in parameters {
+                    self.current_path = format!("{}.Fn::Transform.Parameters.{}", saved, key);
+                    self.resolve_node(*argument);
+                }
+                self.current_path = saved;
+                ResolvedValue::Dynamic { reason: "macro output".into() }
+            }
             IntrinsicFn::GetAZs(region_ref) => {
                 if let Some(ref rid) = self.current_resource {
                     self.resolution_source_map

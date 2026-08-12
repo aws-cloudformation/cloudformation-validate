@@ -56,6 +56,7 @@ pub(crate) fn register_all(
     register_condition_implies(rego, holder.clone());
     register_conjunction_implies(rego, holder.clone());
     register_resource_condition(rego, holder.clone());
+    register_invalid_resource_conditions(rego, holder.clone());
     register_has_property(rego, holder.clone());
     register_property_can_be_absent(rego, holder.clone());
     register_param_allowed_values(rego, holder.clone());
@@ -862,6 +863,25 @@ fn register_resource_condition(rego: &mut regorus::Engine, holder: SharedModel) 
         }),
     );
 }
+fn register_invalid_resource_conditions(rego: &mut regorus::Engine, holder: SharedModel) {
+    let _ = rego.add_extension(
+        "invalid_resource_conditions".into(),
+        0,
+        Box::new(move |_params: Vec<Value>| {
+            let Some(model) = get_model(&holder) else {
+                return Ok(Value::from(Vec::<Value>::new()));
+            };
+            let invalid: Vec<Value> = model
+                .resources
+                .keys()
+                .filter(|resource_id| !model.resource_condition_is_valid(resource_id))
+                .map(|resource_id| Value::from(resource_id.as_str()))
+                .collect();
+            Ok(Value::from(invalid))
+        }),
+    );
+}
+
 fn register_has_property(rego: &mut regorus::Engine, holder: SharedModel) {
     let _ = rego.add_extension(
         "has_property".into(),
@@ -2266,6 +2286,26 @@ fn collect_unreachable_branches(
 ) {
     match value {
         ResolvedValue::Conditional { condition: cond, if_true, if_false } => {
+            if !model.condition_is_valid_for_reachability(cond) {
+                collect_unreachable_branches(
+                    model,
+                    resource_id,
+                    if_true,
+                    &format!("{}.{}.1", path, FN_IF),
+                    assumptions,
+                    results,
+                );
+                collect_unreachable_branches(
+                    model,
+                    resource_id,
+                    if_false,
+                    &format!("{}.{}.2", path, FN_IF),
+                    assumptions,
+                    results,
+                );
+                return;
+            }
+
             let mut true_assumptions = assumptions.to_vec();
             true_assumptions.push((cond.clone(), true));
             // Flag the branch only when the surrounding assumptions make this

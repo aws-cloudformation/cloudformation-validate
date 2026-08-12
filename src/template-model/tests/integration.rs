@@ -1084,6 +1084,48 @@ Resources:
 }
 
 #[test]
+fn fn_transform_list_value_is_a_structural_error() {
+    let yaml = b"
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Metadata:
+      Included:
+        Fn::Transform:
+          - Name: AWS::Include
+            Parameters:
+              Location: s3://example/fragment.yaml
+";
+    let model = SemanticModel::from_bytes(yaml).expect("malformed transform still produces a semantic model");
+    let findings: Vec<_> = model.diagnostics.iter().filter(|finding| finding.rule_id == "F1101").collect();
+    assert_eq!(findings.len(), 1, "list-form Fn::Transform must produce one structural finding: {findings:?}");
+    assert_eq!(findings[0].message, "Fn::Transform: Fn::Transform value must be an object");
+}
+
+#[test]
+fn fn_transform_parameters_emit_reference_edges() {
+    let yaml = b"
+Parameters:
+  IncludeBaseUrl:
+    Type: String
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Metadata:
+      Included:
+        Fn::Transform:
+          Name: AWS::Include
+          Parameters:
+            Location: !Sub '${IncludeBaseUrl}/fragment.yaml'
+";
+    let model = SemanticModel::from_bytes(yaml).expect("valid transform parses");
+    let matching_edges: Vec<_> =
+        model.graph.outgoing("Bucket").into_iter().filter(|edge| edge.target == "IncludeBaseUrl").collect();
+    assert_eq!(matching_edges.len(), 1, "transform parameter must reference IncludeBaseUrl: {matching_edges:?}");
+    assert_eq!(matching_edges[0].source_path, "Metadata.Included.Fn::Transform.Parameters.Location");
+}
+
+#[test]
 fn custom_resource_version_must_be_string_or_integer() {
     let yaml = b"
 Resources:

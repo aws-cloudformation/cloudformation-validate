@@ -37,14 +37,14 @@ Resources:
             Action: "s3:PutObject"
             Resource: "*"
 
-  # IAM-1: Non-string Id and invalid condition operator
+  # IAM-1: Forbidden identity-policy Id and invalid condition operator
   PolicyBadIdAndCondition:
     Type: AWS::IAM::RolePolicy
     Properties:
       PolicyName: test
       RoleName: my-role
       PolicyDocument:
-        Id: 123
+        Id: identity-policy-id
         Statement:
           - Effect: Allow
             Action: "s3:*"

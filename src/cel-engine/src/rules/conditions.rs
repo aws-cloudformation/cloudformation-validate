@@ -157,6 +157,19 @@ fn find_unreachable_branches(
 ) {
     match value {
         ResolvedValue::Conditional { condition: cond, if_true, if_false } => {
+            if !model.condition_is_valid_for_reachability(cond) {
+                find_unreachable_branches(out, model, resource_id, if_true, &format!("{}.Fn::If.1", path), assumptions);
+                find_unreachable_branches(
+                    out,
+                    model,
+                    resource_id,
+                    if_false,
+                    &format!("{}.Fn::If.2", path),
+                    assumptions,
+                );
+                return;
+            }
+
             let mut true_assumptions = assumptions.to_vec();
             true_assumptions.push((cond.clone(), true));
             // Flag the branch only when the surrounding assumptions make this

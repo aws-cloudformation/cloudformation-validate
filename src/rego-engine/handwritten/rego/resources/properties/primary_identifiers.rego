@@ -13,7 +13,10 @@ violation contains make_diag_at("E3019", "ERROR", rname,
     sprintf("Primary identifiers %s should have unique values across the resources %s",
         [_fmt_dict(id_props, tuple), _fmt_set(group)])) if {
     some rtype, id_props in data.primary_identifiers
-    rids := resources_of_type(rtype)
+    rids := [rid |
+        some rid in resources_of_type(rtype)
+        not rid in _invalid_resource_conditions
+    ]
     count(rids) > 1
     some tuple in _conflicting_tuples(rids, id_props)
     group := _group_for_tuple(rids, id_props, tuple)
@@ -48,6 +51,8 @@ _group_for_tuple(rids, id_props, tuple) := {r |
 # assumptions is the condition map producing the tuple plus the resource's own
 # Condition. Only single-property identifiers are expanded across scenarios;
 # multi-property identifiers fall back to the first scenario per property.
+_invalid_resource_conditions := {rid | some rid in invalid_resource_conditions()}
+
 _id_scenarios(rid, id_props) := scenarios if {
     count(id_props) == 1
     prop := id_props[0]
