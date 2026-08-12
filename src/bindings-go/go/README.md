@@ -227,18 +227,24 @@ Runs schema validation independently from the rule engines. Checks each resource
 provider schemas and produces `FATAL`-severity diagnostics for structural violations.
 
 ```go
-validator := cfnvalidate.NewSchemaValidator()
+validator, err := cfnvalidate.NewSchemaValidator(nil)
+if err != nil {
+    log.Fatal(err)
+}
 defer validator.Destroy()
 diagnostics, err := validator.Validate(templateBytes, nil)
+if err != nil {
+    log.Fatal(err)
+}
 ```
 
-| Method                                      | Returns                         | Description                                                   |
-|---------------------------------------------|---------------------------------|---------------------------------------------------------------|
-| `cfnvalidate.NewSchemaValidator()`          | `*SchemaValidator`              | Constructs a validator over the compiled schemas              |
-| `Validate(template []byte, region *string)` | `([]StandardDiagnostic, error)` | Schema diagnostics. `nil` region defaults to `"us-east-1"`.   |
-| `ListRules()`                               | `([]RuleInfo, error)`           | Schema rule metadata                                          |
-| `SchemaCount()`                             | `uint32`                        | Number of compiled provider schemas                           |
-| `Destroy()`                                 | -                               | Releases the native validator; it must not be used afterwards |
+| Method                                            | Returns                       | Description                                                   |
+|---------------------------------------------------|-------------------------------|---------------------------------------------------------------|
+| `cfnvalidate.NewSchemaValidator(config)`          | `(*SchemaValidator, error)`   | Constructs a validator; `nil` uses only the bundled schemas   |
+| `Validate(template []byte, region *string)`       | `([]StandardDiagnostic, error)` | Schema diagnostics. `nil` region defaults to `"us-east-1"`. |
+| `ListRules()`                                     | `([]RuleInfo, error)`         | Schema rule metadata                                          |
+| `SchemaCount()`                                   | `uint32`                      | Number of compiled provider schemas                           |
+| `Destroy()`                                       | -                             | Releases the native validator; it must not be used afterwards |
 
 ## Report Types
 
