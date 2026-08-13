@@ -2,30 +2,27 @@ package resources
 
 import rego.v1
 
-# Fargate tasks require NetworkMode awsvpc
 violation contains make_diag_full("E3048", "ERROR", name,
     "Properties.NetworkMode",
     sprintf("Fargate requires NetworkMode 'awsvpc', got '%s'", [network_mode]),
     "Set NetworkMode to 'awsvpc'",
     "") if {
     some name in resources_of_type("AWS::ECS::TaskDefinition")
-    _is_fargate(name)
-    some network_mode in resolve_all(name, "Properties.NetworkMode")
+    some network_scenario in _fargate_property_scenarios(name, "Properties.NetworkMode")
+    network_mode := network_scenario.value
     network_mode != null
     is_string(network_mode)
     network_mode != "awsvpc"
 }
 
-# Fargate tasks require NetworkMode in every authored alternative
 violation contains make_diag_full("E3048", "ERROR", name,
     "Properties",
     "Fargate requires NetworkMode to be specified as 'awsvpc'",
     "Set NetworkMode to 'awsvpc'",
     "") if {
     some name in resources_of_type("AWS::ECS::TaskDefinition")
-    _is_fargate(name)
-    some network_mode in resolve_all(name, "Properties.NetworkMode")
-    network_mode == null
+    some network_scenario in _fargate_property_scenarios(name, "Properties.NetworkMode")
+    network_scenario.value == null
 }
 
 violation contains make_diag_full("E3048", "ERROR", name,
@@ -38,7 +35,6 @@ violation contains make_diag_full("E3048", "ERROR", name,
     not has_property(name, "NetworkMode")
 }
 
-# Fargate tasks require Cpu
 violation contains make_diag_full("E3048", "ERROR", name,
     "Properties",
     "Fargate requires Cpu to be specified",
@@ -55,26 +51,22 @@ violation contains make_diag_full("E3048", "ERROR", name,
     "Set Cpu to a valid Fargate value (256, 512, 1024, 2048, 4096, 8192, 16384, or 32768)",
     "") if {
     some name in resources_of_type("AWS::ECS::TaskDefinition")
-    _is_fargate(name)
-    has_property(name, "Cpu")
-    some cpu in resolve_all(name, "Properties.Cpu")
-    cpu == null
+    some cpu_scenario in _fargate_property_scenarios(name, "Properties.Cpu")
+    cpu_scenario.value == null
 }
 
-# Fargate Cpu must name an offered size
 violation contains make_diag_full("E3048", "ERROR", name,
     "Properties.Cpu",
     sprintf("Fargate Cpu value %s is not valid. Must be one of %s", [render_value(cpu), _fargate_cpu_list_str]),
     "Use a valid Fargate Cpu value (256, 512, 1024, 2048, 4096, 8192, 16384, or 32768)",
     "") if {
     some name in resources_of_type("AWS::ECS::TaskDefinition")
-    _is_fargate(name)
-    some cpu in resolve_all(name, "Properties.Cpu")
+    some cpu_scenario in _fargate_property_scenarios(name, "Properties.Cpu")
+    cpu := cpu_scenario.value
     cpu != null
     fargate_cpu_is_offered(cpu) == false
 }
 
-# Fargate tasks require Memory
 violation contains make_diag_full("E3048", "ERROR", name,
     "Properties",
     "Fargate requires Memory to be specified",
@@ -91,13 +83,10 @@ violation contains make_diag_full("E3048", "ERROR", name,
     "Set Memory to a valid Fargate value",
     "") if {
     some name in resources_of_type("AWS::ECS::TaskDefinition")
-    _is_fargate(name)
-    has_property(name, "Memory")
-    some memory in resolve_all(name, "Properties.Memory")
-    memory == null
+    some memory_scenario in _fargate_property_scenarios(name, "Properties.Memory")
+    memory_scenario.value == null
 }
 
-# Fargate does not support PlacementConstraints in any authored alternative
 violation contains make_diag_full("E3048", "ERROR", name,
     "Properties.PlacementConstraints",
     "Fargate does not support PlacementConstraints",
@@ -109,39 +98,46 @@ violation contains make_diag_full("E3048", "ERROR", name,
     _fargate_placement_declared(name)
 }
 
-# Fargate unsupported log driver
 violation contains make_diag_full("E3048", "ERROR", name,
-    sprintf("Properties.ContainerDefinitions.%v.LogConfiguration.LogDriver", [ci]),
+    sprintf("Properties.ContainerDefinitions.%v.LogConfiguration.LogDriver", [container_index]),
     sprintf("Fargate does not support log driver '%s'. Supported drivers: %s", [driver, _fargate_log_drivers_str]),
     "Use 'awslogs', 'splunk', or 'awsfirelens'",
     "") if {
     some name in resources_of_type("AWS::ECS::TaskDefinition")
     _is_fargate(name)
-    cdefs := resolve(name, "Properties.ContainerDefinitions")
-    is_array(cdefs)
-    some ci, cdef in cdefs
-    log_config := cdef.LogConfiguration
-    driver := log_config.LogDriver
+    container_definitions := resolve(name, "Properties.ContainerDefinitions")
+    is_array(container_definitions)
+    some container_index, container_definition in container_definitions
+    log_configuration := container_definition.LogConfiguration
+    driver := log_configuration.LogDriver
     is_string(driver)
     not driver in _fargate_supported_log_drivers
 }
 
-# An unresolved authored value remains potentially present.
 _fargate_placement_declared(name) if {
-    values := resolve_all(name, "Properties.PlacementConstraints")
-    count(values) == 0
+    count(resolve_scenarios(name, "Properties.PlacementConstraints")) == 0
 }
 
 _fargate_placement_declared(name) if {
-    some value in resolve_all(name, "Properties.PlacementConstraints")
-    value != null
+    some placement_scenario in _fargate_property_scenarios(name, "Properties.PlacementConstraints")
+    placement_scenario.value != null
 }
 
-# Helper: check if a task definition requires FARGATE compatibility
+_fargate_compatibility_scenarios(name) := {scenario |
+    some scenario in resolve_scenarios(name, "Properties.RequiresCompatibilities")
+    is_array(scenario.value)
+    "FARGATE" in scenario.value
+    _resource_scenario_reachable(name, scenario.conditions)
+}
+
+_fargate_property_scenarios(name, path) := {property_scenario |
+    some compatibility_scenario in _fargate_compatibility_scenarios(name)
+    some property_scenario in resolve_scenarios(name, path)
+    _scenario_conditions_compatible(name, compatibility_scenario.conditions, property_scenario.conditions)
+}
+
 _is_fargate(name) if {
-    compat := resolve(name, "Properties.RequiresCompatibilities")
-    is_array(compat)
-    "FARGATE" in compat
+    count(_fargate_compatibility_scenarios(name)) > 0
 }
 
 _fargate_supported_log_drivers := {"awslogs", "splunk", "awsfirelens"}

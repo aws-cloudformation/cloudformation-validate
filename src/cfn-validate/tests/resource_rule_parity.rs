@@ -292,6 +292,139 @@ Resources:
 }
 
 #[test]
+fn conditional_provisioned_throughput_checks_every_reachable_branch() {
+    let template = r#"
+Conditions:
+  UseProvisioned: !Equals [!Ref AWS::Region, us-east-1]
+Resources:
+  ExplicitValueThenRemoved:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PROVISIONED
+      AttributeDefinitions: [{AttributeName: id, AttributeType: S}]
+      KeySchema: [{AttributeName: id, KeyType: HASH}]
+      ProvisionedThroughput: !If
+        - UseProvisioned
+        - {ReadCapacityUnits: 5, WriteCapacityUnits: 5}
+        - !Ref AWS::NoValue
+  ExplicitRemovedThenValue:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PROVISIONED
+      AttributeDefinitions: [{AttributeName: id, AttributeType: S}]
+      KeySchema: [{AttributeName: id, KeyType: HASH}]
+      ProvisionedThroughput: !If
+        - UseProvisioned
+        - !Ref AWS::NoValue
+        - {ReadCapacityUnits: 5, WriteCapacityUnits: 5}
+  DefaultValueThenRemoved:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions: [{AttributeName: id, AttributeType: S}]
+      KeySchema: [{AttributeName: id, KeyType: HASH}]
+      ProvisionedThroughput: !If
+        - UseProvisioned
+        - {ReadCapacityUnits: 5, WriteCapacityUnits: 5}
+        - !Ref AWS::NoValue
+  DefaultRemovedThenValue:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions: [{AttributeName: id, AttributeType: S}]
+      KeySchema: [{AttributeName: id, KeyType: HASH}]
+      ProvisionedThroughput: !If
+        - UseProvisioned
+        - !Ref AWS::NoValue
+        - {ReadCapacityUnits: 5, WriteCapacityUnits: 5}
+"#;
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E3639"]);
+    let cel_findings = selected_findings(&cel, template, &["E3639"]);
+    assert_eq!(rego_findings, cel_findings);
+    assert_eq!(rego_findings.len(), 4, "every reachable missing-throughput branch must be reported: {rego_findings:?}");
+    assert_eq!(rego_findings.iter().filter(|finding| finding.contains("defaults")).count(), 2);
+    assert_eq!(rego_findings.iter().filter(|finding| !finding.contains("defaults")).count(), 2);
+}
+
+#[test]
+fn correlated_billing_mode_and_throughput_scenarios_are_valid() {
+    let template = r#"
+Conditions:
+  UseProvisioned: !Equals [!Ref AWS::Region, us-east-1]
+Resources:
+  ProvisionedThenOnDemand:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: !If [UseProvisioned, PROVISIONED, PAY_PER_REQUEST]
+      AttributeDefinitions: [{AttributeName: id, AttributeType: S}]
+      KeySchema: [{AttributeName: id, KeyType: HASH}]
+      ProvisionedThroughput: !If
+        - UseProvisioned
+        - {ReadCapacityUnits: 5, WriteCapacityUnits: 5}
+        - !Ref AWS::NoValue
+  OnDemandThenProvisioned:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: !If [UseProvisioned, PAY_PER_REQUEST, PROVISIONED]
+      AttributeDefinitions: [{AttributeName: id, AttributeType: S}]
+      KeySchema: [{AttributeName: id, KeyType: HASH}]
+      ProvisionedThroughput: !If
+        - UseProvisioned
+        - !Ref AWS::NoValue
+        - {ReadCapacityUnits: 5, WriteCapacityUnits: 5}
+"#;
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E3639"]);
+    let cel_findings = selected_findings(&cel, template, &["E3639"]);
+    assert_eq!(rego_findings, cel_findings);
+    assert!(rego_findings.is_empty(), "throughput is present in every PROVISIONED world: {rego_findings:?}");
+}
+
+#[test]
+fn conditional_fargate_compatibility_checks_both_branch_orders() {
+    let template = r#"
+Conditions:
+  UseFirst: !Equals [!Ref AWS::Region, us-east-1]
+Resources:
+  FargateThenEc2MissingNetworkMode:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      RequiresCompatibilities: !If [UseFirst, [FARGATE], [EC2]]
+      Cpu: '256'
+      Memory: '512'
+      ContainerDefinitions: [{Name: app, Image: nginx, Essential: true}]
+  Ec2ThenFargateMissingNetworkMode:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      RequiresCompatibilities: !If [UseFirst, [EC2], [FARGATE]]
+      Cpu: '256'
+      Memory: '512'
+      ContainerDefinitions: [{Name: app, Image: nginx, Essential: true}]
+  CorrelatedFargateThenEc2:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      RequiresCompatibilities: !If [UseFirst, [FARGATE], [EC2]]
+      NetworkMode: !If [UseFirst, awsvpc, bridge]
+      Cpu: '256'
+      Memory: '512'
+      ContainerDefinitions: [{Name: app, Image: nginx, Essential: true}]
+  CorrelatedEc2ThenFargate:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      RequiresCompatibilities: !If [UseFirst, [EC2], [FARGATE]]
+      NetworkMode: !If [UseFirst, bridge, awsvpc]
+      Cpu: '256'
+      Memory: '512'
+      ContainerDefinitions: [{Name: app, Image: nginx, Essential: true}]
+"#;
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E3048"]);
+    let cel_findings = selected_findings(&cel, template, &["E3048"]);
+    assert_eq!(rego_findings, cel_findings);
+    assert_eq!(rego_findings.len(), 2, "only the two missing NetworkMode resources should fail: {rego_findings:?}");
+    assert!(rego_findings.iter().all(|finding| finding.contains("NetworkMode to be specified")));
+}
+
+#[test]
 fn identity_policy_id_is_rejected_regardless_of_scalar_type() {
     let template = r#"
 Resources:

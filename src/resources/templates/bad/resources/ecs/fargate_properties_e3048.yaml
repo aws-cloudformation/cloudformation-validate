@@ -183,3 +183,27 @@ Resources:
         - Name: app
           Image: nginx
           Essential: true
+
+
+  # Either compatibility branch can select Fargate.
+  ConditionalFargateThenEc2MissingNetworkMode:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      RequiresCompatibilities: !If [UseConstraints, [FARGATE], [EC2]]
+      Cpu: "256"
+      Memory: "512"
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true
+
+  ConditionalEc2ThenFargateMissingNetworkMode:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      RequiresCompatibilities: !If [UseConstraints, [EC2], [FARGATE]]
+      Cpu: "256"
+      Memory: "512"
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true

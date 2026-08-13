@@ -1,5 +1,6 @@
 use super::EvalContext;
 use super::patterns::AMI_ID_RE;
+use crate::functions::contains_unresolvable_content;
 use diagnostics::Diagnostic;
 use diagnostics::RelatedResource;
 use diagnostics::ResourceRef;
@@ -271,6 +272,46 @@ fn scenario_is_reachable(m: &SemanticModel, resource_id: &str, conditions: &Hash
         }
     }
     assumptions.is_empty() || m.conditions.is_satisfiable(&assumptions)
+}
+
+fn scenario_conditions_overlap(
+    model: &SemanticModel,
+    resource_id: &str,
+    left: &HashMap<String, bool>,
+    right: &HashMap<String, bool>,
+) -> bool {
+    let mut combined = left.clone();
+    for (condition, value) in right {
+        if combined.get(condition).is_some_and(|existing| existing != value) {
+            return false;
+        }
+        combined.insert(condition.clone(), *value);
+    }
+    scenario_is_reachable(model, resource_id, &combined)
+}
+
+fn scenario_overlaps_any(
+    model: &SemanticModel,
+    resource_id: &str,
+    conditions: &HashMap<String, bool>,
+    applicable_scenarios: &[HashMap<String, bool>],
+) -> bool {
+    applicable_scenarios
+        .iter()
+        .any(|applicable| scenario_conditions_overlap(model, resource_id, conditions, applicable))
+}
+
+fn fargate_condition_scenarios(model: &SemanticModel, resource_id: &str) -> Vec<HashMap<String, bool>> {
+    model
+        .resolve_scenarios_json(resource_id, "Properties.RequiresCompatibilities")
+        .into_iter()
+        .filter_map(|(value, conditions)| {
+            let is_fargate = value
+                .as_array()
+                .is_some_and(|compatibilities| compatibilities.iter().any(|item| item.as_str() == Some("FARGATE")));
+            (is_fargate && scenario_is_reachable(model, resource_id, &conditions)).then_some(conditions)
+        })
+        .collect()
 }
 
 fn scenario_has_effective_property(properties: &ResolvedValue, property_name: &str) -> bool {
@@ -3863,38 +3904,26 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     // Validate ECS Fargate tasks have required properties and values.
-    // When RequiresCompatibilities includes FARGATE:
-    //   1. NetworkMode must be awsvpc
-    //   2. Cpu must be present and one of the offered sizes
-    //   3. Memory must be present
-    //   4. PlacementConstraints must not be present (effective, i.e. non-null)
-    //   5. Container log drivers must be supported
+    // Each property scenario is paired with a compatible Fargate scenario so
+    // values from mutually exclusive EC2 deployments cannot create findings.
     {
         const FARGATE_SUPPORTED_LOG_DRIVERS: &[&str] = &["awslogs", "splunk", "awsfirelens"];
 
         for name in m.resources_of_type("AWS::ECS::TaskDefinition") {
-            let compat_rv = m
-                .resolve_deep(name, "Properties.RequiresCompatibilities")
-                .or_else(|| m.resolve(name, "Properties.RequiresCompatibilities").cloned());
-            let is_fargate = match &compat_rv {
-                Some(ResolvedValue::Concrete { value: v }) => {
-                    v.as_array().map(|arr| arr.iter().any(|x| x.as_str() == Some("FARGATE"))).unwrap_or(false)
-                }
-                Some(ResolvedValue::List { items }) => items.iter().any(|it| match it {
-                    ResolvedValue::Concrete { value: v } => v.as_str() == Some("FARGATE"),
-                    _ => false,
-                }),
-                _ => false,
-            };
-            if !is_fargate {
+            let fargate_scenarios = fargate_condition_scenarios(m, name);
+            if fargate_scenarios.is_empty() {
                 continue;
             }
 
-            // 1. NetworkMode must be awsvpc
-            let nm_rv = m
+            let network_mode_value = m
                 .resolve_deep(name, "Properties.NetworkMode")
                 .or_else(|| m.resolve(name, "Properties.NetworkMode").cloned());
-            if nm_rv.as_ref().is_none_or(resolved_value_has_null_alternative) {
+            let network_mode_scenarios = m.resolve_scenarios_json(name, "Properties.NetworkMode");
+            let network_mode_can_be_missing = network_mode_value.is_none()
+                || network_mode_scenarios.iter().any(|(value, conditions)| {
+                    value.is_null() && scenario_overlaps_any(m, name, conditions, &fargate_scenarios)
+                });
+            if network_mode_can_be_missing {
                 out.push(make_resource_diagnostic(
                     "E3048",
                     "Fargate requires NetworkMode to be specified as 'awsvpc'",
@@ -3905,9 +3934,10 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                 ));
             }
             let mut invalid_network_modes = HashSet::new();
-            for value in resolve_all_json(m, name, "Properties.NetworkMode") {
+            for (value, conditions) in &network_mode_scenarios {
                 if let Some(network_mode) = value.as_str()
                     && network_mode != "awsvpc"
+                    && scenario_overlaps_any(m, name, conditions, &fargate_scenarios)
                     && invalid_network_modes.insert(network_mode.to_string())
                 {
                     out.push(make_resource_diagnostic(
@@ -3921,9 +3951,14 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                 }
             }
 
-            // 2. Cpu must be present and one of the offered sizes
-            let cpu_rv = m.resolve_deep(name, "Properties.Cpu").or_else(|| m.resolve(name, "Properties.Cpu").cloned());
-            if cpu_rv.as_ref().is_none_or(resolved_value_has_null_alternative) {
+            let cpu_value =
+                m.resolve_deep(name, "Properties.Cpu").or_else(|| m.resolve(name, "Properties.Cpu").cloned());
+            let cpu_scenarios = m.resolve_scenarios_json(name, "Properties.Cpu");
+            let cpu_can_be_missing = cpu_value.is_none()
+                || cpu_scenarios.iter().any(|(value, conditions)| {
+                    value.is_null() && scenario_overlaps_any(m, name, conditions, &fargate_scenarios)
+                });
+            if cpu_can_be_missing {
                 out.push(make_resource_diagnostic(
                     "E3048",
                     "Fargate requires Cpu to be specified",
@@ -3934,9 +3969,11 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                 ));
             }
             let mut invalid_cpu_values = HashSet::new();
-            for value in resolve_all_json(m, name, "Properties.Cpu") {
-                if matches!(cpu_is_offered(&value), Some(false)) {
-                    let rendered = render_value(&value);
+            for (value, conditions) in &cpu_scenarios {
+                if scenario_overlaps_any(m, name, conditions, &fargate_scenarios)
+                    && matches!(cpu_is_offered(value), Some(false))
+                {
+                    let rendered = render_value(value);
                     if invalid_cpu_values.insert(rendered.clone()) {
                         out.push(make_resource_diagnostic(
                             "E3048",
@@ -3954,10 +3991,14 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                 }
             }
 
-            // 3. Memory must be present
-            let mem_rv =
+            let memory_value =
                 m.resolve_deep(name, "Properties.Memory").or_else(|| m.resolve(name, "Properties.Memory").cloned());
-            if mem_rv.as_ref().is_none_or(resolved_value_has_null_alternative) {
+            let memory_scenarios = m.resolve_scenarios_json(name, "Properties.Memory");
+            let memory_can_be_missing = memory_value.is_none()
+                || memory_scenarios.iter().any(|(value, conditions)| {
+                    value.is_null() && scenario_overlaps_any(m, name, conditions, &fargate_scenarios)
+                });
+            if memory_can_be_missing {
                 out.push(make_resource_diagnostic(
                     "E3048",
                     "Fargate requires Memory to be specified",
@@ -3968,13 +4009,14 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                 ));
             }
 
-            // 4. PlacementConstraints must not be effective (non-null)
-            let pc_rv = m
+            let placement_value = m
                 .resolve_deep(name, "Properties.PlacementConstraints")
                 .or_else(|| m.resolve(name, "Properties.PlacementConstraints").cloned());
-            if let Some(value) = &pc_rv
-                && resolved_value_has_non_null_alternative(value)
-            {
+            let placement_scenarios = m.resolve_scenarios_json(name, "Properties.PlacementConstraints");
+            let placement_is_unsupported = placement_scenarios.iter().any(|(value, conditions)| {
+                !value.is_null() && scenario_overlaps_any(m, name, conditions, &fargate_scenarios)
+            }) || placement_value.as_ref().is_some_and(contains_unresolvable_content);
+            if placement_is_unsupported {
                 out.push(make_resource_diagnostic(
                     "E3048",
                     "Fargate does not support PlacementConstraints",
@@ -3985,12 +4027,12 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                 ));
             }
 
-            // 5. Validate supported log drivers in container definitions
-            if let Some(serde_json::Value::Array(cdefs)) = resolve_concrete(m, name, "Properties.ContainerDefinitions")
+            if let Some(serde_json::Value::Array(container_definitions)) =
+                resolve_concrete(m, name, "Properties.ContainerDefinitions")
             {
-                for (ci, cdef) in cdefs.iter().enumerate() {
-                    if let Some(log_config) = cdef.get("LogConfiguration")
-                        && let Some(driver) = log_config.get("LogDriver").and_then(|d| d.as_str())
+                for (container_index, container_definition) in container_definitions.iter().enumerate() {
+                    if let Some(log_configuration) = container_definition.get("LogConfiguration")
+                        && let Some(driver) = log_configuration.get("LogDriver").and_then(|value| value.as_str())
                         && !FARGATE_SUPPORTED_LOG_DRIVERS.contains(&driver)
                     {
                         out.push(make_resource_diagnostic(
@@ -4002,7 +4044,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                             ),
                             m,
                             name,
-                            &format!("Properties.ContainerDefinitions.{}.LogConfiguration.LogDriver", ci),
+                            &format!("Properties.ContainerDefinitions.{}.LogConfiguration.LogDriver", container_index),
                             Some("Use 'awslogs', 'splunk', or 'awsfirelens'"),
                         ));
                     }
@@ -4011,45 +4053,55 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    // DynamoDB table with BillingMode PROVISIONED (or default) requires
-    // ProvisionedThroughput. AWS::NoValue counts as removed (null), so explicit
-    // null ProvisionedThroughput also fires.
+    // DynamoDB defaults an absent or removed BillingMode to PROVISIONED.
+    // A finding is emitted when any reachable PROVISIONED/default scenario
+    // overlaps a scenario where ProvisionedThroughput is absent or removed.
     for name in m.resources_of_type("AWS::DynamoDB::Table") {
-        let billing_mode_rv = m
+        let billing_mode_value = m
             .resolve_deep(name, "Properties.BillingMode")
             .or_else(|| m.resolve(name, "Properties.BillingMode").cloned());
-        let billing_mode_requirement_message = match &billing_mode_rv {
-            Some(ResolvedValue::Concrete { value }) if value.as_str() == Some("PROVISIONED") => {
-                Some("ProvisionedThroughput is required when BillingMode is 'PROVISIONED'")
-            }
-            Some(ResolvedValue::Concrete { value }) if value.is_null() => {
-                Some("ProvisionedThroughput is required when BillingMode defaults to 'PROVISIONED'")
-            }
-            Some(ResolvedValue::Dynamic { .. } | ResolvedValue::TypedDynamic { .. }) => None,
-            None => Some("ProvisionedThroughput is required when BillingMode defaults to 'PROVISIONED'"),
-            _ => None,
-        };
-        let Some(billing_mode_requirement_message) = billing_mode_requirement_message else {
-            continue;
-        };
-        let pt_rv = m
+        let billing_mode_scenarios = m.resolve_scenarios_json(name, "Properties.BillingMode");
+        let throughput_value = m
             .resolve_deep(name, "Properties.ProvisionedThroughput")
             .or_else(|| m.resolve(name, "Properties.ProvisionedThroughput").cloned());
-        let pt_effective = match &pt_rv {
-            Some(ResolvedValue::Concrete { value: v }) => !v.is_null(),
-            Some(ResolvedValue::Map { entries }) => !entries.is_empty(),
-            Some(ResolvedValue::Dynamic { .. } | ResolvedValue::TypedDynamic { .. }) => true,
-            Some(ResolvedValue::Conditional { if_true, if_false, .. }) => {
-                // A conditional is effective if any branch has a non-null value.
-                !is_all_null_conditional(if_true) || !is_all_null_conditional(if_false)
-            }
-            None => false,
-            _ => true,
+        let throughput_scenarios = m.resolve_scenarios_json(name, "Properties.ProvisionedThroughput");
+        let throughput_is_missing = |billing_conditions: &HashMap<String, bool>| {
+            throughput_value.is_none()
+                || throughput_scenarios.iter().any(|(value, throughput_conditions)| {
+                    value.is_null() && scenario_conditions_overlap(m, name, billing_conditions, throughput_conditions)
+                })
         };
-        if !pt_effective {
+
+        let explicit_provisioned_is_missing_throughput =
+            billing_mode_scenarios.iter().any(|(value, billing_conditions)| {
+                value.as_str() == Some("PROVISIONED")
+                    && scenario_is_reachable(m, name, billing_conditions)
+                    && throughput_is_missing(billing_conditions)
+            });
+        if explicit_provisioned_is_missing_throughput {
             out.push(make_resource_diagnostic(
                 "E3639",
-                billing_mode_requirement_message,
+                "ProvisionedThroughput is required when BillingMode is 'PROVISIONED'",
+                m,
+                name,
+                "Properties.ProvisionedThroughput",
+                Some("Add ProvisionedThroughput or set BillingMode to 'PAY_PER_REQUEST'"),
+            ));
+        }
+
+        let absent_billing_mode_defaults_to_provisioned = billing_mode_value.is_none()
+            && scenario_is_reachable(m, name, &HashMap::new())
+            && throughput_is_missing(&HashMap::new());
+        let removed_billing_mode_defaults_to_provisioned =
+            billing_mode_scenarios.iter().any(|(value, billing_conditions)| {
+                value.is_null()
+                    && scenario_is_reachable(m, name, billing_conditions)
+                    && throughput_is_missing(billing_conditions)
+            });
+        if absent_billing_mode_defaults_to_provisioned || removed_billing_mode_defaults_to_provisioned {
+            out.push(make_resource_diagnostic(
+                "E3639",
+                "ProvisionedThroughput is required when BillingMode defaults to 'PROVISIONED'",
                 m,
                 name,
                 "Properties.ProvisionedThroughput",
@@ -4059,48 +4111,6 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     out
-}
-
-/// Whether any authored alternative removes a property through a concrete null
-/// (`AWS::NoValue`). Required properties must remain present in every branch.
-fn resolved_value_has_null_alternative(value: &ResolvedValue) -> bool {
-    match value {
-        ResolvedValue::Concrete { value } => value.is_null(),
-        ResolvedValue::Conditional { if_true, if_false, .. } => {
-            resolved_value_has_null_alternative(if_true) || resolved_value_has_null_alternative(if_false)
-        }
-        ResolvedValue::Enum { variants } => variants.iter().any(resolved_value_has_null_alternative),
-        _ => false,
-    }
-}
-
-/// Whether any authored alternative leaves a property present. Opaque values
-/// are potentially present and therefore cannot make a forbidden property safe.
-fn resolved_value_has_non_null_alternative(value: &ResolvedValue) -> bool {
-    match value {
-        ResolvedValue::Concrete { value } => !value.is_null(),
-        ResolvedValue::Conditional { if_true, if_false, .. } => {
-            resolved_value_has_non_null_alternative(if_true) || resolved_value_has_non_null_alternative(if_false)
-        }
-        ResolvedValue::Enum { variants } => variants.iter().any(resolved_value_has_non_null_alternative),
-        ResolvedValue::List { .. }
-        | ResolvedValue::Map { .. }
-        | ResolvedValue::Reference { .. }
-        | ResolvedValue::Dynamic { .. }
-        | ResolvedValue::TypedDynamic { .. } => true,
-    }
-}
-
-/// Returns true when a `ResolvedValue` is definitely null in all branches.
-/// Used to detect `Fn::If [cond, AWS::NoValue, AWS::NoValue]` patterns.
-fn is_all_null_conditional(rv: &ResolvedValue) -> bool {
-    match rv {
-        ResolvedValue::Concrete { value: v } => v.is_null(),
-        ResolvedValue::Conditional { if_true, if_false, .. } => {
-            is_all_null_conditional(if_true) && is_all_null_conditional(if_false)
-        }
-        _ => false,
-    }
 }
 
 fn check_bdm_iops_ignored(

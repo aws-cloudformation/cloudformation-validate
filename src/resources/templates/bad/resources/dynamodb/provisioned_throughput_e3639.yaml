@@ -42,3 +42,47 @@ Resources:
         - AttributeName: id
           AttributeType: S
       ProvisionedThroughput: !If [IsProd, !Ref "AWS::NoValue", !Ref "AWS::NoValue"]
+
+
+  # Every PROVISIONED deployment must retain ProvisionedThroughput.
+  ExplicitValueThenRemoved:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PROVISIONED
+      AttributeDefinitions: [{AttributeName: id, AttributeType: S}]
+      KeySchema: [{AttributeName: id, KeyType: HASH}]
+      ProvisionedThroughput: !If
+        - IsProd
+        - {ReadCapacityUnits: 5, WriteCapacityUnits: 5}
+        - !Ref AWS::NoValue
+
+  ExplicitRemovedThenValue:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PROVISIONED
+      AttributeDefinitions: [{AttributeName: id, AttributeType: S}]
+      KeySchema: [{AttributeName: id, KeyType: HASH}]
+      ProvisionedThroughput: !If
+        - IsProd
+        - !Ref AWS::NoValue
+        - {ReadCapacityUnits: 5, WriteCapacityUnits: 5}
+
+  DefaultValueThenRemoved:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions: [{AttributeName: id, AttributeType: S}]
+      KeySchema: [{AttributeName: id, KeyType: HASH}]
+      ProvisionedThroughput: !If
+        - IsProd
+        - {ReadCapacityUnits: 5, WriteCapacityUnits: 5}
+        - !Ref AWS::NoValue
+
+  DefaultRemovedThenValue:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions: [{AttributeName: id, AttributeType: S}]
+      KeySchema: [{AttributeName: id, KeyType: HASH}]
+      ProvisionedThroughput: !If
+        - IsProd
+        - !Ref AWS::NoValue
+        - {ReadCapacityUnits: 5, WriteCapacityUnits: 5}

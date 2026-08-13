@@ -2238,6 +2238,89 @@ fn nested_independent_conditions_inside_one_of_branch() {
     assert!(both_false, "expected a violation for CondA=false, CondB=false: {:?}", scenarios);
 }
 
+#[test]
+fn conditional_schema_branch_selection_respects_the_active_scenario() {
+    let validator = validator(vec![(
+        "AWS::Test::ScenarioConditional",
+        json!({
+            "properties": {
+                "Mode": {"type": "string", "enum": ["X", "Y"]},
+                "Target": {"type": "string", "enum": ["for-x", "for-y"]}
+            },
+            "anyOf": [{
+                "properties": {
+                    "Mode": {"type": "string"},
+                    "Target": {"type": "string"}
+                },
+                "if": {
+                    "properties": {"Mode": {"const": "X"}},
+                    "required": ["Mode"]
+                },
+                "then": {"properties": {"Target": {"const": "for-x"}}},
+                "else": {"properties": {"Target": {"const": "for-y"}}}
+            }],
+            "additionalProperties": false
+        }),
+    )]);
+    let template = r#"
+Conditions:
+  UseX: !Equals [!Ref AWS::Region, us-east-1]
+Resources:
+  Resource:
+    Type: AWS::Test::ScenarioConditional
+    Properties:
+      Mode: !If [UseX, X, Y]
+      Target: !If [UseX, for-x, for-y]
+"#;
+
+    let diagnostics = validate(&validator, template);
+
+    assert!(
+        !mentions(&diagnostics, "F3017", ""),
+        "each condition world satisfies its selected schema branch: {diagnostics:#?}"
+    );
+}
+
+#[test]
+fn independent_optional_conditionals_have_bounded_composition_work() {
+    const PROPERTY_COUNT: usize = 14;
+
+    let mut properties = serde_json::Map::new();
+    let mut branch_properties = serde_json::Map::new();
+    let mut template = String::from("Parameters:\n");
+    for index in 0..PROPERTY_COUNT {
+        let property_name = format!("Property{index:02}");
+        let property_schema = json!({"type": "string", "enum": [format!("value-{index:02}")]});
+        properties.insert(property_name.clone(), property_schema.clone());
+        branch_properties.insert(property_name, property_schema);
+        template.push_str(&format!(
+            "  Parameter{index:02}:\n    Type: String\n    AllowedValues: [yes, no]\n    Default: no\n"
+        ));
+    }
+    template.push_str("Conditions:\n");
+    for index in 0..PROPERTY_COUNT {
+        template.push_str(&format!("  Condition{index:02}: !Equals [!Ref Parameter{index:02}, yes]\n"));
+    }
+    template.push_str("Resources:\n  Resource:\n    Type: AWS::Test::ScenarioBound\n    Properties:\n");
+    for index in 0..PROPERTY_COUNT {
+        template.push_str(&format!(
+            "      Property{index:02}: !If [Condition{index:02}, value-{index:02}, !Ref AWS::NoValue]\n"
+        ));
+    }
+    let validator = validator(vec![(
+        "AWS::Test::ScenarioBound",
+        json!({
+            "properties": properties,
+            "anyOf": [{"properties": branch_properties}],
+            "additionalProperties": false
+        }),
+    )]);
+
+    let diagnostics = validate(&validator, &template);
+
+    assert!(diagnostics.is_empty(), "optional valid properties must remain accepted: {diagnostics:#?}");
+}
+
 // ─── Customer-facing composition diagnostics ───────────────────────────────
 
 fn composition_extra<'a>(diagnostic: &'a diagnostics::Diagnostic, key: &str) -> &'a Value {

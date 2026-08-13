@@ -109,20 +109,47 @@ fn condition_operator_is_valid(operator: &str) -> bool {
     CONDITION_OPERATORS.contains(&base)
 }
 
-/// Whether a path is covered by (equal to, an ancestor of, or a descendant of)
-/// any substituted path. This treats any subtree touched by intrinsic resolution
-/// as generated, suppressing literal-content checks on the whole subtree.
-fn path_is_intrinsic_generated(path: &str, substituted: &HashSet<String>) -> bool {
-    for sub_path in substituted {
-        if sub_path.is_empty()
-            || path == sub_path
-            || path.starts_with(&format!("{}.", sub_path))
-            || sub_path.starts_with(&format!("{}.", path))
-        {
+/// Indexes paths whose values came from intrinsic resolution. Exact paths and
+/// ancestors use hash lookups; descendants use a sorted-prefix lookup.
+struct SubstitutedPathIndex<'a> {
+    paths: &'a HashSet<String>,
+    sorted_paths: Vec<&'a str>,
+}
+
+impl<'a> SubstitutedPathIndex<'a> {
+    fn new(paths: &'a HashSet<String>) -> Self {
+        let mut sorted_paths: Vec<&str> = paths.iter().map(String::as_str).collect();
+        sorted_paths.sort_unstable();
+        Self { paths, sorted_paths }
+    }
+
+    /// Whether `path` is equal to, an ancestor of, or a descendant of an
+    /// indexed path, with dots treated as component boundaries.
+    fn covers(&self, path: &str) -> bool {
+        if self.paths.contains("") || self.paths.contains(path) {
             return true;
         }
+
+        if path.match_indices('.').any(|(separator, _)| self.paths.contains(&path[..separator])) {
+            return true;
+        }
+
+        // Find the first candidate at or beyond the conceptual `path + "."`
+        // lower bound without allocating that temporary string. Candidates
+        // such as `path-name` sort before `path.name` and must be skipped.
+        let descendant_index = self.sorted_paths.partition_point(|candidate| {
+            candidate
+                .strip_prefix(path)
+                .map_or(*candidate < path, |suffix| suffix.as_bytes().first().is_none_or(|first| *first < b'.'))
+        });
+        self.sorted_paths
+            .get(descendant_index)
+            .is_some_and(|candidate| candidate.strip_prefix(path).is_some_and(|suffix| suffix.starts_with('.')))
     }
-    false
+}
+
+fn path_is_intrinsic_generated(path: &str, substituted: &SubstitutedPathIndex<'_>) -> bool {
+    substituted.covers(path)
 }
 
 fn is_resolution_marker(value: &Value) -> bool {
@@ -144,6 +171,7 @@ fn is_resolution_marker(value: &Value) -> bool {
 /// written literally. String-content checks are withheld at those paths: the
 /// author wrote a reference, not the substituted text.
 pub fn validate_identity_policy(doc: &Value, substituted: &HashSet<String>) -> Vec<PolicyFinding> {
+    let substituted_index = SubstitutedPathIndex::new(substituted);
     let mut out = Vec::new();
     if is_resolution_marker(doc) {
         return out;
@@ -196,11 +224,11 @@ pub fn validate_identity_policy(doc: &Value, substituted: &HashSet<String>) -> V
             }
             let mut seen_sids: Vec<(String, usize)> = Vec::new();
             for (idx, stmt) in stmts.iter().enumerate() {
-                validate_identity_statement(stmt, &format!("Statement.{}", idx), substituted, &mut out);
+                validate_identity_statement(stmt, &format!("Statement.{}", idx), &substituted_index, &mut out);
                 if let Some(statement) = stmt.as_object()
                     && let Some(Value::String(sid)) = statement.get("Sid")
                     && !sid.is_empty()
-                    && !path_is_intrinsic_generated(&format!("Statement.{}.Sid", idx), substituted)
+                    && !path_is_intrinsic_generated(&format!("Statement.{}.Sid", idx), &substituted_index)
                 {
                     if let Some((_, first_index)) = seen_sids.iter().find(|(seen_sid, _)| seen_sid == sid) {
                         out.push(PolicyFinding {
@@ -213,7 +241,7 @@ pub fn validate_identity_policy(doc: &Value, substituted: &HashSet<String>) -> V
                 }
             }
         }
-        Some(stmt @ Value::Object(_)) => validate_identity_statement(stmt, "Statement", substituted, &mut out),
+        Some(stmt @ Value::Object(_)) => validate_identity_statement(stmt, "Statement", &substituted_index, &mut out),
         Some(other) => {
             if !is_resolution_marker(other) {
                 out.push(PolicyFinding {
@@ -227,7 +255,12 @@ pub fn validate_identity_policy(doc: &Value, substituted: &HashSet<String>) -> V
     out
 }
 
-fn validate_identity_statement(stmt: &Value, path: &str, substituted: &HashSet<String>, out: &mut Vec<PolicyFinding>) {
+fn validate_identity_statement(
+    stmt: &Value,
+    path: &str,
+    substituted: &SubstitutedPathIndex<'_>,
+    out: &mut Vec<PolicyFinding>,
+) {
     if is_resolution_marker(stmt) {
         return;
     }
@@ -412,7 +445,7 @@ fn validate_null_condition_value(value: &Value, path: &str, out: &mut Vec<Policy
 fn check_string_or_string_list_with_min_items(
     value: &Value,
     path: &str,
-    substituted: &HashSet<String>,
+    substituted: &SubstitutedPathIndex<'_>,
     out: &mut Vec<PolicyFinding>,
 ) {
     if path_is_intrinsic_generated(path, substituted) {
@@ -470,7 +503,7 @@ fn check_required_xor(
 fn check_resource_string_or_list(
     value: &Value,
     path: &str,
-    substituted: &HashSet<String>,
+    substituted: &SubstitutedPathIndex<'_>,
     out: &mut Vec<PolicyFinding>,
 ) {
     if path_is_intrinsic_generated(path, substituted) {
@@ -912,6 +945,60 @@ mod tests {
             "an intrinsic nested beneath the checked path generated the ancestor value: {:?}",
             found
         );
+    }
+
+    #[test]
+    fn substituted_path_index_respects_component_boundaries() {
+        let substituted: HashSet<String> = [
+            "Statement.0.Action.0",
+            "Statement.0.Resource-qualifier",
+            "Statement.0.Resource.Fn::Join.1.0",
+            "Statement.10.Condition",
+        ]
+        .into_iter()
+        .map(String::from)
+        .collect();
+        let index = SubstitutedPathIndex::new(&substituted);
+
+        assert!(index.covers("Statement.0.Action"));
+        assert!(index.covers("Statement.0.Action.0"));
+        assert!(index.covers("Statement.0.Action.0.Value"));
+        assert!(index.covers("Statement.0.Resource"));
+        assert!(!index.covers("Statement.0.Condition"));
+        assert!(!index.covers("Statement.0.Actionable"));
+        assert!(!index.covers("Statement.1"));
+    }
+
+    /// A large substituted-path set must suppress only the corresponding
+    /// generated values, without hiding invalid literal siblings.
+    #[test]
+    fn many_substituted_policy_paths_preserve_literal_findings() {
+        const STATEMENT_COUNT: usize = 2_000;
+        let mut statements = Vec::with_capacity(STATEMENT_COUNT);
+        let mut substituted = HashSet::with_capacity(STATEMENT_COUNT / 2);
+        let mut expected_paths = HashSet::with_capacity(STATEMENT_COUNT / 2);
+
+        for index in 0..STATEMENT_COUNT {
+            statements.push(json!({
+                "Effect": "Allow",
+                "Action": "s3:GetObject",
+                "Resource": "not-an-arn"
+            }));
+            let resource_path = format!("Statement.{index}.Resource");
+            if index.is_multiple_of(2) {
+                substituted.insert(resource_path);
+            } else {
+                expected_paths.insert(resource_path);
+            }
+        }
+
+        let doc = json!({"Statement": statements});
+        let found = validate_identity_policy(&doc, &substituted);
+        let actual_paths: HashSet<String> = found.iter().map(|finding| finding.path.clone()).collect();
+
+        assert_eq!(found.len(), expected_paths.len());
+        assert_eq!(actual_paths, expected_paths);
+        assert!(found.iter().all(|finding| finding.message.contains("does not match")));
     }
 
     /// A dynamic Action must not suppress Effect validation.

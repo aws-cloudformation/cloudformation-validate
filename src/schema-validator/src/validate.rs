@@ -636,7 +636,9 @@ fn validate_required_groups(
     // independent conditions are still evaluated across all their worlds
     // relative to the outer constraint.
     let members: Vec<&str> = required_or.iter().chain(required_xor.iter()).map(String::as_str).collect();
-    let assignments = required_group_scenario_assignments(m, rid, &members, base_path);
+    let Some(assignments) = required_group_scenario_assignments(m, rid, &members, base_path) else {
+        return;
+    };
 
     if !required_or.is_empty() {
         for assignment in &assignments {
@@ -692,103 +694,92 @@ fn required_group_scenario_assignments(
     rid: &str,
     members: &[&str],
     base_path: &str,
-) -> Vec<HashMap<String, bool>> {
+) -> Option<Vec<HashMap<String, bool>>> {
     let paths: Vec<String> = members.iter().map(|name| format!("{}.{}", base_path, name)).collect();
     let refs: Vec<&str> = paths.iter().map(String::as_str).collect();
     property_scenario_assignments(m, rid, &refs)
 }
 
-/// Generic helper that computes the set of satisfiable condition assignments
-/// under which a group of property paths must be evaluated.
+const MAX_GROUP_SCENARIO_ASSIGNMENTS: usize = 256;
+const MAX_GROUP_SCENARIO_MERGE_ATTEMPTS: usize = 4_096;
+
+/// Computes the distinct satisfiable condition assignments under which a group
+/// of property paths must be evaluated.
 ///
-/// Algorithm:
-/// 1. Seed from the active SCENARIO_FILTER (or empty).
-/// 2. For EACH property path independently, gather all distinct satisfiable
-///    scenario condition maps returned by resolve_scenarios_json, INCLUDING
-///    the empty map; discard maps inconsistent with the active filter.
-/// 3. If a property yields no scenario maps (missing/dynamic/opaque), leave
-///    the current assignments unchanged (conservative).
-/// 4. Otherwise Cartesian-cross the current assignments with that property's
-///    alternatives using a conflict-detecting merge, retain only
-///    satisfiable/filter-consistent merges, and deduplicate canonical maps.
-///    If no merge survives for a property, retain prior assignments so the
-///    property is treated absent/unknown under that seed.
-///
-/// This naturally preserves correlated maps within one property and combines
-/// independent maps across properties.
+/// The active scenario filter seeds the expansion. Each property contributes
+/// its distinct satisfiable alternatives, which are conflict-checked and
+/// combined with prior assignments. Missing, dynamic, and opaque properties do
+/// not add alternatives. Returns `None` when exact enumeration exceeds the
+/// bounded work budget; callers then omit the group finding rather than infer a
+/// schema violation from an incomplete set of condition worlds.
 fn property_scenario_assignments(
     m: &Arc<SemanticModel>,
     rid: &str,
     property_paths: &[&str],
-) -> Vec<HashMap<String, bool>> {
-    let seed: HashMap<String, bool> = SCENARIO_FILTER.with(|f| f.borrow().clone().unwrap_or_default());
+) -> Option<Vec<HashMap<String, bool>>> {
+    let seed: HashMap<String, bool> = SCENARIO_FILTER.with(|filter| filter.borrow().clone().unwrap_or_default());
     let mut assignments: Vec<HashMap<String, bool>> = vec![seed.clone()];
 
-    for prop_path in property_paths {
-        let scenarios = m.resolve_scenarios_json(rid, prop_path);
+    for property_path in property_paths {
+        let scenarios = m.resolve_scenarios_json(rid, property_path);
         if scenarios.is_empty() {
-            // Property is missing/dynamic/opaque: leave assignments unchanged.
             continue;
         }
 
-        // Gather distinct satisfiable scenario maps for this property,
-        // including the empty map (unconditional scenario).
-        let mut property_maps: Vec<HashMap<String, bool>> = Vec::new();
-        let mut seen_canonical: Vec<Vec<(String, bool)>> = Vec::new();
-        for (_, conds) in &scenarios {
-            if !is_satisfiable(m, conds) {
+        let mut property_assignments = Vec::new();
+        let mut seen_property_assignments = HashSet::new();
+        for (_, conditions) in &scenarios {
+            if !is_satisfiable(m, conditions) || !scenario_consistent_with_filter(m, conditions) {
                 continue;
             }
-            if !scenario_consistent_with_filter(m, conds) {
-                continue;
-            }
-            let mut canonical: Vec<(String, bool)> = conds.iter().map(|(n, v)| (n.clone(), *v)).collect();
-            canonical.sort();
-            if !seen_canonical.contains(&canonical) {
-                seen_canonical.push(canonical);
-                property_maps.push(conds.clone());
+            if seen_property_assignments.insert(canonical_assignment(conditions)) {
+                if property_assignments.len() == MAX_GROUP_SCENARIO_ASSIGNMENTS {
+                    return None;
+                }
+                property_assignments.push(conditions.clone());
             }
         }
 
-        if property_maps.is_empty() {
-            // All scenarios for this property were unsatisfiable or
-            // filter-inconsistent: leave assignments unchanged.
+        if property_assignments.is_empty() {
             continue;
         }
 
-        // Cartesian-cross current assignments with this property's alternatives.
-        let mut next_assignments: Vec<HashMap<String, bool>> = Vec::new();
+        let mut next_assignments = Vec::new();
+        let mut seen_assignments = HashSet::new();
+        let mut merge_attempts = 0;
         for existing in &assignments {
-            for alt in &property_maps {
-                let merged = match try_merge_assignments(existing, alt) {
-                    Some(m) => m,
-                    None => continue,
+            for alternative in &property_assignments {
+                merge_attempts += 1;
+                if merge_attempts > MAX_GROUP_SCENARIO_MERGE_ATTEMPTS {
+                    return None;
+                }
+                let Some(merged) = try_merge_assignments(existing, alternative) else {
+                    continue;
                 };
                 if !is_satisfiable(m, &merged) || !scenario_consistent_with_filter(m, &merged) {
                     continue;
                 }
-                // Deduplicate by canonical form.
-                let mut canonical: Vec<(String, bool)> = merged.iter().map(|(n, v)| (n.clone(), *v)).collect();
-                canonical.sort();
-                let already = next_assignments.iter().any(|r| {
-                    let mut rk: Vec<(String, bool)> = r.iter().map(|(n, v)| (n.clone(), *v)).collect();
-                    rk.sort();
-                    rk == canonical
-                });
-                if !already {
+                if seen_assignments.insert(canonical_assignment(&merged)) {
+                    if next_assignments.len() == MAX_GROUP_SCENARIO_ASSIGNMENTS {
+                        return None;
+                    }
                     next_assignments.push(merged);
                 }
             }
         }
 
-        if next_assignments.is_empty() {
-            // No merge survived: retain prior assignments (conservative).
-            continue;
+        if !next_assignments.is_empty() {
+            assignments = next_assignments;
         }
-        assignments = next_assignments;
     }
 
-    if assignments.is_empty() { vec![seed] } else { assignments }
+    Some(if assignments.is_empty() { vec![seed] } else { assignments })
+}
+
+fn canonical_assignment(assignment: &HashMap<String, bool>) -> Vec<(String, bool)> {
+    let mut canonical: Vec<(String, bool)> = assignment.iter().map(|(name, value)| (name.clone(), *value)).collect();
+    canonical.sort_unstable();
+    canonical
 }
 
 /// Attempt to merge two condition assignments. Returns `None` if they
@@ -1003,10 +994,11 @@ fn validate_object_keys_inner(
     // one branch, yet globally two branches look satisfied) and misses them (an
     // invalid scenario is masked by a valid sibling scenario).
     let group_assignments = if any_of.is_empty() && one_of.is_empty() {
-        Vec::new()
+        Some(Vec::new())
     } else {
         branch_scenario_assignments(m, rid, any_of.iter().chain(one_of.iter()), base_path)
-    };
+    }
+    .unwrap_or_default();
 
     if !any_of.is_empty() {
         for assignment in &group_assignments {
@@ -1876,7 +1868,7 @@ fn branch_scenario_assignments<'a>(
     rid: &str,
     branches: impl Iterator<Item = &'a SubSchema>,
     base_path: &str,
-) -> Vec<HashMap<String, bool>> {
+) -> Option<Vec<HashMap<String, bool>>> {
     let mut property_names: Vec<&String> = Vec::new();
     for branch in branches {
         property_names.extend(branch.properties.keys());
@@ -3282,83 +3274,79 @@ fn condition_matches_at(
     if !cond.any_of.is_empty() {
         return cond.any_of.iter().any(|sub| condition_matches_at(sub, actual_keys, m, rid, defs, base_path));
     }
-    // A condition stating a `type` matches only an instance of that type. The
-    // instance at a condition's evaluation point is always a property object
-    // (the resource's Properties block or a nested object property), so any
-    // type other than "object" makes the condition unsatisfiable here.
     if let Some(ref required_type) = cond.prop_type
         && !required_type.names().any(|name| name == "object")
     {
         return false;
     }
-    for req in &cond.required {
-        if !actual_keys.iter().any(|k| k == req) {
+    for required_property in &cond.required {
+        if !actual_keys.iter().any(|key| key == required_property)
+            || !property_present_under(m, rid, base_path, required_property, &HashMap::new())
+        {
             return false;
         }
     }
-    for (prop_name, prop_schema) in &cond.properties {
-        let resolved = prop_schema.resolve(defs);
-        let prop_path = format!("{}.{}", base_path, prop_name);
-        // Check nested required sub-properties (e.g. Code requires ZipFile)
-        if !resolved.required.is_empty() {
-            for sub_req in &resolved.required {
-                let sub_path = format!("{}.{}", prop_path, sub_req);
-                let sub_scenarios = m.resolve_scenarios_json(rid, &sub_path);
-                let sub_exists = sub_scenarios.iter().any(|(v, c)| is_satisfiable(m, c) && !v.is_null());
-                if !sub_exists {
-                    return false;
-                }
-            }
-        }
-        let scenarios = m.resolve_scenarios_json(rid, &prop_path);
-        // When the value is dynamic (unresolvable) and the condition has a concrete
-        // constraint (pattern/enum/const), we cannot confirm the match - return false
-        // to avoid incorrectly activating the then branch.
-        let has_concrete_constraint = resolved.pattern.is_some()
-            || !resolved.enum_values.is_empty()
-            || !resolved.not_enum.is_empty()
-            || resolved.const_value.is_some();
+    for (property_name, property_schema) in &cond.properties {
+        let resolved_schema = property_schema.resolve(defs);
+        let property_path = format!("{}.{}", base_path, property_name);
+        let scenarios = m.resolve_scenarios_json(rid, &property_path);
+        let has_concrete_constraint = resolved_schema.pattern.is_some()
+            || !resolved_schema.enum_values.is_empty()
+            || !resolved_schema.not_enum.is_empty()
+            || resolved_schema.const_value.is_some();
         if scenarios.is_empty() {
             if has_concrete_constraint {
                 return false;
             }
             continue;
         }
-        let compiled_pattern = resolved.pattern.as_ref().and_then(|pat| compile_pattern(pat));
-        // If the schema has a pattern that could not be compiled by any strategy, the constraint
-        // cannot be verified; treat the branch as non-matching rather than guessing.
-        let pattern_uncompilable = resolved.pattern.is_some() && compiled_pattern.is_none();
-        if pattern_uncompilable {
+        let reachable_scenarios: Vec<_> = scenarios
+            .iter()
+            .filter(|(_, conditions)| is_satisfiable(m, conditions) && scenario_consistent_with_filter(m, conditions))
+            .collect();
+        if reachable_scenarios.is_empty() || reachable_scenarios.iter().all(|(value, _)| value.is_null()) {
+            continue;
+        }
+        for nested_required_property in &resolved_schema.required {
+            let nested_path = format!("{}.{}", property_path, nested_required_property);
+            let nested_property_exists =
+                m.resolve_scenarios_json(rid, &nested_path).iter().any(|(value, conditions)| {
+                    is_satisfiable(m, conditions) && scenario_consistent_with_filter(m, conditions) && !value.is_null()
+                });
+            if !nested_property_exists {
+                return false;
+            }
+        }
+        let compiled_pattern = resolved_schema.pattern.as_ref().and_then(|pattern| compile_pattern(pattern));
+        if resolved_schema.pattern.is_some() && compiled_pattern.is_none() {
             return false;
         }
-        // Every constraint the condition states must hold - a condition combining,
-        // say, `type: array` with `minItems: 1` only matches a non-empty array.
-        let any_match = scenarios.iter().any(|(val, conds)| {
-            if !is_satisfiable(m, conds) {
+        let any_match = reachable_scenarios.iter().any(|(value, _)| {
+            if value.is_null() {
+                return true;
+            }
+            if !resolved_schema.enum_values.is_empty() && !enum_matches(value, &resolved_schema.enum_values) {
                 return false;
             }
-            if !resolved.enum_values.is_empty() && !enum_matches(val, &resolved.enum_values) {
+            if !resolved_schema.not_enum.is_empty() && enum_matches(value, &resolved_schema.not_enum) {
                 return false;
             }
-            if !resolved.not_enum.is_empty() && enum_matches(val, &resolved.not_enum) {
-                return false;
-            }
-            if let Some(ref cv) = resolved.const_value
-                && !scalar_eq(val, cv)
+            if let Some(ref expected) = resolved_schema.const_value
+                && !scalar_eq(value, expected)
             {
                 return false;
             }
-            if let Some(ref re) = compiled_pattern
-                && !coerce_to_string(val).map(|s| re.is_match(&s)).unwrap_or(false)
+            if let Some(ref pattern) = compiled_pattern
+                && !coerce_to_string(value).map(|text| pattern.is_match(&text)).unwrap_or(false)
             {
                 return false;
             }
-            if let Some(ref pt) = resolved.prop_type
-                && !type_matches(val, pt)
+            if let Some(ref expected_type) = resolved_schema.prop_type
+                && !type_matches(value, expected_type)
             {
                 return false;
             }
-            condition_bounds_match(val, &resolved)
+            condition_bounds_match(value, &resolved_schema)
         });
         if !any_match {
             return false;
