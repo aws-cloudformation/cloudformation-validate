@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: Valid Fargate and DynamoDB - no E3048/E3639
+Description: Valid Fargate and DynamoDB - no E3047/E3048/E3639
 Conditions:
   IsProd:
     !Equals [!Ref "AWS::Region", "us-east-1"]
@@ -179,3 +179,28 @@ Resources:
         - IsProd
         - !Ref AWS::NoValue
         - {ReadCapacityUnits: 5, WriteCapacityUnits: 5}
+
+  # An invalid task size in an EC2-only world does not apply to Fargate.
+  CorrelatedFargateSizeThenEc2:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      RequiresCompatibilities: !If [IsProd, [FARGATE], [EC2]]
+      NetworkMode: !If [IsProd, awsvpc, bridge]
+      Cpu: !If [IsProd, "256", "512"]
+      Memory: "512"
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true
+
+  CorrelatedEc2SizeThenFargate:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      RequiresCompatibilities: !If [IsProd, [EC2], [FARGATE]]
+      NetworkMode: !If [IsProd, bridge, awsvpc]
+      Cpu: !If [IsProd, "512", "256"]
+      Memory: "512"
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true

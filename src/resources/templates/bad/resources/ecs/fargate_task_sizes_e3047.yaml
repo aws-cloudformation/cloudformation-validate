@@ -1,4 +1,6 @@
 AWSTemplateFormatVersion: "2010-09-09"
+Conditions:
+  UseFirst: !Equals [!Ref AWS::Region, us-east-1]
 Resources:
   EightVcpuInvalidStep:
     Type: AWS::ECS::TaskDefinition
@@ -86,6 +88,32 @@ Resources:
       NetworkMode: awsvpc
       Cpu: "8192"
       Memory: "9223372036854775807 GB"
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true
+
+  CpuInvalidThenValid:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: cpu-invalid-then-valid
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: !If [UseFirst, "512", "256"]
+      Memory: "512"
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true
+
+  CpuValidThenInvalid:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: cpu-valid-then-invalid
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: !If [UseFirst, "256", "512"]
+      Memory: "512"
       ContainerDefinitions:
         - Name: app
           Image: nginx

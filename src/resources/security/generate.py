@@ -10,6 +10,9 @@ Fixtures produced:
 
     deep_nesting.json          one resource with a very deeply nested property value
     many_conditions.yaml       many interdependent conditions over shared inputs
+    scenario_assignment_budget.yaml
+                               bundled-schema composition at the exact 256-world
+                               assignment boundary and one condition beyond it
     many_resources.yaml        a large number of independent resources
     cross_resource_scale.yaml  many resources sharing one primary identifier value
                                (worst case for pair-comparison rules)
@@ -65,6 +68,23 @@ CONDITION_BASE_VARS = 4
 CONDITION_TOTAL = 200
 # Number of resources in the scale fixtures.
 RESOURCE_COUNT = 500
+
+# Schema scenario-assignment fixture. The selected provider schema has a
+# nine-way object composition. Eight independently conditional properties
+# produce exactly 2^8 assignments; the ninth doubles that work and must produce
+# a visible precision-loss advisory instead of an unproven schema finding.
+SCENARIO_ASSIGNMENT_BOUNDARY_INPUTS = 8
+SCENARIO_ASSIGNMENT_PROPERTIES = (
+    "ManualSearchAIAgentConfiguration",
+    "AnswerRecommendationAIAgentConfiguration",
+    "SelfServiceAIAgentConfiguration",
+    "EmailResponseAIAgentConfiguration",
+    "EmailOverviewAIAgentConfiguration",
+    "EmailGenerativeAnswerAIAgentConfiguration",
+    "OrchestrationAIAgentConfiguration",
+    "NoteTakingAIAgentConfiguration",
+    "CaseSummarizationAIAgentConfiguration",
+)
 
 # Pathological-conditions fixture. Unlike many_conditions.yaml (tiny closures),
 # every derived condition here is an And/Or over the SAME large set of base
@@ -212,6 +232,59 @@ def gen_many_conditions() -> None:
     lines.append("    Properties:")
     lines.append(f"      DisplayName: !If [{gated_condition}, 'enabled', 'disabled']")
     write("many_conditions.yaml", "\n".join(lines) + "\n")
+
+
+def gen_scenario_assignment_budget() -> None:
+    """Exercise exact and curtailed schema scenario-assignment analysis.
+
+    Each configuration property is independently present or absent. The first
+    resource reaches the exact assignment limit and must validate every world.
+    Adding the ninth property exceeds the limit, so validation must report that
+    analysis was curtailed without claiming a schema violation it did not prove.
+    """
+    if len(SCENARIO_ASSIGNMENT_PROPERTIES) != SCENARIO_ASSIGNMENT_BOUNDARY_INPUTS + 1:
+        raise RuntimeError("scenario assignment fixture requires one property beyond the exact boundary")
+
+    lines = [
+        HEADER,
+        "AWSTemplateFormatVersion: '2010-09-09'",
+        "Description: 'Fixture: schema scenario assignment budget boundary. Generated; no sensitive data.'",
+        "Parameters:",
+    ]
+    for index in range(len(SCENARIO_ASSIGNMENT_PROPERTIES)):
+        lines.extend(
+            [
+                f"  Toggle{index:02d}:",
+                "    Type: String",
+                "    AllowedValues: ['yes', 'no']",
+                "    Default: 'no'",
+            ]
+        )
+
+    lines.append("Conditions:")
+    for index in range(len(SCENARIO_ASSIGNMENT_PROPERTIES)):
+        lines.append(f"  Use{index:02d}: !Equals [!Ref Toggle{index:02d}, 'yes']")
+
+    lines.append("Resources:")
+    resources = (
+        ("ExactBoundaryAgent", SCENARIO_ASSIGNMENT_BOUNDARY_INPUTS),
+        ("ExhaustedBudgetAgent", len(SCENARIO_ASSIGNMENT_PROPERTIES)),
+    )
+    for resource_name, property_count in resources:
+        lines.extend(
+            [
+                f"  {resource_name}:",
+                "    Type: AWS::Wisdom::AIAgent",
+                "    Properties:",
+                "      AssistantId: 00000000-0000-0000-0000-000000000000",
+                "      Type: MANUAL_SEARCH",
+                "      Configuration:",
+            ]
+        )
+        for index, property_name in enumerate(SCENARIO_ASSIGNMENT_PROPERTIES[:property_count]):
+            lines.append(f"        {property_name}: !If [Use{index:02d}, {{}}, !Ref AWS::NoValue]")
+
+    write("scenario_assignment_budget.yaml", "\n".join(lines) + "\n")
 
 
 def gen_many_resources() -> None:
@@ -630,6 +703,7 @@ def gen_combined_conditions() -> None:
 def main() -> None:
     gen_deep_nesting()
     gen_many_conditions()
+    gen_scenario_assignment_budget()
     gen_many_resources()
     gen_cross_resource_scale()
     gen_pathological_conditions()

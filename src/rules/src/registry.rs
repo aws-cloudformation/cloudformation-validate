@@ -1415,7 +1415,7 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
     RuleDefinition {
         id: "I9052",
         category: Category::Structure,
-        description: "Condition or intrinsic could not be fully analyzed because the SAT solver budget was exceeded",
+        description: "Condition-dependent validation could not be completed because an analysis budget was exceeded",
         origin: RuleOrigin::Engine,
     },
     RuleDefinition {
