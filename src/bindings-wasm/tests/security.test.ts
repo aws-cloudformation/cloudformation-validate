@@ -5,7 +5,7 @@ import { Worker } from 'node:worker_threads';
 
 const SECURITY_ROOT = path.resolve(__dirname, '../../resources/security');
 const WASM_PACKAGE = path.resolve(__dirname, '../dist');
-const SECURITY_TIMEOUT_MS = 120_000;
+const SECURITY_TIMEOUT_MS = 60_000;
 
 function discoverSecurityTemplates(directory: string): string[] {
     const templates: string[] = [];

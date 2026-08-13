@@ -10,7 +10,7 @@ from cloudformation_validate import CelEngine, RegoEngine, Severity, ValidateCon
 TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
 WORKSPACE = os.path.dirname(os.path.dirname(TESTS_DIR))
 SECURITY_ROOT = os.path.join(WORKSPACE, "resources", "security")
-SECURITY_TIMEOUT_SECONDS = 120
+SECURITY_TIMEOUT_SECONDS = 60
 
 
 def discover_security_templates():
