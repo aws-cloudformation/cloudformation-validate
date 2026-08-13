@@ -17,8 +17,9 @@ use std::path::PathBuf;
 use std::process::Command;
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::time::Instant;
 
-use resources::{discover_templates, templates_dir, validation_reports_file, workspace_root};
+use resources::{discover_snapshot_templates, resources_root, templates_dir, validation_reports_file, workspace_root};
 use serde_json::{Map, Value};
 
 /// Engines that must agree on every template. Rego is the reference persisted to
@@ -54,7 +55,7 @@ fn main() {
         Err(message) => fail(&message),
     };
 
-    let templates = discover_templates();
+    let templates = discover_snapshot_templates();
     println!("Output file: {}", validation_reports_file().display());
     println!("Discovered {} templates", templates.len());
     println!("Running both engines ({}) on each template...\n", ENGINES.join(" + "));
@@ -131,11 +132,12 @@ fn build_release_binary() -> Result<PathBuf, String> {
 /// Returns one [`Outcome`] per template, in the input order.
 fn run_all(cfn_validate: &PathBuf, templates: &[String]) -> Vec<Outcome> {
     let total = templates.len();
+    let counter_width = total.to_string().len();
     let worker_count = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4).min(total.max(1));
 
     let next = AtomicUsize::new(0);
     let completed = AtomicUsize::new(0);
-    let results: Mutex<Vec<(usize, Outcome)>> = Mutex::new(Vec::with_capacity(total));
+    let results: Mutex<Vec<(usize, Outcome, f64)>> = Mutex::new(Vec::with_capacity(total));
 
     std::thread::scope(|scope| {
         for _ in 0..worker_count {
@@ -145,30 +147,33 @@ fn run_all(cfn_validate: &PathBuf, templates: &[String]) -> Vec<Outcome> {
                     if index >= total {
                         break;
                     }
-                    let outcome = validate_template(cfn_validate, &templates[index]);
+                    let (outcome, cli_validation_ms) = validate_template(cfn_validate, &templates[index]);
                     let done = completed.fetch_add(1, Ordering::Relaxed) + 1;
-                    println!("[{done}/{total}] {}", templates[index]);
-                    results.lock().expect("results mutex").push((index, outcome));
+                    println!("[{done:0counter_width$}/{total}] took [{cli_validation_ms:.3} ms] {}", templates[index]);
+                    results.lock().expect("results mutex").push((index, outcome, cli_validation_ms));
                 }
             });
         }
     });
 
     let mut ordered = results.into_inner().expect("results mutex");
-    ordered.sort_by_key(|(index, _)| *index);
-    ordered.into_iter().map(|(_, outcome)| outcome).collect()
+    ordered.sort_by_key(|(index, _, _)| *index);
+    let total_cli_validation_seconds: f64 = ordered.iter().map(|(_, _, duration_ms)| duration_ms).sum::<f64>() / 1000.0;
+    println!("Total validation: {total_cli_validation_seconds:.3} s");
+    ordered.into_iter().map(|(_, outcome, _)| outcome).collect()
 }
 
 /// Run both engines on one template and decide its [`Outcome`].
-fn validate_template(cfn_validate: &PathBuf, template: &str) -> Outcome {
-    let rego = match run_cfn_validate(cfn_validate, template, "rego") {
-        Ok(report) => report,
-        Err(message) => return Outcome::Fatal(message),
+fn validate_template(cfn_validate: &PathBuf, template: &str) -> (Outcome, f64) {
+    let (rego, rego_validation_ms) = match run_cfn_validate(cfn_validate, template, "rego") {
+        Ok(result) => result,
+        Err(message) => return (Outcome::Fatal(message), 0.0),
     };
-    let cel = match run_cfn_validate(cfn_validate, template, "cel") {
-        Ok(report) => report,
-        Err(message) => return Outcome::Fatal(message),
+    let (cel, cel_validation_ms) = match run_cfn_validate(cfn_validate, template, "cel") {
+        Ok(result) => result,
+        Err(message) => return (Outcome::Fatal(message), rego_validation_ms),
     };
+    let cli_validation_ms = rego_validation_ms.max(cel_validation_ms);
 
     let rego_comparable = strip_fields(&rego, PARITY_IGNORED_FIELDS);
     let cel_comparable = strip_fields(&cel, PARITY_IGNORED_FIELDS);
@@ -178,20 +183,23 @@ fn validate_template(cfn_validate: &PathBuf, template: &str) -> Outcome {
         let cel_diagnostics = diagnostic_keys(&cel_comparable);
         let only_rego = sorted_difference(&rego_diagnostics, &cel_diagnostics);
         let only_cel = sorted_difference(&cel_diagnostics, &rego_diagnostics);
-        return Outcome::Parity { only_rego, only_cel };
+        return (Outcome::Parity { only_rego, only_cel }, cli_validation_ms);
     }
 
-    Outcome::Persist(strip_output_only_fields(&rego))
+    (Outcome::Persist(strip_output_only_fields(&rego)), cli_validation_ms)
 }
 
 /// Invoke `cfn-validate <template> --format detailed --level debug --engine <engine>`
 /// from the templates directory and parse its stdout, zeroing durations.
-fn run_cfn_validate(cfn_validate: &PathBuf, template: &str, engine: &str) -> Result<Value, String> {
+fn run_cfn_validate(cfn_validate: &PathBuf, template: &str, engine: &str) -> Result<(Value, f64), String> {
+    let fixture_root = if template.starts_with("security/") { resources_root() } else { templates_dir() };
+    let started = Instant::now();
     let output = Command::new(cfn_validate)
         .args([template, "--format", "detailed", "--level", "debug", "--engine", engine])
-        .current_dir(templates_dir())
+        .current_dir(fixture_root)
         .output()
         .map_err(|e| format!("{engine} invocation failed: {e}"))?;
+    let cli_validation_ms = started.elapsed().as_secs_f64() * 1000.0;
 
     if output.stdout.iter().all(u8::is_ascii_whitespace) {
         let stderr = String::from_utf8_lossy(&output.stderr);
@@ -201,7 +209,7 @@ fn run_cfn_validate(cfn_validate: &PathBuf, template: &str, engine: &str) -> Res
     let mut report: Value =
         serde_json::from_slice(&output.stdout).map_err(|e| format!("{engine} produced invalid JSON: {e}"))?;
     zero_durations(&mut report);
-    Ok(report)
+    Ok((report, cli_validation_ms))
 }
 
 /// Set every `durationMs` value (at any depth) to zero, so timing noise never

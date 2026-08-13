@@ -237,20 +237,73 @@ def _error_result(rel_path: str, size_bytes: int, status: str, error_msg: str) -
     }
 
 
+def _zero_benchmark_metrics() -> Dict[str, Any]:
+    def zero_iteration() -> Dict[str, float]:
+        return {
+            "hostModelMs": 0.0,
+            "modelBuildMs": 0.0,
+            "schemaValidateMs": 0.0,
+            "ruleEvaluationMs": 0.0,
+            "diagnosticFinalizeMs": 0.0,
+            "engineInternalMs": 0.0,
+            "wallClockMs": 0.0,
+        }
+
+    return {
+        "iterations": 0,
+        "firstIteration": zero_iteration(),
+        "steadyState": zero_iteration(),
+        "bindingOverheadMs": 0.0,
+    }
+
+
+def _normalize_parse_failure_report(report: Any) -> Any:
+    report.diagnostics = []
+    counts = report.metadata.counts
+    counts.fatal = 0
+    counts.errors = 0
+    counts.warnings = 0
+    counts.informational = 0
+    counts.debug = 0
+    performance = report.performance
+    for phase_name in (
+        "schema_init",
+        "engine_init",
+        "model_build",
+        "schema_validate",
+        "rule_evaluation",
+        "diagnostic_finalize",
+        "validate_total",
+    ):
+        getattr(performance, phase_name).duration_ms = 0.0
+    return report
+
+
+def _report_path(json_dir: Path, rel_path: str) -> Path:
+    stem = rel_path.replace("/", "_")
+    for extension, replacement in (
+        (".yaml", "_yaml"),
+        (".yml", "_yml"),
+        (".json", "_json"),
+    ):
+        if stem.endswith(extension):
+            stem = f"{stem[:-len(extension)]}{replacement}"
+            break
+    return json_dir / f"{stem}.json"
+
+
 # ---------------------------------------------------------------------------
 # File discovery (sorted .yaml/.yml/.json, recursive)
 # ---------------------------------------------------------------------------
 def _collect_files(root: Path) -> List[Path]:
     """Recursively collects template files, sorted by normalized forward-slash path."""
     if root.is_file():
-        if root.suffix.lower() in _TEMPLATE_EXTENSIONS:
-            return [root]
-        return []
+        return [root]
     results: List[Path] = []
     for dirpath, _, filenames in os.walk(root):
         for name in filenames:
             p = Path(dirpath) / name
-            if p.suffix.lower() in _TEMPLATE_EXTENSIONS:
+            if p.suffix in _TEMPLATE_EXTENSIONS:
                 results.append(p)
     # Sort by string representation with forward slashes for cross-platform consistency.
     results.sort(key=lambda p: str(p).replace(os.sep, "/"))
@@ -432,6 +485,7 @@ def main() -> None:
     for rel_path, template_bytes in template_data:
         sys.stderr.write(f"  {rel_path}")
         size_bytes = len(template_bytes)
+        json_path = _report_path(json_dir, rel_path)
 
         iter_host_model_ms: List[float] = []
         iter_host_validate_ms: List[float] = []
@@ -450,7 +504,18 @@ def main() -> None:
             try:
                 model = TemplateModel(template_bytes)
             except Exception as exc:
-                results.append(_error_result(rel_path, size_bytes, "parse_error", str(exc)))
+                parse_failure_report = engine._inner.validate_detailed(
+                    template_bytes, benchmark_config, rel_path
+                )
+                deferred_writes.append(
+                    (
+                        json_path,
+                        rel_path,
+                        _normalize_parse_failure_report(parse_failure_report),
+                        _zero_benchmark_metrics(),
+                    )
+                )
+                results.append(_error_result(rel_path, 0, "parse_error", str(exc)))
                 print(f" PARSE_ERROR: {exc}", file=sys.stderr)
                 failed = True
                 break
@@ -525,12 +590,6 @@ def main() -> None:
         report_informational = counts.informational
         report_diag_count = len(report.diagnostics)
 
-        # Per-template filename: suffix-only (append extension kind).
-        ext = Path(rel_path).suffix.lower()
-        suffix = ext.lstrip(".")  # "yaml", "yml", or "json"
-        stem = rel_path.rsplit(".", 1)[0].replace("/", "_")
-        json_stem = f"{stem}_{suffix}"
-
         # Benchmark metrics for the per-template JSON.
         benchmark_metrics = {
             "iterations": iterations,
@@ -563,7 +622,6 @@ def main() -> None:
             "bindingOverheadMs": binding_overhead_ms,
         }
 
-        json_path = json_dir / f"{json_stem}.json"
         deferred_writes.append((json_path, rel_path, report, benchmark_metrics))
 
         template_result = {
