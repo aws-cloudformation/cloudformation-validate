@@ -368,7 +368,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
             if level2.len() > 200 {
                 out.push(make_resource_diagnostic(
                     "F0050",
-                    &format!("Mapping '{}'.'{}'  has {} attributes, maximum is 200", map_name, key1, level2.len()),
+                    &format!("Mapping '{}'.'{}' has {} attributes, maximum is 200", map_name, key1, level2.len()),
                     m,
                     "",
                     &format!("{}/{}/{}", SECTION_MAPPINGS, map_name, key1),

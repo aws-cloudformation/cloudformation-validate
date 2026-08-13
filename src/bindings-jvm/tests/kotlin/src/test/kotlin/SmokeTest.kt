@@ -361,8 +361,6 @@ class SmokeTest {
         assertEquals(gson.toJson(cel.listRules()), gson.toJson(rego.listRules()), "multi_combined: listRules must be identical")
     }
 
-    // ── Golden file validation ───────────────────────────────────────────────
-
     @TestFactory
     fun regoDetailedMatchesGolden(): List<DynamicTest> = goldenDetailedTests("rego", REGO)
 
