@@ -2,15 +2,14 @@
 //!
 //! The template corpus, rule fixtures, security fixtures, and the golden
 //! `expected/validation_reports.json` all live on disk under this crate's root. This
-//! library exposes their locations and the canonical template-discovery order so
-//! that the golden-generation example and downstream tests agree on exactly which
-//! files make up the corpus.
+//! library exposes their locations and separate discovery APIs for the regular
+//! template corpus and snapshot generation.
 
 use std::path::{Path, PathBuf};
 
-/// Template subdirectories (relative to [`templates_dir`]) covered by the golden
-/// corpus, in the order they are scanned. The discovered set is sorted afterwards,
-/// so this order only bounds *which* directories are walked.
+/// Template subdirectories (relative to [`templates_dir`]) included in the regular
+/// snapshot corpus, in the order they are scanned. The discovered set is sorted
+/// afterwards, so this order only bounds *which* directories are walked.
 pub const GOLDEN_DIRS: &[&str] =
     &["bad", "cdk", "good", "gh-issues", "integration", "issues", "lsp", "public", "quickstart"];
 
@@ -29,6 +28,10 @@ pub fn templates_dir() -> PathBuf {
     resources_root().join("templates")
 }
 
+pub fn security_dir() -> PathBuf {
+    resources_root().join("security")
+}
+
 pub fn expected_dir() -> PathBuf {
     resources_root().join("expected")
 }
@@ -38,8 +41,8 @@ pub fn validation_reports_file() -> PathBuf {
     expected_dir().join("validation_reports.json")
 }
 
-/// Discover every template under [`GOLDEN_DIRS`], returned as forward-slash paths
-/// relative to [`templates_dir`], sorted lexicographically.
+/// Discover every regular template under [`GOLDEN_DIRS`], returned as sorted,
+/// forward-slash paths relative to [`templates_dir`].
 pub fn discover_templates() -> Vec<String> {
     let root = templates_dir();
     let mut templates = Vec::new();
@@ -48,6 +51,21 @@ pub fn discover_templates() -> Vec<String> {
         if dir.is_dir() {
             collect_templates(&dir, &root, &mut templates);
         }
+    }
+    templates.sort();
+    templates
+}
+
+/// Discover every fixture persisted by snapshot generation.
+///
+/// Regular template keys remain relative to [`templates_dir`]. Security fixture
+/// keys retain their `security/` prefix so all snapshot keys are unambiguous.
+pub fn discover_snapshot_templates() -> Vec<String> {
+    let mut templates = discover_templates();
+    let root = resources_root();
+    let security = security_dir();
+    if security.is_dir() {
+        collect_templates(&security, &root, &mut templates);
     }
     templates.sort();
     templates
@@ -64,7 +82,6 @@ fn collect_templates(dir: &Path, root: &Path, out: &mut Vec<String>) {
         } else if matches!(path.extension().and_then(|s| s.to_str()), Some("yaml" | "yml" | "json"))
             && let Ok(rel) = path.strip_prefix(root)
         {
-            // Golden keys are forward-slash regardless of host separator.
             out.push(rel.to_string_lossy().replace(std::path::MAIN_SEPARATOR, "/"));
         }
     }

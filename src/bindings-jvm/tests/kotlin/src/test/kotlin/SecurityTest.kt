@@ -28,7 +28,7 @@ class SecurityTest {
             templates.map { template ->
                 val relativePath = template.relativeTo(securityRoot).path.replace('\\', '/')
                 DynamicTest.dynamicTest("$engineName/$relativePath") {
-                    assertTimeoutPreemptively(Duration.ofSeconds(120)) {
+                    assertTimeoutPreemptively(Duration.ofSeconds(60)) {
                         val engine: Any =
                             if (engineName == "rego") {
                                 RegoEngine(EngineConfig())

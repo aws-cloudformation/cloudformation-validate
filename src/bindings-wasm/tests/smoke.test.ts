@@ -449,8 +449,6 @@ describe('multi combined custom + guard', () => {
     });
 });
 
-// ── Golden file validation ───────────────────────────────────────────────────
-
 function stripDetailedOnlyFields(report: any): unknown {
     const clone = JSON.parse(JSON.stringify(report));
     if (clone.diagnostics) {

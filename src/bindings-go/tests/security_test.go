@@ -41,7 +41,7 @@ func discoverSecurityTemplates(t *testing.T) []string {
 func TestEverySecurityTemplateWithBothEngines(t *testing.T) {
 	templates := discoverSecurityTemplates(t)
 	debugConfig := &cfnvalidate.ValidateConfig{SeverityLevel: cfnvalidate.SeverityDebug}
-	const securityTimeout = 120 * time.Second
+	const securityTimeout = 60 * time.Second
 
 	for _, engineName := range []string{"rego", "cel"} {
 		for _, templatePath := range templates {
