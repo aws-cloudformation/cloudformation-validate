@@ -274,20 +274,29 @@ fn scenario_is_reachable(m: &SemanticModel, resource_id: &str, conditions: &Hash
     assumptions.is_empty() || m.conditions.is_satisfiable(&assumptions)
 }
 
+pub(super) fn merge_reachable_scenario_conditions(
+    model: &SemanticModel,
+    resource_id: &str,
+    left: &HashMap<String, bool>,
+    right: &HashMap<String, bool>,
+) -> Option<HashMap<String, bool>> {
+    let mut combined = left.clone();
+    for (condition, value) in right {
+        if combined.get(condition).is_some_and(|existing| existing != value) {
+            return None;
+        }
+        combined.insert(condition.clone(), *value);
+    }
+    scenario_is_reachable(model, resource_id, &combined).then_some(combined)
+}
+
 fn scenario_conditions_overlap(
     model: &SemanticModel,
     resource_id: &str,
     left: &HashMap<String, bool>,
     right: &HashMap<String, bool>,
 ) -> bool {
-    let mut combined = left.clone();
-    for (condition, value) in right {
-        if combined.get(condition).is_some_and(|existing| existing != value) {
-            return false;
-        }
-        combined.insert(condition.clone(), *value);
-    }
-    scenario_is_reachable(model, resource_id, &combined)
+    merge_reachable_scenario_conditions(model, resource_id, left, right).is_some()
 }
 
 fn scenario_overlaps_any(
@@ -301,7 +310,7 @@ fn scenario_overlaps_any(
         .any(|applicable| scenario_conditions_overlap(model, resource_id, conditions, applicable))
 }
 
-fn fargate_condition_scenarios(model: &SemanticModel, resource_id: &str) -> Vec<HashMap<String, bool>> {
+pub(super) fn fargate_condition_scenarios(model: &SemanticModel, resource_id: &str) -> Vec<HashMap<String, bool>> {
     model
         .resolve_scenarios_json(resource_id, "Properties.RequiresCompatibilities")
         .into_iter()

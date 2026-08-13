@@ -19,9 +19,10 @@ fn selected_findings(engine: &dyn ValidationEngine, template: &str, rule_ids: &[
 
 fn diagnostic_identity(diagnostic: &Diagnostic) -> String {
     format!(
-        "{}|{:?}|{}|{}",
+        "{}|{:?}|{}|{}|{}",
         diagnostic.rule_id,
         diagnostic.severity,
+        diagnostic.resource_logical_id().unwrap_or(""),
         diagnostic.property_path.as_deref().unwrap_or(""),
         diagnostic.message
     )
@@ -98,6 +99,55 @@ Resources:
     assert_eq!(rego_findings, cel_findings);
     assert_eq!(rego_findings.len(), 2, "only the offered-size violations should be reported: {rego_findings:?}");
     assert!(rego_findings.iter().all(|finding| finding.contains("Properties.Cpu")));
+}
+
+#[test]
+fn conditional_fargate_task_sizes_check_both_branch_orders() {
+    let template = r#"
+Conditions:
+  UseFirst: !Equals [!Ref AWS::Region, us-east-1]
+Resources:
+  CpuInvalidThenValid:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: !If [UseFirst, "512", "256"]
+      Memory: "512"
+      ContainerDefinitions: [{Name: app, Image: nginx}]
+  CpuValidThenInvalid:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: !If [UseFirst, "256", "512"]
+      Memory: "512"
+      ContainerDefinitions: [{Name: app, Image: nginx}]
+  CorrelatedFargateThenEc2:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      RequiresCompatibilities: !If [UseFirst, [FARGATE], [EC2]]
+      NetworkMode: !If [UseFirst, awsvpc, bridge]
+      Cpu: !If [UseFirst, "256", "512"]
+      Memory: "512"
+      ContainerDefinitions: [{Name: app, Image: nginx}]
+  CorrelatedEc2ThenFargate:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      RequiresCompatibilities: !If [UseFirst, [EC2], [FARGATE]]
+      NetworkMode: !If [UseFirst, bridge, awsvpc]
+      Cpu: !If [UseFirst, "512", "256"]
+      Memory: "512"
+      ContainerDefinitions: [{Name: app, Image: nginx}]
+"#;
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E3047"]);
+    let cel_findings = selected_findings(&cel, template, &["E3047"]);
+    assert_eq!(rego_findings, cel_findings);
+    assert_eq!(rego_findings.len(), 2, "each reachable invalid Fargate deployment must be reported: {rego_findings:?}");
+    assert!(rego_findings.iter().any(|finding| finding.contains("CpuInvalidThenValid")));
+    assert!(rego_findings.iter().any(|finding| finding.contains("CpuValidThenInvalid")));
+    assert!(rego_findings.iter().all(|finding| !finding.contains("Correlated")));
 }
 
 #[test]

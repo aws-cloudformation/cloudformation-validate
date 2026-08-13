@@ -3,7 +3,7 @@ use crate::store::CompiledSchemaStore;
 use diagnostics::{Diagnostic, Phase, RegisteredDiagnostic, ViolationContext, resolve_section_span};
 use rules::format_rule_for_format;
 use std::borrow::Cow;
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeSet, HashMap, HashSet};
 use std::sync::{Arc, LazyLock};
 use template_model::coercion::{CoerceResult, coerce_to_number, coerce_to_string, coerce_value, scalar_eq};
 use template_model::consts::{
@@ -70,6 +70,7 @@ pub fn validate_all_resources(
     model: &Arc<SemanticModel>,
     region: Option<&str>,
 ) -> Vec<Diagnostic> {
+    reset_scenario_analysis_curtailments();
     let mut out = Vec::new();
     let relevant: HashSet<&str> = model.resources.values().map(|r| r.resource_type.as_str()).collect();
 
@@ -152,6 +153,16 @@ pub fn validate_all_resources(
             validate_resource(&mut out, store, model, rid, res, schema, region);
             validate_extensions(&mut out, store, model, rid, res);
         }
+    }
+    for (resource_id, property_path) in take_scenario_analysis_curtailments() {
+        out.push(build_diagnostic(
+            "I9052",
+            "Conditional schema analysis budget exhausted; validation of this property's condition scenarios was curtailed and some schema diagnostics may be omitted",
+            model,
+            &resource_id,
+            &property_path,
+            None,
+        ));
     }
     out
 }
@@ -697,11 +708,25 @@ fn required_group_scenario_assignments(
 ) -> Option<Vec<HashMap<String, bool>>> {
     let paths: Vec<String> = members.iter().map(|name| format!("{}.{}", base_path, name)).collect();
     let refs: Vec<&str> = paths.iter().map(String::as_str).collect();
-    property_scenario_assignments(m, rid, &refs)
+    property_scenario_assignments(m, rid, base_path, &refs)
 }
 
 const MAX_GROUP_SCENARIO_ASSIGNMENTS: usize = 256;
 const MAX_GROUP_SCENARIO_MERGE_ATTEMPTS: usize = 4_096;
+
+fn record_scenario_analysis_curtailment(resource_id: &str, property_path: &str) {
+    SCENARIO_ANALYSIS_CURTAILMENTS.with(|curtailments| {
+        curtailments.borrow_mut().insert((resource_id.to_string(), property_path.to_string()));
+    });
+}
+
+fn reset_scenario_analysis_curtailments() {
+    SCENARIO_ANALYSIS_CURTAILMENTS.with(|curtailments| curtailments.borrow_mut().clear());
+}
+
+fn take_scenario_analysis_curtailments() -> BTreeSet<(String, String)> {
+    SCENARIO_ANALYSIS_CURTAILMENTS.with(|curtailments| std::mem::take(&mut *curtailments.borrow_mut()))
+}
 
 /// Computes the distinct satisfiable condition assignments under which a group
 /// of property paths must be evaluated.
@@ -715,6 +740,7 @@ const MAX_GROUP_SCENARIO_MERGE_ATTEMPTS: usize = 4_096;
 fn property_scenario_assignments(
     m: &Arc<SemanticModel>,
     rid: &str,
+    group_path: &str,
     property_paths: &[&str],
 ) -> Option<Vec<HashMap<String, bool>>> {
     let seed: HashMap<String, bool> = SCENARIO_FILTER.with(|filter| filter.borrow().clone().unwrap_or_default());
@@ -734,6 +760,7 @@ fn property_scenario_assignments(
             }
             if seen_property_assignments.insert(canonical_assignment(conditions)) {
                 if property_assignments.len() == MAX_GROUP_SCENARIO_ASSIGNMENTS {
+                    record_scenario_analysis_curtailment(rid, group_path);
                     return None;
                 }
                 property_assignments.push(conditions.clone());
@@ -751,6 +778,7 @@ fn property_scenario_assignments(
             for alternative in &property_assignments {
                 merge_attempts += 1;
                 if merge_attempts > MAX_GROUP_SCENARIO_MERGE_ATTEMPTS {
+                    record_scenario_analysis_curtailment(rid, group_path);
                     return None;
                 }
                 let Some(merged) = try_merge_assignments(existing, alternative) else {
@@ -761,6 +789,7 @@ fn property_scenario_assignments(
                 }
                 if seen_assignments.insert(canonical_assignment(&merged)) {
                     if next_assignments.len() == MAX_GROUP_SCENARIO_ASSIGNMENTS {
+                        record_scenario_analysis_curtailment(rid, group_path);
                         return None;
                     }
                     next_assignments.push(merged);
@@ -1880,7 +1909,7 @@ fn branch_scenario_assignments<'a>(
 
     let paths: Vec<String> = property_names.iter().map(|name| format!("{}.{}", base_path, name)).collect();
     let refs: Vec<&str> = paths.iter().map(String::as_str).collect();
-    property_scenario_assignments(m, rid, &refs)
+    property_scenario_assignments(m, rid, base_path, &refs)
 }
 
 /// The scenario tag for a group diagnostic: `None` for the unconditional
@@ -2251,6 +2280,12 @@ fn validate_sub_under_assignment(
 }
 
 thread_local! {
+    /// Resource paths where exact conditional schema analysis exceeded its work
+    /// budget. Kept separately from branch diagnostics so the advisory cannot
+    /// make an otherwise matching composition branch appear invalid.
+    static SCENARIO_ANALYSIS_CURTAILMENTS: std::cell::RefCell<BTreeSet<(String, String)>> =
+        const { std::cell::RefCell::new(BTreeSet::new()) };
+
     /// The condition assignment the current branch-matching pass is scoped to.
     ///
     /// Threaded as task-local state rather than a parameter because

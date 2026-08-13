@@ -2318,7 +2318,79 @@ fn independent_optional_conditionals_have_bounded_composition_work() {
 
     let diagnostics = validate(&validator, &template);
 
-    assert!(diagnostics.is_empty(), "optional valid properties must remain accepted: {diagnostics:#?}");
+    assert!(
+        diagnostics.iter().all(|diagnostic| !diagnostic.rule_id.starts_with('F')),
+        "bounded analysis must not turn uncertainty into a schema violation: {diagnostics:#?}"
+    );
+    let advisories: Vec<_> = diagnostics.iter().filter(|diagnostic| diagnostic.rule_id == "I9052").collect();
+    assert_eq!(advisories.len(), 1, "curtailment must be reported once per resource path: {diagnostics:#?}");
+    assert!(
+        advisories[0].message.contains("was curtailed"),
+        "the advisory must explain that analysis was curtailed: {diagnostics:#?}"
+    );
+}
+
+fn conditional_required_or_fixture(property_count: usize) -> (SchemaValidator, String) {
+    let mut properties = serde_json::Map::new();
+    let mut required_or = Vec::new();
+    let mut template = String::from("Parameters:\n");
+    for index in 0..property_count {
+        let property_name = format!("Property{index:02}");
+        properties.insert(property_name.clone(), json!({"type": "string"}));
+        required_or.push(property_name);
+        template.push_str(&format!(
+            "  Parameter{index:02}:\n    Type: String\n    AllowedValues: [yes, no]\n    Default: no\n"
+        ));
+    }
+    template.push_str("Conditions:\n");
+    for index in 0..property_count {
+        template.push_str(&format!("  Condition{index:02}: !Equals [!Ref Parameter{index:02}, yes]\n"));
+    }
+    template.push_str("Resources:\n  Resource:\n    Type: AWS::Test::RequiredOrScenarioBound\n    Properties:\n");
+    for index in 0..property_count {
+        template.push_str(&format!(
+            "      Property{index:02}: !If [Condition{index:02}, value-{index:02}, !Ref AWS::NoValue]\n"
+        ));
+    }
+    let validator = validator(vec![(
+        "AWS::Test::RequiredOrScenarioBound",
+        json!({
+            "properties": properties,
+            "requiredOr": required_or,
+            "additionalProperties": false
+        }),
+    )]);
+    (validator, template)
+}
+
+#[test]
+fn required_or_scenario_budget_boundary_is_non_silent() {
+    let (validator, template) = conditional_required_or_fixture(8);
+    let diagnostics = validate(&validator, &template);
+    let required_findings: Vec<_> = diagnostics.iter().filter(|diagnostic| diagnostic.rule_id == "F3058").collect();
+    assert_eq!(
+        required_findings.len(),
+        1,
+        "all 256 condition worlds must be analyzed, including the all-false world: {diagnostics:#?}"
+    );
+    assert!(
+        diagnostics.iter().all(|diagnostic| diagnostic.rule_id != "I9052"),
+        "the exact assignment limit must remain fully analyzable: {diagnostics:#?}"
+    );
+
+    let (validator, template) = conditional_required_or_fixture(9);
+    let diagnostics = validate(&validator, &template);
+    assert!(
+        diagnostics.iter().all(|diagnostic| !diagnostic.rule_id.starts_with('F')),
+        "an incomplete 512-world analysis must not produce an unproven schema violation: {diagnostics:#?}"
+    );
+    let advisories: Vec<_> = diagnostics.iter().filter(|diagnostic| diagnostic.rule_id == "I9052").collect();
+    assert_eq!(advisories.len(), 1, "budget exhaustion must emit one deduplicated advisory: {diagnostics:#?}");
+    assert_eq!(advisories[0].property_path.as_deref(), Some("Properties"));
+    assert!(
+        advisories[0].message.contains("was curtailed"),
+        "the advisory must explain that conditional schema analysis was curtailed: {diagnostics:#?}"
+    );
 }
 
 // ─── Customer-facing composition diagnostics ───────────────────────────────

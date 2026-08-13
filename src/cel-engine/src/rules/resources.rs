@@ -1,6 +1,8 @@
+use super::resources_extra::{fargate_condition_scenarios, merge_reachable_scenario_conditions};
 use super::{EvalContext, NativeRuleRegistry};
 use diagnostics::{Diagnostic, RelatedResource, ResourceRef};
 use rules::Category;
+use std::collections::BTreeSet;
 use template_model::consts::{
     FIELD_CREATION_POLICY, FIELD_RESOURCE_TYPE, FIELD_RESOURCES, FIELD_UPDATE_POLICY, KEY_CREATION_POLICY,
     KEY_UPDATE_POLICY,
@@ -22,44 +24,46 @@ fn resolve_concrete(m: &SemanticModel, rid: &str, path: &str) -> Option<serde_js
     }
 }
 
-fn is_dynamic(m: &SemanticModel, rid: &str, path: &str) -> bool {
-    m.resolve_deep(rid, path)
-        .or_else(|| m.resolve(rid, path).cloned())
-        .map(|rv| crate::functions::contains_unresolvable_content(&rv))
-        .unwrap_or(false)
-}
-
 fn eval_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     let mut out = Vec::new();
     let m = ctx.model;
 
     for name in m.resources_of_type("AWS::ECS::TaskDefinition") {
-        if let Some(serde_json::Value::Array(compat)) = resolve_concrete(m, name, "Properties.RequiresCompatibilities")
-        {
-            if !compat.iter().any(|v| v.as_str() == Some("FARGATE")) {
-                continue;
+        let fargate_scenarios = fargate_condition_scenarios(m, name);
+        if fargate_scenarios.is_empty() {
+            continue;
+        }
+        let cpu_scenarios = m.resolve_scenarios_json(name, "Properties.Cpu");
+        let memory_scenarios = m.resolve_scenarios_json(name, "Properties.Memory");
+        let mut invalid_sizes = BTreeSet::new();
+
+        for fargate_conditions in &fargate_scenarios {
+            for (cpu, cpu_conditions) in &cpu_scenarios {
+                let Some(fargate_cpu_conditions) =
+                    merge_reachable_scenario_conditions(m, name, fargate_conditions, cpu_conditions)
+                else {
+                    continue;
+                };
+                for (memory, memory_conditions) in &memory_scenarios {
+                    if merge_reachable_scenario_conditions(m, name, &fargate_cpu_conditions, memory_conditions)
+                        .is_some()
+                        && matches!(task_size_is_offered(cpu, memory), Some(false))
+                    {
+                        invalid_sizes.insert((render_value(cpu), render_value(memory)));
+                    }
+                }
             }
-            if is_dynamic(m, name, "Properties.Cpu") || is_dynamic(m, name, "Properties.Memory") {
-                continue;
-            }
-            let cpu = resolve_concrete(m, name, "Properties.Cpu");
-            let mem = resolve_concrete(m, name, "Properties.Memory");
-            if let (Some(cpu_value), Some(memory_value)) = (cpu, mem)
-                && matches!(task_size_is_offered(&cpu_value, &memory_value), Some(false))
-            {
-                out.push(make_resource_diagnostic(
-                    "E3047",
-                    &format!(
-                        "Cpu {} is not compatible with Memory {} for Fargate",
-                        render_value(&cpu_value),
-                        render_value(&memory_value)
-                    ),
-                    m,
-                    name,
-                    "Properties.Cpu",
-                    Some("Use a valid Fargate CPU/memory combination (e.g., Cpu: 256 with Memory: 512, 1024, or 2048)"),
-                ));
-            }
+        }
+
+        for (cpu, memory) in invalid_sizes {
+            out.push(make_resource_diagnostic(
+                "E3047",
+                &format!("Cpu {cpu} is not compatible with Memory {memory} for Fargate"),
+                m,
+                name,
+                "Properties.Cpu",
+                Some("Use a valid Fargate CPU/memory combination (e.g., Cpu: 256 with Memory: 512, 1024, or 2048)"),
+            ));
         }
     }
 
