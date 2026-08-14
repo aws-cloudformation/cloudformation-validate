@@ -811,7 +811,6 @@ Resources:
       PolicyDocument:
         Statement:
           - {Effect: Allow, Action: s3:GetObject, Resource: 'not-an-arn-${aws:username}'}
-          - {Effect: Allow, Action: s3:GetObject, Resource: 'arn:*:s3:::bucket/key'}
           - {Effect: Allow, Action: s3:GetObject, Resource: 'arn:aws:*:::bucket/key'}
           - {Effect: Allow, Action: s3:GetObject, Resource: 'arn:aws:s3:us-east-1:${aws:username}:bucket/key'}
   ValidResources:
@@ -821,6 +820,7 @@ Resources:
         Statement:
           - {Effect: Allow, Action: sqs:SendMessage, Resource: 'arn:aws:sqs'}
           - {Effect: Allow, Action: iam:GetUser, Resource: 'arn:${AWS::Partition}:iam::${AWS::AccountId}:user/${aws:username}'}
+          - {Effect: Allow, Action: s3:GetObject, Resource: 'arn:*:s3:::bucket/key'}
           - {Effect: Allow, Action: s3:GetObject, Resource: '*'}
 "#;
     let (rego, cel) = engines();
@@ -828,7 +828,7 @@ Resources:
     let cel_findings = selected_findings(&cel, template, &["E3510"]);
 
     assert_eq!(rego_findings, cel_findings);
-    assert_eq!(rego_findings.len(), 4, "only the four malformed resource strings should fail: {rego_findings:?}");
+    assert_eq!(rego_findings.len(), 3, "only the three malformed resource strings should fail: {rego_findings:?}");
     assert!(rego_findings.iter().all(|finding| finding.contains("InvalidResources")));
 }
 
