@@ -41,8 +41,9 @@ const IDENTITY_STATEMENT_KEYS: &[&str] =
     &["Action", "Condition", "Effect", "NotAction", "NotResource", "Resource", "Sid"];
 
 /// The ARN shape IAM accepts in a `Resource`/`NotResource` entry: a full ARN
-/// or the lone `*`. IAM prohibits wildcard partition and wildcard service.
-const RESOURCE_ARN_PATTERN: &str = "^(arn:aws[A-Za-z\\-]*:[^:*]+:[^:]*(:(?:\\d{12}|\\*|aws)?:.+|)|\\*)$";
+/// or the lone `*`. Wildcards may appear in the partition but not the service.
+const RESOURCE_ARN_PATTERN: &str =
+    "^(arn:(aws[A-Za-z\\-]*?|[A-Za-z?*\\-]*[?*][A-Za-z?*\\-]*):[^:*?]+:[^:]*(:(?:\\d{12}|\\*|aws)?:.+|)|\\*)$";
 
 const CONDITION_OPERATORS: &[&str] = &[
     "ArnEquals",
@@ -169,15 +170,20 @@ fn field_without_placeholders(field: &str) -> Option<String> {
 }
 
 fn arn_partition_is_valid(partition: &str) -> bool {
-    if partition.contains(['*', '?']) || field_has_iam_policy_variable(partition) {
+    if field_has_iam_policy_variable(partition) {
         return false;
     }
     let Some(literal) = field_without_placeholders(partition) else {
         return false;
     };
-    (literal.is_empty() && field_has_placeholder(partition))
-        || (literal.starts_with("aws")
-            && literal.chars().all(|character| character.is_ascii_alphabetic() || character == '-'))
+    if literal.is_empty() {
+        return field_has_placeholder(partition);
+    }
+
+    let uses_only_partition_characters =
+        literal.chars().all(|character| character.is_ascii_alphabetic() || matches!(character, '-' | '*' | '?'));
+    let contains_wildcard = literal.contains(['*', '?']);
+    uses_only_partition_characters && (contains_wildcard || literal.starts_with("aws"))
 }
 
 fn arn_service_is_valid(service: &str) -> bool {
@@ -1340,9 +1346,9 @@ mod tests {
         assert!(findings(doc).is_empty());
     }
 
-    /// Wildcard partition `arn:*:...` is rejected even with placeholders.
+    /// A wildcard partition remains valid when the resource portion uses an IAM variable.
     #[test]
-    fn arn_with_wildcard_partition_is_rejected() {
+    fn arn_with_wildcard_partition_and_trailing_iam_variable_is_valid() {
         let doc = json!({
             "Statement": [{
                 "Effect": "Allow",
@@ -1350,12 +1356,7 @@ mod tests {
                 "Resource": "arn:*:s3:::bucket/${aws:username}"
             }]
         });
-        let found = findings(doc);
-        assert!(
-            found.iter().any(|(p, m)| p == "Statement.0.Resource" && m.contains("does not match")),
-            "wildcard partition must be rejected: {:?}",
-            found
-        );
+        assert!(findings(doc).is_empty());
     }
 
     /// Wildcard service `arn:aws:*:...` is rejected even with placeholders.
@@ -1392,12 +1393,17 @@ mod tests {
         assert!(resource_arn_matches("arn:aws-iso-b:kms:us-isob-east-1:123456789012:key/id"));
     }
 
-    /// ARN with wildcard partition is rejected by resource_arn_matches.
+    /// ARN partition wildcards are accepted in both complete and partial patterns.
     #[test]
-    fn resource_arn_rejects_wildcard_partition() {
-        assert!(!resource_arn_matches("arn:*:s3:::bucket"));
-        assert!(!resource_arn_matches("arn:*:iam::123456789012:role/test"));
-        assert!(!resource_arn_matches("arn:aws?:s3:::bucket"));
+    fn resource_arn_accepts_wildcard_partition() {
+        for resource in [
+            "arn:*:s3:::bucket",
+            "arn:*:iam::123456789012:role/test",
+            "arn:aw?:s3:::bucket",
+            "arn:aws-*:kms:us-east-1:123456789012:key/test",
+        ] {
+            assert!(resource_arn_matches(resource), "partition wildcard must be accepted in {resource}");
+        }
     }
 
     /// ARN with wildcard service is rejected by resource_arn_matches.

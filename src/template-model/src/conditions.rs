@@ -21,6 +21,17 @@ const MAX_REPORTED_BUDGET_EXHAUSTED_QUERIES: usize = 5;
 /// the condition set gets the conservative answer.
 const WHOLE_CONDITION_SET_DESCRIPTION: &str =
     "this template's condition set as a whole (remaining conditions were assumed compatible)";
+const INLINE_CONDITION_DESCRIPTION: &str = "<inline condition>";
+const SYNTHETIC_CONDITION_PREFIX: &str = "__";
+
+/// Result of a satisfiability query when callers need to distinguish an exact
+/// answer from the conservative answer returned after a search budget is spent.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Satisfiability {
+    Satisfiable,
+    Unsatisfiable,
+    Unknown,
+}
 
 #[derive(Debug, Clone)]
 pub enum ConditionExpr {
@@ -122,6 +133,19 @@ fn format_value_expr(expr: &ValueExpr) -> String {
     }
 }
 
+fn format_satisfiability_assumptions(assumptions: &[(String, bool)]) -> String {
+    let mut descriptions = assumptions
+        .iter()
+        .map(|(name, value)| {
+            let condition_description =
+                if name.starts_with(SYNTHETIC_CONDITION_PREFIX) { INLINE_CONDITION_DESCRIPTION } else { name };
+            format!("{condition_description}={value}")
+        })
+        .collect::<Vec<_>>();
+    descriptions.sort_unstable();
+    descriptions.join(", ")
+}
+
 impl ConditionModel {
     pub fn from_ir(
         ir: &TemplateIR,
@@ -206,7 +230,16 @@ impl ConditionModel {
     /// with any assumption about it, the same conservative direction.
     #[must_use]
     pub fn is_satisfiable(&self, assumptions: &[(String, bool)]) -> bool {
-        self.is_satisfiable_with_param_overrides(assumptions, &HashMap::new())
+        self.satisfiability(assumptions) != Satisfiability::Unsatisfiable
+    }
+
+    /// Decides satisfiability without conflating a budget-curtailed search with
+    /// an exact satisfiable result. Proof-producing callers must require
+    /// [`Satisfiability::Satisfiable`]; callers that use satisfiability only as a
+    /// conservative reachability guard can continue using [`Self::is_satisfiable`].
+    #[must_use]
+    pub fn satisfiability(&self, assumptions: &[(String, bool)]) -> Satisfiability {
+        self.satisfiability_with_param_overrides(assumptions, &HashMap::new())
     }
 
     /// Like [`Self::is_satisfiable`], but with the target region pinned as the
@@ -222,7 +255,7 @@ impl ConditionModel {
     #[must_use]
     pub fn is_satisfiable_in_region(&self, assumptions: &[(String, bool)], region: &str) -> bool {
         let overrides = HashMap::from([(PSEUDO_REGION.to_string(), vec![region.to_string()])]);
-        self.is_satisfiable_with_param_overrides(assumptions, &overrides)
+        self.satisfiability_with_param_overrides(assumptions, &overrides) != Satisfiability::Unsatisfiable
     }
 
     /// Satisfiability with a set of parameter/pseudo-parameter candidate-value
@@ -230,18 +263,15 @@ impl ConditionModel {
     /// override restricts a parameter to exactly the given values for this query
     /// only; a parameter not referenced by any relevant condition is unaffected.
     #[must_use]
-    fn is_satisfiable_with_param_overrides<'model>(
+    fn satisfiability_with_param_overrides<'model>(
         &'model self,
         assumptions: &[(String, bool)],
         param_overrides: &'model HashMap<String, Vec<String>>,
-    ) -> bool {
-        // Once the cumulative search budget for this model is spent, assume
-        // satisfiable instead of searching further (the conservative-`true`
-        // contract documented above). Checked before any per-query setup so an
-        // exhausted query costs O(1) - this is what keeps a template with a huge
-        // number of conditions (a quadratic flood of queries) bounded.
+    ) -> Satisfiability {
+        // Once the cumulative search budget for this model is spent, no further
+        // query can provide an exact answer.
         if self.satisfiability_budget_exhausted() {
-            return true;
+            return Satisfiability::Unknown;
         }
 
         let mut assumed: HashMap<&'model str, bool> = HashMap::with_capacity(assumptions.len());
@@ -254,26 +284,27 @@ impl ConditionModel {
             if let Some(&already_assumed) = assumed.get(condition_name.as_str())
                 && already_assumed != *expected
             {
-                return false;
+                return Satisfiability::Unsatisfiable;
             }
             assumed.insert(condition_name.as_str(), *expected);
         }
         if assumed.is_empty() {
-            return true;
+            return Satisfiability::Satisfiable;
         }
         debug!("Checking satisfiability of {:?} against {} conditions", assumptions, self.conditions.len());
 
         let mut query = SatisfiabilityQuery::prepare(self, &assumed, param_overrides);
 
         // If even the restricted parameter space this query depends on is too
-        // large to enumerate, assume satisfiable instead of exploring it (the
-        // conservative-`true` contract documented on `is_satisfiable`). The
-        // preparation already walked the query's dependency closure; charging
-        // that work keeps a flood of cap-tripped queries drawing the cumulative
-        // budget down in proportion to the work performed.
+        // large to enumerate, the answer is unknown rather than proven
+        // satisfiable. The boolean API maps this back to its historical
+        // conservative `true` result.
         if query.parameter_point_count() > MAX_PARAM_COMBINATIONS {
-            self.charge_satisfiability_work(query.steps);
-            return true;
+            let steps = query.steps;
+            self.charge_satisfiability_work(steps);
+            let query_description = format_satisfiability_assumptions(assumptions);
+            self.record_curtailed_analysis(query_description);
+            return Satisfiability::Unknown;
         }
 
         let satisfiable = query.some_point_satisfies(&assumed);
@@ -283,14 +314,11 @@ impl ConditionModel {
             // Synthetic condition names (inline Fn::If expressions and
             // Rules-section conditions) are internal; describe them generically
             // rather than leaking `__`-prefixed identifiers into the advisory.
-            let describe = |name: &str| -> String {
-                if name.starts_with("__") { "<inline condition>".to_string() } else { name.to_string() }
-            };
-            let query_desc =
-                assumptions.iter().map(|(n, v)| format!("{}={}", describe(n), v)).collect::<Vec<_>>().join(", ");
-            self.record_curtailed_analysis(query_desc);
+            let query_description = format_satisfiability_assumptions(assumptions);
+            self.record_curtailed_analysis(query_description);
+            return Satisfiability::Unknown;
         }
-        satisfiable
+        if satisfiable { Satisfiability::Satisfiable } else { Satisfiability::Unsatisfiable }
     }
 
     /// Charges satisfiability work to this model's cumulative budget, reporting the
@@ -2870,14 +2898,23 @@ Resources:
         // MAX_PARAM_COMBINATIONS. Enumerating them at every search leaf is the
         // denial-of-service shape the parameter cap defends against.
         const WIDE_PARAMS: usize = 24;
-        let model = build_condition_model(&wide_parameter_closure(WIDE_PARAMS));
+        let mut model = build_condition_model(&wide_parameter_closure(WIDE_PARAMS));
+        let wide_expression = model.get("Wide").cloned().expect("the generated model must contain Wide");
+        model.register_inline("__inline_cond_test".to_string(), wide_expression);
 
         // The query must return the conservative "satisfiable" answer rather
-        // than enumerate the cartesian product.
+        // than enumerate the cartesian product. Supply the assumptions in reverse
+        // display order so the recorded advisory also proves its rendering is
+        // deterministic and does not expose synthetic condition identifiers.
         assert!(
-            model.is_satisfiable(&[("Wide".to_string(), true)]),
+            model.is_satisfiable(&[("Base00".to_string(), true), ("__inline_cond_test".to_string(), true)]),
             "a condition whose closure references more parameters than the cap must be \
              assumed satisfiable, not enumerated"
+        );
+        assert_eq!(
+            model.budget_exhausted_queries(),
+            vec!["<inline condition>=true, Base00=true".to_string()],
+            "budget advisories must canonicalize assumption order and describe synthetic conditions generically"
         );
 
         // And it must do so cheaply: the cap short-circuits before the search,

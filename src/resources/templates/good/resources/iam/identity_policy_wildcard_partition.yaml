@@ -1,0 +1,13 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: IAM resource ARNs may use a wildcard in the partition segment.
+Resources:
+  WildcardPartitionPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: s3:GetObject
+            Resource: "arn:*:s3:::example-bucket/*"
