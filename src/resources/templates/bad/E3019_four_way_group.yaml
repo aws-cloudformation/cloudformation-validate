@@ -1,7 +1,7 @@
 AWSTemplateFormatVersion: "2010-09-09"
 # E3019 stress: 3 resources all sharing the same primary identifier. Post-fix each
 # engine emits 3 diagnostics (one per resource in the group), not C(3,2)=3 pair-wise.
-# (Same count coincidentally — better test with 4 resources: 4 vs C(4,2)=6.)
+# (Same count coincidentally - better test with 4 resources: 4 vs C(4,2)=6.)
 Resources:
   A:
     Type: AWS::S3::Bucket

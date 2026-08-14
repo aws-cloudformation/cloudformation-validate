@@ -1,0 +1,5 @@
+Resources:
+  Instance:
+    Type: AWS::Neptune::DBInstance
+    Properties:
+      DBInstanceClass: db.x2gd.large

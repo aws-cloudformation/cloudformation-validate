@@ -1,61 +1,39 @@
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.DynamicTest
-import org.junit.jupiter.api.TestFactory
 import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.DynamicTest
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestFactory
 import org.junit.jupiter.api.assertThrows
-import com.amazonaws.cloudformation.validation.*
-import com.amazonaws.cloudformation.validation.diagnostics.*
-import com.amazonaws.cloudformation.validation.engine.*
-import com.amazonaws.cloudformation.validation.gson.buildBindingsGson
-import com.amazonaws.cloudformation.validation.rules.*
+import software.amazon.cloudformation.validate.*
+import software.amazon.cloudformation.validate.datasource.AdditionalSchemaSource
+import software.amazon.cloudformation.validate.diagnostics.*
+import software.amazon.cloudformation.validate.engine.*
+import software.amazon.cloudformation.validate.gson.buildBindingsGson
+import software.amazon.cloudformation.validate.rules.*
+import software.amazon.cloudformation.validate.schemavalidator.SchemaValidatorConfig
 import java.io.File
 
 class SmokeTest {
-    companion object {
-        private val resourcesRoot: File = listOf(
-            File("${System.getProperty("user.dir")}/../../resources"),
-            File("${System.getProperty("user.dir")}/../../../resources"),
-        ).first { it.exists() }
-        private val templatesRoot = File(resourcesRoot, "templates")
-        private val expectedDir = File(resourcesRoot, "expected")
-        private val rulesDir = File(resourcesRoot, "rules")
-
-        private val gson = buildBindingsGson()
-
-        private val EXPECTED_TEMPLATES: List<String>
-        private val COMBINED_GOLDEN: Map<String, Any?>
-
-        private val GOLDEN_DIRS = listOf("good", "bad", "integration", "issues", "lsp", "quickstart", "public")
-
-        init {
-            val goldenFile = File(expectedDir, "all_templates.json")
-            @Suppress("UNCHECKED_CAST")
-            COMBINED_GOLDEN = JsonParser(goldenFile.readText()).parseValue() as Map<String, Any?>
-            EXPECTED_TEMPLATES = discoverAllTemplates()
-        }
-
-        private fun discoverAllTemplates(): List<String> {
-            val templates = mutableListOf<String>()
-            for (sub in GOLDEN_DIRS) {
-                val dir = File(templatesRoot, sub)
-                if (dir.isDirectory) {
-                    dir.walkTopDown().filter { it.isFile && it.extension in listOf("yaml", "yml", "json") }.forEach {
-                        templates.add(it.relativeTo(templatesRoot).path)
-                    }
-                }
-            }
-            return templates.sorted()
-        }
-
-        private val FULL_ONLY_FIELDS = listOf("documentationUrl", "context", "ruleDescription", "phase", "section")
-
-        private val CEL = CelEngine(EngineConfig())
-        private val REGO = RegoEngine(EngineConfig())
-    }
-
     private fun templateFile(rel: String): File = File(templatesRoot, rel)
     private fun templateBytes(rel: String): ByteArray = templateFile(rel).readBytes()
     private fun loadRule(filename: String): String = File(rulesDir, filename).readText()
+
+    private val templateWithOverlayProperty = """
+        Resources:
+          Function:
+            Type: AWS::Lambda::Function
+            Properties:
+              Code:
+                ZipFile: "exports.handler = async () => {};"
+              Role: arn:aws:iam::123456789012:role/lambda-role
+              Runtime: nodejs18.x
+              Handler: index.handler
+              TestForOverride: enabled
+    """.trimIndent().toByteArray()
+
+    private val lambdaOverlaySchema = """{
+        "typeName": "AWS::Lambda::Function",
+        "properties": {"TestForOverride": {"type": "string"}}
+    }""".trimIndent()
 
     private fun defaultConfig() = ValidateConfig(severityLevel = Severity.DEBUG)
 
@@ -123,11 +101,50 @@ class SmokeTest {
         assertEquals("rego", JvmRegoEngine(EngineConfig()).engineName())
     }
 
+    @Test
+    fun additionalSchemasApplyThroughThePublicConfigOnBothEngines() {
+        val config = EngineConfig(
+            schemaValidatorConfig = SchemaValidatorConfig(
+                additionalSchemas = listOf(AdditionalSchemaSource(typeName = null, schema = lambdaOverlaySchema)),
+            ),
+        )
+        val celBaseline = JvmCelEngine(EngineConfig()).validateStandard(
+            templateWithOverlayProperty,
+            defaultConfig(),
+            "overlay.yaml",
+        )
+        val regoBaseline = JvmRegoEngine(EngineConfig()).validateStandard(
+            templateWithOverlayProperty,
+            defaultConfig(),
+            "overlay.yaml",
+        )
+        assertTrue(celBaseline.diagnostics.any { it.ruleId == "F3002" }, "CEL baseline must report the property")
+        assertTrue(regoBaseline.diagnostics.any { it.ruleId == "F3002" }, "Rego baseline must report the property")
+
+        val cel = JvmCelEngine(config).validateStandard(templateWithOverlayProperty, defaultConfig(), "overlay.yaml")
+        val rego = JvmRegoEngine(config).validateStandard(templateWithOverlayProperty, defaultConfig(), "overlay.yaml")
+        assertFalse(cel.diagnostics.any { it.ruleId == "F3002" }, "CEL config must apply the overlay")
+        assertFalse(rego.diagnostics.any { it.ruleId == "F3002" }, "Rego config must apply the overlay")
+    }
+
+    @Test
+    fun additionalSchemaFileHelperLoadsTheSchemaAndOptionalTypeName() {
+        val schemaFile = File.createTempFile("cloudformation-validate-overlay", ".json")
+        try {
+            schemaFile.writeText(lambdaOverlaySchema)
+            val source = fileToAdditionalSchemaSource(schemaFile, "AWS::Lambda::Function")
+            assertEquals("AWS::Lambda::Function", source.typeName)
+            assertEquals(lambdaOverlaySchema, source.schema)
+        } finally {
+            schemaFile.delete()
+        }
+    }
+
     // ── SchemaValidator ──────────────────────────────────────────────────────
 
     @Test
     fun schemaValidatorExposesSchemasAndRules() {
-        val sv = JvmSchemaValidator()
+        val sv = JvmSchemaValidator(SchemaValidatorConfig())
         assertTrue(sv.schemaCount() > 0u, "schema count must be positive")
         val rules = sv.listRules()
         assertTrue(rules.isNotEmpty(), "schema validator must have rules")
@@ -222,8 +239,8 @@ class SmokeTest {
             }
             val d = report.diagnostics.find { it.ruleId == "CUSTOM001" } ?: fail("$name: CUSTOM001 diagnostic must fire")
             assertEquals(Severity.ERROR, d.severity, "$name: diagnostic severity")
-            assertEquals("Bucket", d.resourceId, "$name: resourceId")
-            assertEquals("AWS::S3::Bucket", d.resourceType, "$name: resourceType")
+            assertEquals("Bucket", d.entity?.logicalId, "$name: entity logicalId")
+            assertEquals("AWS::S3::Bucket", d.entity?.resourceType, "$name: entity resourceType")
         }
 
         val baselineCount = CEL.listRules().size
@@ -264,7 +281,7 @@ class SmokeTest {
             val d = report.diagnostics.find { it.ruleId == "check_bucket_encryption" } ?: fail("$name: diagnostic must fire")
             assertEquals(Severity.ERROR, d.severity, "$name: diagnostic severity")
             assertEquals(RuleOrigin.GUARD, d.source, "$name: diagnostic source")
-            assertEquals("Bucket", d.resourceId, "$name: resourceId")
+            assertEquals("Bucket", d.entity?.logicalId, "$name: entity logicalId")
         }
 
         assertEquals(gson.toJson(cel.listRules()), gson.toJson(rego.listRules()), "guard: listRules must be identical")
@@ -344,8 +361,6 @@ class SmokeTest {
         assertEquals(gson.toJson(cel.listRules()), gson.toJson(rego.listRules()), "multi_combined: listRules must be identical")
     }
 
-    // ── Golden file validation ───────────────────────────────────────────────
-
     @TestFactory
     fun regoDetailedMatchesGolden(): List<DynamicTest> = goldenDetailedTests("rego", REGO)
 
@@ -365,8 +380,8 @@ class SmokeTest {
                 @Suppress("UNCHECKED_CAST")
                 val expected = COMBINED_GOLDEN[rel] as Map<String, Any?>
                 assertEquals(
-                    zeroPerformanceDurations(expected),
-                    zeroPerformanceDurations(actual, rel),
+                    stripGoldenExcludedFields(expected),
+                    stripGoldenExcludedFields(actual, rel),
                     "$engineName detailed output for $rel differs from golden"
                 )
             }
@@ -380,8 +395,8 @@ class SmokeTest {
                 @Suppress("UNCHECKED_CAST")
                 val expected = stripDetailedOnlyFields(COMBINED_GOLDEN[rel] as Map<String, Any?>)
                 assertEquals(
-                    zeroPerformanceDurations(expected),
-                    zeroPerformanceDurations(actual, rel),
+                    stripGoldenExcludedFields(expected),
+                    stripGoldenExcludedFields(actual, rel),
                     "$engineName standard output for $rel differs from golden"
                 )
             }
@@ -419,19 +434,80 @@ class SmokeTest {
         return JsonParser(text).parseValue() as Map<String, Any?>
     }
 
-    private fun zeroPerformanceDurations(report: Map<String, Any?>, filePath: String? = null): Map<String, Any?> {
+    @Suppress("UNCHECKED_CAST")
+    private fun stripGoldenExcludedFields(report: Map<String, Any?>, filePath: String? = null): Map<String, Any?> {
         val out = LinkedHashMap(report)
         if (filePath != null) out["filePath"] = filePath
-        // engineVersion bumps with every release and is not a behavioral signal.
-        out.remove("engineVersion")
-        @Suppress("UNCHECKED_CAST")
-        val perf = (out["performance"] as? Map<String, Any?>) ?: return out
-        out["performance"] = perf.mapValues { (_, phase) ->
-            @Suppress("UNCHECKED_CAST")
-            val phaseMap = (phase as? Map<String, Any?>) ?: return@mapValues phase
-            phaseMap.mapValues { (key, value) -> if (key == "durationMs") 0.0 else value }
+        out.remove("version")
+        out.remove("performance")
+        val metadata = out["metadata"] as? Map<String, Any?>
+        if (metadata != null) {
+            val trimmed = LinkedHashMap(metadata)
+            trimmed.remove("rulesEvaluated")
+            trimmed.remove("cfnLintVersion")
+            trimmed.remove("resourceSchemaVersion")
+            out["metadata"] = trimmed
         }
         return out
+    }
+
+    @Test
+    fun performanceIsPresentWithTimingPerPhase() {
+        val performance = REGO.validateDetailed(templateFile("good/generic.yaml"), defaultConfig()).performance
+        val phases = listOf(
+            performance.schemaInit,
+            performance.engineInit,
+            performance.modelBuild,
+            performance.schemaValidate,
+            performance.ruleEvaluation,
+            performance.diagnosticFinalize,
+            performance.validateTotal,
+        )
+        for (phase in phases) {
+            assertTrue(phase.durationMs >= 0.0, "phase durationMs must be present and non-negative")
+        }
+    }
+
+    companion object {
+        private val resourcesRoot: File = listOf(
+            File("${System.getProperty("user.dir")}/../../resources"),
+            File("${System.getProperty("user.dir")}/../../../resources"),
+        ).first { it.exists() }
+        private val templatesRoot = File(resourcesRoot, "templates")
+        private val expectedDir = File(resourcesRoot, "expected")
+        private val rulesDir = File(resourcesRoot, "rules")
+
+        private val gson = buildBindingsGson()
+
+        private val EXPECTED_TEMPLATES: List<String>
+        private val COMBINED_GOLDEN: Map<String, Any?>
+
+        private val GOLDEN_DIRS = listOf("bad", "cdk", "good", "gh-issues", "integration", "issues", "lsp", "public", "quickstart")
+
+        init {
+            val goldenFile = File(expectedDir, "validation_reports.json")
+            @Suppress("UNCHECKED_CAST")
+            COMBINED_GOLDEN = JsonParser(goldenFile.readText()).parseValue() as Map<String, Any?>
+            EXPECTED_TEMPLATES = discoverAllTemplates()
+        }
+
+        private fun discoverAllTemplates(): List<String> {
+            val templates = mutableListOf<String>()
+            for (sub in GOLDEN_DIRS) {
+                val dir = File(templatesRoot, sub)
+                if (dir.isDirectory) {
+                    dir.walkTopDown().filter { it.isFile && it.extension in listOf("yaml", "yml", "json") }.forEach {
+                        templates.add(it.relativeTo(templatesRoot).path.replace('\\', '/'))
+                    }
+                }
+            }
+            return templates.sorted()
+        }
+
+        private val FULL_ONLY_FIELDS = listOf("documentationUrl", "context", "ruleDescription", "phase", "section")
+
+        private val CEL = CelEngine(EngineConfig())
+        private val REGO = RegoEngine(EngineConfig())
     }
 }
 

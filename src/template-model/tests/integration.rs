@@ -1,4 +1,6 @@
 use template_model::SemanticModel;
+use template_model::SpanProvider;
+use template_model::resolver::ResolvedValue;
 
 const TEMPLATES: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../resources/templates");
 
@@ -32,31 +34,31 @@ fn fixture_both_intrinsic_forms() {
 
     let bucket_short = model.resource("BucketShort").unwrap();
     match bucket_short.properties.get("BucketName") {
-        Some(template_model::resolver::ResolvedValue::Enum { variants: _ }) => {}
+        Some(ResolvedValue::Enum { variants: _ }) => {}
         other => panic!("BucketShort.BucketName: expected Enum from Sub, got {:?}", other),
     }
 
     let bucket_long = model.resource("BucketLong").unwrap();
     match bucket_long.properties.get("BucketName") {
-        Some(template_model::resolver::ResolvedValue::Enum { variants: _ }) => {}
+        Some(ResolvedValue::Enum { variants: _ }) => {}
         other => panic!("BucketLong.BucketName: expected Enum from Sub, got {:?}", other),
     }
 
     let with_getatt = model.resource("WithGetAtt").unwrap();
     match with_getatt.properties.get("ShortForm") {
-        Some(template_model::resolver::ResolvedValue::Reference { target: t, .. }) => {
+        Some(ResolvedValue::Reference { target: t, .. }) => {
             assert_eq!(t, "BucketShort")
         }
         other => panic!("WithGetAtt.ShortForm: expected Reference, got {:?}", other),
     }
     match with_getatt.properties.get("LongFormDotted") {
-        Some(template_model::resolver::ResolvedValue::Reference { target: t, .. }) => {
+        Some(ResolvedValue::Reference { target: t, .. }) => {
             assert_eq!(t, "BucketShort")
         }
         other => panic!("WithGetAtt.LongFormDotted: expected Reference, got {:?}", other),
     }
     match with_getatt.properties.get("LongFormArray") {
-        Some(template_model::resolver::ResolvedValue::Reference { target: t, .. }) => {
+        Some(ResolvedValue::Reference { target: t, .. }) => {
             assert_eq!(t, "BucketLong")
         }
         other => panic!("WithGetAtt.LongFormArray: expected Reference, got {:?}", other),
@@ -64,13 +66,13 @@ fn fixture_both_intrinsic_forms() {
 
     let with_join = model.resource("WithJoin").unwrap();
     match with_join.properties.get("Short") {
-        Some(template_model::resolver::ResolvedValue::Concrete { value: v }) => {
+        Some(ResolvedValue::Concrete { value: v }) => {
             assert_eq!(v.as_str().unwrap(), "a-b-c");
         }
         other => panic!("WithJoin.Short: expected Concrete 'a-b-c', got {:?}", other),
     }
     match with_join.properties.get("Long") {
-        Some(template_model::resolver::ResolvedValue::Concrete { value: v }) => {
+        Some(ResolvedValue::Concrete { value: v }) => {
             assert_eq!(v.as_str().unwrap(), "x-y-z");
         }
         other => panic!("WithJoin.Long: expected Concrete 'x-y-z', got {:?}", other),
@@ -78,13 +80,13 @@ fn fixture_both_intrinsic_forms() {
 
     let with_select = model.resource("WithSelect").unwrap();
     match with_select.properties.get("Short") {
-        Some(template_model::resolver::ResolvedValue::Concrete { value: v }) => {
+        Some(ResolvedValue::Concrete { value: v }) => {
             assert_eq!(v.as_str().unwrap(), "a")
         }
         other => panic!("WithSelect.Short: expected Concrete 'a', got {:?}", other),
     }
     match with_select.properties.get("Long") {
-        Some(template_model::resolver::ResolvedValue::Concrete { value: v }) => {
+        Some(ResolvedValue::Concrete { value: v }) => {
             assert_eq!(v.as_str().unwrap(), "b")
         }
         other => panic!("WithSelect.Long: expected Concrete 'b', got {:?}", other),
@@ -92,15 +94,15 @@ fn fixture_both_intrinsic_forms() {
 
     let with_if = model.resource("WithIf").unwrap();
     assert!(
-        matches!(with_if.properties.get("Short"), Some(template_model::resolver::ResolvedValue::Conditional { condition: c, .. }) if c == "IsProd")
+        matches!(with_if.properties.get("Short"), Some(ResolvedValue::Conditional { condition: c, .. }) if c == "IsProd")
     );
     assert!(
-        matches!(with_if.properties.get("Long"), Some(template_model::resolver::ResolvedValue::Conditional { condition: c, .. }) if c == "IsProd")
+        matches!(with_if.properties.get("Long"), Some(ResolvedValue::Conditional { condition: c, .. }) if c == "IsProd")
     );
 
     let with_b64 = model.resource("WithBase64").unwrap();
     match with_b64.properties.get("Short") {
-        Some(template_model::resolver::ResolvedValue::Concrete { value: v }) => {
+        Some(ResolvedValue::Concrete { value: v }) => {
             assert_eq!(v.as_str().unwrap(), "aGVsbG8=")
         }
         other => panic!("WithBase64.Short: expected Concrete base64, got {:?}", other),
@@ -108,20 +110,18 @@ fn fixture_both_intrinsic_forms() {
 
     let sub_block = model.resource("SubBlock").unwrap();
     match sub_block.properties.get("UserData") {
-        Some(template_model::resolver::ResolvedValue::Enum { variants: _ }) => {}
+        Some(ResolvedValue::Enum { variants: _ }) => {}
         other => panic!("SubBlock.UserData: expected Enum from Sub, got {:?}", other),
     }
 
     assert!(model.conditions.conditions.contains_key("IsProd"));
-    assert!(model.conditions.conditions.contains_key("IsProdShort"));
+    assert!(model.conditions.conditions.contains_key("IsDevShort"));
     assert!(model.conditions.conditions.contains_key("Combined"));
 
     assert!(model.mappings.contains_key("MyMap"));
 
     assert_eq!(model.outputs.len(), 1);
 }
-
-// ── Parser: JSON/YAML auto-detection and edge cases ─────────────────────
 
 #[test]
 fn parser_auto_detects_json() {
@@ -284,10 +284,157 @@ fn parser_minimal_template_no_properties() {
 }
 
 #[test]
-fn parser_fn_if_undefined_condition_produces_f1104() {
+fn parser_fn_if_undefined_condition_produces_e1028() {
+    // An undefined Fn::If condition is reported once, as E1028, even when no
+    // Conditions section is present.
     let input = r#"{"Resources":{"R":{"Type":"T","Properties":{"V":{"Fn::If":["NonExistent",1,2]}}}}}"#;
     let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
-    assert!(model.diagnostics.iter().any(|d| d.rule_id == "F1104" && d.message.contains("NonExistent")));
+    let e1028: Vec<_> = model.diagnostics.iter().filter(|d| d.rule_id == "E1028").collect();
+    assert_eq!(e1028.len(), 1, "exactly one E1028 for an undefined Fn::If condition");
+    assert!(e1028[0].message.contains("NonExistent"));
+    assert!(!model.diagnostics.iter().any(|d| d.rule_id == "F1104"), "F1104 must no longer fire for this case");
+}
+
+#[test]
+fn dynamic_reference_e1050_matches_reference_cases() {
+    // Each malformed form fires E1050; each valid form does not. These mirror the
+    // dynamic-reference schema (ssm numeric version, secretsmanager ARN 'secret'
+    // segment, unknown service, and the tolerant ssm parameter-name search).
+    let fires = |props: &str| {
+        let input = format!(r#"{{"Resources":{{"B":{{"Type":"AWS::S3::Bucket","Properties":{props}}}}}}}"#);
+        let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        model.diagnostics.iter().any(|d| d.rule_id == "E1050")
+    };
+    // Malformed → E1050
+    assert!(fires(r#"{"BucketName":"{{resolve:ssm:/p:notanum}}"}"#), "ssm non-numeric version");
+    assert!(fires(r#"{"BucketName":"{{resolve:not-a-service:foo}}"}"#), "unknown service");
+    assert!(
+        fires(r#"{"BucketName":"{{resolve:secretsmanager:arn:aws:s3:us-east-1:1:notsecret:n}}"}"#),
+        "secretsmanager ARN missing 'secret' segment"
+    );
+    // Valid → no E1050
+    assert!(!fires(r#"{"BucketName":"{{resolve:ssm:/my/param}}"}"#), "valid ssm");
+    assert!(!fires(r#"{"BucketName":"{{resolve:ssm:my param with spaces}}"}"#), "ssm name with spaces is tolerated");
+    assert!(!fires(r#"{"BucketName":"{{resolve:secretsmanager:}}"}"#), "empty secret-id is valid");
+    assert!(
+        !fires(r#"{"BucketName":"{{resolve:secretsmanager:s:SecretString:k:stage:id}}"}"#),
+        "full non-ARN secretsmanager tail is valid"
+    );
+}
+
+#[test]
+fn dynamic_reference_inside_function_is_not_format_checked() {
+    // A malformed dynamic reference that is an argument to Fn::Sub is owned by
+    // the enclosing function, so E1050 does not fire on it.
+    let input = r#"{"Resources":{"B":{"Type":"AWS::S3::Bucket","Properties":{"BucketName":{"Fn::Sub":"x-{{resolve:ssm:p:notanum}}"}}}}}"#;
+    let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
+    assert!(!model.diagnostics.iter().any(|d| d.rule_id == "E1050"), "dynamic ref inside Fn::Sub must not fire E1050");
+}
+
+#[test]
+fn bare_ref_condition_body_produces_e8001_not_e8007() {
+    // A condition body that is a bare Fn::Ref (to a parameter) is not a boolean
+    // and is not a condition reference: report E8001, never E8007.
+    let input = r#"{
+        "Parameters":{"MyParam":{"Type":"String"}},
+        "Conditions":{"MyCond":{"Ref":"MyParam"}},
+        "Resources":{"B":{"Type":"AWS::S3::Bucket","Condition":"MyCond"}}
+    }"#;
+    let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
+    assert!(model.diagnostics.iter().any(|d| d.rule_id == "E8001"), "bare Fn::Ref condition body must be E8001");
+    assert!(!model.diagnostics.iter().any(|d| d.rule_id == "E8007"), "must not be reported as an undefined condition");
+}
+
+#[test]
+fn undefined_output_condition_produces_e6005_with_location() {
+    // An output referencing an undefined condition is E6005 (resources use
+    // E8002), located at the output.
+    let input = r#"{
+        "Conditions":{"IsProd":{"Fn::Equals":[{"Ref":"AWS::Region"},"us-east-1"]}},
+        "Resources":{"R":{"Type":"AWS::S3::Bucket","Condition":"Missing"}},
+        "Outputs":{"Out":{"Condition":"AlsoMissing","Value":"x"}}
+    }"#;
+    let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
+    let e6005: Vec<_> = model.diagnostics.iter().filter(|d| d.rule_id == "E6005").collect();
+    let e8002: Vec<_> = model.diagnostics.iter().filter(|d| d.rule_id == "E8002").collect();
+    assert_eq!(e6005.len(), 1, "output undefined condition -> E6005");
+    assert!(e6005[0].message.contains("AlsoMissing"));
+    assert_eq!(e8002.len(), 1, "resource undefined condition -> E8002");
+    assert!(e8002[0].message.contains("Missing"));
+}
+
+#[test]
+fn raw_pseudo_parameter_in_output_and_parameter_default_produce_w1054() {
+    // W1054 covers pseudo-parameter strings in Outputs and parameter Defaults,
+    // not only resource properties, and includes AWS::NoValue.
+    let input = r#"{
+        "Parameters":{"P":{"Type":"String","Default":"AWS::Region"}},
+        "Resources":{"B":{"Type":"AWS::S3::Bucket","Properties":{"BucketName":"AWS::NoValue"}}},
+        "Outputs":{"Out":{"Value":"AWS::AccountId"}}
+    }"#;
+    let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
+    let w1054: Vec<_> = model.diagnostics.iter().filter(|d| d.rule_id == "W1054").collect();
+    assert!(w1054.iter().any(|d| d.message.contains("AWS::Region")), "param Default pseudo-param -> W1054");
+    assert!(w1054.iter().any(|d| d.message.contains("AWS::AccountId")), "output pseudo-param -> W1054");
+    // AWS::NoValue in a resource property is collected for the engine rule; the
+    // parse-time set here covers Outputs and parameter Defaults.
+}
+
+#[test]
+fn yaml_merge_key_produces_w1100() {
+    // The `<<` merge key is not supported by CloudFormation; W1100 must fire
+    // (regression: the span capture used to read an already-emptied slot).
+    let input = "\
+.base: &base
+  BucketName: my-bucket
+Resources:
+  B:
+    Type: AWS::S3::Bucket
+    Properties:
+      <<: *base
+";
+    let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
+    assert!(model.diagnostics.iter().any(|d| d.rule_id == "W1100"), "YAML merge key must produce W1100");
+}
+
+#[test]
+fn equals_operand_producing_non_scalar_produces_e8003() {
+    // A function whose result is not a scalar (Fn::GetAtt, Fn::Base64,
+    // Fn::GetAZs, Fn::ImportValue, boolean functions) is not a valid Fn::Equals
+    // operand. Each must be rejected with E8003.
+    let cases = [
+        r#"{"Conditions":{"C":{"Fn::Equals":[{"Fn::GetAtt":["R","Arn"]},"x"]}},"Resources":{"R":{"Type":"AWS::S3::Bucket"}}}"#,
+        r#"{"Conditions":{"C":{"Fn::Equals":[{"Fn::Base64":"abc"},"x"]}},"Resources":{"R":{"Type":"AWS::S3::Bucket"}}}"#,
+        r#"{"Conditions":{"C":{"Fn::Equals":[{"Fn::ImportValue":"E"},"x"]}},"Resources":{"R":{"Type":"AWS::S3::Bucket"}}}"#,
+        r#"{"Conditions":{"C":{"Fn::Equals":[{"Fn::GetAZs":""},"x"]}},"Resources":{"R":{"Type":"AWS::S3::Bucket"}}}"#,
+    ];
+    for input in cases {
+        let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        assert!(
+            model.diagnostics.iter().any(|d| d.rule_id == "E8003"),
+            "expected E8003 for a non-scalar Fn::Equals operand in: {input}"
+        );
+    }
+}
+
+#[test]
+fn equals_operand_scalar_producing_function_is_accepted() {
+    // The value-producing functions permitted by CloudFormation must not trip
+    // E8003 when used as an Fn::Equals operand.
+    let input = r#"{
+        "Parameters":{"X":{"Type":"String"}},
+        "Conditions":{
+            "C1":{"Fn::Equals":[{"Ref":"X"},"a"]},
+            "C2":{"Fn::Equals":[{"Fn::Select":[0,{"Fn::Split":[",","a,b"]}]},"a"]},
+            "C3":{"Fn::Equals":[{"Fn::Sub":"${X}"},"a"]}
+        },
+        "Resources":{"R":{"Type":"AWS::S3::Bucket","Condition":"C1"}}
+    }"#;
+    let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
+    assert!(
+        !model.diagnostics.iter().any(|d| d.rule_id == "E8003"),
+        "E8003 must not fire for scalar-producing Fn::Equals operands"
+    );
 }
 
 #[test]
@@ -312,8 +459,6 @@ fn parser_span_index_populated() {
     assert!(model.span_index.contains_key("Resources/MyBucket/Properties/BucketName"));
 }
 
-// ── SAM: globals merging, implicit resources ────────────────────────────
-
 #[test]
 fn sam_globals_merged_into_function() {
     let model = model_from_fixture("good/transform_serverless_globals.yaml");
@@ -323,6 +468,10 @@ fn sam_globals_merged_into_function() {
     assert!(model.sam_globals["Function"].contains_key("Runtime"));
     // The function should have the Runtime property from globals
     assert!(func.properties.contains_key("Runtime"));
+    let runtime_span = model
+        .source_location("Resources/myFunction/Properties/Runtime")
+        .expect("inherited Runtime should retain its Globals source span");
+    assert_eq!(runtime_span.start_line, 5, "inherited Runtime should point to Globals.Function.Runtime");
 }
 
 #[test]
@@ -342,21 +491,19 @@ fn sam_globals_param_refs_collected() {
     assert_eq!(model.globals_param_refs.len(), 0, "expected no param refs in globals for this template");
 }
 
-// ── Dynamic references ({{resolve:...}}) ────────────────────────────────
-
 #[test]
-fn dynamic_reference_resolves_to_dynamic() {
+fn dynamic_reference_resolves_to_typed_dynamic() {
     let input = r#"{"Resources":{"R":{"Type":"T","Properties":{"V":"{{resolve:ssm:my-param}}"}}}}"#;
     let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
     match model.resolve("R", "Properties.V") {
-        Some(template_model::resolver::ResolvedValue::Dynamic { reason: msg }) => {
+        Some(ResolvedValue::TypedDynamic { reason: msg, param_type: t }) => {
+            assert_eq!(t, "String");
             assert!(msg.contains("dynamic reference"));
+            assert!(msg.contains("{{resolve:ssm:my-param}}"), "reason should carry the literal, got {msg:?}");
         }
-        other => panic!("Expected Dynamic, got {:?}", other),
+        other => panic!("Expected TypedDynamic, got {:?}", other),
     }
 }
-
-// ── Sub with GetAtt (implicit in ${Resource.Attr}) ──────────────────────
 
 #[test]
 fn sub_with_implicit_getatt() {
@@ -366,8 +513,6 @@ fn sub_with_implicit_getatt() {
     // Should produce a Dynamic (can't fully resolve GetAtt) but should record the edge
     assert!(model.graph.depends_on("R", "Other"));
 }
-
-// ── Condition stack edges ───────────────────────────────────────────────
 
 #[test]
 fn fn_if_edges_have_condition_context() {
@@ -397,8 +542,6 @@ Resources:
     assert!(b_edge.condition_context.as_ref().unwrap().contains("!C"));
 }
 
-// ── resolve_scenarios with nested conditionals ──────────────────────────
-
 #[test]
 fn resolve_scenarios_nested_conditionals() {
     let input = r#"
@@ -426,8 +569,6 @@ Resources:
     assert_eq!(scenarios.len(), 3, "expected 3 scenarios, got {:?}", scenarios);
 }
 
-// ── source_location / SpanProvider ──────────────────────────────────────
-
 #[test]
 fn source_location_returns_span() {
     let input = "Resources:\n  R:\n    Type: T\n    Properties:\n      Name: hello\n";
@@ -445,7 +586,6 @@ fn source_location_missing_returns_none() {
 
 #[test]
 fn span_provider_trait_works() {
-    use diagnostics::SpanProvider;
     let input = "Resources:\n  R:\n    Type: T\n";
     let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
     let span = SpanProvider::source_location(&model, "Resources/R");
@@ -478,6 +618,10 @@ fn verify_diagnostic_json_contract() {
         "samImplicitResources",
         "globalsParamRefs",
         "isCdk",
+        "fnIfConditions",
+        "findInMapNames",
+        "paramsReferencedInDefinitions",
+        "hasDynamicFindinmapName",
         "hasParseErrors",
         "parsedRules",
         "resolutionSources",
@@ -538,8 +682,6 @@ fn verify_diagnostic_json_contract() {
         }
     }
 }
-
-// ── Rules-section ref edges ─────────────────────────────────────────────
 
 /// CDK-synthesized bootstrap-version assertion: `Fn::Not` wrapping
 /// `Fn::Contains` references the `BootstrapVersion` parameter. The
@@ -664,4 +806,25 @@ fn rules_section_ref_appears_in_diagnostic_edges_array() {
         referenced,
         "diagnostic edges array must contain a Ref to BootstrapVersion sourced from a Rules pseudo-resource"
     );
+}
+
+#[test]
+fn rules_equals_getatt_operand_reports_once() {
+    // A GetAtt operand of Fn::Equals in a Rules assertion is the parser's
+    // not-a-string finding; the Rules-section allowlist walk must not report
+    // the same operand a second time.
+    let yaml = b"
+Rules:
+  R1:
+    Assertions:
+      - Assert: !Equals [!GetAtt B.Arn, x]
+Resources:
+  B:
+    Type: AWS::S3::Bucket
+";
+    let model = SemanticModel::from_bytes(yaml).unwrap();
+    let e8003 = model.diagnostics.iter().filter(|d| d.rule_id == "E8003").count();
+    let f8611 = model.diagnostics.iter().filter(|d| d.rule_id == "F8611").count();
+    assert_eq!(e8003, 1, "operand type finding fires once: {:?}", model.diagnostics);
+    assert_eq!(f8611, 0, "allowlist walk must not double-report the operand: {:?}", model.diagnostics);
 }

@@ -1,0 +1,86 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  DynamicRecordValue:
+    Type: String
+Resources:
+  EIP:
+    Type: AWS::EC2::EIP
+    Properties: {}
+  AGetAtt:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: Z123456789EXAMPLE
+      Name: a-getatt.example.com.
+      Type: A
+      TTL: '300'
+      ResourceRecords:
+        - !GetAtt EIP.PublicIp
+  AResourceRef:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: Z123456789EXAMPLE
+      Name: a-ref.example.com.
+      Type: A
+      TTL: '300'
+      ResourceRecords:
+        - !Ref EIP
+  AaaaGetAtt:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: Z123456789EXAMPLE
+      Name: aaaa.example.com.
+      Type: AAAA
+      TTL: '300'
+      ResourceRecords:
+        - !GetAtt EIP.PublicIp
+  TxtGetAtt:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: Z123456789EXAMPLE
+      Name: txt.example.com.
+      Type: TXT
+      TTL: '300'
+      ResourceRecords:
+        - !GetAtt EIP.PublicIp
+  MxGetAtt:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: Z123456789EXAMPLE
+      Name: mx.example.com.
+      Type: MX
+      TTL: '300'
+      ResourceRecords:
+        - !GetAtt EIP.PublicIp
+  CaaGetAtt:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: Z123456789EXAMPLE
+      Name: caa.example.com.
+      Type: CAA
+      TTL: '300'
+      ResourceRecords:
+        - !GetAtt EIP.PublicIp
+  DynamicParameter:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: Z123456789EXAMPLE
+      Name: parameter.example.com.
+      Type: A
+      TTL: '300'
+      ResourceRecords:
+        - !Ref DynamicRecordValue
+  Group:
+    Type: AWS::Route53::RecordSetGroup
+    Properties:
+      HostedZoneId: Z123456789EXAMPLE
+      RecordSets:
+        - Name: grouped-a.example.com.
+          Type: A
+          TTL: '300'
+          ResourceRecords:
+            - !GetAtt EIP.PublicIp
+        - Name: grouped-txt.example.com.
+          Type: TXT
+          TTL: '300'
+          ResourceRecords:
+            - !Ref DynamicRecordValue

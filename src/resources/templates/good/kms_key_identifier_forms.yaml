@@ -1,0 +1,31 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Every valid KMS key identifier form is accepted for key-identifier properties.
+Resources:
+  TopicKeyId:
+    Type: AWS::SNS::Topic
+    Properties:
+      KmsMasterKeyId: 1234abcd-12ab-34cd-56ef-1234567890ab
+  TopicKeyArn:
+    Type: AWS::SNS::Topic
+    Properties:
+      KmsMasterKeyId: arn:aws:kms:us-east-1:123456789012:key/1234abcd-12ab-34cd-56ef-1234567890ab
+  TopicAliasName:
+    Type: AWS::SNS::Topic
+    Properties:
+      KmsMasterKeyId: alias/ExampleAlias
+  TopicAliasArn:
+    Type: AWS::SNS::Topic
+    Properties:
+      KmsMasterKeyId: arn:aws:kms:us-east-1:123456789012:alias/ExampleAlias
+  TopicMultiRegionKeyId:
+    Type: AWS::SNS::Topic
+    Properties:
+      KmsMasterKeyId: mrk-1234abcd12ab34cd56ef1234567890ab
+  TopicMultiRegionKeyArn:
+    Type: AWS::SNS::Topic
+    Properties:
+      KmsMasterKeyId: arn:aws:kms:us-east-1:123456789012:key/mrk-1234abcd12ab34cd56ef1234567890ab
+  TopicIntrinsicAliasArn:
+    Type: AWS::SNS::Topic
+    Properties:
+      KmsMasterKeyId: !Sub arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:alias/aws/sns

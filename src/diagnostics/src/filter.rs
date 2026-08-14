@@ -1,12 +1,16 @@
 use log::debug;
 use rules::FilterConfig;
+use template_model::EntityType;
 
-/// Trait for types that can be filtered by rule ID, category, resource ID, or resource type.
+/// Trait for types that can be filtered by rule ID, category, resource ID,
+/// resource type, or entity (logical ID and entity type).
 pub trait Filterable {
     fn rule_id(&self) -> &str;
     fn category(&self) -> Option<&str>;
     fn resource_id(&self) -> Option<&str>;
     fn resource_type(&self) -> Option<&str>;
+    fn logical_id(&self) -> Option<&str>;
+    fn entity_type(&self) -> Option<EntityType>;
 }
 
 /// Remove diagnostics that do not pass the include/exclude filter configuration.
@@ -15,7 +19,16 @@ pub fn apply_filters<T: Filterable>(diagnostics: &mut Vec<T>, filters: &FilterCo
         return;
     }
     let before = diagnostics.len();
-    diagnostics.retain(|d| filters.matches_rule(d.rule_id(), d.category(), d.resource_id(), d.resource_type()));
+    diagnostics.retain(|d| {
+        filters.matches_rule(
+            d.rule_id(),
+            d.category(),
+            d.resource_id(),
+            d.resource_type(),
+            d.logical_id(),
+            d.entity_type(),
+        )
+    });
     let removed = before - diagnostics.len();
     if removed > 0 {
         debug!("Filters removed {} diagnostics ({} -> {})", removed, before, diagnostics.len());
@@ -32,6 +45,8 @@ mod tests {
         category: Option<String>,
         resource_id: Option<String>,
         resource_type: Option<String>,
+        logical_id: Option<String>,
+        entity_type: Option<EntityType>,
     }
 
     impl Filterable for TestDiagnostic {
@@ -47,6 +62,12 @@ mod tests {
         fn resource_type(&self) -> Option<&str> {
             self.resource_type.as_deref()
         }
+        fn logical_id(&self) -> Option<&str> {
+            self.logical_id.as_deref()
+        }
+        fn entity_type(&self) -> Option<EntityType> {
+            self.entity_type
+        }
     }
 
     fn diag(rule_id: &str, category: &str) -> TestDiagnostic {
@@ -55,6 +76,8 @@ mod tests {
             category: Some(category.into()),
             resource_id: None,
             resource_type: None,
+            logical_id: None,
+            entity_type: None,
         }
     }
 
@@ -64,6 +87,8 @@ mod tests {
             category: Some(category.into()),
             resource_id: Some(rid.into()),
             resource_type: Some(rtype.into()),
+            logical_id: Some(rid.into()),
+            entity_type: Some(EntityType::Resource),
         }
     }
 
@@ -93,7 +118,7 @@ mod tests {
             RuleFilterConfig::default(),
             RuleFilterConfig {
                 resource_types: vec![ResourceTypeFilter {
-                    rule_id: "E3012".into(),
+                    rule_id: Some("E3012".into()),
                     resource_type: "AWS::S3::Bucket".into(),
                 }],
                 ..Default::default()

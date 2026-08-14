@@ -1,0 +1,40 @@
+{
+  "Resources": {
+    "VPCB9E5F0B4": {
+      "Type": "AWS::EC2::VPC",
+      "Properties": {
+        "CidrBlock": "10.0.0.0/16"
+      }
+    },
+    "VPCEcrEndpointSecurityGroup50ED8BA4": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "aws-ecs-patterns-queue-isolated/VPC/EcrEndpoint/SecurityGroup",
+        "SecurityGroupEgress": [
+          {
+            "CidrIp": "0.0.0.0/0",
+            "Description": "Allow all outbound traffic by default",
+            "IpProtocol": "-1"
+          }
+        ],
+        "SecurityGroupIngress": [
+          {
+            "CidrIp": {
+              "Fn::GetAtt": [
+                "VPCB9E5F0B4",
+                "CidrBlock"
+              ]
+            },
+            "Description": "from VPC CIDR",
+            "FromPort": 443,
+            "ToPort": 443,
+            "IpProtocol": "tcp"
+          }
+        ],
+        "VpcId": {
+          "Ref": "VPCB9E5F0B4"
+        }
+      }
+    }
+  }
+}

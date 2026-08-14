@@ -6,15 +6,22 @@
 **/.gradle/
 **/.kotlin/
 **/build/
-src/bindings-jvm/tests/kotlin/generated/
 META-INF/
 org.eclipse*
 .classpath
+# Eclipse JVM build output; keep src/bindings-jvm/src/bin/ tracked.
+src/bindings-jvm/bench/bin/
+src/bindings-jvm/examples/bin/
+src/bindings-jvm/tests/kotlin/bin/
+src/bindings-jvm/tests/kotlin/generated/
 src/bindings-jvm/generated/**/*
 !src/bindings-jvm/generated/*.jar
 
 # Node / WASM
 **/node_modules/
+**/package-lock.json
+!src/bindings-wasm/package-lock.json
+!src/bindings-wasm/tests/package-lock.json
 
 # Output (regenerable)
 **/output/**
@@ -23,6 +30,12 @@ src/data-source/generated/patched_schemas/
 src/**/reports/
 **/cdk.out/
 *.pyc
+**/__pycache__/
+**/.venv/
+**/coverage/
+.coverage
+coverage.xml
+coverage.out
 
 # IDE
 **/*.iml
@@ -30,9 +43,23 @@ src/**/reports/
 **/.vscode
 pyproject.toml
 
+# Python
+src/bindings-python/generated/**/*
+!src/bindings-python/generated/dist/
+!src/bindings-python/generated/dist/*.whl
+!src/bindings-python/pyproject.toml
+
 # OS
 .DS_Store
 
 # Others
 **/tmp/
 **/docs/
+
+# AI
+.kiro/*
+!.kiro/skills/
+!.kiro/skills/**
+!.kiro/steering/
+!.kiro/steering/**
+!CLAUDE.md

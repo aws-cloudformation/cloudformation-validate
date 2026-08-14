@@ -60,6 +60,12 @@ pub struct SensitivePorts {
     pub sensitive_ports: Vec<u16>,
 }
 
+#[derive(Debug, Default, Serialize, Deserialize)]
+pub struct SecretsManagerArnFields {
+    #[serde(default)]
+    pub secretsmanager_arn_fields: Vec<String>,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

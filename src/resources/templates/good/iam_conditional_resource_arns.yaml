@@ -1,0 +1,51 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  I3510 must not false-positive when a statement's Resource is an Fn::If. A scalar
+  Fn::If is a union of its branches - a resource is acceptable if any reachable
+  branch matches the action - and an Fn::If inside a list is an opaque function
+  whose ARN is unknowable. Both mirror how the reference model treats conditional
+  resource values; this file must stay clean of I3510 in both engines.
+Parameters:
+  Toggle:
+    Type: String
+    AllowedValues: ["true", "false"]
+    Default: "true"
+Conditions:
+  UseAlt: !Equals [!Ref Toggle, "true"]
+Resources:
+  # Scalar Fn::If: the if_false branch is the correct cloudformation ARN, so the
+  # union matches even though the if_true branch is a different service.
+  ScalarIfPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: scalar-if
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: "cloudformation:CreateStack"
+            Resource:
+              !If
+                - UseAlt
+                - "arn:aws:logs:us-east-1:123456789012:log-group:x"
+                - "arn:aws:cloudformation:us-east-1:123456789012:stack/s/*"
+      Roles:
+        - some-role
+  # Fn::If as a list element is an opaque function - the whole statement's
+  # action-format check is skipped, exactly as for any other unresolved function.
+  ListIfPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: list-if
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: "cloudformation:CreateStack"
+            Resource:
+              - !If
+                - UseAlt
+                - "arn:aws:logs:us-east-1:123456789012:log-group:x"
+                - "arn:aws:s3:::some-bucket"
+      Roles:
+        - some-role

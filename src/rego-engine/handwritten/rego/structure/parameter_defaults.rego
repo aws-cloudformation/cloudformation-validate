@@ -3,8 +3,9 @@ package structure
 import rego.v1
 
 # F2012: Parameter Default must be in AllowedValues
-violation contains make_diag("F2012", "FATAL", "",
-    sprintf("Parameter '%s' Default '%s' is not in AllowedValues %v", [name, def, avs])) if {
+violation contains make_diag_at("F2012", "FATAL", "",
+    sprintf("Parameters/%s/Default", [name]),
+    sprintf("Parameter '%s' Default '%s' is not in AllowedValues %s", [name, def, render_list(avs)])) if {
     some name, param in input.parameters
     def := object.get(param, "default", null)
     def != null
@@ -15,7 +16,10 @@ violation contains make_diag("F2012", "FATAL", "",
     not def in {v | some v in avs}
 }
 
-# F2015: Parameter Default must match AllowedPattern
+# F2015: Parameter Default must match AllowedPattern. The match verdict
+# (`defaultMatchesAllowedPattern`) is precomputed in the model with a PCRE-aware compiler so that a
+# lookaround/`\Z`-style pattern is evaluated correctly. Only report when the pattern is a valid regex
+# and the default provably does not match.
 violation contains make_diag_at("F2015", "FATAL", "",
     sprintf("Parameters/%s/Default", [name]),
     sprintf("Parameter '%s' Default '%s' does not match AllowedPattern '%s'", [name, def, pat])) if {
@@ -27,11 +31,11 @@ violation contains make_diag_at("F2015", "FATAL", "",
     pat != null
     is_string(pat)
     not _is_cdl_type(param.type)
-    anchored := _anchor_pattern(pat)
-    not regex.match(anchored, def)
+    param.allowedPatternValid == true
+    param.defaultMatchesAllowedPattern == false
 }
 
-# F2015: CommaDelimitedList — each element must match AllowedPattern
+# F2015: CommaDelimitedList - the precomputed verdict already reflects that every element must match.
 violation contains make_diag_at("F2015", "FATAL", "",
     sprintf("Parameters/%s/Default", [name]),
     sprintf("Parameter '%s' Default does not match AllowedPattern '%s'", [name, pat])) if {
@@ -43,39 +47,12 @@ violation contains make_diag_at("F2015", "FATAL", "",
     pat := object.get(param, "allowedPattern", null)
     pat != null
     is_string(pat)
-    anchored := _anchor_pattern(pat)
-    parts := split(def, ",")
-    some elem_raw in parts
-    elem := trim_space(elem_raw)
-    not regex.match(anchored, elem)
+    param.allowedPatternValid == true
+    param.defaultMatchesAllowedPattern == false
 }
 
 _is_cdl_type(t) if { t == "CommaDelimitedList" }
 _is_cdl_type(t) if { startswith(t, "List<") }
-
-_anchor_pattern(pat) := anchored if {
-    startswith(pat, "^")
-    endswith(pat, "$")
-    anchored := pat
-}
-
-_anchor_pattern(pat) := anchored if {
-    startswith(pat, "^")
-    not endswith(pat, "$")
-    anchored := concat("", [pat, "$"])
-}
-
-_anchor_pattern(pat) := anchored if {
-    not startswith(pat, "^")
-    endswith(pat, "$")
-    anchored := concat("", ["^", pat])
-}
-
-_anchor_pattern(pat) := anchored if {
-    not startswith(pat, "^")
-    not endswith(pat, "$")
-    anchored := concat("", ["^", pat, "$"])
-}
 
 # F2015: Parameter Default length below MinLength
 violation contains make_diag_at("F2015", "FATAL", "",
@@ -135,7 +112,8 @@ violation contains make_diag_at("F2015", "FATAL", "",
 # Number type with non-numeric default is already covered by E0015 in parameters.rego
 
 # W2509: Parameter used as password should have NoEcho: true
-violation contains make_diag("W2509", "WARN", "",
+violation contains make_diag_at("W2509", "WARN", "",
+    sprintf("Parameters/%s", [name]),
     sprintf("Parameter '%s' appears to be a password but does not have NoEcho set to true", [name])) if {
     some name, param in input.parameters
     _is_password_param_name(name)
@@ -163,7 +141,8 @@ _param_has_noecho(name) if {
 }
 
 # F6005: Output Export name validation (must be unique, no Ref to AWS::StackName without Sub)
-violation contains make_diag("F6005", "FATAL", "",
+violation contains make_diag_at("F6005", "FATAL", "",
+    sprintf("Outputs/%s/Export/Name", [name]),
     sprintf("Output '%s' Export Name must not be empty", [name])) if {
     some name, out in input.outputs
     export := out.exportName

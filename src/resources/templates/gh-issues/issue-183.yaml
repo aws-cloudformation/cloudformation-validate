@@ -1,0 +1,35 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  GitHub issue 183: W3663 must not fire when a Lambda Permission's literal
+  SourceArn carries a proper 12-digit account id - that ARN pins the calling
+  account by itself. The issue's original ARN had a 10-digit account field,
+  which is not a valid AWS account id: it fails the ARN pattern (F3031) and
+  cannot pin the account, so W3663 fires for it - matching cfn-lint, whose
+  trigger is the same ':\d{12}:' pattern.
+Resources:
+  MyLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        ZipFile: "def handler(event, context): pass"
+      Handler: index.handler
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/lambda-role
+      Runtime: python3.12
+  # Valid 12-digit account id in the ARN - pins the account, no W3663.
+  PermissionWithAccountId:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt MyLambda.Arn
+      Principal: my-service
+      SourceArn: arn:aws:sqs:us-east-1:111111111111:MyQueue
+  # The ARN exactly as reported in the issue: a 10-digit account field is not
+  # a valid account id, so the ARN cannot pin the account - W3663 fires (and
+  # the ARN also fails the schema pattern), matching cfn-lint.
+  PermissionInvalidAccountId:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt MyLambda.Arn
+      Principal: my-service
+      SourceArn: arn:aws:sqs:us-east-1:1111111111:MyQueue

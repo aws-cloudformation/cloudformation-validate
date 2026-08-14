@@ -1,9 +1,10 @@
+use data_source::embedded::GENERATED_RULES_BYTES;
 use diagnostics::{Diagnostic, RegisteredDiagnostic};
 use rules::lookup_rule;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use template_model::SemanticModel;
-use template_model::coercion::{cfn_coerce_to_number, cfn_coerce_to_string};
+use template_model::coercion::{coerce_to_number, coerce_to_string};
 use template_model::resolver::ResolvedValue;
 use template_model::{MARKER_CONDITIONAL, MARKER_DYNAMIC};
 
@@ -35,7 +36,7 @@ impl GeneratedRuleRegistry {
         let mut global_rules = Vec::new();
         let mut total = 0;
 
-        let file: RuleFile = serde_json::from_slice(&data_source::embedded::GENERATED_RULES_BYTES)
+        let file: RuleFile = serde_json::from_slice(&GENERATED_RULES_BYTES)
             .map_err(|e| anyhow::anyhow!("Failed to parse generated rules: {}", e))?;
         for rule in file.rules {
             total += 1;
@@ -127,7 +128,7 @@ fn satisfiable(m: &SemanticModel, conds: &HashMap<String, bool>) -> bool {
 fn evaluate_rule(out: &mut Vec<Diagnostic>, m: &Arc<SemanticModel>, rid: &str, rtype: &str, rule: &RuleDescriptor) {
     let expr = &rule.expression;
 
-    // Simple expression: "true" — always fires (e.g., deprecated resource type)
+    // Simple expression: "true" - always fires (e.g., deprecated resource type)
     if expr == "true" {
         out.push(make_diag(rule, m, rid, rtype, None));
         return;
@@ -299,10 +300,10 @@ fn evaluate_rule(out: &mut Vec<Diagnostic>, m: &Arc<SemanticModel>, rid: &str, r
                 if !satisfiable(m, conds) || val.is_null() {
                     continue;
                 }
-                let coerced = cfn_coerce_to_string(val);
+                let coerced = coerce_to_string(val);
                 let matches = valid_vals.iter().any(|v| match v {
                     serde_json::Value::String(s) => coerced.as_deref() == Some(s.as_str()),
-                    serde_json::Value::Number(n) => cfn_coerce_to_number(val)
+                    serde_json::Value::Number(n) => coerce_to_number(val)
                         .map(|nv| n.as_f64().map(|nf| (nv - nf).abs() < f64::EPSILON).unwrap_or(false))
                         .unwrap_or(false),
                     serde_json::Value::Bool(b) => val.as_bool() == Some(*b),
@@ -333,8 +334,8 @@ fn evaluate_rule(out: &mut Vec<Diagnostic>, m: &Arc<SemanticModel>, rid: &str, r
                 if !satisfiable(m, conds) {
                     continue;
                 }
-                if let Some(s) = cfn_coerce_to_string(val) {
-                    if s.contains("{{resolve:") || s.contains("${") {
+                if let Some(s) = coerce_to_string(val) {
+                    if s.contains("${") {
                         continue;
                     }
                     if !re.is_match(&s) {
@@ -420,7 +421,7 @@ fn evaluate_rule(out: &mut Vec<Diagnostic>, m: &Arc<SemanticModel>, rid: &str, r
         return;
     }
 
-    // runtime_in_list(name, [...]) — for lambda runtime checks
+    // runtime_in_list(name, [...]) - for lambda runtime checks
     if let Some(rest) = expr.strip_prefix("runtime_in_list(name, ") {
         let json_str = rest.strip_suffix(')').unwrap_or(rest);
         if let Ok(runtimes) = serde_json::from_str::<Vec<String>>(json_str) {
@@ -532,24 +533,24 @@ fn eval_val_check(expr: &str, val: &serde_json::Value) -> bool {
     if let Some(rest) = expr.strip_prefix("coerce_to_number(val) > ")
         && let Ok(n) = rest.parse::<i64>()
     {
-        return cfn_coerce_to_number(val).map(|v| v > n as f64).unwrap_or(false);
+        return coerce_to_number(val).map(|v| v > n as f64).unwrap_or(false);
     }
     if let Some(rest) = expr.strip_prefix("coerce_to_number(val) < ")
         && let Ok(n) = rest.parse::<i64>()
     {
-        return cfn_coerce_to_number(val).map(|v| v < n as f64).unwrap_or(false);
+        return coerce_to_number(val).map(|v| v < n as f64).unwrap_or(false);
     }
 
     // String length: size(coerce_to_string(val)) > N or < N
     if let Some(rest) = expr.strip_prefix("size(coerce_to_string(val)) > ")
         && let Ok(n) = rest.parse::<u64>()
     {
-        return cfn_coerce_to_string(val).map(|s| s.len() as u64 > n).unwrap_or(false);
+        return coerce_to_string(val).map(|s| s.len() as u64 > n).unwrap_or(false);
     }
     if let Some(rest) = expr.strip_prefix("size(coerce_to_string(val)) < ")
         && let Ok(n) = rest.parse::<u64>()
     {
-        return cfn_coerce_to_string(val).map(|s| (s.len() as u64) < n).unwrap_or(false);
+        return coerce_to_string(val).map(|s| (s.len() as u64) < n).unwrap_or(false);
     }
 
     // Array size: is_array(val) && size(val) > N or < N
@@ -663,8 +664,6 @@ mod tests {
     use super::*;
     use serde_json::json;
     use template_model::resolver::{MapEntry, ResolvedValue};
-
-    // ── extract_has_prop / extract_not_has_prop ─────────────────────────
 
     #[test]
     fn extract_has_prop_valid() {

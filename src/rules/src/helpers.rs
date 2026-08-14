@@ -1,8 +1,36 @@
 use crate::category::Category;
 
 /// Returns `true` if the rule ID indicates a fatal-severity rule (prefix `F`).
+///
+/// This is a heuristic over the built-in ID convention only. It must never decide
+/// the severity, phase, or category of a custom, Rego, or Guard rule: those rules
+/// choose their own ID freely (see [`is_valid_custom_rule_id`]) and carry their own
+/// declared severity.
 pub fn is_fatal_rule(rule_id: &str) -> bool {
     rule_id.starts_with('F')
+}
+
+/// The characters permitted in a custom (CEL/Rego/Guard) rule ID beyond ASCII
+/// letters and digits: the identifier separators `_`, `.`, and `-`.
+pub const CUSTOM_RULE_ID_SEPARATORS: [char; 3] = ['_', '.', '-'];
+
+/// Returns `true` if `rule_id` is a well-formed custom-rule identifier: a non-empty
+/// run of ASCII letters, digits, and the separators `_`, `.`, or `-`.
+///
+/// Custom (CEL/Rego/Guard) rule IDs are intentionally NOT required to follow the
+/// built-in `[FEWID]\d{4}` convention - an author may name a rule anything in that
+/// character set. The restriction only rejects whitespace and other punctuation that
+/// would corrupt diagnostic formatting, rule-ID filtering, and de-duplication.
+pub fn is_valid_custom_rule_id(rule_id: &str) -> bool {
+    !rule_id.is_empty() && rule_id.chars().all(|c| c.is_ascii_alphanumeric() || CUSTOM_RULE_ID_SEPARATORS.contains(&c))
+}
+
+/// Extracts the numeric part of a rule ID (the digits after the severity-prefix
+/// letter), used to order diagnostics by rule number within a severity. A rule ID
+/// that does not follow the `[FEWID]\d+` convention (e.g. a custom rule) yields
+/// `u32::MAX` so it sorts after the well-formed built-in rules.
+pub fn rule_number(rule_id: &str) -> u32 {
+    rule_id.get(1..).and_then(|digits| digits.parse::<u32>().ok()).unwrap_or(u32::MAX)
 }
 
 /// Map a rule ID to its diagnostic category based on the ID prefix convention.
@@ -63,19 +91,21 @@ pub fn format_rule_for_format(format: &str) -> Option<&'static str> {
     }
 }
 
-/// Derive the top-level CloudFormation template section from diagnostic context.
-pub fn section_for_rule_id(resource_id: Option<&str>, rule_id: &str) -> Option<&'static str> {
-    if resource_id.is_some() {
-        return Some("Resources");
-    }
+/// Derive the top-level CloudFormation template section a rule reports on.
+/// Used to fall back to the section's span when a diagnostic has no more
+/// precise location.
+pub fn section_for_rule_id(rule_id: &str) -> Option<&'static str> {
     match rule_id {
-        "F0040" | "F6005" | "F6101" => Some("Outputs"),
-        "W8001" => Some("Conditions"),
-        "F0008" | "F0050" | "W7001" => Some("Mappings"),
+        "F0040" | "F6005" | "F6101" | "F6004" | "F6011" | "I6011" | "I6010" | "E6003" => Some("Outputs"),
+        "W8001" | "E8001" => Some("Conditions"),
+        "F0008" | "F0050" | "W7001" | "F0017" | "E7001" | "F7002" | "I7002" | "I7010" => Some("Mappings"),
         "F0009" => Some("Conditions"),
-        "F0003" | "F0015" | "F0016" | "F2012" | "W2506" | "W2509" | "W2001" => Some("Parameters"),
-        "F0001" | "F0007" | "F0011" | "E0001" => Some("Resources"),
+        "F0003" | "F0015" | "F0016" | "F2012" | "W2506" | "W2509" | "W2001" | "E2001" | "F2002" | "F2003" | "F2011"
+        | "I2011" | "F2015" | "W2501" | "I2010" => Some("Parameters"),
+        "F0001" | "F0007" | "F0011" | "E0001" | "F0005" | "E1028" => Some("Resources"),
         "F0002" => Some("AWSTemplateFormatVersion"),
+        "F1004" => Some("Description"),
+        "E1005" => Some("Transform"),
         "F0004" => Some("Outputs"),
         "F8600" | "F8601" | "W8602" | "F8603" | "F8604" | "F8605" | "F8606" | "F8607" | "W8608" | "F8609" | "F8610"
         | "F8611" => Some("Rules"),
@@ -100,6 +130,44 @@ mod tests {
         assert!(!is_fatal_rule("E3002"));
         assert!(!is_fatal_rule("W1001"));
         assert!(!is_fatal_rule("I3011"));
+    }
+
+    #[test]
+    fn is_valid_custom_rule_id_accepts_alphanumeric_and_separators() {
+        // Built-in-style, arbitrary, and separator-bearing IDs are all permitted.
+        assert!(is_valid_custom_rule_id("CUSTOM001"));
+        assert!(is_valid_custom_rule_id("myRule1"));
+        assert!(is_valid_custom_rule_id("check_bucket_encryption"));
+        assert!(is_valid_custom_rule_id("s3.encryption.required"));
+        assert!(is_valid_custom_rule_id("my-rule-1"));
+        assert!(is_valid_custom_rule_id("Fluffy123"));
+        assert!(is_valid_custom_rule_id("_"));
+    }
+
+    #[test]
+    fn is_valid_custom_rule_id_rejects_empty_whitespace_and_punctuation() {
+        assert!(!is_valid_custom_rule_id(""));
+        assert!(!is_valid_custom_rule_id("my rule"));
+        assert!(!is_valid_custom_rule_id("rule/id"));
+        assert!(!is_valid_custom_rule_id("rule:id"));
+        assert!(!is_valid_custom_rule_id("rule#1"));
+        assert!(!is_valid_custom_rule_id("emoji😀"));
+    }
+
+    #[test]
+    fn rule_number_extracts_numeric_suffix_ignoring_prefix() {
+        assert_eq!(rule_number("F0001"), 1);
+        assert_eq!(rule_number("E3012"), 3012);
+        assert_eq!(rule_number("W9012"), 9012);
+        // The severity prefix is irrelevant to the number, so same-numbered rules of
+        // different severities share a number and are ordered by severity first.
+        assert_eq!(rule_number("F3012"), rule_number("E3012"));
+    }
+
+    #[test]
+    fn rule_number_returns_max_for_ids_without_a_numeric_suffix() {
+        assert_eq!(rule_number("CUSTOM"), u32::MAX);
+        assert_eq!(rule_number(""), u32::MAX);
     }
 
     #[test]
@@ -128,36 +196,31 @@ mod tests {
     }
 
     #[test]
-    fn section_for_rule_id_returns_resources_when_resource_id_present() {
-        assert_eq!(section_for_rule_id(Some("Bucket"), "E3012"), Some("Resources"));
-    }
-
-    #[test]
     fn section_for_rule_id_maps_output_rules_to_outputs() {
-        assert_eq!(section_for_rule_id(None, "F0040"), Some("Outputs"));
-        assert_eq!(section_for_rule_id(None, "F0004"), Some("Outputs"));
+        assert_eq!(section_for_rule_id("F0040"), Some("Outputs"));
+        assert_eq!(section_for_rule_id("F0004"), Some("Outputs"));
     }
 
     #[test]
     fn section_for_rule_id_maps_parameter_rules_to_parameters() {
-        assert_eq!(section_for_rule_id(None, "F0003"), Some("Parameters"));
-        assert_eq!(section_for_rule_id(None, "W2001"), Some("Parameters"));
+        assert_eq!(section_for_rule_id("F0003"), Some("Parameters"));
+        assert_eq!(section_for_rule_id("W2001"), Some("Parameters"));
     }
 
     #[test]
     fn section_for_rule_id_maps_condition_rules_to_conditions() {
-        assert_eq!(section_for_rule_id(None, "F0009"), Some("Conditions"));
-        assert_eq!(section_for_rule_id(None, "W8001"), Some("Conditions"));
+        assert_eq!(section_for_rule_id("F0009"), Some("Conditions"));
+        assert_eq!(section_for_rule_id("W8001"), Some("Conditions"));
     }
 
     #[test]
     fn section_for_rule_id_maps_rules_section_rules() {
-        assert_eq!(section_for_rule_id(None, "F8600"), Some("Rules"));
+        assert_eq!(section_for_rule_id("F8600"), Some("Rules"));
     }
 
     #[test]
     fn section_for_rule_id_returns_none_for_unmapped_rule() {
-        assert_eq!(section_for_rule_id(None, "Z9999"), None);
+        assert_eq!(section_for_rule_id("Z9999"), None);
     }
 
     #[test]
@@ -186,6 +249,6 @@ mod tests {
         // The helper uses prefix heuristics; the registry is authoritative.
         // Many rules override the prefix convention. This test ensures
         // divergences don't grow unexpectedly.
-        assert!(divergences > 0, "If all agree, the helper covers everything — great!");
+        assert!(divergences > 0, "If all agree, the helper covers everything - great!");
     }
 }

@@ -1,0 +1,18 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Parameters:
+  Env:
+    Type: String
+    AllowedValues:
+      - prod
+      - dev
+Conditions:
+  IsProd:
+    !Equals [!Ref Env, "prod"]
+  IsHighAvailability:
+    !And
+      - !Condition IsProd
+      - !Condition DoesNotExist
+Resources:
+  MyBucket:
+    Type: AWS::S3::Bucket
+    Condition: IsHighAvailability

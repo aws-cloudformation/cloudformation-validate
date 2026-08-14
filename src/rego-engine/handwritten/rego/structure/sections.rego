@@ -49,4 +49,10 @@ violation contains make_diag("F0006", "FATAL", name,
     some name in object.keys(input.resources)
     is_string(name)
     not regex.match(`^[a-zA-Z0-9]+$`, name)
+    not _is_foreach_with_language_extensions(name)
+}
+
+_is_foreach_with_language_extensions(name) if {
+    startswith(name, "Fn::ForEach::")
+    has_transform("AWS::LanguageExtensions")
 }

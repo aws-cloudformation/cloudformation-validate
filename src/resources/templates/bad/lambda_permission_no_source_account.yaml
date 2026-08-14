@@ -1,0 +1,8 @@
+Resources:
+  Perm:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: myfn
+      Principal: events.amazonaws.com
+      SourceArn: arn:aws:events:us-east-1::rule/myrule

@@ -1,0 +1,45 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Resources": {
+    "Topic1": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "DisplayName": {
+          "Fn::GetStackOutput": {
+            "StackName": "producer-stack"
+          }
+        }
+      }
+    },
+    "Topic2": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "DisplayName": {
+          "Fn::GetStackOutput": {
+            "OutputName": "TopicName"
+          }
+        }
+      }
+    },
+    "Topic3": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "DisplayName": {
+          "Fn::GetStackOutput": "invalid"
+        }
+      }
+    },
+    "Topic4": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "DisplayName": {
+          "Fn::GetStackOutput": {
+            "StackName": "producer-stack",
+            "OutputName": "TopicName",
+            "BadKey": "value"
+          }
+        }
+      }
+    }
+  }
+}

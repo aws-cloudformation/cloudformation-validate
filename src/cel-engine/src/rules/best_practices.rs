@@ -1,19 +1,20 @@
+use super::patterns::AMI_ID_RE;
 use super::{EvalContext, NativeRuleRegistry};
 use diagnostics::Diagnostic;
+use rules::Category;
 use std::collections::HashSet;
 use std::sync::{Arc, LazyLock};
 use template_model::SemanticModel;
+use template_model::coercion::{coerce_to_bool, coerce_to_integer, coerce_to_string};
 use template_model::consts::{
-    EDGE_KIND_REF, FIELD_KIND, FIELD_OUTGOING_REFS, FIELD_RESOURCES, FIELD_SOURCE_PATH, FIELD_TARGET, KEY_PROPERTIES,
+    EDGE_KIND_REF, FIELD_KIND, FIELD_OUTGOING_REFS, FIELD_PROPERTIES, FIELD_RESOURCES, FIELD_SOURCE_PATH, FIELD_TARGET,
+    KEY_PROPERTIES, TRANSFORM_SERVERLESS,
 };
 use template_model::resolver::ResolvedValue;
 use validation_engine::make_resource_diagnostic;
 
-static AMI_RE: LazyLock<regex::Regex> =
-    LazyLock::new(|| regex::Regex::new(r"^ami-[0-9a-f]{8,17}$").expect("Invalid AMI_RE pattern"));
-
 static ACCT_RE: LazyLock<regex::Regex> =
-    LazyLock::new(|| regex::Regex::new(r"arn:[^:]*:[^:]*:[^:]*:[0-9]{12}:").expect("Invalid ACCT_RE pattern"));
+    LazyLock::new(|| regex::Regex::new(r"arn:[^:]*:[^:]*:[^:]*:\d{12}:").expect("Invalid ACCT_RE pattern"));
 
 /// Compile-time fallback when generated stateful_resource_types.json is absent.
 static FALLBACK_STATEFUL_TYPES: LazyLock<HashSet<String>> = LazyLock::new(|| {
@@ -39,10 +40,10 @@ static FALLBACK_STATEFUL_TYPES: LazyLock<HashSet<String>> = LazyLock::new(|| {
 });
 
 pub fn register(reg: &mut NativeRuleRegistry) {
-    reg.add(rules::Category::BestPractice, eval_best_practices);
-    reg.add(rules::Category::BestPractice, eval_retention_period_rules);
-    reg.add(rules::Category::BestPractice, eval_deprecated_resource_types);
-    reg.add(rules::Category::Security, eval_sensitive_port_rules);
+    reg.add(Category::BestPractice, eval_best_practices);
+    reg.add(Category::BestPractice, eval_retention_period_rules);
+    reg.add(Category::BestPractice, eval_deprecated_resource_types);
+    reg.add(Category::Security, eval_sensitive_port_rules);
 }
 
 fn resolve_concrete(m: &SemanticModel, rid: &str, path: &str) -> Option<serde_json::Value> {
@@ -51,6 +52,105 @@ fn resolve_concrete(m: &SemanticModel, rid: &str, path: &str) -> Option<serde_js
         ResolvedValue::Concrete { value: v } => Some(v.into_inner()),
         _ => None,
     }
+}
+
+/// Whether a `DeletionPolicy`/`UpdateReplacePolicy` value is the literal
+/// `"Delete"`. A lone policy set to `Delete` is the default behavior, so
+/// CloudFormation gains nothing from also setting its counterpart, and the
+/// configuration is treated as valid (no warning).
+fn policy_is_delete(policy: Option<&ResolvedValue>) -> bool {
+    matches!(policy, Some(ResolvedValue::Concrete { value: v }) if v.as_str() == Some("Delete"))
+}
+
+const RDS_INHERITED_OR_IGNORED_ENCRYPTION_FIELDS: [&str; 8] = [
+    "DBClusterIdentifier",
+    "DBSnapshotIdentifier",
+    "DBClusterSnapshotIdentifier",
+    "SourceDBInstanceIdentifier",
+    "SourceDbiResourceId",
+    "SourceDBInstanceAutomatedBackupsArn",
+    "SourceDBClusterIdentifier",
+    "DBSecurityGroups",
+];
+
+enum ScenarioProperty<'a> {
+    Absent,
+    Known(&'a serde_json::Value),
+    Unknown,
+}
+
+impl ScenarioProperty<'_> {
+    fn is_present(&self) -> bool {
+        !matches!(self, Self::Absent)
+    }
+}
+
+fn scenario_property<'a>(properties: &'a ResolvedValue, name: &str) -> ScenarioProperty<'a> {
+    match properties {
+        ResolvedValue::Concrete { value } => match value.0.get(name) {
+            None | Some(serde_json::Value::Null) => ScenarioProperty::Absent,
+            Some(value) => ScenarioProperty::Known(value),
+        },
+        ResolvedValue::Map { entries } => {
+            let Some(value) = entries.iter().find(|entry| entry.key == name).map(|entry| &entry.value) else {
+                return ScenarioProperty::Absent;
+            };
+            match value {
+                ResolvedValue::Concrete { value } if value.is_null() => ScenarioProperty::Absent,
+                ResolvedValue::Concrete { value } => ScenarioProperty::Known(&value.0),
+                _ => ScenarioProperty::Unknown,
+            }
+        }
+        _ => ScenarioProperty::Absent,
+    }
+}
+
+fn rds_encryption_is_inherited_or_ignored(properties: &ResolvedValue) -> bool {
+    RDS_INHERITED_OR_IGNORED_ENCRYPTION_FIELDS.iter().any(|field| {
+        let value = scenario_property(properties, field);
+        if *field == "DBSnapshotIdentifier" {
+            match value {
+                ScenarioProperty::Absent => false,
+                ScenarioProperty::Known(value) if value.as_str() == Some("") => false,
+                _ => true,
+            }
+        } else {
+            value.is_present()
+        }
+    })
+}
+
+fn rds_storage_encryption_scenario_warns(properties: &ResolvedValue) -> bool {
+    if rds_encryption_is_inherited_or_ignored(properties) {
+        return false;
+    }
+
+    let ScenarioProperty::Known(engine) = scenario_property(properties, "Engine") else {
+        return false;
+    };
+    let Some(engine) = engine.as_str() else {
+        return false;
+    };
+    let engine = engine.to_ascii_lowercase();
+    if engine.starts_with("aurora") {
+        return false;
+    }
+
+    match (engine.starts_with("custom-"), scenario_property(properties, "StorageEncrypted")) {
+        (true, ScenarioProperty::Known(value)) | (false, ScenarioProperty::Known(value)) => {
+            coerce_to_bool(value) == Some(false)
+        }
+        (false, ScenarioProperty::Absent) => true,
+        (true, ScenarioProperty::Absent) | (_, ScenarioProperty::Unknown) => false,
+    }
+}
+
+fn rds_storage_encryption_warns(model: &SemanticModel, resource_id: &str) -> bool {
+    model.resolve_properties_scenarios(resource_id).into_iter().any(|(properties, conditions)| {
+        let assumptions: Vec<(String, bool)> = conditions.into_iter().collect();
+        (assumptions.is_empty() || model.conditions.is_satisfiable(&assumptions))
+            && rds_storage_encryption_scenario_warns(&properties)
+    })
 }
 
 fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
@@ -86,7 +186,14 @@ fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     for (name, res) in &m.resources {
-        if res.deletion_policy.is_some() && res.update_replace_policy.is_none() {
+        // A lone policy whose value is "Delete" is the default behavior, so
+        // requiring its counterpart adds no protection and the configuration is
+        // valid. Only warn when the single present policy asks for something
+        // other than Delete.
+        if res.deletion_policy.is_some()
+            && res.update_replace_policy.is_none()
+            && !policy_is_delete(res.deletion_policy.as_ref())
+        {
             out.push(make_resource_diagnostic(
                 "W3011",
                 "Both 'UpdateReplacePolicy' and 'DeletionPolicy' are needed to protect resource from deletion",
@@ -96,7 +203,10 @@ fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
                 None,
             ));
         }
-        if res.update_replace_policy.is_some() && res.deletion_policy.is_none() {
+        if res.update_replace_policy.is_some()
+            && res.deletion_policy.is_none()
+            && !policy_is_delete(res.update_replace_policy.as_ref())
+        {
             out.push(make_resource_diagnostic(
                 "W3011",
                 "Both 'UpdateReplacePolicy' and 'DeletionPolicy' are needed to protect resource from deletion",
@@ -146,7 +256,7 @@ fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
             let Some(s) = val.as_str() else {
                 continue;
             };
-            if !AMI_RE.is_match(s) {
+            if !AMI_ID_RE.is_match(s) {
                 continue;
             }
             if !seen.insert(s.to_string()) {
@@ -154,7 +264,7 @@ fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
             }
             out.push(make_resource_diagnostic(
                 "W9010",
-                "Hardcoded AMI ID — use a parameter or mapping for portability",
+                "Hardcoded AMI ID - use a parameter or mapping for portability",
                 m,
                 name,
                 "Properties.ImageId",
@@ -165,14 +275,18 @@ fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     for (name, res) in &m.resources {
-        for val in res.properties.values() {
+        for (key, val) in &res.properties {
+            // Skip intrinsic-built values (e.g. an ARN assembled with Fn::Join +
+            // Ref AWS::AccountId): the account segment is a pseudo-parameter
+            // stand-in, not a literal the author typed.
             if let ResolvedValue::Concrete { value: v } = val
                 && let Some(s) = v.as_str()
                 && ACCT_RE.is_match(s)
+                && !m.is_from_intrinsic(name, &format!("Properties.{}", key))
             {
                 out.push(make_resource_diagnostic(
                     "W9013",
-                    "Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter",
+                    "Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter",
                     m,
                     name,
                     "",
@@ -183,38 +297,23 @@ fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    for (name, res) in &m.resources {
-        // Plain string properties
-        for val in res.properties.values() {
-            if let ResolvedValue::Concrete { value: v } = val
-                && let Some(s) = v.as_str()
-                && s.starts_with("arn:aws:")
-                && !crate::functions::contains_unresolvable_content(val)
-            {
+    // Only fires for a hardcoded partition inside Fn::Sub, and skips SAM templates.
+    let has_serverless = m.transforms.iter().any(|t| t == TRANSFORM_SERVERLESS);
+    if !has_serverless {
+        for (name, res) in &m.resources {
+            for path in &res.diagnostics.hardcoded_partition_arns {
                 out.push(make_resource_diagnostic(
                     "I3042",
-                    "Hardcoded partition 'aws' in ARN — use AWS::Partition pseudo-parameter for portability",
+                    &format!(
+                        "ARN in Resource {} contains hardcoded Partition in ARN or incorrectly placed Pseudo Parameters",
+                        name
+                    ),
                     m,
                     name,
-                    "",
+                    path,
                     None,
                 ));
-                break;
             }
-        }
-        // Fn::Sub templates
-        for path in &res.diagnostics.hardcoded_partition_arns {
-            out.push(make_resource_diagnostic(
-                "I3042",
-                &format!(
-                    "ARN in Resource {} contains hardcoded Partition in ARN or incorrectly placed Pseudo Parameters",
-                    name
-                ),
-                m,
-                name,
-                &format!("Properties.{}", path),
-                None,
-            ));
         }
     }
 
@@ -255,9 +354,12 @@ fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
             for prop in PASSWORD_PROPS {
                 let path = format!("Properties.{}", prop);
 
-                // Check for non-secure dynamic references via raw property
+                // Check for non-secure dynamic references via raw property. Both
+                // deploy-time-opaque variants carry the reference literal in `reason`
+                // (an embedded reference resolves to `TypedDynamic`).
                 if let Some(res) = m.resources.get(rname.as_str())
-                    && let Some(ResolvedValue::Dynamic { reason }) = res.properties.get(*prop)
+                    && let Some(ResolvedValue::Dynamic { reason } | ResolvedValue::TypedDynamic { reason, .. }) =
+                        res.properties.get(*prop)
                 {
                     if reason.contains("{{resolve:")
                         && !reason.contains("{{resolve:ssm-secure:")
@@ -314,7 +416,7 @@ fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
                         value: scenarios.0.clone().into(),
                     }) {
                         out.push(make_resource_diagnostic("W2501",
-                                &format!("Property '{}' should not be a hardcoded string — use a parameter with NoEcho or a dynamic reference", prop),
+                                &format!("Property '{}' should not be a hardcoded string - use a parameter with NoEcho or a dynamic reference", prop),
                                 m, rname, &path, None,
                             ));
                     }
@@ -323,7 +425,7 @@ fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    // W2501: Parameter used as password without NoEcho — emit at parameter location
+    // Parameter used as a password without NoEcho - emit at the parameter location.
     if let Some(resources) = ctx.input.get(FIELD_RESOURCES).and_then(|r| r.as_object()) {
         for (_rname, res) in resources {
             let Some(edges) = res.get(FIELD_OUTGOING_REFS).and_then(|r| r.as_array()) else {
@@ -349,7 +451,7 @@ fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
                         &format!("Parameter {} used as {}, therefore NoEcho should be True", target, prop),
                         m,
                         "",
-                        &format!("Parameters.{}", target),
+                        &format!("Parameters/{}", target),
                         None,
                     ));
                 }
@@ -443,23 +545,23 @@ fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     for name in m.resources_of_type("AWS::RDS::DBInstance") {
-        if !m.resources.get(name.as_str()).map(|r| r.properties.contains_key("StorageEncrypted")).unwrap_or(false) {
+        if rds_storage_encryption_warns(m, name) {
             out.push(make_resource_diagnostic(
                 "W9008",
                 "RDS instance should have StorageEncrypted set to true",
                 m,
                 name,
-                "",
+                "Properties.StorageEncrypted",
                 Some("Set StorageEncrypted to true"),
             ));
         }
     }
 
     for name in m.resources_of_type("AWS::RDS::DBInstance") {
-        if resolve_concrete(m, name, "Properties.PubliclyAccessible").as_ref().and_then(|v| v.as_bool()) == Some(true) {
+        if resolve_concrete(m, name, "Properties.PubliclyAccessible").as_ref().and_then(coerce_to_bool) == Some(true) {
             out.push(make_resource_diagnostic(
                 "W9011",
-                "RDS instance has PubliclyAccessible set to true — consider restricting access",
+                "RDS instance has PubliclyAccessible set to true - consider restricting access",
                 m,
                 name,
                 "Properties.PubliclyAccessible",
@@ -476,25 +578,58 @@ fn eval_retention_period_rules(ctx: &EvalContext) -> Vec<Diagnostic> {
     let m = ctx.model;
     for (resource_type, required_props) in &ctx.cached_data.retention_period_requirements {
         for resource_name in m.resources_of_type(resource_type) {
-            for prop in required_props {
-                let has_prop = m
+            if resource_type == "AWS::RDS::DBInstance" && !rds_dbinstance_needs_retention(ctx, resource_name) {
+                continue;
+            }
+            // A resource type may list several retention properties (a canary needs
+            // both a success and a failure retention period). The retention check
+            // collapses to a single best-match finding
+            // anchored on the properties object, so report only the first missing
+            // one - emitting one per missing property would over-report a single
+            // underlying concern.
+            let first_missing = required_props.iter().find(|prop| {
+                let key_present = m
                     .resources
                     .get(resource_name.as_str())
                     .map(|r| r.properties.contains_key(prop.as_str()))
                     .unwrap_or(false);
-                if !has_prop {
-                    out.push(make_resource_diagnostic("I3013",
-                        &format!("'{}' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)", prop),
-                        m,
-                        resource_name,
-                        &format!("Properties.{}", prop),
-                        None,
-                    ));
-                }
+                // The property is only "set" if it resolves to a real value in
+                // every satisfiable scenario. A value supplied through
+                // `Fn::If [cond, X, AWS::NoValue]` is absent in the NoValue
+                // branch, so the retention period can still lapse - the reference
+                // linter flags that, and treating mere key presence as "set" would
+                // miss it.
+                let path = format!("Properties.{}", prop);
+                let scenarios = m.resolve_scenarios_json(resource_name.as_str(), &path);
+                !key_present || scenarios.is_empty() || scenarios.iter().any(|(val, _)| val.is_null())
+            });
+            if let Some(prop) = first_missing {
+                out.push(make_resource_diagnostic("I3013",
+                    &format!("'{}' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)", prop),
+                    m,
+                    resource_name,
+                    "Properties",
+                    None,
+                ));
             }
         }
     }
     out
+}
+
+// A standalone, non-Aurora DB instance is the only RDS instance that needs an
+// explicit backup retention period: Aurora manages backups at the cluster level
+// and a read replica inherits its source's retention.
+fn rds_dbinstance_needs_retention(ctx: &EvalContext, name: &str) -> bool {
+    let Some(props) =
+        ctx.input.get(FIELD_RESOURCES).and_then(|r| r.get(name)).and_then(|res| res.get(FIELD_PROPERTIES))
+    else {
+        return false;
+    };
+    let Some(engine) = props.get("Engine").and_then(|e| e.as_str()) else {
+        return false;
+    };
+    !engine.starts_with("aurora") && props.get("SourceDBInstanceIdentifier").is_none()
 }
 
 fn check_notaction_policy(out: &mut Vec<Diagnostic>, m: &Arc<SemanticModel>, name: &str, doc: &serde_json::Value) {
@@ -506,7 +641,7 @@ fn check_notaction_policy(out: &mut Vec<Diagnostic>, m: &Arc<SemanticModel>, nam
             }
             if stmt.get("NotAction").is_some() {
                 out.push(make_resource_diagnostic("W2512",
-"IAM policy uses NotAction which grants all actions except those listed — consider using Action instead",
+"IAM policy uses NotAction which grants all actions except those listed - consider using Action instead",
 m,
 name,
 "",
@@ -523,7 +658,7 @@ fn eval_deprecated_resource_types(ctx: &EvalContext) -> Vec<Diagnostic> {
         if ctx.cached_data.deprecated_resource_types.contains(&res.resource_type) {
             out.push(make_resource_diagnostic(
                 "W9009",
-                &format!("Resource type '{}' is deprecated — consider using a newer alternative", res.resource_type),
+                &format!("Resource type '{}' is deprecated - consider using a newer alternative", res.resource_type),
                 ctx.model,
                 name,
                 "",
@@ -568,19 +703,11 @@ fn resolve_array_len(m: &Arc<SemanticModel>, name: &str, path: &str) -> Option<u
 }
 
 fn resolve_str(m: &Arc<SemanticModel>, name: &str, path: &str) -> Option<String> {
-    match resolve_concrete(m, name, path)? {
-        serde_json::Value::String(s) => Some(s),
-        serde_json::Value::Number(n) => Some(n.to_string()),
-        _ => None,
-    }
+    coerce_to_string(&resolve_concrete(m, name, path)?)
 }
 
 fn resolve_i64(m: &Arc<SemanticModel>, name: &str, path: &str) -> Option<i64> {
-    match resolve_concrete(m, name, path)? {
-        serde_json::Value::Number(n) => n.as_i64(),
-        serde_json::Value::String(s) => s.parse::<i64>().ok(),
-        _ => None,
-    }
+    coerce_to_integer(&resolve_concrete(m, name, path)?)
 }
 
 fn check_sg_rule(out: &mut Vec<Diagnostic>, m: &Arc<SemanticModel>, name: &str, rule_path: &str, ports: &[u16]) {
@@ -600,7 +727,7 @@ fn check_sg_rule(out: &mut Vec<Diagnostic>, m: &Arc<SemanticModel>, name: &str, 
         for port in ports {
             out.push(make_resource_diagnostic(
                 "W2508",
-                &format!("Security group allows all traffic from {} — sensitive port {} is exposed", open_cidr, port),
+                &format!("Security group allows all traffic from {} - sensitive port {} is exposed", open_cidr, port),
                 m,
                 name,
                 diag_path,

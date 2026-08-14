@@ -1,0 +1,19 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Four-element Fn::FindInMap with a DefaultValue but no AWS::LanguageExtensions
+  transform. The DefaultValue element is only accepted under that transform, so
+  CloudFormation rejects this as exceeding Fn::FindInMap's three-element maximum.
+Mappings:
+  Config:
+    primary:
+      endpoint: example.com
+Resources:
+  Topic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName:
+        Fn::FindInMap:
+          - Config
+          - primary
+          - missing
+          - DefaultValue: fallback

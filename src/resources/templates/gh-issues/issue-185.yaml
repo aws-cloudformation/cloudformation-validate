@@ -1,0 +1,30 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  A whole number reaching an integer enum must match regardless of its
+  written or resolved form: a Number parameter default (which resolves
+  through the parameter path) and a literal integral float (30.0) are both
+  the value 30, which is a valid LogGroup RetentionInDays. Neither form may
+  produce an enum (W3030) or type diagnostic.
+Parameters:
+  RetentionInDays:
+    Type: Number
+    Default: 30
+Resources:
+  LogGroupFromParameter:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: !Ref RetentionInDays
+      Tags:
+        - Key: purpose
+          Value: regression-test
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+  LogGroupLiteralFloat:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 30.0
+      Tags:
+        - Key: purpose
+          Value: regression-test
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain

@@ -2,7 +2,7 @@ package resources
 
 import rego.v1
 
-# E3062: RDS DBInstance — DBInstanceClass must be valid for Engine/EngineVersion
+# E3062: RDS DBInstance - DBInstanceClass must be valid for Engine/EngineVersion
 violation contains make_diag_at("E3062", "ERROR", name,
     "Properties.DBInstanceClass",
     sprintf("DBInstanceClass '%s' is not valid for Engine '%s' EngineVersion '%s'", [cls, eng, ver])) if {

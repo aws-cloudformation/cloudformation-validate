@@ -1,5 +1,6 @@
 use super::{EvalContext, NativeRuleRegistry};
 use diagnostics::Diagnostic;
+use rules::Category;
 use template_model::consts::{
     EDGE_KIND_GET_ATT, EDGE_KIND_REF, EDGE_KIND_SUB, FIELD_CONDITION_CONTEXT, FIELD_KIND, FIELD_OUTGOING_REFS,
     FIELD_RESOURCES, FIELD_SOURCE_PATH, FIELD_TARGET, KEY_DEPENDS_ON, OUTPUT_PSEUDO_RESOURCE_PREFIX,
@@ -8,7 +9,16 @@ use template_model::resolver::RefKind;
 use validation_engine::make_resource_diagnostic;
 
 pub fn register(reg: &mut NativeRuleRegistry) {
-    reg.add(rules::Category::Reference, eval_references);
+    reg.add(Category::Reference, eval_references);
+}
+
+/// Whether a property path points at a value selected by an `Fn::If` branch
+/// (a path segment `Fn::If` followed by branch index `1` or `2`). Such a
+/// reference is guarded by the surrounding `Fn::If`, so the conditional-target
+/// reference check does not apply.
+fn path_inside_fn_if_branch(path: &str) -> bool {
+    let segments: Vec<&str> = path.split('.').collect();
+    segments.windows(2).any(|w| w[0] == "Fn::If" && (w[1] == "1" || w[1] == "2"))
 }
 
 fn eval_references(ctx: &EvalContext) -> Vec<Diagnostic> {
@@ -18,15 +28,16 @@ fn eval_references(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     for (name, res) in &m.resources {
         for dep in &res.depends_on {
-            if !m.resources.contains_key(dep.as_str()) {
-                out.push(make_resource_diagnostic(
-                    "E3005",
-                    &format!("DependsOn target '{}' does not exist as a resource", dep),
-                    m,
-                    name,
-                    "",
-                    None,
-                ));
+            if !m.resources.contains_key(dep.as_str()) && !m.sam_implicit_resources.contains(dep.as_str()) {
+                // A dynamic reference cannot name a resource: DependsOn takes
+                // literal logical IDs only, so say that rather than implying a
+                // resource of that name could be added.
+                let message = if dep.contains("{{resolve:") {
+                    format!("DependsOn must be a resource logical ID, not a dynamic reference: '{}'", dep)
+                } else {
+                    format!("DependsOn target '{}' does not exist as a resource", dep)
+                };
+                out.push(make_resource_diagnostic("E3005", &message, m, name, "", None));
             }
         }
     }
@@ -40,7 +51,6 @@ fn eval_references(ctx: &EvalContext) -> Vec<Diagnostic> {
                 if !m.conditions.condition_implies(source_cond.unwrap_or(""), dep_cond) && source_cond.is_some()
                     || (source_cond.is_none() && dep_res.condition.is_some())
                 {
-                    // Only flag if source doesn't imply target condition
                     let implies = match source_cond {
                         Some(sc) => m.conditions.condition_implies(sc, dep_cond),
                         None => false, // unconditional resource depends on conditional
@@ -93,6 +103,12 @@ fn eval_references(ctx: &EvalContext) -> Vec<Diagnostic> {
                     }
                     let target = edge.get(FIELD_TARGET).and_then(|t| t.as_str()).unwrap_or("");
                     let source_path = edge.get(FIELD_SOURCE_PATH).and_then(|p| p.as_str()).unwrap_or("");
+                    // A reference that is itself a value inside an Fn::If branch is
+                    // already guarded by that Fn::If; the explicit branch choice
+                    // makes it safe, so skip these.
+                    if path_inside_fn_if_branch(source_path) {
+                        continue;
+                    }
                     if let Some(target_res) = m.resources.get(target)
                         && let Some(ref target_cond) = target_res.condition
                     {
@@ -156,6 +172,8 @@ fn eval_references(ctx: &EvalContext) -> Vec<Diagnostic> {
                     None => false,
                 };
                 if !implies {
+                    // An output is not a resource - the edge's section-absolute
+                    // source path identifies it.
                     out.push(make_resource_diagnostic(
                         "W1001",
                         &format!(
@@ -163,7 +181,7 @@ fn eval_references(ctx: &EvalContext) -> Vec<Diagnostic> {
                             edge.target, target_cond
                         ),
                         m,
-                        out_name,
+                        "",
                         &edge.source_path,
                         Some("Add a Condition to the output that implies the target's condition"),
                     ));

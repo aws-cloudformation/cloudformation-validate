@@ -26,6 +26,11 @@ pub fn sync_additional_specs(
         let mut deprecated = Vec::new();
         let mut create_blocked = Vec::new();
         let mut eol = Vec::new();
+        // Preserve each runtime's lifecycle dates + successor so the engine can
+        // reconstruct the reference tool's dated deprecation message. The band
+        // (deprecated / create-blocked / eol) is snapshotted here against the
+        // sync date, matching the reference tool evaluated on that date.
+        let mut lifecycle_dates: BTreeMap<String, serde_json::Value> = BTreeMap::new();
 
         for (runtime, info) in &lifecycle {
             let create_block = info.get("create-block").and_then(|v| v.as_str()).unwrap_or("");
@@ -41,10 +46,26 @@ pub fn sync_additional_specs(
             } else {
                 current.push(runtime.clone());
             }
+
+            lifecycle_dates.insert(
+                runtime.clone(),
+                serde_json::json!({
+                    "deprecated": deprecated_date,
+                    "create_block": create_block,
+                    "update_block": update_block,
+                    "successor": info.get("successor").cloned().unwrap_or(serde_json::Value::Null),
+                }),
+            );
         }
 
         let out = serde_json::json!({
-            "lambda_runtimes": { "current": current, "deprecated": deprecated, "create_blocked": create_blocked, "eol": eol }
+            "lambda_runtimes": {
+                "current": current,
+                "deprecated": deprecated,
+                "create_blocked": create_blocked,
+                "eol": eol,
+                "lifecycle": lifecycle_dates,
+            }
         });
         fs::write(data_output_dir.join("lambda_runtimes.json"), serde_json::to_string_pretty(&out)?)?;
         stats.files_written += 1;
@@ -63,7 +84,7 @@ pub fn sync_additional_specs(
     if policies_file.exists() {
         let content = fs::read_to_string(&policies_file)?;
         let policies: BTreeMap<String, serde_json::Value> = serde_json::from_str(&content)?;
-        let mut patterns: BTreeMap<String, String> = BTreeMap::new();
+        let mut patterns: BTreeMap<String, Vec<String>> = BTreeMap::new();
 
         for (service, svc_val) in &policies {
             let resources = match svc_val.get("Resources").and_then(|v| v.as_object()) {
@@ -74,23 +95,32 @@ pub fn sync_additional_specs(
                 Some(a) => a,
                 None => continue,
             };
-            let mut res_arns: BTreeMap<String, String> = BTreeMap::new();
+            let mut res_last_arn: BTreeMap<String, String> = BTreeMap::new();
             for (res_name, res_val) in resources {
                 if let Some(arns) = res_val.get("ARNFormats").and_then(|v| v.as_array()) {
-                    if let Some(first) = arns.first().and_then(|v| v.as_str()) {
-                        let normalized =
-                            first.replace("${Partition}", "*").replace("${Region}", "*").replace("${Account}", "*");
-                        res_arns.insert(res_name.to_lowercase(), normalized);
+                    if let Some(last) = arns.last().and_then(|v| v.as_str()) {
+                        res_last_arn.insert(res_name.to_lowercase(), last.to_string());
                     }
                 }
             }
             for (action_name, action_val) in actions {
                 if let Some(action_resources) = action_val.get("Resources").and_then(|v| v.as_array()) {
-                    if let Some(first_res) = action_resources.first().and_then(|v| v.as_str()) {
-                        if let Some(arn) = res_arns.get(&first_res.to_lowercase()) {
-                            let key = format!("{}:{}", service, action_name);
-                            patterns.insert(key, arn.clone());
+                    // Distinct resources can share an ARN format; the candidate
+                    // list is a set, so drop duplicates to keep diagnostic
+                    // messages and matching free of repeated formats.
+                    let mut arn_formats = Vec::new();
+                    for res_ref in action_resources {
+                        if let Some(res_name) = res_ref.as_str() {
+                            if let Some(arn) = res_last_arn.get(&res_name.to_lowercase()) {
+                                if !arn_formats.contains(arn) {
+                                    arn_formats.push(arn.clone());
+                                }
+                            }
                         }
+                    }
+                    if !arn_formats.is_empty() {
+                        let key = format!("{}:{}", service, action_name);
+                        patterns.insert(key, arn_formats);
                     }
                 }
             }

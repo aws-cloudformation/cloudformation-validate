@@ -1,0 +1,17 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Parameters:
+  Env:
+    Type: String
+Conditions:
+  CondA:
+    !And
+      - !Equals [!Ref Env, "prod"]
+      - !Condition CondB
+  CondB:
+    !Or
+      - !Equals [!Ref Env, "dev"]
+      - !Condition CondA
+Resources:
+  MyBucket:
+    Type: AWS::S3::Bucket
+    Condition: CondA

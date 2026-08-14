@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::borrow::Cow;
 use std::collections::HashMap;
 
 /// Definitions are stored separately and referenced by name to avoid exponential blowup.
@@ -12,6 +13,14 @@ pub struct CompiledSchema {
     pub definitions: HashMap<String, PropSchema>,
     #[serde(default)]
     pub required: Vec<String>,
+    /// Whether root-level `required` was explicitly stated in the source that
+    /// produced this schema. When `true`, merging replaces the base's root
+    /// required list (even if the list is empty, which clears it); when `false`,
+    /// merging preserves the base. Not serialized - existing committed artifacts
+    /// deserialize with the default (`false`), which is correct: bundled schemas
+    /// are never overlay sources.
+    #[serde(default, skip_serializing, skip_deserializing)]
+    pub required_present: bool,
     #[serde(default)]
     pub additional_properties: Option<bool>,
     #[serde(default)]
@@ -59,6 +68,18 @@ pub struct IfThenElse {
     pub then_schema: Option<SubSchema>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub else_schema: Option<SubSchema>,
+    /// Whether the selected branch is enforced in full (required,
+    /// additionalProperties, value constraints) rather than dependencies-only.
+    ///
+    /// Set for conditionals an overlay supplies: the overlay author states the
+    /// conditional deliberately and no dedicated rule covers it. Bundled
+    /// conditionals stay dependencies-only, because their richer semantics are
+    /// owned by dedicated resource-specific rules (with their own IDs and
+    /// severities) and enforcing them generically would double-report. Never
+    /// serialized - the committed artifact stays unchanged and deserializes to
+    /// dependencies-only.
+    #[serde(skip)]
+    pub enforce_full_branch: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -67,6 +88,12 @@ pub struct ConditionSchema {
     pub properties: HashMap<String, PropSchema>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub required: Vec<String>,
+    /// The instance type the condition requires (`if: {"type": ...}`). A
+    /// condition stating a type only matches an instance of that type; resource
+    /// roots are always objects, so `"object"` is a no-op there while any other
+    /// type makes the condition unsatisfiable at the root.
+    #[serde(default, rename = "type", skip_serializing_if = "Option::is_none")]
+    pub prop_type: Option<PropType>,
     /// When set, the condition matches if ANY of these sub-conditions match.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub any_of: Vec<ConditionSchema>,
@@ -81,7 +108,12 @@ pub struct PropSchema {
     pub prop_type: Option<PropType>,
     #[serde(default, rename = "enum", skip_serializing_if = "Vec::is_empty")]
     pub enum_values: Vec<serde_json::Value>,
-    /// JSON Schema `not: { enum: [...] }` — value must NOT match any of these.
+    /// Allowed values compared case-insensitively - used for properties whose
+    /// service accepts any casing of the documented value. A schema carries
+    /// either this or `enum_values` for a given property, never both.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub enum_case_insensitive: Vec<serde_json::Value>,
+    /// JSON Schema `not: { enum: [...] }` - value must NOT match any of these.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub not_enum: Vec<serde_json::Value>,
     #[serde(default, rename = "const", skip_serializing_if = "Option::is_none")]
@@ -97,6 +129,8 @@ pub struct PropSchema {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub exclusive_maximum: Option<f64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub multiple_of: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub min_length: Option<u64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub max_length: Option<u64>,
@@ -104,8 +138,11 @@ pub struct PropSchema {
     pub min_items: Option<u64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub max_items: Option<u64>,
-    #[serde(default, skip_serializing_if = "is_false")]
-    pub unique_items: bool,
+    /// `None` when the schema omits `uniqueItems`; `Some(false)` when it is
+    /// explicitly relaxed. Keeping the distinction lets an overlay clear a
+    /// bundled `true`.
+    #[serde(default, skip_serializing_if = "skip_unless_true")]
+    pub unique_items: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub min_properties: Option<u64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -118,6 +155,13 @@ pub struct PropSchema {
     pub properties: HashMap<String, PropSchema>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub required: Vec<String>,
+    /// Whether `required` was explicitly stated at this property, definition, or
+    /// item schema level. When `true`, merging replaces the corresponding nested
+    /// required list (even if the list is empty, which clears it); when `false`,
+    /// merging preserves the base. Not serialized - existing artifacts
+    /// deserialize unchanged.
+    #[serde(default, skip_serializing, skip_deserializing)]
+    pub required_present: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub additional_properties: Option<bool>,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
@@ -130,34 +174,250 @@ pub struct PropSchema {
     pub any_of: Vec<SubSchema>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub one_of: Vec<SubSchema>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub if_then_else: Vec<IfThenElse>,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub dependent_required: HashMap<String, Vec<String>>,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub dependent_excluded: HashMap<String, Vec<String>>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub required_or: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub required_xor: Vec<String>,
 }
 
-fn is_false(b: &bool) -> bool {
-    !b
+fn skip_unless_true(value: &Option<bool>) -> bool {
+    *value != Some(true)
 }
+
+/// A composition branch is now a full property schema - every constraint that
+/// can appear on a property is available in a branch and evaluated at runtime.
+/// This alias preserves naming clarity at usage sites.
+pub type SubSchema = PropSchema;
+
+/// Upper bound on the length of a `$ref` chain followed by
+/// `PropSchema::resolve`. Real provider schemas chain at most a handful of
+/// hops; the bound exists so a malformed definition graph cannot make resolution
+/// unbounded.
+pub(crate) const MAX_REF_CHAIN: usize = 64;
 
 impl PropSchema {
-    pub fn resolve<'a>(&'a self, defs: &'a HashMap<String, PropSchema>) -> &'a PropSchema {
-        if let Some(ref name) = self.ref_name { defs.get(name).map(|d| d.resolve(defs)).unwrap_or(self) } else { self }
+    /// The schema that actually applies to this property: the terminal target of
+    /// its `$ref` chain, with any fields stated alongside the reference merged on
+    /// top.
+    ///
+    /// A property may carry both a `$ref` and its own constraints - that is what
+    /// an overlay extending a referenced property produces. Resolving them here,
+    /// rather than folding the referenced definition into the property when the
+    /// overlay is applied, keeps the reference live: a later overlay that changes
+    /// the definition still reaches every property pointing at it, and the result
+    /// does not depend on the order definitions happened to be merged in.
+    ///
+    /// Resolution is iterative and cycle-safe: a definition graph that loops back
+    /// on itself, or a chain longer than [`MAX_REF_CHAIN`], stops at the last
+    /// schema reached instead of recursing forever. Cyclic graphs are rejected
+    /// when an overlay is applied, so this is the second line of defence - a
+    /// caller-supplied schema must never be able to exhaust the stack and abort
+    /// the process.
+    pub fn resolve<'a>(&'a self, defs: &'a HashMap<String, PropSchema>) -> Cow<'a, PropSchema> {
+        if self.ref_name.is_none() {
+            return Cow::Borrowed(self);
+        }
+        // Every hop may state constraints of its own beside its reference, so the
+        // whole chain is collected rather than just its ends.
+        let mut chain: Vec<&PropSchema> = vec![self];
+        let mut seen: Vec<&str> = Vec::new();
+        for _ in 0..MAX_REF_CHAIN {
+            let Some(name) = chain.last().and_then(|hop| hop.ref_name.as_deref()) else {
+                break;
+            };
+            if seen.contains(&name) {
+                break;
+            }
+            seen.push(name);
+            match defs.get(name) {
+                Some(next) => chain.push(next),
+                None => break,
+            }
+        }
+        let (terminal, referrers) = match chain.split_last() {
+            Some(pair) => pair,
+            // `chain` is initialized with `self`, so it is never empty. This
+            // branch is structurally unreachable but avoids a panic path.
+            None => return Cow::Borrowed(self),
+        };
+        if !referrers.iter().any(|hop| hop.has_own_constraints()) {
+            return Cow::Borrowed(terminal);
+        }
+        let mut effective = (*terminal).clone();
+        effective.ref_name = None;
+        // Nearest wins: apply the innermost referrer first and this schema last.
+        for hop in referrers.iter().rev() {
+            if !hop.has_own_constraints() {
+                continue;
+            }
+            let mut own = (*hop).clone();
+            own.ref_name = None;
+            crate::overlay::merge_prop(&mut effective, own);
+        }
+        Cow::Owned(effective)
     }
-}
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct SubSchema {
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub required: Vec<String>,
-    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    pub properties: HashMap<String, PropSchema>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub additional_properties: Option<bool>,
-    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    pub dependent_required: HashMap<String, Vec<String>>,
-    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    pub dependent_excluded: HashMap<String, Vec<String>>,
+    /// Whether this property states anything of its own beside a `$ref`.
+    ///
+    /// Destructured exhaustively so a new field cannot be forgotten here and make
+    /// a property's own constraints silently disappear at resolution time.
+    /// Whether this schema states anything `schema_value_matches` could fail a
+    /// value against. Destructured exhaustively so a newly added constraint
+    /// field cannot be omitted and silently skip branch value matching.
+    ///
+    /// `description` never constrains; a `ref_name` counts because a dangling
+    /// reference makes matching fail.
+    pub(crate) fn constrains_value(&self) -> bool {
+        let PropSchema {
+            ref_name,
+            prop_type,
+            enum_values,
+            enum_case_insensitive,
+            not_enum,
+            const_value,
+            pattern,
+            minimum,
+            maximum,
+            exclusive_minimum,
+            exclusive_maximum,
+            multiple_of,
+            min_length,
+            max_length,
+            min_items,
+            max_items,
+            unique_items,
+            min_properties,
+            max_properties,
+            format,
+            description: _,
+            properties,
+            required,
+            required_present: _,
+            additional_properties,
+            pattern_properties,
+            items,
+            all_of,
+            any_of,
+            one_of,
+            if_then_else,
+            dependent_required,
+            dependent_excluded,
+            required_or,
+            required_xor,
+        } = self;
+        ref_name.is_some()
+            || prop_type.is_some()
+            || !enum_values.is_empty()
+            || !enum_case_insensitive.is_empty()
+            || !not_enum.is_empty()
+            || const_value.is_some()
+            || pattern.is_some()
+            || minimum.is_some()
+            || maximum.is_some()
+            || exclusive_minimum.is_some()
+            || exclusive_maximum.is_some()
+            || multiple_of.is_some()
+            || min_length.is_some()
+            || max_length.is_some()
+            || min_items.is_some()
+            || max_items.is_some()
+            || unique_items == &Some(true)
+            || min_properties.is_some()
+            || max_properties.is_some()
+            || format.is_some()
+            || !properties.is_empty()
+            || !required.is_empty()
+            || additional_properties.is_some()
+            || !pattern_properties.is_empty()
+            || items.is_some()
+            || !all_of.is_empty()
+            || !any_of.is_empty()
+            || !one_of.is_empty()
+            || !if_then_else.is_empty()
+            || !dependent_required.is_empty()
+            || !dependent_excluded.is_empty()
+            || !required_or.is_empty()
+            || !required_xor.is_empty()
+    }
+
+    fn has_own_constraints(&self) -> bool {
+        let PropSchema {
+            ref_name: _,
+            prop_type,
+            enum_values,
+            enum_case_insensitive,
+            not_enum,
+            const_value,
+            pattern,
+            minimum,
+            maximum,
+            exclusive_minimum,
+            exclusive_maximum,
+            multiple_of,
+            min_length,
+            max_length,
+            min_items,
+            max_items,
+            unique_items,
+            min_properties,
+            max_properties,
+            format,
+            description,
+            properties,
+            required,
+            required_present: _,
+            additional_properties,
+            pattern_properties,
+            items,
+            all_of,
+            any_of,
+            one_of,
+            if_then_else,
+            dependent_required,
+            dependent_excluded,
+            required_or,
+            required_xor,
+        } = self;
+        prop_type.is_some()
+            || !enum_values.is_empty()
+            || !enum_case_insensitive.is_empty()
+            || !not_enum.is_empty()
+            || const_value.is_some()
+            || pattern.is_some()
+            || minimum.is_some()
+            || maximum.is_some()
+            || exclusive_minimum.is_some()
+            || exclusive_maximum.is_some()
+            || multiple_of.is_some()
+            || min_length.is_some()
+            || max_length.is_some()
+            || min_items.is_some()
+            || max_items.is_some()
+            || unique_items.is_some()
+            || min_properties.is_some()
+            || max_properties.is_some()
+            || format.is_some()
+            || description.is_some()
+            || !properties.is_empty()
+            || !required.is_empty()
+            || additional_properties.is_some()
+            || !pattern_properties.is_empty()
+            || items.is_some()
+            || !all_of.is_empty()
+            || !any_of.is_empty()
+            || !one_of.is_empty()
+            || !if_then_else.is_empty()
+            || !dependent_required.is_empty()
+            || !dependent_excluded.is_empty()
+            || !required_or.is_empty()
+            || !required_xor.is_empty()
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -173,6 +433,15 @@ impl PropType {
             PropType::Single(s) => Some(s),
             PropType::Multi(v) => v.iter().find(|s| s.as_str() != "null").map(|s| s.as_str()),
         }
+    }
+
+    /// Every type name this `type` keyword admits.
+    pub fn names(&self) -> impl Iterator<Item = &str> {
+        match self {
+            PropType::Single(s) => std::slice::from_ref(s).iter(),
+            PropType::Multi(v) => v.iter(),
+        }
+        .map(String::as_str)
     }
 }
 
@@ -217,7 +486,7 @@ mod tests {
         let schema = PropSchema { prop_type: Some(PropType::Single("string".into())), ..Default::default() };
         let defs = HashMap::new();
         let resolved = schema.resolve(&defs);
-        assert!(ptr::eq(resolved, &schema));
+        assert!(matches!(resolved, Cow::Borrowed(borrowed) if ptr::eq(borrowed, &schema)));
     }
 
     #[test]
@@ -229,6 +498,24 @@ mod tests {
         let schema = PropSchema { ref_name: Some("MyDef".into()), ..Default::default() };
         let resolved = schema.resolve(&defs);
         assert_eq!(resolved.prop_type.as_ref().unwrap().primary(), Some("integer"));
+    }
+
+    #[test]
+    fn resolve_keeps_required_groups_stated_beside_ref() {
+        let mut defs = HashMap::new();
+        defs.insert(
+            "Config".into(),
+            PropSchema { prop_type: Some(PropType::Single("object".into())), ..Default::default() },
+        );
+        let schema = PropSchema {
+            ref_name: Some("Config".into()),
+            required_or: vec!["A".into(), "B".into()],
+            required_xor: vec!["C".into(), "D".into()],
+            ..Default::default()
+        };
+        let resolved = schema.resolve(&defs);
+        assert_eq!(resolved.required_or, vec!["A".to_string(), "B".to_string()]);
+        assert_eq!(resolved.required_xor, vec!["C".to_string(), "D".to_string()]);
     }
 
     #[test]
@@ -249,7 +536,67 @@ mod tests {
         let schema = PropSchema { ref_name: Some("NonExistent".into()), ..Default::default() };
         let defs = HashMap::new();
         let resolved = schema.resolve(&defs);
-        assert!(ptr::eq(resolved, &schema));
+        assert!(matches!(resolved, Cow::Borrowed(borrowed) if ptr::eq(borrowed, &schema)));
+    }
+
+    /// Cyclic graphs are rejected when an overlay is applied, so these cover the
+    /// second line of defence: resolution must terminate on its own rather than
+    /// recursing until the stack is gone, because a stack overflow aborts the
+    /// host process instead of surfacing as a catchable error.
+    #[test]
+    fn resolve_terminates_on_a_self_referential_definition() {
+        let mut defs = HashMap::new();
+        defs.insert("Loop".to_string(), PropSchema { ref_name: Some("Loop".into()), ..Default::default() });
+
+        let schema = PropSchema { ref_name: Some("Loop".into()), ..Default::default() };
+        let resolved = schema.resolve(&defs);
+
+        assert_eq!(
+            resolved.ref_name.as_deref(),
+            Some("Loop"),
+            "resolution stops at the definition it has already visited"
+        );
+    }
+
+    #[test]
+    fn resolve_terminates_on_a_multi_node_definition_cycle() {
+        let mut defs = HashMap::new();
+        defs.insert("First".to_string(), PropSchema { ref_name: Some("Second".into()), ..Default::default() });
+        defs.insert("Second".to_string(), PropSchema { ref_name: Some("First".into()), ..Default::default() });
+
+        let schema = PropSchema { ref_name: Some("First".into()), ..Default::default() };
+        let resolved = schema.resolve(&defs);
+
+        assert_eq!(resolved.ref_name.as_deref(), Some("First"), "resolution stops at the hop that closes the cycle");
+    }
+
+    #[test]
+    fn resolve_stops_at_the_chain_limit_and_keeps_the_property_own_constraints() {
+        let unreachable_hop = MAX_REF_CHAIN + 5;
+        let mut defs = HashMap::new();
+        for hop in 0..unreachable_hop {
+            defs.insert(
+                format!("Hop{hop}"),
+                PropSchema { ref_name: Some(format!("Hop{}", hop + 1)), ..Default::default() },
+            );
+        }
+        defs.insert(
+            format!("Hop{unreachable_hop}"),
+            PropSchema { pattern: Some("^unreachable$".into()), ..Default::default() },
+        );
+
+        let schema = PropSchema { ref_name: Some("Hop0".into()), max_length: Some(10), ..Default::default() };
+        let resolved = schema.resolve(&defs);
+
+        assert_eq!(
+            resolved.max_length,
+            Some(10),
+            "a chain too long to follow must not discard what the property itself states"
+        );
+        assert_eq!(
+            resolved.pattern, None,
+            "the constraint beyond the resolution limit is not reachable, which is why such a chain is rejected on input"
+        );
     }
 
     #[test]
@@ -262,7 +609,7 @@ mod tests {
             maximum: Some(100.0),
             min_length: Some(1),
             max_length: Some(256),
-            unique_items: true,
+            unique_items: Some(true),
             ..Default::default()
         };
         let json_str = serde_json::to_string(&schema).unwrap();
@@ -274,7 +621,7 @@ mod tests {
         assert_eq!(deserialized.maximum, Some(100.0));
         assert_eq!(deserialized.min_length, Some(1));
         assert_eq!(deserialized.max_length, Some(256));
-        assert!(deserialized.unique_items, "unique_items should be true");
+        assert_eq!(deserialized.unique_items, Some(true), "unique_items should round trip as true");
     }
 
     #[test]
@@ -305,6 +652,7 @@ mod tests {
     #[test]
     fn if_then_else_roundtrip() {
         let ite = IfThenElse {
+            enforce_full_branch: false,
             condition: ConditionSchema {
                 properties: {
                     let mut m = HashMap::new();
@@ -329,7 +677,6 @@ mod tests {
         let json_str = serde_json::to_string(&schema).unwrap();
         let val: serde_json::Value = serde_json::from_str(&json_str).unwrap();
         let obj = val.as_object().unwrap();
-        // Default PropSchema should serialize to empty object (all fields skipped)
         assert!(obj.is_empty(), "expected empty JSON for default PropSchema, got: {}", json_str);
     }
 
@@ -346,5 +693,30 @@ mod tests {
         let json_str = serde_json::to_string(&sub).unwrap();
         let deserialized: SubSchema = serde_json::from_str(&json_str).unwrap();
         assert_eq!(deserialized.dependent_required.get("A").unwrap(), &vec!["B".to_string(), "C".to_string()]);
+    }
+
+    #[test]
+    fn required_or_xor_serialization_roundtrip_and_default_omission() {
+        let empty = PropSchema::default();
+        let json_str = serde_json::to_string(&empty).unwrap();
+        assert!(!json_str.contains("required_or"), "empty required_or must be omitted from serialized output");
+        assert!(!json_str.contains("required_xor"), "empty required_xor must be omitted from serialized output");
+
+        let schema = PropSchema {
+            required_or: vec!["A".into(), "B".into()],
+            required_xor: vec!["C".into(), "D".into()],
+            ..Default::default()
+        };
+        let json_str = serde_json::to_string(&schema).unwrap();
+        assert!(json_str.contains("required_or"), "populated required_or must be serialized, got: {}", json_str);
+        assert!(json_str.contains("required_xor"), "populated required_xor must be serialized, got: {}", json_str);
+
+        let deserialized: PropSchema = serde_json::from_str(&json_str).unwrap();
+        assert_eq!(deserialized.required_or, vec!["A".to_string(), "B".to_string()]);
+        assert_eq!(deserialized.required_xor, vec!["C".to_string(), "D".to_string()]);
+
+        let minimal: PropSchema = serde_json::from_str("{}").unwrap();
+        assert!(minimal.required_or.is_empty(), "missing required_or deserializes to empty");
+        assert!(minimal.required_xor.is_empty(), "missing required_xor deserializes to empty");
     }
 }

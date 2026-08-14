@@ -1,53 +1,78 @@
 use crate::conditions::ConditionModel;
 use crate::consts::*;
+use crate::defect::ParseDefect;
 use crate::graph::ReferenceGraph;
 use crate::ir::*;
+use crate::json_value::JsonValue;
+use crate::regions::*;
 use crate::resolved_value::*;
 use crate::resolver::*;
 use crate::sam;
-use diagnostics::{PhaseMetric, phase_metric};
+use crate::span::SpanProvider;
 use log::{debug, info, warn};
 use serde::Serialize;
 use std::collections::{HashMap, HashSet};
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicU64, Ordering};
 
+/// A resource property path paired with a string value found at it, such as a substitution variable or literal.
 #[derive(Debug, Clone, Serialize, Default)]
 #[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
 #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Record))]
 #[serde(rename_all = "camelCase")]
 pub struct PathValuePair {
+    /// Dot-separated property path within the resource (e.g. 'Properties.BucketName').
     pub path: String,
     pub value: String,
 }
 
+/// A property that is dropped (resolves to AWS::NoValue) in one branch of an Fn::If condition.
 #[derive(Debug, Clone, Serialize, Default)]
 #[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
 #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Record))]
 #[serde(rename_all = "camelCase")]
 pub struct ConditionalNullEntry {
+    /// Dot-separated property path that becomes absent in one branch.
     pub path: String,
+    /// Name of the condition governing the Fn::If that drops this property.
     pub condition: String,
+    /// True when the property is absent in the condition's true branch; false when absent in the false branch.
     pub null_in_true_branch: bool,
 }
 
+/// Per-resource observations collected while resolving intrinsics, used to drive lint checks.
 #[derive(Debug, Clone, Serialize, Default)]
 #[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
 #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Record))]
 #[serde(rename_all = "camelCase")]
 pub struct ResourceDiagnostics {
+    /// Mapping names referenced by Fn::FindInMap within this resource.
     pub find_in_map_refs: Vec<String>,
+    /// Fn::Sub uses whose template is a single variable that could be a plain Ref; each pairs the property path with the variable name.
     pub simple_subs: Vec<PathValuePair>,
+    /// Property paths where Fn::Sub wraps a constant string with no variables to substitute.
     pub redundant_subs: Vec<String>,
+    /// Property paths where Fn::Join uses an empty delimiter, concatenating its elements directly.
     pub empty_joins: Vec<String>,
+    /// Names of conditions referenced by this resource's property values.
     pub condition_refs: Vec<String>,
+    /// Property paths building ARNs with a hardcoded 'aws' partition instead of AWS::Partition.
     pub hardcoded_partition_arns: Vec<String>,
     pub conditionally_null_props: Vec<ConditionalNullEntry>,
     pub foreach_expansions: Vec<ForEachExpansion>,
+    /// Occurrences of ${...} placeholders outside an Fn::Sub that will not be substituted; each pairs the property path with the placeholder text.
     pub unsubstituted_variables: Vec<PathValuePair>,
+    /// Fn::Sub map keys not referenced in the template string; each pairs the property path with the unused key name.
+    pub unused_sub_keys: Vec<PathValuePair>,
+    /// Property values that are a raw pseudo-parameter string (e.g. "AWS::Region") instead of using Ref.
+    pub raw_pseudo_params: Vec<PathValuePair>,
+    /// Property paths containing a {{resolve:secretsmanager:...}} dynamic reference.
+    pub secretsmanager_ref_paths: Vec<String>,
+    /// References whose target is not a defined resource, parameter, or pseudo parameter; each pairs the property path with the missing target name.
     pub invalid_refs: Vec<PathValuePair>,
 }
 
+/// A template resource with its metadata and properties after intrinsic functions have been resolved.
 #[derive(Debug, Clone, Serialize)]
 #[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
 #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Record))]
@@ -55,39 +80,63 @@ pub struct ResourceDiagnostics {
 pub struct ResolvedResource {
     pub logical_id: String,
     pub resource_type: String,
+    #[cfg_attr(feature = "wasm-bindings", tsify(optional))]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub condition: Option<String>,
     pub depends_on: Vec<String>,
+    #[cfg_attr(feature = "wasm-bindings", tsify(optional))]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub deletion_policy: Option<ResolvedValue>,
+    #[cfg_attr(feature = "wasm-bindings", tsify(optional))]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub update_replace_policy: Option<ResolvedValue>,
-    #[cfg_attr(feature = "wasm-bindings", tsify(type = "JsonValue | undefined"))]
-    pub update_policy: Option<diagnostics::JsonValue>,
-    #[cfg_attr(feature = "wasm-bindings", tsify(type = "JsonValue | undefined"))]
-    pub creation_policy: Option<diagnostics::JsonValue>,
-    #[cfg_attr(feature = "wasm-bindings", tsify(type = "JsonValue | undefined"))]
-    pub metadata: Option<diagnostics::JsonValue>,
+    #[cfg_attr(feature = "wasm-bindings", tsify(optional, type = "JsonValue"))]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
+    pub update_policy: Option<JsonValue>,
+    #[cfg_attr(feature = "wasm-bindings", tsify(optional, type = "JsonValue"))]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
+    pub creation_policy: Option<JsonValue>,
+    #[cfg_attr(feature = "wasm-bindings", tsify(optional, type = "JsonValue"))]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
+    pub metadata: Option<JsonValue>,
     #[cfg_attr(feature = "wasm-bindings", tsify(type = "Record<string, ResolvedValue>"))]
     pub properties: HashMap<String, ResolvedValue>,
+    /// True when the entire `Properties` block is a non-map intrinsic (e.g.
+    /// `Properties: !Ref AWS::NoValue`) whose effective property set is only known
+    /// at deploy time, as distinct from a resource that simply declares no properties.
+    pub properties_dynamic: bool,
     pub diagnostics: ResourceDiagnostics,
 }
 
+/// An Fn::ForEach loop within a resource that expands a property over a collection.
 #[derive(Debug, Clone, Serialize)]
 #[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
 #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Record))]
 #[serde(rename_all = "camelCase")]
 pub struct ForEachExpansion {
+    /// Property path within the resource where the Fn::ForEach appears.
     pub property_path: String,
+    /// Loop variable name bound to each element during expansion.
     pub identifier: String,
+    /// Human-readable description of the collection being iterated over.
     pub collection_source: String,
 }
 
+/// A template output with its value and metadata after intrinsic functions have been resolved.
 #[derive(Debug, Clone, Serialize)]
 #[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
 #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Record))]
 #[serde(rename_all = "camelCase")]
 pub struct ResolvedOutput {
     pub value: ResolvedValue,
+    #[cfg_attr(feature = "wasm-bindings", tsify(optional))]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub description: Option<String>,
+    #[cfg_attr(feature = "wasm-bindings", tsify(optional))]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub condition: Option<String>,
+    #[cfg_attr(feature = "wasm-bindings", tsify(optional))]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub export_name: Option<ResolvedValue>,
 }
 
@@ -127,13 +176,27 @@ pub struct SemanticModel {
     pub outputs: HashMap<String, ResolvedOutput>,
     pub graph: ReferenceGraph,
     pub resources_by_type: HashMap<String, Vec<String>>,
-    pub diagnostics: Vec<diagnostics::Diagnostic>,
+    pub diagnostics: Vec<ParseDefect>,
     pub output_empty_joins: Vec<String>,
     pub sam_globals: HashMap<String, HashMap<String, serde_json::Value>>,
     pub sam_implicit_resources: HashSet<String>,
     pub globals_param_refs: Vec<String>,
     pub is_cdk: bool,
+    pub fn_if_conditions: Vec<String>,
+    /// Mapping names referenced by an `Fn::FindInMap` with a literal map name,
+    /// collected template-wide (resources, outputs, conditions, ForEach bodies).
+    pub find_in_map_names: HashSet<String>,
+    /// Parameter names referenced from within another parameter's definition
+    /// (e.g. a Default of `!Ref OtherParam`); these still count as usage.
+    pub params_referenced_in_definitions: HashSet<String>,
+    /// True when any `Fn::FindInMap` uses a non-literal map name, which disables
+    /// the unused-mapping check because usage can no longer be attributed to a
+    /// specific mapping.
+    pub has_dynamic_findinmap_name: bool,
     pub resolution_sources: HashMap<(String, String), String>,
+    /// (resource_id, property_path) → the authored expression behind a value that
+    /// stayed opaque. Consulted by [`SemanticModel::value_identity`].
+    value_nodes: HashMap<(String, String), NodeRef>,
     resolve_memo: Mutex<HashMap<(String, String), Option<ResolvedValue>>>,
     scenario_memo: Mutex<HashMap<(String, String), Vec<(serde_json::Value, HashMap<String, bool>)>>>,
     /// Cumulative count of scenarios materialized by `resolve_scenarios` across
@@ -143,26 +206,43 @@ pub struct SemanticModel {
     scenario_combinations_used: AtomicU64,
 }
 
+/// Values used for AWS pseudo parameters (Ref AWS::Region, AWS::AccountId, ...) when
+/// resolving the template; any field left unset falls back to a sensible default.
 #[derive(Debug, Clone, Default, Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
 #[cfg_attr(feature = "wasm-bindings", tsify(from_wasm_abi))]
 #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Record))]
 #[serde(rename_all = "camelCase")]
 pub struct PseudoParameterOverrides {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub account_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub notification_arns: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub partition: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub region: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub stack_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub stack_name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub url_suffix: Option<String>,
+}
+
+fn is_account_id_shaped(value: &str) -> bool {
+    value.len() == 12 && value.bytes().all(|b| b.is_ascii_digit())
+}
+
+fn is_partition_shaped(value: &str) -> bool {
+    value.starts_with("aws")
 }
 
 impl PseudoParameterOverrides {
@@ -197,6 +277,50 @@ impl PseudoParameterOverrides {
             _ => None,
         }
     }
+
+    #[must_use]
+    pub fn invalid_overrides(&self) -> Vec<String> {
+        let mut problems = Vec::new();
+        if let Some(account_id) = self.account_id.as_deref()
+            && !is_account_id_shaped(account_id)
+        {
+            problems.push(format!("{PSEUDO_ACCOUNT_ID} override '{account_id}' is not a 12-digit AWS account ID"));
+        }
+        if let Some(partition) = self.partition.as_deref()
+            && !is_partition_shaped(partition)
+        {
+            problems.push(format!(
+                "{PSEUDO_PARTITION} override '{partition}' is not a valid partition \
+                 (expected an 'aws'-family value such as aws, aws-cn, or aws-us-gov)"
+            ));
+        }
+        problems
+    }
+
+    /// Returns the user-supplied override for `name` only when the caller
+    /// explicitly set the corresponding field. Auto-derived defaults - e.g. the
+    /// commercial-vs-cn-vs-gov partition implied by `region` - are *not*
+    /// returned here.
+    ///
+    /// The satisfiability solver uses this to decide whether a pseudo-parameter
+    /// is a constant (user pinned its value) or a free variable ranging over
+    /// the literals it is compared against plus a sentinel for "any other
+    /// value". `get` always returns a default and would force the solver to
+    /// treat every pseudo-parameter as a constant, producing false-positive
+    /// "unreachable branch" diagnostics for templates that branch on
+    /// `AWS::Partition`, `AWS::Region`, etc. - see `ConditionModel::eval_value_concrete`.
+    pub fn fixed_value(&self, name: &str) -> Option<String> {
+        match name {
+            PSEUDO_ACCOUNT_ID => self.account_id.clone(),
+            PSEUDO_NOTIFICATION_ARNS => self.notification_arns.clone(),
+            PSEUDO_PARTITION => self.partition.clone(),
+            PSEUDO_REGION => self.region.clone(),
+            PSEUDO_STACK_ID => self.stack_id.clone(),
+            PSEUDO_STACK_NAME => self.stack_name.clone(),
+            PSEUDO_URL_SUFFIX => self.url_suffix.clone(),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Default)]
@@ -208,7 +332,8 @@ pub struct ParseConfig {
 #[must_use]
 pub struct ParseResult {
     pub model: SemanticModel,
-    pub model_build: PhaseMetric,
+    /// Wall-clock time spent building the model, in milliseconds.
+    pub model_build_ms: f64,
 }
 
 impl SemanticModel {
@@ -228,8 +353,14 @@ impl SemanticModel {
         let total_start = web_time::Instant::now();
 
         info!("Phase 1: Parsing IR ({} bytes)", bytes.len());
-        let ir = crate::parser::parse(bytes)?;
+        let mut ir = crate::parser::parse(bytes)?;
+        let foreach_diagnostics = crate::transform_expansion::expand_language_extensions(&mut ir);
         let (parameters, parameter_diagnostics) = extract_parameters(&ir);
+        // A parameter's definition can reference another parameter (e.g. a
+        // Default given as `!Ref OtherParam`). Such a reference still counts as
+        // usage, so collect the parameter names referenced from within the
+        // Parameters section to feed the unused-parameter check.
+        let params_referenced_in_definitions = collect_parameter_definition_refs(&ir, &parameters);
         let (mappings, mapping_diagnostics) = extract_mappings(&ir);
         let mut conditions = ConditionModel::from_ir(&ir, &parameters, &config.pseudo_parameters, &mappings);
 
@@ -257,15 +388,22 @@ impl SemanticModel {
         if ir.resources != NULL_REF
             && let Some(entries) = ir.arena.as_map(ir.resources)
         {
-            // Pre-scan: identify resources with DefinitionSubstitutions
+            // Pre-scan: record each resource's DefinitionSubstitutions keys so
+            // definition placeholders can be checked for membership per variable.
             for (rname, rnode) in entries {
                 if let Some(props) = ir.arena.as_map(*rnode) {
                     for (key, val) in props {
                         if key == KEY_PROPERTIES
                             && let Some(prop_entries) = ir.arena.as_map(*val)
-                            && prop_entries.iter().any(|(k, _)| k == "DefinitionSubstitutions")
+                            && let Some((_, subs_ref)) =
+                                prop_entries.iter().find(|(k, _)| k == "DefinitionSubstitutions")
+                            && let Some(subs) = ir.arena.as_map(*subs_ref)
                         {
-                            resolver.def_subs_resources.insert(rname.clone());
+                            resolver
+                                .def_subs_resources
+                                .entry(rname.clone())
+                                .or_default()
+                                .extend(subs.iter().map(|(k, _)| k.clone()));
                         }
                     }
                 }
@@ -332,12 +470,30 @@ impl SemanticModel {
 
         info!("Phase 3: Building reference graph from {} resolver edges", resolver.edges.len());
 
-        // Register inline conditions (from IfExpr) into the condition model
-        for (name, expr) in resolver.inline_conditions.drain(..) {
-            conditions.register_inline(name, expr);
+        // Register inline conditions (from IfExpr) into the condition model in
+        // one batch, so the derived mutex/implication passes run once.
+        conditions.register_inline_batch(resolver.inline_conditions.drain(..));
+
+        // Collect every mapping name referenced by an Fn::FindInMap anywhere in
+        // the template (resources, outputs, conditions, ForEach bodies). A literal
+        // first argument names a specific mapping; a non-literal one (e.g. a nested
+        // Fn::FindInMap or Ref) means the referenced mapping can't be determined
+        // statically, which disables the unused-mapping check.
+        let mut find_in_map_names: std::collections::HashSet<String> = std::collections::HashSet::new();
+        let mut has_dynamic_findinmap_name = false;
+        for idx in 0..ir.arena.len() {
+            if let Node::Intrinsic(IntrinsicFn::FindInMap(map_name_ref, _, _, _)) = ir.arena.node(idx as NodeRef) {
+                match ir.arena.as_str(*map_name_ref) {
+                    Some(name) => {
+                        find_in_map_names.insert(name.to_string());
+                    }
+                    None => has_dynamic_findinmap_name = true,
+                }
+            }
         }
 
         let resolution_sources = resolver.resolution_sources();
+        let value_nodes = resolver.value_nodes();
         let mut all_edges = resolver.edges;
         for (id, res) in &resources {
             for dep in &res.depends_on {
@@ -370,45 +526,281 @@ impl SemanticModel {
         }
 
         let mut diagnostics = ir.diagnostics;
+        diagnostics.extend(foreach_diagnostics);
         diagnostics.extend(mapping_diagnostics);
         diagnostics.extend(parameter_diagnostics);
 
-        diagnostics.extend(crate::nesting::validate_intrinsic_nesting(&ir.arena, &ir.transforms));
+        diagnostics.extend(crate::nesting::validate_intrinsic_nesting(&ir.arena));
+        diagnostics.extend(crate::intrinsic_arg_shapes::validate_intrinsic_arg_shapes(&ir.arena, &ir.transforms));
+        diagnostics.extend(crate::lang_ext_shapes::validate_lang_ext_parameter_shapes(&ir.arena, &ir.transforms));
+        diagnostics.extend(crate::language_extensions::validate_language_extensions(&ir.arena, &ir.transforms));
+        diagnostics.extend(crate::dynamic_ref::validate_dynamic_references(&ir.arena, ir.resources));
 
+        let mut fn_if_conditions: Vec<String> = Vec::new();
         for idx in 0..ir.arena.len() {
-            if let Node::Intrinsic(IntrinsicFn::If(cond_name, _, _)) = ir.arena.node(idx as NodeRef)
-                && !conditions.conditions.contains_key(cond_name)
-            {
-                diagnostics.push(crate::make_parse_diagnostic(
-                    "F1104",
-                    format!("Fn::If references undefined condition '{}'", cond_name),
-                    ir.arena.span(idx as NodeRef),
-                ));
+            match ir.arena.node(idx as NodeRef) {
+                Node::Intrinsic(IntrinsicFn::If(cond_name, _, _)) => {
+                    fn_if_conditions.push(cond_name.clone());
+                    // Inside a Conditions-section body, Fn::If is not a valid
+                    // condition function at all - that is the not-a-boolean
+                    // finding's territory, so the name of a function that is
+                    // itself rejected there is not checked.
+                    let in_conditions_body =
+                        ir.arena.get(idx as NodeRef).path.split('/').next() == Some(SECTION_CONDITIONS);
+                    if !in_conditions_body && !conditions.conditions.contains_key(cond_name) {
+                        // A single owner for the undefined-Fn::If-condition
+                        // finding. Emitting it here (during the arena scan, which
+                        // sees every Fn::If regardless of nesting) rather than in
+                        // each engine keeps the two engines identical and covers
+                        // the no-Conditions-section case, where a condition-name
+                        // reference is still invalid.
+                        diagnostics.push(crate::make_parse_defect(
+                            "E1028",
+                            format!("Fn::If condition '{}' does not exist in Conditions section", cond_name),
+                            ir.arena.span(idx as NodeRef),
+                        ));
+                    }
+                }
+                // A structurally malformed Fn::If (wrong arity, wrong type) is
+                // rejected by the parser and left as a plain `Fn::If` map node
+                // rather than an `IntrinsicFn::If`. Its condition is still
+                // referenced, so collect the name here too - otherwise the
+                // unused-condition check would wrongly flag a condition that the
+                // template does reference.
+                Node::Map(entries) if entries.len() == 1 && entries[0].0 == FN_IF => {
+                    if let Some(first) = ir.arena.as_list(entries[0].1).and_then(|items| items.first())
+                        && let Some(cond_name) = ir.arena.as_str(*first)
+                    {
+                        fn_if_conditions.push(cond_name.to_string());
+                        // The structure error is reported separately; the
+                        // undefined condition name is its own finding - a
+                        // malformed Fn::If gets both. Conditions-section
+                        // bodies are excluded for the same reason as the
+                        // well-formed arm.
+                        let in_conditions_body =
+                            ir.arena.get(idx as NodeRef).path.split('/').next() == Some(SECTION_CONDITIONS);
+                        if !in_conditions_body && !conditions.conditions.contains_key(cond_name) {
+                            diagnostics.push(crate::make_parse_defect(
+                                "E1028",
+                                format!("Fn::If condition '{}' does not exist in Conditions section", cond_name),
+                                ir.arena.span(idx as NodeRef),
+                            ));
+                        }
+                    }
+                }
+                _ => {}
             }
         }
+        fn_if_conditions.sort();
+        fn_if_conditions.dedup();
         let mut output_empty_joins: Vec<String> = Vec::new();
         for (key, joins) in &resolver.empty_joins {
             if key.starts_with(OUTPUT_PSEUDO_RESOURCE_PREFIX) || key == OUTPUTS_PSEUDO_RESOURCE {
                 output_empty_joins.extend(joins.iter().cloned());
             }
         }
+
+        // Raw pseudo-parameter strings in the Outputs section. Such findings are
+        // collected against the `__output__`/`__outputs__` pseudo-resources,
+        // which are filtered out of the serialized model the engines scan, so
+        // the engine rule never sees them. Emit them here (both engines share
+        // this parse-time output) so a pseudo-parameter used as a plain string
+        // in an output Value is reported the same as one in a resource.
+        {
+            let mut output_raw_pseudo: Vec<(String, String)> = Vec::new();
+            for (key, entries) in &resolver.raw_pseudo_params {
+                if key.starts_with(OUTPUT_PSEUDO_RESOURCE_PREFIX) || key == OUTPUTS_PSEUDO_RESOURCE {
+                    for (path, value) in entries {
+                        output_raw_pseudo.push((path.clone(), value.clone()));
+                    }
+                }
+            }
+            output_raw_pseudo.sort();
+            for (path, value) in output_raw_pseudo {
+                diagnostics.push(crate::make_parse_defect(
+                    "W1054",
+                    format!(
+                        "Found a string '{}' that appears to be a pseudo parameter reference; use 'Ref: {}' instead",
+                        value, value
+                    ),
+                    ir.span_index.get(&path).copied().unwrap_or(UNKNOWN_SPAN),
+                ));
+            }
+        }
+
+        // Raw pseudo-parameter strings in parameter Default values: a Default
+        // that is exactly a pseudo-parameter string (e.g. "AWS::Region") is
+        // almost certainly a mistake. Parameters are not walked by the resolver,
+        // so check the raw default strings directly.
+        {
+            let mut param_names: Vec<&String> = parameters.keys().collect();
+            param_names.sort();
+            for pname in param_names {
+                if let Some(default) = &parameters[pname].default
+                    && PSEUDO_PARAMETERS.contains(&default.as_str())
+                {
+                    diagnostics.push(crate::make_parse_defect(
+                        "W1054",
+                        format!("Found a string '{}' that appears to be a pseudo parameter reference; use 'Ref: {}' instead", default, default),
+                        ir.span_index.get(&format!("Parameters/{}/Default", pname)).copied().unwrap_or(UNKNOWN_SPAN),
+                    ));
+                }
+            }
+        }
+
+        // Raw pseudo-parameter strings in Mappings values and Conditions.
+        // Neither section is walked by the resolver (it only visits resources
+        // and outputs), so scan their string nodes directly. `Ref` targets are
+        // not string nodes in the arena, so `Ref: AWS::Region` is naturally
+        // exempt - only a pseudo-parameter used as plain string data fires.
+        for idx in 0..ir.arena.len() {
+            let spanned = ir.arena.get(idx as NodeRef);
+            let Node::String(s) = &spanned.node else {
+                continue;
+            };
+            let section = spanned.path.split('/').next().unwrap_or("");
+            // A string that is a `Ref` target (path ends in the Ref key, e.g. a
+            // raw `{"Ref": "AWS::Region"}` map the parser could not
+            // canonicalize) is already a reference - only plain string *data*
+            // warrants the use-Ref-instead advice.
+            let is_ref_target = spanned.path.rsplit('/').next() == Some(FN_REF);
+            if (section == SECTION_MAPPINGS || section == SECTION_CONDITIONS)
+                && !is_ref_target
+                && PSEUDO_PARAMETERS.contains(&s.as_str())
+            {
+                diagnostics.push(crate::make_parse_defect(
+                    "W1054",
+                    format!(
+                        "Found a string '{}' that appears to be a pseudo parameter reference; use 'Ref: {}' instead",
+                        s, s
+                    ),
+                    spanned.span,
+                ));
+            }
+        }
+
+        // Unsubstituted `${Variable}` strings in the Outputs section. Like the
+        // raw-pseudo-parameter case above, these are collected against the
+        // `__output__` pseudo-resources that never reach the engines, so the
+        // Sub-needed finding must be emitted here.
+        {
+            let mut output_unsubstituted: Vec<(String, String)> = Vec::new();
+            for (key, entries) in &resolver.unsubstituted_variables {
+                if key.starts_with(OUTPUT_PSEUDO_RESOURCE_PREFIX) || key == OUTPUTS_PSEUDO_RESOURCE {
+                    for (path, variable) in entries {
+                        output_unsubstituted.push((path.clone(), variable.clone()));
+                    }
+                }
+            }
+            output_unsubstituted.sort();
+            for (path, variable) in output_unsubstituted {
+                diagnostics.push(crate::make_parse_defect(
+                    "E1029",
+                    format!("Found an embedded parameter '{}' outside of an 'Fn::Sub' at {}", variable, path),
+                    ir.span_index.get(&path).copied().unwrap_or(UNKNOWN_SPAN),
+                ));
+            }
+        }
+
         diagnostics.extend(resolver.diagnostics);
-        let has_sam = ir.transforms.iter().any(|t| t.contains(SAM_TRANSFORM_MARKER));
+        // SAM handling keys on the exact transform id, matching how the engines
+        // detect the transform. A substring match would misclassify a non-SAM
+        // transform whose name merely contains "Serverless" (e.g. a typo'd date
+        // or a custom macro) as SAM, running the transform-error validators and
+        // suppressing the correct "serverless type without transform" finding.
+        let is_sam = ir.transforms.iter().any(|t| t == TRANSFORM_SERVERLESS);
         for d in graph.cycle_diagnostics(&ir.span_index) {
-            if has_sam && sam::cycle_involves_sam_diagnostic(&d, &resources) {
+            if is_sam && sam::cycle_involves_sam_diagnostic(&d, &resources) {
                 continue;
             }
             diagnostics.push(d);
         }
         for (cond_name, always_val) in conditions.tautological_equals() {
             let result_str = if always_val { "True" } else { "False" };
-            diagnostics.push(crate::make_parse_diagnostic(
+            diagnostics.push(crate::make_parse_defect_at(
                 "W8003",
                 format!("Fn::Equals in condition '{}' will always return {}", cond_name, result_str),
                 ir.span_index.get(&format!("Conditions/{}", cond_name)).copied().unwrap_or(UNKNOWN_SPAN),
+                &format!("Conditions/{}", cond_name),
             ));
         }
-        let model_build = phase_metric(total_start);
+        // A `Condition:` key that names a condition absent from the Conditions
+        // section is reported here - a distinct rule for the resource case and
+        // the output case, since they are separate concerns. Emitting both
+        // during model build anchors each at its own source location and keeps
+        // the two engines identical. Names are sorted for deterministic
+        // ordering.
+        {
+            let mut resource_ids_sorted: Vec<&String> = resources.keys().collect();
+            resource_ids_sorted.sort();
+            for rid in resource_ids_sorted {
+                if let Some(cond) = &resources[rid].condition
+                    && !conditions.conditions.contains_key(cond)
+                {
+                    diagnostics.push(crate::make_parse_defect_for_resource(
+                        "E8002",
+                        format!("Condition '{}' referenced by resource '{}' is not defined", cond, rid),
+                        ir.span_index.get(&format!("Resources/{}", rid)).copied().unwrap_or(UNKNOWN_SPAN),
+                        rid,
+                    ));
+                }
+            }
+            let mut output_names_sorted: Vec<&String> = outputs.keys().collect();
+            output_names_sorted.sort();
+            for oname in output_names_sorted {
+                if let Some(cond) = &outputs[oname].condition
+                    && !conditions.conditions.contains_key(cond)
+                {
+                    diagnostics.push(crate::make_parse_defect_for_resource(
+                        "E6005",
+                        format!("Condition '{}' referenced by output '{}' is not defined", cond, oname),
+                        ir.span_index.get(&format!("Outputs/{}", oname)).copied().unwrap_or(UNKNOWN_SPAN),
+                        oname,
+                    ));
+                }
+            }
+        }
+        for invalid in conditions.invalid_condition_bodies() {
+            diagnostics.push(crate::make_parse_defect(
+                "E8001",
+                format!("Condition '{}' must be a boolean expression", invalid),
+                ir.span_index.get(&format!("Conditions/{}", invalid)).copied().unwrap_or(UNKNOWN_SPAN),
+            ));
+        }
+        for (owner, undefined_ref) in conditions.undefined_condition_refs() {
+            // Synthetic conditions (`__`-prefixed, inserted for inline Fn::If and
+            // Rules-section assertions) are internal; never surface their names.
+            if owner.starts_with("__") || undefined_ref.starts_with("__") {
+                continue;
+            }
+            diagnostics.push(crate::make_parse_defect(
+                "E8007",
+                format!("Condition '{}' references undefined condition '{}'", owner, undefined_ref),
+                ir.span_index.get(&format!("Conditions/{}", owner)).copied().unwrap_or(UNKNOWN_SPAN),
+            ));
+        }
+        for cycle in conditions.detect_cycles() {
+            let cycle_desc = cycle.join(" -> ");
+            let first = &cycle[0];
+            diagnostics.push(crate::make_parse_defect(
+                "E9106",
+                format!("Circular dependency in conditions: {}", cycle_desc),
+                ir.span_index.get(&format!("Conditions/{}", first)).copied().unwrap_or(UNKNOWN_SPAN),
+            ));
+        }
+        for (first, other) in conditions.detect_equivalent_conditions() {
+            diagnostics.push(crate::make_parse_defect(
+                "W9053",
+                format!("Condition '{}' is equivalent to condition '{}' - consider consolidating", other, first),
+                ir.span_index.get(&format!("Conditions/{}", other)).copied().unwrap_or(UNKNOWN_SPAN),
+            ));
+        }
+        // The satisfiability-budget-exhaustion advisory is deliberately NOT
+        // emitted here: almost every satisfiability query runs later, during
+        // engine rule evaluation, so the budget-exhausted set is still empty at
+        // model-build time. The validation engine emits it after rule
+        // evaluation, once those queries have run.
+        let model_build_ms = total_start.elapsed().as_secs_f64() * 1000.0;
 
         if !diagnostics.is_empty() {
             warn!("{} parse-time diagnostics", diagnostics.len());
@@ -429,13 +821,22 @@ impl SemanticModel {
             if ir.template_metadata != NULL_REF { Some(node_to_json(&ir.arena, ir.template_metadata)) } else { None };
         let rules = if ir.rules != NULL_REF { Some(node_to_json(&ir.arena, ir.rules)) } else { None };
         let parsed_rules = parse_rules(&rules, &ir.arena, ir.rules);
+        let rule_implications: Vec<(String, crate::ir::NodeRef, Vec<crate::ir::NodeRef>)> = parsed_rules
+            .iter()
+            .map(|r| {
+                let assertion_nodes: Vec<crate::ir::NodeRef> = r.assertions.iter().map(|a| a.assert_node).collect();
+                (r.name.clone(), r.condition_node, assertion_nodes)
+            })
+            .collect();
+        if !rule_implications.is_empty() {
+            conditions.register_rule_implications(&ir.arena, &rule_implications);
+        }
         let rule_diagnostics = crate::rules::validate_rules(&rules, &ir.arena, ir.rules);
         diagnostics.extend(rule_diagnostics);
         let sam_globals = sam::extract_sam_globals(&ir.arena, ir.globals);
         if !sam_globals.is_empty() {
-            sam::apply_sam_globals(&mut resources, &sam_globals);
+            sam::apply_sam_globals(&mut resources, &sam_globals, &mut ir.span_index);
         }
-        let is_sam = ir.transforms.iter().any(|t| t.contains(SAM_TRANSFORM_MARKER));
         let sam_implicit_resources =
             if is_sam { sam::collect_sam_implicit_resources(&resources) } else { HashSet::new() };
         let globals_param_refs =
@@ -477,12 +878,17 @@ impl SemanticModel {
                 sam_implicit_resources,
                 globals_param_refs,
                 is_cdk,
+                fn_if_conditions,
+                find_in_map_names,
+                params_referenced_in_definitions,
+                has_dynamic_findinmap_name,
                 resolution_sources,
+                value_nodes,
                 resolve_memo: Mutex::new(HashMap::new()),
                 scenario_memo: Mutex::new(HashMap::new()),
                 scenario_combinations_used: AtomicU64::new(0),
             },
-            model_build,
+            model_build_ms,
         })
     }
 
@@ -522,14 +928,42 @@ impl SemanticModel {
 
     #[must_use]
     pub fn is_from_parameter(&self, resource_id: &str, path: &str) -> bool {
-        self.resolution_sources
-            .get(&(resource_id.to_string(), path.to_string()))
-            .is_some_and(|s| s.starts_with("Parameters/"))
+        self.parameter_name_at(resource_id, path).is_some()
     }
 
-    /// True when the value at `path` (or any ancestor up to the resource root) was
-    /// produced by an intrinsic function. Used by rules that skip hardcoded-literal
-    /// checks when the property value comes from `Fn::GetAZs`, `Ref`, etc.
+    /// The parameter whose declaration stood in for the value at `path`, or `None`
+    /// when the value came from somewhere else. A value that is only known at
+    /// deployment is not necessarily a parameter - a cross-stack import and a
+    /// dynamic reference are equally unknown - so callers that describe a value to
+    /// a reader must ask rather than assume.
+    #[must_use]
+    pub fn parameter_name_at(&self, resource_id: &str, path: &str) -> Option<&str> {
+        let source = self.resolution_sources.get(&(resource_id.to_string(), path.to_string()))?;
+        parameter_name_from_source(source)
+    }
+
+    /// A key that two values share only when they are provably the same value, or
+    /// `None` when nothing about the value settles the question.
+    ///
+    /// A value that resolves before deployment is keyed by its contents, so the
+    /// authored form does not matter. A value that stays opaque is keyed by the
+    /// expression that produces it, because that is the only thing that can show
+    /// two such values are one value. Callers that compare keys must treat `None`
+    /// and two differing keys alike: neither proves the values differ, so neither
+    /// permits a claim that they are the same.
+    #[must_use]
+    pub fn value_identity(&self, resource_id: &str, path: &str) -> Option<String> {
+        let resolved = self.resolve_deep(resource_id, path).or_else(|| self.resolve(resource_id, path).cloned())?;
+        let as_json = crate::serialization::resolved_value_to_json(&resolved);
+        if !json_contains_markers(&as_json) {
+            let fingerprint = crate::value_identity::concrete_value_fingerprint(&as_json);
+            return Some(format!("value:{fingerprint}"));
+        }
+        let node = *self.value_nodes.get(&(resource_id.to_string(), path.to_string()))?;
+        crate::value_identity::expression_fingerprint(&self.arena, node)
+            .map(|fingerprint| format!("expr:{fingerprint}"))
+    }
+
     /// True when the value at `path` (or any ancestor up to the resource root) was
     /// produced by an intrinsic function. Used by rules that skip hardcoded-literal
     /// checks when the property value comes from `Fn::GetAZs`, `Ref`, etc.
@@ -556,11 +990,17 @@ impl SemanticModel {
     }
 
     fn path_from_intrinsic(&self, resource_id: &str, path: &str) -> bool {
+        let edges = self.graph.outgoing(resource_id);
         let mut p = path.to_string();
         loop {
             if let Some(src) = self.resolution_sources.get(&(resource_id.to_string(), p.clone()))
                 && src.starts_with("Intrinsic/")
             {
+                return true;
+            }
+            // A reference edge (Ref, GetAtt, Sub) anchored at this path means the
+            // value is produced by an intrinsic rather than written as a literal.
+            if edges.iter().any(|e| e.source_path == p) {
                 return true;
             }
             match p.rfind('.') {
@@ -594,12 +1034,61 @@ impl SemanticModel {
         self.scenario_combinations_used.fetch_add(count, Ordering::Relaxed);
     }
 
+    fn resolved_properties_value(&self, resource_id: &str) -> Option<ResolvedValue> {
+        let resource = self.resources.get(resource_id)?;
+        if resource.properties_dynamic {
+            return None;
+        }
+        if resource.properties.len() == 1
+            && let Some(conditional) = resource.properties.get(FN_IF)
+        {
+            return Some(conditional.clone());
+        }
+        let mut entries: Vec<MapEntry> = resource
+            .properties
+            .iter()
+            .map(|(key, value)| MapEntry { key: key.clone(), value: value.clone() })
+            .collect();
+        entries.sort_by(|left, right| left.key.cmp(&right.key));
+        Some(ResolvedValue::Map { entries })
+    }
+
+    pub fn resolve_properties_scenarios(&self, resource_id: &str) -> Vec<(ResolvedValue, HashMap<String, bool>)> {
+        if self.scenario_budget_exhausted() {
+            return vec![];
+        }
+        let Some(properties) = self.resolved_properties_value(resource_id) else {
+            return vec![];
+        };
+        let mut results = Vec::new();
+        collect_scenarios(&properties, &HashMap::new(), &mut results);
+        self.scenario_combinations_used.fetch_add(results.len() as u64, Ordering::Relaxed);
+        results
+    }
+
+    /// Returns the authored, branch-qualified source path for an effective path in
+    /// one resolved scenario. The returned path uses the same dotted form as
+    /// resolver source paths and can be passed to [`Self::resource_span`].
+    pub fn scenario_source_path(
+        &self,
+        resource_id: &str,
+        effective_path: &str,
+        conditions: &HashMap<String, bool>,
+    ) -> Option<String> {
+        let properties = self.resolved_properties_value(resource_id)?;
+        let relative_path = effective_path
+            .strip_prefix("Properties.")
+            .or_else(|| (effective_path == KEY_PROPERTIES).then_some(""))
+            .unwrap_or(effective_path);
+        scenario_source_path_at(&properties, relative_path, conditions, KEY_PROPERTIES)
+    }
+
     pub fn resolve_scenarios(&self, resource_id: &str, path: &str) -> Vec<(ResolvedValue, HashMap<String, bool>)> {
         // Once the cumulative scenario budget for this model is spent, stop
         // materializing scenarios (the conservative truncation documented on
         // `MAX_TOTAL_SCENARIO_COMBINATIONS`). Checked before any resolution so an
         // exhausted call costs O(1), keeping a template with a flood of
-        // heavily-gated values bounded — the per-value `MAX_SCENARIO_COMBINATIONS`
+        // heavily-gated values bounded - the per-value `MAX_SCENARIO_COMBINATIONS`
         // cap alone does not bound the number of such values.
         if self.scenario_budget_exhausted() {
             return vec![];
@@ -690,23 +1179,116 @@ impl SemanticModel {
 
     /// Returns the source span for a resource property path, falling back to
     /// the resource-level span if the specific path is not found.
+    ///
+    /// The span index is keyed with slash-separated paths, so a dotted,
+    /// resource-relative path (`Properties.BucketName`) is normalized to slash
+    /// form before lookup - the same normalization [`Self::diagnostic_span`]
+    /// applies. Callers pass paths in either form, so accepting only slash form
+    /// here would silently mislocate every dotted-path diagnostic onto the
+    /// resource declaration line.
     pub fn resource_span(&self, resource_id: &str, prop_path: &str) -> SourceSpan {
+        // An empty resource id means the path is already a section-absolute span-index
+        // key (e.g. an output's `Outputs/X/Value.Fn::Join`); prefixing it with
+        // `Resources/` would mislocate the finding onto the Resources block. Resolve it
+        // as-is (no dot-to-slash conversion, since dots in segment names like `Fn::Join`
+        // are literal, not path separators). Returns UNKNOWN when nothing resolves so
+        // callers fall back to section-level or backfill-based location.
+        if resource_id.is_empty() {
+            return self.walk_up_span(prop_path).unwrap_or(UNKNOWN_SPAN);
+        }
         let specific = if prop_path.is_empty() {
             format!("Resources/{}", resource_id)
         } else {
-            format!("Resources/{}/{}", resource_id, prop_path)
+            format!("Resources/{}/{}", resource_id, prop_path.replace('.', "/"))
         };
-        let fallback = format!("Resources/{}", resource_id);
-        self.source_location(&specific).or_else(|| self.source_location(&fallback)).copied().unwrap_or(UNKNOWN_SPAN)
+        // Walk up from the exact path to the nearest indexed ancestor, so a leaf that
+        // carries no span of its own - a synthetic intrinsic key (`…/Topic/Fn::Sub`),
+        // an `Fn::If` branch index - anchors at its closest real parent rather than
+        // collapsing straight to the resource declaration. The resource path itself is
+        // the final ancestor, preserving the previous resource-level fallback.
+        self.walk_up_span(&specific).unwrap_or(UNKNOWN_SPAN)
     }
 
-    pub fn estimate_string_length(&self, resource_id: &str, path: &str) -> Option<usize> {
+    /// Walks up `key` (a `/`-separated span-index path), trimming one trailing
+    /// segment at a time, and returns the first ancestor with a known span. This
+    /// anchors a diagnostic as close to the offending node as the index allows -
+    /// an unindexed leaf (e.g. an `Fn::If` branch index) falls back to its parent
+    /// property, then the resource, then the section.
+    fn walk_up_span(&self, key: &str) -> Option<SourceSpan> {
+        let mut current = key;
+        loop {
+            // A key can be present in the index but mapped to UNKNOWN_SPAN (an
+            // interior node whose byte span was never assigned). Treat that as
+            // "not found" and keep walking up to the nearest ancestor that does
+            // have a real span, rather than returning the unusable UNKNOWN.
+            match self.span_index.get(current) {
+                Some(&span) if span != UNKNOWN_SPAN => return Some(span),
+                _ => match current.rfind('/') {
+                    Some(cut) => current = &current[..cut],
+                    None => return None,
+                },
+            }
+        }
+    }
+
+    /// Best-effort span for a diagnostic identified by its optional resource and
+    /// property path, walking up to the nearest indexed ancestor.
+    ///
+    /// The path form disambiguates how to root it, which matters because a segment
+    /// like `Metadata` names both a top-level section and a resource property:
+    /// * A **slash** form (`Outputs/X/Value`, `Conditions/C/Fn::And`) is already an
+    ///   absolute, section-rooted span-index key and is resolved as written.
+    /// * A **dotted** or bare form (`Properties.Foo`, `Metadata`) is relative to the
+    ///   resource, so it is rooted at `Resources/<rid>` before lookup - never
+    ///   matched against a same-named top-level section.
+    ///
+    /// Returns `None` when nothing along the chosen candidate is indexed, so callers
+    /// can fall back to a section span.
+    pub fn diagnostic_span(&self, resource_id: Option<&str>, property_path: &str) -> Option<SourceSpan> {
+        let rid = resource_id.filter(|r| !r.is_empty());
+
+        if property_path.contains('/') {
+            // Absolute, section-rooted path: resolve directly.
+            if let Some(span) = self.walk_up_span(property_path) {
+                return Some(span);
+            }
+        } else if let Some(rid) = rid {
+            // Resource-relative path (dotted or bare): root at the resource so a
+            // property named after a top-level section cannot mislocate onto it.
+            let key = if property_path.is_empty() {
+                format!("Resources/{}", rid)
+            } else {
+                format!("Resources/{}/{}", rid, property_path.replace('.', "/"))
+            };
+            if let Some(span) = self.walk_up_span(&key) {
+                return Some(span);
+            }
+        }
+
+        // Last resort: the bare resource span, when a resource id is known.
+        rid.and_then(|rid| self.span_index.get(&format!("Resources/{}", rid)))
+            .filter(|span| **span != UNKNOWN_SPAN)
+            .copied()
+    }
+
+    /// Bounds on the length of a string value the template does not state
+    /// literally - one built by an intrinsic, or chosen from a parameter's
+    /// AllowedValues. `None` when the length cannot be pinned for every
+    /// possibility, and also when the template does state the value literally,
+    /// because schema validation checks a literal against the constraint directly.
+    ///
+    /// Both engines decide what to report from this one answer, so neither can
+    /// reach a different conclusion about the same property.
+    pub fn estimated_string_length_bounds(&self, resource_id: &str, path: &str) -> Option<(usize, usize)> {
         let val = self.resolve_deep(resource_id, path).or_else(|| self.resolve(resource_id, path).cloned())?;
-        estimate_resolved_string_length(&val)
+        if matches!(&val, ResolvedValue::Concrete { value } if value.is_string()) {
+            return None;
+        }
+        estimate_resolved_string_length_bounds(&val)
     }
 }
 
-impl diagnostics::SpanProvider for SemanticModel {
+impl SpanProvider for SemanticModel {
     fn source_location(&self, path: &str) -> Option<SourceSpan> {
         self.span_index.get(path).copied()
     }
@@ -765,7 +1347,64 @@ fn parse_rules(rules_json: &Option<serde_json::Value>, arena: &Arena, rules_node
         .collect()
 }
 
-/// Some intrinsic nodes stand in for a whole object — most notably
+/// Collect parameter names that are referenced (via `Ref`/`Fn::Sub`) from within
+/// another parameter's definition. These references still count as usage for the
+/// unused-parameter check even though they originate in the Parameters section.
+fn collect_parameter_definition_refs(ir: &TemplateIR, parameters: &HashMap<String, ParameterInfo>) -> HashSet<String> {
+    let mut referenced = HashSet::new();
+    if ir.parameters == NULL_REF {
+        return referenced;
+    }
+    let Some(param_entries) = ir.arena.as_map(ir.parameters) else {
+        return referenced;
+    };
+    for (_, param_ref) in param_entries {
+        collect_refs_in_subtree(&ir.arena, *param_ref, parameters, &mut referenced);
+    }
+    referenced
+}
+
+fn collect_refs_in_subtree(
+    arena: &Arena,
+    node_ref: NodeRef,
+    parameters: &HashMap<String, ParameterInfo>,
+    referenced: &mut HashSet<String>,
+) {
+    match arena.node(node_ref) {
+        Node::Intrinsic(IntrinsicFn::Ref(target)) => {
+            if parameters.contains_key(target) {
+                referenced.insert(target.clone());
+            }
+        }
+        Node::Intrinsic(IntrinsicFn::Sub(_, Some(bindings))) => {
+            for (_, v) in bindings {
+                collect_refs_in_subtree(arena, *v, parameters, referenced);
+            }
+        }
+        Node::List(items) => {
+            for item in items {
+                collect_refs_in_subtree(arena, *item, parameters, referenced);
+            }
+        }
+        Node::Map(entries) => {
+            for (_, v) in entries {
+                collect_refs_in_subtree(arena, *v, parameters, referenced);
+            }
+        }
+        _ => {}
+    }
+}
+
+/// The parameter name inside a `resolution_sources` entry that records a value
+/// taken from a parameter declaration, such as `Parameters/InstanceType/Default`.
+/// A logical id never contains a separator, so the first segment is the whole name.
+fn parameter_name_from_source(source: &str) -> Option<&str> {
+    let rest = source.strip_prefix(SECTION_PARAMETERS)?.strip_prefix('/')?;
+    let name = rest.split('/').next()?;
+    if name.is_empty() { None } else { Some(name) }
+}
+
+/// Some intrinsic nodes stand in for a whole object - most notably
 /// `Properties: {Fn::If: [...]}` which the parser folds into an
 /// `IntrinsicFn::If` node. Return the CloudFormation function-name key
 /// (`Fn::If`, `Fn::ForEach::*`, etc.) when the node is one of these
@@ -814,6 +1453,7 @@ fn resolve_resource(arena: &Arena, name: &str, node_ref: NodeRef, resolver: &mut
     };
 
     let mut properties = HashMap::new();
+    let mut properties_dynamic = false;
     if let Some((_, props_ref)) = entries.iter().find(|(k, _)| k == KEY_PROPERTIES) {
         if let Some(prop_entries) = arena.as_map(*props_ref) {
             for (key, val_ref) in prop_entries {
@@ -830,6 +1470,11 @@ fn resolve_resource(arena: &Arena, name: &str, node_ref: NodeRef, resolver: &mut
             // rather than doubling the `Fn::If` segment.
             resolver.set_current_path(KEY_PROPERTIES);
             properties.insert(synthetic_key, resolver.resolve_node(*props_ref));
+        } else if matches!(arena.node(*props_ref), Node::Intrinsic(_)) {
+            // The whole Properties block is an intrinsic (e.g. `!Ref AWS::NoValue`)
+            // that did not collapse into a per-branch synthetic key. Its effective
+            // properties are only known at deploy time.
+            properties_dynamic = true;
         }
     }
 
@@ -845,6 +1490,12 @@ fn resolve_resource(arena: &Arena, name: &str, node_ref: NodeRef, resolver: &mut
     if let Some(ref meta_resolved) = resolved_metadata {
         collect_condition_refs_from_resolved(meta_resolved, &mut condition_refs);
     }
+    if let Some(ref dp) = deletion_policy {
+        collect_condition_refs_from_resolved(dp, &mut condition_refs);
+    }
+    if let Some(ref urp) = update_replace_policy {
+        collect_condition_refs_from_resolved(urp, &mut condition_refs);
+    }
     if let Some(mut extra) = resolver.extra_condition_refs.remove(name) {
         condition_refs.append(&mut extra);
     }
@@ -858,10 +1509,11 @@ fn resolve_resource(arena: &Arena, name: &str, node_ref: NodeRef, resolver: &mut
         depends_on,
         deletion_policy,
         update_replace_policy,
-        update_policy: update_policy.map(diagnostics::JsonValue),
-        creation_policy: creation_policy.map(diagnostics::JsonValue),
-        metadata: metadata.map(diagnostics::JsonValue),
+        update_policy: update_policy.map(JsonValue),
+        creation_policy: creation_policy.map(JsonValue),
+        metadata: metadata.map(JsonValue),
         properties,
+        properties_dynamic,
         diagnostics: ResourceDiagnostics {
             find_in_map_refs: resolver.find_in_map_refs.remove(name).unwrap_or_default(),
             simple_subs: resolver
@@ -873,7 +1525,9 @@ fn resolve_resource(arena: &Arena, name: &str, node_ref: NodeRef, resolver: &mut
                 .collect(),
             redundant_subs: resolver.redundant_subs.remove(name).unwrap_or_default(),
             empty_joins: resolver.empty_joins.remove(name).unwrap_or_default(),
-            hardcoded_partition_arns: resolver.hardcoded_partition_arns.remove(name).unwrap_or_default(),
+            hardcoded_partition_arns: collapse_list_sibling_arn_paths(
+                resolver.hardcoded_partition_arns.remove(name).unwrap_or_default(),
+            ),
             foreach_expansions: resolver
                 .foreach_expansions
                 .remove(name)
@@ -892,6 +1546,21 @@ fn resolve_resource(arena: &Arena, name: &str, node_ref: NodeRef, resolver: &mut
                 .into_iter()
                 .map(|(a, b)| PathValuePair { path: a, value: b })
                 .collect(),
+            unused_sub_keys: resolver
+                .unused_sub_keys
+                .remove(name)
+                .unwrap_or_default()
+                .into_iter()
+                .map(|(a, b)| PathValuePair { path: a, value: b })
+                .collect(),
+            raw_pseudo_params: resolver
+                .raw_pseudo_params
+                .remove(name)
+                .unwrap_or_default()
+                .into_iter()
+                .map(|(a, b)| PathValuePair { path: a, value: b })
+                .collect(),
+            secretsmanager_ref_paths: resolver.secretsmanager_ref_paths.remove(name).unwrap_or_default(),
             invalid_refs: resolver
                 .invalid_refs
                 .remove(name)
@@ -908,6 +1577,118 @@ fn resolve_resource(arena: &Arena, name: &str, node_ref: NodeRef, resolver: &mut
     }
 }
 
+/// Collapses hardcoded-partition ARN paths that are list siblings sharing one
+/// source location into a single path at the lowest index.
+///
+/// When several `Fn::Sub` ARNs are list elements of the same property (e.g.
+/// `Principal.AWS.0.Fn::Sub`, `Principal.AWS.1.Fn::Sub`), they map to the same
+/// source span - the list's location - so they are one observable finding, not
+/// several. Paths whose only difference is the list index immediately before the
+/// trailing `.Fn::Sub` segment are therefore folded to the smallest index.
+fn collapse_list_sibling_arn_paths(paths: Vec<String>) -> Vec<String> {
+    // Group key: the path with the final list index (the segment just before
+    // `.Fn::Sub`) blanked out. Tracks the minimum index seen per group so the
+    // surviving path reports the first sibling.
+    let mut min_index: HashMap<String, usize> = HashMap::new();
+    let mut ungrouped: Vec<String> = Vec::new();
+    for path in &paths {
+        match split_trailing_list_index(path) {
+            Some((prefix, idx, suffix)) => {
+                let key = format!("{}\u{0}{}", prefix, suffix);
+                min_index.entry(key).and_modify(|m| *m = (*m).min(idx)).or_insert(idx);
+            }
+            None => ungrouped.push(path.clone()),
+        }
+    }
+    let mut out = ungrouped;
+    for (key, idx) in min_index {
+        let (prefix, suffix) = key.split_once('\u{0}').unwrap_or((key.as_str(), ""));
+        out.push(format!("{}{}.{}", prefix, idx, suffix));
+    }
+    out.sort();
+    out
+}
+
+/// Splits a path like `a.b.2.Fn::Sub` into (`"a.b."`, `2`, `"Fn::Sub"`) when a
+/// numeric list index directly precedes the trailing `.Fn::Sub` segment.
+fn split_trailing_list_index(path: &str) -> Option<(String, usize, String)> {
+    let suffix = "Fn::Sub";
+    let stem = path.strip_suffix(suffix)?.strip_suffix('.')?;
+    let (head, last) = stem.rsplit_once('.')?;
+    let idx: usize = last.parse().ok()?;
+    Some((format!("{}.", head), idx, suffix.to_string()))
+}
+
+/// An output `Value` must resolve to a string. A literal non-empty list or map,
+/// or a function whose result is a list (`Fn::GetAZs`, `Fn::Split`, `Fn::Cidr`),
+/// can never be a string and is a guaranteed template error. `Fn::If` is
+/// transparent: each branch is checked at its own location, so a conditional
+/// that picks a string in one branch and a list in the other is flagged only on
+/// the offending branch. Empty containers are accepted (they carry no members to
+/// stringify) and every other function (`Ref`, `Fn::Sub`, `Fn::Join`,
+/// `Fn::Select`, `Fn::FindInMap`, `Fn::ImportValue`, …) is treated as
+/// string-producing here - a `Fn::GetAtt` returning a non-string is caught later
+/// against the resource schema, which this parse-time shape check cannot see.
+fn check_output_value_is_string(arena: &Arena, value_ref: NodeRef, output_name: &str, resolver: &mut Resolver) {
+    let build_path = format!("Outputs/{}/Value", output_name);
+    check_output_value_node(arena, value_ref, output_name, &build_path, resolver);
+}
+
+/// Recursive worker for [`check_output_value_is_string`]. `build_path` is the
+/// slash path of the node under inspection; each `Fn::If` branch is visited with
+/// its own branch path so that a conditional with a bad value in both branches
+/// yields a separate, correctly-located diagnostic per branch rather than
+/// collapsing to one.
+fn check_output_value_node(
+    arena: &Arena,
+    value_ref: NodeRef,
+    output_name: &str,
+    build_path: &str,
+    resolver: &mut Resolver,
+) {
+    let span = arena.span(value_ref);
+    match arena.node(value_ref) {
+        Node::List(items) if !items.is_empty() => {
+            resolver.diagnostics.push(crate::make_parse_defect_at(
+                "F6101",
+                format!("Output '{}' value must be a string, not a list", output_name),
+                span,
+                build_path,
+            ));
+        }
+        Node::Map(entries) if !entries.is_empty() => {
+            resolver.diagnostics.push(crate::make_parse_defect_at(
+                "F6101",
+                format!("Output '{}' value must be a string, not an object", output_name),
+                span,
+                build_path,
+            ));
+        }
+        Node::Intrinsic(IntrinsicFn::If(_, if_true, if_false) | IntrinsicFn::IfExpr(_, if_true, if_false)) => {
+            let (if_true, if_false) = (*if_true, *if_false);
+            check_output_value_node(arena, if_true, output_name, &format!("{}/{}/1", build_path, FN_IF), resolver);
+            check_output_value_node(arena, if_false, output_name, &format!("{}/{}/2", build_path, FN_IF), resolver);
+        }
+        Node::Intrinsic(intrinsic) if returns_list(intrinsic) => {
+            resolver.diagnostics.push(crate::make_parse_defect_at(
+                "F6101",
+                format!("Output '{}' value must be a string, not a list", output_name),
+                span,
+                build_path,
+            ));
+        }
+        _ => {}
+    }
+}
+
+/// Whether an intrinsic's result is a list value (never a string). These are the
+/// only list-returning functions that can stand as a whole output `Value`;
+/// `Fn::If` is handled separately (its branches are checked), and every other
+/// function yields a string or an opaque deploy-time value.
+fn returns_list(intrinsic: &IntrinsicFn) -> bool {
+    matches!(intrinsic, IntrinsicFn::GetAZs(_) | IntrinsicFn::Split(_, _) | IntrinsicFn::Cidr(_, _, _))
+}
+
 fn resolve_output(arena: &Arena, node_ref: NodeRef, resolver: &mut Resolver) -> ResolvedOutput {
     let entries = arena.as_map(node_ref).unwrap_or(&[]);
 
@@ -917,7 +1698,7 @@ fn resolve_output(arena: &Arena, node_ref: NodeRef, resolver: &mut Resolver) -> 
     let display_name = output_name.strip_prefix(OUTPUT_PSEUDO_RESOURCE_PREFIX).unwrap_or(output_name);
     for (key, _) in entries {
         if !VALID_OUTPUT_KEYS.contains(&key.as_str()) {
-            resolver.diagnostics.push(crate::make_parse_diagnostic(
+            resolver.diagnostics.push(crate::make_parse_defect(
                 "E6001",
                 format!(
                     "Output '{}' has invalid property '{}'. Valid properties: Value, Description, Condition, Export",
@@ -926,6 +1707,12 @@ fn resolve_output(arena: &Arena, node_ref: NodeRef, resolver: &mut Resolver) -> 
                 crate::ir::UNKNOWN_SPAN,
             ));
         }
+    }
+
+    if let Some((_, value_ref)) = entries.iter().find(|(k, _)| k == KEY_VALUE) {
+        let value_ref = *value_ref;
+        let name = display_name.to_string();
+        check_output_value_is_string(arena, value_ref, &name, resolver);
     }
 
     let value = entries
@@ -954,6 +1741,55 @@ mod tests {
     use super::*;
 
     #[test]
+    fn invalid_overrides_reports_nothing_when_unset_or_valid() {
+        assert!(PseudoParameterOverrides::default().invalid_overrides().is_empty(), "unset overrides are valid");
+        let valid = PseudoParameterOverrides {
+            account_id: Some("123456789012".to_string()),
+            partition: Some("aws-cn".to_string()),
+            ..Default::default()
+        };
+        assert!(valid.invalid_overrides().is_empty(), "well-formed overrides produce no warnings");
+    }
+
+    #[test]
+    fn invalid_overrides_reports_each_malformed_provided_value() {
+        let bad = PseudoParameterOverrides {
+            account_id: Some("unknown-account".to_string()),
+            partition: Some("gcp".to_string()),
+            ..Default::default()
+        };
+        let problems = bad.invalid_overrides();
+        assert_eq!(problems.len(), 2, "one entry per invalid provided field");
+        assert!(problems.iter().any(|p| p.contains("AccountId") && p.contains("unknown-account")));
+        assert!(problems.iter().any(|p| p.contains("Partition") && p.contains("gcp")));
+    }
+
+    #[test]
+    fn invalid_overrides_only_checks_account_id_and_partition() {
+        let only_region = PseudoParameterOverrides { region: Some("not a region".to_string()), ..Default::default() };
+        assert!(only_region.invalid_overrides().is_empty());
+    }
+
+    #[test]
+    fn account_id_shape_requires_exactly_twelve_digits() {
+        assert!(is_account_id_shaped("123456789012"));
+        assert!(!is_account_id_shaped("12345678901"));
+        assert!(!is_account_id_shaped("1234567890123"));
+        assert!(!is_account_id_shaped("12345678901a"));
+        assert!(!is_account_id_shaped(""));
+    }
+
+    #[test]
+    fn partition_shape_accepts_aws_family_and_rejects_others() {
+        for ok in ["aws", "aws-cn", "aws-us-gov", "aws-iso", "aws-iso-b"] {
+            assert!(is_partition_shaped(ok), "{ok} should be accepted");
+        }
+        for bad in ["gcp", "AWS", "azure", ""] {
+            assert!(!is_partition_shaped(bad), "{bad} should be rejected");
+        }
+    }
+
+    #[test]
     fn model_from_simple_template() {
         let input = r#"
 AWSTemplateFormatVersion: "2010-09-09"
@@ -971,6 +1807,97 @@ Resources:
         assert_eq!(model.resources.len(), 2);
         assert_eq!(model.resources_of_type("AWS::S3::Bucket").len(), 2);
         assert_eq!(model.resources_of_type("AWS::Fake::Thing").len(), 0);
+    }
+
+    #[test]
+    fn diagnostic_span_resolves_dotted_resource_property_path() {
+        let input = r#"
+Resources:
+  MyBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: my-bucket
+"#;
+        let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        // A dotted, resource-relative path is normalized to the slash-keyed index
+        // entry and resolves to the specific property span (the BucketName value).
+        let via_diag = model.diagnostic_span(Some("MyBucket"), "Properties.BucketName").expect("should resolve");
+        let expected = model.source_location("Resources/MyBucket/Properties/BucketName").copied().expect("indexed");
+        assert_eq!(via_diag, expected, "dotted path should resolve to the exact property span");
+    }
+
+    #[test]
+    fn diagnostic_span_resource_relative_path_never_matches_top_level_section() {
+        // A resource property named after a top-level section (Metadata) must anchor
+        // at the resource's own Metadata, not the unrelated top-level Metadata block.
+        let input = r#"
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups: []
+Resources:
+  MyBucket:
+    Type: AWS::S3::Bucket
+    Metadata:
+      cfn_nag: skip
+"#;
+        let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        let via_diag = model.diagnostic_span(Some("MyBucket"), "Metadata").expect("should resolve");
+        let resource_meta = model.source_location("Resources/MyBucket/Metadata").copied().expect("indexed");
+        let top_level_meta = model.source_location("Metadata").copied().expect("indexed");
+        assert_eq!(via_diag, resource_meta, "resource-relative Metadata must anchor at the resource");
+        assert_ne!(via_diag, top_level_meta, "must not mislocate onto the top-level Metadata section");
+    }
+
+    #[test]
+    fn diagnostic_span_resolves_absolute_section_rooted_path() {
+        let input = r#"
+Resources:
+  MyBucket:
+    Type: AWS::S3::Bucket
+Outputs:
+  BucketRef:
+    Value: !Ref MyBucket
+"#;
+        let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        // An output-anchored path cannot be reached via resource_span (it only roots
+        // at Resources/), but diagnostic_span resolves it directly from the index.
+        let span = model.diagnostic_span(Some("BucketRef"), "Outputs/BucketRef/Value");
+        assert!(span.is_some() && span != Some(UNKNOWN_SPAN), "output path should resolve to a real span");
+    }
+
+    #[test]
+    fn diagnostic_span_walks_up_when_leaf_node_is_unindexed() {
+        let input = r#"
+Resources:
+  MyBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: my-bucket
+"#;
+        let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        // A deeper path that was never indexed falls back to the nearest indexed
+        // ancestor (the property, then the resource) rather than UNKNOWN.
+        let span = model.diagnostic_span(Some("MyBucket"), "Properties.BucketName.DoesNotExist.Deeper");
+        assert!(span.is_some() && span != Some(UNKNOWN_SPAN), "unindexed leaf should walk up to a real span");
+    }
+
+    #[test]
+    fn diagnostic_span_returns_none_when_nothing_resolvable() {
+        let input = r#"
+Resources:
+  MyBucket:
+    Type: AWS::S3::Bucket
+"#;
+        let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        // No resource and no property path: there is no candidate key to resolve.
+        assert_eq!(model.diagnostic_span(None, ""), None, "no resource and no path yields no span");
+        // A property path whose every ancestor is unindexed (no matching section)
+        // resolves to nothing.
+        assert_eq!(
+            model.diagnostic_span(None, "NoSuchSection/Deep/Path"),
+            None,
+            "an unindexed absolute path yields no span"
+        );
     }
 
     #[test]
@@ -1130,6 +2057,28 @@ Resources:
     }
 
     #[test]
+    fn scenario_source_path_maps_effective_indexes_to_authored_branches() {
+        let input = br#"{
+            "Parameters": {"Mode": {"Type": "String"}},
+            "Conditions": {"ChooseFirst": {"Fn::Equals": [{"Ref": "Mode"}, "first"]}},
+            "Resources": {"R": {"Type": "T", "Properties": {
+                "Values": {"Fn::If": ["ChooseFirst", ["bad"], ["good"]]}
+            }}}
+        }"#;
+        let model = SemanticModel::from_bytes(input).unwrap();
+        let true_conditions = HashMap::from([("ChooseFirst".to_string(), true)]);
+        let false_conditions = HashMap::from([("ChooseFirst".to_string(), false)]);
+        assert_eq!(
+            model.scenario_source_path("R", "Properties.Values.0", &true_conditions),
+            Some("Properties.Values.Fn::If.1.0".to_string())
+        );
+        assert_eq!(
+            model.scenario_source_path("R", "Properties.Values.0", &false_conditions),
+            Some("Properties.Values.Fn::If.2.0".to_string())
+        );
+    }
+
+    #[test]
     fn resolve_scenarios_json_filters_dynamic() {
         let input = r#"{"Resources":{"R":{"Type":"T","Properties":{"V":{"Fn::ImportValue":"Stack"}}}}}"#;
         let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
@@ -1159,7 +2108,7 @@ Resources:
     fn cumulative_scenario_budget_accumulates_across_queries_then_halts_expansion() {
         // A conditional property resolves into more than one scenario, so each
         // resolve_scenarios call charges a non-zero, deterministic amount to the
-        // model's shared cumulative scenario counter — enough to prove queries
+        // model's shared cumulative scenario counter - enough to prove queries
         // accumulate. resolve_scenarios is not memoized, so repeating the same
         // query re-charges.
         let input = br#"{
@@ -1175,7 +2124,7 @@ Resources:
             "a freshly built model's cumulative scenario budget is not exhausted"
         );
 
-        // (1) Real queries accumulate across queries — a per-query reset would
+        // (1) Real queries accumulate across queries - a per-query reset would
         // be a silent denial-of-service regression. The conditional value must
         // expand into more than one scenario, and the counter must reflect
         // exactly what was produced.
@@ -1242,17 +2191,35 @@ Resources:
     }
 
     #[test]
-    fn estimate_string_length_concrete_property() {
+    fn estimated_bounds_are_absent_for_a_literal_string() {
+        // Schema validation checks a literal against its constraint directly, so
+        // the estimating rule is deliberately given nothing for one.
         let input = r#"{"Resources":{"R":{"Type":"T","Properties":{"V":"hello"}}}}"#;
         let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
-        assert_eq!(model.estimate_string_length("R", "Properties.V"), Some(5));
+        assert_eq!(model.estimated_string_length_bounds("R", "Properties.V"), None);
+    }
+
+    #[test]
+    fn estimated_bounds_span_every_allowed_value() {
+        let input = r#"{"Parameters":{"Size":{"Type":"String","AllowedValues":["xs","large"]}},
+            "Resources":{"R":{"Type":"T","Properties":{"V":{"Ref":"Size"}}}}}"#;
+        let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        assert_eq!(model.estimated_string_length_bounds("R", "Properties.V"), Some((2, 5)));
+    }
+
+    #[test]
+    fn estimated_bounds_are_absent_when_a_possibility_is_unknown() {
+        let input = r#"{"Parameters":{"Free":{"Type":"String"}},
+            "Resources":{"R":{"Type":"T","Properties":{"V":{"Ref":"Free"}}}}}"#;
+        let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        assert_eq!(model.estimated_string_length_bounds("R", "Properties.V"), None);
     }
 
     #[test]
     fn estimate_string_length_missing_property() {
         let input = r#"{"Resources":{"R":{"Type":"T","Properties":{"V":"hello"}}}}"#;
         let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
-        assert!(model.estimate_string_length("R", "Properties.Missing").is_none());
+        assert!(model.estimated_string_length_bounds("R", "Properties.Missing").is_none());
     }
 
     #[test]
@@ -1265,12 +2232,91 @@ Resources:
     }
 
     #[test]
+    fn resource_span_specific_path_dotted_form() {
+        let input = "Resources:\n  R:\n    Type: T\n    Properties:\n      Name: hello\n";
+        let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        // A dotted, resource-relative path must resolve to the SAME specific span
+        // as its slash-form equivalent - not fall back to the resource span.
+        let dotted = model.resource_span("R", "Properties.Name");
+        let slashed = model.resource_span("R", "Properties/Name");
+        let resource = model.resource_span("R", "");
+        assert_eq!(dotted, slashed, "dotted and slash forms must resolve to the same span");
+        assert_ne!(dotted, resource, "specific property span must differ from the resource span");
+    }
+
+    #[test]
     fn resource_span_falls_back_to_resource() {
         let input = "Resources:\n  R:\n    Type: T\n    Properties:\n      Name: hello\n";
         let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
         let span = model.resource_span("R", "Properties/NonExistent/Deep");
         // Should fall back to the resource-level span
         assert!(span.start_line > 0 || span.end_line > 0, "expected non-zero span, got {:?}", span);
+    }
+
+    #[test]
+    fn resource_span_nested_array_property_anchors_at_element() {
+        // A property inside an array element must anchor at that element, not at the
+        // array or the resource. The span index is keyed with the array index.
+        let input =
+            "Resources:\n  R:\n    Type: T\n    Properties:\n      Ingress:\n      - Port: 80\n      - Port: 443\n";
+        let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        let first = model.resource_span("R", "Properties.Ingress.0.Port");
+        let second = model.resource_span("R", "Properties.Ingress.1.Port");
+        assert_eq!(first.start_line, 6, "Ingress[0].Port is on line 6, got {:?}", first);
+        assert_eq!(second.start_line, 7, "Ingress[1].Port is on line 7, got {:?}", second);
+    }
+
+    #[test]
+    fn resource_span_empty_id_resolves_section_absolute_path_precisely() {
+        // A finding with no resource id (e.g. an Outputs-level diagnostic) carries a
+        // section-absolute span-index path. It must resolve against that path directly,
+        // NOT be prefixed with `Resources/` (which would mislocate onto the Resources
+        // block). A path whose exact node is indexed resolves to that node.
+        let input = concat!(
+            "Resources:\n  R:\n    Type: T\n",                                  // lines 1-3
+            "Outputs:\n  Combined:\n    Value: !Join [\"\", [\"a\", \"b\"]]\n", // lines 4-6
+        );
+        let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        // The `Value` node is indexed (line 6) - resolution lands on it exactly.
+        let value = model.resource_span("", "Outputs/Combined/Value");
+        assert_eq!(value.start_line, 6, "Outputs/Combined/Value is on line 6, got {:?}", value);
+        // The output key itself resolves to its own line (line 5).
+        let combined = model.resource_span("", "Outputs/Combined");
+        assert_eq!(combined.start_line, 5, "Outputs/Combined is on line 5, got {:?}", combined);
+    }
+
+    #[test]
+    fn resource_span_empty_id_fused_intrinsic_suffix_anchors_at_nearest_slash_ancestor() {
+        // A synthetic intrinsic suffix (`.Fn::Join`) is joined to its parent by a DOT,
+        // which is deliberately not treated as a path separator here: real span-index
+        // keys contain literal dots inside a single segment (e.g. API Gateway's
+        // `method.request.path.proxy`), so splitting on dots would shred those paths and
+        // mis-anchor. The walk-up therefore trims the whole `Value.Fn::Join` segment on
+        // the nearest `/`, landing on the enclosing output - still within Outputs, never
+        // on the Resources block. Both engines resolve this identically, which is what
+        // keeps them at parity.
+        let input = concat!(
+            "Resources:\n  R:\n    Type: T\n",                                  // lines 1-3
+            "Outputs:\n  Combined:\n    Value: !Join [\"\", [\"a\", \"b\"]]\n", // lines 4-6
+        );
+        let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        let span = model.resource_span("", "Outputs/Combined/Value.Fn::Join");
+        assert_eq!(
+            span.start_line, 5,
+            "fused-suffix path must anchor at the enclosing output (line 5), got {:?}",
+            span
+        );
+    }
+
+    #[test]
+    fn resource_span_empty_id_does_not_leak_onto_resources_block() {
+        // Regression guard: an unresolvable empty-id path must return UNKNOWN rather
+        // than walking up a spuriously `Resources/`-prefixed key onto the Resources
+        // section. This is the divergence that made the two engines disagree.
+        let input = "Resources:\n  R:\n    Type: T\n";
+        let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        let span = model.resource_span("", "Outputs/DoesNotExist/Value");
+        assert_eq!(span, UNKNOWN_SPAN, "unresolvable empty-id path must be UNKNOWN, got {:?}", span);
     }
 
     #[test]
@@ -1341,6 +2387,99 @@ Resources:
         assert_eq!(overrides.get("AWS::URLSuffix").unwrap(), "amazonaws.com.cn");
     }
 
+    /// `fixed_value` underpins the SAT-solver decision "treat this pseudo-param
+    /// as a constant or a free variable". It must return `Some` only when the
+    /// caller pinned the corresponding field - never for region-derived
+    /// defaults - otherwise `Fn::Equals[Ref AWS::Partition, "aws"]` would be
+    /// falsely deterministic and `find_unreachable_branches` would emit
+    /// false-positive unreachable-branch diagnostics.
+    #[test]
+    fn fixed_value_returns_none_for_unset_pseudo_parameters() {
+        let overrides = PseudoParameterOverrides::default();
+
+        for name in [
+            "AWS::AccountId",
+            "AWS::NotificationARNs",
+            "AWS::Partition",
+            "AWS::Region",
+            "AWS::StackId",
+            "AWS::StackName",
+            "AWS::URLSuffix",
+        ] {
+            assert_eq!(
+                overrides.fixed_value(name),
+                None,
+                "{name} must be a free variable when the user has not explicitly pinned it"
+            );
+        }
+    }
+
+    #[test]
+    fn parameter_name_at_names_the_parameter_behind_a_value() {
+        let input = r#"{"Parameters":{"BucketName":{"Type":"String"}},
+            "Resources":{"R":{"Type":"AWS::S3::Bucket","Properties":{"BucketName":{"Ref":"BucketName"}}}}}"#;
+        let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        assert_eq!(model.parameter_name_at("R", "Properties.BucketName"), Some("BucketName"));
+        assert!(model.is_from_parameter("R", "Properties.BucketName"));
+    }
+
+    #[test]
+    fn parameter_name_at_is_absent_for_a_value_no_parameter_produced() {
+        // A cross-stack import is unknown until deployment without being a
+        // parameter, so nothing may name one.
+        let input = r#"{"Resources":{"R":{"Type":"AWS::S3::Bucket",
+            "Properties":{"BucketName":{"Fn::ImportValue":"SharedName"}}}}}"#;
+        let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        assert_eq!(model.parameter_name_at("R", "Properties.BucketName"), None);
+        assert!(!model.is_from_parameter("R", "Properties.BucketName"));
+    }
+
+    #[test]
+    fn parameter_name_from_source_reads_only_a_parameter_entry() {
+        assert_eq!(parameter_name_from_source("Parameters/InstanceType/Default"), Some("InstanceType"));
+        assert_eq!(parameter_name_from_source("Parameters/InstanceType/AllowedValues"), Some("InstanceType"));
+        assert_eq!(parameter_name_from_source("Parameters/InstanceType"), Some("InstanceType"));
+        assert_eq!(parameter_name_from_source("Intrinsic/Ref"), None);
+        assert_eq!(parameter_name_from_source("Parameters/"), None);
+        assert_eq!(parameter_name_from_source("ParametersLookAlike/Name"), None);
+    }
+
+    #[test]
+    fn fixed_value_returns_user_supplied_overrides() {
+        let overrides = PseudoParameterOverrides {
+            account_id: Some("999999999999".to_string()),
+            partition: Some("aws-cn".to_string()),
+            region: Some("cn-north-1".to_string()),
+            stack_name: Some("MyStack".to_string()),
+            ..Default::default()
+        };
+
+        assert_eq!(overrides.fixed_value("AWS::AccountId"), Some("999999999999".to_string()));
+        assert_eq!(overrides.fixed_value("AWS::Partition"), Some("aws-cn".to_string()));
+        assert_eq!(overrides.fixed_value("AWS::Region"), Some("cn-north-1".to_string()));
+        assert_eq!(overrides.fixed_value("AWS::StackName"), Some("MyStack".to_string()));
+        assert_eq!(overrides.fixed_value("AWS::URLSuffix"), None, "URLSuffix not set; must remain a free variable");
+        assert_eq!(overrides.fixed_value("Unknown"), None);
+    }
+
+    /// Setting `region` alone must NOT cause `fixed_value("AWS::Partition")`
+    /// to return a value. The convenience defaulting that `get` performs (so
+    /// resource-property substitution sees a sensible partition string) is
+    /// deliberately separate from the SAT-solver pinning, because constraining
+    /// the region constrains where the stack deploys, not the partition the
+    /// template was written against.
+    #[test]
+    fn fixed_value_does_not_propagate_region_to_partition() {
+        let overrides = PseudoParameterOverrides { region: Some("cn-north-1".to_string()), ..Default::default() };
+
+        assert_eq!(overrides.fixed_value("AWS::Region"), Some("cn-north-1".to_string()));
+        assert_eq!(
+            overrides.fixed_value("AWS::Partition"),
+            None,
+            "region override must not propagate to partition - partition stays free unless the caller pins it"
+        );
+    }
+
     #[test]
     fn model_rejects_oversized_template() {
         let huge = vec![b' '; 11 * 1024 * 1024];
@@ -1403,5 +2542,110 @@ Resources:
         let r = model.resource("R").unwrap();
         assert!(!r.diagnostics.invalid_refs.is_empty());
         assert!(r.diagnostics.invalid_refs.iter().any(|s| s.value == "NonExistent"));
+    }
+
+    #[test]
+    fn collapse_arn_paths_folds_list_siblings_to_lowest_index() {
+        let input = vec![
+            "Properties.KeyPolicy.Statement.2.Principal.AWS.1.Fn::Sub".to_string(),
+            "Properties.KeyPolicy.Statement.2.Principal.AWS.0.Fn::Sub".to_string(),
+        ];
+        let out = collapse_list_sibling_arn_paths(input);
+        assert_eq!(out, vec!["Properties.KeyPolicy.Statement.2.Principal.AWS.0.Fn::Sub".to_string()]);
+    }
+
+    #[test]
+    fn collapse_arn_paths_keeps_distinct_parent_lists() {
+        // Differing index is the Statement index, not the one before Fn::Sub, so
+        // these are separate source locations and must both survive.
+        let input = vec![
+            "Properties.PolicyDocument.Statement.0.Resource.Fn::Sub".to_string(),
+            "Properties.PolicyDocument.Statement.1.Resource.Fn::Sub".to_string(),
+        ];
+        let mut out = collapse_list_sibling_arn_paths(input.clone());
+        out.sort();
+        assert_eq!(out, input);
+    }
+
+    #[test]
+    fn collapse_arn_paths_leaves_scalar_paths_untouched() {
+        let input = vec![
+            "Properties.KeyPolicy.Statement.0.Principal.AWS.Fn::Sub".to_string(),
+            "Properties.KeyPolicy.Statement.1.Principal.AWS.Fn::Sub".to_string(),
+        ];
+        let mut out = collapse_list_sibling_arn_paths(input.clone());
+        out.sort();
+        assert_eq!(out, input);
+    }
+
+    /// Number of output value-type diagnostics (F6101) the parse phase produced.
+    fn output_string_type_diagnostics(template: &str) -> usize {
+        let model = SemanticModel::from_bytes(template.as_bytes()).unwrap();
+        model.diagnostics.iter().filter(|d| d.rule_id == "F6101").count()
+    }
+
+    #[test]
+    fn output_literal_list_value_flagged() {
+        let template = "Resources:\n  R:\n    Type: T\nOutputs:\n  O:\n    Value:\n      - a\n      - b\n";
+        assert_eq!(output_string_type_diagnostics(template), 1);
+    }
+
+    #[test]
+    fn output_literal_object_value_flagged() {
+        let template = "Resources:\n  R:\n    Type: T\nOutputs:\n  O:\n    Value:\n      Key: v\n";
+        assert_eq!(output_string_type_diagnostics(template), 1);
+    }
+
+    #[test]
+    fn output_list_returning_functions_flagged() {
+        for value in ["!GetAZs \"\"", "!Split [\",\", \"a,b\"]", "!Cidr [\"10.0.0.0/16\", 1, 8]"] {
+            let template = format!("Resources:\n  R:\n    Type: T\nOutputs:\n  O:\n    Value: {}\n", value);
+            assert_eq!(output_string_type_diagnostics(&template), 1, "expected F6101 for output value {}", value);
+        }
+    }
+
+    #[test]
+    fn output_empty_container_value_not_flagged() {
+        // An empty list/object has no members to stringify; CloudFormation does
+        // not reject it, so neither does the parse-time check.
+        for value in ["[]", "{}"] {
+            let template = format!("Resources:\n  R:\n    Type: T\nOutputs:\n  O:\n    Value: {}\n", value);
+            assert_eq!(output_string_type_diagnostics(&template), 0, "empty container {} must not be flagged", value);
+        }
+    }
+
+    #[test]
+    fn output_string_producing_values_not_flagged() {
+        // Scalars coerce to strings; Ref/Fn::Sub/Fn::Join/Fn::Select/Fn::ImportValue
+        // produce (or are treated as) strings. None are string-type violations.
+        for value in ["hello", "42", "true", "!Ref R", "!Sub \"${R}\"", "!Join [\",\", [\"a\"]]", "!ImportValue X"] {
+            let template = format!("Resources:\n  R:\n    Type: T\nOutputs:\n  O:\n    Value: {}\n", value);
+            assert_eq!(output_string_type_diagnostics(&template), 0, "string-valued output {} must not fire", value);
+        }
+    }
+
+    #[test]
+    fn output_find_in_map_list_value_not_flagged() {
+        // Fn::FindInMap can resolve to a list, but it is not flagged here (the
+        // mapping's shape is validated elsewhere): only literal lists and
+        // list-returning functions are string-type violations. This is exactly
+        // the case a resolved-value check would get wrong, since the resolved
+        // value is indistinguishable from a literal list.
+        let template = "Mappings:\n  M:\n    k:\n      l:\n        - a\n        - b\nResources:\n  R:\n    Type: T\nOutputs:\n  O:\n    Value: !FindInMap [M, k, l]\n";
+        assert_eq!(output_string_type_diagnostics(template), 0);
+    }
+
+    #[test]
+    fn output_fn_if_flags_each_list_branch() {
+        // Fn::If is transparent: each branch is checked. Both branches are lists,
+        // so both are flagged.
+        let template = "Conditions:\n  C:\n    Fn::Equals: [\"a\", \"a\"]\nResources:\n  R:\n    Type: T\nOutputs:\n  O:\n    Value:\n      Fn::If: [C, [\"a\"], [\"b\"]]\n";
+        assert_eq!(output_string_type_diagnostics(template), 2);
+    }
+
+    #[test]
+    fn output_fn_if_string_branches_not_flagged() {
+        let template = "Conditions:\n  C:\n    Fn::Equals: [\"a\", \"a\"]\nResources:\n  R:\n    Type: T\nOutputs:\n  O:\n    Value:\n      Fn::If: [C, \"yes\", \"no\"]\n";
+        assert_eq!(output_string_type_diagnostics(template), 0);
     }
 }

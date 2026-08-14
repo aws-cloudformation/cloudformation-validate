@@ -1,0 +1,52 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  E3699 must fire when the Method's and Authorizer's RestApiId values refer to
+  different REST APIs even when one side is not a Ref to a resource - a literal
+  id or a Ref to a parameter. CloudFormation compares the authored values, so a
+  mismatch is a deploy failure. Both engines must agree and render the Method's
+  authored RestApiId in the message.
+Parameters:
+  ApiIdParam:
+    Type: String
+Resources:
+  RestApi1:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: Api1
+  # Authorizer scoped to a literal REST API id; the Method is on RestApi1.
+  AuthorizerLiteral:
+    Type: AWS::ApiGateway::Authorizer
+    Properties:
+      Name: AuthLiteral
+      RestApiId: "abc123literal"
+      Type: TOKEN
+      IdentitySource: method.request.header.Auth
+  MethodRefLiteralMismatch:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref RestApi1
+      ResourceId: !GetAtt RestApi1.RootResourceId
+      HttpMethod: GET
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AuthorizerLiteral
+      Integration:
+        Type: MOCK
+  # Authorizer scoped to a parameter; the Method is on RestApi1. Different
+  # authored values -> mismatch.
+  AuthorizerParam:
+    Type: AWS::ApiGateway::Authorizer
+    Properties:
+      Name: AuthParam
+      RestApiId: !Ref ApiIdParam
+      Type: TOKEN
+      IdentitySource: method.request.header.Auth
+  MethodRefParamMismatch:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref RestApi1
+      ResourceId: !GetAtt RestApi1.RootResourceId
+      HttpMethod: POST
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AuthorizerParam
+      Integration:
+        Type: MOCK

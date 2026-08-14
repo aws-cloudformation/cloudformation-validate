@@ -1,0 +1,17 @@
+Resources:
+  EsDomain:
+    Type: AWS::Elasticsearch::Domain
+    Properties:
+      ElasticsearchClusterConfig:
+        InstanceType: t2.nano.elasticsearch
+        InstanceCount: 2
+  DocDbInstance:
+    Type: AWS::DocDB::DBInstance
+    Properties:
+      DBClusterIdentifier: my-cluster
+      DBInstanceClass: db.t2.small
+  Ec2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-12345678
+      InstanceType: t2.nano

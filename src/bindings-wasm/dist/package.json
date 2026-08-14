@@ -1,7 +1,7 @@
 {
     "name": "@aws/cloudformation-validate",
-    "version": "1.1.0",
-    "description": "AWS CloudFormation Validate",
+    "version": "1.8.0",
+    "description": "Fast, offline, embeddable validation for AWS CloudFormation templates",
     "keywords": [
         "aws",
         "amazon",
@@ -17,20 +17,18 @@
         "name": "Amazon Web Services",
         "url": "https://aws.amazon.com"
     },
+    "bugs": {
+        "url": "https://github.com/aws-cloudformation/cloudformation-validate/issues"
+    },
     "license": "Apache-2.0",
     "engines": {
-        "node": "^22.15.0",
-        "npm": ">=10.5.0"
+        "node": ">=20.0.0"
     },
     "repository": {
         "type": "git",
         "url": "https://github.com/aws-cloudformation/cloudformation-validate"
     },
     "homepage": "https://github.com/aws-cloudformation/cloudformation-validate#readme",
-    "publishConfig": {
-        "access": "public",
-        "provenance": true
-    },
     "main": "index.js",
     "types": "index.d.ts"
 }

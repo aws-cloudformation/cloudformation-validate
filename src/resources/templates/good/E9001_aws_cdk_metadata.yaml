@@ -1,0 +1,18 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  Regression test for E9001 false-positive on AWS::CDK::Metadata. The CDK
+  emits this resource on every synthesized stack; CloudFormation accepts it
+  even though it has no provider schema. The validator must consult the
+  per-region resource-type set (which lists AWS::CDK::Metadata for every
+  region) when deciding whether a type is known.
+
+Resources:
+  CDKMetadata:
+    Type: AWS::CDK::Metadata
+    Properties:
+      Analytics: "v2:deflate64:H4sIAAAAAAAA/="
+
+  Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: regression-bucket

@@ -1,0 +1,6 @@
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  MyApi:
+    Type: AWS::Serverless::GraphQLApi
+    Properties:
+      SchemaUri: ./schema.graphql

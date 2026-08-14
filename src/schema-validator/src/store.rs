@@ -1,6 +1,22 @@
 use crate::compiled::CompiledSchema;
+use crate::overlay::{self, SchemaOverlayError};
 use data_source::embedded::*;
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
+use template_model::regions::AWS_REGIONS;
+
+/// What applying an overlay did to the store.
+///
+/// An overlay whose type name matches no bundled schema is registered as a new
+/// resource type - the supported way to describe a type CloudFormation has not
+/// published yet - but it is also what a misspelled type name produces, so the
+/// distinction is reported rather than swallowed.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum OverlayOutcome {
+    /// Merged into the bundled schema for an existing resource type.
+    Merged,
+    /// Registered as a resource type the bundled schemas do not contain.
+    Inserted,
+}
 
 pub struct CompiledSchemaStore {
     schemas: HashMap<String, CompiledSchema>,
@@ -26,7 +42,27 @@ impl CompiledSchemaStore {
         let mut extensions = ExtensionStore::load(&EXTENSIONS_BYTES);
         extensions.remap_keys(&schemas);
         let region_enums = RegionEnumStore::load(&REGION_ENUMS_BYTES);
-        CompiledSchemaStore { schemas, region_types: HashMap::new(), ref_types, lifecycle, extensions, region_enums }
+        let mut store = CompiledSchemaStore {
+            schemas,
+            region_types: HashMap::new(),
+            ref_types,
+            lifecycle,
+            extensions,
+            region_enums,
+        };
+        // Load the embedded per-region resource-type map so region-availability
+        // (F3006) validates against the target region. Without this the region
+        // check is dormant and unavailable types slip through.
+        store.load_region_data(&REGION_RESOURCE_TYPES_BYTES);
+        assert!(
+            store.has_region_data(),
+            "Embedded region-availability data (region_resource_types) is empty; the build is missing regional data"
+        );
+        assert!(
+            store.region_enums.has_data(),
+            "Embedded regional enum data (region_enums) is empty; the build is missing regional data"
+        );
+        store
     }
 
     pub fn load_region_data(&mut self, json_bytes: &[u8]) {
@@ -49,15 +85,71 @@ impl CompiledSchemaStore {
         self.schemas.get(type_name)
     }
 
+    /// Merge an overlay CloudFormation resource provider schema (raw registry
+    /// JSON) into the store under `type_name`.
+    ///
+    /// The raw schema is compiled with the same transformation used at build time
+    /// and deep-merged into the bundled schema for that type; when no bundled
+    /// schema exists, the compiled overlay is registered as a new type. The
+    /// return value says which happened, so callers can report a `type_name` that
+    /// matched nothing. See the [`crate::overlay`] module for the merge
+    /// model and its scope limits.
+    ///
+    /// Input is validated before anything is committed - an empty type name,
+    /// non-object JSON, nesting past [`MAX_OVERLAY_DEPTH`](crate::overlay::MAX_OVERLAY_DEPTH),
+    /// a cyclic definition graph, or an overlay that would change nothing is an
+    /// error and leaves the store untouched. The merge therefore runs on a copy
+    /// of the bundled schema that is only installed once it validates; a partly
+    /// merged schema is never observable.
+    pub fn apply_overlay(
+        &mut self,
+        type_name: &str,
+        raw: &serde_json::Value,
+    ) -> Result<OverlayOutcome, SchemaOverlayError> {
+        let overlay = overlay::compile(type_name, raw)?;
+        overlay::validate_schema(&overlay)?;
+        match self.schemas.get(type_name) {
+            Some(existing) => {
+                let mut merged = existing.clone();
+                overlay::merge_into(&mut merged, overlay);
+                overlay::validate_schema(&merged)?;
+                overlay::warn_removed_required(existing, &merged);
+                overlay::warn_dangling_refs(&merged);
+                self.ref_types.update_from_schema(&merged);
+                self.schemas.insert(type_name.to_string(), merged);
+                Ok(OverlayOutcome::Merged)
+            }
+            None => {
+                overlay::warn_dangling_refs(&overlay);
+                self.ref_types.update_from_schema(&overlay);
+                self.schemas.insert(type_name.to_string(), overlay);
+                Ok(OverlayOutcome::Inserted)
+            }
+        }
+    }
+
+    /// Registers a schema directly, bypassing the embedded artifacts - lets
+    /// unit tests exercise validation against schema shapes the committed
+    /// artifacts do not yet contain.
+    #[cfg(test)]
+    pub(crate) fn insert_schema(&mut self, schema: CompiledSchema) {
+        self.schemas.insert(schema.type_name.clone(), schema);
+    }
+
     pub fn len(&self) -> usize {
         self.schemas.len()
     }
 
     pub fn is_available_in_region(&self, type_name: &str, region: &str) -> bool {
-        if self.region_types.is_empty() {
-            return true;
-        }
         self.region_types.get(region).map(|types| types.contains_key(type_name)).unwrap_or(true)
+    }
+
+    /// Whether the type appears in at least one region's availability map. Used
+    /// to distinguish a genuine regional provider type (absent only in some
+    /// regions) from a type that is region-agnostic or not a provider type at
+    /// all (SAM/transform placeholders), which must not trigger the region check.
+    pub fn is_known_in_any_region(&self, type_name: &str) -> bool {
+        self.region_types.values().any(|types| types.contains_key(type_name))
     }
 
     pub fn has_region_data(&self) -> bool {
@@ -105,6 +197,64 @@ impl RefTypeStore {
         RefTypeStore { ref_returns, getatt_returns, format_compatible_types }
     }
 
+    /// Update Ref/GetAtt return type data from a merged overlay schema so
+    /// type-checking rules see overlay-introduced/changed sources immediately.
+    ///
+    /// Uses the same derivation semantics as the catalog: no ref entry when
+    /// primaryIdentifier is empty; "string" when multiple, readOnly, or
+    /// unresolvable; otherwise the resolved single property type. GetAtt types
+    /// include ALL top-level properties plus full-path readOnly attributes.
+    /// Stale entries for a type that an overlay changes are replaced.
+    pub fn update_from_schema(&mut self, schema: &crate::compiled::CompiledSchema) {
+        let type_name = &schema.type_name;
+        let read_only_set: std::collections::HashSet<&str> =
+            schema.read_only_properties.iter().map(|s| s.as_str()).collect();
+
+        // Ref return type: match catalog derivation semantics.
+        // Remove stale entry first in case an overlay removed or changed
+        // the primary identifier.
+        self.ref_returns.remove(type_name);
+        if !schema.primary_identifier.is_empty() {
+            let ref_type = if schema.primary_identifier.len() > 1 {
+                "string".to_string()
+            } else {
+                let id_prop = &schema.primary_identifier[0];
+                if read_only_set.contains(id_prop.as_str()) {
+                    "string".to_string()
+                } else {
+                    crate::catalog::resolve_property_type(schema, id_prop).unwrap_or_else(|| "string".to_string())
+                }
+            };
+            self.ref_returns.insert(type_name.clone(), ref_type);
+        }
+
+        // GetAtt return types: ALL top-level properties plus full-path readOnly
+        // attributes. Replace the whole entry so stale attributes from a
+        // previous overlay are removed.
+        let mut attr_map: HashMap<String, String> = HashMap::new();
+        for (name, prop) in &schema.properties {
+            let resolved = prop.resolve(&schema.definitions);
+            if let Some(pt) = resolved.prop_type.as_ref().and_then(|p| p.primary()) {
+                attr_map.insert(name.clone(), pt.to_string());
+            }
+        }
+        for attr in &schema.read_only_properties {
+            if attr.contains('.')
+                && let Some(prop_type) = crate::catalog::resolve_property_type(schema, attr)
+            {
+                attr_map.insert(attr.clone(), prop_type);
+            }
+        }
+        // Hand-maintained GetAtt return-type corrections win over the derived
+        // property types, exactly as they do in the build pipeline.
+        crate::catalog::apply_getatt_return_type_overrides(type_name, &mut attr_map);
+        if !attr_map.is_empty() {
+            self.getatt_returns.insert(type_name.clone(), attr_map);
+        } else {
+            self.getatt_returns.remove(type_name);
+        }
+    }
+
     pub fn ref_type_for(&self, resource_type: &str) -> Option<&str> {
         self.ref_returns.get(resource_type).map(|s| s.as_str())
     }
@@ -128,6 +278,17 @@ pub struct LifecycleStore {
     deprecated_runtimes: Vec<String>,
     create_blocked_runtimes: Vec<String>,
     eol_runtimes: Vec<String>,
+    runtime_lifecycle: HashMap<String, RuntimeLifecycle>,
+}
+
+/// Per-runtime lifecycle dates used to reconstruct the dated runtime-deprecation
+/// message.
+#[derive(Clone)]
+pub struct RuntimeLifecycle {
+    pub deprecated: String,
+    pub create_block: String,
+    pub update_block: String,
+    pub successor: Option<String>,
 }
 
 impl LifecycleStore {
@@ -166,7 +327,33 @@ impl LifecycleStore {
             .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
             .unwrap_or_default();
 
-        LifecycleStore { resource_lifecycle, deprecated_runtimes, create_blocked_runtimes, eol_runtimes }
+        let mut runtime_lifecycle = HashMap::new();
+        if let Some(obj) = rt_json.get("lambda_runtimes").and_then(|v| v.get("lifecycle")).and_then(|v| v.as_object()) {
+            for (runtime, dates) in obj {
+                let get = |k: &str| dates.get(k).and_then(|v| v.as_str()).unwrap_or("").to_string();
+                runtime_lifecycle.insert(
+                    runtime.clone(),
+                    RuntimeLifecycle {
+                        deprecated: get("deprecated"),
+                        create_block: get("create_block"),
+                        update_block: get("update_block"),
+                        successor: dates.get("successor").and_then(|v| v.as_str()).map(String::from),
+                    },
+                );
+            }
+        }
+
+        LifecycleStore {
+            resource_lifecycle,
+            deprecated_runtimes,
+            create_blocked_runtimes,
+            eol_runtimes,
+            runtime_lifecycle,
+        }
+    }
+
+    pub fn runtime_lifecycle(&self, runtime: &str) -> Option<&RuntimeLifecycle> {
+        self.runtime_lifecycle.get(runtime)
     }
 
     pub fn resource_lifecycle(&self, type_name: &str) -> Option<&LifecycleEntry> {
@@ -244,6 +431,28 @@ impl RegionEnumStore {
         self.enums.get(&key).and_then(|regions| regions.get(region)).map(|v| v.as_slice())
     }
 
+    /// Allowed values for a property in the effective scope: the single `region`
+    /// when configured, or the union across all AWS regions when not (`None`) - so
+    /// with no region a value is accepted when it is valid in any region. Returns
+    /// `None` when the property has no regional override, or when a configured
+    /// region has no entry, so the caller falls back to the region-agnostic enum.
+    pub fn allowed_values(&self, resource_type: &str, prop_name: &str, region: Option<&str>) -> Option<Vec<&str>> {
+        let key = format!("{}::{}", resource_type, prop_name);
+        let regions = self.enums.get(&key)?;
+        match region {
+            Some(region) => regions.get(region).map(|v| v.iter().map(String::as_str).collect()),
+            None => {
+                let mut union: BTreeSet<&str> = BTreeSet::new();
+                for region in AWS_REGIONS {
+                    if let Some(values) = regions.get(*region) {
+                        union.extend(values.iter().map(String::as_str));
+                    }
+                }
+                (!union.is_empty()).then(|| union.into_iter().collect())
+            }
+        }
+    }
+
     pub fn has_data(&self) -> bool {
         !self.enums.is_empty()
     }
@@ -274,11 +483,9 @@ mod tests {
     }
 
     #[test]
-    fn store_no_region_data_always_available() {
+    fn store_new_always_has_region_data() {
         let store = CompiledSchemaStore::new();
-        assert!(!store.has_region_data());
-        assert!(store.is_available_in_region("AWS::S3::Bucket", "us-east-1"));
-        assert!(store.is_available_in_region("AWS::Fake::Type", "us-west-2"));
+        assert!(store.has_region_data(), "embedded region data must be present");
     }
 
     #[test]
@@ -311,7 +518,10 @@ mod tests {
 
     #[test]
     fn store_load_region_data_invalid_json_no_panic() {
+        // Start from an empty region map (new() preloads the embedded one) so the
+        // test verifies that malformed input adds nothing rather than panicking.
         let mut store = CompiledSchemaStore::new();
+        store.region_types.clear();
         store.load_region_data(b"not json");
         assert!(!store.has_region_data());
     }
@@ -319,6 +529,7 @@ mod tests {
     #[test]
     fn store_load_region_data_wrong_structure_no_panic() {
         let mut store = CompiledSchemaStore::new();
+        store.region_types.clear();
         store.load_region_data(b"{}");
         assert!(!store.has_region_data());
     }
@@ -460,5 +671,48 @@ mod tests {
             None,
             "ap-south-1 should have no enum values"
         );
+    }
+
+    fn region_enum_fixture() -> RegionEnumStore {
+        // t3.micro is valid only in eu-west-1, not us-east-1; "description" is a
+        // synthetic non-region key that must never contribute to the union.
+        let data = json!({
+            "AWS::EC2::Instance::InstanceType": {
+                "us-east-1": ["t2.micro"],
+                "eu-west-1": ["t2.micro", "t3.micro"],
+                "description": ["should.be.ignored"]
+            }
+        });
+        RegionEnumStore::load(serde_json::to_vec(&data).unwrap().as_slice())
+    }
+
+    #[test]
+    fn allowed_values_with_region_is_that_region_only() {
+        let re = region_enum_fixture();
+        let vals = re.allowed_values("AWS::EC2::Instance", "InstanceType", Some("us-east-1")).expect("us-east-1 entry");
+        assert!(vals.contains(&"t2.micro"));
+        assert!(!vals.contains(&"t3.micro"), "t3.micro is not valid in us-east-1");
+    }
+
+    #[test]
+    fn allowed_values_without_region_unions_all_regions() {
+        let re = region_enum_fixture();
+        let vals = re.allowed_values("AWS::EC2::Instance", "InstanceType", None).expect("union across regions");
+        assert!(vals.contains(&"t2.micro"));
+        assert!(vals.contains(&"t3.micro"), "t3.micro is valid in eu-west-1, so present in the union");
+        assert!(!vals.contains(&"should.be.ignored"), "the synthetic 'description' key must not contribute");
+    }
+
+    #[test]
+    fn allowed_values_unknown_configured_region_is_none() {
+        let re = region_enum_fixture();
+        assert!(re.allowed_values("AWS::EC2::Instance", "InstanceType", Some("ap-south-1")).is_none());
+    }
+
+    #[test]
+    fn allowed_values_unknown_property_is_none() {
+        let re = region_enum_fixture();
+        assert!(re.allowed_values("AWS::Fake::Type", "FakeProp", None).is_none());
+        assert!(re.allowed_values("AWS::Fake::Type", "FakeProp", Some("us-east-1")).is_none());
     }
 }

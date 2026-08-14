@@ -4,12 +4,15 @@ use cel_engine::CelEngine;
 use diagnostics::{DetailLevel, ValidationReport};
 use log::{error, info};
 use rego_engine::RegoEngine;
-use rules::{FilterConfig, IdRange, RuleFilterConfig, Severity};
-use schema_validator::SchemaValidator;
-use template_model::PseudoParameterOverrides;
+use rules::{
+    FilterConfig, IdRange, LogicalIdFilter, ResourceIdFilter, ResourceTypeFilter, RuleFilterConfig, ServiceFilter,
+    Severity,
+};
+use schema_validator::{SchemaValidator, SchemaValidatorConfig};
+use template_model::{EntityType, PseudoParameterOverrides};
 use validation_engine::{
-    EngineConfig, EngineType, ExternalRuleSource, ValidateConfig, ValidationEngine, guard, validate_bytes_with_path,
-    validate_catching_panics,
+    EngineConfig, EngineType, ExternalRuleSource, ValidateConfig, ValidationEngine, ValidationError, catch_panics,
+    guard, validate_bytes_with_path, validate_catching_panics,
 };
 
 fn main() {
@@ -27,8 +30,17 @@ fn main() {
     let mut exclude_categories = Vec::new();
     let mut exclude_ranges: Vec<IdRange> = Vec::new();
     let mut include_ranges: Vec<IdRange> = Vec::new();
+    let mut include_resource_ids: Vec<ResourceIdFilter> = Vec::new();
+    let mut exclude_resource_ids: Vec<ResourceIdFilter> = Vec::new();
+    let mut include_logical_ids: Vec<LogicalIdFilter> = Vec::new();
+    let mut exclude_logical_ids: Vec<LogicalIdFilter> = Vec::new();
+    let mut include_resource_types: Vec<ResourceTypeFilter> = Vec::new();
+    let mut exclude_resource_types: Vec<ResourceTypeFilter> = Vec::new();
+    let mut include_services: Vec<ServiceFilter> = Vec::new();
+    let mut exclude_services: Vec<ServiceFilter> = Vec::new();
     let mut custom_rules: Vec<ExternalRuleSource> = Vec::new();
     let mut guard_rule_source_paths: Vec<String> = Vec::new();
+    let mut additional_schema_paths: Vec<String> = Vec::new();
     let mut list_rules = false;
     let mut engine_type = EngineType::default();
     let mut validate_config = ValidateConfig::default();
@@ -66,6 +78,48 @@ fn main() {
                     exclude_ranges.push(r);
                 }
             }
+            "--include-resource-id" => {
+                i += 1;
+                let (resource_id, rule_id) = parse_scoped_arg(args.get(i), "--include-resource-id");
+                include_resource_ids.push(ResourceIdFilter { rule_id, resource_id });
+            }
+            "--exclude-resource-id" => {
+                i += 1;
+                let (resource_id, rule_id) = parse_scoped_arg(args.get(i), "--exclude-resource-id");
+                exclude_resource_ids.push(ResourceIdFilter { rule_id, resource_id });
+            }
+            "--include-logical-id" => {
+                i += 1;
+                let (target, rule_id) = parse_scoped_arg(args.get(i), "--include-logical-id");
+                let (logical_id, entity_type) = parse_logical_id_target(&target, "--include-logical-id");
+                include_logical_ids.push(LogicalIdFilter { rule_id, logical_id, entity_type });
+            }
+            "--exclude-logical-id" => {
+                i += 1;
+                let (target, rule_id) = parse_scoped_arg(args.get(i), "--exclude-logical-id");
+                let (logical_id, entity_type) = parse_logical_id_target(&target, "--exclude-logical-id");
+                exclude_logical_ids.push(LogicalIdFilter { rule_id, logical_id, entity_type });
+            }
+            "--include-resource-type" => {
+                i += 1;
+                let (resource_type, rule_id) = parse_scoped_arg(args.get(i), "--include-resource-type");
+                include_resource_types.push(ResourceTypeFilter { rule_id, resource_type });
+            }
+            "--exclude-resource-type" => {
+                i += 1;
+                let (resource_type, rule_id) = parse_scoped_arg(args.get(i), "--exclude-resource-type");
+                exclude_resource_types.push(ResourceTypeFilter { rule_id, resource_type });
+            }
+            "--include-service" => {
+                i += 1;
+                let (service, rule_id) = parse_scoped_arg(args.get(i), "--include-service");
+                include_services.push(ServiceFilter { rule_id, service });
+            }
+            "--exclude-service" => {
+                i += 1;
+                let (service, rule_id) = parse_scoped_arg(args.get(i), "--exclude-service");
+                exclude_services.push(ServiceFilter { rule_id, service });
+            }
             "--rule-source" => {
                 i += 1;
                 if let Some(path) = args.get(i) {
@@ -84,6 +138,15 @@ fn main() {
                     guard_rule_source_paths.push(path.clone());
                 } else {
                     error!("--guard-rule-source requires a file or directory path argument");
+                    process::exit(2);
+                }
+            }
+            "--additional-schema" => {
+                i += 1;
+                if let Some(path) = args.get(i) {
+                    additional_schema_paths.push(path.clone());
+                } else {
+                    error!("--additional-schema requires a file or directory path argument");
                     process::exit(2);
                 }
             }
@@ -174,24 +237,60 @@ fn main() {
         Vec::new()
     };
 
-    let engine_config = EngineConfig { custom_rules, guard_rules };
-
-    let schema_validator = SchemaValidator::new();
-
-    let engine: Box<dyn ValidationEngine> = match engine_type {
-        EngineType::Cel => Box::new(CelEngine::new(engine_config).unwrap_or_else(|e| {
-            error!("CEL engine init failed: {}", e);
-            process::exit(2);
-        })),
-        EngineType::Rego => Box::new(RegoEngine::new(engine_config).unwrap_or_else(|e| {
-            error!("Rego engine init failed: {}", e);
-            process::exit(2);
-        })),
+    let additional_schemas = if additional_schema_paths.is_empty() {
+        Vec::new()
+    } else {
+        match cfn_validate::load_additional_schema_sources(&additional_schema_paths) {
+            Ok(sources) => sources,
+            Err(e) => {
+                error!("{}", e);
+                process::exit(2);
+            }
+        }
     };
+
+    let engine_config = EngineConfig { custom_rules, guard_rules, schema_validator_config: None };
+
+    // The schema validator is built from its own config with the host-loaded
+    // overlay schemas. The engine reuses the validator's already-built metadata.
+    let schema_validator_config = SchemaValidatorConfig { additional_schemas };
+    let schema_validator = match SchemaValidator::new(schema_validator_config) {
+        Ok(validator) => validator,
+        Err(e) => {
+            error!("{}", e);
+            process::exit(2);
+        }
+    };
+
+    // Engine construction compiles user-supplied custom and Guard rules, so an
+    // internal invariant violation on adversarial rule input could panic. Catch it
+    // here so it surfaces as a structured error and a clean exit code rather than an
+    // uncaught abort - matching how the library bindings guard the same entry point.
+    let engine_init: Result<Box<dyn ValidationEngine>, ValidationError> = catch_panics(
+        || {
+            let engine: Box<dyn ValidationEngine> = match engine_type {
+                EngineType::Cel => Box::new(
+                    CelEngine::new_with_schema_validator(engine_config, &schema_validator)
+                        .map_err(|e| e.to_string())?,
+                ),
+                EngineType::Rego => Box::new(
+                    RegoEngine::new_with_schema_validator(engine_config, &schema_validator)
+                        .map_err(|e| e.to_string())?,
+                ),
+            };
+            Ok(engine)
+        },
+        |message| {
+            ValidationError::Engine(format!("Internal error while initializing the {engine_type} engine: {message}"))
+        },
+    );
+    let engine: Box<dyn ValidationEngine> = engine_init.unwrap_or_else(|e| {
+        error!("{} engine init failed: {}", engine_type, e);
+        process::exit(2);
+    });
 
     if list_rules {
         let mut rules = engine.list_rules();
-        rules.extend(schema_validator.list_rules());
         rules.sort_by(|a, b| a.id.cmp(&b.id));
         for r in &rules {
             println!(
@@ -227,12 +326,20 @@ fn main() {
             ids: include_ids,
             categories: include_categories,
             id_ranges: include_ranges,
+            resource_ids: include_resource_ids,
+            logical_ids: include_logical_ids,
+            resource_types: include_resource_types,
+            services: include_services,
             ..Default::default()
         },
         RuleFilterConfig {
             ids: exclude_ids,
             categories: exclude_categories,
             id_ranges: exclude_ranges,
+            resource_ids: exclude_resource_ids,
+            logical_ids: exclude_logical_ids,
+            resource_types: exclude_resource_types,
+            services: exclude_services,
             ..Default::default()
         },
     );
@@ -290,6 +397,35 @@ fn main() {
     }
 }
 
+/// Parses a resource-scoped filter argument (`TARGET` or `TARGET=RULE_ID`) for
+/// `flag`, exiting with an error when the argument is missing or the target is
+/// empty. Returns the target and its optional rule scope (`None` = every rule).
+fn parse_scoped_arg(raw: Option<&String>, flag: &str) -> (String, Option<String>) {
+    match raw.and_then(|s| cfn_validate::parse_scoped_target(s)) {
+        Some(parsed) => parsed,
+        None => {
+            error!("{flag} requires a TARGET or TARGET=RULE_ID argument with a non-empty TARGET");
+            process::exit(2);
+        }
+    }
+}
+
+/// Splits a logical-id filter target (`ID` or `ID:ENTITY_TYPE`) into the
+/// logical ID and its optional entity-type scope, exiting with an error on an
+/// unknown entity type. `None` = entities of every type.
+fn parse_logical_id_target(target: &str, flag: &str) -> (String, Option<EntityType>) {
+    match target.split_once(':') {
+        None => (target.to_string(), None),
+        Some((logical_id, entity_type)) => match entity_type.parse::<EntityType>() {
+            Ok(parsed) => (logical_id.to_string(), Some(parsed)),
+            Err(message) => {
+                error!("{flag}: {message}");
+                process::exit(2);
+            }
+        },
+    }
+}
+
 fn print_report(report: &ValidationReport, format: &DetailLevel) -> Result<(), serde_json::Error> {
     let json = match format {
         DetailLevel::Standard => serde_json::to_string_pretty(&report.to_standard())?,
@@ -312,6 +448,18 @@ fn print_help() {
     eprintln!("  --include-range E3000-E3099   Only report rules in numeric range");
     eprintln!("  --exclude-range E3000-E3099   Suppress rules in numeric range");
     eprintln!();
+    eprintln!("Resource-scoped filters (TARGET, or TARGET=RULE_ID for one rule; repeatable):");
+    eprintln!("  --include-resource-id ID[=RULE]      Only report rules on a logical resource ID");
+    eprintln!("  --exclude-resource-id ID[=RULE]      Suppress rules on a logical resource ID");
+    eprintln!("  --include-logical-id ID[:TYPE][=RULE]  Only report rules on a named template entity (resource,");
+    eprintln!("                                       parameter, output, mapping, condition, or rule); an optional");
+    eprintln!("                                       :TYPE (e.g. :Parameter) scopes it to one entity type");
+    eprintln!("  --exclude-logical-id ID[:TYPE][=RULE]  Suppress rules on a named template entity");
+    eprintln!("  --include-resource-type TYPE[=RULE]  Only report rules on a resource type");
+    eprintln!("  --exclude-resource-type TYPE[=RULE]  Suppress rules on a resource type");
+    eprintln!("  --include-service SERVICE[=RULE]     Only report rules on a service (e.g. AWS::AutoScaling)");
+    eprintln!("  --exclude-service SERVICE[=RULE]     Suppress rules on a service (e.g. AWS::AutoScaling)");
+    eprintln!();
     eprintln!("Output options:");
     eprintln!("  --format standard|detailed   Detail level (default: detailed)");
     eprintln!("  --level fatal|error|warn|info|debug  Minimum severity (default: info)");
@@ -320,6 +468,8 @@ fn print_help() {
     eprintln!("  --engine rego|cel             Validation engine (default: rego)");
     eprintln!("  --rule-source <PATH>          Load custom rule from file");
     eprintln!("  --guard-rule-source <PATH>    Load Guard (.guard) rule file or directory");
+    eprintln!("  --additional-schema <PATH>    Merge a resource provider schema (.json) file or directory on top");
+    eprintln!("                                of the bundled schemas");
     eprintln!("  --region REGION               Set AWS::Region pseudo-parameter");
     eprintln!("  --parameter Key=Value         Override a template parameter value (repeatable)");
     eprintln!("  --pseudo-parameter Key=Value  Override a pseudo-parameter value (repeatable)");

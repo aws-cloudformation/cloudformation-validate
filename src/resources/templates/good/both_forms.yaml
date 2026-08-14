@@ -8,11 +8,11 @@ Conditions:
     Fn::Equals:
       - !Ref Env
       - prod
-  IsProdShort: !Equals [!Ref Env, prod]
+  IsDevShort: !Equals [!Ref Env, dev]
   Combined:
-    Fn::And:
+    Fn::Or:
       - !Condition IsProd
-      - Condition: IsProdShort
+      - Condition: IsDevShort
 Resources:
   BucketShort:
     Type: AWS::S3::Bucket

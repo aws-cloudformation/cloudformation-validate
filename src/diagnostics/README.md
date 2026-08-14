@@ -1,12 +1,15 @@
 # diagnostics
 
 Shared type definitions for validation diagnostics, report structures, detail levels, filtering, and performance
-metrics. Every crate in the workspace depends on `diagnostics` — it defines the common language for reporting validation
-results.
+metrics. Every reporting crate in the workspace depends on `diagnostics` - it defines the common language for reporting
+validation results, building on the template vocabulary (`SourceSpan`, `JsonValue`, `EntityType`) owned by
+`template-model` and the rule metadata owned by `rules`.
 
 ## How It Works
 
-All validation phases (parsing, schema validation, lint rules) produce `Diagnostic` values. Each diagnostic carries a
+All validation phases (parsing, schema validation, lint rules) surface as `Diagnostic` values. The schema validator
+and rule engines construct them directly; the parser emits plain `template_model::ParseDefect` findings that
+`diagnostic_from_parse_defect` converts, attaching severity, category, and origin from the rule registry. Each diagnostic carries a
 rule ID, severity, message, location, resource context, and optional metadata. The `ValidationReport` aggregates
 diagnostics with summary counts and performance metrics. Reports are converted to `StandardReport` or `DetailedReport`
 for serialization.
@@ -28,8 +31,8 @@ for serialization.
 
 | Level   | Ord | Meaning                                                          |
 |---------|-----|------------------------------------------------------------------|
-| `Fatal` | 4   | Structural schema violation — deployment will fail               |
-| `Error` | 3   | Semantic error — likely deployment failure or incorrect behavior |
+| `Fatal` | 4   | Structural schema violation - deployment will fail               |
+| `Error` | 3   | Semantic error - likely deployment failure or incorrect behavior |
 | `Warn`  | 2   | Security concern, deprecation, or risky pattern                  |
 | `Info`  | 1   | Best practice suggestion                                         |
 | `Debug` | 0   | Internal diagnostic detail                                       |
@@ -44,7 +47,7 @@ Each `Diagnostic` contains:
 | `severity`           | `Severity`                      | Fatal / Error / Warn / Info / Debug                           |
 | `message`            | `String`                        | Human-readable description                                    |
 | `source`             | `RuleOrigin`                    | Where the rule originates (Schema, CfnLint, Engine, etc.)     |
-| `resource`           | `Option<ResourceRef>`           | Logical resource ID and type                                  |
+| `entity`             | `Option<Entity>`                | The named template entity the finding targets: `logical_id`, `entity_type` (`Resource`, `Parameter`, `Output`, `Mapping`, `Condition`, or `Rule`), and `resource_type` when the entity is a resource |
 | `property_path`      | `Option<String>`                | JSON path to offending property                               |
 | `location`           | `Option<SourceSpan>`            | Start/end line and column in source file                      |
 | `category`           | `Option<String>`                | Rule category (Schema, Structure, Intrinsic Function, etc.)   |
@@ -52,15 +55,20 @@ Each `Diagnostic` contains:
 | `documentation_url`  | `Option<String>`                | Link to rule documentation                                    |
 | `rule_description`   | `Option<String>`                | Short description of the rule                                 |
 | `phase`              | `Option<Phase>`                 | Validation phase (Parse, Schema, Lint)                        |
-| `section`            | `Option<String>`                | CloudFormation template section (Resources, Parameters, etc.) |
 | `related_resources`  | `Option<Vec<RelatedResource>>`  | Cross-resource references                                     |
 | `condition_scenario` | `Option<HashMap<String, bool>>` | Condition truth values that trigger this diagnostic           |
 | `context`            | `Option<ViolationContext>`      | Structured violation details (Detailed level only)            |
 
 ## StandardDiagnostic vs DetailedDiagnostic
 
-`StandardDiagnostic` flattens `resource` into `resource_id`/`resource_type` and `location` into individual line/column
-fields. Drops `documentation_url`, `rule_description`, `phase`, `section`, and `context`.
+`StandardDiagnostic` keeps the nested `entity` struct and flattens `location` into individual line/column fields.
+Drops `documentation_url`, `rule_description`, `phase`, and `context`.
+
+`EntityType` (defined in `template-model` alongside `TopLevelSection`) has one variant per documented template
+section - `Resource`, `Parameter`, `Output`, `Mapping`, `Metadata`, `Rule`, `Condition`, `Transform`,
+`FormatVersion`, `Description` - the singular form of the section the entity is declared in. Built-in rules currently
+attribute findings to the sections whose children are addressable by a logical ID (resources, parameters, outputs,
+mappings, conditions, and template rules).
 
 `DetailedDiagnostic` is the same flattened shape but includes those additional fields.
 
@@ -77,18 +85,19 @@ fields. Drops `documentation_url`, `rule_description`, `phase`, `section`, and `
 
 ## Report Types
 
-All report types share: `file_path`, `status` (`Ok`/`Error`), `engine_version`, `metadata`, `performance`,
+All report types share: `file_path`, `status` (`Ok`/`Error`), `version`, `metadata`, `performance`,
 `diagnostics`.
 
-`ReportMetadata`: `rules_evaluated`, `resources_scanned`, `counts` (Summary by severity), `suppressed`, `strict`,
-`severity_level`.
+`ReportMetadata`: `rules_evaluated`, `cfn_lint_version`, `resource_schema_version`, `resources_scanned`, `counts`
+(Summary by severity), `suppressed`, `strict`, `severity_level`. `rules_evaluated` is `0` when no rules ran. Source
+versions use canonical `https://github.com/aws-cloudformation/<source>@<version>` values.
 
 ## Detail Level
 
 | Variant    | Behavior                                                                | Use Case                             |
 |------------|-------------------------------------------------------------------------|--------------------------------------|
-| `Standard` | Flattens resource/location, drops context and enrichment fields         | IDE annotations, developer workflows |
-| `Detailed` | Same flattening plus includes context, phase, section, rule_description | AI agents, deep debugging            |
+| `Standard` | Flattens location, drops context and enrichment fields                  | IDE annotations, developer workflows |
+| `Detailed` | Same shape plus context, phase, and rule_description                    | AI agents, deep debugging            |
 
 `Detailed` is the default.
 

@@ -1,0 +1,16 @@
+{
+    "name": "@aws/cloudformation-validate/example",
+    "version": "0.1.0",
+    "private": true,
+    "scripts": {
+        "start": "ts-node validate.ts"
+    },
+    "dependencies": {
+        "@aws/cloudformation-validate": "*"
+    },
+    "devDependencies": {
+        "@types/node": "26.1.0",
+        "ts-node": "10.9.2",
+        "typescript": "6.0.3"
+    }
+}

@@ -1,20 +1,40 @@
 name: Build Artifacts
-run-name: Build Artifacts ${{ github.actor }} ${{ github.event_name }} (${{ github.sha }})
+run-name: Build Artifacts ${{ github.actor }} ${{ github.event_name }} (${{ inputs.branch || github.sha }})
 
 on:
   push:
     branches: [ main ]
     paths-ignore:
-      - 'src/bindings-jvm/generated/*.jar'
-      - 'src/bindings-jvm/THIRD-PARTY-LICENSES.txt'
+      - '.github/**'
+      - 'scripts/**'
+      - '.gitattributes'
+      - '.gitignore'
+      - '**/*.md'
+      - '**/*.txt'
+      - '**/*.jar'
+      - 'LICENSE'
+      - 'NOTICE'
+      - 'gradlew'
+      - 'gradlew.bat'
+      - 'src/bindings-*/**/bench/**'
+      - 'src/bindings-*/examples/**'
+      - 'src/bindings-*/tests/**'
+      - 'src/bindings-jvm/version.properties'
       - 'src/bindings-wasm/dist/*'
-      - 'src/bindings-wasm/THIRD-PARTY-LICENSES.txt'
-      - 'src/release/*'
-      - 'src/THIRD-PARTY-LICENSES.txt'
+      - 'src/bindings-python/generated/**'
+      - 'src/bindings-go/go/internal/**'
+      - 'src/bindings-go/go/libs/**'
+      - 'release-bin/*'
   workflow_dispatch:
+    inputs:
+      branch:
+        description: "Branch to build artifacts from - main for regular builds, a hotfix branch for patch releases. The artifacts PR targets this branch."
+        required: false
+        type: string
+        default: 'main'
 
 concurrency:
-  group: build-artifacts
+  group: build-artifacts-${{ inputs.branch || 'main' }}
   cancel-in-progress: true
 
 permissions:
@@ -24,15 +44,44 @@ jobs:
   get-configs:
     uses: ./.github/workflows/configs.yml
 
+  resolve-ref:
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.head.outputs.sha }}
+      branch: ${{ steps.head.outputs.branch }}
+      pr-branch: ${{ steps.head.outputs.pr-branch }}
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        ref: ${{ inputs.branch || github.sha }}
+
+    - name: Pin the build commit and PR target
+      id: head
+      env:
+        BRANCH: ${{ inputs.branch || 'main' }}
+        INPUT_BRANCH: ${{ inputs.branch }}
+      run: |
+        set -euo pipefail
+        PR_BRANCH="automated/build-artifacts"
+        if [ -n "$INPUT_BRANCH" ]; then
+          PR_BRANCH="$PR_BRANCH-${INPUT_BRANCH//\//-}"
+        fi
+        {
+          echo "sha=$(git rev-parse HEAD)"
+          echo "branch=$BRANCH"
+          echo "pr-branch=$PR_BRANCH"
+        } >> "$GITHUB_OUTPUT"
+        echo "Building from branch $BRANCH, commit $(git rev-parse HEAD); PR branch $PR_BRANCH"
+
   generate-licenses:
-    needs: [ get-configs ]
+    needs: [ get-configs, resolve-ref ]
     runs-on: ubuntu-latest
     env:
       WORKING_DIR: ${{ needs.get-configs.outputs.working-dir }}
     steps:
     - uses: actions/checkout@v6
       with:
-        ref: ${{ github.sha }}
+        ref: ${{ needs.resolve-ref.outputs.sha }}
 
     - name: Install Rust ${{ needs.get-configs.outputs.rust-toolchain }}
       uses: dtolnay/rust-toolchain@stable
@@ -63,17 +112,23 @@ jobs:
           ${{ env.WORKING_DIR }}/THIRD-PARTY-LICENSES.txt
           ${{ env.WORKING_DIR }}/bindings-jvm/THIRD-PARTY-LICENSES.txt
           ${{ env.WORKING_DIR }}/bindings-wasm/THIRD-PARTY-LICENSES.txt
+          ${{ env.WORKING_DIR }}/bindings-python/THIRD-PARTY-LICENSES.txt
+          ${{ env.WORKING_DIR }}/bindings-go/go/THIRD-PARTY-LICENSES.txt
         if-no-files-found: error
         retention-days: 1
 
   build-jvm:
-    needs: [ get-configs, generate-licenses ]
+    needs: [ get-configs, resolve-ref, generate-licenses ]
     strategy:
       fail-fast: false
       matrix:
         include:
         - { os: ubuntu-latest, platform: linux, arch: x64 }
+        - { os: ubuntu-24.04-arm, platform: linux, arch: aarch64 }
         - { os: macos-latest, platform: darwin, arch: aarch64 }
+        - { os: macos-15-intel, platform: darwin, arch: x64 }
+        - { os: windows-latest, platform: win32, arch: x64 }
+        - { os: windows-11-arm, platform: win32, arch: aarch64, java-distribution: microsoft }
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -83,7 +138,7 @@ jobs:
     steps:
     - uses: actions/checkout@v6
       with:
-        ref: ${{ github.sha }}
+        ref: ${{ needs.resolve-ref.outputs.sha }}
 
     - name: Install Rust ${{ needs.get-configs.outputs.rust-toolchain }}
       uses: dtolnay/rust-toolchain@stable
@@ -102,6 +157,7 @@ jobs:
         java-distribution: ${{ matrix.java-distribution || needs.get-configs.outputs.java-distribution }}
         kotlin-version: ${{ needs.get-configs.outputs.kotlin-version }}
         ktlint-version: ${{ needs.get-configs.outputs.ktlint-version }}
+        gradle-version: ${{ needs.get-configs.outputs.gradle-version }}
 
     - name: Log tool versions
       uses: ./.github/actions/print-build-versions
@@ -138,14 +194,14 @@ jobs:
         retention-days: 1
 
   build-wasm:
-    needs: [ get-configs, generate-licenses ]
+    needs: [ get-configs, resolve-ref, generate-licenses ]
     runs-on: ubuntu-latest
     env:
       WORKING_DIR: ${{ needs.get-configs.outputs.working-dir }}
     steps:
     - uses: actions/checkout@v6
       with:
-        ref: ${{ github.sha }}
+        ref: ${{ needs.resolve-ref.outputs.sha }}
 
     - name: Install Rust ${{ needs.get-configs.outputs.rust-toolchain }}
       uses: dtolnay/rust-toolchain@stable
@@ -196,13 +252,14 @@ jobs:
         retention-days: 1
 
   build-cli:
-    needs: [ get-configs, generate-licenses ]
+    needs: [ get-configs, resolve-ref, generate-licenses ]
     strategy:
       fail-fast: false
       matrix:
         include:
         - { os: ubuntu-latest, platform: linux, arch: x64 }
         - { os: macos-latest, platform: darwin, arch: aarch64 }
+        - { os: windows-latest, platform: win32, arch: x64 }
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -212,7 +269,7 @@ jobs:
     steps:
     - uses: actions/checkout@v6
       with:
-        ref: ${{ github.sha }}
+        ref: ${{ needs.resolve-ref.outputs.sha }}
 
     - name: Install Rust ${{ needs.get-configs.outputs.rust-toolchain }}
       uses: dtolnay/rust-toolchain@stable
@@ -235,12 +292,139 @@ jobs:
       uses: actions/upload-artifact@v7
       with:
         name: cfn-validate-${{ matrix.platform }}-${{ matrix.arch }}
-        path: ${{ env.WORKING_DIR }}/release/cfn-validate-${{ matrix.platform }}-${{ matrix.arch }}*
+        path: release-bin/cfn-validate-${{ matrix.platform }}-${{ matrix.arch }}*
+        if-no-files-found: error
+        retention-days: 1
+
+  build-python:
+    needs: [ get-configs, resolve-ref, generate-licenses ]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - { os: ubuntu-latest, platform: linux, arch: x64 }
+        - { os: ubuntu-24.04-arm, platform: linux, arch: aarch64 }
+        - { os: macos-latest, platform: darwin, arch: aarch64 }
+        - { os: macos-15-intel, platform: darwin, arch: x64 }
+        - { os: windows-latest, platform: win32, arch: x64 }
+        - { os: windows-11-arm, platform: win32, arch: aarch64 }
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    env:
+      WORKING_DIR: ${{ needs.get-configs.outputs.working-dir }}
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        ref: ${{ needs.resolve-ref.outputs.sha }}
+
+    - name: Install Rust ${{ needs.get-configs.outputs.rust-toolchain }}
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: ${{ needs.get-configs.outputs.rust-toolchain }}
+
+    - name: Cache Cargo
+      uses: Swatinem/rust-cache@v2
+      with:
+        workspaces: ${{ env.WORKING_DIR }}
+
+    - name: Setup Python ${{ needs.get-configs.outputs.python-version }}
+      uses: actions/setup-python@v6
+      with:
+        python-version: ${{ needs.get-configs.outputs.python-version }}
+
+    - name: Log tool versions
+      uses: ./.github/actions/print-build-versions
+
+    - name: Download THIRD-PARTY-LICENSES.txt
+      uses: actions/download-artifact@v8
+      with:
+        name: third-party-licenses
+        path: ${{ env.WORKING_DIR }}
+
+    - name: Build Python bindings
+      working-directory: ${{ env.WORKING_DIR }}/bindings-python
+      run: ./build.sh
+
+    - name: Upload host Python wheel
+      uses: actions/upload-artifact@v7
+      with:
+        name: python-${{ matrix.platform }}-${{ matrix.arch }}
+        path: ${{ env.WORKING_DIR }}/bindings-python/generated/dist/*.whl
+        if-no-files-found: error
+        retention-days: 1
+
+  build-go:
+    needs: [ get-configs, resolve-ref, generate-licenses ]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - { os: ubuntu-latest, platform: linux, arch: x64 }
+        - { os: macos-latest, platform: darwin, arch: aarch64 }
+        - { os: windows-latest, platform: win32, arch: x64, target: x86_64-pc-windows-gnu }
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    env:
+      WORKING_DIR: ${{ needs.get-configs.outputs.working-dir }}
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        ref: ${{ needs.resolve-ref.outputs.sha }}
+
+    - name: Install Rust ${{ needs.get-configs.outputs.rust-toolchain }}
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: ${{ needs.get-configs.outputs.rust-toolchain }}${{ matrix.target && format('-{0}', matrix.target) || '' }}
+        targets: ${{ matrix.target || '' }}
+
+    - name: Cache Cargo
+      uses: Swatinem/rust-cache@v2
+      with:
+        workspaces: ${{ env.WORKING_DIR }}
+
+    - name: Setup Go ${{ needs.get-configs.outputs.go-version }}
+      uses: actions/setup-go@v6
+      with:
+        go-version: ${{ needs.get-configs.outputs.go-version }}
+
+    - name: Cache uniffi-bindgen-go
+      id: cache-uniffi-bindgen-go
+      uses: actions/cache@v4
+      with:
+        path: ~/.cargo/bin/uniffi-bindgen-go*
+        key: uniffi-bindgen-go-${{ needs.get-configs.outputs.uniffi-bindgen-go-tag }}-${{ matrix.os }}
+
+    - name: Install uniffi-bindgen-go ${{ needs.get-configs.outputs.uniffi-bindgen-go-tag }}
+      if: steps.cache-uniffi-bindgen-go.outputs.cache-hit != 'true'
+      run: cargo install uniffi-bindgen-go --git https://github.com/NordSecurity/uniffi-bindgen-go --tag '${{ needs.get-configs.outputs.uniffi-bindgen-go-tag }}'
+
+    - name: Log tool versions
+      uses: ./.github/actions/print-build-versions
+
+    - name: Download THIRD-PARTY-LICENSES.txt
+      uses: actions/download-artifact@v8
+      with:
+        name: third-party-licenses
+        path: ${{ env.WORKING_DIR }}
+
+    - name: Build Go bindings
+      working-directory: ${{ env.WORKING_DIR }}/bindings-go
+      run: ./build.sh
+
+    - name: Upload host Go module
+      uses: actions/upload-artifact@v7
+      with:
+        name: go-${{ matrix.platform }}-${{ matrix.arch }}
+        path: ${{ env.WORKING_DIR }}/bindings-go/go
         if-no-files-found: error
         retention-days: 1
 
   pull-request:
-    needs: [ get-configs, generate-licenses, build-jvm, build-wasm, build-cli ]
+    needs: [ get-configs, resolve-ref, generate-licenses, build-jvm, build-wasm, build-cli, build-python, build-go ]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -250,7 +434,7 @@ jobs:
     steps:
     - uses: actions/checkout@v6
       with:
-        ref: ${{ github.sha }}
+        ref: ${{ needs.resolve-ref.outputs.sha }}
 
     - name: Download all artifacts
       uses: actions/download-artifact@v8
@@ -261,13 +445,13 @@ jobs:
       working-directory: ${{ env.WORKING_DIR }}
       run: |
         set -euo pipefail
-        rm -rf bindings-jvm/generated bindings-wasm/dist release
-        mkdir -p bindings-jvm/generated bindings-wasm/dist release
+        rm -rf bindings-jvm/generated bindings-wasm/dist bindings-python/generated bindings-go/go/internal bindings-go/go/libs "$GITHUB_WORKSPACE/release-bin"
+        mkdir -p bindings-jvm/generated bindings-wasm/dist bindings-python/generated/dist bindings-go/go "$GITHUB_WORKSPACE/release-bin"
 
         shopt -s nullglob
         jars=("$GITHUB_WORKSPACE"/incoming/jvm-*/cloudformation-validate.jar)
-        if [ ${#jars[@]} -eq 0 ]; then
-          echo "::error::No JVM jars found under incoming/jvm-*/"
+        if [ ${#jars[@]} -ne 6 ]; then
+          echo "::error::Expected six JVM jars under incoming/jvm-*/, found ${#jars[@]}"
           exit 1
         fi
 
@@ -291,15 +475,55 @@ jobs:
         cp -R "$GITHUB_WORKSPACE/incoming/wasm-dist/." bindings-wasm/dist/
         echo "Staged WASM dist:"; ls -1 bindings-wasm/dist
 
-        for d in "$GITHUB_WORKSPACE"/incoming/cfn-validate-*/; do
-          cp -R "$d." release/
+        python_artifacts=(
+          python-linux-x64
+          python-linux-aarch64
+          python-darwin-x64
+          python-darwin-aarch64
+          python-win32-x64
+          python-win32-aarch64
+        )
+        for artifact in "${python_artifacts[@]}"; do
+          host_wheels=("$GITHUB_WORKSPACE/incoming/$artifact"/*.whl)
+          if [ ${#host_wheels[@]} -ne 1 ]; then
+            echo "::error::Expected exactly one Python wheel in incoming/$artifact, found ${#host_wheels[@]}"
+            exit 1
+          fi
+          wheel_name="$(basename "${host_wheels[0]}")"
+          if [ -e "bindings-python/generated/dist/$wheel_name" ]; then
+            echo "::error::Duplicate Python wheel filename: $wheel_name"
+            exit 1
+          fi
+          cp "${host_wheels[0]}" bindings-python/generated/dist/
         done
-        echo "Staged cfn-validate binaries:"; ls -1 release || true
+        staged_wheels=(bindings-python/generated/dist/*.whl)
+        if [ ${#staged_wheels[@]} -ne 6 ]; then
+          echo "::error::Expected six staged Python wheels, found ${#staged_wheels[@]}"
+          exit 1
+        fi
+        echo "Staged platform-specific Python wheels:"; printf '  %s\n' "${staged_wheels[@]}"
+
+        bindings-go/merge-modules.sh \
+          bindings-go/go \
+          "$GITHUB_WORKSPACE/incoming/go-linux-x64" \
+          "$GITHUB_WORKSPACE/incoming/go-darwin-aarch64" \
+          "$GITHUB_WORKSPACE/incoming/go-win32-x64"
+        echo "Merged all-platform Go module:"
+        find bindings-go/go/libs -mindepth 2 -maxdepth 2 -type f -name 'libbindings_go.a' -print | sort
+
+        for d in "$GITHUB_WORKSPACE"/incoming/cfn-validate-*/; do
+          cp -R "$d." "$GITHUB_WORKSPACE/release-bin/"
+        done
+        echo "Staged cfn-validate binaries:"; ls -1 "$GITHUB_WORKSPACE/release-bin" || true
 
         cp "$GITHUB_WORKSPACE/incoming/third-party-licenses/THIRD-PARTY-LICENSES.txt" THIRD-PARTY-LICENSES.txt
         cp "$GITHUB_WORKSPACE/incoming/third-party-licenses/bindings-jvm/THIRD-PARTY-LICENSES.txt" bindings-jvm/THIRD-PARTY-LICENSES.txt
         cp "$GITHUB_WORKSPACE/incoming/third-party-licenses/bindings-wasm/THIRD-PARTY-LICENSES.txt" bindings-wasm/THIRD-PARTY-LICENSES.txt
+        cp "$GITHUB_WORKSPACE/incoming/third-party-licenses/bindings-python/THIRD-PARTY-LICENSES.txt" bindings-python/THIRD-PARTY-LICENSES.txt
+        cp "$GITHUB_WORKSPACE/incoming/third-party-licenses/bindings-go/go/THIRD-PARTY-LICENSES.txt" bindings-go/go/THIRD-PARTY-LICENSES.txt
         echo "Staged THIRD-PARTY-LICENSES.txt files."
+
+        bindings-jvm/generate-version-properties.sh
 
         echo "Merged JVM jar:"; ls -1 bindings-jvm/generated
 
@@ -307,29 +531,48 @@ jobs:
       uses: peter-evans/create-pull-request@v8
       with:
         commit-message: 'chore: Update bindings'
-        branch: automated/build-artifacts
+        branch: ${{ needs.resolve-ref.outputs.pr-branch }}
         delete-branch: true
-        title: 'chore: Update Bindings'
-        base: main
+        title: 'chore: Update Bindings (from ${{ needs.resolve-ref.outputs.branch }})'
+        base: ${{ needs.resolve-ref.outputs.branch }}
         body: |
           Automated update of the binding bundles and CLI binaries.
 
-          * **JVM** — a single multi-platform `cloudformation-validate.jar` in
+          * **JVM** - a single multi-platform `cloudformation-validate.jar` in
             `${{ env.WORKING_DIR }}/bindings-jvm/generated/`, carrying the shared
-            Kotlin classes/sources plus every platform's native library. Each
-            platform is built by `bindings-jvm/build.sh` and the per-platform
-            natives are combined via `bindings-jvm/merge-jars.sh`.
-          * **WASM** — `${{ env.WORKING_DIR }}/bindings-wasm/dist/`, built via
-            `bindings-wasm/build.sh`.
-          * **cfn-validate CLI** — per-platform binaries in
-            `${{ env.WORKING_DIR }}/release/`, built via `cfn-validate/build.sh`.
-          * **Third-party licenses** — `THIRD-PARTY-LICENSES.txt` files
+            Kotlin classes/sources plus every supported native library. Each target
+            is built by `bindings-jvm/build.sh` and the per-target natives are
+            combined via `bindings-jvm/merge-jars.sh`.
+          * **WASM** - `${{ env.WORKING_DIR }}/bindings-wasm/dist/`, built once via
+            `bindings-wasm/build.sh`; the `wasm32-unknown-unknown` package is portable
+            across supported Node.js hosts.
+          * **Python** - platform-specific wheels in
+            `${{ env.WORKING_DIR }}/bindings-python/generated/dist/`, one per
+            supported native target. Every wheel carries only its matching native
+            library plus README and license metadata, and has a real platform tag so
+            installers select exactly the compatible artifact.
+          * **Go** - a standalone all-platform module in
+            `${{ env.WORKING_DIR }}/bindings-go/go/`, carrying generated FFI source,
+            every platform's static library, README, LICENSE, and
+            THIRD-PARTY-LICENSES.txt. Each platform is built by
+            `bindings-go/build.sh`, then combined by `bindings-go/merge-modules.sh`.
+          * **cfn-validate CLI** - per-platform binaries in
+            `release-bin/`, built via `cfn-validate/build.sh`.
+          * **Third-party licenses** - `THIRD-PARTY-LICENSES.txt` files
             regenerated by the workflow via `scripts/generate_licenses.py`.
         labels: automated, build-artifacts
         add-paths: |
           ${{ env.WORKING_DIR }}/bindings-jvm/generated/**
+          ${{ env.WORKING_DIR }}/bindings-jvm/version.properties
           ${{ env.WORKING_DIR }}/bindings-jvm/THIRD-PARTY-LICENSES.txt
           ${{ env.WORKING_DIR }}/bindings-wasm/dist/**
           ${{ env.WORKING_DIR }}/bindings-wasm/THIRD-PARTY-LICENSES.txt
-          ${{ env.WORKING_DIR }}/release/**
+          ${{ env.WORKING_DIR }}/bindings-python/generated/dist/**
+          ${{ env.WORKING_DIR }}/bindings-python/THIRD-PARTY-LICENSES.txt
+          ${{ env.WORKING_DIR }}/bindings-go/go/internal/**
+          ${{ env.WORKING_DIR }}/bindings-go/go/libs/**
+          ${{ env.WORKING_DIR }}/bindings-go/go/README.md
+          ${{ env.WORKING_DIR }}/bindings-go/go/LICENSE
+          ${{ env.WORKING_DIR }}/bindings-go/go/THIRD-PARTY-LICENSES.txt
+          release-bin/**
           ${{ env.WORKING_DIR }}/THIRD-PARTY-LICENSES.txt

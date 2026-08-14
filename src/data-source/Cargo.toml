@@ -15,17 +15,12 @@ path = "src/lib.rs"
 [[example]]
 name = "sync"
 path = "src/sync.rs"
-required-features = ["full"]
+required-features = ["maintenance"]
 
 [[example]]
 name = "generate"
 path = "src/generate.rs"
-required-features = ["full"]
-
-[[example]]
-name = "full"
-path = "src/full.rs"
-required-features = ["full"]
+required-features = ["maintenance"]
 
 [[example]]
 name = "embedding_format_bench"
@@ -34,23 +29,29 @@ required-features = ["bench"]
 
 [features]
 default = []
-full = ["ureq", "zip", "chrono", "env_logger", "dep:log", "anyhow", "dep:zstd"]
+maintenance = ["ureq", "zip", "chrono", "env_logger", "dep:log", "anyhow", "dep:zstd"]
 bench = ["dep:zstd", "dep:lz4_flex"]
+wasm-bindings = ["dep:tsify", "dep:wasm-bindgen"]
+uniffi-bindings = ["dep:uniffi"]
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
-ruzstd = { version = "0.7", default-features = false, features = ["std"] }
+ruzstd = { version = "0.8", default-features = false, features = ["std"] }
 zstd = { version = "0.13", default-features = false, optional = true }
-lz4_flex = { version = "0.11", default-features = false, features = ["std"], optional = true }
+lz4_flex = { version = "0.13", default-features = false, features = ["std"], optional = true }
 ureq = { version = "3.2.0", optional = true }
 zip = { version = "8.2.0", default-features = false, features = ["deflate"], optional = true }
 log = { version = "0.4", optional = true }
 env_logger = { version = "0.11", optional = true }
 anyhow = { version = "1", optional = true }
 chrono = { version = "0.4", default-features = false, features = ["clock"], optional = true }
+tsify = { version = "0.5", optional = true, features = ["js"] }
+wasm-bindgen = { version = "0.2", optional = true }
+uniffi = { workspace = true, optional = true }
 
 [build-dependencies]
+serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
 zstd = { version = "0.13", default-features = false }
 

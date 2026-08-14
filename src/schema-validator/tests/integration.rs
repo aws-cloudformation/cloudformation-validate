@@ -1,23 +1,28 @@
+use diagnostics::Diagnostic;
+use diagnostics::Phase;
+use rules::Severity;
+use schema_validator::CompiledSchemaStore;
 use schema_validator::SchemaValidator;
+use schema_validator::validate::validate_all_resources;
 use std::sync::{Arc, LazyLock};
 use template_model::SemanticModel;
 
 const TEMPLATES: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../resources/templates");
 
-static SV: LazyLock<SchemaValidator> = LazyLock::new(SchemaValidator::new);
+static SV: LazyLock<SchemaValidator> = LazyLock::new(SchemaValidator::default);
 
-fn validate_fixture(path: &str) -> Vec<diagnostics::Diagnostic> {
+fn validate_fixture(path: &str) -> Vec<Diagnostic> {
     let full = format!("{}/{}", TEMPLATES, path);
     let bytes = std::fs::read(&full).unwrap_or_else(|e| panic!("read {}: {}", full, e));
     let model = Arc::new(SemanticModel::from_bytes(&bytes).unwrap_or_else(|e| panic!("parse {}: {}", full, e)));
-    SV.validate(&model, "us-east-1").diagnostics
+    SV.validate(&model, Some("us-east-1")).diagnostics
 }
 
-fn has_rule(diags: &[diagnostics::Diagnostic], rule_id: &str) -> bool {
+fn has_rule(diags: &[Diagnostic], rule_id: &str) -> bool {
     diags.iter().any(|d| d.rule_id == rule_id)
 }
 
-fn diags_for<'a>(diags: &'a [diagnostics::Diagnostic], rule_id: &str) -> Vec<&'a diagnostics::Diagnostic> {
+fn diags_for<'a>(diags: &'a [Diagnostic], rule_id: &str) -> Vec<&'a Diagnostic> {
     diags.iter().filter(|d| d.rule_id == rule_id).collect()
 }
 
@@ -30,7 +35,7 @@ fn schema_store_loads_schemas() {
 fn list_rules_returns_known_rule_ids() {
     let rules = SV.list_rules();
     let ids: Vec<&str> = rules.iter().map(|r| r.id.as_str()).collect();
-    for expected in ["F3002", "F3003", "F3012", "F3030", "F3034"] {
+    for expected in ["F3002", "F3003", "F3012", "W3030", "F3034"] {
         assert!(ids.contains(&expected), "missing rule {}", expected);
     }
 }
@@ -38,21 +43,17 @@ fn list_rules_returns_known_rule_ids() {
 #[test]
 fn valid_resources_produce_no_fatal_diagnostics() {
     let diags = validate_fixture("good/schema_valid_resources.yaml");
-    let fatals: Vec<_> = diags.iter().filter(|d| d.severity == rules::Severity::Fatal).collect();
+    let fatals: Vec<_> = diags.iter().filter(|d| d.severity == Severity::Fatal).collect();
     assert!(fatals.is_empty(), "unexpected fatals: {:?}", fatals);
 }
 
 #[test]
 fn minimal_template_no_schema_errors() {
     let diags = validate_fixture("good/minimal.yaml");
-    let schema_fatals: Vec<_> = diags
-        .iter()
-        .filter(|d| d.phase == Some(diagnostics::Phase::Schema) && d.severity == rules::Severity::Fatal)
-        .collect();
+    let schema_fatals: Vec<_> =
+        diags.iter().filter(|d| d.phase == Some(Phase::Schema) && d.severity == Severity::Fatal).collect();
     assert!(schema_fatals.is_empty(), "unexpected schema fatals: {:?}", schema_fatals);
 }
-
-// ── Type mismatch ──────────────────────────────────────────────────
 
 #[test]
 fn type_mismatch_integer_for_string() {
@@ -81,21 +82,17 @@ fn type_mismatch_boolean_for_string() {
     );
 }
 
-// ── Enum violation ─────────────────────────────────────────────────
-
 #[test]
 fn enum_violation_invalid_access_control() {
     let diags = validate_fixture("bad/schema_enum_violation.yaml");
-    let enum_diags = diags_for(&diags, "F3030");
-    assert!(!enum_diags.is_empty(), "expected F3030 for invalid AccessControl");
+    let enum_diags = diags_for(&diags, "W3030");
+    assert!(!enum_diags.is_empty(), "expected W3030 for invalid AccessControl");
     assert!(
         enum_diags.iter().any(|d| d.message.contains("InvalidAccessControl")),
         "expected message mentioning InvalidAccessControl, got: {:?}",
         enum_diags.iter().map(|d| &d.message).collect::<Vec<_>>()
     );
 }
-
-// ── Additional properties ──────────────────────────────────────────
 
 #[test]
 fn additional_properties_rejected() {
@@ -107,7 +104,7 @@ fn additional_properties_rejected() {
 #[test]
 fn additional_properties_typo_suggestion() {
     let diags = validate_fixture("bad/schema_additional_props.yaml");
-    // "BukcetName" has similarity 0.8 to "BucketName" — threshold is > 0.8, so no suggestion
+    // "BukcetName" has similarity 0.8 to "BucketName" - threshold is > 0.8, so no suggestion
     let typo_diag = diags.iter().find(|d| d.rule_id == "F3002" && d.message.contains("BukcetName"));
     let typo_diag = typo_diag.expect("expected F3002 for BukcetName");
     assert!(
@@ -116,16 +113,12 @@ fn additional_properties_typo_suggestion() {
     );
 }
 
-// ── Numeric bounds ─────────────────────────────────────────────────
-
 #[test]
 fn numeric_bounds_exceeded() {
     let diags = validate_fixture("bad/schema_numeric_bounds.yaml");
     let f3034 = diags_for(&diags, "F3034");
     assert!(!f3034.is_empty(), "expected F3034 for numeric bounds violation");
 }
-
-// ── String length ──────────────────────────────────────────────────
 
 #[test]
 fn string_length_too_short() {
@@ -135,8 +128,6 @@ fn string_length_too_short() {
         assert!(f3033.iter().any(|d| { d.property_path.as_deref().is_some_and(|p| p.contains("FunctionName")) }));
     }
 }
-
-// ── Subnet ID format validation ────────────────────────────────────
 
 #[test]
 fn format_violation_bad_subnet_id() {
@@ -148,8 +139,6 @@ fn format_violation_bad_subnet_id() {
         e1154.iter().map(|d| (&d.property_path, &d.message)).collect::<Vec<_>>()
     );
 }
-
-// ── Conditional type mismatch ───────────────────────────────────────
 
 #[test]
 fn conditional_type_mismatch_with_scenario() {
@@ -166,15 +155,11 @@ fn conditional_type_mismatch_with_scenario() {
     assert!(with_scenario.is_some(), "expected condition_scenario on conditional diagnostic");
 }
 
-// ── Unique items ───────────────────────────────────────────────────
-
 #[test]
 fn unique_items_violation() {
     let diags = validate_fixture("bad/unique_items.yaml");
     assert!(has_rule(&diags, "F3002"), "expected F3002 for unknown AvailabilityZones property");
 }
-
-// ── Unknown resource type ───────────────────────────────────────────
 
 #[test]
 fn unknown_resource_type_no_crash() {
@@ -182,24 +167,18 @@ fn unknown_resource_type_no_crash() {
     assert!(has_rule(&diags, "F3002"), "expected F3002 for FakeProperty on S3 Bucket");
 }
 
-// ── Lifecycle: deprecated resource type ─────────────────────────────
-
 #[test]
 fn deprecated_resource_type_flagged() {
     let diags = validate_fixture("bad/deprecated_type.yaml");
     let _ = diags;
 }
 
-// ── Integration: generic bad template ───────────────────────────────
-
 #[test]
 fn generic_bad_template_produces_multiple_schema_violations() {
     let diags = validate_fixture("bad/generic.yaml");
-    let schema_diags: Vec<_> = diags.iter().filter(|d| d.phase == Some(diagnostics::Phase::Schema)).collect();
+    let schema_diags: Vec<_> = diags.iter().filter(|d| d.phase == Some(Phase::Schema)).collect();
     assert!(schema_diags.len() >= 3, "expected 3+ schema diagnostics, got {}", schema_diags.len());
 }
-
-// ── Integration: format validation ──────────────────────────────────
 
 #[test]
 fn format_validation_with_refs() {
@@ -213,28 +192,32 @@ fn format_validation_with_refs() {
     }
 }
 
-// ── Integration: ref type checking ──────────────────────────────────
-
+// A reference whose target resource produces the wrong destination ARN format
+// is a semantic, cross-resource concern owned by the rule engine, not the schema
+// validator. The schema validator only proves structural type incompatibility,
+// which a string-typed reference name does not violate - so it must not raise an
+// ARN-format violation here.
 #[test]
-fn ref_type_mismatch_detected() {
+fn ref_to_wrong_arn_format_is_not_a_schema_format_violation() {
     let diags = validate_fixture("integration/ref-types.yaml");
-    let type_or_format: Vec<_> = diags
+    let format_violations: Vec<_> = diags
         .iter()
         .filter(|d| {
-            (d.rule_id == "F3012" || d.rule_id == "E1151")
-                && d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some("Subnet2")
+            matches!(d.rule_id.as_str(), "E1150" | "E1151" | "E1152" | "E1154")
+                && d.resource_logical_id() == Some("Subnet2")
         })
         .collect();
-    assert!(!type_or_format.is_empty(), "expected type/format diagnostic for Subnet2 VpcId ref to IAM Role");
+    assert!(
+        format_violations.is_empty(),
+        "schema validator must not emit an ARN-format violation for a reference-valued property; got {:?}",
+        format_violations.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
+    );
 }
-
-// ── Integration: getatt type checking ───────────────────────────────
 
 #[test]
 fn getatt_type_mismatch_detected() {
     let diags = validate_fixture("integration/getatt-types.yaml");
-    let ssm_diags: Vec<_> =
-        diags.iter().filter(|d| d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some("SsmParameter")).collect();
+    let ssm_diags: Vec<_> = diags.iter().filter(|d| d.resource_logical_id() == Some("SsmParameter")).collect();
     let type_diag = ssm_diags.iter().any(|d| d.rule_id == "F3012" || d.rule_id == "W9003");
     if !type_diag {
         assert!(
@@ -245,17 +228,15 @@ fn getatt_type_mismatch_detected() {
     }
 }
 
-// ── Enrich context ──────────────────────────────────────────────────
-
 #[test]
 fn enrich_context_adds_documentation_url() {
     let full = format!("{}/bad/schema_enum_violation.yaml", TEMPLATES);
     let bytes = std::fs::read(&full).unwrap();
     let model = Arc::new(SemanticModel::from_bytes(&bytes).unwrap());
-    let mut result = SV.validate(&model, "us-east-1");
+    let mut result = SV.validate(&model, Some("us-east-1"));
     SV.enrich_context(&mut result.diagnostics, &model);
-    let f3030 = result.diagnostics.iter().find(|d| d.rule_id == "F3030");
-    assert!(f3030.is_some(), "expected F3030 diagnostic after enrichment");
+    let enum_diag = result.diagnostics.iter().find(|d| d.rule_id == "W3030");
+    assert!(enum_diag.is_some(), "expected W3030 diagnostic after enrichment");
 }
 
 #[test]
@@ -263,20 +244,56 @@ fn enrich_context_adds_allowed_values_for_enum() {
     let full = format!("{}/bad/schema_enum_violation.yaml", TEMPLATES);
     let bytes = std::fs::read(&full).unwrap();
     let model = Arc::new(SemanticModel::from_bytes(&bytes).unwrap());
-    let mut result = SV.validate(&model, "us-east-1");
+    let mut result = SV.validate(&model, Some("us-east-1"));
     SV.enrich_context(&mut result.diagnostics, &model);
-    let f3030 = result.diagnostics.iter().find(|d| d.rule_id == "F3030");
-    if let Some(d) = f3030
+    let enum_diag = result.diagnostics.iter().find(|d| d.rule_id == "W3030");
+    if let Some(d) = enum_diag
         && let Some(ref ctx) = d.context
     {
         assert!(
             ctx.extra.as_ref().is_some_and(|e| e.contains_key("allowed_values")),
-            "expected allowed_values in context for F3030"
+            "expected allowed_values in context for W3030"
         );
     }
 }
 
-// ── Lifecycle rules ─────────────────────────────────────────────────
+/// A value that is unknown until deployment is described by what actually
+/// produced it. Only a parameter is called a parameter, and it is named - the
+/// explanation of why the value is unknown never stands in for a name.
+#[test]
+fn enrich_context_describes_a_deploy_time_value_by_its_real_source() {
+    const TEMPLATE: &[u8] = br#"{
+  "Parameters": { "SubnetParam": { "Type": "AWS::EC2::Subnet::Id" } },
+  "Resources": {
+    "FromParameter": {
+      "Type": "AWS::EC2::NetworkInterface",
+      "Properties": { "SubnetId": { "Ref": "SubnetParam" }, "PrivateIpAddress": 10 }
+    },
+    "FromImport": {
+      "Type": "AWS::EC2::NetworkInterface",
+      "Properties": { "SubnetId": { "Fn::ImportValue": "SharedSubnet" }, "PrivateIpAddress": 10 }
+    }
+  }
+}"#;
+    let model = Arc::new(SemanticModel::from_bytes(TEMPLATE).unwrap());
+    let mut result = SV.validate(&model, Some("us-east-1"));
+    SV.enrich_context(&mut result.diagnostics, &model);
+
+    let source_for = |logical_id: &str| -> String {
+        result
+            .diagnostics
+            .iter()
+            .filter(|d| d.entity.as_ref().is_some_and(|e| e.logical_id == logical_id))
+            .find_map(|d| d.context.as_ref().and_then(|c| c.resolution_source.clone()))
+            .unwrap_or_else(|| panic!("expected a resolution source for {logical_id}"))
+    };
+
+    assert_eq!(source_for("FromParameter"), "parameter 'SubnetParam' (type AWS::EC2::Subnet::Id)");
+
+    let import_source = source_for("FromImport");
+    assert!(!import_source.starts_with("parameter "), "a cross-stack import is not a parameter, got {import_source:?}");
+    assert!(import_source.contains("cross-stack import"), "expected the import to be named, got {import_source:?}");
+}
 
 #[test]
 fn lifecycle_e3710_shutdown_service() {
@@ -318,25 +335,19 @@ fn lifecycle_w2531_deprecated_runtime() {
     assert!(w2531.iter().any(|d| d.message.contains("nodejs16.x")));
 }
 
-// ── Structural constraints ──────────────────────────────────────────
-
 #[test]
 fn structural_f3020_dependent_excluded() {
     let diags = validate_fixture("bad/schema_structural.yaml");
-    let f3020: Vec<_> = diags
-        .iter()
-        .filter(|d| d.rule_id == "F3020" && d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some("AlarmBothStats"))
-        .collect();
+    let f3020: Vec<_> =
+        diags.iter().filter(|d| d.rule_id == "F3020" && d.resource_logical_id() == Some("AlarmBothStats")).collect();
     assert!(!f3020.is_empty(), "expected F3020 for ExtendedStatistic + Statistic on CloudWatch Alarm");
 }
 
 #[test]
 fn structural_f3058_required_or() {
     let diags = validate_fixture("bad/schema_structural.yaml");
-    let f3058: Vec<_> = diags
-        .iter()
-        .filter(|d| d.rule_id == "F3058" && d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some("SubnetNoCidr"))
-        .collect();
+    let f3058: Vec<_> =
+        diags.iter().filter(|d| d.rule_id == "F3058" && d.resource_logical_id() == Some("SubnetNoCidr")).collect();
     assert!(!f3058.is_empty(), "expected F3058 for Subnet missing CidrBlock/Ipv4IpamPoolId/etc");
 }
 
@@ -345,11 +356,42 @@ fn structural_f3014_required_xor() {
     let diags = validate_fixture("bad/schema_structural.yaml");
     let f3014: Vec<_> = diags
         .iter()
-        .filter(|d| {
-            d.rule_id == "F3014" && d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some("ScalingPolicyBothIds")
-        })
+        .filter(|d| d.rule_id == "F3014" && d.resource_logical_id() == Some("ScalingPolicyBothIds"))
         .collect();
     assert!(!f3014.is_empty(), "expected F3014 for ScalingPolicy with both ScalingTargetId and ResourceId");
+}
+
+#[test]
+fn f3014_excludes_novalue_from_exclusive_count() {
+    // CidrIp is set to AWS::NoValue, leaving exactly one of the mutually
+    // exclusive source properties (SourceSecurityGroupId), so the
+    // mutual-exclusivity check must not fire.
+    let diags = validate_fixture("good/resources/properties/exclusive.yaml");
+    let f3014: Vec<_> =
+        diags.iter().filter(|d| d.rule_id == "F3014" && d.resource_logical_id() == Some("Ingress")).collect();
+    assert!(f3014.is_empty(), "AWS::NoValue property must not count toward the exclusive-one tally");
+}
+
+#[test]
+fn f3037_ignores_novalue_collapsed_list_items() {
+    // Two Fn::If list items resolve to AWS::NoValue (null) in the false branch;
+    // CloudFormation removes them, so they are not duplicates.
+    let diags = validate_fixture("good/resources/properties/list_duplicates.yaml");
+    let f3037: Vec<_> = diags
+        .iter()
+        .filter(|d| d.rule_id == "F3037" && d.resource_logical_id() == Some("IamRoleWithNestedConditions"))
+        .collect();
+    assert!(f3037.is_empty(), "null (AWS::NoValue) list items must not be treated as duplicates");
+}
+
+#[test]
+fn f3012_property_type_error_reported_once_across_conditional_branches() {
+    // PolicyDocument is a list (wrong type) wrapping an Fn::If; the branch
+    // expansion must not multiply the single property-level type error.
+    let diags = validate_fixture("bad/resources/iam/iam_policy.yaml");
+    let f3012: Vec<_> =
+        diags.iter().filter(|d| d.rule_id == "F3012" && d.resource_logical_id() == Some("rIamPolicy")).collect();
+    assert_eq!(f3012.len(), 1, "expected a single F3012 for the list-typed PolicyDocument, got {}", f3012.len());
 }
 
 #[test]
@@ -357,45 +399,34 @@ fn structural_f3021_dependent_required() {
     let diags = validate_fixture("bad/schema_structural.yaml");
     let f3021: Vec<_> = diags
         .iter()
-        .filter(|d| {
-            d.rule_id == "F3021"
-                && d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some("ScalingPolicyMissingDeps")
-        })
+        .filter(|d| d.rule_id == "F3021" && d.resource_logical_id() == Some("ScalingPolicyMissingDeps"))
         .collect();
     assert!(!f3021.is_empty(), "expected F3021 for ResourceId without ScalableDimension/ServiceNamespace");
 }
 
-// ── Property constraints ────────────────────────────────────────────
-
 #[test]
 fn property_f3031_pattern_violation() {
     let diags = validate_fixture("bad/schema_property_constraints.yaml");
-    let f3031: Vec<_> = diags
-        .iter()
-        .filter(|d| d.rule_id == "F3031" && d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some("PatternBucket"))
-        .collect();
+    let f3031: Vec<_> =
+        diags.iter().filter(|d| d.rule_id == "F3031" && d.resource_logical_id() == Some("PatternBucket")).collect();
     assert!(!f3031.is_empty(), "expected F3031 for uppercase S3 BucketName");
     assert!(f3031[0].message.contains("does not match pattern"));
 }
 
 #[test]
-fn property_f3040_read_only() {
+fn read_only_property_not_flagged() {
+    // The read-only-property check was removed: it never fires on real templates
+    // but firing it produced false positives, so it must not be emitted.
     let diags = validate_fixture("bad/schema_property_constraints.yaml");
-    let f3040: Vec<_> = diags
-        .iter()
-        .filter(|d| d.rule_id == "E3040" && d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some("ReadOnlyProp"))
-        .collect();
-    assert!(!f3040.is_empty(), "expected E3040 for read-only Arn on ACMPCA Certificate");
-    assert!(f3040[0].message.contains("Read only"));
+    let e3040: Vec<_> = diags.iter().filter(|d| d.rule_id == "E3040").collect();
+    assert!(e3040.is_empty(), "E3040 was removed and must not be emitted, got: {:?}", e3040);
 }
 
 #[test]
 fn property_i3043_create_only() {
     let diags = validate_fixture("bad/schema_property_constraints.yaml");
-    let i3043: Vec<_> = diags
-        .iter()
-        .filter(|d| d.rule_id == "I9001" && d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some("ReadOnlyProp"))
-        .collect();
+    let i3043: Vec<_> =
+        diags.iter().filter(|d| d.rule_id == "I9001" && d.resource_logical_id() == Some("ReadOnlyProp")).collect();
     assert!(!i3043.is_empty(), "expected I9001 for create-only properties on ACMPCA Certificate");
     assert!(i3043[0].message.contains("create-only"));
 }
@@ -403,46 +434,72 @@ fn property_i3043_create_only() {
 #[test]
 fn property_w3042_deprecated() {
     let diags = validate_fixture("bad/schema_property_constraints.yaml");
-    let w3042: Vec<_> = diags
-        .iter()
-        .filter(|d| d.rule_id == "W9009" && d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some("DeprecatedProp"))
-        .collect();
+    let w3042: Vec<_> =
+        diags.iter().filter(|d| d.rule_id == "W9009" && d.resource_logical_id() == Some("DeprecatedProp")).collect();
     assert!(!w3042.is_empty(), "expected W9009 for deprecated WorkGroupConfigurationUpdates");
     assert!(w3042[0].message.contains("deprecated"));
 }
 
 #[test]
-fn property_w3041_write_only_in_output() {
+fn property_w9054_write_only_in_output() {
     let diags = validate_fixture("bad/schema_write_only.yaml");
-    let w3041 = diags_for(&diags, "W3041");
-    assert!(!w3041.is_empty(), "expected W3041 for write-only Certificate referenced in output");
-    assert!(w3041[0].message.contains("Write-only") || w3041[0].message.contains("write-only"));
+    let w9054 = diags_for(&diags, "W9054");
+    assert!(!w9054.is_empty(), "expected W9054 for write-only Certificate referenced in output");
+    assert!(w9054[0].message.contains("Write-only") || w9054[0].message.contains("write-only"));
 }
-
-// ── Region availability ────────────────────────────────────────────
 
 #[test]
 fn region_availability_e3037() {
     let full = format!("{}/good/minimal.yaml", TEMPLATES);
     let bytes = std::fs::read(&full).unwrap();
     let model = Arc::new(SemanticModel::from_bytes(&bytes).unwrap());
-    let mut store = schema_validator::CompiledSchemaStore::new();
+    let mut store = CompiledSchemaStore::new();
     let region_json = serde_json::json!({
         "region_resource_types": {
             "us-east-1": { "AWS::S3::Bucket": true }
         }
     });
     store.load_region_data(serde_json::to_vec(&region_json).unwrap().as_slice());
-    let diags = schema_validator::validate::validate_all_resources(&store, &model, "us-east-1");
-    let e3037 = diags.iter().filter(|d| d.rule_id == "E9001").count();
+    let diags = validate_all_resources(&store, &model, Some("us-east-1"));
+    let f3006 = diags.iter().filter(|d| d.rule_id == "F3006").count();
     assert!(
-        e3037 > 0,
-        "expected E9001 for resource type not in region, got: {:?}",
+        f3006 > 0,
+        "expected F3006 for resource type not in region, got: {:?}",
         diags.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
     );
 }
 
-// ── Array bounds (maxItems) ────────────────────────────────────────
+/// A resource type available in some region but not the configured one is flagged
+/// (F3006); with no region configured the availability check widens to the union
+/// of all regions, so a type available in any region is not flagged.
+#[test]
+fn region_availability_widens_to_union_when_no_region() {
+    let full = format!("{}/good/minimal.yaml", TEMPLATES);
+    let bytes = std::fs::read(&full).unwrap();
+    let model = Arc::new(SemanticModel::from_bytes(&bytes).unwrap());
+    // minimal.yaml's type exists only in us-west-2 here, not us-east-1.
+    let rtype = model.resources.values().next().unwrap().resource_type.clone();
+    let mut store = CompiledSchemaStore::new();
+    let region_json = serde_json::json!({
+        "region_resource_types": {
+            "us-east-1": { "AWS::S3::Bucket": true },
+            "us-west-2": { rtype.clone(): true }
+        }
+    });
+    store.load_region_data(serde_json::to_vec(&region_json).unwrap().as_slice());
+
+    let at_us_east_1 = validate_all_resources(&store, &model, Some("us-east-1"));
+    assert!(
+        at_us_east_1.iter().any(|d| d.rule_id == "F3006"),
+        "type absent in us-east-1 must be flagged when that region is configured"
+    );
+
+    let no_region = validate_all_resources(&store, &model, None);
+    assert!(
+        !no_region.iter().any(|d| d.rule_id == "F3006"),
+        "type available in us-west-2 must not be flagged when no region is configured (union of all regions)"
+    );
+}
 
 #[test]
 fn array_bounds_f3032_max_items() {
@@ -452,8 +509,6 @@ fn array_bounds_f3032_max_items() {
     assert!(f3032[0].message.contains("maximum"), "expected max items message: {}", f3032[0].message);
 }
 
-// ── uniqueItems ────────────────────────────────────────────────────
-
 #[test]
 fn unique_items_f3037_duplicate_roles() {
     let diags = validate_fixture("bad/schema_unique_items.yaml");
@@ -461,8 +516,6 @@ fn unique_items_f3037_duplicate_roles() {
     assert!(!f3037.is_empty(), "expected F3037 for duplicate roles in InstanceProfile");
     assert!(f3037[0].message.contains("not unique"));
 }
-
-// ── Type mismatch (array where object expected) ────────────────────
 
 #[test]
 fn type_mismatch_array_for_object() {
@@ -474,39 +527,161 @@ fn type_mismatch_array_for_object() {
     assert!(!type_diags.is_empty(), "expected F3012 for array where object expected on UserPoolTags");
 }
 
-// ── oneOf (zero matches) ───────────────────────────────────────────
-
 #[test]
 fn composition_f3018_one_of_zero_matches() {
     let diags = validate_fixture("bad/schema_composition.yaml");
-    let f3018: Vec<_> = diags
-        .iter()
-        .filter(|d| d.rule_id == "F3018" && d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some("NoImage"))
-        .collect();
+    let f3018: Vec<_> =
+        diags.iter().filter(|d| d.rule_id == "F3018" && d.resource_logical_id() == Some("NoImage")).collect();
     assert!(!f3018.is_empty(), "expected F3018 for ImageBuilder missing both ImageName and ImageArn");
 }
 
-// ── anyOf (no match) ───────────────────────────────────────────────
+#[test]
+fn intrinsic_built_kms_alias_arn_is_not_rejected_by_format_composition() {
+    let diagnostics = validate_fixture("cdk/ddb-stream-lambda-sns--DdbStreamStack.template.json");
+    assert!(
+        !diagnostics.iter().any(|diagnostic| {
+            diagnostic.rule_id == "F3017"
+                && diagnostic.resource_logical_id() == Some("ddbstreamtopic7821AF6E")
+                && diagnostic.property_path.as_deref() == Some("Properties.KmsMasterKeyId")
+        }),
+        "a valid intrinsic-built KMS alias ARN must pass format composition: {diagnostics:?}"
+    );
+}
+
+#[test]
+fn every_valid_kms_key_identifier_form_passes_format_composition() {
+    let diagnostics = validate_fixture("good/kms_key_identifier_forms.yaml");
+    let rejected: Vec<_> = diagnostics
+        .iter()
+        .filter(|diagnostic| {
+            diagnostic.rule_id == "F3017" && diagnostic.property_path.as_deref() == Some("Properties.KmsMasterKeyId")
+        })
+        .collect();
+    assert!(
+        rejected.is_empty(),
+        "key ID, key ARN, alias name, alias ARN, and multi-Region forms are all valid: {rejected:?}"
+    );
+}
+
+#[test]
+fn malformed_literal_kms_key_arn_is_rejected_by_format_composition() {
+    let diagnostics = validate_fixture("bad/hardcoded_partition.yaml");
+    assert!(
+        diagnostics.iter().any(|diagnostic| {
+            diagnostic.rule_id == "F3017"
+                && diagnostic.resource_logical_id() == Some("Topic")
+                && diagnostic.property_path.as_deref() == Some("Properties.KmsMasterKeyId")
+        }),
+        "the malformed literal KMS key ARN must remain rejected: {diagnostics:?}"
+    );
+}
 
 #[test]
 fn composition_f3017_any_of_no_match() {
     let diags = validate_fixture("bad/schema_composition.yaml");
-    let f3017: Vec<_> = diags
-        .iter()
-        .filter(|d| d.rule_id == "F3017" && d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some("NoAZ"))
-        .collect();
+    let f3017: Vec<_> =
+        diags.iter().filter(|d| d.rule_id == "F3017" && d.resource_logical_id() == Some("NoAZ")).collect();
     assert!(!f3017.is_empty(), "expected F3017 for Volume missing all required AZ/Size/Snapshot combos");
 }
 
-// ── Extension rules (cfnGather) ────────────────────────────────────
+#[test]
+fn extension_cfn_gather_no_duplicate_numeric_constraint() {
+    // The cfnGather extension's numeric cross-resource bounds (ESM BatchSize vs
+    // FIFO-queue limit, SQS VisibilityTimeout vs Lambda Timeout) are reported by
+    // the dedicated cross-resource engine rules at their specific locations. The
+    // schema-validator must not also emit a generic schema-bounds diagnostic for
+    // them, which previously double-reported the same issue.
+    let diags = validate_fixture("integration/cfn-gather.yaml");
+    assert!(
+        !diags.iter().any(|d| d.rule_id == "F3034"),
+        "F3034 must not double-report a gather constraint, got: {:?}",
+        diags.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
+    );
+}
 
 #[test]
-fn extension_cfn_gather_cross_resource() {
-    let diags = validate_fixture("integration/cfn-gather.yaml");
-    let cross_resource: Vec<_> = diags.iter().filter(|d| d.rule_id == "F3034").collect();
+fn i9001_conditional_create_only_emitted_for_instance_tenancy() {
+    let diagnostics = validate_fixture("bad/I9001_conditional_create_only.yaml");
+    let conditional_diagnostics: Vec<_> = diagnostics
+        .iter()
+        .filter(|diagnostic| {
+            diagnostic.rule_id == "I9001"
+                && diagnostic.resource_logical_id() == Some("VpcWithConditionalCreateOnly")
+                && diagnostic.property_path.as_deref() == Some("Properties.InstanceTenancy")
+        })
+        .collect();
+    assert_eq!(
+        conditional_diagnostics.len(),
+        1,
+        "expected exactly one I9001 for InstanceTenancy, got: {conditional_diagnostics:?}"
+    );
+    let diagnostic = conditional_diagnostics[0];
+    assert_eq!(diagnostic.severity, Severity::Info, "conditional replacement risk must be informational");
+    assert_eq!(diagnostic.property_path.as_deref(), Some("Properties.InstanceTenancy"));
+    assert_eq!(
+        diagnostic.message,
+        "Property 'InstanceTenancy' is conditionally create-only; updating it may cause resource replacement"
+    );
+    let location = diagnostic.location.as_ref().expect("conditional replacement risk must have a source location");
+    assert_eq!(
+        (location.start_line, location.start_column, location.end_line, location.end_column),
+        (9, 7, 9, 22),
+        "conditional replacement risk must point to the InstanceTenancy key"
+    );
+}
+
+#[test]
+fn i9001_context_distinguishes_conditional_from_unconditional_create_only() {
+    let full = format!("{}/bad/I9001_conditional_create_only.yaml", TEMPLATES);
+    let bytes = std::fs::read(&full).unwrap();
+    let model = Arc::new(SemanticModel::from_bytes(&bytes).unwrap());
+    let mut result = SV.validate(&model, Some("us-east-1"));
+    SV.enrich_context(&mut result.diagnostics, &model);
+
+    let conditional_diagnostic = result
+        .diagnostics
+        .iter()
+        .find(|diagnostic| {
+            diagnostic.rule_id == "I9001"
+                && diagnostic.resource_logical_id() == Some("VpcWithConditionalCreateOnly")
+                && diagnostic.property_path.as_deref() == Some("Properties.InstanceTenancy")
+        })
+        .expect("expected I9001 for InstanceTenancy");
+    let conditional_context =
+        conditional_diagnostic.context.as_ref().expect("expected context on enriched InstanceTenancy diagnostic");
+    assert_eq!(conditional_context.lifecycle.as_deref(), Some("conditional-create-only"));
+
+    let unconditional_diagnostic = result
+        .diagnostics
+        .iter()
+        .find(|diagnostic| {
+            diagnostic.rule_id == "I9001"
+                && diagnostic.resource_logical_id() == Some("VpcWithConditionalCreateOnly")
+                && diagnostic.property_path.as_deref() == Some("Properties.CidrBlock")
+        })
+        .expect("expected I9001 for CidrBlock");
+    let unconditional_context =
+        unconditional_diagnostic.context.as_ref().expect("expected context on enriched CidrBlock diagnostic");
+    assert_eq!(unconditional_context.lifecycle.as_deref(), Some("create-only"));
+    assert_eq!(
+        unconditional_diagnostic.message,
+        "Property 'CidrBlock' is create-only; updating it will cause resource replacement"
+    );
+}
+
+#[test]
+fn i9001_conditional_create_only_not_emitted_when_property_is_absent() {
+    let diagnostics = validate_fixture("bad/I9001_conditional_create_only.yaml");
+    let control_diagnostics: Vec<_> = diagnostics
+        .iter()
+        .filter(|diagnostic| {
+            diagnostic.rule_id == "I9001"
+                && diagnostic.resource_logical_id() == Some("VpcControl")
+                && diagnostic.property_path.as_deref() == Some("Properties.InstanceTenancy")
+        })
+        .collect();
     assert!(
-        !cross_resource.is_empty(),
-        "expected F3034 cross-resource diagnostic from cfn-gather template, got rules: {:?}",
-        diags.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
+        control_diagnostics.is_empty(),
+        "control VPC without InstanceTenancy must not emit I9001 for InstanceTenancy, got: {control_diagnostics:?}"
     );
 }

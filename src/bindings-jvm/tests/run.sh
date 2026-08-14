@@ -7,4 +7,4 @@ KOTLIN_DIR="$SCRIPT_DIR/kotlin"
 
 echo "Running Kotlin smoke tests..."
 cd "$KOTLIN_DIR"
-gradle test --no-daemon --rerun-tasks
+gradle test jacocoTestReport --no-daemon --rerun-tasks --console=rich

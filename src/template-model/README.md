@@ -2,7 +2,7 @@
 
 Parses CloudFormation JSON/YAML templates into a rich semantic model. Resolves all intrinsic functions, builds a
 reference graph with cycle detection, and models conditions with a SAT solver. Has zero knowledge of CloudFormation
-resource schemas — it is purely a modeling library.
+resource schemas - it is purely a modeling library.
 
 ## How It Works
 
@@ -10,11 +10,11 @@ resource schemas — it is purely a modeling library.
   bytes ──▶ Parse (JSON/YAML) ──▶ Resolve intrinsics ──▶ Build reference graph ──▶ SemanticModel
 ```
 
-1. **Parse** — Reads JSON or YAML (auto-detected), extracts all template sections (Parameters, Mappings, Conditions,
+1. **Parse** - Reads JSON or YAML (auto-detected), extracts all template sections (Parameters, Mappings, Conditions,
    Resources, Outputs, Rules, Metadata, Transforms, Globals).
-2. **Resolve** — Walks each resource and output, resolving all intrinsic functions into `ResolvedValue` variants.
-3. **Validate** — Builds a reference graph, detects cycles, validates intrinsic function nesting, and emits parse-time
-   diagnostics (`F3004` cycles, `F1104` undefined conditions, `F1105` invalid nesting, `W8003` tautological conditions).
+2. **Resolve** - Walks each resource and output, resolving all intrinsic functions into `ResolvedValue` variants.
+3. **Validate** - Builds a reference graph, detects cycles, validates intrinsic function nesting, and emits parse-time
+   diagnostics (`F3004` cycles, `E1028` undefined conditions, `E1101` invalid nesting, `W8003` tautological conditions).
 
 ## Intrinsic Function Support
 
@@ -24,7 +24,7 @@ All CloudFormation intrinsic functions are resolved:
 `Fn::Split`, `Fn::Base64`, `Fn::Cidr`, `Fn::GetAZs`, `Fn::ImportValue`, `Fn::Transform`, `Fn::And`, `Fn::Or`,
 `Fn::Not`, `Fn::Equals`, `Fn::ToJsonString`, `Fn::Length`, `Fn::ForEach`.
 
-Rules-section intrinsics: `Fn::ValueOf`, `Fn::ValueOfAll`, `Ref::All`, `Fn::Contains`, `Fn::EachMemberEquals`,
+Rules-section intrinsics: `Fn::ValueOf`, `Fn::ValueOfAll`, `Fn::RefAll`, `Fn::Contains`, `Fn::EachMemberEquals`,
 `Fn::EachMemberIn`.
 
 ## ResolvedValue
@@ -48,24 +48,25 @@ Each property resolves to one of these variants:
 
 ```rust
 let bytes = std::fs::read("template.yaml").unwrap();
-let model = SemanticModel::from_bytes( & bytes).unwrap();
+let model = SemanticModel::from_bytes(&bytes).unwrap();
 ```
 
 With configuration:
 
 ```rust
+use std::collections::HashMap;
 use template_model::{SemanticModel, ParseConfig, PseudoParameterOverrides};
 
 let config = ParseConfig {
-parameters: HashMap::from([("Environment".into(), "Production".into())]),
-pseudo_parameters: PseudoParameterOverrides {
-region: Some("eu-west-1".into()),
-account_id: Some("123456789012".into()),
-..Default::default ()
-},
+  parameters: HashMap::from([("Environment".into(), "Production".into())]),
+  pseudo_parameters: PseudoParameterOverrides {
+    region: Some("eu-west-1".into()),
+    account_id: Some("123456789012".into()),
+    ..Default::default()
+  },
 };
 
-let result = SemanticModel::parse( & bytes, config).unwrap();
+let result = SemanticModel::parse(&bytes, config).unwrap();
 let model = result.model;
 ```
 
@@ -92,24 +93,24 @@ let model = result.model;
 
 | Field               | Type / Purpose                                                            |
 |---------------------|---------------------------------------------------------------------------|
-| `format_version`    | `Option<String>` — `AWSTemplateFormatVersion` value                       |
-| `description`       | `Option<String>` — template `Description`                                 |
-| `transforms`        | `Vec<String>` — declared transforms                                       |
-| `parameters`        | `HashMap<String, ParameterInfo>` — parsed parameter definitions           |
+| `format_version`    | `Option<String>` - `AWSTemplateFormatVersion` value                       |
+| `description`       | `Option<String>` - template `Description`                                 |
+| `transforms`        | `Vec<String>` - declared transforms                                       |
+| `parameters`        | `HashMap<String, ParameterInfo>` - parsed parameter definitions           |
 | `mappings`          | 3-level `MappingData` HashMap                                             |
 | `conditions`        | `ConditionModel` with SAT solver                                          |
-| `resources`         | `HashMap<String, ResolvedResource>` — resolved resources with diagnostics |
-| `outputs`           | `HashMap<String, ResolvedOutput>` — resolved outputs                      |
+| `resources`         | `HashMap<String, ResolvedResource>` - resolved resources with diagnostics |
+| `outputs`           | `HashMap<String, ResolvedOutput>` - resolved outputs                      |
 | `graph`             | `ReferenceGraph` with cycle information                                   |
-| `resources_by_type` | `HashMap<String, Vec<String>>` — logical IDs grouped by resource type     |
-| `diagnostics`       | All parse-time diagnostics                                                |
+| `resources_by_type` | `HashMap<String, Vec<String>>` - logical IDs grouped by resource type     |
+| `diagnostics`       | All parse-time findings, as plain `ParseDefect` values                    |
 | `template_metadata` | Raw JSON of the Metadata section                                          |
 
 ### ParseConfig
 
 | Field               | Default                    | Effect                                                                                          |
 |---------------------|----------------------------|-------------------------------------------------------------------------------------------------|
-| `parameters`        | empty `HashMap`            | Parameter overrides — `Ref` resolves to `Concrete` instead of `Enum`/`TypedDynamic`             |
+| `parameters`        | empty `HashMap`            | Parameter overrides - `Ref` resolves to `Concrete` instead of `Enum`/`TypedDynamic`             |
 | `pseudo_parameters` | all `None` (uses defaults) | Override `AWS::Region` (`us-east-1`), `AWS::AccountId` (`123456789012`), `AWS::Partition`, etc. |
 
 Supports AWS SAM templates with automatic handling of SAM transforms and implicit resources.

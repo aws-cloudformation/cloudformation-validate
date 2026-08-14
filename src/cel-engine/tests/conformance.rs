@@ -3,14 +3,13 @@ mod tests {
     use cel_engine::CelEngine;
     use schema_validator::SchemaValidator;
     use std::sync::LazyLock;
-    use validation_engine::{EngineConfig, ValidateConfig, ValidationEngine};
+    use validation_engine::{EngineConfig, ValidateConfig, ValidationEngine, validate_bytes};
 
-    static SV: LazyLock<SchemaValidator> = LazyLock::new(SchemaValidator::new);
+    static SV: LazyLock<SchemaValidator> = LazyLock::new(SchemaValidator::default);
 
     fn validate(template: &str) -> Vec<String> {
         let engine = CelEngine::new(EngineConfig::default()).unwrap();
-        let report =
-            validation_engine::validate_bytes(&engine, &SV, template.as_bytes(), ValidateConfig::default()).unwrap();
+        let report = validate_bytes(&engine, &SV, template.as_bytes(), ValidateConfig::default()).unwrap();
         let mut ids: Vec<String> = report.diagnostics.iter().map(|d| d.rule_id.clone()).collect();
         ids.sort();
         ids
@@ -20,7 +19,7 @@ mod tests {
         let full = format!("../resources/templates/{}", path);
         let bytes = std::fs::read(&full).unwrap_or_else(|e| panic!("Failed to read {}: {}", full, e));
         let engine = CelEngine::new(EngineConfig::default()).unwrap();
-        let report = validation_engine::validate_bytes(&engine, &SV, &bytes, ValidateConfig::default()).unwrap();
+        let report = validate_bytes(&engine, &SV, &bytes, ValidateConfig::default()).unwrap();
         let mut ids: Vec<String> = report.diagnostics.iter().map(|d| d.rule_id.clone()).collect();
         ids.sort();
         ids
@@ -72,8 +71,8 @@ Resources:
       BucketName: !Ref NonExistent
 "#,
         );
-        // A Ref to a completely unknown target is recorded as an invalid ref
-        // and surfaced as F1020 ("Ref/GetAtt target must exist").
+        // A Ref to a completely unknown target is recorded as an invalid ref and
+        // surfaced as a "Ref/GetAtt target must exist" diagnostic.
         assert!(ids.contains(&"F1020".to_string()), "Expected F1020 for Ref to unknown target, got: {:?}", ids);
     }
 
@@ -102,7 +101,6 @@ Resources:
               SSEAlgorithm: AES256
 "#,
         );
-        // Well-formed template — no errors expected
         assert!(!ids.iter().any(|id| id.starts_with("F0")), "No structure (fatal) errors expected, got: {:?}", ids);
     }
 
@@ -140,14 +138,13 @@ mod nested_schema_tests {
     use cel_engine::CelEngine;
     use schema_validator::SchemaValidator;
     use std::sync::LazyLock;
-    use validation_engine::{EngineConfig, ValidateConfig};
+    use validation_engine::{EngineConfig, ValidateConfig, validate_bytes};
 
-    static SV2: LazyLock<SchemaValidator> = LazyLock::new(SchemaValidator::new);
+    static SV2: LazyLock<SchemaValidator> = LazyLock::new(SchemaValidator::default);
 
     fn diags(template: &str) -> Vec<(String, String)> {
         let engine = CelEngine::new(EngineConfig::default()).unwrap();
-        let report =
-            validation_engine::validate_bytes(&engine, &SV2, template.as_bytes(), ValidateConfig::default()).unwrap();
+        let report = validate_bytes(&engine, &SV2, template.as_bytes(), ValidateConfig::default()).unwrap();
         report.diagnostics.iter().map(|d| (d.rule_id.clone(), d.message.clone())).collect()
     }
 
@@ -180,7 +177,7 @@ Resources:
             ids
         );
         let f3012_count = ids.iter().filter(|id| *id == "F3012").count();
-        assert_eq!(f3012_count, 0, "String '443' should be coerced, not rejected — got {} F3012s", f3012_count);
+        assert_eq!(f3012_count, 0, "String '443' should be coerced, not rejected - got {} F3012s", f3012_count);
     }
 
     #[test]
@@ -226,7 +223,7 @@ Resources:
         let has_w3012 = ids.iter().any(|id| id == "W9003");
         assert!(has_w3012, "Expected W9003 coercion warning for string 'true' on PropagateAtLaunch, got: {:?}", ids);
         let has_f3012 = ids.iter().any(|id| id == "F3012");
-        assert!(!has_f3012, "String 'true' should be coerced, not rejected — got F3012 in: {:?}", ids);
+        assert!(!has_f3012, "String 'true' should be coerced, not rejected - got F3012 in: {:?}", ids);
     }
 
     #[test]
@@ -254,19 +251,16 @@ Resources:
     }
 }
 
-// ══════════════════════════════════════════════════════════════
-// Guard rule integration tests
-// ══════════════════════════════════════════════════════════════
-
 #[cfg(test)]
 mod guard_tests {
     use cel_engine::CelEngine;
     use rules::{FilterConfig, RuleFilterConfig, Severity};
     use schema_validator::SchemaValidator;
     use std::sync::LazyLock;
-    use validation_engine::{EngineConfig, ExternalRuleSource, ValidateConfig, ValidationEngine};
+    use validation_engine::guard::resolve_guard_config;
+    use validation_engine::{EngineConfig, ExternalRuleSource, ValidateConfig, ValidationEngine, validate_bytes};
 
-    static SV: LazyLock<SchemaValidator> = LazyLock::new(SchemaValidator::new);
+    static SV: LazyLock<SchemaValidator> = LazyLock::new(SchemaValidator::default);
 
     const GUARD_S3_VERSIONING: &str = r#"
 rule s3_versioning_check {
@@ -288,14 +282,12 @@ rule s3_versioning_check {
         };
         let engine = CelEngine::new(config).unwrap();
         let template = b"AWSTemplateFormatVersion: '2010-09-09'\nResources:\n  Bucket:\n    Type: AWS::S3::Bucket\n    Properties:\n      VersioningConfiguration:\n        Status: Enabled\n";
-        let report = validation_engine::validate_bytes(&engine, &SV, template, ValidateConfig::default()).unwrap();
-        // Verify the rule is registered with correct metadata
+        let report = validate_bytes(&engine, &SV, template, ValidateConfig::default()).unwrap();
         let rules = engine.list_rules();
         let guard_rule = rules.iter().find(|r| r.id == "s3_versioning_check");
         assert!(guard_rule.is_some(), "Guard rule should appear in list_rules");
         let guard_rule = guard_rule.unwrap();
         assert_eq!(guard_rule.category.as_deref(), Some("guard:s3_versioning"));
-        // Verify any guard diagnostics have correct category/severity
         for d in report.diagnostics.iter().filter(|d| d.rule_id == "s3_versioning_check") {
             assert_eq!(d.severity, Severity::Error);
             assert_eq!(d.category.as_deref(), Some("guard:s3_versioning"));
@@ -304,9 +296,7 @@ rule s3_versioning_check {
 
     #[test]
     fn guard_rule_pack_loads_from_directory() {
-        let guard_rules =
-            validation_engine::guard::resolve_guard_config(&["../guard-translator/tests/fixtures/pack".into()])
-                .unwrap_or_default();
+        let guard_rules = resolve_guard_config(&["../guard-translator/tests/fixtures/pack".into()]).unwrap_or_default();
         let config = EngineConfig { guard_rules, ..Default::default() };
         let engine = CelEngine::new(config);
         // Pack loading may fail if translated CEL has issues from wildcard let assignments.
@@ -337,7 +327,7 @@ rule s3_versioning_check {
             ),
             ..Default::default()
         };
-        let report = validation_engine::validate_bytes(&engine, &SV, template, validate_config).unwrap();
+        let report = validate_bytes(&engine, &SV, template, validate_config).unwrap();
         assert!(
             !report.diagnostics.iter().any(|d| d.rule_id == "s3_versioning_check"),
             "Guard rule should be filtered out by category exclusion"
@@ -345,10 +335,8 @@ rule s3_versioning_check {
     }
 }
 
-// ══════════════════════════════════════════════════════════════
-// Cross-engine consistency: list_rules metadata sync
-// Note: Full cross-engine tests live in cfn-validate which has both engines.
-// ══════════════════════════════════════════════════════════════
+// These tests cover this engine's own rule catalogue and consistency; broader
+// end-to-end behaviour is verified at the integration layer.
 
 #[cfg(test)]
 mod consistency_tests {
@@ -361,7 +349,6 @@ mod consistency_tests {
         let rules = engine.list_rules();
         let categories: std::collections::HashSet<&str> =
             rules.iter().map(|r| r.category.as_deref().unwrap_or("")).collect();
-        // Verify all expected categories are present
         for expected in [
             "Structure",
             "Intrinsic Function",
@@ -378,23 +365,18 @@ mod consistency_tests {
     }
 }
 
-// ══════════════════════════════════════════════════════════════
-// Integration tests: rule category coverage via resources
-// ══════════════════════════════════════════════════════════════
-
 #[cfg(test)]
 mod rule_category_tests {
     use cel_engine::CelEngine;
     use schema_validator::SchemaValidator;
     use std::sync::LazyLock;
-    use validation_engine::{EngineConfig, ValidateConfig};
+    use validation_engine::{EngineConfig, ValidateConfig, validate_bytes};
 
-    static SV: LazyLock<SchemaValidator> = LazyLock::new(SchemaValidator::new);
+    static SV: LazyLock<SchemaValidator> = LazyLock::new(SchemaValidator::default);
 
     fn validate(template: &str) -> Vec<String> {
         let engine = CelEngine::new(EngineConfig::default()).unwrap();
-        let report =
-            validation_engine::validate_bytes(&engine, &SV, template.as_bytes(), ValidateConfig::default()).unwrap();
+        let report = validate_bytes(&engine, &SV, template.as_bytes(), ValidateConfig::default()).unwrap();
         let mut ids: Vec<String> = report.diagnostics.iter().map(|d| d.rule_id.clone()).collect();
         ids.sort();
         ids
@@ -404,7 +386,7 @@ mod rule_category_tests {
         let full = format!("../resources/templates/{}", path);
         let bytes = std::fs::read(&full).unwrap_or_else(|e| panic!("Failed to read {}: {}", full, e));
         let engine = CelEngine::new(EngineConfig::default()).unwrap();
-        let report = validation_engine::validate_bytes(&engine, &SV, &bytes, ValidateConfig::default()).unwrap();
+        let report = validate_bytes(&engine, &SV, &bytes, ValidateConfig::default()).unwrap();
         let mut ids: Vec<String> = report.diagnostics.iter().map(|d| d.rule_id.clone()).collect();
         ids.sort();
         ids
@@ -442,9 +424,9 @@ mod rule_category_tests {
     #[test]
     fn intrinsics_bad_ref() {
         let ids = validate_file("bad/refs.yaml");
-        // Refs to unknown targets are recorded as invalid refs and surfaced as
-        // F1020. Fn::Sub variables resolve through the same path but are not
-        // recorded as invalid refs, so they do not trigger F1020 here.
+        // Refs to unknown targets are recorded as invalid refs and surfaced as the
+        // invalid-reference diagnostic. Fn::Sub variables resolve through the same
+        // path but are not recorded as invalid refs, so they do not trigger it here.
         assert!(has_rule(&ids, "F1020"), "Expected F1020 for refs to unknown targets, got: {:?}", ids);
     }
 
@@ -457,16 +439,24 @@ mod rule_category_tests {
     #[test]
     fn intrinsics_bad_select() {
         let ids = validate_file("bad/functions_select.yaml");
-        // Parser no longer emits F1101 for malformed Select — it falls through
-        // to a plain map node. W1102 fires for non-integer index in valid 2-element Select.
-        let has_select_warning = ids.iter().any(|id| id == "W1102");
-        assert!(has_select_warning, "Expected W1102 Select type warning, got: {:?}", ids);
+        // Malformed Select shapes (non-integer index, wrong arity, non-array
+        // value) are errors under the Select rule.
+        let select_errors = ids.iter().filter(|id| *id == "E1017").count();
+        assert!(select_errors >= 3, "Expected E1017 Select shape errors, got: {:?}", ids);
+    }
+
+    #[test]
+    fn intrinsics_select_integer_string_index_is_not_warned() {
+        // CloudFormation coerces a numeric string index ("0", "1"), so the
+        // Select type warning must not fire on it.
+        let ids = validate_file("good/functions/select_string_index.yaml");
+        assert!(!ids.iter().any(|id| id == "W1102"), "W1102 must not fire on an integer-string index, got: {:?}", ids);
     }
 
     #[test]
     fn intrinsics_bad_sub_needed() {
         let ids = validate_file("bad/sub_needed.yaml");
-        assert!(has_rule(&ids, "F1029"), "Expected E1029 for Sub needed, got: {:?}", ids);
+        assert!(has_rule(&ids, "E1029"), "Expected E1029 for Sub needed, got: {:?}", ids);
     }
 
     #[test]
@@ -487,8 +477,6 @@ mod rule_category_tests {
         let ids = validate_file("bad/resources_circular_dependency_dependson.yaml");
         assert!(has_rule(&ids, "F3004"), "Expected E3004 for DependsOn circular, got: {:?}", ids);
     }
-
-    // ── Best practices rules ────────────────────────────────────────────
 
     #[test]
     fn best_practices_deletion_policy() {
@@ -517,8 +505,6 @@ mod rule_category_tests {
         assert!(!ids.iter().any(|id| id.starts_with("E") || id.starts_with("F")), "No errors expected, got: {:?}", ids);
     }
 
-    // ── Resource-specific rules ─────────────────────────────────────────
-
     #[test]
     fn resources_fargate_bad_cpu_memory() {
         let ids = validate_file("bad/fargate_bad_cpu_memory.yaml");
@@ -546,7 +532,7 @@ mod rule_category_tests {
     #[test]
     fn resources_lambda_zip_no_handler() {
         let ids = validate_file("bad/lambda_zip_no_handler.yaml");
-        assert!(has_rule(&ids, "F3003"), "Expected F3003 for Lambda zip no handler, got: {:?}", ids);
+        assert!(has_rule(&ids, "W2533"), "Expected W2533 for Lambda zip no handler, got: {:?}", ids);
     }
 
     #[test]
@@ -555,18 +541,16 @@ mod rule_category_tests {
         assert!(!has_rule(&ids, "E3042"), "No E3042 expected for valid Fargate, got: {:?}", ids);
     }
 
-    // ── Condition rules ─────────────────────────────────────────────────
-
     #[test]
     fn conditions_undefined_condition() {
         let ids = validate_file("bad/undefined_condition.yaml");
-        assert!(has_rule(&ids, "F8002"), "Expected condition error, got: {:?}", ids);
+        assert!(has_rule(&ids, "E8002"), "Expected condition error, got: {:?}", ids);
     }
 
     #[test]
     fn conditions_equals_wrong_arity() {
         let ids = validate_file("bad/equals_wrong_arity.yaml");
-        assert!(has_rule(&ids, "F0014") || has_rule(&ids, "W8001"), "Expected Equals arity error, got: {:?}", ids);
+        assert!(has_rule(&ids, "E8003") || has_rule(&ids, "W8001"), "Expected Equals arity error, got: {:?}", ids);
     }
 
     #[test]
@@ -591,10 +575,8 @@ mod rule_category_tests {
     #[test]
     fn generated_rules_unique_items() {
         let ids = validate_file("bad/unique_items.yaml");
-        assert!(has_rule(&ids, "W9007") || has_rule(&ids, "I3037"), "Expected unique items error, got: {:?}", ids);
+        assert!(has_rule(&ids, "W9007"), "Expected unique items error, got: {:?}", ids);
     }
-
-    // ── Cross-category: good templates produce no errors ────────────────
 
     #[test]
     fn good_generic_no_errors() {
@@ -696,5 +678,77 @@ Resources:
 "#,
         );
         assert!(ids.contains(&"E9004".to_string()), "Expected E9004 for invalid GetAtt attribute, got: {:?}", ids);
+    }
+
+    #[test]
+    fn e9004_dotted_attribute_on_object_attribute_is_still_invalid() {
+        // A dotted GetAtt whose leading segment is an object/array-typed property
+        // (here S3 Bucket `Tags`, an array) is NOT a valid map-member reference:
+        // GetAtt cannot index into such an attribute, so CloudFormation rejects it
+        // and the engine must still flag it. Only nested-stack / provisioned-product
+        // `Outputs.<key>` is an open-ended map member.
+        let ids = validate(
+            r#"
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+  Param:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Value: !GetAtt Bucket.Tags.0
+"#,
+        );
+        assert!(
+            ids.contains(&"E9004".to_string()),
+            "Expected E9004 for a dotted GetAtt into an object/array attribute, got: {:?}",
+            ids
+        );
+    }
+
+    #[test]
+    fn e9004_provisioned_product_outputs_member_is_valid() {
+        // A provisioned product exposes `Outputs.<OutputKey>` for any key, so a
+        // dotted `Outputs.<key>` must NOT be flagged, while a genuinely invalid
+        // attribute on the same type still is.
+        let ids = validate(
+            r#"
+Resources:
+  PP:
+    Type: AWS::ServiceCatalog::CloudFormationProvisionedProduct
+    Properties:
+      ProductName: p
+      ProvisioningArtifactName: v1
+  UseOutput:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: !GetAtt PP.Outputs.MyKey
+"#,
+        );
+        assert!(
+            !ids.contains(&"E9004".to_string()),
+            "A provisioned product Outputs.<key> member must not be flagged, got: {:?}",
+            ids
+        );
+
+        let bad = validate(
+            r#"
+Resources:
+  PP:
+    Type: AWS::ServiceCatalog::CloudFormationProvisionedProduct
+    Properties:
+      ProductName: p
+      ProvisioningArtifactName: v1
+  UseBad:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: !GetAtt PP.NotARealAttr
+"#,
+        );
+        assert!(
+            bad.contains(&"E9004".to_string()),
+            "An invalid provisioned product attribute must still be flagged, got: {:?}",
+            bad
+        );
     }
 }

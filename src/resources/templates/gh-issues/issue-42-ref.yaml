@@ -1,0 +1,35 @@
+AWSTemplateFormatVersion: '2010-09-09'
+# Issue #42 counter-example: HealthCheckPort is a deploy-time value (a Ref to a
+# parameter with no default). Its value is unknowable at validation time, so the
+# dynamic-port health-check rule must stay silent - flagging an opaque value the
+# way a fixed port is flagged would be a false positive.
+Parameters:
+  HealthCheckPort:
+    Type: String
+Resources:
+  TaskDef:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: my-task
+      ContainerDefinitions:
+        - Name: web
+          Image: nginx:latest
+          PortMappings:
+            - ContainerPort: 80
+              HostPort: 0
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Port: 80
+      Protocol: HTTP
+      VpcId: vpc-12345678
+      HealthCheckPort: !Ref HealthCheckPort
+  Service:
+    Type: AWS::ECS::Service
+    Properties:
+      Cluster: my-cluster
+      TaskDefinition: !Ref TaskDef
+      LoadBalancers:
+        - ContainerName: web
+          ContainerPort: 80
+          TargetGroupArn: !Ref TargetGroup

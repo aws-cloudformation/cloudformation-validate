@@ -2,11 +2,13 @@
 """Generate THIRD-PARTY-LICENSES.txt for each distribution target.
 
 Usage:
-    python3 scripts/generate_licenses.py          # all targets
-    python3 scripts/generate_licenses.py native   # native Rust only
-    python3 scripts/generate_licenses.py jvm      # JVM only
-    python3 scripts/generate_licenses.py wasm     # WASM only
-    python3 scripts/generate_licenses.py jvm wasm # multiple targets
+    python3 scripts/generate_licenses.py            # all targets
+    python3 scripts/generate_licenses.py native     # native Rust only
+    python3 scripts/generate_licenses.py jvm        # JVM only
+    python3 scripts/generate_licenses.py wasm       # WASM only
+    python3 scripts/generate_licenses.py python     # Python only
+    python3 scripts/generate_licenses.py go         # Go only
+    python3 scripts/generate_licenses.py jvm wasm   # multiple targets
 """
 
 import argparse
@@ -24,38 +26,54 @@ WORKSPACE = PROJECT_ROOT / "src"
 
 SEPARATOR = "\n\n******************************\n\n"
 
-# Workspace crates — exclude from third-party license files.
+# Workspace crates - exclude from third-party license files.
 WORKSPACE_CRATES = {
-    "bindings-jvm", "bindings-wasm", "cel-engine", "cfn-validate",
-    "data-source", "diagnostics", "guard-translator", "rego-engine",
-    "rules", "schema-validator", "template-model", "validation-engine",
+    "bindings-go",
+    "bindings-jvm",
+    "bindings-python",
+    "bindings-wasm",
+    "cel-engine",
+    "cfn-validate",
+    "data-source",
+    "diagnostics",
+    "guard-translator",
+    "rego-engine",
+    "resources",
+    "rules",
+    "schema-validator",
+    "template-model",
+    "validation-engine",
 }
 
-# Maven runtime dependencies the JVM JAR consumers need on their classpath.
+APACHE_LICENSE_REFERENCE = (
+    "                                 Apache License\n"
+    "                           Version 2.0, January 2004\n"
+    "                        http://www.apache.org/licenses/\n\n"
+    "   See full text in any Apache License 2.0 entry in this file."
+)
+
+# Maven dependencies the JVM JAR consumers need on their classpath.
 JVM_EXTRA_DEPS = [
     {
         "name": "com.google.code.gson:gson",
         "version": "2.14.0",
         "url": "https://github.com/google/gson",
         "license": "Apache-2.0",
-        "text": (
-            "                                 Apache License\n"
-            "                           Version 2.0, January 2004\n"
-            "                        http://www.apache.org/licenses/\n\n"
-            "   See full text in any Apache License 2.0 entry in this file."
-        ),
+        "text": APACHE_LICENSE_REFERENCE,
     },
     {
         "name": "net.java.dev.jna:jna",
-        "version": "5.18.1",
+        "version": "5.19.1",
         "url": "https://github.com/java-native-access/jna",
         "license": "Apache-2.0",
-        "text": (
-            "                                 Apache License\n"
-            "                           Version 2.0, January 2004\n"
-            "                        http://www.apache.org/licenses/\n\n"
-            "   See full text in any Apache License 2.0 entry in this file."
-        ),
+        "text": APACHE_LICENSE_REFERENCE,
+    },
+    {
+        "name": "org.jetbrains.kotlin:kotlin-stdlib",
+        "version": "2.4.0",
+        "url": "https://github.com/JetBrains/kotlin",
+        "license": "Apache-2.0",
+        "text": APACHE_LICENSE_REFERENCE,
     },
 ]
 
@@ -214,21 +232,21 @@ def generate(
     print(f"  → {output_path.relative_to(PROJECT_ROOT)} ({len(entries)} packages)")
 
 
-VALID_TARGETS = {"native", "jvm", "wasm", "all"}
+VALID_TARGETS = {"native", "jvm", "wasm", "python", "go", "all"}
 
 
 def main():
     parser = argparse.ArgumentParser(description="Generate THIRD-PARTY-LICENSES.txt")
     parser.add_argument(
         "targets", nargs="*", default=["all"],
-        help="Targets to generate: native, jvm, wasm, all (default: all)",
+        help="Targets to generate: native, jvm, wasm, python, go, all (default: all)",
     )
     args = parser.parse_args()
     targets = set(args.targets)
     if not targets.issubset(VALID_TARGETS):
         parser.error(f"invalid targets: {targets - VALID_TARGETS}. Choose from: {sorted(VALID_TARGETS)}")
     if "all" in targets:
-        targets = {"native", "jvm", "wasm"}
+        targets = {"native", "jvm", "wasm", "python", "go"}
 
     if "native" in targets:
         generate(
@@ -258,6 +276,37 @@ def main():
             ["-m", "bindings-wasm/Cargo.toml"],
             WORKSPACE / "bindings-wasm" / "THIRD-PARTY-LICENSES.txt",
             targets=["wasm32-unknown-unknown"],
+        )
+    if "python" in targets:
+        generate(
+            "bindings-python",
+            ["-m", "bindings-python/Cargo.toml"],
+            WORKSPACE / "bindings-python" / "THIRD-PARTY-LICENSES.txt",
+            targets=[
+                "x86_64-unknown-linux-gnu",
+                "aarch64-unknown-linux-gnu",
+                "x86_64-apple-darwin",
+                "aarch64-apple-darwin",
+                "x86_64-pc-windows-msvc",
+                "aarch64-pc-windows-msvc",
+            ],
+        )
+    if "go" in targets:
+        # The Go static library is built with the GNU toolchain on Windows
+        # (cgo links with MinGW), so the windows targets here are the GNU
+        # flavors (gnullvm is the aarch64 MinGW-style target).
+        generate(
+            "bindings-go",
+            ["-m", "bindings-go/Cargo.toml"],
+            WORKSPACE / "bindings-go" / "go" / "THIRD-PARTY-LICENSES.txt",
+            targets=[
+                "x86_64-unknown-linux-gnu",
+                "aarch64-unknown-linux-gnu",
+                "x86_64-apple-darwin",
+                "aarch64-apple-darwin",
+                "x86_64-pc-windows-gnu",
+                "aarch64-pc-windows-gnullvm",
+            ],
         )
     print("Done.")
 

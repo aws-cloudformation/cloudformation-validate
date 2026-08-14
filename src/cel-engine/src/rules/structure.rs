@@ -3,22 +3,30 @@ use diagnostics::Diagnostic;
 use rules::Category;
 use std::collections::HashSet;
 use std::sync::LazyLock;
-use template_model::FORMAT_VERSION;
 use template_model::consts::{
     EDGE_KIND_REF, EDGE_KIND_SUB, FIELD_CONDITION, FIELD_CONDITIONS, FIELD_DELETION_POLICY, FIELD_EDGES, FIELD_KIND,
     FIELD_MAPPINGS, FIELD_OUTGOING_REFS, FIELD_OUTPUTS, FIELD_PARAMETERS, FIELD_RESOURCE_TYPE, FIELD_RESOURCES,
-    FIELD_SOURCE_PATH, FIELD_TARGET, FIELD_TRANSFORMS, FIELD_UPDATE_REPLACE_POLICY, POLICY_DELETE, POLICY_RETAIN,
+    FIELD_SOURCE_PATH, FIELD_TARGET, FIELD_UPDATE_REPLACE_POLICY, FN_FOR_EACH, FN_FOR_EACH_KEY_PREFIX,
+    PARAM_TYPE_COMMA_DELIMITED_LIST, PARAM_TYPE_NUMBER, PARAM_TYPE_STRING, POLICY_DELETE, POLICY_RETAIN,
     POLICY_RETAIN_EXCEPT_ON_CREATE, POLICY_SNAPSHOT, SECTION_CONDITIONS, SECTION_DESCRIPTION, SECTION_FORMAT_VERSION,
     SECTION_GLOBALS, SECTION_MAPPINGS, SECTION_METADATA, SECTION_OUTPUTS, SECTION_PARAMETERS, SECTION_RESOURCES,
-    SECTION_RULES, SECTION_TRANSFORM, TRANSFORM_SERVERLESS,
+    SECTION_RULES, SECTION_TRANSFORM, TRANSFORM_LANGUAGE_EXTENSIONS, TRANSFORM_SERVERLESS,
 };
+use template_model::message::render_str_list;
+use template_model::{FORMAT_VERSION, is_service_valid};
 use validation_engine::make_resource_diagnostic;
 
+/// Alphanumeric-only string: CloudFormation logical IDs, output names, and
+/// second-level mapping keys.
 static ALPHANUM_RE: LazyLock<regex::Regex> =
     LazyLock::new(|| regex::Regex::new(r"^[a-zA-Z0-9]+$").expect("Invalid ALPHANUM_RE pattern"));
 
 static NUM_RE: LazyLock<regex::Regex> =
     LazyLock::new(|| regex::Regex::new(r"^-?[0-9]+(\.[0-9]+)?$").expect("Invalid NUM_RE pattern"));
+
+/// First-level mapping keys additionally allow `.` and `-`.
+static MAPPING_TOP_KEY_RE: LazyLock<regex::Regex> =
+    LazyLock::new(|| regex::Regex::new(r"^[a-zA-Z0-9.\-]+$").expect("Invalid MAPPING_TOP_KEY_RE pattern"));
 
 pub fn register(reg: &mut NativeRuleRegistry) {
     reg.add(Category::Structure, eval_structure);
@@ -170,13 +178,14 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     for (pname, param) in &m.parameters {
+        let param_path = format!("{}/{}", SECTION_PARAMETERS, pname);
         if !ALPHANUM_RE.is_match(pname) {
             out.push(make_resource_diagnostic(
                 "F2003",
                 &format!("Parameter name '{}' must be alphanumeric", pname),
                 m,
                 "",
-                "",
+                &param_path,
                 None,
             ));
         }
@@ -187,7 +196,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                 &format!("Parameter name '{}' exceeds maximum length of 255", pname),
                 m,
                 "",
-                "",
+                &param_path,
                 None,
             ));
         } else if pname.len() > 229 {
@@ -196,7 +205,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                 &format!("Parameter name '{}' is approaching maximum length of 255", pname),
                 m,
                 "",
-                "",
+                &param_path,
                 None,
             ));
         }
@@ -207,7 +216,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                 &format!("Parameter '{}' has invalid Type '{}'", pname, param.param_type),
                 m,
                 "",
-                "",
+                &format!("{}/Type", param_path),
                 None,
             ));
         }
@@ -215,9 +224,10 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     if let Some(outputs_obj) = input.get(FIELD_OUTPUTS).and_then(|o| o.as_object()) {
         for oname in outputs_obj.keys() {
+            let output_path = format!("{}/{}", SECTION_OUTPUTS, oname);
             if !ALPHANUM_RE.is_match(oname) {
                 // Fn::ForEach:: prefixed keys are ForEach constructs, not literal output names
-                if oname.starts_with("Fn::ForEach::") {
+                if oname.starts_with(FN_FOR_EACH_KEY_PREFIX) {
                     continue;
                 }
                 out.push(make_resource_diagnostic(
@@ -225,7 +235,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                     &format!("Output name '{}' must be alphanumeric", oname),
                     m,
                     "",
-                    "",
+                    &output_path,
                     None,
                 ));
             }
@@ -235,7 +245,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                     &format!("Output name '{}' exceeds maximum length of 255", oname),
                     m,
                     "",
-                    "",
+                    &output_path,
                     None,
                 ));
             } else if oname.len() > 229 {
@@ -244,7 +254,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                     &format!("Output name '{}' is approaching maximum length of 255", oname),
                     m,
                     "",
-                    "",
+                    &output_path,
                     None,
                 ));
             }
@@ -252,13 +262,14 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     for mname in m.mappings.keys() {
+        let mapping_path = format!("{}/{}", SECTION_MAPPINGS, mname);
         if mname.len() > 255 {
             out.push(make_resource_diagnostic(
                 "F7002",
                 &format!("Mapping name '{}' exceeds maximum length of 255", mname),
                 m,
                 "",
-                "",
+                &mapping_path,
                 None,
             ));
         } else if mname.len() > 229 {
@@ -267,17 +278,10 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                 &format!("Mapping name '{}' is approaching maximum length of 255", mname),
                 m,
                 "",
-                "",
+                &mapping_path,
                 None,
             ));
         }
-    }
-
-    if let Some(desc_val) = input.get("template").and_then(|t| t.get("description"))
-        && !desc_val.is_string()
-        && !desc_val.is_null()
-    {
-        out.push(make_resource_diagnostic("F1004", "Description must be a string", m, "", "", None));
     }
 
     if let Some(desc) = input.get("template").and_then(|t| t.get("description")).and_then(|v| v.as_str())
@@ -307,24 +311,6 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    if let Some(conds_obj) = input.get(FIELD_CONDITIONS).and_then(|c| c.as_object()) {
-        let defined_conditions: HashSet<&str> = conds_obj.keys().map(|k| k.as_str()).collect();
-        for (rname, res) in &m.resources {
-            if let Some(cond) = &res.condition
-                && !defined_conditions.contains(cond.as_str())
-            {
-                out.push(make_resource_diagnostic(
-                    "F8002",
-                    &format!("Condition '{}' referenced by resource '{}' is not defined", cond, rname),
-                    m,
-                    rname,
-                    "",
-                    None,
-                ));
-            }
-        }
-    }
-
     if let Some(desc) = input.get("template").and_then(|t| t.get("description")).and_then(|v| v.as_str())
         && desc.len() > 1024
     {
@@ -338,8 +324,9 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
         ));
     }
 
+    let has_lang_ext = m.transforms.iter().any(|t| t == TRANSFORM_LANGUAGE_EXTENSIONS);
     for name in m.resources.keys() {
-        if !ALPHANUM_RE.is_match(name) {
+        if !(ALPHANUM_RE.is_match(name) || (has_lang_ext && name.starts_with(FN_FOR_EACH_KEY_PREFIX))) {
             out.push(make_resource_diagnostic(
                 "F0006",
                 &format!("Logical ID '{}' must be alphanumeric (A-Za-z0-9)", name),
@@ -359,7 +346,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                     &format!("Output '{}' is missing required 'Value' property", name),
                     m,
                     "",
-                    "",
+                    &format!("{}/{}", SECTION_OUTPUTS, name),
                     None,
                 ));
             }
@@ -373,7 +360,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                 &format!("Mapping '{}' has {} top-level keys, maximum is 200", map_name, level1.len()),
                 m,
                 "",
-                "",
+                &format!("{}/{}", SECTION_MAPPINGS, map_name),
                 None,
             ));
         }
@@ -381,46 +368,38 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
             if level2.len() > 200 {
                 out.push(make_resource_diagnostic(
                     "F0050",
-                    &format!("Mapping '{}'.'{}'  has {} attributes, maximum is 200", map_name, key1, level2.len()),
+                    &format!("Mapping '{}'.'{}' has {} attributes, maximum is 200", map_name, key1, level2.len()),
                     m,
                     "",
-                    "",
+                    &format!("{}/{}/{}", SECTION_MAPPINGS, map_name, key1),
                     None,
                 ));
             }
         }
     }
 
-    // Mapping key format validation
-    {
-        let key1_re = regex::Regex::new(r"^[a-zA-Z0-9.\-]+$").unwrap();
-        let key2_re = regex::Regex::new(r"^[a-zA-Z0-9]+$").unwrap();
-        for (map_name, level1) in &m.mappings {
-            for (k1, level2) in level1 {
-                if !key1_re.is_match(k1) {
+    for (map_name, level1) in &m.mappings {
+        for (k1, level2) in level1 {
+            if !MAPPING_TOP_KEY_RE.is_match(k1) {
+                out.push(make_resource_diagnostic(
+                    "E7001",
+                    &format!("Mapping '{}' key '{}' does not match format '^[a-zA-Z0-9.-]+$'", map_name, k1),
+                    m,
+                    "",
+                    &format!("{}/{}/{}", SECTION_MAPPINGS, map_name, k1),
+                    None,
+                ));
+            }
+            for k2 in level2.keys() {
+                if !ALPHANUM_RE.is_match(k2) {
                     out.push(make_resource_diagnostic(
                         "E7001",
-                        &format!("Mapping '{}' key '{}' does not match format '^[a-zA-Z0-9.-]+$'", map_name, k1),
+                        &format!("Mapping '{}'.'{}' key '{}' does not match format '^[a-zA-Z0-9]+$'", map_name, k1, k2),
                         m,
                         "",
-                        "",
+                        &format!("{}/{}/{}/{}", SECTION_MAPPINGS, map_name, k1, k2),
                         None,
                     ));
-                }
-                for k2 in level2.keys() {
-                    if !key2_re.is_match(k2) {
-                        out.push(make_resource_diagnostic(
-                            "E7001",
-                            &format!(
-                                "Mapping '{}'.'{}' key '{}' does not match format '^[a-zA-Z0-9]+$'",
-                                map_name, k1, k2
-                            ),
-                            m,
-                            "",
-                            "",
-                            None,
-                        ));
-                    }
                 }
             }
         }
@@ -497,7 +476,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
         if name.len() > 200 {
             out.push(make_resource_diagnostic(
                 "I3012",
-                &format!("Logical ID '{}' is {} characters — approaching the 256 character limit", name, name.len()),
+                &format!("Logical ID '{}' is {} characters - approaching the 256 character limit", name, name.len()),
                 m,
                 name,
                 "",
@@ -506,8 +485,30 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    if let Some(params) = input.get(FIELD_PARAMETERS).and_then(|p| p.as_object()) {
-        let resources = input.get(FIELD_RESOURCES).and_then(|r| r.as_object());
+    // A transform (SAM, language extensions, or a custom macro) can reference
+    // parameters in ways not visible before expansion, so an unreferenced
+    // parameter is not a reliable signal once any transform is present.
+    //
+    // A parameter can be referenced from a section the parser could not read -
+    // an unexpanded Fn::ForEach key (the transform that would expand it is
+    // missing) or a malformed Conditions section (e.g. authored as a list). In
+    // those cases the reference graph is incomplete, so the unused-parameter
+    // check is skipped rather than reporting a parameter as unused when the
+    // reference simply could not be seen.
+    let resources_obj = input.get(FIELD_RESOURCES).and_then(|r| r.as_object());
+    let has_unexpanded_foreach = resources_obj.is_some_and(|r| r.keys().any(|k| k.contains(FN_FOR_EACH)));
+    let conditions_malformed = input
+        .get("template")
+        .and_then(|t| t.get("rawTopLevelKeys"))
+        .and_then(|v| v.as_array())
+        .is_some_and(|keys| keys.iter().any(|k| k.as_str() == Some(SECTION_CONDITIONS)))
+        && input.get(FIELD_CONDITIONS).and_then(|c| c.as_object()).map(|c| c.is_empty()).unwrap_or(true);
+    if !has_unexpanded_foreach
+        && !conditions_malformed
+        && m.transforms.is_empty()
+        && let Some(params) = input.get(FIELD_PARAMETERS).and_then(|p| p.as_object())
+    {
+        let resources = resources_obj;
         for pname in params.keys() {
             let mut referenced = false;
             if let Some(res_map) = resources {
@@ -536,7 +537,6 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                     }
                 }
             }
-            // Also check edges array
             if !referenced && let Some(edges) = input.get(FIELD_EDGES).and_then(|e| e.as_array()) {
                 for edge in edges {
                     if edge.get(FIELD_TARGET).and_then(|t| t.as_str()) == Some(pname.as_str()) {
@@ -545,7 +545,6 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                     }
                 }
             }
-            // Check condition_param_refs
             if !referenced && let Some(refs) = input.get("conditionParamRefs").and_then(|r| r.as_array()) {
                 for r in refs {
                     if r.as_str() == Some(pname.as_str()) {
@@ -556,6 +555,15 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
             }
             // Check SAM Globals parameter refs
             if !referenced && let Some(refs) = input.get("globalsParamRefs").and_then(|r| r.as_array()) {
+                for r in refs {
+                    if r.as_str() == Some(pname.as_str()) {
+                        referenced = true;
+                        break;
+                    }
+                }
+            }
+            // Check references from within other parameter definitions
+            if !referenced && let Some(refs) = input.get("paramsReferencedInDefinitions").and_then(|r| r.as_array()) {
                 for r in refs {
                     if r.as_str() == Some(pname.as_str()) {
                         referenced = true;
@@ -585,39 +593,34 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                     &format!("Parameter '{}' is not referenced anywhere in the template", pname),
                     m,
                     "",
-                    "",
+                    &format!("{}/{}", SECTION_PARAMETERS, pname),
                     None,
                 ));
             }
         }
     }
 
-    if let Some(mappings) = input.get(FIELD_MAPPINGS).and_then(|m| m.as_object()) {
-        let resources = input.get(FIELD_RESOURCES).and_then(|r| r.as_object());
+    // A FindInMap with a non-literal map name (e.g. a nested FindInMap) makes it
+    // impossible to attribute usage to a specific mapping, so the unused-mapping
+    // check is disabled entirely. Otherwise a mapping is "used" if its name
+    // appears as the literal first argument of any Fn::FindInMap anywhere in the
+    // template (resources, outputs, conditions, ForEach bodies), which
+    // `findInMapNames` collects template-wide.
+    let dynamic_map_name = input.get("hasDynamicFindinmapName").and_then(|v| v.as_bool()).unwrap_or(false);
+    if !dynamic_map_name && let Some(mappings) = input.get(FIELD_MAPPINGS).and_then(|m| m.as_object()) {
+        let used_names: HashSet<&str> = input
+            .get("findInMapNames")
+            .and_then(|v| v.as_array())
+            .map(|a| a.iter().filter_map(|x| x.as_str()).collect())
+            .unwrap_or_default();
         for mname in mappings.keys() {
-            let mut used = false;
-            if let Some(res_map) = resources {
-                for (_, res) in res_map {
-                    if let Some(refs) = res.get("findInMapRefs").and_then(|r| r.as_array()) {
-                        for r in refs {
-                            if r.as_str() == Some(mname.as_str()) {
-                                used = true;
-                                break;
-                            }
-                        }
-                    }
-                    if used {
-                        break;
-                    }
-                }
-            }
-            if !used {
+            if !used_names.contains(mname.as_str()) {
                 out.push(make_resource_diagnostic(
                     "W7001",
                     &format!("Mapping '{}' is not referenced by any Fn::FindInMap", mname),
                     m,
                     "",
-                    "",
+                    &format!("{}/{}", SECTION_MAPPINGS, mname),
                     None,
                 ));
             }
@@ -626,20 +629,26 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     if let Some(conds) = input.get(FIELD_CONDITIONS).and_then(|c| c.as_object()) {
         let resources = input.get(FIELD_RESOURCES).and_then(|r| r.as_object());
+        let fn_if_conditions: HashSet<&str> = input
+            .get("fnIfConditions")
+            .and_then(|v| v.as_array())
+            .map(|a| a.iter().filter_map(|x| x.as_str()).collect())
+            .unwrap_or_default();
         for cname in conds.keys() {
-            if !condition_is_referenced(
-                cname,
-                conds,
-                resources,
-                input.get(FIELD_OUTPUTS).and_then(|o| o.as_object()),
-                &mut HashSet::new(),
-            ) {
+            if !fn_if_conditions.contains(cname.as_str())
+                && !condition_is_referenced(
+                    cname,
+                    conds,
+                    resources,
+                    input.get(FIELD_OUTPUTS).and_then(|o| o.as_object()),
+                )
+            {
                 out.push(make_resource_diagnostic(
                     "W8001",
                     &format!("Condition '{}' is not used by any resource or Fn::If", cname),
                     m,
                     "",
-                    "",
+                    &format!("{}/{}", SECTION_CONDITIONS, cname),
                     None,
                 ));
             }
@@ -653,10 +662,15 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
         {
             out.push(make_resource_diagnostic(
                 "F2012",
-                &format!("Parameter '{}' Default '{}' is not in AllowedValues {:?}", name, default, allowed),
+                &format!(
+                    "Parameter '{}' Default '{}' is not in AllowedValues {}",
+                    name,
+                    default,
+                    render_str_list(allowed)
+                ),
                 m,
                 "",
-                "",
+                &format!("{}/{}/Default", SECTION_PARAMETERS, name),
                 None,
             ));
         }
@@ -668,24 +682,30 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                 for ga_ref in refs {
                     let resource = ga_ref.get("resource").and_then(|r| r.as_str()).unwrap_or("");
                     let attribute = ga_ref.get("attribute").and_then(|a| a.as_str()).unwrap_or("");
-                    if let Some(res) = m.resources.get(resource) {
-                        // Check return type via cached schema data
-                        if let Some(ret_type) =
+                    if let Some(res) = m.resources.get(resource)
+                        && let Some(ret_type) =
                             ctx.cached_data.getatt_attr_types.get(&res.resource_type).and_then(|t| t.get(attribute))
-                            && ret_type != "string"
-                        {
-                            out.push(make_resource_diagnostic(
-                                "F6101",
-                                &format!(
-                                    "Output '{}': GetAtt '{}.{}' returns type '{}', not 'string'",
-                                    name, resource, attribute, ret_type
-                                ),
-                                m,
-                                "",
-                                "",
-                                None,
-                            ));
+                        && ret_type != "string"
+                    {
+                        // An array-returning GetAtt in an output is consumed by
+                        // Fn::Select to extract a string element - the array
+                        // itself is never the output value, so it is not a
+                        // string-type violation. Only scalar non-string returns
+                        // (integer, boolean) are reported.
+                        if ret_type == "array" {
+                            continue;
                         }
+                        out.push(make_resource_diagnostic(
+                            "F6101",
+                            &format!(
+                                "Output '{}': GetAtt '{}.{}' returns type '{}', not 'string'",
+                                name, resource, attribute, ret_type
+                            ),
+                            m,
+                            "",
+                            &format!("{}/{}/Value", SECTION_OUTPUTS, name),
+                            None,
+                        ));
                     }
                 }
             }
@@ -693,7 +713,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     for (name, param) in &m.parameters {
-        if param.param_type == "Number"
+        if param.param_type == PARAM_TYPE_NUMBER
             && let Some(ref def) = param.default
             && !NUM_RE.is_match(def)
         {
@@ -702,14 +722,14 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                 &format!("Parameter '{}' Default '{}' is not a valid number", name, def),
                 m,
                 "",
-                "",
+                &format!("{}/{}/Default", SECTION_PARAMETERS, name),
                 None,
             ));
         }
     }
 
     for (name, param) in &m.parameters {
-        if param.param_type == "Number"
+        if param.param_type == PARAM_TYPE_NUMBER
             && let Some(ref avs) = param.allowed_values
         {
             for val in avs {
@@ -719,7 +739,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                         &format!("Parameter '{}' AllowedValues entry '{}' is not a valid number", name, val),
                         m,
                         "",
-                        "",
+                        &format!("{}/{}/AllowedValues", SECTION_PARAMETERS, name),
                         None,
                     ));
                 }
@@ -737,7 +757,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                     &format!("Output '{}' Export Name must not be empty", name),
                     m,
                     "",
-                    "",
+                    &format!("{}/{}/Export/Name", SECTION_OUTPUTS, name),
                     None,
                 ));
             }
@@ -747,19 +767,19 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
     let mut flagged_image_params = HashSet::new();
     if let Some(resources) = input.get(FIELD_RESOURCES).and_then(|r| r.as_object()) {
         for (_name, res) in resources {
+            let rtype = res.get(FIELD_RESOURCE_TYPE).and_then(|t| t.as_str()).unwrap_or("");
             if let Some(edges) = res.get(FIELD_OUTGOING_REFS).and_then(|r| r.as_array()) {
                 for edge in edges {
                     let kind = edge.get(FIELD_KIND).and_then(|k| k.as_str()).unwrap_or("");
                     let sp = edge.get(FIELD_SOURCE_PATH).and_then(|p| p.as_str()).unwrap_or("");
                     let target = edge.get(FIELD_TARGET).and_then(|t| t.as_str()).unwrap_or("");
                     if kind == EDGE_KIND_REF
-                        && sp.ends_with("ImageId")
+                        && is_image_id_slot(rtype, sp)
                         && let Some(param) = m.parameters.get(target)
-                        && param.param_type != "AWS::EC2::Image::Id"
-                        && !param.param_type.contains("AWS::EC2::Image::Id")
+                        && !APPROPRIATE_IMAGE_ID_PARAM_TYPES.contains(&param.param_type.as_str())
                         && flagged_image_params.insert(target)
                     {
-                        out.push(make_resource_diagnostic("W2506", &format!("Parameter '{}' is used as an ImageId but has Type '{}' — consider using 'AWS::EC2::Image::Id'", target, param.param_type), m, "", "",
+                        out.push(make_resource_diagnostic("W2506", &format!("Parameter '{}' is used as an ImageId but has Type '{}' - consider using 'AWS::EC2::Image::Id'", target, param.param_type), m, "", &format!("{}/{}", SECTION_PARAMETERS, target),
             None));
                     }
                 }
@@ -770,7 +790,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
     for (name, param) in &m.parameters {
         let lower = name.to_lowercase();
         if (lower.contains("password") || lower.contains("passphrase") || lower.contains("secret"))
-            && param.param_type == "String"
+            && param.param_type == PARAM_TYPE_STRING
             && !param.no_echo
         {
             out.push(make_resource_diagnostic(
@@ -778,14 +798,14 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                 &format!("Parameter '{}' appears to be a password but does not have NoEcho set to true", name),
                 m,
                 "",
-                "",
+                &format!("{}/{}", SECTION_PARAMETERS, name),
                 None,
             ));
         }
     }
 
     // Tautological Fn::Equals is detected by template-model and emitted as a
-    // parser-level diagnostic — no engine rule needed.
+    // parser-level diagnostic - no engine rule needed.
 
     for (pname, info) in &m.parameters {
         let def = match &info.default {
@@ -793,45 +813,19 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
             None => continue,
         };
         let path_str = format!("Parameters/{}/Default", pname);
-        // AllowedPattern (with auto-anchoring)
-        if let Some(ref pat) = info.allowed_pattern {
-            let anchored = if pat.starts_with('^') && pat.ends_with('$') {
-                pat.clone()
-            } else if pat.starts_with('^') {
-                format!("{}$", pat)
-            } else if pat.ends_with('$') {
-                format!("^{}", pat)
+        // AllowedPattern: the model precomputes the match verdict with a PCRE-aware compiler. A
+        // comma-delimited default reports the element-agnostic message; a scalar default names the
+        // value.
+        if let Some(ref pat) = info.allowed_pattern
+            && info.default_matches_allowed_pattern == Some(false)
+        {
+            let is_cdl = info.param_type == PARAM_TYPE_COMMA_DELIMITED_LIST || info.param_type.starts_with("List<");
+            let message = if is_cdl {
+                format!("Parameter '{}' Default does not match AllowedPattern '{}'", pname, pat)
             } else {
-                format!("^{}$", pat)
+                format!("Parameter '{}' Default '{}' does not match AllowedPattern '{}'", pname, def, pat)
             };
-            if let Ok(re) = regex::Regex::new(&anchored) {
-                let is_cdl = info.param_type == "CommaDelimitedList" || info.param_type.starts_with("List<");
-                if is_cdl {
-                    for elem_raw in def.split(',') {
-                        let elem = elem_raw.trim();
-                        if !re.is_match(elem) {
-                            out.push(make_resource_diagnostic(
-                                "F2015",
-                                &format!("Parameter '{}' Default does not match AllowedPattern '{}'", pname, pat),
-                                m,
-                                "",
-                                &path_str,
-                                None,
-                            ));
-                            break;
-                        }
-                    }
-                } else if !re.is_match(def) {
-                    out.push(make_resource_diagnostic(
-                        "F2015",
-                        &format!("Parameter '{}' Default '{}' does not match AllowedPattern '{}'", pname, def, pat),
-                        m,
-                        "",
-                        &path_str,
-                        None,
-                    ));
-                }
-            }
+            out.push(make_resource_diagnostic("F2015", &message, m, "", &path_str, None));
         }
         // MinLength / MaxLength
         if let Some(min) = info.min_length
@@ -859,7 +853,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
             ));
         }
         // MinValue / MaxValue (for Number type)
-        if info.param_type == "Number"
+        if info.param_type == PARAM_TYPE_NUMBER
             && let Ok(num) = def.parse::<i64>()
         {
             if let Some(min) = info.min_value
@@ -922,41 +916,20 @@ fn eval_template_size_and_transforms(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    if let Some(transforms) = input.get("template").and_then(|t| t.get(FIELD_TRANSFORMS)).and_then(|v| v.as_array()) {
-        for t in transforms {
-            if !t.is_string() && !t.is_object() {
-                out.push(make_resource_diagnostic(
-                    "E1005",
-                    &format!("Transform entry must be a string or object, got {}", t),
-                    m,
-                    "",
-                    "",
-                    None,
-                ));
-            }
-            if t.is_object() && t.get("Name").is_none() {
-                out.push(make_resource_diagnostic(
-                    "E1005",
-                    "Transform object is missing required 'Name' property",
-                    m,
-                    "",
-                    "",
-                    None,
-                ));
-            }
-        }
-    }
-
     for (pname, param) in &m.parameters {
+        // CloudFormation validates AllowedPattern with a PCRE-style engine that supports
+        // lookaround, backreferences, `\Z`, POSIX classes and large Unicode classes. A pattern
+        // that only uses those constructs is still valid service-side, so report I2003 only for a
+        // pattern that no compilation strategy can accept - i.e. one that is genuinely malformed.
         if let Some(ref pattern) = param.allowed_pattern
-            && regex::Regex::new(pattern).is_err()
+            && !is_service_valid(pattern)
         {
             out.push(make_resource_diagnostic(
                 "I2003",
                 &format!("Parameter '{}' AllowedPattern '{}' is not a valid regular expression", pname, pattern),
                 m,
                 "",
-                "",
+                &format!("{}/{}/AllowedPattern", SECTION_PARAMETERS, pname),
                 None,
             ));
         }
@@ -970,11 +943,7 @@ fn condition_is_referenced(
     conds: &serde_json::Map<String, serde_json::Value>,
     resources: Option<&serde_json::Map<String, serde_json::Value>>,
     outputs: Option<&serde_json::Map<String, serde_json::Value>>,
-    visited: &mut HashSet<String>,
 ) -> bool {
-    if !visited.insert(cname.to_string()) {
-        return false;
-    }
     // Direct usage by resource condition or condition_refs
     if let Some(res_map) = resources {
         for (_, res) in res_map {
@@ -1001,14 +970,15 @@ fn condition_is_referenced(
             }
         }
     }
-    // Transitive: another condition depends on this one via !Condition
+    // Referenced by another condition via Fn::And/Or/Not Condition entries. The
+    // reference alone marks this condition used, independent of whether the
+    // referencing condition is itself used.
     for (other, cond_val) in conds {
         if other == cname {
             continue;
         }
         if let Some(deps) = cond_val.get("deps").and_then(|d| d.as_array())
             && deps.iter().any(|d| d.as_str() == Some(cname))
-            && condition_is_referenced(other, conds, resources, outputs, visited)
         {
             return true;
         }
@@ -1046,6 +1016,38 @@ fn is_valid_parameter_type(ptype: &str) -> bool {
             | "List<AWS::Route53::HostedZone::Id>"
     ) || ptype.starts_with("AWS::SSM::Parameter::Value<")
 }
+
+/// The exact `AWS::EC2::Image::Id`-typed property slots the ImageId-parameter-type
+/// check (W2506) applies to: a fixed set of `(resource type, property path)` pairs.
+/// The path is relative to the resource (it always starts with `Properties.`); the
+/// `*` in the SpotFleet path matches a single array-index segment.
+fn is_image_id_slot(resource_type: &str, source_path: &str) -> bool {
+    const IMAGE_ID_SLOTS: &[(&str, &str)] = &[
+        ("AWS::AutoScaling::LaunchConfiguration", "Properties.ImageId"),
+        ("AWS::Batch::ComputeEnvironment", "Properties.ComputeResources.ImageId"),
+        ("AWS::Cloud9::EnvironmentEC2", "Properties.ImageId"),
+        ("AWS::EC2::Instance", "Properties.ImageId"),
+        ("AWS::EC2::LaunchTemplate", "Properties.LaunchTemplateData.ImageId"),
+        ("AWS::EC2::SpotFleet", "Properties.SpotFleetRequestConfigData.LaunchSpecifications.*.ImageId"),
+        ("AWS::ImageBuilder::Image", "Properties.ImageId"),
+    ];
+    IMAGE_ID_SLOTS
+        .iter()
+        .filter(|(rtype, _)| *rtype == resource_type)
+        .any(|(_, slot)| path_matches_slot(source_path, slot))
+}
+
+/// Match a concrete source path against a slot pattern whose only wildcard is a
+/// `*` segment standing for a single array index.
+fn path_matches_slot(path: &str, slot: &str) -> bool {
+    let (path_segs, slot_segs): (Vec<&str>, Vec<&str>) = (path.split('.').collect(), slot.split('.').collect());
+    path_segs.len() == slot_segs.len() && slot_segs.iter().zip(&path_segs).all(|(s, p)| *s == "*" || s == p)
+}
+
+/// The two parameter types that are appropriate for an ImageId property; any
+/// other type used for an ImageId Ref triggers W2506.
+const APPROPRIATE_IMAGE_ID_PARAM_TYPES: &[&str] =
+    &["AWS::EC2::Image::Id", "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>"];
 
 #[cfg(test)]
 mod tests {
@@ -1089,7 +1091,6 @@ mod tests {
 
     #[test]
     fn list_of_string_is_valid() {
-        // `List<String>` is a valid parameter Type.
         assert!(is_valid_parameter_type("List<String>"));
     }
 }

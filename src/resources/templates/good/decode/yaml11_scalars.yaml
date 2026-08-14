@@ -1,0 +1,23 @@
+# Plain scalars resolve per the YAML 1.1 schema, matching CloudFormation's own
+# parser: yes/no/on/off spellings are booleans, a leading zero is octal, `_`
+# separates digits, a hex form is an integer, and 1:30 is the sexagesimal
+# integer 90. None of these may raise a type diagnostic.
+Resources:
+  Queue:
+    Type: AWS::SQS::Queue
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      SqsManagedSseEnabled: yes
+      DelaySeconds: 0x1A
+      MaximumMessageSize: 1_024
+      VisibilityTimeout: 1:30
+      ReceiveMessageWaitTimeSeconds: 010
+      MessageRetentionPeriod: 345600
+      Tags:
+        - Key: unquoted-date
+          Value: 2010-09-09
+        - Key: exponent-without-sign-is-a-string
+          Value: 1e5
+        - Key: bool-spelling-quoted-stays-a-string
+          Value: "On"

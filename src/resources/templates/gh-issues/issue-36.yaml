@@ -1,0 +1,11 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  # ExecutionRoleArn uses the `aws-iso` ADC partition. The schema-validator's
+  # AWS::IAM::Role.Arn format pattern hardcodes the partition list and omits the
+  # ADC partitions, so it raises a false-positive E1156 (in BOTH engines) even
+  # though this is a deployable ARN.
+  # See https://github.com/aws-cloudformation/cloudformation-validate/issues/36
+  TaskDef:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      ExecutionRoleArn: arn:aws-iso:iam::123456789012:role/my-task-role

@@ -1,0 +1,16 @@
+{
+  "Resources": {
+    "WeakConsumer": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "TopicName": {
+          "Fn::GetStackOutput": {
+            "StackName": "Stack1",
+            "Region": "us-east-1",
+            "OutputName": "PublishOutputFnGetAttMyResourceArn8F315E6B"
+          }
+        }
+      }
+    }
+  }
+}

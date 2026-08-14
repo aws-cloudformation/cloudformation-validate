@@ -2,11 +2,29 @@ package structure
 
 import rego.v1
 
-# W2001: Unused parameters (not referenced by any Ref/Sub)
-violation contains make_diag("W2001", "WARN", "",
+# W2001: Unused parameters (not referenced by any Ref/Sub). A transform can
+# reference parameters opaquely before expansion, so the check is suppressed
+# whenever any transform is present. It is also skipped when a parameter could be
+# referenced from a section the parser could not read - an unexpanded Fn::ForEach
+# key or a malformed Conditions section - since the reference graph is then
+# incomplete.
+violation contains make_diag_at("W2001", "WARN", "",
+    sprintf("Parameters/%s", [pname]),
     sprintf("Parameter '%s' is not referenced anywhere in the template", [pname])) if {
+    count(object.get(input.template, "transforms", [])) == 0
+    not _unreadable_reference_section
     some pname in object.keys(input.parameters)
     not _param_referenced(pname)
+}
+
+_unreadable_reference_section if {
+    some rid in object.keys(object.get(input, "resources", {}))
+    contains(rid, "Fn::ForEach")
+}
+
+_unreadable_reference_section if {
+    "Conditions" in object.get(input.template, "rawTopLevelKeys", [])
+    count(object.keys(object.get(input, "conditions", {}))) == 0
 }
 
 _param_referenced(pname) if {
@@ -47,6 +65,12 @@ _param_referenced(pname) if {
     edge.target == pname
 }
 
+# Parameter referenced from within another parameter's definition
+_param_referenced(pname) if {
+    some p in object.get(input, "paramsReferencedInDefinitions", [])
+    p == pname
+}
+
 # Parameter used in SAM Globals section
 _param_referenced(pname) if {
     some ref in object.get(input, "globalsParamRefs", [])
@@ -54,7 +78,8 @@ _param_referenced(pname) if {
 }
 
 # W8001: Unused conditions (not referenced by any resource Condition or Fn::If)
-violation contains make_diag("W8001", "WARN", "",
+violation contains make_diag_at("W8001", "WARN", "",
+    sprintf("Conditions/%s", [cname]),
     sprintf("Condition '%s' is not used by any resource or Fn::If", [cname])) if {
     some cname in object.keys(input.conditions)
     not _condition_used(cname)
@@ -65,6 +90,13 @@ _condition_used(cname) if {
     res.condition == cname
 }
 
+# Referenced by any Fn::If anywhere in the template (captured pre-resolution so
+# deeply nested conditionals are not lost).
+_condition_used(cname) if {
+    some c in object.get(input, "fnIfConditions", [])
+    c == cname
+}
+
 _condition_used(cname) if {
     some _, out in input.outputs
     out.condition == cname
@@ -82,61 +114,32 @@ _condition_used(cname) if {
     c == cname
 }
 
-# Transitive: condition is used if another condition depends on it and that condition is directly used
+# A condition referenced by another condition (via Fn::And/Or/Not Condition
+# entries) counts as used, independent of whether that other condition is itself
+# used. This mirrors how an unreferenced wrapper condition does not make the
+# conditions it nests appear unused.
 _condition_used(cname) if {
     some other in object.keys(input.conditions)
     other != cname
     some dep in object.get(input.conditions[other], "deps", [])
     dep == cname
-    _condition_directly_used(other)
 }
 
-# Two-level transitive: A → B → C where C is directly used
-_condition_used(cname) if {
-    some mid in object.keys(input.conditions)
-    mid != cname
-    some dep1 in object.get(input.conditions[mid], "deps", [])
-    dep1 == cname
-    some other in object.keys(input.conditions)
-    other != mid
-    other != cname
-    some dep2 in object.get(input.conditions[other], "deps", [])
-    dep2 == mid
-    _condition_directly_used(other)
-}
-
-# Direct usage checks (non-recursive)
-_condition_directly_used(cname) if {
-    some _, res in input.resources
-    res.condition == cname
-}
-
-_condition_directly_used(cname) if {
-    some _, out in input.outputs
-    out.condition == cname
-}
-
-_condition_directly_used(cname) if {
-    some _, res in input.resources
-    some c in res.conditionRefs
-    c == cname
-}
-
-_condition_directly_used(cname) if {
-    some _, out in input.outputs
-    some c in object.get(out, "conditionRefs", [])
-    c == cname
-}
-
-# W7001: Unused mappings (not referenced by any Fn::FindInMap)
-violation contains make_diag("W7001", "WARN", "",
+# W7001: Unused mappings (not referenced by any Fn::FindInMap).
+# A FindInMap with a non-literal map name (e.g. a nested FindInMap) makes it
+# impossible to attribute usage to a specific mapping, so the check is disabled
+# entirely. Otherwise a mapping is "used" when its
+# name is the literal first argument of any Fn::FindInMap anywhere in the
+# template, which findInMapNames collects template-wide.
+violation contains make_diag_at("W7001", "WARN", "",
+    sprintf("Mappings/%s", [mname]),
     sprintf("Mapping '%s' is not referenced by any Fn::FindInMap", [mname])) if {
+    not object.get(input, "hasDynamicFindinmapName", false)
     some mname in object.keys(input.mappings)
     not _mapping_used(mname)
 }
 
 _mapping_used(mname) if {
-    some _, res in input.resources
-    some ref_name in res.findInMapRefs
+    some ref_name in object.get(input, "findInMapNames", [])
     ref_name == mname
 }

@@ -1,0 +1,138 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Parameters:
+  Mode:
+    Type: String
+    AllowedValues: [first, second]
+    Default: first
+  DynamicRecord:
+    Type: String
+Conditions:
+  ChooseFirst: !Equals [!Ref Mode, first]
+Resources:
+  StandaloneInvalidTrue:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneName: example.com.
+      Name: standalone-invalid-true.example.com.
+      Type: A
+      TTL: "300"
+      ResourceRecords: !If
+        - ChooseFirst
+        - [invalid-standalone-true]
+        - [192.0.2.10]
+  StandaloneInvalidFalse:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneName: example.com.
+      Name: standalone-invalid-false.example.com.
+      Type: A
+      TTL: "300"
+      ResourceRecords: !If
+        - ChooseFirst
+        - [192.0.2.11]
+        - [invalid-standalone-false]
+  StandaloneMixedInvalidTrue:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneName: example.com.
+      Name: standalone-mixed-invalid-true.example.com.
+      Type: A
+      TTL: "300"
+      ResourceRecords: !If
+        - ChooseFirst
+        - - !Ref DynamicRecord
+          - invalid-standalone-mixed-true
+        - [192.0.2.12]
+  StandaloneMixedInvalidFalse:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneName: example.com.
+      Name: standalone-mixed-invalid-false.example.com.
+      Type: A
+      TTL: "300"
+      ResourceRecords: !If
+        - ChooseFirst
+        - [192.0.2.13]
+        - - !Ref DynamicRecord
+          - invalid-standalone-mixed-false
+  GroupInvalidTrue:
+    Type: AWS::Route53::RecordSetGroup
+    Properties:
+      HostedZoneName: example.com.
+      RecordSets: !If
+        - ChooseFirst
+        - - Name: group-invalid-true.example.com.
+            Type: A
+            TTL: "300"
+            ResourceRecords: [invalid-group-true]
+        - - Name: group-valid-false.example.com.
+            Type: A
+            TTL: "300"
+            ResourceRecords: [192.0.2.20]
+  GroupInvalidFalse:
+    Type: AWS::Route53::RecordSetGroup
+    Properties:
+      HostedZoneName: example.com.
+      RecordSets: !If
+        - ChooseFirst
+        - - Name: group-valid-true.example.com.
+            Type: A
+            TTL: "300"
+            ResourceRecords: [192.0.2.21]
+        - - Name: group-invalid-false.example.com.
+            Type: A
+            TTL: "300"
+            ResourceRecords: [invalid-group-false]
+  GroupMixedInvalidTrue:
+    Type: AWS::Route53::RecordSetGroup
+    Properties:
+      HostedZoneName: example.com.
+      RecordSets: !If
+        - ChooseFirst
+        - - Name: group-mixed-invalid-true.example.com.
+            Type: A
+            TTL: "300"
+            ResourceRecords:
+              - !Ref DynamicRecord
+              - invalid-group-mixed-true
+        - - Name: group-mixed-valid-false.example.com.
+            Type: A
+            TTL: "300"
+            ResourceRecords: [192.0.2.22]
+  GroupMixedInvalidFalse:
+    Type: AWS::Route53::RecordSetGroup
+    Properties:
+      HostedZoneName: example.com.
+      RecordSets: !If
+        - ChooseFirst
+        - - Name: group-mixed-valid-true.example.com.
+            Type: A
+            TTL: "300"
+            ResourceRecords: [192.0.2.23]
+        - - Name: group-mixed-invalid-false.example.com.
+            Type: A
+            TTL: "300"
+            ResourceRecords:
+              - !Ref DynamicRecord
+              - invalid-group-mixed-false
+  StandaloneUnresolvedCnameCardinality:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneName: example.com.
+      Name: standalone-unresolved-cname.example.com.
+      Type: CNAME
+      TTL: "300"
+      ResourceRecords:
+        - !Ref DynamicRecord
+        - fixed.example.com.
+  GroupUnresolvedCnameCardinality:
+    Type: AWS::Route53::RecordSetGroup
+    Properties:
+      HostedZoneName: example.com.
+      RecordSets:
+        - Name: group-unresolved-cname.example.com.
+          Type: CNAME
+          TTL: "300"
+          ResourceRecords:
+            - !Ref DynamicRecord
+            - fixed.example.com.

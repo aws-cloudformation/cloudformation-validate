@@ -1,0 +1,24 @@
+{
+  "typeName": "AWS::Test::Widget",
+  "description": "Resource type used to verify additional schema source validation.",
+  "properties": {
+    "Name": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 32
+    },
+    "Port": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 65535
+    }
+  },
+  "required": [
+    "Name",
+    "Port"
+  ],
+  "primaryIdentifier": [
+    "/properties/Name"
+  ],
+  "additionalProperties": false
+}

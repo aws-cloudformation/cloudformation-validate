@@ -15,6 +15,14 @@ OUT_JAR="$OUT_DIR/$(basename "$OUT_JAR")"
 
 BASE_JAR="$1"; shift
 echo "Base jar (classes + sources + native): $BASE_JAR"
+
+base_classes="$(unzip -Z1 "$BASE_JAR" | grep -c '\.class$' || true)"
+base_sources="$(unzip -Z1 "$BASE_JAR" | grep -c '\.kt$' || true)"
+if [ "$base_classes" -eq 0 ] || [ "$base_sources" -eq 0 ]; then
+    echo "Error: base jar $BASE_JAR is missing compiled output - $base_classes .class and $base_sources .kt entries (both must be non-zero)." >&2
+    exit 1
+fi
+
 cp "$BASE_JAR" "$OUT_JAR"
 
 for jar_file in "$@"; do

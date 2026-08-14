@@ -2,9 +2,11 @@ package resources
 
 import rego.v1
 
-# E3019: Primary identifier uniqueness. Groups resources by their resolved
-# primary-identifier value tuple and, for each group containing more than one
-# resource, emits one diagnostic per resource in the group.
+# E3019: Primary identifier uniqueness. Two resources collide only when a
+# satisfiable deploy-time condition assignment gives them the same primary
+# identifier simultaneously - comparing per scenario rather than collapsing all
+# Fn::If branches to a single representative value (which would invent
+# duplicates that can never coexist).
 
 violation contains make_diag_at("E3019", "ERROR", rname,
     _e3019_path(id_props),
@@ -13,52 +15,90 @@ violation contains make_diag_at("E3019", "ERROR", rname,
     some rtype, id_props in data.primary_identifiers
     rids := resources_of_type(rtype)
     count(rids) > 1
-    some rname in rids
-    tuple := _resource_tuple(rname, id_props)
-    group := _group_with_tuple(rids, tuple, id_props)
+    some tuple in _conflicting_tuples(rids, id_props)
+    group := _group_for_tuple(rids, id_props, tuple)
     count(group) > 1
-    not _all_conditions_mutex(group)
+    some rname in group
 }
 
-# Check if all resources in a group are behind mutually exclusive conditions
-_all_conditions_mutex(group) if {
-    # All resources must have a condition
-    cond_set := {c | some r in group; c := object.get(input.resources[r], "condition", ""); c != ""}
-    count(cond_set) == count(group)
-    # Every pair of distinct conditions must be mutually exclusive
-    not _any_compatible_pair(cond_set)
-}
-
-# True if any two distinct conditions in the set can coexist (are NOT exclusive)
-_any_compatible_pair(cond_set) if {
-    some a in cond_set
-    some b in cond_set
+# All identifier tuples on which at least two resources can collide.
+_conflicting_tuples(rids, id_props) := {sa.tuple |
+    some a in rids
+    some b in rids
     a < b
-    not _conditions_exclusive(a, b)
+    some sa in _id_scenarios(a, id_props)
+    some sb in _id_scenarios(b, id_props)
+    sa.tuple == sb.tuple
+    _jointly_satisfiable(sa.assumptions, sb.assumptions)
 }
 
-# Two conditions are exclusive if they appear together in conditionExclusions
-_conditions_exclusive(a, b) if {
-    some pair in object.get(input, "conditionExclusions", [])
-    {a, b} == {pair[0], pair[1]}
+# Resources whose scenarios can produce `tuple` together with at least one other.
+_group_for_tuple(rids, id_props, tuple) := {r |
+    some r in rids
+    some other in rids
+    r != other
+    some sr in _id_scenarios(r, id_props)
+    some so in _id_scenarios(other, id_props)
+    sr.tuple == tuple
+    so.tuple == tuple
+    _jointly_satisfiable(sr.assumptions, so.assumptions)
 }
 
-# Set of resources (from `rids`) whose primary-id tuple matches `target`.
-_group_with_tuple(rids, target, id_props) := group if {
-    group := {r | some r in rids; _resource_tuple(r, id_props) == target}
+# Enumerate a resource's primary-id scenarios as {tuple, assumptions}, where
+# assumptions is the condition map producing the tuple plus the resource's own
+# Condition. Only single-property identifiers are expanded across scenarios;
+# multi-property identifiers fall back to the first scenario per property.
+_id_scenarios(rid, id_props) := scenarios if {
+    count(id_props) == 1
+    prop := id_props[0]
+    base := _resource_condition_map(rid)
+    scenarios := {{"tuple": [val], "assumptions": object.union(base, s.conditions)} |
+        some s in resolve_scenarios(rid, sprintf("Properties.%s", [prop]))
+        s.value != null
+        # Drop scenarios whose Fn::If branch condition contradicts the resource's
+        # own Condition (e.g. a false-branch requiring IsProduction=false on a
+        # resource that only exists when IsProduction=true) - they never occur.
+        not _conflicting_maps(base, s.conditions)
+        val := _to_str(s.value)
+    }
 }
 
-# Representative tuple for one resource. Per id prop, lexicographically smallest
-# concrete non-null scenario; tuple undefined if any prop has no concrete value.
-_resource_tuple(rid, id_props) := tuple if {
+_id_scenarios(rid, id_props) := scenarios if {
+    count(id_props) != 1
+    base := _resource_condition_map(rid)
     tuple := [v |
         some prop in id_props
         vals := {x | some x in resolve_all(rid, sprintf("Properties.%s", [prop])); x != null}
         count(vals) > 0
         sorted := sort([s | some s in vals])
-        v := sorted[0]
+        v := _to_str(sorted[0])
     ]
     count(tuple) == count(id_props)
+    scenarios := {{"tuple": tuple, "assumptions": base}}
+}
+
+_resource_condition_map(rid) := {cond: true} if {
+    cond := object.get(input.resources[rid], "condition", "")
+    cond != ""
+}
+
+_resource_condition_map(rid) := {} if {
+    object.get(input.resources[rid], "condition", "") == ""
+}
+
+_to_str(x) := x if is_string(x)
+_to_str(x) := json.marshal(x) if not is_string(x)
+
+# Two condition assignments coexist when they agree on shared conditions and the
+# merged assignment is satisfiable.
+_jointly_satisfiable(a, b) if {
+    not _conflicting_maps(a, b)
+    is_satisfiable(object.union(a, b))
+}
+
+_conflicting_maps(a, b) if {
+    some k
+    a[k] != b[k]
 }
 
 _e3019_path(id_props) := sprintf("Properties.%s", [id_props[0]]) if count(id_props) == 1

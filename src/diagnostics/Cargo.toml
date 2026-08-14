@@ -13,18 +13,19 @@ name = "diagnostics"
 path = "src/lib.rs"
 
 [features]
-wasm-bindings = ["dep:tsify", "dep:wasm-bindgen", "rules/wasm-bindings"]
-uniffi-bindings = ["dep:uniffi", "rules/uniffi-bindings"]
+wasm-bindings = ["dep:tsify", "dep:wasm-bindgen", "rules/wasm-bindings", "template-model/wasm-bindings"]
+uniffi-bindings = ["dep:uniffi", "rules/uniffi-bindings", "template-model/uniffi-bindings"]
 
 [dependencies]
 rules = { path = "../rules" }
+template-model = { path = "../template-model" }
 log = "0.4"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 web-time = "1"
-tsify = { version = "0.4", optional = true, features = ["js"] }
+tsify = { version = "0.5", optional = true, features = ["js"] }
 wasm-bindgen = { version = "0.2", optional = true }
-uniffi = { git = "https://github.com/mozilla/uniffi-rs", branch = "main", optional = true }
+uniffi = { workspace = true, optional = true }
 
 [lints]
 workspace = true

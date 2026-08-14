@@ -19,11 +19,16 @@ instance_type_checks := {
 
 violation contains make_diag_full("I3100", "INFO", name,
     check.path,
-    sprintf("Previous generation instance type '%s' — consider upgrading", [val]),
+    sprintf("Previous generation instance type '%s' - consider upgrading", [val]),
     "Upgrade to a current generation instance type",
     "") if {
     some check in instance_type_checks
     some name in resources_of_type(check.type)
+    # Only literal string instance types are checked; values from a parameter
+    # Ref or other intrinsic are left alone because their deploy-time value is
+    # not known here.
+    not is_from_parameter(name, check.path)
+    not is_from_intrinsic(name, check.path)
     val := resolve(name, check.path)
     is_string(val)
     regex.match(previous_gen_pattern, val)
@@ -38,11 +43,16 @@ nested_instance_type_checks := {
 
 violation contains make_diag_full("I3100", "INFO", name,
     check.path,
-    sprintf("Previous generation instance type '%s' — consider upgrading", [val]),
+    sprintf("Previous generation instance type '%s' - consider upgrading", [val]),
     "Upgrade to a current generation instance type",
     "") if {
     some check in nested_instance_type_checks
     some name in resources_of_type(check.type)
+    # Only literal string instance types are checked; values from a parameter
+    # Ref or other intrinsic are left alone because their deploy-time value is
+    # not known here.
+    not is_from_parameter(name, check.path)
+    not is_from_intrinsic(name, check.path)
     val := resolve(name, check.path)
     is_string(val)
     regex.match(previous_gen_pattern, val)

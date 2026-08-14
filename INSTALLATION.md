@@ -1,169 +1,191 @@
-# Installation & Development Setup
+# Installation
 
-This guide covers everything needed to build, test, and develop `cloudformation-validate` from source, plus how to
-download and verify signed release artifacts.
+`cloudformation-validate` is distributed as a prebuilt command-line tool and as packages for Node.js, Python, Go, and
+the JVM. All distributions contain the validation rules and CloudFormation resource schemas they need, so validation
+runs offline after installation without AWS credentials or runtime downloads.
 
-Pinned tool versions live in [`.github/workflows/configs.yml`](.github/workflows/configs.yml) and
-[`src/rust-toolchain.toml`](src/rust-toolchain.toml). The versions below match CI — staying on them avoids
-environment drift.
+## Command-line interface
 
-## Required tools
+Prebuilt `cfn-validate` binaries are attached to every release on the
+[GitHub Releases page](https://github.com/aws-cloudformation/cloudformation-validate/releases), with the newest release
+shown first. Open that release and download the asset for your platform:
 
-| Tool                            | Version | Required for                                              | Notes                                                           |
-|---------------------------------|---------|-----------------------------------------------------------|-----------------------------------------------------------------|
-| Rust (`cargo`, `rustc`)         | 1.96.0  | everything                                                | Pinned by `src/rust-toolchain.toml`; rustup installs it for you |
-| `rustfmt`                       | bundled | `cargo fmt` lint                                          | Declared as a component in the toolchain file                   |
-| `wasm32-unknown-unknown` target | bundled | WASM binding                                              | Added automatically by the toolchain file                       |
-| `wasm-pack`                     | 0.14.0  | WASM binding build/test                                   | `cargo install`                                                 |
-| `cargo-about`                   | 0.9.0   | third-party license generation (Build Artifacts workflow) | `cargo install`                                                 |
-| `cargo-audit`                   | 0.22.2  | dependency vulnerability audit                            | `cargo install`                                                 |
-| Node.js + npm                   | 22.x    | WASM binding build/test                                   | `npm` ships with Node                                           |
-| JDK                             | 21+     | JVM binding build/test                                    | Corretto in CI; provides `java` and `jar`                       |
-| Kotlin (`kotlinc`)              | 2.3.10  | JVM binding build                                         |                                                                 |
-| `ktlint`                        | 1.8.0   | JVM binding formatting                                    |                                                                 |
-| Gradle                          | 8.14    | JVM binding tests                                         | Must be on `PATH` — the JVM test runner invokes `gradle`        |
-| Python                          | 3.10+   | license generation + `scripts/` helpers                   | No third-party packages required                                |
-| `git`, `curl`, `openssl`        | —       | source control, fetching JVM deps, verifying releases     | Usually preinstalled                                            |
+| Platform | Release asset |
+|----------|---------------|
+| Linux x86-64 | `cfn-validate-<version>-linux-x64` |
+| macOS Apple silicon | `cfn-validate-<version>-darwin-aarch64` |
+| Windows x86-64 | `cfn-validate-<version>-win32-x64.exe` |
 
-JNA (`5.18.1`) and Gson (`2.14.0`) — the JVM binding's runtime dependencies — are downloaded automatically from Maven
-Central by `bindings-jvm/build.sh`; you do not install them yourself. The `uniffi-bindgen` tool used to generate the
-Kotlin bindings is built from the workspace as part of the JVM binding build.
+On Linux or macOS, make the downloaded file executable, rename it to `cfn-validate`, and move it to a directory on
+`PATH`. On Windows, rename it to `cfn-validate.exe` and move it to a directory on `PATH`.
 
-## 1. Rust toolchain
+After installation, validate a template or a directory of templates:
 
 ```bash
-# Install rustup (provides cargo + rustc)
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+cfn-validate template.yaml
+cfn-validate ./templates/
 ```
 
-`src/rust-toolchain.toml` pins the channel to `1.93.1` and declares the `rustfmt` component and the
-`wasm32-unknown-unknown` target. rustup installs the correct toolchain, component, and target automatically the first
-time you run a cargo command inside `src/`.
+See the [CLI reference](src/cfn-validate/README.md) for all engines, filters, output formats, custom rules, and exit
+codes.
 
-## 2. Cargo tools
+## Language bindings
+
+Package-manager installation is recommended: it selects the compatible native artifact and resolves any runtime
+dependencies. Use an explicit version in applications that require reproducible builds.
+
+### Node.js
+
+The Node.js/WASM package is published to
+[npm as `@aws/cloudformation-validate`](https://www.npmjs.com/package/@aws/cloudformation-validate) and requires
+Node.js 20 or later.
 
 ```bash
-cargo install cargo-about@0.9.0 cargo-audit@0.22.2 wasm-pack@0.14.0
+# Latest release
+npm install @aws/cloudformation-validate
+
+# Specific release (replace <version>)
+npm install '@aws/cloudformation-validate@<version>'
 ```
 
-## 3. Node.js (Node/WASM binding)
+See the [Node.js API and examples](src/bindings-wasm/README.md).
 
-Install Node.js 22.x — any version manager works:
+### Python
+
+Production versions are published to [PyPI](https://pypi.org/project/cloudformation-validate/); prereleases are
+published to [TestPyPI](https://test.pypi.org/project/cloudformation-validate/). The package requires Python 3.12 or
+later, and its platform-specific wheels have no runtime package dependencies.
 
 ```bash
-# macOS (Homebrew)
-brew install node@22
+# Latest production release from PyPI
+python3 -m pip install cloudformation-validate
 
-# or via nvm (any platform)
-nvm install 22 && nvm use 22
+# Latest prerelease from TestPyPI
+python3 -m pip install \
+  --index-url https://test.pypi.org/simple/ \
+  --pre cloudformation-validate
+
+# Specific production release (replace <version>)
+python3 -m pip install 'cloudformation-validate==<version>'
 ```
 
-## 4. JVM toolchain (JVM binding)
+See the [Python API and examples](src/bindings-python/README.md).
 
-Install a JDK (21+), the Kotlin compiler, ktlint, and Gradle.
+### Go
+
+The published [Go module](https://pkg.go.dev/github.com/aws-cloudformation/cloudformation-validate/src/bindings-go/go)
+requires Go 1.26 or later, cgo, and a C linker. It currently contains native libraries for Linux x86-64, macOS Apple
+silicon, and Windows x86-64; Windows uses the MinGW-w64 GNU ABI.
 
 ```bash
-# macOS (Homebrew) — installs current releases
-brew install openjdk@21 kotlin ktlint gradle
+# Latest release
+go get github.com/aws-cloudformation/cloudformation-validate/src/bindings-go/go@latest
+
+# Specific release (replace <version>)
+go get 'github.com/aws-cloudformation/cloudformation-validate/src/bindings-go/go@v<version>'
 ```
 
-To match CI versions exactly (recommended for the JVM binding), use SDKMAN for the JVM tools:
+```go
+import cfnvalidate "github.com/aws-cloudformation/cloudformation-validate/src/bindings-go/go"
+```
+
+See the [Go API and examples](src/bindings-go/README.md).
+
+### JVM (Kotlin/Java)
+
+The JVM library is published to
+[Maven Central as `software.amazon.cloudformation:cloudformation-validate`](https://central.sonatype.com/artifact/software.amazon.cloudformation/cloudformation-validate)
+and requires JDK 21 or later. The jar includes native libraries for all supported platforms; Maven or Gradle resolves
+JNA, Gson, and the Kotlin standard library.
+
+Gradle (Kotlin DSL):
+
+```kotlin
+dependencies {
+    implementation("software.amazon.cloudformation:cloudformation-validate:latest.release")
+}
+```
+
+Gradle (Groovy DSL):
+
+```groovy
+dependencies {
+    implementation 'software.amazon.cloudformation:cloudformation-validate:latest.release'
+}
+```
+
+Maven:
+
+```xml
+<dependency>
+    <groupId>software.amazon.cloudformation</groupId>
+    <artifactId>cloudformation-validate</artifactId>
+    <version>[0,)</version>
+</dependency>
+```
+
+`latest.release` and `[0,)` select the newest published version. Replace them with a version shown on Maven Central to
+pin the dependency. See the [JVM API and examples](src/bindings-jvm/README.md).
+
+## Versioned GitHub release assets
+
+The [GitHub Releases page](https://github.com/aws-cloudformation/cloudformation-validate/releases) also publishes raw,
+versioned artifacts. Package-manager installation is usually easier, but these assets support vendoring and offline
+installation (`<version>` is the release tag):
+
+* `cloudformation-validate-<version>.jar` - JVM binding
+* `cloudformation-validate-wasm-<version>.zip` - Node.js/WASM package
+* `cloudformation_validate-<version>-py3-none-<platform>.whl` - Python wheel for one native target; beta release tags
+  use Python's `<version>b0` form
+* `cloudformation-validate-go-<version>.zip` - Go module with the supported native libraries
+* `cfn-validate-<version>-<os>-<arch>` - CLI binary (with `.exe` on Windows)
+
+### Verify a downloaded release asset
+
+Each raw artifact has a detached `<artifact>.sig` signature. The same release includes `signing-key.pem` and its
+`signing-key.pem.sha256` fingerprint. Download all three files from that release and verify with OpenSSL:
 
 ```bash
-curl -s "https://get.sdkman.io" | bash && source "$HOME/.sdkman/bin/sdkman-init.sh"
-sdk install java 21-amzn        # Amazon Corretto 21 (pick a 21.x build from `sdk list java`)
-sdk install kotlin 2.3.10
-sdk install gradle 8.14
-
-# ktlint 1.8.0 (pinned release binary)
-curl -sSLO https://github.com/pinterest/ktlint/releases/download/1.8.0/ktlint \
-  && chmod +x ktlint && sudo mv ktlint /usr/local/bin/
+openssl dgst -sha256 \
+  -verify signing-key.pem \
+  -signature '<artifact>.sig' \
+  '<artifact>'
 ```
 
-## 5. Python (license generation & helper scripts)
+A valid artifact prints `Verified OK`. Do not use an artifact if verification fails.
 
-Python 3.10+ is required for `scripts/generate_licenses.py` (invoked by the Build Artifacts workflow) and the other
-developer scripts under `scripts/`. No third-party packages are needed.
-
-## Build
-
-Run cargo commands from the `src/` directory.
-
-```bash
-cd src
-
-# Build the entire workspace (debug)
-cargo build
-
-# CLI binary -> target/debug/cfn-validate
-cargo build -p cfn-validate
-# add --release for an optimized binary at target/release/cfn-validate
-
-# CLI release binary -> release/cfn-validate-<os>-<arch>
-./cfn-validate/build.sh
-
-# WASM binding (Node.js) -> bindings-wasm/dist/
-./bindings-wasm/build.sh
-
-# JVM binding (Kotlin/Java) -> bindings-jvm/generated/cloudformation-validate.jar
-./bindings-jvm/build.sh
-```
-
-Note: `THIRD-PARTY-LICENSES.txt` is generated by the Build Artifacts workflow, not by `build.sh`. To refresh it
-locally, run `python3 scripts/generate_licenses.py`.
-
-## Test
-
-These commands mirror CI. Run them from the `src/` directory.
-
-```bash
-cd src
-
-# Format check (must pass clean)
-cargo fmt --all --check
-
-# Rust workspace tests
-cargo test --locked --release --workspace
-
-# Dependency vulnerability audit
-cargo audit
-
-# JVM binding tests — build the JVM binding first
-./bindings-jvm/build.sh
-( cd bindings-jvm/tests && ./run.sh )
-
-# WASM binding tests — build the WASM binding first
-./bindings-wasm/build.sh
-( cd bindings-wasm/tests && ./run.sh )
-```
-
-## Download and verify release artifacts
-
-Each GitHub release attaches the prebuilt artifacts as signed assets:
-
-- `cloudformation-validate.jar` — the JVM (Kotlin/Java) binding
-- `cloudformation-validate.zip` — the Node.js (WASM) binding package
-- `cfn-validate-<os>-<arch>` — the CLI binary, one per supported platform (e.g. `cfn-validate-linux-x64`,
-  `cfn-validate-darwin-aarch64`)
-
-Alongside each artifact are a detached signature (`<artifact>.sig`), the public key (`signing-key.pem`), and the key's
-SHA-256 fingerprint (`signing-key.pem.sha256`). Artifacts are signed with an AWS KMS RSA key
-(`RSASSA_PKCS1_V1_5_SHA_256`).
-
-Download the artifact you want, its `.sig`, and `signing-key.pem` from the same release, then verify the signature:
-
-```bash
-openssl dgst -sha256 -verify signing-key.pem -signature <artifact>.sig <artifact>
-# e.g. openssl dgst -sha256 -verify signing-key.pem -signature cloudformation-validate.zip.sig cloudformation-validate.zip
-```
-
-A valid artifact prints `Verified OK`. Any other output means verification failed — do not use the artifact.
-
-Optionally, confirm the bundled key is the real signing key by matching its fingerprint against one you trust:
+To compare the bundled public key with a fingerprint obtained from a trusted source:
 
 ```bash
 openssl pkey -pubin -in signing-key.pem -outform DER | openssl dgst -sha256
 cat signing-key.pem.sha256
 ```
 
-The two values must match.
+The SHA-256 values must match.
+
+## Developer setup
+
+The installation methods above do not require a source checkout or development toolchain. Contributors building or
+testing the project from source need the tools below. Pinned versions live in
+[`.github/workflows/configs.yml`](.github/workflows/configs.yml) and
+[`src/rust-toolchain.toml`](src/rust-toolchain.toml); matching them avoids environment drift.
+
+### Required tools
+
+| Tool                            | Version | Required for                                              | Notes                                                                                                           |
+|---------------------------------|---------|-----------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------|
+| Rust (`cargo`, `rustc`)         | 1.96.0  | everything                                                | Pinned by `src/rust-toolchain.toml`; rustup installs it for you                                                 |
+| `rustfmt`                       | bundled | `cargo fmt` lint                                          | Declared as a component in the toolchain file                                                                   |
+| `wasm32-unknown-unknown` target | bundled | WASM binding                                              | Added automatically by the toolchain file                                                                       |
+| `wasm-pack`                     | 0.15.0  | WASM binding build/test                                   | `cargo install`                                                                                                 |
+| `cargo-about`                   | 0.9.1   | third-party license generation (Build Artifacts workflow) | `cargo install`                                                                                                 |
+| `cargo-audit`                   | 0.22.2  | dependency vulnerability audit                            | `cargo install`                                                                                                 |
+| Node.js + npm                   | 22.x    | WASM binding build/test                                   | `npm` ships with Node                                                                                           |
+| JDK                             | 21+     | JVM binding build/test                                    | Corretto in CI; provides `java` and `jar`                                                                       |
+| Kotlin (`kotlinc`)              | 2.4.0   | JVM binding build                                         |                                                                                                                 |
+| `ktlint`                        | 1.8.0   | JVM binding formatting                                    |                                                                                                                 |
+| Gradle                          | 9.6.1   | JVM binding build/test                                    | Must be on `PATH` - `bindings-jvm/build.sh` and the JVM test runner invoke `gradle`                             |
+| Python                          | 3.12+   | Python binding build/test, license generation, `scripts/` | `setuptools` for the wheel build; no other packages required                                                    |
+| Go                              | 1.26+   | Go binding build/test                                     | cgo must be enabled (default); Windows also needs `rustup target add x86_64-pc-windows-gnu` and MinGW-w64 `gcc` |
+| `uniffi-bindgen-go`             | 0.7.1   | Go binding generation                                     | `cargo install --git https://github.com/NordSecurity/uniffi-bindgen-go --tag v0.7.1+v0.31.0`                    |
+| `git`, `curl`, `openssl`        | -       | source control, fetching JVM deps, verifying releases     | Usually preinstalled                                                                                            |

@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use web_time::Instant;
 
+/// Timing for a single phase of validation (parsing, schema validation, rule evaluation, etc.).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
 #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Record))]

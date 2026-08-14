@@ -4,7 +4,7 @@ import rego.v1
 
 # E9004: GetAtt attribute must exist on target resource type
 violation contains make_diag_full("E9004", "ERROR", name, edge.sourcePath,
-    sprintf("'%s' is not one of %v", [attr, valid_attrs]),
+    sprintf("'%s' is not one of %s", [attr, render_list(valid_attrs)]),
     "Check the resource type documentation for valid GetAtt attributes",
     "") if {
     some name, res in input.resources
@@ -19,26 +19,24 @@ violation contains make_diag_full("E9004", "ERROR", name, edge.sourcePath,
     valid_attrs := data.getatt_attributes[target_type]
     valid_attrs != null
     not attr in valid_attrs
+    not _is_map_member_attr(attr, target_type)
 }
 
-# E9003: GetAtt return type mismatch — non-string where string expected
-violation contains make_diag_full("E9003", "ERROR", name, edge.sourcePath,
-    sprintf("{'Fn::GetAtt': ['%s', '%s']} is not of type 'string'",
-        [target_name, attr]),
-    "GetAtt returns a non-string type",
-    "") if {
-    some name, res in input.resources
-    some edge in res.outgoingRefs
-    edge.kind == "GetAtt"
-    target_name := edge.target
-    target_name in object.keys(input.resources)
-    target_type := input.resources[target_name].resourceType
-    attr := edge.attr
-    # Only flag when destination expects string and source returns non-string
-    _dest_expects_string(res.resourceType, edge.sourcePath)
-    ret_type := getatt_return_type(target_type, attr)
-    ret_type in {"integer", "number", "boolean"}
+# A dotted attribute (e.g. Outputs.SomeKey) addresses a member of an open-ended
+# map attribute that CloudFormation exposes as <Attr>.<key> for any key. Only two
+# resource types have such an attribute: nested stacks and provisioned products
+# both expose Outputs.<OutputKey>. Nested stacks (AWS::CloudFormation::Stack) are
+# already in _skip_getatt_types, so the only type that reaches here needing the
+# exemption is the provisioned product. Every other dotted attribute (e.g. Tags.0
+# on a bucket) is a real attribute-validity error - an object/array attribute is
+# NOT itself indexable via GetAtt.
+_is_map_member_attr(attr, target_type) if {
+    target_type == "AWS::ServiceCatalog::CloudFormationProvisionedProduct"
+    startswith(attr, "Outputs.")
 }
+
+# E9003 is disabled - CloudFormation auto-converts non-string GetAtt return values
+# to strings when the destination property is typed as string.
 
 # E1020: GetAtt resource must exist in template
 violation contains make_diag_full("F1020", "FATAL", name, "",
@@ -51,6 +49,7 @@ violation contains make_diag_full("F1020", "FATAL", name, "",
     edge.kind == "GetAtt"
     target := edge.target
     not target in object.keys(input.resources)
+    not target in object.get(input, "samImplicitResources", [])
 }
 
 # E1040: GetAtt format mismatch
@@ -79,17 +78,11 @@ _skip_getatt_types := {
     "AWS::CloudFormation::Macro",
 }
 
-# Check if destination property expects a string type
-_dest_expects_string(rtype, path) if {
-    contains(path, "Value")
-    rtype == "AWS::SSM::Parameter"
-}
-
 # GetAtt attribute format mapping
 default _getatt_format(_, _) := ""
 _getatt_format("AWS::EC2::SecurityGroup", "GroupId") := "AWS::EC2::SecurityGroup.Id"
 _getatt_format("AWS::EC2::SecurityGroup", "GroupName") := "AWS::EC2::SecurityGroup.Name"
-_getatt_format("AWS::EC2::VPC", "DefaultSecurityGroup") := "AWS::EC2::VPC.DefaultSecurityGroup"
+_getatt_format("AWS::EC2::VPC", "DefaultSecurityGroup") := "AWS::EC2::SecurityGroup.Id"
 _getatt_format("AWS::Logs::LogGroup", "Arn") := "AWS::Logs::LogGroup.Arn"
 
 # Destination property format from path
@@ -99,12 +92,4 @@ _property_format(path) := "AWS::EC2::SecurityGroup.Id" if {
 }
 _property_format(path) := "AWS::Logs::LogGroup.Name" if {
     contains(path, "awslogs-group")
-}
-
-# E1060: If condition name must exist in Conditions section
-violation contains make_diag("F1060", "FATAL", name,
-    sprintf("Fn::If condition '%s' does not exist in Conditions section", [cond])) if {
-    some name, res in input.resources
-    some cond in res.conditionRefs
-    not cond in object.keys(input.conditions)
 }

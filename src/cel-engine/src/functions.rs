@@ -9,6 +9,95 @@ use template_model::consts::{FIELD_PROPERTIES, FIELD_RESOURCES};
 use template_model::resolved_value::contains_dynamic_resolved;
 use template_model::resolver::ResolvedValue;
 
+/// Function names available to custom and translated-Guard CEL rules: the
+/// interpreter's standard-library functions, the parse-time macros, and the
+/// `type` function registered by [`build_custom_context`]. Used to reject a rule
+/// that calls a function that would never resolve - closing the gap where an
+/// unknown-function error only surfaced if a matching resource happened to exist.
+const SUPPORTED_FUNCTIONS: &[&str] = &[
+    // CEL macros. These are expanded into comprehensions at parse time and so
+    // never appear as function references, but are listed defensively.
+    "has",
+    "all",
+    "exists",
+    "existsOne",
+    "exists_one",
+    "map",
+    "filter",
+    // Standard-library functions registered by `cel_interpreter::Context::default`.
+    "contains",
+    "size",
+    "max",
+    "min",
+    "startsWith",
+    "endsWith",
+    "string",
+    "bytes",
+    "double",
+    "int",
+    "uint",
+    "matches",
+    "duration",
+    "timestamp",
+    "getFullYear",
+    "getMonth",
+    "getDayOfYear",
+    "getDayOfMonth",
+    "getDate",
+    "getDayOfWeek",
+    "getHours",
+    "getMinutes",
+    "getSeconds",
+    "getMilliseconds",
+    // Registered by `build_custom_context` so Guard type-check operators translate
+    // to a runnable expression.
+    TYPE_FUNCTION_NAME,
+];
+
+const TYPE_FUNCTION_NAME: &str = "type";
+
+/// Reports whether a function reference collected from a compiled CEL program can
+/// resolve at evaluation time. Operator and macro artifacts (`_==_`, `@in`, `!_`,
+/// …) are not plain identifiers and are resolved directly by the interpreter, so
+/// they are always valid; a plain identifier must be one of [`SUPPORTED_FUNCTIONS`].
+pub fn is_supported_function(name: &str) -> bool {
+    if !is_plain_identifier(name) {
+        return true;
+    }
+    SUPPORTED_FUNCTIONS.contains(&name)
+}
+
+/// A CEL identifier: a leading letter or underscore followed by letters, digits,
+/// or underscores. Operator pseudo-function names always contain a character
+/// outside this set, which is how they are told apart from real function calls.
+fn is_plain_identifier(name: &str) -> bool {
+    let mut chars = name.chars();
+    match chars.next() {
+        Some(c) if c == '_' || c.is_ascii_alphabetic() => {}
+        _ => return false,
+    }
+    chars.all(|c| c == '_' || c.is_ascii_alphanumeric())
+}
+
+/// The CEL type name of a value, matching the spelling the Guard translator emits
+/// for `IS_STRING`/`IS_LIST`/… operators (`"string"`, `"list"`, `"int"`, …).
+fn cel_type_name(value: &Value) -> &'static str {
+    match value {
+        Value::List(_) => "list",
+        Value::Map(_) => "map",
+        Value::Int(_) => "int",
+        Value::UInt(_) => "uint",
+        Value::Float(_) => "double",
+        Value::String(_) => "string",
+        Value::Bytes(_) => "bytes",
+        Value::Bool(_) => "bool",
+        Value::Duration(_) => "duration",
+        Value::Timestamp(_) => "timestamp",
+        Value::Null => "null",
+        _ => "unknown",
+    }
+}
+
 pub fn json_to_cel(v: &serde_json::Value) -> Value {
     match v {
         serde_json::Value::Null => Value::Null,
@@ -69,6 +158,11 @@ pub fn build_custom_context(
     model: Option<&SemanticModel>,
 ) -> Context<'static> {
     let mut ctx = Context::default();
+    // `type(x)` returns the CEL type name of `x` as a string. The interpreter has
+    // no built-in `type`, so without this a Guard type-check operator (translated
+    // to `type(resource.X) == "string"`) would error at evaluation instead of
+    // comparing types.
+    ctx.add_function(TYPE_FUNCTION_NAME, |value: Value| -> String { cel_type_name(&value).to_string() });
     if let Some(obj) = input.as_object() {
         for (k, v) in obj {
             let _ = ctx.add_variable(k.as_str(), json_to_cel(v));
@@ -145,8 +239,6 @@ mod tests {
             _ => panic!("Expected Map, got {:?}", val),
         }
     }
-
-    // ── resolved_to_cel ─────────────────────────────────────────────────
 
     #[test]
     fn resolved_concrete_delegates_to_json_to_cel() {
@@ -234,8 +326,6 @@ mod tests {
         assert!(contains_unresolvable_content(&ResolvedValue::Dynamic { reason: "x".into() }));
     }
 
-    // ── build_custom_context ────────────────────────────────────────────
-
     #[test]
     fn build_context_without_resource_binds_top_level() {
         let input = json!({
@@ -243,7 +333,7 @@ mod tests {
             "parameters": {}
         });
         let ctx = build_custom_context(&input, None, None);
-        // Should not panic — variables are bound
+        // Should not panic - variables are bound
         let prog = cel_interpreter::Program::compile("resources").unwrap();
         let result = prog.execute(&ctx);
         result.expect("executing 'resources' should succeed");

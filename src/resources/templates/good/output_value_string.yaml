@@ -1,0 +1,41 @@
+AWSTemplateFormatVersion: "2010-09-09"
+# String-valued outputs, and the shapes that must NOT be flagged: scalars coerce
+# to strings; Ref/Fn::Sub/Fn::Join/Fn::Select/Fn::FindInMap/Fn::ImportValue all
+# produce (or are treated as) strings; Fn::GetAtt on a string attribute is fine;
+# an Fn::If whose branches are both strings is fine; and empty containers carry
+# no members to stringify. Counterpart to bad/output_value_not_string.yaml.
+Parameters:
+  Env:
+    Type: String
+Conditions:
+  IsProd: !Equals [!Ref Env, "prod"]
+Mappings:
+  Config:
+    prod:
+      name: production
+Resources:
+  Queue:
+    Type: AWS::SQS::Queue
+Outputs:
+  PlainString:
+    Value: production
+  NumberCoerces:
+    Value: 42
+  BoolCoerces:
+    Value: true
+  RefValue:
+    Value: !Ref Queue
+  GetAttString:
+    Value: !GetAtt Queue.QueueName
+  SubValue:
+    Value: !Sub "${Queue}"
+  JoinValue:
+    Value: !Join [",", ["a", "b"]]
+  SelectFromGetAZs:
+    Value: !Select [0, !GetAZs ""]
+  FindInMapValue:
+    Value: !FindInMap [Config, prod, name]
+  ImportedValue:
+    Value: !ImportValue SomeExportedName
+  ConditionalStringBranches:
+    Value: !If [IsProd, prod-value, dev-value]

@@ -1,0 +1,24 @@
+use serde::{Deserialize, Serialize};
+
+/// A range in the source template. Lines and columns are 1-based.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
+#[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Record))]
+#[serde(rename_all = "camelCase")]
+pub struct SourceSpan {
+    pub start_line: u32,
+    pub start_column: u32,
+    pub end_line: u32,
+    pub end_column: u32,
+}
+
+pub const UNKNOWN_SPAN: SourceSpan =
+    SourceSpan { start_line: u32::MAX, start_column: u32::MAX, end_line: u32::MAX, end_column: u32::MAX };
+
+pub fn span_to_option(span: SourceSpan) -> Option<SourceSpan> {
+    if span == UNKNOWN_SPAN { None } else { Some(span) }
+}
+
+pub trait SpanProvider {
+    fn source_location(&self, path: &str) -> Option<SourceSpan>;
+}

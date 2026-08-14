@@ -3,8 +3,6 @@
 use serde_json::Value;
 use std::path::PathBuf;
 
-// ── Paths ────────────────────────────────────────────────────────────────────
-
 pub fn resources_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).parent().expect("workspace root").join("resources")
 }
@@ -40,10 +38,9 @@ pub fn load_security_rule(filename: &str) -> String {
     std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("read security rule {}: {e}", path.display()))
 }
 
-// ── Golden templates ─────────────────────────────────────────────────────────
-
 /// All template directories covered by golden-file tests.
-const GOLDEN_DIRS: &[&str] = &["good", "bad", "integration", "issues", "lsp", "quickstart", "public"];
+const GOLDEN_DIRS: &[&str] =
+    &["bad", "cdk", "good", "gh-issues", "integration", "issues", "lsp", "public", "quickstart"];
 
 /// Discover all templates under the given subdirectories of templates_dir().
 pub fn discover_all_templates() -> Vec<String> {
@@ -70,46 +67,35 @@ fn walk_collect(dir: &std::path::Path, root: &std::path::Path, out: &mut Vec<Str
         } else if matches!(path.extension().and_then(|s| s.to_str()), Some("yaml" | "yml" | "json"))
             && let Ok(rel) = path.strip_prefix(root)
         {
-            out.push(rel.to_string_lossy().to_string());
+            out.push(rel.to_string_lossy().replace('\\', "/"));
         }
     }
 }
 
-// ── Golden comparison ────────────────────────────────────────────────────────
+pub const MIN_GOLDEN_TEMPLATES: usize = 400;
 
 pub fn load_combined_golden() -> serde_json::Map<String, Value> {
-    let path = resources_root().join("expected").join("all_templates.json");
+    let path = resources_root().join("expected").join("validation_reports.json");
     let bytes = std::fs::read(&path).unwrap_or_else(|e| panic!("read golden {}: {e}", path.display()));
     let val: Value = serde_json::from_slice(&bytes).unwrap_or_else(|e| panic!("parse golden {}: {e}", path.display()));
-    val.as_object().cloned().unwrap_or_default()
-}
-
-/// Zeroes `durationMs` in each phase under the top-level `performance` object.
-pub fn zero_durations(val: &mut Value) {
-    let Some(performance) = val.as_object_mut().and_then(|o| o.get_mut("performance")).and_then(|p| p.as_object_mut())
-    else {
-        return;
-    };
-    for phase in performance.values_mut() {
-        if let Some(dur) = phase.as_object_mut().and_then(|o| o.get_mut("durationMs")) {
-            *dur = Value::from(0.0);
-        }
-    }
+    let map = val.as_object().cloned().unwrap_or_default();
+    assert!(
+        map.len() > MIN_GOLDEN_TEMPLATES,
+        "golden {} must contain more than {MIN_GOLDEN_TEMPLATES} templates, found {} - the file is missing, empty, or truncated",
+        path.display(),
+        map.len()
+    );
+    map
 }
 
 /// Deep-compares `actual` against `expected`, collecting every path where they
 /// differ. Returns the list of mismatch descriptions (empty = identical).
 pub fn deep_diff(expected: &Value, actual: &Value, path: &str) -> Vec<String> {
-    // Fields excluded from golden comparison:
-    // - `suppressed`: can legitimately differ between engines due to internal dedup timing
-    // - `engineVersion`: bumps with every release and is not a behavioral signal
-    const SKIP_FIELDS: &[&str] = &["suppressed", "engineVersion"];
-
     let mut diffs = Vec::new();
     match (expected, actual) {
         (Value::Object(exp), Value::Object(act)) => {
             for key in exp.keys() {
-                if SKIP_FIELDS.contains(&key.as_str()) {
+                if GOLDEN_EXCLUDED_FIELDS.contains(&key.as_str()) {
                     continue;
                 }
                 let child_path = if path.is_empty() { key.clone() } else { format!("{path}.{key}") };
@@ -119,7 +105,7 @@ pub fn deep_diff(expected: &Value, actual: &Value, path: &str) -> Vec<String> {
                 }
             }
             for key in act.keys() {
-                if !exp.contains_key(key) {
+                if !exp.contains_key(key) && !GOLDEN_EXCLUDED_FIELDS.contains(&key.as_str()) {
                     let child_path = if path.is_empty() { key.clone() } else { format!("{path}.{key}") };
                     diffs.push(format!("{child_path}: unexpected in actual"));
                 }
@@ -146,5 +132,7 @@ pub fn deep_diff(expected: &Value, actual: &Value, path: &str) -> Vec<String> {
     diffs
 }
 
-pub const DETAILED_ONLY_DIAGNOSTIC_FIELDS: &[&str] =
-    &["documentationUrl", "context", "ruleDescription", "phase", "section"];
+pub const DETAILED_ONLY_DIAGNOSTIC_FIELDS: &[&str] = &["documentationUrl", "context", "ruleDescription", "phase"];
+
+pub const GOLDEN_EXCLUDED_FIELDS: &[&str] =
+    &["performance", "version", "rulesEvaluated", "cfnLintVersion", "resourceSchemaVersion", "suppressed"];

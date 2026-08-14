@@ -1,0 +1,40 @@
+AWSTemplateFormatVersion: '2010-09-09'
+# Issue #42 conditional case: HealthCheckPort is an Fn::If whose branches are
+# both concrete - one pins a fixed port ('8080'), the other is 'traffic-port'.
+# The fixed branch would health-check the wrong port under dynamic port mapping,
+# so W3049 fires (both engines must explore every branch and agree). The
+# reference linter also flags this on the HealthCheckPort property.
+Parameters:
+  UseFixedHealthCheck:
+    Type: String
+    AllowedValues: ["yes", "no"]
+    Default: "yes"
+Conditions:
+  FixedHealthCheck: !Equals [!Ref UseFixedHealthCheck, "yes"]
+Resources:
+  TaskDef:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: my-task
+      ContainerDefinitions:
+        - Name: web
+          Image: nginx:latest
+          PortMappings:
+            - ContainerPort: 80
+              HostPort: 0
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Port: 80
+      Protocol: HTTP
+      VpcId: vpc-12345678
+      HealthCheckPort: !If [FixedHealthCheck, "8080", "traffic-port"]
+  Service:
+    Type: AWS::ECS::Service
+    Properties:
+      Cluster: my-cluster
+      TaskDefinition: !Ref TaskDef
+      LoadBalancers:
+        - ContainerName: web
+          ContainerPort: 80
+          TargetGroupArn: !Ref TargetGroup

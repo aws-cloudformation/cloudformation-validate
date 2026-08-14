@@ -1,9 +1,18 @@
+#[cfg(test)]
+use data_source::AdditionalSchemaSource;
+use data_source::embedded::{CFN_LINT_VERSION, RESOURCE_SCHEMA_VERSION};
 use diagnostics::{
-    DetailLevel, Diagnostic, PerformanceMetrics, Phase, PhaseMetric, RegisteredDiagnostic, RelatedResource,
-    ReportMetadata, ReportStatus, ResourceRef, SourceSpan, Summary, UNKNOWN_SPAN, ValidationReport, ViolationContext,
-    apply_filters, is_sam_transform_error_message, phase_metric, resolve_section_span, span_to_option,
+    DetailLevel, Diagnostic, Entity, PerformanceMetrics, Phase, PhaseMetric, RegisteredDiagnostic, RelatedResource,
+    ReportMetadata, ReportStatus, ResourceRef, Summary, ValidationReport, ViolationContext, apply_filters,
+    diagnostic_from_parse_defect, phase_metric, resolve_section_span,
 };
-use rules::{FilterConfig, RuleInfo, RuleMetadataEntry, RuleOrigin, Severity, is_fatal_rule, section_for_rule_id};
+use rules::{
+    FilterConfig, RuleInfo, RuleMetadataEntry, RuleOrigin, Severity, is_fatal_rule, is_valid_custom_rule_id,
+    rule_number,
+};
+use schema_validator::{
+    OverlayCatalog, SchemaValidationResult, SchemaValidator, SchemaValidatorConfig, build_overlay_catalog,
+};
 use serde::{Deserialize, Serialize};
 use std::any::Any;
 use std::collections::HashMap;
@@ -11,7 +20,10 @@ use std::error;
 use std::fmt;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::sync::Arc;
-use template_model::{ParseConfig, ParseError, ParseResult, PseudoParameterOverrides, SemanticModel};
+use template_model::{
+    EntityType, JsonValue, ParseConfig, ParseError, ParseResult, PseudoParameterOverrides, SemanticModel, SourceSpan,
+    UNKNOWN_SPAN, entity_identity, is_sam_transform_error_message, region_enums, span_to_option,
+};
 use web_time::Instant;
 
 #[derive(Debug)]
@@ -95,8 +107,9 @@ impl fmt::Display for EngineType {
 
 /// A pre-read rule file provided by the caller (custom Rego/CEL or Guard DSL).
 ///
-/// `name` identifies the rule source in error messages and logging. In the CLI
-/// this is the filesystem path; in WASM/JVM it is whatever label the caller provides.
+/// `name` identifies the rule source in error messages and logging. For a
+/// file-backed rule this is typically the filesystem path; otherwise it is
+/// whatever label the caller provides.
 ///
 /// `content` is the full source text of the rule file.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -118,10 +131,64 @@ pub struct EngineConfig {
     #[serde(default)]
     #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub custom_rules: Vec<ExternalRuleSource>,
-    /// Guard DSL rules as raw source text — each engine parses and translates internally.
+    /// Guard DSL rules as raw source text, usable regardless of the selected engine.
     #[serde(default)]
     #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub guard_rules: Vec<ExternalRuleSource>,
+    /// Optional schema validator configuration. A standalone engine derives its
+    /// schema-aware rule metadata from this config. Language APIs also use it to
+    /// construct the schema validator bundled with the engine, so both components
+    /// observe the same additional schemas.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "wasm-bindings", tsify(optional))]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
+    pub schema_validator_config: Option<SchemaValidatorConfig>,
+}
+
+impl EngineConfig {
+    /// Starts from the default configuration.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Adds engine-native custom rules (Rego or CEL, depending on the engine).
+    pub fn with_custom_rules(mut self, rules: impl IntoIterator<Item = ExternalRuleSource>) -> Self {
+        self.custom_rules.extend(rules);
+        self
+    }
+
+    /// Adds Guard DSL rules, usable regardless of the selected engine.
+    pub fn with_guard_rules(mut self, rules: impl IntoIterator<Item = ExternalRuleSource>) -> Self {
+        self.guard_rules.extend(rules);
+        self
+    }
+
+    /// Sets the nested schema validator configuration. When the engine is built
+    /// standalone via `new(EngineConfig)`, it derives overlay-aware metadata from
+    /// the configured additional schemas.
+    pub fn with_schema_validator_config(mut self, config: SchemaValidatorConfig) -> Self {
+        self.schema_validator_config = Some(config);
+        self
+    }
+
+    /// Builds an [`OverlayCatalog`] from the nested schema validator config's
+    /// additional schemas. Returns an empty catalog when no schema config is set
+    /// or the config carries no overlays.
+    ///
+    /// This is an internal helper for standalone engine construction.
+    #[doc(hidden)]
+    pub fn build_overlay_catalog(&self) -> Result<OverlayCatalog, ValidationError> {
+        let additional_schemas = match &self.schema_validator_config {
+            Some(cfg) if !cfg.additional_schemas.is_empty() => &cfg.additional_schemas,
+            _ => return Ok(OverlayCatalog::default()),
+        };
+        let overlays: Vec<(String, serde_json::Value)> = additional_schemas
+            .iter()
+            .map(|s| s.resolve().map_err(|e| ValidationError::Engine(e.0)))
+            .collect::<Result<Vec<_>, _>>()?;
+        build_overlay_catalog(overlays)
+            .map_err(|e| ValidationError::Engine(format!("Failed to apply an additional schema: {e}")))
+    }
 }
 
 #[derive(Clone, Default)]
@@ -133,8 +200,8 @@ pub struct ValidateConfig {
     pub pseudo_parameter_overrides: PseudoParameterOverrides,
     /// When true, Warn-severity diagnostics are upgraded to Error.
     pub strict: bool,
-    /// When true, all built-in rules (schema validation, step functions, engine rules) are
-    /// skipped. Only user-provided custom rules and guard rules are evaluated.
+    /// When true, all built-in rules
+    /// Only user-provided custom rules and guard rules are evaluated.
     pub disable_builtin_rules: bool,
 }
 
@@ -160,13 +227,13 @@ pub trait ValidationEngine {
 
 pub(crate) fn validate(
     engine: &dyn ValidationEngine,
-    schema_validator: &schema_validator::SchemaValidator,
+    schema_validator: &SchemaValidator,
     result: ParseResult,
     config: ValidateConfig,
     file_path: String,
 ) -> Result<ValidationReport, ValidationError> {
     let model = Arc::new(result.model);
-    let model_build = result.model_build;
+    let model_build = PhaseMetric { duration_ms: result.model_build_ms };
     log::info!(
         "Validating: {} resources, {} types (engine={})",
         model.resources.len(),
@@ -175,11 +242,19 @@ pub(crate) fn validate(
     );
 
     let schema_result = if config.disable_builtin_rules {
-        schema_validator::SchemaValidationResult { diagnostics: Vec::new(), metric: phase_metric(Instant::now()) }
+        SchemaValidationResult { diagnostics: Vec::new(), metric: phase_metric(Instant::now()) }
     } else {
-        schema_validator.validate(&model, config.pseudo_parameter_overrides.region())
+        schema_validator.validate(&model, config.pseudo_parameter_overrides.region.as_deref())
     };
     let mut all_diagnostics = schema_result.diagnostics;
+
+    if !config.disable_builtin_rules {
+        let invalid = config.pseudo_parameter_overrides.invalid_overrides();
+        if !invalid.is_empty() {
+            let message = format!("Invalid pseudo-parameter override(s): {}", invalid.join("; "));
+            all_diagnostics.push(RegisteredDiagnostic::new("W9012", message).build());
+        }
+    }
 
     let t_eval = Instant::now();
     let engine_diags = engine.evaluate_rules(&model, &config)?;
@@ -189,11 +264,46 @@ pub(crate) fn validate(
     let t_post = Instant::now();
     if !config.disable_builtin_rules {
         all_diagnostics.extend(crate::step_functions::validate_all_state_machines(&model));
+<<<<<<< HEAD
         all_diagnostics.extend(crate::context_check::check_missing_context(&model));
         all_diagnostics.extend(model.diagnostics.iter().cloned());
+=======
+        all_diagnostics.extend(model.diagnostics.iter().map(diagnostic_from_parse_defect));
+
+        // The satisfiability budget is consumed almost entirely by the rule
+        // evaluation that just ran, so this is the earliest point the exhausted
+        // queries are observable. Emitting it here (rather than at model build)
+        // is what lets the diagnostic actually fire.
+        for query in model.conditions.budget_exhausted_queries() {
+            all_diagnostics.push(
+                RegisteredDiagnostic::new(
+                    "I9052",
+                    format!("Condition satisfiability analysis budget exhausted during: {}", query),
+                )
+                .build(),
+            );
+        }
+
+        if config.pseudo_parameter_overrides.region.is_none() && region_enums::template_has_region_scoped_value(&model)
+        {
+            all_diagnostics.push(
+                RegisteredDiagnostic::new(
+                    "I9003",
+                    "No region supplied; region-scoped instance/node types were validated against all regions. \
+                     A value reported valid here may still be unavailable in your target region - pass a region to \
+                     validate against it specifically.",
+                )
+                .build(),
+            );
+        }
+>>>>>>> main
     }
 
     gate_sam_transform_errors(&mut all_diagnostics);
+    gate_cdk_suppressed_rules(&mut all_diagnostics, &model);
+
+    backfill_locations(&mut all_diagnostics, &model);
+    backfill_entities(&mut all_diagnostics, &model);
 
     let registry_metadata = engine.rule_metadata();
     let external_metadata = engine.external_rule_metadata();
@@ -202,10 +312,10 @@ pub(crate) fn validate(
     if config.detail_level.needs_context() {
         schema_validator.enrich_context(&mut all_diagnostics, &model);
         for d in all_diagnostics.iter_mut() {
-            if d.context.is_none() && !is_fatal_rule(&d.rule_id) {
+            if d.context.is_none() && d.phase != Some(Phase::Schema) {
                 d.context = build_context(
                     &d.rule_id,
-                    d.resource.as_ref().and_then(|r| r.id.as_deref()),
+                    d.resource_logical_id(),
                     d.property_path.as_deref().unwrap_or(""),
                     &model,
                 );
@@ -246,10 +356,23 @@ pub(crate) fn validate(
     Ok(report)
 }
 
+struct DataSourceVersions {
+    cfn_lint_version: &'static str,
+    resource_schema_version: &'static str,
+    available: bool,
+}
+
+static DATA_SOURCE_VERSIONS: DataSourceVersions = match (CFN_LINT_VERSION, RESOURCE_SCHEMA_VERSION) {
+    (Some(cfn_lint_version), Some(resource_schema_version)) => {
+        DataSourceVersions { cfn_lint_version, resource_schema_version, available: true }
+    }
+    _ => DataSourceVersions { cfn_lint_version: "", resource_schema_version: "", available: false },
+};
+
 #[cfg(any(test, feature = "test"))]
 pub fn validate_bytes(
     engine: &dyn ValidationEngine,
-    schema_validator: &schema_validator::SchemaValidator,
+    schema_validator: &SchemaValidator,
     bytes: &[u8],
     config: ValidateConfig,
 ) -> Result<ValidationReport, ValidationError> {
@@ -258,11 +381,16 @@ pub fn validate_bytes(
 
 pub fn validate_bytes_with_path(
     engine: &dyn ValidationEngine,
-    schema_validator: &schema_validator::SchemaValidator,
+    schema_validator: &SchemaValidator,
     bytes: &[u8],
     config: ValidateConfig,
     file_path: String,
 ) -> Result<ValidationReport, ValidationError> {
+    if !DATA_SOURCE_VERSIONS.available {
+        return Err(ValidationError::Engine(
+            "data source versions are unavailable; run the full data-source sync with --cfn-lint-root".to_string(),
+        ));
+    }
     let total_start = Instant::now();
     let result = match SemanticModel::parse(
         bytes,
@@ -277,16 +405,17 @@ pub fn validate_bytes_with_path(
                 (Some(l), Some(c)) => SourceSpan { start_line: l, start_column: c, end_line: l, end_column: c },
                 _ => UNKNOWN_SPAN,
             };
-            let mut diag = RegisteredDiagnostic::new("F1101", e.message).location(span).phase(Phase::Parse).build();
-            diag.section = Some("Template".into());
+            let diag = RegisteredDiagnostic::new("F1101", e.message).location(span).phase(Phase::Parse).build();
             let diags = vec![diag];
             let report = ValidationReport {
                 file_path,
                 status: ReportStatus::Error,
-                engine_version: env!("CARGO_PKG_VERSION").to_string(),
+                version: env!("CARGO_PKG_VERSION").to_string(),
                 diagnostics: diags,
                 metadata: ReportMetadata {
-                    rules_evaluated: None,
+                    rules_evaluated: 0,
+                    cfn_lint_version: DATA_SOURCE_VERSIONS.cfn_lint_version.to_owned(),
+                    resource_schema_version: DATA_SOURCE_VERSIONS.resource_schema_version.to_owned(),
                     resources_scanned: 0,
                     counts: Summary { fatal: 1, errors: 0, warnings: 0, informational: 0, debug: 0 },
                     suppressed: 0,
@@ -313,20 +442,20 @@ pub fn validate_bytes_with_path(
 
 /// Runs `operation`, converting any unwinding panic into an error produced by
 /// `on_panic` instead of letting it escape into the caller. Every embedding
-/// boundary — the CLI, the WASM bindings, and the JVM bindings — routes through
-/// this guard, so an internal invariant violation on adversarial input becomes a
-/// structured, catchable error rather than crashing or trapping the host.
+/// boundary routes through this guard, so an internal invariant violation on
+/// adversarial input becomes a structured, catchable error rather than crashing
+/// or trapping the host.
 ///
 /// `on_panic` receives the panic's message and maps it to the caller's own error
-/// type (a [`ValidationError`], a binding `JsValue`, a JVM error, …), keeping the
-/// guard reusable across every binding without coupling it to one error type.
+/// type (for example a [`ValidationError`] or a binding-specific error type),
+/// keeping the guard reusable across every binding without coupling it to one
+/// error type.
 ///
-/// The guard only works under the `unwind` panic strategy — [`catch_unwind`]
+/// The guard only works under the `unwind` panic strategy - [`catch_unwind`]
 /// intercepts unwinding panics, not aborts. The workspace pins `panic = "unwind"`
 /// in both the dev and release profiles (`src/Cargo.toml`), so on native targets
-/// (the CLI binary and the JVM native library) a panic is caught here before it
-/// can unwind across the FFI boundary into JNI frames — which would be undefined
-/// behavior.
+/// a panic is caught here before it can unwind across an FFI boundary - which
+/// would be undefined behavior.
 ///
 /// On `wasm32-unknown-unknown` the standard library is compiled with
 /// `panic = "abort"`: a panic traps the instance and `catch_unwind` cannot
@@ -376,34 +505,45 @@ pub(crate) fn parse_diagnostic(
 ) -> Result<Diagnostic, String> {
     let rule_id =
         val.get("rule_id").and_then(|v| v.as_str()).ok_or("Diagnostic missing required field 'rule_id'")?.to_string();
+    if rule_id.trim().is_empty() {
+        return Err("Diagnostic has an empty 'rule_id'".to_string());
+    }
     let message = val
         .get("message")
         .and_then(|v| v.as_str())
         .ok_or_else(|| format!("Diagnostic '{}' missing required field 'message'", rule_id))?
         .to_string();
+    if message.trim().is_empty() {
+        return Err(format!("Diagnostic '{}' has an empty 'message'", rule_id));
+    }
     let resource_id = val.get("resource_id").and_then(|v| v.as_str()).filter(|s| !s.is_empty()).map(|s| s.to_string());
-    let resource = resource_id.as_ref().map(|rid| ResourceRef {
-        id: Some(rid.clone()),
-        resource_type: model.resources.get(rid.as_str()).map(|r| r.resource_type.clone()),
-    });
+    let entity = resource_id
+        .as_ref()
+        .and_then(|rid| Entity::resource(rid, model.resources.get(rid.as_str()).map(|r| r.resource_type.clone())));
     let property_path =
         val.get("resource_path").and_then(|v| v.as_str()).filter(|s| !s.is_empty()).map(|s| s.to_string());
 
-    let span = if let Some(ref rid) = resource_id {
-        model.resource_span(rid, property_path.as_deref().unwrap_or(""))
-    } else {
-        let sl = val.get("start_line").and_then(|v| v.as_u64());
-        let sc = val.get("start_column").and_then(|v| v.as_u64());
-        match (sl, sc) {
-            (Some(l), Some(c)) => SourceSpan {
-                start_line: l as u32,
-                start_column: c as u32,
-                end_line: val.get("end_line").and_then(|v| v.as_u64()).unwrap_or(l) as u32,
-                end_column: val.get("end_column").and_then(|v| v.as_u64()).unwrap_or(c) as u32,
-            },
-            _ => resolve_section_span(&rule_id, model),
-        }
+    let explicit_span = match (
+        val.get("start_line").and_then(|value| value.as_u64()),
+        val.get("start_column").and_then(|value| value.as_u64()),
+    ) {
+        (Some(line), Some(column)) => Some(SourceSpan {
+            start_line: line as u32,
+            start_column: column as u32,
+            end_line: val.get("end_line").and_then(|value| value.as_u64()).unwrap_or(line) as u32,
+            end_column: val.get("end_column").and_then(|value| value.as_u64()).unwrap_or(column) as u32,
+        }),
+        _ => None,
     };
+    let span = explicit_span.unwrap_or_else(|| {
+        if let Some(ref resource_id) = resource_id {
+            model.resource_span(resource_id, property_path.as_deref().unwrap_or(""))
+        } else {
+            model
+                .diagnostic_span(None, property_path.as_deref().unwrap_or(""))
+                .unwrap_or_else(|| resolve_section_span(&rule_id, model))
+        }
+    });
 
     let is_custom_or_guard = source_override.is_some_and(|o| matches!(o, RuleOrigin::Custom | RuleOrigin::Guard));
 
@@ -436,22 +576,27 @@ pub(crate) fn parse_diagnostic(
         .map(|m| m.iter().filter_map(|(k, v)| v.as_bool().map(|b| (k.clone(), b))).collect());
 
     if is_custom_or_guard {
-        // Custom and Guard rules are absent from the registry, so severity,
-        // category, and origin must come from the engine output instead of the
-        // registry-driven builder.
+        if !is_valid_custom_rule_id(&rule_id) {
+            return Err(format!(
+                "Custom/Guard diagnostic '{}' has an invalid 'rule_id': only letters, digits, and the separators \
+                 '_', '.', '-' are allowed",
+                rule_id
+            ));
+        }
         let severity_str = val
             .get("severity")
             .and_then(|v| v.as_str())
             .ok_or_else(|| format!("Custom/Guard diagnostic '{}' missing required field 'severity'", rule_id))?;
-        let parsed_severity = severity_str.parse::<Severity>()?;
-        let severity = if is_fatal_rule(&rule_id) { Severity::Fatal } else { parsed_severity };
+        // The declared severity is authoritative. A custom/Guard rule ID is arbitrary,
+        // so the built-in `F`-prefix→Fatal heuristic must NOT apply here
+        let severity = severity_str.parse::<Severity>()?;
         let category = val.get("category").and_then(|v| v.as_str()).map(|c| c.to_string());
         let source = *source_override.expect("custom/guard branch is only reached with a source override");
         return Ok(Diagnostic {
             rule_id,
             severity,
             message,
-            resource,
+            entity,
             property_path,
             suggested_fix,
             documentation_url,
@@ -461,7 +606,6 @@ pub(crate) fn parse_diagnostic(
             condition_scenario,
             rule_description: None,
             phase: None,
-            section: None,
             context: None,
             source,
         });
@@ -476,7 +620,7 @@ pub(crate) fn parse_diagnostic(
         .condition_scenario(condition_scenario)
         .related_resources(related_resources)
         .build();
-    diagnostic.resource = resource;
+    diagnostic.entity = entity;
     diagnostic.property_path = property_path;
     diagnostic.documentation_url = documentation_url;
     Ok(diagnostic)
@@ -506,6 +650,30 @@ pub(crate) fn build_report(
     severity_level: Severity,
     file_path: String,
 ) -> ValidationReport {
+    build_report_with_versions(
+        diagnostics,
+        model,
+        suppressed,
+        rules_evaluated,
+        strict,
+        severity_level,
+        file_path,
+        DATA_SOURCE_VERSIONS.cfn_lint_version.to_owned(),
+        DATA_SOURCE_VERSIONS.resource_schema_version.to_owned(),
+    )
+}
+
+fn build_report_with_versions(
+    diagnostics: Vec<Diagnostic>,
+    model: &SemanticModel,
+    suppressed: u32,
+    rules_evaluated: Option<u32>,
+    strict: bool,
+    severity_level: Severity,
+    file_path: String,
+    cfn_lint_version: String,
+    resource_schema_version: String,
+) -> ValidationReport {
     let fatal = diagnostics.iter().filter(|d| d.severity == Severity::Fatal).count() as u32;
     let errors = diagnostics.iter().filter(|d| d.severity == Severity::Error).count() as u32;
     let warnings = diagnostics.iter().filter(|d| d.severity == Severity::Warn).count() as u32;
@@ -514,10 +682,12 @@ pub(crate) fn build_report(
     ValidationReport {
         file_path,
         status: ReportStatus::Ok,
-        engine_version: env!("CARGO_PKG_VERSION").to_string(),
+        version: env!("CARGO_PKG_VERSION").to_string(),
         diagnostics,
         metadata: ReportMetadata {
-            rules_evaluated,
+            rules_evaluated: rules_evaluated.unwrap_or(0),
+            cfn_lint_version,
+            resource_schema_version,
             resources_scanned: model.resources.len() as u32,
             counts: Summary { fatal, errors, warnings, informational, debug },
             suppressed,
@@ -556,35 +726,42 @@ pub(crate) fn finalize_diagnostics(diagnostics: &mut Vec<Diagnostic>, config: &V
     // Filter by minimum severity. Debug is the lowest severity so it acts as "no filter".
     diagnostics.retain(|d| d.severity >= config.severity_level);
 
-    // Sort key MUST be a superset of the dedup key below. If two diagnostics share the
-    // dedup key but are separated by a sibling that compares equal on the sort key,
+    // Order by severity first (Fatal, Error, Warn, Info, Debug), then by rule number,
+    // then by location and the remaining fields. The severity and rule-number keys are
+    // both functionally determined by `rule_id` (the prefix letter fixes the severity,
+    // the digits fix the number), so they add grouping without ever splitting two
+    // diagnostics that are otherwise identical.
+    //
+    // The sort key MUST stay a superset of the dedup key below. If two diagnostics share
+    // the dedup key but are separated by a sibling that compares equal on the sort key,
     // stable sort leaves them non-adjacent and dedup_by silently misses them.
     // Seen in the wild: the same rule fired twice for the same parameter (two distinct usages)
-    // with a sibling diagnostic for a different parameter at the same line/col in between —
+    // with a sibling diagnostic for a different parameter at the same line/col in between -
     // native HashMap iteration order put them in [A, B, A] layout, dedup skipped.
+    let line = |d: &Diagnostic| d.location.as_ref().map(|l| l.start_line).unwrap_or(0);
+    let column = |d: &Diagnostic| d.location.as_ref().map(|l| l.start_column).unwrap_or(0);
+    // The resource id is part of both keys: two findings on *different* resources
+    // are distinct even when they share a span, message, and path. This happens
+    // with `Fn::ForEach`-expanded resources, which are separate resources built
+    // from one template body and therefore carry the same source span.
+    let resource_id = |d: &Diagnostic| d.entity.as_ref().map(|e| e.logical_id.clone()).unwrap_or_default();
     diagnostics.sort_by(|a, b| {
-        a.location
-            .as_ref()
-            .map(|l| l.start_line)
-            .unwrap_or(0)
-            .cmp(&b.location.as_ref().map(|l| l.start_line).unwrap_or(0))
-            .then(
-                a.location
-                    .as_ref()
-                    .map(|l| l.start_column)
-                    .unwrap_or(0)
-                    .cmp(&b.location.as_ref().map(|l| l.start_column).unwrap_or(0)),
-            )
-            .then(b.severity.cmp(&a.severity))
-            .then(a.rule_id.cmp(&b.rule_id))
-            .then(a.property_path.cmp(&b.property_path))
-            .then(a.message.cmp(&b.message))
+        b.severity
+            .cmp(&a.severity)
+            .then_with(|| rule_number(&a.rule_id).cmp(&rule_number(&b.rule_id)))
+            .then_with(|| a.rule_id.cmp(&b.rule_id))
+            .then_with(|| line(a).cmp(&line(b)))
+            .then_with(|| column(a).cmp(&column(b)))
+            .then_with(|| resource_id(a).cmp(&resource_id(b)))
+            .then_with(|| a.property_path.cmp(&b.property_path))
+            .then_with(|| a.message.cmp(&b.message))
     });
     diagnostics.dedup_by(|a, b| {
         a.location.as_ref().map(|l| l.start_line).unwrap_or(0) == b.location.as_ref().map(|l| l.start_line).unwrap_or(0)
             && a.location.as_ref().map(|l| l.start_column).unwrap_or(0)
                 == b.location.as_ref().map(|l| l.start_column).unwrap_or(0)
             && a.rule_id == b.rule_id
+            && resource_id(a) == resource_id(b)
             && a.message == b.message
             && a.property_path == b.property_path
     });
@@ -606,10 +783,22 @@ pub(crate) fn build_context(
         scenarios.into_iter().next().map(|(v, _)| v)
     };
 
-    let mut actual_value: Option<diagnostics::JsonValue> = None;
+    // Resolves a value only when every condition scenario agrees on it. A property
+    // driven by `Fn::If` resolves to a different value per branch, and each branch
+    // yields its own diagnostic (with a branch-specific message); attaching the
+    // first branch's value to all of them would contradict the other messages. When
+    // the branches disagree this returns `None`, leaving the message as the sole,
+    // correct carrier of the offending value.
+    let unambiguous_val = |path: &str| -> Option<serde_json::Value> {
+        let mut scenarios = model.resolve_scenarios_json(rid, path).into_iter().map(|(v, _)| v);
+        let first = scenarios.next()?;
+        if scenarios.all(|v| v == first) { Some(first) } else { None }
+    };
+
+    let mut actual_value: Option<JsonValue> = None;
     let mut property = None;
     let mut lifecycle = None;
-    let mut extra: HashMap<String, diagnostics::JsonValue> = HashMap::new();
+    let mut extra: HashMap<String, JsonValue> = HashMap::new();
 
     match rule_id {
         "F3012" | "E3012" => {
@@ -617,8 +806,8 @@ pub(crate) fn build_context(
                 actual_value = resolve_val(property_path).map(Into::into);
             }
         }
-        "F3030" | "E3030" | "F3031" | "E3031" | "F3034" | "E3034" | "F3037" | "W3045" | "E1103" | "E1150" | "E1151"
-        | "E1152" | "E1153" | "E1154" | "E1155" | "E1156" => {
+        "F3030" | "W3030" | "E3030" | "F3031" | "E3031" | "F3034" | "E3034" | "F3037" | "W3045" | "E1103" | "E1150"
+        | "E1151" | "E1152" | "E1153" | "E1154" | "E1155" | "E1156" => {
             actual_value = resolve_val(property_path).map(Into::into);
         }
         "F3033" | "W9006" => {
@@ -659,7 +848,7 @@ pub(crate) fn build_context(
         "E9002" => {
             actual_value = resolve_val("Properties.SecurityGroupIngress").map(Into::into);
         }
-        "E9001" => {
+        "F3006" => {
             if let Some(res) = model.resources.get(rid) {
                 extra.insert("resource_type".into(), serde_json::json!(res.resource_type).into());
             }
@@ -693,8 +882,30 @@ pub(crate) fn build_context(
         "I9001" => {
             lifecycle = Some("create-only".into());
         }
-        "W3041" => {
+        "W9054" => {
             lifecycle = Some("write-only".into());
+        }
+        // Lambda runtime lifecycle: surface the offending runtime string and the
+        // stage of its lifecycle, mirroring how resource-type deprecation (W9009)
+        // and property lifecycle (I9001/W9054) carry a lifecycle marker. The runtime
+        // is emitted once per condition branch, so only attach the value when every
+        // branch agrees - otherwise the message alone names the branch's runtime.
+        "E2533" => {
+            actual_value = unambiguous_val(property_path).map(Into::into);
+            lifecycle = Some("end-of-life".into());
+        }
+        "E2531" => {
+            actual_value = unambiguous_val(property_path).map(Into::into);
+            lifecycle = Some("create-blocked".into());
+        }
+        "W2531" => {
+            actual_value = unambiguous_val(property_path).map(Into::into);
+            lifecycle = Some("deprecated".into());
+        }
+        // RDS instance exposed to the public internet: surface the offending
+        // PubliclyAccessible value against the expected safe setting.
+        "W9011" => {
+            actual_value = unambiguous_val(property_path).map(Into::into);
         }
         "W2503" | "W2502" => {
             if let Some(res) = model.resources.get(rid)
@@ -732,6 +943,72 @@ fn gate_sam_transform_errors(diagnostics: &mut Vec<Diagnostic>) {
     }
 }
 
+/// Rules suppressed on CDK-generated templates. CDK synthesizes templates from
+/// higher-level code, so findings about how the template itself is written are
+/// not actionable for the developer and would only add noise.
+const CDK_SUPPRESSED_RULE_IDS: [&str; 2] = ["I1022", "W3010"];
+
+/// Suppresses non-actionable findings on CDK-generated templates (see
+/// [`CDK_SUPPRESSED_RULE_IDS`]).
+fn gate_cdk_suppressed_rules(diagnostics: &mut Vec<Diagnostic>, model: &SemanticModel) {
+    if !model.is_cdk {
+        return;
+    }
+    diagnostics.retain(|d| !CDK_SUPPRESSED_RULE_IDS.contains(&d.rule_id.as_str()));
+}
+
+/// Attaches a source span to any diagnostic still missing one. Location is part of
+/// both the standard and detailed reports, so this runs regardless of detail level
+/// and independently of the engine.
+///
+/// Most diagnostics are located at construction (via `resource_span` /
+/// `resolve_section_span`), but some emission paths cannot reach a span there:
+/// parse-time findings built before byte spans are assigned, findings anchored on
+/// an output/parameter path that `resource_span` cannot resolve (it only roots at
+/// `Resources/`), and template-model findings that never pass through
+/// `parse_diagnostic`'s section fallback. This is the single place that repairs
+/// them. The resolution is best-effort and monotonic - it only ever fills a `None`
+/// location, never overrides an existing one - so it cannot move a diagnostic that
+/// already points at the right place.
+fn backfill_locations(diagnostics: &mut [Diagnostic], model: &SemanticModel) {
+    for d in diagnostics.iter_mut() {
+        if d.location.is_some() {
+            continue;
+        }
+        let resource_id = d.resource_logical_id();
+        let property_path = d.property_path.as_deref().unwrap_or("");
+        let span = model
+            .diagnostic_span(resource_id, property_path)
+            .unwrap_or_else(|| resolve_section_span(&d.rule_id, model));
+        d.location = span_to_option(span);
+    }
+}
+
+/// Fills the targeted entity of every diagnostic on a named template entity
+/// that did not attach one at emission time, by deriving the entity type and
+/// logical ID from its section-absolute property path (`Parameters/MyParam/…`).
+/// Resource entities emitted before the model existed (parse- and
+/// transform-time) carry no CloudFormation type, so it is filled in from the
+/// model here. Like `backfill_locations`, the resolution is monotonic - an
+/// already-set entity or resource type is never overridden.
+fn backfill_entities(diagnostics: &mut [Diagnostic], model: &SemanticModel) {
+    for d in diagnostics.iter_mut() {
+        if d.entity.is_none() {
+            d.entity = d.property_path.as_deref().and_then(entity_identity).map(|(entity_type, logical_id)| Entity {
+                logical_id: logical_id.to_string(),
+                entity_type,
+                resource_type: None,
+            });
+        }
+        if let Some(entity) = d.entity.as_mut()
+            && entity.entity_type == EntityType::Resource
+            && entity.resource_type.is_none()
+        {
+            entity.resource_type = model.resources.get(entity.logical_id.as_str()).map(|r| r.resource_type.clone());
+        }
+    }
+}
+
 pub(crate) fn enrich_diagnostics(
     diagnostics: &mut [Diagnostic],
     model: &SemanticModel,
@@ -745,11 +1022,10 @@ pub(crate) fn enrich_diagnostics(
     let needs_context = format.needs_context();
 
     for d in diagnostics.iter_mut() {
-        if d.section.is_none() {
-            let rid = d.resource.as_ref().and_then(|r| r.id.as_deref());
-            d.section = section_for_rule_id(rid, &d.rule_id).map(Into::into);
-        }
-        if d.phase.is_none() {
+        // Custom and Guard rules are user-supplied and have no built-in evaluation
+        // phase, so leave their phase unset rather than forcing one. Built-in rules
+        // are Schema-phase when fatal and Lint-phase otherwise.
+        if d.phase.is_none() && !matches!(d.source, RuleOrigin::Custom | RuleOrigin::Guard) {
             d.phase = Some(if is_fatal_rule(&d.rule_id) { Phase::Schema } else { Phase::Lint });
         }
         if d.rule_description.is_none() {
@@ -759,12 +1035,8 @@ pub(crate) fn enrich_diagnostics(
                 .map(|entry| entry.description.clone());
         }
         if needs_context && d.context.is_none() {
-            d.context = build_context(
-                &d.rule_id,
-                d.resource.as_ref().and_then(|r| r.id.as_deref()),
-                d.property_path.as_deref().unwrap_or(""),
-                model,
-            );
+            d.context =
+                build_context(&d.rule_id, d.resource_logical_id(), d.property_path.as_deref().unwrap_or(""), model);
         }
     }
 }
@@ -796,10 +1068,30 @@ pub fn make_resource_diagnostic(
     prop_path: &str,
     suggested_fix: Option<&str>,
 ) -> Diagnostic {
+    make_resource_diagnostic_at_source(rule_id, message, model, resource_id, prop_path, prop_path, suggested_fix)
+}
+
+/// Builds a resource diagnostic whose public property path and source-span anchor differ.
+/// Scenario-aware rules use this when an effective path maps to an authored intrinsic branch.
+pub fn make_resource_diagnostic_at_source(
+    rule_id: &str,
+    message: &str,
+    model: &SemanticModel,
+    resource_id: &str,
+    prop_path: &str,
+    source_path: &str,
+    suggested_fix: Option<&str>,
+) -> Diagnostic {
+    // With no resource, a section-absolute path (`Parameters/MyParam/Type`)
+    // anchors the finding at the named entity; without one the section span from
+    // the rule-ID table is the closest known location.
     let span = if resource_id.is_empty() {
-        resolve_section_span(rule_id, model)
+        match model.diagnostic_span(None, source_path) {
+            Some(found) => found,
+            None => resolve_section_span(rule_id, model),
+        }
     } else {
-        model.resource_span(resource_id, prop_path)
+        model.resource_span(resource_id, source_path)
     };
     RegisteredDiagnostic::new(rule_id, message)
         .property_path(prop_path)
@@ -813,7 +1105,198 @@ pub fn make_resource_diagnostic(
 mod tests {
     use super::*;
     use diagnostics::Phase;
-    use rules::{Category, lookup_rule};
+    use rules::{Category, build_rule_metadata_map, lookup_rule};
+    use template_model::{SAM_TRANSFORM_ERROR_PREFIX, SAM_TRANSFORM_ERROR_RULE_ID};
+
+    const TEST_CFN_LINT_VERSION: &str = "https://github.com/aws-cloudformation/cfn-lint@1.54.0";
+    const TEST_RESOURCE_SCHEMA_VERSION: &str =
+        "https://github.com/aws-cloudformation/resource-provider-enhanced-schemas@2026-08-07T18:20:13Z";
+    #[test]
+    fn additional_schema_resolve_uses_explicit_type_name() {
+        let src = AdditionalSchemaSource {
+            type_name: Some("AWS::Lambda::Function".into()),
+            schema: r#"{"properties":{"P":{"type":"string"}}}"#.into(),
+        };
+        let (type_name, schema) = src.resolve().expect("valid schema resolves");
+        assert_eq!(type_name, "AWS::Lambda::Function", "an explicit type_name names the target type");
+        assert!(schema.is_object());
+    }
+
+    #[test]
+    fn additional_schema_resolve_accepts_matching_type_names() {
+        let src = AdditionalSchemaSource {
+            type_name: Some("AWS::Lambda::Function".into()),
+            schema: r#"{"typeName":"AWS::Lambda::Function","properties":{"P":{"type":"string"}}}"#.into(),
+        };
+        let (type_name, _) = src.resolve().expect("agreeing type names resolve");
+        assert_eq!(type_name, "AWS::Lambda::Function");
+    }
+
+    #[test]
+    fn additional_schema_resolve_rejects_contradictory_type_names() {
+        let src = AdditionalSchemaSource {
+            type_name: Some("AWS::Lambda::Function".into()),
+            schema: r#"{"typeName":"AWS::Other::Type","properties":{}}"#.into(),
+        };
+        let err = src.resolve().expect_err("contradictory type names must fail");
+        assert!(
+            err.0.contains("AWS::Lambda::Function") && err.0.contains("AWS::Other::Type"),
+            "the error must name both types, got: {}",
+            err.0
+        );
+    }
+
+    #[test]
+    fn additional_schema_resolve_falls_back_to_schema_type_name() {
+        let src = AdditionalSchemaSource {
+            type_name: None,
+            schema: r#"{"typeName":"AWS::Lambda::Function","properties":{}}"#.into(),
+        };
+        let (type_name, _) = src.resolve().expect("valid schema resolves");
+        assert_eq!(type_name, "AWS::Lambda::Function", "an absent type_name falls back to the schema's typeName");
+    }
+
+    #[test]
+    fn additional_schema_resolve_rejects_invalid_json() {
+        let src =
+            AdditionalSchemaSource { type_name: Some("AWS::Lambda::Function".into()), schema: "{ not json ".into() };
+        let err = src.resolve().expect_err("invalid JSON must fail");
+        assert!(err.0.contains("Invalid additional schema"), "unexpected error: {}", err.0);
+    }
+
+    #[test]
+    fn additional_schema_resolve_rejects_non_object() {
+        let src = AdditionalSchemaSource { type_name: Some("AWS::Lambda::Function".into()), schema: "42".into() };
+        let err = src.resolve().expect_err("non-object schema must fail");
+        assert!(err.0.contains("expected a JSON object"), "unexpected error: {}", err.0);
+    }
+
+    #[test]
+    fn additional_schema_resolve_rejects_missing_type_name() {
+        let src = AdditionalSchemaSource { type_name: None, schema: r#"{"properties":{}}"#.into() };
+        let err = src.resolve().expect_err("missing type name must fail");
+        assert!(err.0.contains("missing a resource type name"), "unexpected error: {}", err.0);
+    }
+
+    #[test]
+    fn additional_schema_resolve_error_names_an_unnamed_source() {
+        let src = AdditionalSchemaSource { type_name: None, schema: "{ not json ".into() };
+        let err = src.resolve().expect_err("invalid JSON must fail");
+        assert!(err.0.contains("<unnamed>"), "unexpected error: {}", err.0);
+    }
+
+    #[test]
+    fn engine_config_build_overlay_catalog_applies_schemas() {
+        let config = EngineConfig::new().with_schema_validator_config(SchemaValidatorConfig {
+            additional_schemas: vec![AdditionalSchemaSource {
+                type_name: None,
+                schema: r#"{"typeName":"AWS::Lambda::Function","properties":{"TestForOverride":{"type":"string"}}}"#
+                    .into(),
+            }],
+        });
+        let catalog = config.build_overlay_catalog().expect("valid overlay builds catalog");
+        assert!(!catalog.is_empty());
+        assert!(catalog.type_names.contains(&"AWS::Lambda::Function".to_string()));
+    }
+
+    #[test]
+    fn engine_config_build_overlay_catalog_empty_is_noop() {
+        let config = EngineConfig::default();
+        let catalog = config.build_overlay_catalog().expect("empty config builds empty catalog");
+        assert!(catalog.is_empty());
+    }
+
+    #[test]
+    fn engine_config_builder_composes_without_a_struct_literal() {
+        let config = EngineConfig::new()
+            .with_custom_rules([ExternalRuleSource { name: "a.rego".into(), content: "package a".into() }])
+            .with_guard_rules([ExternalRuleSource { name: "b.guard".into(), content: "rule x {}".into() }])
+            .with_schema_validator_config(SchemaValidatorConfig {
+                additional_schemas: vec![AdditionalSchemaSource {
+                    type_name: Some("AWS::Test::One".into()),
+                    schema: r#"{"properties":{"P":{"type":"string"}}}"#.into(),
+                }],
+            });
+        assert_eq!(config.custom_rules.len(), 1);
+        assert_eq!(config.guard_rules.len(), 1);
+        let sv_config = config.schema_validator_config.as_ref().expect("schema_validator config must be set");
+        assert_eq!(sv_config.additional_schemas.len(), 1);
+        assert_eq!(sv_config.additional_schemas[0].type_name.as_deref(), Some("AWS::Test::One"));
+    }
+
+    #[test]
+    fn default_engine_config_serializes_without_the_schema_validator_config_field() {
+        let json = serde_json::to_value(EngineConfig::default()).expect("EngineConfig serializes");
+        assert!(
+            json.get("schemaValidatorConfig").is_none(),
+            "an empty schema_validator_config must not change the serialized form, got: {json}"
+        );
+    }
+
+    #[test]
+    fn engine_config_nested_schema_validator_serialization_roundtrip() {
+        let config = EngineConfig::new().with_schema_validator_config(SchemaValidatorConfig {
+            additional_schemas: vec![AdditionalSchemaSource {
+                type_name: Some("AWS::Test::RT".into()),
+                schema: r#"{"properties":{}}"#.into(),
+            }],
+        });
+        let json = serde_json::to_value(&config).expect("serializes");
+        assert!(json.get("schemaValidatorConfig").is_some(), "nested config must appear in JSON: {json}");
+        assert!(json.get("schemaValidator").is_none(), "the old config field must not be serialized: {json}");
+        let deserialized: EngineConfig = serde_json::from_value(json).expect("deserializes");
+        let sv = deserialized.schema_validator_config.expect("nested config must roundtrip");
+        assert_eq!(sv.additional_schemas.len(), 1);
+        assert_eq!(sv.additional_schemas[0].type_name.as_deref(), Some("AWS::Test::RT"));
+    }
+
+    #[test]
+    fn standalone_engine_with_nested_schema_config_derives_metadata() {
+        // A standalone engine built from EngineConfig with a nested
+        // SchemaValidatorConfig derives overlay-aware metadata from it. This
+        // verifies the internal build_overlay_catalog path is exercised.
+        let config = EngineConfig::new().with_schema_validator_config(SchemaValidatorConfig {
+            additional_schemas: vec![AdditionalSchemaSource {
+                type_name: None,
+                schema: r#"{"typeName":"AWS::Lambda::Function","properties":{"TestForOverride":{"type":"string"}}}"#
+                    .into(),
+            }],
+        });
+        // The engine builds successfully - the nested schema config was resolved.
+        let catalog = config.build_overlay_catalog().expect("nested config builds");
+        assert!(!catalog.is_empty(), "the catalog must be populated from nested config");
+    }
+
+    #[test]
+    fn combined_wrapper_style_path_constructs_validator_and_engine_once() {
+        // Simulates the binding/CLI pattern: build SchemaValidator once from the
+        // nested config, then pass it to the engine via new_with_schema_validator.
+        // This ensures the combined path does not re-resolve overlays.
+        let schema_config = SchemaValidatorConfig {
+            additional_schemas: vec![AdditionalSchemaSource {
+                type_name: None,
+                schema: r#"{"typeName":"AWS::Lambda::Function","properties":{"TestForOverride":{"type":"string"}}}"#
+                    .into(),
+            }],
+        };
+        let validator = schema_validator::SchemaValidator::new(schema_config).expect("validator builds");
+        // Verify the catalog is populated from the validator
+        assert!(!validator.overlay_catalog().is_empty());
+        assert!(validator.overlay_catalog().type_names.contains(&"AWS::Lambda::Function".to_string()));
+    }
+
+    #[test]
+    fn standalone_schema_validator_config() {
+        // SchemaValidator can be built standalone from SchemaValidatorConfig.
+        let config = SchemaValidatorConfig {
+            additional_schemas: vec![AdditionalSchemaSource {
+                type_name: None,
+                schema: r#"{"typeName":"AWS::Test::Standalone","properties":{"Name":{"type":"string"}}}"#.into(),
+            }],
+        };
+        let validator = schema_validator::SchemaValidator::new(config).expect("standalone validator builds");
+        assert!(validator.overlay_catalog().type_names.contains(&"AWS::Test::Standalone".to_string()));
+    }
 
     fn minimal_model() -> SemanticModel {
         let yaml = br#"
@@ -828,7 +1311,7 @@ Resources:
     }
 
     fn meta_map() -> HashMap<String, RuleMetadataEntry> {
-        rules::build_rule_metadata_map()
+        build_rule_metadata_map()
     }
 
     fn default_diag() -> Diagnostic {
@@ -836,7 +1319,7 @@ Resources:
             rule_id: String::new(),
             severity: Severity::Info,
             message: String::new(),
-            resource: None,
+            entity: None,
             property_path: None,
             suggested_fix: None,
             documentation_url: None,
@@ -846,7 +1329,6 @@ Resources:
             condition_scenario: None,
             rule_description: None,
             phase: None,
-            section: None,
             context: None,
             source: RuleOrigin::Engine,
         }
@@ -866,8 +1348,8 @@ Resources:
         assert_eq!(diag.rule_id, "E3012");
         assert_eq!(diag.severity, Severity::Error);
         assert_eq!(diag.message, "Type mismatch");
-        assert_eq!(diag.resource.as_ref().unwrap().id.as_deref(), Some("Bucket"));
-        assert_eq!(diag.resource.as_ref().unwrap().resource_type.as_deref(), Some("AWS::S3::Bucket"));
+        assert_eq!(diag.resource_logical_id(), Some("Bucket"));
+        assert_eq!(diag.entity.as_ref().and_then(|e| e.resource_type.as_deref()), Some("AWS::S3::Bucket"));
     }
 
     #[test]
@@ -917,9 +1399,29 @@ Resources:
     }
 
     #[test]
-    fn parse_diagnostic_fatal_prefix_overrides_custom_severity() {
-        // F-prefix rule IDs are coerced to Fatal at the engine boundary so a
-        // custom rule that mis-reports its severity gets corrected here.
+    fn parse_diagnostic_empty_rule_id_returns_error() {
+        let model = minimal_model();
+        let val = serde_json::json!({"rule_id": "", "severity": Severity::Error.as_str(), "message": "x"});
+        let err = parse_diagnostic(&val, &model, Some(&RuleOrigin::Custom))
+            .expect_err("an empty rule_id must be rejected, not accepted as a blank-ID diagnostic");
+        assert!(err.contains("empty 'rule_id'"), "got: {err}");
+    }
+
+    #[test]
+    fn parse_diagnostic_empty_message_returns_error() {
+        let model = minimal_model();
+        let val = serde_json::json!({"rule_id": "CUSTOM1", "severity": Severity::Error.as_str(), "message": "   "});
+        let err =
+            parse_diagnostic(&val, &model, Some(&RuleOrigin::Custom)).expect_err("a blank message must be rejected");
+        assert!(err.contains("CUSTOM1") && err.contains("empty 'message'"), "got: {err}");
+    }
+
+    #[test]
+    fn parse_diagnostic_custom_severity_is_authoritative_even_for_f_prefixed_id() {
+        // A custom rule chooses its own ID freely, so the built-in `F`-prefix→Fatal
+        // heuristic must NOT apply: the declared severity is preserved verbatim. This
+        // also keeps the Rego/Guard boundary at parity with the CEL engine, which emits
+        // the declared severity directly.
         let model = minimal_model();
         let val = serde_json::json!({
             "rule_id": "FCUSTOM",
@@ -927,7 +1429,27 @@ Resources:
             "message": "type mismatch"
         });
         let diag = parse_diagnostic(&val, &model, Some(&RuleOrigin::Custom)).unwrap();
-        assert_eq!(diag.severity, Severity::Fatal);
+        assert_eq!(diag.severity, Severity::Error, "declared severity must survive an F-prefixed custom ID");
+    }
+
+    #[test]
+    fn parse_diagnostic_custom_rule_id_allows_separators_but_rejects_punctuation() {
+        let model = minimal_model();
+        let ok = serde_json::json!({
+            "rule_id": "s3.encryption-required_1",
+            "severity": Severity::Warn.as_str(),
+            "message": "ok"
+        });
+        assert!(parse_diagnostic(&ok, &model, Some(&RuleOrigin::Custom)).is_ok());
+
+        let bad = serde_json::json!({
+            "rule_id": "bad id/with space",
+            "severity": Severity::Warn.as_str(),
+            "message": "bad"
+        });
+        let err = parse_diagnostic(&bad, &model, Some(&RuleOrigin::Custom))
+            .expect_err("a rule_id with whitespace/punctuation must be rejected");
+        assert!(err.contains("invalid 'rule_id'"), "got: {err}");
     }
 
     #[test]
@@ -967,7 +1489,7 @@ Resources:
             "resource_id": ""
         });
         let diag = parse_diagnostic(&val, &model, None).unwrap();
-        assert!(diag.resource.is_none(), "diagnostic without resource_id should have no resource");
+        assert!(diag.entity.is_none(), "diagnostic without resource_id should have no entity");
     }
 
     #[test]
@@ -983,6 +1505,24 @@ Resources:
         let diag = parse_diagnostic(&val, &model, None).unwrap();
         assert_eq!(diag.location.as_ref().unwrap().start_line, 42);
         assert_eq!(diag.location.as_ref().unwrap().start_column, 7);
+    }
+
+    #[test]
+    fn parse_diagnostic_resource_preserves_explicit_location() {
+        let model = minimal_model();
+        let val = serde_json::json!({
+            "rule_id": "E3012",
+            "severity": Severity::Error.as_str(),
+            "message": "x",
+            "resource_id": "Bucket",
+            "resource_path": "Properties.BucketName",
+            "start_line": 42,
+            "start_column": 7,
+            "end_line": 43,
+            "end_column": 9
+        });
+        let diag = parse_diagnostic(&val, &model, None).unwrap();
+        assert_eq!(diag.location, Some(SourceSpan { start_line: 42, start_column: 7, end_line: 43, end_column: 9 }));
     }
 
     #[test]
@@ -1120,13 +1660,25 @@ Resources:
             Diagnostic { rule_id: "W3045".into(), severity: Severity::Warn, message: "warn".into(), ..default_diag() },
             Diagnostic { severity: Severity::Info, message: "info".into(), ..default_diag() },
         ];
-        let report = build_report(diags, &model, 3, Some(50), false, Severity::Info, String::new());
+        let report = build_report_with_versions(
+            diags,
+            &model,
+            3,
+            Some(50),
+            false,
+            Severity::Info,
+            String::new(),
+            TEST_CFN_LINT_VERSION.to_string(),
+            TEST_RESOURCE_SCHEMA_VERSION.to_string(),
+        );
         assert_eq!(report.metadata.counts.fatal, 1);
         assert_eq!(report.metadata.counts.errors, 2);
         assert_eq!(report.metadata.counts.warnings, 1);
         assert_eq!(report.metadata.counts.informational, 1);
         assert_eq!(report.metadata.suppressed, 3);
-        assert_eq!(report.metadata.rules_evaluated, Some(50));
+        assert_eq!(report.metadata.rules_evaluated, 50);
+        assert_eq!(report.metadata.cfn_lint_version, TEST_CFN_LINT_VERSION);
+        assert_eq!(report.metadata.resource_schema_version, TEST_RESOURCE_SCHEMA_VERSION);
         assert!(!report.metadata.strict, "default mode should not be strict");
         assert_eq!(report.metadata.severity_level, Severity::Info);
         assert_eq!(report.metadata.resources_scanned, 1);
@@ -1136,7 +1688,18 @@ Resources:
     #[test]
     fn build_report_empty_diagnostics() {
         let model = minimal_model();
-        let report = build_report(vec![], &model, 0, None, true, Severity::Error, String::new());
+        let report = build_report_with_versions(
+            vec![],
+            &model,
+            0,
+            None,
+            true,
+            Severity::Error,
+            String::new(),
+            TEST_CFN_LINT_VERSION.to_string(),
+            TEST_RESOURCE_SCHEMA_VERSION.to_string(),
+        );
+        assert_eq!(report.metadata.rules_evaluated, 0);
         assert_eq!(report.metadata.counts.fatal, 0);
         assert_eq!(report.metadata.counts.errors, 0);
         assert_eq!(report.metadata.counts.warnings, 0);
@@ -1149,7 +1712,17 @@ Resources:
     fn build_report_debug_severity_counted() {
         let model = minimal_model();
         let diags = vec![Diagnostic { severity: Severity::Debug, message: "dbg".into(), ..default_diag() }];
-        let report = build_report(diags, &model, 0, None, false, Severity::Debug, String::new());
+        let report = build_report_with_versions(
+            diags,
+            &model,
+            0,
+            None,
+            false,
+            Severity::Debug,
+            String::new(),
+            TEST_CFN_LINT_VERSION.to_string(),
+            TEST_RESOURCE_SCHEMA_VERSION.to_string(),
+        );
         assert_eq!(report.metadata.counts.debug, 1);
         assert_eq!(report.metadata.counts.informational, 0);
     }
@@ -1280,9 +1853,9 @@ Resources:
         Diagnostic {
             message: format!(
                 "{} Resource with id [Fn] is invalid. 'AutoPublishAlias' must be a string or a Ref to a template parameter",
-                diagnostics::SAM_TRANSFORM_ERROR_PREFIX
+                SAM_TRANSFORM_ERROR_PREFIX
             ),
-            ..make_diag(diagnostics::SAM_TRANSFORM_ERROR_RULE_ID, Severity::Error, 1, 1)
+            ..make_diag(SAM_TRANSFORM_ERROR_RULE_ID, Severity::Error, 1, 1)
         }
     }
 
@@ -1306,7 +1879,7 @@ Resources:
     }
 
     #[test]
-    fn finalize_sorts_by_location_then_severity() {
+    fn finalize_sorts_by_severity_then_rule_number_then_location() {
         let config = ValidateConfig::default();
         let mut diags = vec![
             make_diag("W3045", Severity::Warn, 10, 1),
@@ -1315,9 +1888,20 @@ Resources:
         ];
         finalize_diagnostics(&mut diags, &config);
         assert_eq!(diags.len(), 3);
+        // Severity orders first: Fatal, then Error, then Warn - regardless of location.
         assert_eq!(diags[0].rule_id, "F3012");
         assert_eq!(diags[1].rule_id, "E3012");
-        assert_eq!(diags[2].location.as_ref().unwrap().start_line, 10);
+        assert_eq!(diags[2].rule_id, "W3045");
+    }
+
+    #[test]
+    fn finalize_orders_same_severity_by_rule_number() {
+        let config = ValidateConfig::default();
+        // Higher-numbered rule appears earlier in the file; rule number must still win.
+        let mut diags = vec![make_diag("E3999", Severity::Error, 1, 1), make_diag("E3012", Severity::Error, 50, 1)];
+        finalize_diagnostics(&mut diags, &config);
+        assert_eq!(diags[0].rule_id, "E3012", "lower rule number sorts first within a severity");
+        assert_eq!(diags[1].rule_id, "E3999");
     }
 
     #[test]
@@ -1371,14 +1955,15 @@ Resources:
         assert_eq!(diags.len(), 2);
     }
 
-    /// Regression for the CEL WASM-vs-native parity bug.
+    /// Regression for a dedup bug where the same rule/message/line was duplicated
+    /// across native and WASM builds, separated by a sibling diagnostic.
     ///
     /// Two diagnostics for rule X message M at the same line/col, separated by a sibling
     /// for the same rule but a different message M', must still be deduped. Before the fix
     /// the sort key was (line, col, severity, rule_id) which treated all three as equal;
     /// stable sort preserved insertion order [M, M', M] and `dedup_by` (consecutive-only)
     /// skipped the outer pair. HashMap iteration order means insertion order is random,
-    /// so the dedup worked or failed per-process — native fired twice, WASM once.
+    /// so the dedup worked or failed per-process - native fired twice, WASM once.
     #[test]
     fn finalize_dedups_same_rule_message_across_sibling_with_different_message() {
         let config = ValidateConfig::default();
@@ -1405,9 +1990,10 @@ Resources:
             make_diag("F3012", Severity::Fatal, 3, 1),
         ];
         finalize_diagnostics(&mut diags, &config);
-        assert_eq!(diags[0].severity, Severity::Error, "Warn should be upgraded to Error");
-        assert_eq!(diags[1].severity, Severity::Error, "Error should stay Error");
-        assert_eq!(diags[2].severity, Severity::Fatal, "Fatal should stay Fatal");
+        let severity_of = |id: &str| diags.iter().find(|d| d.rule_id == id).map(|d| d.severity);
+        assert_eq!(severity_of("W3045"), Some(Severity::Error), "Warn should be upgraded to Error");
+        assert_eq!(severity_of("E3012"), Some(Severity::Error), "Error should stay Error");
+        assert_eq!(severity_of("F3012"), Some(Severity::Fatal), "Fatal should stay Fatal");
     }
 
     #[test]
@@ -1415,15 +2001,16 @@ Resources:
         let config = ValidateConfig { strict: false, ..Default::default() };
         let mut diags = vec![make_diag("W3045", Severity::Warn, 1, 1), make_diag("E3012", Severity::Error, 2, 1)];
         finalize_diagnostics(&mut diags, &config);
-        assert_eq!(diags[0].severity, Severity::Warn, "Warn should be preserved");
-        assert_eq!(diags[1].severity, Severity::Error, "Error should stay Error");
+        let severity_of = |id: &str| diags.iter().find(|d| d.rule_id == id).map(|d| d.severity);
+        assert_eq!(severity_of("W3045"), Some(Severity::Warn), "Warn should be preserved");
+        assert_eq!(severity_of("E3012"), Some(Severity::Error), "Error should stay Error");
     }
 
     #[test]
     fn finalize_disable_builtin_rules_keeps_only_custom_and_guard() {
         let config = ValidateConfig { disable_builtin_rules: true, ..Default::default() };
         let mut diags = vec![
-            make_diag("E9001", Severity::Error, 1, 1),
+            make_diag("F3006", Severity::Fatal, 1, 1),
             Diagnostic { source: RuleOrigin::Custom, ..make_diag("CUSTOM001", Severity::Warn, 2, 1) },
             Diagnostic { source: RuleOrigin::Guard, ..make_diag("GUARD001", Severity::Warn, 3, 1) },
             make_diag("E3012", Severity::Error, 4, 1),
@@ -1438,7 +2025,7 @@ Resources:
     fn finalize_default_config_keeps_all_origins() {
         let config = ValidateConfig::default();
         let mut diags = vec![
-            make_diag("E9001", Severity::Error, 1, 1),
+            make_diag("F3006", Severity::Fatal, 1, 1),
             Diagnostic { source: RuleOrigin::Custom, ..make_diag("CUSTOM001", Severity::Warn, 2, 1) },
         ];
         finalize_diagnostics(&mut diags, &config);
@@ -1453,7 +2040,7 @@ Resources:
             rule_id: "E3012".into(),
             severity: Severity::Error,
             message: "x".into(),
-            resource: Some(ResourceRef { id: Some("Bucket".into()), resource_type: Some("AWS::S3::Bucket".into()) }),
+            entity: Entity::resource("Bucket", Some("AWS::S3::Bucket".into())),
             category: Some(Category::Schema.as_str().into()),
             ..default_diag()
         }];
@@ -1493,6 +2080,21 @@ Resources:
     }
 
     #[test]
+    fn enrich_custom_rule_gets_no_phase() {
+        let model = minimal_model();
+        let meta = meta_map();
+        let mut diags = vec![Diagnostic {
+            rule_id: "Firewall".into(),
+            severity: Severity::Error,
+            message: "x".into(),
+            source: RuleOrigin::Custom,
+            ..default_diag()
+        }];
+        enrich_diagnostics(&mut diags, &model, &meta, &HashMap::new(), &DetailLevel::Detailed);
+        assert_eq!(diags[0].phase, None, "custom rules must not be assigned a phase");
+    }
+
+    #[test]
     fn enrich_full_format_builds_context() {
         let model = minimal_model();
         let meta = meta_map();
@@ -1500,7 +2102,7 @@ Resources:
             rule_id: "E3012".into(),
             severity: Severity::Error,
             message: "x".into(),
-            resource: Some(ResourceRef { id: Some("Bucket".into()), resource_type: Some("AWS::S3::Bucket".into()) }),
+            entity: Entity::resource("Bucket", Some("AWS::S3::Bucket".into())),
             property_path: Some("Properties.BucketName".into()),
             ..default_diag()
         }];
@@ -1516,14 +2118,13 @@ Resources:
             rule_id: "E3012".into(),
             severity: Severity::Error,
             message: "x".into(),
-            resource: Some(ResourceRef { id: Some("Bucket".into()), resource_type: Some("AWS::S3::Bucket".into()) }),
+            entity: Entity::resource("Bucket", Some("AWS::S3::Bucket".into())),
             property_path: Some("Properties.BucketName".into()),
             ..default_diag()
         }];
         enrich_diagnostics(&mut diags, &model, &meta, &HashMap::new(), &DetailLevel::Standard);
         assert!(diags[0].phase.is_none(), "unenriched diagnostic should have no phase");
         assert!(diags[0].rule_description.is_none(), "unenriched diagnostic should have no rule_description");
-        assert!(diags[0].section.is_none(), "unenriched diagnostic should have no section");
         assert!(diags[0].context.is_none(), "unenriched diagnostic should have no context");
     }
 
@@ -1540,7 +2141,7 @@ Resources:
         );
         assert_eq!(diag.rule_id, "E3012");
         assert_eq!(diag.severity, Severity::Error);
-        assert_eq!(diag.resource.as_ref().unwrap().id.as_deref(), Some("Bucket"));
+        assert_eq!(diag.resource_logical_id(), Some("Bucket"));
         assert_eq!(diag.suggested_fix.as_deref(), Some("Use a string"));
     }
 
@@ -1555,7 +2156,7 @@ Resources:
     fn make_resource_diagnostic_empty_resource_id() {
         let model = minimal_model();
         let diag = make_resource_diagnostic("E3012", "msg", &model, "", "", None);
-        assert!(diag.resource.is_none(), "diagnostic without resource_id should have no resource");
+        assert!(diag.entity.is_none(), "diagnostic without resource_id should have no entity");
     }
 
     #[test]
@@ -1579,6 +2180,134 @@ Resources:
         let ctx = build_context("E3012", Some("Bucket"), "Properties.BucketName", &model)
             .expect("E3012 with property path should return context");
         assert!(ctx.actual_value.is_some(), "context should have actual_value");
+    }
+
+    #[test]
+    fn build_context_runtime_rules_carry_actual_value_and_lifecycle() {
+        let yaml = br#"
+Resources:
+  Fn:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: nodejs4.3
+"#;
+        let model = SemanticModel::from_bytes(yaml).expect("model with lambda runtime");
+        for (rule_id, expected_lifecycle) in
+            [("E2533", "end-of-life"), ("E2531", "create-blocked"), ("W2531", "deprecated")]
+        {
+            let ctx = build_context(rule_id, Some("Fn"), "Properties.Runtime", &model)
+                .unwrap_or_else(|| panic!("{rule_id} should return context"));
+            assert_eq!(
+                ctx.actual_value.as_ref().and_then(|v| v.as_str()),
+                Some("nodejs4.3"),
+                "{rule_id} context should carry the offending runtime string"
+            );
+            assert_eq!(ctx.lifecycle.as_deref(), Some(expected_lifecycle), "{rule_id} lifecycle marker");
+        }
+    }
+
+    #[test]
+    fn build_context_runtime_omits_actual_value_when_branches_disagree() {
+        // Runtime driven by Fn::If resolves to a different value per branch, and the
+        // emitter produces one diagnostic per branch. Attaching one branch's value to
+        // all would contradict the sibling messages, so no actual_value is set; the
+        // lifecycle marker is still safe to attach.
+        let yaml = br#"
+Parameters:
+  Env:
+    Type: String
+Conditions:
+  IsProd: !Equals [!Ref Env, prod]
+Resources:
+  Fn:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: !If [IsProd, dotnetcore2.1, nodejs4.3]
+"#;
+        let model = SemanticModel::from_bytes(yaml).expect("model with conditional runtime");
+        let ctx = build_context("E2533", Some("Fn"), "Properties.Runtime", &model)
+            .expect("E2533 should still return context (lifecycle)");
+        assert_eq!(ctx.lifecycle.as_deref(), Some("end-of-life"), "lifecycle is unconditionally safe");
+        assert!(
+            ctx.actual_value.is_none(),
+            "actual_value must be omitted when branches resolve to different runtimes, got {:?}",
+            ctx.actual_value
+        );
+    }
+
+    #[test]
+    fn backfill_locations_only_fills_missing_and_resolves_resource_property() {
+        let yaml = br#"
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: my-bucket
+"#;
+        let model = SemanticModel::from_bytes(yaml).expect("model");
+        let existing = SourceSpan { start_line: 999, start_column: 1, end_line: 999, end_column: 2 };
+        let mut diags = vec![
+            // Missing location: should be backfilled from the resource property span.
+            Diagnostic {
+                rule_id: "E3012".into(),
+                severity: Severity::Error,
+                message: "x".into(),
+                entity: Entity::resource("Bucket", None),
+                property_path: Some("Properties.BucketName".into()),
+                ..default_diag()
+            },
+            // Already located: must be left untouched.
+            Diagnostic {
+                rule_id: "E3013".into(),
+                severity: Severity::Error,
+                message: "y".into(),
+                location: Some(existing),
+                ..default_diag()
+            },
+        ];
+        backfill_locations(&mut diags, &model);
+        assert!(diags[0].location.is_some(), "missing location should be backfilled");
+        assert_ne!(diags[0].location, Some(UNKNOWN_SPAN), "backfilled location must be a real span");
+        assert_eq!(diags[1].location, Some(existing), "existing location must be preserved");
+    }
+
+    #[test]
+    fn backfill_entities_derives_from_entity_paths_without_overriding() {
+        let model = minimal_model();
+        let mut diags = vec![
+            // Resource finding: entity was attached at emission and must be kept.
+            Diagnostic {
+                rule_id: "E3012".into(),
+                severity: Severity::Error,
+                message: "x".into(),
+                entity: Entity::resource("Bucket", None),
+                ..default_diag()
+            },
+            // Non-resource entity finding: derived from the section-absolute path.
+            Diagnostic {
+                rule_id: "W2001".into(),
+                severity: Severity::Warn,
+                message: "y".into(),
+                property_path: Some("Parameters/MyParam".into()),
+                ..default_diag()
+            },
+            // Template-level finding: no entity.
+            Diagnostic { rule_id: "F0001".into(), severity: Severity::Fatal, message: "z".into(), ..default_diag() },
+        ];
+        backfill_entities(&mut diags, &model);
+        let resource = diags[0].entity.as_ref().expect("resource entity preserved");
+        assert_eq!(resource.logical_id, "Bucket");
+        assert_eq!(resource.entity_type, EntityType::Resource);
+        assert_eq!(
+            resource.resource_type.as_deref(),
+            Some("AWS::S3::Bucket"),
+            "missing resource type is filled from the model"
+        );
+        let parameter = diags[1].entity.as_ref().expect("parameter entity derived from path");
+        assert_eq!(parameter.logical_id, "MyParam");
+        assert_eq!(parameter.entity_type, EntityType::Parameter);
+        assert_eq!(parameter.resource_type, None);
+        assert!(diags[2].entity.is_none(), "template-level finding has no entity");
     }
 
     #[test]
@@ -1611,9 +2340,9 @@ Resources:
     }
 
     #[test]
-    fn build_context_w3041_sets_write_only_lifecycle() {
+    fn build_context_w9054_sets_write_only_lifecycle() {
         let model = minimal_model();
-        let ctx = build_context("W3041", Some("Bucket"), "", &model).expect("W3041 should return context");
+        let ctx = build_context("W9054", Some("Bucket"), "", &model).expect("W9054 should return context");
         assert_eq!(ctx.lifecycle.as_deref(), Some("write-only"));
     }
 
@@ -1663,9 +2392,9 @@ Resources:
     }
 
     #[test]
-    fn build_context_e3037_adds_resource_type() {
+    fn build_context_f3006_adds_resource_type() {
         let model = minimal_model();
-        let ctx = build_context("E9001", Some("Bucket"), "", &model).expect("E9001 should return context");
+        let ctx = build_context("F3006", Some("Bucket"), "", &model).expect("F3006 should return context");
         let extra = ctx.extra.unwrap();
         assert_eq!(extra.get("resource_type").and_then(|v| v.as_str()), Some("AWS::S3::Bucket"));
     }
@@ -1722,20 +2451,18 @@ Resources:
     }
 
     #[test]
-    fn enrich_preserves_existing_section_phase_description() {
+    fn enrich_preserves_existing_phase_and_description() {
         let model = minimal_model();
         let meta = meta_map();
         let mut diags = vec![Diagnostic {
             rule_id: "E3012".into(),
             severity: Severity::Error,
             message: "x".into(),
-            section: Some("CustomSection".into()),
             phase: Some(Phase::Lint),
             rule_description: Some("custom desc".into()),
             ..default_diag()
         }];
         enrich_diagnostics(&mut diags, &model, &meta, &HashMap::new(), &DetailLevel::Standard);
-        assert_eq!(diags[0].section.as_deref(), Some("CustomSection"));
         assert_eq!(diags[0].phase, Some(Phase::Lint));
         assert_eq!(diags[0].rule_description.as_deref(), Some("custom desc"));
     }
@@ -1815,6 +2542,25 @@ Resources:
     }
 
     #[test]
+    fn catch_panics_maps_panic_to_caller_error_type() {
+        // The bindings rely on this to keep a panic during engine construction from
+        // unwinding across the FFI boundary: it must become the caller's own error type.
+        #[derive(Debug, PartialEq)]
+        struct BindingError(String);
+        let result: Result<(), BindingError> = catch_panics(|| panic!("engine init blew up"), BindingError);
+        let error = result.expect_err("a panic must be converted to the caller's error type");
+        assert!(error.0.contains("engine init blew up"), "the panic payload must be carried, got: {}", error.0);
+    }
+
+    #[test]
+    fn catch_panics_passes_through_ok_and_err_without_wrapping() {
+        let ok: Result<i32, String> = catch_panics(|| Ok(7), |m| m);
+        assert_eq!(ok, Ok(7), "a non-panicking Ok must pass through unchanged");
+        let err: Result<i32, String> = catch_panics(|| Err("plain error".to_string()), |_| "panic".to_string());
+        assert_eq!(err, Err("plain error".to_string()), "a returned Err must pass through, not be treated as a panic");
+    }
+
+    #[test]
     fn validate_catching_panics_converts_panic_to_structured_error() {
         let error = validate_catching_panics(|| panic!("simulated invariant violation"))
             .expect_err("a panic must be converted into a structured error, not propagated");
@@ -1831,10 +2577,20 @@ Resources:
     fn validate_catching_panics_passes_success_through_unchanged() {
         let model = minimal_model();
         let report = validate_catching_panics(|| {
-            Ok(build_report(vec![], &model, 0, Some(7), false, Severity::Info, "inline".to_string()))
+            Ok(build_report_with_versions(
+                vec![],
+                &model,
+                0,
+                Some(7),
+                false,
+                Severity::Info,
+                "inline".to_string(),
+                TEST_CFN_LINT_VERSION.to_string(),
+                TEST_RESOURCE_SCHEMA_VERSION.to_string(),
+            ))
         })
         .expect("a non-panicking Ok result must pass through the guard unchanged");
-        assert_eq!(report.metadata.rules_evaluated, Some(7), "the guard must return the closure's report verbatim");
+        assert_eq!(report.metadata.rules_evaluated, 7, "the guard must return the closure's report verbatim");
     }
 
     /// A test engine that fails on demand, to prove that engine failures surface
@@ -1893,7 +2649,7 @@ Resources:
 
     #[test]
     fn engine_exception_surfaces_as_error_never_as_diagnostic() {
-        let schema_validator = schema_validator::SchemaValidator::new();
+        let schema_validator = SchemaValidator::default();
         let engine = ExplodingEngine::new(Explosion::ReturnErr);
         let result = validate_bytes_with_path(
             &engine,
@@ -1918,7 +2674,7 @@ Resources:
 
     #[test]
     fn engine_panic_is_caught_as_error_never_as_diagnostic() {
-        let schema_validator = schema_validator::SchemaValidator::new();
+        let schema_validator = SchemaValidator::default();
         let engine = ExplodingEngine::new(Explosion::Panic);
         let result = validate_catching_panics(|| {
             validate_bytes_with_path(

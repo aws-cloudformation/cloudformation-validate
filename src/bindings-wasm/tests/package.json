@@ -1,10 +1,15 @@
 {
     "private": true,
     "scripts": {
-        "test": "vitest run"
+        "test": "vitest run",
+        "test:coverage": "vitest run --coverage"
+    },
+    "dependencies": {
+        "@aws/cloudformation-validate": "file:../dist"
     },
     "devDependencies": {
-        "vitest": "4.1.8",
-        "@types/node": "25.9.3"
+        "@types/node": "26.1.0",
+        "@vitest/coverage-v8": "4.1.9",
+        "vitest": "4.1.9"
     }
 }

@@ -21,7 +21,7 @@ violation contains make_diag_full("W2508", "WARN", name,
 
 violation contains make_diag_full("W2508", "WARN", name,
     "Properties.SecurityGroupIngress",
-    sprintf("Security group allows all traffic from %s — sensitive port %d is exposed", [cidr, port]),
+    sprintf("Security group allows all traffic from %s - sensitive port %d is exposed", [cidr, port]),
     "Restrict the CIDR range or limit the protocol",
     "") if {
     some name, res in input.resources
@@ -49,7 +49,7 @@ violation contains make_diag_full("W2508", "WARN", name,
 
 violation contains make_diag_full("W2508", "WARN", name,
     "Properties",
-    sprintf("Security group allows all traffic from %s — sensitive port %d is exposed", [cidr, port]),
+    sprintf("Security group allows all traffic from %s - sensitive port %d is exposed", [cidr, port]),
     "Restrict the CIDR range or limit the protocol",
     "") if {
     some name, res in input.resources

@@ -1,0 +1,82 @@
+name: Feature request
+description: Suggest a new capability or improvement
+title: "feature: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting an improvement to cloudformation-validate.
+
+        **Do not include credentials, account IDs, secrets, security vulnerabilities, or other sensitive information.** Report security vulnerabilities privately through [AWS Vulnerability Reporting](https://aws.amazon.com/security/vulnerability-reporting/).
+
+  - type: input
+    id: summary
+    attributes:
+      label: Feature summary
+      description: Briefly describe the capability or improvement.
+      placeholder: Add support for validating a new CloudFormation template behavior.
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+      description: What problem would this solve, who encounters it, and why are existing capabilities insufficient?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed_solution
+    attributes:
+      label: Proposed solution
+      description: Describe the desired behavior and user experience. Include examples or API sketches when useful.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: interfaces
+    attributes:
+      label: Relevant interfaces
+      description: Select every interface that should expose this capability.
+      options:
+        - label: CLI
+        - label: Rust library
+        - label: Node.js / WASM
+        - label: Python
+        - label: Go
+        - label: JVM / Kotlin / Java
+        - label: Custom rules / Guard DSL
+        - label: Not interface-specific
+    validations:
+      required: false
+
+  - type: dropdown
+    id: validation_behavior
+    attributes:
+      label: Does this change validation behavior?
+      description: Select whether the request would add, remove, or alter diagnostics.
+      options:
+        - "No"
+        - "Yes"
+        - Not sure
+    validations:
+      required: false
+
+  - type: textarea
+    id: correctness_evidence
+    attributes:
+      label: Correctness evidence
+      description: For validation changes, link to relevant CloudFormation schemas, documentation, specifications, or focused examples that define the expected behavior.
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Describe workarounds or alternative designs and why they are insufficient.
+
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: Additional context
+      description: Add examples, mockups, related issues, or other context.

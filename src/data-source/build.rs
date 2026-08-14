@@ -1,10 +1,14 @@
+#[path = "src/source_versions.rs"]
+mod source_versions;
+
+use source_versions::{SOURCE_VERSIONS_FILE, SourceVersions};
 use std::env;
 use std::fs;
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
 
 /// All data files are minified, zstd-compressed (level 9), and embedded as
-/// `pub static NAME_BYTES: LazyLock<Vec<u8>>` — decompressed lazily on first access.
+/// `pub static NAME_BYTES: LazyLock<Vec<u8>>` - decompressed lazily on first access.
 const GENERATED_JSON: &[(&str, &str)] = &[
     // schema-validator
     ("compiled_schemas", "COMPILED_SCHEMAS"),
@@ -21,6 +25,9 @@ const GENERATED_JSON: &[(&str, &str)] = &[
     ("getatt_attributes", "GETATT_ATTRIBUTES"),
     ("known_resource_types", "KNOWN_RESOURCE_TYPES"),
     ("stateful_resource_types", "STATEFUL_RESOURCE_TYPES"),
+    // Tables extracted from cfn-lint rule code during sync
+    ("retention_period_requirements", "RETENTION_PERIOD_REQUIREMENTS"),
+    ("codepipeline_action_artifact_counts", "CODEPIPELINE_ACTION_ARTIFACT_COUNTS"),
     ("aws_rds_dbinstance_dbinstanceclass_enum", "AWS_RDS_DBINSTANCE_DBINSTANCECLASS_ENUM"),
     ("aws_ec2_instance_instancetype_enum", "AWS_EC2_INSTANCE_INSTANCETYPE_ENUM"),
     ("aws_emr_cluster_instancetypeconfig_instancetype_enum", "AWS_EMR_CLUSTER_INSTANCETYPECONFIG_INSTANCETYPE_ENUM"),
@@ -52,12 +59,16 @@ const GENERATED_JSON: &[(&str, &str)] = &[
     ),
 ];
 
-/// Handwritten JSON data files (from data-source/handwritten/).
+/// Handwritten JSON data files (from data-source/handwritten/). These have no
+/// faithful cfn-lint source: deprecated_resource_types and sensitive_ports are
+/// engine-specific, getatt_return_type_overrides corrects CloudFormation's
+/// GetAtt stringification (consumed at generate time, and embedded so runtime
+/// overlay-derived GetAtt/Ref metadata preserves the same corrections).
 const HANDWRITTEN_JSON: &[(&str, &str)] = &[
-    ("codepipeline_action_artifact_counts", "CODEPIPELINE_ACTION_ARTIFACT_COUNTS"),
     ("deprecated_resource_types", "DEPRECATED_RESOURCE_TYPES"),
-    ("retention_period_requirements", "RETENTION_PERIOD_REQUIREMENTS"),
     ("sensitive_ports", "SENSITIVE_PORTS"),
+    ("secretsmanager_arn_fields", "SECRETSMANAGER_ARN_FIELDS"),
+    ("getatt_return_type_overrides", "GETATT_RETURN_TYPE_OVERRIDES"),
 ];
 
 fn main() {
@@ -77,13 +88,32 @@ fn main() {
 
     let mut code = String::new();
 
-    // Generated JSON data → minified &[u8]
+    let source_versions_path = generated_data_dir.join(SOURCE_VERSIONS_FILE);
+    println!("cargo:rerun-if-changed={}", source_versions_path.display());
+    let source_versions = if source_versions_path.exists() {
+        let versions = SourceVersions::read(&source_versions_path)
+            .and_then(|versions| SourceVersions::new(versions.cfn_lint_version, versions.resource_schema_version))
+            .unwrap_or_else(|error| panic!("failed to load required data source versions: {error}"));
+        Some(versions)
+    } else {
+        None
+    };
+    emit_optional_version(
+        "CFN_LINT_VERSION",
+        source_versions.as_ref().map(|versions| versions.cfn_lint_version.as_str()),
+        &mut code,
+    );
+    emit_optional_version(
+        "RESOURCE_SCHEMA_VERSION",
+        source_versions.as_ref().map(|versions| versions.resource_schema_version.as_str()),
+        &mut code,
+    );
+
     for (filename, const_name) in GENERATED_JSON {
         let path = resolve_json_file(&generated_data_dir, &generated_sv_dir, filename);
         embed_minified_json(&path, const_name, &out_dir, &mut code);
     }
 
-    // Handwritten JSON → minified &[u8]
     for (filename, const_name) in HANDWRITTEN_JSON {
         let path = handwritten_dir.join(format!("{filename}.json"));
         assert_exists(&path, "handwritten");
@@ -98,7 +128,6 @@ fn main() {
     }
     embed_minified_json(&cel_rules_path, "GENERATED_RULES", &out_dir, &mut code);
 
-    // Handwritten rego policies → &[(&str, &str)]
     code.push_str("pub const HANDWRITTEN_REGO_POLICIES: &[(&str, &str)] = &[\n");
     if rego_hw_dir.exists() {
         collect_rego_files(&rego_hw_dir, &rego_hw_dir, &mut code);
@@ -116,6 +145,13 @@ fn main() {
     code.push_str("}\n");
 
     fs::write(out_dir.join("embedded_data.rs"), code).unwrap();
+}
+
+fn emit_optional_version(const_name: &str, version: Option<&str>, code: &mut String) {
+    match version {
+        Some(version) => code.push_str(&format!("pub const {const_name}: Option<&str> = Some({version:?});\n")),
+        None => code.push_str(&format!("pub const {const_name}: Option<&str> = None;\n")),
+    }
 }
 
 /// Find a JSON file in either the generated data or schema-validator directory.
@@ -159,7 +195,7 @@ fn embed_minified_json(path: &Path, const_name: &str, out_dir: &Path, code: &mut
     code.push_str(&format!(
         "pub static {const_name}_BYTES: std::sync::LazyLock<Vec<u8>> = std::sync::LazyLock::new(|| {{\n    \
              const COMPRESSED: &[u8] = include_bytes!({:?});\n    \
-             let mut decoder = ruzstd::StreamingDecoder::new(COMPRESSED)\n        \
+             let mut decoder = ruzstd::decoding::StreamingDecoder::new(COMPRESSED)\n        \
                  .expect(\"zstd stream init {const_name}\");\n    \
              let mut out = Vec::new();\n    \
              std::io::Read::read_to_end(&mut decoder, &mut out).expect(\"zstd decode {const_name}\");\n    \

@@ -1,0 +1,15 @@
+{
+  "Resources": {
+    "Nodegroup": {
+      "Type": "AWS::EKS::Nodegroup",
+      "Properties": {
+        "ClusterName": "MyCluster",
+        "NodeRole": "arn:aws:iam::123456789012:role/NodeRole",
+        "Subnets": [
+          { "Fn::ImportValue": "NetworkStack:ExportsOutputRefVpcPrivateSubnet1Subnet536B997AFD4CC940" },
+          { "Fn::ImportValue": "NetworkStack:ExportsOutputRefVpcPrivateSubnet2Subnet3788AAA1380949A3" }
+        ]
+      }
+    }
+  }
+}

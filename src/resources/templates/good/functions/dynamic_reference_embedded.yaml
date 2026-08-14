@@ -1,0 +1,39 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  Embedded dynamic references resolve at deploy time, so value-format rules
+  (schedule, security-group name, bucket name, etc.) must treat them as opaque
+  and not flag them - even when the reference is not the entire property value or
+  is produced by an intrinsic.
+Resources:
+  Sg:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group whose name is a dynamic reference
+      GroupName: "prefix-{{resolve:ssm:/network/sg-name}}"
+      Tags:
+        - Key: Name
+          Value: sg
+  Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: "{{resolve:ssm:/config/bucket-name}}"
+      Tags:
+        - Key: Name
+          Value: bucket
+  ScheduledRule:
+    Type: AWS::Events::Rule
+    Properties:
+      ScheduleExpression: !Sub "{{resolve:ssm:/config/${Env}/schedule}}"
+      State: ENABLED
+      Targets:
+        - Arn: "arn:aws:lambda:us-east-1:123456789012:function:my-func"
+          Id: target1
+  Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: "prefix-{{resolve:ssm:/ec2/ami-id}}"
+      InstanceType: t3.micro
+Parameters:
+  Env:
+    Type: String
+    Default: prod

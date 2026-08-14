@@ -28,20 +28,23 @@ violation contains make_diag("I7010", "INFO", "",
 }
 
 # F2003: Parameter names must be alphanumeric
-violation contains make_diag("F2003", "FATAL", "",
+violation contains make_diag_at("F2003", "FATAL", "",
+    sprintf("Parameters/%s", [pname]),
     sprintf("Parameter name '%s' must be alphanumeric", [pname])) if {
     some pname in object.keys(input.parameters)
     not regex.match(`^[a-zA-Z0-9]+$`, pname)
 }
 
 # F2011/I2011: Parameter name length
-violation contains make_diag("F2011", "FATAL", "",
+violation contains make_diag_at("F2011", "FATAL", "",
+    sprintf("Parameters/%s", [pname]),
     sprintf("Parameter name '%s' exceeds maximum length of 255", [pname])) if {
     some pname in object.keys(input.parameters)
     count(pname) > 255
 }
 
-violation contains make_diag("I2011", "INFO", "",
+violation contains make_diag_at("I2011", "INFO", "",
+    sprintf("Parameters/%s", [pname]),
     sprintf("Parameter name '%s' is approaching maximum length of 255", [pname])) if {
     some pname in object.keys(input.parameters)
     count(pname) > 229
@@ -50,7 +53,8 @@ violation contains make_diag("I2011", "INFO", "",
 
 # F6004: Output names must be alphanumeric
 # Fn::ForEach:: prefixed keys are ForEach constructs, not literal output names
-violation contains make_diag("F6004", "FATAL", "",
+violation contains make_diag_at("F6004", "FATAL", "",
+    sprintf("Outputs/%s", [oname]),
     sprintf("Output name '%s' must be alphanumeric", [oname])) if {
     some oname in object.keys(input.outputs)
     not regex.match(`^[a-zA-Z0-9]+$`, oname)
@@ -58,13 +62,15 @@ violation contains make_diag("F6004", "FATAL", "",
 }
 
 # F6011/I6011: Output name length
-violation contains make_diag("F6011", "FATAL", "",
+violation contains make_diag_at("F6011", "FATAL", "",
+    sprintf("Outputs/%s", [oname]),
     sprintf("Output name '%s' exceeds maximum length of 255", [oname])) if {
     some oname in object.keys(input.outputs)
     count(oname) > 255
 }
 
-violation contains make_diag("I6011", "INFO", "",
+violation contains make_diag_at("I6011", "INFO", "",
+    sprintf("Outputs/%s", [oname]),
     sprintf("Output name '%s' is approaching maximum length of 255", [oname])) if {
     some oname in object.keys(input.outputs)
     count(oname) > 229
@@ -72,26 +78,19 @@ violation contains make_diag("I6011", "INFO", "",
 }
 
 # F7002/I7002: Mapping name length
-violation contains make_diag("F7002", "FATAL", "",
+violation contains make_diag_at("F7002", "FATAL", "",
+    sprintf("Mappings/%s", [mname]),
     sprintf("Mapping name '%s' exceeds maximum length of 255", [mname])) if {
     some mname in object.keys(input.mappings)
     count(mname) > 255
 }
 
-violation contains make_diag("I7002", "INFO", "",
+violation contains make_diag_at("I7002", "INFO", "",
+    sprintf("Mappings/%s", [mname]),
     sprintf("Mapping name '%s' is approaching maximum length of 255", [mname])) if {
     some mname in object.keys(input.mappings)
     count(mname) > 229
     count(mname) <= 255
-}
-
-# F1004: Description must be a string
-violation contains make_diag("F1004", "FATAL", "",
-    "Description must be a string") if {
-    desc := input.template.description
-    desc != null
-    not is_string(desc)
-    not is_null(desc)
 }
 
 # F3007: Duplicate resource/parameter names

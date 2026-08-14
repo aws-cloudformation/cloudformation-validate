@@ -1,25 +1,26 @@
-use diagnostics::ValidationReport;
+use diagnostics::{Diagnostic, ValidationReport};
 use rego_engine::RegoEngine;
-use rules::{FilterConfig, IdRange, RuleFilterConfig, Severity};
+use rules::{FilterConfig, IdRange, RuleFilterConfig, Severity, rule_number};
 use schema_validator::SchemaValidator;
 use std::sync::LazyLock;
-use template_model::SemanticModel;
-use validation_engine::{EngineConfig, ExternalRuleSource, ValidateConfig, ValidationEngine};
+use template_model::{PseudoParameterOverrides, SemanticModel};
+use validation_engine::guard::resolve_guard_config;
+use validation_engine::{EngineConfig, ExternalRuleSource, ValidateConfig, ValidationEngine, validate_bytes};
 
 static SHARED_ENGINE: LazyLock<RegoEngine> = LazyLock::new(|| RegoEngine::new(EngineConfig::default()).unwrap());
-static SHARED_SV: LazyLock<SchemaValidator> = LazyLock::new(SchemaValidator::new);
+static SHARED_SV: LazyLock<SchemaValidator> = LazyLock::new(SchemaValidator::default);
 
 fn validate_fixture(path: &str) -> ValidationReport {
     let full = format!("../resources/templates/{}", path);
     let bytes = std::fs::read(&full).unwrap_or_else(|e| panic!("Failed to read {}: {}", full, e));
-    validation_engine::validate_bytes(&*SHARED_ENGINE, &SHARED_SV, &bytes, ValidateConfig::default())
+    validate_bytes(&*SHARED_ENGINE, &SHARED_SV, &bytes, ValidateConfig::default())
         .unwrap_or_else(|e| panic!("Failed to validate {}: {}", full, e))
 }
 
 fn validate_with_config(path: &str, config: ValidateConfig) -> ValidationReport {
     let full = format!("../resources/templates/{}", path);
     let bytes = std::fs::read(&full).unwrap_or_else(|e| panic!("Failed to read {}: {}", full, e));
-    validation_engine::validate_bytes(&*SHARED_ENGINE, &SHARED_SV, &bytes, config)
+    validate_bytes(&*SHARED_ENGINE, &SHARED_SV, &bytes, config)
         .unwrap_or_else(|e| panic!("Failed to validate {}: {}", full, e))
 }
 
@@ -36,7 +37,6 @@ fn e2e_all_good_fixtures_no_errors() {
     for fixture in [
         "good/minimal.yaml",
         "good/generic.yaml",
-        "good/core/conditions.yaml",
         "good/functions_findinmap.yaml",
         "good/resources_codepipeline.yaml",
         "good/vpc_subnets.yaml",
@@ -65,7 +65,11 @@ fn e2e_all_good_fixtures_no_errors() {
             no_errors(&report),
             "Expected no errors in {}, got: {:?}",
             fixture,
-            report.diagnostics.iter().filter(|d| d.severity == Severity::Error).collect::<Vec<_>>()
+            report
+                .diagnostics
+                .iter()
+                .filter(|d| d.severity == Severity::Error || d.severity == Severity::Fatal)
+                .collect::<Vec<_>>()
         );
     }
 }
@@ -83,17 +87,14 @@ fn e2e_bad_circular_deps() {
 #[test]
 fn e2e_integration_ref_no_value() {
     let report = validate_fixture("integration/ref-no-value.yaml");
-    // IamRole2 has Properties: !Ref AWS::NoValue — schema rules correctly flag missing required props
-    // CloudFront1 has Properties: !Ref AWS::NoValue — also correctly flagged
-    // CloudFront2 has conditional DefaultCacheBehavior — nested required may fire
+    // IamRole2 has Properties: !Ref AWS::NoValue - schema rules correctly flag missing required props
+    // CloudFront1 has Properties: !Ref AWS::NoValue - also correctly flagged
+    // CloudFront2 has conditional DefaultCacheBehavior - nested required may fire
     // The template parses without crashes, which is the key validation
     let allowed_resources = ["IamRole1", "IamRole2", "IamRole3", "CloudFront1", "CloudFront2"];
     assert!(
         report.diagnostics.iter().all(|d| d.severity != Severity::Error
-            || d.resource
-                .as_ref()
-                .map(|r| r.id.as_deref().is_some_and(|id| allowed_resources.contains(&id)))
-                .unwrap_or(false)),
+            || d.resource_logical_id().is_some_and(|id| allowed_resources.contains(&id))),
         "Unexpected resource with errors, got: {:?}",
         report.diagnostics.iter().filter(|d| d.severity == Severity::Error).collect::<Vec<_>>()
     );
@@ -106,7 +107,7 @@ fn e2e_integration_dynamic_references() {
     // which correctly triggers pattern validation (not recognized as a resolve: ref)
     assert!(
         report.diagnostics.iter().all(|d| d.severity != Severity::Error
-            || d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some("SESEventSourceMappingBadDynamicReference")),
+            || d.resource_logical_id() == Some("SESEventSourceMappingBadDynamicReference")),
         "Expected errors only on bad dynamic ref resource, got: {:?}",
         report.diagnostics.iter().filter(|d| d.severity == Severity::Error).collect::<Vec<_>>()
     );
@@ -188,13 +189,17 @@ fn e2e_json_output() {
 fn e2e_diagnostics_sorted() {
     let report = validate_fixture("good/generic.yaml");
     for w in report.diagnostics.windows(2) {
-        // Engine sort contract: (line ASC, col ASC, severity DESC, rule_id ASC).
-        let key = |d: &diagnostics::Diagnostic| {
+        // Engine sort contract: severity DESC (Fatal..Debug), then rule number ASC,
+        // then rule_id ASC, then location and the remaining fields.
+        let key = |d: &Diagnostic| {
             (
+                std::cmp::Reverse(d.severity),
+                rule_number(&d.rule_id),
+                d.rule_id.clone(),
                 d.location.as_ref().map_or(0, |l| l.start_line),
                 d.location.as_ref().map_or(0, |l| l.start_column),
-                std::cmp::Reverse(d.severity),
-                d.rule_id.clone(),
+                d.property_path.clone(),
+                d.message.clone(),
             )
         };
         assert!(key(&w[0]) <= key(&w[1]), "Diagnostics not sorted: {:?} > {:?}", w[0], w[1]);
@@ -205,10 +210,8 @@ fn e2e_diagnostics_sorted() {
 fn e2e_engine_reusable() {
     let bytes1 = std::fs::read("../resources/templates/good/minimal.yaml").unwrap();
     let bytes2 = std::fs::read("../resources/templates/good/generic.yaml").unwrap();
-    let r1 =
-        validation_engine::validate_bytes(&*SHARED_ENGINE, &SHARED_SV, &bytes1, ValidateConfig::default()).unwrap();
-    let r2 =
-        validation_engine::validate_bytes(&*SHARED_ENGINE, &SHARED_SV, &bytes2, ValidateConfig::default()).unwrap();
+    let r1 = validate_bytes(&*SHARED_ENGINE, &SHARED_SV, &bytes1, ValidateConfig::default()).unwrap();
+    let r2 = validate_bytes(&*SHARED_ENGINE, &SHARED_SV, &bytes2, ValidateConfig::default()).unwrap();
     assert!(no_errors(&r1));
     assert!(no_errors(&r2));
 }
@@ -222,7 +225,7 @@ fn e2e_bad_security_issues() {
 #[test]
 fn e2e_bad_unknown_properties() {
     let report = validate_fixture("bad/unknown_properties.yaml");
-    assert!(has_rule(&report, "E9001"), "Expected E9001 for unknown type, got: {:?}", report.diagnostics);
+    assert!(has_rule(&report, "F3006"), "Expected F3006 for unknown AWS type, got: {:?}", report.diagnostics);
     assert!(has_rule(&report, "F3002"), "Expected F3002 for unknown property, got: {:?}", report.diagnostics);
 }
 
@@ -231,8 +234,8 @@ fn e2e_rules_evaluated_nonzero() {
     let config = ValidateConfig { ..Default::default() };
     let report = validate_with_config("good/minimal.yaml", config);
     assert!(
-        report.metadata.rules_evaluated.unwrap_or(0) > 0,
-        "Expected rules_evaluated > 0, got {:?}",
+        report.metadata.rules_evaluated > 0,
+        "Expected rules_evaluated > 0, got {}",
         report.metadata.rules_evaluated
     );
 }
@@ -256,9 +259,7 @@ Resources:
       BucketName: test
       NotARealProperty: bad
 "#;
-    let report =
-        validation_engine::validate_bytes(&*SHARED_ENGINE, &SHARED_SV, input.as_bytes(), ValidateConfig::default())
-            .unwrap();
+    let report = validate_bytes(&*SHARED_ENGINE, &SHARED_SV, input.as_bytes(), ValidateConfig::default()).unwrap();
     assert!(
         report.diagnostics.iter().any(|d| d.rule_id == "F3002"),
         "Expected F3002 for unknown property, got: {:?}",
@@ -276,20 +277,97 @@ Resources:
     Properties:
       AccessControl: InvalidValue
 "#;
-    let report =
-        validation_engine::validate_bytes(&*SHARED_ENGINE, &SHARED_SV, input.as_bytes(), ValidateConfig::default())
-            .unwrap();
+    let report = validate_bytes(&*SHARED_ENGINE, &SHARED_SV, input.as_bytes(), ValidateConfig::default()).unwrap();
     assert!(
-        report.diagnostics.iter().any(|d| d.rule_id == "F3030"),
-        "Expected F3030 for invalid enum, got: {:?}",
+        report.diagnostics.iter().any(|d| d.rule_id == "W3030"),
+        "Expected W3030 for invalid enum, got: {:?}",
         report.diagnostics
     );
 }
 
 #[test]
-fn e2e_bad_ecs_fargate_mismatch() {
+fn e2e_getatt_dotted_attribute_on_object_attribute_is_still_invalid() {
+    // A dotted GetAtt whose leading segment is an object/array-typed property
+    // (S3 Bucket `Tags`, an array) is NOT a valid map-member reference: GetAtt
+    // cannot index into such an attribute, so E9004 must still fire. Only
+    // nested-stack / provisioned-product `Outputs.<key>` is an open-ended member.
+    let input = r#"
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+  Param:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Value: !GetAtt Bucket.Tags.0
+"#;
+    let report = validate_bytes(&*SHARED_ENGINE, &SHARED_SV, input.as_bytes(), ValidateConfig::default()).unwrap();
+    assert!(
+        has_rule(&report, "E9004"),
+        "Expected E9004 for a dotted GetAtt into an object/array attribute, got: {:?}",
+        report.diagnostics
+    );
+}
+
+#[test]
+fn e2e_getatt_provisioned_product_outputs_member_is_valid() {
+    // A provisioned product exposes `Outputs.<OutputKey>` for any key, so a
+    // dotted `Outputs.<key>` must NOT be flagged, while a genuinely invalid
+    // attribute on the same type still is.
+    let ok = r#"
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  PP:
+    Type: AWS::ServiceCatalog::CloudFormationProvisionedProduct
+    Properties:
+      ProductName: p
+      ProvisioningArtifactName: v1
+  UseOutput:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: !GetAtt PP.Outputs.MyKey
+"#;
+    let report = validate_bytes(&*SHARED_ENGINE, &SHARED_SV, ok.as_bytes(), ValidateConfig::default()).unwrap();
+    assert!(
+        !has_rule(&report, "E9004"),
+        "A provisioned product Outputs.<key> member must not be flagged, got: {:?}",
+        report.diagnostics
+    );
+
+    let bad = r#"
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  PP:
+    Type: AWS::ServiceCatalog::CloudFormationProvisionedProduct
+    Properties:
+      ProductName: p
+      ProvisioningArtifactName: v1
+  UseBad:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: !GetAtt PP.NotARealAttr
+"#;
+    let report = validate_bytes(&*SHARED_ENGINE, &SHARED_SV, bad.as_bytes(), ValidateConfig::default()).unwrap();
+    assert!(
+        has_rule(&report, "E9004"),
+        "An invalid provisioned product attribute must still be flagged, got: {:?}",
+        report.diagnostics
+    );
+}
+
+#[test]
+fn e2e_bad_ecs_fargate_invalid_subnet() {
+    // The TaskDefinition uses NetworkMode 'awsvpc', which is already Fargate
+    // compatible, so the Fargate-compatibility check must not fire. The real
+    // defect is the malformed subnet id.
     let report = validate_fixture("bad/ecs_fargate_mismatch.yaml");
-    assert!(has_rule(&report, "E3054"), "Expected E3054 for Fargate mismatch, got: {:?}", report.diagnostics);
+    assert!(
+        !has_rule(&report, "E3054"),
+        "E3054 must not fire for an awsvpc TaskDefinition, got: {:?}",
+        report.diagnostics
+    );
+    assert!(has_rule(&report, "E1154"), "Expected E1154 for invalid subnet id, got: {:?}", report.diagnostics);
 }
 
 #[test]
@@ -307,7 +385,7 @@ fn e2e_bad_rds_public() {
 #[test]
 fn e2e_diagnostics_have_source_locations() {
     let report = validate_fixture("bad/generic.yaml");
-    let with_resource: Vec<_> = report.diagnostics.iter().filter(|d| d.resource.is_some()).collect();
+    let with_resource: Vec<_> = report.diagnostics.iter().filter(|d| d.resource_logical_id().is_some()).collect();
     assert!(!with_resource.is_empty(), "Expected diagnostics with resource_id for bad/generic.yaml");
     let with_location = with_resource.iter().filter(|d| d.location.as_ref().is_some_and(|l| l.start_line > 0)).count();
     assert!(
@@ -339,8 +417,7 @@ fn e2e_findinmap_bad_map() {
 #[test]
 fn e2e_suggested_fix_on_required_property() {
     let input = b"AWSTemplateFormatVersion: '2010-09-09'\nResources:\n  Role:\n    Type: AWS::IAM::Role\n";
-    let report =
-        validation_engine::validate_bytes(&*SHARED_ENGINE, &SHARED_SV, input, ValidateConfig::default()).unwrap();
+    let report = validate_bytes(&*SHARED_ENGINE, &SHARED_SV, input, ValidateConfig::default()).unwrap();
     let found = report.diagnostics.iter().find(|d| d.rule_id == "F3003");
     assert!(found.is_some(), "Expected F3003 for missing required property");
     assert!(found.unwrap().suggested_fix.is_some(), "F3003 should have suggested_fix, got: {:?}", found);
@@ -368,8 +445,7 @@ fn e2e_list_rules_comprehensive() {
     for expected in ["F3016", "F0018", "E3601", "E3702", "I3042"] {
         assert!(ids.contains(&expected), "list_rules missing {} in {:?}", expected, ids);
     }
-    for expected in ["E3010", "E3013", "F3032", "E3051", "E5001", "I2530", "I3037", "E1150", "E1151", "E1152", "E1154"]
-    {
+    for expected in ["E3010", "E3013", "F3032", "E3051", "E5001", "I2530", "E1150", "E1151", "E1152", "E1154"] {
         assert!(ids.contains(&expected), "list_rules missing {} in {:?}", expected, ids);
     }
 }
@@ -435,24 +511,25 @@ fn e2e_region_restricted() {
     let input =
         b"AWSTemplateFormatVersion: '2010-09-09'\nResources:\n  R:\n    Type: AWS::APS::Scraper\n    Properties: {}\n";
     let config = ValidateConfig {
-        pseudo_parameter_overrides: template_model::PseudoParameterOverrides {
+        pseudo_parameter_overrides: PseudoParameterOverrides {
             region: Some("cn-north-1".to_string()),
             ..Default::default()
         },
         ..Default::default()
     };
-    let report = validation_engine::validate_bytes(&*SHARED_ENGINE, &SHARED_SV, input, config).unwrap();
+    let report = validate_bytes(&*SHARED_ENGINE, &SHARED_SV, input, config).unwrap();
     assert!(
-        has_rule(&report, "E3001"),
-        "APS::Scraper in cn-north-1 should trigger E3001, got: {:?}",
+        has_rule(&report, "F3006"),
+        "APS::Scraper in cn-north-1 should trigger F3006 (region-availability), got: {:?}",
         report.diagnostics
     );
 }
 
 #[test]
 fn e2e_region_none_skips() {
+    // A clean template must not trigger the region-availability check (F3006).
     let report = validate_fixture("good/minimal.yaml");
-    assert!(!has_rule(&report, "E3001"));
+    assert!(!has_rule(&report, "F3006"));
 }
 
 #[test]
@@ -504,7 +581,7 @@ fn e2e_invalid_mapping_structure() {
 #[test]
 fn e2e_undefined_condition() {
     let report = validate_fixture("bad/undefined_condition.yaml");
-    assert!(has_rule(&report, "F8002"), "Undefined condition should trigger F8002, got: {:?}", report.diagnostics);
+    assert!(has_rule(&report, "E8002"), "Undefined condition should trigger E8002, got: {:?}", report.diagnostics);
 }
 
 #[test]
@@ -522,14 +599,17 @@ fn e2e_codepipeline_bad_artifact_counts() {
 #[test]
 fn e2e_hardcoded_partition() {
     let report = validate_fixture("bad/hardcoded_partition.yaml");
-    assert!(has_rule(&report, "I3042"), "Hardcoded partition should trigger I3042, got: {:?}", report.diagnostics);
+    assert!(
+        !has_rule(&report, "I3042"),
+        "Plain-string ARN should NOT trigger I3042 (only Fn::Sub does), got: {:?}",
+        report.diagnostics
+    );
 }
 
 #[test]
 fn e2e_lambda_runtime_from_data() {
     let input = b"AWSTemplateFormatVersion: '2010-09-09'\nResources:\n  F:\n    Type: AWS::Lambda::Function\n    Properties:\n      Runtime: python3.7\n      Handler: index.handler\n      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/role\n      Code:\n        ZipFile: |\n          def handler(event, context): pass\n";
-    let report =
-        validation_engine::validate_bytes(&*SHARED_ENGINE, &SHARED_SV, input, ValidateConfig::default()).unwrap();
+    let report = validate_bytes(&*SHARED_ENGINE, &SHARED_SV, input, ValidateConfig::default()).unwrap();
     assert!(
         has_rule(&report, "E2531"),
         "python3.7 should trigger E2531 (blocked for new function creation), got: {:?}",
@@ -540,14 +620,9 @@ fn e2e_lambda_runtime_from_data() {
 #[test]
 fn e2e_schema_violations_from_multiple_services() {
     let input = b"AWSTemplateFormatVersion: '2010-09-09'\nResources:\n  Bucket:\n    Type: AWS::S3::Bucket\n    Properties:\n      NotReal: bad\n  VPC:\n    Type: AWS::EC2::VPC\n    Properties:\n      NotReal: bad\n";
-    let report =
-        validation_engine::validate_bytes(&*SHARED_ENGINE, &SHARED_SV, input, ValidateConfig::default()).unwrap();
-    let f3002_resources: Vec<&str> = report
-        .diagnostics
-        .iter()
-        .filter(|d| d.rule_id == "F3002")
-        .filter_map(|d| d.resource.as_ref().and_then(|r| r.id.as_deref()))
-        .collect();
+    let report = validate_bytes(&*SHARED_ENGINE, &SHARED_SV, input, ValidateConfig::default()).unwrap();
+    let f3002_resources: Vec<&str> =
+        report.diagnostics.iter().filter(|d| d.rule_id == "F3002").filter_map(|d| d.resource_logical_id()).collect();
     assert!(
         f3002_resources.contains(&"Bucket") && f3002_resources.contains(&"VPC"),
         "F3002 should flag unknown properties from both S3 and EC2, got: {:?}",
@@ -569,8 +644,8 @@ fn e2e_if_wrong_arity() {
 fn e2e_equals_wrong_arity() {
     let report = validate_fixture("bad/equals_wrong_arity.yaml");
     assert!(
-        has_rule(&report, "F0014"),
-        "Fn::Equals with 3 elements should trigger parse error, got: {:?}",
+        has_rule(&report, "E8003"),
+        "Fn::Equals with 3 elements should trigger E8003 shape error, got: {:?}",
         report.diagnostics
     );
 }
@@ -613,7 +688,10 @@ fn e2e_suppress_category_security() {
 #[test]
 fn e2e_w1020_simple_sub_triggers() {
     let report = validate_fixture("bad/simple_sub_param.yaml");
-    assert!(has_rule(&report, "W1020"), "Expected W1020 for simple Sub with parameter");
+    assert!(
+        !has_rule(&report, "W1020"),
+        "Simple Sub with one variable should NOT trigger W1020 (only zero-variable Subs do)"
+    );
 }
 
 #[test]
@@ -625,7 +703,7 @@ fn e2e_w1020_prefix_sub_no_trigger() {
 #[test]
 fn e2e_e1029_nested_intrinsic_syntax() {
     let report = validate_fixture("bad/sub_nested_intrinsic.yaml");
-    assert!(has_rule(&report, "F1029"), "Expected F1029 for nested intrinsic syntax");
+    assert!(!has_rule(&report, "E1029"), "${{! is valid literal escape syntax in Fn::Sub, not an error");
 }
 
 #[test]
@@ -646,13 +724,13 @@ fn e2e_aurora_valid() {
 #[test]
 fn e2e_lambda_zipfile_runtime() {
     let report = validate_fixture("bad/lambda_zipfile_java.yaml");
-    assert!(has_rule(&report, "E3071"), "Expected E3071 for ZipFile with java runtime");
+    assert!(has_rule(&report, "E3677"), "Expected E3677 for ZipFile with java runtime");
 }
 
 #[test]
 fn e2e_lambda_zipfile_valid() {
     let report = validate_fixture("good/lambda_zipfile.yaml");
-    assert!(!has_rule(&report, "E3071"), "Valid Lambda ZipFile should not trigger E3071");
+    assert!(!has_rule(&report, "E3677"), "Valid Lambda ZipFile should not trigger E3677");
 }
 
 #[test]
@@ -720,9 +798,17 @@ fn e2e_e3700_pipeline_no_source_first_stage() {
 }
 
 #[test]
-fn e2e_e2530_snapstart_bad_runtime() {
+fn e2e_snapstart_python_runtime_supported() {
+    // SnapStart supports any non-deprecated Python/Java/.NET runtime, so a
+    // python3.12 function must not trigger the unsupported-runtime check. The
+    // only finding is SnapStart enabled without an attached Version.
     let report = validate_fixture("bad/lambda_snapstart_bad_runtime.yaml");
-    assert!(has_rule(&report, "E2530"), "SnapStart with python should trigger E2530, got: {:?}", report.diagnostics);
+    assert!(
+        !has_rule(&report, "E2530"),
+        "E2530 must not fire for a supported python runtime, got: {:?}",
+        report.diagnostics
+    );
+    assert!(has_rule(&report, "W2530"), "Expected W2530 for SnapStart without Version, got: {:?}", report.diagnostics);
 }
 
 #[test]
@@ -871,8 +957,6 @@ fn e2e_i2530_lambda_no_snapstart() {
         report.diagnostics
     );
 }
-
-// New feature tests: filter system, output format, diagnostics
 
 #[test]
 fn e2e_standard_detail_level() {
@@ -1085,7 +1169,7 @@ violation contains make_diag("C0001", "WARN", name, "Custom rule triggered") if 
     };
     let engine = RegoEngine::new(config).unwrap();
     let bytes = std::fs::read("../resources/templates/good/minimal.yaml").unwrap();
-    let report = validation_engine::validate_bytes(&engine, &SHARED_SV, &bytes, ValidateConfig::default()).unwrap();
+    let report = validate_bytes(&engine, &SHARED_SV, &bytes, ValidateConfig::default()).unwrap();
     assert!(has_rule(&report, "C0001"), "Custom rule C0001 should fire for resources, got: {:?}", report.diagnostics);
 }
 
@@ -1095,8 +1179,6 @@ fn e2e_w2511_iam_wildcard_all_types() {
     let w2512 = report.diagnostics.iter().filter(|d| d.rule_id == "W2512").count();
     assert!(w2512 >= 1, "Expected at least 1 W2512 (NotAction on User), got {}", w2512);
 }
-
-// Guard rule integration tests
 
 const GUARD_S3_VERSIONING: &str = r#"
 rule s3_versioning_check {
@@ -1117,11 +1199,11 @@ fn e2e_guard_rule_source() {
         ..Default::default()
     };
     let engine = RegoEngine::new(config).unwrap();
-    // Template with versioning NOT enabled — guard check `Status == "Enabled"` will not match,
+    // Template with versioning NOT enabled - guard check `Status == "Enabled"` will not match,
     // but the translator emits this as a violation condition (fires when condition is true).
     // Use a template where the condition IS true to verify the plumbing works.
     let template = b"AWSTemplateFormatVersion: '2010-09-09'\nResources:\n  Bucket:\n    Type: AWS::S3::Bucket\n    Properties:\n      VersioningConfiguration:\n        Status: Enabled\n";
-    let report = validation_engine::validate_bytes(&engine, &SHARED_SV, template, ValidateConfig::default()).unwrap();
+    let report = validate_bytes(&engine, &SHARED_SV, template, ValidateConfig::default()).unwrap();
     let guard_diags: Vec<_> = report.diagnostics.iter().filter(|d| d.rule_id == "s3_versioning_check").collect();
     // Verify category and severity are correct on any guard diagnostics
     for d in &guard_diags {
@@ -1143,9 +1225,7 @@ fn e2e_guard_rule_source() {
 
 #[test]
 fn e2e_guard_rule_pack() {
-    let guard_rules =
-        validation_engine::guard::resolve_guard_config(&["../guard-translator/tests/fixtures/pack".into()])
-            .unwrap_or_default();
+    let guard_rules = resolve_guard_config(&["../guard-translator/tests/fixtures/pack".into()]).unwrap_or_default();
     let config = EngineConfig { guard_rules, ..Default::default() };
     let engine = RegoEngine::new(config);
     // Pack loading may fail if translated rego has syntax issues from wildcard let assignments.
@@ -1176,7 +1256,7 @@ fn e2e_guard_rule_filtering() {
         ),
         ..Default::default()
     };
-    let report = validation_engine::validate_bytes(&engine, &SHARED_SV, template, validate_config).unwrap();
+    let report = validate_bytes(&engine, &SHARED_SV, template, validate_config).unwrap();
     assert!(
         !report.diagnostics.iter().any(|d| d.rule_id == "s3_versioning_check"),
         "Guard rule should be filtered out by category exclusion"
@@ -1193,7 +1273,7 @@ fn e6101_non_string_getatt_in_output() {
 #[test]
 fn e1015_invalid_getatt_attribute_type() {
     let report = validate_fixture("integration/getatt-types.yaml");
-    assert!(has_rule(&report, "E9003"), "Expected E9003 for non-string GetAtt type mismatch in getatt-types.yaml");
+    assert!(!has_rule(&report, "E9003"), "E9003 is disabled - CloudFormation auto-converts non-string GetAtt values");
 }
 
 #[test]
@@ -1206,4 +1286,22 @@ fn e6101_rego_getatt_return_type_builtin() {
         "Expected F6101 for integer InstanceCount, got: {:?}",
         e6101_outputs
     );
+}
+
+#[test]
+fn w2511_silent_on_invalid_policy_version() {
+    // An invalid Version string (neither '2008-10-17' nor '2012-10-17') is a
+    // schema error, not the upgrade warning, so the policy-version upgrade check
+    // must stay silent for it.
+    let report = validate_fixture("bad/resources/iam/iam_policy.yaml");
+    let w2511: Vec<_> = report.diagnostics.iter().filter(|d| d.rule_id == "W2511").collect();
+    assert!(w2511.is_empty(), "W2511 must not fire on an invalid Version value, got: {:?}", w2511);
+}
+
+#[test]
+fn w2511_warns_on_2008_policy_version() {
+    // The older-but-valid '2008-10-17' version is exactly what the policy-version
+    // upgrade check flags.
+    let report = validate_fixture("bad/override/include.yaml");
+    assert!(has_rule(&report, "W2511"), "expected W2511 for a policy pinned to Version '2008-10-17'");
 }

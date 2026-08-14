@@ -1,0 +1,30 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  Counter-example for the W1028 fix: when the parameter being compared has
+  AllowedValues that do not include the comparison literal, the condition is
+  genuinely deterministic and the matching Fn::If branch is genuinely
+  unreachable. W1028 must fire for the impossible branch.
+
+Parameters:
+  Environment:
+    Type: String
+    AllowedValues:
+      - dev
+      - staging
+      # 'prod' deliberately omitted - IsProd cannot be true
+    Default: dev
+
+Conditions:
+  IsProd:
+    Fn::Equals:
+      - !Ref Environment
+      - prod
+
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !If
+        - IsProd
+        - prod-bucket-name
+        - non-prod-bucket-name

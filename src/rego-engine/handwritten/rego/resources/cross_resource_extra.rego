@@ -2,16 +2,15 @@ package resources
 
 import rego.v1
 
-# E3705: Lambda EventSourceMapping with SQS FIFO queue — BatchSize must be ≤ 10
+# E3705: Lambda EventSourceMapping with SQS FIFO queue - BatchSize must be ≤ 10
 violation contains make_diag_at("E3705", "ERROR", name,
     "Properties.BatchSize",
     sprintf("BatchSize %d exceeds maximum of 10 for SQS FIFO queue event source", [batch_size])) if {
     some name in resources_of_type("AWS::Lambda::EventSourceMapping")
     target := follow_ref(name, "Properties.EventSourceArn")
     get_resource(target).resourceType == "AWS::SQS::Queue"
-    resolve(target, "Properties.FifoQueue") == true
-    batch_size := resolve(name, "Properties.BatchSize")
-    is_number(batch_size)
+    coerce_to_string(resolve(target, "Properties.FifoQueue")) == "true"
+    batch_size := coerce_to_integer(resolve(name, "Properties.BatchSize"))
     batch_size > 10
 }
 
@@ -32,7 +31,7 @@ violation contains make_diag_related("E3707", "ERROR", name,
 # E3708: API Gateway Method AuthorizationType must match Authorizer Type
 violation contains make_diag_at("E3708", "ERROR", auth_id,
     "Properties.Type",
-    sprintf("'%s' is not one of %s", [authorizer_type, expected])) if {
+    sprintf("'%s' is not one of %s", [authorizer_type, render_list(expected)])) if {
     some name in resources_of_type("AWS::ApiGateway::Method")
     auth_id := follow_ref(name, "Properties.AuthorizerId")
     auth_type := resolve(name, "Properties.AuthorizationType")
@@ -48,13 +47,56 @@ _auth_type_expected := {
     "COGNITO_USER_POOLS": ["COGNITO_USER_POOLS"],
 }
 
-# E3698: API Gateway Stage/Deployment must reference same RestApi
+# E3698: API Gateway Stage/Deployment must reference the same RestApi; a mismatch
+# fails deployment. The check applies only when the Stage references a Deployment
+# that resolves to a resource. The finding is anchored on the Deployment's
+# RestApiId and renders the Stage's own authored RestApiId as
+# "<value> was expected".
 violation contains make_diag_at("E3698", "ERROR", deployment_name,
     "Properties.RestApiId",
-    sprintf("Stage RestApiId references '%s' but Deployment references '%s'", [stage_api, deploy_api])) if {
+    sprintf("%s was expected", [render_value(authored_form(name, "Properties.RestApiId"))])) if {
     some name in resources_of_type("AWS::ApiGateway::Stage")
-    stage_api := follow_ref(name, "Properties.RestApiId")
     deployment_name := follow_ref(name, "Properties.DeploymentId")
-    deploy_api := follow_ref(deployment_name, "Properties.RestApiId")
-    stage_api != deploy_api
+    _rest_api_ids_conflict(name, deployment_name)
+}
+
+# E3699: API Gateway Method and the Authorizer it references must reference the
+# same RestApi; a mismatch fails deployment. The check applies only when the
+# Method references an Authorizer that resolves to a resource. The finding is
+# anchored on the Authorizer's RestApiId and renders the Method's own authored
+# RestApiId as "<value> was expected".
+violation contains make_diag_at("E3699", "ERROR", authorizer_name,
+    "Properties.RestApiId",
+    sprintf("%s was expected", [render_value(authored_form(name, "Properties.RestApiId"))])) if {
+    some name in resources_of_type("AWS::ApiGateway::Method")
+    authorizer_name := follow_ref(name, "Properties.AuthorizerId")
+    _rest_api_ids_conflict(name, authorizer_name)
+}
+
+# Whether two resources' RestApiId properties refer to different REST APIs.
+# Identity is compared first: two values that follow to the same resource match
+# even when authored differently (e.g. `Ref RestApi` and `Fn::GetAtt
+# RestApi.RestApiId` resolve to one API). When either side is not a reference to a
+# resource (a literal id or a `Ref` to a parameter), the authored values are
+# compared structurally, matching how CloudFormation treats them.
+_rest_api_ids_conflict(first_name, second_name) if {
+    first_target := follow_ref(first_name, "Properties.RestApiId")
+    second_target := follow_ref(second_name, "Properties.RestApiId")
+    first_target != second_target
+}
+
+_rest_api_ids_conflict(first_name, second_name) if {
+    not follow_ref(first_name, "Properties.RestApiId")
+    _authored_values_differ(first_name, second_name)
+}
+
+_rest_api_ids_conflict(first_name, second_name) if {
+    not follow_ref(second_name, "Properties.RestApiId")
+    _authored_values_differ(first_name, second_name)
+}
+
+_authored_values_differ(first_name, second_name) if {
+    first_form := authored_form(first_name, "Properties.RestApiId")
+    second_form := authored_form(second_name, "Properties.RestApiId")
+    first_form != second_form
 }

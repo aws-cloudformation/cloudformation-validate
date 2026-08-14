@@ -2,9 +2,11 @@ use log::info;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use diagnostics::{Diagnostic, PhaseMetric, phase_metric};
-use rules::{RuleInfo, RuleMetadataEntry, RuleOrigin, Severity};
-use template_model::SemanticModel;
+use diagnostics::{Diagnostic, Entity, PhaseMetric, phase_metric};
+use guard_translator::{ensure_translatable, pack_name_from_path, parse_guard};
+use rules::{RuleInfo, RuleMetadataEntry, RuleOrigin, Severity, build_rule_metadata_map, is_valid_custom_rule_id};
+use schema_validator::{OverlayCatalog, SchemaValidator};
+use template_model::{SemanticModel, UNKNOWN_SPAN};
 use validation_engine::{
     EngineConfig, ValidateConfig, ValidationEngine, ValidationError, build_rule_list, semantic_model_to_input_json,
 };
@@ -63,19 +65,39 @@ struct CustomRule {
 
 impl CelEngine {
     pub fn new(config: EngineConfig) -> anyhow::Result<Self> {
+        let catalog =
+            config.build_overlay_catalog().map_err(|e| anyhow::anyhow!("Failed to build overlay catalog: {e}"))?;
+        Self::new_from_catalog(config, &catalog)
+    }
+
+    /// Constructs the engine reusing metadata from an already-built
+    /// [`SchemaValidator`]. The validator's overlay catalog is treated as
+    /// authoritative - the engine does not re-resolve overlay schemas.
+    ///
+    /// This entry point is intended for language bindings and the CLI, which
+    /// construct a `SchemaValidator` once and share it with the engine.
+    #[doc(hidden)]
+    pub fn new_with_schema_validator(config: EngineConfig, validator: &SchemaValidator) -> anyhow::Result<Self> {
+        Self::new_from_catalog(config, validator.overlay_catalog())
+    }
+
+    /// Internal constructor that accepts a pre-built overlay catalog.
+    fn new_from_catalog(config: EngineConfig, overlay_catalog: &OverlayCatalog) -> anyhow::Result<Self> {
         let start = web_time::Instant::now();
 
         let native_rules = NativeRuleRegistry::new();
         let generated_rules = GeneratedRuleRegistry::new()?;
 
-        let registry_metadata = rules::build_rule_metadata_map();
+        let registry_metadata = build_rule_metadata_map();
         let mut external_rule_metadata: HashMap<String, RuleMetadataEntry> = HashMap::new();
 
         let mut translated_guard_sources = Vec::new();
         for entry in &config.guard_rules {
-            let guard_file = guard_translator::parse_guard(&entry.content, &entry.name)
+            let guard_file = parse_guard(&entry.content, &entry.name)
                 .map_err(|e| anyhow::anyhow!("Failed to parse guard file '{}': {}", entry.name, e))?;
-            let pack = guard_translator::pack_name_from_path(&entry.name);
+            ensure_translatable(&guard_file)
+                .map_err(|e| anyhow::anyhow!("Unsupported guard rule in '{}': {}", entry.name, e))?;
+            let pack = pack_name_from_path(&entry.name);
             let translated = crate::guard_to_cel::translate_to_cel(&guard_file, &pack, &[]);
             let json = crate::guard_to_cel::to_custom_rule_json(&translated)
                 .map_err(|e| anyhow::anyhow!("Failed to translate guard file '{}' to CEL: {}", entry.name, e))?;
@@ -129,7 +151,13 @@ impl CelEngine {
             registry_metadata.len(),
             external_rule_metadata.len()
         );
-        let cached_data = CachedData::load()?;
+        let mut cached_data = CachedData::load()?;
+        // Resource types introduced by an overlay schema are legitimate targets,
+        // so rules working from the build-time type catalog must treat them as
+        // known rather than reporting them as nonexistent.
+        if !overlay_catalog.is_empty() {
+            cached_data.merge_overlay_catalog(overlay_catalog)?;
+        }
         let init_metric = phase_metric(start);
         Ok(CelEngine {
             native_rules,
@@ -210,7 +238,18 @@ impl ValidationEngine for CelEngine {
 fn execute_custom_rule(rule: &CustomRule, cel_ctx: &Context<'static>) -> Result<bool, ValidationError> {
     match rule.program.execute(cel_ctx) {
         Ok(CelValue::Bool(fired)) => Ok(fired),
-        Ok(_) => Ok(false),
+        // A rule expression must decide whether the rule fires, so it must produce a
+        // boolean. A non-boolean result means the expression is malformed (e.g. it
+        // names a property instead of testing one); treating it as "did not fire"
+        // would let the mistake pass silently, so surface it as an error.
+        Ok(_) => Err(ValidationError::Engine(format!(
+            "Custom rule '{}' expression must evaluate to a boolean, but produced a non-boolean value",
+            rule.rule_id
+        ))),
+        // A translated Guard clause reads properties that may be absent, so evaluation
+        // errors on the missing key. Guard's semantics treat an absent property as a
+        // check that simply does not pass, so tolerate the error as "did not fire"
+        // rather than surfacing it.
         Err(error) if matches!(rule.source, RuleOrigin::Guard) => {
             log::error!("Guard rule '{}' failed to evaluate (tolerated): {error}", rule.rule_id);
             Ok(false)
@@ -231,33 +270,22 @@ fn emit_custom_diagnostic(
     rid: &str,
     msg: &str,
 ) {
-    let span = if rid.is_empty() {
-        diagnostics::UNKNOWN_SPAN
-    } else {
-        model.resource_span(rid, rule.prop_path.as_deref().unwrap_or(""))
-    };
+    let span =
+        if rid.is_empty() { UNKNOWN_SPAN } else { model.resource_span(rid, rule.prop_path.as_deref().unwrap_or("")) };
     out.push(Diagnostic {
         rule_id: rule.rule_id.clone(),
         severity: rule.severity,
         message: msg.to_string(),
-        resource: if rid.is_empty() {
-            None
-        } else {
-            Some(diagnostics::ResourceRef {
-                id: Some(rid.to_string()),
-                resource_type: model.resources.get(rid).map(|r| r.resource_type.clone()),
-            })
-        },
+        entity: Entity::resource(rid, model.resources.get(rid).map(|r| r.resource_type.clone())),
         property_path: rule.prop_path.clone(),
         suggested_fix: rule.suggested_fix.clone(),
         documentation_url: None,
         category: rule.category.clone(),
-        location: if span == diagnostics::UNKNOWN_SPAN { None } else { Some(span) },
+        location: if span == UNKNOWN_SPAN { None } else { Some(span) },
         related_resources: None,
         condition_scenario: None,
         rule_description: None,
         phase: None,
-        section: None,
         context: None,
         source: rule.source,
     });
@@ -267,22 +295,55 @@ fn load_custom_rules(source: &str, origin: RuleOrigin) -> anyhow::Result<Vec<Cus
     let file: CustomRuleFile = serde_json::from_str(source)?;
     let mut rules = Vec::new();
     for def in file.rules {
-        match Program::compile(&def.expression) {
-            Ok(program) => rules.push(CustomRule {
-                rule_id: def.rule_id,
-                severity: def.severity,
-                category: def.category,
-                resource_type: def.resource_type,
-                program,
-                message: def.message,
-                prop_path: def.prop_path,
-                suggested_fix: def.suggested_fix,
-                source: origin,
-            }),
-            Err(e) => {
-                return Err(anyhow::anyhow!("Failed to compile CEL expression for rule '{}': {}", def.rule_id, e));
+        // Required text fields must be present and non-blank. `serde` guarantees the
+        // keys exist; these checks reject empty values that would otherwise yield a
+        // diagnostic with no rule ID or no message.
+        if def.rule_id.trim().is_empty() {
+            return Err(anyhow::anyhow!("Custom rule has an empty 'rule_id'"));
+        }
+        // A custom rule ID may be any run of letters, digits, and the separators
+        // `_`, `.`, `-` - it need not follow the built-in ID convention - but must
+        // exclude whitespace and other punctuation that would corrupt formatting,
+        // filtering, and de-duplication of diagnostics.
+        if !is_valid_custom_rule_id(&def.rule_id) {
+            return Err(anyhow::anyhow!(
+                "Custom rule '{}' has an invalid 'rule_id': only letters, digits, and the separators '_', '.', '-' \
+                 are allowed",
+                def.rule_id
+            ));
+        }
+        if def.message.trim().is_empty() {
+            return Err(anyhow::anyhow!("Custom rule '{}' has an empty 'message'", def.rule_id));
+        }
+        if def.expression.trim().is_empty() {
+            return Err(anyhow::anyhow!("Custom rule '{}' has an empty 'expression'", def.rule_id));
+        }
+        let program = Program::compile(&def.expression)
+            .map_err(|e| anyhow::anyhow!("Failed to compile CEL expression for rule '{}': {}", def.rule_id, e))?;
+        // A call to a function the interpreter cannot resolve errors only when the
+        // expression is actually evaluated, so a rule scoped to an absent resource
+        // type would load clean and silently never run. Reject it at load time
+        // instead, when the failure is certain regardless of the template.
+        for function in program.references().functions() {
+            if !crate::functions::is_supported_function(function) {
+                return Err(anyhow::anyhow!(
+                    "Custom rule '{}' references unknown function '{}'",
+                    def.rule_id,
+                    function
+                ));
             }
         }
+        rules.push(CustomRule {
+            rule_id: def.rule_id,
+            severity: def.severity,
+            category: def.category,
+            resource_type: def.resource_type,
+            program,
+            message: def.message,
+            prop_path: def.prop_path,
+            suggested_fix: def.suggested_fix,
+            source: origin,
+        });
     }
     Ok(rules)
 }
@@ -396,6 +457,104 @@ mod tests {
     }
 
     #[test]
+    fn load_custom_rules_empty_rule_id_is_rejected() {
+        let json = r#"{"rules": [{"rule_id": "", "severity": "ERROR", "expression": "true", "message": "m"}]}"#;
+        let err = format!("{}", load_custom_rules(json, RuleOrigin::Custom).unwrap_err());
+        assert!(err.contains("empty 'rule_id'"), "an empty rule_id must be rejected, got: {err}");
+    }
+
+    #[test]
+    fn load_custom_rules_blank_rule_id_is_rejected() {
+        let json = r#"{"rules": [{"rule_id": "   ", "severity": "ERROR", "expression": "true", "message": "m"}]}"#;
+        let err = format!("{}", load_custom_rules(json, RuleOrigin::Custom).unwrap_err());
+        assert!(err.contains("empty 'rule_id'"), "a whitespace-only rule_id must be rejected, got: {err}");
+    }
+
+    #[test]
+    fn load_custom_rules_arbitrary_alphanumeric_id_with_separators_is_accepted() {
+        // A custom rule ID need not follow the built-in convention: letters, digits,
+        // and the separators `_`, `.`, `-` are all permitted.
+        let json = r#"{"rules": [{"rule_id": "s3.encryption-required_1", "severity": "ERROR", "expression": "true", "message": "m"}]}"#;
+        let rules = load_custom_rules(json, RuleOrigin::Custom).expect("an alphanumeric+separator id must load");
+        assert_eq!(rules[0].rule_id, "s3.encryption-required_1");
+    }
+
+    #[test]
+    fn load_custom_rules_rule_id_with_space_or_punctuation_is_rejected() {
+        let json = r#"{"rules": [{"rule_id": "bad id", "severity": "ERROR", "expression": "true", "message": "m"}]}"#;
+        let err = format!("{}", load_custom_rules(json, RuleOrigin::Custom).unwrap_err());
+        assert!(err.contains("invalid 'rule_id'"), "a rule_id with a space must be rejected, got: {err}");
+
+        let json = r#"{"rules": [{"rule_id": "bad/id", "severity": "ERROR", "expression": "true", "message": "m"}]}"#;
+        let err = format!("{}", load_custom_rules(json, RuleOrigin::Custom).unwrap_err());
+        assert!(err.contains("invalid 'rule_id'"), "a rule_id with punctuation must be rejected, got: {err}");
+    }
+
+    #[test]
+    fn load_custom_rules_empty_message_is_rejected() {
+        let json = r#"{"rules": [{"rule_id": "R1", "severity": "ERROR", "expression": "true", "message": ""}]}"#;
+        let err = format!("{}", load_custom_rules(json, RuleOrigin::Custom).unwrap_err());
+        assert!(err.contains("R1") && err.contains("empty 'message'"), "an empty message must be rejected, got: {err}");
+    }
+
+    #[test]
+    fn load_custom_rules_empty_expression_is_rejected() {
+        let json = r#"{"rules": [{"rule_id": "R1", "severity": "ERROR", "expression": "  ", "message": "m"}]}"#;
+        let err = format!("{}", load_custom_rules(json, RuleOrigin::Custom).unwrap_err());
+        assert!(
+            err.contains("R1") && err.contains("empty 'expression'"),
+            "a blank expression must be rejected, got: {err}"
+        );
+    }
+
+    #[test]
+    fn load_custom_rules_unknown_function_is_rejected_at_load() {
+        // The failure must surface at load time, not only when a matching resource
+        // happens to exist during evaluation.
+        let json = r#"{"rules": [{
+            "rule_id": "R1",
+            "severity": "ERROR",
+            "resource_type": "AWS::S3::Bucket",
+            "expression": "totally_unknown_fn(properties.BucketName)",
+            "message": "m"
+        }]}"#;
+        let err = format!("{}", load_custom_rules(json, RuleOrigin::Custom).unwrap_err());
+        assert!(
+            err.contains("R1") && err.contains("unknown function") && err.contains("totally_unknown_fn"),
+            "an unknown function reference must be rejected at load, got: {err}"
+        );
+    }
+
+    #[test]
+    fn load_custom_rules_standard_functions_and_macros_are_accepted() {
+        // has()/size()/matches() and comprehension macros must not be mistaken for
+        // unknown functions.
+        let json = r#"{"rules": [{
+            "rule_id": "R1",
+            "severity": "ERROR",
+            "expression": "has(resource.Properties) && size(resources) > 0 && [1, 2].all(x, x > 0)",
+            "message": "m"
+        }]}"#;
+        let rules = load_custom_rules(json, RuleOrigin::Custom).expect("standard functions and macros must load");
+        assert_eq!(rules.len(), 1);
+    }
+
+    #[test]
+    fn load_custom_rules_type_function_is_accepted() {
+        // `type` is registered by build_custom_context so Guard type-check operators
+        // translate to a runnable expression; it must pass the load-time check.
+        let json = r#"{"rules": [{
+            "rule_id": "R1",
+            "severity": "ERROR",
+            "resource_type": "AWS::S3::Bucket",
+            "expression": "type(resource) == \"map\"",
+            "message": "m"
+        }]}"#;
+        let rules = load_custom_rules(json, RuleOrigin::Custom).expect("type() must be an accepted function");
+        assert_eq!(rules.len(), 1);
+    }
+
+    #[test]
     fn load_custom_rules_multiple_rules() {
         let json = r#"{"rules": [
             {"rule_id": "R1", "severity": "ERROR", "expression": "true", "message": "m1"},
@@ -405,5 +564,71 @@ mod tests {
         assert_eq!(rules.len(), 2);
         assert_eq!(rules[0].rule_id, "R1");
         assert_eq!(rules[1].rule_id, "R2");
+    }
+
+    fn single_rule(source: &str, origin: RuleOrigin) -> CustomRule {
+        load_custom_rules(source, origin).expect("rule should load").pop().expect("one rule")
+    }
+
+    #[test]
+    fn execute_custom_rule_boolean_true_fires() {
+        let rule = single_rule(
+            r#"{"rules": [{"rule_id": "R1", "severity": "ERROR", "expression": "true", "message": "m"}]}"#,
+            RuleOrigin::Custom,
+        );
+        let ctx = crate::functions::build_custom_context(&serde_json::json!({}), None, None);
+        assert!(execute_custom_rule(&rule, &ctx).expect("boolean expression evaluates"));
+    }
+
+    #[test]
+    fn execute_custom_rule_boolean_false_does_not_fire() {
+        let rule = single_rule(
+            r#"{"rules": [{"rule_id": "R1", "severity": "ERROR", "expression": "false", "message": "m"}]}"#,
+            RuleOrigin::Custom,
+        );
+        let ctx = crate::functions::build_custom_context(&serde_json::json!({}), None, None);
+        assert!(!execute_custom_rule(&rule, &ctx).expect("boolean expression evaluates"));
+    }
+
+    #[test]
+    fn execute_custom_rule_non_boolean_result_is_error() {
+        // A rule whose expression yields a string (not a predicate) is malformed and
+        // must error rather than silently be treated as "did not fire".
+        let rule = single_rule(
+            r#"{"rules": [{"rule_id": "R1", "severity": "ERROR", "expression": "\"a string\"", "message": "m"}]}"#,
+            RuleOrigin::Custom,
+        );
+        let ctx = crate::functions::build_custom_context(&serde_json::json!({}), None, None);
+        let err = execute_custom_rule(&rule, &ctx).expect_err("a non-boolean result must error");
+        match err {
+            ValidationError::Engine(message) => {
+                assert!(message.contains("R1") && message.contains("boolean"), "got: {message}");
+            }
+            other => panic!("expected Engine error, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn execute_custom_rule_evaluation_error_is_fatal_for_custom_origin() {
+        // A custom rule that errors at evaluation (e.g. reads a missing key) must
+        // surface the error, not swallow it.
+        let rule = single_rule(
+            r#"{"rules": [{"rule_id": "R1", "severity": "ERROR", "expression": "resource.Missing.Deep == \"x\"", "message": "m"}]}"#,
+            RuleOrigin::Custom,
+        );
+        let ctx = crate::functions::build_custom_context(&serde_json::json!({"resources": {}}), Some("Bucket"), None);
+        execute_custom_rule(&rule, &ctx).expect_err("a custom-rule evaluation error must be fatal");
+    }
+
+    #[test]
+    fn execute_custom_rule_evaluation_error_is_tolerated_for_guard_origin() {
+        // The same missing-key error is tolerated for Guard-origin rules: Guard treats an
+        // absent property as a check that does not pass, so the rule simply does not fire.
+        let rule = single_rule(
+            r#"{"rules": [{"rule_id": "G1", "severity": "ERROR", "expression": "resource.Missing.Deep == \"x\"", "message": "m"}]}"#,
+            RuleOrigin::Guard,
+        );
+        let ctx = crate::functions::build_custom_context(&serde_json::json!({"resources": {}}), Some("Bucket"), None);
+        assert!(!execute_custom_rule(&rule, &ctx).expect("guard evaluation error is tolerated as non-firing"));
     }
 }

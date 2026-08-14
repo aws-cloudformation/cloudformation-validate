@@ -1,0 +1,6 @@
+[bindings.kotlin]
+package_name = "software.amazon.cloudformation.validate.schemavalidator"
+generate_immutable_records = true
+
+[bindings.kotlin.external_packages]
+data_source = "software.amazon.cloudformation.validate.datasource"

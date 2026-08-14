@@ -1,0 +1,6 @@
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  MyApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      DefinitionUri: s3://bucket/swagger.yaml

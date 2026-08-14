@@ -1,0 +1,9 @@
+Resources:
+  Cluster:
+    Type: AWS::Redshift::Cluster
+    Properties:
+      NodeType: ra3.large
+      ClusterType: single-node
+      MasterUsername: admin
+      MasterUserPassword: Passw0rd123
+      DBName: mydb

@@ -1,0 +1,30 @@
+[package]
+name = "bindings-go"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[lib]
+crate-type = ["cdylib", "staticlib"]
+name = "bindings_go"
+
+[dependencies]
+data-source = { path = "../data-source", default-features = false }
+validation-engine = { path = "../validation-engine" }
+diagnostics = { path = "../diagnostics" }
+rules = { path = "../rules" }
+template-model = { path = "../template-model" }
+rego-engine = { path = "../rego-engine" }
+cel-engine = { path = "../cel-engine" }
+schema-validator = { path = "../schema-validator" }
+uniffi = "=0.31.2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+
+[lints]
+workspace = true

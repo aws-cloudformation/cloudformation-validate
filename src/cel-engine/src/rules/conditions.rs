@@ -1,15 +1,17 @@
 use super::{EvalContext, NativeRuleRegistry};
-use diagnostics::{Diagnostic, RelatedResource};
+use diagnostics::{Diagnostic, RelatedResource, ResourceRef};
+use rules::Category;
 use std::collections::HashMap;
 use std::sync::Arc;
 use template_model::SemanticModel;
+use template_model::SourceSpan;
 use template_model::consts::KEY_DEPENDS_ON;
 use template_model::resolver::ResolvedValue;
 use validation_engine::make_resource_diagnostic;
 
 pub fn register(reg: &mut NativeRuleRegistry) {
-    reg.add(rules::Category::Resource, eval_condition_dependencies);
-    reg.add(rules::Category::Resource, eval_unreachable_if_branches);
+    reg.add(Category::Resource, eval_condition_dependencies);
+    reg.add(Category::Resource, eval_unreachable_if_branches);
 }
 
 fn eval_condition_dependencies(ctx: &EvalContext) -> Vec<Diagnostic> {
@@ -55,7 +57,7 @@ fn eval_condition_dependencies(ctx: &EvalContext) -> Vec<Diagnostic> {
             let mut d = make_resource_diagnostic(
                 "W2503",
                 &format!(
-                    "Resource '{}' (condition '{}') references '{}' (condition '{}'), but these conditions are mutually exclusive — this reference will always fail",
+                    "Resource '{}' (condition '{}') references '{}' (condition '{}'), but these conditions are mutually exclusive - this reference will always fail",
                     source, source_cond, target, target_cond
                 ),
                 m,
@@ -67,11 +69,11 @@ fn eval_condition_dependencies(ctx: &EvalContext) -> Vec<Diagnostic> {
             let target_path = format!("Resources/{}", target);
             if let Some(span) = m.source_location(&target_path) {
                 d.related_resources.get_or_insert_with(Vec::new).push(RelatedResource {
-                    resource: Some(diagnostics::ResourceRef {
+                    resource: Some(ResourceRef {
                         id: Some(target.clone()),
                         resource_type: m.resources.get(target.as_str()).map(|r| r.resource_type.clone()),
                     }),
-                    location: Some(diagnostics::SourceSpan {
+                    location: Some(SourceSpan {
                         start_line: span.start_line,
                         start_column: span.start_column,
                         end_line: span.end_line,
@@ -129,13 +131,18 @@ fn eval_unreachable_if_branches(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    // Also check Output values for unreachable Fn::If branches
+    // Also check Output values for unreachable Fn::If branches. An output is not
+    // a resource, so leave the resource slot empty and anchor the diagnostic at
+    // the full "Outputs/<name>/Value" path (matching how output locations are
+    // addressed elsewhere) rather than a bare "Value" under the output's logical
+    // name.
     for (name, output) in &m.outputs {
         let base_assumptions: Vec<(String, bool)> = match &output.condition {
             Some(cond) => vec![(cond.clone(), true)],
             None => vec![],
         };
-        find_unreachable_branches(&mut out, m, name, &output.value, "Value", &base_assumptions);
+        let path_prefix = format!("Outputs/{}/Value", name);
+        find_unreachable_branches(&mut out, m, "", &output.value, &path_prefix, &base_assumptions);
     }
     out
 }
@@ -149,10 +156,17 @@ fn find_unreachable_branches(
     assumptions: &[(String, bool)],
 ) {
     match value {
-        ResolvedValue::Conditional { condition: cond, if_true: true_branch, if_false: false_branch } => {
+        ResolvedValue::Conditional { condition: cond, if_true: _, if_false: _ } => {
             let mut true_assumptions = assumptions.to_vec();
             true_assumptions.push((cond.clone(), true));
-            if !model.conditions.is_satisfiable(&true_assumptions) {
+            // Flag the branch only when the surrounding assumptions make this
+            // condition value unreachable - not when the condition can never take
+            // the value on its own. A condition that is constant (a literal
+            // tautology, or a parameter pinned to a single value) is the concern
+            // of equality rules, not of branch reachability.
+            if !model.conditions.is_satisfiable(&true_assumptions)
+                && model.conditions.is_satisfiable(&[(cond.clone(), true)])
+            {
                 out.push(make_resource_diagnostic(
                     "W1028",
                     &format!("['Fn::If', 1] is not reachable. When setting condition '{}' to True", cond),
@@ -165,7 +179,9 @@ fn find_unreachable_branches(
 
             let mut false_assumptions = assumptions.to_vec();
             false_assumptions.push((cond.clone(), false));
-            if !model.conditions.is_satisfiable(&false_assumptions) {
+            if !model.conditions.is_satisfiable(&false_assumptions)
+                && model.conditions.is_satisfiable(&[(cond.clone(), false)])
+            {
                 let explanation = build_unreachable_explanation(cond, false, assumptions);
                 out.push(make_resource_diagnostic(
                     "W1028",
@@ -177,22 +193,11 @@ fn find_unreachable_branches(
                 ));
             }
 
-            find_unreachable_branches(
-                out,
-                model,
-                resource_id,
-                true_branch,
-                &format!("{}.Fn::If.1", path),
-                &true_assumptions,
-            );
-            find_unreachable_branches(
-                out,
-                model,
-                resource_id,
-                false_branch,
-                &format!("{}.Fn::If.2", path),
-                &false_assumptions,
-            );
+            // Only the reachability of the immediate Fn::If branches is checked;
+            // we do not recurse into an Fn::If nested inside a branch, so we stop
+            // here. Recursing would produce spurious findings (e.g.
+            // `Fn::If.2.Fn::If.1`) for branches whose reachability depends on the
+            // already-evaluated outer condition.
         }
         ResolvedValue::Map { entries } => {
             for e in entries {

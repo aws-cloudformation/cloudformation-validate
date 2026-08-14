@@ -2,7 +2,7 @@ use cel_engine::CelEngine;
 use diagnostics::DetailLevel;
 use rego_engine::RegoEngine;
 use rules::{FilterConfig, RuleFilterConfig, Severity};
-use schema_validator::SchemaValidator;
+use schema_validator::{SchemaValidator, SchemaValidatorConfig};
 use serde::Deserialize;
 use template_model::{PseudoParameterOverrides, SemanticModel};
 use validation_engine::{EngineConfig, ValidationEngine, catch_panics, validate_bytes_with_path};
@@ -40,15 +40,19 @@ pub struct ValidateConfig {
     #[serde(default)]
     pub exclude: RuleFilterConfig,
     #[serde(default)]
+    #[tsify(optional)]
     pub severity_level: Option<Severity>,
     #[serde(default)]
-    #[tsify(type = "Record<string, string> | undefined")]
+    #[tsify(optional, type = "Record<string, string>")]
     pub parameter_overrides: Option<std::collections::HashMap<String, String>>,
     #[serde(default)]
+    #[tsify(optional)]
     pub pseudo_parameter_overrides: Option<PseudoParameterOverrides>,
     #[serde(default)]
+    #[tsify(optional)]
     pub strict: Option<bool>,
     #[serde(default)]
+    #[tsify(optional)]
     pub disable_builtin_rules: Option<bool>,
 }
 
@@ -65,8 +69,6 @@ fn build_core_config(opts: ValidateConfig, detail_level: DetailLevel) -> validat
     }
 }
 
-// ── SchemaValidator ──────────────────────────────────────────────────────────
-
 #[derive(serde::Serialize, tsify::Tsify)]
 #[serde(rename_all = "camelCase")]
 pub struct WasmSchemaValidationResult {
@@ -82,8 +84,14 @@ pub struct WasmSchemaValidator {
 #[wasm_bindgen]
 impl WasmSchemaValidator {
     #[wasm_bindgen(constructor)]
-    pub fn new() -> WasmSchemaValidator {
-        WasmSchemaValidator { inner: SchemaValidator::new() }
+    pub fn new(config: SchemaValidatorConfig) -> Result<WasmSchemaValidator, JsValue> {
+        catch_panics(
+            || {
+                let inner = SchemaValidator::new(config).map_err(to_js_err)?;
+                Ok(WasmSchemaValidator { inner })
+            },
+            wasm_panic_err,
+        )
     }
 
     #[wasm_bindgen(js_name = "listRules")]
@@ -96,10 +104,10 @@ impl WasmSchemaValidator {
         self.inner.schema_count()
     }
 
-    pub fn validate(&self, model: &WasmSemanticModel, region: &str) -> Result<JsValue, JsValue> {
+    pub fn validate(&self, model: &WasmSemanticModel, region: Option<String>) -> Result<JsValue, JsValue> {
         catch_panics(
             || {
-                let result = self.inner.validate(&model.model, region);
+                let result = self.inner.validate(&model.model, region.as_deref());
                 let diagnostics: Vec<_> = result.diagnostics.iter().map(|d| d.to_standard()).collect();
                 to_js(&WasmSchemaValidationResult { diagnostics, metric: result.metric })
             },
@@ -107,8 +115,6 @@ impl WasmSchemaValidator {
         )
     }
 }
-
-// ── Engine ───────────────────────────────────────────────────────────────────
 
 macro_rules! wasm_engine {
     ($wrapper:ident, $inner:ty) => {
@@ -124,8 +130,11 @@ macro_rules! wasm_engine {
             pub fn new(config: EngineConfig) -> Result<$wrapper, JsValue> {
                 catch_panics(
                     || {
-                        let engine = <$inner>::new(config).map_err(to_js_err)?;
-                        Ok($wrapper { engine, schema_validator: SchemaValidator::new() })
+                        let schema_config = config.schema_validator_config.clone().unwrap_or_default();
+                        let schema_validator = SchemaValidator::new(schema_config).map_err(to_js_err)?;
+                        let engine =
+                            <$inner>::new_with_schema_validator(config, &schema_validator).map_err(to_js_err)?;
+                        Ok($wrapper { engine, schema_validator })
                     },
                     wasm_panic_err,
                 )
@@ -184,8 +193,6 @@ macro_rules! wasm_engine {
 
 wasm_engine!(WasmRegoEngine, RegoEngine);
 wasm_engine!(WasmCelEngine, CelEngine);
-
-// ── SemanticModel ────────────────────────────────────────────────────────────
 
 #[wasm_bindgen]
 pub struct WasmSemanticModel {

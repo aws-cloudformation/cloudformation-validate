@@ -1,0 +1,7 @@
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  Layer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      ContentUri: s3://bucket/layer.zip
+      RetentionPolicy: Banana

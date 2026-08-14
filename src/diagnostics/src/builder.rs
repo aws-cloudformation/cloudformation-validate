@@ -1,13 +1,13 @@
-use crate::diagnostic::{Diagnostic, RelatedResource, ResourceRef};
+use crate::diagnostic::{Diagnostic, Entity, RelatedResource};
 use crate::phase::Phase;
-use crate::span::{SourceSpan, span_to_option};
 use rules::lookup_rule;
 use std::collections::HashMap;
+use template_model::{ParseDefect, SourceSpan, span_to_option};
 
 /// Builds a [`Diagnostic`] for a rule that is registered in the rule registry.
 ///
 /// Severity, category, origin, and description are taken from the registry entry
-/// for `rule_id` — this is the single place those four fields are sourced for
+/// for `rule_id` - this is the single place those four fields are sourced for
 /// built-in diagnostics, so every built-in finding is consistent regardless of
 /// which crate produced it. [`build`](Self::build) panics if the rule is not
 /// registered, turning an unregistered built-in rule into a loud failure instead
@@ -20,7 +20,7 @@ use std::collections::HashMap;
 pub struct RegisteredDiagnostic {
     rule_id: String,
     message: String,
-    resource: Option<ResourceRef>,
+    entity: Option<Entity>,
     property_path: Option<String>,
     location: Option<SourceSpan>,
     suggested_fix: Option<String>,
@@ -36,7 +36,7 @@ impl RegisteredDiagnostic {
         Self {
             rule_id: rule_id.into(),
             message: message.into(),
-            resource: None,
+            entity: None,
             property_path: None,
             location: None,
             suggested_fix: None,
@@ -46,14 +46,12 @@ impl RegisteredDiagnostic {
         }
     }
 
-    /// Attaches the offending resource: its logical ID and, when known, its
-    /// CloudFormation type. An empty ID is dropped so callers can pass through
-    /// an ID that may be blank — mirrors [`property_path`](Self::property_path).
+    /// Attaches the offending resource as the targeted entity: its logical ID
+    /// and, when known, its CloudFormation type. An empty ID is dropped so
+    /// callers can pass through an ID that may be blank - mirrors
+    /// [`property_path`](Self::property_path).
     pub fn resource(mut self, resource_id: impl Into<String>, resource_type: Option<String>) -> Self {
-        let id = resource_id.into();
-        if !id.is_empty() {
-            self.resource = Some(ResourceRef { id: Some(id), resource_type });
-        }
+        self.entity = Entity::resource(resource_id, resource_type);
         self
     }
 
@@ -67,7 +65,7 @@ impl RegisteredDiagnostic {
         self
     }
 
-    /// Sets the source span. [`UNKNOWN_SPAN`](crate::span::UNKNOWN_SPAN) is
+    /// Sets the source span. [`UNKNOWN_SPAN`](template_model::UNKNOWN_SPAN) is
     /// treated as "no location".
     pub fn location(mut self, span: SourceSpan) -> Self {
         self.location = span_to_option(span);
@@ -108,7 +106,7 @@ impl RegisteredDiagnostic {
             rule_id: self.rule_id,
             severity: definition.severity(),
             message: self.message,
-            resource: self.resource,
+            entity: self.entity,
             property_path: self.property_path,
             suggested_fix: self.suggested_fix,
             documentation_url: None,
@@ -118,18 +116,36 @@ impl RegisteredDiagnostic {
             condition_scenario: self.condition_scenario,
             rule_description: Some(definition.description.into()),
             phase: self.phase,
-            section: None,
             context: None,
             source: definition.origin,
         }
     }
 }
 
+/// Converts a parse-time defect from the template model into a full
+/// [`Diagnostic`], sourcing severity, category, origin, and description from
+/// the rule registry. This is the single boundary where the model's plain
+/// findings acquire reporting metadata; like [`RegisteredDiagnostic::build`],
+/// it panics if the defect's rule ID is not registered.
+pub fn diagnostic_from_parse_defect(defect: &ParseDefect) -> Diagnostic {
+    let mut builder = RegisteredDiagnostic::new(defect.rule_id.clone(), defect.message.clone()).location(defect.span);
+    if let Some(resource_id) = &defect.resource_id {
+        builder = builder.resource(resource_id.clone(), None);
+    }
+    if let Some(property_path) = &defect.property_path {
+        builder = builder.property_path(property_path.clone());
+    }
+    if let Some(phase) = defect.phase {
+        builder = builder.phase(phase.into());
+    }
+    builder.build()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::span::UNKNOWN_SPAN;
     use rules::Severity;
+    use template_model::{DefectPhase, UNKNOWN_SPAN};
 
     #[test]
     fn build_sources_severity_category_origin_and_description_from_registry() {
@@ -160,10 +176,17 @@ mod tests {
             .property_path("Properties.BucketName")
             .build();
 
-        let resource = diagnostic.resource.expect("resource should be set");
-        assert_eq!(resource.id.as_deref(), Some("MyBucket"));
-        assert_eq!(resource.resource_type.as_deref(), Some("AWS::S3::Bucket"));
+        let entity = diagnostic.entity.expect("entity should be set");
+        assert_eq!(entity.logical_id, "MyBucket");
+        assert_eq!(entity.entity_type, template_model::EntityType::Resource);
+        assert_eq!(entity.resource_type.as_deref(), Some("AWS::S3::Bucket"));
         assert_eq!(diagnostic.property_path.as_deref(), Some("Properties.BucketName"));
+    }
+
+    #[test]
+    fn empty_resource_id_yields_no_entity() {
+        let diagnostic = RegisteredDiagnostic::new("F0001", "msg").resource("", None).build();
+        assert!(diagnostic.entity.is_none(), "an empty resource ID must not create an entity");
     }
 
     #[test]
@@ -195,5 +218,39 @@ mod tests {
     #[should_panic(expected = "not found in RULE_REGISTRY")]
     fn build_panics_for_unregistered_rule() {
         let _ = RegisteredDiagnostic::new("Z9999", "unregistered").build();
+    }
+
+    #[test]
+    fn parse_defect_conversion_carries_anchors_and_registry_metadata() {
+        let span = SourceSpan { start_line: 7, start_column: 3, end_line: 7, end_column: 9 };
+        let defect = ParseDefect::new("F0001", "Resources section missing")
+            .location(span)
+            .resource("MyBucket")
+            .property_path("Properties.BucketName")
+            .phase(DefectPhase::Parse);
+
+        let diagnostic = diagnostic_from_parse_defect(&defect);
+        assert_eq!(diagnostic.rule_id, "F0001");
+        assert_eq!(diagnostic.severity, Severity::Fatal, "severity sourced from the registry");
+        assert_eq!(diagnostic.location, Some(span));
+        assert_eq!(diagnostic.entity.as_ref().map(|e| e.logical_id.as_str()), Some("MyBucket"));
+        assert_eq!(diagnostic.property_path.as_deref(), Some("Properties.BucketName"));
+        assert_eq!(diagnostic.phase, Some(Phase::Parse));
+    }
+
+    #[test]
+    fn parse_defect_conversion_leaves_unset_fields_absent() {
+        let defect = ParseDefect::new("F0001", "msg").location(UNKNOWN_SPAN);
+        let diagnostic = diagnostic_from_parse_defect(&defect);
+        assert_eq!(diagnostic.location, None, "UNKNOWN_SPAN must map to no location");
+        assert!(diagnostic.entity.is_none());
+        assert_eq!(diagnostic.property_path, None);
+        assert_eq!(diagnostic.phase, None, "an unset phase is derived downstream");
+    }
+
+    #[test]
+    fn lint_stage_defects_convert_to_the_lint_phase() {
+        let defect = ParseDefect::new("F3004", "cycle").phase(DefectPhase::Lint);
+        assert_eq!(diagnostic_from_parse_defect(&defect).phase, Some(Phase::Lint));
     }
 }

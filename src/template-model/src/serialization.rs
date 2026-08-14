@@ -1,9 +1,10 @@
 use crate::consts::*;
+use crate::defect::DefectPhase;
 use crate::diagnostic::*;
+use crate::json_value::JsonValue;
 use crate::model::{ResolvedOutput, ResolvedResource, SemanticModel, TemplateRule};
 use crate::resolved_value::collect_condition_refs_from_resolved;
 use crate::resolver::{MapEntry, RefKind, ResolvedValue};
-use diagnostics::JsonValue;
 use std::collections::HashMap;
 
 impl SemanticModel {
@@ -31,6 +32,8 @@ impl SemanticModel {
                             "default": v.default,
                             "allowedValues": v.allowed_values,
                             "allowedPattern": v.allowed_pattern,
+                            "allowedPatternValid": v.allowed_pattern_valid,
+                            "defaultMatchesAllowedPattern": v.default_matches_allowed_pattern,
                             "minLength": v.min_length,
                             "maxLength": v.max_length,
                             "minValue": v.min_value,
@@ -42,16 +45,24 @@ impl SemanticModel {
                 .collect(),
             conditions,
             condition_param_refs: self.conditions.referenced_params(),
+            // Synthetic conditions (`__`-prefixed, added for inline Fn::If and
+            // Rules-section assertions) drive the internal SAT model but are
+            // filtered out of the serialized `conditions` map, so they must be
+            // filtered out of every serialized structure that names conditions -
+            // otherwise engines and language bindings see implications/mutex
+            // groups referencing condition names that do not exist in the model.
             condition_implications: self
                 .conditions
                 .implications
                 .iter()
+                .filter(|i| !i.antecedent.starts_with("__") && !i.consequent.starts_with("__"))
                 .map(|i| DiagnosticImplication { antecedent: i.antecedent.clone(), consequent: i.consequent.clone() })
                 .collect(),
             condition_mutex_groups: self
                 .conditions
                 .mutex_groups
                 .iter()
+                .filter(|g| !g.conditions.iter().any(|c| c.starts_with("__")))
                 .map(|g| DiagnosticMutexGroup {
                     conditions: g.conditions.clone(),
                     parameter: g.parameter.clone(),
@@ -62,12 +73,13 @@ impl SemanticModel {
                 // Sort the condition names before the pairwise pass. HashMap
                 // iteration order is randomized per run, so if the cumulative
                 // satisfiability budget is exhausted partway through, an
-                // unsorted order would make the set of pairs examined — and thus
-                // the exclusions found — differ across runs. A stable order keeps
+                // unsorted order would make the set of pairs examined - and thus
+                // the exclusions found - differ across runs. A stable order keeps
                 // budget-truncated output deterministic and engine-identical,
                 // mirroring the deterministic per-type resource ordering in
                 // `model`.
-                let mut cond_names: Vec<&String> = self.conditions.conditions.keys().collect();
+                let mut cond_names: Vec<&String> =
+                    self.conditions.conditions.keys().filter(|n| !n.starts_with("__")).collect();
                 cond_names.sort();
                 let mut exclusions = Vec::new();
                 'pairs: for i in 0..cond_names.len() {
@@ -101,10 +113,19 @@ impl SemanticModel {
             sam_implicit_resources: self.sam_implicit_resources.iter().cloned().collect(),
             globals_param_refs: self.globals_param_refs.clone(),
             is_cdk: self.is_cdk,
-            has_parse_errors: self
-                .diagnostics
-                .iter()
-                .any(|d| d.severity == rules_crate::Severity::Fatal && d.phase == Some(diagnostics::Phase::Parse)),
+            fn_if_conditions: self.fn_if_conditions.clone(),
+            find_in_map_names: {
+                let mut names: Vec<String> = self.find_in_map_names.iter().cloned().collect();
+                names.sort();
+                names
+            },
+            params_referenced_in_definitions: {
+                let mut names: Vec<String> = self.params_referenced_in_definitions.iter().cloned().collect();
+                names.sort();
+                names
+            },
+            has_dynamic_findinmap_name: self.has_dynamic_findinmap_name,
+            has_parse_errors: self.diagnostics.iter().any(|d| d.is_fatal() && d.phase == Some(DefectPhase::Parse)),
             parsed_rules: self.parsed_rules.iter().map(build_rule).collect(),
             resolution_sources: self
                 .resolution_sources
@@ -211,6 +232,19 @@ fn build_resources(
                         .iter()
                         .map(|s| PathVariable { path: s.path.clone(), variable: s.value.clone() })
                         .collect(),
+                    unused_sub_keys: res
+                        .diagnostics
+                        .unused_sub_keys
+                        .iter()
+                        .map(|s| PathVariable { path: s.path.clone(), variable: s.value.clone() })
+                        .collect(),
+                    raw_pseudo_params: res
+                        .diagnostics
+                        .raw_pseudo_params
+                        .iter()
+                        .map(|s| PathVariable { path: s.path.clone(), variable: s.value.clone() })
+                        .collect(),
+                    secretsmanager_ref_paths: res.diagnostics.secretsmanager_ref_paths.clone(),
                     invalid_refs: res
                         .diagnostics
                         .invalid_refs
@@ -225,7 +259,7 @@ fn build_resources(
 
 fn build_conditions(conditions: &crate::conditions::ConditionModel) -> HashMap<String, DiagnosticCondition> {
     let mut out = HashMap::new();
-    for name in conditions.names() {
+    for name in conditions.names().filter(|n| !n.starts_with("__")) {
         let (expression, deps) = if let Some(expr) = conditions.get(name) {
             let mut d = Vec::new();
             crate::conditions::collect_condition_deps(expr, &mut d);
@@ -285,6 +319,7 @@ fn build_outputs(
     for edge in &graph.edges {
         if let Some(output_name) = edge.source_resource.strip_prefix(OUTPUT_PSEUDO_RESOURCE_PREFIX)
             && let RefKind::GetAtt { attr } = &edge.kind
+            && getatt_is_in_string_position(&edge.source_path)
         {
             output_getatt_refs.entry(output_name.to_string()).or_default().push((edge.target.clone(), attr.clone()));
         }
@@ -293,8 +328,13 @@ fn build_outputs(
     outputs
         .iter()
         .map(|(name, output)| {
+            // A GetAtt sitting directly inside a literal list/map output value is
+            // not collected for the string-type check: the enclosing container is
+            // itself a non-string value and is reported on its own, so descending
+            // into it would double-report the same defect. GetAtts reached only
+            // through Fn::If branches or string-building functions stay in scope.
             let mut getatt_refs = Vec::new();
-            collect_getatt_refs(&output.value, &mut getatt_refs);
+            collect_getatt_refs_string_position(&output.value, &mut getatt_refs);
             if let Some(edge_refs) = output_getatt_refs.get(name) {
                 for (t, a) in edge_refs {
                     if !getatt_refs.iter().any(|(rt, ra)| rt == t && ra == a) {
@@ -346,7 +386,7 @@ fn filter_sam_cycles(
     transforms: &[String],
     resources: &HashMap<String, ResolvedResource>,
 ) -> Vec<Vec<String>> {
-    let has_sam = transforms.iter().any(|t| t.contains(SAM_TRANSFORM_MARKER));
+    let has_sam = transforms.iter().any(|t| t == TRANSFORM_SERVERLESS);
     if has_sam {
         raw_cycles
             .iter()
@@ -434,30 +474,56 @@ fn ref_kind_to_str(kind: &RefKind) -> (&'static str, Option<String>) {
     }
 }
 
-fn collect_getatt_refs(val: &ResolvedValue, out: &mut Vec<(String, String)>) {
+/// Collects GetAtt references that occupy a *string position* of an output
+/// value - the value itself, or a value reached only through `Fn::If` branches.
+/// A GetAtt nested inside a literal list or map is skipped: the container is a
+/// non-string output value reported in its own right, and CloudFormation never
+/// treats the inner GetAtt as the output's string value. `Fn::If` is transparent
+/// (a branch is a string position), mirroring the output value-type check.
+fn collect_getatt_refs_string_position(val: &ResolvedValue, out: &mut Vec<(String, String)>) {
     match val {
         ResolvedValue::Reference { target, kind: RefKind::GetAtt { attr } } => out.push((target.clone(), attr.clone())),
-        ResolvedValue::List { items } => {
-            for v in items {
-                collect_getatt_refs(v, out);
-            }
-        }
-        ResolvedValue::Map { entries } => {
-            for MapEntry { key: _, value: v } in entries {
-                collect_getatt_refs(v, out);
-            }
-        }
-        ResolvedValue::Enum { variants: vals } => {
-            for v in vals {
-                collect_getatt_refs(v, out);
-            }
-        }
         ResolvedValue::Conditional { condition: _, if_true: t, if_false: f } => {
-            collect_getatt_refs(t, out);
-            collect_getatt_refs(f, out);
+            collect_getatt_refs_string_position(t, out);
+            collect_getatt_refs_string_position(f, out);
         }
         _ => {}
     }
+}
+
+/// Whether a GetAtt reference edge whose source path is `source_path` occupies a
+/// string position of the output (see [`collect_getatt_refs_string_position`]).
+/// The path is `Value` optionally followed by segments; a GetAtt is in string
+/// position unless it sits inside a literal list/map - i.e. the path descends
+/// through a bare index or key that is not an argument of a string-building
+/// function. `Fn::If` branch segments are transparent; any other `Fn::…` segment
+/// (e.g. `Fn::Join`, `Fn::Sub`) marks a string-building consumer, so a GetAtt
+/// beneath it stays in scope.
+fn getatt_is_in_string_position(source_path: &str) -> bool {
+    // Edge source paths are section-rooted (`Outputs/<name>/Value…`); take the
+    // part after the output's `Value` node. The dotted tail (`.0`, `.Fn::If.1`)
+    // is what distinguishes a literal-container position from a string position.
+    let after_value = source_path
+        .split_once("/Value")
+        .map(|(_, tail)| tail)
+        .or_else(|| source_path.strip_prefix("Value"))
+        .unwrap_or("");
+    let mut segments = after_value.split('.').filter(|s| !s.is_empty());
+    while let Some(segment) = segments.next() {
+        if segment == FN_IF {
+            // Skip the branch selector (`1`/`2`) and keep walking transparently.
+            segments.next();
+            continue;
+        }
+        // A remaining `Fn::…` segment is a string-building function consuming the
+        // GetAtt (Join/Sub/…): the GetAtt is in string position.
+        if segment.starts_with("Fn::") {
+            return true;
+        }
+        // A bare index or key means the GetAtt is inside a literal container.
+        return false;
+    }
+    true
 }
 
 #[cfg(test)]
@@ -633,5 +699,19 @@ mod tests {
         let val = ResolvedValue::Reference { target: "R".into(), kind: RefKind::DependsOn };
         let j = resolved_value_to_json(&val);
         assert_eq!(j[MARKER_KIND], "dependson");
+    }
+
+    #[test]
+    fn getatt_string_position_paths() {
+        // Direct, whole-branch, and string-building-function positions keep the
+        // GetAtt in scope for the output value-type check; a bare index/key
+        // beneath the value (a literal container) takes it out of scope, because
+        // the container itself is reported as the non-string value.
+        assert!(getatt_is_in_string_position("Outputs/O/Value"));
+        assert!(getatt_is_in_string_position("Outputs/O/Value.Fn::If.1"));
+        assert!(getatt_is_in_string_position("Outputs/O/Value.Fn::Join.1.0"));
+        assert!(!getatt_is_in_string_position("Outputs/O/Value.0"));
+        assert!(!getatt_is_in_string_position("Outputs/O/Value.k"));
+        assert!(!getatt_is_in_string_position("Outputs/O/Value.Fn::If.2.0"));
     }
 }

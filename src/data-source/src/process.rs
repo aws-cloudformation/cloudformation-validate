@@ -1,7 +1,7 @@
 use crate::SyncStats;
 use log::{info, warn};
 use serde::Deserialize;
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::fs;
 use std::path::Path;
 
@@ -13,129 +13,6 @@ pub(crate) struct SchemaTop {
     pub required: Option<Vec<String>>,
     pub read_only_properties: Option<Vec<String>>,
     pub definitions: Option<HashMap<String, serde_json::Value>>,
-}
-
-fn unescape_json_pointer(seg: &str) -> String {
-    seg.replace("~1", "/").replace("~0", "~")
-}
-
-/// Navigate a JSON Pointer path, returning the parent value and the final key.
-fn navigate_to_parent<'a>(root: &'a mut serde_json::Value, path: &str) -> Option<(&'a mut serde_json::Value, String)> {
-    let segments: Vec<String> = path.trim_start_matches('/').split('/').map(unescape_json_pointer).collect();
-    if segments.is_empty() {
-        return None;
-    }
-    let (parent_segs, last) = segments.split_at(segments.len() - 1);
-    let mut current = root;
-    for seg in parent_segs {
-        current = match current {
-            serde_json::Value::Object(m) => m.get_mut(seg.as_str())?,
-            serde_json::Value::Array(a) => a.get_mut(seg.parse::<usize>().ok()?)?,
-            _ => return None,
-        };
-    }
-    Some((current, last[0].clone()))
-}
-
-fn json_pointer_get<'a>(root: &'a serde_json::Value, path: &str) -> Option<&'a serde_json::Value> {
-    if path == "/" || path.is_empty() {
-        return Some(root);
-    }
-    let segments: Vec<String> = path.trim_start_matches('/').split('/').map(unescape_json_pointer).collect();
-    let mut current = root;
-    for seg in &segments {
-        current = match current {
-            serde_json::Value::Object(m) => m.get(seg.as_str())?,
-            serde_json::Value::Array(a) => a.get(seg.parse::<usize>().ok()?)?,
-            _ => return None,
-        };
-    }
-    Some(current)
-}
-
-fn apply_patch_batch(schema_json: &mut serde_json::Value, ops: &[serde_json::Value]) -> bool {
-    for patch in ops {
-        let op = patch["op"].as_str().unwrap_or("");
-        let path = patch["path"].as_str().unwrap_or("");
-        let value = patch.get("value").cloned().unwrap_or(serde_json::Value::Null);
-        match op {
-            "test" => match json_pointer_get(schema_json, path) {
-                Some(actual) if *actual == value => {}
-                _ => return false,
-            },
-            "add" => {
-                if path == "/" || path.is_empty() {
-                    if let (Some(target), Some(source)) = (schema_json.as_object_mut(), value.as_object()) {
-                        for (k, v) in source {
-                            target.insert(k.clone(), v.clone());
-                        }
-                    }
-                } else if let Some((parent, key)) = navigate_to_parent(schema_json, path) {
-                    match parent {
-                        serde_json::Value::Object(m) => {
-                            m.insert(key, value);
-                        }
-                        serde_json::Value::Array(a) => {
-                            if key == "-" {
-                                a.push(value);
-                            } else if let Ok(idx) = key.parse::<usize>() {
-                                if idx <= a.len() {
-                                    a.insert(idx, value);
-                                }
-                            }
-                        }
-                        _ => {}
-                    }
-                }
-            }
-            "remove" => {
-                if let Some((parent, key)) = navigate_to_parent(schema_json, path) {
-                    match parent {
-                        serde_json::Value::Object(m) => {
-                            m.remove(&key);
-                        }
-                        serde_json::Value::Array(a) => {
-                            if let Ok(idx) = key.parse::<usize>() {
-                                if idx < a.len() {
-                                    a.remove(idx);
-                                }
-                            }
-                        }
-                        _ => {}
-                    }
-                }
-            }
-            "replace" => {
-                if let Some((parent, key)) = navigate_to_parent(schema_json, path) {
-                    match parent {
-                        serde_json::Value::Object(m) => {
-                            m.insert(key, value);
-                        }
-                        serde_json::Value::Array(a) => {
-                            if let Ok(idx) = key.parse::<usize>() {
-                                if idx < a.len() {
-                                    a[idx] = value;
-                                }
-                            }
-                        }
-                        _ => {}
-                    }
-                }
-            }
-            other => {
-                warn!("Unknown JSON Patch operation '{}' at path '{}'", other, path);
-            }
-        }
-    }
-    true
-}
-
-pub(crate) fn apply_patches(schema_json: &mut serde_json::Value, patch_groups: &[serde_json::Value]) {
-    for group in patch_groups {
-        if let Some(ops) = group.as_array() {
-            apply_patch_batch(schema_json, ops);
-        }
-    }
 }
 
 pub(crate) fn resolve_schema(
@@ -175,9 +52,9 @@ fn extract_primary_type(v: &serde_json::Value) -> Option<String> {
     }
 }
 
-/// Process schemas: load raw schemas, apply patches and extensions, then generate
-/// shared metadata files consumed by all engine crates.
-pub fn process_schemas(upstream_dir: &Path, generated_dir: &Path) -> anyhow::Result<SyncStats> {
+/// Process schemas: load the (already-patched) raw schemas, apply extension
+/// fragments, then generate shared metadata files consumed by all engine crates.
+pub fn process_schemas(upstream_dir: &Path, generated_dir: &Path, handwritten_dir: &Path) -> anyhow::Result<SyncStats> {
     let mut stats = SyncStats::default();
     let schema_source = crate::schema::schema_dir(upstream_dir);
     if !schema_source.exists() {
@@ -194,33 +71,23 @@ pub fn process_schemas(upstream_dir: &Path, generated_dir: &Path) -> anyhow::Res
             continue;
         }
         let content = fs::read_to_string(&path)?;
-        let json: serde_json::Value = match serde_json::from_str(&content) {
-            Ok(v) => v,
-            Err(_) => continue,
-        };
+        // These are our own downloaded schema files - a parse failure means a
+        // corrupt download, not an optional file, so surface it rather than
+        // silently dropping a resource type.
+        let json: serde_json::Value = serde_json::from_str(&content)
+            .map_err(|e| anyhow::anyhow!("failed to parse schema {}: {}", path.display(), e))?;
         let Some(type_name) = json.get("typeName").and_then(|v| v.as_str()) else {
-            continue;
+            anyhow::bail!("schema {} has no 'typeName'", path.display());
         };
         raw_schemas.insert(type_name.to_string(), json);
     }
+    anyhow::ensure!(!raw_schemas.is_empty(), "no schemas loaded from {}", schema_source.display());
     info!("Loaded {} raw schemas", raw_schemas.len());
 
-    let patches_dir = upstream_dir.join("patches");
-    let mut patch_count = 0;
-    if patches_dir.exists() {
-        for (type_name, schema_json) in &mut raw_schemas {
-            let patch_name = type_name.replace("::", "-").to_lowercase();
-            let patch_file = patches_dir.join(format!("{}.patch.json", patch_name));
-            if !patch_file.exists() {
-                continue;
-            }
-            let patch_groups: Vec<serde_json::Value> = serde_json::from_str(&fs::read_to_string(&patch_file)?)?;
-            apply_patches(schema_json, &patch_groups);
-            patch_count += 1;
-        }
-    }
-    info!("Applied patches to {} schemas", patch_count);
-
+    // The downloaded schemas are already fully patched (provider + extension
+    // patches are baked into the enhanced archive), so no patch pass runs here.
+    // The extension fragments below are the separately-synced enum/constraint
+    // documents the engines query at runtime, not schema patches.
     let extensions_dir = upstream_dir.join("extensions");
     let mut ext_count = 0;
     if extensions_dir.exists() {
@@ -247,19 +114,20 @@ pub fn process_schemas(upstream_dir: &Path, generated_dir: &Path) -> anyhow::Res
     }
     info!("Applied extensions to {} schemas", ext_count);
 
+    // Run after the extension merge: some dependentExcluded constraints arrive as
+    // extension fragments (the same fragments that back a dedicated engine rule),
+    // so stripping them earlier would miss them and leave a duplicate finding.
+    let stripped = strip_superseded_dependent_excluded(&mut raw_schemas, handwritten_dir)?;
+    if stripped > 0 {
+        info!("Stripped {} dependentExcluded entries superseded by dedicated engine rules", stripped);
+    }
+
     let mut schemas: HashMap<String, (String, SchemaTop)> = HashMap::new();
-    let mut skipped = 0;
     for (type_name, json) in &raw_schemas {
         let content = serde_json::to_string(json)?;
-        let schema: SchemaTop = serde_json::from_value(json.clone()).unwrap_or_default();
-        if schema.type_name.is_none() {
-            skipped += 1;
-            continue;
-        }
+        let schema: SchemaTop = serde_json::from_value(json.clone())
+            .map_err(|e| anyhow::anyhow!("failed to deserialize schema for {}: {}", type_name, e))?;
         schemas.insert(type_name.clone(), (content, schema));
-    }
-    if skipped > 0 {
-        warn!("Skipped {} schemas with no typeName", skipped);
     }
     info!("Parsed {} schemas for metadata generation", schemas.len());
 
@@ -273,12 +141,26 @@ pub fn process_schemas(upstream_dir: &Path, generated_dir: &Path) -> anyhow::Res
     info!("Wrote {} patched schemas to patched_schemas/", raw_schemas.len());
 
     fs::write(data_dir.join("schema_metadata.json"), generate_schema_metadata(&schemas, &raw_schemas))?;
-    fs::write(data_dir.join("getatt_attributes.json"), generate_getatt_data(&schemas, &raw_schemas))?;
-    let mut all_types: Vec<String> = schemas.keys().cloned().collect();
-    all_types.sort();
+    // getatt_additions is extracted from cfn-lint during sync (into data_dir);
+    // getatt_return_type_overrides is a hand-maintained correction (CloudFormation
+    // stringifies some GetAtt values) that has no cfn-lint equivalent.
+    let getatt_additions = read_getatt_additions(&data_dir)?;
+    let getatt_return_overrides = read_getatt_return_type_overrides(handwritten_dir)?;
+    fs::write(
+        data_dir.join("getatt_attributes.json"),
+        generate_getatt_data(&schemas, &raw_schemas, &getatt_additions, &getatt_return_overrides),
+    )?;
+    // Union the schema-derived types with the per-region known types. Some types
+    // CloudFormation accepts (e.g. AWS::CDK::Metadata) have no provider schema but
+    // appear only in the per-region type maps. The single `known_resource_types`
+    // set is the source of truth
+    let mut known_types: BTreeSet<String> = schemas.keys().cloned().collect();
+    let region_types = read_region_resource_types_union(&data_dir)?;
+    known_types.extend(region_types);
+    let known_types_sorted: Vec<String> = known_types.into_iter().collect();
     fs::write(
         data_dir.join("known_resource_types.json"),
-        serde_json::to_string_pretty(&serde_json::json!({"known_resource_types": all_types}))?,
+        serde_json::to_string_pretty(&serde_json::json!({"known_resource_types": known_types_sorted}))?,
     )?;
     fs::write(data_dir.join("primary_identifiers.json"), generate_primary_identifiers(&raw_schemas))?;
     fs::write(data_dir.join("resource_lifecycle.json"), generate_resource_lifecycle(&raw_schemas))?;
@@ -289,6 +171,39 @@ pub fn process_schemas(upstream_dir: &Path, generated_dir: &Path) -> anyhow::Res
 
     info!("Schema processing complete: {} files written", stats.files_written);
     Ok(stats)
+}
+
+/// Reads `data_dir/region_resource_types.json` (produced by the sync phase from
+/// the upstream per-region provider files) and returns the union of every
+/// resource-type key across all regions.
+///
+/// The returned set is intentionally region-agnostic: callers (the
+/// `known_resource_types` writer in this module, and downstream the engine
+/// resource-type rule) only need to know whether a type is valid in *any*
+/// region.
+fn read_region_resource_types_union(data_dir: &Path) -> anyhow::Result<BTreeSet<String>> {
+    let region_file = data_dir.join("region_resource_types.json");
+    if !region_file.exists() {
+        warn!("{} not found - known_resource_types will not include per-region types", region_file.display());
+        return Ok(BTreeSet::new());
+    }
+    let content = fs::read_to_string(&region_file)?;
+    let parsed: serde_json::Value = serde_json::from_str(&content)?;
+    let regions = parsed
+        .get("region_resource_types")
+        .and_then(|v| v.as_object())
+        .ok_or_else(|| anyhow::anyhow!("{}: missing 'region_resource_types' object", region_file.display()))?;
+    let mut union: BTreeSet<String> = BTreeSet::new();
+    for type_map in regions.values() {
+        let Some(type_obj) = type_map.as_object() else {
+            continue;
+        };
+        for type_name in type_obj.keys() {
+            union.insert(type_name.clone());
+        }
+    }
+    info!("Collected {} unique resource types across regions for known_resource_types union", union.len());
+    Ok(union)
 }
 
 /// Generates per-resource-type metadata: property names, types, required fields,
@@ -466,6 +381,8 @@ fn extract_property_constraints(
 fn generate_getatt_data(
     schemas: &HashMap<String, (String, SchemaTop)>,
     raw: &HashMap<String, serde_json::Value>,
+    additions: &BTreeMap<String, Vec<String>>,
+    return_type_overrides: &BTreeMap<String, BTreeMap<String, String>>,
 ) -> String {
     let mut attrs: BTreeMap<String, Vec<String>> = BTreeMap::new();
     let mut attr_types: BTreeMap<String, BTreeMap<String, String>> = BTreeMap::new();
@@ -478,7 +395,7 @@ fn generate_getatt_data(
                 }
             }
         }
-        // Include types for ALL properties — used by output type checking
+        // Include types for ALL properties - used by output type checking
         // and type mismatch detection. Attribute validity uses getatt_attributes
         // (readOnly only), not this map.
         let mut tt = BTreeMap::new();
@@ -499,8 +416,122 @@ fn generate_getatt_data(
             attr_types.insert(tn.clone(), tt);
         }
     }
+    // Extend the schema-derived readOnly attributes with the broader set of
+    // attributes CloudFormation actually exposes for Fn::GetAtt (writable
+    // properties surfaced as attributes on older resource types), so attribute
+    // validity matches what CloudFormation accepts.
+    for (type_name, extra_attrs) in additions {
+        let valid_attrs = attrs.entry(type_name.clone()).or_default();
+        valid_attrs.extend(extra_attrs.iter().cloned());
+        valid_attrs.sort();
+        valid_attrs.dedup();
+    }
+    // Apply explicit GetAtt-return-type overrides for attributes whose GetAtt
+    // value type differs from the declared property type.
+    for (type_name, attr_overrides) in return_type_overrides {
+        let type_map = attr_types.entry(type_name.clone()).or_default();
+        for (attr, ret_type) in attr_overrides {
+            type_map.insert(attr.clone(), ret_type.clone());
+        }
+    }
     serde_json::to_string_pretty(&serde_json::json!({"getatt_attributes": attrs, "getatt_attribute_types": attr_types}))
         .unwrap()
+}
+
+/// Reads the GetAtt attribute additions (extracted from cfn-lint during sync)
+/// Removes `dependentExcluded` trigger properties that a dedicated engine rule
+/// already enforces, so the schema validator's generic mutually-exclusive check
+/// does not duplicate the rule's finding. Returns the number of trigger entries
+/// removed. The reference tool strips the same entries from its loaded schema.
+fn strip_superseded_dependent_excluded(
+    raw_schemas: &mut HashMap<String, serde_json::Value>,
+    handwritten_dir: &Path,
+) -> anyhow::Result<usize> {
+    #[derive(Deserialize)]
+    struct Overrides {
+        remove_dependent_excluded: BTreeMap<String, Vec<String>>,
+    }
+    let path = handwritten_dir.join("schema_dependent_excluded_overrides.json");
+    if !path.exists() {
+        return Ok(0);
+    }
+    let contents =
+        fs::read_to_string(&path).map_err(|source| anyhow::anyhow!("failed to read {}: {}", path.display(), source))?;
+    let parsed: Overrides = serde_json::from_str(&contents)
+        .map_err(|source| anyhow::anyhow!("failed to parse {}: {}", path.display(), source))?;
+
+    let mut removed = 0;
+    for (type_name, triggers) in &parsed.remove_dependent_excluded {
+        let Some(schema) = raw_schemas.get_mut(type_name) else {
+            continue;
+        };
+        for trigger in triggers {
+            removed += remove_dependent_excluded_trigger(schema, trigger);
+        }
+    }
+    Ok(removed)
+}
+
+/// Recursively removes `dependentExcluded.<trigger>` wherever it appears in a
+/// schema value, returning the count removed.
+fn remove_dependent_excluded_trigger(value: &mut serde_json::Value, trigger: &str) -> usize {
+    let mut removed = 0;
+    match value {
+        serde_json::Value::Object(map) => {
+            if let Some(de) = map.get_mut("dependentExcluded").and_then(|v| v.as_object_mut()) {
+                if de.remove(trigger).is_some() {
+                    removed += 1;
+                }
+            }
+            for v in map.values_mut() {
+                removed += remove_dependent_excluded_trigger(v, trigger);
+            }
+        }
+        serde_json::Value::Array(arr) => {
+            for v in arr.iter_mut() {
+                removed += remove_dependent_excluded_trigger(v, trigger);
+            }
+        }
+        _ => {}
+    }
+    removed
+}
+
+/// that extend the schema-derived readOnly attributes with the full set
+/// CloudFormation exposes for Fn::GetAtt on each resource type.
+fn read_getatt_additions(data_dir: &Path) -> anyhow::Result<BTreeMap<String, Vec<String>>> {
+    #[derive(Deserialize)]
+    struct GetAttAdditions {
+        getatt_additions: BTreeMap<String, Vec<String>>,
+    }
+    let path = data_dir.join("getatt_additions.json");
+    let contents =
+        fs::read_to_string(&path).map_err(|source| anyhow::anyhow!("failed to read {}: {}", path.display(), source))?;
+    let parsed: GetAttAdditions = serde_json::from_str(&contents)
+        .map_err(|source| anyhow::anyhow!("failed to parse {}: {}", path.display(), source))?;
+    Ok(parsed.getatt_additions)
+}
+
+/// Reads overrides for the type CloudFormation returns from `Fn::GetAtt` on
+/// specific attributes, where it differs from the raw schema property type
+/// (CloudFormation stringifies many GetAtt return values). Missing file yields
+/// an empty map.
+fn read_getatt_return_type_overrides(
+    handwritten_dir: &Path,
+) -> anyhow::Result<BTreeMap<String, BTreeMap<String, String>>> {
+    #[derive(Deserialize)]
+    struct Overrides {
+        getatt_return_type_overrides: BTreeMap<String, BTreeMap<String, String>>,
+    }
+    let path = handwritten_dir.join("getatt_return_type_overrides.json");
+    if !path.exists() {
+        return Ok(BTreeMap::new());
+    }
+    let contents =
+        fs::read_to_string(&path).map_err(|source| anyhow::anyhow!("failed to read {}: {}", path.display(), source))?;
+    let parsed: Overrides = serde_json::from_str(&contents)
+        .map_err(|source| anyhow::anyhow!("failed to parse {}: {}", path.display(), source))?;
+    Ok(parsed.getatt_return_type_overrides)
 }
 
 /// Generates user-settable primary identifier properties per resource type,
@@ -526,7 +557,7 @@ fn generate_primary_identifiers(raw: &HashMap<String, serde_json::Value>) -> Str
             .filter_map(|p| {
                 let s = p.as_str()?;
                 let name = s.strip_prefix("/properties/")?;
-                // Skip nested paths — only root-level properties
+                // Skip nested paths - only root-level properties
                 if name.contains('/') {
                     return None;
                 }
@@ -538,8 +569,21 @@ fn generate_primary_identifiers(raw: &HashMap<String, serde_json::Value>) -> Str
         }
         ids.insert(tn.clone(), props);
     }
+    // Hardcoded primary-identifier exceptions the reference tool applies on top
+    // of the schema: types whose schema primaryIdentifier is read-only (so the
+    // schema-derived pass skips them) but which have a customer-set name that
+    // must still be unique across resources.
+    for (type_name, id_props) in PRIMARY_IDENTIFIER_EXCEPTIONS {
+        ids.insert((*type_name).to_string(), id_props.iter().map(|s| s.to_string()).collect());
+    }
     serde_json::to_string_pretty(&serde_json::json!({"primary_identifiers": ids})).unwrap()
 }
+
+/// Primary-identifier overrides that do not come from the provider schema.
+/// `AWS::CodeBuild::Project`'s schema identifier is the read-only `Arn`, but its
+/// customer-supplied `Name` must be unique, so the reference tool treats `Name`
+/// as the primary identifier for uniqueness checks.
+const PRIMARY_IDENTIFIER_EXCEPTIONS: &[(&str, &[&str])] = &[("AWS::CodeBuild::Project", &["Name"])];
 
 /// Extracts lifecycle metadata (shutdown/sunset/maintenance) from patched schemas.
 fn generate_resource_lifecycle(raw_schemas: &HashMap<String, serde_json::Value>) -> String {
@@ -575,7 +619,7 @@ mod tests {
 
     #[test]
     fn resolve_schema_circular_ref_terminates() {
-        // A references B, B references A — must not infinite-loop
+        // A references B, B references A - must not infinite-loop
         let mut defs = HashMap::new();
         defs.insert("A".to_string(), json!({"$ref": "#/definitions/B"}));
         defs.insert("B".to_string(), json!({"$ref": "#/definitions/A"}));
@@ -609,45 +653,6 @@ mod tests {
     }
 
     #[test]
-    fn apply_patches_add_replace_remove() {
-        let mut schema = json!({"typeName": "AWS::Test::Resource", "properties": {"A": {"type": "string"}}});
-        let patches = vec![
-            json!([{"op": "add", "path": "/properties/B", "value": {"type": "integer"}}]),
-            json!([{"op": "replace", "path": "/properties/A/type", "value": "number"}]),
-        ];
-        apply_patches(&mut schema, &patches);
-        assert_eq!(schema["properties"]["B"]["type"], "integer");
-        assert_eq!(schema["properties"]["A"]["type"], "number");
-
-        let remove_patch = vec![json!([{"op": "remove", "path": "/properties/B"}])];
-        apply_patches(&mut schema, &remove_patch);
-        assert_eq!(schema["properties"].get("B"), None, "read-only property B should be removed");
-    }
-
-    #[test]
-    fn apply_patches_test_op_gates_subsequent_ops() {
-        let mut schema = json!({"properties": {"A": {"type": "string"}}});
-        // test fails → entire batch is skipped
-        let patches = vec![json!([
-            {"op": "test", "path": "/properties/A/type", "value": "integer"},
-            {"op": "add", "path": "/properties/B", "value": {"type": "boolean"}}
-        ])];
-        apply_patches(&mut schema, &patches);
-        assert_eq!(schema["properties"].get("B"), None, "read-only property B should be removed");
-    }
-
-    #[test]
-    fn apply_patches_test_op_passes() {
-        let mut schema = json!({"properties": {"A": {"type": "string"}}});
-        let patches = vec![json!([
-            {"op": "test", "path": "/properties/A/type", "value": "string"},
-            {"op": "add", "path": "/properties/B", "value": {"type": "boolean"}}
-        ])];
-        apply_patches(&mut schema, &patches);
-        assert_eq!(schema["properties"]["B"]["type"], "boolean");
-    }
-
-    #[test]
     fn extract_primary_type_simple_string() {
         assert_eq!(extract_primary_type(&json!("string")), Some("string".to_string()));
     }
@@ -659,7 +664,7 @@ mod tests {
 
     #[test]
     fn extract_primary_type_array_multiple_non_null() {
-        // Ambiguous — should return None
+        // Ambiguous - should return None
         assert_eq!(extract_primary_type(&json!(["string", "integer"])), None);
     }
 
@@ -703,7 +708,7 @@ mod tests {
 
     #[test]
     fn build_property_schema_obj_deeply_nested_no_truncation() {
-        // Build a 6-level deep schema — previously truncated at depth 4
+        // Build a 6-level deep schema - previously truncated at depth 4
         fn make_nested(depth: usize) -> serde_json::Value {
             if depth == 0 {
                 return json!({"type": "string", "pattern": "^leaf$"});
@@ -720,7 +725,7 @@ mod tests {
         properties.insert("root".to_string(), make_nested(6));
         let result = build_property_schema_obj(Some(&properties), None, None, None, &mut HashSet::new());
 
-        // Walk down all 6 levels — none should be truncated
+        // Walk down all 6 levels - none should be truncated
         let mut current = &result["property_constraints"]["root"];
         for _ in 0..6 {
             assert!(current.get("sub_properties").is_some(), "Nested level was truncated");
@@ -768,14 +773,21 @@ mod tests {
         // Copy schemas into temp upstream dir
         let tmp_schemas = tmp_upstream.join("schemas");
         copy_dir(&upstream_dir.join("schemas"), &tmp_schemas);
-        if upstream_dir.join("patches").exists() {
-            copy_dir(&upstream_dir.join("patches"), &tmp_upstream.join("patches"));
-        }
         if upstream_dir.join("extensions").exists() {
             copy_dir(&upstream_dir.join("extensions"), &tmp_upstream.join("extensions"));
         }
+        // getatt_additions is a sync output (extracted from cfn-lint) read from
+        // the generated data dir; seed it from the real one if present.
+        let tmp_data = tmp.join("data");
+        fs::create_dir_all(&tmp_data).unwrap();
+        let real_additions = manifest.join("generated").join("data").join("getatt_additions.json");
+        if real_additions.exists() {
+            fs::copy(&real_additions, tmp_data.join("getatt_additions.json")).unwrap();
+        } else {
+            fs::write(tmp_data.join("getatt_additions.json"), r#"{"getatt_additions":{}}"#).unwrap();
+        }
 
-        let result = process_schemas(&tmp_upstream, &tmp);
+        let result = process_schemas(&tmp_upstream, &tmp, &manifest.join("handwritten"));
         let stats = result.expect("process_schemas should succeed");
         assert!(stats.files_written > 0, "expected files_written > 0, got {}", stats.files_written);
 
@@ -820,5 +832,76 @@ mod tests {
                 fs::copy(entry.path(), &dest_path).unwrap();
             }
         }
+    }
+
+    fn unique_tempdir(name: &str) -> std::path::PathBuf {
+        let dir = std::env::temp_dir().join(format!("data_source_test_{}_{}", std::process::id(), name));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    #[test]
+    fn region_resource_types_union_returns_empty_when_file_absent() {
+        let dir = unique_tempdir("region_types_missing");
+
+        let union = read_region_resource_types_union(&dir).expect("should succeed when file absent");
+
+        assert!(union.is_empty(), "expected empty set when region_resource_types.json is absent, got {:?}", union);
+    }
+
+    #[test]
+    fn region_resource_types_union_collects_types_across_regions() {
+        let dir = unique_tempdir("region_types_union");
+        let region_file = json!({
+            "region_resource_types": {
+                "us-east-1": {
+                    "AWS::S3::Bucket": true,
+                    "AWS::CDK::Metadata": true,
+                },
+                "cn-north-1": {
+                    "AWS::S3::Bucket": true,
+                    "AWS::CDK::Metadata": true,
+                    "AWS::Special::ChinaOnlyType": true,
+                },
+            }
+        });
+        fs::write(dir.join("region_resource_types.json"), serde_json::to_string(&region_file).unwrap()).unwrap();
+
+        let union = read_region_resource_types_union(&dir).expect("should parse valid file");
+
+        assert_eq!(
+            union,
+            ["AWS::CDK::Metadata", "AWS::S3::Bucket", "AWS::Special::ChinaOnlyType"]
+                .into_iter()
+                .map(String::from)
+                .collect::<BTreeSet<String>>(),
+            "union should contain every type from every region exactly once"
+        );
+    }
+
+    #[test]
+    fn region_resource_types_union_errors_when_top_level_key_missing() {
+        let dir = unique_tempdir("region_types_malformed");
+        fs::write(dir.join("region_resource_types.json"), r#"{"wrong_key": {}}"#).unwrap();
+
+        let result = read_region_resource_types_union(&dir);
+
+        let err_msg = result.expect_err("should fail when top-level key is missing").to_string();
+        assert!(
+            err_msg.contains("missing 'region_resource_types' object"),
+            "error must surface the missing top-level key, got: {}",
+            err_msg
+        );
+    }
+
+    #[test]
+    fn region_resource_types_union_errors_on_invalid_json() {
+        let dir = unique_tempdir("region_types_invalid_json");
+        fs::write(dir.join("region_resource_types.json"), "not json at all {{{").unwrap();
+
+        let result = read_region_resource_types_union(&dir);
+
+        assert!(result.is_err(), "should fail on malformed JSON instead of silently returning empty");
     }
 }

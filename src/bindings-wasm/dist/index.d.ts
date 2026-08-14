@@ -1,7 +1,8 @@
 import type {
     DetailedReport,
     DiagnosticModel,
-    EngineConfig,
+    AdditionalSchemaSource,
+    ExternalRuleSource,
     ParameterInfo,
     ResolvedOutput,
     ResolvedResource,
@@ -17,10 +18,14 @@ export type {
     RuleOrigin,
     IdRange,
     ResourceIdFilter,
+    LogicalIdFilter,
     ResourceTypeFilter,
+    ServiceFilter,
     RuleFilterConfig,
     RuleInfo,
     SourceSpan,
+    Entity,
+    EntityType,
     ResourceRef,
     RelatedResource,
     ViolationContext,
@@ -33,9 +38,9 @@ export type {
     StandardReport,
     DetailedReport,
     PseudoParameterOverrides,
-    EngineConfig,
     ValidateConfig,
     ExternalRuleSource,
+    AdditionalSchemaSource,
     ResolvedValue,
     RefKind,
     ParameterInfo,
@@ -86,6 +91,46 @@ export declare class TemplateFile {
     constructor(path: string);
     readBytes(): Uint8Array;
 }
+export declare class RuleFile {
+    readonly path: string;
+    constructor(path: string);
+    readContent(): string;
+}
+export type RuleSource = ExternalRuleSource | RuleFile;
+/**
+ * A CloudFormation resource provider schema loaded from a file, for use as an
+ * overlay. `typeName` may be omitted to use the `typeName` inside the file.
+ */
+export declare class SchemaFile {
+    readonly path: string;
+    readonly typeName?: string | undefined;
+    constructor(path: string, typeName?: string | undefined);
+    readContent(): string;
+}
+export type SchemaSource = AdditionalSchemaSource | SchemaFile;
+export interface EngineConfig {
+    /** Engine-native rules (Rego for RegoEngine, CEL for CelEngine). */
+    customRules?: RuleSource[];
+    /** CloudFormation Guard DSL rules, usable with either engine. */
+    guardRules?: RuleSource[];
+    /**
+     * Optional schema validator configuration. When present, the engine derives
+     * overlay-aware metadata from the configured additional schemas.
+     */
+    schemaValidatorConfig?: SchemaValidatorConfig;
+}
+/**
+ * Configuration for the schema validator. Additional schemas are merged on top
+ * of the bundled CloudFormation provider schemas before schema validation.
+ */
+export interface SchemaValidatorConfig {
+    /**
+     * Additional CloudFormation resource provider schemas to merge on top of the
+     * bundled schemas. Each overlay extends or overrides the bundled schema for
+     * its resource type.
+     */
+    additionalSchemas?: SchemaSource[];
+}
 export declare class TemplateModel {
     private readonly inner;
     constructor(template: TemplateFile);
@@ -102,6 +147,7 @@ export declare class TemplateModel {
 }
 export declare class SchemaValidator {
     private readonly inner;
+    constructor(config?: SchemaValidatorConfig);
     listRules(): RuleInfo[];
     schemaCount(): number;
     validate(template: TemplateFile, region?: string): StandardDiagnostic[];

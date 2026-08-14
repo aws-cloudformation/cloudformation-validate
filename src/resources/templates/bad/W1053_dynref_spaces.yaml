@@ -1,0 +1,8 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  MyBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      # A spaced "{{ resolve:... }}" is passed through as a literal string, not
+      # resolved - almost certainly not what the author intended.
+      BucketName: "{{ resolve:ssm:/my/param }}"

@@ -11,22 +11,16 @@ done
 # ── Constants ─────────────────────────────────────────────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 WORKSPACE="$(cd "$SCRIPT_DIR/.." && pwd)"
+REPOSITORY_ROOT="$(cd "$WORKSPACE/.." && pwd)"
 GENERATED_DIR="$SCRIPT_DIR/generated"
-BUILD_DIR="$SCRIPT_DIR/build"
 RELEASE_DIR="$WORKSPACE/target/release"
 KOTLIN_SRC="$SCRIPT_DIR/src/main/kotlin"
 
-JNA_VERSION="5.18.1"
-JNA_MAVEN_URL="https://repo1.maven.org/maven2/net/java/dev/jna/jna/${JNA_VERSION}/jna-${JNA_VERSION}.jar"
-
-GSON_VERSION="2.14.0"
-GSON_MAVEN_URL="https://repo1.maven.org/maven2/com/google/code/gson/gson/${GSON_VERSION}/gson-${GSON_VERSION}.jar"
-
-ARCH="$(uname -m)"
+ARCH="$(bash "$REPOSITORY_ROOT/scripts/build-support/rust-host-architecture.sh")"
 # Normalize to JNA's resource-prefix arch tokens (its canonical form)
 case "$ARCH" in
-    arm64)        ARCH="aarch64" ;;
-    x86_64|amd64) ARCH="x86-64"  ;;
+    aarch64) ARCH="aarch64" ;;
+    x86_64)  ARCH="x86-64"  ;;
 esac
 
 case "$(uname -s)" in
@@ -36,7 +30,7 @@ case "$(uname -s)" in
     *) echo "Unsupported platform: $(uname -s)" >&2; exit 1 ;;
 esac
 
-NATIVES_DIR="$BUILD_DIR/classes/${OS}-${ARCH}"
+NATIVES_DIR="$GENERATED_DIR/natives/${OS}-${ARCH}"
 JAR_FILE="$GENERATED_DIR/cloudformation-validate.jar"
 
 cat <<EOF
@@ -44,7 +38,6 @@ Build directories:
   SCRIPT_DIR    = $SCRIPT_DIR
   WORKSPACE     = $WORKSPACE
   GENERATED_DIR = $GENERATED_DIR
-  BUILD_DIR     = $BUILD_DIR
   RELEASE_DIR   = $RELEASE_DIR
   KOTLIN_SRC    = $KOTLIN_SRC
   NATIVES_DIR   = $NATIVES_DIR
@@ -52,18 +45,22 @@ EOF
 
 # ── Prerequisites ─────────────────────────────────────────────────────────────
 command -v ktlint &>/dev/null || { echo "Error: ktlint not found on PATH" >&2; exit 1; }
-command -v kotlinc &>/dev/null || { echo "Error: kotlinc not found on PATH" >&2; exit 1; }
-command -v jar &>/dev/null || { echo "Error: jar not found on PATH" >&2; exit 1; }
+command -v gradle &>/dev/null || { echo "Error: gradle not found on PATH" >&2; exit 1; }
 
-JAVA_VERSION=$(java -version 2>&1 | head -1 | sed -E 's/.*"([0-9]+).*/\1/')
+if [ -n "${JAVA_HOME:-}" ] && [ -x "$JAVA_HOME/bin/java" ]; then
+    JAVA_BIN="$JAVA_HOME/bin/java"
+else
+    JAVA_BIN="java"
+fi
+JAVA_VERSION=$("$JAVA_BIN" -version 2>&1 | head -1 | sed -E 's/.*"([0-9]+).*/\1/')
 if [ "$JAVA_VERSION" -lt 21 ]; then
-    echo "Error: JDK 21+ required, found JDK $JAVA_VERSION" >&2; exit 1
+    echo "Error: JDK 21+ required, found JDK $JAVA_VERSION (from $JAVA_BIN)" >&2; exit 1
 fi
 
 # ── Clean ─────────────────────────────────────────────────────────────────────
 echo "Cleaning previous build..."
-rm -rf "$GENERATED_DIR" "$BUILD_DIR"
-mkdir -p "$GENERATED_DIR" "$BUILD_DIR/classes"
+rm -rf "$GENERATED_DIR"
+mkdir -p "$GENERATED_DIR"
 
 # ── Build native library ─────────────────────────────────────────────────────
 echo "Building native library..."
@@ -90,51 +87,47 @@ echo "Formatting Kotlin sources..."
 cd "$SCRIPT_DIR"
 ktlint --format "generated/**/*.kt"
 
-# ── Download JNA jar ─────────────────────────────────────────────────────────
-echo "Downloading JNA ${JNA_VERSION}..."
-JNA_JAR="$BUILD_DIR/jna-${JNA_VERSION}.jar"
-curl -sfL "$JNA_MAVEN_URL" -o "$JNA_JAR"
-
-# ── Download Gson jar ────────────────────────────────────────────────────────
-echo "Downloading Gson ${GSON_VERSION}..."
-GSON_JAR="$BUILD_DIR/gson-${GSON_VERSION}.jar"
-curl -sfL "$GSON_MAVEN_URL" -o "$GSON_JAR"
-
-# ── Compile Kotlin sources ───────────────────────────────────────────────────
-echo "Compiling Kotlin bindings..."
-find "$GENERATED_DIR" -name '*.kt' -type f -print0 \
-    | xargs -0 kotlinc -classpath "$JNA_JAR:$GSON_JAR" -d "$BUILD_DIR/classes" -nowarn
-
-# ── Package JAR ──────────────────────────────────────────────────────────────
-# Bundle native library at the JNA auto-extract path: <os>-<arch>/<libname>
+# ── Stage native library ──────────────────────────────────────────────────────
+# Place the host native at the JNA auto-extract path generated/natives/<os>-<arch>/
+# so the Gradle jar task bundles it. In CI, merge-jars.sh later grafts the other
+# platforms' natives into the committed all-platform jar.
+echo "Staging native library..."
+rm -rf "$GENERATED_DIR/natives"
 mkdir -p "$NATIVES_DIR"
 cp "$RELEASE_DIR/$LIB_NAME" "$NATIVES_DIR/"
 
-# Bundle Kotlin sources for IDE navigation
-find "$GENERATED_DIR" -name '*.kt' -type f | while read -r kt; do
-    REL="${kt#"$GENERATED_DIR/"}"
-    mkdir -p "$BUILD_DIR/classes/$(dirname "$REL")"
-    cp "$kt" "$BUILD_DIR/classes/$REL"
+# ── Generate version.properties ────────────────────────────────────────────────
+"$SCRIPT_DIR/generate-version-properties.sh"
+JNA_VERSION=$(grep '^jnaVersion=' "$SCRIPT_DIR/version.properties" | cut -d= -f2)
+GSON_VERSION=$(grep '^gsonVersion=' "$SCRIPT_DIR/version.properties" | cut -d= -f2)
+KOTLIN_VERSION=$(grep '^kotlinVersion=' "$SCRIPT_DIR/version.properties" | cut -d= -f2)
+
+# ── Compile + package JAR via Gradle ───────────────────────────────────────────
+# Gradle compiles the generated Kotlin (resolving JNA/Gson), bundles the .kt sources,
+# the staged native, and the license/readme metadata, and writes the jar to
+# generated/cloudformation-validate.jar. Gradle is the single compiler + packager so
+# the Maven publication and the GitHub-released jar are the same build.
+echo "Compiling and packaging JAR via Gradle..."
+gradle --no-daemon --console=plain jar
+
+# ── Verify the JAR carries compiled classes and sources ──────────────────────
+# A jar that bundles the .kt sources but not the compiled .class output (e.g. a
+# Gradle source-set regression that drops the compilation output) still packages,
+# uploads, and publishes successfully, then fails every consumer at class-load time.
+# Assert both are present so that failure surfaces here rather than downstream.
+# There are no .java entries by design - the bindings are Kotlin-only.
+CLASS_COUNT=$(jar tf "$JAR_FILE" | grep -c '\.class$' || true)
+KT_COUNT=$(jar tf "$JAR_FILE" | grep -c '\.kt$' || true)
+if [ "$CLASS_COUNT" -eq 0 ] || [ "$KT_COUNT" -eq 0 ]; then
+    echo "Error: $JAR_FILE is missing compiled output - $CLASS_COUNT .class and $KT_COUNT .kt entries (both must be non-zero)." >&2
+    exit 1
+fi
+for required_metadata in LICENSE NOTICE README.md THIRD-PARTY-LICENSES.txt; do
+    if ! jar tf "$JAR_FILE" | grep -Fxq "META-INF/$required_metadata"; then
+        echo "Error: $JAR_FILE is missing META-INF/$required_metadata" >&2
+        exit 1
+    fi
 done
-
-mkdir -p "$BUILD_DIR/classes/META-INF"
-cp "$WORKSPACE/../LICENSE" "$BUILD_DIR/classes/META-INF/LICENSE"
-
-# Create manifest with version and dependency info
-VERSION=$(grep '^version' "$WORKSPACE/Cargo.toml" | head -1 | sed 's/.*"\(.*\)".*/\1/')
-cat > "$BUILD_DIR/MANIFEST.MF" <<EOF
-Manifest-Version: 1.0
-Implementation-Title: cloudformation-validate-jvm
-Implementation-Version: ${VERSION}
-Implementation-Vendor: Amazon Web Services (AWS)
-License: Apache-2.0
-Requires: net.java.dev.jna:jna:${JNA_VERSION}, com.google.code.gson:gson:${GSON_VERSION}
-EOF
-
-echo "Packaging JAR..."
-jar cfm "$JAR_FILE" "$BUILD_DIR/MANIFEST.MF" -C "$BUILD_DIR/classes" .
-
-rm -rf "$BUILD_DIR"
 
 # ── Summary ───────────────────────────────────────────────────────────────────
 KT_SIZE=$(find "$GENERATED_DIR" -name '*.kt' -type f -exec cat {} + | wc -c | awk '{printf "%.1fM", $1/1048576}')
@@ -143,11 +136,12 @@ JAR_SIZE=$(du -sh "$JAR_FILE" | cut -f1)
 
 echo ""
 echo "Build complete: $GENERATED_DIR"
-echo "  Kotlin sources: $KT_SIZE"
+echo "  Kotlin sources: $KT_SIZE ($KT_COUNT .kt files bundled)"
+echo "  Compiled classes: $CLASS_COUNT .class entries bundled"
 echo "  Native library: $LIB_SIZE ($LIB_NAME, bundled in jar)"
 echo "  JAR:            $JAR_SIZE ($(basename "$JAR_FILE"))"
 echo ""
-echo "Consumer dependency: net.java.dev.jna:jna:${JNA_VERSION}, com.google.code.gson:gson:${GSON_VERSION}"
+echo "Consumer dependencies: net.java.dev.jna:jna:${JNA_VERSION}, com.google.code.gson:gson:${GSON_VERSION}, org.jetbrains.kotlin:kotlin-stdlib:${KOTLIN_VERSION}"
 find "$GENERATED_DIR" -name '*.kt' -type f | sed 's/^/  /'
 
 # ── Analyze JAR (optional) ───────────────────────────────────────────────────

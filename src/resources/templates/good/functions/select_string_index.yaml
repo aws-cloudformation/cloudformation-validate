@@ -1,0 +1,28 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  Fn::Select with a numeric string index. CloudFormation coerces the index -
+  the official Fn::Select documentation itself uses "1" - so no type warning
+  may fire on any of these.
+Resources:
+  SubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: 10.0.0.0/24
+      AvailabilityZone: !Select
+        - "0"
+        - !GetAZs
+          Ref: AWS::Region
+  SubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone:
+        Fn::Select:
+          - "1"
+          - Fn::GetAZs: !Ref AWS::Region
+  Vpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16

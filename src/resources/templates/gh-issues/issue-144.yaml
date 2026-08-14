@@ -1,0 +1,16 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  # AWS::MediaConnect::Flow requires Source and deprecates only nested
+  # sub-properties of it (Source.SenderIpAddress, Source.Decryption.*). This
+  # template sets none of those deprecated leaves, so W9009 must not fire on the
+  # required Source parent. The create-only Source.Name IS set, so I9001 must
+  # report that leaf (not the bare Source).
+  Flow:
+    Type: AWS::MediaConnect::Flow
+    Properties:
+      Name: my-flow
+      Source:
+        Name: my-source
+        Protocol: rtp
+        IngestPort: 5000
+        WhitelistCidr: 10.0.0.0/24

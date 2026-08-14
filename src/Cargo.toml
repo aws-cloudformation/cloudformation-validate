@@ -1,6 +1,8 @@
 [workspace]
 members = [
+    "bindings-go",
     "bindings-jvm",
+    "bindings-python",
     "bindings-wasm",
     "cel-engine",
     "cfn-validate",
@@ -8,6 +10,7 @@ members = [
     "diagnostics",
     "guard-translator",
     "rego-engine",
+    "resources",
     "rules",
     "schema-validator",
     "template-model",
@@ -19,7 +22,7 @@ resolver = "2"
 name = "cloudformation-validate"
 
 [workspace.package]
-version = "1.1.0"
+version = "1.8.0"
 edition = "2024"
 license = "Apache-2.0"
 description = "AWS CloudFormation Validate"
@@ -37,6 +40,9 @@ categories = [
     "parser-implementations",
     "config"
 ]
+
+[workspace.dependencies]
+uniffi = "=0.32.0"
 
 [profile.dev]
 incremental = true

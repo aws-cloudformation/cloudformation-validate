@@ -1,0 +1,28 @@
+{
+  "Parameters": {
+    "SomeParameter": {
+      "Type": "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>",
+      "Default": "/aws/service/ecs/optimized-ami/amazon-linux-2/gpu/recommended/image_id"
+    },
+    "SsmStringImageParam": {
+      "Type": "AWS::SSM::Parameter::Value<String>",
+      "Default": "/aws/service/eks/optimized-ami/1.25/amazon-linux-2/recommended/image_id"
+    }
+  },
+  "Resources": {
+    "Instance": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "ImageId": { "Ref": "SomeParameter" },
+        "InstanceType": "t3.micro"
+      }
+    },
+    "Instance2": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "ImageId": { "Ref": "SsmStringImageParam" },
+        "InstanceType": "t3.micro"
+      }
+    }
+  }
+}

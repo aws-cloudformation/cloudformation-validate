@@ -1,0 +1,61 @@
+{
+  "Resources": {
+    "Pipeline": {
+      "Type": "AWS::CodePipeline::Pipeline",
+      "Properties": {
+        "RoleArn": { "Fn::GetAtt": ["PipelineRole", "Arn"] },
+        "Stages": [
+          {
+            "Name": "Source",
+            "Actions": [{
+              "Name": "Source",
+              "ActionTypeId": { "Category": "Source", "Owner": "ThirdParty", "Provider": "GitHub", "Version": "1" },
+              "OutputArtifacts": [{ "Name": "SourceOutput" }],
+              "Configuration": { "Owner": "test", "Repo": "test", "Branch": "main" }
+            }]
+          },
+          {
+            "Name": "Deploy",
+            "Actions": [
+              {
+                "Name": "Prepare",
+                "ActionTypeId": { "Category": "Deploy", "Owner": "AWS", "Provider": "CloudFormation", "Version": "1" },
+                "InputArtifacts": [{ "Name": "SourceOutput" }],
+                "Configuration": {
+                  "ActionMode": "CHANGE_SET_REPLACE",
+                  "StackName": "MyStack",
+                  "ChangeSetName": "PipelineChange",
+                  "TemplatePath": "SourceOutput::template.json"
+                },
+                "RunOrder": 1
+              },
+              {
+                "Name": "Deploy",
+                "ActionTypeId": { "Category": "Deploy", "Owner": "AWS", "Provider": "CloudFormation", "Version": "1" },
+                "Configuration": {
+                  "ActionMode": "CHANGE_SET_EXECUTE",
+                  "StackName": "MyStack",
+                  "ChangeSetName": "PipelineChange"
+                },
+                "RunOrder": 2
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "PipelineRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [{
+            "Effect": "Allow",
+            "Principal": { "Service": "codepipeline.amazonaws.com" },
+            "Action": "sts:AssumeRole"
+          }]
+        }
+      }
+    }
+  }
+}

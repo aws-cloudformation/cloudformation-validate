@@ -2,7 +2,7 @@ package resources
 
 import rego.v1
 
-# W3664: Lambda Permission — SourceArn should match Principal service
+# W3664: Lambda Permission - SourceArn should match Principal service
 violation contains make_diag_at("W3664", "WARN", name,
     "Properties.SourceArn",
     sprintf("SourceArn references '%s' (type '%s') but Principal 'sns.amazonaws.com' expects an SNS Topic", [target, target_type])) if {

@@ -1,0 +1,2022 @@
+//! Regression tests for reported GitHub issues.
+//!
+//! Each test pins the CURRENT, observed behavior of both engines on a fixture
+//! checked in under `resources/templates/gh-issues/`. Where an issue describes a
+//! bug that has since been fixed, the test asserts the corrected behavior (the
+//! focal rule no longer fires); where the bug still reproduces, the test asserts
+//! that it does, so the report stays honest and any future change is caught. The
+//! same fixtures are also covered by the golden-file tests (they live in a
+//! `GOLDEN_DIRS` directory), so this file adds focused, rule-level assertions on
+//! top of the full-report snapshots.
+//!
+//! Both engines must agree on every assertion here unless a test explicitly says
+//! otherwise (see `issue_36_*`, which pins a known rego/cel divergence).
+
+mod common;
+
+use cel_engine::CelEngine;
+use common::load_template;
+use diagnostics::Diagnostic;
+use rego_engine::RegoEngine;
+use rules::Severity;
+use schema_validator::SchemaValidator;
+use std::sync::LazyLock;
+use template_model::EntityType;
+use template_model::PseudoParameterOverrides;
+use validation_engine::{EngineConfig, ValidateConfig, ValidationEngine, validate_bytes};
+
+static REGO: LazyLock<RegoEngine> = LazyLock::new(|| RegoEngine::new(EngineConfig::default()).unwrap());
+static CEL: LazyLock<CelEngine> = LazyLock::new(|| CelEngine::new(EngineConfig::default()).unwrap());
+
+/// Validate a `gh-issues` fixture with one engine at the lowest severity gate
+/// (so INFO/DEBUG findings are visible to assertions).
+fn validate_with(engine: &dyn ValidationEngine, fixture: &str, config: ValidateConfig) -> Vec<Diagnostic> {
+    let sv = SchemaValidator::default();
+    let bytes = load_template(&format!("gh-issues/{fixture}"));
+    validate_bytes(engine, &sv, &bytes, config).expect("validation should not error").diagnostics
+}
+
+fn debug_config() -> ValidateConfig {
+    ValidateConfig { severity_level: Severity::Debug, ..Default::default() }
+}
+
+/// Run both engines with the default config and return their diagnostics tagged
+/// by engine name. Every assertion helper checks both, so a test that passes is
+/// asserting both engines agree on that fact.
+fn validate_both(fixture: &str) -> Vec<(&'static str, Vec<Diagnostic>)> {
+    vec![
+        ("rego", validate_with(&*REGO, fixture, debug_config())),
+        ("cel", validate_with(&*CEL, fixture, debug_config())),
+    ]
+}
+
+/// Like [`validate_both`] but for an inline template. Used by the companion tests
+/// that guard the positive boundary of a false-positive fix (the rule must still
+/// fire on a genuine violation): these adversarial templates are not golden
+/// fixtures, so they live inline rather than under `gh-issues/`.
+fn validate_both_bytes(template: &[u8]) -> Vec<(&'static str, Vec<Diagnostic>)> {
+    let sv = SchemaValidator::default();
+    vec![
+        ("rego", validate_bytes(&*REGO, &sv, template, debug_config()).unwrap().diagnostics),
+        ("cel", validate_bytes(&*CEL, &sv, template, debug_config()).unwrap().diagnostics),
+    ]
+}
+
+fn count(diags: &[Diagnostic], rule_id: &str) -> usize {
+    diags.iter().filter(|d| d.rule_id == rule_id).count()
+}
+
+/// Assert `rule_id` never fires in any engine's output.
+fn assert_absent(by_engine: &[(&str, Vec<Diagnostic>)], rule_id: &str) {
+    for (engine, diags) in by_engine {
+        let hits: Vec<&str> = diags.iter().filter(|d| d.rule_id == rule_id).map(|d| d.message.as_str()).collect();
+        assert!(hits.is_empty(), "[{engine}] expected {rule_id} to be absent, but it fired: {hits:?}");
+    }
+}
+
+/// Assert `rule_id` fires with exactly `severity` in every engine's output.
+fn assert_fires_with_severity(by_engine: &[(&str, Vec<Diagnostic>)], rule_id: &str, severity: Severity) {
+    for (engine, diags) in by_engine {
+        let matched = diags.iter().filter(|d| d.rule_id == rule_id).collect::<Vec<_>>();
+        assert!(!matched.is_empty(), "[{engine}] expected {rule_id} to fire at {severity}, but it did not fire");
+        for d in matched {
+            assert_eq!(d.severity, severity, "[{engine}] {rule_id} fired at {} (expected {severity})", d.severity);
+        }
+    }
+}
+
+/// Assert `rule_id` fires on the resource with logical id `resource_id` in every engine.
+fn assert_fires_on_resource(by_engine: &[(&str, Vec<Diagnostic>)], rule_id: &str, resource_id: &str) {
+    for (engine, diags) in by_engine {
+        let on_resource =
+            diags.iter().filter(|d| d.rule_id == rule_id).any(|d| d.resource_logical_id() == Some(resource_id));
+        assert!(on_resource, "[{engine}] expected {rule_id} on resource {resource_id}, but it did not fire there");
+    }
+}
+
+/// Assert `rule_id` fires exactly `expected` times in every engine's output.
+fn assert_count(by_engine: &[(&str, Vec<Diagnostic>)], rule_id: &str, expected: usize) {
+    for (engine, diags) in by_engine {
+        assert_eq!(count(diags, rule_id), expected, "[{engine}] expected {expected} {rule_id} diagnostic(s)");
+    }
+}
+
+/// Assert `rule_id` fires at the given property path in every engine's output.
+fn assert_fires_on_property(by_engine: &[(&str, Vec<Diagnostic>)], rule_id: &str, property_path: &str) {
+    for (engine, diags) in by_engine {
+        let paths: Vec<&str> =
+            diags.iter().filter(|d| d.rule_id == rule_id).filter_map(|d| d.property_path.as_deref()).collect();
+        assert!(
+            paths.contains(&property_path),
+            "[{engine}] expected {rule_id} at property path {property_path}, but it fired at: {paths:?}"
+        );
+    }
+}
+
+fn rule_diagnostic_signatures(diags: &[Diagnostic], rule_id: &str) -> Vec<String> {
+    let mut signatures: Vec<String> = diags
+        .iter()
+        .filter(|diagnostic| diagnostic.rule_id == rule_id)
+        .map(|diagnostic| {
+            serde_json::to_string(&diagnostic.to_detailed()).expect("diagnostic serialization should succeed")
+        })
+        .collect();
+    signatures.sort();
+    signatures
+}
+
+fn assert_rule_parity(by_engine: &[(&str, Vec<Diagnostic>)], rule_id: &str) {
+    let Some((reference_engine, reference_diags)) = by_engine.first() else {
+        panic!("expected at least one engine result");
+    };
+    let reference_signatures = rule_diagnostic_signatures(reference_diags, rule_id);
+    for (engine, diags) in &by_engine[1..] {
+        assert_eq!(
+            rule_diagnostic_signatures(diags, rule_id),
+            reference_signatures,
+            "[{engine}] {rule_id} diagnostics differ from {reference_engine}"
+        );
+    }
+}
+
+fn assert_rule_targets_on_resources(
+    by_engine: &[(&str, Vec<Diagnostic>)],
+    rule_id: &str,
+    resource_ids: &[&str],
+    expected_targets: &[(&str, &str)],
+) {
+    let mut expected: Vec<(String, String)> = expected_targets
+        .iter()
+        .map(|(resource_id, property_path)| ((*resource_id).to_string(), (*property_path).to_string()))
+        .collect();
+    expected.sort();
+
+    for (engine, diags) in by_engine {
+        let mut actual: Vec<(String, String)> = diags
+            .iter()
+            .filter(|diagnostic| diagnostic.rule_id == rule_id)
+            .filter_map(|diagnostic| {
+                let resource_id = diagnostic.resource_logical_id()?;
+                resource_ids
+                    .contains(&resource_id)
+                    .then(|| (resource_id.to_string(), diagnostic.property_path.clone().unwrap_or_default()))
+            })
+            .collect();
+        actual.sort();
+        assert_eq!(actual, expected, "[{engine}] unexpected {rule_id} targets for {resource_ids:?}");
+    }
+}
+
+fn assert_rule_start_locations(
+    by_engine: &[(&str, Vec<Diagnostic>)],
+    rule_id: &str,
+    expected_locations: &[(&str, u32, u32)],
+) {
+    let mut expected: Vec<(String, u32, u32)> = expected_locations
+        .iter()
+        .map(|(resource_id, line, column)| ((*resource_id).to_string(), *line, *column))
+        .collect();
+    expected.sort();
+    let resource_ids: Vec<&str> = expected_locations.iter().map(|(resource_id, _, _)| *resource_id).collect();
+
+    for (engine, diags) in by_engine {
+        let mut actual: Vec<(String, u32, u32)> = diags
+            .iter()
+            .filter(|diagnostic| diagnostic.rule_id == rule_id)
+            .filter_map(|diagnostic| {
+                let resource_id = diagnostic.resource_logical_id()?;
+                let location = diagnostic.location.as_ref()?;
+                resource_ids
+                    .contains(&resource_id)
+                    .then(|| (resource_id.to_string(), location.start_line, location.start_column))
+            })
+            .collect();
+        actual.sort();
+        assert_eq!(actual, expected, "[{engine}] unexpected {rule_id} source locations");
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Per-issue regression tests
+// ---------------------------------------------------------------------------
+
+/// Issue #34: SSM-typed parameter Defaults (`AWS::SSM::Parameter::Value<...>`) no
+/// longer trip the AMI-format false positive; the SSM-path Default is treated as
+/// a deploy-time name, not a literal value. The remaining W2506 (a `<String>`-typed
+/// param used as an ImageId) is correct.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/34
+#[test]
+fn issue_34_no_false_positive_on_ssm_typed_parameter_default() {
+    let diags = validate_both("issue-34.json");
+    assert_absent(&diags, "E1152");
+    assert_absent(&diags, "W1030");
+    assert_fires_with_severity(&diags, "W2506", Severity::Warn);
+    assert_count(&diags, "W2506", 1);
+}
+
+/// Issue #34 (W2506 over-fire guard): W2506 only applies to the fixed set of
+/// `(resource type, property path)` ImageId slots. A property merely named
+/// `ImageId` on a resource type outside that set (here a `Custom::` resource)
+/// must not trigger it, in either engine. Guards against dropping the
+/// resource-type filter and over-firing on every `*ImageId` property.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/34
+#[test]
+fn issue_34_w2506_does_not_overfire_on_non_image_slot() {
+    let diags = validate_both("issue-34-w2506-overfire.json");
+    assert_absent(&diags, "W2506");
+    assert_count(&diags, "W2506", 0);
+}
+
+/// Issue #35: a dynamic reference embedded mid-string
+/// (`prefix-{{resolve:ssm:/my/schedule}}`) resolves at deploy time, so it is now
+/// treated as a deploy-time-opaque value and the schedule-expression format check
+/// E3027 must not fire on it in either engine. Handled centrally in the resolver,
+/// so no per-rule guard is needed.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/35
+#[test]
+fn issue_35_e3027_absent_on_embedded_dynamic_reference() {
+    let diags = validate_both("issue-35.yaml");
+    assert_absent(&diags, "E3027");
+}
+
+// issue #36 is tested below in a dedicated test that also pins the rego/cel divergence.
+
+/// Issue #37: the maintenance-mode warning W3697 fires on
+/// `AWS::AutoScaling::LaunchConfiguration`. The rule fires correctly and
+/// identically in both engines; per-service silencing is exercised by the
+/// service-filter suppressibility tests below.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/37
+#[test]
+fn issue_37_w3697_fires_on_autoscaling_launchconfiguration() {
+    let diags = validate_both("issue-37.yaml");
+    assert_fires_with_severity(&diags, "W3697", Severity::Warn);
+    assert_fires_on_resource(&diags, "W3697", "MyLaunchConfig");
+    assert_count(&diags, "W3697", 1);
+}
+
+/// Issue #37: a per-service exclude filter silences W3697 for every AutoScaling
+/// resource - the resolution the issue asked for. The filter is applied after
+/// evaluation in both engines, so the two agree. The `service` string is
+/// the fully qualified `service-provider::service-name` prefix (`AWS::AutoScaling`)
+/// matched verbatim against the resource type; the rule id scopes it to W3697,
+/// leaving the rest of the service untouched.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/37
+#[test]
+fn issue_37_w3697_suppressed_per_service_by_exclude_filter() {
+    use rules::{FilterConfig, RuleFilterConfig, ServiceFilter};
+    let config = ValidateConfig {
+        severity_level: Severity::Debug,
+        filters: FilterConfig::new(
+            RuleFilterConfig::default(),
+            RuleFilterConfig {
+                services: vec![ServiceFilter { rule_id: Some("W3697".into()), service: "AWS::AutoScaling".into() }],
+                ..Default::default()
+            },
+        ),
+        ..Default::default()
+    };
+    for (name, engine) in [("rego", &*REGO as &dyn ValidationEngine), ("cel", &*CEL as &dyn ValidationEngine)] {
+        let diags = validate_with(engine, "issue-37.yaml", config.clone());
+        assert_eq!(count(&diags, "W3697"), 0, "[{name}] excluding W3697 for the AutoScaling service must silence it");
+    }
+}
+
+/// Issue #37 (whole-service silencing): an exclude filter with no rule id removes
+/// every diagnostic on AutoScaling resources, not just W3697, in both engines.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/37
+#[test]
+fn issue_37_service_filter_without_rule_id_silences_whole_service() {
+    use rules::{FilterConfig, RuleFilterConfig, ServiceFilter};
+    let config = ValidateConfig {
+        severity_level: Severity::Debug,
+        filters: FilterConfig::new(
+            RuleFilterConfig::default(),
+            RuleFilterConfig {
+                services: vec![ServiceFilter { rule_id: None, service: "AWS::AutoScaling".into() }],
+                ..Default::default()
+            },
+        ),
+        ..Default::default()
+    };
+    for (name, engine) in [("rego", &*REGO as &dyn ValidationEngine), ("cel", &*CEL as &dyn ValidationEngine)] {
+        let diags = validate_with(engine, "issue-37.yaml", config.clone());
+        let on_autoscaling = diags.iter().any(|d| {
+            d.entity
+                .as_ref()
+                .and_then(|e| e.resource_type.as_deref())
+                .is_some_and(|t| t.starts_with("AWS::AutoScaling::"))
+        });
+        assert!(
+            !on_autoscaling,
+            "[{name}] a rule-less AutoScaling service filter must silence every AutoScaling finding"
+        );
+    }
+}
+
+/// Issue #38: E3040 must not flag a top-level property when only deeply-nested
+/// subproperties are read-only. The read-only check was removed, so E3040 never
+/// fires; the resource still resolves (proven by the INFO findings).
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/38
+#[test]
+fn issue_38_no_false_positive_on_nested_readonly_subproperty() {
+    let diags = validate_both("issue-38.json");
+    assert_absent(&diags, "E3040");
+    assert_count(&diags, "E3040", 0);
+    assert_fires_on_resource(&diags, "I9001", "Memory");
+    assert_fires_on_resource(&diags, "I9040", "Memory");
+}
+
+/// Issue #39: `Fn::GetAtt [VPC, CidrBlock]` is a valid documented attribute, so
+/// the GetAtt-attribute checks must not fire (the stale data was regenerated).
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/39
+#[test]
+fn issue_39_no_false_positive_on_vpc_cidrblock_getatt() {
+    let diags = validate_both("issue-39.json");
+    assert_absent(&diags, "E9004");
+    assert_absent(&diags, "E9003");
+    assert_count(&diags, "E9004", 0);
+    assert_fires_on_resource(&diags, "I9001", "VPCB9E5F0B4");
+}
+
+/// Issue #40: E1150 fires only on a concrete, inspectable value (`sg-1`), never
+/// on a `Ref` to a deploy-time value - the two concerns are now separate rules.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/40
+#[test]
+fn issue_40_e1150_only_on_concrete_value_not_on_ref() {
+    let diags = validate_both("issue-40.yaml");
+    assert_fires_with_severity(&diags, "E1150", Severity::Error);
+    assert_count(&diags, "E1150", 1);
+    assert_fires_on_resource(&diags, "E1150", "DaxConcrete");
+}
+
+/// Issue #41: W9013 must not fire on an ARN built via `Fn::Join` with
+/// `Ref: AWS::AccountId` - the account segment comes from a pseudo-parameter,
+/// not a literal the author hardcoded. The resolver now records the intrinsic
+/// provenance so both engines skip the value.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/41
+#[test]
+fn issue_41_no_w9013_on_join_ref_accountid() {
+    let diags = validate_both("issue-41.json");
+    assert_absent(&diags, "W9013");
+    assert_count(&diags, "W9013", 0);
+}
+
+/// Issue #42: an omitted `HealthCheckPort` on an ECS dynamic-port (HostPort 0)
+/// TargetGroup defaults to `traffic-port` - the correct setting - so the finding
+/// is advisory (I3049 INFO), not an Error. The ECS dynamic-port health-check
+/// check is severity-split: an omitted port is informational (I3049), a concrete
+/// non-`traffic-port` value is a warning (W3049, exercised by the `bad/` corpus).
+/// The template deploys and works in the omitted case, so no Error is warranted.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/42
+#[test]
+fn issue_42_omitted_healthcheckport_is_info_not_error() {
+    let diags = validate_both("issue-42.yaml");
+    assert_absent(&diags, "E3049");
+    assert_fires_with_severity(&diags, "I3049", Severity::Info);
+    assert_fires_on_resource(&diags, "I3049", "TargetGroup");
+    assert_count(&diags, "I3049", 1);
+    assert_count(&diags, "W3049", 0);
+}
+
+/// Issue #42 (counter-example): a `HealthCheckPort` that is a deploy-time value
+/// (a `Ref` to a no-default parameter) is unknowable at validation time, so the
+/// dynamic-port health-check rule must stay silent in both engines - neither the
+/// advisory I3049 nor the warning W3049 fires. Guards the false-positive fix: an
+/// opaque value must not be treated like a fixed non-`traffic-port` port, because
+/// CloudFormation cannot know the value at deploy time.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/42
+#[test]
+fn issue_42_no_finding_on_deploy_time_healthcheckport() {
+    let diags = validate_both("issue-42-ref.yaml");
+    assert_absent(&diags, "E3049");
+    assert_absent(&diags, "I3049");
+    assert_absent(&diags, "W3049");
+}
+
+/// Issue #42 (conditional case): an `Fn::If` HealthCheckPort must be classified
+/// across ALL its branches, in both engines identically. One branch pins a fixed
+/// `8080` (wrong for dynamic port mapping) and the other is `traffic-port`, so the
+/// warning W3049 fires (on the fixed branch) and the omitted-default advisory
+/// I3049 does not (the property is present). Guards that both engines agree on
+/// conditionals - one engine reading only a single branch would be a bug.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/42
+#[test]
+fn issue_42_conditional_healthcheckport_warns_on_wrong_branch() {
+    let diags = validate_both("issue-42-if.yaml");
+    assert_absent(&diags, "E3049");
+    assert_absent(&diags, "I3049");
+    assert_fires_with_severity(&diags, "W3049", Severity::Warn);
+    assert_fires_on_resource(&diags, "W3049", "TargetGroup");
+    assert_count(&diags, "W3049", 1);
+}
+
+/// Issue #44: E3702 must NOT fire on an `AWS/Deploy/CloudFormation` action that
+/// legitimately has 0 input artifacts (`CHANGE_SET_EXECUTE`). The artifact-count
+/// table is keyed on the full Owner/Category/Provider tuple, so this action's
+/// real bound (0–10 inputs) applies instead of a collapsed category-only bound.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/44
+#[test]
+fn issue_44_no_e3702_false_positive_on_changeset_execute() {
+    let diags = validate_both("issue-44.json");
+    assert_absent(&diags, "E3702");
+    assert_count(&diags, "E3702", 0);
+}
+
+/// Issue #45: F6101 must not fire when an array-returning `Fn::GetAtt` is wrapped
+/// in `Fn::Join` (which yields a string) in an output value.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/45
+#[test]
+fn issue_45_no_false_positive_on_array_getatt_wrapped_in_join() {
+    let diags = validate_both("issue-45.json");
+    assert_absent(&diags, "F6101");
+    assert_count(&diags, "F6101", 0);
+    assert_fires_on_resource(&diags, "I9040", "interfaceVpcEndpoint89C99945");
+}
+
+/// Issue #46: E1150 must not fire on `Fn::GetAtt` to an EKS cluster's
+/// `ClusterSecurityGroupId` used as a SecurityGroupId - it is a deploy-time value.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/46
+#[test]
+fn issue_46_no_false_positive_on_eks_securitygroupid_getatt() {
+    let diags = validate_both("issue-46.json");
+    assert_absent(&diags, "E1150");
+    assert_absent(&diags, "E1041");
+    assert_fires_on_resource(&diags, "W9002", "ClusterEB0386A7");
+}
+
+/// Issue #47: an open-world service-enum mismatch (Lambda Runtime `node99.x`)
+/// is a Warning (W3030), not a Fatal. Enum sets are point-in-time snapshots of
+/// what a service accepts; AWS adds new values over time, so a value absent from
+/// the compiled schema may still deploy. Warning severity keeps the finding
+/// non-blocking and suppressible.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/47
+#[test]
+fn issue_47_enum_mismatch_is_warning() {
+    let diags = validate_both("issue-47.json");
+    assert_fires_with_severity(&diags, "W3030", Severity::Warn);
+    assert_fires_on_resource(&diags, "W3030", "MyFunction");
+    assert_count(&diags, "W3030", 1);
+    assert_fires_with_severity(&diags, "E3677", Severity::Error);
+}
+
+/// Issue #49: with no region supplied the engine assumes `us-east-1`, so the
+/// region-scoped instance-type enum rules fire on values invalid there (E3652 on
+/// the OpenSearch domain, E3620 on the DocDB instance) while a value valid in
+/// `us-east-1` (EC2 `t2.nano`) does not trip E3628.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/49
+#[test]
+fn issue_49_region_scoped_enums_assume_us_east_1() {
+    let diags = validate_both("issue-49.yaml");
+    assert_fires_with_severity(&diags, "E3652", Severity::Error);
+    assert_fires_on_resource(&diags, "E3652", "EsDomain");
+    assert_fires_on_resource(&diags, "E3620", "DocDbInstance");
+    assert_absent(&diags, "E3628");
+}
+
+/// Issue #50: W1030 must not fire when an opaque String-param `Ref` is `Fn::Split`
+/// into an IAM policy `Resource` (the CDK token scenario).
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/50
+#[test]
+fn issue_50_no_false_positive_on_fn_split_ref_iam_resource() {
+    let diags = validate_both("issue-50.json");
+    assert_absent(&diags, "W1030");
+    assert_fires_on_resource(&diags, "I9040", "MyFunctionServiceRole");
+    assert_count(&diags, "I9040", 1);
+}
+
+/// Issue #50 (fixed-behavior guard): a `String` parameter Ref'd directly into an
+/// IAM policy `Resource` - with no `Fn::Split` and no ARN-shaped Default - must
+/// not trip W1030 either. This is the general form of the removed ARN branch
+/// (PR #51): W1030's surviving arms key only off `ImageId`/CIDR/`VpcId` property
+/// paths, so an ARN-position String Ref is never inspected. Both engines agree.
+#[test]
+fn issue_50_no_w1030_on_string_ref_in_iam_resource() {
+    const TEMPLATE: &[u8] = br#"{
+  "Parameters": { "roleArnParam": { "Type": "String" } },
+  "Resources": {
+    "Policy": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyName": "p",
+        "Roles": ["some-role"],
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [{
+            "Effect": "Allow",
+            "Action": ["s3:GetObject"],
+            "Resource": { "Ref": "roleArnParam" }
+          }]
+        }
+      }
+    }
+  }
+}"#;
+    let diags = validate_both_bytes(TEMPLATE);
+    assert_absent(&diags, "W1030");
+    assert_count(&diags, "W1030", 0);
+}
+
+/// Issue #52: two distinct `Fn::ImportValue` items in an array must not be
+/// flagged as duplicates by W9007 - each import now carries its export name, so
+/// the two values are distinct symbolic imports rather than one collapsed value.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/52
+#[test]
+fn issue_52_no_w9007_on_distinct_importvalue() {
+    let diags = validate_both("issue-52.json");
+    assert_absent(&diags, "W9007");
+    assert_count(&diags, "W9007", 0);
+}
+
+/// Issue #52 (positive boundary): the fix that distinguishes distinct imports
+/// must not silence W9007 on genuine duplicates. Two literal-equal entries in a
+/// `uniqueItems` array still fire W9007.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/52
+#[test]
+fn issue_52_w9007_still_fires_on_literal_duplicates() {
+    const TEMPLATE: &[u8] = br#"{
+  "Resources": {
+    "Nodegroup": {
+      "Type": "AWS::EKS::Nodegroup",
+      "Properties": {
+        "ClusterName": "MyCluster",
+        "NodeRole": "arn:aws:iam::123456789012:role/NodeRole",
+        "Subnets": ["subnet-aaaa", "subnet-aaaa"]
+      }
+    }
+  }
+}"#;
+    let diags = validate_both_bytes(TEMPLATE);
+    assert_fires_with_severity(&diags, "W9007", Severity::Warn);
+    assert_count(&diags, "W9007", 1);
+}
+
+/// Issue #52 (positive boundary): the SAME export imported twice resolves to one
+/// identical symbolic value, so W9007 must still flag it as a duplicate - only
+/// *distinct* export names are treated as distinct.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/52
+#[test]
+fn issue_52_w9007_still_fires_on_repeated_import_of_same_export() {
+    const TEMPLATE: &[u8] = br#"{
+  "Resources": {
+    "Nodegroup": {
+      "Type": "AWS::EKS::Nodegroup",
+      "Properties": {
+        "ClusterName": "MyCluster",
+        "NodeRole": "arn:aws:iam::123456789012:role/NodeRole",
+        "Subnets": [
+          { "Fn::ImportValue": "SameExport" },
+          { "Fn::ImportValue": "SameExport" }
+        ]
+      }
+    }
+  }
+}"#;
+    let diags = validate_both_bytes(TEMPLATE);
+    assert_fires_with_severity(&diags, "W9007", Severity::Warn);
+    assert_count(&diags, "W9007", 1);
+}
+
+/// Issue #53: F3004 correctly fires on a genuine circular dependency that is
+/// invisible to Ref/GetAtt-only graph tools because the loop is closed by
+/// `DependsOn` edges. The cycle here is a two-node loop between the kubectl-ready
+/// barrier and the cluster creation-role default policy. A finding is anchored on
+/// each resource whose edge closes the loop - the two directions of that edge -
+/// so exactly two findings surface, one per edge, rather than one per member of
+/// the surrounding strongly connected component. Each message traces the loop
+/// back to its own resource so a reader can verify every edge.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/53
+#[test]
+fn issue_53_f3004_fires_on_real_dependson_cycle() {
+    let diags = validate_both("issue-53.json");
+    assert_fires_with_severity(&diags, "F3004", Severity::Fatal);
+    assert_count(&diags, "F3004", 2);
+    assert_fires_on_resource(&diags, "F3004", "ClusterCreationRoleDefaultPolicyE8BDFC7B");
+    assert_fires_on_resource(&diags, "F3004", "ClusterKubectlReadyBarrier200052AF");
+    // The message traces the whole loop, so a reader can verify each edge instead
+    // of guessing from one hop. The barrier's finding names the two-node loop that
+    // closes back through the creation-role default policy.
+    for (engine, ds) in &diags {
+        let barrier = ds
+            .iter()
+            .find(|d| d.rule_id == "F3004" && d.resource_logical_id() == Some("ClusterKubectlReadyBarrier200052AF"))
+            .expect("F3004 on the kubectl ready barrier");
+        assert!(
+            barrier.message.contains(
+                "[ClusterKubectlReadyBarrier200052AF -> ClusterCreationRoleDefaultPolicyE8BDFC7B -> ClusterKubectlReadyBarrier200052AF]"
+            ),
+            "[{engine}] barrier F3004 must trace the full loop, got: {}",
+            barrier.message
+        );
+    }
+}
+
+/// Issue #54 (fixed): an S3 bucket with non-Private AccessControl and missing
+/// OwnershipControls reports only E3045 (Error). The extension's
+/// `then.required: [OwnershipControls]` used to also fire a
+/// duplicate FATAL F3003 for the same concern; that false positive is now
+/// suppressed because E3045 already covers this trigger.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/54
+#[test]
+fn issue_54_f3003_false_required_ownershipcontrols() {
+    let diags = validate_both("issue-54.json");
+    assert_absent(&diags, "F3003");
+    assert_count(&diags, "F3003", 0);
+    assert_fires_with_severity(&diags, "E3045", Severity::Error);
+    assert_fires_on_resource(&diags, "E3045", "Bucket");
+}
+
+/// Issue #54 (counter-example): the reporter's proof that the requirement is
+/// hallucinated - a property-less `AWS::S3::Bucket` is a valid resource, so
+/// neither F3003 nor the access-control rule fires when no `AccessControl` is
+/// set. Pins that the false positive is scoped to the non-Private path and does
+/// not leak onto an empty bucket.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/54
+#[test]
+fn issue_54_no_required_ownershipcontrols_on_bare_bucket() {
+    let diags = validate_both("issue-54-bare.json");
+    assert_absent(&diags, "F3003");
+    assert_count(&diags, "F3003", 0);
+    assert_absent(&diags, "E3045");
+    for (engine, ds) in &diags {
+        let bad: Vec<&str> = ds
+            .iter()
+            .filter(|d| matches!(d.severity, Severity::Fatal | Severity::Error))
+            .map(|d| d.rule_id.as_str())
+            .collect();
+        assert!(bad.is_empty(), "[{engine}] a bare S3 bucket must validate cleanly, got {bad:?}");
+    }
+}
+
+/// Issue #54 (positive case): a non-Private bucket that DOES configure
+/// `OwnershipControls.Rules` is clean - neither F3003 nor E3045 fires, because
+/// the OwnershipControl requirement is satisfied. This guards the bug's scope:
+/// the false positive must be tied to *missing* OwnershipControls, and the data
+/// constraint must not regress into firing on a valid bucket. Only the W3045
+/// AccessControl-deprecation warning remains.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/54
+#[test]
+fn issue_54_no_f3003_when_ownershipcontrols_present() {
+    let diags = validate_both("issue-54-with-ownership.json");
+    assert_absent(&diags, "F3003");
+    assert_count(&diags, "F3003", 0);
+    assert_absent(&diags, "E3045");
+    assert_fires_with_severity(&diags, "W3045", Severity::Warn);
+}
+
+/// Issue #54 (engine divergence): when `AccessControl` is a symbolic `{Ref}` to a
+/// parameter with no default, the property IS present so the deprecation warning
+/// W3045 should fire (the deprecation is about presence of the property, not its
+/// value). CEL does fire it; rego does not (it keys on the resolved value, which
+/// is unresolvable here) - a rego false-negative and a rego/cel divergence. Pinned with inline
+/// bytes because the fixture diverges between engines and so cannot live in the
+/// rego==cel golden corpus. Tighten to both-fire once rego keys on presence.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/54
+#[test]
+fn issue_54_w3045_diverges_on_symbolic_accesscontrol_ref() {
+    const TEMPLATE: &[u8] = br#"{
+  "Parameters": { "Acl": { "Type": "String" } },
+  "Resources": {
+    "Bucket": { "Type": "AWS::S3::Bucket", "Properties": { "AccessControl": { "Ref": "Acl" } } }
+  }
+}"#;
+    let sv = SchemaValidator::default();
+    let rego = validate_bytes(&*REGO, &sv, TEMPLATE, debug_config()).unwrap().diagnostics;
+    let cel = validate_bytes(&*CEL, &sv, TEMPLATE, debug_config()).unwrap().diagnostics;
+
+    assert!(cel.iter().any(|d| d.rule_id == "W3045"), "cel should fire W3045 (property is present)");
+    assert!(
+        !rego.iter().any(|d| d.rule_id == "W3045"),
+        "rego currently does NOT fire W3045 on a symbolic AccessControl Ref (false negative)"
+    );
+}
+
+/// Issue #55: a `CommaDelimitedList` parameter Default referenced by an
+/// array-typed property must not raise an F3012 "not of type array" false
+/// positive.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/55
+#[test]
+fn issue_55_no_false_positive_on_commadelimitedlist_default() {
+    let diags = validate_both("issue-55.json");
+    assert_absent(&diags, "F3012");
+    assert_absent(&diags, "W9003");
+    assert_count(&diags, "F3012", 0);
+}
+
+/// Issue #56: F3012 (FATAL type mismatch) must not fire on an unrecognized
+/// `Fn::GetStackOutput` intrinsic used as a string property value.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/56
+#[test]
+fn issue_56_no_fatal_on_unrecognized_getstackoutput_intrinsic() {
+    let diags = validate_both("issue-56.json");
+    assert_absent(&diags, "F3012");
+    assert_absent(&diags, "W9003");
+    assert_count(&diags, "F3012", 0);
+    assert_fires_on_resource(&diags, "I9001", "WeakConsumer");
+}
+
+/// Issue #57: a `TargetOriginId` that references an `OriginGroups.Items[].Id`
+/// must be accepted - the valid-target set now includes OriginGroup ids, not
+/// just `Origins[].Id`, so E3057 no longer fires on this distribution.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/57
+#[test]
+fn issue_57_no_e3057_on_valid_origin_group_id() {
+    let diags = validate_both("issue-57.json");
+    assert_absent(&diags, "E3057");
+    assert_count(&diags, "E3057", 0);
+}
+
+/// Issue #57 (positive boundary): widening the valid-target set to include
+/// OriginGroup ids must not silence E3057 on a genuinely dangling
+/// `TargetOriginId` that matches neither an Origin nor an OriginGroup. Only
+/// `DefaultCacheBehavior` is validated here.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/57
+#[test]
+fn issue_57_e3057_still_fires_on_dangling_target_origin_id() {
+    const TEMPLATE: &[u8] = br#"{
+  "Resources": {
+    "Dist": {
+      "Type": "AWS::CloudFront::Distribution",
+      "Properties": {
+        "DistributionConfig": {
+          "DefaultCacheBehavior": {
+            "TargetOriginId": "does-not-exist",
+            "ViewerProtocolPolicy": "allow-all"
+          },
+          "Enabled": true,
+          "Origins": [
+            {
+              "CustomOriginConfig": { "OriginProtocolPolicy": "https-only" },
+              "DomainName": "www.example.com",
+              "Id": "realOrigin"
+            }
+          ]
+        }
+      }
+    }
+  }
+}"#;
+    let diags = validate_both_bytes(TEMPLATE);
+    assert_fires_with_severity(&diags, "E3057", Severity::Error);
+    assert_fires_on_resource(&diags, "E3057", "Dist");
+    assert_count(&diags, "E3057", 1);
+}
+
+/// Issue #61: a bare `AWS::EC2::Volume` with no Properties fires FATAL F3017
+/// (anyOf failure). Pins the current behavior; the issue is about the generic
+/// message dropping the per-branch required-property detail (no companion F3003).
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/61
+#[test]
+fn issue_61_f3017_anyof_on_bare_ec2_volume() {
+    let diags = validate_both("issue-61.json");
+    assert_fires_with_severity(&diags, "F3017", Severity::Fatal);
+    assert_fires_on_resource(&diags, "F3017", "Resource");
+    assert_count(&diags, "F3017", 1);
+    assert_absent(&diags, "F3003");
+}
+
+/// Issue #62: F3032 fires as a FATAL on an empty `ResourcesToReplicateTags` array
+/// for `AWS::Synthetics::Canary` (a synced `minItems:1` bound). Pins the current
+/// FATAL classification the issue disputes.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/62
+#[test]
+fn issue_62_f3032_fatal_on_empty_unconstrained_array() {
+    let diags = validate_both("issue-62.json");
+    assert_fires_with_severity(&diags, "F3032", Severity::Fatal);
+    assert_fires_on_resource(&diags, "F3032", "Canary");
+    assert_count(&diags, "F3032", 1);
+}
+
+/// Issue #62 (retention collapse): a `AWS::Synthetics::Canary` requires two
+/// retention properties (`SuccessRetentionPeriod` and `FailureRetentionPeriod`).
+/// When both are missing, exactly one I3013 fires - for the first missing
+/// property in declaration order, anchored on the properties object - rather than
+/// one per property: the retention check collapses to a single finding per
+/// resource.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/62
+#[test]
+fn issue_62_i3013_reports_single_retention_finding() {
+    let diags = validate_both("issue-62.json");
+    assert_fires_with_severity(&diags, "I3013", Severity::Info);
+    assert_count(&diags, "I3013", 1);
+    assert_fires_on_resource(&diags, "I3013", "Canary");
+    for (engine, ds) in &diags {
+        let retention = ds.iter().find(|d| d.rule_id == "I3013").expect("I3013 on the canary");
+        assert!(
+            retention.message.starts_with("'SuccessRetentionPeriod' is a required property"),
+            "[{engine}] I3013 must name the first missing retention property, got: {}",
+            retention.message
+        );
+        assert_eq!(
+            retention.property_path.as_deref(),
+            Some("Properties"),
+            "[{engine}] I3013 must anchor on the properties object"
+        );
+    }
+}
+
+/// Issue #63: E2001 fires on an intrinsic (`Fn::GetStackOutput`) used in a
+/// parameter Default, because CloudFormation never evaluates intrinsics in
+/// `Parameters.*.Default`. Working as intended.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/63
+#[test]
+fn issue_63_e2001_on_intrinsic_in_parameter_default() {
+    let diags = validate_both("issue-63.json");
+    assert_fires_with_severity(&diags, "E2001", Severity::Error);
+    assert_count(&diags, "E2001", 1);
+}
+
+// issue #65 is tested below in a dedicated test (needs a non-12-digit account id override).
+
+/// Issue #67: F3014 PromQL CloudWatch alarm that uses `EvaluationCriteria` instead of `Metrics`/`MetricName` (a stale
+/// `requiredXor` patch predating the PromQL feature). Pins the current behavior.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/67
+#[test]
+fn issue_67_f3014_promql_alarm() {
+    let diags = validate_both("issue-67.json");
+    assert_absent(&diags, "F3014");
+    assert_count(&diags, "F3014", 0);
+}
+
+/// Issue #68: the Lambda ZipFile runtime rule (E3677) already uses a
+/// forward-looking `nodejs`/`python` prefix - it fires on `node99.x` but not on
+/// `nodejs99.x`. The baked-in Runtime enum (W3030) warns on both unknown
+/// runtimes without blocking, since the enum is a point-in-time snapshot.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/68
+#[test]
+fn issue_68_zipfile_runtime_forward_looking_vs_enum_snapshot() {
+    let diags = validate_both("issue-68.json");
+    assert_fires_with_severity(&diags, "E3677", Severity::Error);
+    assert_fires_on_resource(&diags, "E3677", "FutureNodeFunc");
+    assert_count(&diags, "E3677", 1);
+    assert_fires_with_severity(&diags, "W3030", Severity::Warn);
+    assert_count(&diags, "W3030", 2);
+}
+
+/// Issue #69: the FATAL-classification debate. Service-content schema constraints
+/// F3037 (uniqueItems) and F3032 (maxItems) still fire as FATAL on an
+/// `AWS::IAM::InstanceProfile` with duplicate Roles. Pins the current behavior;
+/// note these FATALs are suppressible (see the suppressibility tests below).
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/69
+#[test]
+fn issue_69_f3037_f3032_content_constraints_are_fatal() {
+    let diags = validate_both("issue-69.yaml");
+    assert_fires_with_severity(&diags, "F3037", Severity::Fatal);
+    assert_fires_on_resource(&diags, "F3037", "Profile");
+    assert_fires_with_severity(&diags, "F3032", Severity::Fatal);
+    assert_count(&diags, "F3037", 1);
+}
+
+/// Issue #144: a schema that deprecates only nested sub-properties must not flag
+/// the top-level parent. `AWS::MediaConnect::Flow` requires `Source` and
+/// deprecates only `Source.SenderIpAddress` / `Source.Decryption.*`; a template
+/// that sets none of those leaves must produce no W9009. The create-only
+/// `Source.Name` IS set, so I9001 must report that exact leaf - not the bare
+/// `Source` - confirming the fix pinpoints the real property rather than
+/// collapsing to the parent. Both engines agree (the check lives in the shared
+/// schema-validator).
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/144
+#[test]
+fn issue_144_no_w9009_when_only_nested_subproperty_deprecated() {
+    let diags = validate_both("issue-144.yaml");
+    assert_absent(&diags, "W9009");
+    assert_count(&diags, "W9009", 0);
+    // The fix reports the actual create-only leaf, not the top-level parent.
+    assert_fires_on_property(&diags, "I9001", "Properties.Source.Name");
+    for (engine, d) in &diags {
+        let bare_source =
+            d.iter().any(|x| x.rule_id == "I9001" && x.property_path.as_deref() == Some("Properties.Source"));
+        assert!(!bare_source, "[{engine}] I9001 must not fire on the bare Source parent");
+    }
+}
+
+/// Issue #144 (positive boundary): when the deprecated nested leaf IS present,
+/// W9009 still fires - and reports the full leaf path, not the parent. Setting
+/// `Source.Decryption.Url` (a deprecated pointer) must surface exactly that path.
+/// Both engines agree.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/144
+#[test]
+fn issue_144_w9009_still_fires_on_deprecated_nested_leaf() {
+    const TEMPLATE: &[u8] = br#"
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  Flow:
+    Type: AWS::MediaConnect::Flow
+    Properties:
+      Name: my-flow
+      Source:
+        Name: my-source
+        Protocol: rtp
+        IngestPort: 5000
+        WhitelistCidr: 10.0.0.0/24
+        Decryption:
+          Algorithm: aes256
+          RoleArn: arn:aws:iam::123456789012:role/r
+          Url: https://example.com/key
+"#;
+    let diags = validate_both_bytes(TEMPLATE);
+    assert_fires_with_severity(&diags, "W9009", Severity::Warn);
+    assert_fires_on_property(&diags, "W9009", "Properties.Source.Decryption.Url");
+    assert_count(&diags, "W9009", 1);
+}
+
+/// Issue #185: a whole-number `Number` parameter default (30) reaching an
+/// integer enum (LogGroup RetentionInDays) used to resolve as the float 30.0
+/// and fail the enum comparison ("30.0 is not one of [1, 3, ..., 30, ...]").
+/// Whole numbers now stay integers through the parameter path and numeric
+/// scalars compare numerically, so W3030 must not fire on either the
+/// parameter-sourced or the literal 30.0 form - both are valid values.
+/// Handled in template-model, so both engines agree.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/185
+#[test]
+fn issue_185_no_w3030_on_number_parameter_default() {
+    let diags = validate_both("issue-185.yaml");
+    assert_absent(&diags, "W3030");
+    // The float-vs-integer confusion must not surface as a type finding either.
+    assert_absent(&diags, "F3012");
+    assert_absent(&diags, "W9003");
+}
+
+/// Issue #185 (positive boundary): a genuinely invalid retention value coming
+/// through the same Number-parameter path must still fire W3030 - the numeric
+/// equality fix must not silence real enum violations.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/185
+#[test]
+fn issue_185_w3030_still_fires_on_invalid_retention_via_parameter() {
+    const TEMPLATE: &[u8] = br#"
+AWSTemplateFormatVersion: "2010-09-09"
+Parameters:
+  RetentionInDays:
+    Type: Number
+    Default: 31
+Resources:
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: !Ref RetentionInDays
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+"#;
+    let diags = validate_both_bytes(TEMPLATE);
+    assert_fires_with_severity(&diags, "W3030", Severity::Warn);
+    assert_count(&diags, "W3030", 1);
+}
+
+/// Issue #183: W3663 must not fire when a Lambda Permission's literal SourceArn
+/// carries a proper 12-digit account id - that ARN pins the calling account by
+/// itself. The issue's original ARN had a 10-digit account field, which is not
+/// a valid account id: it cannot pin the account, so W3663 fires for that
+/// resource only (and the ARN also fails the schema pattern, F3031) - the
+/// extension schema uses the ':\d{12}:' trigger.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/183
+#[test]
+fn issue_183_w3663_fires_only_for_source_arn_without_valid_account_id() {
+    let diags = validate_both("issue-183.yaml");
+    assert_count(&diags, "W3663", 1);
+    assert_fires_on_resource(&diags, "W3663", "PermissionInvalidAccountId");
+    assert_fires_with_severity(&diags, "W3663", Severity::Warn);
+    for (engine, d) in &diags {
+        let on_valid = d
+            .iter()
+            .filter(|x| x.rule_id == "W3663")
+            .any(|x| x.resource_logical_id() == Some("PermissionWithAccountId"));
+        assert!(!on_valid, "[{engine}] W3663 must not fire on the permission whose ARN has a 12-digit account id");
+    }
+    // The invalid 10-digit account field also fails the ARN schema pattern,
+    // and only there - the valid ARN passes it.
+    assert_count(&diags, "F3031", 1);
+    assert_fires_on_resource(&diags, "F3031", "PermissionInvalidAccountId");
+}
+
+/// Issue #186: The Classic Load Balancer API normalizes listener protocol names to
+/// uppercase, so lowercase `tcp` is valid for both `Protocol` and
+/// `InstanceProtocol`. The fixture covers both properties to ensure their
+/// case-insensitive schema constraints do not produce enum warnings.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/186
+#[test]
+fn issue_186_lowercase_clb_protocols_do_not_warn() {
+    let diags = validate_both("issue-186-clb.json");
+    assert_count(&diags, "W3030", 0);
+}
+
+/// Issue #186 (companion): case-insensitive enum matching is scoped to schema
+/// properties that opt in. ImageBuilder workflow `OnFailure` still declares
+/// exact uppercase values (`CONTINUE`/`ABORT`), so mixed-case `Abort` keeps its
+/// open-world enum warning.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/186
+#[test]
+fn issue_186_lowercase_imagebuilder_onfailure_keeps_enum_warning() {
+    let diags = validate_both("issue-186-imagebuilder.json");
+    assert_fires_with_severity(&diags, "W3030", Severity::Warn);
+    assert_count(&diags, "W3030", 1);
+    assert_fires_on_resource(&diags, "W3030", "ImagePipeline7DDDE57F");
+    assert_fires_on_property(&diags, "W3030", "Properties.Workflows.0.OnFailure");
+}
+
+/// Issue #194: an `Fn::ImportValue` object as a String parameter's `Default`
+/// is a template format error - CloudFormation's ValidateTemplate API rejects
+/// it with "Every Default member must be a string" (intrinsic functions are
+/// not supported in the Parameters section), so the parameter-configuration
+/// Error stands with the parameter's identity attached.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/194
+#[test]
+fn issue_194_importvalue_as_parameter_default_is_an_error() {
+    let diags = validate_both("issue-194.json");
+    assert_fires_with_severity(&diags, "E2001", Severity::Error);
+    assert_count(&diags, "E2001", 1);
+    assert_fires_on_property(&diags, "E2001", "Parameters/SomeParameter/Default");
+    for (engine, d) in &diags {
+        let e2001 = d.iter().find(|x| x.rule_id == "E2001").expect("E2001 fired");
+        let entity = e2001.entity.as_ref().unwrap_or_else(|| panic!("[{engine}] E2001 must carry an entity"));
+        assert_eq!(entity.logical_id, "SomeParameter", "[{engine}] E2001 must identify the parameter");
+        assert_eq!(entity.entity_type, EntityType::Parameter, "[{engine}] E2001 targets a parameter");
+    }
+}
+
+/// Issue #247: three `Fn::GetStackOutput` entries that read different outputs of
+/// the same stack must not be flagged as duplicates by W9007 - the same class of
+/// bug fixed for `Fn::ImportValue` in #52, which was never extended to
+/// `Fn::GetStackOutput`. Each call now carries the stack, region and output it
+/// reads, so the three values are distinct symbolic reads.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/247
+#[test]
+fn issue_247_no_w9007_on_distinct_getstackoutput() {
+    let diags = validate_both("issue-247.json");
+    assert_absent(&diags, "W9007");
+    assert_count(&diags, "W9007", 0);
+}
+
+/// Issue #247 (reported probe): the issue reports that even a differing
+/// `StackName` was not enough to make two reads distinct. Each of the three
+/// identifying arguments must now distinguish on its own, so none of these
+/// three pairs fires W9007.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/247
+#[test]
+fn issue_247_each_identifying_argument_distinguishes_on_its_own() {
+    const DIFFERENT_STACK_NAME: &[u8] = br#"{
+  "Resources": {
+    "ALB": {
+      "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "Properties": {
+        "Type": "application",
+        "Subnets": [
+          { "Fn::GetStackOutput": { "StackName": "VpcStackOne", "Region": "ap-northeast-1", "OutputName": "PublicSubnet" } },
+          { "Fn::GetStackOutput": { "StackName": "VpcStackTwo", "Region": "ap-northeast-1", "OutputName": "PublicSubnet" } }
+        ]
+      }
+    }
+  }
+}"#;
+    const DIFFERENT_REGION: &[u8] = br#"{
+  "Resources": {
+    "ALB": {
+      "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "Properties": {
+        "Type": "application",
+        "Subnets": [
+          { "Fn::GetStackOutput": { "StackName": "VpcStack", "Region": "ap-northeast-1", "OutputName": "PublicSubnet" } },
+          { "Fn::GetStackOutput": { "StackName": "VpcStack", "Region": "us-east-1", "OutputName": "PublicSubnet" } }
+        ]
+      }
+    }
+  }
+}"#;
+    const DIFFERENT_OUTPUT_NAME: &[u8] = br#"{
+  "Resources": {
+    "ALB": {
+      "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "Properties": {
+        "Type": "application",
+        "Subnets": [
+          { "Fn::GetStackOutput": { "StackName": "VpcStack", "Region": "ap-northeast-1", "OutputName": "PublicSubnetOne" } },
+          { "Fn::GetStackOutput": { "StackName": "VpcStack", "Region": "ap-northeast-1", "OutputName": "PublicSubnetTwo" } }
+        ]
+      }
+    }
+  }
+}"#;
+    for template in [DIFFERENT_STACK_NAME, DIFFERENT_REGION, DIFFERENT_OUTPUT_NAME] {
+        let diags = validate_both_bytes(template);
+        assert_absent(&diags, "W9007");
+        assert_count(&diags, "W9007", 0);
+    }
+}
+
+/// Issue #247 (positive boundary): the fix that distinguishes distinct reads must
+/// not silence W9007 on two reads of the SAME output of the same stack - those
+/// resolve to one identical symbolic value and are a genuine duplicate.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/247
+#[test]
+fn issue_247_w9007_still_fires_on_repeated_getstackoutput() {
+    const TEMPLATE: &[u8] = br#"{
+  "Resources": {
+    "ALB": {
+      "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "Properties": {
+        "Type": "application",
+        "Subnets": [
+          { "Fn::GetStackOutput": { "StackName": "VpcStack", "Region": "ap-northeast-1", "OutputName": "PublicSubnetOne" } },
+          { "Fn::GetStackOutput": { "StackName": "VpcStack", "Region": "ap-northeast-1", "OutputName": "PublicSubnetOne" } }
+        ]
+      }
+    }
+  }
+}"#;
+    let diags = validate_both_bytes(TEMPLATE);
+    assert_fires_with_severity(&diags, "W9007", Severity::Warn);
+    assert_count(&diags, "W9007", 1);
+}
+
+/// Issue #247 (generalised): two reads whose identifying argument is itself only
+/// known at deploy time must not be reported as duplicates either. Carrying just
+/// the *concrete* arguments into the resolved value left these two reads sharing
+/// one description, so W9007 still claimed a duplicate. Each read is now settled
+/// by the expression that produces it, and these two are written differently.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/247
+#[test]
+fn issue_247_no_w9007_when_stack_names_come_from_different_parameters() {
+    const TEMPLATE: &[u8] = br#"{
+  "Parameters": {
+    "FirstStack": { "Type": "String" },
+    "SecondStack": { "Type": "String" }
+  },
+  "Resources": {
+    "Subnets": {
+      "Type": "AWS::RDS::DBSubnetGroup",
+      "Properties": {
+        "DBSubnetGroupDescription": "d",
+        "SubnetIds": [
+          { "Fn::GetStackOutput": { "StackName": { "Ref": "FirstStack" }, "OutputName": "PublicSubnet" } },
+          { "Fn::GetStackOutput": { "StackName": { "Ref": "SecondStack" }, "OutputName": "PublicSubnet" } }
+        ]
+      }
+    }
+  }
+}"#;
+    let diags = validate_both_bytes(TEMPLATE);
+    assert_absent(&diags, "W9007");
+    assert_count(&diags, "W9007", 0);
+}
+
+/// Issue #52 (same class, `Fn::ImportValue`): two imports whose export name comes
+/// from different parameters read two different exports as far as anything here
+/// can tell, so they must not be reported as duplicates. Folding only a concrete
+/// export name into the resolved value left this case collapsing.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/52
+#[test]
+fn issue_52_no_w9007_when_export_names_come_from_different_parameters() {
+    const TEMPLATE: &[u8] = br#"{
+  "Parameters": {
+    "FirstExport": { "Type": "String" },
+    "SecondExport": { "Type": "String" }
+  },
+  "Resources": {
+    "Subnets": {
+      "Type": "AWS::RDS::DBSubnetGroup",
+      "Properties": {
+        "DBSubnetGroupDescription": "d",
+        "SubnetIds": [
+          { "Fn::ImportValue": { "Ref": "FirstExport" } },
+          { "Fn::ImportValue": { "Ref": "SecondExport" } }
+        ]
+      }
+    }
+  }
+}"#;
+    let diags = validate_both_bytes(TEMPLATE);
+    assert_absent(&diags, "W9007");
+    assert_count(&diags, "W9007", 0);
+}
+
+/// Two entries reading different positions of one deploy-time list are different
+/// values, so W9007 must stay silent. Every intrinsic that cannot resolve its
+/// arguments once shared a single description with all other calls of the same
+/// intrinsic, which made unrelated entries look identical.
+#[test]
+fn no_w9007_on_distinct_selects_of_one_deploy_time_list() {
+    const TEMPLATE: &[u8] = br#"{
+  "Parameters": { "SubnetList": { "Type": "CommaDelimitedList" } },
+  "Resources": {
+    "Subnets": {
+      "Type": "AWS::RDS::DBSubnetGroup",
+      "Properties": {
+        "DBSubnetGroupDescription": "d",
+        "SubnetIds": [
+          { "Fn::Select": ["0", { "Ref": "SubnetList" }] },
+          { "Fn::Select": ["1", { "Ref": "SubnetList" }] }
+        ]
+      }
+    }
+  }
+}"#;
+    let diags = validate_both_bytes(TEMPLATE);
+    assert_absent(&diags, "W9007");
+    assert_count(&diags, "W9007", 0);
+}
+
+/// Positive boundary for the whole class: when two entries are written as the
+/// same expression they read the same value however unknowable that value is, so
+/// W9007 must still report the duplicate. This is what keeps the fix from being a
+/// blanket exemption for deploy-time values.
+#[test]
+fn w9007_still_fires_when_two_entries_read_one_deploy_time_value() {
+    const TEMPLATE: &[u8] = br#"{
+  "Parameters": { "ExportName": { "Type": "String" } },
+  "Resources": {
+    "Subnets": {
+      "Type": "AWS::RDS::DBSubnetGroup",
+      "Properties": {
+        "DBSubnetGroupDescription": "d",
+        "SubnetIds": [
+          { "Fn::ImportValue": { "Ref": "ExportName" } },
+          { "Fn::ImportValue": { "Ref": "ExportName" } }
+        ]
+      }
+    }
+  }
+}"#;
+    let diags = validate_both_bytes(TEMPLATE);
+    assert_fires_with_severity(&diags, "W9007", Severity::Warn);
+    assert_count(&diags, "W9007", 1);
+}
+
+// ---------------------------------------------------------------------------
+// Issue #36 - the IAM-role-ARN checks use a future-proof `arn:aws[a-zA-Z-]*`
+// partition prefix, so ADC-partition ARNs no longer false-positive and the two
+// engines agree. The committed fixture uses `arn:aws-iso:` (golden-compatible);
+// the previously-divergent E3511 path is exercised here with inline bytes using
+// `arn:aws-isob:`, which both engines must now accept identically.
+// ---------------------------------------------------------------------------
+
+/// Issue #36: the schema-validator's `AWS::IAM::Role.Arn` format check (E1156)
+/// must not fire on an `arn:aws-iso:` ADC-partition ARN in either engine - the
+/// partition list is no longer hardcoded.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/36
+#[test]
+fn issue_36_no_e1156_on_iso_partition_arn() {
+    let diags = validate_both("issue-36.yaml");
+    assert_absent(&diags, "E1156");
+    assert_count(&diags, "E1156", 0);
+}
+
+/// Issue #36 (continued): the engine ARN rule (E3511) and the schema-validator
+/// format check (E1156) both accept an `arn:aws-isob:` ARN, and the two engines
+/// agree - the prior rego/cel divergence (CEL hardcoded the partition list) is
+/// gone. A genuinely malformed ARN still fires E3511 in both engines, so the
+/// future-proof prefix did not become a catch-all.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/36
+#[test]
+fn issue_36_isob_partition_arn_accepted_at_parity() {
+    const VALID: &[u8] = br#"
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  TaskDef:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      ExecutionRoleArn: arn:aws-isob:iam::123456789012:role/my-task-role
+"#;
+    let sv = SchemaValidator::default();
+    let rego = validate_bytes(&*REGO, &sv, VALID, debug_config()).unwrap().diagnostics;
+    let cel = validate_bytes(&*CEL, &sv, VALID, debug_config()).unwrap().diagnostics;
+
+    for (name, d) in [("rego", &rego), ("cel", &cel)] {
+        assert!(!d.iter().any(|x| x.rule_id == "E1156"), "[{name}] E1156 must not fire on an aws-isob ARN");
+        assert!(!d.iter().any(|x| x.rule_id == "E3511"), "[{name}] E3511 must not fire on an aws-isob ARN");
+    }
+
+    // A malformed ARN (no partition at all) must still be rejected by E3511 in
+    // both engines - the future-proof prefix is not a catch-all.
+    const MALFORMED: &[u8] = br#"
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  TaskDef:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      ExecutionRoleArn: not-an-arn
+"#;
+    let rego_bad = validate_bytes(&*REGO, &sv, MALFORMED, debug_config()).unwrap().diagnostics;
+    let cel_bad = validate_bytes(&*CEL, &sv, MALFORMED, debug_config()).unwrap().diagnostics;
+    assert!(rego_bad.iter().any(|d| d.rule_id == "E3511"), "rego must still fire E3511 on a malformed ARN");
+    assert!(cel_bad.iter().any(|d| d.rule_id == "E3511"), "cel must still fire E3511 on a malformed ARN");
+}
+
+// ---------------------------------------------------------------------------
+// Issue #65 - needs a non-12-digit AWS::AccountId override to surface the bug.
+// ---------------------------------------------------------------------------
+
+/// Issue #65: `Ref: AWS::AccountId` must resolve to a symbolic 12-digit value,
+/// not a bare literal that schema validation checks against. Even with a
+/// non-12-digit account override (the case that surfaced the bug - e.g. CDK's
+/// environment-agnostic stack), the `Lambda::Permission` SourceAccount must not
+/// trip F3031 (pattern) or F3033 (length) in either engine.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/65
+#[test]
+fn issue_65_no_f3031_f3033_on_accountid_ref() {
+    let config = ValidateConfig {
+        severity_level: Severity::Debug,
+        pseudo_parameter_overrides: PseudoParameterOverrides {
+            account_id: Some("unknown-account".to_string()),
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+    let diags = vec![
+        ("rego", validate_with(&*REGO, "issue-65.json", config.clone())),
+        ("cel", validate_with(&*CEL, "issue-65.json", config)),
+    ];
+    assert_absent(&diags, "F3031");
+    assert_absent(&diags, "F3033");
+    assert_count(&diags, "F3031", 0);
+    assert_count(&diags, "F3033", 0);
+}
+
+// ---------------------------------------------------------------------------
+// Pseudo-parameter override validation (W9012).
+//
+// A caller can pin pseudo-parameter values through `PseudoParameterOverrides`.
+// Only the account-id and partition values have a well-defined shape; when a
+// provided value cannot correspond to a real AWS value, the validator surfaces
+// exactly one config-level warning (not a per-occurrence template diagnostic).
+// ---------------------------------------------------------------------------
+
+/// One invalid override (a non-12-digit account id) yields exactly one W9012 in
+/// both engines, and it carries no resource location since it is a config concern.
+#[test]
+fn invalid_account_id_override_emits_single_w9012() {
+    let config = ValidateConfig {
+        severity_level: Severity::Debug,
+        pseudo_parameter_overrides: PseudoParameterOverrides {
+            account_id: Some("unknown-account".to_string()),
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+    let diags = vec![
+        ("rego", validate_with(&*REGO, "issue-65.json", config.clone())),
+        ("cel", validate_with(&*CEL, "issue-65.json", config)),
+    ];
+    assert_count(&diags, "W9012", 1);
+    for (engine, d) in &diags {
+        let w = d.iter().find(|x| x.rule_id == "W9012").expect("W9012 expected");
+        assert!(w.entity.is_none(), "[{engine}] W9012 is a config warning with no entity");
+        assert!(w.message.contains("unknown-account"), "[{engine}] message names the bad value: {}", w.message);
+    }
+}
+
+/// Multiple invalid overrides (account id + partition) still collapse into a
+/// single W9012 whose message names every offending value, in both engines.
+#[test]
+fn multiple_invalid_overrides_collapse_into_one_w9012() {
+    let config = ValidateConfig {
+        severity_level: Severity::Debug,
+        pseudo_parameter_overrides: PseudoParameterOverrides {
+            account_id: Some("nope".to_string()),
+            partition: Some("gcp".to_string()),
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+    let diags = vec![
+        ("rego", validate_with(&*REGO, "issue-65.json", config.clone())),
+        ("cel", validate_with(&*CEL, "issue-65.json", config)),
+    ];
+    assert_count(&diags, "W9012", 1);
+    for (engine, d) in &diags {
+        let w = d.iter().find(|x| x.rule_id == "W9012").expect("W9012 expected");
+        assert!(w.message.contains("nope"), "[{engine}] message names the bad account id");
+        assert!(w.message.contains("gcp"), "[{engine}] message names the bad partition");
+    }
+}
+
+/// Valid (and absent) overrides never emit W9012.
+#[test]
+fn valid_overrides_emit_no_w9012() {
+    let config = ValidateConfig {
+        severity_level: Severity::Debug,
+        pseudo_parameter_overrides: PseudoParameterOverrides {
+            account_id: Some("210987654321".to_string()),
+            partition: Some("aws-us-gov".to_string()),
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+    let diags = vec![
+        ("rego", validate_with(&*REGO, "issue-65.json", config.clone())),
+        ("cel", validate_with(&*CEL, "issue-65.json", config)),
+    ];
+    assert_absent(&diags, "W9012");
+
+    // No overrides at all: also clean.
+    let bare = vec![
+        ("rego", validate_with(&*REGO, "issue-65.json", debug_config())),
+        ("cel", validate_with(&*CEL, "issue-65.json", debug_config())),
+    ];
+    assert_absent(&bare, "W9012");
+}
+
+// ---------------------------------------------------------------------------
+// FATAL rules are suppressible.
+//
+// FATAL diagnostics are filtered by the same include/exclude mechanism as every
+// other severity - there is no severity gate that exempts them. These tests pin
+// that contract across all three exclude dimensions (rule id, category, id range)
+// in both engines, using a bare `AWS::EC2::Volume` that deterministically yields
+// the FATAL schema rule F3017.
+// ---------------------------------------------------------------------------
+
+/// A bare `AWS::EC2::Volume` (no Properties) yields exactly one FATAL F3017 in
+/// both engines - the fixture for the suppressibility tests.
+fn fatal_baseline(engine: &dyn ValidationEngine) -> Vec<Diagnostic> {
+    validate_with(engine, "issue-61.json", debug_config())
+}
+
+#[test]
+fn fatal_rule_present_without_filter() {
+    for (name, engine) in [("rego", &*REGO as &dyn ValidationEngine), ("cel", &*CEL as &dyn ValidationEngine)] {
+        let diags = fatal_baseline(engine);
+        assert_eq!(count(&diags, "F3017"), 1, "[{name}] F3017 should fire without a filter");
+        assert!(diags.iter().any(|d| d.severity == Severity::Fatal), "[{name}] a FATAL diagnostic is expected");
+    }
+}
+
+#[test]
+fn fatal_rule_suppressed_by_exclude_id() {
+    use rules::{FilterConfig, RuleFilterConfig};
+    let config = ValidateConfig {
+        severity_level: Severity::Debug,
+        filters: FilterConfig::new(
+            RuleFilterConfig::default(),
+            RuleFilterConfig { ids: vec!["F3017".into()], ..Default::default() },
+        ),
+        ..Default::default()
+    };
+    for (name, engine) in [("rego", &*REGO as &dyn ValidationEngine), ("cel", &*CEL as &dyn ValidationEngine)] {
+        let diags = validate_with(engine, "issue-61.json", config.clone());
+        assert_eq!(count(&diags, "F3017"), 0, "[{name}] --exclude-ids F3017 must suppress the FATAL rule");
+        assert!(!diags.iter().any(|d| d.severity == Severity::Fatal), "[{name}] no FATAL should remain after exclude");
+    }
+}
+
+#[test]
+fn fatal_rule_suppressed_by_exclude_category() {
+    use rules::{FilterConfig, RuleFilterConfig};
+    // F3017 is a schema rule; excluding the Schema category removes it.
+    let config = ValidateConfig {
+        severity_level: Severity::Debug,
+        filters: FilterConfig::new(
+            RuleFilterConfig::default(),
+            RuleFilterConfig { categories: vec!["Schema".into()], ..Default::default() },
+        ),
+        ..Default::default()
+    };
+    for (name, engine) in [("rego", &*REGO as &dyn ValidationEngine), ("cel", &*CEL as &dyn ValidationEngine)] {
+        let diags = validate_with(engine, "issue-61.json", config.clone());
+        assert_eq!(count(&diags, "F3017"), 0, "[{name}] excluding the Schema category must suppress the FATAL rule");
+    }
+}
+
+#[test]
+fn fatal_rule_suppressed_by_exclude_range() {
+    use rules::{FilterConfig, IdRange, RuleFilterConfig};
+    let config = ValidateConfig {
+        severity_level: Severity::Debug,
+        filters: FilterConfig::new(
+            RuleFilterConfig::default(),
+            RuleFilterConfig {
+                id_ranges: vec![IdRange { prefix: "F".into(), start: 3000, end: 3099 }],
+                ..Default::default()
+            },
+        ),
+        ..Default::default()
+    };
+    for (name, engine) in [("rego", &*REGO as &dyn ValidationEngine), ("cel", &*CEL as &dyn ValidationEngine)] {
+        let diags = validate_with(engine, "issue-61.json", config.clone());
+        assert_eq!(count(&diags, "F3017"), 0, "[{name}] excluding the F3000-F3099 range must suppress the FATAL rule");
+    }
+}
+
+/// Both engines flag the hardcoded-ARN warning when the ARN sits behind an
+/// `Fn::If`. The Rego rule resolves the property (collapsing the conditional to
+/// its true branch), so it must fire; the native rule previously matched only a
+/// plain concrete string and silently skipped the conditional, diverging from
+/// Rego. Both engines must now flag the conditional ARN identically.
+#[test]
+fn hardcoded_arn_behind_fn_if_flagged_in_both_engines() {
+    let template = br#"
+AWSTemplateFormatVersion: "2010-09-09"
+Parameters:
+  Env: { Type: String }
+Conditions:
+  IsProd: !Equals [!Ref Env, "prod"]
+Resources:
+  Sub:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Protocol: sqs
+      TopicArn: !If [IsProd, "arn:aws:sns:us-east-1:123456789012:prod", "arn:aws:sns:us-east-1:123456789012:dev"]
+      Endpoint: x
+"#;
+    let diags = validate_both_bytes(template);
+    assert_fires_with_severity(&diags, "W9002", Severity::Warn);
+    assert_count(&diags, "W9002", 1);
+}
+
+/// Both engines flag multiple hardcoded ARNs on one resource: every `*Arn`
+/// property with a literal ARN is a separate finding. The native rule previously
+/// stopped after the first match on a resource, reporting one warning where Rego
+/// reported one per property.
+#[test]
+fn multiple_hardcoded_arns_each_flagged_in_both_engines() {
+    let template = br#"
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  Sub:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Protocol: sqs
+      TopicArn: "arn:aws:sns:us-east-1:123456789012:t1"
+      RoleArn: "arn:aws:iam::123456789012:role/r1"
+      Endpoint: x
+"#;
+    let diags = validate_both_bytes(template);
+    assert_count(&diags, "W9002", 2);
+}
+
+/// An output whose value is not a string is a guaranteed template error (F6101):
+/// CloudFormation requires output values to resolve to a string. A
+/// literal list or object, and a list-returning function (`Fn::GetAZs`,
+/// `Fn::Split`, `Fn::Cidr`), each fire; an `Fn::If` is transparent, so a list in
+/// a branch fires on that branch. Both engines must agree.
+#[test]
+fn non_string_output_values_flagged_in_both_engines() {
+    let template = br#"
+AWSTemplateFormatVersion: "2010-09-09"
+Conditions:
+  Always: !Equals ["a", "a"]
+Resources:
+  Q:
+    Type: AWS::SQS::Queue
+Outputs:
+  ListValue:
+    Value: [a, b]
+  ObjectValue:
+    Value: { Key: v }
+  GetAZsValue:
+    Value: !GetAZs ""
+  SplitValue:
+    Value: !Split [",", "a,b"]
+  ConditionalListBranch:
+    Value: !If [Always, ["x"], ["y"]]
+"#;
+    let diags = validate_both_bytes(template);
+    assert_fires_with_severity(&diags, "F6101", Severity::Fatal);
+    // Four whole-value violations plus both branches of the conditional.
+    assert_count(&diags, "F6101", 6);
+}
+
+/// String-valued outputs, and shapes that only look non-string, must NOT fire
+/// F6101 in either engine: scalars coerce to strings; `Ref`, `Fn::Sub`,
+/// `Fn::Join`, `Fn::Select`, and `Fn::FindInMap` produce (or are treated as)
+/// strings - including a `Fn::FindInMap` that resolves to a list, which is not
+/// flagged here. Empty containers are also accepted.
+#[test]
+fn string_output_values_not_flagged_in_either_engine() {
+    let template = br#"
+AWSTemplateFormatVersion: "2010-09-09"
+Mappings:
+  M:
+    k:
+      list: [a, b]
+Resources:
+  Q:
+    Type: AWS::SQS::Queue
+Outputs:
+  PlainString:
+    Value: hello
+  RefValue:
+    Value: !Ref Q
+  GetAttString:
+    Value: !GetAtt Q.QueueName
+  SubValue:
+    Value: !Sub "${Q}"
+  SelectFromGetAZs:
+    Value: !Select [0, !GetAZs ""]
+  FindInMapList:
+    Value: !FindInMap [M, k, list]
+  EmptyList:
+    Value: []
+"#;
+    let diags = validate_both_bytes(template);
+    assert_absent(&diags, "F6101");
+}
+
+/// Issue #201: diagnostics on non-resource entities (here a Parameter) must
+/// carry a structured `entity` - not just the entity name buried in the
+/// message - and must anchor at the entity's own span, not the section key.
+#[test]
+fn issue_201_parameter_diagnostics_carry_entity() {
+    let by_engine = validate_both("issue-201.json");
+    for (engine, diags) in &by_engine {
+        for rule_id in ["F2002", "W2001"] {
+            let matched: Vec<&Diagnostic> = diags.iter().filter(|d| d.rule_id == rule_id).collect();
+            assert_eq!(matched.len(), 1, "[{engine}] expected exactly one {rule_id}");
+            let d = matched[0];
+            let entity = d.entity.as_ref().unwrap_or_else(|| panic!("[{engine}] {rule_id} must carry an entity"));
+            assert_eq!(entity.logical_id, "MyParam", "[{engine}] {rule_id} must identify the parameter");
+            assert_eq!(entity.entity_type, EntityType::Parameter, "[{engine}] {rule_id} targets a parameter");
+            assert_eq!(entity.resource_type, None, "[{engine}] {rule_id}: a parameter has no resource type");
+            assert!(d.location.is_some(), "[{engine}] {rule_id} must carry the parameter's span");
+        }
+        let f2002 = diags.iter().find(|d| d.rule_id == "F2002").expect("F2002 fired");
+        assert_eq!(
+            f2002.property_path.as_deref(),
+            Some("Parameters/MyParam/Type"),
+            "[{engine}] F2002 anchors at the Type value"
+        );
+        // The invalid type anchors at Parameters/MyParam/Type (line 4)
+        // and the unused parameter at Parameters/MyParam (line 3).
+        assert_eq!(f2002.location.expect("F2002 location").start_line, 4, "[{engine}]");
+        let w2001 = diags.iter().find(|d| d.rule_id == "W2001").expect("W2001 fired");
+        assert_eq!(w2001.property_path.as_deref(), Some("Parameters/MyParam"), "[{engine}]");
+        assert_eq!(w2001.location.expect("W2001 location").start_line, 3, "[{engine}]");
+    }
+}
+
+/// Issue #201 companion: a resource-targeted diagnostic carries a
+/// Resource-typed entity with the CloudFormation type attached, so consumers
+/// have one uniform lookup key across every template section.
+#[test]
+fn issue_201_resource_diagnostics_carry_resource_entity() {
+    let template = br#"
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  Q:
+    Type: AWS::SQS::Queue
+    Properties:
+      NotAProperty: x
+"#;
+    let by_engine = validate_both_bytes(template);
+    for (engine, diags) in &by_engine {
+        let on_q: Vec<&Diagnostic> = diags.iter().filter(|d| d.resource_logical_id() == Some("Q")).collect();
+        assert!(!on_q.is_empty(), "[{engine}] expected diagnostics on resource Q");
+        for d in on_q {
+            let entity = d.entity.as_ref().expect("resource diagnostics carry an entity");
+            assert_eq!(entity.entity_type, EntityType::Resource, "[{engine}] {}", d.rule_id);
+            assert_eq!(
+                entity.resource_type.as_deref(),
+                Some("AWS::SQS::Queue"),
+                "[{engine}] {}: resource entity carries the CloudFormation type",
+                d.rule_id
+            );
+        }
+    }
+}
+
+/// Issue #226: for `icmp`/`icmpv6` security group rules, FromPort/ToPort carry
+/// the ICMP type and code (`-1` meaning any), not an ordered port range, so the
+/// inverted-range check must not fire on them (AWS CDK's `Port.icmpPing()`
+/// emits `FromPort: 8, ToPort: -1`). The fixture pairs the ICMP shapes with a
+/// genuinely inverted TCP range to guard the positive boundary: E9002 still
+/// fires there, and only there.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/226
+#[test]
+fn issue_226_e9002_ignores_icmp_type_code_but_fires_on_inverted_tcp_range() {
+    let diags = validate_both("issue-226.yaml");
+    assert_fires_with_severity(&diags, "E9002", Severity::Error);
+    assert_fires_on_resource(&diags, "E9002", "InvertedRangeSecurityGroup");
+    assert_count(&diags, "E9002", 1);
+    for (engine, ds) in &diags {
+        let on_ping: Vec<&Diagnostic> = ds
+            .iter()
+            .filter(|d| d.rule_id == "E9002" && d.resource_logical_id() == Some("PingSecurityGroup"))
+            .collect();
+        assert!(on_ping.is_empty(), "[{engine}] E9002 must not fire on ICMP type/code rules, got: {on_ping:?}");
+    }
+}
+
+/// Issue #235: instance-level storage encryption is required only when the DB
+/// instance controls that setting. The fixture covers standalone instances,
+/// explicit and conditional false values, parameter AllowedValues, Aurora and
+/// cluster members, inherited restore/replica modes, RDS Custom, legacy DB
+/// security groups, unknown values, and condition-correlated properties.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/235
+#[test]
+fn issue_235_w9008_handles_all_rds_storage_encryption_modes() {
+    let diags = validate_both("issue-235.yaml");
+    let expected = vec![
+        "AllowedValuesEncryption",
+        "ConditionalClusterOrStandalone",
+        "ConditionalFalseEncryption",
+        "ConditionalNoValueEncryption",
+        "CustomFalseEncryption",
+        "CustomStringFalseEncryption",
+        "EmptySnapshotIdentifier",
+        "EngineAllowedValuesMissingEncryption",
+        "FalseEncryption",
+        "KmsKeyWithoutEncryption",
+        "MissingEncryption",
+        "StringFalseEncryption",
+        "WholePropertiesFalseEncryption",
+    ];
+
+    assert_fires_with_severity(&diags, "W9008", Severity::Warn);
+    assert_count(&diags, "W9008", expected.len());
+    assert_fires_on_property(&diags, "W9008", "Properties.StorageEncrypted");
+    for (engine, engine_diags) in &diags {
+        let mut actual: Vec<&str> = engine_diags
+            .iter()
+            .filter(|diagnostic| diagnostic.rule_id == "W9008")
+            .filter_map(|diagnostic| diagnostic.resource_logical_id())
+            .collect();
+        actual.sort_unstable();
+        assert_eq!(actual, expected, "[{engine}] W9008 fired on the wrong RDS instances");
+    }
+}
+
+/// Issue #246: CloudFront supports Route53 HTTPS aliases, including when the target name is a
+/// deployment-time attribute rather than a literal.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/246
+#[test]
+fn issue_246_cloudfront_https_alias_is_valid() {
+    let diags = validate_both("issue-246.yaml");
+    assert_absent(&diags, "E3029");
+}
+
+/// Issue #246: same-zone aliases inherit their target record type, so types other than address
+/// records are valid when the target has that type.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/246
+#[test]
+fn issue_246_same_zone_txt_alias_is_valid() {
+    const TEMPLATE: &[u8] = br#"
+Resources:
+  TxtAlias:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: Z123456789EXAMPLE
+      Name: alias.example.com.
+      Type: TXT
+      AliasTarget:
+        DNSName: target.example.com.
+        EvaluateTargetHealth: false
+        HostedZoneId: Z123456789EXAMPLE
+"#;
+    let diags = validate_both_bytes(TEMPLATE);
+    assert_absent(&diags, "E3029");
+}
+
+/// Issue #246 positive boundary: authored alias and TTL properties conflict even when both values
+/// are only known at deployment time.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/246
+#[test]
+fn issue_246_dynamic_alias_with_ttl_is_rejected() {
+    const TEMPLATE: &[u8] = br#"
+Parameters:
+  AliasName:
+    Type: String
+  RecordTtl:
+    Type: String
+Resources:
+  Alias:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: Z123456789EXAMPLE
+      Name: alias.example.com.
+      Type: HTTPS
+      TTL: !Ref RecordTtl
+      AliasTarget:
+        DNSName: !Ref AliasName
+        EvaluateTargetHealth: false
+        HostedZoneId: Z2FDTNDATAQYW2
+"#;
+    let diags = validate_both_bytes(TEMPLATE);
+    assert_count(&diags, "E3029", 1);
+    assert_fires_on_property(&diags, "E3029", "Properties.TTL");
+}
+
+/// Issue #246 positive boundary: Route53 does not permit NS or SOA alias records for any target.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/246
+#[test]
+fn issue_246_ns_and_soa_aliases_are_rejected() {
+    const TEMPLATE: &[u8] = br#"
+Resources:
+  NsAlias:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: Z123456789EXAMPLE
+      Name: ns.example.com.
+      Type: NS
+      AliasTarget:
+        DNSName: target.example.com.
+        EvaluateTargetHealth: false
+        HostedZoneId: Z123456789EXAMPLE
+  SoaAlias:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: Z123456789EXAMPLE
+      Name: soa.example.com.
+      Type: SOA
+      AliasTarget:
+        DNSName: target.example.com.
+        EvaluateTargetHealth: false
+        HostedZoneId: Z123456789EXAMPLE
+"#;
+    let diags = validate_both_bytes(TEMPLATE);
+    assert_count(&diags, "E3029", 2);
+    assert_fires_on_property(&diags, "E3029", "Properties.AliasTarget");
+}
+
+/// Issue #264: unresolved values are skipped for format checks, but they do not hide concrete
+/// invalid siblings; statically resolved intrinsics remain subject to validation.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/264
+#[test]
+fn issue_264_unresolved_values_skip_checks_without_hiding_concrete_siblings() {
+    let unresolved_diags = validate_both("issue-264.yaml");
+    assert_absent(&unresolved_diags, "E3023");
+
+    const TEMPLATE: &[u8] = br#"
+Resources:
+  EIP:
+    Type: AWS::EC2::EIP
+    Properties: {}
+  MixedStandalone:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: Z123456789EXAMPLE
+      Name: mixed-standalone.example.com.
+      Type: A
+      TTL: '300'
+      ResourceRecords:
+        - !GetAtt EIP.PublicIp
+        - 999.0.2.1
+  MixedGroup:
+    Type: AWS::Route53::RecordSetGroup
+    Properties:
+      HostedZoneId: Z123456789EXAMPLE
+      RecordSets:
+        - Name: mixed-group.example.com.
+          Type: A
+          TTL: '300'
+          ResourceRecords:
+            - !GetAtt EIP.PublicIp
+            - 999.0.2.2
+  ConcreteIntrinsic:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: Z123456789EXAMPLE
+      Name: joined.example.com.
+      Type: A
+      TTL: '300'
+      ResourceRecords:
+        - !Join ['', ['999.0.2.3']]
+"#;
+    let mixed_diags = validate_both_bytes(TEMPLATE);
+    assert_rule_parity(&mixed_diags, "E3023");
+    assert_rule_targets_on_resources(
+        &mixed_diags,
+        "E3023",
+        &["MixedStandalone", "MixedGroup", "ConcreteIntrinsic"],
+        &[
+            ("MixedStandalone", "Properties.ResourceRecords.1"),
+            ("MixedGroup", "Properties.RecordSets.0.ResourceRecords.1"),
+            ("ConcreteIntrinsic", "Properties.ResourceRecords.0"),
+        ],
+    );
+}
+
+/// Issue #264: every reachable branch of standalone and grouped conditional record arrays is
+/// validated, while valid and resource-condition-unreachable branches remain clean.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/264
+#[test]
+fn issue_264_conditional_record_arrays_validate_reachable_branches() {
+    let invalid_template = load_template("bad/route53_conditional_record_arrays.yaml");
+    let invalid_diags = validate_both_bytes(&invalid_template);
+    assert_rule_parity(&invalid_diags, "E3023");
+    assert_rule_targets_on_resources(
+        &invalid_diags,
+        "E3023",
+        &[
+            "StandaloneInvalidTrue",
+            "StandaloneInvalidFalse",
+            "StandaloneMixedInvalidTrue",
+            "StandaloneMixedInvalidFalse",
+            "GroupInvalidTrue",
+            "GroupInvalidFalse",
+            "GroupMixedInvalidTrue",
+            "GroupMixedInvalidFalse",
+        ],
+        &[
+            ("StandaloneInvalidTrue", "Properties.ResourceRecords.0"),
+            ("StandaloneInvalidFalse", "Properties.ResourceRecords.0"),
+            ("StandaloneMixedInvalidTrue", "Properties.ResourceRecords.1"),
+            ("StandaloneMixedInvalidFalse", "Properties.ResourceRecords.1"),
+            ("GroupInvalidTrue", "Properties.RecordSets.0.ResourceRecords.0"),
+            ("GroupInvalidFalse", "Properties.RecordSets.0.ResourceRecords.0"),
+            ("GroupMixedInvalidTrue", "Properties.RecordSets.0.ResourceRecords.1"),
+            ("GroupMixedInvalidFalse", "Properties.RecordSets.0.ResourceRecords.1"),
+        ],
+    );
+    assert_rule_start_locations(
+        &invalid_diags,
+        "E3023",
+        &[
+            ("StandaloneInvalidTrue", 19, 7),
+            ("StandaloneInvalidFalse", 30, 7),
+            ("GroupInvalidTrue", 67, 31),
+            ("GroupInvalidFalse", 85, 31),
+        ],
+    );
+
+    let valid_template = load_template("good/route53_conditional_record_arrays.yaml");
+    let valid_diags = validate_both_bytes(&valid_template);
+    assert_rule_parity(&valid_diags, "E3023");
+    assert_rule_targets_on_resources(
+        &valid_diags,
+        "E3023",
+        &[
+            "StandaloneBothBranchesValid",
+            "StandaloneUnreachableInvalid",
+            "GroupBothBranchesValid",
+            "GroupUnreachableInvalid",
+        ],
+        &[],
+    );
+}
+
+/// Issue #264: conditionals wrapping the entire Properties object expose every reachable record
+/// scenario to both engines, regardless of branch order.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/264
+#[test]
+fn issue_264_whole_properties_conditionals_validate_all_scenarios() {
+    const STANDALONE_TEMPLATE: &[u8] = br#"
+Parameters:
+  Environment:
+    Type: String
+    AllowedValues: [production, development]
+Conditions:
+  IsProduction: !Equals [!Ref Environment, production]
+Resources:
+  Record:
+    Type: AWS::Route53::RecordSet
+    Properties: !If
+      - IsProduction
+      - HostedZoneId: Z123456789EXAMPLE
+        Name: conditional.example.com.
+        Type: A
+        TTL: '300'
+        ResourceRecords: [999.0.2.1]
+      - HostedZoneId: Z123456789EXAMPLE
+        Name: conditional.example.com.
+        Type: A
+        TTL: '300'
+        ResourceRecords: [192.0.2.1]
+"#;
+    let standalone_diags = validate_both_bytes(STANDALONE_TEMPLATE);
+    assert_rule_parity(&standalone_diags, "E3023");
+    assert_rule_targets_on_resources(
+        &standalone_diags,
+        "E3023",
+        &["Record"],
+        &[("Record", "Properties.ResourceRecords.0")],
+    );
+
+    let grouped_template = load_template("bad/route53_conditional_scenarios.yaml");
+    let grouped_diags = validate_both_bytes(&grouped_template);
+    assert_rule_parity(&grouped_diags, "E3023");
+    assert_rule_targets_on_resources(
+        &grouped_diags,
+        "E3023",
+        &["WholePropertiesRecordsInvalidFirst", "WholePropertiesRecordsInvalidSecond"],
+        &[
+            ("WholePropertiesRecordsInvalidFirst", "Properties.RecordSets.0.ResourceRecords.0"),
+            ("WholePropertiesRecordsInvalidSecond", "Properties.RecordSets.0.ResourceRecords.0"),
+        ],
+    );
+}
+
+/// Issue #264: CNAME cardinality counts only effective non-null entries, while unresolved entries
+/// still represent records and contribute to the limit.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/264
+#[test]
+fn issue_264_cname_cardinality_counts_effective_records() {
+    let valid_template = load_template("good/route53_conditional_record_arrays.yaml");
+    let valid_diags = validate_both_bytes(&valid_template);
+    assert_rule_parity(&valid_diags, "E3023");
+    assert_rule_targets_on_resources(
+        &valid_diags,
+        "E3023",
+        &["StandaloneMutuallyExclusiveCnameItems", "GroupMutuallyExclusiveCnameItems"],
+        &[],
+    );
+
+    let invalid_template = load_template("bad/route53_conditional_record_arrays.yaml");
+    let invalid_diags = validate_both_bytes(&invalid_template);
+    assert_rule_parity(&invalid_diags, "E3023");
+    assert_rule_targets_on_resources(
+        &invalid_diags,
+        "E3023",
+        &["StandaloneUnresolvedCnameCardinality", "GroupUnresolvedCnameCardinality"],
+        &[
+            ("StandaloneUnresolvedCnameCardinality", "Properties.ResourceRecords"),
+            ("GroupUnresolvedCnameCardinality", "Properties.RecordSets.0.ResourceRecords"),
+        ],
+    );
+}

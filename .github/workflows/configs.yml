@@ -15,6 +15,15 @@ on:
       node-version:
         description: "Node.js version"
         value: ${{ jobs.get-configs.outputs.node-version }}
+      python-version:
+        description: "Python version"
+        value: ${{ jobs.get-configs.outputs.python-version }}
+      go-version:
+        description: "Go version"
+        value: ${{ jobs.get-configs.outputs.go-version }}
+      uniffi-bindgen-go-tag:
+        description: "uniffi-bindgen-go git tag (Go binding generation)"
+        value: ${{ jobs.get-configs.outputs.uniffi-bindgen-go-tag }}
       java-version:
         description: "JDK major version"
         value: ${{ jobs.get-configs.outputs.java-version }}
@@ -24,6 +33,9 @@ on:
       kotlin-version:
         description: "Kotlin compiler (kotlinc) version"
         value: ${{ jobs.get-configs.outputs.kotlin-version }}
+      dokka-version:
+        description: "Dokka version for the JVM binding Javadoc jar"
+        value: ${{ jobs.get-configs.outputs.dokka-version }}
       ktlint-version:
         description: "ktlint version"
         value: ${{ jobs.get-configs.outputs.ktlint-version }}
@@ -45,6 +57,12 @@ on:
       cargo-audit-version:
         description: "cargo-audit version"
         value: ${{ jobs.get-configs.outputs.cargo-audit-version }}
+      cargo-llvm-cov-version:
+        description: "cargo-llvm-cov version"
+        value: ${{ jobs.get-configs.outputs.cargo-llvm-cov-version }}
+      jacoco-version:
+        description: "JaCoCo version for the JVM binding coverage report"
+        value: ${{ jobs.get-configs.outputs.jacoco-version }}
 
 permissions:
   contents: read
@@ -57,24 +75,34 @@ jobs:
       WORKING_DIR: 'src'
       RUST_TOOLCHAIN: '1.96.0'        # keep in sync with src/rust-toolchain.toml
       NODE_VERSION: '22.x'
+      PYTHON_VERSION: '3.12'
+      GO_VERSION: '1.26'
+      UNIFFI_BINDGEN_GO_TAG: 'v0.7.1+v0.31.0'  # keep in sync with bindings-go/README.md and the uniffi pin in bindings-go/Cargo.toml
       JAVA_VERSION: '21'
       JAVA_DISTRIBUTION: 'corretto'
-      KOTLIN_VERSION: '2.3.10'
+      KOTLIN_VERSION: '2.4.0'
+      DOKKA_VERSION: '2.2.0'          # keep in sync with bindings-jvm/build.gradle.kts
       KTLINT_VERSION: '1.8.0'
-      GRADLE_VERSION: '8.14'
-      JNA_VERSION: '5.18.1'           # keep in sync with bindings-jvm/build.sh
+      GRADLE_VERSION: '9.6.1'
+      JNA_VERSION: '5.19.1'           # keep in sync with bindings-jvm/build.sh
       GSON_VERSION: '2.14.0'          # keep in sync with bindings-jvm/build.sh
-      WASM_PACK_VERSION: '0.14.0'
-      CARGO_ABOUT_VERSION: '0.9.0'
+      WASM_PACK_VERSION: '0.15.0'
+      CARGO_ABOUT_VERSION: '0.9.1'
       CARGO_AUDIT_VERSION: '0.22.2'
+      CARGO_LLVM_COV_VERSION: '0.8.7'
+      JACOCO_VERSION: '0.8.13'          # keep in sync with bindings-jvm/tests/kotlin/build.gradle.kts
     outputs:
       app-name: ${{ env.APP_NAME }}
       working-dir: ${{ env.WORKING_DIR }}
       rust-toolchain: ${{ env.RUST_TOOLCHAIN }}
       node-version: ${{ env.NODE_VERSION }}
+      python-version: ${{ env.PYTHON_VERSION }}
+      go-version: ${{ env.GO_VERSION }}
+      uniffi-bindgen-go-tag: ${{ env.UNIFFI_BINDGEN_GO_TAG }}
       java-version: ${{ env.JAVA_VERSION }}
       java-distribution: ${{ env.JAVA_DISTRIBUTION }}
       kotlin-version: ${{ env.KOTLIN_VERSION }}
+      dokka-version: ${{ env.DOKKA_VERSION }}
       ktlint-version: ${{ env.KTLINT_VERSION }}
       gradle-version: ${{ env.GRADLE_VERSION }}
       jna-version: ${{ env.JNA_VERSION }}
@@ -82,6 +110,8 @@ jobs:
       wasm-pack-version: ${{ env.WASM_PACK_VERSION }}
       cargo-about-version: ${{ env.CARGO_ABOUT_VERSION }}
       cargo-audit-version: ${{ env.CARGO_AUDIT_VERSION }}
+      cargo-llvm-cov-version: ${{ env.CARGO_LLVM_COV_VERSION }}
+      jacoco-version: ${{ env.JACOCO_VERSION }}
     steps:
       - name: Provide configs
         run: |
@@ -89,9 +119,13 @@ jobs:
           echo "working-dir         = ${{ env.WORKING_DIR }}"
           echo "rust-toolchain      = ${{ env.RUST_TOOLCHAIN }}"
           echo "node-version        = ${{ env.NODE_VERSION }}"
+          echo "python-version      = ${{ env.PYTHON_VERSION }}"
+          echo "go-version          = ${{ env.GO_VERSION }}"
+          echo "uniffi-bindgen-go   = ${{ env.UNIFFI_BINDGEN_GO_TAG }}"
           echo "java-version        = ${{ env.JAVA_VERSION }}"
           echo "java-distribution   = ${{ env.JAVA_DISTRIBUTION }}"
           echo "kotlin-version      = ${{ env.KOTLIN_VERSION }}"
+          echo "dokka-version       = ${{ env.DOKKA_VERSION }}"
           echo "ktlint-version      = ${{ env.KTLINT_VERSION }}"
           echo "gradle-version      = ${{ env.GRADLE_VERSION }}"
           echo "jna-version         = ${{ env.JNA_VERSION }}"
@@ -99,3 +133,5 @@ jobs:
           echo "wasm-pack-version   = ${{ env.WASM_PACK_VERSION }}"
           echo "cargo-about-version = ${{ env.CARGO_ABOUT_VERSION }}"
           echo "cargo-audit-version = ${{ env.CARGO_AUDIT_VERSION }}"
+          echo "cargo-llvm-cov-version = ${{ env.CARGO_LLVM_COV_VERSION }}"
+          echo "jacoco-version      = ${{ env.JACOCO_VERSION }}"

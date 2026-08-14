@@ -1,5 +1,6 @@
 use crate::consts::*;
-pub(crate) use diagnostics::{SourceSpan, UNKNOWN_SPAN};
+pub(crate) use crate::defect::ParseDefect;
+pub(crate) use crate::span::{SourceSpan, UNKNOWN_SPAN};
 use std::collections::HashMap;
 use std::error;
 use std::fmt;
@@ -82,6 +83,27 @@ impl Arena {
     pub fn len(&self) -> usize {
         self.nodes.len()
     }
+
+    pub fn map_remove(&mut self, r: NodeRef, key: &str) {
+        if let Node::Map(entries) = &mut self.nodes[r as usize].node {
+            entries.retain(|(k, _)| k != key);
+        }
+    }
+
+    pub fn map_insert(&mut self, r: NodeRef, key: String, val: NodeRef) {
+        if let Node::Map(entries) = &mut self.nodes[r as usize].node {
+            entries.push((key, val));
+        }
+    }
+
+    /// Overwrites the node at `r` with `node`. Used by the language-extensions
+    /// transform to install a rewritten section over the ref the model holds,
+    /// without threading a new ref back to every caller.
+    pub fn set(&mut self, r: NodeRef, node: SpannedNode) {
+        if (r as usize) < self.nodes.len() {
+            self.nodes[r as usize] = node;
+        }
+    }
 }
 
 impl Default for Arena {
@@ -97,7 +119,7 @@ pub struct SpannedNode {
     pub path: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Node {
     Null,
     Bool(bool),
@@ -109,7 +131,7 @@ pub enum Node {
     Intrinsic(IntrinsicFn),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum IntrinsicFn {
     Ref(String),
     GetAtt(String, String),
@@ -124,6 +146,7 @@ pub enum IntrinsicFn {
     Cidr(NodeRef, NodeRef, NodeRef),
     GetAZs(NodeRef),
     ImportValue(NodeRef),
+    GetStackOutput(Vec<(String, NodeRef)>),
     Transform(String, Vec<(String, NodeRef)>),
     And(Vec<NodeRef>),
     Or(Vec<NodeRef>),
@@ -158,6 +181,7 @@ pub fn cfn_function_name(intrinsic: &IntrinsicFn) -> &'static str {
         IntrinsicFn::Cidr(_, _, _) => FN_CIDR,
         IntrinsicFn::GetAZs(_) => FN_GET_AZS,
         IntrinsicFn::ImportValue(_) => FN_IMPORT_VALUE,
+        IntrinsicFn::GetStackOutput(_) => FN_GET_STACK_OUTPUT,
         IntrinsicFn::Transform(_, _) => FN_TRANSFORM,
         IntrinsicFn::And(_) => FN_AND,
         IntrinsicFn::Or(_) => FN_OR,
@@ -192,7 +216,7 @@ pub struct TemplateIR {
     pub(crate) description: Option<String>,
     pub(crate) transforms: Vec<String>,
     pub(crate) raw_top_level_keys: Vec<String>,
-    pub(crate) diagnostics: Vec<diagnostics::Diagnostic>,
+    pub(crate) diagnostics: Vec<ParseDefect>,
     pub(crate) globals: NodeRef,
 }
 

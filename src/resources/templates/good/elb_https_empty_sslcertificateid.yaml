@@ -1,0 +1,12 @@
+Resources:
+  # An HTTPS listener with an explicit (if empty) SSLCertificateId. The reference
+  # tool's E3679 is a presence check, so an empty string satisfies it - E3679 must
+  # NOT fire. (Guards the Rego empty-string false positive.)
+  ELB:
+    Type: AWS::ElasticLoadBalancing::LoadBalancer
+    Properties:
+      Listeners:
+        - Protocol: HTTPS
+          LoadBalancerPort: "443"
+          InstancePort: "80"
+          SSLCertificateId: ""

@@ -1,0 +1,15 @@
+AWSTemplateFormatVersion: "2010-09-09"
+# E9004 regression: a dotted GetAtt whose leading segment is an object/array-typed
+# attribute (S3 Bucket `Tags`, an array) is NOT a valid map-member reference -
+# GetAtt cannot index into such an attribute. Only nested-stack /
+# provisioned-product `Outputs.<key>` is an open-ended map member, so this must be
+# flagged E9004 (the reference tool flags the equivalent as invalid). Both engines
+# must fire identically.
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+  Param:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Value: !GetAtt Bucket.Tags.0

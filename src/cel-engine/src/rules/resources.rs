@@ -1,16 +1,19 @@
 use super::{EvalContext, NativeRuleRegistry};
-use diagnostics::Diagnostic;
+use diagnostics::{Diagnostic, RelatedResource, ResourceRef};
+use rules::Category;
 use template_model::SemanticModel;
+use template_model::SourceSpan;
+use template_model::coercion::coerce_to_integer;
 use template_model::consts::{
     FIELD_CREATION_POLICY, FIELD_RESOURCE_TYPE, FIELD_RESOURCES, FIELD_UPDATE_POLICY, KEY_CREATION_POLICY,
-    KEY_PROPERTIES, KEY_UPDATE_POLICY,
+    KEY_UPDATE_POLICY,
 };
 use template_model::resolver::ResolvedValue;
 use validation_engine::make_resource_diagnostic;
 
 pub fn register(reg: &mut NativeRuleRegistry) {
-    reg.add(rules::Category::Resource, eval_resources);
-    reg.add(rules::Category::Resource, crate::rules::resources_extra::eval_extra_resources);
+    reg.add(Category::Resource, eval_resources);
+    reg.add(Category::Resource, crate::rules::resources_extra::eval_extra_resources);
 }
 
 fn resolve_concrete(m: &SemanticModel, rid: &str, path: &str) -> Option<serde_json::Value> {
@@ -43,8 +46,8 @@ fn eval_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             let cpu = resolve_concrete(m, name, "Properties.Cpu");
             let mem = resolve_concrete(m, name, "Properties.Memory");
             if let (Some(cpu_val), Some(mem_val)) = (cpu, mem) {
-                let cpu_n = to_num(&cpu_val);
-                let mem_n = to_num(&mem_val);
+                let cpu_n = coerce_to_integer(&cpu_val);
+                let mem_n = coerce_to_integer(&mem_val);
                 if let (Some(c), Some(me)) = (cpu_n, mem_n)
                     && !valid_fargate_combo(c, me)
                 {
@@ -108,12 +111,12 @@ fn eval_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                 None,
             );
             let span = m.resource_span(a_name, "");
-            diag.related_resources.get_or_insert_with(Vec::new).push(diagnostics::RelatedResource {
-                resource: Some(diagnostics::ResourceRef {
+            diag.related_resources.get_or_insert_with(Vec::new).push(RelatedResource {
+                resource: Some(ResourceRef {
                     id: Some(a_name.clone()),
                     resource_type: m.resources.get(a_name.as_str()).map(|r| r.resource_type.clone()),
                 }),
-                location: Some(diagnostics::SourceSpan {
+                location: Some(SourceSpan {
                     start_line: span.start_line,
                     start_column: span.start_column,
                     end_line: span.end_line,
@@ -168,17 +171,29 @@ fn eval_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     for name in m.resources_of_type("AWS::Lambda::Function") {
         if is_zip_deployment(m, name) {
-            for prop in &["Handler", "Runtime"] {
-                if !m.resources.get(name.as_str()).map(|r| r.properties.contains_key(*prop)).unwrap_or(false) {
-                    out.push(make_resource_diagnostic(
-                        "W2533",
-                        &format!("Property '{}' is required for zip file deployment", prop),
-                        m,
-                        name,
-                        KEY_PROPERTIES,
-                        Some(&format!("Add the '{}' property", prop)),
-                    ));
-                }
+            // Report a single diagnostic listing every missing property, anchored
+            // at the Code property (CloudFormation rejects the resource once, not
+            // once per property). Collect them and emit one finding rather than
+            // one per property.
+            let missing: Vec<&str> = ["Handler", "Runtime"]
+                .into_iter()
+                .filter(|prop| {
+                    !m.resources.get(name.as_str()).map(|r| r.properties.contains_key(*prop)).unwrap_or(false)
+                })
+                .collect();
+            if !missing.is_empty() {
+                let formatted = missing.iter().map(|p| format!("'{}'", p)).collect::<Vec<_>>().join(", ");
+                out.push(make_resource_diagnostic(
+                    "W2533",
+                    &format!(
+                        "Properties [{}] missing for zip file deployment at Resources/{}/Properties",
+                        formatted, name
+                    ),
+                    m,
+                    name,
+                    "Properties.Code",
+                    Some("Add the missing properties for zip file deployment"),
+                ));
             }
         }
     }
@@ -199,39 +214,7 @@ fn eval_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    if let Some(region) = ctx.region {
-        let region_data = &ctx.cached_data.region_resource_types;
-        if let Some(available) = region_data.get(region.as_str()).and_then(|v| v.as_object()) {
-            for (name, res) in &m.resources {
-                if !available.contains_key(&res.resource_type) {
-                    let exists_somewhere = region_data
-                        .as_object()
-                        .map(|rd| rd.values().any(|rv| rv.get(&res.resource_type).is_some()))
-                        .unwrap_or(false);
-                    if exists_somewhere {
-                        out.push(make_resource_diagnostic(
-                            "E3001",
-                            &format!("Resource type '{}' is not available in region '{}'", res.resource_type, region),
-                            m,
-                            name,
-                            "",
-                            None,
-                        ));
-                    }
-                }
-            }
-        }
-    }
-
     out
-}
-
-fn to_num(v: &serde_json::Value) -> Option<i64> {
-    match v {
-        serde_json::Value::Number(n) => n.as_i64(),
-        serde_json::Value::String(s) => s.parse().ok(),
-        _ => None,
-    }
 }
 
 fn valid_fargate_combo(cpu: i64, mem: i64) -> bool {
@@ -262,8 +245,6 @@ fn is_zip_deployment(m: &SemanticModel, name: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    // ── valid_fargate_combo ─────────────────────────────────────────────
 
     #[test]
     fn fargate_cpu_256_valid() {
@@ -312,25 +293,5 @@ mod tests {
     fn fargate_unknown_cpu() {
         assert!(!valid_fargate_combo(128, 512));
         assert!(!valid_fargate_combo(0, 0));
-    }
-
-    #[test]
-    fn to_num_from_number() {
-        assert_eq!(to_num(&serde_json::json!(256)), Some(256));
-    }
-
-    #[test]
-    fn to_num_from_string() {
-        assert_eq!(to_num(&serde_json::json!("1024")), Some(1024));
-    }
-
-    #[test]
-    fn to_num_from_invalid_string() {
-        assert_eq!(to_num(&serde_json::json!("abc")), None);
-    }
-
-    #[test]
-    fn to_num_from_bool() {
-        assert_eq!(to_num(&serde_json::json!(true)), None);
     }
 }

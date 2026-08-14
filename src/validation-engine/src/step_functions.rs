@@ -3,6 +3,7 @@ use diagnostics::Diagnostic;
 use std::sync::Arc;
 use template_model::SemanticModel;
 use template_model::consts::KEY_TYPE;
+use template_model::message::render_str_list;
 use template_model::resolver::ResolvedValue;
 
 pub fn validate_definition(
@@ -150,7 +151,7 @@ fn validate_state(
             model,
             rid,
             prop_key,
-            &format!("State '{}' has invalid Type '{}'. Must be one of {:?}", name, stype, valid_types),
+            &format!("State '{}' has invalid Type '{}'. Must be one of {}", name, stype, render_str_list(valid_types)),
         ));
         return;
     }

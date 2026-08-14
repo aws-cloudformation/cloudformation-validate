@@ -4,13 +4,14 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use validation_engine::ValidationEngine;
 
+pub use data_source::AdditionalSchemaSource;
 pub use diagnostics::{
-    DetailLevel, DetailedDiagnostic, DetailedReport, JsonValue, PerformanceMetrics, PhaseMetric, RelatedResource,
-    ReportMetadata, ReportStatus, ResourceRef, SourceSpan, StandardDiagnostic, StandardReport, Summary,
-    ViolationContext,
+    DetailLevel, DetailedDiagnostic, DetailedReport, PerformanceMetrics, PhaseMetric, RelatedResource, ReportMetadata,
+    ReportStatus, ResourceRef, StandardDiagnostic, StandardReport, Summary, ViolationContext,
 };
-pub use rules::{IdRange, ResourceIdFilter, ResourceTypeFilter, RuleFilterConfig, RuleInfo, RuleOrigin, Severity};
-pub use template_model::PseudoParameterOverrides;
+pub use rules::{
+    IdRange, ResourceIdFilter, ResourceTypeFilter, RuleFilterConfig, RuleInfo, RuleOrigin, ServiceFilter, Severity,
+};
 pub use template_model::diagnostic::{
     ConditionalNull, DiagnosticCondition, DiagnosticForEachExpansion, DiagnosticImplication, DiagnosticModel,
     DiagnosticMutexGroup, DiagnosticOutput, DiagnosticResource, DiagnosticRule, DiagnosticRuleAssertion,
@@ -20,7 +21,10 @@ pub use template_model::model::{
     ConditionalNullEntry, ForEachExpansion, PathValuePair, ResolvedOutput, ResolvedResource, ResourceDiagnostics,
 };
 pub use template_model::resolver::{MapEntry, ParameterInfo, RefKind, ResolvedValue};
+pub use template_model::{JsonValue, PseudoParameterOverrides, SourceSpan};
 pub use validation_engine::{EngineConfig, EngineType, ExternalRuleSource};
+
+pub use schema_validator::SchemaValidatorConfig;
 
 #[derive(Debug, Clone, uniffi::Record)]
 pub struct ValidateConfig {
@@ -55,8 +59,6 @@ impl ValidateConfig {
     }
 }
 
-// ── Error ────────────────────────────────────────────────────────────────────
-
 #[derive(Debug, thiserror::Error, uniffi::Error)]
 pub enum ValidationError {
     #[error("{msg}")]
@@ -73,8 +75,6 @@ fn panic_to_error(message: String) -> ValidationError {
     ValidationError::Engine { msg: format!("Internal validation error: {message}") }
 }
 
-// ── SchemaValidator ──────────────────────────────────────────────────────────
-
 #[derive(uniffi::Record)]
 pub struct JvmSchemaValidationResult {
     pub diagnostics: Vec<StandardDiagnostic>,
@@ -89,8 +89,15 @@ pub struct JvmSchemaValidator {
 #[uniffi::export]
 impl JvmSchemaValidator {
     #[uniffi::constructor]
-    pub fn new() -> Arc<Self> {
-        Arc::new(Self { inner: schema_validator::SchemaValidator::new() })
+    pub fn new(config: SchemaValidatorConfig) -> Result<Arc<Self>, ValidationError> {
+        validation_engine::catch_panics(
+            || {
+                let inner = schema_validator::SchemaValidator::new(config)
+                    .map_err(|e| ValidationError::Engine { msg: e.to_string() })?;
+                Ok(Arc::new(Self { inner }))
+            },
+            panic_to_error,
+        )
     }
 
     pub fn list_rules(&self) -> Result<Vec<RuleInfo>, ValidationError> {
@@ -104,11 +111,11 @@ impl JvmSchemaValidator {
     pub fn validate(
         &self,
         model: &JvmSemanticModel,
-        region: String,
+        region: Option<String>,
     ) -> Result<JvmSchemaValidationResult, ValidationError> {
         validation_engine::catch_panics(
             || {
-                let result = self.inner.validate(&model.model, &region);
+                let result = self.inner.validate(&model.model, region.as_deref());
                 Ok(JvmSchemaValidationResult {
                     diagnostics: result.diagnostics.iter().map(|d| d.to_standard()).collect(),
                     metric: result.metric,
@@ -118,8 +125,6 @@ impl JvmSchemaValidator {
         )
     }
 }
-
-// ── Engine implementations ───────────────────────────────────────────────────
 
 macro_rules! impl_jvm_engine {
     ($JvmType:ident, $InnerEngine:ty, $constructor:path) => {
@@ -135,9 +140,12 @@ macro_rules! impl_jvm_engine {
             pub fn new(config: EngineConfig) -> Result<Arc<Self>, ValidationError> {
                 validation_engine::catch_panics(
                     || {
-                        let engine =
-                            $constructor(config).map_err(|e| ValidationError::Engine { msg: e.to_string() })?;
-                        Ok(Arc::new(Self { engine, schema_validator: schema_validator::SchemaValidator::new() }))
+                        let schema_config = config.schema_validator_config.clone().unwrap_or_default();
+                        let schema_validator = schema_validator::SchemaValidator::new(schema_config)
+                            .map_err(|e| ValidationError::Engine { msg: e.to_string() })?;
+                        let engine = $constructor(config, &schema_validator)
+                            .map_err(|e| ValidationError::Engine { msg: e.to_string() })?;
+                        Ok(Arc::new(Self { engine, schema_validator }))
                     },
                     panic_to_error,
                 )
@@ -200,10 +208,8 @@ macro_rules! impl_jvm_engine {
     };
 }
 
-impl_jvm_engine!(JvmRegoEngine, rego_engine::RegoEngine, rego_engine::RegoEngine::new);
-impl_jvm_engine!(JvmCelEngine, cel_engine::CelEngine, cel_engine::CelEngine::new);
-
-// ── SemanticModel ────────────────────────────────────────────────────────────
+impl_jvm_engine!(JvmRegoEngine, rego_engine::RegoEngine, rego_engine::RegoEngine::new_with_schema_validator);
+impl_jvm_engine!(JvmCelEngine, cel_engine::CelEngine, cel_engine::CelEngine::new_with_schema_validator);
 
 #[derive(uniffi::Object)]
 pub struct JvmSemanticModel {

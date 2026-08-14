@@ -1,3 +1,4 @@
+use data_source::{generate_all, sync_upstream};
 use log::{error, info};
 use std::env;
 use std::path::PathBuf;
@@ -32,24 +33,27 @@ fn main() -> anyhow::Result<()> {
         i += 1;
     }
 
+    let rule_source_root = rule_source_root.ok_or_else(|| anyhow::anyhow!("--cfn-lint-root <DIR> is required"))?;
     let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let upstream_dir = manifest.join("upstream");
+    let generated_dir = manifest.join("generated");
+    let handwritten_dir = manifest.join("handwritten");
 
-    data_source::sync_upstream(&upstream_dir, rule_source_root.as_deref())?;
+    sync_upstream(&upstream_dir, &rule_source_root)?;
+    generate_all(&upstream_dir, &generated_dir, &handwritten_dir)?;
 
-    info!("Sync complete — run `cargo run -p data-source --example generate` to regenerate outputs");
+    info!("Sync and generation complete");
     Ok(())
 }
 
 fn print_usage() {
     eprintln!(
-        "Usage: cargo run -p data-source --example sync [-- OPTIONS]
+        "Usage: cargo run -p data-source --features maintenance --example sync -- --cfn-lint-root <DIR>
 
-Downloads CloudFormation schemas and syncs rule-source upstream data.
-Output goes to data-source/upstream/.
+Refreshes all upstream sources, records their versions, and generates every output.
 
 Options:
-  --cfn-lint-root <DIR>         Path to cfn-lint repo (enables patches/extensions/regions sync)
+  --cfn-lint-root <DIR>         Path to cfn-lint repo (required)
   -h, --help                    Show this help"
     );
 }

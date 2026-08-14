@@ -1,0 +1,30 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  E3699 must fire when an API Gateway Method references an Authorizer scoped to
+  a different RestApi than the Method itself. A mismatch fails deployment. The
+  finding is anchored on the Authorizer's RestApiId. Both engines must agree,
+  matching cfn-lint's E3699.
+Resources:
+  RestApiA:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: ApiA
+  RestApiB:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: ApiB
+  AuthorizerB:
+    Type: AWS::ApiGateway::Authorizer
+    Properties:
+      Name: AuthB
+      RestApiId: !Ref RestApiB
+      Type: TOKEN
+      IdentitySource: method.request.header.Auth
+  MethodA:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref RestApiA
+      ResourceId: !GetAtt RestApiA.RootResourceId
+      HttpMethod: GET
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AuthorizerB

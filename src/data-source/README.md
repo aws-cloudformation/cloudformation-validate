@@ -1,26 +1,27 @@
 # data-source
 
-Build-time pipeline that downloads CloudFormation resource provider schemas, syncs rule-source patches/extensions/region
-data, processes schemas, and generates all validation artifacts consumed by engine crates at compile time. Everything
-compiles into the binary — no runtime fetching.
+Build-time pipeline that downloads CloudFormation resource provider schemas (with patches pre-applied), derives
+per-region resource-type data from the downloaded schemas, syncs rule-source extensions and additional specs (when a
+cfn-lint root is provided), processes schemas, and generates all validation artifacts consumed by engine crates at
+compile time. Everything compiles into the binary - no runtime fetching.
 
 ## Commands
 
 ```bash
-# Sync only — download schemas, sync rule-source upstream data
-cargo run -p data-source --features full --example sync -- [--cfn-lint-root <DIR>]
+# Generate from existing upstream data
+cargo run -p data-source --features maintenance --example generate
 
-# Generate only — run all codegens from existing upstream data
-cargo run -p data-source --features full --example generate
-
-# Full — sync then generate
-cargo run -p data-source --features full --example full -- [--cfn-lint-root <DIR>]
+# Refresh all upstream sources, then generate every output (cfn-lint root is required)
+cargo run -p data-source --features maintenance --example sync -- --cfn-lint-root <DIR>
 ```
 
-The `sync`, `generate`, and `full` examples require the `full` cargo feature (it pulls in the network and archive
-dependencies used only at build/sync time).
+The `generate` and `sync` examples require the `maintenance` feature, which enables dependencies used only by the
+data maintenance pipeline. `sync` is the complete workflow: it refreshes every upstream source, records source
+versions, and generates all outputs. `generate` reruns code generation from the existing upstream data without network
+access.
 
-`--cfn-lint-root` is optional. Without it, the sync skips patch/extension/region sync.
+`--cfn-lint-root` is required by `sync`, which fails before starting work when it is absent.
+A successful sync records both strict, source-qualified values together only after all source processing succeeds.
 
 ## Directory Structure
 
@@ -28,9 +29,9 @@ dependencies used only at build/sync time).
 data-source/
 ├── handwritten/                       # Manually authored data, checked in
 ├── upstream/                          # Raw data synced from external sources
-│   ├── schemas/                       # Downloaded CFN + SAM schemas
-│   ├── patches/                       # Rule-source JSON patches
-│   └── extensions/                    # Rule-source extension files
+│   ├── schemas/                       # Downloaded CFN + SAM schemas (per resource type)
+│   ├── providers/                     # Per-region type→hash maps (from the enhanced archive)
+│   └── extensions/                    # Rule-source extension files (only with --cfn-lint-root)
 └── generated/                         # All processed/codegen output (never edit manually)
     ├── patched_schemas/               # Schemas with patches+extensions applied
     ├── data/                          # Extracted metadata consumed by all engines

@@ -1,11 +1,10 @@
 use crate::filter::Filterable;
-use crate::json_value::JsonValue;
 use crate::metrics::PhaseMetric;
 use crate::phase::Phase;
-use crate::span::SourceSpan;
 use rules::{RuleOrigin, Severity};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap};
+use template_model::{EntityType, JsonValue, SourceSpan};
 
 fn serialize_sorted_optional_map<S, V>(map: &Option<HashMap<String, V>>, serializer: S) -> Result<S::Ok, S::Error>
 where
@@ -21,46 +20,97 @@ where
     }
 }
 
+/// The template resource a diagnostic is attributed to, when it targets one.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
 #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Record))]
 #[serde(rename_all = "camelCase")]
 pub struct ResourceRef {
+    /// Logical ID of the resource as declared in the template.
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub resource_type: Option<String>,
 }
 
+/// The named template entity a diagnostic is attributed to, when it targets
+/// one. The entity type is the singular form of the top-level template
+/// section the entity is declared in.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
+#[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Record))]
+#[serde(rename_all = "camelCase")]
+pub struct Entity {
+    /// Logical ID of the entity as declared in the template.
+    pub logical_id: String,
+    pub entity_type: EntityType,
+    /// CloudFormation resource type, when the entity is a resource whose type
+    /// is known.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
+    pub resource_type: Option<String>,
+}
+
+impl Entity {
+    /// An entity for a template resource. An empty logical ID yields `None` so
+    /// callers can pass through an ID that may be blank.
+    pub fn resource(logical_id: impl Into<String>, resource_type: Option<String>) -> Option<Entity> {
+        let logical_id = logical_id.into();
+        if logical_id.is_empty() {
+            return None;
+        }
+        Some(Entity { logical_id, entity_type: EntityType::Resource, resource_type })
+    }
+}
+
+/// Extra detail about a specific violation, present only in the detailed report.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
 #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Record))]
 #[serde(rename_all = "camelCase")]
 pub struct ViolationContext {
+    /// The resolved property value that triggered the violation.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[cfg_attr(feature = "wasm-bindings", tsify(type = "JsonValue | undefined"))]
+    #[cfg_attr(feature = "wasm-bindings", tsify(type = "JsonValue"))]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub actual_value: Option<JsonValue>,
+    /// The constraint the value was expected to satisfy (such as the required type or allowed pattern).
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub expected_constraint: Option<String>,
+    /// Name of the offending property.
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub property: Option<String>,
+    /// Lifecycle marker for the flagged resource type or property, such as 'deprecated', 'create-only', or 'write-only'.
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub lifecycle: Option<String>,
+    /// How the offending value was derived, such as a Ref, Fn::GetAtt, Fn::If, or parameter.
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub resolution_source: Option<String>,
+    /// Additional finding-specific values keyed by name.
     #[serde(default, skip_serializing_if = "Option::is_none", serialize_with = "serialize_sorted_optional_map")]
     #[cfg_attr(feature = "wasm-bindings", tsify(type = "Record<string, JsonValue>"))]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub extra: Option<HashMap<String, JsonValue>>,
 }
 
+/// Another resource involved in the diagnostic, such as the target of a reference.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
 #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Record))]
 #[serde(rename_all = "camelCase")]
 pub struct RelatedResource {
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub resource: Option<ResourceRef>,
+    /// Source location of the related resource.
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub location: Option<SourceSpan>,
     pub message: String,
 }
@@ -72,8 +122,9 @@ pub struct Diagnostic {
     pub severity: Severity,
     pub message: String,
     pub source: RuleOrigin,
+    /// The named template entity this finding targets, if any.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub resource: Option<ResourceRef>,
+    pub entity: Option<Entity>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub property_path: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -93,9 +144,14 @@ pub struct Diagnostic {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub phase: Option<Phase>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub section: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub context: Option<ViolationContext>,
+}
+
+impl Diagnostic {
+    /// Logical ID of the targeted entity when it is a resource, `None` otherwise.
+    pub fn resource_logical_id(&self) -> Option<&str> {
+        self.entity.as_ref().filter(|e| e.entity_type == EntityType::Resource).map(|e| e.logical_id.as_str())
+    }
 }
 
 impl Filterable for Diagnostic {
@@ -106,75 +162,97 @@ impl Filterable for Diagnostic {
         self.category.as_deref()
     }
     fn resource_id(&self) -> Option<&str> {
-        self.resource.as_ref().and_then(|r| r.id.as_deref())
+        self.resource_logical_id()
     }
     fn resource_type(&self) -> Option<&str> {
-        self.resource.as_ref().and_then(|r| r.resource_type.as_deref())
+        self.entity.as_ref().and_then(|e| e.resource_type.as_deref())
+    }
+    fn logical_id(&self) -> Option<&str> {
+        self.entity.as_ref().map(|e| e.logical_id.as_str())
+    }
+    fn entity_type(&self) -> Option<EntityType> {
+        self.entity.as_ref().map(|e| e.entity_type)
     }
 }
 
-/// Generates a flattened diagnostic struct that inlines `resource` into
-/// `resource_id`/`resource_type` and `location` into individual line/column
+/// Generates a report diagnostic struct that carries the targeted entity as a
+/// nested `entity` struct and inlines `location` into individual line/column
 /// fields. Used by `StandardDiagnostic` and `DetailedDiagnostic`.
 macro_rules! define_flattened_diagnostic {
-    ($name:ident $(, $extra_field:ident : $extra_ty:ty)*) => {
+    ($(#[$struct_meta:meta])* $name:ident $(, $(#[$extra_meta:meta])* $extra_field:ident : $extra_ty:ty)*) => {
+        $(#[$struct_meta])*
         #[derive(Debug, Clone, Serialize, Deserialize)]
         #[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
         #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Record))]
         #[serde(rename_all = "camelCase")]
         pub struct $name {
+            /// Identifier of the rule that produced this finding; its leading letter encodes the severity.
             pub rule_id: String,
             pub severity: Severity,
             pub message: String,
+            /// Where the rule came from, such as a provider schema, the built-in engine, or a user-supplied rule.
             pub source: RuleOrigin,
+            /// The named template entity this finding targets - a resource, parameter, output, mapping, condition, or template rule - if any.
             #[serde(default, skip_serializing_if = "Option::is_none")]
-            pub resource_id: Option<String>,
+            #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
+            pub entity: Option<Entity>,
+            /// Path to the offending property within the resource, such as 'Properties.Name'.
             #[serde(default, skip_serializing_if = "Option::is_none")]
-            pub resource_type: Option<String>,
-            #[serde(default, skip_serializing_if = "Option::is_none")]
+            #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
             pub property_path: Option<String>,
             #[serde(default, skip_serializing_if = "Option::is_none")]
+            #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
             pub suggested_fix: Option<String>,
             #[serde(default, skip_serializing_if = "Option::is_none")]
+            #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
             pub category: Option<String>,
+            /// Line in the source template where the finding begins (1-based).
             #[serde(default, skip_serializing_if = "Option::is_none")]
+            #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
             pub start_line: Option<u32>,
             #[serde(default, skip_serializing_if = "Option::is_none")]
+            #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
             pub start_column: Option<u32>,
             #[serde(default, skip_serializing_if = "Option::is_none")]
+            #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
             pub end_line: Option<u32>,
             #[serde(default, skip_serializing_if = "Option::is_none")]
+            #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
             pub end_column: Option<u32>,
             #[serde(default, skip_serializing_if = "Option::is_none")]
+            #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
             pub related_resources: Option<Vec<RelatedResource>>,
+            /// Condition name to boolean assignment under which this finding applies, when it depends on template conditions.
             #[serde(default, skip_serializing_if = "Option::is_none", serialize_with = "serialize_sorted_optional_map")]
-            #[cfg_attr(
-                feature = "wasm-bindings",
-                tsify(type = "Record<string, boolean> | undefined")
-            )]
+            #[cfg_attr(feature = "wasm-bindings", tsify(type = "Record<string, boolean>"))]
+            #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
             pub condition_scenario: Option<HashMap<String, bool>>,
             $(
+                $(#[$extra_meta])*
                 #[serde(default, skip_serializing_if = "Option::is_none")]
+                #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
                 pub $extra_field: $extra_ty,
             )*
         }
     };
 }
 
-define_flattened_diagnostic!(StandardDiagnostic);
-define_flattened_diagnostic!(DetailedDiagnostic,
+define_flattened_diagnostic!(
+    /// A single validation finding with its source location flattened into individual fields.
+    StandardDiagnostic
+);
+define_flattened_diagnostic!(
+    /// A validation finding with additional context and enrichment beyond the standard finding.
+    DetailedDiagnostic,
     documentation_url: Option<String>,
     rule_description: Option<String>,
     phase: Option<Phase>,
-    section: Option<String>,
     context: Option<ViolationContext>
 );
 
-/// Populates the shared fields of a flattened diagnostic from a `Diagnostic`.
+/// Populates the shared fields of a report diagnostic from a `Diagnostic`.
 macro_rules! flatten_diagnostic {
     ($self:expr $(, $extra_field:ident)* ) => {{
-        let resource_id = $self.resource.as_ref().and_then(|r| r.id.clone());
-        let resource_type = $self.resource.as_ref().and_then(|r| r.resource_type.clone());
         let (start_line, start_column, end_line, end_column) = $self
             .location
             .map(|l| (Some(l.start_line), Some(l.start_column), Some(l.end_line), Some(l.end_column)))
@@ -183,8 +261,7 @@ macro_rules! flatten_diagnostic {
             $self.rule_id.clone(),
             $self.severity,
             $self.message.clone(),
-            resource_id,
-            resource_type,
+            $self.entity.clone(),
             $self.property_path.clone(),
             $self.suggested_fix.clone(),
             $self.category.clone(),
@@ -206,8 +283,7 @@ impl Diagnostic {
             rule_id,
             severity,
             message,
-            resource_id,
-            resource_type,
+            entity,
             property_path,
             suggested_fix,
             category,
@@ -223,8 +299,7 @@ impl Diagnostic {
             rule_id,
             severity,
             message,
-            resource_id,
-            resource_type,
+            entity,
             property_path,
             suggested_fix,
             category,
@@ -243,8 +318,7 @@ impl Diagnostic {
             rule_id,
             severity,
             message,
-            resource_id,
-            resource_type,
+            entity,
             property_path,
             suggested_fix,
             category,
@@ -258,15 +332,13 @@ impl Diagnostic {
             documentation_url,
             rule_description,
             phase,
-            section,
             context,
-        ) = flatten_diagnostic!(self, documentation_url, rule_description, phase, section, context);
+        ) = flatten_diagnostic!(self, documentation_url, rule_description, phase, context);
         DetailedDiagnostic {
             rule_id,
             severity,
             message,
-            resource_id,
-            resource_type,
+            entity,
             property_path,
             suggested_fix,
             category,
@@ -280,22 +352,26 @@ impl Diagnostic {
             documentation_url,
             rule_description,
             phase,
-            section,
             context,
         }
     }
 }
 
+/// Timing breakdown of the validation run, per pipeline phase.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
 #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Record))]
 #[serde(rename_all = "camelCase")]
 pub struct PerformanceMetrics {
+    /// Time to load the provider schemas.
     pub schema_init: PhaseMetric,
+    /// Time to initialize the rule evaluation engine.
     pub engine_init: PhaseMetric,
+    /// Time to parse the template and build its model.
     pub model_build: PhaseMetric,
     pub schema_validate: PhaseMetric,
     pub rule_evaluation: PhaseMetric,
+    /// Time spent enriching, filtering, sorting, and finalizing the diagnostics after rule evaluation.
     pub diagnostic_finalize: PhaseMetric,
     pub validate_total: PhaseMetric,
 }
@@ -305,12 +381,20 @@ pub struct PerformanceMetrics {
 #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Record))]
 #[serde(rename_all = "camelCase")]
 pub struct ReportMetadata {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub rules_evaluated: Option<u32>,
+    /// Number of rules that were active for this run after any category exclusions.
+    pub rules_evaluated: u32,
+    /// Source-qualified cfn-lint version used to sync bundled derived data.
+    pub cfn_lint_version: String,
+    /// Source-qualified enhanced resource-schema version used for the bundled provider schemas.
+    pub resource_schema_version: String,
     pub resources_scanned: u32,
+    /// Tally of reported diagnostics by severity.
     pub counts: Summary,
+    /// Number of diagnostics removed by filters and the severity threshold.
     pub suppressed: u32,
+    /// Whether strict mode was enabled, promoting warnings to errors.
     pub strict: bool,
+    /// Minimum severity included in the report; lower-severity findings are omitted.
     pub severity_level: Severity,
 }
 
@@ -343,7 +427,7 @@ pub enum ReportStatus {
 pub struct ValidationReport {
     pub file_path: String,
     pub status: ReportStatus,
-    pub engine_version: String,
+    pub version: String,
     pub metadata: ReportMetadata,
     pub performance: PerformanceMetrics,
     pub diagnostics: Vec<Diagnostic>,
@@ -354,7 +438,7 @@ impl ValidationReport {
         StandardReport {
             file_path: self.file_path.clone(),
             status: self.status,
-            engine_version: self.engine_version.clone(),
+            version: self.version.clone(),
             diagnostics: self.diagnostics.iter().map(|d| d.to_standard()).collect(),
             metadata: self.metadata.clone(),
             performance: self.performance.clone(),
@@ -365,7 +449,7 @@ impl ValidationReport {
         DetailedReport {
             file_path: self.file_path.clone(),
             status: self.status,
-            engine_version: self.engine_version.clone(),
+            version: self.version.clone(),
             diagnostics: self.diagnostics.iter().map(|d| d.to_detailed()).collect(),
             metadata: self.metadata.clone(),
             performance: self.performance.clone(),
@@ -373,6 +457,7 @@ impl ValidationReport {
     }
 }
 
+/// Standard validation result: the report plus flattened diagnostics.
 #[derive(Debug, Clone, Serialize)]
 #[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
 #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Record))]
@@ -380,12 +465,13 @@ impl ValidationReport {
 pub struct StandardReport {
     pub file_path: String,
     pub status: ReportStatus,
-    pub engine_version: String,
+    pub version: String,
     pub metadata: ReportMetadata,
     pub performance: PerformanceMetrics,
     pub diagnostics: Vec<StandardDiagnostic>,
 }
 
+/// Detailed validation result: like the standard report but with per-diagnostic context and enrichment.
 #[derive(Debug, Clone, Serialize)]
 #[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
 #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Record))]
@@ -393,7 +479,7 @@ pub struct StandardReport {
 pub struct DetailedReport {
     pub file_path: String,
     pub status: ReportStatus,
-    pub engine_version: String,
+    pub version: String,
     pub metadata: ReportMetadata,
     pub performance: PerformanceMetrics,
     pub diagnostics: Vec<DetailedDiagnostic>,
@@ -408,7 +494,7 @@ mod tests {
             rule_id: "E3012".into(),
             severity: Severity::Error,
             message: "Property not allowed".into(),
-            resource: Some(ResourceRef { id: Some("MyBucket".into()), resource_type: Some("AWS::S3::Bucket".into()) }),
+            entity: Entity::resource("MyBucket", Some("AWS::S3::Bucket".into())),
             property_path: Some("/Resources/MyBucket/Properties/Foo".into()),
             suggested_fix: Some("Remove the property".into()),
             documentation_url: Some("https://example.com/E3012".into()),
@@ -425,7 +511,6 @@ mod tests {
             condition_scenario: Some(HashMap::from([("IsProduction".into(), true)])),
             rule_description: Some("Disallows extra properties".into()),
             phase: Some(Phase::Schema),
-            section: Some("Resources".into()),
             context: Some(ViolationContext {
                 actual_value: Some(JsonValue::from(serde_json::json!("bad"))),
                 expected_constraint: Some("Must not exist".into()),
@@ -434,7 +519,7 @@ mod tests {
                 resolution_source: None,
                 extra: None,
             }),
-            source: rules::RuleOrigin::CfnLint,
+            source: RuleOrigin::CfnLint,
         }
     }
 
@@ -443,7 +528,7 @@ mod tests {
             rule_id: String::new(),
             severity: Severity::Info,
             message: String::new(),
-            resource: None,
+            entity: None,
             property_path: None,
             suggested_fix: None,
             documentation_url: None,
@@ -453,20 +538,21 @@ mod tests {
             condition_scenario: None,
             rule_description: None,
             phase: None,
-            section: None,
             context: None,
             source: RuleOrigin::Engine,
         }
     }
 
     #[test]
-    fn to_standard_flattens_resource_and_location_fields() {
+    fn to_standard_carries_entity_and_flattens_location_fields() {
         let d = sample_diagnostic();
         let s = d.to_standard();
 
         assert_eq!(s.rule_id, "E3012");
-        assert_eq!(s.resource_id.as_deref(), Some("MyBucket"));
-        assert_eq!(s.resource_type.as_deref(), Some("AWS::S3::Bucket"));
+        let entity = s.entity.as_ref().expect("entity should be present");
+        assert_eq!(entity.logical_id, "MyBucket");
+        assert_eq!(entity.entity_type, EntityType::Resource);
+        assert_eq!(entity.resource_type.as_deref(), Some("AWS::S3::Bucket"));
         assert_eq!(s.start_line, Some(10));
         assert_eq!(s.start_column, Some(5));
         assert_eq!(s.end_line, Some(10));
@@ -484,22 +570,52 @@ mod tests {
         let f = d.to_detailed();
 
         assert_eq!(f.rule_id, "E3012");
-        assert_eq!(f.resource_id.as_deref(), Some("MyBucket"));
+        assert_eq!(f.entity.as_ref().map(|e| e.logical_id.as_str()), Some("MyBucket"));
         assert!(f.context.is_some(), "full diagnostic should include context");
         let ctx = f.context.unwrap();
         assert_eq!(ctx.property.as_deref(), Some("Foo"));
         assert_eq!(ctx.expected_constraint.as_deref(), Some("Must not exist"));
         assert_eq!(f.phase, Some(Phase::Schema));
-        assert_eq!(f.section.as_deref(), Some("Resources"));
     }
 
     #[test]
-    fn filterable_returns_resource_and_category_from_diagnostic() {
+    fn filterable_reads_identity_through_the_entity() {
         let d = sample_diagnostic();
         assert_eq!(d.rule_id(), "E3012");
         assert_eq!(d.category(), Some("schema"));
         assert_eq!(d.resource_id(), Some("MyBucket"));
         assert_eq!(d.resource_type(), Some("AWS::S3::Bucket"));
+        assert_eq!(d.logical_id(), Some("MyBucket"));
+    }
+
+    #[test]
+    fn filterable_resource_id_is_none_for_non_resource_entities() {
+        let mut d = sample_diagnostic();
+        d.entity =
+            Some(Entity { logical_id: "MyParam".into(), entity_type: EntityType::Parameter, resource_type: None });
+        assert_eq!(d.resource_id(), None, "a parameter is not a resource");
+        assert_eq!(d.resource_type(), None);
+        assert_eq!(d.logical_id(), Some("MyParam"));
+    }
+
+    #[test]
+    fn entity_serializes_camel_case_with_pascal_case_type_and_omits_absent_resource_type() {
+        let resource = Entity::resource("MyBucket", Some("AWS::S3::Bucket".into())).unwrap();
+        let json = serde_json::to_string(&resource).unwrap();
+        assert!(json.contains("\"logicalId\":\"MyBucket\""), "got: {json}");
+        assert!(json.contains("\"entityType\":\"Resource\""), "got: {json}");
+        assert!(json.contains("\"resourceType\":\"AWS::S3::Bucket\""), "got: {json}");
+
+        let parameter =
+            Entity { logical_id: "MyParam".into(), entity_type: EntityType::Parameter, resource_type: None };
+        let json = serde_json::to_string(&parameter).unwrap();
+        assert!(json.contains("\"entityType\":\"Parameter\""), "got: {json}");
+        assert!(!json.contains("resourceType"), "absent resourceType must be omitted, got: {json}");
+    }
+
+    #[test]
+    fn entity_resource_drops_empty_logical_id() {
+        assert!(Entity::resource("", None).is_none(), "an empty logical ID must not create an entity");
     }
 
     #[test]
@@ -511,6 +627,7 @@ mod tests {
         assert_eq!(deserialized.message, d.message);
         assert_eq!(deserialized.severity, d.severity);
         assert_eq!(deserialized.source, d.source);
+        assert_eq!(deserialized.entity.as_ref().map(|e| e.logical_id.as_str()), Some("MyBucket"));
         assert_eq!(deserialized.location.as_ref().unwrap().start_line, d.location.as_ref().unwrap().start_line);
     }
 
@@ -521,7 +638,9 @@ mod tests {
         let json = serde_json::to_string(&s).unwrap();
         assert!(json.contains("ruleId"), "expected camelCase 'ruleId' in JSON");
         assert!(json.contains("startLine"), "expected 'startLine' in JSON");
-        assert!(json.contains("resourceId"), "expected 'resourceId' in JSON");
+        assert!(json.contains("\"entity\""), "expected nested 'entity' in JSON");
+        assert!(json.contains("logicalId"), "expected 'logicalId' in JSON");
+        assert!(json.contains("entityType"), "expected 'entityType' in JSON");
         assert!(json.contains("resourceType"), "expected 'resourceType' in JSON");
         assert!(json.contains("propertyPath"), "expected 'propertyPath' in JSON");
         assert!(!json.contains("\"context\""), "standard format should not include 'context'");
@@ -551,8 +670,62 @@ mod tests {
     }
 
     #[test]
+    fn report_metadata_serializes_all_required_fields() {
+        let metadata = ReportMetadata {
+            rules_evaluated: 0,
+            cfn_lint_version: "https://github.com/aws-cloudformation/cfn-lint@1.54.0".to_string(),
+            resource_schema_version:
+                "https://github.com/aws-cloudformation/resource-provider-enhanced-schemas@2026-08-07T18:20:13Z"
+                    .to_string(),
+            resources_scanned: 0,
+            counts: Summary { fatal: 0, errors: 0, warnings: 0, informational: 0, debug: 0 },
+            suppressed: 0,
+            strict: false,
+            severity_level: Severity::Info,
+        };
+
+        let json = serde_json::to_value(metadata).expect("metadata should serialize");
+        assert_eq!(json["rulesEvaluated"], 0);
+        assert_eq!(json["cfnLintVersion"], "https://github.com/aws-cloudformation/cfn-lint@1.54.0");
+        assert_eq!(
+            json["resourceSchemaVersion"],
+            "https://github.com/aws-cloudformation/resource-provider-enhanced-schemas@2026-08-07T18:20:13Z"
+        );
+    }
+
+    #[test]
     fn report_status_serializes_as_screaming_snake_case() {
         assert_eq!(serde_json::to_string(&ReportStatus::Ok).unwrap(), "\"OK\"");
         assert_eq!(serde_json::to_string(&ReportStatus::Error).unwrap(), "\"ERROR\"");
+    }
+
+    #[test]
+    fn report_metadata_rejects_missing_required_fields() {
+        let complete = serde_json::json!({
+            "rulesEvaluated": 0,
+            "cfnLintVersion": "v",
+            "resourceSchemaVersion": "v",
+            "resourcesScanned": 0,
+            "counts": {
+                "fatal": 0,
+                "errors": 0,
+                "warnings": 0,
+                "informational": 0,
+                "debug": 0
+            },
+            "suppressed": 0,
+            "strict": false,
+            "severityLevel": "INFO"
+        });
+
+        for required_field in ["rulesEvaluated", "cfnLintVersion", "resourceSchemaVersion"] {
+            let mut incomplete = complete.clone();
+            incomplete.as_object_mut().unwrap().remove(required_field);
+            let error = serde_json::from_value::<ReportMetadata>(incomplete).unwrap_err();
+            assert!(
+                error.to_string().contains(required_field),
+                "missing field error must name {required_field}: {error}"
+            );
+        }
     }
 }

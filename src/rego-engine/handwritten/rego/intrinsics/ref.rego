@@ -24,12 +24,12 @@ violation contains make_diag_full("F1010", "FATAL", name, "",
 
 # Invalid Ref targets tracked by the resolver
 violation contains make_diag_full("F1020", "FATAL", name, entry.path,
-    sprintf("'%s' is not one of %v", [entry.target, _all_valid_targets]),
+    sprintf("'%s' is not one of %s", [entry.target, render_list(_all_valid_targets)]),
     "Check that the Ref target exists as a resource, parameter, or pseudo-parameter",
     "") if {
     some name, res in input.resources
     not input.hasParseErrors
-    not _has_language_extensions
+    not has_transform("AWS::LanguageExtensions")
     some entry in res.invalidRefs
     entry.target != ""
     not entry.target in object.get(input, "samImplicitResources", [])
@@ -48,7 +48,7 @@ _valid_ref_targets(name) := targets if {
     targets := array.concat(res_keys, sort([p | some p in pseudo_params]))
 }
 
-# Ref format mismatch — Ref to resource whose type doesn't match destination format
+# Ref format mismatch - Ref to resource whose type doesn't match destination format
 violation contains make_diag_full("E1041", "ERROR", name, edge.sourcePath,
     sprintf("{'Ref': '%s'} does not match destination format of '%s'",
         [target, dest_fmt]),

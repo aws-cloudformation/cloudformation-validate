@@ -1,0 +1,41 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  F3006 fires only for AWS-namespaced resource types that are not in the
+  compiled schema set - CloudFormation owns the reserved AWS:: namespace, so
+  unknown names there are typos. Types in any other namespace (private
+  registry, Custom::, modules, hook-shaped names) are not validated and must
+  produce no F3006. Both engines must agree. Valid types below must stay clean.
+Resources:
+  # Invalid SAM type - not a real AWS::Serverless resource. Must fire.
+  BadServerless:
+    Type: AWS::Serverless::NotARealType
+    Properties:
+      Foo: bar
+  # Invalid CloudFormation type - not in the known-type set. Must fire.
+  BadCloudFormation:
+    Type: AWS::CloudFormation::NotARealType
+    Properties: {}
+  # --- Counter-examples that must NOT fire ---
+  # Non-AWS namespace: may be privately registered, so it is never flagged -
+  # even though ::MODULE appears mid-string rather than as the module suffix.
+  MidStringModule:
+    Type: My::Org::MODULE::Thing
+    Properties: {}
+  GoodFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      CodeUri: s3://bucket/key
+  GoodCustomResource:
+    Type: AWS::CloudFormation::CustomResource
+    Properties:
+      ServiceToken: arn:aws:sns:us-east-1:123456789012:topic
+  GoodModule:
+    Type: My::Org::Resource::MODULE
+    Properties: {}
+  GoodCustom:
+    Type: Custom::MyThing
+    Properties:
+      ServiceToken: arn:aws:sns:us-east-1:123456789012:topic

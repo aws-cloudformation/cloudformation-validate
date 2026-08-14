@@ -22,5 +22,5 @@ violation contains make_diag_full("E3511", "ERROR", name,
     val := resolve(name, prop.path)
     is_string(val)
     not is_dynamic(name, prop.path)
-    not regex.match(`^arn:(aws[a-zA-Z-]*)?:iam::[0-9]{12}:role/[a-zA-Z_0-9+=,.@\-_/]+$`, val)
+    not regex.match(`^arn:(aws[a-zA-Z-]*)?:iam::\d{12}:role/[a-zA-Z_0-9+=,.@\-_/]+$`, val)
 }

@@ -7,6 +7,7 @@ use template_model::SemanticModel;
 use template_model::conditions::format_condition_expr;
 use template_model::consts::{EDGE_KIND_DEPENDS_ON, EDGE_KIND_REF, SAM_FUNCTION_TYPE};
 use template_model::resolver::{RefKind, ResolvedValue};
+use template_model::span_to_option;
 
 fn main() {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
@@ -74,7 +75,7 @@ fn inspect_file(path: &str) {
         }
     };
     let model = result.model;
-    let perf = result.model_build;
+    let model_build_ms = result.model_build_ms;
 
     println!("╔══════════════════════════════════════════════════════════════╗");
     println!("║  CloudFormation Template Model                             ║");
@@ -92,10 +93,13 @@ fn inspect_file(path: &str) {
     if !model.transforms.is_empty() {
         println!("Transforms: {}", model.transforms.join(", "));
     }
+    if !model.raw_top_level_keys.is_empty() {
+        println!("Top-level sections (as written): {}", model.raw_top_level_keys.join(", "));
+    }
     if model.is_cdk {
         println!("CDK Template: yes");
     }
-    println!("Model build time: {:.1}ms", perf.duration_ms);
+    println!("Model build time: {:.1}ms", model_build_ms);
     println!();
 
     if let Some(ref meta) = model.template_metadata {
@@ -144,6 +148,14 @@ fn inspect_file(path: &str) {
                 println!("    {}", desc);
             }
         }
+        if !model.params_referenced_in_definitions.is_empty() {
+            let mut referenced: Vec<&String> = model.params_referenced_in_definitions.iter().collect();
+            referenced.sort();
+            println!(
+                "  Referenced from other parameter definitions: {}",
+                referenced.iter().map(|s| s.as_str()).collect::<Vec<_>>().join(", ")
+            );
+        }
         println!();
     }
 
@@ -157,6 +169,17 @@ fn inspect_file(path: &str) {
                     println!("      {}: {}", k2, format_json_compact(v));
                 }
             }
+        }
+        if !model.find_in_map_names.is_empty() {
+            let mut referenced: Vec<&String> = model.find_in_map_names.iter().collect();
+            referenced.sort();
+            println!(
+                "  Referenced by Fn::FindInMap: {}",
+                referenced.iter().map(|s| s.as_str()).collect::<Vec<_>>().join(", ")
+            );
+        }
+        if model.has_dynamic_findinmap_name {
+            println!("  ⚠ Fn::FindInMap with a non-literal map name present (unused-mapping check disabled)");
         }
         println!();
     }
@@ -206,10 +229,13 @@ fn inspect_file(path: &str) {
         if !ref_params.is_empty() {
             println!("  Condition-driving parameters: [{}]", ref_params.join(", "));
         }
+        if !model.fn_if_conditions.is_empty() {
+            println!("  Referenced by Fn::If: [{}]", model.fn_if_conditions.join(", "));
+        }
         for (cond_name, always_val) in model.conditions.tautological_equals() {
             println!("  ⚠ Tautological: {} always {}", cond_name, if always_val { "True" } else { "False" });
         }
-        // Pairwise compatibility (SAT analysis) — cap at 20 conditions
+        // Pairwise compatibility (SAT analysis) - cap at 20 conditions
         // Skip conditions that are tautologically always-false (already flagged above)
         let tautological: HashSet<String> =
             model.conditions.tautological_equals().into_iter().filter(|(_, v)| !v).map(|(n, _)| n).collect();
@@ -287,6 +313,9 @@ fn inspect_file(path: &str) {
                     println!("  │    {}: {}", key, format_resolved(val));
                 }
             }
+        }
+        if res.properties_dynamic {
+            println!("  │  Properties: <dynamic - resolved at deploy time>");
         }
 
         if !res.diagnostics.find_in_map_refs.is_empty() {
@@ -385,6 +414,16 @@ fn inspect_file(path: &str) {
     }
     println!();
 
+    if !model.resolution_sources.is_empty() {
+        println!("── Resolution Sources ({}) ───────────────────────────", model.resolution_sources.len());
+        let mut sources: Vec<(&(String, String), &String)> = model.resolution_sources.iter().collect();
+        sources.sort_by_key(|(key, _)| *key);
+        for ((resource_id, path), source) in sources {
+            println!("  {} @ {} ← {}", resource_id, path, source);
+        }
+        println!();
+    }
+
     if !model.outputs.is_empty() {
         println!("── Outputs ({}) ──────────────────────────────────────", model.outputs.len());
         for (name, out) in &model.outputs {
@@ -401,7 +440,7 @@ fn inspect_file(path: &str) {
                 print!(" [export: {}]", format_resolved(e));
             }
             if let Some(ref d) = out.description {
-                print!(" — {}", d);
+                print!(" - {}", d);
             }
             println!("{}", span_suffix);
         }
@@ -433,19 +472,16 @@ fn inspect_file(path: &str) {
     if !model.diagnostics.is_empty() {
         println!("── Diagnostics ({}) ─────────────────────────────────", model.diagnostics.len());
         for d in &model.diagnostics {
-            let sev = d.severity.as_str();
-            if d.location.as_ref().is_some_and(|l| l.start_line > 0) {
-                let loc = d.location.as_ref().unwrap();
-                println!("  [{}] L{}:C{} {}", sev, loc.start_line, loc.start_column, d.message);
-            } else {
-                println!("  [{}] {}", sev, d.message);
+            match span_to_option(d.span) {
+                Some(loc) => println!("  [{}] L{}:C{} {}", d.rule_id, loc.start_line, loc.start_column, d.message),
+                None => println!("  [{}] {}", d.rule_id, d.message),
             }
         }
         println!();
     }
 
     println!("── Performance ────────────────────────────────────────");
-    println!("  Model build:  {:>8.2} ms", perf.duration_ms);
+    println!("  Model build:  {:>8.2} ms", model_build_ms);
     println!();
 
     println!("── Summary ────────────────────────────────────────────");

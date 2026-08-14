@@ -1,0 +1,12 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+  MyBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      # ssm version segment must be numeric (\d+); 'notanum' is invalid.
+      BucketName: "{{resolve:ssm:/my/param:notanum}}"
+      Tags:
+        # secretsmanager ARN form requires the literal 'secret' segment; here
+        # the eighth ARN segment is 'notsecret'.
+        - Key: SecretArn
+          Value: "{{resolve:secretsmanager:arn:aws:secretsmanager:us-east-1:123456789012:notsecret:name}}"

@@ -1,0 +1,42 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  E3699/E3698 must not fire when a Method/Authorizer (or Stage/Deployment) refer
+  to the SAME RestApi even when authored with different intrinsics. For
+  AWS::ApiGateway::RestApi, `Ref` and `Fn::GetAtt <api>.RestApiId` resolve to the
+  same API id, so identity comparison must treat them as equal - comparing the
+  authored values structurally (as a stricter linter does) would be a false
+  positive that real CloudFormation does not hit. This file must stay clean.
+Resources:
+  RestApi1:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: Api1
+  # Authorizer uses GetAtt of the same RestApi the Method Refs.
+  Authorizer1:
+    Type: AWS::ApiGateway::Authorizer
+    Properties:
+      Name: Auth1
+      RestApiId: !GetAtt RestApi1.RestApiId
+      Type: TOKEN
+      IdentitySource: method.request.header.Auth
+  Method1:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref RestApi1
+      ResourceId: !GetAtt RestApi1.RootResourceId
+      HttpMethod: GET
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref Authorizer1
+      Integration:
+        Type: MOCK
+  # Deployment/Stage on the same RestApi, authored with mixed Ref/GetAtt.
+  Deployment1:
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId: !GetAtt RestApi1.RestApiId
+  Stage1:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      RestApiId: !Ref RestApi1
+      DeploymentId: !Ref Deployment1
+      StageName: prod

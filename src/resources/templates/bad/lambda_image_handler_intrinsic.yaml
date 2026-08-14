@@ -1,0 +1,15 @@
+Parameters:
+  HandlerParam:
+    Type: String
+Resources:
+  # A container-image function that sets Handler via an unresolved intrinsic.
+  # E3685 must fire and anchor at Handler (the first excluded property PRESENT in
+  # schema order) in BOTH engines - presence, not resolvability, picks the anchor.
+  Fn:
+    Type: AWS::Lambda::Function
+    Properties:
+      PackageType: Image
+      Handler: !Ref HandlerParam
+      Runtime: python3.12
+      Code:
+        ImageUri: 123456789012.dkr.ecr.us-east-1.amazonaws.com/x:latest

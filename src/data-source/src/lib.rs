@@ -2,40 +2,49 @@ pub mod embedded {
     include!(concat!(env!("OUT_DIR"), "/embedded_data.rs"));
 }
 
-#[cfg(feature = "full")]
+#[cfg(feature = "uniffi-bindings")]
+uniffi::setup_scaffolding!();
+
+pub mod additional_schema_source;
+#[cfg(feature = "maintenance")]
 pub mod additional_specs;
-#[cfg(feature = "full")]
+#[cfg(feature = "maintenance")]
+pub mod cfnlint_tables;
+#[cfg(feature = "maintenance")]
 pub mod codegen_cel;
-#[cfg(feature = "full")]
+#[cfg(feature = "maintenance")]
 pub mod codegen_schema_validator;
-#[cfg(feature = "full")]
+pub mod compiled_schema;
+#[cfg(feature = "maintenance")]
 pub mod extensions;
-#[cfg(feature = "full")]
-pub mod patches;
-#[cfg(feature = "full")]
+#[cfg(feature = "maintenance")]
 pub mod process;
-#[cfg(feature = "full")]
+#[cfg(feature = "maintenance")]
 pub mod regions;
-#[cfg(feature = "full")]
+#[cfg(feature = "maintenance")]
 pub mod schema;
+#[cfg(feature = "maintenance")]
+mod source_versions;
 pub mod types;
 
-#[cfg(feature = "full")]
+pub use additional_schema_source::{AdditionalSchemaSource, SchemaSourceError};
+
+#[cfg(feature = "maintenance")]
 use log::{error, info};
-#[cfg(feature = "full")]
+#[cfg(feature = "maintenance")]
 use std::fs;
-#[cfg(feature = "full")]
+#[cfg(feature = "maintenance")]
 use std::path::{Path, PathBuf};
 
 /// Convert a rule-source resource type directory name (e.g., "aws_rds_dbinstance")
 /// to the normalized form used by this project (e.g., "aws-rds-dbinstance").
-#[cfg(feature = "full")]
+#[cfg(feature = "maintenance")]
 pub fn rule_source_dir_to_name(dir_name: &str) -> String {
     dir_name.to_lowercase().replace('_', "-")
 }
 
 /// Resolve the rule-source root directory, returning an error if not provided or missing.
-#[cfg(feature = "full")]
+#[cfg(feature = "maintenance")]
 pub fn resolve_rule_source_dir(path: Option<&str>) -> anyhow::Result<PathBuf> {
     let p = path.ok_or_else(|| anyhow::anyhow!("Pass --cfn-lint-root to the cfn-lint repo root"))?;
     let pb = PathBuf::from(p);
@@ -43,7 +52,7 @@ pub fn resolve_rule_source_dir(path: Option<&str>) -> anyhow::Result<PathBuf> {
     Ok(pb)
 }
 
-#[cfg(feature = "full")]
+#[cfg(feature = "maintenance")]
 #[derive(Debug, Default)]
 pub struct SyncStats {
     pub files_written: usize,
@@ -51,7 +60,7 @@ pub struct SyncStats {
     pub errors: Vec<String>,
 }
 
-#[cfg(feature = "full")]
+#[cfg(feature = "maintenance")]
 impl SyncStats {
     pub fn log(&self, label: &str) {
         info!(
@@ -75,47 +84,62 @@ impl SyncStats {
     }
 }
 
-#[cfg(feature = "full")]
-pub fn sync_upstream(upstream_dir: &Path, rule_source_root: Option<&str>) -> anyhow::Result<()> {
+#[cfg(feature = "maintenance")]
+fn write_source_versions(path: &Path, versions: source_versions::SourceVersions) -> anyhow::Result<()> {
+    let versions = source_versions::SourceVersions::new(versions.cfn_lint_version, versions.resource_schema_version)
+        .map_err(anyhow::Error::msg)?;
+    let mut contents = serde_json::to_string_pretty(&versions)?;
+    contents.push('\n');
+    fs::write(path, contents)?;
+    Ok(())
+}
+
+#[cfg(feature = "maintenance")]
+pub fn sync_upstream(upstream_dir: &Path, rule_source_root: &str) -> anyhow::Result<()> {
     info!("=== Sync phase ===");
 
-    info!("Step 1: Downloading CloudFormation schemas");
-    schema::download_schemas(&schema::schema_dir(upstream_dir))?.fail_on_errors("Download")?;
+    let generated_root = upstream_dir
+        .parent()
+        .ok_or_else(|| anyhow::anyhow!("upstream directory must have a parent: {}", upstream_dir.display()))?;
+    let generated_data = generated_root.join("generated").join("data");
+    fs::create_dir_all(&generated_data)?;
+    let source_versions_path = generated_data.join(source_versions::SOURCE_VERSIONS_FILE);
+    let rule_source_dir = resolve_rule_source_dir(Some(rule_source_root))?;
 
-    if let Some(root) = rule_source_root {
-        let rule_source_dir = resolve_rule_source_dir(Some(root))?;
+    info!("Step 1: Downloading enhanced CloudFormation schemas (fully patched, with region maps)");
+    let (schema_stats, resource_schema_version) = schema::download_schemas(upstream_dir)?;
+    schema_stats.fail_on_errors("Download")?;
 
-        info!("Step 2: Syncing patches from {}", rule_source_dir.display());
-        patches::sync_patches(&rule_source_dir, &upstream_dir.join("patches"))?.fail_on_errors("Patches")?;
+    info!("Step 2: Building region resource types from downloaded provider maps");
+    regions::sync_regions(&schema::providers_dir(upstream_dir), &generated_data)?.fail_on_errors("Regions")?;
 
-        info!("Step 3: Syncing extensions from {}", rule_source_dir.display());
-        let generated_data = upstream_dir.parent().unwrap().join("generated").join("data");
-        fs::create_dir_all(&generated_data)?;
-        extensions::sync_extensions(&rule_source_dir, &upstream_dir.join("extensions"), &generated_data)?
-            .fail_on_errors("Extensions")?;
+    info!("Step 3: Syncing extensions from {}", rule_source_dir.display());
+    extensions::sync_extensions(&rule_source_dir, &upstream_dir.join("extensions"), &generated_data)?
+        .fail_on_errors("Extensions")?;
 
-        info!("Step 4: Syncing regions from {}", rule_source_dir.display());
-        regions::sync_regions(&rule_source_dir, &generated_data)?.fail_on_errors("Regions")?;
+    info!("Step 4: Syncing additional specs from {}", rule_source_dir.display());
+    additional_specs::sync_additional_specs(&rule_source_dir, &generated_data, upstream_dir)?
+        .fail_on_errors("AdditionalSpecs")?;
 
-        info!("Step 5: Syncing additional specs from {}", rule_source_dir.display());
-        additional_specs::sync_additional_specs(&rule_source_dir, &generated_data, upstream_dir)?
-            .fail_on_errors("AdditionalSpecs")?;
+    info!("Step 5: Extracting data tables embedded in cfn-lint rule code");
+    let (table_stats, cfn_lint_version) = cfnlint_tables::sync_cfnlint_tables(&rule_source_dir, &generated_data)?;
+    table_stats.fail_on_errors("CfnLintTables")?;
 
-        info!("Step 6: Verifying sync produced expected data files");
-        verify_sync_outputs(&generated_data)?;
-    } else {
-        info!("Skipping rule-source sync (no --cfn-lint-root provided)");
-    }
+    verify_files_exist_and_populated(REQUIRED_SYNC_FILES, &generated_data, None, "Sync")?;
+    let source_versions =
+        source_versions::SourceVersions::new(cfn_lint_version, resource_schema_version).map_err(anyhow::Error::msg)?;
+    write_source_versions(&source_versions_path, source_versions)?;
+    info!("Recorded complete data source provenance in {}", source_versions_path.display());
 
     Ok(())
 }
 
-#[cfg(feature = "full")]
+#[cfg(feature = "maintenance")]
 pub fn generate_all(upstream_dir: &Path, generated_dir: &Path, handwritten_dir: &Path) -> anyhow::Result<()> {
     info!("=== Generate phase ===");
 
-    info!("Step 1: Processing schemas (patches, extensions, metadata)");
-    process::process_schemas(upstream_dir, generated_dir)?.fail_on_errors("Process")?;
+    info!("Step 1: Processing schemas (extensions, metadata)");
+    process::process_schemas(upstream_dir, generated_dir, handwritten_dir)?.fail_on_errors("Process")?;
 
     info!("Step 2: Generating CEL rules");
     codegen_cel::generate(generated_dir, handwritten_dir)?;
@@ -135,9 +159,9 @@ pub fn generate_all(upstream_dir: &Path, generated_dir: &Path, handwritten_dir: 
 /// them with real content.
 
 /// Files produced by sync_upstream (extensions, regions, additional specs).
-#[cfg(feature = "full")]
+#[cfg(feature = "maintenance")]
 const REQUIRED_SYNC_FILES: &[&str] = &[
-    // Enum data documents (from cfn-lint extensions)
+    // Enum data documents (from the upstream rule-source extensions)
     "aws_amazonmq_broker_instancetype_enum",
     "aws_appstream_fleet_instancetype_enum",
     "aws_dax_cluster_nodetype_enum",
@@ -163,10 +187,14 @@ const REQUIRED_SYNC_FILES: &[&str] = &[
     "lambda_runtimes",
     "region_resource_types",
     "stateful_resource_types",
+    // Tables extracted from cfn-lint rule code
+    "getatt_additions",
+    "retention_period_requirements",
+    "codepipeline_action_artifact_counts",
 ];
 
 /// Files produced by generate_all (schema processing, codegen).
-#[cfg(feature = "full")]
+#[cfg(feature = "maintenance")]
 const REQUIRED_GENERATE_FILES: &[&str] = &[
     "compiled_schemas",
     "ref_types",
@@ -179,37 +207,38 @@ const REQUIRED_GENERATE_FILES: &[&str] = &[
     "known_resource_types",
 ];
 
-#[cfg(feature = "full")]
+#[cfg(feature = "maintenance")]
 const REQUIRED_HANDWRITTEN_FILES: &[&str] = &[
-    "codepipeline_action_artifact_counts",
     "deprecated_resource_types",
-    "retention_period_requirements",
+    "getatt_return_type_overrides",
+    "schema_dependent_excluded_overrides",
+    "secretsmanager_arn_fields",
     "sensitive_ports",
 ];
 
-#[cfg(feature = "full")]
+#[cfg(feature = "maintenance")]
 fn verify_sync_outputs(data_dir: &Path) -> anyhow::Result<()> {
+    source_versions::SourceVersions::read(&data_dir.join(source_versions::SOURCE_VERSIONS_FILE))
+        .map_err(anyhow::Error::msg)?;
     verify_files_exist_and_populated(REQUIRED_SYNC_FILES, data_dir, None, "Sync")
 }
 
-#[cfg(feature = "full")]
+#[cfg(feature = "maintenance")]
 fn verify_outputs(generated_dir: &Path, handwritten_dir: &Path) -> anyhow::Result<()> {
     let data_dir = generated_dir.join("data");
     let sv_dir = generated_dir.join("schema-validator");
 
-    // Check sync-produced files are still present and populated
-    verify_files_exist_and_populated(REQUIRED_SYNC_FILES, &data_dir, None, "Sync")?;
+    verify_sync_outputs(&data_dir)?;
     // Check generate-produced files
     verify_files_exist_and_populated(REQUIRED_GENERATE_FILES, &data_dir, Some(&sv_dir), "Generate")?;
-    // Check handwritten files
     verify_files_exist_and_populated(REQUIRED_HANDWRITTEN_FILES, handwritten_dir, None, "Handwritten")?;
 
-    let total = REQUIRED_SYNC_FILES.len() + REQUIRED_GENERATE_FILES.len() + REQUIRED_HANDWRITTEN_FILES.len();
+    let total = REQUIRED_SYNC_FILES.len() + REQUIRED_GENERATE_FILES.len() + REQUIRED_HANDWRITTEN_FILES.len() + 1;
     info!("Verified {total} required data files");
     Ok(())
 }
 
-#[cfg(feature = "full")]
+#[cfg(feature = "maintenance")]
 fn verify_files_exist_and_populated(
     names: &[&str],
     primary_dir: &Path,
@@ -251,7 +280,7 @@ fn verify_files_exist_and_populated(
             msg.push_str(&format!("  Empty stubs: {}\n", stubs.join(", ")));
         }
         anyhow::bail!(
-            "{label} verification failed — {}/{} files not populated:\n{msg}",
+            "{label} verification failed - {}/{} files not populated:\n{msg}",
             missing.len() + stubs.len(),
             names.len()
         );
@@ -260,7 +289,7 @@ fn verify_files_exist_and_populated(
 }
 
 /// A file is a stub if it's just `{}` or `[]` (created by build.rs for clean-workspace builds).
-#[cfg(feature = "full")]
+#[cfg(feature = "maintenance")]
 fn is_stub(path: &Path) -> bool {
     match fs::read_to_string(path) {
         Ok(content) => {

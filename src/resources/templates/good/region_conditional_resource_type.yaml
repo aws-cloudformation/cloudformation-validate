@@ -1,0 +1,15 @@
+Conditions:
+  # True only in us-west-2. At the default region (us-east-1) the guarded resource
+  # is never created, so its type's absence there is not a region-availability
+  # error - F3006 must NOT fire. (Guards the default-region condition-skip: the
+  # check pins AWS::Region to the target region when testing satisfiability.)
+  IsUsWest2:
+    !Equals [!Ref "AWS::Region", us-west-2]
+Resources:
+  Pool:
+    Type: AWS::DeviceFarm::DevicePool
+    Condition: IsUsWest2
+    Properties:
+      Name: p
+      ProjectArn: arn:aws:devicefarm:us-west-2:123456789012:project:EXAMPLE
+      Rules: []

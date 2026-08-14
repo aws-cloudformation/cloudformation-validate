@@ -81,10 +81,6 @@
     "AWS::AppStream::Stack": [
       "Name"
     ],
-    "AWS::AppStream::StackFleetAssociation": [
-      "FleetName",
-      "StackName"
-    ],
     "AWS::AppStream::StackUserAssociation": [
       "StackName",
       "UserName",
@@ -144,8 +140,15 @@
     "AWS::Batch::JobDefinition": [
       "JobDefinitionName"
     ],
+    "AWS::Bedrock::KnowledgeBasePolicy": [
+      "KnowledgeBaseId"
+    ],
     "AWS::Bedrock::ResourcePolicy": [
       "ResourceArn"
+    ],
+    "AWS::BedrockAgentCore::GatewayRateLimit": [
+      "GatewayIdentifier",
+      "RateLimitId"
     ],
     "AWS::BedrockAgentCore::ResourcePolicy": [
       "ResourceArn"
@@ -191,7 +194,13 @@
     "AWS::CloudWatch::Dashboard": [
       "DashboardName"
     ],
+    "AWS::CloudWatch::LogAlarm": [
+      "AlarmName"
+    ],
     "AWS::CloudWatch::MetricStream": [
+      "Name"
+    ],
+    "AWS::CodeBuild::Project": [
       "Name"
     ],
     "AWS::CodeDeploy::Application": [
@@ -235,6 +244,13 @@
       "UserPoolId",
       "ProviderName"
     ],
+    "AWS::Cognito::UserPoolRegionalConfigurationAttachment": [
+      "UserPoolId"
+    ],
+    "AWS::Cognito::UserPoolReplica": [
+      "UserPoolId",
+      "RegionName"
+    ],
     "AWS::Cognito::UserPoolResourceServer": [
       "UserPoolId",
       "Identifier"
@@ -272,12 +288,20 @@
     "AWS::Config::OrganizationConformancePack": [
       "OrganizationConformancePackName"
     ],
+    "AWS::Config::RemediationConfiguration": [
+      "ConfigRuleName"
+    ],
     "AWS::Config::StoredQuery": [
       "QueryName"
     ],
     "AWS::Connect::ApprovedOrigin": [
       "InstanceId",
       "Origin"
+    ],
+    "AWS::Connect::DataLakeAssociation": [
+      "InstanceId",
+      "DataSetId",
+      "TargetAccountId"
     ],
     "AWS::Connect::IntegrationAssociation": [
       "InstanceId",
@@ -298,6 +322,10 @@
     ],
     "AWS::CustomerProfiles::Domain": [
       "DomainName"
+    ],
+    "AWS::CustomerProfiles::DomainObjectType": [
+      "DomainName",
+      "ObjectTypeName"
     ],
     "AWS::CustomerProfiles::EventStream": [
       "DomainName",
@@ -322,6 +350,9 @@
     "AWS::CustomerProfiles::SegmentDefinition": [
       "DomainName",
       "SegmentDefinitionName"
+    ],
+    "AWS::DMS::EventSubscription": [
+      "SubscriptionName"
     ],
     "AWS::DataBrew::Dataset": [
       "Name"
@@ -364,6 +395,9 @@
     ],
     "AWS::DevOpsAgent::PrivateConnection": [
       "Name"
+    ],
+    "AWS::DocDB::EventSubscription": [
+      "SubscriptionName"
     ],
     "AWS::DocDB::GlobalCluster": [
       "GlobalClusterIdentifier"
@@ -427,6 +461,14 @@
       "TransitGatewayMulticastDomainId",
       "GroupIpAddress",
       "NetworkInterfaceId"
+    ],
+    "AWS::EC2::TransitGatewayPolicyTableAssociation": [
+      "TransitGatewayPolicyTableId",
+      "TransitGatewayAttachmentId"
+    ],
+    "AWS::EC2::TransitGatewayPolicyTableEntry": [
+      "TransitGatewayPolicyTableId",
+      "PolicyRuleNumber"
     ],
     "AWS::EC2::TransitGatewayRoute": [
       "TransitGatewayRouteTableId",
@@ -538,6 +580,9 @@
     "AWS::ElasticBeanstalk::Environment": [
       "EnvironmentName"
     ],
+    "AWS::ElasticLoadBalancing::LoadBalancer": [
+      "LoadBalancerName"
+    ],
     "AWS::EntityResolution::IdMappingWorkflow": [
       "WorkflowName"
     ],
@@ -601,6 +646,12 @@
     "AWS::Glue::Crawler": [
       "Name"
     ],
+    "AWS::Glue::CustomEntityType": [
+      "Name"
+    ],
+    "AWS::Glue::DataCatalogEncryptionSettings": [
+      "CatalogId"
+    ],
     "AWS::Glue::Database": [
       "DatabaseName"
     ],
@@ -616,6 +667,9 @@
       "Name"
     ],
     "AWS::Glue::UsageProfile": [
+      "Name"
+    ],
+    "AWS::Glue::Workflow": [
       "Name"
     ],
     "AWS::GuardDuty::Filter": [
@@ -837,6 +891,9 @@
     "AWS::Lambda::Function": [
       "FunctionName"
     ],
+    "AWS::Lambda::ResourcePolicy": [
+      "ResourceArn"
+    ],
     "AWS::Lightsail::Alarm": [
       "AlarmName"
     ],
@@ -968,6 +1025,9 @@
       "FlowArn",
       "Name"
     ],
+    "AWS::MediaConvert::Preset": [
+      "Name"
+    ],
     "AWS::MediaLive::Multiplexprogram": [
       "ProgramName",
       "MultiplexId"
@@ -1001,6 +1061,9 @@
     ],
     "AWS::MediaTailor::ChannelPolicy": [
       "ChannelName"
+    ],
+    "AWS::MediaTailor::Function": [
+      "FunctionId"
     ],
     "AWS::MediaTailor::LiveSource": [
       "LiveSourceName",
@@ -1048,6 +1111,9 @@
     ],
     "AWS::Neptune::EventSubscription": [
       "SubscriptionName"
+    ],
+    "AWS::Neptune::GlobalCluster": [
+      "GlobalClusterIdentifier"
     ],
     "AWS::NetworkFirewall::LoggingConfiguration": [
       "FirewallArn"
@@ -1156,6 +1222,10 @@
       "ActionConnectorId",
       "AwsAccountId"
     ],
+    "AWS::QuickSight::Agent": [
+      "AwsAccountId",
+      "AgentId"
+    ],
     "AWS::QuickSight::Analysis": [
       "AnalysisId",
       "AwsAccountId"
@@ -1180,6 +1250,14 @@
       "AwsAccountId",
       "FolderId"
     ],
+    "AWS::QuickSight::KnowledgeBase": [
+      "AwsAccountId",
+      "KnowledgeBaseId"
+    ],
+    "AWS::QuickSight::Space": [
+      "AwsAccountId",
+      "SpaceId"
+    ],
     "AWS::QuickSight::Template": [
       "AwsAccountId",
       "TemplateId"
@@ -1189,6 +1267,10 @@
       "AwsAccountId"
     ],
     "AWS::QuickSight::Topic": [
+      "AwsAccountId",
+      "TopicId"
+    ],
+    "AWS::QuickSight::TopicV2": [
       "AwsAccountId",
       "TopicId"
     ],
@@ -1468,6 +1550,9 @@
     ],
     "AWS::SecurityLake::SubscriberNotification": [
       "SubscriberArn"
+    ],
+    "AWS::ServiceCatalog::AcceptedPortfolioShare": [
+      "PortfolioId"
     ],
     "AWS::ServiceCatalog::PortfolioPrincipalAssociation": [
       "PortfolioId",

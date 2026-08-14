@@ -9,7 +9,7 @@ including [schema-validator](../schema-validator/README.md)),
 and renders the resulting report as JSON.
 
 > To embed validation in your own Rust program, depend on `validation-engine`, an engine crate, and `schema-validator`
-> directly — see [validation-engine/API.md](../validation-engine/API.md). This crate is the CLI, not a library facade.
+> directly - see [validation-engine/API.md](../validation-engine/API.md). This crate is the CLI, not a library facade.
 
 ## How it works
 
@@ -46,6 +46,19 @@ cfn-validate <TEMPLATE|DIR> [OPTIONS]
 | `--exclude-categories CAT,...` | Suppress these categories          |
 | `--include-range E3000-E3099`  | Only report rules in numeric range |
 | `--exclude-range E3000-E3099`  | Suppress rules in numeric range    |
+| `--include-resource-id ID[=RULE]` | Only report rules on a logical resource ID |
+| `--exclude-resource-id ID[=RULE]` | Suppress rules on a logical resource ID |
+| `--include-logical-id ID[:TYPE][=RULE]` | Only report rules on a named template entity (resource, parameter, output, mapping, condition, or rule); `:TYPE` (e.g. `:Parameter`) scopes to one entity type |
+| `--exclude-logical-id ID[:TYPE][=RULE]` | Suppress rules on a named template entity |
+| `--include-resource-type TYPE[=RULE]` | Only report rules on a resource type |
+| `--exclude-resource-type TYPE[=RULE]` | Suppress rules on a resource type |
+| `--include-service SERVICE[=RULE]` | Only report rules on a service prefix (e.g. `AWS::AutoScaling`) |
+| `--exclude-service SERVICE[=RULE]` | Suppress rules on a service prefix |
+
+Scoped filters take an optional `=RULE` suffix: `--exclude-logical-id MyParam=W2001` suppresses only W2001 on
+`MyParam`, while `--exclude-logical-id MyParam` suppresses every rule on it. The logical-id flags additionally take an
+optional `:TYPE` scope: `--exclude-logical-id MyThing:Parameter` suppresses rules on the parameter `MyThing` without
+touching a same-named entity of another type.
 
 **Output options:**
 
@@ -61,6 +74,16 @@ cfn-validate <TEMPLATE|DIR> [OPTIONS]
 | `--engine rego\|cel`         | Validation engine (default: rego)                         |
 | `--rule-source <PATH>`       | Load a custom Rego/CEL rule file (repeatable)             |
 | `--guard-rule-source <PATH>` | Load Guard (`.guard`) rule file or directory (repeatable) |
+| `--additional-schema <PATH>` | Merge a CloudFormation resource provider schema (`.json`) file, or every `.json` in a directory, on top of the bundled schemas (repeatable) |
+
+`--additional-schema` is for templates that use a property or allowed value CloudFormation has not published to the
+registry yet: the supplied schema is merged into the bundled schema for its `typeName`, and a `typeName` with no bundled
+schema is registered as a new resource type. An overlay never silently drops a bundled constraint, though stating an
+extra `required` or dependency entry does add one. Anything that cannot be applied exits `2` rather than being ignored -
+a malformed or unreadable schema, a path that does not exist, a directory containing no `.json` file, or a schema using a
+construct the validator cannot represent. Directories are scanned one level deep. See
+[validation-engine/API.md](../validation-engine/API.md#additional-resource-provider-schemas) for the merge model and its
+scope limits.
 
 **Parameter options:**
 
@@ -77,13 +100,13 @@ Supported pseudo-parameters: `AWS::AccountId`, `AWS::NotificationARNs`, `AWS::Pa
 
 | Option              | Description                                               |
 |---------------------|-----------------------------------------------------------|
-| `--strict`          | Upgrade Warning-severity diagnostics to Error             |
+| `--strict`          | Upgrade Warn-severity diagnostics to Error                |
 | `--disable-builtin-rules` | Disable all built-in rules; only evaluate custom and guard rules |
 | `--list-rules`      | List all available rules and exit                         |
 | `--help`, `-h`      | Print usage and exit                                      |
 
 **Exit codes:**
 
-- `0` — no errors or fatal diagnostics
-- `1` — errors or fatal diagnostics found
-- `2` — usage error (bad arguments, file not found, engine init failure)
+- `0` - no errors or fatal diagnostics
+- `1` - errors or fatal diagnostics found
+- `2` - usage error (bad arguments, file not found, engine init failure)

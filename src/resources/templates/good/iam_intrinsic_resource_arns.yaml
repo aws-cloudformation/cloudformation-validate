@@ -1,0 +1,40 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  I3510 must NOT fire when a statement's Resource ARN is produced by an
+  intrinsic function (Fn::Sub, Fn::GetAtt, ...). Even when the intrinsic fully
+  resolves to a concrete literal at analysis time, its real ARN is only known at
+  deploy time, so the action-format check must be skipped - matching cfn-lint,
+  which treats any function-valued Resource as opaque. This file must stay clean
+  in both engines.
+Resources:
+  SomeBucket:
+    Type: AWS::S3::Bucket
+  # Fn::Sub referencing only pseudo-parameters resolves to a wrong-service ARN
+  # at analysis time; comparing that synthesized value would be a false positive.
+  SubFullyResolved:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: sub-resolved
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: "cloudformation:CreateStack"
+            Resource:
+              - !Sub "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:x"
+      Roles:
+        - some-role
+  # Fn::GetAtt-valued Resource is opaque to the action-format check.
+  GetAttResource:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: getatt
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: "cloudformation:CreateStack"
+            Resource:
+              - !GetAtt SomeBucket.Arn
+      Roles:
+        - some-role
