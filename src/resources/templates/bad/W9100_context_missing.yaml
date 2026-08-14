@@ -1,0 +1,11 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Missing context at template and primary-resource placements
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+  Queue:
+    Type: AWS::SQS::Queue
+  CDKMetadata:
+    Type: AWS::CDK::Metadata
+    Properties:
+      Analytics: "v2:deflate64:H4sIAAAAAAAA/="

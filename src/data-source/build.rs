@@ -69,6 +69,7 @@ const HANDWRITTEN_JSON: &[(&str, &str)] = &[
     ("sensitive_ports", "SENSITIVE_PORTS"),
     ("secretsmanager_arn_fields", "SECRETSMANAGER_ARN_FIELDS"),
     ("getatt_return_type_overrides", "GETATT_RETURN_TYPE_OVERRIDES"),
+    ("metadata-context-v1.schema", "METADATA_CONTEXT_V1_SCHEMA"),
 ];
 
 fn main() {

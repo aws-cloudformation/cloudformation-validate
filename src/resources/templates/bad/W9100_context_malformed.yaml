@@ -1,0 +1,26 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Malformed context at both supported placements
+Metadata:
+  com.aws.cloudformation.Context:
+    arch:
+      - not-a-string
+    why: "This field belongs on a resource"
+    ref:
+      - has: "Missing required at field"
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+  Queue:
+    Type: AWS::SQS::Queue
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: 42
+        must: "not-an-array"
+        mutable: "sometimes"
+        mutability:
+          QueueName: "never-ish"
+        trust:
+          conf: "certain"
+          extra: true
+        ref: []
+        unknown: true

@@ -1952,6 +1952,12 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         description: "VirtualName is ignored when Ebs is specified",
         origin: RuleOrigin::CfnLint,
     },
+    RuleDefinition {
+        id: "W9100",
+        category: Category::BestPractice,
+        description: "Validate namespaced context metadata on the template and primary resources",
+        origin: RuleOrigin::Engine,
+    },
 ];
 
 #[cfg(test)]

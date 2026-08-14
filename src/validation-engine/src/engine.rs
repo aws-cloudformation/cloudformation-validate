@@ -264,6 +264,7 @@ pub(crate) fn validate(
     let t_post = Instant::now();
     if !config.disable_builtin_rules {
         all_diagnostics.extend(crate::step_functions::validate_all_state_machines(&model));
+        all_diagnostics.extend(crate::context_check::check_context(&model)?);
         all_diagnostics.extend(model.diagnostics.iter().map(diagnostic_from_parse_defect));
 
         // The satisfiability budget is consumed almost entirely by the rule
