@@ -761,9 +761,10 @@ fn issue_57_e3057_still_fires_on_dangling_target_origin_id() {
     assert_count(&diags, "E3057", 1);
 }
 
-/// Issue #61: a bare `AWS::EC2::Volume` with no Properties fires FATAL F3017
-/// (anyOf failure). Pins the current behavior; the issue is about the generic
-/// message dropping the per-branch required-property detail (no companion F3003).
+/// Issue #61: a bare `AWS::EC2::Volume` with no Properties fires one actionable
+/// FATAL F3017. The primary finding names every valid required-property
+/// combination and carries each branch failure as structured context, without
+/// replaying alternative-only requirements as standalone F3003 findings.
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/61
 #[test]
 fn issue_61_f3017_anyof_on_bare_ec2_volume() {
@@ -772,6 +773,39 @@ fn issue_61_f3017_anyof_on_bare_ec2_volume() {
     assert_fires_on_resource(&diags, "F3017", "Resource");
     assert_count(&diags, "F3017", 1);
     assert_absent(&diags, "F3003");
+    assert_rule_parity(&diags, "F3017");
+
+    for (engine, diagnostics) in &diags {
+        let finding = diagnostics.iter().find(|d| d.rule_id == "F3017").expect("the issue-61 F3017 finding");
+        for property in ["AvailabilityZone", "AvailabilityZoneId", "Size", "SnapshotId", "SourceVolumeId"] {
+            assert!(
+                finding.message.contains(property),
+                "[{engine}] F3017 must name the '{property}' alternative: {}",
+                finding.message
+            );
+        }
+        assert!(finding.message.contains("0 branches matched"), "[{engine}] zero-match outcome must be explicit");
+        assert_eq!(finding.property_path.as_deref(), Some("Properties"));
+        assert!(finding.location.is_some(), "[{engine}] F3017 must retain a source location");
+
+        let extra = finding
+            .context
+            .as_ref()
+            .and_then(|context| context.extra.as_ref())
+            .expect("F3017 must carry structured composition context");
+        assert_eq!(extra.get("compositionKind").map(|value| &value.0), Some(&serde_json::json!("anyOf")));
+        assert_eq!(extra.get("matchOutcome").map(|value| &value.0), Some(&serde_json::json!("zeroMatches")));
+        assert_eq!(
+            extra.get("validPropertyCombinations").and_then(|value| value.as_array()).map(Vec::len),
+            Some(5),
+            "[{engine}] all five valid EC2 volume property combinations must be represented"
+        );
+        assert_eq!(
+            extra.get("branchFailures").and_then(|value| value.as_array()).map(Vec::len),
+            Some(5),
+            "[{engine}] all five failed EC2 volume branches must be represented"
+        );
+    }
 }
 
 /// Issue #62: F3032 fires as a FATAL on an empty `ResourcesToReplicateTags` array

@@ -1,0 +1,120 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Conditions:
+  UseFirst: !Equals [!Ref AWS::Region, us-east-1]
+Resources:
+  EightVcpuInvalidStep:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: eight-vcpu-invalid-step
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: "8 vCPU"
+      Memory: "17 GB"
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true
+
+  SixteenVcpuInvalidStep:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: sixteen-vcpu-invalid-step
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: 16384
+      Memory: 36864
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true
+
+  ThirtyTwoVcpuUnsupportedSixtyFourGb:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: thirty-two-vcpu-unsupported-sixty-four-gb
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: "32 vCPU"
+      Memory: "64 GB"
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true
+
+  ThirtyTwoVcpuUnsupportedTwoFortyGb:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: thirty-two-vcpu-unsupported-two-forty-gb
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: 32768
+      Memory: 245760
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true
+
+  MalformedCpuUnits:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: malformed-cpu-units
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: "3 vCPU"
+      Memory: "4 GB"
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true
+
+  NonCanonicalCpuUnits:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: noncanonical-cpu-units
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: "0512"
+      Memory: "1 GB"
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true
+
+  OverflowingMemoryUnits:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: overflowing-memory-units
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: "8192"
+      Memory: "9223372036854775807 GB"
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true
+
+  CpuInvalidThenValid:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: cpu-invalid-then-valid
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: !If [UseFirst, "512", "256"]
+      Memory: "512"
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true
+
+  CpuValidThenInvalid:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: cpu-valid-then-invalid
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: !If [UseFirst, "256", "512"]
+      Memory: "512"
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true

@@ -891,12 +891,6 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         origin: RuleOrigin::CfnLint,
     },
     RuleDefinition {
-        id: "E9005",
-        category: Category::Security,
-        description: "IAM policy statement must have Action or NotAction",
-        origin: RuleOrigin::Engine,
-    },
-    RuleDefinition {
         id: "E9002",
         category: Category::Resource,
         description: "SecurityGroup FromPort must be <= ToPort for the TCP and UDP protocols",
@@ -1035,18 +1029,6 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         origin: RuleOrigin::CfnLint,
     },
     RuleDefinition {
-        id: "E3514",
-        category: Category::Resource,
-        description: "Validate IAM resource policy resource ARNs",
-        origin: RuleOrigin::CfnLint,
-    },
-    RuleDefinition {
-        id: "W3515",
-        category: Category::Security,
-        description: "IAM Statement must have Effect",
-        origin: RuleOrigin::Engine,
-    },
-    RuleDefinition {
         id: "E3530",
         category: Category::Resource,
         description: "Validate IAM trust policies",
@@ -1074,6 +1056,12 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         id: "E3636",
         category: Category::Resource,
         description: "Validate CodeBuild projects using S3 also have Location",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
+        id: "E3639",
+        category: Category::Resource,
+        description: "Validate DynamoDB table ProvisionedThroughput is set when BillingMode is PROVISIONED",
         origin: RuleOrigin::CfnLint,
     },
     RuleDefinition {
@@ -1409,7 +1397,7 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
     RuleDefinition {
         id: "I9052",
         category: Category::Structure,
-        description: "Condition or intrinsic could not be fully analyzed because the SAT solver budget was exceeded",
+        description: "Condition-dependent validation could not be completed because an analysis budget was exceeded",
         origin: RuleOrigin::Engine,
     },
     RuleDefinition {

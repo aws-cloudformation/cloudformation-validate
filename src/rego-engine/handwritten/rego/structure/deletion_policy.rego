@@ -15,22 +15,70 @@ _snapshot_capable_update_types := {
     "AWS::Redshift::Cluster"
 }
 
-violation contains make_diag("F0018", "FATAL", name,
-    sprintf("UpdateReplacePolicy must be one of Delete, Retain, Snapshot, got '%s'", [val])) if {
+violation contains make_diag_full("F0018", "FATAL", name, "UpdateReplacePolicy",
+    sprintf("UpdateReplacePolicy must be one of Delete, Retain, Snapshot, got '%s'", [policy]),
+    "", "") if {
     some name, res in input.resources
-    val := res.updateReplacePolicy
-    val != null
-    is_string(val)
+    policy := res.updateReplacePolicy
+    policy != null
+    is_string(policy)
     res.resourceType in _snapshot_capable_update_types
-    not val in (_base_update_policies | {"Snapshot"})
+    not policy in (_base_update_policies | {"Snapshot"})
 }
 
-violation contains make_diag("F0018", "FATAL", name,
-    sprintf("UpdateReplacePolicy must be one of Delete, Retain, got '%s'", [val])) if {
+violation contains make_diag_full("F0018", "FATAL", name, "UpdateReplacePolicy",
+    sprintf("UpdateReplacePolicy must be one of Delete, Retain, got '%s'", [policy]),
+    "", "") if {
     some name, res in input.resources
-    val := res.updateReplacePolicy
-    val != null
-    is_string(val)
+    policy := res.updateReplacePolicy
+    policy != null
+    is_string(policy)
     not res.resourceType in _snapshot_capable_update_types
-    not val in _base_update_policies
+    not policy in _base_update_policies
+}
+
+# Resolved intrinsic markers remain potentially valid lifecycle policies. Plain
+# composite/scalar non-string values can never be accepted policy names.
+policy_value_shape(value) := "a list" if {
+    is_array(value)
+}
+
+policy_value_shape(value) := "an object" if {
+    is_object(value)
+    not _is_resolved_intrinsic_marker(value)
+}
+
+policy_value_shape(value) := "a number" if {
+    is_number(value)
+}
+
+policy_value_shape(value) := "a boolean" if {
+    is_boolean(value)
+}
+
+_is_resolved_intrinsic_marker(value) if {
+    some key in {"__dynamic", "__ref", "__enum", "__conditional"}
+    value[key]
+}
+
+violation contains make_diag_full("F0018", "FATAL", name, "UpdateReplacePolicy",
+    sprintf("UpdateReplacePolicy must be one of Delete, Retain, Snapshot, got %s", [shape]),
+    "", "") if {
+    some name, res in input.resources
+    policy := res.updateReplacePolicy
+    policy != null
+    not is_string(policy)
+    res.resourceType in _snapshot_capable_update_types
+    shape := policy_value_shape(policy)
+}
+
+violation contains make_diag_full("F0018", "FATAL", name, "UpdateReplacePolicy",
+    sprintf("UpdateReplacePolicy must be one of Delete, Retain, got %s", [shape]),
+    "", "") if {
+    some name, res in input.resources
+    policy := res.updateReplacePolicy
+    policy != null
+    not is_string(policy)
+    not res.resourceType in _snapshot_capable_update_types
+    shape := policy_value_shape(policy)
 }

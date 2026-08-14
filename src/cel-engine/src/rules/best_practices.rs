@@ -8,7 +8,7 @@ use template_model::SemanticModel;
 use template_model::coercion::{coerce_to_bool, coerce_to_integer, coerce_to_string};
 use template_model::consts::{
     EDGE_KIND_REF, FIELD_KIND, FIELD_OUTGOING_REFS, FIELD_PROPERTIES, FIELD_RESOURCES, FIELD_SOURCE_PATH, FIELD_TARGET,
-    KEY_PROPERTIES, TRANSFORM_SERVERLESS,
+    KEY_PROPERTIES, TRANSFORM_SERVERLESS, effective_deployed_resource_type,
 };
 use template_model::resolver::ResolvedValue;
 use validation_engine::make_resource_diagnostic;
@@ -163,7 +163,8 @@ fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
     };
 
     for (name, res) in &m.resources {
-        if stateful_types.contains(&res.resource_type) && res.resource_type != "AWS::S3::Bucket" {
+        let effective_type = effective_deployed_resource_type(&res.resource_type);
+        if stateful_types.contains(effective_type) && effective_type != "AWS::S3::Bucket" {
             if res.deletion_policy.is_none() {
                 out.push(make_resource_diagnostic("I3011",
                     "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",

@@ -1,19 +1,23 @@
+use super::intrinsics::getatt_attr_is_map_member;
 use super::{EvalContext, NativeRuleRegistry};
 use diagnostics::Diagnostic;
 use rules::Category;
 use std::collections::HashSet;
 use std::sync::LazyLock;
 use template_model::consts::{
-    EDGE_KIND_REF, EDGE_KIND_SUB, FIELD_CONDITION, FIELD_CONDITIONS, FIELD_DELETION_POLICY, FIELD_EDGES, FIELD_KIND,
-    FIELD_MAPPINGS, FIELD_OUTGOING_REFS, FIELD_OUTPUTS, FIELD_PARAMETERS, FIELD_RESOURCE_TYPE, FIELD_RESOURCES,
-    FIELD_SOURCE_PATH, FIELD_TARGET, FIELD_UPDATE_REPLACE_POLICY, FN_FOR_EACH, FN_FOR_EACH_KEY_PREFIX,
-    PARAM_TYPE_COMMA_DELIMITED_LIST, PARAM_TYPE_NUMBER, PARAM_TYPE_STRING, POLICY_DELETE, POLICY_RETAIN,
-    POLICY_RETAIN_EXCEPT_ON_CREATE, POLICY_SNAPSHOT, SECTION_CONDITIONS, SECTION_DESCRIPTION, SECTION_FORMAT_VERSION,
-    SECTION_GLOBALS, SECTION_MAPPINGS, SECTION_METADATA, SECTION_OUTPUTS, SECTION_PARAMETERS, SECTION_RESOURCES,
-    SECTION_RULES, SECTION_TRANSFORM, TRANSFORM_LANGUAGE_EXTENSIONS, TRANSFORM_SERVERLESS,
+    EDGE_KIND_GET_ATT, EDGE_KIND_REF, EDGE_KIND_SUB, FIELD_ATTR, FIELD_CONDITION, FIELD_CONDITIONS,
+    FIELD_DELETION_POLICY, FIELD_EDGES, FIELD_KIND, FIELD_MAPPINGS, FIELD_OUTGOING_REFS, FIELD_OUTPUTS,
+    FIELD_PARAMETERS, FIELD_RESOURCE_TYPE, FIELD_RESOURCES, FIELD_SOURCE, FIELD_SOURCE_PATH, FIELD_TARGET,
+    FIELD_UPDATE_REPLACE_POLICY, FN_FOR_EACH, FN_FOR_EACH_KEY_PREFIX, FN_IF, FN_TRANSFORM, KEY_DELETION_POLICY,
+    KEY_UPDATE_REPLACE_POLICY, MARKER_CONDITIONAL, MARKER_DYNAMIC, MARKER_ENUM, MARKER_REF,
+    OUTPUT_PSEUDO_RESOURCE_PREFIX, PARAM_TYPE_COMMA_DELIMITED_LIST, PARAM_TYPE_NUMBER, PARAM_TYPE_STRING,
+    POLICY_DELETE, POLICY_RETAIN, POLICY_RETAIN_EXCEPT_ON_CREATE, POLICY_SNAPSHOT, SECTION_CONDITIONS,
+    SECTION_DESCRIPTION, SECTION_FORMAT_VERSION, SECTION_GLOBALS, SECTION_MAPPINGS, SECTION_METADATA, SECTION_OUTPUTS,
+    SECTION_PARAMETERS, SECTION_RESOURCES, SECTION_RULES, SECTION_TRANSFORM, TRANSFORM_LANGUAGE_EXTENSIONS,
+    TRANSFORM_SERVERLESS,
 };
 use template_model::message::render_str_list;
-use template_model::{FORMAT_VERSION, is_service_valid};
+use template_model::{FORMAT_VERSION, PSEUDO_PARAMETERS, is_custom_resource_type, is_service_valid};
 use validation_engine::make_resource_diagnostic;
 
 /// Alphanumeric-only string: CloudFormation logical IDs, output names, and
@@ -137,7 +141,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                     &format!("'{}' is not a valid top-level template section", key),
                     m,
                     "",
-                    "",
+                    key,
                     None,
                 ));
             }
@@ -326,7 +330,9 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     let has_lang_ext = m.transforms.iter().any(|t| t == TRANSFORM_LANGUAGE_EXTENSIONS);
     for name in m.resources.keys() {
-        if !(ALPHANUM_RE.is_match(name) || (has_lang_ext && name.starts_with(FN_FOR_EACH_KEY_PREFIX))) {
+        if name != FN_TRANSFORM
+            && !(ALPHANUM_RE.is_match(name) || (has_lang_ext && name.starts_with(FN_FOR_EACH_KEY_PREFIX)))
+        {
             out.push(make_resource_diagnostic(
                 "F0006",
                 &format!("Logical ID '{}' must be alphanumeric (A-Za-z0-9)", name),
@@ -379,6 +385,16 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     for (map_name, level1) in &m.mappings {
+        if !ALPHANUM_RE.is_match(map_name) {
+            out.push(make_resource_diagnostic(
+                "E7001",
+                &format!("Mapping name '{}' does not match format '^[a-zA-Z0-9]+$'", map_name),
+                m,
+                "",
+                &format!("{}/{}", SECTION_MAPPINGS, map_name),
+                None,
+            ));
+        }
         for (k1, level2) in level1 {
             if !MAPPING_TOP_KEY_RE.is_match(k1) {
                 out.push(make_resource_diagnostic(
@@ -421,34 +437,56 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
         for (name, res) in resources {
             let rtype = res.get(FIELD_RESOURCE_TYPE).and_then(|t| t.as_str()).unwrap_or("");
             let snapshot_ok = SNAPSHOT_CAPABLE_TYPES.contains(&rtype);
-            if let Some(dp) = res.get(FIELD_DELETION_POLICY).and_then(|v| v.as_str()) {
-                let valid = base_deletion.contains(&dp) || (snapshot_ok && dp == POLICY_SNAPSHOT);
-                if !valid {
-                    let allowed = if snapshot_ok {
-                        "Delete, Retain, RetainExceptOnCreate, Snapshot"
-                    } else {
-                        "Delete, Retain, RetainExceptOnCreate"
-                    };
+            if let Some(value) = res.get(FIELD_DELETION_POLICY) {
+                let allowed = if snapshot_ok {
+                    "Delete, Retain, RetainExceptOnCreate, Snapshot"
+                } else {
+                    "Delete, Retain, RetainExceptOnCreate"
+                };
+                if let Some(policy) = value.as_str() {
+                    let valid = base_deletion.contains(&policy) || (snapshot_ok && policy == POLICY_SNAPSHOT);
+                    if !valid {
+                        out.push(make_resource_diagnostic(
+                            "F3016",
+                            &format!("DeletionPolicy must be one of {}, got '{}'", allowed, policy),
+                            m,
+                            name,
+                            KEY_DELETION_POLICY,
+                            None,
+                        ));
+                    }
+                } else if let Some(shape) = non_string_policy_shape(value) {
                     out.push(make_resource_diagnostic(
                         "F3016",
-                        &format!("DeletionPolicy must be one of {}, got '{}'", allowed, dp),
+                        &format!("DeletionPolicy must be one of {}, got {}", allowed, shape),
                         m,
                         name,
-                        "",
+                        KEY_DELETION_POLICY,
                         None,
                     ));
                 }
             }
-            if let Some(urp) = res.get(FIELD_UPDATE_REPLACE_POLICY).and_then(|v| v.as_str()) {
-                let valid = base_update.contains(&urp) || (snapshot_ok && urp == POLICY_SNAPSHOT);
-                if !valid {
-                    let allowed = if snapshot_ok { "Delete, Retain, Snapshot" } else { "Delete, Retain" };
+            if let Some(value) = res.get(FIELD_UPDATE_REPLACE_POLICY) {
+                let allowed = if snapshot_ok { "Delete, Retain, Snapshot" } else { "Delete, Retain" };
+                if let Some(policy) = value.as_str() {
+                    let valid = base_update.contains(&policy) || (snapshot_ok && policy == POLICY_SNAPSHOT);
+                    if !valid {
+                        out.push(make_resource_diagnostic(
+                            "F0018",
+                            &format!("UpdateReplacePolicy must be one of {}, got '{}'", allowed, policy),
+                            m,
+                            name,
+                            KEY_UPDATE_REPLACE_POLICY,
+                            None,
+                        ));
+                    }
+                } else if let Some(shape) = non_string_policy_shape(value) {
                     out.push(make_resource_diagnostic(
                         "F0018",
-                        &format!("UpdateReplacePolicy must be one of {}, got '{}'", allowed, urp),
+                        &format!("UpdateReplacePolicy must be one of {}, got {}", allowed, shape),
                         m,
                         name,
-                        "",
+                        KEY_UPDATE_REPLACE_POLICY,
                         None,
                     ));
                 }
@@ -676,38 +714,90 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    if let Some(outputs) = input.get(FIELD_OUTPUTS).and_then(|o| o.as_object()) {
-        for (name, out_val) in outputs {
-            if let Some(refs) = out_val.get("getattRefs").and_then(|r| r.as_array()) {
-                for ga_ref in refs {
-                    let resource = ga_ref.get("resource").and_then(|r| r.as_str()).unwrap_or("");
-                    let attribute = ga_ref.get("attribute").and_then(|a| a.as_str()).unwrap_or("");
-                    if let Some(res) = m.resources.get(resource)
-                        && let Some(ret_type) =
-                            ctx.cached_data.getatt_attr_types.get(&res.resource_type).and_then(|t| t.get(attribute))
-                        && ret_type != "string"
-                    {
-                        // An array-returning GetAtt in an output is consumed by
-                        // Fn::Select to extract a string element - the array
-                        // itself is never the output value, so it is not a
-                        // string-type violation. Only scalar non-string returns
-                        // (integer, boolean) are reported.
-                        if ret_type == "array" {
-                            continue;
-                        }
-                        out.push(make_resource_diagnostic(
-                            "F6101",
-                            &format!(
-                                "Output '{}': GetAtt '{}.{}' returns type '{}', not 'string'",
-                                name, resource, attribute, ret_type
-                            ),
-                            m,
-                            "",
-                            &format!("{}/{}/Value", SECTION_OUTPUTS, name),
-                            None,
-                        ));
-                    }
+    // Output references use top-level edges with a synthetic output source so
+    // every diagnostic can retain the precise intrinsic path.
+    if let Some(edges) = input.get(FIELD_EDGES).and_then(|value| value.as_array()) {
+        let sam_implicit: HashSet<&str> = input
+            .get("samImplicitResources")
+            .and_then(|value| value.as_array())
+            .map(|values| values.iter().filter_map(|value| value.as_str()).collect())
+            .unwrap_or_default();
+        for edge in edges {
+            let source = edge.get(FIELD_SOURCE).and_then(|value| value.as_str()).unwrap_or("");
+            let Some(output_name) = source.strip_prefix(OUTPUT_PSEUDO_RESOURCE_PREFIX) else {
+                continue;
+            };
+            let kind = edge.get(FIELD_KIND).and_then(|value| value.as_str()).unwrap_or("");
+            let source_path = edge.get(FIELD_SOURCE_PATH).and_then(|value| value.as_str()).unwrap_or("");
+            let target = edge.get(FIELD_TARGET).and_then(|value| value.as_str()).unwrap_or("");
+
+            if kind == EDGE_KIND_SUB {
+                if !m.resources.contains_key(target)
+                    && !m.parameters.contains_key(target)
+                    && !PSEUDO_PARAMETERS.contains(&target)
+                    && !sam_implicit.contains(target)
+                {
+                    out.push(make_resource_diagnostic(
+                        "F6101",
+                        &format!(
+                            "Fn::Sub variable '${{{}}}' does not reference a valid resource, parameter, or pseudo-parameter",
+                            target
+                        ),
+                        m,
+                        "",
+                        source_path,
+                        None,
+                    ));
                 }
+                continue;
+            }
+            if kind != EDGE_KIND_GET_ATT {
+                continue;
+            }
+
+            let attribute = edge.get(FIELD_ATTR).and_then(|value| value.as_str()).unwrap_or("");
+            let Some(resource) = m.resources.get(target) else {
+                continue;
+            };
+            if let Some(valid_attributes) = ctx.cached_data.getatt_attrs.get(&resource.resource_type)
+                && !valid_attributes.iter().any(|valid| valid == attribute)
+                && !getatt_attr_is_map_member(attribute, &resource.resource_type)
+                && !is_custom_resource_type(&resource.resource_type)
+                && resource.resource_type != "AWS::CloudFormation::Stack"
+                && resource.resource_type != "AWS::CloudFormation::Macro"
+            {
+                out.push(make_resource_diagnostic(
+                    "F6101",
+                    &format!("'{}' is not one of {}", attribute, render_str_list(valid_attributes)),
+                    m,
+                    "",
+                    source_path,
+                    None,
+                ));
+                continue;
+            }
+
+            // A GetAtt inside a literal container is already covered by the
+            // output-value shape check. Fn::Select consumes an array attribute.
+            if !output_edge_is_in_string_position(source_path) {
+                continue;
+            }
+            if let Some(return_type) =
+                ctx.cached_data.getatt_attr_types.get(&resource.resource_type).and_then(|types| types.get(attribute))
+                && return_type != "string"
+                && return_type != "array"
+            {
+                out.push(make_resource_diagnostic(
+                    "F6101",
+                    &format!(
+                        "Output '{}': GetAtt '{}.{}' returns type '{}', not 'string'",
+                        output_name, target, attribute, return_type
+                    ),
+                    m,
+                    "",
+                    source_path,
+                    None,
+                ));
             }
         }
     }
@@ -986,6 +1076,24 @@ fn condition_is_referenced(
     false
 }
 
+/// Describes a non-string resource policy value, or returns `None` when the
+/// resolved shape may represent an intrinsic CloudFormation accepts here.
+fn non_string_policy_shape(value: &serde_json::Value) -> Option<&'static str> {
+    match value {
+        serde_json::Value::Array(_) => Some("a list"),
+        serde_json::Value::Object(map) => {
+            let is_intrinsic_marker = map.contains_key(MARKER_DYNAMIC)
+                || map.contains_key(MARKER_REF)
+                || map.contains_key(MARKER_ENUM)
+                || map.contains_key(MARKER_CONDITIONAL);
+            if is_intrinsic_marker { None } else { Some("an object") }
+        }
+        serde_json::Value::Number(_) => Some("a number"),
+        serde_json::Value::Bool(_) => Some("a boolean"),
+        _ => None,
+    }
+}
+
 fn is_valid_parameter_type(ptype: &str) -> bool {
     matches!(
         ptype,
@@ -1049,6 +1157,38 @@ fn path_matches_slot(path: &str, slot: &str) -> bool {
 const APPROPRIATE_IMAGE_ID_PARAM_TYPES: &[&str] =
     &["AWS::EC2::Image::Id", "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>"];
 
+/// Determines whether a GetAtt edge from an output is in "string position" -
+/// that is, the GetAtt result feeds into a context where a string is expected.
+/// A GetAtt inside a literal list/map (bare index or key after the Value node)
+/// is NOT in string position because the enclosing container is already a
+/// non-string output value caught by the parse-time type check.
+fn output_edge_is_in_string_position(source_path: &str) -> bool {
+    // Use last-occurrence splitting so an output name containing "Value"
+    // (e.g. `ValueFoo`) does not consume the output-name segment as part of
+    // the tail.
+    let after_value = source_path
+        .rsplit_once("/Value")
+        .map(|(_, tail)| tail)
+        .or_else(|| source_path.strip_prefix("Value"))
+        .unwrap_or("");
+    let mut segments = after_value.split('.').filter(|s| !s.is_empty());
+    while let Some(segment) = segments.next() {
+        if segment == FN_IF {
+            // Skip the branch selector (1/2) and keep walking transparently.
+            segments.next();
+            continue;
+        }
+        // A remaining Fn::* segment is a string-building function consuming the
+        // GetAtt (Join/Sub/…): the GetAtt is in string position.
+        if segment.starts_with("Fn::") {
+            return true;
+        }
+        // A bare index or key means the GetAtt is inside a literal container.
+        return false;
+    }
+    true
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1092,5 +1232,51 @@ mod tests {
     #[test]
     fn list_of_string_is_valid() {
         assert!(is_valid_parameter_type("List<String>"));
+    }
+
+    #[test]
+    fn string_position_direct_value() {
+        assert!(output_edge_is_in_string_position("Outputs/O/Value"));
+    }
+
+    #[test]
+    fn string_position_fn_if_branch() {
+        assert!(output_edge_is_in_string_position("Outputs/O/Value.Fn::If.1"));
+        assert!(output_edge_is_in_string_position("Outputs/O/Value.Fn::If.2"));
+    }
+
+    #[test]
+    fn string_position_fn_join_element() {
+        assert!(output_edge_is_in_string_position("Outputs/O/Value.Fn::Join.1.0"));
+    }
+
+    #[test]
+    fn string_position_fn_sub() {
+        assert!(output_edge_is_in_string_position("Outputs/O/Value.Fn::Sub.0"));
+    }
+
+    #[test]
+    fn string_position_value_prefixed_output_names() {
+        // Output names starting with "Value" must not confuse the last-occurrence
+        // split. The terminal `/Value` node is always the property key, never
+        // part of the output name.
+        assert!(output_edge_is_in_string_position("Outputs/ValueFoo/Value"));
+        assert!(output_edge_is_in_string_position("Outputs/ValueFoo/Value.Fn::Join.1.0"));
+        assert!(output_edge_is_in_string_position("Outputs/ValueFoo/Value.Fn::If.1"));
+        assert!(!output_edge_is_in_string_position("Outputs/ValueFoo/Value.0"));
+        assert!(!output_edge_is_in_string_position("Outputs/ValueFoo/Value.k"));
+        assert!(output_edge_is_in_string_position("Outputs/Value/Value"));
+        assert!(output_edge_is_in_string_position("Outputs/Value/Value.Fn::Join.1.0"));
+        assert!(!output_edge_is_in_string_position("Outputs/Value/Value.0"));
+    }
+
+    #[test]
+    fn not_string_position_bare_index() {
+        assert!(!output_edge_is_in_string_position("Outputs/O/Value.0"));
+    }
+
+    #[test]
+    fn not_string_position_bare_key() {
+        assert!(!output_edge_is_in_string_position("Outputs/O/Value.someKey"));
     }
 }

@@ -22,6 +22,13 @@ violation contains make_diag_full("F1010", "FATAL", name, "",
     not target in object.get(input, "samImplicitResources", [])
 }
 
+# A dynamic ForEach collection leaves generated logical IDs unknown, so an
+# otherwise unresolved Ref may target one of them.
+_has_unexpanded_foreach if {
+    some key in object.keys(input.resources)
+    contains(key, "Fn::ForEach")
+}
+
 # Invalid Ref targets tracked by the resolver
 violation contains make_diag_full("F1020", "FATAL", name, entry.path,
     sprintf("'%s' is not one of %s", [entry.target, render_list(_all_valid_targets)]),
@@ -29,7 +36,7 @@ violation contains make_diag_full("F1020", "FATAL", name, entry.path,
     "") if {
     some name, res in input.resources
     not input.hasParseErrors
-    not has_transform("AWS::LanguageExtensions")
+    not _has_unexpanded_foreach
     some entry in res.invalidRefs
     entry.target != ""
     not entry.target in object.get(input, "samImplicitResources", [])

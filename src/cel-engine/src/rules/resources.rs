@@ -1,14 +1,15 @@
+use super::resources_extra::{fargate_condition_scenarios, merge_reachable_scenario_conditions};
 use super::{EvalContext, NativeRuleRegistry};
 use diagnostics::{Diagnostic, RelatedResource, ResourceRef};
 use rules::Category;
-use template_model::SemanticModel;
-use template_model::SourceSpan;
-use template_model::coercion::coerce_to_integer;
+use std::collections::BTreeSet;
 use template_model::consts::{
     FIELD_CREATION_POLICY, FIELD_RESOURCE_TYPE, FIELD_RESOURCES, FIELD_UPDATE_POLICY, KEY_CREATION_POLICY,
     KEY_UPDATE_POLICY,
 };
+use template_model::fargate::task_size_is_offered;
 use template_model::resolver::ResolvedValue;
+use template_model::{SemanticModel, SourceSpan, render_value};
 use validation_engine::make_resource_diagnostic;
 
 pub fn register(reg: &mut NativeRuleRegistry) {
@@ -23,44 +24,46 @@ fn resolve_concrete(m: &SemanticModel, rid: &str, path: &str) -> Option<serde_js
     }
 }
 
-fn is_dynamic(m: &SemanticModel, rid: &str, path: &str) -> bool {
-    m.resolve_deep(rid, path)
-        .or_else(|| m.resolve(rid, path).cloned())
-        .map(|rv| crate::functions::contains_unresolvable_content(&rv))
-        .unwrap_or(false)
-}
-
 fn eval_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     let mut out = Vec::new();
     let m = ctx.model;
 
     for name in m.resources_of_type("AWS::ECS::TaskDefinition") {
-        if let Some(serde_json::Value::Array(compat)) = resolve_concrete(m, name, "Properties.RequiresCompatibilities")
-        {
-            if !compat.iter().any(|v| v.as_str() == Some("FARGATE")) {
-                continue;
-            }
-            if is_dynamic(m, name, "Properties.Cpu") || is_dynamic(m, name, "Properties.Memory") {
-                continue;
-            }
-            let cpu = resolve_concrete(m, name, "Properties.Cpu");
-            let mem = resolve_concrete(m, name, "Properties.Memory");
-            if let (Some(cpu_val), Some(mem_val)) = (cpu, mem) {
-                let cpu_n = coerce_to_integer(&cpu_val);
-                let mem_n = coerce_to_integer(&mem_val);
-                if let (Some(c), Some(me)) = (cpu_n, mem_n)
-                    && !valid_fargate_combo(c, me)
-                {
-                    out.push(make_resource_diagnostic(
-                            "E3047",
-                            &format!("Cpu {} is not compatible with Memory {} for Fargate", c, me),
-                            m,
-                            name,
-                            "Properties.Cpu",
-                            Some("Use a valid Fargate CPU/memory combination (e.g., Cpu: 256 with Memory: 512, 1024, or 2048)"),
-                        ));
+        let fargate_scenarios = fargate_condition_scenarios(m, name);
+        if fargate_scenarios.is_empty() {
+            continue;
+        }
+        let cpu_scenarios = m.resolve_scenarios_json(name, "Properties.Cpu");
+        let memory_scenarios = m.resolve_scenarios_json(name, "Properties.Memory");
+        let mut invalid_sizes = BTreeSet::new();
+
+        for fargate_conditions in &fargate_scenarios {
+            for (cpu, cpu_conditions) in &cpu_scenarios {
+                let Some(fargate_cpu_conditions) =
+                    merge_reachable_scenario_conditions(m, name, fargate_conditions, cpu_conditions)
+                else {
+                    continue;
+                };
+                for (memory, memory_conditions) in &memory_scenarios {
+                    if merge_reachable_scenario_conditions(m, name, &fargate_cpu_conditions, memory_conditions)
+                        .is_some()
+                        && matches!(task_size_is_offered(cpu, memory), Some(false))
+                    {
+                        invalid_sizes.insert((render_value(cpu), render_value(memory)));
+                    }
                 }
             }
+        }
+
+        for (cpu, memory) in invalid_sizes {
+            out.push(make_resource_diagnostic(
+                "E3047",
+                &format!("Cpu {cpu} is not compatible with Memory {memory} for Fargate"),
+                m,
+                name,
+                "Properties.Cpu",
+                Some("Use a valid Fargate CPU/memory combination (e.g., Cpu: 256 with Memory: 512, 1024, or 2048)"),
+            ));
         }
     }
 
@@ -217,19 +220,6 @@ fn eval_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     out
 }
 
-fn valid_fargate_combo(cpu: i64, mem: i64) -> bool {
-    match cpu {
-        256 => [512, 1024, 2048].contains(&mem),
-        512 => (1024..=4096).contains(&mem),
-        1024 => (2048..=8192).contains(&mem),
-        2048 => (4096..=16384).contains(&mem),
-        4096 => (8192..=30720).contains(&mem),
-        8192 => (16384..=61440).contains(&mem),
-        16384 => (32768..=122880).contains(&mem),
-        _ => false,
-    }
-}
-
 fn is_zip_deployment(m: &SemanticModel, name: &str) -> bool {
     if let Some(serde_json::Value::String(pt)) = resolve_concrete(m, name, "Properties.PackageType") {
         return pt == "Zip";
@@ -240,58 +230,4 @@ fn is_zip_deployment(m: &SemanticModel, name: &str) -> bool {
         return code.contains_key("ZipFile") || code.contains_key("S3Key");
     }
     false
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn fargate_cpu_256_valid() {
-        assert!(valid_fargate_combo(256, 512));
-        assert!(valid_fargate_combo(256, 1024));
-        assert!(valid_fargate_combo(256, 2048));
-    }
-
-    #[test]
-    fn fargate_cpu_256_invalid() {
-        assert!(!valid_fargate_combo(256, 256));
-        assert!(!valid_fargate_combo(256, 4096));
-    }
-
-    #[test]
-    fn fargate_cpu_512_boundaries() {
-        assert!(valid_fargate_combo(512, 1024));
-        assert!(valid_fargate_combo(512, 4096));
-        assert!(!valid_fargate_combo(512, 512));
-        assert!(!valid_fargate_combo(512, 8192));
-    }
-
-    #[test]
-    fn fargate_cpu_1024_boundaries() {
-        assert!(valid_fargate_combo(1024, 2048));
-        assert!(valid_fargate_combo(1024, 8192));
-        assert!(!valid_fargate_combo(1024, 1024));
-        assert!(!valid_fargate_combo(1024, 16384));
-    }
-
-    #[test]
-    fn fargate_cpu_4096_boundaries() {
-        assert!(valid_fargate_combo(4096, 8192));
-        assert!(valid_fargate_combo(4096, 30720));
-        assert!(!valid_fargate_combo(4096, 4096));
-    }
-
-    #[test]
-    fn fargate_cpu_16384_boundaries() {
-        assert!(valid_fargate_combo(16384, 32768));
-        assert!(valid_fargate_combo(16384, 122880));
-        assert!(!valid_fargate_combo(16384, 16384));
-    }
-
-    #[test]
-    fn fargate_unknown_cpu() {
-        assert!(!valid_fargate_combo(128, 512));
-        assert!(!valid_fargate_combo(0, 0));
-    }
 }

@@ -3,6 +3,7 @@ use crate::consts::*;
 use crate::defect::ParseDefect;
 use crate::graph::ReferenceGraph;
 use crate::ir::*;
+use crate::is_custom_resource_type;
 use crate::json_value::JsonValue;
 use crate::regions::*;
 use crate::resolved_value::*;
@@ -11,7 +12,7 @@ use crate::sam;
 use crate::span::SpanProvider;
 use log::{debug, info, warn};
 use serde::Serialize;
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -108,6 +109,11 @@ pub struct ResolvedResource {
     pub diagnostics: ResourceDiagnostics,
 }
 
+struct PrimaryIdentifierScenario {
+    tuple: Vec<String>,
+    assumptions: Vec<(String, bool)>,
+}
+
 /// An Fn::ForEach loop within a resource that expands a property over a collection.
 #[derive(Debug, Clone, Serialize)]
 #[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
@@ -197,6 +203,13 @@ pub struct SemanticModel {
     /// (resource_id, property_path) → the authored expression behind a value that
     /// stayed opaque. Consulted by [`SemanticModel::value_identity`].
     value_nodes: HashMap<(String, String), NodeRef>,
+    /// Resource IDs whose authored `Condition` attribute is present but is not a
+    /// condition-name string. Their deployment coexistence cannot be determined.
+    invalid_resource_conditions: HashSet<String>,
+    /// Synthetic condition names created for `Fn::If` first arguments that are
+    /// expressions rather than condition-name strings. The expressions remain
+    /// available for best-effort value resolution but cannot prove reachability.
+    invalid_inline_conditions: HashSet<String>,
     resolve_memo: Mutex<HashMap<(String, String), Option<ResolvedValue>>>,
     scenario_memo: Mutex<HashMap<(String, String), Vec<(serde_json::Value, HashMap<String, bool>)>>>,
     /// Cumulative count of scenarios materialized by `resolve_scenarios` across
@@ -355,6 +368,8 @@ impl SemanticModel {
         info!("Phase 1: Parsing IR ({} bytes)", bytes.len());
         let mut ir = crate::parser::parse(bytes)?;
         let foreach_diagnostics = crate::transform_expansion::expand_language_extensions(&mut ir);
+        let condition_shape_diagnostics =
+            crate::parser::condition_shape::validate_condition_bodies(&ir.arena, ir.conditions, &ir.span_index);
         let (parameters, parameter_diagnostics) = extract_parameters(&ir);
         // A parameter's definition can reference another parameter (e.g. a
         // Default given as `!Ref OtherParam`). Such a reference still counts as
@@ -385,6 +400,7 @@ impl SemanticModel {
             &config.pseudo_parameters,
         );
         let mut resources = HashMap::new();
+        let mut invalid_resource_conditions = HashSet::new();
         if ir.resources != NULL_REF
             && let Some(entries) = ir.arena.as_map(ir.resources)
         {
@@ -409,6 +425,18 @@ impl SemanticModel {
                 }
             }
             for (name, node_ref) in entries.iter().cloned() {
+                if invalid_resource_condition_ref(&ir.arena, node_ref).is_some() {
+                    invalid_resource_conditions.insert(name.clone());
+                }
+                // Validate resource body shape before resolution. `Fn::ForEach::`
+                // synthetic IDs are expanded by the language-extensions transform
+                // and do not have standard resource shapes.
+                if name != FN_TRANSFORM && !name.starts_with(FN_FOR_EACH_KEY_PREFIX) {
+                    let has_sam_transform = ir.transforms.iter().any(|t| t == TRANSFORM_SERVERLESS);
+                    let shape_defects =
+                        validate_resource_shape(&ir.arena, &name, node_ref, has_sam_transform, &ir.span_index);
+                    resolver.diagnostics.extend(shape_defects);
+                }
                 resolver.set_current_resource(&name);
                 let resolved = resolve_resource(&ir.arena, &name, node_ref, &mut resolver);
                 resources.insert(name.clone(), resolved);
@@ -471,7 +499,9 @@ impl SemanticModel {
         info!("Phase 3: Building reference graph from {} resolver edges", resolver.edges.len());
 
         // Register inline conditions (from IfExpr) into the condition model in
-        // one batch, so the derived mutex/implication passes run once.
+        // one batch, so the derived mutex/implication passes run once. Preserve
+        // their invalid authored origin separately from their best-effort model.
+        let invalid_inline_conditions = resolver.inline_conditions.iter().map(|(name, _)| name.clone()).collect();
         conditions.register_inline_batch(resolver.inline_conditions.drain(..));
 
         // Collect every mapping name referenced by an Fn::FindInMap anywhere in
@@ -527,6 +557,7 @@ impl SemanticModel {
 
         let mut diagnostics = ir.diagnostics;
         diagnostics.extend(foreach_diagnostics);
+        diagnostics.extend(condition_shape_diagnostics);
         diagnostics.extend(mapping_diagnostics);
         diagnostics.extend(parameter_diagnostics);
 
@@ -554,10 +585,15 @@ impl SemanticModel {
                         // each engine keeps the two engines identical and covers
                         // the no-Conditions-section case, where a condition-name
                         // reference is still invalid.
-                        diagnostics.push(crate::make_parse_defect(
+                        let condition_path = format!("{}/{}/0", ir.arena.get(idx as NodeRef).path, FN_IF);
+                        diagnostics.push(crate::make_parse_defect_at(
                             "E1028",
                             format!("Fn::If condition '{}' does not exist in Conditions section", cond_name),
-                            ir.arena.span(idx as NodeRef),
+                            ir.span_index
+                                .get(&condition_path)
+                                .copied()
+                                .unwrap_or_else(|| ir.arena.span(idx as NodeRef)),
+                            &condition_path,
                         ));
                     }
                 }
@@ -580,10 +616,11 @@ impl SemanticModel {
                         let in_conditions_body =
                             ir.arena.get(idx as NodeRef).path.split('/').next() == Some(SECTION_CONDITIONS);
                         if !in_conditions_body && !conditions.conditions.contains_key(cond_name) {
-                            diagnostics.push(crate::make_parse_defect(
+                            diagnostics.push(crate::make_parse_defect_at(
                                 "E1028",
                                 format!("Fn::If condition '{}' does not exist in Conditions section", cond_name),
-                                ir.arena.span(idx as NodeRef),
+                                ir.arena.span(*first),
+                                &ir.arena.get(*first).path,
                             ));
                         }
                     }
@@ -760,13 +797,6 @@ impl SemanticModel {
                 }
             }
         }
-        for invalid in conditions.invalid_condition_bodies() {
-            diagnostics.push(crate::make_parse_defect(
-                "E8001",
-                format!("Condition '{}' must be a boolean expression", invalid),
-                ir.span_index.get(&format!("Conditions/{}", invalid)).copied().unwrap_or(UNKNOWN_SPAN),
-            ));
-        }
         for (owner, undefined_ref) in conditions.undefined_condition_refs() {
             // Synthetic conditions (`__`-prefixed, inserted for inline Fn::If and
             // Rules-section assertions) are internal; never surface their names.
@@ -884,6 +914,8 @@ impl SemanticModel {
                 has_dynamic_findinmap_name,
                 resolution_sources,
                 value_nodes,
+                invalid_resource_conditions,
+                invalid_inline_conditions,
                 resolve_memo: Mutex::new(HashMap::new()),
                 scenario_memo: Mutex::new(HashMap::new()),
                 scenario_combinations_used: AtomicU64::new(0),
@@ -898,6 +930,119 @@ impl SemanticModel {
 
     pub fn resources_of_type(&self, type_name: &str) -> &[String] {
         self.resources_by_type.get(type_name).map(|v| v.as_slice()).unwrap_or(&[])
+    }
+
+    #[must_use]
+    pub fn resource_condition_is_valid(&self, resource_id: &str) -> bool {
+        !self.invalid_resource_conditions.contains(resource_id)
+    }
+
+    /// Groups resources that can simultaneously resolve to the same primary-identifier tuple.
+    /// Each tuple is paired with the ordered set of resources participating in at least one
+    /// satisfiable collision on that tuple.
+    #[must_use]
+    pub fn primary_identifier_conflicts(
+        &self,
+        resource_type: &str,
+        identifier_properties: &[String],
+    ) -> BTreeMap<Vec<String>, BTreeSet<String>> {
+        let mut per_resource = Vec::new();
+        for resource_id in self.resources_of_type(resource_type) {
+            let scenarios = self.primary_identifier_scenarios(resource_id, identifier_properties);
+            if !scenarios.is_empty() {
+                per_resource.push((resource_id, scenarios));
+            }
+        }
+
+        let mut conflicts: BTreeMap<Vec<String>, BTreeSet<String>> = BTreeMap::new();
+        for left_index in 0..per_resource.len() {
+            for right_index in (left_index + 1)..per_resource.len() {
+                let (left_resource, left_scenarios) = &per_resource[left_index];
+                let (right_resource, right_scenarios) = &per_resource[right_index];
+                for left in left_scenarios {
+                    for right in right_scenarios {
+                        if left.tuple != right.tuple {
+                            continue;
+                        }
+                        let mut assumptions = left.assumptions.clone();
+                        assumptions.extend(right.assumptions.iter().cloned());
+                        if assumptions.is_empty() || self.conditions.is_satisfiable(&assumptions) {
+                            let resources = conflicts.entry(left.tuple.clone()).or_default();
+                            resources.insert((*left_resource).clone());
+                            resources.insert((*right_resource).clone());
+                        }
+                    }
+                }
+            }
+        }
+        conflicts
+    }
+
+    fn primary_identifier_scenarios(
+        &self,
+        resource_id: &str,
+        identifier_properties: &[String],
+    ) -> Vec<PrimaryIdentifierScenario> {
+        if !self.resource_condition_is_valid(resource_id) {
+            return Vec::new();
+        }
+        let base_assumptions = self
+            .resources
+            .get(resource_id)
+            .and_then(|resource| resource.condition.as_deref())
+            .map(|condition| vec![(condition.to_string(), true)])
+            .unwrap_or_default();
+        let mut scenarios = vec![PrimaryIdentifierScenario {
+            tuple: Vec::with_capacity(identifier_properties.len()),
+            assumptions: base_assumptions,
+        }];
+
+        for property in identifier_properties {
+            let path = format!("Properties.{property}");
+            let property_scenarios = self.resolve_scenarios_json(resource_id, &path);
+            let mut next = Vec::new();
+            for existing in &scenarios {
+                for (value, conditions) in &property_scenarios {
+                    let value = match value {
+                        serde_json::Value::Null => continue,
+                        serde_json::Value::String(value) => value.clone(),
+                        other => other.to_string(),
+                    };
+                    let mut assumptions = existing.assumptions.clone();
+                    let mut consistent = true;
+                    for (condition, truth) in conditions {
+                        if let Some((_, prior)) = assumptions.iter().find(|(name, _)| name == condition) {
+                            if prior != truth {
+                                consistent = false;
+                                break;
+                            }
+                        } else {
+                            assumptions.push((condition.clone(), *truth));
+                        }
+                    }
+                    if consistent {
+                        let mut tuple = existing.tuple.clone();
+                        tuple.push(value);
+                        next.push(PrimaryIdentifierScenario { tuple, assumptions });
+                    }
+                }
+            }
+            scenarios = next;
+            if scenarios.is_empty() {
+                break;
+            }
+        }
+
+        scenarios.retain(|scenario| {
+            scenario.tuple.len() == identifier_properties.len()
+                && (scenario.assumptions.is_empty() || self.conditions.is_satisfiable(&scenario.assumptions))
+        });
+        scenarios
+    }
+
+    #[must_use]
+    pub fn condition_is_valid_for_reachability(&self, condition: &str) -> bool {
+        !self.invalid_inline_conditions.contains(condition)
     }
 
     #[must_use]
@@ -987,6 +1132,20 @@ impl SemanticModel {
             }
         }
         false
+    }
+
+    #[must_use]
+    pub fn substituted_paths_under(&self, resource_id: &str, base_path: &str) -> HashSet<String> {
+        let prefix = format!("{}.", base_path);
+        let relative_path = |path: &str| {
+            if path == base_path { Some(String::new()) } else { path.strip_prefix(&prefix).map(String::from) }
+        };
+        let mut paths: HashSet<String> =
+            self.graph.outgoing(resource_id).into_iter().filter_map(|edge| relative_path(&edge.source_path)).collect();
+        paths.extend(self.resolution_sources.iter().filter_map(|((source_resource, source_path), _)| {
+            (source_resource == resource_id).then(|| relative_path(source_path)).flatten()
+        }));
+        paths
     }
 
     fn path_from_intrinsic(&self, resource_id: &str, path: &str) -> bool {
@@ -1238,16 +1397,18 @@ impl SemanticModel {
     /// like `Metadata` names both a top-level section and a resource property:
     /// * A **slash** form (`Outputs/X/Value`, `Conditions/C/Fn::And`) is already an
     ///   absolute, section-rooted span-index key and is resolved as written.
-    /// * A **dotted** or bare form (`Properties.Foo`, `Metadata`) is relative to the
-    ///   resource, so it is rooted at `Resources/<rid>` before lookup - never
-    ///   matched against a same-named top-level section.
+    /// * A **bare path with no resource** (`BogusSection`) is a top-level key and is
+    ///   also resolved directly.
+    /// * A **dotted** or bare form with a resource (`Properties.Foo`, `Metadata`) is
+    ///   relative to that resource, so it is rooted at `Resources/<rid>` before
+    ///   lookup - never matched against a same-named top-level section.
     ///
     /// Returns `None` when nothing along the chosen candidate is indexed, so callers
     /// can fall back to a section span.
     pub fn diagnostic_span(&self, resource_id: Option<&str>, property_path: &str) -> Option<SourceSpan> {
         let rid = resource_id.filter(|r| !r.is_empty());
 
-        if property_path.contains('/') {
+        if property_path.contains('/') || (rid.is_none() && !property_path.is_empty()) {
             // Absolute, section-rooted path: resolve directly.
             if let Some(span) = self.walk_up_span(property_path) {
                 return Some(span);
@@ -1419,6 +1580,214 @@ fn intrinsic_synthetic_key(arena: &Arena, node_ref: NodeRef) -> Option<String> {
         IntrinsicFn::ForEach(uid, _, _, _) => Some(format!("{}::{}", FN_FOR_EACH, uid)),
         _ => None,
     }
+}
+
+/// Valid resource-level attributes per the CloudFormation template anatomy.
+/// These are the keys CloudFormation accepts directly under a resource's logical
+/// ID in the `Resources` section.
+const VALID_RESOURCE_ATTRIBUTES: &[&str] = &[
+    KEY_TYPE,
+    KEY_PROPERTIES,
+    KEY_DEPENDS_ON,
+    KEY_CONDITION,
+    SECTION_METADATA,
+    KEY_DELETION_POLICY,
+    KEY_UPDATE_REPLACE_POLICY,
+    KEY_UPDATE_POLICY,
+    KEY_CREATION_POLICY,
+    FN_TRANSFORM,
+    "Version",
+];
+
+/// Additional resource-level attributes valid only when the SAM transform is
+/// declared. These are SAM-specific extensions that the Serverless transform
+/// processes before CloudFormation sees the resource.
+const SAM_RESOURCE_ATTRIBUTES: &[&str] = &["Connectors", "IgnoreGlobals"];
+
+fn invalid_resource_condition_ref(arena: &Arena, node_ref: NodeRef) -> Option<NodeRef> {
+    let entries = arena.as_map(node_ref)?;
+    let condition_ref = entries.iter().find(|(key, _)| key == KEY_CONDITION).map(|(_, value)| *value)?;
+    (!matches!(arena.node(condition_ref), Node::String(_))).then_some(condition_ref)
+}
+
+/// Validates the structural shape of a resource body, producing diagnostics for
+/// bodies that CloudFormation would reject: a non-object resource, a missing
+/// `Type`, or unknown resource-level attribute keys.
+fn validate_resource_shape(
+    arena: &Arena,
+    name: &str,
+    node_ref: NodeRef,
+    is_sam: bool,
+    span_index: &SourceSpanIndex,
+) -> Vec<ParseDefect> {
+    let mut out = Vec::new();
+    let resource_span = span_index.get(&format!("Resources/{}", name)).copied().unwrap_or(UNKNOWN_SPAN);
+
+    // The resource body must be an object.
+    let entries = match arena.as_map(node_ref) {
+        Some(entries) => entries,
+        None => {
+            let shape = match arena.node(node_ref) {
+                Node::Null => "null",
+                Node::Bool(_) => "a boolean",
+                Node::Int(_) | Node::Float(_) => "a number",
+                Node::String(_) => "a string",
+                Node::List(_) => "a list",
+                Node::Intrinsic(_) => "an intrinsic function",
+                Node::Map(_) => return out,
+            };
+            out.push(crate::make_parse_defect_for_resource(
+                "E3001",
+                format!("Resource '{}' body must be an object, got {}", name, shape),
+                resource_span,
+                name,
+            ));
+            return out;
+        }
+    };
+
+    // `Type` is required and must be a string.
+    match entries.iter().find(|(k, _)| k == KEY_TYPE) {
+        None => {
+            out.push(crate::make_parse_defect_for_resource(
+                "E3001",
+                format!("Resource '{}' is missing required property 'Type'", name),
+                resource_span,
+                name,
+            ));
+        }
+        Some((_, type_ref)) if !matches!(arena.node(*type_ref), Node::String(_)) => {
+            let type_span = span_index.get(&format!("Resources/{}/Type", name)).copied().unwrap_or(resource_span);
+            out.push(crate::make_parse_defect_for_resource(
+                "E3001",
+                format!("Resource '{}' property 'Type' must be a string", name),
+                type_span,
+                name,
+            ));
+        }
+        _ => {}
+    }
+
+    // `Condition` must be a string when present.
+    if invalid_resource_condition_ref(arena, node_ref).is_some() {
+        let cond_span = span_index.get(&format!("Resources/{}/Condition", name)).copied().unwrap_or(resource_span);
+        out.push(crate::make_parse_defect_for_resource(
+            "E3001",
+            format!("Resource '{}' property 'Condition' must be a string", name),
+            cond_span,
+            name,
+        ));
+    }
+
+    // `DependsOn` must be a string or a list of strings when present.
+    if let Some((_, dep_ref)) = entries.iter().find(|(k, _)| k == KEY_DEPENDS_ON) {
+        match arena.node(*dep_ref) {
+            Node::String(_) => {}
+            Node::List(items) => {
+                for item_ref in items {
+                    if !matches!(arena.node(*item_ref), Node::String(_)) {
+                        let dep_span =
+                            span_index.get(&format!("Resources/{}/DependsOn", name)).copied().unwrap_or(resource_span);
+                        out.push(crate::make_parse_defect_for_resource(
+                            "E3001",
+                            format!("Resource '{}' property 'DependsOn' list elements must be strings", name),
+                            dep_span,
+                            name,
+                        ));
+                        break;
+                    }
+                }
+            }
+            _ => {
+                let dep_span =
+                    span_index.get(&format!("Resources/{}/DependsOn", name)).copied().unwrap_or(resource_span);
+                out.push(crate::make_parse_defect_for_resource(
+                    "E3001",
+                    format!("Resource '{}' property 'DependsOn' must be a string or list of strings", name),
+                    dep_span,
+                    name,
+                ));
+            }
+        }
+    }
+
+    let resource_type = entries.iter().find(|(key, _)| key == KEY_TYPE).and_then(|(_, value)| arena.as_str(*value));
+    if let Some(resource_type) = resource_type {
+        let is_custom_resource = is_custom_resource_type(resource_type);
+        if let Some((_, version_ref)) = entries.iter().find(|(key, _)| key == "Version") {
+            let version_span = span_index.get(&format!("Resources/{}/Version", name)).copied().unwrap_or(resource_span);
+            if !is_custom_resource {
+                out.push(crate::make_parse_defect_for_resource(
+                    "E3001",
+                    format!("Resource '{}' property 'Version' is only valid for custom resources", name),
+                    version_span,
+                    name,
+                ));
+            } else if !matches!(arena.node(*version_ref), Node::String(_) | Node::Int(_)) {
+                out.push(crate::make_parse_defect_for_resource(
+                    "E3001",
+                    format!("Resource '{}' property 'Version' must be a string or integer", name),
+                    version_span,
+                    name,
+                ));
+            }
+        }
+
+        for policy_name in [KEY_CREATION_POLICY, KEY_UPDATE_POLICY] {
+            let Some((_, policy_ref)) = entries.iter().find(|(key, _)| key == policy_name) else {
+                continue;
+            };
+            let policy_span =
+                span_index.get(&format!("Resources/{}/{}", name, policy_name)).copied().unwrap_or(resource_span);
+            if is_custom_resource {
+                out.push(crate::make_parse_defect_for_resource(
+                    "E3001",
+                    format!("Resource '{}' property '{}' is not valid for custom resources", name, policy_name),
+                    policy_span,
+                    name,
+                ));
+            } else if !matches!(arena.node(*policy_ref), Node::Map(_) | Node::Intrinsic(_)) {
+                out.push(crate::make_parse_defect_for_resource(
+                    "E3001",
+                    format!("Resource '{}' property '{}' must be an object", name, policy_name),
+                    policy_span,
+                    name,
+                ));
+            }
+        }
+    }
+
+    for (key, _) in entries {
+        if VALID_RESOURCE_ATTRIBUTES.contains(&key.as_str()) {
+            continue;
+        }
+        if is_sam && SAM_RESOURCE_ATTRIBUTES.contains(&key.as_str()) {
+            continue;
+        }
+        let key_span = span_index.get(&format!("Resources/{}/{}", name, key)).copied().unwrap_or(resource_span);
+        out.push(crate::make_parse_defect_for_resource(
+            "E3001",
+            format!(
+                "Resource '{}' has invalid property '{}'. Valid resource attributes: {}",
+                name,
+                key,
+                valid_attributes_display(is_sam),
+            ),
+            key_span,
+            name,
+        ));
+    }
+
+    out
+}
+
+/// Builds the human-readable list of valid resource attributes for error messages.
+fn valid_attributes_display(is_sam: bool) -> String {
+    let mut attrs: Vec<&str> = VALID_RESOURCE_ATTRIBUTES.to_vec();
+    if is_sam {
+        attrs.extend_from_slice(SAM_RESOURCE_ATTRIBUTES);
+    }
+    attrs.join(", ")
 }
 
 fn resolve_resource(arena: &Arena, name: &str, node_ref: NodeRef, resolver: &mut Resolver) -> ResolvedResource {
@@ -1824,6 +2193,21 @@ Resources:
         let via_diag = model.diagnostic_span(Some("MyBucket"), "Properties.BucketName").expect("should resolve");
         let expected = model.source_location("Resources/MyBucket/Properties/BucketName").copied().expect("indexed");
         assert_eq!(via_diag, expected, "dotted path should resolve to the exact property span");
+    }
+
+    #[test]
+    fn diagnostic_span_resolves_bare_top_level_path_without_resource() {
+        let input = r#"
+BogusSection:
+  Value: invalid
+Resources:
+  MyBucket:
+    Type: AWS::S3::Bucket
+"#;
+        let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        let via_diag = model.diagnostic_span(None, "BogusSection").expect("should resolve");
+        let expected = model.source_location("BogusSection").copied().expect("indexed");
+        assert_eq!(via_diag, expected, "bare top-level path should resolve to its authored key");
     }
 
     #[test]

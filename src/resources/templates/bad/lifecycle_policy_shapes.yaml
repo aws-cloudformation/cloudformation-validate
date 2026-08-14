@@ -1,0 +1,13 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  ListPolicies:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: [Retain]
+    UpdateReplacePolicy: [Retain]
+
+  ObjectPolicies:
+    Type: AWS::S3::Bucket
+    DeletionPolicy:
+      Value: Retain
+    UpdateReplacePolicy:
+      Value: Retain

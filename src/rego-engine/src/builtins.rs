@@ -11,10 +11,12 @@ use template_model::coercion::{
 };
 use template_model::consts::{
     FIELD_CONDITION, FIELD_DEPENDS_ON, FIELD_KIND, FIELD_PROPERTIES, FIELD_RESOURCE_TYPE, FIELD_SOURCE,
-    FIELD_SOURCE_PATH, FIELD_TARGET, FN_IF,
+    FIELD_SOURCE_PATH, FIELD_TARGET, FN_IF, effective_deployed_resource_type,
 };
+use template_model::fargate::{cpu_is_offered, task_size_is_offered};
+use template_model::iam_policy::validate_identity_policy_scenarios;
 use template_model::region_enums;
-use template_model::resolved_value::json_contains_markers;
+use template_model::resolved_value::{contains_dynamic_resolved, json_contains_markers};
 use template_model::resolver::{MapEntry, RefKind, ResolvedValue};
 use template_model::{MARKER_DYNAMIC, MARKER_PARAM_TYPE, MARKER_REF};
 use template_model::{SourceSpan, UNKNOWN_SPAN, render_value, render_value_list};
@@ -43,6 +45,8 @@ pub(crate) fn register_all(
     register_follow_ref(rego, holder.clone());
     register_authored_form(rego, holder.clone());
     register_resources_of_type(rego, holder.clone());
+    register_effective_resource_type(rego);
+    register_duplicate_subnet_associations(rego, holder.clone());
     register_hardcoded_azs(rego, holder.clone());
     register_ref_targets(rego, holder.clone());
     register_ref_sources(rego, holder.clone());
@@ -51,6 +55,7 @@ pub(crate) fn register_all(
     register_condition_implies(rego, holder.clone());
     register_conjunction_implies(rego, holder.clone());
     register_resource_condition(rego, holder.clone());
+    register_primary_identifier_conflicts(rego, holder.clone());
     register_has_property(rego, holder.clone());
     register_property_can_be_absent(rego, holder.clone());
     register_param_allowed_values(rego, holder.clone());
@@ -64,6 +69,7 @@ pub(crate) fn register_all(
     register_make_diag_related(rego, holder.clone());
     register_make_diag_conditional(rego, holder.clone());
     register_resolve_scenarios(rego, holder.clone());
+    register_has_unresolved_scenario(rego, holder.clone());
     register_scenario_source_path(rego, holder.clone());
     register_properties_scenarios(rego, holder.clone());
     register_is_satisfiable(rego, holder.clone());
@@ -100,11 +106,14 @@ pub(crate) fn register_all(
     register_coerce_to_string(rego);
     register_coerce_port_to_string(rego);
     register_coerce_to_bool(rego);
+    register_fargate_cpu_is_offered(rego);
+    register_fargate_task_size_is_offered(rego);
     register_cfn_type_compatible(rego);
     register_estimated_string_length_bounds(rego, holder.clone());
     register_schema_string_length(rego, schema_registry.clone());
     register_schema_requires_unique_items(rego, schema_registry);
-    register_unreachable_if_branches(rego, holder);
+    register_unreachable_if_branches(rego, holder.clone());
+    register_iam_identity_policy_findings(rego, holder);
 }
 
 fn resolved_to_rego(rv: &ResolvedValue) -> Value {
@@ -473,6 +482,22 @@ fn register_resolve_scenarios(rego: &mut regorus::Engine, holder: SharedModel) {
     );
 }
 
+fn register_has_unresolved_scenario(rego: &mut regorus::Engine, holder: SharedModel) {
+    let _ = rego.add_extension(
+        "has_unresolved_scenario".into(),
+        2,
+        Box::new(move |params: Vec<Value>| {
+            let Some(model) = get_model(&holder) else {
+                return Ok(Value::from(true));
+            };
+            let resource_id = params[0].as_string()?;
+            let path = params[1].as_string()?;
+            let scenarios = model.resolve_scenarios(resource_id.as_ref(), path.as_ref());
+            Ok(Value::from(scenarios.is_empty() || scenarios.iter().any(|(value, _)| contains_dynamic_resolved(value))))
+        }),
+    );
+}
+
 fn register_scenario_source_path(rego: &mut regorus::Engine, holder: SharedModel) {
     let _ = rego.add_extension(
         "scenario_source_path".into(),
@@ -648,6 +673,39 @@ fn authored_ref_form(target: &str, kind: &RefKind) -> Option<serde_json::Value> 
     }
 }
 
+fn register_effective_resource_type(rego: &mut regorus::Engine) {
+    let _ = rego.add_extension(
+        "effective_resource_type".into(),
+        1,
+        Box::new(|params: Vec<Value>| {
+            let resource_type = params[0].as_string()?;
+            Ok(Value::from(effective_deployed_resource_type(resource_type.as_ref())))
+        }),
+    );
+}
+
+fn register_duplicate_subnet_associations(rego: &mut regorus::Engine, holder: SharedModel) {
+    let _ = rego.add_extension(
+        "duplicate_subnet_route_table_associations".into(),
+        0,
+        Box::new(move |_params: Vec<Value>| {
+            let Some(model) = get_model(&holder) else {
+                return Ok(Value::from(Vec::<Value>::new()));
+            };
+            let findings: Vec<Value> = template_model::route_table::duplicate_subnet_associations(&model)
+                .into_iter()
+                .map(|finding| {
+                    json_to_value(&serde_json::json!({
+                        "resourceId": finding.resource_id,
+                        "message": finding.message,
+                    }))
+                })
+                .collect();
+            Ok(Value::from(findings))
+        }),
+    );
+}
+
 fn register_resources_of_type(rego: &mut regorus::Engine, holder: SharedModel) {
     let _ = rego.add_extension(
         "resources_of_type".into(),
@@ -821,6 +879,35 @@ fn register_resource_condition(rego: &mut regorus::Engine, holder: SharedModel) 
         }),
     );
 }
+fn register_primary_identifier_conflicts(rego: &mut regorus::Engine, holder: SharedModel) {
+    let _ = rego.add_extension(
+        "primary_identifier_conflicts".into(),
+        2,
+        Box::new(move |params: Vec<Value>| {
+            let Some(model) = get_model(&holder) else {
+                return Ok(Value::from(Vec::<Value>::new()));
+            };
+            let resource_type = params[0].as_string()?;
+            let identifier_properties = params[1]
+                .as_array()?
+                .iter()
+                .map(|property| property.as_string().map(|property| property.to_string()))
+                .collect::<Result<Vec<_>, _>>()?;
+            let conflicts = model
+                .primary_identifier_conflicts(resource_type.as_ref(), &identifier_properties)
+                .into_iter()
+                .map(|(tuple, resources)| {
+                    json_to_value(&serde_json::json!({
+                        "tuple": tuple,
+                        "resources": resources,
+                    }))
+                })
+                .collect::<Vec<_>>();
+            Ok(Value::from(conflicts))
+        }),
+    );
+}
+
 fn register_has_property(rego: &mut regorus::Engine, holder: SharedModel) {
     let _ = rego.add_extension(
         "has_property".into(),
@@ -1387,6 +1474,30 @@ fn register_coerce_to_bool(rego: &mut regorus::Engine) {
             let jv = rego_to_json(&params[0]);
             match coerce_to_bool(&jv) {
                 Some(b) => Ok(Value::from(b)),
+                None => Ok(Value::Undefined),
+            }
+        }),
+    );
+}
+
+fn register_fargate_cpu_is_offered(rego: &mut regorus::Engine) {
+    let _ = rego.add_extension(
+        "fargate_cpu_is_offered".into(),
+        1,
+        Box::new(|params: Vec<Value>| match cpu_is_offered(&rego_to_json(&params[0])) {
+            Some(is_offered) => Ok(Value::from(is_offered)),
+            None => Ok(Value::Undefined),
+        }),
+    );
+}
+
+fn register_fargate_task_size_is_offered(rego: &mut regorus::Engine) {
+    let _ = rego.add_extension(
+        "fargate_task_size_is_offered".into(),
+        2,
+        Box::new(|params: Vec<Value>| {
+            match task_size_is_offered(&rego_to_json(&params[0]), &rego_to_json(&params[1])) {
+                Some(is_offered) => Ok(Value::from(is_offered)),
                 None => Ok(Value::Undefined),
             }
         }),
@@ -2200,7 +2311,27 @@ fn collect_unreachable_branches(
     results: &mut Vec<Value>,
 ) {
     match value {
-        ResolvedValue::Conditional { condition: cond, if_true: _, if_false: _ } => {
+        ResolvedValue::Conditional { condition: cond, if_true, if_false } => {
+            if !model.condition_is_valid_for_reachability(cond) {
+                collect_unreachable_branches(
+                    model,
+                    resource_id,
+                    if_true,
+                    &format!("{}.{}.1", path, FN_IF),
+                    assumptions,
+                    results,
+                );
+                collect_unreachable_branches(
+                    model,
+                    resource_id,
+                    if_false,
+                    &format!("{}.{}.2", path, FN_IF),
+                    assumptions,
+                    results,
+                );
+                return;
+            }
+
             let mut true_assumptions = assumptions.to_vec();
             true_assumptions.push((cond.clone(), true));
             // Flag the branch only when the surrounding assumptions make this
@@ -2208,9 +2339,9 @@ fn collect_unreachable_branches(
             // the value on its own. A condition that is constant (a literal
             // tautology, or a parameter pinned to a single value) is the concern
             // of equality rules, not of branch reachability.
-            if !model.conditions.is_satisfiable(&true_assumptions)
-                && model.conditions.is_satisfiable(&[(cond.clone(), true)])
-            {
+            let true_unreachable = !model.conditions.is_satisfiable(&true_assumptions)
+                && model.conditions.is_satisfiable(&[(cond.clone(), true)]);
+            if true_unreachable {
                 let mut map = serde_json::Map::new();
                 map.insert("resourceId".into(), serde_json::Value::String(resource_id.to_string()));
                 map.insert("path".into(), serde_json::Value::String(format!("{}.{}.1", path, FN_IF)));
@@ -2224,11 +2355,25 @@ fn collect_unreachable_branches(
                 results.push(json_to_value(&serde_json::Value::Object(map)));
             }
 
+            // Recurse into the true branch. If the branch is unreachable, use the
+            // prior assumptions so that nested conditionals are evaluated in their
+            // own right rather than inheriting an impossible assumption set.
+            let true_recurse_assumptions: &[(String, bool)] =
+                if true_unreachable { assumptions } else { &true_assumptions };
+            collect_unreachable_branches(
+                model,
+                resource_id,
+                if_true,
+                &format!("{}.{}.1", path, FN_IF),
+                true_recurse_assumptions,
+                results,
+            );
+
             let mut false_assumptions = assumptions.to_vec();
             false_assumptions.push((cond.clone(), false));
-            if !model.conditions.is_satisfiable(&false_assumptions)
-                && model.conditions.is_satisfiable(&[(cond.clone(), false)])
-            {
+            let false_unreachable = !model.conditions.is_satisfiable(&false_assumptions)
+                && model.conditions.is_satisfiable(&[(cond.clone(), false)]);
+            if false_unreachable {
                 let existing: Vec<String> = assumptions
                     .iter()
                     .filter(|(name, _)| name != cond)
@@ -2253,11 +2398,18 @@ fn collect_unreachable_branches(
                 results.push(json_to_value(&serde_json::Value::Object(map)));
             }
 
-            // Only the reachability of the immediate Fn::If branches is checked;
-            // we do not recurse into an Fn::If nested inside a branch, so we stop
-            // here. Recursing would produce spurious findings (e.g.
-            // `Fn::If.2.Fn::If.1`) for branches whose reachability depends on the
-            // already-evaluated outer condition.
+            // Recurse into the false branch. Same logic: use prior assumptions
+            // when the branch itself is unreachable.
+            let false_recurse_assumptions: &[(String, bool)] =
+                if false_unreachable { assumptions } else { &false_assumptions };
+            collect_unreachable_branches(
+                model,
+                resource_id,
+                if_false,
+                &format!("{}.{}.2", path, FN_IF),
+                false_recurse_assumptions,
+                results,
+            );
         }
         ResolvedValue::Map { entries } => {
             for MapEntry { key, value: val } in entries {
@@ -2278,6 +2430,35 @@ fn collect_unreachable_branches(
         }
         _ => {}
     }
+}
+
+/// `iam_identity_policy_findings(resource_id, document_path)` calls the shared
+/// identity-policy structural validator and returns an array of finding objects,
+/// each with `path` (absolute property path) and `message`.
+fn register_iam_identity_policy_findings(rego: &mut regorus::Engine, holder: SharedModel) {
+    let _ = rego.add_extension(
+        "iam_identity_policy_findings".into(),
+        2,
+        Box::new(move |params: Vec<Value>| {
+            let Some(model) = get_model(&holder) else {
+                return Ok(Value::from(Vec::<Value>::new()));
+            };
+            let resource_id = params[0].as_string()?;
+            let document_path = params[1].as_string()?;
+            let findings = validate_identity_policy_scenarios(&model, resource_id.as_ref(), document_path.as_ref())
+                .into_iter()
+                .map(|finding| {
+                    let path = if finding.path.is_empty() {
+                        document_path.to_string()
+                    } else {
+                        format!("{}.{}", document_path, finding.path)
+                    };
+                    json_to_value(&serde_json::json!({"path": path, "message": finding.message}))
+                })
+                .collect::<Vec<_>>();
+            Ok(Value::from(findings))
+        }),
+    );
 }
 
 #[cfg(test)]

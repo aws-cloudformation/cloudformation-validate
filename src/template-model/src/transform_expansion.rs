@@ -570,7 +570,7 @@ fn substitute_string(s: &str, bindings: &Bindings) -> String {
 
 /// True if `s` still contains an `Fn::Sub` variable placeholder `${Name}`. The
 /// literal escape `${!Name}` is not a variable, so it does not count.
-fn contains_sub_variable(s: &str) -> bool {
+pub(crate) fn contains_sub_variable(s: &str) -> bool {
     let bytes = s.as_bytes();
     let mut i = 0;
     while i + 1 < bytes.len() {
@@ -589,7 +589,7 @@ fn contains_sub_variable(s: &str) -> bool {
 
 /// Renders `Fn::Sub`'s literal escape sequences: every `${!` becomes `${`,
 /// which is how CloudFormation produces the final string.
-fn unescape_sub_literals(s: &str) -> String {
+pub(crate) fn unescape_sub_literals(s: &str) -> String {
     s.replace("${!", "${")
 }
 

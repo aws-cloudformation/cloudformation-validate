@@ -3,7 +3,7 @@ use super::patterns::AMI_ID_RE;
 use diagnostics::Diagnostic;
 use diagnostics::RelatedResource;
 use diagnostics::ResourceRef;
-use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
+use std::collections::{BTreeSet, HashMap, HashSet};
 use std::net::{Ipv4Addr, Ipv6Addr};
 use std::sync::{Arc, LazyLock};
 use template_model::SemanticModel;
@@ -13,10 +13,14 @@ use template_model::consts::{
     FIELD_PROPERTIES, FIELD_RESOURCE_TYPE, FIELD_RESOURCES, FIELD_SOURCE_PATH, FIELD_TARGET, FN_IF, FN_REF,
     KEY_PROPERTIES, PARAM_TYPE_STRING, TRANSFORM_SERVERLESS,
 };
+use template_model::fargate::{CPU_UNIT_LABELS, cpu_is_offered};
+use template_model::iam_policy::validate_identity_policy_scenarios;
 use template_model::message::{render_str_list, render_value};
 use template_model::resolver::{RefKind, ResolvedValue};
+use template_model::route_table::duplicate_subnet_associations;
 use template_model::{
     CAA_RECORD_PATTERN, IAM_ROLE_ARN_RULE_PATTERN, MARKER_DYNAMIC, MARKER_PARAM_TYPE, MX_RECORD_PATTERN, SourceSpan,
+    resolved_value_to_json,
 };
 use template_model::{hardcoded_az, region_enums, schedule_expression_errors};
 use validation_engine::{make_resource_diagnostic, make_resource_diagnostic_at_source};
@@ -223,6 +227,39 @@ fn resolve_concrete(m: &SemanticModel, rid: &str, path: &str) -> Option<serde_js
     scenarios.into_iter().next().map(|(v, _)| v)
 }
 
+/// Resolves a value including dynamic/marker-bearing content (unlike
+/// `resolve_concrete` which only returns fully concrete values). This is needed
+/// for IAM policy document validation where the shared validator must see
+/// marker objects to skip them per-field rather than bailing out entirely.
+fn resolve_with_markers(m: &SemanticModel, resource_id: &str, path: &str) -> Option<serde_json::Value> {
+    use template_model::resolved_value_to_json;
+    m.resolve_deep(resource_id, path)
+        .or_else(|| m.resolve(resource_id, path).cloned())
+        .map(|value| resolved_value_to_json(&value))
+        .or_else(|| m.resolve_scenarios_json(resource_id, path).into_iter().next().map(|(value, _)| value))
+}
+
+/// Runs the shared identity-policy structural validator against a resolved
+/// document and converts its findings into engine diagnostics. The `substituted`
+/// set is derived from the reference graph: any outgoing edge whose source_path
+/// is a descendant of the document path identifies a value produced by resolving
+/// an intrinsic rather than being authored literally.
+fn push_identity_policy_findings(
+    out: &mut Vec<Diagnostic>,
+    model: &SemanticModel,
+    resource_id: &str,
+    document_path: &str,
+) {
+    for finding in validate_identity_policy_scenarios(model, resource_id, document_path) {
+        let path = if finding.path.is_empty() {
+            document_path.to_string()
+        } else {
+            format!("{}.{}", document_path, finding.path)
+        };
+        out.push(make_resource_diagnostic("E3510", &finding.message, model, resource_id, &path, None));
+    }
+}
+
 fn scenario_is_reachable(m: &SemanticModel, resource_id: &str, conditions: &HashMap<String, bool>) -> bool {
     let mut assumptions: Vec<(String, bool)> = conditions.iter().map(|(name, value)| (name.clone(), *value)).collect();
     if let Some(resource_condition) = m.resources.get(resource_id).and_then(|resource| resource.condition.as_ref()) {
@@ -233,6 +270,55 @@ fn scenario_is_reachable(m: &SemanticModel, resource_id: &str, conditions: &Hash
         }
     }
     assumptions.is_empty() || m.conditions.is_satisfiable(&assumptions)
+}
+
+pub(super) fn merge_reachable_scenario_conditions(
+    model: &SemanticModel,
+    resource_id: &str,
+    left: &HashMap<String, bool>,
+    right: &HashMap<String, bool>,
+) -> Option<HashMap<String, bool>> {
+    let mut combined = left.clone();
+    for (condition, value) in right {
+        if combined.get(condition).is_some_and(|existing| existing != value) {
+            return None;
+        }
+        combined.insert(condition.clone(), *value);
+    }
+    scenario_is_reachable(model, resource_id, &combined).then_some(combined)
+}
+
+fn scenario_conditions_overlap(
+    model: &SemanticModel,
+    resource_id: &str,
+    left: &HashMap<String, bool>,
+    right: &HashMap<String, bool>,
+) -> bool {
+    merge_reachable_scenario_conditions(model, resource_id, left, right).is_some()
+}
+
+fn scenario_overlaps_any(
+    model: &SemanticModel,
+    resource_id: &str,
+    conditions: &HashMap<String, bool>,
+    applicable_scenarios: &[HashMap<String, bool>],
+) -> bool {
+    applicable_scenarios
+        .iter()
+        .any(|applicable| scenario_conditions_overlap(model, resource_id, conditions, applicable))
+}
+
+pub(super) fn fargate_condition_scenarios(model: &SemanticModel, resource_id: &str) -> Vec<HashMap<String, bool>> {
+    model
+        .resolve_scenarios_json(resource_id, "Properties.RequiresCompatibilities")
+        .into_iter()
+        .filter_map(|(value, conditions)| {
+            let is_fargate = value
+                .as_array()
+                .is_some_and(|compatibilities| compatibilities.iter().any(|item| item.as_str() == Some("FARGATE")));
+            (is_fargate && scenario_is_reachable(model, resource_id, &conditions)).then_some(conditions)
+        })
+        .collect()
 }
 
 fn scenario_has_effective_property(properties: &ResolvedValue, property_name: &str) -> bool {
@@ -473,6 +559,75 @@ fn sg_protocol_has_ordered_port_range(protocol: Option<&serde_json::Value>) -> b
     }
 }
 
+/// Extracts string AttributeName values from a KeySchema array into the
+/// referenced set. Returns false if any entry lacks a resolvable string
+/// AttributeName, signaling the caller to bail conservatively.
+fn ddb_collect_key_schema(ks: &[serde_json::Value], referenced: &mut HashSet<String>) -> bool {
+    for k in ks {
+        match k.get("AttributeName").and_then(|n| n.as_str()) {
+            Some(n) => {
+                referenced.insert(n.to_string());
+            }
+            None => return false,
+        }
+    }
+    true
+}
+
+/// Processes an array of index items (GSI or LSI), collecting AttributeName
+/// strings from each item's KeySchema. Returns false if any item's KeySchema is
+/// not a resolvable array or contains non-string AttributeName entries.
+fn ddb_collect_index_key_schemas(indexes: &[serde_json::Value], referenced: &mut HashSet<String>) -> bool {
+    for idx in indexes {
+        match idx.get("KeySchema").and_then(|k| k.as_array()) {
+            Some(ks) => {
+                if !ddb_collect_key_schema(ks, referenced) {
+                    return false;
+                }
+            }
+            None => return false,
+        }
+    }
+    true
+}
+
+/// Unions key attributes from every reachable concrete index-property branch.
+/// Returns `true` when any reachable content remains unknown, in which case an
+/// unused-definition conclusion would be unsound.
+fn ddb_collect_index_scenarios(
+    model: &SemanticModel,
+    resource_id: &str,
+    path: &str,
+    authored: bool,
+    referenced: &mut HashSet<String>,
+) -> bool {
+    if !authored {
+        return false;
+    }
+    let scenarios = model.resolve_scenarios(resource_id, path);
+    if scenarios.is_empty() {
+        return true;
+    }
+
+    let mut unknown = false;
+    for (value, conditions) in scenarios {
+        if !scenario_is_reachable(model, resource_id, &conditions) {
+            continue;
+        }
+        let json = resolved_value_to_json(&value);
+        match json {
+            serde_json::Value::Null => {}
+            serde_json::Value::Array(indexes) => {
+                if !ddb_collect_index_key_schemas(&indexes, referenced) {
+                    unknown = true;
+                }
+            }
+            _ => unknown = true,
+        }
+    }
+    unknown
+}
+
 pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     let mut out = Vec::new();
     let m = ctx.model;
@@ -487,7 +642,10 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             // `Custom::` resources, modules, hook-shaped names) may be
             // registered per account/region, so they are skipped entirely
             // rather than guessed at.
-            if res.resource_type.starts_with("AWS::") && !ctx.cached_data.known_types.contains(&res.resource_type) {
+            if res.resource_type.starts_with("AWS::")
+                && !res.resource_type.ends_with("::MODULE")
+                && !ctx.cached_data.known_types.contains(&res.resource_type)
+            {
                 out.push(make_resource_diagnostic(
                     "F3006",
                     &format!("Unknown resource type '{}'", res.resource_type),
@@ -517,22 +675,28 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     for name in m.resources_of_type("AWS::IAM::Policy") {
-        if let Some(doc) = resolve_concrete(m, name, "Properties.PolicyDocument") {
-            check_iam_statements(&mut out, m, name, &doc, "Properties.PolicyDocument");
+        push_identity_policy_findings(&mut out, m, name, "Properties.PolicyDocument");
+    }
+    let single_document_types = [
+        ("AWS::IAM::ManagedPolicy", "Properties.PolicyDocument"),
+        ("AWS::IAM::UserPolicy", "Properties.PolicyDocument"),
+        ("AWS::IAM::RolePolicy", "Properties.PolicyDocument"),
+        ("AWS::IAM::GroupPolicy", "Properties.PolicyDocument"),
+        ("AWS::SSO::PermissionSet", "Properties.InlinePolicy"),
+    ];
+    for (resource_type, document_path) in single_document_types {
+        for name in m.resources_of_type(resource_type) {
+            push_identity_policy_findings(&mut out, m, name, document_path);
         }
     }
-    for name in m.resources_of_type("AWS::IAM::Role") {
-        if let Some(serde_json::Value::Array(policies)) = resolve_concrete(m, name, "Properties.Policies") {
-            for (idx, pol) in policies.iter().enumerate() {
-                if let Some(doc) = pol.get("PolicyDocument") {
-                    check_iam_statements(
-                        &mut out,
-                        m,
-                        name,
-                        doc,
-                        &format!("Properties.Policies[{}].PolicyDocument", idx),
-                    );
-                }
+    for resource_type in ["AWS::IAM::Role", "AWS::IAM::User", "AWS::IAM::Group"] {
+        for name in m.resources_of_type(resource_type) {
+            let Some(serde_json::Value::Array(policies)) = resolve_with_markers(m, name, "Properties.Policies") else {
+                continue;
+            };
+            for (index, _) in policies.iter().enumerate() {
+                let document_path = format!("Properties.Policies.{}.PolicyDocument", index);
+                push_identity_policy_findings(&mut out, m, name, &document_path);
             }
         }
     }
@@ -724,25 +888,79 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     for name in m.resources_of_type("AWS::DynamoDB::Table") {
-        if let (Some(serde_json::Value::Array(ks)), Some(serde_json::Value::Array(ad))) = (
-            resolve_concrete(m, name, "Properties.KeySchema"),
-            resolve_concrete(m, name, "Properties.AttributeDefinitions"),
-        ) {
-            let defined: HashSet<&str> =
-                ad.iter().filter_map(|a| a.get("AttributeName").and_then(|n| n.as_str())).collect();
-            for k in &ks {
-                if let Some(attr) = k.get("AttributeName").and_then(|n| n.as_str())
-                    && !defined.contains(attr)
-                {
-                    out.push(make_resource_diagnostic(
-                        "E3039",
-                        &format!("KeySchema attribute '{}' is not defined in AttributeDefinitions", attr),
-                        m,
-                        name,
-                        "Properties.KeySchema",
-                        Some("Add the attribute to AttributeDefinitions"),
+        if let Some(serde_json::Value::Array(ad)) = resolve_concrete(m, name, "Properties.AttributeDefinitions") {
+            // Collect defined attribute names; bail conservatively if any element
+            // is not a resolvable object with a string AttributeName.
+            let mut defined: HashSet<String> = HashSet::new();
+            let mut bail = false;
+            for a in &ad {
+                match a.get("AttributeName").and_then(|n| n.as_str()) {
+                    Some(n) => {
+                        defined.insert(n.to_string());
+                    }
+                    None => {
+                        bail = true;
+                        break;
+                    }
+                }
+            }
+            if bail {
+                continue;
+            }
+
+            // Collect referenced attribute names from all KeySchema arrays.
+            let mut referenced: HashSet<String> = HashSet::new();
+
+            // Table KeySchema
+            if let Some(serde_json::Value::Array(ks)) = resolve_concrete(m, name, "Properties.KeySchema") {
+                if !ddb_collect_key_schema(&ks, &mut referenced) {
+                    continue;
+                }
+            } else {
+                // Table KeySchema absent or dynamic -- skip this resource.
+                continue;
+            }
+
+            let res = m.resources.get(name.as_str());
+            let gsi_authored = res.is_some_and(|resource| resource.properties.contains_key("GlobalSecondaryIndexes"));
+            let lsi_authored = res.is_some_and(|resource| resource.properties.contains_key("LocalSecondaryIndexes"));
+            let gsi_content_unknown = ddb_collect_index_scenarios(
+                m,
+                name,
+                "Properties.GlobalSecondaryIndexes",
+                gsi_authored,
+                &mut referenced,
+            );
+            let lsi_content_unknown =
+                ddb_collect_index_scenarios(m, name, "Properties.LocalSecondaryIndexes", lsi_authored, &mut referenced);
+            let index_content_unknown = gsi_content_unknown || lsi_content_unknown;
+
+            // Compare the two sets: emit one diagnostic per table when they differ.
+            let missing: BTreeSet<&str> =
+                referenced.iter().filter(|r| !defined.contains(r.as_str())).map(|s| s.as_str()).collect();
+            let unused: BTreeSet<&str> = if index_content_unknown {
+                // An unknown index could reference any defined attribute, so
+                // unused definitions cannot be determined.
+                BTreeSet::new()
+            } else {
+                defined.iter().filter(|d| !referenced.contains(d.as_str())).map(|s| s.as_str()).collect()
+            };
+            if !missing.is_empty() || !unused.is_empty() {
+                let mut parts: Vec<String> = Vec::new();
+                if !missing.is_empty() {
+                    parts.push(format!(
+                        "missing definitions: [{}]",
+                        missing.iter().copied().collect::<Vec<_>>().join(", ")
                     ));
                 }
+                if !unused.is_empty() {
+                    parts.push(format!(
+                        "unused definitions: [{}]",
+                        unused.iter().copied().collect::<Vec<_>>().join(", ")
+                    ));
+                }
+                let message = format!("AttributeDefinitions does not match KeySchema attributes. {}", parts.join("; "));
+                out.push(make_resource_diagnostic("E3039", &message, m, name, KEY_PROPERTIES, None));
             }
         }
     }
@@ -772,22 +990,6 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                     Some("Set TargetOriginId to match one of the Origin Ids defined in Origins"),
                 ));
             }
-        }
-    }
-
-    for name in m.resources_of_type("AWS::IAM::Policy") {
-        if let Some(doc) = resolve_concrete(m, name, "Properties.PolicyDocument")
-            && doc.is_object()
-            && doc.get("Statement").is_none()
-        {
-            out.push(make_resource_diagnostic(
-                "E3510",
-                "IAM identity policy must have a Statement property",
-                m,
-                name,
-                "Properties.PolicyDocument",
-                Some("Add a Statement array to the PolicyDocument"),
-            ));
         }
     }
 
@@ -1041,29 +1243,15 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    let srta = m.resources_of_type("AWS::EC2::SubnetRouteTableAssociation");
-    for (i, a) in srta.iter().enumerate() {
-        for b in srta.iter().skip(i + 1) {
-            let a_sub = resolve_concrete(m, a, "Properties.SubnetId");
-            let b_sub = resolve_concrete(m, b, "Properties.SubnetId");
-            if a_sub.is_some()
-                && a_sub == b_sub
-                && !crate::functions::contains_unresolvable_content(
-                    &m.resolve_deep(a, "Properties.SubnetId")
-                        .or_else(|| m.resolve(a, "Properties.SubnetId").cloned())
-                        .unwrap_or(ResolvedValue::Dynamic { reason: "".into() }),
-                )
-            {
-                out.push(make_resource_diagnostic(
-                    "E3022",
-                    "Subnet has multiple SubnetRouteTableAssociations - only one is allowed",
-                    m,
-                    a,
-                    "Properties.SubnetId",
-                    None,
-                ));
-            }
-        }
+    for finding in duplicate_subnet_associations(m) {
+        out.push(make_resource_diagnostic(
+            "E3022",
+            &finding.message,
+            m,
+            &finding.resource_id,
+            "Properties.SubnetId",
+            Some("Associate each subnet with exactly one route table"),
+        ));
     }
 
     let creation_policy_types = [
@@ -2343,60 +2531,17 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     {
-        for (rtype, id_props) in &ctx.cached_data.primary_identifiers {
-            let resources: Vec<&String> = m.resources_of_type(rtype).iter().collect();
-            if resources.len() < 2 {
-                continue;
-            }
-            // Build each resource's primary-id scenarios as (tuple, assumptions),
-            // where assumptions includes the condition assignment that produces the
-            // tuple plus the resource's own Condition. Comparing per scenario (not a
-            // single lex-min collapse across all branches) is required because two
-            // resources only collide when a satisfiable deploy-time assignment
-            // gives them the same identifier simultaneously.
-            let mut per_resource: Vec<(&String, Vec<PrimaryIdScenario>)> = Vec::new();
-            for r in &resources {
-                let scenarios = primary_id_scenarios(m, r, id_props);
-                if !scenarios.is_empty() {
-                    per_resource.push((*r, scenarios));
-                }
-            }
-
-            // tuple -> ordered set of resources that can collide on it.
-            let mut conflicts: BTreeMap<Vec<String>, BTreeSet<String>> = BTreeMap::new();
-            for i in 0..per_resource.len() {
-                for j in (i + 1)..per_resource.len() {
-                    let (name_a, scenarios_a) = &per_resource[i];
-                    let (name_b, scenarios_b) = &per_resource[j];
-                    for sa in scenarios_a {
-                        for sb in scenarios_b {
-                            if sa.tuple != sb.tuple {
-                                continue;
-                            }
-                            // Both resources take this identical identifier only if
-                            // their producing condition assignments are jointly
-                            // satisfiable. Mutually exclusive branches never coexist.
-                            let mut assumptions = sa.assumptions.clone();
-                            assumptions.extend(sb.assumptions.iter().cloned());
-                            if m.conditions.is_satisfiable(&assumptions) {
-                                let entry = conflicts.entry(sa.tuple.clone()).or_default();
-                                entry.insert((*name_a).clone());
-                                entry.insert((*name_b).clone());
-                            }
-                        }
-                    }
-                }
-            }
-
-            for (tuple, names) in &conflicts {
-                let instance_repr = render_primary_id_dict(id_props, tuple);
-                let resources_repr = render_resource_set(names);
-                let path = if id_props.len() == 1 {
-                    format!("Properties.{}", id_props[0])
+        for (resource_type, identifier_properties) in &ctx.cached_data.primary_identifiers {
+            let conflicts = m.primary_identifier_conflicts(resource_type, identifier_properties);
+            for (tuple, resources) in &conflicts {
+                let instance_repr = render_primary_id_dict(identifier_properties, tuple);
+                let resources_repr = render_resource_set(resources);
+                let path = if identifier_properties.len() == 1 {
+                    format!("Properties.{}", identifier_properties[0])
                 } else {
                     KEY_PROPERTIES.to_string()
                 };
-                for rname in names {
+                for resource_id in resources {
                     out.push(make_resource_diagnostic(
                         "E3019",
                         &format!(
@@ -2404,7 +2549,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                             instance_repr, resources_repr
                         ),
                         m,
-                        rname,
+                        resource_id,
                         &path,
                         None,
                     ));
@@ -3783,6 +3928,220 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
+    // Validate ECS Fargate tasks have required properties and values.
+    // Each property scenario is paired with a compatible Fargate scenario so
+    // values from mutually exclusive EC2 deployments cannot create findings.
+    {
+        const FARGATE_SUPPORTED_LOG_DRIVERS: &[&str] = &["awslogs", "splunk", "awsfirelens"];
+
+        for name in m.resources_of_type("AWS::ECS::TaskDefinition") {
+            let fargate_scenarios = fargate_condition_scenarios(m, name);
+            if fargate_scenarios.is_empty() {
+                continue;
+            }
+
+            let properties_scenarios = m.resolve_properties_scenarios(name);
+            let property_can_be_missing = |property_name: &str| {
+                properties_scenarios.iter().any(|(properties, conditions)| {
+                    !scenario_has_effective_property(properties, property_name)
+                        && scenario_overlaps_any(m, name, conditions, &fargate_scenarios)
+                })
+            };
+
+            let network_mode_scenarios = m.resolve_scenarios_json(name, "Properties.NetworkMode");
+            let network_mode_can_be_missing = property_can_be_missing("NetworkMode");
+            if network_mode_can_be_missing {
+                out.push(make_resource_diagnostic(
+                    "E3048",
+                    "Fargate requires NetworkMode to be specified as 'awsvpc'",
+                    m,
+                    name,
+                    KEY_PROPERTIES,
+                    Some("Set NetworkMode to 'awsvpc'"),
+                ));
+            }
+            let mut invalid_network_modes = HashSet::new();
+            for (value, conditions) in &network_mode_scenarios {
+                if let Some(network_mode) = value.as_str()
+                    && network_mode != "awsvpc"
+                    && scenario_overlaps_any(m, name, conditions, &fargate_scenarios)
+                    && invalid_network_modes.insert(network_mode.to_string())
+                {
+                    out.push(make_resource_diagnostic(
+                        "E3048",
+                        &format!("Fargate requires NetworkMode 'awsvpc', got '{}'", network_mode),
+                        m,
+                        name,
+                        "Properties.NetworkMode",
+                        Some("Set NetworkMode to 'awsvpc'"),
+                    ));
+                }
+            }
+
+            let cpu_scenarios = m.resolve_scenarios_json(name, "Properties.Cpu");
+            let cpu_can_be_missing = property_can_be_missing("Cpu");
+            if cpu_can_be_missing {
+                out.push(make_resource_diagnostic(
+                    "E3048",
+                    "Fargate requires Cpu to be specified",
+                    m,
+                    name,
+                    KEY_PROPERTIES,
+                    Some("Set Cpu to a valid Fargate value (256, 512, 1024, 2048, 4096, 8192, 16384, or 32768)"),
+                ));
+            }
+            let mut invalid_cpu_values = HashSet::new();
+            for (value, conditions) in &cpu_scenarios {
+                if scenario_overlaps_any(m, name, conditions, &fargate_scenarios)
+                    && matches!(cpu_is_offered(value), Some(false))
+                {
+                    let rendered = render_value(value);
+                    if invalid_cpu_values.insert(rendered.clone()) {
+                        out.push(make_resource_diagnostic(
+                            "E3048",
+                            &format!(
+                                "Fargate Cpu value {} is not valid. Must be one of {}",
+                                rendered,
+                                render_str_list(CPU_UNIT_LABELS),
+                            ),
+                            m,
+                            name,
+                            "Properties.Cpu",
+                            Some("Use a valid Fargate Cpu value (256, 512, 1024, 2048, 4096, 8192, 16384, or 32768)"),
+                        ));
+                    }
+                }
+            }
+
+            let memory_can_be_missing = property_can_be_missing("Memory");
+            if memory_can_be_missing {
+                out.push(make_resource_diagnostic(
+                    "E3048",
+                    "Fargate requires Memory to be specified",
+                    m,
+                    name,
+                    KEY_PROPERTIES,
+                    Some("Set Memory to a valid Fargate value"),
+                ));
+            }
+
+            let placement_is_unsupported = properties_scenarios.iter().any(|(properties, conditions)| {
+                scenario_has_effective_property(properties, "PlacementConstraints")
+                    && scenario_overlaps_any(m, name, conditions, &fargate_scenarios)
+            });
+            if placement_is_unsupported {
+                out.push(make_resource_diagnostic(
+                    "E3048",
+                    "Fargate does not support PlacementConstraints",
+                    m,
+                    name,
+                    "Properties.PlacementConstraints",
+                    Some("Remove PlacementConstraints for Fargate tasks"),
+                ));
+            }
+
+            // Expanding the whole list preserves both condition branches even
+            // when `ContainerDefinitions` itself is wrapped in `Fn::If`; every
+            // returned scenario is concrete enough to inspect by index.
+            let mut reported_drivers: HashSet<(usize, String)> = HashSet::new();
+            for (container_value, container_conditions) in
+                m.resolve_scenarios_json(name, "Properties.ContainerDefinitions")
+            {
+                if !scenario_overlaps_any(m, name, &container_conditions, &fargate_scenarios) {
+                    continue;
+                }
+                let Some(container_definitions) = container_value.as_array() else {
+                    continue;
+                };
+                for (container_index, container_definition) in container_definitions.iter().enumerate() {
+                    let Some(driver) = container_definition
+                        .get("LogConfiguration")
+                        .and_then(|configuration| configuration.get("LogDriver"))
+                        .and_then(serde_json::Value::as_str)
+                    else {
+                        continue;
+                    };
+                    if FARGATE_SUPPORTED_LOG_DRIVERS.contains(&driver)
+                        || !reported_drivers.insert((container_index, driver.to_string()))
+                    {
+                        continue;
+                    }
+                    let driver_path =
+                        format!("Properties.ContainerDefinitions.{container_index}.LogConfiguration.LogDriver");
+                    out.push(make_resource_diagnostic(
+                        "E3048",
+                        &format!(
+                            "Fargate does not support log driver '{}'. Supported drivers: {}",
+                            driver,
+                            render_str_list(FARGATE_SUPPORTED_LOG_DRIVERS),
+                        ),
+                        m,
+                        name,
+                        &driver_path,
+                        Some("Use 'awslogs', 'splunk', or 'awsfirelens'"),
+                    ));
+                }
+            }
+        }
+    }
+
+    // DynamoDB defaults an absent or removed BillingMode to PROVISIONED.
+    // A finding is emitted when any reachable PROVISIONED/default scenario
+    // overlaps a scenario where ProvisionedThroughput is absent or removed.
+    for name in m.resources_of_type("AWS::DynamoDB::Table") {
+        let billing_mode_value = m
+            .resolve_deep(name, "Properties.BillingMode")
+            .or_else(|| m.resolve(name, "Properties.BillingMode").cloned());
+        let billing_mode_scenarios = m.resolve_scenarios_json(name, "Properties.BillingMode");
+        let throughput_value = m
+            .resolve_deep(name, "Properties.ProvisionedThroughput")
+            .or_else(|| m.resolve(name, "Properties.ProvisionedThroughput").cloned());
+        let throughput_scenarios = m.resolve_scenarios_json(name, "Properties.ProvisionedThroughput");
+        let throughput_is_missing = |billing_conditions: &HashMap<String, bool>| {
+            throughput_value.is_none()
+                || throughput_scenarios.iter().any(|(value, throughput_conditions)| {
+                    value.is_null() && scenario_conditions_overlap(m, name, billing_conditions, throughput_conditions)
+                })
+        };
+
+        let explicit_provisioned_is_missing_throughput =
+            billing_mode_scenarios.iter().any(|(value, billing_conditions)| {
+                value.as_str() == Some("PROVISIONED")
+                    && scenario_is_reachable(m, name, billing_conditions)
+                    && throughput_is_missing(billing_conditions)
+            });
+        if explicit_provisioned_is_missing_throughput {
+            out.push(make_resource_diagnostic(
+                "E3639",
+                "ProvisionedThroughput is required when BillingMode is 'PROVISIONED'",
+                m,
+                name,
+                "Properties.ProvisionedThroughput",
+                Some("Add ProvisionedThroughput or set BillingMode to 'PAY_PER_REQUEST'"),
+            ));
+        }
+
+        let absent_billing_mode_defaults_to_provisioned = billing_mode_value.is_none()
+            && scenario_is_reachable(m, name, &HashMap::new())
+            && throughput_is_missing(&HashMap::new());
+        let removed_billing_mode_defaults_to_provisioned =
+            billing_mode_scenarios.iter().any(|(value, billing_conditions)| {
+                value.is_null()
+                    && scenario_is_reachable(m, name, billing_conditions)
+                    && throughput_is_missing(billing_conditions)
+            });
+        if absent_billing_mode_defaults_to_provisioned || removed_billing_mode_defaults_to_provisioned {
+            out.push(make_resource_diagnostic(
+                "E3639",
+                "ProvisionedThroughput is required when BillingMode defaults to 'PROVISIONED'",
+                m,
+                name,
+                "Properties.ProvisionedThroughput",
+                Some("Add ProvisionedThroughput or set BillingMode to 'PAY_PER_REQUEST'"),
+            ));
+        }
+    }
+
     out
 }
 
@@ -3935,78 +4294,6 @@ fn render_primary_id_dict(props: &[String], values: &[String]) -> String {
 fn render_resource_set(names: &BTreeSet<String>) -> String {
     let quoted: Vec<String> = names.iter().map(|n| format!("'{}'", n)).collect();
     format!("{{{}}}", quoted.join(", "))
-}
-
-/// needed to detect primary-identifier duplication across templates that
-/// switch the identifier on a condition (e.g. `!If [cond, "x", !Ref AWS::NoValue]`).
-/// One way a resource's primary-identifier tuple can resolve, paired with the
-/// condition assignment (`assumptions`) that produces it. Used by the
-/// duplicate-identifier check to test whether two resources can share an
-/// identifier in a satisfiable deployment.
-struct PrimaryIdScenario {
-    tuple: Vec<String>,
-    assumptions: Vec<(String, bool)>,
-}
-
-fn scenario_value_to_string(v: &serde_json::Value) -> Option<String> {
-    if v.is_null() {
-        return None;
-    }
-    Some(match v {
-        serde_json::Value::String(s) => s.clone(),
-        other => other.to_string(),
-    })
-}
-
-/// Enumerate a resource's primary-identifier scenarios. Each property's
-/// `(value, condition_map)` scenarios are combined across all identifier
-/// properties; a scenario is kept only when every property resolves to a
-/// concrete value and the merged condition assignments are mutually consistent.
-/// The resource's own `Condition` (if any) is folded into every scenario.
-fn primary_id_scenarios(m: &Arc<SemanticModel>, rid: &str, id_props: &[String]) -> Vec<PrimaryIdScenario> {
-    let base_assumptions: Vec<(String, bool)> = match m.resources.get(rid).and_then(|r| r.condition.as_deref()) {
-        Some(cond) => vec![(cond.to_string(), true)],
-        None => Vec::new(),
-    };
-    let mut scenarios =
-        vec![PrimaryIdScenario { tuple: Vec::with_capacity(id_props.len()), assumptions: base_assumptions }];
-    for prop in id_props {
-        let path = format!("Properties.{}", prop);
-        let prop_scenarios = m.resolve_scenarios_json(rid, &path);
-        let mut next = Vec::new();
-        for existing in &scenarios {
-            for (value, cond_map) in &prop_scenarios {
-                let Some(val_str) = scenario_value_to_string(value) else {
-                    continue;
-                };
-                let mut assumptions = existing.assumptions.clone();
-                let mut consistent = true;
-                for (cond, truth) in cond_map {
-                    if let Some((_, prior)) = assumptions.iter().find(|(c, _)| c == cond) {
-                        if prior != truth {
-                            consistent = false;
-                            break;
-                        }
-                    } else {
-                        assumptions.push((cond.clone(), *truth));
-                    }
-                }
-                if !consistent {
-                    continue;
-                }
-                let mut tuple = existing.tuple.clone();
-                tuple.push(val_str);
-                next.push(PrimaryIdScenario { tuple, assumptions });
-            }
-        }
-        scenarios = next;
-        if scenarios.is_empty() {
-            break;
-        }
-    }
-    // Keep only scenarios with a complete tuple and a satisfiable assignment.
-    scenarios.retain(|s| s.tuple.len() == id_props.len() && m.conditions.is_satisfiable(&s.assumptions));
-    scenarios
 }
 
 /// First scalar (string/number/bool) value that repeats in the array, formatted
@@ -4290,58 +4577,6 @@ fn is_subnet_of(sub: Ipv4Cidr, vpc: Ipv4Cidr) -> bool {
     } // subnet prefix must be >= vpc prefix (smaller or equal network)
     let vpc_mask = if vpc.1 == 0 { 0 } else { !0u32 << (32 - vpc.1) };
     (sub.0 & vpc_mask) == vpc.0
-}
-
-fn check_iam_statements(
-    out: &mut Vec<Diagnostic>,
-    m: &Arc<SemanticModel>,
-    name: &str,
-    doc: &serde_json::Value,
-    path: &str,
-) {
-    if let Some(stmts) = doc.get("Statement").and_then(|s| s.as_array()) {
-        for stmt in stmts {
-            if !stmt.is_object() {
-                continue;
-            }
-
-            if stmt.get("Effect").is_none() {
-                out.push(make_resource_diagnostic(
-                    "W3515",
-                    "IAM policy statement is missing required 'Effect' property",
-                    m,
-                    name,
-                    path,
-                    Some("Add Effect: Allow or Effect: Deny to the statement"),
-                ));
-            }
-
-            if let Some(effect) = stmt.get("Effect").and_then(|e| e.as_str())
-                && effect != "Allow"
-                && effect != "Deny"
-            {
-                out.push(make_resource_diagnostic(
-                    "E3514",
-                    &format!("IAM policy statement Effect must be 'Allow' or 'Deny', got '{}'", effect),
-                    m,
-                    name,
-                    path,
-                    Some("Set Effect to 'Allow' or 'Deny'"),
-                ));
-            }
-
-            if stmt.get("Action").is_none() && stmt.get("NotAction").is_none() {
-                out.push(make_resource_diagnostic(
-                    "E9005",
-                    "IAM policy statement must have 'Action' or 'NotAction'",
-                    m,
-                    name,
-                    path,
-                    Some("Add an Action or NotAction to the statement"),
-                ));
-            }
-        }
-    }
 }
 
 fn check_dynamic_ref_spaces(
