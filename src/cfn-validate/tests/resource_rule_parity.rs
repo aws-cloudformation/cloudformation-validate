@@ -475,6 +475,250 @@ Resources:
 }
 
 #[test]
+fn conditional_fargate_logdriver_checks_all_branches() {
+    let template = r#"
+Conditions:
+  UseSyslog: !Equals [!Ref AWS::Region, us-east-1]
+Resources:
+  ConditionalBadDriver:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: '256'
+      Memory: '512'
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true
+          LogConfiguration:
+            LogDriver: !If [UseSyslog, syslog, awslogs]
+  ConditionalGoodDrivers:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: '256'
+      Memory: '512'
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true
+          LogConfiguration:
+            LogDriver: !If [UseSyslog, awslogs, splunk]
+  CorrelatedFargateEc2LogDriver:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      RequiresCompatibilities: !If [UseSyslog, [FARGATE], [EC2]]
+      NetworkMode: !If [UseSyslog, awsvpc, bridge]
+      Cpu: '256'
+      Memory: '512'
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true
+          LogConfiguration:
+            LogDriver: !If [UseSyslog, awslogs, syslog]
+"#;
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E3048"]);
+    let cel_findings = selected_findings(&cel, template, &["E3048"]);
+    assert_eq!(rego_findings, cel_findings);
+    // Only ConditionalBadDriver should fire (syslog branch is invalid for Fargate).
+    // ConditionalGoodDrivers: both branches valid. CorrelatedFargateEc2LogDriver:
+    // syslog is in the EC2 branch which is not reachable under a Fargate scenario.
+    assert_eq!(rego_findings.len(), 1, "only the syslog branch in Fargate should fire: {rego_findings:?}");
+    assert!(rego_findings[0].contains("syslog"));
+    assert!(rego_findings[0].contains("ConditionalBadDriver"));
+}
+
+#[test]
+fn conditional_fargate_logdriver_checks_second_container_list_branch() {
+    let template = r#"
+Conditions:
+  UseFirst: !Equals [!Ref AWS::Region, us-east-1]
+Resources:
+  ConditionalContainerList:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: '256'
+      Memory: '512'
+      ContainerDefinitions: !If
+        - UseFirst
+        - - Name: valid
+            Image: nginx
+            Essential: true
+            LogConfiguration:
+              LogDriver: awslogs
+        - - Name: invalid
+            Image: nginx
+            Essential: true
+            LogConfiguration:
+              LogDriver: syslog
+"#;
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E3048"]);
+    let cel_findings = selected_findings(&cel, template, &["E3048"]);
+    assert_eq!(rego_findings, cel_findings);
+    assert_eq!(rego_findings.len(), 1, "the invalid second list branch must be checked: {rego_findings:?}");
+    assert!(rego_findings[0].contains("syslog"));
+}
+
+#[test]
+fn conditional_fargate_logdriver_deduplicates_identical_findings() {
+    let template = r#"
+Conditions:
+  CFirst: !Equals [!Ref AWS::Region, us-east-1]
+  CSecond: !Equals [!Ref AWS::Region, us-west-2]
+Resources:
+  MultiConditionBadDriver:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: '256'
+      Memory: '512'
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true
+          LogConfiguration:
+            LogDriver: syslog
+"#;
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E3048"]);
+    let cel_findings = selected_findings(&cel, template, &["E3048"]);
+    assert_eq!(rego_findings, cel_findings);
+    // Only one finding even though unconditional Fargate means the finding
+    // is reachable under every world.
+    let logdriver_findings: Vec<_> = rego_findings.iter().filter(|f| f.contains("log driver")).collect();
+    assert_eq!(logdriver_findings.len(), 1, "should deduplicate: {logdriver_findings:?}");
+}
+
+#[test]
+fn dynamodb_conditional_index_reports_missing_definitions() {
+    let template = r#"
+Parameters:
+  AddGSI:
+    Type: String
+Conditions:
+  CreateGSI: !Equals [!Ref AddGSI, "true"]
+Resources:
+  TableWithConditionalGSI:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: gsi_pk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+        - AttributeName: missing_sk
+          KeyType: RANGE
+      GlobalSecondaryIndexes: !If
+        - CreateGSI
+        - - IndexName: gsi1
+            KeySchema:
+              - AttributeName: gsi_pk
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+        - !Ref AWS::NoValue
+"#;
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E3039"]);
+    let cel_findings = selected_findings(&cel, template, &["E3039"]);
+    assert_eq!(rego_findings, cel_findings);
+    // missing_sk is in table KeySchema but not in AttributeDefinitions — always wrong.
+    assert_eq!(rego_findings.len(), 1, "Expected missing definition finding: {rego_findings:?}");
+    assert!(rego_findings[0].contains("missing definitions: [missing_sk]"));
+    // gsi_pk should NOT be reported as unused because the conditional index could use it.
+    assert!(!rego_findings[0].contains("unused"), "unused must be suppressed: {rego_findings:?}");
+}
+
+#[test]
+fn dynamodb_conditional_index_false_branch_reports_missing_definition() {
+    let template = r#"
+Parameters:
+  AddGSI:
+    Type: String
+Conditions:
+  CreateGSI: !Equals [!Ref AddGSI, "true"]
+Resources:
+  TableWithConditionalGSI:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+      GlobalSecondaryIndexes: !If
+        - CreateGSI
+        - !Ref AWS::NoValue
+        - - IndexName: gsi1
+            KeySchema:
+              - AttributeName: missing_gsi_pk
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+"#;
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E3039"]);
+    let cel_findings = selected_findings(&cel, template, &["E3039"]);
+    assert_eq!(rego_findings, cel_findings);
+    assert_eq!(rego_findings.len(), 1, "Expected missing definition finding: {rego_findings:?}");
+    assert!(rego_findings[0].contains("missing definitions: [missing_gsi_pk]"));
+}
+
+#[test]
+fn dynamodb_conditional_index_no_false_positive_when_valid() {
+    let template = r#"
+Parameters:
+  AddGSI:
+    Type: String
+Conditions:
+  CreateGSI: !Equals [!Ref AddGSI, "true"]
+Resources:
+  ValidTableWithConditionalGSI:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: gsi_pk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+      GlobalSecondaryIndexes: !If
+        - CreateGSI
+        - - IndexName: gsi1
+            KeySchema:
+              - AttributeName: gsi_pk
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+        - !Ref AWS::NoValue
+"#;
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E3039"]);
+    let cel_findings = selected_findings(&cel, template, &["E3039"]);
+    assert_eq!(rego_findings, cel_findings);
+    // Table KeySchema only uses pk (defined), gsi_pk is for the conditional index.
+    // No missing and no unused (index might use gsi_pk).
+    assert!(rego_findings.is_empty(), "Valid table should not fire: {rego_findings:?}");
+}
+
+#[test]
 fn identity_policy_id_is_rejected_regardless_of_scalar_type() {
     let template = r#"
 Resources:
@@ -508,6 +752,84 @@ Resources:
             .iter()
             .all(|finding| finding.contains("Additional properties are not allowed ('Id' was unexpected)"))
     );
+}
+
+#[test]
+fn identity_policy_conditional_and_intrinsic_sibling_findings_are_identical() {
+    let template = r#"
+Parameters:
+  ResourceArn:
+    Type: String
+Conditions:
+  UseValid: !Equals [!Ref AWS::Region, us-east-1]
+Resources:
+  ConditionalPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Action: s3:GetObject
+            Resource: !If [UseValid, "arn:aws:s3:::bucket/*", "not-an-arn"]
+  SiblingPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Action: s3:GetObject
+            Resource:
+              - !Ref ResourceArn
+              - also-not-an-arn
+"#;
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E3510"]);
+    let cel_findings = selected_findings(&cel, template, &["E3510"]);
+
+    assert_eq!(rego_findings, cel_findings);
+    assert_eq!(rego_findings.len(), 2, "both authored invalid branches must be reported: {rego_findings:?}");
+    assert!(
+        rego_findings.iter().any(|finding| finding.contains("ConditionalPolicy") && finding.contains("not-an-arn"))
+    );
+    assert!(
+        rego_findings.iter().any(|finding| {
+            finding.contains("SiblingPolicy")
+                && finding.contains("Properties.PolicyDocument.Statement.0.Resource.1")
+                && finding.contains("also-not-an-arn")
+        }),
+        "the intrinsic list item must not suppress its literal sibling: {rego_findings:?}"
+    );
+}
+
+#[test]
+fn identity_policy_resource_arn_boundaries_are_identical() {
+    let template = r#"
+Resources:
+  InvalidResources:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - {Effect: Allow, Action: s3:GetObject, Resource: 'not-an-arn-${aws:username}'}
+          - {Effect: Allow, Action: s3:GetObject, Resource: 'arn:*:s3:::bucket/key'}
+          - {Effect: Allow, Action: s3:GetObject, Resource: 'arn:aws:*:::bucket/key'}
+          - {Effect: Allow, Action: s3:GetObject, Resource: 'arn:aws:s3:us-east-1:${aws:username}:bucket/key'}
+  ValidResources:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - {Effect: Allow, Action: sqs:SendMessage, Resource: 'arn:aws:sqs'}
+          - {Effect: Allow, Action: iam:GetUser, Resource: 'arn:${AWS::Partition}:iam::${AWS::AccountId}:user/${aws:username}'}
+          - {Effect: Allow, Action: s3:GetObject, Resource: '*'}
+"#;
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E3510"]);
+    let cel_findings = selected_findings(&cel, template, &["E3510"]);
+
+    assert_eq!(rego_findings, cel_findings);
+    assert_eq!(rego_findings.len(), 4, "only the four malformed resource strings should fail: {rego_findings:?}");
+    assert!(rego_findings.iter().all(|finding| finding.contains("InvalidResources")));
 }
 
 #[test]

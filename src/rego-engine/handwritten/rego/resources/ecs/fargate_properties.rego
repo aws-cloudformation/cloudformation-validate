@@ -99,19 +99,27 @@ violation contains make_diag_full("E3048", "ERROR", name,
 }
 
 violation contains make_diag_full("E3048", "ERROR", name,
-    sprintf("Properties.ContainerDefinitions.%v.LogConfiguration.LogDriver", [container_index]),
-    sprintf("Fargate does not support log driver '%s'. Supported drivers: %s", [driver, _fargate_log_drivers_str]),
+    sprintf("Properties.ContainerDefinitions.%v.LogConfiguration.LogDriver", [driver_scenario.path_index]),
+    sprintf("Fargate does not support log driver '%s'. Supported drivers: %s", [driver_scenario.value, _fargate_log_drivers_str]),
     "Use 'awslogs', 'splunk', or 'awsfirelens'",
     "") if {
     some name in resources_of_type("AWS::ECS::TaskDefinition")
-    _is_fargate(name)
-    container_definitions := resolve(name, "Properties.ContainerDefinitions")
-    is_array(container_definitions)
-    some container_index, container_definition in container_definitions
-    log_configuration := container_definition.LogConfiguration
-    driver := log_configuration.LogDriver
+    some driver_scenario in _fargate_invalid_log_drivers(name)
+}
+
+# Collect unique invalid log drivers across every concrete container-list
+# scenario compatible with a Fargate compatibility scenario. Resolving the
+# whole list covers both a conditional list and conditionals nested within it.
+_fargate_invalid_log_drivers(name) := {scenario |
+    some compatibility_scenario in _fargate_compatibility_scenarios(name)
+    some container_scenario in resolve_scenarios(name, "Properties.ContainerDefinitions")
+    is_array(container_scenario.value)
+    _scenario_conditions_compatible(name, compatibility_scenario.conditions, container_scenario.conditions)
+    some container_index, container in container_scenario.value
+    driver := container.LogConfiguration.LogDriver
     is_string(driver)
     not driver in _fargate_supported_log_drivers
+    scenario := {"path_index": container_index, "value": driver}
 }
 
 _fargate_placement_declared(name) if {

@@ -15,8 +15,13 @@
 //! `substituted` set so they suppress only checks depending on their
 //! generated value.
 
-use crate::consts::{MARKER_CONDITIONAL, MARKER_DYNAMIC, MARKER_ENUM, MARKER_INTRINSIC, MARKER_REF};
+use crate::conditions::Satisfiability;
+use crate::consts::{
+    MARKER_CONDITIONAL, MARKER_DYNAMIC, MARKER_ENUM, MARKER_IF_FALSE, MARKER_IF_TRUE, MARKER_INTRINSIC, MARKER_REF,
+};
 use crate::message::render_str_list;
+use crate::model::SemanticModel;
+use crate::serialization::resolved_value_to_json;
 use serde_json::Value;
 use std::collections::HashSet;
 
@@ -36,8 +41,8 @@ const IDENTITY_STATEMENT_KEYS: &[&str] =
     &["Action", "Condition", "Effect", "NotAction", "NotResource", "Resource", "Sid"];
 
 /// The ARN shape IAM accepts in a `Resource`/`NotResource` entry: a full ARN
-/// (with wildcards) or the lone `*`.
-const RESOURCE_ARN_PATTERN: &str = "^(arn:(aws[A-Za-z\\-]*?|\\*):[^:]+:[^:]*(:(?:\\d{12}|\\*|aws)?:.+|)|\\*)$";
+/// or the lone `*`. IAM prohibits wildcard partition and wildcard service.
+const RESOURCE_ARN_PATTERN: &str = "^(arn:aws[A-Za-z\\-]*:[^:*]+:[^:]*(:(?:\\d{12}|\\*|aws)?:.+|)|\\*)$";
 
 const CONDITION_OPERATORS: &[&str] = &[
     "ArnEquals",
@@ -73,33 +78,116 @@ fn resource_arn_matches(value: &str) -> bool {
     if value == "*" {
         return true;
     }
-    let mut parts = value.splitn(6, ':');
-    if parts.next() != Some("arn") {
-        return false;
-    }
-    let Some(partition) = parts.next() else {
+    let Some(fields) = split_arn_fields(value) else {
         return false;
     };
-    if partition != "*"
-        && (!partition.starts_with("aws")
-            || !partition.chars().all(|character| character.is_ascii_alphabetic() || character == '-'))
+    if fields.len() < 3 || fields[0] != "arn" {
+        return false;
+    }
+    if !arn_partition_is_valid(&fields[1]) || !arn_service_is_valid(&fields[2]) {
+        return false;
+    }
+
+    // IAM policy variables are expanded by IAM and are permitted only in the
+    // resource-identifying portion. CloudFormation placeholders such as
+    // `${AWS::Partition}` and `${AWS::AccountId}` remain valid in ARN fields.
+    if fields.iter().take(5).any(|field| field_has_iam_policy_variable(field)) {
+        return false;
+    }
+
+    if let Some(account) = fields.get(4)
+        && !account.is_empty()
+        && account != "*"
+        && account != "aws"
+        && !field_has_placeholder(account)
+        && !(account.len() == 12 && account.bytes().all(|byte| byte.is_ascii_digit()))
     {
         return false;
     }
-    if parts.next().is_none_or(str::is_empty) || parts.next().is_none() {
+    fields.get(5).is_none_or(|resource| !resource.is_empty())
+}
+
+/// Splits an ARN on colons outside `${...}` placeholders. IAM accepts
+/// incomplete ARNs (for example `arn:aws:sqs`) and wildcard-completes omitted
+/// trailing fields, so only the partition and service fields are mandatory.
+fn split_arn_fields(value: &str) -> Option<Vec<String>> {
+    let mut fields = Vec::new();
+    let mut current = String::new();
+    let mut chars = value.chars().peekable();
+    let mut in_placeholder = false;
+    while let Some(character) = chars.next() {
+        if character == '$' && chars.peek() == Some(&'{') {
+            in_placeholder = true;
+            current.push(character);
+        } else if character == '}' && in_placeholder {
+            in_placeholder = false;
+            current.push(character);
+        } else if character == ':' && !in_placeholder {
+            fields.push(std::mem::take(&mut current));
+        } else {
+            current.push(character);
+        }
+    }
+    if in_placeholder {
+        return None;
+    }
+    fields.push(current);
+    Some(fields)
+}
+
+fn field_has_placeholder(field: &str) -> bool {
+    field.contains("${")
+}
+
+fn field_has_iam_policy_variable(field: &str) -> bool {
+    let mut remaining = field;
+    while let Some(start) = remaining.find("${") {
+        let content = &remaining[start + 2..];
+        let Some(end) = content.find('}') else {
+            return true;
+        };
+        let name = &content[..end];
+        if name.contains(':') && !name.starts_with("AWS::") {
+            return true;
+        }
+        remaining = &content[end + 1..];
+    }
+    false
+}
+
+fn field_without_placeholders(field: &str) -> Option<String> {
+    let mut output = String::new();
+    let mut remaining = field;
+    while let Some(start) = remaining.find("${") {
+        output.push_str(&remaining[..start]);
+        let content = &remaining[start + 2..];
+        let end = content.find('}')?;
+        remaining = &content[end + 1..];
+    }
+    output.push_str(remaining);
+    Some(output)
+}
+
+fn arn_partition_is_valid(partition: &str) -> bool {
+    if partition.contains(['*', '?']) || field_has_iam_policy_variable(partition) {
         return false;
     }
-    let Some(account) = parts.next() else {
-        return true;
-    };
-    let Some(resource) = parts.next() else {
+    let Some(literal) = field_without_placeholders(partition) else {
         return false;
     };
-    (account.is_empty()
-        || account == "*"
-        || account == "aws"
-        || (account.len() == 12 && account.bytes().all(|byte| byte.is_ascii_digit())))
-        && !resource.is_empty()
+    (literal.is_empty() && field_has_placeholder(partition))
+        || (literal.starts_with("aws")
+            && literal.chars().all(|character| character.is_ascii_alphabetic() || character == '-'))
+}
+
+fn arn_service_is_valid(service: &str) -> bool {
+    if service.contains(['*', '?']) || field_has_iam_policy_variable(service) {
+        return false;
+    }
+    let Some(literal) = field_without_placeholders(service) else {
+        return false;
+    };
+    !literal.is_empty() || field_has_placeholder(service)
 }
 
 fn condition_operator_is_valid(operator: &str) -> bool {
@@ -125,6 +213,11 @@ impl<'a> SubstitutedPathIndex<'a> {
 
     /// Whether `path` is equal to, an ancestor of, or a descendant of an
     /// indexed path, with dots treated as component boundaries.
+    ///
+    /// A descendant only suppresses the ancestor when the immediate next path
+    /// component is non-numeric (an intrinsic like `Fn::Join`). A numeric
+    /// descendant (a list item index) means only that one array element was
+    /// generated — it must not suppress the entire list or its other items.
     fn covers(&self, path: &str) -> bool {
         if self.paths.contains("") || self.paths.contains(path) {
             return true;
@@ -142,9 +235,22 @@ impl<'a> SubstitutedPathIndex<'a> {
                 .strip_prefix(path)
                 .map_or(*candidate < path, |suffix| suffix.as_bytes().first().is_none_or(|first| *first < b'.'))
         });
-        self.sorted_paths
-            .get(descendant_index)
-            .is_some_and(|candidate| candidate.strip_prefix(path).is_some_and(|suffix| suffix.starts_with('.')))
+        self.sorted_paths.get(descendant_index).is_some_and(|candidate| {
+            candidate.strip_prefix(path).is_some_and(|suffix| {
+                // The suffix starts with '.'; the component after the dot
+                // determines whether the descendant generated the ancestor's
+                // scalar value or is merely one item of the ancestor's array.
+                // Only non-numeric components (intrinsic names like `Fn::Join`)
+                // indicate the ancestor was generated.
+                if !suffix.starts_with('.') {
+                    return false;
+                }
+                let next_component = &suffix[1..];
+                let component_end = next_component.find('.').unwrap_or(next_component.len());
+                let first_component = &next_component[..component_end];
+                !first_component.bytes().all(|byte| byte.is_ascii_digit())
+            })
+        })
     }
 }
 
@@ -255,6 +361,62 @@ pub fn validate_identity_policy(doc: &Value, substituted: &HashSet<String>) -> V
     out
 }
 
+/// Validates every proven-reachable scenario of one identity-policy document.
+/// Raw scenarios retain dynamic marker subtrees, allowing literal siblings to
+/// be checked without judging deployment-time values. Findings produced from an
+/// intrinsic-generated authored path are discarded per scenario, so an
+/// intrinsic in one conditional branch cannot suppress a literal sibling branch.
+pub fn validate_identity_policy_scenarios(
+    model: &SemanticModel,
+    resource_id: &str,
+    document_path: &str,
+) -> Vec<PolicyFinding> {
+    if model.scenario_budget_exhausted() {
+        return Vec::new();
+    }
+    let scenarios = model.resolve_scenarios(resource_id, document_path);
+    let mut findings = Vec::new();
+    let mut seen = HashSet::new();
+    let no_substitutions = HashSet::new();
+
+    for (document, conditions) in scenarios {
+        let mut assumptions: Vec<(String, bool)> =
+            conditions.iter().map(|(name, value)| (name.clone(), *value)).collect();
+        if let Some(resource_condition) =
+            model.resources.get(resource_id).and_then(|resource| resource.condition.as_ref())
+        {
+            match conditions.get(resource_condition) {
+                Some(false) => continue,
+                Some(true) => {}
+                None => assumptions.push((resource_condition.clone(), true)),
+            }
+        }
+        assumptions.sort_unstable();
+        if !assumptions.is_empty() && model.conditions.satisfiability(&assumptions) != Satisfiability::Satisfiable {
+            continue;
+        }
+
+        let document = resolved_value_to_json(&document);
+        for finding in validate_identity_policy(&document, &no_substitutions) {
+            let effective_path = if finding.path.is_empty() {
+                document_path.to_string()
+            } else {
+                format!("{document_path}.{}", finding.path)
+            };
+            let source_path = model
+                .scenario_source_path(resource_id, &effective_path, &conditions)
+                .unwrap_or_else(|| effective_path.clone());
+            if model.is_from_intrinsic(resource_id, &source_path) {
+                continue;
+            }
+            if seen.insert((finding.path.clone(), finding.message.clone())) {
+                findings.push(finding);
+            }
+        }
+    }
+    findings
+}
+
 fn validate_identity_statement(
     stmt: &Value,
     path: &str,
@@ -318,9 +480,14 @@ fn validate_identity_statement(
         }
     }
     for key in ["Resource", "NotResource"] {
-        if let Some(value) = obj.get(key)
-            && !is_resolution_marker(value)
-        {
+        if let Some(value) = obj.get(key) {
+            // Allow conditional markers through — the recursive validation of
+            // each branch happens inside check_resource_string_or_list.
+            let is_non_conditional_marker =
+                is_resolution_marker(value) && !value.as_object().is_some_and(|o| o.contains_key(MARKER_CONDITIONAL));
+            if is_non_conditional_marker {
+                continue;
+            }
             check_resource_string_or_list(value, &format!("{}.{}", path, key), substituted, out);
         }
     }
@@ -509,12 +676,36 @@ fn check_resource_string_or_list(
     if path_is_intrinsic_generated(path, substituted) {
         return;
     }
+    // Recurse into conditional branches so every reachable static value
+    // is validated — a conditional marker wrapping a Resource/NotResource
+    // field must not suppress validation of both branches entirely.
+    if let Some(obj) = value.as_object()
+        && obj.contains_key(MARKER_CONDITIONAL)
+    {
+        if let Some(if_true) = obj.get(MARKER_IF_TRUE) {
+            check_resource_string_or_list(if_true, path, substituted, out);
+        }
+        if let Some(if_false) = obj.get(MARKER_IF_FALSE) {
+            check_resource_string_or_list(if_false, path, substituted, out);
+        }
+        return;
+    }
+    if is_resolution_marker(value) {
+        return;
+    }
     match value {
         Value::String(resource) => check_resource_arn(resource, path, out),
         Value::Array(items) => {
             for (index, item) in items.iter().enumerate() {
                 let item_path = format!("{}.{}", path, index);
-                if is_resolution_marker(item) || path_is_intrinsic_generated(&item_path, substituted) {
+                if path_is_intrinsic_generated(&item_path, substituted) {
+                    continue;
+                }
+                if item.as_object().is_some_and(|object| object.contains_key(MARKER_CONDITIONAL)) {
+                    check_resource_string_or_list(item, &item_path, substituted, out);
+                    continue;
+                }
+                if is_resolution_marker(item) {
                     continue;
                 }
                 match item {
@@ -533,8 +724,9 @@ fn check_resource_string_or_list(
     }
 }
 
+/// Validates an ARN value from a Resource/NotResource field.
 fn check_resource_arn(resource: &str, path: &str, out: &mut Vec<PolicyFinding>) {
-    if resource.contains("${") || resource_arn_matches(resource) {
+    if resource_arn_matches(resource) {
         return;
     }
     out.push(PolicyFinding {
@@ -960,9 +1152,12 @@ mod tests {
         .collect();
         let index = SubstitutedPathIndex::new(&substituted);
 
-        assert!(index.covers("Statement.0.Action"));
+        // A numeric list descendant does NOT cover the parent array/scalar path.
+        assert!(!index.covers("Statement.0.Action"));
+        // Exact match and descendants of exact matches are still covered.
         assert!(index.covers("Statement.0.Action.0"));
         assert!(index.covers("Statement.0.Action.0.Value"));
+        // A non-numeric (intrinsic) descendant DOES cover the ancestor scalar.
         assert!(index.covers("Statement.0.Resource"));
         assert!(!index.covers("Statement.0.Condition"));
         assert!(!index.covers("Statement.0.Actionable"));
@@ -1017,5 +1212,315 @@ mod tests {
             "invalid Effect must still be reported when Action is dynamic: {:?}",
             found
         );
+    }
+
+    // --- Substituted numeric list descendant must not suppress literal siblings ---
+
+    /// A substituted item at a numeric list index must not suppress validation
+    /// of other literal items at sibling indices.
+    #[test]
+    fn substituted_numeric_list_descendant_does_not_suppress_literal_siblings() {
+        let doc = json!({"Statement": [{"Effect": "Allow", "Action": "s3:*", "Resource": ["not-an-arn", "also-bad"]}]});
+        let substituted: HashSet<String> = [String::from("Statement.0.Resource.1")].into_iter().collect();
+        let found = validate_identity_policy(&doc, &substituted);
+        assert!(
+            found.iter().any(|f| f.path == "Statement.0.Resource.0" && f.message.contains("does not match")),
+            "a substituted numeric sibling must not suppress validation of literal siblings: {:?}",
+            found
+        );
+        assert!(
+            !found.iter().any(|f| f.path == "Statement.0.Resource.1"),
+            "the substituted item itself must be suppressed: {:?}",
+            found
+        );
+    }
+
+    /// A non-numeric descendant (intrinsic path) still suppresses the ancestor.
+    #[test]
+    fn non_numeric_descendant_still_suppresses_ancestor() {
+        let doc = json!({"Statement": [{"Effect": "Allow", "Action": "s3:*", "Resource": "not-an-arn"}]});
+        let substituted: HashSet<String> = [String::from("Statement.0.Resource.Fn::Sub.0")].into_iter().collect();
+        let found = validate_identity_policy(&doc, &substituted);
+        assert!(
+            !found.iter().any(|f| f.path == "Statement.0.Resource"),
+            "an intrinsic descendant path must suppress the ancestor scalar: {:?}",
+            found
+        );
+    }
+
+    // --- Conditional Resource/NotResource branches are validated ---
+
+    /// A conditional marker wrapping a Resource field must validate both
+    /// branches for static values.
+    #[test]
+    fn conditional_resource_branches_are_validated() {
+        let doc = json!({
+            "Statement": [{
+                "Effect": "Allow",
+                "Action": "s3:*",
+                "Resource": {
+                    "__conditional": "IsProd",
+                    "__if_true": "not-an-arn",
+                    "__if_false": "arn:aws:s3:::bucket/*"
+                }
+            }]
+        });
+        let found = findings(doc);
+        assert!(
+            found.iter().any(|(p, m)| p == "Statement.0.Resource" && m.contains("does not match")),
+            "invalid ARN in a conditional branch must be reported: {:?}",
+            found
+        );
+    }
+
+    /// Both branches of a conditional Resource are validated independently.
+    #[test]
+    fn conditional_resource_both_branches_valid_is_clean() {
+        let doc = json!({
+            "Statement": [{
+                "Effect": "Allow",
+                "Action": "s3:*",
+                "Resource": {
+                    "__conditional": "IsProd",
+                    "__if_true": "arn:aws:s3:::prod-bucket/*",
+                    "__if_false": "arn:aws:s3:::dev-bucket/*"
+                }
+            }]
+        });
+        assert!(findings(doc).is_empty());
+    }
+
+    /// A conditional with a valid array branch and an invalid scalar branch.
+    #[test]
+    fn conditional_resource_invalid_branch_among_valid_array_reported() {
+        let doc = json!({
+            "Statement": [{
+                "Effect": "Allow",
+                "Action": "s3:*",
+                "Resource": {
+                    "__conditional": "UseWildcard",
+                    "__if_true": "*",
+                    "__if_false": "bad-arn"
+                }
+            }]
+        });
+        let found = findings(doc);
+        assert!(
+            found.iter().any(|(p, m)| p == "Statement.0.Resource" && m.contains("does not match")),
+            "invalid false-branch must be reported: {:?}",
+            found
+        );
+    }
+
+    // --- ARN skeleton validation with ${...} variables ---
+
+    /// Valid CloudFormation placeholders in partition and account are accepted.
+    #[test]
+    fn arn_with_cfn_partition_placeholder_is_valid() {
+        let doc = json!({
+            "Statement": [{
+                "Effect": "Allow",
+                "Action": "iam:*",
+                "Resource": "arn:${AWS::Partition}:iam::${AWS::AccountId}:user/x"
+            }]
+        });
+        assert!(findings(doc).is_empty());
+    }
+
+    /// Trailing IAM policy variables are accepted.
+    #[test]
+    fn arn_with_trailing_iam_variable_is_valid() {
+        let doc = json!({
+            "Statement": [{
+                "Effect": "Allow",
+                "Action": "s3:*",
+                "Resource": "arn:aws:s3:::bucket/${aws:username}/*"
+            }]
+        });
+        assert!(findings(doc).is_empty());
+    }
+
+    /// Wildcard partition `arn:*:...` is rejected even with placeholders.
+    #[test]
+    fn arn_with_wildcard_partition_is_rejected() {
+        let doc = json!({
+            "Statement": [{
+                "Effect": "Allow",
+                "Action": "s3:*",
+                "Resource": "arn:*:s3:::bucket/${aws:username}"
+            }]
+        });
+        let found = findings(doc);
+        assert!(
+            found.iter().any(|(p, m)| p == "Statement.0.Resource" && m.contains("does not match")),
+            "wildcard partition must be rejected: {:?}",
+            found
+        );
+    }
+
+    /// Wildcard service `arn:aws:*:...` is rejected even with placeholders.
+    #[test]
+    fn arn_with_wildcard_service_is_rejected() {
+        let doc = json!({
+            "Statement": [{
+                "Effect": "Allow",
+                "Action": "s3:*",
+                "Resource": "arn:aws:*:us-east-1:${AWS::AccountId}:thing"
+            }]
+        });
+        let found = findings(doc);
+        assert!(
+            found.iter().any(|(p, m)| p == "Statement.0.Resource" && m.contains("does not match")),
+            "wildcard service must be rejected: {:?}",
+            found
+        );
+    }
+
+    /// Literal wildcard `*` (all resources) remains valid.
+    #[test]
+    fn literal_wildcard_star_remains_valid() {
+        let doc = json!({
+            "Statement": [{"Effect": "Allow", "Action": "s3:*", "Resource": "*"}]
+        });
+        assert!(findings(doc).is_empty());
+    }
+
+    /// ARN with valid iso partition family is accepted.
+    #[test]
+    fn arn_with_iso_partition_is_valid() {
+        assert!(resource_arn_matches("arn:aws-iso:s3:::bucket/key"));
+        assert!(resource_arn_matches("arn:aws-iso-b:kms:us-isob-east-1:123456789012:key/id"));
+    }
+
+    /// ARN with wildcard partition is rejected by resource_arn_matches.
+    #[test]
+    fn resource_arn_rejects_wildcard_partition() {
+        assert!(!resource_arn_matches("arn:*:s3:::bucket"));
+        assert!(!resource_arn_matches("arn:*:iam::123456789012:role/test"));
+        assert!(!resource_arn_matches("arn:aws?:s3:::bucket"));
+    }
+
+    /// ARN with wildcard service is rejected by resource_arn_matches.
+    #[test]
+    fn resource_arn_rejects_wildcard_service() {
+        assert!(!resource_arn_matches("arn:aws:*:us-east-1:123456789012:thing"));
+        assert!(!resource_arn_matches("arn:aws:*:::bucket"));
+        assert!(!resource_arn_matches("arn:aws:s?:::bucket"));
+    }
+
+    /// Malformed prefix before placeholder is rejected.
+    #[test]
+    fn arn_skeleton_rejects_malformed_prefix() {
+        let doc = json!({
+            "Statement": [{
+                "Effect": "Allow",
+                "Action": "s3:*",
+                "Resource": "not-arn:${AWS::Partition}:s3:::bucket"
+            }]
+        });
+        let found = findings(doc);
+        assert!(
+            found.iter().any(|(p, m)| p == "Statement.0.Resource" && m.contains("does not match")),
+            "malformed prefix must be rejected: {:?}",
+            found
+        );
+    }
+
+    /// An incomplete identity-policy ARN (just `arn:partition:service`) with a
+    /// trailing variable is valid.
+    #[test]
+    fn incomplete_arn_with_trailing_variable_is_valid() {
+        let doc = json!({
+            "Statement": [{
+                "Effect": "Allow",
+                "Action": "s3:*",
+                "Resource": "arn:aws:s3:${AWS::Region}:${AWS::AccountId}:bucket"
+            }]
+        });
+        assert!(findings(doc).is_empty());
+    }
+
+    /// The exact incomplete ARN form is valid because IAM wildcard-completes
+    /// omitted trailing fields.
+    #[test]
+    fn exact_incomplete_arn_is_valid() {
+        assert!(resource_arn_matches("arn:aws:sqs"));
+    }
+
+    /// An IAM policy variable cannot make a malformed non-ARN prefix valid.
+    #[test]
+    fn malformed_prefix_with_iam_variable_is_rejected() {
+        assert!(!resource_arn_matches("not-an-arn-${aws:username}"));
+    }
+
+    /// IAM policy variables are valid only in the trailing resource portion.
+    #[test]
+    fn iam_variables_in_arn_prefix_fields_are_rejected() {
+        for resource in [
+            "arn:${aws:username}:s3:::bucket/key",
+            "arn:aws:${aws:username}:::bucket/key",
+            "arn:aws:s3:${aws:username}:123456789012:bucket/key",
+            "arn:aws:s3:us-east-1:${aws:username}:bucket/key",
+        ] {
+            assert!(!resource_arn_matches(resource), "expected invalid resource ARN: {resource}");
+        }
+    }
+
+    #[test]
+    fn unbalanced_placeholder_is_rejected() {
+        assert!(!resource_arn_matches("arn:aws:s3:::bucket/${aws:username"));
+    }
+
+    /// Scenario-aware validation must ignore an intrinsic-generated branch
+    /// without allowing it to suppress an invalid literal sibling branch.
+    #[test]
+    fn scenario_validation_checks_literal_branch_beside_intrinsic_branch() {
+        let template = r#"
+Conditions:
+  UseGenerated: !Equals [!Ref AWS::Region, us-east-1]
+Resources:
+  Policy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: test
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: s3:GetObject
+            Resource: !If
+              - UseGenerated
+              - !Sub 'bad-${AWS::AccountId}'
+              - not-an-arn
+"#;
+        let model = SemanticModel::from_bytes(template.as_bytes()).expect("template must parse");
+        let generated_conditions = std::collections::HashMap::from([("UseGenerated".to_string(), true)]);
+        let generated_source_path = model
+            .scenario_source_path("Policy", "Properties.PolicyDocument.Statement.0.Resource", &generated_conditions)
+            .expect("generated branch must have an authored source path");
+        assert_eq!(generated_source_path, "Properties.PolicyDocument.Statement.0.Resource.Fn::If.1");
+        assert!(
+            model.is_from_intrinsic("Policy", &generated_source_path),
+            "generated branch must retain intrinsic provenance at {generated_source_path}"
+        );
+
+        let found = validate_identity_policy_scenarios(&model, "Policy", "Properties.PolicyDocument");
+
+        assert_eq!(found.len(), 1, "only the authored literal branch should be reported: {found:?}");
+        assert_eq!(found[0].path, "Statement.0.Resource");
+        assert!(found[0].message.starts_with("'not-an-arn' does not match"));
+    }
+
+    /// Service placeholder is accepted.
+    #[test]
+    fn arn_with_service_placeholder_is_valid() {
+        let doc = json!({
+            "Statement": [{
+                "Effect": "Allow",
+                "Action": "s3:*",
+                "Resource": "arn:aws:${ServiceName}:us-east-1:123456789012:resource"
+            }]
+        });
+        assert!(findings(doc).is_empty());
     }
 }

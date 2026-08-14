@@ -14,10 +14,9 @@ use template_model::consts::{
     FIELD_SOURCE_PATH, FIELD_TARGET, FN_IF, effective_deployed_resource_type,
 };
 use template_model::fargate::{cpu_is_offered, task_size_is_offered};
-use template_model::iam_policy::validate_identity_policy;
+use template_model::iam_policy::validate_identity_policy_scenarios;
 use template_model::region_enums;
-use template_model::resolved_value::json_contains_markers;
-use template_model::resolved_value_to_json;
+use template_model::resolved_value::{contains_dynamic_resolved, json_contains_markers};
 use template_model::resolver::{MapEntry, RefKind, ResolvedValue};
 use template_model::{MARKER_DYNAMIC, MARKER_PARAM_TYPE, MARKER_REF};
 use template_model::{SourceSpan, UNKNOWN_SPAN, render_value, render_value_list};
@@ -70,6 +69,7 @@ pub(crate) fn register_all(
     register_make_diag_related(rego, holder.clone());
     register_make_diag_conditional(rego, holder.clone());
     register_resolve_scenarios(rego, holder.clone());
+    register_has_unresolved_scenario(rego, holder.clone());
     register_scenario_source_path(rego, holder.clone());
     register_properties_scenarios(rego, holder.clone());
     register_is_satisfiable(rego, holder.clone());
@@ -478,6 +478,22 @@ fn register_resolve_scenarios(rego: &mut regorus::Engine, holder: SharedModel) {
                 })
                 .collect();
             Ok(Value::from(results))
+        }),
+    );
+}
+
+fn register_has_unresolved_scenario(rego: &mut regorus::Engine, holder: SharedModel) {
+    let _ = rego.add_extension(
+        "has_unresolved_scenario".into(),
+        2,
+        Box::new(move |params: Vec<Value>| {
+            let Some(model) = get_model(&holder) else {
+                return Ok(Value::from(true));
+            };
+            let resource_id = params[0].as_string()?;
+            let path = params[1].as_string()?;
+            let scenarios = model.resolve_scenarios(resource_id.as_ref(), path.as_ref());
+            Ok(Value::from(scenarios.is_empty() || scenarios.iter().any(|(value, _)| contains_dynamic_resolved(value))))
         }),
     );
 }
@@ -2429,19 +2445,7 @@ fn register_iam_identity_policy_findings(rego: &mut regorus::Engine, holder: Sha
             };
             let resource_id = params[0].as_string()?;
             let document_path = params[1].as_string()?;
-            let document = model
-                .resolve_deep(resource_id, document_path)
-                .or_else(|| model.resolve(resource_id, document_path).cloned())
-                .map(|value| resolved_value_to_json(&value))
-                .or_else(|| {
-                    model.resolve_scenarios_json(resource_id, document_path).into_iter().next().map(|(v, _)| v)
-                });
-            let Some(document) = document else {
-                return Ok(Value::from(Vec::<Value>::new()));
-            };
-
-            let substituted = model.substituted_paths_under(resource_id.as_ref(), document_path.as_ref());
-            let findings = validate_identity_policy(&document, &substituted)
+            let findings = validate_identity_policy_scenarios(&model, resource_id.as_ref(), document_path.as_ref())
                 .into_iter()
                 .map(|finding| {
                     let path = if finding.path.is_empty() {

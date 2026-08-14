@@ -328,3 +328,87 @@ Resources:
     let findings = validate(template);
     assert_eq!(findings.len(), 0, "Malformed index KeySchema should suppress finding, got: {:?}", findings);
 }
+
+#[test]
+fn conditional_gsi_reports_missing_table_key_suppresses_unused() {
+    // GSI is behind a condition so its content is unresolvable. The table
+    // KeySchema references 'sk' which is NOT in AttributeDefinitions —
+    // that is always wrong regardless of the index. But 'gsi_pk' should
+    // NOT be reported unused because the conditional index might use it.
+    let template = r#"
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  AddGSI:
+    Type: String
+Conditions:
+  CreateGSI: !Equals [!Ref AddGSI, "true"]
+Resources:
+  MyTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: test
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: gsi_pk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+      GlobalSecondaryIndexes: !If
+        - CreateGSI
+        - - IndexName: gsi1
+            KeySchema:
+              - AttributeName: gsi_pk
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+        - !Ref AWS::NoValue
+"#;
+    let findings = validate(template);
+    assert_eq!(findings.len(), 1, "Expected 1 finding for missing 'sk', got: {:?}", findings);
+    let d = &findings[0];
+    assert_eq!(d.rule_id, "E3039");
+    assert!(d.message.contains("missing definitions: [sk]"), "Expected missing sk, got: {}", d.message);
+    assert!(!d.message.contains("unused"), "unused must be suppressed when index is unresolvable: {}", d.message);
+}
+
+#[test]
+fn conditional_gsi_no_finding_when_table_keys_are_defined() {
+    // All table KeySchema attributes are defined, and gsi_pk is also defined
+    // for the conditional index. No finding should fire.
+    let template = r#"
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  AddGSI:
+    Type: String
+Conditions:
+  CreateGSI: !Equals [!Ref AddGSI, "true"]
+Resources:
+  MyTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: test
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: gsi_pk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+      GlobalSecondaryIndexes: !If
+        - CreateGSI
+        - - IndexName: gsi1
+            KeySchema:
+              - AttributeName: gsi_pk
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+        - !Ref AWS::NoValue
+"#;
+    let findings = validate(template);
+    assert_eq!(findings.len(), 0, "No finding expected when table keys are defined, got: {:?}", findings);
+}

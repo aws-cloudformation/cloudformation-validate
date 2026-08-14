@@ -2380,16 +2380,311 @@ fn required_or_scenario_budget_boundary_is_non_silent() {
 
     let (validator, template) = conditional_required_or_fixture(9);
     let diagnostics = validate(&validator, &template);
-    assert!(
-        diagnostics.iter().all(|diagnostic| !diagnostic.rule_id.starts_with('F')),
-        "an incomplete 512-world analysis must not produce an unproven schema violation: {diagnostics:#?}"
+    let required_findings: Vec<_> = diagnostics.iter().filter(|diagnostic| diagnostic.rule_id == "F3058").collect();
+    assert_eq!(
+        required_findings.len(),
+        1,
+        "targeted witness search must find the reachable all-false world beyond the exact-enumeration limit: {diagnostics:#?}"
     );
     let advisories: Vec<_> = diagnostics.iter().filter(|diagnostic| diagnostic.rule_id == "I9052").collect();
     assert_eq!(advisories.len(), 1, "budget exhaustion must emit one deduplicated advisory: {diagnostics:#?}");
     assert_eq!(advisories[0].property_path.as_deref(), Some("Properties"));
     assert!(
         advisories[0].message.contains("was curtailed"),
-        "the advisory must explain that conditional schema analysis was curtailed: {diagnostics:#?}"
+        "the advisory must explain that full conditional schema analysis was curtailed: {diagnostics:#?}"
+    );
+}
+
+// ─── Budget fallback: targeted proof/witness search ────────────────────────
+
+/// With 9+ conditions where all members resolve to AWS::NoValue in every world
+/// (each member is conditional but maps to NoValue regardless), the budget
+/// fallback must still emit F3058.
+#[test]
+fn required_or_budget_fallback_fires_when_all_members_absent() {
+    // Use 9 conditions — each requiredOr member is conditional on its own
+    // condition but always resolves to AWS::NoValue (both branches produce null).
+    let condition_count = 9;
+    let mut properties = serde_json::Map::new();
+    let mut required_or: Vec<String> = Vec::new();
+    let mut template = String::from("Parameters:\n");
+    for index in 0..condition_count {
+        let property_name = format!("Member{index:02}");
+        properties.insert(property_name.clone(), json!({"type": "string"}));
+        required_or.push(property_name);
+        template.push_str(&format!(
+            "  Param{index:02}:\n    Type: String\n    AllowedValues: [yes, no]\n    Default: no\n"
+        ));
+    }
+    template.push_str("Conditions:\n");
+    for index in 0..condition_count {
+        template.push_str(&format!("  Cond{index:02}: !Equals [!Ref Param{index:02}, yes]\n"));
+    }
+    // Each member is present as a key but resolves to AWS::NoValue in EVERY
+    // scenario — so it's provably absent in all worlds.
+    template.push_str("Resources:\n  Res:\n    Type: AWS::Test::BudgetFallbackOr\n    Properties:\n");
+    for index in 0..condition_count {
+        template
+            .push_str(&format!("      Member{index:02}: !If [Cond{index:02}, !Ref AWS::NoValue, !Ref AWS::NoValue]\n"));
+    }
+    let sv = validator(vec![(
+        "AWS::Test::BudgetFallbackOr",
+        json!({
+            "properties": properties,
+            "requiredOr": required_or,
+            "additionalProperties": false
+        }),
+    )]);
+    let diagnostics = validate(&sv, &template);
+    let findings: Vec<_> = diagnostics.iter().filter(|d| d.rule_id == "F3058").collect();
+    assert_eq!(findings.len(), 1, "budget fallback must detect provably absent requiredOr members: {diagnostics:#?}");
+}
+
+/// With 9+ conditions but one requiredOr member unconditionally present, the
+/// budget fallback must NOT emit F3058.
+#[test]
+fn required_or_budget_fallback_no_false_positive_when_member_present() {
+    // 9 requiredOr members with independent conditions. One member (Member00)
+    // is unconditionally present (both branches non-null). The rest resolve to
+    // NoValue. Since one member is possibly present, requiredOr is satisfied.
+    let condition_count = 9;
+    let mut properties = serde_json::Map::new();
+    let mut required_or: Vec<String> = Vec::new();
+    let mut template = String::from("Parameters:\n");
+    for index in 0..condition_count {
+        let property_name = format!("Member{index:02}");
+        properties.insert(property_name.clone(), json!({"type": "string"}));
+        required_or.push(property_name);
+        template.push_str(&format!(
+            "  Param{index:02}:\n    Type: String\n    AllowedValues: [yes, no]\n    Default: no\n"
+        ));
+    }
+    template.push_str("Conditions:\n");
+    for index in 0..condition_count {
+        template.push_str(&format!("  Cond{index:02}: !Equals [!Ref Param{index:02}, yes]\n"));
+    }
+    // Member00 is unconditionally present (both branches produce a real value).
+    // All other members always resolve to NoValue.
+    template.push_str("Resources:\n  Res:\n    Type: AWS::Test::BudgetFallbackOrValid\n    Properties:\n");
+    template.push_str("      Member00: !If [Cond00, val-a, val-b]\n");
+    for index in 1..condition_count {
+        template
+            .push_str(&format!("      Member{index:02}: !If [Cond{index:02}, !Ref AWS::NoValue, !Ref AWS::NoValue]\n"));
+    }
+    let sv = validator(vec![(
+        "AWS::Test::BudgetFallbackOrValid",
+        json!({
+            "properties": properties,
+            "requiredOr": required_or,
+            "additionalProperties": false
+        }),
+    )]);
+    let diagnostics = validate(&sv, &template);
+    assert!(
+        diagnostics.iter().all(|d| d.rule_id != "F3058"),
+        "budget fallback must not fire when a member is unconditionally present: {diagnostics:#?}"
+    );
+}
+
+/// requiredXor budget fallback: all 9 members resolve to AWS::NoValue in every
+/// scenario → zero-present is provable → F3014 fires.
+#[test]
+fn required_xor_budget_fallback_fires_when_all_members_absent() {
+    let condition_count = 9;
+    let mut properties = serde_json::Map::new();
+    let mut required_xor: Vec<String> = Vec::new();
+    let mut template = String::from("Parameters:\n");
+    for index in 0..condition_count {
+        let property_name = format!("Choice{index:02}");
+        properties.insert(property_name.clone(), json!({"type": "string"}));
+        required_xor.push(property_name);
+        template.push_str(&format!(
+            "  Param{index:02}:\n    Type: String\n    AllowedValues: [yes, no]\n    Default: no\n"
+        ));
+    }
+    template.push_str("Conditions:\n");
+    for index in 0..condition_count {
+        template.push_str(&format!("  Cond{index:02}: !Equals [!Ref Param{index:02}, yes]\n"));
+    }
+    // Each member always resolves to NoValue regardless of condition state.
+    template.push_str("Resources:\n  Res:\n    Type: AWS::Test::BudgetXorZero\n    Properties:\n");
+    for index in 0..condition_count {
+        template
+            .push_str(&format!("      Choice{index:02}: !If [Cond{index:02}, !Ref AWS::NoValue, !Ref AWS::NoValue]\n"));
+    }
+    let sv = validator(vec![(
+        "AWS::Test::BudgetXorZero",
+        json!({
+            "properties": properties,
+            "requiredXor": required_xor,
+            "additionalProperties": false
+        }),
+    )]);
+    let diagnostics = validate(&sv, &template);
+    let findings: Vec<_> = diagnostics.iter().filter(|d| d.rule_id == "F3014").collect();
+    assert_eq!(findings.len(), 1, "budget fallback must detect zero-present requiredXor violation: {diagnostics:#?}");
+}
+
+/// requiredXor budget fallback: 9 members in the group, all unconditionally
+/// present (each has a condition but both branches yield a real value).
+/// Two or more are universally present → F3014 fires.
+#[test]
+fn required_xor_budget_fallback_fires_when_multiple_members_unconditional() {
+    let condition_count = 9;
+    let mut properties = serde_json::Map::new();
+    let mut required_xor: Vec<String> = Vec::new();
+    let mut template = String::from("Parameters:\n");
+    for index in 0..condition_count {
+        let property_name = format!("Choice{index:02}");
+        properties.insert(property_name.clone(), json!({"type": "string"}));
+        required_xor.push(property_name);
+        template.push_str(&format!(
+            "  Param{index:02}:\n    Type: String\n    AllowedValues: [yes, no]\n    Default: no\n"
+        ));
+    }
+    template.push_str("Conditions:\n");
+    for index in 0..condition_count {
+        template.push_str(&format!("  Cond{index:02}: !Equals [!Ref Param{index:02}, yes]\n"));
+    }
+    // All members are unconditionally present (both branches of Fn::If yield
+    // a real value, not NoValue) — at least 2 are universally present.
+    template.push_str("Resources:\n  Res:\n    Type: AWS::Test::BudgetXorMultiple\n    Properties:\n");
+    for index in 0..condition_count {
+        template
+            .push_str(&format!("      Choice{index:02}: !If [Cond{index:02}, val-a-{index:02}, val-b-{index:02}]\n"));
+    }
+    let sv = validator(vec![(
+        "AWS::Test::BudgetXorMultiple",
+        json!({
+            "properties": properties,
+            "requiredXor": required_xor,
+            "additionalProperties": false
+        }),
+    )]);
+    let diagnostics = validate(&sv, &template);
+    let findings: Vec<_> = diagnostics.iter().filter(|d| d.rule_id == "F3014").collect();
+    assert_eq!(
+        findings.len(),
+        1,
+        "budget fallback must detect multiple unconditionally-present requiredXor members: {diagnostics:#?}"
+    );
+}
+
+/// requiredXor budget fallback: 9 members, but only one is unconditionally
+/// present (both Fn::If branches yield a real value). All others resolve to
+/// NoValue unconditionally. Exactly one universally present → no violation.
+#[test]
+fn required_xor_budget_fallback_no_false_positive_one_unconditional() {
+    let condition_count = 9;
+    let mut properties = serde_json::Map::new();
+    let mut required_xor: Vec<String> = Vec::new();
+    let mut template = String::from("Parameters:\n");
+    for index in 0..condition_count {
+        let property_name = format!("Choice{index:02}");
+        properties.insert(property_name.clone(), json!({"type": "string"}));
+        required_xor.push(property_name);
+        template.push_str(&format!(
+            "  Param{index:02}:\n    Type: String\n    AllowedValues: [yes, no]\n    Default: no\n"
+        ));
+    }
+    template.push_str("Conditions:\n");
+    for index in 0..condition_count {
+        template.push_str(&format!("  Cond{index:02}: !Equals [!Ref Param{index:02}, yes]\n"));
+    }
+    // Choice00 is unconditionally present (both branches non-null); all others
+    // are unconditionally absent (both branches NoValue). Exactly one member
+    // is universally present — no violation.
+    template.push_str("Resources:\n  Res:\n    Type: AWS::Test::BudgetXorOk\n    Properties:\n");
+    template.push_str("      Choice00: !If [Cond00, val-a, val-b]\n");
+    for index in 1..condition_count {
+        template
+            .push_str(&format!("      Choice{index:02}: !If [Cond{index:02}, !Ref AWS::NoValue, !Ref AWS::NoValue]\n"));
+    }
+    let sv = validator(vec![(
+        "AWS::Test::BudgetXorOk",
+        json!({
+            "properties": properties,
+            "requiredXor": required_xor,
+            "additionalProperties": false
+        }),
+    )]);
+    let diagnostics = validate(&sv, &template);
+    assert!(
+        diagnostics.iter().all(|d| d.rule_id != "F3014"),
+        "budget fallback must not fire when exactly one member is unconditionally present: {diagnostics:#?}"
+    );
+}
+
+/// Nine independently conditional requiredXor members have both an all-false
+/// world and worlds where two members are true. Targeted witness search must
+/// prove the violation without enumerating all 512 combinations.
+#[test]
+fn required_xor_budget_fallback_finds_conditional_witnesses() {
+    let condition_count = 9;
+    let mut properties = serde_json::Map::new();
+    let mut required_xor: Vec<String> = Vec::new();
+    let mut template = String::from("Parameters:\n");
+    for index in 0..condition_count {
+        let property_name = format!("Choice{index:02}");
+        properties.insert(property_name.clone(), json!({"type": "string"}));
+        required_xor.push(property_name);
+        template.push_str(&format!(
+            "  Param{index:02}:\n    Type: String\n    AllowedValues: [yes, no]\n    Default: no\n"
+        ));
+    }
+    template.push_str("Conditions:\n");
+    for index in 0..condition_count {
+        template.push_str(&format!("  Cond{index:02}: !Equals [!Ref Param{index:02}, yes]\n"));
+    }
+    template.push_str("Resources:\n  Res:\n    Type: AWS::Test::BudgetXorConditional\n    Properties:\n");
+    for index in 0..condition_count {
+        template.push_str(&format!("      Choice{index:02}: !If [Cond{index:02}, present, !Ref AWS::NoValue]\n"));
+    }
+    let sv = validator(vec![(
+        "AWS::Test::BudgetXorConditional",
+        json!({
+            "properties": properties,
+            "requiredXor": required_xor,
+            "additionalProperties": false
+        }),
+    )]);
+    let diagnostics = validate(&sv, &template);
+    assert!(
+        diagnostics.iter().any(|d| d.rule_id == "F3014"),
+        "reachable zero- and multiple-present worlds must be diagnosed: {diagnostics:#?}"
+    );
+}
+
+#[test]
+fn required_xor_nine_mutually_exclusive_members_are_valid() {
+    const VALUES: [&str; 9] = ["a", "b", "c", "d", "e", "f", "g", "h", "i"];
+    let mut properties = serde_json::Map::new();
+    let mut required_xor = Vec::new();
+    let mut template = String::from(
+        "Parameters:\n  Selector:\n    Type: String\n    AllowedValues: [a, b, c, d, e, f, g, h, i]\nConditions:\n",
+    );
+    for (index, value) in VALUES.iter().enumerate() {
+        let property = format!("Choice{index:02}");
+        properties.insert(property.clone(), json!({"type": "string"}));
+        required_xor.push(property);
+        template.push_str(&format!("  Is{value}: !Equals [!Ref Selector, {value}]\n"));
+    }
+    template.push_str("Resources:\n  Res:\n    Type: AWS::Test::BudgetXorExclusive\n    Properties:\n");
+    for (index, value) in VALUES.iter().enumerate() {
+        template.push_str(&format!("      Choice{index:02}: !If [Is{value}, present, !Ref AWS::NoValue]\n"));
+    }
+    let sv = validator(vec![(
+        "AWS::Test::BudgetXorExclusive",
+        json!({
+            "properties": properties,
+            "requiredXor": required_xor,
+            "additionalProperties": false
+        }),
+    )]);
+    let diagnostics = validate(&sv, &template);
+    assert!(
+        diagnostics.iter().all(|diagnostic| diagnostic.rule_id != "F3014"),
+        "exactly one mutually exclusive member is present in every parameter world: {diagnostics:#?}"
     );
 }
 

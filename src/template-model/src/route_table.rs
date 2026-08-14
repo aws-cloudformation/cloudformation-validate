@@ -5,7 +5,13 @@
 //! fail at deploy time. A subnet's identity here is the authored reference: the
 //! `Ref` target, the `GetAtt` target and attribute, or the literal string,
 //! evaluated through `Fn::If` branches.
+//!
+//! Two associations clash only when their combined resource-level and
+//! property-level condition assumptions are co-satisfiable — if no parameter
+//! assignment can make both branches simultaneously true, they are mutually
+//! exclusive and cannot conflict at deploy time.
 
+use crate::conditions::Satisfiability;
 use crate::model::SemanticModel;
 use crate::resolver::{RefKind, ResolvedValue};
 
@@ -20,6 +26,52 @@ const ASSOCIATION_TYPE: &str = "AWS::EC2::SubnetRouteTableAssociation";
 
 /// Resource condition, property condition, and authored subnet identity.
 type ValueKey = (Option<String>, Option<String>, String);
+
+/// Parses a comma-separated condition string (e.g. `"IsProd,!UseVPC"`) into
+/// the assumption pairs the satisfiability solver expects.
+fn parse_assumptions(conditions: &str) -> Vec<(String, bool)> {
+    conditions
+        .split(',')
+        .filter(|segment| !segment.is_empty())
+        .map(|segment| {
+            if let Some(negated) = segment.strip_prefix('!') {
+                (negated.to_string(), false)
+            } else {
+                (segment.to_string(), true)
+            }
+        })
+        .collect()
+}
+
+/// Builds the full assumption list from a resource condition and a property
+/// condition string (both optional).
+fn build_assumptions(resource_condition: Option<&str>, property_condition: Option<&str>) -> Vec<(String, bool)> {
+    let mut assumptions = Vec::new();
+    if let Some(condition) = resource_condition {
+        assumptions.push((condition.to_string(), true));
+    }
+    if let Some(property_cond) = property_condition {
+        assumptions.extend(parse_assumptions(property_cond));
+    }
+    assumptions
+}
+
+/// Checks whether the combined assumptions from two value keys can be
+/// simultaneously satisfied. An unconditional value (no resource condition and
+/// no property condition) is always co-satisfiable with anything.
+fn are_co_satisfiable(model: &SemanticModel, left: &ValueKey, right: &ValueKey) -> bool {
+    let left_assumptions = build_assumptions(left.0.as_deref(), left.1.as_deref());
+    let right_assumptions = build_assumptions(right.0.as_deref(), right.1.as_deref());
+
+    // If either side is fully unconditional, they always co-exist.
+    if left_assumptions.is_empty() || right_assumptions.is_empty() {
+        return true;
+    }
+
+    let mut combined = left_assumptions;
+    combined.extend(right_assumptions);
+    matches!(model.conditions.satisfiability(&combined), Satisfiability::Satisfiable)
+}
 
 pub fn duplicate_subnet_associations(model: &SemanticModel) -> Vec<AssociationFinding> {
     let mut names: Vec<&String> = model
@@ -75,19 +127,37 @@ pub fn duplicate_subnet_associations(model: &SemanticModel) -> Vec<AssociationFi
         per_resource.push((name, values));
     }
 
-    let holders_of = |key: &ValueKey| -> Vec<&String> {
-        per_resource.iter().filter(|(_, values)| values.contains(key)).map(|(name, _)| *name).collect()
-    };
-
     let mut findings = Vec::new();
-    for (name, values) in &per_resource {
+    for (idx, (name, values)) in per_resource.iter().enumerate() {
+        let resource = &model.resources[*name];
         for value in values {
-            let mut others: Vec<&String> = holders_of(value).into_iter().filter(|other| other != name).collect();
-            let unconditioned: ValueKey = (None, None, value.2.clone());
-            if *value != unconditioned {
-                others.extend(holders_of(&unconditioned));
+            let mut others: Vec<&String> = Vec::new();
+            for (other_idx, (other_name, other_values)) in per_resource.iter().enumerate() {
+                if other_idx == idx {
+                    continue;
+                }
+                for other_value in other_values {
+                    if value.2 != other_value.2 {
+                        continue;
+                    }
+                    // Preserve one-sided unconditional behavior: when this
+                    // resource is unconditional and the other is conditioned,
+                    // only the conditioned resource should report the clash
+                    // (it is the one that would fail when its condition is
+                    // true alongside the always-present unconditional one).
+                    let this_is_unconditional = resource.condition.is_none() && value.1.is_none();
+                    let other_resource = &model.resources[*other_name];
+                    let other_is_conditioned = other_resource.condition.is_some() || other_value.1.is_some();
+                    if this_is_unconditional && other_is_conditioned {
+                        continue;
+                    }
+                    if are_co_satisfiable(model, value, other_value) {
+                        others.push(other_name);
+                        break;
+                    }
+                }
             }
-            others.sort_by_key(|other| names.iter().position(|name| name == other));
+            others.sort_by_key(|other| names.iter().position(|n| n == other));
             others.dedup();
             if !others.is_empty() {
                 findings.push(AssociationFinding {
@@ -210,5 +280,137 @@ mod tests {
             findings(template),
             [("Gated".to_string(), "SubnetId in Gated is also associated with Plain".to_string())]
         );
+    }
+
+    /// Two resources with mutually exclusive resource-level conditions and
+    /// the same subnet identity cannot coexist at deploy time.
+    #[test]
+    fn mutually_exclusive_resource_conditions_are_clean() {
+        let template = r#"
+Parameters:
+  Env:
+    Type: String
+  Subnet:
+    Type: String
+Conditions:
+  IsProd: !Equals [!Ref Env, prod]
+  IsNotProd: !Not [!Condition IsProd]
+Resources:
+  ProdAssoc:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Condition: IsProd
+    Properties:
+      RouteTableId: rt-prod
+      SubnetId: !Ref Subnet
+  DevAssoc:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Condition: IsNotProd
+    Properties:
+      RouteTableId: rt-dev
+      SubnetId: !Ref Subnet
+"#;
+        assert!(findings(template).is_empty());
+    }
+
+    /// Two resources sharing the same subnet identity and compatible
+    /// (co-satisfiable) resource-level conditions report a conflict.
+    #[test]
+    fn compatible_resource_conditions_report_conflict() {
+        let template = r#"
+Parameters:
+  Env:
+    Type: String
+  Feature:
+    Type: String
+  Subnet:
+    Type: String
+Conditions:
+  IsProd: !Equals [!Ref Env, prod]
+  UseFeature: !Equals [!Ref Feature, yes]
+Resources:
+  ProdAssoc:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Condition: IsProd
+    Properties:
+      RouteTableId: rt-prod
+      SubnetId: !Ref Subnet
+  FeatureAssoc:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Condition: UseFeature
+    Properties:
+      RouteTableId: rt-feature
+      SubnetId: !Ref Subnet
+"#;
+        let found = findings(template);
+        assert!(
+            found.iter().any(|(id, _)| id == "ProdAssoc"),
+            "compatible resource conditions must report conflict: {:?}",
+            found
+        );
+        assert!(
+            found.iter().any(|(id, _)| id == "FeatureAssoc"),
+            "compatible resource conditions must report conflict: {:?}",
+            found
+        );
+    }
+
+    /// Two resources with mutually exclusive property-level conditions
+    /// (opposite Fn::If branches) and the same subnet identity are clean.
+    #[test]
+    fn mutually_exclusive_property_conditions_are_clean() {
+        let template = r#"
+Parameters:
+  Env:
+    Type: String
+  SubnetA:
+    Type: String
+  SubnetB:
+    Type: String
+Conditions:
+  IsProd: !Equals [!Ref Env, prod]
+Resources:
+  One:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: rt-1
+      SubnetId: !If [IsProd, !Ref SubnetA, !Ref SubnetB]
+  Two:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: rt-2
+      SubnetId: !If [IsProd, !Ref SubnetB, !Ref SubnetA]
+"#;
+        assert!(findings(template).is_empty());
+    }
+
+    /// When a resource-level condition on one resource is mutually exclusive
+    /// with a property-level condition on another, the subnet identities
+    /// cannot overlap at deploy time.
+    #[test]
+    fn mutually_exclusive_resource_and_property_conditions_are_clean() {
+        let template = r#"
+Parameters:
+  Env:
+    Type: String
+  Subnet:
+    Type: String
+  OtherSubnet:
+    Type: String
+Conditions:
+  IsProd: !Equals [!Ref Env, prod]
+Resources:
+  Gated:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Condition: IsProd
+    Properties:
+      RouteTableId: rt-1
+      SubnetId: !Ref Subnet
+  Branched:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: rt-2
+      SubnetId: !If [IsProd, !Ref OtherSubnet, !Ref Subnet]
+"#;
+        assert!(findings(template).is_empty());
     }
 }

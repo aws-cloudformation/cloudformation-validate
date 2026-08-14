@@ -891,12 +891,6 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         origin: RuleOrigin::CfnLint,
     },
     RuleDefinition {
-        id: "E9005",
-        category: Category::Security,
-        description: "IAM policy statement must have Action or NotAction",
-        origin: RuleOrigin::Engine,
-    },
-    RuleDefinition {
         id: "E9002",
         category: Category::Resource,
         description: "SecurityGroup FromPort must be <= ToPort for the TCP and UDP protocols",
@@ -1033,18 +1027,6 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         category: Category::Resource,
         description: "Validate ECR repository policy",
         origin: RuleOrigin::CfnLint,
-    },
-    RuleDefinition {
-        id: "E3514",
-        category: Category::Resource,
-        description: "Validate IAM resource policy resource ARNs",
-        origin: RuleOrigin::CfnLint,
-    },
-    RuleDefinition {
-        id: "W3515",
-        category: Category::Security,
-        description: "IAM Statement must have Effect",
-        origin: RuleOrigin::Engine,
     },
     RuleDefinition {
         id: "E3530",

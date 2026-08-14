@@ -220,6 +220,18 @@ fn is_resolved_null(val: &ResolvedValue) -> bool {
     }
 }
 
+fn contains_scenario_branching(value: &ResolvedValue) -> bool {
+    match value {
+        ResolvedValue::Conditional { .. } | ResolvedValue::Enum { .. } => true,
+        ResolvedValue::List { items } => items.iter().any(contains_scenario_branching),
+        ResolvedValue::Map { entries } => entries.iter().any(|entry| contains_scenario_branching(&entry.value)),
+        ResolvedValue::Concrete { .. }
+        | ResolvedValue::Reference { .. }
+        | ResolvedValue::Dynamic { .. }
+        | ResolvedValue::TypedDynamic { .. } => false,
+    }
+}
+
 pub fn collect_scenarios(
     val: &ResolvedValue,
     assumptions: &HashMap<String, bool>,
@@ -248,9 +260,7 @@ pub fn collect_scenarios(
             }
         }
         ResolvedValue::List { items } => {
-            let has_branching = items
-                .iter()
-                .any(|v| matches!(v, ResolvedValue::Conditional { .. } | ResolvedValue::Enum { variants: _ }));
+            let has_branching = items.iter().any(contains_scenario_branching);
             if has_branching {
                 expand_list_scenarios(items, assumptions, results);
             } else {
@@ -258,9 +268,7 @@ pub fn collect_scenarios(
             }
         }
         ResolvedValue::Map { entries } => {
-            let has_branching = entries
-                .iter()
-                .any(|e| matches!(e.value, ResolvedValue::Conditional { .. } | ResolvedValue::Enum { variants: _ }));
+            let has_branching = entries.iter().any(|entry| contains_scenario_branching(&entry.value));
             if has_branching {
                 expand_map_scenarios(entries, assumptions, results);
             } else {
@@ -789,6 +797,33 @@ mod tests {
         assert_eq!(conds_true.get("C"), Some(&true));
         let (_, conds_false) = &results[1];
         assert_eq!(conds_false.get("C"), Some(&false));
+    }
+
+    #[test]
+    fn collect_scenarios_expands_nested_conditional() {
+        let val = ResolvedValue::Map {
+            entries: vec![MapEntry {
+                key: "Statement".into(),
+                value: ResolvedValue::List {
+                    items: vec![ResolvedValue::Map {
+                        entries: vec![MapEntry {
+                            key: "Resource".into(),
+                            value: ResolvedValue::Conditional {
+                                condition: "C".into(),
+                                if_true: Box::new(ResolvedValue::Concrete { value: json!("first").into() }),
+                                if_false: Box::new(ResolvedValue::Concrete { value: json!("second").into() }),
+                            },
+                        }],
+                    }],
+                },
+            }],
+        };
+        let mut results = Vec::new();
+        collect_scenarios(&val, &HashMap::new(), &mut results);
+
+        assert_eq!(results.len(), 2);
+        assert_eq!(results[0].1.get("C"), Some(&true));
+        assert_eq!(results[1].1.get("C"), Some(&false));
     }
 
     #[test]

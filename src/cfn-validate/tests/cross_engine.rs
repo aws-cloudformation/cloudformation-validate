@@ -167,11 +167,16 @@ fn multi_combined_config(engine: &str) -> EngineConfig {
 
 #[test]
 fn default_list_rules_identical_between_engines() {
-    assert_list_rules_identical(&CEL.list_rules(), &REGO.list_rules(), "default");
+    let rules = CEL.list_rules();
+    assert_list_rules_identical(&rules, &REGO.list_rules(), "default");
 
-    let builtin_count = CEL.list_rules().len();
+    let builtin_count = rules.len();
     assert!(builtin_count > 0, "must have built-in rules");
     assert_eq!(builtin_count, RULE_REGISTRY.len(), "engine rule count must match registry");
+    assert!(rules.iter().any(|rule| rule.id == "E3510"), "active IAM policy rule must be advertised");
+    for dead_id in ["E9005", "E3514", "W3515"] {
+        assert!(!rules.iter().any(|rule| rule.id == dead_id), "dead IAM rule {dead_id} must not be advertised");
+    }
 }
 
 #[test]

@@ -6,6 +6,7 @@ use std::borrow::Cow;
 use std::collections::{BTreeSet, HashMap, HashSet};
 use std::sync::{Arc, LazyLock};
 use template_model::coercion::{CoerceResult, coerce_to_number, coerce_to_string, coerce_value, scalar_eq};
+use template_model::conditions::Satisfiability;
 use template_model::consts::{
     FN_CONDITION, FN_FOR_EACH_KEY_PREFIX, FN_IF, FN_REF, INTRINSIC_FN_PATH_SEGMENTS, KEY_PROPERTIES, KEY_TYPE,
     PARAM_TYPE_COMMA_DELIMITED_LIST, PARAM_TYPE_NUMBER, PARAM_TYPE_STRING, SAM_FUNCTION_TYPE,
@@ -648,6 +649,9 @@ fn validate_required_groups(
     // relative to the outer constraint.
     let members: Vec<&str> = required_or.iter().chain(required_xor.iter()).map(String::as_str).collect();
     let Some(assignments) = required_group_scenario_assignments(m, rid, &members, base_path) else {
+        // Budget exceeded — fall back to targeted proof search that avoids
+        // full Cartesian enumeration while still detecting provable violations.
+        validate_required_groups_budget_fallback(out, m, rid, actual_keys, required_or, required_xor, base_path);
         return;
     };
 
@@ -694,6 +698,208 @@ fn validate_required_groups(
                 ));
             }
         }
+    }
+}
+
+/// Finds a concrete condition assignment proving that every authored member is
+/// absent. Missing members are already absent and add no constraint. The search
+/// explores only null alternatives and backtracks across nested conditionals,
+/// so it does not materialize the full product of present and absent worlds.
+fn all_members_absent_witness(
+    m: &Arc<SemanticModel>,
+    rid: &str,
+    actual_keys: &[String],
+    members: &[String],
+    base_path: &str,
+) -> Option<HashMap<String, bool>> {
+    let seed = active_scenario_filter();
+    if !assignment_is_proven_satisfiable(m, &seed) {
+        return None;
+    }
+
+    let mut alternatives = Vec::new();
+    for property in members {
+        if !actual_keys.iter().any(|actual| actual == property) {
+            continue;
+        }
+        let property_alternatives = property_presence_alternatives(m, rid, base_path, property, false, &seed);
+        if property_alternatives.is_empty() {
+            return None;
+        }
+        alternatives.push(property_alternatives);
+    }
+    alternatives.sort_by_key(Vec::len);
+    compatible_alternative_witness(m, &alternatives, 0, &seed)
+}
+
+/// Finds a concrete condition assignment proving that two distinct authored
+/// members are simultaneously present. Exactly-two is sufficient to prove a
+/// requiredXor violation and avoids enumerating every other member's state.
+fn multiple_members_present_witness(
+    m: &Arc<SemanticModel>,
+    rid: &str,
+    actual_keys: &[String],
+    members: &[String],
+    base_path: &str,
+) -> Option<HashMap<String, bool>> {
+    let seed = active_scenario_filter();
+    if !assignment_is_proven_satisfiable(m, &seed) {
+        return None;
+    }
+
+    let present_alternatives: Vec<Vec<HashMap<String, bool>>> = members
+        .iter()
+        .filter(|property| actual_keys.iter().any(|actual| actual == property.as_str()))
+        .map(|property| property_presence_alternatives(m, rid, base_path, property, true, &seed))
+        .collect();
+
+    for left in 0..present_alternatives.len() {
+        for right in (left + 1)..present_alternatives.len() {
+            for left_assignment in &present_alternatives[left] {
+                let Some(left_merged) = try_merge_assignments(&seed, left_assignment) else {
+                    continue;
+                };
+                if !assignment_is_proven_satisfiable(m, &left_merged) {
+                    continue;
+                }
+                for right_assignment in &present_alternatives[right] {
+                    let Some(merged) = try_merge_assignments(&left_merged, right_assignment) else {
+                        continue;
+                    };
+                    if assignment_is_proven_satisfiable(m, &merged) {
+                        return Some(merged);
+                    }
+                }
+            }
+        }
+    }
+    None
+}
+
+fn active_scenario_filter() -> HashMap<String, bool> {
+    SCENARIO_FILTER.with(|filter| filter.borrow().clone().unwrap_or_default())
+}
+
+/// Returns the distinct reachable assignments under which one property is
+/// present (`want_present`) or absent. Raw scenarios are used so dynamic values
+/// still count as present, while only a concrete null represents
+/// `AWS::NoValue` absence.
+fn property_presence_alternatives(
+    m: &Arc<SemanticModel>,
+    rid: &str,
+    base_path: &str,
+    property: &str,
+    want_present: bool,
+    filter: &HashMap<String, bool>,
+) -> Vec<HashMap<String, bool>> {
+    if m.scenario_budget_exhausted() {
+        return Vec::new();
+    }
+    let scenarios = m.resolve_scenarios(rid, &format!("{base_path}.{property}"));
+    let mut alternatives = Vec::new();
+    let mut seen = HashSet::new();
+    for (value, conditions) in scenarios {
+        let present = !matches!(value, ResolvedValue::Concrete { value } if value.is_null());
+        if present != want_present {
+            continue;
+        }
+        let Some(merged) = try_merge_assignments(filter, &conditions) else {
+            continue;
+        };
+        if assignment_is_proven_satisfiable(m, &merged) && seen.insert(canonical_assignment(&conditions)) {
+            alternatives.push(conditions);
+        }
+    }
+    alternatives
+}
+
+fn compatible_alternative_witness(
+    m: &Arc<SemanticModel>,
+    alternatives: &[Vec<HashMap<String, bool>>],
+    index: usize,
+    assignment: &HashMap<String, bool>,
+) -> Option<HashMap<String, bool>> {
+    let Some(group) = alternatives.get(index) else {
+        return Some(assignment.clone());
+    };
+    for alternative in group {
+        let Some(merged) = try_merge_assignments(assignment, alternative) else {
+            continue;
+        };
+        if !assignment_is_proven_satisfiable(m, &merged) {
+            continue;
+        }
+        if let Some(witness) = compatible_alternative_witness(m, alternatives, index + 1, &merged) {
+            return Some(witness);
+        }
+    }
+    None
+}
+
+/// A Fatal diagnostic requires an exact satisfiable witness. The condition
+/// solver's ordinary boolean API intentionally maps budget exhaustion to
+/// `true`; the tri-state API lets proof-producing validation decline to emit
+/// when that answer is unknown.
+fn assignment_is_proven_satisfiable(m: &Arc<SemanticModel>, assignment: &HashMap<String, bool>) -> bool {
+    if assignment.is_empty() {
+        return true;
+    }
+    let assumptions: Vec<(String, bool)> = assignment.iter().map(|(name, value)| (name.clone(), *value)).collect();
+    matches!(m.conditions.satisfiability(&assumptions), Satisfiability::Satisfiable)
+}
+
+/// Targeted proof search for required groups after full world enumeration is
+/// curtailed. Each emitted diagnostic carries one reachable violating world;
+/// no conclusion depends on scenarios or SAT queries omitted by a budget.
+fn validate_required_groups_budget_fallback(
+    out: &mut Vec<Diagnostic>,
+    m: &Arc<SemanticModel>,
+    rid: &str,
+    actual_keys: &[String],
+    required_or: &[String],
+    required_xor: &[String],
+    base_path: &str,
+) {
+    if !required_or.is_empty()
+        && let Some(witness) = all_members_absent_witness(m, rid, actual_keys, required_or, base_path)
+    {
+        let names = required_or.iter().map(|name| format!("'{name}'")).collect::<Vec<_>>().join(", ");
+        out.push(build_diagnostic_conditional(
+            "F3058",
+            &format!("One of [{names}] is a required property"),
+            m,
+            rid,
+            base_path,
+            None,
+            assignment_condition_map(&witness),
+        ));
+    }
+
+    if required_xor.is_empty() {
+        return;
+    }
+    let names = required_xor.iter().map(|name| format!("'{name}'")).collect::<Vec<_>>().join(", ");
+    if let Some(witness) = all_members_absent_witness(m, rid, actual_keys, required_xor, base_path) {
+        out.push(build_diagnostic_conditional(
+            "F3014",
+            &format!("Exactly one of [{names}] must be specified"),
+            m,
+            rid,
+            base_path,
+            None,
+            assignment_condition_map(&witness),
+        ));
+    }
+    if let Some(witness) = multiple_members_present_witness(m, rid, actual_keys, required_xor, base_path) {
+        out.push(build_diagnostic_conditional(
+            "F3014",
+            &format!("Exactly one of [{names}] must be specified"),
+            m,
+            rid,
+            base_path,
+            None,
+            assignment_condition_map(&witness),
+        ));
     }
 }
 

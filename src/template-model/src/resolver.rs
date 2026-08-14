@@ -915,13 +915,13 @@ impl<'a> Resolver<'a> {
         }
 
         if PSEUDO_PARAMETERS.contains(&target) {
-            if target == PSEUDO_NO_VALUE {
-                return Some(ResolvedValue::Concrete { value: serde_json::Value::Null.into() });
-            }
             if let Some(ref rid) = self.current_resource {
                 self.resolution_source_map
                     .entry((rid.clone(), self.current_path.clone()))
                     .or_insert_with(|| format!("Intrinsic/{}", TAG_REF));
+            }
+            if target == PSEUDO_NO_VALUE {
+                return Some(ResolvedValue::Concrete { value: serde_json::Value::Null.into() });
             }
             if let Some(val) = self.pseudo_parameter_overrides.get(target) {
                 return Some(ResolvedValue::Concrete { value: serde_json::Value::String(val).into() });
@@ -2817,6 +2817,7 @@ mod tests {
             Some(ResolvedValue::Concrete { value: v }) => assert!(v.is_null()),
             other => panic!("Expected Concrete(null), got {:?}", other),
         }
+        assert!(model.is_from_intrinsic("R", "Properties.V"));
     }
 
     #[test]

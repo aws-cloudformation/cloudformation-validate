@@ -15,12 +15,13 @@ use template_model::consts::{
     KEY_PROPERTIES, PARAM_TYPE_STRING, TRANSFORM_SERVERLESS,
 };
 use template_model::fargate::{CPU_UNIT_LABELS, cpu_is_offered};
-use template_model::iam_policy::validate_identity_policy;
+use template_model::iam_policy::validate_identity_policy_scenarios;
 use template_model::message::{render_str_list, render_value};
 use template_model::resolver::{RefKind, ResolvedValue};
 use template_model::route_table::duplicate_subnet_associations;
 use template_model::{
     CAA_RECORD_PATTERN, IAM_ROLE_ARN_RULE_PATTERN, MARKER_DYNAMIC, MARKER_PARAM_TYPE, MX_RECORD_PATTERN, SourceSpan,
+    resolved_value_to_json,
 };
 use template_model::{hardcoded_az, region_enums, schedule_expression_errors};
 use validation_engine::{make_resource_diagnostic, make_resource_diagnostic_at_source};
@@ -249,10 +250,8 @@ fn push_identity_policy_findings(
     model: &SemanticModel,
     resource_id: &str,
     document_path: &str,
-    document: &serde_json::Value,
 ) {
-    let substituted = model.substituted_paths_under(resource_id, document_path);
-    for finding in validate_identity_policy(document, &substituted) {
+    for finding in validate_identity_policy_scenarios(model, resource_id, document_path) {
         let path = if finding.path.is_empty() {
             document_path.to_string()
         } else {
@@ -593,6 +592,43 @@ fn ddb_collect_index_key_schemas(indexes: &[serde_json::Value], referenced: &mut
     true
 }
 
+/// Unions key attributes from every reachable concrete index-property branch.
+/// Returns `true` when any reachable content remains unknown, in which case an
+/// unused-definition conclusion would be unsound.
+fn ddb_collect_index_scenarios(
+    model: &SemanticModel,
+    resource_id: &str,
+    path: &str,
+    authored: bool,
+    referenced: &mut HashSet<String>,
+) -> bool {
+    if !authored {
+        return false;
+    }
+    let scenarios = model.resolve_scenarios(resource_id, path);
+    if scenarios.is_empty() {
+        return true;
+    }
+
+    let mut unknown = false;
+    for (value, conditions) in scenarios {
+        if !scenario_is_reachable(model, resource_id, &conditions) {
+            continue;
+        }
+        let json = resolved_value_to_json(&value);
+        match json {
+            serde_json::Value::Null => {}
+            serde_json::Value::Array(indexes) => {
+                if !ddb_collect_index_key_schemas(&indexes, referenced) {
+                    unknown = true;
+                }
+            }
+            _ => unknown = true,
+        }
+    }
+    unknown
+}
+
 pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     let mut out = Vec::new();
     let m = ctx.model;
@@ -640,9 +676,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     for name in m.resources_of_type("AWS::IAM::Policy") {
-        if let Some(doc) = resolve_with_markers(m, name, "Properties.PolicyDocument") {
-            push_identity_policy_findings(&mut out, m, name, "Properties.PolicyDocument", &doc);
-        }
+        push_identity_policy_findings(&mut out, m, name, "Properties.PolicyDocument");
     }
     let single_document_types = [
         ("AWS::IAM::ManagedPolicy", "Properties.PolicyDocument"),
@@ -653,9 +687,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     ];
     for (resource_type, document_path) in single_document_types {
         for name in m.resources_of_type(resource_type) {
-            if let Some(document) = resolve_with_markers(m, name, document_path) {
-                push_identity_policy_findings(&mut out, m, name, document_path, &document);
-            }
+            push_identity_policy_findings(&mut out, m, name, document_path);
         }
     }
     for resource_type in ["AWS::IAM::Role", "AWS::IAM::User", "AWS::IAM::Group"] {
@@ -663,12 +695,9 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             let Some(serde_json::Value::Array(policies)) = resolve_with_markers(m, name, "Properties.Policies") else {
                 continue;
             };
-            for (index, policy) in policies.iter().enumerate() {
-                let Some(document) = policy.get("PolicyDocument") else {
-                    continue;
-                };
+            for (index, _) in policies.iter().enumerate() {
                 let document_path = format!("Properties.Policies.{}.PolicyDocument", index);
-                push_identity_policy_findings(&mut out, m, name, &document_path, document);
+                push_identity_policy_findings(&mut out, m, name, &document_path);
             }
         }
     }
@@ -894,42 +923,33 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             }
 
             let res = m.resources.get(name.as_str());
-
-            // GlobalSecondaryIndexes: authored-but-unresolvable means skip entirely.
-            let gsi_authored = res.map(|r| r.properties.contains_key("GlobalSecondaryIndexes")).unwrap_or(false);
-            match resolve_concrete(m, name, "Properties.GlobalSecondaryIndexes") {
-                Some(serde_json::Value::Array(gsis)) => {
-                    if !ddb_collect_index_key_schemas(&gsis, &mut referenced) {
-                        continue;
-                    }
-                }
-                _ if gsi_authored => {
-                    // Authored but cannot resolve to an array -- bail.
-                    continue;
-                }
-                _ => {}
-            }
-
-            // LocalSecondaryIndexes: same logic.
-            let lsi_authored = res.map(|r| r.properties.contains_key("LocalSecondaryIndexes")).unwrap_or(false);
-            match resolve_concrete(m, name, "Properties.LocalSecondaryIndexes") {
-                Some(serde_json::Value::Array(lsis)) => {
-                    if !ddb_collect_index_key_schemas(&lsis, &mut referenced) {
-                        continue;
-                    }
-                }
-                _ if lsi_authored => {
-                    continue;
-                }
-                _ => {}
-            }
+            let gsi_authored = res.is_some_and(|resource| resource.properties.contains_key("GlobalSecondaryIndexes"));
+            let lsi_authored = res.is_some_and(|resource| resource.properties.contains_key("LocalSecondaryIndexes"));
+            let index_content_unknown = ddb_collect_index_scenarios(
+                m,
+                name,
+                "Properties.GlobalSecondaryIndexes",
+                gsi_authored,
+                &mut referenced,
+            ) || ddb_collect_index_scenarios(
+                m,
+                name,
+                "Properties.LocalSecondaryIndexes",
+                lsi_authored,
+                &mut referenced,
+            );
 
             // Compare the two sets: emit one diagnostic per table when they differ.
-            if defined != referenced {
-                let missing: BTreeSet<&str> =
-                    referenced.iter().filter(|r| !defined.contains(r.as_str())).map(|s| s.as_str()).collect();
-                let unused: BTreeSet<&str> =
-                    defined.iter().filter(|d| !referenced.contains(d.as_str())).map(|s| s.as_str()).collect();
+            let missing: BTreeSet<&str> =
+                referenced.iter().filter(|r| !defined.contains(r.as_str())).map(|s| s.as_str()).collect();
+            let unused: BTreeSet<&str> = if index_content_unknown {
+                // An unknown index could reference any defined attribute, so
+                // unused definitions cannot be determined.
+                BTreeSet::new()
+            } else {
+                defined.iter().filter(|d| !referenced.contains(d.as_str())).map(|s| s.as_str()).collect()
+            };
+            if !missing.is_empty() || !unused.is_empty() {
                 let mut parts: Vec<String> = Vec::new();
                 if !missing.is_empty() {
                     parts.push(format!(
@@ -4036,27 +4056,46 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                 ));
             }
 
-            if let Some(serde_json::Value::Array(container_definitions)) =
-                resolve_concrete(m, name, "Properties.ContainerDefinitions")
+            // Expanding the whole list preserves both condition branches even
+            // when `ContainerDefinitions` itself is wrapped in `Fn::If`; every
+            // returned scenario is concrete enough to inspect by index.
+            let mut reported_drivers: HashSet<(usize, String)> = HashSet::new();
+            for (container_value, container_conditions) in
+                m.resolve_scenarios_json(name, "Properties.ContainerDefinitions")
             {
+                if !scenario_overlaps_any(m, name, &container_conditions, &fargate_scenarios) {
+                    continue;
+                }
+                let Some(container_definitions) = container_value.as_array() else {
+                    continue;
+                };
                 for (container_index, container_definition) in container_definitions.iter().enumerate() {
-                    if let Some(log_configuration) = container_definition.get("LogConfiguration")
-                        && let Some(driver) = log_configuration.get("LogDriver").and_then(|value| value.as_str())
-                        && !FARGATE_SUPPORTED_LOG_DRIVERS.contains(&driver)
+                    let Some(driver) = container_definition
+                        .get("LogConfiguration")
+                        .and_then(|configuration| configuration.get("LogDriver"))
+                        .and_then(serde_json::Value::as_str)
+                    else {
+                        continue;
+                    };
+                    if FARGATE_SUPPORTED_LOG_DRIVERS.contains(&driver)
+                        || !reported_drivers.insert((container_index, driver.to_string()))
                     {
-                        out.push(make_resource_diagnostic(
-                            "E3048",
-                            &format!(
-                                "Fargate does not support log driver '{}'. Supported drivers: {}",
-                                driver,
-                                render_str_list(FARGATE_SUPPORTED_LOG_DRIVERS),
-                            ),
-                            m,
-                            name,
-                            &format!("Properties.ContainerDefinitions.{}.LogConfiguration.LogDriver", container_index),
-                            Some("Use 'awslogs', 'splunk', or 'awsfirelens'"),
-                        ));
+                        continue;
                     }
+                    let driver_path =
+                        format!("Properties.ContainerDefinitions.{container_index}.LogConfiguration.LogDriver");
+                    out.push(make_resource_diagnostic(
+                        "E3048",
+                        &format!(
+                            "Fargate does not support log driver '{}'. Supported drivers: {}",
+                            driver,
+                            render_str_list(FARGATE_SUPPORTED_LOG_DRIVERS),
+                        ),
+                        m,
+                        name,
+                        &driver_path,
+                        Some("Use 'awslogs', 'splunk', or 'awsfirelens'"),
+                    ));
                 }
             }
         }
