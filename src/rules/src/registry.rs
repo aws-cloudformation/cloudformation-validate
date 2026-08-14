@@ -1955,7 +1955,7 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
     RuleDefinition {
         id: "W9100",
         category: Category::BestPractice,
-        description: "Template has no Metadata.Context block at the template level or on any resource",
+        description: "Validate namespaced context metadata on the template and primary resources",
         origin: RuleOrigin::Engine,
     },
 ];

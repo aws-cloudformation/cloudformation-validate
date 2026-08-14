@@ -1,0 +1,47 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Valid namespaced context metadata at both supported placements
+Metadata:
+  com.aws.cloudformation.Context:
+    arch: "SQS buffer to Lambda consumer"
+    must:
+      - "All data remains encrypted"
+    ref:
+      - "context/common.yaml"
+      - at: "s3://example/context.yaml"
+        has: "shared constraints"
+        scope: "shared"
+    owner: "orders-team"
+Resources:
+  OrderQueue:
+    Type: AWS::SQS::Queue
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: "Buffers order events for asynchronous processing"
+        must:
+          - "Visibility timeout remains above function timeout"
+        mutable: "change-with-constraints"
+        mutability:
+          QueueName: "must-never-change"
+          Tags: "free-to-tune"
+        trust:
+          src: "authored"
+          conf: "high"
+          cite: "design.md"
+          note: "Reviewed by service owner"
+        ops: "Check queue age before changing throughput"
+        gaps:
+          - "Peak traffic profile not documented"
+        deps:
+          - "orders-events"
+        failureModes:
+          - "Consumer outage increases queue age"
+  CDKMetadata:
+    Type: AWS::CDK::Metadata
+    Properties:
+      Analytics: "v2:deflate64:H4sIAAAAAAAA/="
+  CustomProviderFunction:
+    Type: AWS::Lambda::Function
+  LogRetentionFunction:
+    Type: AWS::Lambda::Function
+    Metadata:
+      aws:cdk:path: Stack/LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8a/Resource
