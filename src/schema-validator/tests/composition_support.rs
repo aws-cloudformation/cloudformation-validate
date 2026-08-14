@@ -2868,3 +2868,90 @@ fn actionable_any_of_preserves_the_invalid_condition_scenario() {
     assert_eq!(composition_extra(findings[0], "matchOutcome"), &json!("zeroMatches"));
     assert!(composition_extra(findings[0], "branchFailures").as_array().is_some_and(|v| v.len() == 2));
 }
+
+// Nested list constraints need complete, condition-compatible worlds even when
+// basic type and scalar checks can validate only the outer value.
+
+#[test]
+fn conditional_novalue_list_item_still_enforces_min_items() {
+    let sv = validator(vec![(
+        "AWS::Test::ConstrainedList",
+        json!({
+            "properties": {
+                "Values": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "minItems": 2
+                }
+            },
+            "required": ["Values"],
+            "additionalProperties": false
+        }),
+    )]);
+    let template = concat!(
+        "Parameters:\n",
+        "  Toggle:\n",
+        "    Type: String\n",
+        "Conditions:\n",
+        "  UseBranch: !Equals [!Ref Toggle, 'true']\n",
+        "Resources:\n",
+        "  R:\n",
+        "    Type: AWS::Test::ConstrainedList\n",
+        "    Properties:\n",
+        "      Values:\n",
+        "        - fixed\n",
+        "        - !If [UseBranch, !Ref AWS::NoValue, other]\n",
+    );
+
+    let diags = validate(&sv, template);
+    let findings = diags.iter().filter(|d| d.rule_id == "F3032").count();
+
+    assert_eq!(
+        findings,
+        1,
+        "the reachable one-item world must violate minItems: {:?}",
+        diags.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
+    );
+}
+
+#[test]
+fn conditional_list_item_still_enforces_unique_items() {
+    let sv = validator(vec![(
+        "AWS::Test::ConstrainedList",
+        json!({
+            "properties": {
+                "Values": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "uniqueItems": true
+                }
+            },
+            "required": ["Values"],
+            "additionalProperties": false
+        }),
+    )]);
+    let template = concat!(
+        "Parameters:\n",
+        "  Toggle:\n",
+        "    Type: String\n",
+        "Conditions:\n",
+        "  UseBranch: !Equals [!Ref Toggle, 'true']\n",
+        "Resources:\n",
+        "  R:\n",
+        "    Type: AWS::Test::ConstrainedList\n",
+        "    Properties:\n",
+        "      Values:\n",
+        "        - fixed\n",
+        "        - !If [UseBranch, fixed, other]\n",
+    );
+
+    let diags = validate(&sv, template);
+    let findings = diags.iter().filter(|d| d.rule_id == "F3037").count();
+
+    assert_eq!(
+        findings,
+        1,
+        "the reachable duplicate world must violate uniqueItems: {:?}",
+        diags.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
+    );
+}

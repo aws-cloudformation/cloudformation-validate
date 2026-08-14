@@ -21,18 +21,7 @@ violation contains make_diag_full("E3048", "ERROR", name,
     "Set NetworkMode to 'awsvpc'",
     "") if {
     some name in resources_of_type("AWS::ECS::TaskDefinition")
-    some network_scenario in _fargate_property_scenarios(name, "Properties.NetworkMode")
-    network_scenario.value == null
-}
-
-violation contains make_diag_full("E3048", "ERROR", name,
-    "Properties",
-    "Fargate requires NetworkMode to be specified as 'awsvpc'",
-    "Set NetworkMode to 'awsvpc'",
-    "") if {
-    some name in resources_of_type("AWS::ECS::TaskDefinition")
-    _is_fargate(name)
-    not has_property(name, "NetworkMode")
+    _fargate_property_missing(name, "NetworkMode")
 }
 
 violation contains make_diag_full("E3048", "ERROR", name,
@@ -41,18 +30,7 @@ violation contains make_diag_full("E3048", "ERROR", name,
     "Set Cpu to a valid Fargate value (256, 512, 1024, 2048, 4096, 8192, 16384, or 32768)",
     "") if {
     some name in resources_of_type("AWS::ECS::TaskDefinition")
-    _is_fargate(name)
-    not has_property(name, "Cpu")
-}
-
-violation contains make_diag_full("E3048", "ERROR", name,
-    "Properties",
-    "Fargate requires Cpu to be specified",
-    "Set Cpu to a valid Fargate value (256, 512, 1024, 2048, 4096, 8192, 16384, or 32768)",
-    "") if {
-    some name in resources_of_type("AWS::ECS::TaskDefinition")
-    some cpu_scenario in _fargate_property_scenarios(name, "Properties.Cpu")
-    cpu_scenario.value == null
+    _fargate_property_missing(name, "Cpu")
 }
 
 violation contains make_diag_full("E3048", "ERROR", name,
@@ -73,18 +51,7 @@ violation contains make_diag_full("E3048", "ERROR", name,
     "Set Memory to a valid Fargate value",
     "") if {
     some name in resources_of_type("AWS::ECS::TaskDefinition")
-    _is_fargate(name)
-    not has_property(name, "Memory")
-}
-
-violation contains make_diag_full("E3048", "ERROR", name,
-    "Properties",
-    "Fargate requires Memory to be specified",
-    "Set Memory to a valid Fargate value",
-    "") if {
-    some name in resources_of_type("AWS::ECS::TaskDefinition")
-    some memory_scenario in _fargate_property_scenarios(name, "Properties.Memory")
-    memory_scenario.value == null
+    _fargate_property_missing(name, "Memory")
 }
 
 violation contains make_diag_full("E3048", "ERROR", name,
@@ -136,6 +103,13 @@ _fargate_compatibility_scenarios(name) := {scenario |
     is_array(scenario.value)
     "FARGATE" in scenario.value
     _resource_scenario_reachable(name, scenario.conditions)
+}
+
+_fargate_property_missing(name, property_name) if {
+    some compatibility_scenario in _fargate_compatibility_scenarios(name)
+    some property_scenario in properties_scenarios(name, [property_name])
+    _scenario_conditions_compatible(name, compatibility_scenario.conditions, property_scenario.conditions)
+    object.get(property_scenario.properties, property_name, null) == null
 }
 
 _fargate_property_scenarios(name, path) := {property_scenario |

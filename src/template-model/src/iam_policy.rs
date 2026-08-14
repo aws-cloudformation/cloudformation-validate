@@ -21,9 +21,10 @@ use crate::consts::{
 };
 use crate::message::render_str_list;
 use crate::model::SemanticModel;
+use crate::resolver::ResolvedValue;
 use crate::serialization::resolved_value_to_json;
 use serde_json::Value;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 /// One structural defect in a policy document. `path` is relative to the
 /// document root (empty for a document-level finding), dot-separated with
@@ -274,6 +275,10 @@ fn is_resolution_marker(value: &Value) -> bool {
     })
 }
 
+fn non_null_property<'a>(object: &'a serde_json::Map<String, Value>, key: &str) -> Option<&'a Value> {
+    object.get(key).filter(|value| !value.is_null())
+}
+
 /// Validates an IAM *identity* policy document (no `Principal` allowed).
 /// The document must already be concrete JSON; values containing
 /// resolved-intrinsic markers are skipped rather than judged.
@@ -323,7 +328,7 @@ pub fn validate_identity_policy(doc: &Value, substituted: &HashSet<String>) -> V
         }
     }
 
-    match obj.get("Statement") {
+    match non_null_property(obj, "Statement") {
         None => {
             out.push(PolicyFinding { path: String::new(), message: "'Statement' is a required property".to_string() })
         }
@@ -367,6 +372,74 @@ pub fn validate_identity_policy(doc: &Value, substituted: &HashSet<String>) -> V
     out
 }
 
+fn contains_scenario_branching(value: &ResolvedValue) -> bool {
+    match value {
+        ResolvedValue::Conditional { .. } | ResolvedValue::Enum { .. } => true,
+        ResolvedValue::List { items } => items.iter().any(contains_scenario_branching),
+        ResolvedValue::Map { entries } => entries.iter().any(|entry| contains_scenario_branching(&entry.value)),
+        ResolvedValue::Concrete { .. }
+        | ResolvedValue::Reference { .. }
+        | ResolvedValue::Dynamic { .. }
+        | ResolvedValue::TypedDynamic { .. } => false,
+    }
+}
+
+fn branch_alternatives_match(value: &ResolvedValue, concrete_matches: &impl Fn(&serde_json::Value) -> bool) -> bool {
+    match value {
+        ResolvedValue::Conditional { if_true, if_false, .. } => {
+            branch_alternatives_match(if_true, concrete_matches)
+                && branch_alternatives_match(if_false, concrete_matches)
+        }
+        ResolvedValue::Enum { variants } => {
+            variants.iter().all(|variant| branch_alternatives_match(variant, concrete_matches))
+        }
+        ResolvedValue::Concrete { value } => concrete_matches(value),
+        ResolvedValue::Reference { .. } | ResolvedValue::Dynamic { .. } | ResolvedValue::TypedDynamic { .. } => true,
+        ResolvedValue::List { .. } | ResolvedValue::Map { .. } => false,
+    }
+}
+
+fn list_item_branches_are_validation_invariant(
+    value: &ResolvedValue,
+    concrete_matches: &impl Fn(&serde_json::Value) -> bool,
+) -> bool {
+    let ResolvedValue::List { items } = value else {
+        return !contains_scenario_branching(value);
+    };
+    items.iter().all(|item| !contains_scenario_branching(item) || branch_alternatives_match(item, concrete_matches))
+}
+
+fn identity_statement_branches_are_validation_invariant(statement: &ResolvedValue) -> bool {
+    let ResolvedValue::Map { entries } = statement else {
+        return !contains_scenario_branching(statement);
+    };
+    entries.iter().all(|entry| match entry.key.as_str() {
+        "Action" | "NotAction" => {
+            list_item_branches_are_validation_invariant(&entry.value, &serde_json::Value::is_string)
+        }
+        "Resource" | "NotResource" => list_item_branches_are_validation_invariant(&entry.value, &|value| {
+            value.as_str().is_some_and(resource_arn_matches)
+        }),
+        _ => !contains_scenario_branching(&entry.value),
+    })
+}
+
+fn identity_policy_branches_are_validation_invariant(document: &ResolvedValue) -> bool {
+    let ResolvedValue::Map { entries } = document else {
+        return !contains_scenario_branching(document);
+    };
+    entries.iter().all(|entry| {
+        if entry.key != "Statement" {
+            return !contains_scenario_branching(&entry.value);
+        }
+        match &entry.value {
+            ResolvedValue::List { items } => items.iter().all(identity_statement_branches_are_validation_invariant),
+            statement @ ResolvedValue::Map { .. } => identity_statement_branches_are_validation_invariant(statement),
+            value => !contains_scenario_branching(value),
+        }
+    })
+}
+
 /// Validates every proven-reachable scenario of one identity-policy document.
 /// Raw scenarios retain dynamic marker subtrees, allowing literal siblings to
 /// be checked without judging deployment-time values. Findings produced from an
@@ -380,7 +453,14 @@ pub fn validate_identity_policy_scenarios(
     if model.scenario_budget_exhausted() {
         return Vec::new();
     }
-    let scenarios = model.resolve_scenarios(resource_id, document_path);
+    let resolved_document =
+        model.resolve_deep(resource_id, document_path).or_else(|| model.resolve(resource_id, document_path).cloned());
+    let scenarios = match resolved_document {
+        Some(document) if identity_policy_branches_are_validation_invariant(&document) => {
+            vec![(document, HashMap::new())]
+        }
+        _ => model.resolve_scenarios(resource_id, document_path),
+    };
     let mut findings = Vec::new();
     let mut seen = HashSet::new();
     let no_substitutions = HashSet::new();
@@ -449,7 +529,7 @@ fn validate_identity_statement(
         }
     }
 
-    match obj.get("Effect") {
+    match non_null_property(obj, "Effect") {
         None => {
             out.push(PolicyFinding { path: path.to_string(), message: "'Effect' is a required property".to_string() })
         }
@@ -479,14 +559,14 @@ fn validate_identity_statement(
     check_required_xor(obj, path, &["Resource", "NotResource"], out);
 
     for key in ["Action", "NotAction"] {
-        if let Some(value) = obj.get(key)
+        if let Some(value) = non_null_property(obj, key)
             && !is_resolution_marker(value)
         {
             check_string_or_string_list_with_min_items(value, &format!("{}.{}", path, key), substituted, out);
         }
     }
     for key in ["Resource", "NotResource"] {
-        if let Some(value) = obj.get(key) {
+        if let Some(value) = non_null_property(obj, key) {
             // Allow conditional markers through — the recursive validation of
             // each branch happens inside check_resource_string_or_list.
             let is_non_conditional_marker =
@@ -662,7 +742,7 @@ fn check_required_xor(
     pair: &[&str; 2],
     out: &mut Vec<PolicyFinding>,
 ) {
-    let present: Vec<&str> = pair.iter().copied().filter(|k| obj.contains_key(*k)).collect();
+    let present: Vec<&str> = pair.iter().copied().filter(|key| non_null_property(obj, key).is_some()).collect();
     let message = format!("Only one of {} is a required property", render_str_list(pair));
     if present.is_empty() {
         out.push(PolicyFinding { path: path.to_string(), message });
@@ -788,6 +868,41 @@ mod tests {
     }
 
     #[test]
+    fn independent_valid_action_item_conditions_do_not_materialize_policy_worlds() {
+        let parameters: serde_json::Map<String, Value> =
+            (0..8).map(|index| (format!("P{index}"), json!({"Type": "String"}))).collect();
+        let conditions: serde_json::Map<String, Value> = (0..8)
+            .map(|index| (format!("C{index}"), json!({"Fn::Equals": [{"Ref": format!("P{index}")}, "true"]})))
+            .collect();
+        let actions: Vec<Value> =
+            (0..8).map(|index| json!({"Fn::If": [format!("C{index}"), "s3:GetObject", "s3:PutObject"]})).collect();
+        let template = json!({
+            "Parameters": parameters,
+            "Conditions": conditions,
+            "Resources": {
+                "Policy": {
+                    "Type": "AWS::IAM::ManagedPolicy",
+                    "Properties": {
+                        "PolicyDocument": {
+                            "Statement": [{"Effect": "Allow", "Action": actions, "Resource": "*"}]
+                        }
+                    }
+                }
+            }
+        });
+        let model = SemanticModel::from_bytes(&serde_json::to_vec(&template).unwrap()).unwrap();
+
+        let found = validate_identity_policy_scenarios(&model, "Policy", "Properties.PolicyDocument");
+
+        assert!(found.is_empty());
+        assert_eq!(
+            model.scenario_combinations_used(),
+            0,
+            "validation-invariant item branches must not produce a Cartesian set of policy documents"
+        );
+    }
+
+    #[test]
     fn resource_arn_validation_accepts_representative_forms() {
         for resource in [
             "arn:aws:s3:::my-bucket/*",
@@ -868,6 +983,70 @@ mod tests {
         assert!(
             found
                 .contains(&("Statement.0".into(), "Only one of ['Action', 'NotAction'] is a required property".into()))
+        );
+    }
+
+    #[test]
+    fn null_action_without_not_action_reports_required_pair() {
+        let doc = json!({"Statement": [{"Effect": "Allow", "Action": null, "Resource": "*"}]});
+        assert_eq!(
+            findings(doc),
+            [("Statement.0".into(), "Only one of ['Action', 'NotAction'] is a required property".into())]
+        );
+    }
+
+    #[test]
+    fn null_resource_without_not_resource_reports_required_pair() {
+        let doc = json!({"Statement": [{"Effect": "Allow", "Action": "s3:GetObject", "Resource": null}]});
+        assert_eq!(
+            findings(doc),
+            [("Statement.0".into(), "Only one of ['Resource', 'NotResource'] is a required property".into())]
+        );
+    }
+
+    #[test]
+    fn concrete_xor_member_is_valid_when_other_member_is_null() {
+        let doc = json!({
+            "Statement": [{
+                "Effect": "Allow",
+                "Action": null,
+                "NotAction": "s3:DeleteObject",
+                "Resource": null,
+                "NotResource": "*"
+            }]
+        });
+        assert!(findings(doc).is_empty());
+    }
+
+    #[test]
+    fn both_null_xor_members_report_each_required_pair_once() {
+        let doc = json!({
+            "Statement": [{
+                "Effect": "Allow",
+                "Action": null,
+                "NotAction": null,
+                "Resource": null,
+                "NotResource": null
+            }]
+        });
+        assert_eq!(
+            findings(doc),
+            [
+                ("Statement.0".into(), "Only one of ['Action', 'NotAction'] is a required property".into()),
+                ("Statement.0".into(), "Only one of ['Resource', 'NotResource'] is a required property".into())
+            ]
+        );
+    }
+
+    #[test]
+    fn null_effect_and_statement_are_reported_as_missing() {
+        assert_eq!(
+            findings(json!({"Statement": [{"Effect": null, "Action": "s3:GetObject", "Resource": "*"}]})),
+            [("Statement.0".into(), "'Effect' is a required property".into())]
+        );
+        assert_eq!(
+            findings(json!({"Statement": null})),
+            [(String::new(), "'Statement' is a required property".into())]
         );
     }
 

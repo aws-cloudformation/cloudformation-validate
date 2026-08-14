@@ -475,6 +475,94 @@ Resources:
 }
 
 #[test]
+fn whole_properties_fargate_requirements_follow_effective_branch() {
+    let template = r#"
+Conditions:
+  IsFargate: !Equals [!Ref AWS::Region, us-east-1]
+Resources:
+  ValidConditionalProperties:
+    Type: AWS::ECS::TaskDefinition
+    Properties: !If
+      - IsFargate
+      - RequiresCompatibilities: [FARGATE]
+        NetworkMode: awsvpc
+        Cpu: '256'
+        Memory: '512'
+        ContainerDefinitions: [{Name: app, Image: nginx, Essential: true}]
+      - RequiresCompatibilities: [EC2]
+        NetworkMode: bridge
+        ContainerDefinitions: [{Name: app, Image: nginx, Essential: true}]
+  MissingFargateProperties:
+    Type: AWS::ECS::TaskDefinition
+    Properties: !If
+      - IsFargate
+      - RequiresCompatibilities: [FARGATE]
+        ContainerDefinitions: [{Name: app, Image: nginx, Essential: true}]
+      - RequiresCompatibilities: [EC2]
+        NetworkMode: bridge
+        Cpu: '256'
+        Memory: '512'
+        ContainerDefinitions: [{Name: app, Image: nginx, Essential: true}]
+"#;
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E3048"]);
+    let cel_findings = selected_findings(&cel, template, &["E3048"]);
+
+    assert_eq!(rego_findings, cel_findings);
+    assert_eq!(rego_findings.len(), 3, "only the incomplete Fargate branch should fail: {rego_findings:?}");
+    assert!(rego_findings.iter().all(|finding| finding.contains("MissingFargateProperties")));
+    assert!(rego_findings.iter().any(|finding| finding.contains("NetworkMode to be specified")));
+    assert!(rego_findings.iter().any(|finding| finding.contains("Cpu to be specified")));
+    assert!(rego_findings.iter().any(|finding| finding.contains("Memory to be specified")));
+    assert!(rego_findings.iter().all(|finding| !finding.contains("ValidConditionalProperties")));
+}
+
+#[test]
+fn fargate_placement_constraints_follow_compatible_scenarios() {
+    let template = r#"
+Parameters:
+  PlacementExpression:
+    Type: String
+Conditions:
+  IsFargate: !Equals [!Ref AWS::Region, us-east-1]
+Resources:
+  Ec2OnlyPlacement:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      RequiresCompatibilities: !If [IsFargate, [FARGATE], [EC2]]
+      NetworkMode: !If [IsFargate, awsvpc, bridge]
+      Cpu: '256'
+      Memory: '512'
+      PlacementConstraints: !If
+        - IsFargate
+        - !Ref AWS::NoValue
+        - - Type: memberOf
+            Expression: !Ref PlacementExpression
+      ContainerDefinitions: [{Name: app, Image: nginx, Essential: true}]
+  DirectFargatePlacement:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: '256'
+      Memory: '512'
+      PlacementConstraints:
+        - Type: memberOf
+          Expression: !Ref PlacementExpression
+      ContainerDefinitions: [{Name: app, Image: nginx, Essential: true}]
+"#;
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E3048"]);
+    let cel_findings = selected_findings(&cel, template, &["E3048"]);
+
+    assert_eq!(rego_findings, cel_findings);
+    assert_eq!(rego_findings.len(), 1, "only direct Fargate placement should fail: {rego_findings:?}");
+    assert!(rego_findings[0].contains("DirectFargatePlacement"));
+    assert!(rego_findings[0].contains("does not support PlacementConstraints"));
+    assert!(!rego_findings[0].contains("Ec2OnlyPlacement"));
+}
+
+#[test]
 fn conditional_fargate_logdriver_checks_all_branches() {
     let template = r#"
 Conditions:
@@ -716,6 +804,94 @@ Resources:
     // Table KeySchema only uses pk (defined), gsi_pk is for the conditional index.
     // No missing and no unused (index might use gsi_pk).
     assert!(rego_findings.is_empty(), "Valid table should not fire: {rego_findings:?}");
+}
+
+#[test]
+fn dynamodb_unknown_gsi_does_not_skip_concrete_lsi_attributes() {
+    let template = r#"
+Parameters:
+  GsiAttribute:
+    Type: String
+Resources:
+  Table:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - {AttributeName: pk, AttributeType: S}
+        - {AttributeName: sk, AttributeType: S}
+      KeySchema:
+        - {AttributeName: pk, KeyType: HASH}
+        - {AttributeName: sk, KeyType: RANGE}
+      GlobalSecondaryIndexes:
+        - IndexName: dynamic
+          KeySchema:
+            - {AttributeName: !Ref GsiAttribute, KeyType: HASH}
+          Projection: {ProjectionType: ALL}
+      LocalSecondaryIndexes:
+        - IndexName: concrete
+          KeySchema:
+            - {AttributeName: pk, KeyType: HASH}
+            - {AttributeName: lsi_sort, KeyType: RANGE}
+          Projection: {ProjectionType: ALL}
+"#;
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E3039"]);
+    let cel_findings = selected_findings(&cel, template, &["E3039"]);
+
+    assert_eq!(rego_findings, cel_findings);
+    assert_eq!(rego_findings.len(), 1, "the concrete LSI reference must still be validated: {rego_findings:?}");
+    assert!(rego_findings[0].contains("missing definitions: [lsi_sort]"));
+    assert!(!rego_findings[0].contains("unused definitions"));
+}
+
+#[test]
+fn identity_policy_novalue_required_members_are_checked_per_scenario() {
+    let template = r#"
+Conditions:
+  UsePositiveMember: !Equals [!Ref AWS::Region, us-east-1]
+Resources:
+  MissingAction:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Action: !If [UsePositiveMember, s3:GetObject, !Ref AWS::NoValue]
+            Resource: "*"
+  MissingResource:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Action: s3:GetObject
+            Resource: !If [UsePositiveMember, "*", !Ref AWS::NoValue]
+  MutuallyExclusiveActions:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Action: !If [UsePositiveMember, s3:GetObject, !Ref AWS::NoValue]
+            NotAction: !If [UsePositiveMember, !Ref AWS::NoValue, s3:DeleteObject]
+            Resource: "*"
+"#;
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E3510"]);
+    let cel_findings = selected_findings(&cel, template, &["E3510"]);
+
+    assert_eq!(rego_findings, cel_findings);
+    assert_eq!(rego_findings.len(), 2, "only scenarios with a removed required member should fail: {rego_findings:?}");
+    assert!(rego_findings.iter().any(|finding| {
+        finding.contains("MissingAction")
+            && finding.contains("Only one of ['Action', 'NotAction'] is a required property")
+    }));
+    assert!(rego_findings.iter().any(|finding| {
+        finding.contains("MissingResource")
+            && finding.contains("Only one of ['Resource', 'NotResource'] is a required property")
+    }));
+    assert!(rego_findings.iter().all(|finding| !finding.contains("MutuallyExclusiveActions")));
 }
 
 #[test]

@@ -1,6 +1,5 @@
 use super::EvalContext;
 use super::patterns::AMI_ID_RE;
-use crate::functions::contains_unresolvable_content;
 use diagnostics::Diagnostic;
 use diagnostics::RelatedResource;
 use diagnostics::ResourceRef;
@@ -925,19 +924,16 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             let res = m.resources.get(name.as_str());
             let gsi_authored = res.is_some_and(|resource| resource.properties.contains_key("GlobalSecondaryIndexes"));
             let lsi_authored = res.is_some_and(|resource| resource.properties.contains_key("LocalSecondaryIndexes"));
-            let index_content_unknown = ddb_collect_index_scenarios(
+            let gsi_content_unknown = ddb_collect_index_scenarios(
                 m,
                 name,
                 "Properties.GlobalSecondaryIndexes",
                 gsi_authored,
                 &mut referenced,
-            ) || ddb_collect_index_scenarios(
-                m,
-                name,
-                "Properties.LocalSecondaryIndexes",
-                lsi_authored,
-                &mut referenced,
             );
+            let lsi_content_unknown =
+                ddb_collect_index_scenarios(m, name, "Properties.LocalSecondaryIndexes", lsi_authored, &mut referenced);
+            let index_content_unknown = gsi_content_unknown || lsi_content_unknown;
 
             // Compare the two sets: emit one diagnostic per table when they differ.
             let missing: BTreeSet<&str> =
@@ -3944,14 +3940,16 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                 continue;
             }
 
-            let network_mode_value = m
-                .resolve_deep(name, "Properties.NetworkMode")
-                .or_else(|| m.resolve(name, "Properties.NetworkMode").cloned());
+            let properties_scenarios = m.resolve_properties_scenarios(name);
+            let property_can_be_missing = |property_name: &str| {
+                properties_scenarios.iter().any(|(properties, conditions)| {
+                    !scenario_has_effective_property(properties, property_name)
+                        && scenario_overlaps_any(m, name, conditions, &fargate_scenarios)
+                })
+            };
+
             let network_mode_scenarios = m.resolve_scenarios_json(name, "Properties.NetworkMode");
-            let network_mode_can_be_missing = network_mode_value.is_none()
-                || network_mode_scenarios.iter().any(|(value, conditions)| {
-                    value.is_null() && scenario_overlaps_any(m, name, conditions, &fargate_scenarios)
-                });
+            let network_mode_can_be_missing = property_can_be_missing("NetworkMode");
             if network_mode_can_be_missing {
                 out.push(make_resource_diagnostic(
                     "E3048",
@@ -3980,13 +3978,8 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                 }
             }
 
-            let cpu_value =
-                m.resolve_deep(name, "Properties.Cpu").or_else(|| m.resolve(name, "Properties.Cpu").cloned());
             let cpu_scenarios = m.resolve_scenarios_json(name, "Properties.Cpu");
-            let cpu_can_be_missing = cpu_value.is_none()
-                || cpu_scenarios.iter().any(|(value, conditions)| {
-                    value.is_null() && scenario_overlaps_any(m, name, conditions, &fargate_scenarios)
-                });
+            let cpu_can_be_missing = property_can_be_missing("Cpu");
             if cpu_can_be_missing {
                 out.push(make_resource_diagnostic(
                     "E3048",
@@ -4020,13 +4013,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                 }
             }
 
-            let memory_value =
-                m.resolve_deep(name, "Properties.Memory").or_else(|| m.resolve(name, "Properties.Memory").cloned());
-            let memory_scenarios = m.resolve_scenarios_json(name, "Properties.Memory");
-            let memory_can_be_missing = memory_value.is_none()
-                || memory_scenarios.iter().any(|(value, conditions)| {
-                    value.is_null() && scenario_overlaps_any(m, name, conditions, &fargate_scenarios)
-                });
+            let memory_can_be_missing = property_can_be_missing("Memory");
             if memory_can_be_missing {
                 out.push(make_resource_diagnostic(
                     "E3048",
@@ -4038,13 +4025,10 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                 ));
             }
 
-            let placement_value = m
-                .resolve_deep(name, "Properties.PlacementConstraints")
-                .or_else(|| m.resolve(name, "Properties.PlacementConstraints").cloned());
-            let placement_scenarios = m.resolve_scenarios_json(name, "Properties.PlacementConstraints");
-            let placement_is_unsupported = placement_scenarios.iter().any(|(value, conditions)| {
-                !value.is_null() && scenario_overlaps_any(m, name, conditions, &fargate_scenarios)
-            }) || placement_value.as_ref().is_some_and(contains_unresolvable_content);
+            let placement_is_unsupported = properties_scenarios.iter().any(|(properties, conditions)| {
+                scenario_has_effective_property(properties, "PlacementConstraints")
+                    && scenario_overlaps_any(m, name, conditions, &fargate_scenarios)
+            });
             if placement_is_unsupported {
                 out.push(make_resource_diagnostic(
                     "E3048",

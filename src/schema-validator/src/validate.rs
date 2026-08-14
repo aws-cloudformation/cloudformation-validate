@@ -18,7 +18,7 @@ use template_model::region_enums;
 use template_model::resolver::{RefKind, ResolvedValue};
 use template_model::{
     CompiledPattern, IAM_ROLE_ARN_PATTERN, SECURITY_GROUP_NAME_PATTERN, SemanticModel, compile_pattern,
-    is_custom_resource_type,
+    is_custom_resource_type, resolved_value_to_json,
 };
 
 /// Properties that accept a string value when used with `aws cloudformation package`.
@@ -795,7 +795,7 @@ fn property_presence_alternatives(
     if m.scenario_budget_exhausted() {
         return Vec::new();
     }
-    let scenarios = m.resolve_scenarios(rid, &format!("{base_path}.{property}"));
+    let scenarios = outer_resolved_scenarios(m, rid, &format!("{base_path}.{property}"));
     let mut alternatives = Vec::new();
     let mut seen = HashSet::new();
     for (value, conditions) in scenarios {
@@ -1688,7 +1688,7 @@ fn schema_value_failure_reasons(
     }
 
     if let Some(items) = value.as_array() {
-        let length = items.len() as u64;
+        let length = items.iter().filter(|item| !item.is_null()).count() as u64;
         if let Some(maximum) = effective.max_items
             && length > maximum
         {
@@ -2724,6 +2724,110 @@ fn validate_sub_dependencies(
     }
 }
 
+fn collect_outer_resolved_scenarios(
+    value: &ResolvedValue,
+    assumptions: &HashMap<String, bool>,
+    scenarios: &mut Vec<(ResolvedValue, HashMap<String, bool>)>,
+) {
+    match value {
+        ResolvedValue::Conditional { condition, if_true, if_false } => match assumptions.get(condition) {
+            Some(true) => collect_outer_resolved_scenarios(if_true, assumptions, scenarios),
+            Some(false) => collect_outer_resolved_scenarios(if_false, assumptions, scenarios),
+            None => {
+                let mut true_assumptions = assumptions.clone();
+                true_assumptions.insert(condition.clone(), true);
+                collect_outer_resolved_scenarios(if_true, &true_assumptions, scenarios);
+                let mut false_assumptions = assumptions.clone();
+                false_assumptions.insert(condition.clone(), false);
+                collect_outer_resolved_scenarios(if_false, &false_assumptions, scenarios);
+            }
+        },
+        ResolvedValue::Enum { variants } => {
+            for variant in variants {
+                collect_outer_resolved_scenarios(variant, assumptions, scenarios);
+            }
+        }
+        _ => scenarios.push((value.clone(), assumptions.clone())),
+    }
+}
+
+fn outer_resolved_scenarios(
+    model: &Arc<SemanticModel>,
+    resource_id: &str,
+    property_path: &str,
+) -> Vec<(ResolvedValue, HashMap<String, bool>)> {
+    let Some(value) =
+        model.resolve_deep(resource_id, property_path).or_else(|| model.resolve(resource_id, property_path).cloned())
+    else {
+        return model.resolve_scenarios(resource_id, property_path);
+    };
+    let mut scenarios = Vec::new();
+    collect_outer_resolved_scenarios(&value, &HashMap::new(), &mut scenarios);
+    scenarios
+}
+
+fn collect_outer_value_scenarios(
+    value: &ResolvedValue,
+    assumptions: &HashMap<String, bool>,
+    scenarios: &mut Vec<(serde_json::Value, HashMap<String, bool>)>,
+) {
+    match value {
+        ResolvedValue::Conditional { condition, if_true, if_false } => match assumptions.get(condition) {
+            Some(true) => collect_outer_value_scenarios(if_true, assumptions, scenarios),
+            Some(false) => collect_outer_value_scenarios(if_false, assumptions, scenarios),
+            None => {
+                let mut true_assumptions = assumptions.clone();
+                true_assumptions.insert(condition.clone(), true);
+                collect_outer_value_scenarios(if_true, &true_assumptions, scenarios);
+                let mut false_assumptions = assumptions.clone();
+                false_assumptions.insert(condition.clone(), false);
+                collect_outer_value_scenarios(if_false, &false_assumptions, scenarios);
+            }
+        },
+        ResolvedValue::Enum { variants } => {
+            for variant in variants {
+                collect_outer_value_scenarios(variant, assumptions, scenarios);
+            }
+        }
+        ResolvedValue::Reference { .. } | ResolvedValue::Dynamic { .. } | ResolvedValue::TypedDynamic { .. } => {}
+        ResolvedValue::Concrete { .. } | ResolvedValue::List { .. } | ResolvedValue::Map { .. } => {
+            scenarios.push((resolved_value_to_json(value), assumptions.clone()));
+        }
+    }
+}
+
+fn schema_requires_nested_value_scenarios(schema: &PropSchema) -> bool {
+    let has_composite_value = |value: &serde_json::Value| value.is_array() || value.is_object();
+    schema.min_items.is_some()
+        || schema.max_items.is_some()
+        || schema.unique_items == Some(true)
+        || schema.min_properties.is_some()
+        || schema.max_properties.is_some()
+        || schema.enum_values.iter().any(has_composite_value)
+        || schema.enum_case_insensitive.iter().any(has_composite_value)
+        || schema.not_enum.iter().any(has_composite_value)
+        || schema.const_value.as_ref().is_some_and(has_composite_value)
+}
+
+fn validation_scenarios(
+    model: &Arc<SemanticModel>,
+    resource_id: &str,
+    property_path: &str,
+    schema: &PropSchema,
+) -> Vec<(serde_json::Value, HashMap<String, bool>)> {
+    if schema_requires_nested_value_scenarios(schema) {
+        return model.resolve_scenarios_json(resource_id, property_path);
+    }
+    let Some(value) =
+        model.resolve_deep(resource_id, property_path).or_else(|| model.resolve(resource_id, property_path).cloned())
+    else {
+        return model.resolve_scenarios_json(resource_id, property_path);
+    };
+    let mut scenarios = Vec::new();
+    collect_outer_value_scenarios(&value, &HashMap::new(), &mut scenarios);
+    scenarios
+}
+
 fn validate_prop(
     out: &mut Vec<Diagnostic>,
     store: &CompiledSchemaStore,
@@ -2735,7 +2839,7 @@ fn validate_prop(
     defs: &HashMap<String, PropSchema>,
     region: Option<&str>,
 ) {
-    let scenarios = m.resolve_scenarios_json(rid, prop_path);
+    let scenarios = validation_scenarios(m, rid, prop_path, schema);
 
     let is_type_exempt = TYPE_CHECK_EXEMPT_PATHS.iter().any(|(rt, pp)| *rt == rtype && *pp == prop_path);
 
@@ -2948,7 +3052,7 @@ fn validate_prop(
     }
 
     if let Some(ref fmt) = schema.format {
-        validate_format(out, m, rid, prop_path, fmt);
+        validate_format(out, m, rid, prop_path, fmt, &scenarios);
     }
 
     for (val, conds) in &scenarios {
@@ -3082,7 +3186,7 @@ fn validate_prop(
             continue;
         }
         if let Some(arr) = val.as_array() {
-            let len = arr.len() as u64;
+            let len = arr.iter().filter(|item| !item.is_null()).count() as u64;
             if let Some(max) = schema.max_items
                 && len > max
             {
@@ -3419,11 +3523,11 @@ fn enum_matches_case_insensitive(val: &serde_json::Value, allowed: &[serde_json:
 }
 
 fn check_required_not_null(out: &mut Vec<Diagnostic>, m: &Arc<SemanticModel>, rid: &str, base: &str, req: &str) {
-    for (val, conds) in &m.resolve_scenarios_json(rid, &format!("{}.{}", base, req)) {
+    for (value, conds) in &outer_resolved_scenarios(m, rid, &format!("{}.{}", base, req)) {
         if !is_satisfiable(m, conds) {
             continue;
         }
-        if val.is_null() {
+        if matches!(value, ResolvedValue::Concrete { value } if value.is_null()) {
             out.push(build_diagnostic_conditional(
                 "F3003",
                 &format!("'{}' is a required property", req),
@@ -3603,7 +3707,7 @@ fn condition_matches_at(
 /// other type passes vacuously.
 fn condition_bounds_match(val: &serde_json::Value, schema: &PropSchema) -> bool {
     if let Some(items) = val.as_array() {
-        let len = items.len() as u64;
+        let len = items.iter().filter(|item| !item.is_null()).count() as u64;
         if schema.min_items.is_some_and(|min| len < min) || schema.max_items.is_some_and(|max| len > max) {
             return false;
         }
@@ -3934,12 +4038,19 @@ fn validate_prop_composition(
     }
 }
 
-fn validate_format(out: &mut Vec<Diagnostic>, m: &Arc<SemanticModel>, rid: &str, prop_path: &str, format: &str) {
+fn validate_format(
+    out: &mut Vec<Diagnostic>,
+    m: &Arc<SemanticModel>,
+    rid: &str,
+    prop_path: &str,
+    format: &str,
+    scenarios: &[(serde_json::Value, HashMap<String, bool>)],
+) {
     let Some(re) = FORMAT_PATTERNS.get(format) else {
         return;
     };
 
-    for (val, conds) in &m.resolve_scenarios_json(rid, prop_path) {
+    for (val, conds) in scenarios {
         if !is_satisfiable(m, conds) || val.is_null() {
             continue;
         }
