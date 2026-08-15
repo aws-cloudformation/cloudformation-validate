@@ -3,6 +3,4 @@ Parameters:
     Type: String
   Two:
     Type: String
-Resources:
-  WaitHandle:
-    Type: AWS::CloudFormation::WaitConditionHandle
+Resources: {}

@@ -8,6 +8,4 @@ Metadata:
       - us-east-2
       ignore_checks:
       - E2530
-Resources:
-  WaitHandle:
-    Type: AWS::CloudFormation::WaitConditionHandle
+Resources: {}

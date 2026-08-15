@@ -18,6 +18,6 @@ Resources:
   mySubnet:
     Type: AWS::EC2::Subnet
     Properties:
-      VpcId: vpc-12345678
+      VpcId: vpc-123456
       # nested and standard checks
       CidrBlock: !FindInMap [!FindInMap ["Environment", !Ref "Environment", "Subnets"], "eu-west-1a", "Management"]

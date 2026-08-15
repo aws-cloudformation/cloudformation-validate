@@ -5,6 +5,4 @@ Metadata:
     config:
       ignore_checks: ['W', 'E']
       include_checks: ['I1002']
-Resources:
-  WaitHandle:
-    Type: AWS::CloudFormation::WaitConditionHandle
+Resources: {}

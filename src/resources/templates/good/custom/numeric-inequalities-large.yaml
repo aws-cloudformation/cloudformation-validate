@@ -24,7 +24,7 @@ Resources:
       Handler: index.handler
       Role: !GetAtt LambdaExecutionRole.Arn
       Code: ./
-      Runtime: nodejs22.x
+      Runtime: nodejs4.3
       Timeout: 100
   TimeoutInStringFunction:
     Type: AWS::Lambda::Function
@@ -32,5 +32,5 @@ Resources:
       Handler: index.handler
       Role: !GetAtt LambdaExecutionRole.Arn
       Code: ./
-      Runtime: nodejs22.x
+      Runtime: nodejs4.3
       Timeout: '100'

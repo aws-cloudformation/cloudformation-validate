@@ -15,12 +15,12 @@ Resources:
     Type: 'AWS::Serverless::Function'
     Properties:
       Handler: com.SomeLambda::handleRequest
-      Runtime: java21
+      Runtime: java8
       MemorySize: 256
   LaunchConfiguration:
     Type: AWS::AutoScaling::LaunchConfiguration
     Properties:
-      ImageId: ami-12345678
+      ImageId: ami-123456
       InstanceType: t2.micro
       UserData:
         'Fn::Base64':

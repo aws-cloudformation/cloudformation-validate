@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: Template derived from custom ignore-filter cases, using valid CloudFormation substitutions
+Description: Template containing third-party preprocessor-like variables to test custom ignore filters
 Parameters:
   Stage:
     Type: String
@@ -7,14 +7,14 @@ Resources:
   TestRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub "TestRole-${Stage}"
+      RoleName: TestRole-${Stage}
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
           - Effect: Allow
             Principal:
               AWS:
-                - !Sub "arn:aws:iam::${AWS::AccountId}:root"
+                - arn:aws:iam::${self:custom.config.masterAccount}:user/${self:custom.config.deploymentUser}
             Action:
               - sts:AssumeRole
       Policies:
@@ -26,4 +26,4 @@ Resources:
                 Action:
                   - s3:GetObject
                 Resource:
-                  - !Sub "arn:aws:s3:::${Stage}-bucket/*"
+                  - arn:aws:s3:::${self:custom.config.deploymentBucket}/*

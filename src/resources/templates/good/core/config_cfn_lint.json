@@ -13,9 +13,5 @@
 			}
 		}
 	},
-	"Resources": {
-		"WaitHandle": {
-			"Type": "AWS::CloudFormation::WaitConditionHandle"
-		}
-	}
+	"Resources": {}
 }

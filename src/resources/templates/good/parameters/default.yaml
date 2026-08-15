@@ -63,8 +63,7 @@ Parameters:
     AllowedValues:
       - one
       - two
-      - three
-      - four
+      - three,four
   CDLAllowedValuesWithSpaceInDefault:
     ConstraintDescription: Alphanumeric string of any length.
     Description: test value using comma delimited list.
@@ -79,6 +78,4 @@ Parameters:
   StringList:
     Type: List<String>
     Default: False
-Resources:
-  WaitHandle:
-    Type: AWS::CloudFormation::WaitConditionHandle
+Resources: {}
