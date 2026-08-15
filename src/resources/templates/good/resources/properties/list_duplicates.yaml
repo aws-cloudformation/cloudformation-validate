@@ -13,7 +13,13 @@ Resources:
   IamRole:
     Type: AWS::IAM::Role
     Properties:
-      AssumeRolePolicyDocument: {}
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
       ManagedPolicyArns:
       - arn:aws:iam::aws:policy/AdministratorPolicy
       - arn:aws:iam::aws:policy/EC2FullAdmin
@@ -22,7 +28,13 @@ Resources:
   IamRoleWithConditions:
     Type: AWS::IAM::Role
     Properties:
-      AssumeRolePolicyDocument: {}
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
       ManagedPolicyArns:
         Fn::If:
         - isPrimaryRegion
@@ -34,7 +46,13 @@ Resources:
   IamRoleWithNestedConditions:
     Type: AWS::IAM::Role
     Properties:
-      AssumeRolePolicyDocument: {}
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
       ManagedPolicyArns:
         - !If ['isPrimaryRegion', 'arn:aws:iam::aws:policy/AdministratorPolicy', !Ref 'AWS::NoValue']
         - !If ['isPrimaryRegion', 'arn:aws:iam::aws:policy/EC2FullAdmin', !Ref 'AWS::NoValue']

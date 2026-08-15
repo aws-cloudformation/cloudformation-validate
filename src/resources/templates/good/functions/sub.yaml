@@ -30,7 +30,7 @@ Resources:
                 region: ${AWS::Region}
                 loadbalancer: ${myAlb.DNSName}
     Properties:
-      ImageId: String
+      ImageId: ami-12345678
       UserData:
         Fn::Base64:
           Fn::Sub:
@@ -54,7 +54,7 @@ Resources:
   LaunchConfiguration:
     Type: AWS::AutoScaling::LaunchConfiguration
     Properties:
-      ImageId: ami-123456
+      ImageId: ami-12345678
       InstanceType: t2.micro
       UserData:
         'Fn::Base64':
@@ -62,7 +62,7 @@ Resources:
             'Fn::Transform':  # Doesn't fail on Transform
               Name: DynamicUserData
   MyStack:
-    Type: AWS::CloudFormation::Stack
+    Type: AWS::ServiceCatalog::CloudFormationProvisionedProduct
     Properties:
       ProductName: example
       ProvisioningArtifactName: v1

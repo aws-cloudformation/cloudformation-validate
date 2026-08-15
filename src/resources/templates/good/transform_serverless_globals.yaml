@@ -2,7 +2,7 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Globals:
   Function:
-    Runtime: nodejs6.10
+    Runtime: nodejs22.x
     Timeout: 180
     Handler: index.handler
 Transform: AWS::Serverless-2016-10-31

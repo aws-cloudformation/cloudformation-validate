@@ -58,9 +58,9 @@ Resources:
         Fn::Select:
         - 0
         - !Cidr [!Ref cidrBlockAllowedPattern, 3, 16]
-      VpcId: vpc-1234567
+      VpcId: vpc-12345678
   mySubnet22:
     Type: AWS::EC2::Subnet
     Properties:
       CidrBlock: !Ref cidrBlockAllowedPattern
-      VpcId: vpc-1234567
+      VpcId: vpc-12345678

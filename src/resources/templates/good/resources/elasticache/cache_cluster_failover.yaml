@@ -118,7 +118,7 @@ Resources:
       PreferredMaintenanceWindow: "Mon:04:00-Mon:06:00"
       ReplicationGroupDescription: test
       SecurityGroupIds:
-      - sg-test
+      - sg-12345abc
   FifthReplicationGroup:
     Type: "AWS::ElastiCache::ReplicationGroup"
     Condition: IsOptionalCluster
@@ -135,7 +135,7 @@ Resources:
       PreferredMaintenanceWindow: "Mon:04:00-Mon:06:00"
       ReplicationGroupDescription: test
       SecurityGroupIds:
-      - sg-test
+      - sg-12345abc
   SixthReplicationGroup:
     Type: "AWS::ElastiCache::ReplicationGroup"
     Condition: IsOptionalCluster
@@ -152,4 +152,4 @@ Resources:
       PreferredMaintenanceWindow: "Mon:04:00-Mon:06:00"
       ReplicationGroupDescription: test
       SecurityGroupIds:
-      - sg-test
+      - sg-12345abc

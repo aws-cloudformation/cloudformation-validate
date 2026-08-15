@@ -5,5 +5,9 @@
       "AllowedPattern": "^\\\/"
     }
   },
-  "Resources": {}
+  "Resources": {
+    "WaitHandle": {
+      "Type": "AWS::CloudFormation::WaitConditionHandle"
+    }
+  }
 }

@@ -5,7 +5,7 @@ Resources:
       SourceSecurityGroupId: sg-abc12345
       CidrIp: !Ref AWS::NoValue
       IpProtocol: "-1"
-      GroupId: sg-abc1234567
+      GroupId: sg-12345abc
   Alarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
@@ -14,7 +14,6 @@ Resources:
       OKActions: []
       AlarmActions: []
       InsufficientDataActions: []
-      Dimensions: []
       EvaluationPeriods: 15
       DatapointsToAlarm: 3
       Threshold: 5

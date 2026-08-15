@@ -12,7 +12,6 @@ Mappings:
     TopKey1:
       SecondKey1: Value1
       SecondKey2: Value2
-      '{"To":"Json","String":"Function"}': Value3
     TopKey2:
       SecondKey1: Value4
       SecondKey2: Value5
@@ -97,12 +96,3 @@ Resources:
           - !Split
             - .
             - MapName.TopKey1.SecondKey2
-  Cluster3:
-    Type: 'AWS::ECS::Cluster'
-    Properties:
-      ClusterName: !FindInMap
-        - MapName
-        - TopKey1
-        - 'Fn::ToJsonString':
-            To: Json
-            String: Function

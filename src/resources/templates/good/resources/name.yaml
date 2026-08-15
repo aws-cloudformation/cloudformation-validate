@@ -3,4 +3,4 @@ Resources:
   myInstance:
     Type: AWS::EC2::Instance
     Properties:
-      ImageId: ami-123456
+      ImageId: ami-12345678

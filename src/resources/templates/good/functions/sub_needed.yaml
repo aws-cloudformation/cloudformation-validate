@@ -83,6 +83,25 @@ Resources:
     Type: AWS::ApiGateway::ApiKey
     Properties:
       Description: "This is a literal instead of a sub: ${!Test2}"
+  GreetingLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: index.handler
+      Role: arn:aws:iam::123456789012:role/lambda-role
+      Code:
+        S3Bucket: lambda-functions
+        S3Key: greeting.zip
+      Runtime: nodejs22.x
+  GreetingApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: GreetingApi
+  GreetingResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref GreetingApi
+      ParentId: !GetAtt GreetingApi.RootResourceId
+      PathPart: greeting
   GreetingRequest:
     Type: AWS::ApiGateway::Method
     Properties:

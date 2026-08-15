@@ -18,7 +18,7 @@ Resources:
     Properties:
       CodeUri: hello_world/build/
       Handler: app.lambda_handler
-      Runtime: python3.6
+      Runtime: python3.12
   FunctionALogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
@@ -30,7 +30,7 @@ Resources:
     Properties:
       CodeUri: hello_world/build/
       Handler: app.lambda_handler
-      Runtime: python3.6
+      Runtime: python3.12
   FunctionBLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
@@ -41,7 +41,7 @@ Resources:
     Properties:
       CodeUri: hello_world/build/
       Handler: app.lambda_handler
-      Runtime: python3.6
+      Runtime: python3.12
   FunctionCLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
@@ -53,7 +53,7 @@ Resources:
     Properties:
       CodeUri: subscription_function/build/
       Handler: app.lambda_handler
-      Runtime: python3.6
+      Runtime: python3.12
       Events:
         FunctionALogGroup:
           Type: CloudWatchLogs
