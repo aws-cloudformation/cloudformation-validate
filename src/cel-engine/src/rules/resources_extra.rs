@@ -11,8 +11,7 @@ use template_model::coercion::{coerce_port_to_string, coerce_to_integer, coerce_
 use template_model::consts::{
     EDGE_KIND_GET_ATT, EDGE_KIND_REF, EDGE_KIND_SELECT, FIELD_ATTR, FIELD_CREATION_POLICY, FIELD_KIND, FIELD_MAPPINGS,
     FIELD_OUTGOING_REFS, FIELD_PROPERTIES, FIELD_RESOURCE_TYPE, FIELD_RESOURCES, FIELD_SOURCE_PATH, FIELD_TARGET,
-    FIELD_UPDATE_POLICY, FN_IF, FN_REF, KEY_CREATION_POLICY, KEY_PROPERTIES, KEY_UPDATE_POLICY, PARAM_TYPE_STRING,
-    TRANSFORM_SERVERLESS,
+    FN_IF, FN_REF, KEY_CREATION_POLICY, KEY_PROPERTIES, KEY_UPDATE_POLICY, PARAM_TYPE_STRING, TRANSFORM_SERVERLESS,
 };
 use template_model::fargate::{CPU_UNIT_LABELS, cpu_is_offered};
 use template_model::iam_policy::validate_identity_policy_scenarios;
@@ -1299,7 +1298,8 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                     ));
                 }
             }
-            if res.get(FIELD_UPDATE_POLICY).map(|v| !v.is_null()).unwrap_or(false) {
+            let update_policy_status = m.lifecycle_attribute_status(name, KEY_UPDATE_POLICY);
+            if update_policy_status.may_be_present {
                 let rtype = res.get(FIELD_RESOURCE_TYPE).and_then(|t| t.as_str()).unwrap_or("");
                 if !update_policy_types.contains(&rtype) {
                     out.push(make_resource_diagnostic(
@@ -1309,6 +1309,15 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                         name,
                         KEY_UPDATE_POLICY,
                         Some(&update_policy_fix),
+                    ));
+                } else if let Some(invalid_value) = update_policy_status.invalid_value.as_deref() {
+                    out.push(make_resource_diagnostic(
+                        "E3016",
+                        &format!("{} is not of type 'object'", invalid_value),
+                        m,
+                        name,
+                        KEY_UPDATE_POLICY,
+                        None,
                     ));
                 }
             }

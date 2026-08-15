@@ -99,6 +99,46 @@ Resources:
 }
 
 #[test]
+fn statically_removed_update_policy_is_not_reported() {
+    let template = r#"
+Conditions:
+  Never: !Equals [always, never]
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    UpdatePolicy: !If
+      - Never
+      - AutoScalingRollingUpdate:
+          MinInstancesInService: 1
+      - !Ref AWS::NoValue
+"#;
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E3016"]);
+    let cel_findings = selected_findings(&cel, template, &["E3016"]);
+    assert_eq!(rego_findings, cel_findings);
+    assert!(rego_findings.is_empty(), "an unreachable policy branch must not count as present: {rego_findings:?}");
+}
+
+#[test]
+fn scalar_update_policy_has_structure_and_policy_diagnostics() {
+    let template = r#"
+Resources:
+  ScalarUpdatePolicy:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    UpdatePolicy: 7
+"#;
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E3001", "E3016"]);
+    let cel_findings = selected_findings(&cel, template, &["E3001", "E3016"]);
+    assert_eq!(rego_findings, cel_findings);
+    assert_eq!(rego_findings.len(), 2, "both compatibility diagnostics must be emitted: {rego_findings:?}");
+    assert!(rego_findings.iter().any(|finding| finding.starts_with("E3001|")));
+    assert!(rego_findings.iter().any(|finding| {
+        finding.starts_with("E3016|") && finding.contains("|ScalarUpdatePolicy|UpdatePolicy|7 is not of type 'object'|")
+    }));
+}
+
+#[test]
 fn fargate_scalar_gating_is_identical() {
     let template = r#"
 Resources:

@@ -255,6 +255,9 @@ pub fn collect_scenarios(
                 let mut true_assumptions = assumptions.clone();
                 true_assumptions.insert(cond.clone(), true);
                 let true_curtailed = collect_scenarios(t, &true_assumptions, limit, results);
+                if true_curtailed && results.len() >= limit {
+                    return true;
+                }
                 let mut false_assumptions = assumptions.clone();
                 false_assumptions.insert(cond.clone(), false);
                 let false_curtailed = collect_scenarios(f, &false_assumptions, limit, results);

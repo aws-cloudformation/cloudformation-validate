@@ -37,7 +37,20 @@ violation contains make_diag_full("E3016", "ERROR", name,
     sprintf("Remove UpdatePolicy or change resource type to one of: %s", [concat(", ", valid_update_policy_types)]),
     "") if {
     some name, res in input.resources
-    res.updatePolicy != null
+    status := lifecycle_attribute_status(name, "UpdatePolicy")
+    status.mayBePresent
     rtype := res.resourceType
     not rtype in valid_update_policy_types
+}
+
+violation contains make_diag_full("E3016", "ERROR", name,
+    "UpdatePolicy",
+    sprintf("%s is not of type 'object'", [status.invalidValue]),
+    "",
+    "") if {
+    some name, res in input.resources
+    rtype := res.resourceType
+    rtype in valid_update_policy_types
+    status := lifecycle_attribute_status(name, "UpdatePolicy")
+    status.invalidValue != ""
 }

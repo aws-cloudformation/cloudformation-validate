@@ -41,6 +41,7 @@ pub(crate) fn register_all(
     register_is_dynamic(rego, holder.clone());
     register_is_from_parameter(rego, holder.clone());
     register_is_from_intrinsic(rego, holder.clone());
+    register_lifecycle_attribute_status(rego, holder.clone());
     register_value_identity(rego, holder.clone());
     register_follow_ref(rego, holder.clone());
     register_authored_form(rego, holder.clone());
@@ -399,6 +400,25 @@ fn register_is_from_intrinsic(rego: &mut regorus::Engine, holder: SharedModel) {
             let rid = params[0].as_string()?;
             let path = params[1].as_string()?;
             Ok(Value::from(model.is_from_intrinsic(rid, path)))
+        }),
+    );
+}
+
+fn register_lifecycle_attribute_status(rego: &mut regorus::Engine, holder: SharedModel) {
+    let _ = rego.add_extension(
+        "lifecycle_attribute_status".into(),
+        2,
+        Box::new(move |params: Vec<Value>| {
+            let Some(model) = get_model(&holder) else {
+                return Ok(Value::Undefined);
+            };
+            let resource_id = params[0].as_string()?;
+            let attribute = params[1].as_string()?;
+            let status = model.lifecycle_attribute_status(resource_id, attribute);
+            Ok(json_to_value(&serde_json::json!({
+                "mayBePresent": status.may_be_present,
+                "invalidValue": status.invalid_value.unwrap_or_default(),
+            })))
         }),
     );
 }

@@ -2395,6 +2395,76 @@ fn required_or_scenario_budget_boundary_is_non_silent() {
     );
 }
 
+fn adversarial_no_value_tree(condition_names: &[String]) -> Value {
+    condition_names.iter().rev().fold(
+        json!({"Ref": "AWS::NoValue"}),
+        |branch, condition| json!({"Fn::If": [condition, branch.clone(), branch]}),
+    )
+}
+
+fn adversarial_required_xor_fixture(condition_count: usize) -> (SchemaValidator, String) {
+    let mut parameters = serde_json::Map::new();
+    parameters.insert("Split".to_string(), json!({"Type": "String", "AllowedValues": ["left", "right"]}));
+    let mut conditions = serde_json::Map::new();
+    conditions.insert("UseLeft".to_string(), json!({"Fn::Equals": [{"Ref": "Split"}, "left"]}));
+    let mut flag_names = Vec::new();
+    for index in 0..condition_count {
+        let parameter_name = format!("FlagParameter{index:02}");
+        let condition_name = format!("Flag{index:02}");
+        parameters.insert(parameter_name.clone(), json!({"Type": "String", "AllowedValues": ["yes", "no"]}));
+        conditions.insert(condition_name.clone(), json!({"Fn::Equals": [{"Ref": parameter_name}, "yes"]}));
+        flag_names.push(condition_name);
+    }
+    let no_value_tree = adversarial_no_value_tree(&flag_names);
+    let template = json!({
+        "Parameters": parameters,
+        "Conditions": conditions,
+        "Resources": {
+            "Example": {
+                "Type": "AWS::Test::RequiredXorBudget",
+                "Properties": {
+                    "A": {"Fn::If": ["UseLeft", no_value_tree.clone(), "present-a"]},
+                    "B": {"Fn::If": ["UseLeft", "present-b", no_value_tree]}
+                }
+            }
+        }
+    })
+    .to_string();
+    let validator = validator(vec![(
+        "AWS::Test::RequiredXorBudget",
+        json!({
+            "properties": {"A": {"type": "string"}, "B": {"type": "string"}},
+            "requiredXor": ["A", "B"],
+            "additionalProperties": false
+        }),
+    )]);
+    (validator, template)
+}
+
+#[test]
+fn required_xor_fallback_bounds_adversarial_branch_expansion() {
+    const CONDITION_COUNT: usize = 12;
+    const MAX_ACCOUNTED_SCENARIOS: u64 = 2_000;
+
+    let (validator, template) = adversarial_required_xor_fixture(CONDITION_COUNT);
+    let semantic_model = model(&template);
+    let diagnostics = validator.validate(&semantic_model, Some("us-east-1")).diagnostics;
+
+    assert!(
+        diagnostics.iter().all(|diagnostic| diagnostic.rule_id != "F3014"),
+        "exactly one property is present in every reachable world: {diagnostics:#?}"
+    );
+    assert!(
+        diagnostics.iter().any(|diagnostic| diagnostic.rule_id == "I9052"),
+        "bounded analysis must report its curtailment: {diagnostics:#?}"
+    );
+    assert!(
+        semantic_model.scenario_combinations_used() <= MAX_ACCOUNTED_SCENARIOS,
+        "fallback scenario work must stay locally bounded, used {}",
+        semantic_model.scenario_combinations_used()
+    );
+}
+
 // ─── Budget fallback: targeted proof/witness search ────────────────────────
 
 /// With 9+ conditions where all members resolve to AWS::NoValue in every world
@@ -2979,6 +3049,41 @@ fn not_enum_rejects_excluded_value_on_direct_property() {
         "excluded value 'admin' should fire F3030: {:?}",
         diags.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
     );
+}
+
+#[test]
+fn not_enum_defers_parameter_and_intrinsic_values() {
+    let sv = validator(vec![(
+        "AWS::Test::NotEnum",
+        json!({
+            "properties": {
+                "Username": {
+                    "type": "string",
+                    "not": { "enum": ["admin", "root", "system"] }
+                }
+            },
+            "additionalProperties": false
+        }),
+    )]);
+    let templates = [
+        (
+            "parameter default",
+            "Parameters:\n  UserName:\n    Type: String\n    Default: admin\nResources:\n  R:\n    Type: AWS::Test::NotEnum\n    Properties:\n      Username: !Ref UserName\n",
+        ),
+        (
+            "intrinsic value",
+            "Resources:\n  R:\n    Type: AWS::Test::NotEnum\n    Properties:\n      Username: !Join ['', [ad, min]]\n",
+        ),
+    ];
+
+    for (source, template) in templates {
+        let diags = validate(&sv, template);
+        assert!(
+            !mentions(&diags, "F3030", "must not be one of"),
+            "{source} is not a guaranteed prohibited literal: {:?}",
+            diags.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
+        );
+    }
 }
 
 #[test]

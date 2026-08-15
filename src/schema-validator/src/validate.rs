@@ -15,6 +15,7 @@ use template_model::consts::{
 use template_model::message::{render_str_list, render_value, render_value_list};
 use template_model::model::ResolvedResource;
 use template_model::region_enums;
+use template_model::resolved_value::contains_dynamic_resolved;
 use template_model::resolver::{RefKind, ResolvedValue};
 use template_model::{
     CompiledPattern, IAM_ROLE_ARN_PATTERN, SECURITY_GROUP_NAME_PATTERN, SemanticModel, compile_pattern,
@@ -729,7 +730,8 @@ fn all_members_absent_witness(
         alternatives.push(property_alternatives);
     }
     alternatives.sort_by_key(Vec::len);
-    compatible_alternative_witness(m, &alternatives, 0, &seed)
+    let mut merge_attempts = 0;
+    compatible_alternative_witness(m, &alternatives, 0, &seed, &mut merge_attempts)
 }
 
 /// Finds a concrete condition assignment proving that two distinct authored
@@ -753,6 +755,7 @@ fn multiple_members_present_witness(
         .map(|property| property_presence_alternatives(m, rid, base_path, property, true, &seed))
         .collect();
 
+    let mut merge_attempts = 0;
     for left in 0..present_alternatives.len() {
         for right in (left + 1)..present_alternatives.len() {
             for left_assignment in &present_alternatives[left] {
@@ -763,6 +766,10 @@ fn multiple_members_present_witness(
                     continue;
                 }
                 for right_assignment in &present_alternatives[right] {
+                    if merge_attempts >= MAX_GROUP_WITNESS_MERGE_ATTEMPTS {
+                        return None;
+                    }
+                    merge_attempts += 1;
                     let Some(merged) = try_merge_assignments(&left_merged, right_assignment) else {
                         continue;
                     };
@@ -795,7 +802,8 @@ fn property_presence_alternatives(
     if m.scenario_budget_exhausted() {
         return Vec::new();
     }
-    let scenarios = outer_resolved_scenarios(m, rid, &format!("{base_path}.{property}"));
+    let (scenarios, _) =
+        m.resolve_scenarios_with_limit(rid, &format!("{base_path}.{property}"), MAX_GROUP_PROPERTY_SCENARIOS);
     let mut alternatives = Vec::new();
     let mut seen = HashSet::new();
     for (value, conditions) in scenarios {
@@ -818,18 +826,23 @@ fn compatible_alternative_witness(
     alternatives: &[Vec<HashMap<String, bool>>],
     index: usize,
     assignment: &HashMap<String, bool>,
+    merge_attempts: &mut usize,
 ) -> Option<HashMap<String, bool>> {
     let Some(group) = alternatives.get(index) else {
         return Some(assignment.clone());
     };
     for alternative in group {
+        if *merge_attempts >= MAX_GROUP_WITNESS_MERGE_ATTEMPTS {
+            return None;
+        }
+        *merge_attempts += 1;
         let Some(merged) = try_merge_assignments(assignment, alternative) else {
             continue;
         };
         if !assignment_is_proven_satisfiable(m, &merged) {
             continue;
         }
-        if let Some(witness) = compatible_alternative_witness(m, alternatives, index + 1, &merged) {
+        if let Some(witness) = compatible_alternative_witness(m, alternatives, index + 1, &merged, merge_attempts) {
             return Some(witness);
         }
     }
@@ -919,6 +932,8 @@ fn required_group_scenario_assignments(
 
 const MAX_GROUP_SCENARIO_ASSIGNMENTS: usize = 256;
 const MAX_GROUP_SCENARIO_MERGE_ATTEMPTS: usize = 4_096;
+const MAX_GROUP_PROPERTY_SCENARIOS: usize = MAX_GROUP_SCENARIO_ASSIGNMENTS + 1;
+const MAX_GROUP_WITNESS_MERGE_ATTEMPTS: usize = MAX_GROUP_SCENARIO_MERGE_ATTEMPTS;
 
 fn record_scenario_analysis_curtailment(resource_id: &str, property_path: &str) {
     SCENARIO_ANALYSIS_CURTAILMENTS.with(|curtailments| {
@@ -953,15 +968,23 @@ fn property_scenario_assignments(
     let mut assignments: Vec<HashMap<String, bool>> = vec![seed.clone()];
 
     for property_path in property_paths {
-        let scenarios = m.resolve_scenarios_json(rid, property_path);
+        let (scenarios, was_curtailed) =
+            m.resolve_scenarios_with_limit(rid, property_path, MAX_GROUP_PROPERTY_SCENARIOS);
+        if was_curtailed {
+            record_scenario_analysis_curtailment(rid, group_path);
+            return None;
+        }
         if scenarios.is_empty() {
             continue;
         }
 
         let mut property_assignments = Vec::new();
         let mut seen_property_assignments = HashSet::new();
-        for (_, conditions) in &scenarios {
-            if !is_satisfiable(m, conditions) || !scenario_consistent_with_filter(m, conditions) {
+        for (value, conditions) in &scenarios {
+            if contains_dynamic_resolved(value)
+                || !is_satisfiable(m, conditions)
+                || !scenario_consistent_with_filter(m, conditions)
+            {
                 continue;
             }
             if seen_property_assignments.insert(canonical_assignment(conditions)) {
@@ -2993,7 +3016,7 @@ fn validate_prop(
         }
     }
 
-    if !schema.not_enum.is_empty() {
+    if !schema.not_enum.is_empty() && !m.is_from_parameter(rid, prop_path) && !m.is_from_intrinsic(rid, prop_path) {
         for (val, conds) in &scenarios {
             if !is_satisfiable(m, conds) || val.is_null() {
                 continue;
