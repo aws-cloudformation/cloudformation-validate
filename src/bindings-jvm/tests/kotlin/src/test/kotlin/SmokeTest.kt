@@ -140,6 +140,94 @@ class SmokeTest {
         }
     }
 
+    @Test
+    fun synthesizedAwsApiCreateValidatesWithBothEnginesWithoutMutatingInput() {
+        val parameters = linkedMapOf<String, Any?>(
+            "Bucket" to "synthetic-bucket",
+            "Tags" to linkedMapOf("Team" to "CLI"),
+        )
+        val request = AwsApiRequest(
+            serviceName = "s3",
+            operationName = "CreateBucket",
+            parameters = parameters,
+            servicePrefix = "s3",
+            httpMethod = "POST",
+        )
+
+        val results = listOf(REGO, CEL).map { it.validateAwsApiRequest(request, defaultConfig()) }
+
+        for (result in results) {
+            assertEquals(AwsApiRequestValidationStatus.VALIDATED, result.status)
+            assertEquals(AwsApiOperationKind.CLOUD_FORMATION_CREATE, result.operationKind)
+            assertEquals(AwsApiTemplateSource.SYNTHESIZED_CREATE, result.templateSource)
+            assertEquals(listOf("AWS::S3::Bucket"), result.resourceTypes)
+            assertNotNull(result.report)
+        }
+        assertEquals(gson.toJson(results[0].report?.diagnostics), gson.toJson(results[1].report?.diagnostics))
+        assertEquals(
+            linkedMapOf<String, Any?>("Bucket" to "synthetic-bucket", "Tags" to linkedMapOf("Team" to "CLI")),
+            parameters,
+        )
+    }
+
+    @Test
+    fun awsApiTemplateBodyPreservesBytesAndReadOnlyRequestsReportSkips() {
+        val templateResult = REGO.validateAwsApiRequest(
+            AwsApiRequest(
+                serviceName = "cloudformation",
+                operationName = "CreateChangeSet",
+                parameters = mapOf("TemplateBody" to "{\"Resources\":{}}".toByteArray()),
+                servicePrefix = "cloudformation",
+                httpMethod = "POST",
+            ),
+            defaultConfig(),
+        )
+        assertEquals(AwsApiRequestValidationStatus.VALIDATED, templateResult.status)
+        assertEquals(AwsApiTemplateSource.TEMPLATE_BODY, templateResult.templateSource)
+        assertEquals(ReportStatus.OK, templateResult.report?.status)
+
+        val readResult = REGO.validateAwsApiRequest(
+            AwsApiRequest(
+                serviceName = "iam",
+                operationName = "GetRole",
+                parameters = mapOf("RoleName" to "Synthetic"),
+                servicePrefix = "iam",
+                httpMethod = "POST",
+            ),
+            defaultConfig(),
+        )
+        assertEquals(AwsApiRequestValidationStatus.SKIPPED, readResult.status)
+        assertEquals(AwsApiOperationKind.READ_ONLY, readResult.operationKind)
+        assertNull(readResult.report)
+        assertTrue(readResult.reason.contains("read-only"))
+    }
+
+    @Test
+    fun awsApiPartialUpdateScopesDiagnosticsAndKeepsCountsConsistent() {
+        val result = REGO.validateAwsApiRequest(
+            AwsApiRequest(
+                serviceName = "lambda",
+                operationName = "UpdateFunctionConfiguration",
+                parameters = mapOf("FunctionName" to "Synthetic", "MemorySize" to 0),
+                servicePrefix = "lambda",
+                httpMethod = "POST",
+            ),
+            defaultConfig(),
+        )
+        val report = result.report ?: fail("synthesized update must return a report")
+
+        assertEquals(AwsApiTemplateSource.SYNTHESIZED_UPDATE, result.templateSource)
+        assertTrue(
+            report.diagnostics.all { it.propertyPath?.contains("MemorySize") == true },
+            report.diagnostics.toString(),
+        )
+        val counts = report.metadata.counts
+        assertEquals(
+            report.diagnostics.size.toUInt(),
+            counts.fatal + counts.errors + counts.warnings + counts.informational + counts.debug,
+        )
+    }
+
     // ── SchemaValidator ──────────────────────────────────────────────────────
 
     @Test

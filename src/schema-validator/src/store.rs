@@ -85,6 +85,10 @@ impl CompiledSchemaStore {
         self.schemas.get(type_name)
     }
 
+    pub fn type_names(&self) -> impl Iterator<Item = &str> {
+        self.schemas.keys().map(String::as_str)
+    }
+
     /// Merge an overlay CloudFormation resource provider schema (raw registry
     /// JSON) into the store under `type_name`.
     ///

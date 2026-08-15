@@ -9,7 +9,7 @@ description = "Fast, offline, embeddable validation for AWS CloudFormation templ
 readme = "README.md"
 license = "Apache-2.0"
 license-files = ["LICENSE", "NOTICE", "THIRD-PARTY-LICENSES.txt"]
-requires-python = ">=3.12"
+requires-python = ">=3.10"
 authors = [{ name = "Amazon Web Services" }]
 keywords = [
     "aws",
@@ -30,6 +30,8 @@ classifiers = [
     "Operating System :: Microsoft :: Windows",
     "Operating System :: POSIX :: Linux",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Rust",
     "Topic :: Software Development :: Libraries :: Python Modules",

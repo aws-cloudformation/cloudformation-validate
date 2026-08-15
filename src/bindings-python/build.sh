@@ -10,6 +10,7 @@ RELEASE_DIR="$WORKSPACE/target/release"
 PYTHON_SRC="$SCRIPT_DIR/python/cloudformation_validate"
 PACKAGE_DIR="$GENERATED_DIR/cloudformation_validate"
 WHEEL_DIR="$GENERATED_DIR/dist"
+PYTHON="${PYTHON:-python3}"
 
 ARCH="$(bash "$REPOSITORY_ROOT/scripts/build-support/rust-host-architecture.sh")"
 case "$ARCH" in
@@ -65,12 +66,12 @@ Build directories:
 EOF
 
 # ── Prerequisites ─────────────────────────────────────────────────────────────
-command -v python3 &>/dev/null || { echo "Error: python3 not found on PATH" >&2; exit 1; }
+command -v "$PYTHON" &>/dev/null || { echo "Error: $PYTHON not found on PATH" >&2; exit 1; }
 command -v unzip &>/dev/null || { echo "Error: unzip not found on PATH" >&2; exit 1; }
-python3 -c 'import sys; sys.exit(0 if sys.version_info >= (3, 12) else 1)' \
-    || { echo "Error: Python 3.12+ required, found $(python3 --version)" >&2; exit 1; }
-python3 -m pip --version &>/dev/null \
-    || { echo "Error: pip not available (python3 -m pip failed)" >&2; exit 1; }
+"$PYTHON" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)' \
+    || { echo "Error: Python 3.10+ required, found $("$PYTHON" --version)" >&2; exit 1; }
+"$PYTHON" -m pip --version &>/dev/null \
+    || { echo "Error: pip not available ($PYTHON -m pip failed)" >&2; exit 1; }
 
 # ── Clean ─────────────────────────────────────────────────────────────────────
 echo "Cleaning previous build..."
@@ -103,7 +104,7 @@ echo "Generating Python bindings..."
 #      generated code is deterministic regardless of build host; these bindings
 #      are order-independent, so this is safe.
 echo "Patching native loader and normalizing generated modules..."
-python3 - "$PACKAGE_DIR" <<'EOF'
+"$PYTHON" - "$PACKAGE_DIR" <<'EOF'
 import pathlib
 import re
 import sys
@@ -169,7 +170,7 @@ cp "$SCRIPT_DIR/README.md" "$PACKAGE_DIR/README.md"
 # ── Build wheel ───────────────────────────────────────────────────────────────
 echo "Building wheel..."
 cd "$GENERATED_DIR"
-python3 -m pip wheel --no-deps --wheel-dir "$WHEEL_DIR" . --quiet
+"$PYTHON" -m pip wheel --no-deps --wheel-dir "$WHEEL_DIR" . --quiet
 
 # ── Retag wheel with the host platform ───────────────────────────────────────
 case "$OS" in
@@ -194,7 +195,7 @@ case "$OS" in
         ;;
 esac
 echo "Retagging wheel as py3-none-${PLATFORM_TAG}..."
-python3 - "$WHEEL_DIR" "$PLATFORM_TAG" <<'EOF'
+"$PYTHON" - "$WHEEL_DIR" "$PLATFORM_TAG" <<'EOF'
 import base64
 import csv
 import hashlib

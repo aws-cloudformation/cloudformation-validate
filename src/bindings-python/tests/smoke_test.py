@@ -15,6 +15,10 @@ from unittest import mock
 import cloudformation_validate._native as native_loader
 from cloudformation_validate import (
     AdditionalSchemaSource,
+    AwsApiOperationKind,
+    AwsApiRequest,
+    AwsApiRequestValidationStatus,
+    AwsApiTemplateSource,
     CelEngine,
     EngineConfig,
     EntityType,
@@ -179,6 +183,82 @@ class ValidateTest(unittest.TestCase):
         report = REGO.validate_standard(b"not: a: valid: yaml: [")
         self.assertEqual(ReportStatus.ERROR, report.status)
         self.assertTrue(report.diagnostics, "parse failure must surface as a diagnostic")
+
+
+class AwsApiRequestValidationTest(unittest.TestCase):
+    def test_synthesized_create_validates_with_both_engines(self):
+        parameters = {"Bucket": "synthetic-bucket", "Tags": {"Team": "CLI"}}
+        request = AwsApiRequest(
+            "s3",
+            "CreateBucket",
+            parameters,
+            service_prefix="s3",
+            http_method="POST",
+        )
+        results = [engine.validate_aws_api_request(request) for engine in (REGO, CEL)]
+
+        for result in results:
+            self.assertEqual(AwsApiRequestValidationStatus.VALIDATED, result.status)
+            self.assertEqual(AwsApiOperationKind.CLOUD_FORMATION_CREATE, result.operation_kind)
+            self.assertEqual(AwsApiTemplateSource.SYNTHESIZED_CREATE, result.template_source)
+            self.assertEqual(["AWS::S3::Bucket"], result.resource_types)
+            self.assertIsNotNone(result.report)
+        self.assertEqual(diagnostic_keys(results[0].report), diagnostic_keys(results[1].report))
+        self.assertEqual({"Bucket": "synthetic-bucket", "Tags": {"Team": "CLI"}}, parameters)
+
+    def test_template_body_bytes_are_validated_exactly(self):
+        request = AwsApiRequest(
+            "cloudformation",
+            "CreateChangeSet",
+            {"TemplateBody": b'{"Resources":{}}'},
+            service_prefix="cloudformation",
+            http_method="POST",
+        )
+
+        result = REGO.validate_aws_api_request(request)
+
+        self.assertEqual(AwsApiRequestValidationStatus.VALIDATED, result.status)
+        self.assertEqual(AwsApiTemplateSource.TEMPLATE_BODY, result.template_source)
+        self.assertEqual(ReportStatus.OK, result.report.status)
+
+    def test_read_only_request_reports_explicit_skip(self):
+        request = AwsApiRequest(
+            "iam",
+            "GetRole",
+            {"RoleName": "Synthetic"},
+            service_prefix="iam",
+            http_method="POST",
+        )
+
+        result = REGO.validate_aws_api_request(request)
+
+        self.assertEqual(AwsApiRequestValidationStatus.SKIPPED, result.status)
+        self.assertEqual(AwsApiOperationKind.READ_ONLY, result.operation_kind)
+        self.assertIsNone(result.report)
+        self.assertIn("read-only", result.reason)
+
+    def test_partial_update_diagnostics_are_scoped_and_counts_match(self):
+        request = AwsApiRequest(
+            "lambda",
+            "UpdateFunctionConfiguration",
+            {"FunctionName": "Synthetic", "MemorySize": 0},
+            service_prefix="lambda",
+            http_method="POST",
+        )
+
+        result = REGO.validate_aws_api_request(request)
+        report = result.report
+
+        self.assertEqual(AwsApiTemplateSource.SYNTHESIZED_UPDATE, result.template_source)
+        self.assertTrue(
+            all(d.property_path and "MemorySize" in d.property_path for d in report.diagnostics),
+            report.diagnostics,
+        )
+        counts = report.metadata.counts
+        self.assertEqual(
+            len(report.diagnostics),
+            counts.fatal + counts.errors + counts.warnings + counts.informational + counts.debug,
+        )
 
 
 class AdditionalSchemasTest(unittest.TestCase):

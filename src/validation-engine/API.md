@@ -33,6 +33,57 @@ for d in &report.diagnostics {
 On parse failure, `validate_bytes_with_path` returns `Ok(report)` with a synthetic `F1101` diagnostic and
 `status=Error` rather than returning `Err`. This ensures callers always get a structured report.
 
+## Validating an AWS API Request
+
+`validate_aws_api_request` accepts raw service, operation, HTTP, trait, and request-parameter context. It owns operation
+classification, CloudFormation resource-type selection, request-to-template modeling, schema-backed property mapping,
+and partial-update diagnostic scoping:
+
+```rust
+use rego_engine::RegoEngine;
+use schema_validator::SchemaValidator;
+use validation_engine::{
+    AwsApiRequest, AwsApiValue, EngineConfig, ValidateConfig, validate_aws_api_request,
+};
+
+let engine = RegoEngine::new(EngineConfig::default())?;
+let schema_validator = SchemaValidator::default();
+let request = AwsApiRequest::new(
+    "s3",
+    "CreateBucket",
+    [
+        ("Bucket".into(), AwsApiValue::String { value: "example-bucket".into() }),
+        ("Tags".into(), AwsApiValue::Object {
+            entries: [("Team".into(), AwsApiValue::String { value: "Platform".into() })]
+                .into_iter()
+                .collect(),
+        }),
+    ],
+)
+.with_service_prefix("s3")
+.with_http_method("PUT");
+
+let result = validate_aws_api_request(
+    &engine,
+    &schema_validator,
+    &request,
+    ValidateConfig::default(),
+)?;
+if let Some(report) = result.report {
+    for diagnostic in report.diagnostics {
+        println!("{}: {}", diagnostic.rule_id, diagnostic.message);
+    }
+} else {
+    println!("{:?}: {}", result.status, result.reason);
+}
+```
+
+`AwsApiValue` preserves bytes and 64-bit integer widths and explicitly marks unsupported values. Exact `TemplateBody`
+bytes are validated without rewriting; `TemplateURL` is skipped because validation is offline. Every result includes
+an operation kind, validation status, optional template source, resource candidates, and reason. `Validated` means the
+modeled template reached the normal validation pipeline; `Skipped` has no report and explains why. Use
+`validate_aws_api_request_with_path` when the embedding application needs a custom report path.
+
 ## Constructing an Engine
 
 Both engines take a single `EngineConfig` and return `anyhow::Result`:

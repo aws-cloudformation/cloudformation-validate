@@ -76,6 +76,38 @@ interface Engine {
 
 `template` is a `java.io.File` - the engine reads the bytes and uses the file path for diagnostic source locations.
 
+### AWS API request validation
+
+Use `validateAwsApiRequest` for AWS SDK-style request values rather than a complete template. The validator classifies
+the operation, selects a CloudFormation resource type, models representable create/update state, and validates the
+resulting template entirely offline:
+
+```kotlin
+val result = RegoEngine().validateAwsApiRequest(
+    AwsApiRequest(
+        serviceName = "s3",
+        servicePrefix = "s3",
+        operationName = "CreateBucket",
+        httpMethod = "PUT",
+        parameters = mapOf(
+            "Bucket" to "example-bucket",
+            "Tags" to mapOf("Team" to "Platform"),
+        ),
+    ),
+)
+
+result.report?.diagnostics?.forEach { diagnostic ->
+    println("${diagnostic.ruleId}: ${diagnostic.message}")
+} ?: println("${result.status}: ${result.reason}")
+```
+
+`AwsApiRequest.parameters` accepts nested maps, iterables and arrays, scalars, byte arrays, and Java temporal values
+without mutating the supplied map. `TemplateBody` bytes are validated exactly; `TemplateURL` is skipped because the
+validator does not perform network requests. Every result reports `status`, `operationKind`, `templateSource`,
+`resourceTypes`, and `reason`; skipped requests have a null `report`. `validateAwsApiRequestStandard` returns standard
+diagnostics, while `validateAwsApiRequestDetailed` and its `validateAwsApiRequest` alias return detailed diagnostics.
+The same classes and methods are callable from Java with conventional generated getters.
+
 ### `EngineConfig`
 
 Passed to the constructor. All fields default to empty lists.

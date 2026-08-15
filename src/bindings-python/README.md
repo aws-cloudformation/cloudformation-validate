@@ -17,7 +17,7 @@ Available on [PyPI](https://pypi.org/project/cloudformation-validate/) as `cloud
 pip install cloudformation-validate
 ```
 
-Requires Python 3.12+ and has no runtime dependencies. PyPI publishes a separate wheel for every supported native
+Requires Python 3.10+ and has no runtime dependencies. PyPI publishes a separate wheel for every supported native
 target. Each wheel carries exactly one native library and an accurate platform tag, so pip downloads only the
 artifact compatible with the installer host.
 
@@ -56,6 +56,40 @@ the same template and config.
 | `engine_name()`                            | `str`            | `"rego"` or `"cel"`                                                                                              |
 
 `template` is a file path (`str` / `os.PathLike`) or raw `bytes`; `config` is an optional `ValidateConfig`.
+
+### AWS API request validation
+
+Use `validate_aws_api_request` when the input is an AWS SDK-style request rather than a complete template. The
+validator classifies the operation, selects a CloudFormation resource type, models representable create/update state,
+and validates the resulting template entirely offline:
+
+```python
+from cloudformation_validate import AwsApiRequest, RegoEngine
+
+engine = RegoEngine()
+result = engine.validate_aws_api_request(
+    AwsApiRequest(
+        service_name="s3",
+        service_prefix="s3",
+        operation_name="CreateBucket",
+        http_method="PUT",
+        parameters={"Bucket": "example-bucket", "Tags": {"Team": "Platform"}},
+    )
+)
+
+if result.report is not None:
+    for diagnostic in result.report.diagnostics:
+        print(diagnostic.rule_id, diagnostic.message)
+else:
+    print(result.status.name, result.reason)
+```
+
+`AwsApiRequest.parameters` accepts nested mappings and sequences, scalars, `bytes`, and `datetime.datetime` values
+without mutating the supplied mapping. `TemplateBody` bytes are validated exactly; `TemplateURL` is skipped because the
+validator does not perform network requests. The result always reports `status`, `operation_kind`, `template_source`,
+`resource_types`, and `reason`; skipped requests have `report is None`. Use
+`validate_aws_api_request_standard` for standard diagnostics or `validate_aws_api_request_detailed` (also exposed as
+`validate_aws_api_request`) for detailed diagnostics.
 
 ### EngineConfig
 
