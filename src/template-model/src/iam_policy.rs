@@ -17,11 +17,12 @@
 
 use crate::conditions::Satisfiability;
 use crate::consts::{
-    MARKER_CONDITIONAL, MARKER_DYNAMIC, MARKER_ENUM, MARKER_IF_FALSE, MARKER_IF_TRUE, MARKER_INTRINSIC, MARKER_REF,
+    FN_IF, MARKER_CONDITIONAL, MARKER_DYNAMIC, MARKER_ENUM, MARKER_IF_FALSE, MARKER_IF_TRUE, MARKER_INTRINSIC,
+    MARKER_REF,
 };
 use crate::message::render_str_list;
 use crate::model::SemanticModel;
-use crate::resolver::ResolvedValue;
+use crate::resolver::{MapEntry, ResolvedValue};
 use crate::serialization::resolved_value_to_json;
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
@@ -33,6 +34,15 @@ use std::collections::{HashMap, HashSet};
 pub struct PolicyFinding {
     pub path: String,
     pub message: String,
+}
+
+/// A scenario-aware policy defect with the authored path used to locate the
+/// selected conditional branch independently from its effective public path.
+#[derive(Debug, Clone)]
+pub struct ScenarioPolicyFinding {
+    pub path: String,
+    pub message: String,
+    pub source_path: String,
 }
 
 const IDENTITY_DOCUMENT_KEYS: &[&str] = &["Statement", "Version"];
@@ -384,6 +394,24 @@ fn contains_scenario_branching(value: &ResolvedValue) -> bool {
     }
 }
 
+fn mask_scenario_branching(value: &ResolvedValue) -> ResolvedValue {
+    match value {
+        ResolvedValue::Conditional { .. } | ResolvedValue::Enum { .. } => {
+            ResolvedValue::Dynamic { reason: "scenario expansion curtailed".to_string() }
+        }
+        ResolvedValue::List { items } => {
+            ResolvedValue::List { items: items.iter().map(mask_scenario_branching).collect() }
+        }
+        ResolvedValue::Map { entries } => ResolvedValue::Map {
+            entries: entries
+                .iter()
+                .map(|entry| MapEntry { key: entry.key.clone(), value: mask_scenario_branching(&entry.value) })
+                .collect(),
+        },
+        other => other.clone(),
+    }
+}
+
 fn branch_alternatives_match(value: &ResolvedValue, concrete_matches: &impl Fn(&serde_json::Value) -> bool) -> bool {
     match value {
         ResolvedValue::Conditional { if_true, if_false, .. } => {
@@ -440,7 +468,33 @@ fn identity_policy_branches_are_validation_invariant(document: &ResolvedValue) -
     })
 }
 
-/// Validates every proven-reachable scenario of one identity-policy document.
+/// Returns whether a finding should be suppressed because its authored value is
+/// intrinsic-generated and cannot be proven invalid before deployment.
+fn should_suppress_intrinsic_finding(model: &SemanticModel, resource_id: &str, source_path: &str) -> bool {
+    if !model.is_from_intrinsic(resource_id, source_path) {
+        return false;
+    }
+    let Some(template) = model.authored_sub_template_at(resource_id, source_path) else {
+        return true;
+    };
+    !sub_resource_skeleton_is_definitely_invalid(template)
+}
+
+fn sub_resource_skeleton_is_definitely_invalid(template: &str) -> bool {
+    if template == "*" {
+        return false;
+    }
+    // A leading substitution can provide the whole ARN (or its prefix), so no
+    // conclusion is possible without knowing the deployment-time value.
+    if template.starts_with("${") {
+        return false;
+    }
+    // Elsewhere, placeholders cannot remove authored characters. The ordinary
+    // ARN matcher understands placeholders in valid ARN fields, so failure is a
+    // proof that the fixed skeleton itself is malformed.
+    !resource_arn_matches(template)
+}
+
 /// Raw scenarios retain dynamic marker subtrees, allowing literal siblings to
 /// be checked without judging deployment-time values. Findings produced from an
 /// intrinsic-generated authored path are discarded per scenario, so an
@@ -449,17 +503,18 @@ pub fn validate_identity_policy_scenarios(
     model: &SemanticModel,
     resource_id: &str,
     document_path: &str,
-) -> Vec<PolicyFinding> {
-    if model.scenario_budget_exhausted() {
-        return Vec::new();
-    }
+) -> Vec<ScenarioPolicyFinding> {
     let resolved_document =
         model.resolve_deep(resource_id, document_path).or_else(|| model.resolve(resource_id, document_path).cloned());
     let scenarios = match resolved_document {
         Some(document) if identity_policy_branches_are_validation_invariant(&document) => {
             vec![(document, HashMap::new())]
         }
-        _ => model.resolve_scenarios(resource_id, document_path),
+        Some(document) => {
+            let expanded = model.resolve_scenarios(resource_id, document_path);
+            if expanded.is_empty() { vec![(mask_scenario_branching(&document), HashMap::new())] } else { expanded }
+        }
+        None => return Vec::new(),
     };
     let mut findings = Vec::new();
     let mut seen = HashSet::new();
@@ -482,25 +537,287 @@ pub fn validate_identity_policy_scenarios(
             continue;
         }
 
-        let document = resolved_value_to_json(&document);
+        let materialized = materialize_policy_document(
+            &resolved_value_to_json(&document),
+            model,
+            resource_id,
+            document_path,
+            &conditions,
+        );
+        let document = materialized.value;
         for finding in validate_identity_policy(&document, &no_substitutions) {
             let effective_path = if finding.path.is_empty() {
                 document_path.to_string()
             } else {
                 format!("{document_path}.{}", finding.path)
             };
-            let source_path = model
-                .scenario_source_path(resource_id, &effective_path, &conditions)
-                .unwrap_or_else(|| effective_path.clone());
-            if model.is_from_intrinsic(resource_id, &source_path) {
+            let source_path = source_path_for_effective_path(
+                &materialized.source_paths,
+                model,
+                resource_id,
+                &effective_path,
+                &conditions,
+            );
+            if should_suppress_intrinsic_finding(model, resource_id, &source_path) {
                 continue;
             }
-            if seen.insert((finding.path.clone(), finding.message.clone())) {
-                findings.push(finding);
+            // The authored path is part of identity so identical invalid values
+            // in separate conditional branches remain separate diagnostics.
+            if seen.insert((source_path.clone(), finding.message.clone())) {
+                let public_path = public_policy_path(document_path, &source_path, &finding.path);
+                findings.push(ScenarioPolicyFinding { path: public_path, message: finding.message, source_path });
+            }
+        }
+        collect_raw_placeholder_findings(
+            &document,
+            &materialized.source_paths,
+            model,
+            resource_id,
+            document_path,
+            &conditions,
+            &mut seen,
+            &mut findings,
+        );
+    }
+    findings
+}
+
+/// Scans Resource/NotResource string values in the resolved document for raw
+/// CloudFormation-style `${...}` placeholders that are not IAM policy
+/// variables. When found and the value is NOT from Fn::Sub (checked via
+/// is_from_intrinsic), produces an E3510 finding. This fires independently
+/// of E1029 (which reports the substitution syntax error).
+fn collect_raw_placeholder_findings(
+    document: &Value,
+    source_paths: &HashMap<String, String>,
+    model: &SemanticModel,
+    resource_id: &str,
+    document_path: &str,
+    conditions: &HashMap<String, bool>,
+    seen: &mut HashSet<(String, String)>,
+    findings: &mut Vec<ScenarioPolicyFinding>,
+) {
+    let Some(obj) = document.as_object() else { return };
+    let statements = match obj.get("Statement") {
+        Some(Value::Array(stmts)) => stmts.as_slice(),
+        Some(stmt @ Value::Object(_)) => std::slice::from_ref(stmt),
+        _ => return,
+    };
+    for (idx, stmt) in statements.iter().enumerate() {
+        let stmt_path = if statements.len() == 1 && !obj.get("Statement").is_some_and(Value::is_array) {
+            "Statement".to_string()
+        } else {
+            format!("Statement.{idx}")
+        };
+        let Some(stmt_obj) = stmt.as_object() else { continue };
+        for key in ["Resource", "NotResource"] {
+            let Some(value) = stmt_obj.get(key) else { continue };
+            let field_path = format!("{stmt_path}.{key}");
+            match value {
+                Value::String(s) => {
+                    check_raw_placeholder_in_resource(
+                        s,
+                        &field_path,
+                        document_path,
+                        source_paths,
+                        model,
+                        resource_id,
+                        conditions,
+                        seen,
+                        findings,
+                    );
+                }
+                Value::Array(items) => {
+                    for (item_idx, item) in items.iter().enumerate() {
+                        if let Value::String(s) = item {
+                            let item_path = format!("{field_path}.{item_idx}");
+                            check_raw_placeholder_in_resource(
+                                s,
+                                &item_path,
+                                document_path,
+                                source_paths,
+                                model,
+                                resource_id,
+                                conditions,
+                                seen,
+                                findings,
+                            );
+                        }
+                    }
+                }
+                _ => {}
             }
         }
     }
-    findings
+}
+
+fn check_raw_placeholder_in_resource(
+    resource: &str,
+    relative_path: &str,
+    document_path: &str,
+    source_paths: &HashMap<String, String>,
+    model: &SemanticModel,
+    resource_id: &str,
+    conditions: &HashMap<String, bool>,
+    seen: &mut HashSet<(String, String)>,
+    findings: &mut Vec<ScenarioPolicyFinding>,
+) {
+    if !has_raw_cfn_placeholder(resource) {
+        return;
+    }
+    // Only fire if the value already passes resource_arn_matches (otherwise
+    // the standard ARN check already flagged it).
+    if !resource_arn_matches(resource) {
+        return;
+    }
+    let effective_path = format!("{document_path}.{relative_path}");
+    let source_path = source_path_for_effective_path(source_paths, model, resource_id, &effective_path, conditions);
+    // Skip if the value came from Fn::Sub (the placeholder is valid there)
+    if model.is_from_intrinsic(resource_id, &source_path) {
+        return;
+    }
+    let message = format!("'{}' does not match '{}'", resource, RESOURCE_ARN_PATTERN);
+    if seen.insert((source_path.clone(), message.clone())) {
+        let public_path = public_policy_path(document_path, &source_path, relative_path);
+        findings.push(ScenarioPolicyFinding { path: public_path, message, source_path });
+    }
+}
+
+/// Returns true if the string contains `${...}` placeholders that are NOT
+/// valid IAM policy variables. These would only be expanded inside Fn::Sub
+/// and are raw/unresolved otherwise.
+fn has_raw_cfn_placeholder(value: &str) -> bool {
+    let mut remaining = value;
+    while let Some(start) = remaining.find("${") {
+        let content = &remaining[start + 2..];
+        let Some(end) = content.find('}') else {
+            return true;
+        };
+        let name = &content[..end];
+        // IAM policy variables contain ':' and don't start with "AWS::"
+        let is_iam_variable = name.contains(':') && !name.starts_with("AWS::");
+        if !is_iam_variable {
+            return true;
+        }
+        remaining = &content[end + 1..];
+    }
+    false
+}
+
+struct MaterializedPolicyDocument {
+    value: Value,
+    source_paths: HashMap<String, String>,
+}
+
+fn materialize_policy_document(
+    document: &Value,
+    model: &SemanticModel,
+    resource_id: &str,
+    document_path: &str,
+    conditions: &HashMap<String, bool>,
+) -> MaterializedPolicyDocument {
+    let mut source_paths = HashMap::new();
+    let value = materialize_policy_value(
+        document,
+        model,
+        resource_id,
+        document_path,
+        document_path,
+        conditions,
+        &mut source_paths,
+    );
+    MaterializedPolicyDocument { value, source_paths }
+}
+
+fn materialize_policy_value(
+    value: &Value,
+    model: &SemanticModel,
+    resource_id: &str,
+    effective_path: &str,
+    authored_path: &str,
+    conditions: &HashMap<String, bool>,
+    source_paths: &mut HashMap<String, String>,
+) -> Value {
+    let source_path =
+        model.scenario_source_path(resource_id, authored_path, conditions).unwrap_or_else(|| authored_path.to_string());
+    source_paths.insert(effective_path.to_string(), source_path);
+
+    match value {
+        Value::Object(map) => Value::Object(
+            map.iter()
+                .map(|(key, child)| {
+                    let effective_child = format!("{effective_path}.{key}");
+                    let authored_child = format!("{authored_path}.{key}");
+                    (
+                        key.clone(),
+                        materialize_policy_value(
+                            child,
+                            model,
+                            resource_id,
+                            &effective_child,
+                            &authored_child,
+                            conditions,
+                            source_paths,
+                        ),
+                    )
+                })
+                .collect(),
+        ),
+        Value::Array(items) => {
+            let mut materialized = Vec::with_capacity(items.len());
+            for (authored_index, item) in items.iter().enumerate() {
+                let authored_item_path = format!("{authored_path}.{authored_index}");
+                let authored_source = model
+                    .scenario_source_path(resource_id, &authored_item_path, conditions)
+                    .unwrap_or_else(|| authored_item_path.clone());
+                if item.is_null() && model.is_from_intrinsic(resource_id, &authored_source) {
+                    continue;
+                }
+                let effective_item_path = format!("{effective_path}.{}", materialized.len());
+                materialized.push(materialize_policy_value(
+                    item,
+                    model,
+                    resource_id,
+                    &effective_item_path,
+                    &authored_item_path,
+                    conditions,
+                    source_paths,
+                ));
+            }
+            Value::Array(materialized)
+        }
+        other => other.clone(),
+    }
+}
+
+fn source_path_for_effective_path(
+    source_paths: &HashMap<String, String>,
+    model: &SemanticModel,
+    resource_id: &str,
+    effective_path: &str,
+    conditions: &HashMap<String, bool>,
+) -> String {
+    source_paths.get(effective_path).cloned().unwrap_or_else(|| {
+        model
+            .scenario_source_path(resource_id, effective_path, conditions)
+            .unwrap_or_else(|| effective_path.to_string())
+    })
+}
+
+fn public_policy_path(document_path: &str, source_path: &str, fallback: &str) -> String {
+    let relative = source_path.strip_prefix(document_path).and_then(|path| path.strip_prefix('.')).unwrap_or(fallback);
+    let segments: Vec<&str> = relative.split('.').collect();
+    let mut public_segments = Vec::with_capacity(segments.len());
+    let mut index = 0;
+    while index < segments.len() {
+        if segments[index] == FN_IF && segments.get(index + 1).is_some_and(|branch| *branch == "1" || *branch == "2") {
+            index += 2;
+        } else {
+            public_segments.push(segments[index]);
+            index += 1;
+        }
+    }
+    public_segments.join(".")
 }
 
 fn validate_identity_statement(
@@ -1691,9 +2008,23 @@ Resources:
 
         let found = validate_identity_policy_scenarios(&model, "Policy", "Properties.PolicyDocument");
 
-        assert_eq!(found.len(), 1, "only the authored literal branch should be reported: {found:?}");
-        assert_eq!(found[0].path, "Statement.0.Resource");
-        assert!(found[0].message.starts_with("'not-an-arn' does not match"));
+        // With narrowed intrinsic suppression, the Fn::Sub branch also fires
+        // because its concrete resolved value ("bad-123456789012") does not
+        // start with "arn:" — the skeleton is unambiguously malformed.
+        assert_eq!(found.len(), 2, "both branches should fire: {found:?}");
+        assert!(
+            found
+                .iter()
+                .any(|f| f.source_path.ends_with("Fn::If.1")
+                    && f.message.starts_with("'bad-123456789012' does not match")),
+            "malformed Fn::Sub branch must fire: {found:?}"
+        );
+        assert!(
+            found
+                .iter()
+                .any(|f| f.source_path.ends_with("Fn::If.2") && f.message.starts_with("'not-an-arn' does not match")),
+            "literal branch must fire: {found:?}"
+        );
     }
 
     /// Service placeholder is accepted.
@@ -1707,5 +2038,327 @@ Resources:
             }]
         });
         assert!(findings(doc).is_empty());
+    }
+
+    // ===== E3510 Scenario Gap Tests =====
+
+    /// Identical conditional branches each produce their own finding (no dedup).
+    #[test]
+    fn identical_conditional_branches_produce_two_findings() {
+        let template = r#"
+Parameters:
+  Env:
+    Type: String
+    Default: prod
+Conditions:
+  IsProd: !Equals [!Ref Env, prod]
+Resources:
+  Policy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: s3:GetObject
+            Resource: !If [IsProd, not-an-arn, not-an-arn]
+"#;
+        let model = SemanticModel::from_bytes(template.as_bytes()).unwrap();
+        let found = validate_identity_policy_scenarios(&model, "Policy", "Properties.PolicyDocument");
+        assert_eq!(found.len(), 2, "identical branches must not be deduplicated: {found:?}");
+        assert!(found.iter().any(|f| f.source_path.ends_with("Fn::If.1")));
+        assert!(found.iter().any(|f| f.source_path.ends_with("Fn::If.2")));
+    }
+
+    /// Valid Fn::Sub (arn:${AWS::Partition}:...) must NOT fire.
+    #[test]
+    fn valid_fn_sub_arn_is_not_flagged() {
+        let template = r#"
+Resources:
+  Policy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: s3:GetObject
+            Resource: !Sub "arn:${AWS::Partition}:s3:::my-bucket/*"
+"#;
+        let model = SemanticModel::from_bytes(template.as_bytes()).unwrap();
+        let found = validate_identity_policy_scenarios(&model, "Policy", "Properties.PolicyDocument");
+        assert!(found.is_empty(), "valid Fn::Sub must not fire: {found:?}");
+    }
+
+    /// Indeterminate Fn::Sub (entire value is ${Param}) must NOT fire.
+    #[test]
+    fn indeterminate_fn_sub_is_not_flagged() {
+        let template = r#"
+Parameters:
+  BucketArn:
+    Type: String
+    Default: "arn:aws:s3:::my-bucket"
+Resources:
+  Policy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: s3:GetObject
+            Resource: !Sub "${BucketArn}"
+"#;
+        let model = SemanticModel::from_bytes(template.as_bytes()).unwrap();
+        let found = validate_identity_policy_scenarios(&model, "Policy", "Properties.PolicyDocument");
+        assert!(found.is_empty(), "indeterminate Fn::Sub must not fire: {found:?}");
+    }
+
+    #[test]
+    fn simple_fn_sub_with_invalid_parameter_default_is_indeterminate() {
+        let template = r#"
+Parameters:
+  BucketArn:
+    Type: String
+    Default: not-an-arn
+Resources:
+  Policy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Action: s3:GetObject
+            Resource: !Sub "${BucketArn}"
+"#;
+        let model = SemanticModel::from_bytes(template.as_bytes()).unwrap();
+        let found = validate_identity_policy_scenarios(&model, "Policy", "Properties.PolicyDocument");
+        assert!(
+            found.is_empty(),
+            "an overrideable parameter default must not be judged as deploy-time truth: {found:?}"
+        );
+    }
+
+    #[test]
+    fn malformed_arn_prefixed_fn_sub_skeleton_is_flagged() {
+        let template = r#"
+Resources:
+  Policy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Action: s3:GetObject
+            Resource: !Sub "arn:${AWS::Partition}:*:::bucket"
+"#;
+        let model = SemanticModel::from_bytes(template.as_bytes()).unwrap();
+        let found = validate_identity_policy_scenarios(&model, "Policy", "Properties.PolicyDocument");
+        assert_eq!(found.len(), 1, "the fixed service wildcard makes the authored skeleton invalid: {found:?}");
+        assert!(found[0].message.contains("does not match"));
+    }
+
+    /// Raw CloudFormation placeholder outside Fn::Sub fires E3510.
+    #[test]
+    fn raw_cfn_placeholder_outside_fn_sub_fires() {
+        let template = r#"
+Resources:
+  Policy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: s3:GetObject
+            Resource: "arn:aws:s3:::${BucketName}/*"
+          - Effect: Deny
+            Action: s3:DeleteObject
+            NotResource: "arn:aws:s3:::${ProtectedBucket}/*"
+"#;
+        let model = SemanticModel::from_bytes(template.as_bytes()).unwrap();
+        let found = validate_identity_policy_scenarios(&model, "Policy", "Properties.PolicyDocument");
+        assert_eq!(found.len(), 2, "raw placeholders in Resource and NotResource must fire: {found:?}");
+        assert!(found.iter().all(|finding| finding.message.contains("does not match")));
+        assert!(found.iter().any(|finding| finding.path.ends_with("Resource")));
+        assert!(found.iter().any(|finding| finding.path.ends_with("NotResource")));
+    }
+
+    /// NoValue Action/NotAction pruning: list becomes empty after removing NoValue items.
+    #[test]
+    fn novalue_action_pruning_produces_min_items_finding() {
+        let template = r#"
+Parameters:
+  Env:
+    Type: String
+    Default: prod
+Conditions:
+  IsProd: !Equals [!Ref Env, prod]
+Resources:
+  Policy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - !If [IsProd, !Ref "AWS::NoValue", s3:GetObject]
+              - !If [IsProd, !Ref "AWS::NoValue", s3:PutObject]
+            Resource: "*"
+"#;
+        let model = SemanticModel::from_bytes(template.as_bytes()).unwrap();
+        let found = validate_identity_policy_scenarios(&model, "Policy", "Properties.PolicyDocument");
+        assert_eq!(found.len(), 1, "expected exactly 1 finding (minItems from IsProd=true): {found:?}");
+        assert!(
+            found[0].message.contains("too short"),
+            "empty Action after NoValue pruning must produce minItems error: {found:?}"
+        );
+    }
+
+    #[test]
+    fn novalue_not_action_pruning_produces_min_items_finding() {
+        let template = r#"
+Conditions:
+  IsProd: !Equals [!Ref AWS::Region, us-east-1]
+Resources:
+  Policy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            NotAction:
+              - !If [IsProd, !Ref "AWS::NoValue", s3:GetObject]
+              - !If [IsProd, !Ref "AWS::NoValue", s3:PutObject]
+            Resource: "*"
+"#;
+        let model = SemanticModel::from_bytes(template.as_bytes()).unwrap();
+        let found = validate_identity_policy_scenarios(&model, "Policy", "Properties.PolicyDocument");
+        assert_eq!(found.len(), 1, "only the empty NotAction scenario must fail: {found:?}");
+        assert_eq!(found[0].path, "Statement.0.NotAction");
+        assert!(found[0].message.contains("too short"));
+    }
+
+    #[test]
+    fn scalar_novalue_is_treated_as_a_missing_action() {
+        let template = r#"
+Conditions:
+  IsProd: !Equals [!Ref AWS::Region, us-east-1]
+Resources:
+  Policy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Action: !If [IsProd, !Ref "AWS::NoValue", s3:GetObject]
+            Resource: "*"
+"#;
+        let model = SemanticModel::from_bytes(template.as_bytes()).unwrap();
+        let found = validate_identity_policy_scenarios(&model, "Policy", "Properties.PolicyDocument");
+        assert_eq!(found.len(), 1, "only the scenario with the removed scalar Action must fail: {found:?}");
+        assert_eq!(found[0].path, "Statement.0");
+        assert!(found[0].message.contains("Only one of ['Action', 'NotAction']"));
+    }
+
+    #[test]
+    fn literal_null_keeps_authored_index_after_novalue_sibling_is_removed() {
+        let template = r#"
+Conditions:
+  IsProd: !Equals [!Ref AWS::Region, us-east-1]
+Resources:
+  Policy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Action:
+              - !If [IsProd, !Ref "AWS::NoValue", s3:GetObject]
+              - null
+            Resource: "*"
+"#;
+        let model = SemanticModel::from_bytes(template.as_bytes()).unwrap();
+        let found = validate_identity_policy_scenarios(&model, "Policy", "Properties.PolicyDocument");
+        assert_eq!(found.len(), 1, "the authored null is one defect shared by both scenarios: {found:?}");
+        assert_eq!(found[0].path, "Statement.0.Action.1");
+        assert!(found[0].source_path.ends_with("Statement.0.Action.1"));
+        assert!(found[0].message.contains("not of type 'string'"));
+    }
+
+    /// Authored literal null is preserved (not treated as NoValue removal).
+    #[test]
+    fn literal_null_in_action_array_produces_type_error() {
+        let template = r#"
+Resources:
+  Policy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - null
+              - s3:GetObject
+            Resource: "*"
+"#;
+        let model = SemanticModel::from_bytes(template.as_bytes()).unwrap();
+        let found = validate_identity_policy_scenarios(&model, "Policy", "Properties.PolicyDocument");
+        assert_eq!(found.len(), 1, "expected exactly 1 finding (type error for null): {found:?}");
+        assert!(found[0].message.contains("not of type 'string'"), "literal null must produce type error: {found:?}");
+    }
+
+    /// Invariant policy validation runs despite exhausted scenario budget.
+    #[test]
+    fn invariant_policy_validated_when_budget_exhausted() {
+        let template = r#"
+Resources:
+  Policy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: InvalidValue
+            Action: s3:GetObject
+            Resource: "*"
+"#;
+        let model = SemanticModel::from_bytes(template.as_bytes()).unwrap();
+        // Exhaust the scenario budget
+        model.add_scenario_combinations_for_test(crate::consts::MAX_TOTAL_SCENARIO_COMBINATIONS);
+        assert!(model.scenario_budget_exhausted());
+
+        let found = validate_identity_policy_scenarios(&model, "Policy", "Properties.PolicyDocument");
+        assert_eq!(found.len(), 1, "expected exactly 1 finding (Effect enum error): {found:?}");
+        assert!(
+            found[0].message.contains("is not one of"),
+            "invariant checks must run even with exhausted budget: {found:?}"
+        );
+    }
+
+    #[test]
+    fn non_invariant_policy_uses_central_budget_and_keeps_static_checks() {
+        let template = r#"
+Conditions:
+  IsProd: !Equals [!Ref AWS::Region, us-east-1]
+Resources:
+  Policy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Effect: InvalidValue
+            Action: s3:GetObject
+            Resource: !If [IsProd, "*", not-an-arn]
+"#;
+        let model = SemanticModel::from_bytes(template.as_bytes()).unwrap();
+        model.add_scenario_combinations_for_test(crate::consts::MAX_TOTAL_SCENARIO_COMBINATIONS);
+
+        let found = validate_identity_policy_scenarios(&model, "Policy", "Properties.PolicyDocument");
+        assert!(model.scenario_expansion_curtailed(), "central expansion must record the exhausted global budget");
+        assert_eq!(found.len(), 1, "the static Effect defect must survive conservative fallback: {found:?}");
+        assert_eq!(found[0].path, "Statement.0.Effect");
     }
 }

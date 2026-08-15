@@ -9,9 +9,10 @@ use std::sync::{Arc, LazyLock};
 use template_model::SemanticModel;
 use template_model::coercion::{coerce_port_to_string, coerce_to_integer, coerce_to_string, scalar_eq};
 use template_model::consts::{
-    EDGE_KIND_GET_ATT, EDGE_KIND_REF, EDGE_KIND_SELECT, FIELD_ATTR, FIELD_KIND, FIELD_MAPPINGS, FIELD_OUTGOING_REFS,
-    FIELD_PROPERTIES, FIELD_RESOURCE_TYPE, FIELD_RESOURCES, FIELD_SOURCE_PATH, FIELD_TARGET, FN_IF, FN_REF,
-    KEY_PROPERTIES, PARAM_TYPE_STRING, TRANSFORM_SERVERLESS,
+    EDGE_KIND_GET_ATT, EDGE_KIND_REF, EDGE_KIND_SELECT, FIELD_ATTR, FIELD_CREATION_POLICY, FIELD_KIND, FIELD_MAPPINGS,
+    FIELD_OUTGOING_REFS, FIELD_PROPERTIES, FIELD_RESOURCE_TYPE, FIELD_RESOURCES, FIELD_SOURCE_PATH, FIELD_TARGET,
+    FIELD_UPDATE_POLICY, FN_IF, FN_REF, KEY_CREATION_POLICY, KEY_PROPERTIES, KEY_UPDATE_POLICY, PARAM_TYPE_STRING,
+    TRANSFORM_SERVERLESS,
 };
 use template_model::fargate::{CPU_UNIT_LABELS, cpu_is_offered};
 use template_model::iam_policy::validate_identity_policy_scenarios;
@@ -251,12 +252,23 @@ fn push_identity_policy_findings(
     document_path: &str,
 ) {
     for finding in validate_identity_policy_scenarios(model, resource_id, document_path) {
-        let path = if finding.path.is_empty() {
+        let effective_path = if finding.path.is_empty() {
             document_path.to_string()
         } else {
             format!("{}.{}", document_path, finding.path)
         };
-        out.push(make_resource_diagnostic("E3510", &finding.message, model, resource_id, &path, None));
+        // Use the authored source_path (branch-qualified) for span resolution
+        // when available, falling back to the effective path.
+        let source_path = if finding.source_path.is_empty() { effective_path.clone() } else { finding.source_path };
+        out.push(make_resource_diagnostic_at_source(
+            "E3510",
+            &finding.message,
+            model,
+            resource_id,
+            &effective_path,
+            &source_path,
+            None,
+        ));
     }
 }
 
@@ -1255,23 +1267,48 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     let creation_policy_types = [
-        "AWS::AutoScaling::AutoScalingGroup",
-        "AWS::EC2::Instance",
-        "AWS::CloudFormation::WaitCondition",
         "AWS::AppStream::Fleet",
+        "AWS::AutoScaling::AutoScalingGroup",
+        "AWS::CloudFormation::WaitCondition",
+        "AWS::EC2::Instance",
     ];
+    let creation_policy_fix =
+        format!("Remove CreationPolicy or change resource type to one of: {}", creation_policy_types.join(", "));
+    let update_policy_types = [
+        "AWS::AppStream::Fleet",
+        "AWS::AutoScaling::AutoScalingGroup",
+        "AWS::ElastiCache::ReplicationGroup",
+        "AWS::Elasticsearch::Domain",
+        "AWS::Lambda::Alias",
+        "AWS::OpenSearchService::Domain",
+    ];
+    let update_policy_fix =
+        format!("Remove UpdatePolicy or change resource type to one of: {}", update_policy_types.join(", "));
     if let Some(resources) = input.get(FIELD_RESOURCES).and_then(|r| r.as_object()) {
         for (name, res) in resources {
-            if res.get("creation_policy").map(|v| !v.is_null()).unwrap_or(false) {
+            if res.get(FIELD_CREATION_POLICY).map(|v| !v.is_null()).unwrap_or(false) {
                 let rtype = res.get(FIELD_RESOURCE_TYPE).and_then(|t| t.as_str()).unwrap_or("");
                 if !creation_policy_types.contains(&rtype) {
                     out.push(make_resource_diagnostic(
                         "E3055",
-                        &format!("CreationPolicy is not valid on resource type '{}'", rtype),
+                        &format!("CreationPolicy is not supported on resource type '{}'", rtype),
                         m,
                         name,
-                        "",
-                        None,
+                        KEY_CREATION_POLICY,
+                        Some(&creation_policy_fix),
+                    ));
+                }
+            }
+            if res.get(FIELD_UPDATE_POLICY).map(|v| !v.is_null()).unwrap_or(false) {
+                let rtype = res.get(FIELD_RESOURCE_TYPE).and_then(|t| t.as_str()).unwrap_or("");
+                if !update_policy_types.contains(&rtype) {
+                    out.push(make_resource_diagnostic(
+                        "E3016",
+                        &format!("UpdatePolicy is not supported on resource type '{}'", rtype),
+                        m,
+                        name,
+                        KEY_UPDATE_POLICY,
+                        Some(&update_policy_fix),
                     ));
                 }
             }

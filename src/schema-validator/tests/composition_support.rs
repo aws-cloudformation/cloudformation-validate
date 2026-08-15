@@ -2955,3 +2955,116 @@ fn conditional_list_item_still_enforces_unique_items() {
         diags.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
     );
 }
+
+// ─── not_enum direct property enforcement ───────────────────────────────────
+
+#[test]
+fn not_enum_rejects_excluded_value_on_direct_property() {
+    let sv = validator(vec![(
+        "AWS::Test::NotEnum",
+        json!({
+            "properties": {
+                "Username": {
+                    "type": "string",
+                    "not": { "enum": ["admin", "root", "system"] }
+                }
+            },
+            "additionalProperties": false
+        }),
+    )]);
+    let template = "Resources:\n  R:\n    Type: AWS::Test::NotEnum\n    Properties:\n      Username: admin\n";
+    let diags = validate(&sv, template);
+    assert!(
+        mentions(&diags, "F3030", "must not be one of"),
+        "excluded value 'admin' should fire F3030: {:?}",
+        diags.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
+    );
+}
+
+#[test]
+fn not_enum_accepts_non_excluded_value() {
+    let sv = validator(vec![(
+        "AWS::Test::NotEnum",
+        json!({
+            "properties": {
+                "Username": {
+                    "type": "string",
+                    "not": { "enum": ["admin", "root", "system"] }
+                }
+            },
+            "additionalProperties": false
+        }),
+    )]);
+    let template = "Resources:\n  R:\n    Type: AWS::Test::NotEnum\n    Properties:\n      Username: legitimate_user\n";
+    let diags = validate(&sv, template);
+    assert!(
+        !mentions(&diags, "F3030", "must not be one of"),
+        "non-excluded value should not fire F3030: {:?}",
+        diags.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
+    );
+}
+
+// ─── Unicode string length counting ─────────────────────────────────────────
+
+#[test]
+fn string_length_counts_unicode_scalar_values_not_bytes() {
+    // Each emoji is 4 bytes in UTF-8 but 1 Unicode scalar value.
+    // maxLength of 5 should accept 5 emoji characters (5 scalars, 20 bytes).
+    let sv = validator(vec![(
+        "AWS::Test::UniLength",
+        json!({
+            "properties": {
+                "Label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 5
+                }
+            },
+            "additionalProperties": false
+        }),
+    )]);
+
+    // 5 emoji characters = 5 Unicode scalar values = 20 UTF-8 bytes
+    let template_ok = "Resources:\n  R:\n    Type: AWS::Test::UniLength\n    Properties:\n      Label: '\u{1F600}\u{1F601}\u{1F602}\u{1F603}\u{1F604}'\n";
+    let diags_ok = validate(&sv, template_ok);
+    assert!(
+        !diags_ok.iter().any(|d| d.rule_id == "F3033"),
+        "5 emoji (5 scalars) within maxLength=5 must not fire F3033: {:?}",
+        diags_ok.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
+    );
+
+    // 6 emoji characters = 6 Unicode scalar values > maxLength 5
+    let template_bad = "Resources:\n  R:\n    Type: AWS::Test::UniLength\n    Properties:\n      Label: '\u{1F600}\u{1F601}\u{1F602}\u{1F603}\u{1F604}\u{1F605}'\n";
+    let diags_bad = validate(&sv, template_bad);
+    assert!(
+        diags_bad.iter().any(|d| d.rule_id == "F3033" && d.message.contains("6")),
+        "6 emoji (6 scalars) exceeding maxLength=5 must fire F3033 with length 6: {:?}",
+        diags_bad.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
+    );
+}
+
+#[test]
+fn string_length_multibyte_characters_below_minimum() {
+    // 2-byte characters (e.g. "ñ" is U+00F1, 2 bytes in UTF-8, 1 scalar)
+    let sv = validator(vec![(
+        "AWS::Test::UniLength",
+        json!({
+            "properties": {
+                "Name": {
+                    "type": "string",
+                    "minLength": 5
+                }
+            },
+            "additionalProperties": false
+        }),
+    )]);
+
+    // "a\u{00F1}o" is 3 Unicode scalar values but 4 UTF-8 bytes
+    let template = "Resources:\n  R:\n    Type: AWS::Test::UniLength\n    Properties:\n      Name: 'a\u{00F1}o'\n";
+    let diags = validate(&sv, template);
+    assert!(
+        diags.iter().any(|d| d.rule_id == "F3033" && d.message.contains("3")),
+        "'a\\u{{00F1}}o' has 3 Unicode scalars, should fire F3033 (below min 5): {:?}",
+        diags.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
+    );
+}

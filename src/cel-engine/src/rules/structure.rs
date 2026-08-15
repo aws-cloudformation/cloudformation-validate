@@ -289,12 +289,12 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     if let Some(desc) = input.get("template").and_then(|t| t.get("description")).and_then(|v| v.as_str())
-        && desc.len() > 921
-        && desc.len() <= 1024
+        && desc.chars().count() > 921
+        && desc.chars().count() <= 1024
     {
         out.push(make_resource_diagnostic(
             "I1003",
-            &format!("Description length {} is approaching maximum of 1024", desc.len()),
+            &format!("Description length {} is approaching maximum of 1024", desc.chars().count()),
             m,
             "",
             "",
@@ -316,11 +316,11 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     if let Some(desc) = input.get("template").and_then(|t| t.get("description")).and_then(|v| v.as_str())
-        && desc.len() > 1024
+        && desc.chars().count() > 1024
     {
         out.push(make_resource_diagnostic(
             "F0011",
-            &format!("Description length {} exceeds maximum 1024", desc.len()),
+            &format!("Description length {} exceeds maximum 1024", desc.chars().count()),
             m,
             "",
             "",
@@ -696,21 +696,41 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
     for (name, param) in &m.parameters {
         if let (Some(default), Some(allowed)) = (&param.default, &param.allowed_values)
             && !allowed.is_empty()
-            && !allowed.iter().any(|a| a == default)
         {
-            out.push(make_resource_diagnostic(
-                "F2012",
-                &format!(
-                    "Parameter '{}' Default '{}' is not in AllowedValues {}",
-                    name,
-                    default,
-                    render_str_list(allowed)
-                ),
-                m,
-                "",
-                &format!("{}/{}/Default", SECTION_PARAMETERS, name),
-                None,
-            ));
+            let is_cdl = param.param_type == PARAM_TYPE_COMMA_DELIMITED_LIST || param.param_type.starts_with("List<");
+            if is_cdl {
+                for element in default.split(',').map(|s| s.trim()) {
+                    if !allowed.iter().any(|a| a == element) {
+                        out.push(make_resource_diagnostic(
+                            "F2012",
+                            &format!(
+                                "Parameter '{}' Default '{}' is not in AllowedValues {}",
+                                name,
+                                element,
+                                render_str_list(allowed)
+                            ),
+                            m,
+                            "",
+                            &format!("{}/{}/Default", SECTION_PARAMETERS, name),
+                            None,
+                        ));
+                    }
+                }
+            } else if !allowed.iter().any(|a| a == default) {
+                out.push(make_resource_diagnostic(
+                    "F2012",
+                    &format!(
+                        "Parameter '{}' Default '{}' is not in AllowedValues {}",
+                        name,
+                        default,
+                        render_str_list(allowed)
+                    ),
+                    m,
+                    "",
+                    &format!("{}/{}/Default", SECTION_PARAMETERS, name),
+                    None,
+                ));
+            }
         }
     }
 
@@ -919,11 +939,11 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
         // MinLength / MaxLength
         if let Some(min) = info.min_length
-            && (def.len() as u64) < min
+            && (def.chars().count() as u64) < min
         {
             out.push(make_resource_diagnostic(
                 "F2015",
-                &format!("Parameter '{}' Default length {} is less than MinLength {}", pname, def.len(), min),
+                &format!("Parameter '{}' Default length {} is less than MinLength {}", pname, def.chars().count(), min),
                 m,
                 "",
                 &path_str,
@@ -931,11 +951,11 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
             ));
         }
         if let Some(max) = info.max_length
-            && (def.len() as u64) > max
+            && (def.chars().count() as u64) > max
         {
             out.push(make_resource_diagnostic(
                 "F2015",
-                &format!("Parameter '{}' Default length {} exceeds MaxLength {}", pname, def.len(), max),
+                &format!("Parameter '{}' Default length {} exceeds MaxLength {}", pname, def.chars().count(), max),
                 m,
                 "",
                 &path_str,

@@ -2434,7 +2434,8 @@ fn collect_unreachable_branches(
 
 /// `iam_identity_policy_findings(resource_id, document_path)` calls the shared
 /// identity-policy structural validator and returns an array of finding objects,
-/// each with `path` (absolute property path) and `message`.
+/// each with `path` (effective/public path), `sourcePath` (authored
+/// branch-qualified path for diagnostic construction), and `message`.
 fn register_iam_identity_policy_findings(rego: &mut regorus::Engine, holder: SharedModel) {
     let _ = rego.add_extension(
         "iam_identity_policy_findings".into(),
@@ -2448,12 +2449,18 @@ fn register_iam_identity_policy_findings(rego: &mut regorus::Engine, holder: Sha
             let findings = validate_identity_policy_scenarios(&model, resource_id.as_ref(), document_path.as_ref())
                 .into_iter()
                 .map(|finding| {
-                    let path = if finding.path.is_empty() {
+                    let effective_path = if finding.path.is_empty() {
                         document_path.to_string()
                     } else {
                         format!("{}.{}", document_path, finding.path)
                     };
-                    json_to_value(&serde_json::json!({"path": path, "message": finding.message}))
+                    let source_path =
+                        if finding.source_path.is_empty() { effective_path.clone() } else { finding.source_path };
+                    json_to_value(&serde_json::json!({
+                        "effective_path": effective_path,
+                        "source_path": source_path,
+                        "message": finding.message
+                    }))
                 })
                 .collect::<Vec<_>>();
             Ok(Value::from(findings))

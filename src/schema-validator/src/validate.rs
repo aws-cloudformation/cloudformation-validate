@@ -1668,7 +1668,7 @@ fn schema_value_failure_reasons(
         && let Some(actual) = coerce_to_string(value)
         && !actual.contains("${")
     {
-        let length = actual.len() as u64;
+        let length = actual.chars().count() as u64;
         if let Some(maximum) = effective.max_length
             && length > maximum
         {
@@ -2993,6 +2993,25 @@ fn validate_prop(
         }
     }
 
+    if !schema.not_enum.is_empty() {
+        for (val, conds) in &scenarios {
+            if !is_satisfiable(m, conds) || val.is_null() {
+                continue;
+            }
+            if enum_matches(val, &schema.not_enum) {
+                out.push(build_diagnostic_conditional(
+                    "F3030",
+                    &format!("{} must not be one of {}", format_value(val), format_allowed_values(&schema.not_enum)),
+                    m,
+                    rid,
+                    prop_path,
+                    None,
+                    condition_map(conds),
+                ));
+            }
+        }
+    }
+
     if let Some(ref cv) = schema.const_value {
         for (val, conds) in &scenarios {
             if !is_satisfiable(m, conds) || val.is_null() {
@@ -3151,7 +3170,7 @@ fn validate_prop(
             if from_param {
                 continue;
             }
-            let len = s.len() as u64;
+            let len = s.chars().count() as u64;
             if let Some(max) = schema.max_length
                 && len > max
             {

@@ -807,6 +807,12 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         origin: RuleOrigin::CfnLint,
     },
     RuleDefinition {
+        id: "E3016",
+        category: Category::Resource,
+        description: "Check UpdatePolicy values for Resources",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
         id: "E3019",
         category: Category::Resource,
         description: "Validate that all resources have unique primary identifiers",
@@ -1632,7 +1638,7 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         id: "W9003",
         category: Category::BestPractice,
         description: "Property type coercion warning",
-        origin: RuleOrigin::Engine,
+        origin: RuleOrigin::CfnLint,
     },
     RuleDefinition {
         id: "W9009",

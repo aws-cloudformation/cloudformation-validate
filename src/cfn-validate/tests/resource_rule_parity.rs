@@ -17,14 +17,28 @@ fn selected_findings(engine: &dyn ValidationEngine, template: &str, rule_ids: &[
     findings
 }
 
+fn selected_findings_with_spans(engine: &dyn ValidationEngine, template: &str, rule_ids: &[&str]) -> Vec<String> {
+    let validator = SchemaValidator::default();
+    let report = validate_bytes(engine, &validator, template.as_bytes(), ValidateConfig::default()).unwrap();
+    let mut findings: Vec<String> = report
+        .diagnostics
+        .iter()
+        .filter(|diagnostic| rule_ids.contains(&diagnostic.rule_id.as_str()))
+        .map(|diagnostic| format!("{}|{:?}", diagnostic_identity(diagnostic), diagnostic.location))
+        .collect();
+    findings.sort();
+    findings
+}
+
 fn diagnostic_identity(diagnostic: &Diagnostic) -> String {
     format!(
-        "{}|{:?}|{}|{}|{}",
+        "{}|{:?}|{}|{}|{}|{}",
         diagnostic.rule_id,
         diagnostic.severity,
         diagnostic.resource_logical_id().unwrap_or(""),
         diagnostic.property_path.as_deref().unwrap_or(""),
-        diagnostic.message
+        diagnostic.message,
+        diagnostic.suggested_fix.as_deref().unwrap_or("")
     )
 }
 
@@ -54,6 +68,34 @@ Resources:
     assert!(rego_findings.iter().any(|finding| finding.contains("AWS::NotAService::NotAResource")));
     assert!(rego_findings.iter().any(|finding| finding.contains("AWS::S3::MODULE::Bucket")));
     assert!(rego_findings.iter().all(|finding| !finding.contains("AWS::S3::Bucket::MODULE")));
+}
+
+#[test]
+fn unsupported_lifecycle_attributes_have_identical_authored_paths() {
+    let template = r#"
+Resources:
+  UnsupportedBucket:
+    Type: AWS::S3::Bucket
+    CreationPolicy:
+      ResourceSignal:
+        Count: 1
+    UpdatePolicy:
+      AutoScalingRollingUpdate:
+        MinInstancesInService: 1
+  UnsupportedTopic:
+    Type: AWS::SNS::Topic
+    CreationPolicy:
+      ResourceSignal:
+        Count: 1
+"#;
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E3016", "E3055"]);
+    let cel_findings = selected_findings(&cel, template, &["E3016", "E3055"]);
+    assert_eq!(rego_findings, cel_findings);
+    assert_eq!(rego_findings.len(), 3, "each unsupported lifecycle attribute should be reported: {rego_findings:?}");
+    assert!(rego_findings.iter().any(|finding| finding.contains("|UnsupportedBucket|CreationPolicy|")));
+    assert!(rego_findings.iter().any(|finding| finding.contains("|UnsupportedBucket|UpdatePolicy|")));
+    assert!(rego_findings.iter().any(|finding| finding.contains("|UnsupportedTopic|CreationPolicy|")));
 }
 
 #[test]
@@ -978,6 +1020,109 @@ Resources:
 }
 
 #[test]
+fn identity_policy_scenario_gap_findings_match_with_exact_spans() {
+    let template = r#"
+Parameters:
+  WholeArn:
+    Type: String
+    Default: not-an-arn
+Conditions:
+  IsProd: !Equals [!Ref AWS::Region, us-east-1]
+Resources:
+  IdenticalBranches:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Action: s3:GetObject
+            Resource: !If
+              - IsProd
+              - not-an-arn
+              - not-an-arn
+  LiteralAndMalformedSub:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Action: s3:GetObject
+            Resource: !If
+              - IsProd
+              - !Sub 'bad-${AWS::AccountId}'
+              - also-not-an-arn
+  ValidSub:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - {Effect: Allow, Action: s3:GetObject, Resource: !Sub 'arn:${AWS::Partition}:s3:::bucket/*'}
+  IndeterminateSub:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - {Effect: Allow, Action: s3:GetObject, Resource: !Sub '${WholeArn}'}
+  RawPlaceholders:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - {Effect: Allow, Action: s3:GetObject, Resource: 'arn:aws:s3:::${BucketName}/*'}
+          - {Effect: Deny, Action: s3:DeleteObject, NotResource: 'arn:aws:s3:::${ProtectedBucket}/*'}
+  ShiftedLiteralNull:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Action:
+              - !If [IsProd, !Ref AWS::NoValue, s3:GetObject]
+              - null
+            Resource: '*'
+  EmptyNotAction:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            NotAction:
+              - !If [IsProd, !Ref AWS::NoValue, s3:GetObject]
+              - !If [IsProd, !Ref AWS::NoValue, s3:PutObject]
+            Resource: '*'
+"#;
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings_with_spans(&rego, template, &["E3510"]);
+    let cel_findings = selected_findings_with_spans(&cel, template, &["E3510"]);
+
+    assert_eq!(rego_findings, cel_findings, "IAM diagnostics must match through source spans");
+    assert_eq!(rego_findings.len(), 8, "expected every and only authored IAM defect: {rego_findings:#?}");
+    assert_eq!(
+        rego_findings.iter().filter(|finding| finding.contains("IdenticalBranches")).count(),
+        2,
+        "identical branches must remain distinct by source span: {rego_findings:#?}"
+    );
+    assert_eq!(
+        rego_findings.iter().filter(|finding| finding.contains("LiteralAndMalformedSub")).count(),
+        2,
+        "both the malformed Sub and literal branch must fire: {rego_findings:#?}"
+    );
+    assert_eq!(rego_findings.iter().filter(|finding| finding.contains("RawPlaceholders")).count(), 2);
+    assert!(rego_findings.iter().any(|finding| {
+        finding.contains("ShiftedLiteralNull")
+            && finding.contains("Properties.PolicyDocument.Statement.0.Action.1")
+            && finding.contains("not of type 'string'")
+    }));
+    assert!(rego_findings.iter().any(|finding| {
+        finding.contains("EmptyNotAction")
+            && finding.contains("Properties.PolicyDocument.Statement.0.NotAction")
+            && finding.contains("too short")
+    }));
+    assert!(rego_findings.iter().all(|finding| !finding.contains("ValidSub")));
+    assert!(rego_findings.iter().all(|finding| !finding.contains("IndeterminateSub")));
+}
+
+#[test]
 fn identity_policy_resource_arn_boundaries_are_identical() {
     let template = r#"
 Resources:
@@ -995,7 +1140,7 @@ Resources:
       PolicyDocument:
         Statement:
           - {Effect: Allow, Action: sqs:SendMessage, Resource: 'arn:aws:sqs'}
-          - {Effect: Allow, Action: iam:GetUser, Resource: 'arn:${AWS::Partition}:iam::${AWS::AccountId}:user/${aws:username}'}
+          - {Effect: Allow, Action: iam:GetUser, Resource: !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:user/${aws:username}'}
           - {Effect: Allow, Action: s3:GetObject, Resource: 'arn:*:s3:::bucket/key'}
           - {Effect: Allow, Action: s3:GetObject, Resource: '*'}
 "#;
