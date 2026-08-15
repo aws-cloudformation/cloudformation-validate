@@ -959,6 +959,71 @@ Resources:
 }
 
 #[test]
+fn lifecycle_attribute_status_tracks_effective_presence_and_shape() {
+    let yaml = b"
+Parameters:
+  Env:
+    Type: String
+  Policy:
+    Type: String
+Conditions:
+  Never: !Equals [always, never]
+  Maybe: !Equals [!Ref Env, enabled]
+Resources:
+  Absent:
+    Type: AWS::S3::Bucket
+  Object:
+    Type: AWS::S3::Bucket
+    UpdatePolicy: {}
+  Scalar:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    UpdatePolicy: 7
+  Intrinsic:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    UpdatePolicy: !Ref Policy
+  Impossible:
+    Type: AWS::S3::Bucket
+    UpdatePolicy: !If [Never, {AutoScalingRollingUpdate: {}}, !Ref AWS::NoValue]
+  ImpossibleResource:
+    Type: AWS::S3::Bucket
+    Condition: Never
+    UpdatePolicy: {}
+  Conditional:
+    Type: AWS::S3::Bucket
+    UpdatePolicy: !If [Maybe, {AutoScalingRollingUpdate: {}}, !Ref AWS::NoValue]
+";
+    let model = SemanticModel::from_bytes(yaml).unwrap();
+
+    let absent = model.lifecycle_attribute_status("Absent", "UpdatePolicy");
+    assert!(!absent.may_be_present);
+    assert_eq!(absent.invalid_value, None);
+
+    let object = model.lifecycle_attribute_status("Object", "UpdatePolicy");
+    assert!(object.may_be_present);
+    assert_eq!(object.invalid_value, None);
+
+    let scalar = model.lifecycle_attribute_status("Scalar", "UpdatePolicy");
+    assert!(scalar.may_be_present);
+    assert_eq!(scalar.invalid_value.as_deref(), Some("7"));
+
+    let intrinsic = model.lifecycle_attribute_status("Intrinsic", "UpdatePolicy");
+    assert!(intrinsic.may_be_present);
+    assert_eq!(intrinsic.invalid_value, None);
+
+    let impossible = model.lifecycle_attribute_status("Impossible", "UpdatePolicy");
+    assert!(!impossible.may_be_present);
+    assert_eq!(impossible.invalid_value, None);
+
+    let impossible_resource = model.lifecycle_attribute_status("ImpossibleResource", "UpdatePolicy");
+    assert!(!impossible_resource.may_be_present);
+    assert_eq!(impossible_resource.invalid_value, None);
+
+    let conditional = model.lifecycle_attribute_status("Conditional", "UpdatePolicy");
+    assert!(conditional.may_be_present);
+    assert_eq!(conditional.invalid_value, None);
+}
+
+#[test]
 fn e3001_custom_resources_reject_lifecycle_policies() {
     let yaml = b"
 Resources:

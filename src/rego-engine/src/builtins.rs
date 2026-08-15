@@ -41,6 +41,7 @@ pub(crate) fn register_all(
     register_is_dynamic(rego, holder.clone());
     register_is_from_parameter(rego, holder.clone());
     register_is_from_intrinsic(rego, holder.clone());
+    register_lifecycle_attribute_status(rego, holder.clone());
     register_value_identity(rego, holder.clone());
     register_follow_ref(rego, holder.clone());
     register_authored_form(rego, holder.clone());
@@ -399,6 +400,25 @@ fn register_is_from_intrinsic(rego: &mut regorus::Engine, holder: SharedModel) {
             let rid = params[0].as_string()?;
             let path = params[1].as_string()?;
             Ok(Value::from(model.is_from_intrinsic(rid, path)))
+        }),
+    );
+}
+
+fn register_lifecycle_attribute_status(rego: &mut regorus::Engine, holder: SharedModel) {
+    let _ = rego.add_extension(
+        "lifecycle_attribute_status".into(),
+        2,
+        Box::new(move |params: Vec<Value>| {
+            let Some(model) = get_model(&holder) else {
+                return Ok(Value::Undefined);
+            };
+            let resource_id = params[0].as_string()?;
+            let attribute = params[1].as_string()?;
+            let status = model.lifecycle_attribute_status(resource_id, attribute);
+            Ok(json_to_value(&serde_json::json!({
+                "mayBePresent": status.may_be_present,
+                "invalidValue": status.invalid_value.unwrap_or_default(),
+            })))
         }),
     );
 }
@@ -2434,7 +2454,8 @@ fn collect_unreachable_branches(
 
 /// `iam_identity_policy_findings(resource_id, document_path)` calls the shared
 /// identity-policy structural validator and returns an array of finding objects,
-/// each with `path` (absolute property path) and `message`.
+/// each with `path` (effective/public path), `sourcePath` (authored
+/// branch-qualified path for diagnostic construction), and `message`.
 fn register_iam_identity_policy_findings(rego: &mut regorus::Engine, holder: SharedModel) {
     let _ = rego.add_extension(
         "iam_identity_policy_findings".into(),
@@ -2448,12 +2469,18 @@ fn register_iam_identity_policy_findings(rego: &mut regorus::Engine, holder: Sha
             let findings = validate_identity_policy_scenarios(&model, resource_id.as_ref(), document_path.as_ref())
                 .into_iter()
                 .map(|finding| {
-                    let path = if finding.path.is_empty() {
+                    let effective_path = if finding.path.is_empty() {
                         document_path.to_string()
                     } else {
                         format!("{}.{}", document_path, finding.path)
                     };
-                    json_to_value(&serde_json::json!({"path": path, "message": finding.message}))
+                    let source_path =
+                        if finding.source_path.is_empty() { effective_path.clone() } else { finding.source_path };
+                    json_to_value(&serde_json::json!({
+                        "effective_path": effective_path,
+                        "source_path": source_path,
+                        "message": finding.message
+                    }))
                 })
                 .collect::<Vec<_>>();
             Ok(Value::from(findings))

@@ -948,15 +948,16 @@ fn overlays_never_introduce_a_diagnostic_on_the_good_corpus() {
     let good = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../resources/templates/good");
     let mut checked = 0usize;
     let mut added: Vec<String> = Vec::new();
+    let mut errors: Vec<String> = Vec::new();
 
-    for entry in std::fs::read_dir(&good).expect("the good template corpus must be readable") {
-        let path = entry.expect("readable directory entry").path();
-        if !path.extension().is_some_and(|ext| ext == "yaml" || ext == "yml" || ext == "json") {
-            continue;
-        }
+    for path in walk_templates_recursive(&good) {
         let bytes = std::fs::read(&path).expect("template must be readable");
-        let Ok(parsed) = SemanticModel::from_bytes(&bytes) else {
-            continue;
+        let parsed = match SemanticModel::from_bytes(&bytes) {
+            Ok(m) => m,
+            Err(e) => {
+                errors.push(format!("{}: parse error: {e}", path.strip_prefix(&good).unwrap_or(&path).display()));
+                continue;
+            }
         };
         let parsed = Arc::new(parsed);
         let before: Vec<String> = baseline
@@ -974,13 +975,36 @@ fn overlays_never_introduce_a_diagnostic_on_the_good_corpus() {
         checked += 1;
         for finding in after {
             if !before.contains(&finding) {
-                added.push(format!("{}: {finding}", path.display()));
+                added.push(format!("{}: {finding}", path.strip_prefix(&good).unwrap_or(&path).display()));
             }
         }
     }
 
-    assert!(checked > 20, "expected to check the good corpus, only reached {checked} templates");
+    assert!(errors.is_empty(), "good corpus templates failed to parse:\n{}", errors.join("\n"));
+    assert!(checked >= 100, "expected to recursively check the full good corpus, only reached {checked} templates");
     assert!(added.is_empty(), "overlays introduced {} new diagnostic(s): {added:#?}", added.len());
+}
+
+/// Recursively walk a directory and collect all template files (yaml/yml/json).
+fn walk_templates_recursive(dir: &std::path::Path) -> Vec<std::path::PathBuf> {
+    let mut out = Vec::new();
+    walk_recursive_impl(dir, &mut out);
+    out.sort();
+    out
+}
+
+fn walk_recursive_impl(dir: &std::path::Path, out: &mut Vec<std::path::PathBuf>) {
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return;
+    };
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.is_dir() {
+            walk_recursive_impl(&path, out);
+        } else if matches!(path.extension().and_then(|s| s.to_str()), Some("yaml" | "yml" | "json")) {
+            out.push(path);
+        }
+    }
 }
 
 #[test]

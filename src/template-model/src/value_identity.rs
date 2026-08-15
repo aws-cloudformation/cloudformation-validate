@@ -428,6 +428,17 @@ mod tests {
     }
 
     #[test]
+    fn different_parameters_with_equal_defaults_have_distinct_identities() {
+        let template = r#"{"Parameters":{
+            "A":{"Type":"String","Default":"subnet-1"},
+            "B":{"Type":"String","Default":"subnet-1"}},
+            "Resources":{"R":{"Type":"T","Properties":{"V":[{"Ref":"A"},{"Ref":"B"}]}}}}"#;
+        let left = identity_of(template, "Properties.V.0").expect("left identity");
+        let right = identity_of(template, "Properties.V.1").expect("right identity");
+        assert_ne!(left, right, "overrideable defaults must not establish one value");
+    }
+
+    #[test]
     fn one_reference_written_twice_shares_an_identity() {
         let template = r#"{"Resources":{
             "A":{"Type":"AWS::EC2::Subnet"},
