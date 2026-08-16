@@ -13,8 +13,11 @@ use template_model::consts::{
     FIELD_CONDITION, FIELD_DEPENDS_ON, FIELD_KIND, FIELD_PROPERTIES, FIELD_RESOURCE_TYPE, FIELD_SOURCE,
     FIELD_SOURCE_PATH, FIELD_TARGET, FN_IF, effective_deployed_resource_type,
 };
+use template_model::dynamodb::analyze_dynamodb_table_scenarios;
 use template_model::fargate::{cpu_is_offered, task_size_is_offered};
-use template_model::iam_policy::validate_identity_policy_scenarios;
+use template_model::iam_policy::{
+    inline_identity_policy_document_paths, policy_has_allow_not_action_scenarios, validate_identity_policy_scenarios,
+};
 use template_model::region_enums;
 use template_model::resolved_value::{contains_dynamic_resolved, json_contains_markers};
 use template_model::resolver::{MapEntry, RefKind, ResolvedValue};
@@ -42,6 +45,7 @@ pub(crate) fn register_all(
     register_is_from_parameter(rego, holder.clone());
     register_is_from_intrinsic(rego, holder.clone());
     register_lifecycle_attribute_status(rego, holder.clone());
+    register_lifecycle_policy_scenarios(rego, holder.clone());
     register_value_identity(rego, holder.clone());
     register_follow_ref(rego, holder.clone());
     register_authored_form(rego, holder.clone());
@@ -73,6 +77,7 @@ pub(crate) fn register_all(
     register_has_unresolved_scenario(rego, holder.clone());
     register_scenario_source_path(rego, holder.clone());
     register_properties_scenarios(rego, holder.clone());
+    register_dynamodb_scenario_analysis(rego, holder.clone());
     register_is_satisfiable(rego, holder.clone());
     register_get_resource(rego, holder.clone());
     register_resolve_ref_target(rego, holder.clone());
@@ -114,7 +119,9 @@ pub(crate) fn register_all(
     register_schema_string_length(rego, schema_registry.clone());
     register_schema_requires_unique_items(rego, schema_registry);
     register_unreachable_if_branches(rego, holder.clone());
-    register_iam_identity_policy_findings(rego, holder);
+    register_iam_identity_policy_findings(rego, holder.clone());
+    register_iam_inline_policy_document_paths(rego, holder.clone());
+    register_iam_policy_has_allow_not_action(rego, holder);
 }
 
 fn resolved_to_rego(rv: &ResolvedValue) -> Value {
@@ -423,6 +430,23 @@ fn register_lifecycle_attribute_status(rego: &mut regorus::Engine, holder: Share
     );
 }
 
+fn register_lifecycle_policy_scenarios(rego: &mut regorus::Engine, holder: SharedModel) {
+    let _ = rego.add_extension(
+        "lifecycle_policy_scenarios".into(),
+        2,
+        Box::new(move |params: Vec<Value>| {
+            let Some(model) = get_model(&holder) else {
+                return Ok(Value::Undefined);
+            };
+            let resource_id = params[0].as_string()?;
+            let attribute = params[1].as_string()?;
+            let scenarios = model.lifecycle_policy_scenarios(resource_id, attribute);
+            let json_array: Vec<serde_json::Value> = scenarios.into_iter().map(|(val, _conds)| val).collect();
+            Ok(json_to_value(&serde_json::json!(json_array)))
+        }),
+    );
+}
+
 /// Undefined when nothing about the value at `path` settles whether it is the
 /// same value as another, so a caller comparing keys cannot conclude anything
 /// from a missing one.
@@ -605,6 +629,35 @@ fn register_properties_scenarios(rego: &mut regorus::Engine, holder: SharedModel
                 })
                 .collect();
             Ok(Value::from(results))
+        }),
+    );
+}
+
+fn register_dynamodb_scenario_analysis(rego: &mut regorus::Engine, holder: SharedModel) {
+    let _ = rego.add_extension(
+        "dynamodb_scenario_analysis".into(),
+        1,
+        Box::new(move |params: Vec<Value>| {
+            let Some(model) = get_model(&holder) else {
+                return Ok(Value::Undefined);
+            };
+            let resource_id = params[0].as_string()?;
+            let analysis = analyze_dynamodb_table_scenarios(&model, resource_id.as_ref());
+            let attribute_mismatches: Vec<_> = analysis
+                .attribute_mismatches
+                .into_iter()
+                .map(|mismatch| {
+                    serde_json::json!({
+                        "missing": mismatch.missing,
+                        "unused": mismatch.unused,
+                    })
+                })
+                .collect();
+            Ok(json_to_value(&serde_json::json!({
+                "attribute_mismatches": attribute_mismatches,
+                "explicit_provisioned_missing_throughput": analysis.explicit_provisioned_missing_throughput,
+                "default_provisioned_missing_throughput": analysis.default_provisioned_missing_throughput,
+            })))
         }),
     );
 }
@@ -2484,6 +2537,44 @@ fn register_iam_identity_policy_findings(rego: &mut regorus::Engine, holder: Sha
                 })
                 .collect::<Vec<_>>();
             Ok(Value::from(findings))
+        }),
+    );
+}
+
+/// `iam_inline_policy_document_paths(resource_id, policies_path)` returns the
+/// sorted list of reachable `PolicyDocument` paths for inline policies under a
+/// potentially conditional `Properties.Policies` list.
+fn register_iam_inline_policy_document_paths(rego: &mut regorus::Engine, holder: SharedModel) {
+    let _ = rego.add_extension(
+        "iam_inline_policy_document_paths".into(),
+        2,
+        Box::new(move |params: Vec<Value>| {
+            let Some(model) = get_model(&holder) else {
+                return Ok(Value::from(Vec::<Value>::new()));
+            };
+            let resource_id = params[0].as_string()?;
+            let policies_path = params[1].as_string()?;
+            let paths = inline_identity_policy_document_paths(&model, resource_id.as_ref(), policies_path.as_ref());
+            Ok(Value::from(paths.into_iter().map(Value::from).collect::<Vec<_>>()))
+        }),
+    );
+}
+
+/// `iam_policy_has_allow_not_action(resource_id, document_path)` returns true
+/// when any reachable scenario of the document contains an Allow statement
+/// with a non-null NotAction. Handles single-object and array Statement forms.
+fn register_iam_policy_has_allow_not_action(rego: &mut regorus::Engine, holder: SharedModel) {
+    let _ = rego.add_extension(
+        "iam_policy_has_allow_not_action".into(),
+        2,
+        Box::new(move |params: Vec<Value>| {
+            let Some(model) = get_model(&holder) else {
+                return Ok(Value::from(false));
+            };
+            let resource_id = params[0].as_string()?;
+            let document_path = params[1].as_string()?;
+            let result = policy_has_allow_not_action_scenarios(&model, resource_id.as_ref(), document_path.as_ref());
+            Ok(Value::from(result))
         }),
     );
 }

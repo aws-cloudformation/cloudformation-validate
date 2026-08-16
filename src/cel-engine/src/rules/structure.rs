@@ -5,12 +5,11 @@ use rules::Category;
 use std::collections::HashSet;
 use std::sync::LazyLock;
 use template_model::consts::{
-    EDGE_KIND_GET_ATT, EDGE_KIND_REF, EDGE_KIND_SUB, FIELD_ATTR, FIELD_CONDITION, FIELD_CONDITIONS,
-    FIELD_DELETION_POLICY, FIELD_EDGES, FIELD_KIND, FIELD_MAPPINGS, FIELD_OUTGOING_REFS, FIELD_OUTPUTS,
-    FIELD_PARAMETERS, FIELD_RESOURCE_TYPE, FIELD_RESOURCES, FIELD_SOURCE, FIELD_SOURCE_PATH, FIELD_TARGET,
-    FIELD_UPDATE_REPLACE_POLICY, FN_FOR_EACH, FN_FOR_EACH_KEY_PREFIX, FN_IF, FN_TRANSFORM, KEY_DELETION_POLICY,
-    KEY_UPDATE_REPLACE_POLICY, MARKER_CONDITIONAL, MARKER_DYNAMIC, MARKER_ENUM, MARKER_REF,
-    OUTPUT_PSEUDO_RESOURCE_PREFIX, PARAM_TYPE_COMMA_DELIMITED_LIST, PARAM_TYPE_NUMBER, PARAM_TYPE_STRING,
+    EDGE_KIND_GET_ATT, EDGE_KIND_REF, EDGE_KIND_SUB, FIELD_ATTR, FIELD_CONDITION, FIELD_CONDITIONS, FIELD_EDGES,
+    FIELD_KIND, FIELD_MAPPINGS, FIELD_OUTGOING_REFS, FIELD_OUTPUTS, FIELD_PARAMETERS, FIELD_RESOURCE_TYPE,
+    FIELD_RESOURCES, FIELD_SOURCE, FIELD_SOURCE_PATH, FIELD_TARGET, FN_FOR_EACH, FN_FOR_EACH_KEY_PREFIX, FN_IF,
+    FN_TRANSFORM, KEY_DELETION_POLICY, KEY_UPDATE_REPLACE_POLICY, MARKER_CONDITIONAL, MARKER_DYNAMIC, MARKER_ENUM,
+    MARKER_REF, OUTPUT_PSEUDO_RESOURCE_PREFIX, PARAM_TYPE_COMMA_DELIMITED_LIST, PARAM_TYPE_NUMBER, PARAM_TYPE_STRING,
     POLICY_DELETE, POLICY_RETAIN, POLICY_RETAIN_EXCEPT_ON_CREATE, POLICY_SNAPSHOT, SECTION_CONDITIONS,
     SECTION_DESCRIPTION, SECTION_FORMAT_VERSION, SECTION_GLOBALS, SECTION_MAPPINGS, SECTION_METADATA, SECTION_OUTPUTS,
     SECTION_PARAMETERS, SECTION_RESOURCES, SECTION_RULES, SECTION_TRANSFORM, TRANSFORM_LANGUAGE_EXTENSIONS,
@@ -434,16 +433,17 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
     let base_deletion = [POLICY_DELETE, POLICY_RETAIN, POLICY_RETAIN_EXCEPT_ON_CREATE];
     let base_update = [POLICY_DELETE, POLICY_RETAIN];
     if let Some(resources) = input.get(FIELD_RESOURCES).and_then(|r| r.as_object()) {
-        for (name, res) in resources {
-            let rtype = res.get(FIELD_RESOURCE_TYPE).and_then(|t| t.as_str()).unwrap_or("");
+        for (name, _res) in resources {
+            let rtype = m.resources.get(name.as_str()).map(|r| r.resource_type.as_str()).unwrap_or("");
             let snapshot_ok = SNAPSHOT_CAPABLE_TYPES.contains(&rtype);
-            if let Some(value) = res.get(FIELD_DELETION_POLICY) {
+
+            for scenario_val in m.lifecycle_policy_scenarios(name, KEY_DELETION_POLICY) {
                 let allowed = if snapshot_ok {
                     "Delete, Retain, RetainExceptOnCreate, Snapshot"
                 } else {
                     "Delete, Retain, RetainExceptOnCreate"
                 };
-                if let Some(policy) = value.as_str() {
+                if let Some(policy) = scenario_val.0.as_str() {
                     let valid = base_deletion.contains(&policy) || (snapshot_ok && policy == POLICY_SNAPSHOT);
                     if !valid {
                         out.push(make_resource_diagnostic(
@@ -455,7 +455,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                             None,
                         ));
                     }
-                } else if let Some(shape) = non_string_policy_shape(value) {
+                } else if let Some(shape) = non_string_policy_shape(&scenario_val.0) {
                     out.push(make_resource_diagnostic(
                         "F3016",
                         &format!("DeletionPolicy must be one of {}, got {}", allowed, shape),
@@ -466,9 +466,10 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                     ));
                 }
             }
-            if let Some(value) = res.get(FIELD_UPDATE_REPLACE_POLICY) {
+
+            for scenario_val in m.lifecycle_policy_scenarios(name, KEY_UPDATE_REPLACE_POLICY) {
                 let allowed = if snapshot_ok { "Delete, Retain, Snapshot" } else { "Delete, Retain" };
-                if let Some(policy) = value.as_str() {
+                if let Some(policy) = scenario_val.0.as_str() {
                     let valid = base_update.contains(&policy) || (snapshot_ok && policy == POLICY_SNAPSHOT);
                     if !valid {
                         out.push(make_resource_diagnostic(
@@ -480,7 +481,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                             None,
                         ));
                     }
-                } else if let Some(shape) = non_string_policy_shape(value) {
+                } else if let Some(shape) = non_string_policy_shape(&scenario_val.0) {
                     out.push(make_resource_diagnostic(
                         "F0018",
                         &format!("UpdateReplacePolicy must be one of {}, got {}", allowed, shape),
@@ -742,6 +743,8 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
             .and_then(|value| value.as_array())
             .map(|values| values.iter().filter_map(|value| value.as_str()).collect())
             .unwrap_or_default();
+        let has_module_or_foreach = m.resources.values().any(|r| r.resource_type.ends_with("::MODULE"))
+            || m.resources.keys().any(|k| k.contains("Fn::ForEach"));
         for edge in edges {
             let source = edge.get(FIELD_SOURCE).and_then(|value| value.as_str()).unwrap_or("");
             let Some(output_name) = source.strip_prefix(OUTPUT_PSEUDO_RESOURCE_PREFIX) else {
@@ -777,6 +780,16 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
 
             let attribute = edge.get(FIELD_ATTR).and_then(|value| value.as_str()).unwrap_or("");
             let Some(resource) = m.resources.get(target) else {
+                if !sam_implicit.contains(target) && !has_module_or_foreach {
+                    out.push(make_resource_diagnostic(
+                        "F6101",
+                        &format!("GetAtt '{}.{}' references a resource that does not exist", target, attribute),
+                        m,
+                        "",
+                        &format!("{}.0", source_path),
+                        None,
+                    ));
+                }
                 continue;
             };
             if let Some(valid_attributes) = ctx.cached_data.getatt_attrs.get(&resource.resource_type)
@@ -791,7 +804,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                     &format!("'{}' is not one of {}", attribute, render_str_list(valid_attributes)),
                     m,
                     "",
-                    source_path,
+                    &format!("{}.1", source_path),
                     None,
                 ));
                 continue;
