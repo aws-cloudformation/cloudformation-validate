@@ -274,8 +274,9 @@ Same rule ID emitted with semantically different messages.
 **`F6101`** - registry: "Output value must be a string"
 
 - Cluster 1 (1 sites): "Fn::Sub variable '${{{}}}' does not reference a valid resource, parameter, or ps"
-- Cluster 2 (1 sites): "'{}' is not one of {}"
-- Cluster 3 (1 sites): "Output '{}': GetAtt '{}.{}' returns type '{}', not 'string'"
+- Cluster 2 (1 sites): "GetAtt '{}.{}' references a resource that does not exist"
+- Cluster 3 (1 sites): "'{}' is not one of {}"
+- Cluster 4 (1 sites): "Output '{}': GetAtt '{}.{}' returns type '{}', not 'string'"
 
 **`W1028`** - registry: "Check Fn::If has a path that cannot be reached"
 
@@ -301,7 +302,7 @@ with `cargo test -p cfn-validate --test engine_parity` for ground truth.
 
 **CEL only (2):** `E3023`, `E3510`
 
-_Scanned 254 CEL sites (195 IDs), 280 Rego sites (193 IDs)._
+_Scanned 257 CEL sites (195 IDs), 279 Rego sites (193 IDs)._
 
 ## Appendix: full rule inventory
 
