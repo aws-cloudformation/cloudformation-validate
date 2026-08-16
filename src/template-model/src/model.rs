@@ -1,6 +1,6 @@
 use crate::conditions::{ConditionModel, Satisfiability};
 use crate::consts::*;
-use crate::defect::ParseDefect;
+use crate::defect::{DefectPhase, ParseDefect};
 use crate::graph::ReferenceGraph;
 use crate::ir::*;
 use crate::is_custom_resource_type;
@@ -120,7 +120,8 @@ pub struct LifecycleAttributeStatus {
 }
 
 struct PrimaryIdentifierScenario {
-    tuple: Vec<String>,
+    identity_tuple: Vec<String>,
+    display_tuple: Vec<String>,
     assumptions: Vec<(String, bool)>,
 }
 
@@ -225,7 +226,10 @@ pub struct SemanticModel {
     /// available for best-effort value resolution but cannot prove reachability.
     invalid_inline_conditions: HashSet<String>,
     resolve_memo: Mutex<HashMap<(String, String), Option<ResolvedValue>>>,
+    raw_scenario_memo: Mutex<HashMap<(String, String), Vec<(ResolvedValue, HashMap<String, bool>)>>>,
+    properties_scenario_cache: Mutex<HashMap<String, Vec<(ResolvedValue, HashMap<String, bool>)>>>,
     scenario_memo: Mutex<HashMap<(String, String), Vec<(serde_json::Value, HashMap<String, bool>)>>>,
+    lifecycle_policy_scenario_cache: Mutex<HashMap<(String, String), Vec<(serde_json::Value, HashMap<String, bool>)>>>,
     /// Cumulative count of scenarios materialized by `resolve_scenarios` across
     /// the whole validation, charged against `MAX_TOTAL_SCENARIO_COMBINATIONS`.
     /// Bounds total scenario-expansion work the way `ConditionModel`'s
@@ -450,7 +454,9 @@ impl SemanticModel {
             }
             for (name, node_ref) in entries.iter().cloned() {
                 if let Some(resource_entries) = ir.arena.as_map(node_ref) {
-                    for attribute in [KEY_CREATION_POLICY, KEY_UPDATE_POLICY] {
+                    for attribute in
+                        [KEY_CREATION_POLICY, KEY_UPDATE_POLICY, KEY_DELETION_POLICY, KEY_UPDATE_REPLACE_POLICY]
+                    {
                         if let Some((_, value_ref)) = resource_entries.iter().find(|(key, _)| key == attribute) {
                             lifecycle_attribute_nodes.insert((name.clone(), attribute.to_string()), *value_ref);
                         }
@@ -915,6 +921,45 @@ impl SemanticModel {
         }
         let is_cdk = resources_by_type.contains_key(CDK_METADATA_TYPE);
 
+        // Invalid Ref targets in Outputs. The resolver records these under the
+        // `__output__<Name>` pseudo-resource key, but the engines only see
+        // top-level edges (which are not created for unknown Ref targets). Emit
+        // them here as parse-time diagnostics so both engines surface them.
+        // Skip when MODULE resources or unexpanded ForEach are present, since
+        // both can synthesize resource names unknown at parse time.
+        {
+            let has_module_or_foreach = resources.values().any(|r| r.resource_type.ends_with("::MODULE"))
+                || resources.keys().any(|k| k.contains("Fn::ForEach"));
+            if !has_module_or_foreach {
+                let mut output_invalid_refs: Vec<(String, String, String)> = Vec::new();
+                for (key, entries) in &resolver.invalid_refs {
+                    if let Some(output_name) = key.strip_prefix(OUTPUT_PSEUDO_RESOURCE_PREFIX) {
+                        for (path, target) in entries {
+                            if sam_implicit_resources.contains(target) {
+                                continue;
+                            }
+                            output_invalid_refs.push((output_name.to_string(), path.clone(), target.clone()));
+                        }
+                    }
+                }
+                output_invalid_refs.sort();
+                for (output_name, path, target) in &output_invalid_refs {
+                    let mut defect =
+                        ParseDefect::new(
+                            "F6101",
+                            format!(
+                                "Ref '{}' does not reference a valid resource, parameter, or pseudo-parameter",
+                                target,
+                            ),
+                        )
+                        .location(ir.span_index.get(path).copied().unwrap_or(UNKNOWN_SPAN))
+                        .phase(DefectPhase::Parse);
+                    defect = defect.property_path(format!("Outputs.{}.Value.Ref", output_name));
+                    diagnostics.push(defect);
+                }
+            }
+        }
+
         Ok(ParseResult {
             model: SemanticModel {
                 arena: ir.arena,
@@ -950,7 +995,10 @@ impl SemanticModel {
                 invalid_resource_conditions,
                 invalid_inline_conditions,
                 resolve_memo: Mutex::new(HashMap::new()),
+                raw_scenario_memo: Mutex::new(HashMap::new()),
+                properties_scenario_cache: Mutex::new(HashMap::new()),
                 scenario_memo: Mutex::new(HashMap::new()),
+                lifecycle_policy_scenario_cache: Mutex::new(HashMap::new()),
                 scenario_combinations_used: AtomicU64::new(0),
                 scenario_expansion_lock: Mutex::new(()),
                 scenario_expansion_curtailed: AtomicBool::new(false),
@@ -967,7 +1015,10 @@ impl SemanticModel {
     /// and whether any reachable authored value has a non-object shape.
     #[must_use]
     pub fn lifecycle_attribute_status(&self, resource_id: &str, attribute: &str) -> LifecycleAttributeStatus {
-        if !matches!(attribute, KEY_CREATION_POLICY | KEY_UPDATE_POLICY) {
+        if !matches!(
+            attribute,
+            KEY_CREATION_POLICY | KEY_UPDATE_POLICY | KEY_DELETION_POLICY | KEY_UPDATE_REPLACE_POLICY
+        ) {
             return LifecycleAttributeStatus::default();
         }
         let cache_key = (resource_id.to_string(), attribute.to_string());
@@ -990,6 +1041,77 @@ impl SemanticModel {
         status
     }
 
+    /// Expands a lifecycle policy into reachable values while preserving the
+    /// assumptions for each branch. Whole dynamic leaves are deferred, while a
+    /// list or object remains invalid regardless of dynamic values nested inside it.
+    #[must_use]
+    pub fn lifecycle_policy_scenarios(
+        &self,
+        resource_id: &str,
+        attribute: &str,
+    ) -> Vec<(serde_json::Value, HashMap<String, bool>)> {
+        let cache_key = (resource_id.to_string(), attribute.to_string());
+        let mut cache = self.lifecycle_policy_scenario_cache.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        if let Some(scenarios) = cache.get(&cache_key) {
+            return scenarios.clone();
+        }
+
+        let scenarios = if !self.resource_condition_is_valid(resource_id) {
+            Vec::new()
+        } else {
+            let resolved = match attribute {
+                KEY_DELETION_POLICY => self.resources.get(resource_id).and_then(|r| r.deletion_policy.as_ref()),
+                KEY_UPDATE_REPLACE_POLICY => {
+                    self.resources.get(resource_id).and_then(|r| r.update_replace_policy.as_ref())
+                }
+                _ => None,
+            };
+            match resolved {
+                None => Vec::new(),
+                Some(value) => {
+                    let initial_assumptions: HashMap<String, bool> = self
+                        .resources
+                        .get(resource_id)
+                        .and_then(|resource| resource.condition.as_ref())
+                        .map(|condition| [(condition.clone(), true)].into_iter().collect())
+                        .unwrap_or_default();
+                    let assumptions: Vec<_> =
+                        initial_assumptions.iter().map(|(name, value)| (name.clone(), *value)).collect();
+                    if !assumptions.is_empty() && !self.conditions.is_satisfiable(&assumptions) {
+                        Vec::new()
+                    } else {
+                        self.collect_scenarios_with_budget_from(
+                            value,
+                            &initial_assumptions,
+                            MAX_SCENARIO_COMBINATIONS,
+                            MAX_TOTAL_SCENARIO_COMBINATIONS,
+                        )
+                        .0
+                        .into_iter()
+                        .filter_map(|(value, conditions)| {
+                            let assumptions: Vec<_> =
+                                conditions.iter().map(|(name, value)| (name.clone(), *value)).collect();
+                            if !assumptions.is_empty() && !self.conditions.is_satisfiable(&assumptions) {
+                                return None;
+                            }
+                            let value = match value {
+                                ResolvedValue::Concrete { value } if value.is_null() => return None,
+                                ResolvedValue::Reference { .. }
+                                | ResolvedValue::Dynamic { .. }
+                                | ResolvedValue::TypedDynamic { .. } => return None,
+                                other => crate::serialization::resolved_value_to_json(&other),
+                            };
+                            Some((value, conditions))
+                        })
+                        .collect()
+                    }
+                }
+            }
+        };
+        cache.insert(cache_key, scenarios.clone());
+        scenarios
+    }
+
     pub fn resources_of_type(&self, type_name: &str) -> &[String] {
         self.resources_by_type.get(type_name).map(|v| v.as_slice()).unwrap_or(&[])
     }
@@ -1000,14 +1122,14 @@ impl SemanticModel {
     }
 
     /// Groups resources that can simultaneously resolve to the same primary-identifier tuple.
-    /// Each tuple is paired with the ordered set of resources participating in at least one
-    /// satisfiable collision on that tuple.
+    /// Each displayed tuple is paired with the ordered set of resources participating in at
+    /// least one satisfiable collision for the corresponding comparison identity.
     #[must_use]
     pub fn primary_identifier_conflicts(
         &self,
         resource_type: &str,
         identifier_properties: &[String],
-    ) -> BTreeMap<Vec<String>, BTreeSet<String>> {
+    ) -> Vec<(Vec<String>, BTreeSet<String>)> {
         let mut per_resource = Vec::new();
         for resource_id in self.resources_of_type(resource_type) {
             let scenarios = self.primary_identifier_scenarios(resource_id, identifier_properties);
@@ -1016,20 +1138,22 @@ impl SemanticModel {
             }
         }
 
-        let mut conflicts: BTreeMap<Vec<String>, BTreeSet<String>> = BTreeMap::new();
+        let mut conflicts: BTreeMap<Vec<String>, (Vec<String>, BTreeSet<String>)> = BTreeMap::new();
         for left_index in 0..per_resource.len() {
             for right_index in (left_index + 1)..per_resource.len() {
                 let (left_resource, left_scenarios) = &per_resource[left_index];
                 let (right_resource, right_scenarios) = &per_resource[right_index];
                 for left in left_scenarios {
                     for right in right_scenarios {
-                        if left.tuple != right.tuple {
+                        if left.identity_tuple != right.identity_tuple {
                             continue;
                         }
                         let mut assumptions = left.assumptions.clone();
                         assumptions.extend(right.assumptions.iter().cloned());
                         if assumptions.is_empty() || self.conditions.is_satisfiable(&assumptions) {
-                            let resources = conflicts.entry(left.tuple.clone()).or_default();
+                            let (_, resources) = conflicts
+                                .entry(left.identity_tuple.clone())
+                                .or_insert_with(|| (left.display_tuple.clone(), BTreeSet::new()));
                             resources.insert((*left_resource).clone());
                             resources.insert((*right_resource).clone());
                         }
@@ -1037,7 +1161,7 @@ impl SemanticModel {
                 }
             }
         }
-        conflicts
+        conflicts.into_values().collect()
     }
 
     fn primary_identifier_scenarios(
@@ -1055,21 +1179,42 @@ impl SemanticModel {
             .map(|condition| vec![(condition.to_string(), true)])
             .unwrap_or_default();
         let mut scenarios = vec![PrimaryIdentifierScenario {
-            tuple: Vec::with_capacity(identifier_properties.len()),
+            identity_tuple: Vec::with_capacity(identifier_properties.len()),
+            display_tuple: Vec::with_capacity(identifier_properties.len()),
             assumptions: base_assumptions,
         }];
 
         for property in identifier_properties {
             let path = format!("Properties.{property}");
             let property_scenarios = self.resolve_scenarios_json(resource_id, &path);
+            let expression_identity =
+                self.value_identity(resource_id, &path).filter(|identity| identity.starts_with("expr:"));
+            let effective_scenarios: Vec<(String, String, HashMap<String, bool>)> = if property_scenarios.is_empty()
+                || (expression_identity.is_some()
+                    && property_scenarios.iter().all(|(_, conditions)| conditions.is_empty()))
+            {
+                expression_identity
+                    .map(|identity| {
+                        let display = identity.strip_prefix("expr:").unwrap_or(&identity).to_string();
+                        vec![(identity, display, HashMap::new())]
+                    })
+                    .unwrap_or_default()
+            } else {
+                property_scenarios
+                    .into_iter()
+                    .filter_map(|(value, conditions)| {
+                        if value.is_null() {
+                            return None;
+                        }
+                        let display = value.as_str().map(ToOwned::to_owned).unwrap_or_else(|| value.to_string());
+                        let identity = format!("value:{}", crate::value_identity::concrete_value_fingerprint(&value));
+                        Some((identity, display, conditions))
+                    })
+                    .collect()
+            };
             let mut next = Vec::new();
             for existing in &scenarios {
-                for (value, conditions) in &property_scenarios {
-                    let value = match value {
-                        serde_json::Value::Null => continue,
-                        serde_json::Value::String(value) => value.clone(),
-                        other => other.to_string(),
-                    };
+                for (identity, display, conditions) in &effective_scenarios {
                     let mut assumptions = existing.assumptions.clone();
                     let mut consistent = true;
                     for (condition, truth) in conditions {
@@ -1083,9 +1228,11 @@ impl SemanticModel {
                         }
                     }
                     if consistent {
-                        let mut tuple = existing.tuple.clone();
-                        tuple.push(value);
-                        next.push(PrimaryIdentifierScenario { tuple, assumptions });
+                        let mut identity_tuple = existing.identity_tuple.clone();
+                        identity_tuple.push(identity.clone());
+                        let mut display_tuple = existing.display_tuple.clone();
+                        display_tuple.push(display.clone());
+                        next.push(PrimaryIdentifierScenario { identity_tuple, display_tuple, assumptions });
                     }
                 }
             }
@@ -1096,7 +1243,7 @@ impl SemanticModel {
         }
 
         scenarios.retain(|scenario| {
-            scenario.tuple.len() == identifier_properties.len()
+            scenario.identity_tuple.len() == identifier_properties.len()
                 && (scenario.assumptions.is_empty() || self.conditions.is_satisfiable(&scenario.assumptions))
         });
         scenarios
@@ -1292,6 +1439,16 @@ impl SemanticModel {
         per_value_limit: usize,
         total_limit: u64,
     ) -> (Vec<(ResolvedValue, HashMap<String, bool>)>, bool) {
+        self.collect_scenarios_with_budget_from(value, &HashMap::new(), per_value_limit, total_limit)
+    }
+
+    fn collect_scenarios_with_budget_from(
+        &self,
+        value: &ResolvedValue,
+        assumptions: &HashMap<String, bool>,
+        per_value_limit: usize,
+        total_limit: u64,
+    ) -> (Vec<(ResolvedValue, HashMap<String, bool>)>, bool) {
         let _expansion_guard = self.scenario_expansion_lock.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
         let used = self.scenario_combinations_used.load(Ordering::Relaxed);
         if used >= total_limit {
@@ -1303,7 +1460,7 @@ impl SemanticModel {
         let remaining_limit = usize::try_from(remaining).unwrap_or(usize::MAX);
         let effective_limit = per_value_limit.min(remaining_limit);
         let mut scenarios = Vec::new();
-        let was_curtailed = collect_scenarios(value, &HashMap::new(), effective_limit, &mut scenarios);
+        let was_curtailed = collect_scenarios(value, assumptions, effective_limit, &mut scenarios);
         if was_curtailed {
             self.scenario_expansion_curtailed.store(true, Ordering::Relaxed);
         }
@@ -1356,10 +1513,17 @@ impl SemanticModel {
     }
 
     pub fn resolve_properties_scenarios(&self, resource_id: &str) -> Vec<(ResolvedValue, HashMap<String, bool>)> {
+        let mut cache = self.properties_scenario_cache.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        if let Some(scenarios) = cache.get(resource_id) {
+            return scenarios.clone();
+        }
         let Some(properties) = self.resolved_properties_value(resource_id) else {
             return vec![];
         };
-        self.collect_scenarios_with_budget(&properties, MAX_SCENARIO_COMBINATIONS, MAX_TOTAL_SCENARIO_COMBINATIONS)
+        let scenarios =
+            self.collect_scenarios_with_budget(&properties, MAX_SCENARIO_COMBINATIONS, MAX_TOTAL_SCENARIO_COMBINATIONS);
+        cache.insert(resource_id.to_string(), scenarios.clone());
+        scenarios
     }
 
     /// Returns the authored, branch-qualified source path for an effective path in
@@ -1380,7 +1544,14 @@ impl SemanticModel {
     }
 
     pub fn resolve_scenarios(&self, resource_id: &str, path: &str) -> Vec<(ResolvedValue, HashMap<String, bool>)> {
-        self.resolve_scenarios_with_limit(resource_id, path, MAX_SCENARIO_COMBINATIONS).0
+        let key = (resource_id.to_string(), path.to_string());
+        let mut memo = self.raw_scenario_memo.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        if let Some(scenarios) = memo.get(&key) {
+            return scenarios.clone();
+        }
+        let scenarios = self.resolve_scenarios_with_limit(resource_id, path, MAX_SCENARIO_COMBINATIONS).0;
+        memo.insert(key, scenarios.clone());
+        scenarios
     }
 
     pub fn resolve_scenarios_with_limit(
@@ -1690,9 +1861,6 @@ fn collect_refs_in_subtree(
     }
 }
 
-/// The parameter name inside a `resolution_sources` entry that records a value
-/// taken from a parameter declaration, such as `Parameters/InstanceType/Default`.
-/// A logical id never contains a separator, so the first segment is the whole name.
 fn parameter_name_from_source(source: &str) -> Option<&str> {
     let rest = source.strip_prefix(SECTION_PARAMETERS)?.strip_prefix('/')?;
     let name = rest.split('/').next()?;
@@ -2654,92 +2822,58 @@ Resources:
     }
 
     #[test]
-    fn cumulative_scenario_budget_accumulates_across_queries_then_halts_expansion() {
-        // A conditional property resolves into more than one scenario, so each
-        // resolve_scenarios call charges a non-zero, deterministic amount to the
-        // model's shared cumulative scenario counter - enough to prove queries
-        // accumulate. resolve_scenarios is not memoized, so repeating the same
-        // query re-charges.
+    fn default_scenario_queries_are_memoized_and_global_budget_halts_uncached_expansion() {
         let input = br#"{
             "Parameters": {"Env": {"Type": "String"}},
             "Conditions": {"IsProd": {"Fn::Equals": [{"Ref": "Env"}, "prod"]}},
-            "Resources": {"R": {"Type": "T", "Properties": {"V": {"Fn::If": ["IsProd", "a", "b"]}}}}
+            "Resources": {"R": {"Type": "T", "Properties": {
+                "V": {"Fn::If": ["IsProd", "a", "b"]},
+                "W": {"Fn::If": ["IsProd", "c", "d"]},
+                "X": {"Fn::If": ["IsProd", "e", "f"]}
+            }}}
         }"#;
         let model = SemanticModel::from_bytes(input).unwrap();
 
         assert_eq!(model.scenario_combinations_used(), 0, "a freshly built model has materialized no scenarios");
-        assert!(
-            !model.scenario_budget_exhausted(),
-            "a freshly built model's cumulative scenario budget is not exhausted"
-        );
+        assert!(!model.scenario_budget_exhausted());
 
-        // (1) Real queries accumulate across queries - a per-query reset would
-        // be a silent denial-of-service regression. The conditional value must
-        // expand into more than one scenario, and the counter must reflect
-        // exactly what was produced.
         let first = model.resolve_scenarios("R", "Properties.V");
         assert!(first.len() > 1, "an Fn::If value must expand into multiple scenarios; got {}", first.len());
+        let after_first = model.scenario_combinations_used();
+        assert_eq!(after_first, first.len() as u64, "the first query charges exactly the scenarios it produced");
+
+        let repeated = model.resolve_scenarios("R", "Properties.V");
+        assert_eq!(repeated.len(), first.len());
         assert_eq!(
             model.scenario_combinations_used(),
-            first.len() as u64,
-            "the first query charges exactly the scenarios it produced"
+            after_first,
+            "a repeated default-limit query must reuse its raw scenarios without consuming budget"
         );
 
-        let mut previous = model.scenario_combinations_used();
-        for _ in 0..3 {
-            let produced = model.resolve_scenarios("R", "Properties.V");
-            assert!(!produced.is_empty(), "while under budget the query must still expand scenarios");
-            let used = model.scenario_combinations_used();
-            assert!(
-                used > previous,
-                "each query while under budget must add to the shared cumulative counter; a \
-                 per-query reset would be a silent denial-of-service regression. was {previous}, \
-                 now {used}"
-            );
-            previous = used;
-        }
+        let distinct = model.resolve_scenarios("R", "Properties.W");
+        assert!(!distinct.is_empty());
         assert!(
-            !model.scenario_budget_exhausted(),
-            "a handful of queries must not exhaust the (large) cumulative budget"
+            model.scenario_combinations_used() > after_first,
+            "a distinct scenario path must still charge the model-wide budget"
         );
 
-        // (2) The exhausted flag trips exactly at the cumulative threshold.
-        // Fast-forward to one scenario short of the cap rather than
-        // materializing ~MAX_TOTAL_SCENARIO_COMBINATIONS real scenarios; the
-        // accumulation checked in (1) already proves real queries feed this same
-        // counter.
-        let to_threshold = MAX_TOTAL_SCENARIO_COMBINATIONS - model.scenario_combinations_used() - 1;
+        let to_threshold = MAX_TOTAL_SCENARIO_COMBINATIONS - model.scenario_combinations_used();
         model.add_scenario_combinations_for_test(to_threshold);
-        assert!(
-            !model.scenario_budget_exhausted(),
-            "one scenario short of the cap must not be exhausted; counter is {}",
-            model.scenario_combinations_used()
-        );
-        model.add_scenario_combinations_for_test(1);
-        assert!(
-            model.scenario_budget_exhausted(),
-            "reaching MAX_TOTAL_SCENARIO_COMBINATIONS must trip the exhausted flag; counter is {}",
-            model.scenario_combinations_used()
-        );
+        assert!(model.scenario_budget_exhausted());
 
-        // (3) Once exhausted, further queries must short-circuit in O(1): they
-        // return no scenarios (the conservative truncation) and charge no
-        // further work.
-        let before_short_circuit = model.scenario_combinations_used();
-        let conservative = model.resolve_scenarios("R", "Properties.V");
-        assert!(
-            conservative.is_empty(),
-            "a query issued after the cumulative budget is exhausted must return no scenarios"
-        );
+        let cached = model.resolve_scenarios("R", "Properties.V");
         assert_eq!(
-            model.scenario_combinations_used(),
-            before_short_circuit,
-            "an exhausted-budget query must short-circuit without materializing or charging further scenarios"
+            cached.len(),
+            first.len(),
+            "cached scenarios remain usable after unrelated queries consume the budget"
         );
-        assert!(
-            model.scenario_expansion_curtailed(),
-            "a query skipped because the model-wide budget is exhausted must mark analysis as curtailed"
-        );
+        assert!(!model.scenario_expansion_curtailed(), "reading a cached result does not curtail expansion");
+
+        let before_short_circuit = model.scenario_combinations_used();
+        let curtailed = model.resolve_scenarios("R", "Properties.X");
+        assert!(curtailed.is_empty(), "an uncached query must stop when the model-wide budget is exhausted");
+        assert_eq!(model.scenario_combinations_used(), before_short_circuit);
+        assert!(model.scenario_expansion_curtailed());
     }
 
     fn two_scenario_value() -> ResolvedValue {
@@ -3076,16 +3210,6 @@ Resources:
     }
 
     #[test]
-    fn parameter_name_from_source_reads_only_a_parameter_entry() {
-        assert_eq!(parameter_name_from_source("Parameters/InstanceType/Default"), Some("InstanceType"));
-        assert_eq!(parameter_name_from_source("Parameters/InstanceType/AllowedValues"), Some("InstanceType"));
-        assert_eq!(parameter_name_from_source("Parameters/InstanceType"), Some("InstanceType"));
-        assert_eq!(parameter_name_from_source("Intrinsic/Ref"), None);
-        assert_eq!(parameter_name_from_source("Parameters/"), None);
-        assert_eq!(parameter_name_from_source("ParametersLookAlike/Name"), None);
-    }
-
-    #[test]
     fn fixed_value_returns_user_supplied_overrides() {
         let overrides = PseudoParameterOverrides {
             account_id: Some("999999999999".to_string()),
@@ -3101,6 +3225,16 @@ Resources:
         assert_eq!(overrides.fixed_value("AWS::StackName"), Some("MyStack".to_string()));
         assert_eq!(overrides.fixed_value("AWS::URLSuffix"), None, "URLSuffix not set; must remain a free variable");
         assert_eq!(overrides.fixed_value("Unknown"), None);
+    }
+
+    #[test]
+    fn parameter_name_from_source_reads_only_a_parameter_entry() {
+        assert_eq!(parameter_name_from_source("Parameters/InstanceType/Default"), Some("InstanceType"));
+        assert_eq!(parameter_name_from_source("Parameters/InstanceType/AllowedValues"), Some("InstanceType"));
+        assert_eq!(parameter_name_from_source("Parameters/InstanceType"), Some("InstanceType"));
+        assert_eq!(parameter_name_from_source("Intrinsic/Ref"), None);
+        assert_eq!(parameter_name_from_source("Parameters/"), None);
+        assert_eq!(parameter_name_from_source("ParametersLookAlike/Name"), None);
     }
 
     /// Setting `region` alone must NOT cause `fixed_value("AWS::Partition")`
@@ -3288,5 +3422,143 @@ Resources:
     fn output_fn_if_string_branches_not_flagged() {
         let template = "Conditions:\n  C:\n    Fn::Equals: [\"a\", \"a\"]\nResources:\n  R:\n    Type: T\nOutputs:\n  O:\n    Value:\n      Fn::If: [C, \"yes\", \"no\"]\n";
         assert_eq!(output_string_type_diagnostics(template), 0);
+    }
+
+    #[test]
+    fn primary_id_same_parameter_across_ref_sub_join_collides() {
+        let template = r#"
+Parameters:
+  Name: {Type: String}
+Resources:
+  A:
+    Type: AWS::S3::Bucket
+    Properties: {BucketName: !Ref Name}
+  B:
+    Type: AWS::S3::Bucket
+    Properties: {BucketName: !Sub '${Name}'}
+  C:
+    Type: AWS::S3::Bucket
+    Properties: {BucketName: !Sub ['${V}', {V: !Ref Name}]}
+  D:
+    Type: AWS::S3::Bucket
+    Properties: {BucketName: !Join ['', [!Ref Name]]}
+"#;
+        let model = SemanticModel::from_bytes(template.as_bytes()).unwrap();
+        let conflicts = model.primary_identifier_conflicts("AWS::S3::Bucket", &["BucketName".to_string()]);
+        assert_eq!(conflicts.len(), 1, "all four forms must collide into one group");
+        let (_, resources) = conflicts.into_iter().next().unwrap();
+        assert_eq!(resources.len(), 4, "all four resources must be in the group");
+    }
+
+    #[test]
+    fn primary_id_different_parameters_with_equal_defaults_stay_distinct() {
+        let template = r#"
+Parameters:
+  A: {Type: String, Default: shared}
+  B: {Type: String, Default: shared}
+Resources:
+  One:
+    Type: AWS::S3::Bucket
+    Properties: {BucketName: !Ref A}
+  Two:
+    Type: AWS::S3::Bucket
+    Properties: {BucketName: !Ref B}
+"#;
+        let model = SemanticModel::from_bytes(template.as_bytes()).unwrap();
+        let conflicts = model.primary_identifier_conflicts("AWS::S3::Bucket", &["BucketName".to_string()]);
+        assert!(conflicts.is_empty(), "different overridable parameters must not collide: {:?}", conflicts);
+    }
+
+    #[test]
+    fn primary_id_comparison_identity_is_separate_from_display_value() {
+        let template = r#"
+Parameters:
+  Name: {Type: String}
+Resources:
+  DynamicOne:
+    Type: AWS::S3::Bucket
+    Properties: {BucketName: !Ref Name}
+  DynamicTwo:
+    Type: AWS::S3::Bucket
+    Properties: {BucketName: !Ref Name}
+  LiteralOne:
+    Type: AWS::S3::Bucket
+    Properties: {BucketName: 'Ref("Name")'}
+  LiteralTwo:
+    Type: AWS::S3::Bucket
+    Properties: {BucketName: 'Ref("Name")'}
+"#;
+        let model = SemanticModel::from_bytes(template.as_bytes()).unwrap();
+        let conflicts = model.primary_identifier_conflicts("AWS::S3::Bucket", &["BucketName".to_string()]);
+        assert_eq!(conflicts.len(), 2, "equal display text must not merge distinct identities");
+        assert!(
+            conflicts
+                .iter()
+                .all(|(tuple, resources)| { tuple == &["Ref(\"Name\")".to_string()] && resources.len() == 2 })
+        );
+    }
+
+    #[test]
+    fn primary_id_mutually_exclusive_conditions_do_not_collide() {
+        let template = r#"
+Parameters:
+  Env: {Type: String}
+  Name: {Type: String}
+Conditions:
+  IsProd: !Equals [!Ref Env, prod]
+  IsNotProd: !Not [!Condition IsProd]
+Resources:
+  ProdBucket:
+    Type: AWS::S3::Bucket
+    Condition: IsProd
+    Properties: {BucketName: !Ref Name}
+  DevBucket:
+    Type: AWS::S3::Bucket
+    Condition: IsNotProd
+    Properties: {BucketName: !Ref Name}
+"#;
+        let model = SemanticModel::from_bytes(template.as_bytes()).unwrap();
+        let conflicts = model.primary_identifier_conflicts("AWS::S3::Bucket", &["BucketName".to_string()]);
+        assert!(conflicts.is_empty(), "mutually exclusive conditions must not collide");
+    }
+
+    #[test]
+    fn primary_id_no_internal_marker_leakage_in_tuple_values() {
+        let template = r#"
+Parameters:
+  Name: {Type: String}
+Resources:
+  A:
+    Type: AWS::S3::Bucket
+    Properties: {BucketName: !Ref Name}
+  B:
+    Type: AWS::S3::Bucket
+    Properties: {BucketName: !Ref Name}
+"#;
+        let model = SemanticModel::from_bytes(template.as_bytes()).unwrap();
+        let conflicts = model.primary_identifier_conflicts("AWS::S3::Bucket", &["BucketName".to_string()]);
+        assert_eq!(conflicts.len(), 1);
+        let (tuple, _) = conflicts.into_iter().next().unwrap();
+        let value = &tuple[0];
+        assert!(!value.contains("$dyn:"), "tuple value must not contain $dyn: marker");
+        assert!(!value.contains("expr:"), "tuple value must not contain expr: prefix");
+    }
+
+    #[test]
+    fn output_invalid_ref_has_canonical_path() {
+        let template = "Resources:\n  R:\n    Type: T\nOutputs:\n  Bad:\n    Value: !Ref Missing\n";
+        let result = SemanticModel::parse(template.as_bytes(), ParseConfig::default()).unwrap();
+        let ref_defect = result
+            .model
+            .diagnostics
+            .iter()
+            .find(|d| d.rule_id == "F6101" && d.message.contains("Missing"))
+            .expect("F6101 for missing ref");
+        assert_eq!(
+            ref_defect.property_path.as_deref(),
+            Some("Outputs.Bad.Value.Ref"),
+            "parse-time output ref diagnostic must have dot-separated path"
+        );
+        assert_ne!(ref_defect.span, crate::UNKNOWN_SPAN, "span must be resolved");
     }
 }

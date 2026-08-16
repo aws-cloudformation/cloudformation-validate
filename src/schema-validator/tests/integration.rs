@@ -362,6 +362,37 @@ fn structural_f3014_required_xor() {
 }
 
 #[test]
+fn f3014_reports_reachable_duplicate_dynamic_member_world() {
+    const TEMPLATE: &[u8] = br#"
+Parameters:
+  TargetId: {Type: String}
+  Toggle: {Type: String, AllowedValues: ['true', 'false']}
+Conditions:
+  DuplicateTarget: !Equals [!Ref Toggle, 'true']
+Resources:
+  Policy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:
+      PolicyName: example
+      PolicyType: StepScaling
+      ScalingTargetId: !Ref TargetId
+      ResourceId: !If [DuplicateTarget, !Ref TargetId, !Ref AWS::NoValue]
+"#;
+    let model = Arc::new(SemanticModel::from_bytes(TEMPLATE).expect("template must parse"));
+    let diagnostics = SV.validate(&model, Some("us-east-1")).diagnostics;
+    let findings: Vec<_> = diagnostics
+        .iter()
+        .filter(|diagnostic| diagnostic.rule_id == "F3014" && diagnostic.resource_logical_id() == Some("Policy"))
+        .collect();
+
+    assert_eq!(findings.len(), 1, "only the duplicate-present world violates requiredXor: {diagnostics:?}");
+    assert_eq!(
+        findings[0].condition_scenario.as_ref().and_then(|scenario| scenario.get("DuplicateTarget")),
+        Some(&true)
+    );
+}
+
+#[test]
 fn f3014_excludes_novalue_from_exclusive_count() {
     // CidrIp is set to AWS::NoValue, leaving exactly one of the mutually
     // exclusive source properties (SourceSecurityGroupId), so the
@@ -411,6 +442,27 @@ fn property_f3031_pattern_violation() {
         diags.iter().filter(|d| d.rule_id == "F3031" && d.resource_logical_id() == Some("PatternBucket")).collect();
     assert!(!f3031.is_empty(), "expected F3031 for uppercase S3 BucketName");
     assert!(f3031[0].message.contains("does not match pattern"));
+}
+
+#[test]
+fn literal_dollar_brace_log_group_name_enforces_pattern_and_format() {
+    let diagnostics = validate_fixture("bad/F3031_log_group_name_dollar_brace.yaml");
+    let relevant: Vec<_> =
+        diagnostics.iter().filter(|diagnostic| matches!(diagnostic.rule_id.as_str(), "F3031" | "E1155")).collect();
+
+    assert_eq!(relevant.len(), 2, "the literal must violate both schema constraints: {diagnostics:?}");
+    assert!(relevant.iter().any(|diagnostic| diagnostic.rule_id == "F3031"));
+    assert!(relevant.iter().any(|diagnostic| diagnostic.rule_id == "E1155"));
+}
+
+#[test]
+fn unresolved_log_group_name_substitution_is_not_schema_validated_as_a_literal() {
+    let diagnostics = validate_fixture("good/some_logs_stream_lambda.yaml");
+
+    assert!(
+        diagnostics.iter().all(|diagnostic| !matches!(diagnostic.rule_id.as_str(), "F3031" | "E1155")),
+        "deployment-time substitutions must remain deferred: {diagnostics:?}"
+    );
 }
 
 #[test]
@@ -573,6 +625,46 @@ fn malformed_literal_kms_key_arn_is_rejected_by_format_composition() {
                 && diagnostic.property_path.as_deref() == Some("Properties.KmsMasterKeyId")
         }),
         "the malformed literal KMS key ARN must remain rejected: {diagnostics:?}"
+    );
+}
+
+#[test]
+fn composition_defers_overridable_parameter_defaults_but_rejects_literals() {
+    const TEMPLATE: &[u8] = br#"
+Parameters:
+  DatabaseUser:
+    Type: String
+    Default: rdsadmin
+Resources:
+  FromParameter:
+    Type: AWS::RDS::DBCluster
+    Properties:
+      Engine: aurora-mysql
+      MasterUsername: !Ref DatabaseUser
+      MasterUserPassword: '{{resolve:secretsmanager:example:SecretString:password}}'
+  FromLiteral:
+    Type: AWS::RDS::DBCluster
+    Properties:
+      Engine: aurora-mysql
+      MasterUsername: rdsadmin
+      MasterUserPassword: '{{resolve:secretsmanager:example:SecretString:password}}'
+"#;
+    let model = Arc::new(SemanticModel::from_bytes(TEMPLATE).expect("template must parse"));
+    let diagnostics = SV.validate(&model, Some("us-east-1")).diagnostics;
+
+    assert!(
+        diagnostics.iter().all(|diagnostic| {
+            diagnostic.rule_id != "F3017" || diagnostic.resource_logical_id() != Some("FromParameter")
+        }),
+        "an overridable parameter default cannot prove a fatal property violation: {diagnostics:?}"
+    );
+    assert!(
+        diagnostics.iter().any(|diagnostic| {
+            diagnostic.rule_id == "F3017"
+                && diagnostic.resource_logical_id() == Some("FromLiteral")
+                && diagnostic.property_path.as_deref() == Some("Properties.MasterUsername")
+        }),
+        "the prohibited literal control must remain rejected: {diagnostics:?}"
     );
 }
 

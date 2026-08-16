@@ -1344,3 +1344,141 @@ Resources:
         Some(&["true".to_string(), "false".to_string()][..])
     );
 }
+
+#[test]
+fn lifecycle_policy_scenarios_expands_conditional_branches() {
+    let yaml = b"
+Parameters:
+  Policy:
+    Type: String
+Conditions:
+  Never: !Equals [always, never]
+  Maybe: !Equals [!Ref AWS::Region, us-east-1]
+Resources:
+  ValidConditional:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: !If [Maybe, Retain, Delete]
+  DirectNoValue:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: !Ref AWS::NoValue
+  ImpossibleBranch:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: !If [Never, InvalidPolicy, !Ref AWS::NoValue]
+  ImpossibleResource:
+    Type: AWS::S3::Bucket
+    Condition: Never
+    DeletionPolicy: NotValid
+  BothBranchesLiteral:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: !If [Maybe, WrongOne, AlsoWrong]
+  CorrelatedResource:
+    Type: AWS::S3::Bucket
+    Condition: Maybe
+    DeletionPolicy: !If [Maybe, Retain, InvalidPolicy]
+  DynamicObject:
+    Type: AWS::S3::Bucket
+    DeletionPolicy:
+      Value: !Ref Policy
+";
+    let model = SemanticModel::from_bytes(yaml).unwrap();
+
+    let valid = model.lifecycle_policy_scenarios("ValidConditional", "DeletionPolicy");
+    assert_eq!(valid.len(), 2, "both branches are reachable: {:?}", valid);
+    let values: Vec<&str> = valid.iter().filter_map(|(v, _)| v.as_str()).collect();
+    assert!(values.contains(&"Retain"));
+    assert!(values.contains(&"Delete"));
+
+    let novalue = model.lifecycle_policy_scenarios("DirectNoValue", "DeletionPolicy");
+    assert!(novalue.is_empty(), "direct NoValue is absent: {:?}", novalue);
+
+    let impossible = model.lifecycle_policy_scenarios("ImpossibleBranch", "DeletionPolicy");
+    assert!(impossible.is_empty(), "impossible branch with NoValue only: {:?}", impossible);
+
+    let unreachable = model.lifecycle_policy_scenarios("ImpossibleResource", "DeletionPolicy");
+    assert!(unreachable.is_empty(), "unreachable resource: {:?}", unreachable);
+
+    let both_invalid = model.lifecycle_policy_scenarios("BothBranchesLiteral", "DeletionPolicy");
+    assert_eq!(both_invalid.len(), 2, "both branches are reachable: {:?}", both_invalid);
+
+    let correlated = model.lifecycle_policy_scenarios("CorrelatedResource", "DeletionPolicy");
+    assert_eq!(correlated.len(), 1, "resource condition excludes the false branch: {:?}", correlated);
+    assert_eq!(correlated[0].0.as_str(), Some("Retain"));
+
+    let dynamic_object = model.lifecycle_policy_scenarios("DynamicObject", "DeletionPolicy");
+    assert_eq!(dynamic_object.len(), 1, "an authored object remains a concrete invalid shape");
+    assert!(dynamic_object[0].0.is_object());
+}
+
+#[test]
+fn lifecycle_policy_scenarios_defers_on_dynamic_ref() {
+    let yaml = b"
+Parameters:
+  Policy:
+    Type: String
+Resources:
+  RefPolicy:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: !Ref Policy
+";
+    let model = SemanticModel::from_bytes(yaml).unwrap();
+    let scenarios = model.lifecycle_policy_scenarios("RefPolicy", "DeletionPolicy");
+    assert!(scenarios.is_empty(), "dynamic ref should defer (no scenarios): {:?}", scenarios);
+}
+
+#[test]
+fn lifecycle_attribute_status_respects_conditions_for_all_attributes() {
+    let yaml = b"
+Parameters:
+  Policy:
+    Type: String
+Conditions:
+  Never: !Equals [always, never]
+  Maybe: !Equals [!Ref AWS::Region, us-east-1]
+Resources:
+  DirectNoValue:
+    Type: AWS::S3::Bucket
+    CreationPolicy: !Ref AWS::NoValue
+  ImpossibleBranch:
+    Type: AWS::S3::Bucket
+    CreationPolicy: !If [Never, {ResourceSignal: {Count: 1}}, !Ref AWS::NoValue]
+  ImpossibleResource:
+    Type: AWS::S3::Bucket
+    Condition: Never
+    CreationPolicy:
+      ResourceSignal: {Count: 1}
+  MaybePresent:
+    Type: AWS::S3::Bucket
+    CreationPolicy: !If [Maybe, {ResourceSignal: {Count: 1}}, !Ref AWS::NoValue]
+  DeletionNoValue:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: !Ref AWS::NoValue
+  DeletionAlwaysAbsent:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: !If [Maybe, !Ref AWS::NoValue, !Ref AWS::NoValue]
+  DeletionDynamic:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: !Ref Policy
+";
+    let model = SemanticModel::from_bytes(yaml).unwrap();
+
+    let direct = model.lifecycle_attribute_status("DirectNoValue", "CreationPolicy");
+    assert!(!direct.may_be_present, "direct NoValue means absent");
+
+    let impossible = model.lifecycle_attribute_status("ImpossibleBranch", "CreationPolicy");
+    assert!(!impossible.may_be_present, "impossible branch means absent");
+
+    let resource = model.lifecycle_attribute_status("ImpossibleResource", "CreationPolicy");
+    assert!(!resource.may_be_present, "impossible resource means absent");
+
+    let maybe = model.lifecycle_attribute_status("MaybePresent", "CreationPolicy");
+    assert!(maybe.may_be_present, "reachable branch is present");
+
+    let deletion_novalue = model.lifecycle_attribute_status("DeletionNoValue", "DeletionPolicy");
+    assert!(!deletion_novalue.may_be_present);
+
+    let deletion_always_absent = model.lifecycle_attribute_status("DeletionAlwaysAbsent", "DeletionPolicy");
+    assert!(!deletion_always_absent.may_be_present);
+
+    let deletion_dynamic = model.lifecycle_attribute_status("DeletionDynamic", "DeletionPolicy");
+    assert!(deletion_dynamic.may_be_present);
+}
