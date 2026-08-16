@@ -5,9 +5,9 @@
 //! bug that has since been fixed, the test asserts the corrected behavior (the
 //! focal rule no longer fires); where the bug still reproduces, the test asserts
 //! that it does, so the report stays honest and any future change is caught. The
-//! same fixtures are also covered by the golden-file tests (they live in a
-//! `GOLDEN_DIRS` directory), so this file adds focused, rule-level assertions on
-//! top of the full-report snapshots.
+//! same fixtures are also covered by the golden-file tests because discovery
+//! recursively covers the entire `resources/templates/` tree, so this file adds
+//! focused, rule-level assertions on top of the full-report snapshots.
 //!
 //! Both engines must agree on every assertion here unless a test explicitly says
 //! otherwise (see `issue_36_*`, which pins a known rego/cel divergence).

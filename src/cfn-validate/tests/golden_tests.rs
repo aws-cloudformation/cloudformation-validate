@@ -113,6 +113,41 @@ fn check_standard(engine_name: &str, engine: &dyn ValidationEngine) {
 }
 
 #[test]
+fn regular_golden_discovery_matches_persisted_template_report_keys() {
+    use std::collections::BTreeSet;
+
+    let combined = load_combined_golden();
+    let discovered: BTreeSet<String> = discover_all_templates().into_iter().collect();
+    let persisted: BTreeSet<String> = combined.keys().filter(|path| !path.starts_with("security/")).cloned().collect();
+    let missing: Vec<_> = discovered.difference(&persisted).cloned().collect();
+    let unasserted: Vec<_> = persisted.difference(&discovered).cloned().collect();
+
+    assert!(
+        missing.is_empty() && unasserted.is_empty(),
+        "recursive templates discovery and persisted template reports must have identical keys; missing={} unasserted={}\nmissing reports:\n{}\nunasserted reports:\n{}",
+        missing.len(),
+        unasserted.len(),
+        missing.iter().take(20).cloned().collect::<Vec<_>>().join("\n"),
+        unasserted.iter().take(20).cloned().collect::<Vec<_>>().join("\n")
+    );
+}
+
+#[test]
+fn snapshot_discovery_matches_all_persisted_report_keys() {
+    use std::collections::BTreeSet;
+
+    let discovered: BTreeSet<String> = resources::discover_snapshot_templates().into_iter().collect();
+    let persisted: BTreeSet<String> = load_combined_golden().keys().cloned().collect();
+    let security_count = discovered.iter().filter(|path| path.starts_with("security/")).count();
+
+    assert!(security_count > 0, "snapshot discovery must include security fixtures");
+    assert_eq!(
+        discovered, persisted,
+        "snapshot discovery across resources/templates and resources/security must match every persisted report key"
+    );
+}
+
+#[test]
 fn rego_detailed_matches_golden() {
     let engine = RegoEngine::new(EngineConfig::default()).expect("rego engine");
     check_detailed("rego", &engine);
