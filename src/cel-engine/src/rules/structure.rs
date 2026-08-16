@@ -1123,6 +1123,7 @@ fn non_string_policy_shape(value: &serde_json::Value) -> Option<&'static str> {
         }
         serde_json::Value::Number(_) => Some("a number"),
         serde_json::Value::Bool(_) => Some("a boolean"),
+        serde_json::Value::Null => Some("null"),
         _ => None,
     }
 }

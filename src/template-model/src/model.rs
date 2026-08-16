@@ -602,6 +602,29 @@ impl SemanticModel {
         diagnostics.extend(crate::intrinsic_arg_shapes::validate_intrinsic_arg_shapes(&ir.arena, &ir.transforms));
         diagnostics.extend(crate::lang_ext_shapes::validate_lang_ext_parameter_shapes(&ir.arena, &ir.transforms));
         diagnostics.extend(crate::language_extensions::validate_language_extensions(&ir.arena, &ir.transforms));
+        let mut lifecycle_resource_ids: Vec<_> =
+            lifecycle_attribute_nodes.keys().map(|(resource_id, _)| resource_id.as_str()).collect();
+        lifecycle_resource_ids.sort_unstable();
+        lifecycle_resource_ids.dedup();
+        let unreachable_lifecycle_resources: HashSet<String> = lifecycle_resource_ids
+            .into_iter()
+            .filter_map(|resource_id| {
+                if invalid_resource_conditions.contains(resource_id) {
+                    return None;
+                }
+                let resource = resources.get(resource_id)?;
+                let condition = resource.condition.as_ref()?;
+                matches!(conditions.satisfiability(&[(condition.clone(), true)]), Satisfiability::Unsatisfiable)
+                    .then(|| resource_id.to_string())
+            })
+            .collect();
+        diagnostics.extend(crate::language_extensions::validate_lifecycle_intrinsics(
+            &ir.arena,
+            &ir.global_index,
+            &ir.transforms,
+            &lifecycle_attribute_nodes,
+            &unreachable_lifecycle_resources,
+        ));
         diagnostics.extend(crate::dynamic_ref::validate_dynamic_references(&ir.arena, ir.resources));
 
         let mut fn_if_conditions: Vec<String> = Vec::new();
@@ -1011,8 +1034,11 @@ impl SemanticModel {
         self.resources.get(id)
     }
 
-    /// Reports whether a lifecycle attribute can survive condition evaluation,
-    /// and whether any reachable authored value has a non-object shape.
+    /// Reports whether a lifecycle attribute can legally survive condition
+    /// evaluation, and whether any reachable authored value has a non-object
+    /// shape. Only `UpdatePolicy` permits `Fn::If` to remove the whole attribute
+    /// with `AWS::NoValue`; illegal values on the other attributes remain present
+    /// for downstream diagnostics.
     #[must_use]
     pub fn lifecycle_attribute_status(&self, resource_id: &str, attribute: &str) -> LifecycleAttributeStatus {
         if !matches!(
@@ -1035,7 +1061,14 @@ impl SemanticModel {
                 .and_then(|resource| resource.condition.as_ref())
                 .map(|condition| vec![(condition.clone(), true)])
                 .unwrap_or_default();
-            collect_lifecycle_attribute_status(&self.arena, *node, &self.conditions, &mut assumptions, &mut status);
+            collect_lifecycle_attribute_status(
+                &self.arena,
+                *node,
+                &self.conditions,
+                attribute == KEY_UPDATE_POLICY,
+                &mut assumptions,
+                &mut status,
+            );
         }
         cache.insert(cache_key, status.clone());
         status
@@ -1095,7 +1128,6 @@ impl SemanticModel {
                                 return None;
                             }
                             let value = match value {
-                                ResolvedValue::Concrete { value } if value.is_null() => return None,
                                 ResolvedValue::Reference { .. }
                                 | ResolvedValue::Dynamic { .. }
                                 | ResolvedValue::TypedDynamic { .. } => return None,
@@ -2096,6 +2128,7 @@ fn collect_lifecycle_attribute_status(
     arena: &Arena,
     node: NodeRef,
     conditions: &ConditionModel,
+    allows_no_value_omission: bool,
     assumptions: &mut Vec<(String, bool)>,
     status: &mut LifecycleAttributeStatus,
 ) {
@@ -2103,14 +2136,40 @@ fn collect_lifecycle_attribute_status(
         return;
     }
 
+    if !allows_no_value_omission {
+        status.may_be_present = true;
+        if matches!(
+            arena.node(node),
+            Node::Null | Node::Bool(_) | Node::Int(_) | Node::Float(_) | Node::String(_) | Node::List(_)
+        ) && status.invalid_value.is_none()
+        {
+            status.invalid_value = Some(crate::message::render_value(&node_to_json(arena, node)));
+        }
+        return;
+    }
+
     match arena.node(node) {
         Node::Intrinsic(IntrinsicFn::Ref(target)) if target == PSEUDO_NO_VALUE => {}
         Node::Intrinsic(IntrinsicFn::If(condition, when_true, when_false)) => {
             assumptions.push((condition.clone(), true));
-            collect_lifecycle_attribute_status(arena, *when_true, conditions, assumptions, status);
+            collect_lifecycle_attribute_status(
+                arena,
+                *when_true,
+                conditions,
+                allows_no_value_omission,
+                assumptions,
+                status,
+            );
             assumptions.pop();
             assumptions.push((condition.clone(), false));
-            collect_lifecycle_attribute_status(arena, *when_false, conditions, assumptions, status);
+            collect_lifecycle_attribute_status(
+                arena,
+                *when_false,
+                conditions,
+                allows_no_value_omission,
+                assumptions,
+                status,
+            );
             assumptions.pop();
         }
         Node::Intrinsic(_) | Node::Map(_) => status.may_be_present = true,

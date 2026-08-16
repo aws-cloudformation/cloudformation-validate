@@ -56,6 +56,10 @@ policy_value_shape(value) := "a boolean" if {
     is_boolean(value)
 }
 
+policy_value_shape(value) := "null" if {
+    is_null(value)
+}
+
 _is_resolved_intrinsic_marker(value) if {
     some key in {"__dynamic", "__ref", "__enum", "__conditional"}
     value[key]
