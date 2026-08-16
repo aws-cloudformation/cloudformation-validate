@@ -1,0 +1,41 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Exercises valid condition-correlated Fargate and EC2 properties.
+
+Parameters:
+  Mode:
+    Type: String
+    AllowedValues: [fargate, ec2]
+
+Conditions:
+  IsFargate: !Equals [!Ref Mode, fargate]
+
+Resources:
+  CorrelatedTask:
+    Type: AWS::ECS::TaskDefinition
+    Properties: !If
+      - IsFargate
+      - RequiresCompatibilities: [FARGATE]
+        NetworkMode: awsvpc
+        Cpu: '256'
+        Memory: '512'
+        ContainerDefinitions:
+          - Name: app
+            Image: nginx
+            Essential: true
+        Tags:
+          - Key: Name
+            Value: correlated-task
+      - RequiresCompatibilities: [EC2]
+        NetworkMode: bridge
+        PlacementConstraints:
+          - Type: memberOf
+            Expression: 'attribute:ecs.instance-type =~ t3.*'
+        ContainerDefinitions:
+          - Name: app
+            Image: nginx
+            Essential: true
+            LogConfiguration:
+              LogDriver: syslog
+        Tags:
+          - Key: Name
+            Value: correlated-task

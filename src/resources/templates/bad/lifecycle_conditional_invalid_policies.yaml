@@ -1,0 +1,35 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  Reachable invalid conditional lifecycle policies. Each conditional branch
+  that is satisfiable and contains an invalid literal must be diagnosed.
+Parameters:
+  Policy:
+    Type: String
+Conditions:
+  Maybe: !Equals [!Ref "AWS::Region", us-east-1]
+Resources:
+  ConditionalInvalidDeletion:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: !If
+      - Maybe
+      - InvalidPolicy
+      - Delete
+
+  ConditionalInvalidUpdate:
+    Type: AWS::S3::Bucket
+    UpdateReplacePolicy: !If
+      - Maybe
+      - BadValue
+      - Retain
+
+  BothBranchesInvalid:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: !If
+      - Maybe
+      - WrongOne
+      - AlsoWrong
+
+  DynamicObjectPolicy:
+    Type: AWS::S3::Bucket
+    DeletionPolicy:
+      Value: !Ref Policy

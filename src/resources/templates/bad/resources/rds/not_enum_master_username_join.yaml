@@ -1,0 +1,14 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  JoinedUsername:
+    Type: AWS::RDS::DBCluster
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      Engine: aurora-mysql
+      MasterUsername: !Join ['', [rds, admin]]
+      MasterUserPassword: '{{resolve:secretsmanager:example:SecretString:password}}'
+      BackupRetentionPeriod: 7
+      Tags:
+        - Key: Name
+          Value: deterministic-username

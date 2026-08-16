@@ -1,0 +1,99 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  Valid lifecycle attribute scenarios. Direct AWS::NoValue means absent;
+  impossible branches and impossible resources must not fire diagnostics;
+  null DeletionPolicy from NoValue must not trigger W3011.
+Parameters:
+  Policy:
+    Type: String
+  Toggle:
+    Type: String
+    AllowedValues: [enabled, disabled]
+Conditions:
+  Maybe: !Equals [!Ref Toggle, enabled]
+  NotMaybe: !Not [!Condition Maybe]
+  Never: !And [!Condition Maybe, !Condition NotMaybe]
+Resources:
+  DirectNoValueDeletion:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    DeletionPolicy: !Ref AWS::NoValue
+
+  DirectNoValueUpdate:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    UpdateReplacePolicy: !Ref AWS::NoValue
+
+  ImpossibleBranchDeletion:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    DeletionPolicy: !If
+      - Never
+      - InvalidValue
+      - !Ref AWS::NoValue
+
+  ImpossibleBranchUpdate:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    UpdateReplacePolicy: !If
+      - Never
+      - BadPolicy
+      - !Ref AWS::NoValue
+
+  ImpossibleResourceDeletion:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    Condition: Never
+    DeletionPolicy: NotAValidPolicy
+
+  ImpossibleResourceUpdate:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    Condition: Never
+    UpdateReplacePolicy: NotValid
+
+  CreationPolicyDirectNoValue:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    CreationPolicy: !Ref AWS::NoValue
+
+  CreationPolicyImpossibleBranch:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    CreationPolicy: !If
+      - Never
+      - ResourceSignal: {Count: 1}
+      - !Ref AWS::NoValue
+
+  CreationPolicyImpossibleResource:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    Condition: Never
+    CreationPolicy:
+      ResourceSignal: {Count: 1}
+
+  ConditionalValidPolicies:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    DeletionPolicy: !If
+      - Maybe
+      - Retain
+      - Delete
+    UpdateReplacePolicy: !If
+      - Maybe
+      - Retain
+      - Delete
+
+  DynamicRefPolicies:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    DeletionPolicy: !Ref Policy
+    UpdateReplacePolicy: !Ref Policy
+
+  CorrelatedConditionalPolicies:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    Condition: Maybe
+    DeletionPolicy: !If
+      - Maybe
+      - Retain
+      - InvalidDeletion
+    UpdateReplacePolicy: !If
+      - Maybe
+      - Retain
+      - InvalidReplacement
+
+  ConditionalNoValuePolicies:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    DeletionPolicy: !If
+      - Maybe
+      - !Ref AWS::NoValue
+      - !Ref AWS::NoValue

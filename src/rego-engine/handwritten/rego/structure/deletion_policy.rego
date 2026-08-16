@@ -19,10 +19,10 @@ violation contains make_diag_full("F0018", "FATAL", name, "UpdateReplacePolicy",
     sprintf("UpdateReplacePolicy must be one of Delete, Retain, Snapshot, got '%s'", [policy]),
     "", "") if {
     some name, res in input.resources
-    policy := res.updateReplacePolicy
-    policy != null
-    is_string(policy)
     res.resourceType in _snapshot_capable_update_types
+    scenarios := lifecycle_policy_scenarios(name, "UpdateReplacePolicy")
+    some policy in scenarios
+    is_string(policy)
     not policy in (_base_update_policies | {"Snapshot"})
 }
 
@@ -30,10 +30,10 @@ violation contains make_diag_full("F0018", "FATAL", name, "UpdateReplacePolicy",
     sprintf("UpdateReplacePolicy must be one of Delete, Retain, got '%s'", [policy]),
     "", "") if {
     some name, res in input.resources
-    policy := res.updateReplacePolicy
-    policy != null
-    is_string(policy)
     not res.resourceType in _snapshot_capable_update_types
+    scenarios := lifecycle_policy_scenarios(name, "UpdateReplacePolicy")
+    some policy in scenarios
+    is_string(policy)
     not policy in _base_update_policies
 }
 
@@ -65,10 +65,10 @@ violation contains make_diag_full("F0018", "FATAL", name, "UpdateReplacePolicy",
     sprintf("UpdateReplacePolicy must be one of Delete, Retain, Snapshot, got %s", [shape]),
     "", "") if {
     some name, res in input.resources
-    policy := res.updateReplacePolicy
-    policy != null
-    not is_string(policy)
     res.resourceType in _snapshot_capable_update_types
+    scenarios := lifecycle_policy_scenarios(name, "UpdateReplacePolicy")
+    some policy in scenarios
+    not is_string(policy)
     shape := policy_value_shape(policy)
 }
 
@@ -76,9 +76,9 @@ violation contains make_diag_full("F0018", "FATAL", name, "UpdateReplacePolicy",
     sprintf("UpdateReplacePolicy must be one of Delete, Retain, got %s", [shape]),
     "", "") if {
     some name, res in input.resources
-    policy := res.updateReplacePolicy
-    policy != null
-    not is_string(policy)
     not res.resourceType in _snapshot_capable_update_types
+    scenarios := lifecycle_policy_scenarios(name, "UpdateReplacePolicy")
+    some policy in scenarios
+    not is_string(policy)
     shape := policy_value_shape(policy)
 }

@@ -1,0 +1,29 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  NameA: {Type: String}
+  NameB: {Type: String}
+  Toggle: {Type: String, AllowedValues: [left, right]}
+Conditions:
+  Left: !Equals [!Ref Toggle, left]
+  Right: !Equals [!Ref Toggle, right]
+Resources:
+  # Different parameters: NOT a conflict
+  BucketA:
+    Type: AWS::S3::Bucket
+    Properties: {BucketName: !Ref NameA}
+  BucketB:
+    Type: AWS::S3::Bucket
+    Properties: {BucketName: !Ref NameB}
+  # Compound Sub: NOT identity-preserving, NOT a conflict with Ref
+  CompoundSub:
+    Type: AWS::S3::Bucket
+    Properties: {BucketName: !Sub '${NameA}-suffix'}
+  # Mutually exclusive conditions: NOT a conflict
+  ConditionalLeft:
+    Type: AWS::S3::Bucket
+    Condition: Left
+    Properties: {BucketName: same-literal}
+  ConditionalRight:
+    Type: AWS::S3::Bucket
+    Condition: Right
+    Properties: {BucketName: same-literal}

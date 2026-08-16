@@ -16,7 +16,8 @@ violation contains make_diag_full("E3055", "ERROR", name,
     sprintf("Remove CreationPolicy or change resource type to one of: %s", [concat(", ", valid_creation_policy_types)]),
     "") if {
     some name, res in input.resources
-    res.creationPolicy != null
+    status := lifecycle_attribute_status(name, "CreationPolicy")
+    status.mayBePresent
     rtype := res.resourceType
     not rtype in valid_creation_policy_types
 }

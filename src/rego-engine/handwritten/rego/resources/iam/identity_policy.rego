@@ -42,27 +42,18 @@ violation contains make_diag_at_source("E3510", "ERROR", name, finding.effective
 
 violation contains make_diag_at_source("E3510", "ERROR", name, finding.effective_path, finding.source_path, finding.message) if {
     some name in resources_of_type("AWS::IAM::Role")
-    policies := resolve(name, "Properties.Policies")
-    is_array(policies)
-    some idx, _ in policies
-    doc_path := sprintf("Properties.Policies.%d.PolicyDocument", [idx])
+    some doc_path in iam_inline_policy_document_paths(name, "Properties.Policies")
     some finding in iam_identity_policy_findings(name, doc_path)
 }
 
 violation contains make_diag_at_source("E3510", "ERROR", name, finding.effective_path, finding.source_path, finding.message) if {
     some name in resources_of_type("AWS::IAM::User")
-    policies := resolve(name, "Properties.Policies")
-    is_array(policies)
-    some idx, _ in policies
-    doc_path := sprintf("Properties.Policies.%d.PolicyDocument", [idx])
+    some doc_path in iam_inline_policy_document_paths(name, "Properties.Policies")
     some finding in iam_identity_policy_findings(name, doc_path)
 }
 
 violation contains make_diag_at_source("E3510", "ERROR", name, finding.effective_path, finding.source_path, finding.message) if {
     some name in resources_of_type("AWS::IAM::Group")
-    policies := resolve(name, "Properties.Policies")
-    is_array(policies)
-    some idx, _ in policies
-    doc_path := sprintf("Properties.Policies.%d.PolicyDocument", [idx])
+    some doc_path in iam_inline_policy_document_paths(name, "Properties.Policies")
     some finding in iam_identity_policy_findings(name, doc_path)
 }
