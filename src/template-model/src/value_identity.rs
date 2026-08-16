@@ -12,6 +12,21 @@
 //! than from any human-readable description of the resolved value. A description
 //! is lossy - several unrelated expressions share one wording - and two distinct
 //! reads that share a wording would otherwise look like a duplicate.
+//!
+//! ## Canonicalization
+//!
+//! `expression_fingerprint` normalizes the authored AST before fingerprinting so
+//! that syntactically different but semantically identical expressions produce the
+//! same fingerprint. The accepted equivalences are:
+//!
+//! - Implicit Sub whose entire template is exactly `${X}` → Ref(X)
+//! - Implicit Sub whose entire template is exactly `${R.Attr}` → GetAtt(R, Attr)
+//! - Explicit Sub whose template is exactly `${V}` and whose map provides V →
+//!   the mapped node (recursively canonicalized)
+//! - Empty-delimiter Join with exactly one element → that element
+//!
+//! All other forms (multi-element Join, compound/multi-variable Sub, escaped
+//! `${!Literal}`, whitespace surrounding variables) remain distinct.
 
 use crate::consts::KEY_ROLE_ARN;
 use crate::ir::{Arena, IntrinsicFn, NULL_REF, Node, NodeRef, cfn_function_name};
@@ -24,8 +39,9 @@ const MAX_FINGERPRINT_DEPTH: u32 = 64;
 
 /// A fingerprint of the expression at `node`, or `None` when the expression
 /// cannot be fingerprinted in full. Two expressions share a fingerprint exactly
-/// when they are structurally the same, so a shared fingerprint proves the two
-/// produce the same value and a differing one proves nothing either way.
+/// when they are structurally the same after canonicalization, so a shared
+/// fingerprint proves the two produce the same value and a differing one proves
+/// nothing either way.
 ///
 /// Object keys are ordered, so the same call written with its arguments in a
 /// different order keeps one fingerprint.
@@ -130,6 +146,121 @@ fn write_node(arena: &Arena, node: NodeRef, depth: u32, out: &mut String) -> boo
 }
 
 fn write_intrinsic(arena: &Arena, intrinsic: &IntrinsicFn, depth: u32, out: &mut String) -> bool {
+    match canonicalize(arena, intrinsic) {
+        Canonical::Ref(target) => {
+            out.push_str(cfn_function_name(&IntrinsicFn::Ref(String::new())));
+            out.push('(');
+            write_literal(&target, out);
+            out.push(')');
+            true
+        }
+        Canonical::GetAtt(resource, attribute) => {
+            out.push_str(cfn_function_name(&IntrinsicFn::GetAtt(String::new(), String::new())));
+            out.push('(');
+            write_literal(&resource, out);
+            out.push(',');
+            write_literal(&attribute, out);
+            out.push(')');
+            true
+        }
+        Canonical::Unwrap(inner_ref) => write_node(arena, inner_ref, depth + 1, out),
+        Canonical::None => write_intrinsic_verbatim(arena, intrinsic, depth, out),
+    }
+}
+
+/// The result of attempting to canonicalize an intrinsic to a simpler form.
+enum Canonical {
+    /// Canonicalize to Ref(target).
+    Ref(String),
+    /// Canonicalize to GetAtt(resource, attribute).
+    GetAtt(String, String),
+    /// Canonicalize by unwrapping to the inner node (recursively fingerprinted).
+    Unwrap(NodeRef),
+    /// No canonicalization applies; fingerprint verbatim.
+    None,
+}
+
+/// Attempts to canonicalize an intrinsic to a simpler equivalent form.
+///
+/// Accepted equivalences:
+/// - Implicit Sub `${X}` (no extra text) → Ref(X)
+/// - Implicit Sub `${R.Attr}` (no extra text) → GetAtt(R, Attr)
+/// - Explicit Sub `${V}` with map providing V to a node → that node
+/// - Empty-delimiter Join with exactly one element → that element
+fn canonicalize(arena: &Arena, intrinsic: &IntrinsicFn) -> Canonical {
+    match intrinsic {
+        IntrinsicFn::Sub(template, variables) => canonicalize_sub(arena, template, variables.as_deref()),
+        IntrinsicFn::Join(delimiter_ref, list_ref) => canonicalize_join(arena, *delimiter_ref, *list_ref),
+        _ => Canonical::None,
+    }
+}
+
+/// Canonicalize a Sub intrinsic. Only a template that is exactly one variable
+/// reference with no surrounding text qualifies.
+fn canonicalize_sub(_arena: &Arena, template: &str, variables: Option<&[(String, NodeRef)]>) -> Canonical {
+    let Some(var_name) = extract_single_variable(template) else {
+        return Canonical::None;
+    };
+
+    match variables {
+        None => {
+            // Implicit Sub: `${X}` → Ref(X), `${R.Attr}` → GetAtt(R, Attr)
+            if let Some((resource, attribute)) = var_name.split_once('.') {
+                Canonical::GetAtt(resource.to_string(), attribute.to_string())
+            } else {
+                Canonical::Ref(var_name.to_string())
+            }
+        }
+        Some(entries) => {
+            // Explicit Sub: template is `${V}` and map provides exactly that V
+            if let Some((_, node_ref)) = entries.iter().find(|(key, _)| key == var_name) {
+                Canonical::Unwrap(*node_ref)
+            } else {
+                Canonical::None
+            }
+        }
+    }
+}
+
+/// Extracts the variable name from a Sub template that is exactly `${Name}`
+/// with no extra text (no whitespace trimming, no escape sequences).
+/// Returns `None` for compound templates, multi-variable templates, or escaped
+/// sequences like `${!Literal}`.
+fn extract_single_variable(template: &str) -> Option<&str> {
+    let rest = template.strip_prefix("${")?;
+    let name = rest.strip_suffix('}')?;
+    // Reject if there's another `${` inside (multi-variable)
+    if name.contains("${") {
+        return None;
+    }
+    // Reject escaped form `${!...}`
+    if name.starts_with('!') {
+        return None;
+    }
+    // Reject empty variable name
+    if name.is_empty() {
+        return None;
+    }
+    Some(name)
+}
+
+/// Canonicalize a Join intrinsic. Only an empty-string delimiter with exactly
+/// one element in the value list qualifies.
+fn canonicalize_join(arena: &Arena, delimiter_ref: NodeRef, list_ref: NodeRef) -> Canonical {
+    if delimiter_ref == NULL_REF || list_ref == NULL_REF {
+        return Canonical::None;
+    }
+    let is_empty_delimiter = matches!(arena.node(delimiter_ref), Node::String(s) if s.is_empty());
+    if !is_empty_delimiter {
+        return Canonical::None;
+    }
+    let Node::List(items) = arena.node(list_ref) else {
+        return Canonical::None;
+    };
+    if items.len() == 1 { Canonical::Unwrap(items[0]) } else { Canonical::None }
+}
+
+fn write_intrinsic_verbatim(arena: &Arena, intrinsic: &IntrinsicFn, depth: u32, out: &mut String) -> bool {
     out.push_str(cfn_function_name(intrinsic));
     out.push('(');
     let written = match intrinsic {
@@ -183,9 +314,6 @@ fn write_intrinsic(arena: &Arena, intrinsic: &IntrinsicFn, depth: u32, out: &mut
         | IntrinsicFn::Not(argument)
         | IntrinsicFn::ToJsonString(argument)
         | IntrinsicFn::Length(argument) => write_nodes(arena, &[*argument], depth, out),
-        // `RoleArn` names the credentials used to perform the read, not which
-        // output is read, so two calls that differ only there still read one
-        // value and stay a duplicate.
         IntrinsicFn::GetStackOutput(arguments) => write_keyed(arena, arguments, depth, out, &[KEY_ROLE_ARN]),
         IntrinsicFn::Transform(name, parameters) => {
             write_literal(name, out);
@@ -259,6 +387,7 @@ fn write_literal(value: &str, out: &mut String) {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use crate::model::SemanticModel;
 
     /// Identity of the value written at `path` of resource `R` in `template`.
@@ -301,8 +430,6 @@ mod tests {
 
     #[test]
     fn a_literal_and_an_intrinsic_producing_it_share_an_identity() {
-        // Both resolve before deployment, so their contents settle the question
-        // and the authored form does not matter.
         assert!(entries_share_identity(r#""a-b""#, r#"{"Fn::Join":["-",["a","b"]]}"#));
     }
 
@@ -318,8 +445,6 @@ mod tests {
 
     #[test]
     fn imports_of_exports_named_by_different_parameters_have_distinct_identities() {
-        // Neither export name is known before deployment, so nothing shows the
-        // two imports read one export.
         let template = r#"{"Parameters":{"First":{"Type":"String"},"Second":{"Type":"String"}},
             "Resources":{"R":{"Type":"T","Properties":{"V":[
                 {"Fn::ImportValue":{"Ref":"First"}},
@@ -388,7 +513,6 @@ mod tests {
 
     #[test]
     fn a_differing_role_arn_does_not_change_a_stack_output_identity() {
-        // The role performs the read; it does not select which output is read.
         assert!(entries_share_identity(
             r#"{"Fn::GetStackOutput":{"StackName":"S","OutputName":"O","RoleArn":"arn:aws:iam::111111111111:role/A"}}"#,
             r#"{"Fn::GetStackOutput":{"StackName":"S","OutputName":"O","RoleArn":"arn:aws:iam::222222222222:role/B"}}"#
@@ -452,5 +576,248 @@ mod tests {
     fn a_path_with_no_value_has_no_identity() {
         let template = r#"{"Resources":{"R":{"Type":"T","Properties":{"V":["only"]}}}}"#;
         assert_eq!(identity_of(template, "Properties.Missing.4"), None);
+    }
+
+    // --- Canonicalization tests ---
+
+    #[test]
+    fn implicit_sub_single_variable_canonicalizes_to_ref() {
+        let template = r#"{"Parameters":{"X":{"Type":"String"}},
+            "Resources":{"R":{"Type":"T","Properties":{"V":[
+                {"Ref":"X"},
+                {"Fn::Sub":"${X}"}
+            ]}}}}"#;
+        let left = identity_of(template, "Properties.V.0").expect("Ref identity");
+        let right = identity_of(template, "Properties.V.1").expect("Sub identity");
+        assert_eq!(left, right, "implicit Sub '${{X}}' must canonicalize to Ref(X)");
+    }
+
+    #[test]
+    fn implicit_sub_getatt_canonicalizes_to_getatt() {
+        let template = r#"{"Resources":{
+            "Bucket":{"Type":"AWS::S3::Bucket"},
+            "R":{"Type":"T","Properties":{"V":[
+                {"Fn::GetAtt":["Bucket","Arn"]},
+                {"Fn::Sub":"${Bucket.Arn}"}
+            ]}}}}"#;
+        let left = identity_of(template, "Properties.V.0").expect("GetAtt identity");
+        let right = identity_of(template, "Properties.V.1").expect("Sub identity");
+        assert_eq!(left, right, "implicit Sub '${{R.Attr}}' must canonicalize to GetAtt(R,Attr)");
+    }
+
+    #[test]
+    fn explicit_sub_single_variable_mapped_to_ref_canonicalizes() {
+        let template = r#"{"Parameters":{"X":{"Type":"String"}},
+            "Resources":{"R":{"Type":"T","Properties":{"V":[
+                {"Ref":"X"},
+                {"Fn::Sub":["${V}",{"V":{"Ref":"X"}}]}
+            ]}}}}"#;
+        let left = identity_of(template, "Properties.V.0").expect("Ref identity");
+        let right = identity_of(template, "Properties.V.1").expect("explicit Sub identity");
+        assert_eq!(left, right, "explicit Sub ['${{V}}', {{V: !Ref X}}] must canonicalize to Ref(X)");
+    }
+
+    #[test]
+    fn empty_delimiter_single_element_join_canonicalizes() {
+        let template = r#"{"Parameters":{"X":{"Type":"String"}},
+            "Resources":{"R":{"Type":"T","Properties":{"V":[
+                {"Ref":"X"},
+                {"Fn::Join":["", [{"Ref":"X"}]]}
+            ]}}}}"#;
+        let left = identity_of(template, "Properties.V.0").expect("Ref identity");
+        let right = identity_of(template, "Properties.V.1").expect("Join identity");
+        assert_eq!(left, right, "Join ['', [Ref X]] must canonicalize to Ref(X)");
+    }
+
+    #[test]
+    fn all_four_forms_share_one_identity() {
+        let template = r#"{"Parameters":{"X":{"Type":"String"}},
+            "Resources":{"R":{"Type":"T","Properties":{"V":[
+                {"Ref":"X"},
+                {"Fn::Sub":"${X}"},
+                {"Fn::Sub":["${V}",{"V":{"Ref":"X"}}]},
+                {"Fn::Join":["", [{"Ref":"X"}]]}
+            ]}}}}"#;
+        let a = identity_of(template, "Properties.V.0").expect("Ref identity");
+        let b = identity_of(template, "Properties.V.1").expect("implicit Sub identity");
+        let c = identity_of(template, "Properties.V.2").expect("explicit Sub identity");
+        let d = identity_of(template, "Properties.V.3").expect("Join identity");
+        assert_eq!(a, b, "Ref == implicit Sub");
+        assert_eq!(a, c, "Ref == explicit Sub");
+        assert_eq!(a, d, "Ref == Join");
+    }
+
+    // --- Rejected near-misses ---
+
+    #[test]
+    fn multi_element_join_remains_distinct() {
+        let template = r#"{"Parameters":{"X":{"Type":"String"}},
+            "Resources":{"R":{"Type":"T","Properties":{"V":[
+                {"Ref":"X"},
+                {"Fn::Join":["", [{"Ref":"X"}, "extra"]]}
+            ]}}}}"#;
+        let left = identity_of(template, "Properties.V.0").expect("Ref identity");
+        let right = identity_of(template, "Properties.V.1").expect("Join identity");
+        assert_ne!(left, right, "multi-element Join must NOT canonicalize");
+    }
+
+    #[test]
+    fn non_empty_delimiter_join_remains_distinct() {
+        let template = r#"{"Parameters":{"X":{"Type":"String"}},
+            "Resources":{"R":{"Type":"T","Properties":{"V":[
+                {"Ref":"X"},
+                {"Fn::Join":["-", [{"Ref":"X"}]]}
+            ]}}}}"#;
+        let left = identity_of(template, "Properties.V.0").expect("Ref identity");
+        let right = identity_of(template, "Properties.V.1").expect("Join identity");
+        assert_ne!(left, right, "non-empty-delimiter Join must NOT canonicalize");
+    }
+
+    #[test]
+    fn compound_sub_template_remains_distinct() {
+        let template = r#"{"Parameters":{"X":{"Type":"String"}},
+            "Resources":{"R":{"Type":"T","Properties":{"V":[
+                {"Ref":"X"},
+                {"Fn::Sub":"${X}-suffix"}
+            ]}}}}"#;
+        let left = identity_of(template, "Properties.V.0").expect("Ref identity");
+        let right = identity_of(template, "Properties.V.1").expect("Sub identity");
+        assert_ne!(left, right, "compound Sub must NOT canonicalize");
+    }
+
+    #[test]
+    fn multi_variable_sub_remains_distinct() {
+        let template = r#"{"Parameters":{"X":{"Type":"String"},"Y":{"Type":"String"}},
+            "Resources":{"R":{"Type":"T","Properties":{"V":[
+                {"Ref":"X"},
+                {"Fn::Sub":"${X}${Y}"}
+            ]}}}}"#;
+        let left = identity_of(template, "Properties.V.0").expect("Ref identity");
+        let right = identity_of(template, "Properties.V.1").expect("Sub identity");
+        assert_ne!(left, right, "multi-variable Sub must NOT canonicalize");
+    }
+
+    #[test]
+    fn escaped_literal_sub_remains_distinct() {
+        let template = r#"{"Parameters":{"X":{"Type":"String"}},
+            "Resources":{"R":{"Type":"T","Properties":{"V":[
+                {"Ref":"X"},
+                {"Fn::Sub":"${!X}"}
+            ]}}}}"#;
+        let left = identity_of(template, "Properties.V.0").expect("Ref identity");
+        let right = identity_of(template, "Properties.V.1").expect("Sub identity");
+        assert_ne!(left, right, "escaped literal Sub must NOT canonicalize");
+    }
+
+    #[test]
+    fn whitespace_around_variable_in_sub_remains_distinct() {
+        let template = r#"{"Parameters":{"X":{"Type":"String"}},
+            "Resources":{"R":{"Type":"T","Properties":{"V":[
+                {"Ref":"X"},
+                {"Fn::Sub":" ${X}"}
+            ]}}}}"#;
+        let left = identity_of(template, "Properties.V.0").expect("Ref identity");
+        let right = identity_of(template, "Properties.V.1").expect("Sub identity");
+        assert_ne!(left, right, "whitespace around variable must NOT be trimmed");
+    }
+
+    #[test]
+    fn explicit_sub_with_missing_mapping_remains_distinct() {
+        let template = r#"{"Parameters":{"X":{"Type":"String"}},
+            "Resources":{"R":{"Type":"T","Properties":{"V":[
+                {"Ref":"X"},
+                {"Fn::Sub":["${Missing}",{"Other":{"Ref":"X"}}]}
+            ]}}}}"#;
+        let left = identity_of(template, "Properties.V.0").expect("Ref identity");
+        let right = identity_of(template, "Properties.V.1").expect("Sub identity");
+        assert_ne!(left, right, "explicit Sub with missing mapping must NOT canonicalize");
+    }
+
+    #[test]
+    fn explicit_sub_multi_entry_map_single_variable_canonicalizes() {
+        // Extra entries in the map don't prevent canonicalization if the template
+        // references exactly one variable and the map provides it.
+        let template = r#"{"Parameters":{"X":{"Type":"String"},"Y":{"Type":"String"}},
+            "Resources":{"R":{"Type":"T","Properties":{"V":[
+                {"Ref":"X"},
+                {"Fn::Sub":["${V}",{"V":{"Ref":"X"},"Unused":{"Ref":"Y"}}]}
+            ]}}}}"#;
+        let left = identity_of(template, "Properties.V.0").expect("Ref identity");
+        let right = identity_of(template, "Properties.V.1").expect("explicit Sub identity");
+        assert_eq!(left, right, "extra unused entries do not prevent canonicalization");
+    }
+
+    #[test]
+    fn recursive_canonicalization_through_nested_join() {
+        let template = r#"{"Parameters":{"X":{"Type":"String"}},
+            "Resources":{"R":{"Type":"T","Properties":{"V":[
+                {"Ref":"X"},
+                {"Fn::Join":["", [{"Fn::Sub":"${X}"}]]}
+            ]}}}}"#;
+        let left = identity_of(template, "Properties.V.0").expect("Ref identity");
+        let right = identity_of(template, "Properties.V.1").expect("nested Join/Sub identity");
+        assert_eq!(left, right, "recursive canonicalization must apply through nesting");
+    }
+
+    #[test]
+    fn canonical_wrappers_respect_fingerprint_depth_limit() {
+        use crate::ir::SpannedNode;
+
+        let mut arena = Arena::new();
+        let delimiter = arena.alloc(SpannedNode {
+            node: Node::String(String::new()),
+            span: crate::UNKNOWN_SPAN,
+            path: String::new(),
+        });
+        let mut current = arena.alloc(SpannedNode {
+            node: Node::Intrinsic(IntrinsicFn::Ref("X".to_string())),
+            span: crate::UNKNOWN_SPAN,
+            path: String::new(),
+        });
+        for _ in 0..=MAX_FINGERPRINT_DEPTH {
+            let list = arena.alloc(SpannedNode {
+                node: Node::List(vec![current]),
+                span: crate::UNKNOWN_SPAN,
+                path: String::new(),
+            });
+            current = arena.alloc(SpannedNode {
+                node: Node::Intrinsic(IntrinsicFn::Join(delimiter, list)),
+                span: crate::UNKNOWN_SPAN,
+                path: String::new(),
+            });
+        }
+
+        assert_eq!(expression_fingerprint(&arena, current), None);
+    }
+
+    // --- extract_single_variable unit tests ---
+
+    #[test]
+    fn extract_single_variable_valid() {
+        assert_eq!(extract_single_variable("${Foo}"), Some("Foo"));
+        assert_eq!(extract_single_variable("${Bucket.Arn}"), Some("Bucket.Arn"));
+    }
+
+    #[test]
+    fn extract_single_variable_rejects_compound() {
+        assert_eq!(extract_single_variable("prefix-${X}"), None);
+        assert_eq!(extract_single_variable("${X}-suffix"), None);
+        assert_eq!(extract_single_variable("${X}${Y}"), None);
+    }
+
+    #[test]
+    fn extract_single_variable_rejects_escaped() {
+        assert_eq!(extract_single_variable("${!Literal}"), None);
+    }
+
+    #[test]
+    fn extract_single_variable_rejects_empty() {
+        assert_eq!(extract_single_variable("${}"), None);
+    }
+
+    #[test]
+    fn extract_single_variable_no_whitespace_trimming() {
+        assert_eq!(extract_single_variable(" ${X}"), None);
+        assert_eq!(extract_single_variable("${X} "), None);
     }
 }

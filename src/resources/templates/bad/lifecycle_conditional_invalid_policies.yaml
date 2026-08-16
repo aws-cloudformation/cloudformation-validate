@@ -1,0 +1,41 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::LanguageExtensions
+Description: >
+  Reachable invalid transformed lifecycle policies. Every satisfiable branch is
+  checked against the policy's allowed values, and AWS::NoValue remains an
+  unsupported authored value rather than becoming ordinary omission.
+Parameters:
+  Policy:
+    Type: String
+  Toggle:
+    Type: String
+    AllowedValues: [enabled, disabled]
+Conditions:
+  Maybe: !Equals [!Ref Toggle, enabled]
+Resources:
+  ConditionalInvalidDeletion:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: !If [Maybe, InvalidPolicy, Delete]
+
+  ConditionalInvalidUpdate:
+    Type: AWS::S3::Bucket
+    UpdateReplacePolicy: !If [Maybe, BadValue, Retain]
+
+  BothBranchesInvalid:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: !If [Maybe, WrongOne, AlsoWrong]
+
+  DirectNoValuePolicies:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: !Ref AWS::NoValue
+    UpdateReplacePolicy: !Ref AWS::NoValue
+
+  ConditionalNoValuePolicies:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: !If [Maybe, Retain, !Ref AWS::NoValue]
+    UpdateReplacePolicy: !If [Maybe, Retain, !Ref AWS::NoValue]
+
+  DynamicObjectPolicy:
+    Type: AWS::S3::Bucket
+    DeletionPolicy:
+      Value: !Ref Policy

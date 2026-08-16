@@ -7,6 +7,7 @@ pub mod consts;
 pub mod defect;
 pub mod diagnostic;
 pub(crate) mod dynamic_ref;
+pub mod dynamodb;
 pub mod fargate;
 pub(crate) mod graph;
 pub mod hardcoded_az;

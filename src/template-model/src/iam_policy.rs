@@ -25,7 +25,7 @@ use crate::model::SemanticModel;
 use crate::resolver::{MapEntry, ResolvedValue};
 use crate::serialization::resolved_value_to_json;
 use serde_json::Value;
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeSet, HashMap, HashSet};
 
 /// One structural defect in a policy document. `path` is relative to the
 /// document root (empty for a document-level finding), dot-separated with
@@ -495,6 +495,136 @@ fn sub_resource_skeleton_is_definitely_invalid(template: &str) -> bool {
     !resource_arn_matches(template)
 }
 
+/// Returns every possible inline policy document path under a policy list.
+pub fn inline_identity_policy_document_paths(
+    model: &SemanticModel,
+    resource_id: &str,
+    policies_path: &str,
+) -> Vec<String> {
+    let Some(policies) =
+        model.resolve_deep(resource_id, policies_path).or_else(|| model.resolve(resource_id, policies_path).cloned())
+    else {
+        return Vec::new();
+    };
+    let mut indices = BTreeSet::new();
+    collect_inline_policy_indices(&policies, &mut indices);
+    indices.into_iter().map(|index| format!("{policies_path}.{index}.PolicyDocument")).collect()
+}
+
+fn collect_inline_policy_indices(value: &ResolvedValue, indices: &mut BTreeSet<usize>) {
+    match value {
+        ResolvedValue::List { items } => {
+            for (index, item) in items.iter().enumerate() {
+                if !matches!(item, ResolvedValue::Concrete { value } if value.is_null()) {
+                    indices.insert(index);
+                }
+            }
+        }
+        ResolvedValue::Concrete { value } => {
+            if let Some(items) = value.as_array() {
+                for (index, item) in items.iter().enumerate() {
+                    if !item.is_null() {
+                        indices.insert(index);
+                    }
+                }
+            }
+        }
+        ResolvedValue::Conditional { if_true, if_false, .. } => {
+            collect_inline_policy_indices(if_true, indices);
+            collect_inline_policy_indices(if_false, indices);
+        }
+        ResolvedValue::Enum { variants } => {
+            for variant in variants {
+                collect_inline_policy_indices(variant, indices);
+            }
+        }
+        ResolvedValue::Map { .. }
+        | ResolvedValue::Reference { .. }
+        | ResolvedValue::Dynamic { .. }
+        | ResolvedValue::TypedDynamic { .. } => {}
+    }
+}
+
+fn identity_policy_scenario_is_reachable(
+    model: &SemanticModel,
+    resource_id: &str,
+    conditions: &HashMap<String, bool>,
+) -> bool {
+    let mut assumptions: Vec<(String, bool)> = conditions.iter().map(|(name, value)| (name.clone(), *value)).collect();
+    if let Some(resource_condition) = model.resources.get(resource_id).and_then(|resource| resource.condition.as_ref())
+    {
+        match conditions.get(resource_condition) {
+            Some(false) => return false,
+            Some(true) => {}
+            None => assumptions.push((resource_condition.clone(), true)),
+        }
+    }
+    assumptions.sort_unstable();
+    assumptions.is_empty() || model.conditions.satisfiability(&assumptions) == Satisfiability::Satisfiable
+}
+
+fn reachable_identity_policy_scenarios(
+    model: &SemanticModel,
+    resource_id: &str,
+    document_path: &str,
+    use_masked_fallback: bool,
+) -> Vec<(ResolvedValue, HashMap<String, bool>)> {
+    let Some(document) =
+        model.resolve_deep(resource_id, document_path).or_else(|| model.resolve(resource_id, document_path).cloned())
+    else {
+        return Vec::new();
+    };
+    let scenarios = if identity_policy_branches_are_validation_invariant(&document) {
+        vec![(document, HashMap::new())]
+    } else {
+        let expanded = model.resolve_scenarios(resource_id, document_path);
+        if !expanded.is_empty() {
+            expanded
+        } else if use_masked_fallback {
+            vec![(mask_scenario_branching(&document), HashMap::new())]
+        } else {
+            Vec::new()
+        }
+    };
+    scenarios
+        .into_iter()
+        .filter(|(_, conditions)| identity_policy_scenario_is_reachable(model, resource_id, conditions))
+        .collect()
+}
+
+/// Returns whether any reachable Allow statement uses `NotAction`.
+pub fn policy_has_allow_not_action_scenarios(model: &SemanticModel, resource_id: &str, document_path: &str) -> bool {
+    reachable_identity_policy_scenarios(model, resource_id, document_path, false).into_iter().any(
+        |(document, conditions)| {
+            let materialized = materialize_policy_document(
+                &resolved_value_to_json(&document),
+                model,
+                resource_id,
+                document_path,
+                &conditions,
+            );
+            doc_has_allow_not_action(&materialized.value)
+        },
+    )
+}
+
+fn doc_has_allow_not_action(document: &Value) -> bool {
+    let Some(statement) = document.as_object().and_then(|object| object.get("Statement")) else {
+        return false;
+    };
+    match statement {
+        Value::Array(statements) => statements.iter().any(statement_is_allow_not_action),
+        Value::Object(_) => statement_is_allow_not_action(statement),
+        _ => false,
+    }
+}
+
+fn statement_is_allow_not_action(statement: &Value) -> bool {
+    let Some(object) = statement.as_object() else { return false };
+    object.get("Effect").and_then(Value::as_str) == Some("Allow")
+        && matches!(object.get("NotAction"), Some(value) if !value.is_null())
+}
+
 /// Raw scenarios retain dynamic marker subtrees, allowing literal siblings to
 /// be checked without judging deployment-time values. Findings produced from an
 /// intrinsic-generated authored path are discarded per scenario, so an
@@ -504,39 +634,12 @@ pub fn validate_identity_policy_scenarios(
     resource_id: &str,
     document_path: &str,
 ) -> Vec<ScenarioPolicyFinding> {
-    let resolved_document =
-        model.resolve_deep(resource_id, document_path).or_else(|| model.resolve(resource_id, document_path).cloned());
-    let scenarios = match resolved_document {
-        Some(document) if identity_policy_branches_are_validation_invariant(&document) => {
-            vec![(document, HashMap::new())]
-        }
-        Some(document) => {
-            let expanded = model.resolve_scenarios(resource_id, document_path);
-            if expanded.is_empty() { vec![(mask_scenario_branching(&document), HashMap::new())] } else { expanded }
-        }
-        None => return Vec::new(),
-    };
+    let scenarios = reachable_identity_policy_scenarios(model, resource_id, document_path, true);
     let mut findings = Vec::new();
     let mut seen = HashSet::new();
     let no_substitutions = HashSet::new();
 
     for (document, conditions) in scenarios {
-        let mut assumptions: Vec<(String, bool)> =
-            conditions.iter().map(|(name, value)| (name.clone(), *value)).collect();
-        if let Some(resource_condition) =
-            model.resources.get(resource_id).and_then(|resource| resource.condition.as_ref())
-        {
-            match conditions.get(resource_condition) {
-                Some(false) => continue,
-                Some(true) => {}
-                None => assumptions.push((resource_condition.clone(), true)),
-            }
-        }
-        assumptions.sort_unstable();
-        if !assumptions.is_empty() && model.conditions.satisfiability(&assumptions) != Satisfiability::Satisfiable {
-            continue;
-        }
-
         let materialized = materialize_policy_document(
             &resolved_value_to_json(&document),
             model,
@@ -2360,5 +2463,55 @@ Resources:
         assert!(model.scenario_expansion_curtailed(), "central expansion must record the exhausted global budget");
         assert_eq!(found.len(), 1, "the static Effect defect must survive conservative fallback: {found:?}");
         assert_eq!(found[0].path, "Statement.0.Effect");
+    }
+
+    #[test]
+    fn inline_policy_path_discovery_is_structural_and_budget_free() {
+        let template = r#"
+Conditions:
+  IsProd: !Equals [!Ref AWS::Region, us-east-1]
+Resources:
+  Role:
+    Type: AWS::IAM::Role
+    Properties:
+      Policies: !If
+        - IsProd
+        - - PolicyName: One
+            PolicyDocument: {Statement: []}
+          - PolicyName: Two
+            PolicyDocument: {Statement: []}
+        - - PolicyName: Three
+            PolicyDocument: {Statement: []}
+"#;
+        let model = SemanticModel::from_bytes(template.as_bytes()).unwrap();
+        let paths = inline_identity_policy_document_paths(&model, "Role", "Properties.Policies");
+        assert_eq!(paths, ["Properties.Policies.0.PolicyDocument", "Properties.Policies.1.PolicyDocument"]);
+        assert_eq!(model.scenario_combinations_used(), 0);
+    }
+
+    #[test]
+    fn not_action_check_does_not_guess_when_expansion_is_curtailed() {
+        let template = r#"
+Conditions:
+  IsProd: !Equals [!Ref AWS::Region, us-east-1]
+Resources:
+  Policy:
+    Type: AWS::IAM::ManagedPolicy
+    Condition: IsProd
+    Properties:
+      PolicyDocument:
+        Statement: !If
+          - IsProd
+          - Effect: Allow
+            Action: s3:GetObject
+            Resource: '*'
+          - Effect: Allow
+            NotAction: iam:*
+            Resource: '*'
+"#;
+        let model = SemanticModel::from_bytes(template.as_bytes()).unwrap();
+        model.add_scenario_combinations_for_test(crate::consts::MAX_TOTAL_SCENARIO_COMBINATIONS);
+        assert!(!policy_has_allow_not_action_scenarios(&model, "Policy", "Properties.PolicyDocument"));
+        assert!(model.scenario_expansion_curtailed());
     }
 }

@@ -1,0 +1,15 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  SubnetBase:
+    Type: String
+Resources:
+  MultiElementJoinA:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: rtb-00000000000000000
+      SubnetId: !Join ['', [!Ref SubnetBase, '-a']]
+  MultiElementJoinB:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: rtb-11111111111111111
+      SubnetId: !Join ['', [!Ref SubnetBase, '-b']]

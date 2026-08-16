@@ -1,0 +1,48 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Exercises inline-policy branches that must not be treated as reachable
+  Allow-plus-NotAction grants.
+
+Parameters:
+  Env:
+    Type: String
+    Default: prod
+
+Conditions:
+  IsProd: !Equals [!Ref Env, prod]
+
+Resources:
+  RoleNoValueBranch:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies: !If
+        - IsProd
+        - - PolicyName: ProdPolicy
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action: s3:GetObject
+                  Resource: '*'
+        - !Ref AWS::NoValue
+      Tags:
+        - Key: Name
+          Value: role-no-value-branch
+
+  DenyNotAction:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          Effect: Deny
+          NotAction: iam:*
+          Resource: '*'
+

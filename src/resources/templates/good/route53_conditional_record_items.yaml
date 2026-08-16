@@ -1,0 +1,27 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Parameters:
+  Mode:
+    Type: String
+    AllowedValues: [first, second]
+Conditions:
+  ChooseFirst: !Equals [!Ref Mode, first]
+Resources:
+  Standalone:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneName: example.com.
+      Name: standalone.example.com.
+      Type: A
+      TTL: "300"
+      ResourceRecords:
+        - !If [ChooseFirst, 192.0.2.1, 192.0.2.2]
+  Group:
+    Type: AWS::Route53::RecordSetGroup
+    Properties:
+      HostedZoneName: example.com.
+      RecordSets:
+        - Name: group.example.com.
+          Type: A
+          TTL: "300"
+          ResourceRecords:
+            - !If [ChooseFirst, 192.0.2.3, 192.0.2.4]

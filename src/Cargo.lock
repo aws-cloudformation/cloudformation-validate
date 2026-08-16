@@ -513,6 +513,7 @@ dependencies = [
  "env_logger",
  "log",
  "rego-engine",
+ "resources",
  "rules",
  "schema-validator",
  "serde_json",

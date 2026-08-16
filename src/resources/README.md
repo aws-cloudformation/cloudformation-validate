@@ -38,6 +38,5 @@ not call the security-inclusive snapshot API.
 | `security_dir()`                | The `security/` fixture directory                                            |
 | `expected_dir()`                | The `expected/` directory                                                    |
 | `validation_reports_file()`     | Path to `expected/validation_reports.json`                                   |
-| `discover_templates()`          | Regular template corpus as sorted, template-relative paths                   |
-| `discover_snapshot_templates()` | Regular templates plus `security/` fixtures as sorted canonical keys         |
-| `GOLDEN_DIRS`                   | Template-relative directories in the regular snapshot corpus                 |
+| `discover_templates()`          | Every JSON/YAML template recursively under `templates/`, as sorted relative paths |
+| `discover_snapshot_templates()` | All templates plus `security/` fixtures as sorted canonical keys                 |

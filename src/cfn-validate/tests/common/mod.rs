@@ -38,38 +38,9 @@ pub fn load_security_rule(filename: &str) -> String {
     std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("read security rule {}: {e}", path.display()))
 }
 
-/// All template directories covered by golden-file tests.
-const GOLDEN_DIRS: &[&str] =
-    &["bad", "cdk", "good", "gh-issues", "integration", "issues", "lsp", "public", "quickstart"];
-
-/// Discover all templates under the given subdirectories of templates_dir().
+/// Discover every regular template covered by persisted golden reports.
 pub fn discover_all_templates() -> Vec<String> {
-    let root = templates_dir();
-    let mut templates = Vec::new();
-    for subdir in GOLDEN_DIRS {
-        let dir = root.join(subdir);
-        if dir.is_dir() {
-            walk_collect(&dir, &root, &mut templates);
-        }
-    }
-    templates.sort();
-    templates
-}
-
-fn walk_collect(dir: &std::path::Path, root: &std::path::Path, out: &mut Vec<String>) {
-    let Ok(entries) = std::fs::read_dir(dir) else {
-        return;
-    };
-    for entry in entries.flatten() {
-        let path = entry.path();
-        if path.is_dir() {
-            walk_collect(&path, root, out);
-        } else if matches!(path.extension().and_then(|s| s.to_str()), Some("yaml" | "yml" | "json"))
-            && let Ok(rel) = path.strip_prefix(root)
-        {
-            out.push(rel.to_string_lossy().replace('\\', "/"));
-        }
-    }
+    resources::discover_templates()
 }
 
 pub const MIN_GOLDEN_TEMPLATES: usize = 400;

@@ -9,18 +9,18 @@ use std::sync::{Arc, LazyLock};
 use template_model::SemanticModel;
 use template_model::coercion::{coerce_port_to_string, coerce_to_integer, coerce_to_string, scalar_eq};
 use template_model::consts::{
-    EDGE_KIND_GET_ATT, EDGE_KIND_REF, EDGE_KIND_SELECT, FIELD_ATTR, FIELD_CREATION_POLICY, FIELD_KIND, FIELD_MAPPINGS,
-    FIELD_OUTGOING_REFS, FIELD_PROPERTIES, FIELD_RESOURCE_TYPE, FIELD_RESOURCES, FIELD_SOURCE_PATH, FIELD_TARGET,
-    FN_IF, FN_REF, KEY_CREATION_POLICY, KEY_PROPERTIES, KEY_UPDATE_POLICY, PARAM_TYPE_STRING, TRANSFORM_SERVERLESS,
+    EDGE_KIND_GET_ATT, EDGE_KIND_REF, EDGE_KIND_SELECT, FIELD_ATTR, FIELD_KIND, FIELD_MAPPINGS, FIELD_OUTGOING_REFS,
+    FIELD_PROPERTIES, FIELD_RESOURCE_TYPE, FIELD_RESOURCES, FIELD_SOURCE_PATH, FIELD_TARGET, FN_IF, FN_REF,
+    KEY_CREATION_POLICY, KEY_PROPERTIES, KEY_UPDATE_POLICY, PARAM_TYPE_STRING, TRANSFORM_SERVERLESS,
 };
+use template_model::dynamodb::analyze_dynamodb_table_scenarios;
 use template_model::fargate::{CPU_UNIT_LABELS, cpu_is_offered};
-use template_model::iam_policy::validate_identity_policy_scenarios;
+use template_model::iam_policy::{inline_identity_policy_document_paths, validate_identity_policy_scenarios};
 use template_model::message::{render_str_list, render_value};
 use template_model::resolver::{RefKind, ResolvedValue};
 use template_model::route_table::duplicate_subnet_associations;
 use template_model::{
     CAA_RECORD_PATTERN, IAM_ROLE_ARN_RULE_PATTERN, MARKER_DYNAMIC, MARKER_PARAM_TYPE, MX_RECORD_PATTERN, SourceSpan,
-    resolved_value_to_json,
 };
 use template_model::{hardcoded_az, region_enums, schedule_expression_errors};
 use validation_engine::{make_resource_diagnostic, make_resource_diagnostic_at_source};
@@ -227,18 +227,6 @@ fn resolve_concrete(m: &SemanticModel, rid: &str, path: &str) -> Option<serde_js
     scenarios.into_iter().next().map(|(v, _)| v)
 }
 
-/// Resolves a value including dynamic/marker-bearing content (unlike
-/// `resolve_concrete` which only returns fully concrete values). This is needed
-/// for IAM policy document validation where the shared validator must see
-/// marker objects to skip them per-field rather than bailing out entirely.
-fn resolve_with_markers(m: &SemanticModel, resource_id: &str, path: &str) -> Option<serde_json::Value> {
-    use template_model::resolved_value_to_json;
-    m.resolve_deep(resource_id, path)
-        .or_else(|| m.resolve(resource_id, path).cloned())
-        .map(|value| resolved_value_to_json(&value))
-        .or_else(|| m.resolve_scenarios_json(resource_id, path).into_iter().next().map(|(value, _)| value))
-}
-
 /// Runs the shared identity-policy structural validator against a resolved
 /// document and converts its findings into engine diagnostics. The `substituted`
 /// set is derived from the reference graph: any outgoing edge whose source_path
@@ -271,7 +259,7 @@ fn push_identity_policy_findings(
     }
 }
 
-fn scenario_is_reachable(m: &SemanticModel, resource_id: &str, conditions: &HashMap<String, bool>) -> bool {
+pub(super) fn scenario_is_reachable(m: &SemanticModel, resource_id: &str, conditions: &HashMap<String, bool>) -> bool {
     let mut assumptions: Vec<(String, bool)> = conditions.iter().map(|(name, value)| (name.clone(), *value)).collect();
     if let Some(resource_condition) = m.resources.get(resource_id).and_then(|resource| resource.condition.as_ref()) {
         match conditions.get(resource_condition) {
@@ -332,7 +320,7 @@ pub(super) fn fargate_condition_scenarios(model: &SemanticModel, resource_id: &s
         .collect()
 }
 
-fn scenario_has_effective_property(properties: &ResolvedValue, property_name: &str) -> bool {
+pub(super) fn scenario_has_effective_property(properties: &ResolvedValue, property_name: &str) -> bool {
     match properties {
         ResolvedValue::Concrete { value } => {
             value.get(property_name).is_some_and(|property_value| !property_value.is_null())
@@ -570,75 +558,6 @@ fn sg_protocol_has_ordered_port_range(protocol: Option<&serde_json::Value>) -> b
     }
 }
 
-/// Extracts string AttributeName values from a KeySchema array into the
-/// referenced set. Returns false if any entry lacks a resolvable string
-/// AttributeName, signaling the caller to bail conservatively.
-fn ddb_collect_key_schema(ks: &[serde_json::Value], referenced: &mut HashSet<String>) -> bool {
-    for k in ks {
-        match k.get("AttributeName").and_then(|n| n.as_str()) {
-            Some(n) => {
-                referenced.insert(n.to_string());
-            }
-            None => return false,
-        }
-    }
-    true
-}
-
-/// Processes an array of index items (GSI or LSI), collecting AttributeName
-/// strings from each item's KeySchema. Returns false if any item's KeySchema is
-/// not a resolvable array or contains non-string AttributeName entries.
-fn ddb_collect_index_key_schemas(indexes: &[serde_json::Value], referenced: &mut HashSet<String>) -> bool {
-    for idx in indexes {
-        match idx.get("KeySchema").and_then(|k| k.as_array()) {
-            Some(ks) => {
-                if !ddb_collect_key_schema(ks, referenced) {
-                    return false;
-                }
-            }
-            None => return false,
-        }
-    }
-    true
-}
-
-/// Unions key attributes from every reachable concrete index-property branch.
-/// Returns `true` when any reachable content remains unknown, in which case an
-/// unused-definition conclusion would be unsound.
-fn ddb_collect_index_scenarios(
-    model: &SemanticModel,
-    resource_id: &str,
-    path: &str,
-    authored: bool,
-    referenced: &mut HashSet<String>,
-) -> bool {
-    if !authored {
-        return false;
-    }
-    let scenarios = model.resolve_scenarios(resource_id, path);
-    if scenarios.is_empty() {
-        return true;
-    }
-
-    let mut unknown = false;
-    for (value, conditions) in scenarios {
-        if !scenario_is_reachable(model, resource_id, &conditions) {
-            continue;
-        }
-        let json = resolved_value_to_json(&value);
-        match json {
-            serde_json::Value::Null => {}
-            serde_json::Value::Array(indexes) => {
-                if !ddb_collect_index_key_schemas(&indexes, referenced) {
-                    unknown = true;
-                }
-            }
-            _ => unknown = true,
-        }
-    }
-    unknown
-}
-
 pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     let mut out = Vec::new();
     let m = ctx.model;
@@ -702,11 +621,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
     for resource_type in ["AWS::IAM::Role", "AWS::IAM::User", "AWS::IAM::Group"] {
         for name in m.resources_of_type(resource_type) {
-            let Some(serde_json::Value::Array(policies)) = resolve_with_markers(m, name, "Properties.Policies") else {
-                continue;
-            };
-            for (index, _) in policies.iter().enumerate() {
-                let document_path = format!("Properties.Policies.{}.PolicyDocument", index);
+            for document_path in inline_identity_policy_document_paths(m, name, "Properties.Policies") {
                 push_identity_policy_findings(&mut out, m, name, &document_path);
             }
         }
@@ -899,80 +814,37 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     for name in m.resources_of_type("AWS::DynamoDB::Table") {
-        if let Some(serde_json::Value::Array(ad)) = resolve_concrete(m, name, "Properties.AttributeDefinitions") {
-            // Collect defined attribute names; bail conservatively if any element
-            // is not a resolvable object with a string AttributeName.
-            let mut defined: HashSet<String> = HashSet::new();
-            let mut bail = false;
-            for a in &ad {
-                match a.get("AttributeName").and_then(|n| n.as_str()) {
-                    Some(n) => {
-                        defined.insert(n.to_string());
-                    }
-                    None => {
-                        bail = true;
-                        break;
-                    }
-                }
+        let analysis = analyze_dynamodb_table_scenarios(m, name);
+        for mismatch in &analysis.attribute_mismatches {
+            let mut parts = Vec::new();
+            if !mismatch.missing.is_empty() {
+                parts.push(format!("missing definitions: [{}]", mismatch.missing.join(", ")));
             }
-            if bail {
-                continue;
+            if !mismatch.unused.is_empty() {
+                parts.push(format!("unused definitions: [{}]", mismatch.unused.join(", ")));
             }
-
-            // Collect referenced attribute names from all KeySchema arrays.
-            let mut referenced: HashSet<String> = HashSet::new();
-
-            // Table KeySchema
-            if let Some(serde_json::Value::Array(ks)) = resolve_concrete(m, name, "Properties.KeySchema") {
-                if !ddb_collect_key_schema(&ks, &mut referenced) {
-                    continue;
-                }
-            } else {
-                // Table KeySchema absent or dynamic -- skip this resource.
-                continue;
-            }
-
-            let res = m.resources.get(name.as_str());
-            let gsi_authored = res.is_some_and(|resource| resource.properties.contains_key("GlobalSecondaryIndexes"));
-            let lsi_authored = res.is_some_and(|resource| resource.properties.contains_key("LocalSecondaryIndexes"));
-            let gsi_content_unknown = ddb_collect_index_scenarios(
+            let message = format!("AttributeDefinitions does not match KeySchema attributes. {}", parts.join("; "));
+            out.push(make_resource_diagnostic("E3039", &message, m, name, KEY_PROPERTIES, None));
+        }
+        if analysis.explicit_provisioned_missing_throughput {
+            out.push(make_resource_diagnostic(
+                "E3639",
+                "ProvisionedThroughput is required when BillingMode is 'PROVISIONED'",
                 m,
                 name,
-                "Properties.GlobalSecondaryIndexes",
-                gsi_authored,
-                &mut referenced,
-            );
-            let lsi_content_unknown =
-                ddb_collect_index_scenarios(m, name, "Properties.LocalSecondaryIndexes", lsi_authored, &mut referenced);
-            let index_content_unknown = gsi_content_unknown || lsi_content_unknown;
-
-            // Compare the two sets: emit one diagnostic per table when they differ.
-            let missing: BTreeSet<&str> =
-                referenced.iter().filter(|r| !defined.contains(r.as_str())).map(|s| s.as_str()).collect();
-            let unused: BTreeSet<&str> = if index_content_unknown {
-                // An unknown index could reference any defined attribute, so
-                // unused definitions cannot be determined.
-                BTreeSet::new()
-            } else {
-                defined.iter().filter(|d| !referenced.contains(d.as_str())).map(|s| s.as_str()).collect()
-            };
-            if !missing.is_empty() || !unused.is_empty() {
-                let mut parts: Vec<String> = Vec::new();
-                if !missing.is_empty() {
-                    parts.push(format!(
-                        "missing definitions: [{}]",
-                        missing.iter().copied().collect::<Vec<_>>().join(", ")
-                    ));
-                }
-                if !unused.is_empty() {
-                    parts.push(format!(
-                        "unused definitions: [{}]",
-                        unused.iter().copied().collect::<Vec<_>>().join(", ")
-                    ));
-                }
-                let message = format!("AttributeDefinitions does not match KeySchema attributes. {}", parts.join("; "));
-                out.push(make_resource_diagnostic("E3039", &message, m, name, KEY_PROPERTIES, None));
-            }
+                "Properties.ProvisionedThroughput",
+                Some("Add ProvisionedThroughput or set BillingMode to 'PAY_PER_REQUEST'"),
+            ));
+        }
+        if analysis.default_provisioned_missing_throughput {
+            out.push(make_resource_diagnostic(
+                "E3639",
+                "ProvisionedThroughput is required when BillingMode defaults to 'PROVISIONED'",
+                m,
+                name,
+                "Properties.ProvisionedThroughput",
+                Some("Add ProvisionedThroughput or set BillingMode to 'PAY_PER_REQUEST'"),
+            ));
         }
     }
 
@@ -1285,7 +1157,8 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         format!("Remove UpdatePolicy or change resource type to one of: {}", update_policy_types.join(", "));
     if let Some(resources) = input.get(FIELD_RESOURCES).and_then(|r| r.as_object()) {
         for (name, res) in resources {
-            if res.get(FIELD_CREATION_POLICY).map(|v| !v.is_null()).unwrap_or(false) {
+            let creation_policy_status = m.lifecycle_attribute_status(name, KEY_CREATION_POLICY);
+            if creation_policy_status.may_be_present {
                 let rtype = res.get(FIELD_RESOURCE_TYPE).and_then(|t| t.as_str()).unwrap_or("");
                 if !creation_policy_types.contains(&rtype) {
                     out.push(make_resource_diagnostic(
@@ -1895,7 +1768,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                                 "Properties.IntelligentTieringConfigurations[{}].Tierings[{}].Days",
                                 config_idx, tier_idx
                             );
-                            if access_tier == "ARCHIVE_ACCESS" && days < 90 {
+                            if access_tier == "ARCHIVE_ACCESS" && !(90..=730).contains(&days) {
                                 out.push(make_resource_diagnostic(
                                     "E3061",
                                     &format!("Days {} for ARCHIVE_ACCESS must be between 90 and 730", days),
@@ -1905,14 +1778,14 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                                     Some("Set Days between 90 and 730"),
                                 ));
                             }
-                            if access_tier == "DEEP_ARCHIVE_ACCESS" && days < 180 {
+                            if access_tier == "DEEP_ARCHIVE_ACCESS" && !(180..=730).contains(&days) {
                                 out.push(make_resource_diagnostic(
                                     "E3061",
                                     &format!("Days {} for DEEP_ARCHIVE_ACCESS must be between 180 and 730", days),
                                     m,
                                     name,
                                     &path,
-                                    Some("Set Days between 90 and 730"),
+                                    Some("Set Days between 180 and 730"),
                                 ));
                             }
                         }
@@ -4128,63 +4001,6 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                     ));
                 }
             }
-        }
-    }
-
-    // DynamoDB defaults an absent or removed BillingMode to PROVISIONED.
-    // A finding is emitted when any reachable PROVISIONED/default scenario
-    // overlaps a scenario where ProvisionedThroughput is absent or removed.
-    for name in m.resources_of_type("AWS::DynamoDB::Table") {
-        let billing_mode_value = m
-            .resolve_deep(name, "Properties.BillingMode")
-            .or_else(|| m.resolve(name, "Properties.BillingMode").cloned());
-        let billing_mode_scenarios = m.resolve_scenarios_json(name, "Properties.BillingMode");
-        let throughput_value = m
-            .resolve_deep(name, "Properties.ProvisionedThroughput")
-            .or_else(|| m.resolve(name, "Properties.ProvisionedThroughput").cloned());
-        let throughput_scenarios = m.resolve_scenarios_json(name, "Properties.ProvisionedThroughput");
-        let throughput_is_missing = |billing_conditions: &HashMap<String, bool>| {
-            throughput_value.is_none()
-                || throughput_scenarios.iter().any(|(value, throughput_conditions)| {
-                    value.is_null() && scenario_conditions_overlap(m, name, billing_conditions, throughput_conditions)
-                })
-        };
-
-        let explicit_provisioned_is_missing_throughput =
-            billing_mode_scenarios.iter().any(|(value, billing_conditions)| {
-                value.as_str() == Some("PROVISIONED")
-                    && scenario_is_reachable(m, name, billing_conditions)
-                    && throughput_is_missing(billing_conditions)
-            });
-        if explicit_provisioned_is_missing_throughput {
-            out.push(make_resource_diagnostic(
-                "E3639",
-                "ProvisionedThroughput is required when BillingMode is 'PROVISIONED'",
-                m,
-                name,
-                "Properties.ProvisionedThroughput",
-                Some("Add ProvisionedThroughput or set BillingMode to 'PAY_PER_REQUEST'"),
-            ));
-        }
-
-        let absent_billing_mode_defaults_to_provisioned = billing_mode_value.is_none()
-            && scenario_is_reachable(m, name, &HashMap::new())
-            && throughput_is_missing(&HashMap::new());
-        let removed_billing_mode_defaults_to_provisioned =
-            billing_mode_scenarios.iter().any(|(value, billing_conditions)| {
-                value.is_null()
-                    && scenario_is_reachable(m, name, billing_conditions)
-                    && throughput_is_missing(billing_conditions)
-            });
-        if absent_billing_mode_defaults_to_provisioned || removed_billing_mode_defaults_to_provisioned {
-            out.push(make_resource_diagnostic(
-                "E3639",
-                "ProvisionedThroughput is required when BillingMode defaults to 'PROVISIONED'",
-                m,
-                name,
-                "Properties.ProvisionedThroughput",
-                Some("Add ProvisionedThroughput or set BillingMode to 'PAY_PER_REQUEST'"),
-            ));
         }
     }
 
