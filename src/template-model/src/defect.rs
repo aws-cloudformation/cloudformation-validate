@@ -135,10 +135,19 @@ pub(crate) fn make_parse_defect(rule_id: &str, message: String, span: SourceSpan
 pub(crate) fn make_parse_defect_at(rule_id: &str, message: String, span: SourceSpan, build_path: &str) -> ParseDefect {
     let mut defect = ParseDefect::new(rule_id, message).location(span).phase(DefectPhase::Parse);
     let segments: Vec<&str> = build_path.split('/').collect();
-    if segments.len() >= 4
+    let is_resource_value = segments.len() >= 4
         && segments[0] == consts::SECTION_RESOURCES
-        && matches!(segments[2], consts::KEY_PROPERTIES | consts::SECTION_METADATA)
-    {
+        && matches!(segments[2], consts::KEY_PROPERTIES | consts::SECTION_METADATA);
+    let is_lifecycle_attribute = segments.len() >= 3
+        && segments[0] == consts::SECTION_RESOURCES
+        && matches!(
+            segments[2],
+            consts::KEY_CREATION_POLICY
+                | consts::KEY_UPDATE_POLICY
+                | consts::KEY_DELETION_POLICY
+                | consts::KEY_UPDATE_REPLACE_POLICY
+        );
+    if is_resource_value || is_lifecycle_attribute {
         defect = defect.resource(segments[1]);
         defect = defect.property_path(segments[2..].join("."));
     } else if segments.len() >= 2 {
@@ -172,6 +181,14 @@ mod tests {
         let defect = make_parse_defect_at("F1032", "msg".into(), UNKNOWN_SPAN, "Resources/R/Properties/X/Fn::If");
         assert_eq!(defect.resource_id.as_deref(), Some("R"));
         assert_eq!(defect.property_path.as_deref(), Some("Properties.X.Fn::If"));
+        assert_eq!(defect.phase, Some(DefectPhase::Parse));
+    }
+
+    #[test]
+    fn make_parse_defect_at_splits_lifecycle_attribute_paths() {
+        let defect = make_parse_defect_at("F1101", "msg".into(), UNKNOWN_SPAN, "Resources/R/DeletionPolicy/Fn::If/1");
+        assert_eq!(defect.resource_id.as_deref(), Some("R"));
+        assert_eq!(defect.property_path.as_deref(), Some("DeletionPolicy.Fn::If.1"));
         assert_eq!(defect.phase, Some(DefectPhase::Parse));
     }
 

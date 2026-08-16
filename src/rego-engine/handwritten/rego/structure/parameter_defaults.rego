@@ -2,11 +2,12 @@ package structure
 
 import rego.v1
 
-# F2012: Parameter Default must be in AllowedValues
+# Scalar parameter defaults are compared to AllowedValues as a whole.
 violation contains make_diag_at("F2012", "FATAL", "",
     sprintf("Parameters/%s/Default", [name]),
     sprintf("Parameter '%s' Default '%s' is not in AllowedValues %s", [name, def, render_list(avs)])) if {
     some name, param in input.parameters
+    not _is_cdl_type(param.type)
     def := object.get(param, "default", null)
     def != null
     avs := param.allowedValues
@@ -14,6 +15,23 @@ violation contains make_diag_at("F2012", "FATAL", "",
     is_array(avs)
     count(avs) > 0
     not def in {v | some v in avs}
+}
+
+# List parameter defaults are split on commas, trimmed, and checked element by element.
+violation contains make_diag_at("F2012", "FATAL", "",
+    sprintf("Parameters/%s/Default", [name]),
+    sprintf("Parameter '%s' Default '%s' is not in AllowedValues %s", [name, element, render_list(avs)])) if {
+    some name, param in input.parameters
+    _is_cdl_type(param.type)
+    def := object.get(param, "default", null)
+    def != null
+    avs := param.allowedValues
+    avs != null
+    is_array(avs)
+    count(avs) > 0
+    some raw_element in split(def, ",")
+    element := trim_space(raw_element)
+    not element in {v | some v in avs}
 }
 
 # F2015: Parameter Default must match AllowedPattern. The match verdict

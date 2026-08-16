@@ -14,7 +14,8 @@ violation contains make_diag("I3011", "INFO", name,
     effective_type := effective_resource_type(res.resourceType)
     effective_type in data.stateful_resource_types
     not effective_type in _i3011_excluded
-    res.deletionPolicy == null
+    status := lifecycle_attribute_status(name, "DeletionPolicy")
+    not status.mayBePresent
 }
 
 violation contains make_diag("I3011", "INFO", name,
@@ -23,5 +24,6 @@ violation contains make_diag("I3011", "INFO", name,
     effective_type := effective_resource_type(res.resourceType)
     effective_type in data.stateful_resource_types
     not effective_type in _i3011_excluded
-    res.updateReplacePolicy == null
+    status := lifecycle_attribute_status(name, "UpdateReplacePolicy")
+    not status.mayBePresent
 }

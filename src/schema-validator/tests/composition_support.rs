@@ -2051,6 +2051,81 @@ fn required_xor_dynamic_value_conservatively_present() {
 }
 
 #[test]
+fn required_xor_preserves_conditions_on_dynamic_members() {
+    let sv = validator(vec![(
+        "AWS::Test::ReqXorDynamicConditional",
+        json!({
+            "properties": {
+                "A": { "type": "string" },
+                "B": { "type": "string" }
+            },
+            "requiredXor": ["A", "B"],
+            "additionalProperties": false
+        }),
+    )]);
+    let template = r#"
+Parameters:
+  Target:
+    Type: String
+  Toggle:
+    Type: String
+    AllowedValues: ['true', 'false']
+Conditions:
+  DuplicateTarget: !Equals [!Ref Toggle, 'true']
+Resources:
+  R:
+    Type: AWS::Test::ReqXorDynamicConditional
+    Properties:
+      A: !Ref Target
+      B: !If [DuplicateTarget, !Ref Target, !Ref AWS::NoValue]
+"#;
+
+    let diags = validate(&sv, template);
+    let findings: Vec<_> = diags.iter().filter(|diagnostic| diagnostic.rule_id == "F3014").collect();
+    assert_eq!(findings.len(), 1, "the duplicate-present world must be diagnosed exactly once: {diags:?}");
+    assert_eq!(
+        findings[0].condition_scenario.as_ref().and_then(|scenario| scenario.get("DuplicateTarget")),
+        Some(&true)
+    );
+}
+
+#[test]
+fn required_xor_respects_resource_condition_correlation() {
+    let sv = validator(vec![(
+        "AWS::Test::ReqXorResourceCondition",
+        json!({
+            "properties": {
+                "A": { "type": "string" },
+                "B": { "type": "string" }
+            },
+            "requiredXor": ["A", "B"],
+            "additionalProperties": false
+        }),
+    )]);
+    let template = r#"
+Parameters:
+  Target:
+    Type: String
+  Toggle:
+    Type: String
+    AllowedValues: ['true', 'false']
+Conditions:
+  DuplicateTarget: !Equals [!Ref Toggle, 'true']
+  CreateWithoutDuplicate: !Not [!Condition DuplicateTarget]
+Resources:
+  R:
+    Type: AWS::Test::ReqXorResourceCondition
+    Condition: CreateWithoutDuplicate
+    Properties:
+      A: !Ref Target
+      B: !If [DuplicateTarget, !Ref Target, !Ref AWS::NoValue]
+"#;
+
+    let diags = validate(&sv, template);
+    assert!(!mentions(&diags, "F3014", ""), "the resource exists only in the single-present world: {diags:?}");
+}
+
+#[test]
 fn required_or_dynamic_value_conservatively_present() {
     // When a requiredOr member has a dynamic value, it must be conservatively
     // treated as present, with no false required-property finding.
@@ -2392,6 +2467,76 @@ fn required_or_scenario_budget_boundary_is_non_silent() {
     assert!(
         advisories[0].message.contains("was curtailed"),
         "the advisory must explain that full conditional schema analysis was curtailed: {diagnostics:#?}"
+    );
+}
+
+fn adversarial_no_value_tree(condition_names: &[String]) -> Value {
+    condition_names.iter().rev().fold(
+        json!({"Ref": "AWS::NoValue"}),
+        |branch, condition| json!({"Fn::If": [condition, branch.clone(), branch]}),
+    )
+}
+
+fn adversarial_required_xor_fixture(condition_count: usize) -> (SchemaValidator, String) {
+    let mut parameters = serde_json::Map::new();
+    parameters.insert("Split".to_string(), json!({"Type": "String", "AllowedValues": ["left", "right"]}));
+    let mut conditions = serde_json::Map::new();
+    conditions.insert("UseLeft".to_string(), json!({"Fn::Equals": [{"Ref": "Split"}, "left"]}));
+    let mut flag_names = Vec::new();
+    for index in 0..condition_count {
+        let parameter_name = format!("FlagParameter{index:02}");
+        let condition_name = format!("Flag{index:02}");
+        parameters.insert(parameter_name.clone(), json!({"Type": "String", "AllowedValues": ["yes", "no"]}));
+        conditions.insert(condition_name.clone(), json!({"Fn::Equals": [{"Ref": parameter_name}, "yes"]}));
+        flag_names.push(condition_name);
+    }
+    let no_value_tree = adversarial_no_value_tree(&flag_names);
+    let template = json!({
+        "Parameters": parameters,
+        "Conditions": conditions,
+        "Resources": {
+            "Example": {
+                "Type": "AWS::Test::RequiredXorBudget",
+                "Properties": {
+                    "A": {"Fn::If": ["UseLeft", no_value_tree.clone(), "present-a"]},
+                    "B": {"Fn::If": ["UseLeft", "present-b", no_value_tree]}
+                }
+            }
+        }
+    })
+    .to_string();
+    let validator = validator(vec![(
+        "AWS::Test::RequiredXorBudget",
+        json!({
+            "properties": {"A": {"type": "string"}, "B": {"type": "string"}},
+            "requiredXor": ["A", "B"],
+            "additionalProperties": false
+        }),
+    )]);
+    (validator, template)
+}
+
+#[test]
+fn required_xor_fallback_bounds_adversarial_branch_expansion() {
+    const CONDITION_COUNT: usize = 12;
+    const MAX_ACCOUNTED_SCENARIOS: u64 = 2_000;
+
+    let (validator, template) = adversarial_required_xor_fixture(CONDITION_COUNT);
+    let semantic_model = model(&template);
+    let diagnostics = validator.validate(&semantic_model, Some("us-east-1")).diagnostics;
+
+    assert!(
+        diagnostics.iter().all(|diagnostic| diagnostic.rule_id != "F3014"),
+        "exactly one property is present in every reachable world: {diagnostics:#?}"
+    );
+    assert!(
+        diagnostics.iter().any(|diagnostic| diagnostic.rule_id == "I9052"),
+        "bounded analysis must report its curtailment: {diagnostics:#?}"
+    );
+    assert!(
+        semantic_model.scenario_combinations_used() <= MAX_ACCOUNTED_SCENARIOS,
+        "fallback scenario work must stay locally bounded, used {}",
+        semantic_model.scenario_combinations_used()
     );
 }
 
@@ -2953,5 +3098,392 @@ fn conditional_list_item_still_enforces_unique_items() {
         1,
         "the reachable duplicate world must violate uniqueItems: {:?}",
         diags.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
+    );
+}
+
+// ─── not_enum direct property enforcement ───────────────────────────────────
+
+#[test]
+fn not_enum_rejects_excluded_value_on_direct_property() {
+    let sv = validator(vec![(
+        "AWS::Test::NotEnum",
+        json!({
+            "properties": {
+                "Username": {
+                    "type": "string",
+                    "not": { "enum": ["admin", "root", "system"] }
+                }
+            },
+            "additionalProperties": false
+        }),
+    )]);
+    let template = "Resources:\n  R:\n    Type: AWS::Test::NotEnum\n    Properties:\n      Username: admin\n";
+    let diags = validate(&sv, template);
+    assert!(
+        mentions(&diags, "F3030", "must not be one of"),
+        "excluded value 'admin' should fire F3030: {:?}",
+        diags.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
+    );
+}
+
+#[test]
+fn not_enum_defers_overridable_parameter_default() {
+    let sv = validator(vec![(
+        "AWS::Test::NotEnum",
+        json!({
+            "properties": {
+                "Username": {
+                    "type": "string",
+                    "not": { "enum": ["admin", "root", "system"] }
+                }
+            },
+            "additionalProperties": false
+        }),
+    )]);
+    let template = "Parameters:\n  UserName:\n    Type: String\n    Default: admin\nResources:\n  R:\n    Type: AWS::Test::NotEnum\n    Properties:\n      Username: !Ref UserName\n";
+
+    let diags = validate(&sv, template);
+    assert!(
+        !mentions(&diags, "F3030", "must not be one of"),
+        "a caller may override the prohibited default before deployment: {:?}",
+        diags.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
+    );
+}
+
+#[test]
+fn not_enum_rejects_excluded_deterministic_join() {
+    let sv = validator(vec![(
+        "AWS::Test::NotEnum",
+        json!({
+            "properties": {
+                "Username": {
+                    "type": "string",
+                    "not": { "enum": ["admin", "root", "system"] }
+                }
+            },
+            "additionalProperties": false
+        }),
+    )]);
+    let template =
+        "Resources:\n  R:\n    Type: AWS::Test::NotEnum\n    Properties:\n      Username: !Join ['', [ad, min]]\n";
+
+    let diags = validate(&sv, template);
+    let findings: Vec<_> = diags.iter().filter(|diagnostic| diagnostic.rule_id == "F3030").collect();
+    assert_eq!(findings.len(), 1, "a literal-only join deterministically produces an excluded value: {diags:?}");
+}
+
+#[test]
+fn not_enum_checks_only_the_deterministic_conditional_branch() {
+    let sv = validator(vec![(
+        "AWS::Test::NotEnum",
+        json!({
+            "properties": {
+                "Username": {
+                    "type": "string",
+                    "not": { "enum": ["admin", "root", "system"] }
+                }
+            },
+            "additionalProperties": false
+        }),
+    )]);
+    let template = r#"
+Parameters:
+  UserName:
+    Type: String
+    Default: admin
+Conditions:
+  UseLiteral: !Equals [!Ref AWS::Region, us-east-1]
+Resources:
+  R:
+    Type: AWS::Test::NotEnum
+    Properties:
+      Username: !If
+        - UseLiteral
+        - !Join ['', [ad, min]]
+        - !Join ['', [!Ref UserName]]
+"#;
+
+    let diags = validate(&sv, template);
+    let findings: Vec<_> = diags.iter().filter(|diagnostic| diagnostic.rule_id == "F3030").collect();
+    assert_eq!(findings.len(), 1, "only the parameter-independent branch proves a violation: {diags:?}");
+    assert_eq!(findings[0].condition_scenario.as_ref().and_then(|scenario| scenario.get("UseLiteral")), Some(&true));
+}
+
+#[test]
+fn not_enum_accepts_non_excluded_value() {
+    let sv = validator(vec![(
+        "AWS::Test::NotEnum",
+        json!({
+            "properties": {
+                "Username": {
+                    "type": "string",
+                    "not": { "enum": ["admin", "root", "system"] }
+                }
+            },
+            "additionalProperties": false
+        }),
+    )]);
+    let template = "Resources:\n  R:\n    Type: AWS::Test::NotEnum\n    Properties:\n      Username: legitimate_user\n";
+    let diags = validate(&sv, template);
+    assert!(
+        !mentions(&diags, "F3030", "must not be one of"),
+        "non-excluded value should not fire F3030: {:?}",
+        diags.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
+    );
+}
+
+// ─── Unicode string length counting ─────────────────────────────────────────
+
+#[test]
+fn string_length_counts_unicode_scalar_values_not_bytes() {
+    // Each emoji is 4 bytes in UTF-8 but 1 Unicode scalar value.
+    // maxLength of 5 should accept 5 emoji characters (5 scalars, 20 bytes).
+    let sv = validator(vec![(
+        "AWS::Test::UniLength",
+        json!({
+            "properties": {
+                "Label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 5
+                }
+            },
+            "additionalProperties": false
+        }),
+    )]);
+
+    // 5 emoji characters = 5 Unicode scalar values = 20 UTF-8 bytes
+    let template_ok = "Resources:\n  R:\n    Type: AWS::Test::UniLength\n    Properties:\n      Label: '\u{1F600}\u{1F601}\u{1F602}\u{1F603}\u{1F604}'\n";
+    let diags_ok = validate(&sv, template_ok);
+    assert!(
+        !diags_ok.iter().any(|d| d.rule_id == "F3033"),
+        "5 emoji (5 scalars) within maxLength=5 must not fire F3033: {:?}",
+        diags_ok.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
+    );
+
+    // 6 emoji characters = 6 Unicode scalar values > maxLength 5
+    let template_bad = "Resources:\n  R:\n    Type: AWS::Test::UniLength\n    Properties:\n      Label: '\u{1F600}\u{1F601}\u{1F602}\u{1F603}\u{1F604}\u{1F605}'\n";
+    let diags_bad = validate(&sv, template_bad);
+    assert!(
+        diags_bad.iter().any(|d| d.rule_id == "F3033" && d.message.contains("6")),
+        "6 emoji (6 scalars) exceeding maxLength=5 must fire F3033 with length 6: {:?}",
+        diags_bad.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
+    );
+}
+
+#[test]
+fn string_length_multibyte_characters_below_minimum() {
+    // 2-byte characters (e.g. "ñ" is U+00F1, 2 bytes in UTF-8, 1 scalar)
+    let sv = validator(vec![(
+        "AWS::Test::UniLength",
+        json!({
+            "properties": {
+                "Name": {
+                    "type": "string",
+                    "minLength": 5
+                }
+            },
+            "additionalProperties": false
+        }),
+    )]);
+
+    // "a\u{00F1}o" is 3 Unicode scalar values but 4 UTF-8 bytes
+    let template = "Resources:\n  R:\n    Type: AWS::Test::UniLength\n    Properties:\n      Name: 'a\u{00F1}o'\n";
+    let diags = validate(&sv, template);
+    assert!(
+        diags.iter().any(|d| d.rule_id == "F3033" && d.message.contains("3")),
+        "'a\\u{{00F1}}o' has 3 Unicode scalars, should fire F3033 (below min 5): {:?}",
+        diags.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
+    );
+}
+
+#[test]
+fn one_of_required_properties_are_decided_per_condition_scenario() {
+    let resource_type = "AWS::Test::ConditionalRequired";
+    let validator = validator(vec![(
+        resource_type,
+        json!({
+            "properties": {
+                "A": { "type": "string" },
+                "B": { "type": "string" }
+            },
+            "oneOf": [
+                {
+                    "type": "object",
+                    "properties": { "A": { "type": "string" } },
+                    "required": ["A"],
+                    "additionalProperties": false
+                },
+                {
+                    "type": "object",
+                    "properties": { "B": { "type": "string" } },
+                    "required": ["B"],
+                    "additionalProperties": false
+                }
+            ],
+            "additionalProperties": false
+        }),
+    )]);
+    let template = concat!(
+        "Conditions:\n",
+        "  UseA: !Equals [!Ref AWS::Region, us-east-1]\n",
+        "Resources:\n",
+        "  R:\n",
+        "    Type: AWS::Test::ConditionalRequired\n",
+        "    Properties:\n",
+        "      A: !If [UseA, a, !Ref AWS::NoValue]\n",
+        "      B: !If [UseA, !Ref AWS::NoValue, b]\n",
+    );
+
+    let diagnostics = validate(&validator, template);
+
+    assert!(
+        !mentions(&diagnostics, "F3018", ""),
+        "each condition scenario satisfies exactly one required branch: {diagnostics:?}"
+    );
+}
+
+#[test]
+fn referenced_one_of_required_properties_are_decided_per_condition_scenario() {
+    let resource_type = "AWS::Test::ReferencedConditionalRequired";
+    let validator = validator(vec![(
+        resource_type,
+        json!({
+            "properties": {
+                "A": { "type": "string" },
+                "B": { "type": "string" }
+            },
+            "definitions": {
+                "RequiresA": { "required": ["A"] },
+                "RequiresB": { "required": ["B"] }
+            },
+            "oneOf": [
+                { "$ref": "#/definitions/RequiresA" },
+                { "$ref": "#/definitions/RequiresB" }
+            ],
+            "additionalProperties": false
+        }),
+    )]);
+    let template = concat!(
+        "Conditions:\n",
+        "  UseA: !Equals [!Ref AWS::Region, us-east-1]\n",
+        "Resources:\n",
+        "  R:\n",
+        "    Type: AWS::Test::ReferencedConditionalRequired\n",
+        "    Properties:\n",
+        "      A: !If [UseA, a, !Ref AWS::NoValue]\n",
+        "      B: !If [UseA, !Ref AWS::NoValue, b]\n",
+    );
+
+    let diagnostics = validate(&validator, template);
+
+    assert!(
+        !mentions(&diagnostics, "F3018", ""),
+        "referenced required branches must preserve condition correlation: {diagnostics:?}"
+    );
+}
+
+#[test]
+fn one_of_required_properties_report_only_the_world_with_no_surviving_property() {
+    let resource_type = "AWS::Test::ConditionalRequiredInvalid";
+    let validator = validator(vec![(
+        resource_type,
+        json!({
+            "properties": {
+                "A": { "type": "string" },
+                "B": { "type": "string" }
+            },
+            "oneOf": [{ "required": ["A"] }, { "required": ["B"] }],
+            "additionalProperties": false
+        }),
+    )]);
+    let template = concat!(
+        "Conditions:\n",
+        "  UseA: !Equals [!Ref AWS::Region, us-east-1]\n",
+        "Resources:\n",
+        "  R:\n",
+        "    Type: AWS::Test::ConditionalRequiredInvalid\n",
+        "    Properties:\n",
+        "      A: !If [UseA, a, !Ref AWS::NoValue]\n",
+        "      B: !Ref AWS::NoValue\n",
+    );
+
+    let diagnostics = validate(&validator, template);
+    let one_of_diagnostics: Vec<_> = diagnostics.iter().filter(|diagnostic| diagnostic.rule_id == "F3018").collect();
+
+    assert_eq!(one_of_diagnostics.len(), 1, "only one condition world violates oneOf: {diagnostics:?}");
+    assert_eq!(
+        one_of_diagnostics[0].condition_scenario.as_ref().and_then(|scenario| scenario.get("UseA")),
+        Some(&false),
+        "the finding must identify the world where both properties are removed"
+    );
+}
+
+#[test]
+fn composition_defers_unresolved_substitution_markers() {
+    let validator = validator(vec![(
+        "AWS::Test::ConditionalPattern",
+        json!({
+            "properties": {
+                "Name": {
+                    "type": "string",
+                    "anyOf": [
+                        { "pattern": "^foo-[a-z]+$" },
+                        { "pattern": "^bar-[a-z]+$" }
+                    ]
+                }
+            },
+            "additionalProperties": false
+        }),
+    )]);
+    let template = concat!(
+        "Parameters:\n",
+        "  Name:\n",
+        "    Type: String\n",
+        "Resources:\n",
+        "  R:\n",
+        "    Type: AWS::Test::ConditionalPattern\n",
+        "    Properties:\n",
+        "      Name: !Sub 'foo-${Name}'\n",
+    );
+
+    let diagnostics = validate(&validator, template);
+
+    assert!(
+        !mentions(&diagnostics, "F3017", ""),
+        "an unresolved intrinsic substitution must remain deferred: {diagnostics:?}"
+    );
+}
+
+#[test]
+fn composition_validates_authored_substitution_markers_as_literals() {
+    let validator = validator(vec![(
+        "AWS::Test::LiteralPattern",
+        json!({
+            "properties": {
+                "Name": {
+                    "type": "string",
+                    "anyOf": [
+                        { "pattern": "^foo-[a-z]+$" },
+                        { "pattern": "^bar-[a-z]+$" }
+                    ]
+                }
+            },
+            "additionalProperties": false
+        }),
+    )]);
+    let template = concat!(
+        "Resources:\n",
+        "  R:\n",
+        "    Type: AWS::Test::LiteralPattern\n",
+        "    Properties:\n",
+        "      Name: 'foo-${Name}'\n",
+    );
+
+    let diagnostics = validate(&validator, template);
+
+    assert!(
+        mentions(&diagnostics, "F3017", "not valid under any"),
+        "authored dollar-brace text is a concrete literal and must be validated: {diagnostics:?}"
     );
 }

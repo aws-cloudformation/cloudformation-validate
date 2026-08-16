@@ -60,8 +60,6 @@ violation contains make_diag_full("E3048", "ERROR", name,
     "Remove PlacementConstraints for Fargate tasks",
     "") if {
     some name in resources_of_type("AWS::ECS::TaskDefinition")
-    _is_fargate(name)
-    has_property(name, "PlacementConstraints")
     _fargate_placement_declared(name)
 }
 
@@ -90,12 +88,10 @@ _fargate_invalid_log_drivers(name) := {scenario |
 }
 
 _fargate_placement_declared(name) if {
-    count(resolve_scenarios(name, "Properties.PlacementConstraints")) == 0
-}
-
-_fargate_placement_declared(name) if {
-    some placement_scenario in _fargate_property_scenarios(name, "Properties.PlacementConstraints")
-    placement_scenario.value != null
+    some compatibility_scenario in _fargate_compatibility_scenarios(name)
+    some property_scenario in properties_scenarios(name, ["PlacementConstraints"])
+    _scenario_conditions_compatible(name, compatibility_scenario.conditions, property_scenario.conditions)
+    object.get(property_scenario.properties, "PlacementConstraints", null) != null
 }
 
 _fargate_compatibility_scenarios(name) := {scenario |
@@ -116,10 +112,6 @@ _fargate_property_scenarios(name, path) := {property_scenario |
     some compatibility_scenario in _fargate_compatibility_scenarios(name)
     some property_scenario in resolve_scenarios(name, path)
     _scenario_conditions_compatible(name, compatibility_scenario.conditions, property_scenario.conditions)
-}
-
-_is_fargate(name) if {
-    count(_fargate_compatibility_scenarios(name)) > 0
 }
 
 _fargate_supported_log_drivers := {"awslogs", "splunk", "awsfirelens"}

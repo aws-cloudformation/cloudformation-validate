@@ -1,0 +1,25 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  Subnet:
+    Type: AWS::EC2::Subnet::Id
+Resources:
+  DirectRef:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: rtb-00000000000000000
+      SubnetId: !Ref Subnet
+  ImplicitSub:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: rtb-11111111111111111
+      SubnetId: !Sub '${Subnet}'
+  ExplicitSub:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: rtb-22222222222222222
+      SubnetId: !Sub ['${Value}', {Value: !Ref Subnet}]
+  JoinRef:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: rtb-33333333333333333
+      SubnetId: !Join ['', [!Ref Subnet]]

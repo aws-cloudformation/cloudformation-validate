@@ -959,6 +959,71 @@ Resources:
 }
 
 #[test]
+fn lifecycle_attribute_status_tracks_effective_presence_and_shape() {
+    let yaml = b"
+Parameters:
+  Env:
+    Type: String
+  Policy:
+    Type: String
+Conditions:
+  Never: !Equals [always, never]
+  Maybe: !Equals [!Ref Env, enabled]
+Resources:
+  Absent:
+    Type: AWS::S3::Bucket
+  Object:
+    Type: AWS::S3::Bucket
+    UpdatePolicy: {}
+  Scalar:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    UpdatePolicy: 7
+  Intrinsic:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    UpdatePolicy: !Ref Policy
+  Impossible:
+    Type: AWS::S3::Bucket
+    UpdatePolicy: !If [Never, {AutoScalingRollingUpdate: {}}, !Ref AWS::NoValue]
+  ImpossibleResource:
+    Type: AWS::S3::Bucket
+    Condition: Never
+    UpdatePolicy: {}
+  Conditional:
+    Type: AWS::S3::Bucket
+    UpdatePolicy: !If [Maybe, {AutoScalingRollingUpdate: {}}, !Ref AWS::NoValue]
+";
+    let model = SemanticModel::from_bytes(yaml).unwrap();
+
+    let absent = model.lifecycle_attribute_status("Absent", "UpdatePolicy");
+    assert!(!absent.may_be_present);
+    assert_eq!(absent.invalid_value, None);
+
+    let object = model.lifecycle_attribute_status("Object", "UpdatePolicy");
+    assert!(object.may_be_present);
+    assert_eq!(object.invalid_value, None);
+
+    let scalar = model.lifecycle_attribute_status("Scalar", "UpdatePolicy");
+    assert!(scalar.may_be_present);
+    assert_eq!(scalar.invalid_value.as_deref(), Some("7"));
+
+    let intrinsic = model.lifecycle_attribute_status("Intrinsic", "UpdatePolicy");
+    assert!(intrinsic.may_be_present);
+    assert_eq!(intrinsic.invalid_value, None);
+
+    let impossible = model.lifecycle_attribute_status("Impossible", "UpdatePolicy");
+    assert!(!impossible.may_be_present);
+    assert_eq!(impossible.invalid_value, None);
+
+    let impossible_resource = model.lifecycle_attribute_status("ImpossibleResource", "UpdatePolicy");
+    assert!(!impossible_resource.may_be_present);
+    assert_eq!(impossible_resource.invalid_value, None);
+
+    let conditional = model.lifecycle_attribute_status("Conditional", "UpdatePolicy");
+    assert!(conditional.may_be_present);
+    assert_eq!(conditional.invalid_value, None);
+}
+
+#[test]
 fn e3001_custom_resources_reject_lifecycle_policies() {
     let yaml = b"
 Resources:
@@ -1278,4 +1343,257 @@ Resources:
         model.parameters["Flag"].allowed_values.as_deref(),
         Some(&["true".to_string(), "false".to_string()][..])
     );
+}
+
+#[test]
+fn lifecycle_policy_scenarios_expands_conditional_branches() {
+    let yaml = b"
+Transform: AWS::LanguageExtensions
+Parameters:
+  Policy:
+    Type: String
+Conditions:
+  Never: !Equals [always, never]
+  Maybe: !Equals [!Ref AWS::Region, us-east-1]
+Resources:
+  ValidConditional:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: !If [Maybe, Retain, Delete]
+  DirectNoValue:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: !Ref AWS::NoValue
+  ImpossibleBranch:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: !If [Never, InvalidPolicy, !Ref AWS::NoValue]
+  ImpossibleResource:
+    Type: AWS::S3::Bucket
+    Condition: Never
+    DeletionPolicy: NotValid
+  BothBranchesLiteral:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: !If [Maybe, WrongOne, AlsoWrong]
+  CorrelatedResource:
+    Type: AWS::S3::Bucket
+    Condition: Maybe
+    DeletionPolicy: !If [Maybe, Retain, InvalidPolicy]
+  DynamicObject:
+    Type: AWS::S3::Bucket
+    DeletionPolicy:
+      Value: !Ref Policy
+";
+    let model = SemanticModel::from_bytes(yaml).unwrap();
+
+    let valid = model.lifecycle_policy_scenarios("ValidConditional", "DeletionPolicy");
+    assert_eq!(valid.len(), 2, "both branches are reachable: {:?}", valid);
+    let values: Vec<&str> = valid.iter().filter_map(|(v, _)| v.as_str()).collect();
+    assert!(values.contains(&"Retain"));
+    assert!(values.contains(&"Delete"));
+
+    let novalue = model.lifecycle_policy_scenarios("DirectNoValue", "DeletionPolicy");
+    assert_eq!(novalue.len(), 1, "direct NoValue remains an invalid null value: {:?}", novalue);
+    assert!(novalue[0].0.is_null());
+
+    let impossible = model.lifecycle_policy_scenarios("ImpossibleBranch", "DeletionPolicy");
+    assert_eq!(impossible.len(), 1, "the reachable NoValue branch remains invalid: {:?}", impossible);
+    assert!(impossible[0].0.is_null());
+
+    let unreachable = model.lifecycle_policy_scenarios("ImpossibleResource", "DeletionPolicy");
+    assert!(unreachable.is_empty(), "unreachable resource: {:?}", unreachable);
+
+    let both_invalid = model.lifecycle_policy_scenarios("BothBranchesLiteral", "DeletionPolicy");
+    assert_eq!(both_invalid.len(), 2, "both branches are reachable: {:?}", both_invalid);
+
+    let correlated = model.lifecycle_policy_scenarios("CorrelatedResource", "DeletionPolicy");
+    assert_eq!(correlated.len(), 1, "resource condition excludes the false branch: {:?}", correlated);
+    assert_eq!(correlated[0].0.as_str(), Some("Retain"));
+
+    let dynamic_object = model.lifecycle_policy_scenarios("DynamicObject", "DeletionPolicy");
+    assert_eq!(dynamic_object.len(), 1, "an authored object remains a concrete invalid shape");
+    assert!(dynamic_object[0].0.is_object());
+}
+
+#[test]
+fn lifecycle_policy_scenarios_defers_on_dynamic_ref() {
+    let yaml = b"
+Parameters:
+  Policy:
+    Type: String
+Resources:
+  RefPolicy:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: !Ref Policy
+";
+    let model = SemanticModel::from_bytes(yaml).unwrap();
+    let scenarios = model.lifecycle_policy_scenarios("RefPolicy", "DeletionPolicy");
+    assert!(scenarios.is_empty(), "dynamic ref should defer (no scenarios): {:?}", scenarios);
+}
+
+#[test]
+fn lifecycle_attribute_status_respects_conditions_for_all_attributes() {
+    let yaml = b"
+Transform: AWS::LanguageExtensions
+Parameters:
+  Policy:
+    Type: String
+Conditions:
+  Never: !Equals [always, never]
+  Maybe: !Equals [!Ref AWS::Region, us-east-1]
+Resources:
+  DirectNoValue:
+    Type: AWS::S3::Bucket
+    CreationPolicy: !Ref AWS::NoValue
+  ImpossibleBranch:
+    Type: AWS::S3::Bucket
+    CreationPolicy: !If [Never, {ResourceSignal: {Count: 1}}, !Ref AWS::NoValue]
+  ImpossibleResource:
+    Type: AWS::S3::Bucket
+    Condition: Never
+    CreationPolicy:
+      ResourceSignal: {Count: 1}
+  MaybePresent:
+    Type: AWS::S3::Bucket
+    CreationPolicy: !If [Maybe, {ResourceSignal: {Count: 1}}, !Ref AWS::NoValue]
+  DeletionNoValue:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: !Ref AWS::NoValue
+  DeletionAlwaysAbsent:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: !If [Maybe, !Ref AWS::NoValue, !Ref AWS::NoValue]
+  DeletionDynamic:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: !Ref Policy
+  UpdateAlwaysAbsent:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    UpdatePolicy: !If [Maybe, !Ref AWS::NoValue, !Ref AWS::NoValue]
+  UpdateMaybePresent:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    UpdatePolicy: !If [Maybe, {AutoScalingRollingUpdate: {}}, !Ref AWS::NoValue]
+";
+    let model = SemanticModel::from_bytes(yaml).unwrap();
+
+    let direct = model.lifecycle_attribute_status("DirectNoValue", "CreationPolicy");
+    assert!(direct.may_be_present, "illegal NoValue remains an authored CreationPolicy");
+
+    let impossible = model.lifecycle_attribute_status("ImpossibleBranch", "CreationPolicy");
+    assert!(impossible.may_be_present, "unsupported top-level Fn::If remains authored");
+
+    let resource = model.lifecycle_attribute_status("ImpossibleResource", "CreationPolicy");
+    assert!(!resource.may_be_present, "impossible resource means absent");
+
+    let maybe = model.lifecycle_attribute_status("MaybePresent", "CreationPolicy");
+    assert!(maybe.may_be_present, "reachable branch is present");
+
+    let deletion_novalue = model.lifecycle_attribute_status("DeletionNoValue", "DeletionPolicy");
+    assert!(deletion_novalue.may_be_present, "illegal NoValue is not policy omission");
+
+    let deletion_always_absent = model.lifecycle_attribute_status("DeletionAlwaysAbsent", "DeletionPolicy");
+    assert!(deletion_always_absent.may_be_present, "NoValue branches are not policy omission");
+
+    let deletion_dynamic = model.lifecycle_attribute_status("DeletionDynamic", "DeletionPolicy");
+    assert!(deletion_dynamic.may_be_present);
+
+    let update_absent = model.lifecycle_attribute_status("UpdateAlwaysAbsent", "UpdatePolicy");
+    assert!(!update_absent.may_be_present, "UpdatePolicy still supports conditional NoValue omission");
+
+    let update_maybe = model.lifecycle_attribute_status("UpdateMaybePresent", "UpdatePolicy");
+    assert!(update_maybe.may_be_present, "a reachable UpdatePolicy object remains present");
+}
+
+#[test]
+fn lifecycle_intrinsics_require_a_supported_attribute_and_transform() {
+    let yaml = b"
+Parameters:
+  Policy:
+    Type: String
+Conditions:
+  Never: !Equals [always, never]
+Resources:
+  CreationConditional:
+    Type: AWS::CloudFormation::WaitCondition
+    CreationPolicy: !If
+      - Never
+      - ResourceSignal: {Count: 1}
+      - ResourceSignal: {Count: 2}
+  DeletionConditional:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    DeletionPolicy: !If [Never, Retain, Delete]
+  UpdateRef:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    UpdateReplacePolicy: !Ref Policy
+  Unreachable:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    Condition: Never
+    CreationPolicy: !Ref Policy
+    DeletionPolicy: !Ref Policy
+";
+    let model = SemanticModel::from_bytes(yaml).expect("lifecycle placement template parses");
+    let findings: Vec<_> = model.diagnostics.iter().filter(|finding| finding.rule_id == "F1101").collect();
+    assert_eq!(findings.len(), 3, "each reachable unsupported placement is reported once: {findings:?}");
+    assert!(findings.iter().any(|finding| {
+        finding.resource_id.as_deref() == Some("CreationConditional")
+            && finding.message.contains("not supported as a top-level CreationPolicy")
+    }));
+    assert!(findings.iter().any(|finding| {
+        finding.resource_id.as_deref() == Some("DeletionConditional")
+            && finding.message.contains("requires the AWS::LanguageExtensions transform")
+    }));
+    assert!(findings.iter().any(|finding| {
+        finding.resource_id.as_deref() == Some("UpdateRef")
+            && finding.message.contains("requires the AWS::LanguageExtensions transform")
+    }));
+    assert!(!findings.iter().any(|finding| finding.resource_id.as_deref() == Some("Unreachable")));
+}
+
+#[test]
+fn transformed_lifecycle_intrinsics_restrict_functions_and_ref_targets() {
+    let yaml = b"
+Transform: AWS::LanguageExtensions
+Parameters:
+  Policy:
+    Type: String
+    AllowedValues: [Retain, Delete]
+Mappings:
+  Policies:
+    us-east-1:
+      Deletion: Retain
+Conditions:
+  Never: !Equals [always, never]
+  Maybe: !Equals [!Ref Policy, Retain]
+Resources:
+  Target:
+    Type: AWS::CloudFormation::WaitConditionHandle
+  Valid:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    DeletionPolicy: !If
+      - Maybe
+      - !FindInMap [Policies, !Ref AWS::Region, Deletion]
+      - !Ref Policy
+  CreationConditional:
+    Type: AWS::CloudFormation::WaitCondition
+    CreationPolicy: !If [Maybe, {ResourceSignal: {Count: 1}}, {ResourceSignal: {Count: 2}}]
+  UnsupportedFunction:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    DeletionPolicy: !Sub '${AWS::Region}'
+  UnsupportedPseudo:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    UpdateReplacePolicy: !Ref AWS::NoValue
+  UnsupportedResourceRef:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    DeletionPolicy: !Ref Target
+  UnreachableUnsupported:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    Condition: Never
+    DeletionPolicy: !Sub '${AWS::Region}'
+";
+    let model = SemanticModel::from_bytes(yaml).expect("transformed lifecycle template parses");
+    let findings: Vec<_> = model.diagnostics.iter().filter(|finding| finding.rule_id == "F1101").collect();
+    assert_eq!(findings.len(), 4, "only reachable unsupported lifecycle intrinsics are reported: {findings:?}");
+    for resource_id in ["CreationConditional", "UnsupportedFunction", "UnsupportedPseudo", "UnsupportedResourceRef"] {
+        assert!(
+            findings.iter().any(|finding| finding.resource_id.as_deref() == Some(resource_id)),
+            "missing lifecycle placement finding for {resource_id}: {findings:?}"
+        );
+    }
+    assert!(!findings.iter().any(|finding| finding.resource_id.as_deref() == Some("Valid")));
+    assert!(!findings.iter().any(|finding| finding.resource_id.as_deref() == Some("UnreachableUnsupported")));
 }

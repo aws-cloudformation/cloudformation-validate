@@ -1,4 +1,5 @@
 use super::patterns::AMI_ID_RE;
+use super::resources_extra::{scenario_has_effective_property, scenario_is_reachable};
 use super::{EvalContext, NativeRuleRegistry};
 use diagnostics::Diagnostic;
 use rules::Category;
@@ -8,8 +9,10 @@ use template_model::SemanticModel;
 use template_model::coercion::{coerce_to_bool, coerce_to_integer, coerce_to_string};
 use template_model::consts::{
     EDGE_KIND_REF, FIELD_KIND, FIELD_OUTGOING_REFS, FIELD_PROPERTIES, FIELD_RESOURCES, FIELD_SOURCE_PATH, FIELD_TARGET,
-    KEY_PROPERTIES, TRANSFORM_SERVERLESS, effective_deployed_resource_type,
+    KEY_DELETION_POLICY, KEY_PROPERTIES, KEY_UPDATE_REPLACE_POLICY, TRANSFORM_SERVERLESS,
+    effective_deployed_resource_type,
 };
+use template_model::iam_policy::{inline_identity_policy_document_paths, policy_has_allow_not_action_scenarios};
 use template_model::resolver::ResolvedValue;
 use validation_engine::make_resource_diagnostic;
 
@@ -165,7 +168,9 @@ fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
     for (name, res) in &m.resources {
         let effective_type = effective_deployed_resource_type(&res.resource_type);
         if stateful_types.contains(effective_type) && effective_type != "AWS::S3::Bucket" {
-            if res.deletion_policy.is_none() {
+            let deletion_present = m.lifecycle_attribute_status(name, KEY_DELETION_POLICY).may_be_present;
+            let update_replace_present = m.lifecycle_attribute_status(name, KEY_UPDATE_REPLACE_POLICY).may_be_present;
+            if !deletion_present {
                 out.push(make_resource_diagnostic("I3011",
                     "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
                     m,
@@ -174,7 +179,7 @@ fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
                     None,
                 ));
             }
-            if res.update_replace_policy.is_none() {
+            if !update_replace_present {
                 out.push(make_resource_diagnostic("I3011",
                     "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
                     m,
@@ -187,14 +192,13 @@ fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     for (name, res) in &m.resources {
+        let deletion_present = m.lifecycle_attribute_status(name, KEY_DELETION_POLICY).may_be_present;
+        let update_replace_present = m.lifecycle_attribute_status(name, KEY_UPDATE_REPLACE_POLICY).may_be_present;
         // A lone policy whose value is "Delete" is the default behavior, so
         // requiring its counterpart adds no protection and the configuration is
         // valid. Only warn when the single present policy asks for something
         // other than Delete.
-        if res.deletion_policy.is_some()
-            && res.update_replace_policy.is_none()
-            && !policy_is_delete(res.deletion_policy.as_ref())
-        {
+        if deletion_present && !update_replace_present && !policy_is_delete(res.deletion_policy.as_ref()) {
             out.push(make_resource_diagnostic(
                 "W3011",
                 "Both 'UpdateReplacePolicy' and 'DeletionPolicy' are needed to protect resource from deletion",
@@ -204,10 +208,7 @@ fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
                 None,
             ));
         }
-        if res.update_replace_policy.is_some()
-            && res.deletion_policy.is_none()
-            && !policy_is_delete(res.update_replace_policy.as_ref())
-        {
+        if update_replace_present && !deletion_present && !policy_is_delete(res.update_replace_policy.as_ref()) {
             out.push(make_resource_diagnostic(
                 "W3011",
                 "Both 'UpdateReplacePolicy' and 'DeletionPolicy' are needed to protect resource from deletion",
@@ -219,34 +220,51 @@ fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    let policy_doc_types: &[&str] = &[
-        "AWS::IAM::Policy",
-        "AWS::IAM::ManagedPolicy",
-        "AWS::SQS::QueuePolicy",
-        "AWS::SNS::TopicPolicy",
-        "AWS::S3::BucketPolicy",
+    let policy_doc_types: &[(&str, &str)] = &[
+        ("AWS::IAM::Policy", "Properties.PolicyDocument"),
+        ("AWS::IAM::ManagedPolicy", "Properties.PolicyDocument"),
+        ("AWS::SQS::QueuePolicy", "Properties.PolicyDocument"),
+        ("AWS::SNS::TopicPolicy", "Properties.PolicyDocument"),
+        ("AWS::S3::BucketPolicy", "Properties.PolicyDocument"),
     ];
-    for rtype in policy_doc_types {
+    for (rtype, doc_path) in policy_doc_types {
         for name in m.resources_of_type(rtype) {
-            if let Some(doc) = resolve_concrete(m, name, "Properties.PolicyDocument") {
-                check_notaction_policy(&mut out, m, name, &doc);
+            if policy_has_allow_not_action_scenarios(m, name, doc_path) {
+                out.push(make_resource_diagnostic("W2512",
+"IAM policy uses NotAction which grants all actions except those listed - consider using Action instead",
+m,
+name,
+"",
+None,
+));
             }
         }
     }
     for rtype in &["AWS::IAM::Role", "AWS::IAM::User", "AWS::IAM::Group"] {
         for name in m.resources_of_type(rtype) {
-            if let Some(serde_json::Value::Array(policies)) = resolve_concrete(m, name, "Properties.Policies") {
-                for policy in &policies {
-                    if let Some(doc) = policy.get("PolicyDocument") {
-                        check_notaction_policy(&mut out, m, name, doc);
-                    }
+            for doc_path in inline_identity_policy_document_paths(m, name, "Properties.Policies") {
+                if policy_has_allow_not_action_scenarios(m, name, &doc_path) {
+                    out.push(make_resource_diagnostic("W2512",
+"IAM policy uses NotAction which grants all actions except those listed - consider using Action instead",
+m,
+name,
+"",
+None,
+));
+                    break;
                 }
             }
         }
     }
     for name in m.resources_of_type("AWS::SSO::PermissionSet") {
-        if let Some(doc) = resolve_concrete(m, name, "Properties.InlinePolicy") {
-            check_notaction_policy(&mut out, m, name, &doc);
+        if policy_has_allow_not_action_scenarios(m, name, "Properties.InlinePolicy") {
+            out.push(make_resource_diagnostic("W2512",
+"IAM policy uses NotAction which grants all actions except those listed - consider using Action instead",
+m,
+name,
+"",
+None,
+));
         }
     }
 
@@ -506,7 +524,10 @@ fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
                 .and_then(|p| p.as_array())
                 .map(|arr| arr.iter().any(|v| v.as_str() == Some("Tags")))
                 .unwrap_or(false);
-            if supports_tags && !res.properties.contains_key("Tags") {
+            let tags_missing = m.resolve_properties_scenarios(name).iter().any(|(properties, conditions)| {
+                scenario_is_reachable(m, name, conditions) && !scenario_has_effective_property(properties, "Tags")
+            });
+            if supports_tags && tags_missing {
                 out.push(make_resource_diagnostic(
                     "I9040",
                     &format!(
@@ -631,26 +652,6 @@ fn rds_dbinstance_needs_retention(ctx: &EvalContext, name: &str) -> bool {
         return false;
     };
     !engine.starts_with("aurora") && props.get("SourceDBInstanceIdentifier").is_none()
-}
-
-fn check_notaction_policy(out: &mut Vec<Diagnostic>, m: &Arc<SemanticModel>, name: &str, doc: &serde_json::Value) {
-    if let Some(stmts) = doc.get("Statement").and_then(|s| s.as_array()) {
-        for stmt in stmts {
-            let effect = stmt.get("Effect").and_then(|e| e.as_str()).unwrap_or("");
-            if effect != "Allow" {
-                continue;
-            }
-            if stmt.get("NotAction").is_some() {
-                out.push(make_resource_diagnostic("W2512",
-"IAM policy uses NotAction which grants all actions except those listed - consider using Action instead",
-m,
-name,
-"",
-None,
-));
-            }
-        }
-    }
 }
 
 fn eval_deprecated_resource_types(ctx: &EvalContext) -> Vec<Diagnostic> {

@@ -82,10 +82,10 @@ violation contains make_diag_full("F3016", "FATAL", name, "DeletionPolicy",
     sprintf("DeletionPolicy must be one of Delete, Retain, RetainExceptOnCreate, Snapshot, got '%s'", [dp]),
     "", "") if {
     some name, res in input.resources
-    dp := res.deletionPolicy
-    dp != null
-    is_string(dp)
     res.resourceType in _snapshot_capable_types
+    scenarios := lifecycle_policy_scenarios(name, "DeletionPolicy")
+    some dp in scenarios
+    is_string(dp)
     not dp in (_base_deletion_policies | {"Snapshot"})
 }
 
@@ -93,10 +93,10 @@ violation contains make_diag_full("F3016", "FATAL", name, "DeletionPolicy",
     sprintf("DeletionPolicy must be one of Delete, Retain, RetainExceptOnCreate, got '%s'", [dp]),
     "", "") if {
     some name, res in input.resources
-    dp := res.deletionPolicy
-    dp != null
-    is_string(dp)
     not res.resourceType in _snapshot_capable_types
+    scenarios := lifecycle_policy_scenarios(name, "DeletionPolicy")
+    some dp in scenarios
+    is_string(dp)
     not dp in _base_deletion_policies
 }
 
@@ -104,10 +104,10 @@ violation contains make_diag_full("F3016", "FATAL", name, "DeletionPolicy",
     sprintf("DeletionPolicy must be one of Delete, Retain, RetainExceptOnCreate, Snapshot, got %s", [shape]),
     "", "") if {
     some name, res in input.resources
-    policy := res.deletionPolicy
-    policy != null
-    not is_string(policy)
     res.resourceType in _snapshot_capable_types
+    scenarios := lifecycle_policy_scenarios(name, "DeletionPolicy")
+    some policy in scenarios
+    not is_string(policy)
     shape := policy_value_shape(policy)
 }
 
@@ -115,10 +115,10 @@ violation contains make_diag_full("F3016", "FATAL", name, "DeletionPolicy",
     sprintf("DeletionPolicy must be one of Delete, Retain, RetainExceptOnCreate, got %s", [shape]),
     "", "") if {
     some name, res in input.resources
-    policy := res.deletionPolicy
-    policy != null
-    not is_string(policy)
     not res.resourceType in _snapshot_capable_types
+    scenarios := lifecycle_policy_scenarios(name, "DeletionPolicy")
+    some policy in scenarios
+    not is_string(policy)
     shape := policy_value_shape(policy)
 }
 

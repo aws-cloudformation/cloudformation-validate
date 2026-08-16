@@ -19,7 +19,7 @@ _output_skip_getatt_types := {
 }
 
 violation contains make_diag_at("F6101", "FATAL", "",
-    edge.sourcePath,
+    sprintf("%s.1", [edge.sourcePath]),
     sprintf("'%s' is not one of %s", [edge.attr, render_list(valid_attrs)])) if {
     some edge in input.edges
     edge.kind == "GetAtt"
@@ -55,6 +55,29 @@ violation contains make_diag_at("F6101", "FATAL", "",
     not edge.target in object.keys(input.parameters)
     not edge.target in _output_pseudo_parameters
     not edge.target in object.get(input, "samImplicitResources", [])
+}
+
+# GetAtt in an output names a resource that does not exist.
+violation contains make_diag_at("F6101", "FATAL", "",
+    sprintf("%s.0", [edge.sourcePath]),
+    sprintf("GetAtt '%s.%s' references a resource that does not exist", [edge.target, edge.attr])) if {
+    some edge in input.edges
+    edge.kind == "GetAtt"
+    startswith(edge.source, "__output__")
+    not edge.target in object.keys(input.resources)
+    not edge.target in object.get(input, "samImplicitResources", [])
+    not _has_module_resource
+    not _has_unexpanded_foreach_output
+}
+
+_has_module_resource if {
+    some _, res in input.resources
+    endswith(res.resourceType, "::MODULE")
+}
+
+_has_unexpanded_foreach_output if {
+    some key in object.keys(input.resources)
+    contains(key, "Fn::ForEach")
 }
 
 # GetAtt in output returns a non-string type (direct or nested in Sub/Join).

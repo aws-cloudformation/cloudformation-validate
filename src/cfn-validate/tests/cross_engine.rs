@@ -480,45 +480,75 @@ fn iam_action_resource_findings_target_authored_fields_in_both_engines() {
     }
 }
 
-#[test]
-fn good_templates_produce_no_fatal_or_error_diagnostics() {
-    let new_rule_ids: std::collections::HashSet<&str> = [
-        "E1002", "E1005", "E1015", "E1016", "E1027", "F1030", "F1031", "F1032", "E1033", "E1051", "E1052", "E3011",
-        "E3023", "E3026", "E3027", "E3029", "E3062", "E3617", "E3620", "E3621", "E3647", "E3672", "E3694", "E3640",
-        "E3642", "E3643", "E3644", "E3652", "E3653", "I2003", "W3002", "W3037", "W3660", "W3664", "W3671", "W3688",
-        "W3689", "W3693", "W3694", "W3698",
-    ]
-    .into_iter()
-    .collect();
+const GOOD_FIXTURES_WITH_EXPECTED_ERRORS: &[&str] = &[
+    "core/conditions.yaml",
+    "core/config_cfn_lint.json",
+    "core/config_cfn_lint.yaml",
+    "core/config_only_i1002.yaml",
+    "core/config_only_i1003.yaml",
+    "core/config_parameters.yaml",
+    "custom/is-defined.yaml",
+    "custom/numeric-inequalities-large.yaml",
+    "custom/numeric-inequalities-small.yaml",
+    "decode/parsing.json",
+    "functions/relationship_conditions.yaml",
+    "functions/sub.yaml",
+    "functions/sub_needed.yaml",
+    "functions/sub_needed_custom_excludes.yaml",
+    "functions_findinmap_enhanced.yaml",
+    "mappings/name.yaml",
+    "mappings/used.yaml",
+    "parameters/default.yaml",
+    "parameters/not_used_parameters.yaml",
+    "parameters/used_transforms.yaml",
+    "properties_ec2_vpc.yaml",
+    "resources/cloudformation/stack_nested.yaml",
+    "resources/dynamodb/attributes_transform.yaml",
+    "resources/elasticache/cache_cluster_failover.yaml",
+    "resources/iam/policy.yaml",
+    "resources/name.yaml",
+    "resources/properties/az_cdk.yaml",
+    "resources/properties/exclusive.yaml",
+    "resources/properties/list_duplicates.yaml",
+    "some_logs_stream_lambda.yaml",
+    "transform_serverless_globals.yaml",
+    "transform_serverless_ignore_globals.yaml",
+];
 
+/// Fixtures in the exception list have exact Fatal/Error diagnostics protected
+/// by golden tests; this complementary guard covers templates expected clean.
+#[test]
+fn good_templates_without_expected_errors_are_clean() {
     let sv = SchemaValidator::default();
     let root = common::templates_dir().join("good");
     let mut failures = Vec::new();
     for (engine_name, engine) in [("cel", &*CEL as &dyn ValidationEngine), ("rego", &*REGO as &dyn ValidationEngine)] {
         for entry in walkdir(&root) {
             let bytes = std::fs::read(&entry).unwrap();
+            let name = entry.strip_prefix(&root).unwrap_or(&entry);
+            let relative_name = name.to_string_lossy().replace('\\', "/");
+            if GOOD_FIXTURES_WITH_EXPECTED_ERRORS.contains(&relative_name.as_str()) {
+                continue;
+            }
             let report = match validate_bytes(engine, &sv, &bytes, Default::default()) {
                 Ok(r) => r,
-                Err(_) => continue,
+                Err(e) => {
+                    failures.push(format!("[{engine_name}] {}: validation error: {e}", name.display()));
+                    continue;
+                }
             };
             let bad: Vec<_> = report
                 .diagnostics
                 .iter()
-                .filter(|d| new_rule_ids.contains(d.rule_id.as_str()))
                 .filter(|d| matches!(d.severity, Severity::Fatal | Severity::Error))
                 .map(|d| format!("  {} {}: {}", d.rule_id, d.severity, d.message))
                 .collect();
             if !bad.is_empty() {
-                let name = entry.strip_prefix(&root).unwrap_or(&entry);
                 failures.push(format!("[{engine_name}] {}:\n{}", name.display(), bad.join("\n")));
             }
         }
     }
-    assert!(
-        failures.is_empty(),
-        "Good templates produced Fatal/Error diagnostics from new rules:\n{}",
-        failures.join("\n\n")
-    );
+    assert!(failures.is_empty(), "Good templates produced Fatal/Error diagnostics:\n{}", failures.join("\n\n"));
 }
 
 /// Every `good/sam` template must be clean of Fatal/Error diagnostics on both

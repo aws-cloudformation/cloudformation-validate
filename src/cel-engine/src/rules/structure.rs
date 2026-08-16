@@ -5,12 +5,11 @@ use rules::Category;
 use std::collections::HashSet;
 use std::sync::LazyLock;
 use template_model::consts::{
-    EDGE_KIND_GET_ATT, EDGE_KIND_REF, EDGE_KIND_SUB, FIELD_ATTR, FIELD_CONDITION, FIELD_CONDITIONS,
-    FIELD_DELETION_POLICY, FIELD_EDGES, FIELD_KIND, FIELD_MAPPINGS, FIELD_OUTGOING_REFS, FIELD_OUTPUTS,
-    FIELD_PARAMETERS, FIELD_RESOURCE_TYPE, FIELD_RESOURCES, FIELD_SOURCE, FIELD_SOURCE_PATH, FIELD_TARGET,
-    FIELD_UPDATE_REPLACE_POLICY, FN_FOR_EACH, FN_FOR_EACH_KEY_PREFIX, FN_IF, FN_TRANSFORM, KEY_DELETION_POLICY,
-    KEY_UPDATE_REPLACE_POLICY, MARKER_CONDITIONAL, MARKER_DYNAMIC, MARKER_ENUM, MARKER_REF,
-    OUTPUT_PSEUDO_RESOURCE_PREFIX, PARAM_TYPE_COMMA_DELIMITED_LIST, PARAM_TYPE_NUMBER, PARAM_TYPE_STRING,
+    EDGE_KIND_GET_ATT, EDGE_KIND_REF, EDGE_KIND_SUB, FIELD_ATTR, FIELD_CONDITION, FIELD_CONDITIONS, FIELD_EDGES,
+    FIELD_KIND, FIELD_MAPPINGS, FIELD_OUTGOING_REFS, FIELD_OUTPUTS, FIELD_PARAMETERS, FIELD_RESOURCE_TYPE,
+    FIELD_RESOURCES, FIELD_SOURCE, FIELD_SOURCE_PATH, FIELD_TARGET, FN_FOR_EACH, FN_FOR_EACH_KEY_PREFIX, FN_IF,
+    FN_TRANSFORM, KEY_DELETION_POLICY, KEY_UPDATE_REPLACE_POLICY, MARKER_CONDITIONAL, MARKER_DYNAMIC, MARKER_ENUM,
+    MARKER_REF, OUTPUT_PSEUDO_RESOURCE_PREFIX, PARAM_TYPE_COMMA_DELIMITED_LIST, PARAM_TYPE_NUMBER, PARAM_TYPE_STRING,
     POLICY_DELETE, POLICY_RETAIN, POLICY_RETAIN_EXCEPT_ON_CREATE, POLICY_SNAPSHOT, SECTION_CONDITIONS,
     SECTION_DESCRIPTION, SECTION_FORMAT_VERSION, SECTION_GLOBALS, SECTION_MAPPINGS, SECTION_METADATA, SECTION_OUTPUTS,
     SECTION_PARAMETERS, SECTION_RESOURCES, SECTION_RULES, SECTION_TRANSFORM, TRANSFORM_LANGUAGE_EXTENSIONS,
@@ -289,12 +288,12 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     if let Some(desc) = input.get("template").and_then(|t| t.get("description")).and_then(|v| v.as_str())
-        && desc.len() > 921
-        && desc.len() <= 1024
+        && desc.chars().count() > 921
+        && desc.chars().count() <= 1024
     {
         out.push(make_resource_diagnostic(
             "I1003",
-            &format!("Description length {} is approaching maximum of 1024", desc.len()),
+            &format!("Description length {} is approaching maximum of 1024", desc.chars().count()),
             m,
             "",
             "",
@@ -316,11 +315,11 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     if let Some(desc) = input.get("template").and_then(|t| t.get("description")).and_then(|v| v.as_str())
-        && desc.len() > 1024
+        && desc.chars().count() > 1024
     {
         out.push(make_resource_diagnostic(
             "F0011",
-            &format!("Description length {} exceeds maximum 1024", desc.len()),
+            &format!("Description length {} exceeds maximum 1024", desc.chars().count()),
             m,
             "",
             "",
@@ -434,16 +433,17 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
     let base_deletion = [POLICY_DELETE, POLICY_RETAIN, POLICY_RETAIN_EXCEPT_ON_CREATE];
     let base_update = [POLICY_DELETE, POLICY_RETAIN];
     if let Some(resources) = input.get(FIELD_RESOURCES).and_then(|r| r.as_object()) {
-        for (name, res) in resources {
-            let rtype = res.get(FIELD_RESOURCE_TYPE).and_then(|t| t.as_str()).unwrap_or("");
+        for (name, _res) in resources {
+            let rtype = m.resources.get(name.as_str()).map(|r| r.resource_type.as_str()).unwrap_or("");
             let snapshot_ok = SNAPSHOT_CAPABLE_TYPES.contains(&rtype);
-            if let Some(value) = res.get(FIELD_DELETION_POLICY) {
+
+            for scenario_val in m.lifecycle_policy_scenarios(name, KEY_DELETION_POLICY) {
                 let allowed = if snapshot_ok {
                     "Delete, Retain, RetainExceptOnCreate, Snapshot"
                 } else {
                     "Delete, Retain, RetainExceptOnCreate"
                 };
-                if let Some(policy) = value.as_str() {
+                if let Some(policy) = scenario_val.0.as_str() {
                     let valid = base_deletion.contains(&policy) || (snapshot_ok && policy == POLICY_SNAPSHOT);
                     if !valid {
                         out.push(make_resource_diagnostic(
@@ -455,7 +455,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                             None,
                         ));
                     }
-                } else if let Some(shape) = non_string_policy_shape(value) {
+                } else if let Some(shape) = non_string_policy_shape(&scenario_val.0) {
                     out.push(make_resource_diagnostic(
                         "F3016",
                         &format!("DeletionPolicy must be one of {}, got {}", allowed, shape),
@@ -466,9 +466,10 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                     ));
                 }
             }
-            if let Some(value) = res.get(FIELD_UPDATE_REPLACE_POLICY) {
+
+            for scenario_val in m.lifecycle_policy_scenarios(name, KEY_UPDATE_REPLACE_POLICY) {
                 let allowed = if snapshot_ok { "Delete, Retain, Snapshot" } else { "Delete, Retain" };
-                if let Some(policy) = value.as_str() {
+                if let Some(policy) = scenario_val.0.as_str() {
                     let valid = base_update.contains(&policy) || (snapshot_ok && policy == POLICY_SNAPSHOT);
                     if !valid {
                         out.push(make_resource_diagnostic(
@@ -480,7 +481,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                             None,
                         ));
                     }
-                } else if let Some(shape) = non_string_policy_shape(value) {
+                } else if let Some(shape) = non_string_policy_shape(&scenario_val.0) {
                     out.push(make_resource_diagnostic(
                         "F0018",
                         &format!("UpdateReplacePolicy must be one of {}, got {}", allowed, shape),
@@ -696,21 +697,41 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
     for (name, param) in &m.parameters {
         if let (Some(default), Some(allowed)) = (&param.default, &param.allowed_values)
             && !allowed.is_empty()
-            && !allowed.iter().any(|a| a == default)
         {
-            out.push(make_resource_diagnostic(
-                "F2012",
-                &format!(
-                    "Parameter '{}' Default '{}' is not in AllowedValues {}",
-                    name,
-                    default,
-                    render_str_list(allowed)
-                ),
-                m,
-                "",
-                &format!("{}/{}/Default", SECTION_PARAMETERS, name),
-                None,
-            ));
+            let is_cdl = param.param_type == PARAM_TYPE_COMMA_DELIMITED_LIST || param.param_type.starts_with("List<");
+            if is_cdl {
+                for element in default.split(',').map(|s| s.trim()) {
+                    if !allowed.iter().any(|a| a == element) {
+                        out.push(make_resource_diagnostic(
+                            "F2012",
+                            &format!(
+                                "Parameter '{}' Default '{}' is not in AllowedValues {}",
+                                name,
+                                element,
+                                render_str_list(allowed)
+                            ),
+                            m,
+                            "",
+                            &format!("{}/{}/Default", SECTION_PARAMETERS, name),
+                            None,
+                        ));
+                    }
+                }
+            } else if !allowed.iter().any(|a| a == default) {
+                out.push(make_resource_diagnostic(
+                    "F2012",
+                    &format!(
+                        "Parameter '{}' Default '{}' is not in AllowedValues {}",
+                        name,
+                        default,
+                        render_str_list(allowed)
+                    ),
+                    m,
+                    "",
+                    &format!("{}/{}/Default", SECTION_PARAMETERS, name),
+                    None,
+                ));
+            }
         }
     }
 
@@ -722,6 +743,8 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
             .and_then(|value| value.as_array())
             .map(|values| values.iter().filter_map(|value| value.as_str()).collect())
             .unwrap_or_default();
+        let has_module_or_foreach = m.resources.values().any(|r| r.resource_type.ends_with("::MODULE"))
+            || m.resources.keys().any(|k| k.contains("Fn::ForEach"));
         for edge in edges {
             let source = edge.get(FIELD_SOURCE).and_then(|value| value.as_str()).unwrap_or("");
             let Some(output_name) = source.strip_prefix(OUTPUT_PSEUDO_RESOURCE_PREFIX) else {
@@ -757,6 +780,16 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
 
             let attribute = edge.get(FIELD_ATTR).and_then(|value| value.as_str()).unwrap_or("");
             let Some(resource) = m.resources.get(target) else {
+                if !sam_implicit.contains(target) && !has_module_or_foreach {
+                    out.push(make_resource_diagnostic(
+                        "F6101",
+                        &format!("GetAtt '{}.{}' references a resource that does not exist", target, attribute),
+                        m,
+                        "",
+                        &format!("{}.0", source_path),
+                        None,
+                    ));
+                }
                 continue;
             };
             if let Some(valid_attributes) = ctx.cached_data.getatt_attrs.get(&resource.resource_type)
@@ -771,7 +804,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                     &format!("'{}' is not one of {}", attribute, render_str_list(valid_attributes)),
                     m,
                     "",
-                    source_path,
+                    &format!("{}.1", source_path),
                     None,
                 ));
                 continue;
@@ -919,11 +952,11 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
         // MinLength / MaxLength
         if let Some(min) = info.min_length
-            && (def.len() as u64) < min
+            && (def.chars().count() as u64) < min
         {
             out.push(make_resource_diagnostic(
                 "F2015",
-                &format!("Parameter '{}' Default length {} is less than MinLength {}", pname, def.len(), min),
+                &format!("Parameter '{}' Default length {} is less than MinLength {}", pname, def.chars().count(), min),
                 m,
                 "",
                 &path_str,
@@ -931,11 +964,11 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
             ));
         }
         if let Some(max) = info.max_length
-            && (def.len() as u64) > max
+            && (def.chars().count() as u64) > max
         {
             out.push(make_resource_diagnostic(
                 "F2015",
-                &format!("Parameter '{}' Default length {} exceeds MaxLength {}", pname, def.len(), max),
+                &format!("Parameter '{}' Default length {} exceeds MaxLength {}", pname, def.chars().count(), max),
                 m,
                 "",
                 &path_str,
@@ -1090,6 +1123,7 @@ fn non_string_policy_shape(value: &serde_json::Value) -> Option<&'static str> {
         }
         serde_json::Value::Number(_) => Some("a number"),
         serde_json::Value::Bool(_) => Some("a boolean"),
+        serde_json::Value::Null => Some("null"),
         _ => None,
     }
 }
