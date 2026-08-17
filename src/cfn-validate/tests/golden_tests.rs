@@ -232,6 +232,7 @@ fn report_metadata_contains_embedded_source_versions_on_all_outcomes() {
         let metadata = report["metadata"].as_object().expect("metadata should be an object");
         let actual_fields: std::collections::BTreeSet<_> = metadata.keys().map(String::as_str).collect();
         assert_eq!(actual_fields, expected_fields, "{name}: metadata field set");
+        assert!(!metadata.contains_key("budgetExhaustions"), "{name}: absent budgets must be omitted");
         assert_eq!(metadata["rulesEvaluated"].as_u64(), Some(expected_rules_evaluated), "{name}");
         assert_eq!(metadata.get("cfnLintVersion"), Some(&expected_cfn_lint), "{name}");
         assert_eq!(metadata.get("resourceSchemaVersion"), Some(&expected_resource_schema), "{name}");

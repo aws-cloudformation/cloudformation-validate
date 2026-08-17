@@ -8,6 +8,11 @@ on:
         required: false
         type: number
         default: 50
+      top_slowest:
+        description: 'Number of slowest templates to report per engine×binding'
+        required: false
+        type: number
+        default: 10
 
   schedule:
     # Weekly: every Monday at 06:00 UTC
@@ -122,12 +127,17 @@ jobs:
       shell: bash
       env:
         BENCHMARK_ITERATIONS: ${{ inputs.iterations }}
+        TOP_SLOWEST: ${{ inputs.top_slowest }}
       run: |
         set -euo pipefail
 
         benchmark_command=(python3 ../scripts/compare_benchmarks.py)
         if [[ -n "$BENCHMARK_ITERATIONS" ]]; then
           benchmark_command+=(--iterations "$BENCHMARK_ITERATIONS")
+        fi
+
+        if [[ -n "$TOP_SLOWEST" ]]; then
+          benchmark_command+=(--top-slowest "$TOP_SLOWEST")
         fi
 
         "${benchmark_command[@]}"
@@ -183,4 +193,3 @@ jobs:
         name: benchmark-comparison
         path: scripts/snapshots/benchmark_comparison.md
         if-no-files-found: warn
-

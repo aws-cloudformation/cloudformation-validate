@@ -277957,20 +277957,28 @@
   },
   "security/combined_conditions.yaml": {
     "filePath": "security/combined_conditions.yaml",
-    "status": "OK",
+    "status": "ANALYSIS_INCOMPLETE",
     "version": "1.8.0",
     "metadata": {
       "resourcesScanned": 20,
       "counts": {
         "fatal": 0,
         "errors": 0,
-        "warnings": 81,
-        "informational": 43,
+        "warnings": 82,
+        "informational": 40,
         "debug": 0
       },
-      "suppressed": 2,
+      "suppressed": 0,
       "strict": false,
-      "severityLevel": "DEBUG"
+      "severityLevel": "DEBUG",
+      "budgetExhaustions": [
+        {
+          "kind": "conditionParameterCombinations",
+          "description": "Evaluating template conditions required more parameter combinations than the supported limit.",
+          "limit": 1048576,
+          "analysisIncomplete": true
+        }
+      ]
     },
     "diagnostics": [
       {
@@ -279290,6 +279298,27 @@
         "phase": "LINT"
       },
       {
+        "ruleId": "W9052",
+        "severity": "WARN",
+        "message": "Deterministic validation budgets were exhausted; analysis may be incomplete and some findings may be omitted",
+        "source": "ENGINE",
+        "category": "Structure",
+        "ruleDescription": "Deterministic validation budgets were exhausted; see report metadata for completeness impact",
+        "phase": "LINT",
+        "context": {
+          "extra": {
+            "budgetExhaustions": [
+              {
+                "kind": "conditionParameterCombinations",
+                "description": "Evaluating template conditions required more parameter combinations than the supported limit.",
+                "limit": 1048576,
+                "analysisIncomplete": true
+              }
+            ]
+          }
+        }
+      },
+      {
         "ruleId": "W9053",
         "severity": "WARN",
         "message": "Condition 'Fusion023' is equivalent to condition 'Fusion001' - consider consolidating",
@@ -280284,33 +280313,6 @@
         "endLine": 981,
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9052",
-        "severity": "INFO",
-        "message": "Condition satisfiability analysis budget exhausted during: DeMorgan19=false",
-        "source": "ENGINE",
-        "category": "Structure",
-        "ruleDescription": "Condition-dependent validation could not be completed because an analysis budget was exceeded",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9052",
-        "severity": "INFO",
-        "message": "Condition satisfiability analysis budget exhausted during: DeMorgan19=true, Fusion000=false",
-        "source": "ENGINE",
-        "category": "Structure",
-        "ruleDescription": "Condition-dependent validation could not be completed because an analysis budget was exceeded",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9052",
-        "severity": "INFO",
-        "message": "Condition satisfiability analysis budget exhausted during: DeMorgan19=true, Fusion000=true",
-        "source": "ENGINE",
-        "category": "Structure",
-        "ruleDescription": "Condition-dependent validation could not be completed because an analysis budget was exceeded",
         "phase": "LINT"
       }
     ]
@@ -281347,20 +281349,28 @@
   },
   "security/condition_chain_wide.yaml": {
     "filePath": "security/condition_chain_wide.yaml",
-    "status": "OK",
+    "status": "ANALYSIS_INCOMPLETE",
     "version": "1.8.0",
     "metadata": {
       "resourcesScanned": 10,
       "counts": {
         "fatal": 0,
         "errors": 0,
-        "warnings": 43,
-        "informational": 25,
+        "warnings": 44,
+        "informational": 20,
         "debug": 0
       },
       "suppressed": 0,
       "strict": false,
-      "severityLevel": "DEBUG"
+      "severityLevel": "DEBUG",
+      "budgetExhaustions": [
+        {
+          "kind": "conditionParameterCombinations",
+          "description": "Evaluating template conditions required more parameter combinations than the supported limit.",
+          "limit": 1048576,
+          "analysisIncomplete": true
+        }
+      ]
     },
     "diagnostics": [
       {
@@ -282148,6 +282158,27 @@
         "phase": "LINT"
       },
       {
+        "ruleId": "W9052",
+        "severity": "WARN",
+        "message": "Deterministic validation budgets were exhausted; analysis may be incomplete and some findings may be omitted",
+        "source": "ENGINE",
+        "category": "Structure",
+        "ruleDescription": "Deterministic validation budgets were exhausted; see report metadata for completeness impact",
+        "phase": "LINT",
+        "context": {
+          "extra": {
+            "budgetExhaustions": [
+              {
+                "kind": "conditionParameterCombinations",
+                "description": "Evaluating template conditions required more parameter combinations than the supported limit.",
+                "limit": 1048576,
+                "analysisIncomplete": true
+              }
+            ]
+          }
+        }
+      },
+      {
         "ruleId": "I9001",
         "severity": "INFO",
         "message": "Property 'TopicName' is create-only; updating it will cause resource replacement",
@@ -282585,51 +282616,6 @@
         "endLine": 631,
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9052",
-        "severity": "INFO",
-        "message": "Condition satisfiability analysis budget exhausted during: Cond00=true, Cond20=true",
-        "source": "ENGINE",
-        "category": "Structure",
-        "ruleDescription": "Condition-dependent validation could not be completed because an analysis budget was exceeded",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9052",
-        "severity": "INFO",
-        "message": "Condition satisfiability analysis budget exhausted during: Cond00=true, Cond21=true",
-        "source": "ENGINE",
-        "category": "Structure",
-        "ruleDescription": "Condition-dependent validation could not be completed because an analysis budget was exceeded",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9052",
-        "severity": "INFO",
-        "message": "Condition satisfiability analysis budget exhausted during: Cond00=true, Cond22=true",
-        "source": "ENGINE",
-        "category": "Structure",
-        "ruleDescription": "Condition-dependent validation could not be completed because an analysis budget was exceeded",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9052",
-        "severity": "INFO",
-        "message": "Condition satisfiability analysis budget exhausted during: Cond00=true, Cond23=true",
-        "source": "ENGINE",
-        "category": "Structure",
-        "ruleDescription": "Condition-dependent validation could not be completed because an analysis budget was exceeded",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9052",
-        "severity": "INFO",
-        "message": "Condition satisfiability analysis budget exhausted during: Cond00=true, Cond24=true",
-        "source": "ENGINE",
-        "category": "Structure",
-        "ruleDescription": "Condition-dependent validation could not be completed because an analysis budget was exceeded",
         "phase": "LINT"
       }
     ]
@@ -316122,6 +316108,1267 @@
       }
     ]
   },
+  "security/deep_intrinsic_resolution.yaml": {
+    "filePath": "security/deep_intrinsic_resolution.yaml",
+    "status": "OK",
+    "version": "1.8.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 63,
+        "informational": 2,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 141,
+        "startColumn": 265,
+        "endLine": 141,
+        "endColumn": 266,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 142,
+        "startColumn": 261,
+        "endLine": 142,
+        "endColumn": 262,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 143,
+        "startColumn": 257,
+        "endLine": 143,
+        "endColumn": 258,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 144,
+        "startColumn": 253,
+        "endLine": 144,
+        "endColumn": 254,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 145,
+        "startColumn": 249,
+        "endLine": 145,
+        "endColumn": 250,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 146,
+        "startColumn": 245,
+        "endLine": 146,
+        "endColumn": 246,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 147,
+        "startColumn": 241,
+        "endLine": 147,
+        "endColumn": 242,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 148,
+        "startColumn": 237,
+        "endLine": 148,
+        "endColumn": 238,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 149,
+        "startColumn": 233,
+        "endLine": 149,
+        "endColumn": 234,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 150,
+        "startColumn": 229,
+        "endLine": 150,
+        "endColumn": 230,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 151,
+        "startColumn": 225,
+        "endLine": 151,
+        "endColumn": 226,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 152,
+        "startColumn": 221,
+        "endLine": 152,
+        "endColumn": 222,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 153,
+        "startColumn": 217,
+        "endLine": 153,
+        "endColumn": 218,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 154,
+        "startColumn": 213,
+        "endLine": 154,
+        "endColumn": 214,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 155,
+        "startColumn": 209,
+        "endLine": 155,
+        "endColumn": 210,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 156,
+        "startColumn": 205,
+        "endLine": 156,
+        "endColumn": 206,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 157,
+        "startColumn": 201,
+        "endLine": 157,
+        "endColumn": 202,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 158,
+        "startColumn": 197,
+        "endLine": 158,
+        "endColumn": 198,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 159,
+        "startColumn": 193,
+        "endLine": 159,
+        "endColumn": 194,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 160,
+        "startColumn": 189,
+        "endLine": 160,
+        "endColumn": 190,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 161,
+        "startColumn": 185,
+        "endLine": 161,
+        "endColumn": 186,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 162,
+        "startColumn": 181,
+        "endLine": 162,
+        "endColumn": 182,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 163,
+        "startColumn": 177,
+        "endLine": 163,
+        "endColumn": 178,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 164,
+        "startColumn": 173,
+        "endLine": 164,
+        "endColumn": 174,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 165,
+        "startColumn": 169,
+        "endLine": 165,
+        "endColumn": 170,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 166,
+        "startColumn": 165,
+        "endLine": 166,
+        "endColumn": 166,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 167,
+        "startColumn": 161,
+        "endLine": 167,
+        "endColumn": 162,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 168,
+        "startColumn": 157,
+        "endLine": 168,
+        "endColumn": 158,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 169,
+        "startColumn": 153,
+        "endLine": 169,
+        "endColumn": 154,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 170,
+        "startColumn": 149,
+        "endLine": 170,
+        "endColumn": 150,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 171,
+        "startColumn": 145,
+        "endLine": 171,
+        "endColumn": 146,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 172,
+        "startColumn": 141,
+        "endLine": 172,
+        "endColumn": 142,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 173,
+        "startColumn": 137,
+        "endLine": 173,
+        "endColumn": 138,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 174,
+        "startColumn": 133,
+        "endLine": 174,
+        "endColumn": 134,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 175,
+        "startColumn": 129,
+        "endLine": 175,
+        "endColumn": 130,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 176,
+        "startColumn": 125,
+        "endLine": 176,
+        "endColumn": 126,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 177,
+        "startColumn": 121,
+        "endLine": 177,
+        "endColumn": 122,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 178,
+        "startColumn": 117,
+        "endLine": 178,
+        "endColumn": 118,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 179,
+        "startColumn": 113,
+        "endLine": 179,
+        "endColumn": 114,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 180,
+        "startColumn": 109,
+        "endLine": 180,
+        "endColumn": 110,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 181,
+        "startColumn": 105,
+        "endLine": 181,
+        "endColumn": 106,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 182,
+        "startColumn": 101,
+        "endLine": 182,
+        "endColumn": 102,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 183,
+        "startColumn": 97,
+        "endLine": 183,
+        "endColumn": 98,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 184,
+        "startColumn": 93,
+        "endLine": 184,
+        "endColumn": 94,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 185,
+        "startColumn": 89,
+        "endLine": 185,
+        "endColumn": 90,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 186,
+        "startColumn": 85,
+        "endLine": 186,
+        "endColumn": 86,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 187,
+        "startColumn": 81,
+        "endLine": 187,
+        "endColumn": 82,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 188,
+        "startColumn": 77,
+        "endLine": 188,
+        "endColumn": 78,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 189,
+        "startColumn": 73,
+        "endLine": 189,
+        "endColumn": 74,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 190,
+        "startColumn": 69,
+        "endLine": 190,
+        "endColumn": 70,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 191,
+        "startColumn": 65,
+        "endLine": 191,
+        "endColumn": 66,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 192,
+        "startColumn": 61,
+        "endLine": 192,
+        "endColumn": 62,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 193,
+        "startColumn": 57,
+        "endLine": 193,
+        "endColumn": 58,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 194,
+        "startColumn": 53,
+        "endLine": 194,
+        "endColumn": 54,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 195,
+        "startColumn": 49,
+        "endLine": 195,
+        "endColumn": 50,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 196,
+        "startColumn": 45,
+        "endLine": 196,
+        "endColumn": 46,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 197,
+        "startColumn": 41,
+        "endLine": 197,
+        "endColumn": 42,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 198,
+        "startColumn": 37,
+        "endLine": 198,
+        "endColumn": 38,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 199,
+        "startColumn": 33,
+        "endLine": 199,
+        "endColumn": 34,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 200,
+        "startColumn": 29,
+        "endLine": 200,
+        "endColumn": 30,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 201,
+        "startColumn": 25,
+        "endLine": 201,
+        "endColumn": 26,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 202,
+        "startColumn": 21,
+        "endLine": 202,
+        "endColumn": 22,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 203,
+        "startColumn": 17,
+        "endLine": 203,
+        "endColumn": 18,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'TopicName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName",
+        "category": "Best Practice",
+        "startLine": 11,
+        "startColumn": 7,
+        "endLine": 11,
+        "endColumn": 16,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-sns",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Fn::If on condition 'IsUsEast1'"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'DeepIfResource' of type 'AWS::SNS::Topic' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "DeepIfResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 10,
+        "startColumn": 5,
+        "endLine": 10,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
   "security/deep_nesting.json": {
     "filePath": "security/deep_nesting.json",
     "status": "ERROR",
@@ -316151,6 +317398,78 @@
         "endLine": 8,
         "endColumn": 1134,
         "ruleDescription": "Invalid YAML/JSON syntax",
+        "phase": "PARSE"
+      }
+    ]
+  },
+  "security/deep_yaml_nesting.yaml": {
+    "filePath": "security/deep_yaml_nesting.yaml",
+    "status": "ERROR",
+    "version": "1.8.0",
+    "metadata": {
+      "resourcesScanned": 0,
+      "counts": {
+        "fatal": 1,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "F1101",
+        "severity": "FATAL",
+        "message": "Template exceeds the maximum structural nesting depth of 512 at line 518",
+        "source": "SCHEMA",
+        "category": "Structure",
+        "startLine": 518,
+        "startColumn": 1033,
+        "endLine": 518,
+        "endColumn": 1033,
+        "ruleDescription": "Invalid YAML/JSON syntax",
+        "phase": "PARSE"
+      }
+    ]
+  },
+  "security/foreach_branch_explosion.yaml": {
+    "filePath": "security/foreach_branch_explosion.yaml",
+    "status": "OK",
+    "version": "1.8.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 1,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E0001",
+        "severity": "ERROR",
+        "message": "Error transforming template: Fn::ForEach expansion budget exceeded (deterministic work limit: 100000); no partial transformed section was applied",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "Fn::ForEach::Outer",
+          "entityType": "Resource",
+          "resourceType": ""
+        },
+        "propertyPath": "Resources/Fn::ForEach::Outer/2/Fn::ForEach::Middle/2/Fn::ForEach::Inner/2/R&{A}&{B}&{C}/Metadata/ExpansionPayload",
+        "category": "Structure",
+        "startLine": 21,
+        "startColumn": 19,
+        "endLine": 21,
+        "endColumn": 35,
+        "ruleDescription": "SAM (AWS::Serverless) transform would reject the template",
         "phase": "PARSE"
       }
     ]
@@ -332034,20 +333353,28 @@
   },
   "security/pathological_conditions.yaml": {
     "filePath": "security/pathological_conditions.yaml",
-    "status": "OK",
+    "status": "ANALYSIS_INCOMPLETE",
     "version": "1.8.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
         "errors": 0,
-        "warnings": 158,
-        "informational": 3,
+        "warnings": 159,
+        "informational": 1,
         "debug": 0
       },
-      "suppressed": 3,
+      "suppressed": 0,
       "strict": false,
-      "severityLevel": "DEBUG"
+      "severityLevel": "DEBUG",
+      "budgetExhaustions": [
+        {
+          "kind": "conditionParameterCombinations",
+          "description": "Evaluating template conditions required more parameter combinations than the supported limit.",
+          "limit": 1048576,
+          "analysisIncomplete": true
+        }
+      ]
     },
     "diagnostics": [
       {
@@ -333492,6 +334819,27 @@
         "phase": "LINT"
       },
       {
+        "ruleId": "W9052",
+        "severity": "WARN",
+        "message": "Deterministic validation budgets were exhausted; analysis may be incomplete and some findings may be omitted",
+        "source": "ENGINE",
+        "category": "Structure",
+        "ruleDescription": "Deterministic validation budgets were exhausted; see report metadata for completeness impact",
+        "phase": "LINT",
+        "context": {
+          "extra": {
+            "budgetExhaustions": [
+              {
+                "kind": "conditionParameterCombinations",
+                "description": "Evaluating template conditions required more parameter combinations than the supported limit.",
+                "limit": 1048576,
+                "analysisIncomplete": true
+              }
+            ]
+          }
+        }
+      },
+      {
         "ruleId": "W9053",
         "severity": "WARN",
         "message": "Condition 'Derived002' is equivalent to condition 'Derived000' - consider consolidating",
@@ -334524,43 +335872,33 @@
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"
-      },
-      {
-        "ruleId": "I9052",
-        "severity": "INFO",
-        "message": "Condition satisfiability analysis budget exhausted during: Derived079=false",
-        "source": "ENGINE",
-        "category": "Structure",
-        "ruleDescription": "Condition-dependent validation could not be completed because an analysis budget was exceeded",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9052",
-        "severity": "INFO",
-        "message": "Condition satisfiability analysis budget exhausted during: Derived079=true",
-        "source": "ENGINE",
-        "category": "Structure",
-        "ruleDescription": "Condition-dependent validation could not be completed because an analysis budget was exceeded",
-        "phase": "LINT"
       }
     ]
   },
   "security/scenario_assignment_budget.yaml": {
     "filePath": "security/scenario_assignment_budget.yaml",
-    "status": "OK",
+    "status": "ANALYSIS_INCOMPLETE",
     "version": "1.8.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
         "fatal": 249,
         "errors": 0,
-        "warnings": 0,
-        "informational": 7,
+        "warnings": 1,
+        "informational": 6,
         "debug": 0
       },
       "suppressed": 0,
       "strict": false,
-      "severityLevel": "DEBUG"
+      "severityLevel": "DEBUG",
+      "budgetExhaustions": [
+        {
+          "kind": "schemaScenarioAssignments",
+          "description": "Checking resource schemas required more conditional value assignments than the supported limit.",
+          "limit": 256,
+          "analysisIncomplete": true
+        }
+      ]
     },
     "diagnostics": [
       {
@@ -401151,6 +402489,27 @@
         }
       },
       {
+        "ruleId": "W9052",
+        "severity": "WARN",
+        "message": "Deterministic validation budgets were exhausted; analysis may be incomplete and some findings may be omitted",
+        "source": "ENGINE",
+        "category": "Structure",
+        "ruleDescription": "Deterministic validation budgets were exhausted; see report metadata for completeness impact",
+        "phase": "LINT",
+        "context": {
+          "extra": {
+            "budgetExhaustions": [
+              {
+                "kind": "schemaScenarioAssignments",
+                "description": "Checking resource schemas required more conditional value assignments than the supported limit.",
+                "limit": 256,
+                "analysisIncomplete": true
+              }
+            ]
+          }
+        }
+      },
+      {
         "ruleId": "I9001",
         "severity": "INFO",
         "message": "Property 'AssistantId' is create-only; updating it will cause resource replacement",
@@ -401281,26 +402640,6 @@
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"
-      },
-      {
-        "ruleId": "I9052",
-        "severity": "INFO",
-        "message": "Conditional schema analysis budget exhausted; validation of this property's condition scenarios was curtailed and some schema diagnostics may be omitted",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "ExhaustedBudgetAgent",
-          "entityType": "Resource",
-          "resourceType": "AWS::Wisdom::AIAgent"
-        },
-        "propertyPath": "Properties.Configuration",
-        "category": "Structure",
-        "startLine": 72,
-        "startColumn": 7,
-        "endLine": 72,
-        "endColumn": 20,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
-        "ruleDescription": "Condition-dependent validation could not be completed because an analysis budget was exceeded",
-        "phase": "SCHEMA"
       }
     ]
   }

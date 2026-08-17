@@ -234,7 +234,7 @@ val diagnostics = validator.validate(File("template.yaml"))
 ```kotlin
 data class StandardReport(
     val filePath: String,
-    val status: ReportStatus,            // OK or ERROR (ERROR when template fails to parse)
+    val status: ReportStatus,            // OK, ANALYSIS_INCOMPLETE (findings may be omitted), or ERROR (pipeline failure)
     val version: String,
     val metadata: ReportMetadata,
     val performance: PerformanceMetrics,
@@ -245,6 +245,11 @@ data class StandardReport(
 `DetailedReport` has the same structure but its diagnostics include additional fields: `documentationUrl`,
 `ruleDescription`, `phase` (`PARSE` | `SCHEMA` | `LINT`), and `context` (`ViolationContext` with
 `actualValue`, `expectedConstraint`, `resolutionSource`, etc.).
+
+Each optional budget-exhaustion record retains a stable machine-readable kind and also includes a
+human-readable description sentence, the numeric limit, and whether that specific exhaustion makes analysis
+incomplete. `requiredPropertyCombinations` is context-only, so its `analysisIncomplete` value is `false` and the
+report can remain `ReportStatus.OK`.
 
 ### StandardDiagnostic
 

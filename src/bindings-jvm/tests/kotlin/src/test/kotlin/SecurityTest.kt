@@ -1,3 +1,4 @@
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTimeoutPreemptively
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -43,6 +44,14 @@ class SecurityTest {
                                     else -> error("unsupported engine type")
                                 }
                             assertNotNull(report.status)
+                            if (relativePath == "scenario_assignment_budget.yaml") {
+                                assertEquals("ANALYSIS_INCOMPLETE", report.status.name)
+                                assertTrue(!report.metadata.budgetExhaustions.isNullOrEmpty())
+                                assertTrue(report.metadata.budgetExhaustions?.first()?.description?.endsWith(".") == true)
+                            }
+                            if (relativePath == "condition_fusion.yaml") {
+                                assertTrue(report.metadata.budgetExhaustions == null)
+                            }
                             assertNotNull(report.diagnostics)
                         } catch (error: ValidationException) {
                             assertTrue(

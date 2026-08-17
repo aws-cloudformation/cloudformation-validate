@@ -1401,9 +1401,9 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         origin: RuleOrigin::Engine,
     },
     RuleDefinition {
-        id: "I9052",
+        id: "W9052",
         category: Category::Structure,
-        description: "Condition-dependent validation could not be completed because an analysis budget was exceeded",
+        description: "Deterministic validation budgets were exhausted; see report metadata for completeness impact",
         origin: RuleOrigin::Engine,
     },
     RuleDefinition {

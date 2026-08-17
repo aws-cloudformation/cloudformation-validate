@@ -308,6 +308,17 @@ fn push_scenario(
     }
 }
 
+/// Expands deployment scenarios using the standard per-value limit and reports
+/// whether at least one possible scenario was omitted.
+pub fn collect_scenarios_signaled(
+    value: &ResolvedValue,
+    assumptions: &HashMap<String, bool>,
+    results: &mut Vec<(ResolvedValue, HashMap<String, bool>)>,
+    curtailed: &mut bool,
+) {
+    *curtailed |= collect_scenarios(value, assumptions, MAX_SCENARIO_COMBINATIONS, results);
+}
+
 pub fn contains_dynamic_resolved(rv: &ResolvedValue) -> bool {
     match rv {
         ResolvedValue::Dynamic { reason: _ } | ResolvedValue::TypedDynamic { .. } | ResolvedValue::Reference { .. } => {
@@ -904,6 +915,43 @@ mod tests {
         collect_scenarios(&val, &assumptions, MAX_SCENARIO_COMBINATIONS, &mut results);
         assert_eq!(results.len(), 1);
         assert!(matches!(&results[0].0, ResolvedValue::Concrete { value: v } if v.0 == json!(1)));
+    }
+
+    #[test]
+    fn direct_enum_at_scenario_limit_is_not_curtailed() {
+        let value = ResolvedValue::Enum {
+            variants: (0..MAX_SCENARIO_COMBINATIONS)
+                .map(|index| ResolvedValue::Concrete { value: json!(index).into() })
+                .collect(),
+        };
+        let mut scenarios = Vec::new();
+        let mut curtailed = false;
+
+        collect_scenarios_signaled(&value, &HashMap::new(), &mut scenarios, &mut curtailed);
+
+        assert_eq!(scenarios.len(), MAX_SCENARIO_COMBINATIONS);
+        assert!(!curtailed, "an exact-fit direct enum must not report omitted scenarios");
+    }
+
+    #[test]
+    fn conditional_branch_one_over_scenario_limit_is_curtailed() {
+        let value = ResolvedValue::Conditional {
+            condition: "UseEnum".into(),
+            if_true: Box::new(ResolvedValue::Enum {
+                variants: (0..MAX_SCENARIO_COMBINATIONS)
+                    .map(|index| ResolvedValue::Concrete { value: json!(index).into() })
+                    .collect(),
+            }),
+            if_false: Box::new(ResolvedValue::Concrete { value: json!("fallback").into() }),
+        };
+        let mut scenarios = Vec::new();
+        let mut curtailed = false;
+
+        collect_scenarios_signaled(&value, &HashMap::new(), &mut scenarios, &mut curtailed);
+
+        assert_eq!(scenarios.len(), MAX_SCENARIO_COMBINATIONS);
+        assert!(curtailed, "the first omitted conditional-branch scenario must be reported");
+        assert!(scenarios.iter().all(|(_, conditions)| conditions.get("UseEnum") == Some(&true)));
     }
 
     #[test]
