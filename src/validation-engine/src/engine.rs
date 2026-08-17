@@ -2,9 +2,9 @@
 use data_source::AdditionalSchemaSource;
 use data_source::embedded::{CFN_LINT_VERSION, RESOURCE_SCHEMA_VERSION};
 use diagnostics::{
-    DetailLevel, Diagnostic, Entity, PerformanceMetrics, Phase, PhaseMetric, RegisteredDiagnostic, RelatedResource,
-    ReportMetadata, ReportStatus, ResourceRef, Summary, ValidationReport, ViolationContext, apply_filters,
-    diagnostic_from_parse_defect, phase_metric, resolve_section_span,
+    BudgetExhaustionRecord, DetailLevel, Diagnostic, Entity, PerformanceMetrics, Phase, PhaseMetric,
+    RegisteredDiagnostic, RelatedResource, ReportMetadata, ReportStatus, ResourceRef, Summary, ValidationReport,
+    ViolationContext, apply_filters, diagnostic_from_parse_defect, phase_metric, resolve_section_span,
 };
 use rules::{
     FilterConfig, RuleInfo, RuleMetadataEntry, RuleOrigin, Severity, is_fatal_rule, is_valid_custom_rule_id,
@@ -268,17 +268,8 @@ pub(crate) fn validate(
 
         // The satisfiability budget is consumed almost entirely by the rule
         // evaluation that just ran, so this is the earliest point the exhausted
-        // queries are observable. Emitting it here (rather than at model build)
-        // is what lets the diagnostic actually fire.
-        for query in model.conditions.budget_exhausted_queries() {
-            all_diagnostics.push(
-                RegisteredDiagnostic::new(
-                    "I9052",
-                    format!("Condition satisfiability analysis budget exhausted during: {}", query),
-                )
-                .build(),
-            );
-        }
+        // queries are observable. Budget exhaustions are recorded into the
+        // model-level tracker by the condition model as they occur.
 
         if config.pseudo_parameter_overrides.region.is_none() && region_enums::template_has_region_scoped_value(&model)
         {
@@ -318,6 +309,55 @@ pub(crate) fn validate(
         }
     }
 
+    // Filtering may suppress the visible warning, so report metadata is captured
+    // independently before finalization.
+    let exhausted_kinds = model.exhausted_budget_kinds();
+    let budget_exhaustion_records: Vec<BudgetExhaustionRecord> = exhausted_kinds
+        .iter()
+        .map(|kind| BudgetExhaustionRecord {
+            kind: kind.as_str().to_string(),
+            limit: kind.limit(),
+            analysis_incomplete: kind.analysis_incomplete(),
+        })
+        .collect();
+    let analysis_incomplete = model.budget_analysis_incomplete();
+
+    if !config.disable_builtin_rules && !exhausted_kinds.is_empty() {
+        let message = if analysis_incomplete {
+            "Deterministic validation budgets were exhausted; analysis may be incomplete and some findings may be omitted"
+        } else {
+            "Deterministic validation budgets were exhausted; analysis completed but some detail was omitted"
+        };
+        let budget_context = exhausted_kinds
+            .iter()
+            .map(|kind| {
+                serde_json::json!({
+                    "kind": kind.as_str(),
+                    "limit": kind.limit(),
+                    "analysisIncomplete": kind.analysis_incomplete(),
+                })
+            })
+            .collect();
+        let mut context_extra = HashMap::new();
+        context_extra.insert("budgetExhaustions".to_string(), serde_json::Value::Array(budget_context).into());
+        let mut budget_warning = RegisteredDiagnostic::new("W9052", message).build();
+        budget_warning.context = Some(ViolationContext {
+            actual_value: None,
+            expected_constraint: None,
+            property: None,
+            lifecycle: None,
+            resolution_source: None,
+            extra: Some(context_extra),
+        });
+
+        let warning_index = all_diagnostics.len();
+        all_diagnostics.push(budget_warning);
+        let warning_slice = &mut all_diagnostics[warning_index..];
+        backfill_locations(warning_slice, &model);
+        backfill_entities(warning_slice, &model);
+        enrich_diagnostics(warning_slice, &model, registry_metadata, &external_metadata, &config.detail_level);
+    }
+
     let (total_before, suppressed) = finalize_diagnostics(&mut all_diagnostics, &config);
 
     if suppressed > 0 {
@@ -339,6 +379,10 @@ pub(crate) fn validate(
         config.severity_level,
         file_path,
     );
+    if analysis_incomplete {
+        report.status = ReportStatus::AnalysisIncomplete;
+    }
+    report.metadata.budget_exhaustions = (!budget_exhaustion_records.is_empty()).then_some(budget_exhaustion_records);
     let finalize_metric = phase_metric(t_post);
 
     report.performance.schema_init = schema_validator.init_metric().clone();
@@ -416,6 +460,7 @@ pub fn validate_bytes_with_path(
                     suppressed: 0,
                     strict: config.strict,
                     severity_level: config.severity_level,
+                    budget_exhaustions: None,
                 },
                 performance: PerformanceMetrics {
                     schema_init: PhaseMetric { duration_ms: 0.0 },
@@ -688,6 +733,7 @@ fn build_report_with_versions(
             suppressed,
             strict,
             severity_level,
+            budget_exhaustions: None,
         },
         performance: PerformanceMetrics {
             schema_init: PhaseMetric { duration_ms: 0.0 },
@@ -1100,7 +1146,7 @@ pub fn make_resource_diagnostic_at_source(
 mod tests {
     use super::*;
     use diagnostics::Phase;
-    use rules::{Category, build_rule_metadata_map, lookup_rule};
+    use rules::{Category, RuleFilterConfig, build_rule_metadata_map, lookup_rule};
     use template_model::{SAM_TRANSFORM_ERROR_PREFIX, SAM_TRANSFORM_ERROR_RULE_ID};
 
     const TEST_CFN_LINT_VERSION: &str = "https://github.com/aws-cloudformation/cfn-lint@1.54.0";
@@ -2641,6 +2687,242 @@ Resources:
     }
 
     const WELL_FORMED_TEMPLATE: &[u8] = b"Resources:\n  Bucket:\n    Type: AWS::S3::Bucket\n";
+
+    /// A test engine that records specified budget kinds during evaluation.
+    struct BudgetExhaustingEngine {
+        kinds: Vec<template_model::BudgetKind>,
+        metadata: HashMap<String, RuleMetadataEntry>,
+        metric: PhaseMetric,
+    }
+
+    impl BudgetExhaustingEngine {
+        fn new(kinds: Vec<template_model::BudgetKind>) -> Self {
+            Self { kinds, metadata: build_rule_metadata_map(), metric: PhaseMetric { duration_ms: 0.0 } }
+        }
+    }
+
+    impl ValidationEngine for BudgetExhaustingEngine {
+        fn engine_name(&self) -> &str {
+            "budget-test-engine"
+        }
+
+        fn evaluate_rules(
+            &self,
+            model: &Arc<SemanticModel>,
+            _config: &ValidateConfig,
+        ) -> Result<Vec<Diagnostic>, ValidationError> {
+            for kind in &self.kinds {
+                model.record_budget_exhaustion(*kind);
+            }
+            Ok(Vec::new())
+        }
+
+        fn list_rules(&self) -> Vec<RuleInfo> {
+            Vec::new()
+        }
+
+        fn rule_metadata(&self) -> &HashMap<String, RuleMetadataEntry> {
+            &self.metadata
+        }
+
+        fn external_rule_metadata(&self) -> HashMap<String, RuleMetadataEntry> {
+            HashMap::new()
+        }
+
+        fn init_metric(&self) -> &PhaseMetric {
+            &self.metric
+        }
+    }
+
+    #[test]
+    fn budget_exhaustion_emits_one_warning_with_metadata() {
+        use template_model::BudgetKind;
+        let engine = BudgetExhaustingEngine::new(vec![
+            BudgetKind::ResolverDepth,
+            BudgetKind::EnumExpansion,
+            BudgetKind::ResolverDepth, // duplicate — must not create a second entry
+        ]);
+        let schema_validator = SchemaValidator::default();
+        let report = validate_bytes(
+            &engine,
+            &schema_validator,
+            WELL_FORMED_TEMPLATE,
+            ValidateConfig { detail_level: DetailLevel::Detailed, ..Default::default() },
+        )
+        .expect("validation must succeed");
+
+        let budget_warnings: Vec<_> = report.diagnostics.iter().filter(|d| d.rule_id == "W9052").collect();
+        assert_eq!(budget_warnings.len(), 1, "exactly one aggregate budget warning must be emitted");
+        let w = budget_warnings[0];
+        assert_eq!(w.severity, Severity::Warn);
+        assert_eq!(
+            w.rule_description.as_deref(),
+            Some("Deterministic validation budgets were exhausted; see report metadata for completeness impact")
+        );
+        assert_eq!(w.category.as_deref(), Some(Category::Structure.as_str()));
+        assert_eq!(w.source, RuleOrigin::Engine);
+        assert_eq!(w.phase, Some(Phase::Lint));
+
+        assert_eq!(report.status, ReportStatus::AnalysisIncomplete);
+        let budget_exhaustions =
+            report.metadata.budget_exhaustions.as_deref().expect("exhausted budgets must be present in metadata");
+        assert_eq!(budget_exhaustions.len(), 2, "two distinct kinds, not three");
+        // Deterministic order (BTreeSet)
+        assert_eq!(budget_exhaustions[0].kind, "resolverDepth");
+        assert_eq!(budget_exhaustions[0].limit, BudgetKind::ResolverDepth.limit());
+        assert_eq!(budget_exhaustions[1].kind, "enumExpansion");
+
+        // Context must be present in detailed format
+        assert!(w.context.is_some(), "budget warning context must be attached in detailed format");
+        let ctx = w.context.as_ref().unwrap();
+        let extra = ctx.extra.as_ref().expect("context.extra must be populated");
+        assert!(extra.contains_key("budgetExhaustions"));
+    }
+
+    #[test]
+    fn context_only_required_property_combinations_keeps_report_status_ok() {
+        use template_model::BudgetKind;
+
+        let choice_count = BudgetKind::RequiredPropertyCombinations.limit() as usize + 1;
+        let choices: Vec<String> = (0..choice_count).map(|index| format!("Choice{index:03}")).collect();
+        let properties: serde_json::Map<String, serde_json::Value> =
+            choices.iter().map(|choice| (choice.clone(), serde_json::json!({"type": "string"}))).collect();
+        let schema_validator = SchemaValidator::try_with_additional_schemas(vec![(
+            "AWS::Test::RequiredCombinationBudget",
+            serde_json::json!({
+                "properties": properties,
+                "anyOf": [{"requiredOr": choices}],
+                "additionalProperties": false
+            }),
+        )])
+        .expect("test schema must compile");
+        let template = b"Resources:\n  R:\n    Type: AWS::Test::RequiredCombinationBudget\n    Properties: {}\n";
+        let engine = BudgetExhaustingEngine::new(Vec::new());
+
+        let report = validate_bytes(&engine, &schema_validator, template, ValidateConfig::default())
+            .expect("validation must succeed");
+
+        let budget_warnings: Vec<_> =
+            report.diagnostics.iter().filter(|diagnostic| diagnostic.rule_id == "W9052").collect();
+        assert_eq!(budget_warnings.len(), 1);
+        assert_eq!(report.status, ReportStatus::Ok);
+        let budget_exhaustions =
+            report.metadata.budget_exhaustions.as_deref().expect("context-only exhaustion must be present in metadata");
+        assert_eq!(budget_exhaustions.len(), 1);
+        assert_eq!(budget_exhaustions[0].kind, "requiredPropertyCombinations");
+        assert_eq!(budget_exhaustions[0].limit, BudgetKind::RequiredPropertyCombinations.limit());
+        assert!(!budget_exhaustions[0].analysis_incomplete);
+    }
+
+    #[test]
+    fn severity_filtering_removes_warning_but_metadata_persists() {
+        use template_model::BudgetKind;
+        let engine = BudgetExhaustingEngine::new(vec![BudgetKind::ResolverDepth]);
+        let schema_validator = SchemaValidator::default();
+        let report = validate_bytes(
+            &engine,
+            &schema_validator,
+            WELL_FORMED_TEMPLATE,
+            ValidateConfig { severity_level: Severity::Error, ..Default::default() },
+        )
+        .expect("validation must succeed");
+
+        let budget_warnings: Vec<_> = report.diagnostics.iter().filter(|d| d.rule_id == "W9052").collect();
+        assert!(budget_warnings.is_empty(), "severity filter must remove the warning");
+        assert_eq!(
+            report.status,
+            ReportStatus::AnalysisIncomplete,
+            "status reflects correctness-affecting exhaustion regardless of filter"
+        );
+        assert!(report.metadata.budget_exhaustions.is_some());
+    }
+
+    #[test]
+    fn parse_error_sets_error_status_without_budget_warning() {
+        let schema_validator = SchemaValidator::default();
+        let engine = BudgetExhaustingEngine::new(vec![]);
+        let report = validate_bytes_with_path(
+            &engine,
+            &schema_validator,
+            b"{ not valid yaml or json <<<",
+            ValidateConfig::default(),
+            "bad.yaml".to_string(),
+        )
+        .expect("parse errors return Ok with error diagnostics");
+
+        assert_eq!(report.status, ReportStatus::Error);
+        assert!(report.metadata.budget_exhaustions.is_none());
+        let budget_warnings: Vec<_> = report.diagnostics.iter().filter(|d| d.rule_id == "W9052").collect();
+        assert!(budget_warnings.is_empty(), "parse errors must not emit a budget warning");
+    }
+
+    #[test]
+    fn category_filtering_removes_warning_but_metadata_persists() {
+        use template_model::BudgetKind;
+        let engine = BudgetExhaustingEngine::new(vec![BudgetKind::ResolverDepth]);
+        let schema_validator = SchemaValidator::default();
+        let filters = FilterConfig::new(
+            RuleFilterConfig::default(),
+            RuleFilterConfig {
+                categories: vec![Category::Structure.as_str().to_string()],
+                ..RuleFilterConfig::default()
+            },
+        );
+        let report = validate_bytes(
+            &engine,
+            &schema_validator,
+            WELL_FORMED_TEMPLATE,
+            ValidateConfig { filters, ..ValidateConfig::default() },
+        )
+        .expect("validation must succeed");
+
+        assert!(report.diagnostics.iter().all(|diagnostic| diagnostic.rule_id != "W9052"));
+        assert_eq!(report.status, ReportStatus::AnalysisIncomplete);
+        let budget_exhaustions = report
+            .metadata
+            .budget_exhaustions
+            .as_deref()
+            .expect("exhausted budget must be present despite warning suppression");
+        assert_eq!(budget_exhaustions.len(), 1);
+        assert_eq!(budget_exhaustions[0].kind, "resolverDepth");
+    }
+
+    #[test]
+    fn disabling_builtins_suppresses_warning_but_metadata_persists() {
+        use template_model::BudgetKind;
+        let engine = BudgetExhaustingEngine::new(vec![BudgetKind::ResolverDepth]);
+        let schema_validator = SchemaValidator::default();
+        let report = validate_bytes(
+            &engine,
+            &schema_validator,
+            WELL_FORMED_TEMPLATE,
+            ValidateConfig { disable_builtin_rules: true, ..ValidateConfig::default() },
+        )
+        .expect("validation must succeed");
+
+        assert!(report.diagnostics.iter().all(|diagnostic| diagnostic.rule_id != "W9052"));
+        assert_eq!(report.status, ReportStatus::AnalysisIncomplete);
+        let budget_exhaustions = report
+            .metadata
+            .budget_exhaustions
+            .as_deref()
+            .expect("exhausted budget must be present despite warning suppression");
+        assert_eq!(budget_exhaustions.len(), 1);
+        assert_eq!(budget_exhaustions[0].kind, "resolverDepth");
+    }
+
+    #[test]
+    fn non_curtailed_fixture_omits_exhaustions_and_has_ok_status() {
+        let engine = BudgetExhaustingEngine::new(vec![]); // no exhaustions
+        let schema_validator = SchemaValidator::default();
+        let report = validate_bytes(&engine, &schema_validator, WELL_FORMED_TEMPLATE, ValidateConfig::default())
+            .expect("validation must succeed");
+
+        assert_eq!(report.status, ReportStatus::Ok);
+        assert!(report.metadata.budget_exhaustions.is_none());
+        let budget_warnings: Vec<_> = report.diagnostics.iter().filter(|d| d.rule_id == "W9052").collect();
+        assert!(budget_warnings.is_empty());
+    }
 
     #[test]
     fn engine_exception_surfaces_as_error_never_as_diagnostic() {

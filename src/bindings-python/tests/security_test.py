@@ -5,7 +5,14 @@ import os
 import queue
 import unittest
 
-from cloudformation_validate import CelEngine, RegoEngine, Severity, ValidateConfig, ValidationError
+from cloudformation_validate import (
+    CelEngine,
+    RegoEngine,
+    ReportStatus,
+    Severity,
+    ValidateConfig,
+    ValidationError,
+)
 
 TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
 WORKSPACE = os.path.dirname(os.path.dirname(TESTS_DIR))
@@ -29,6 +36,17 @@ def validate_security_template(engine_name, template_path, outcome_queue):
         report = engine.validate_detailed(template_path, config)
         if report.status is None or not isinstance(report.diagnostics, list):
             outcome_queue.put(("error", "detailed validation returned an incomplete report"))
+            return
+        template_name = os.path.basename(template_path)
+        if template_name == "scenario_assignment_budget.yaml":
+            if report.status != ReportStatus.ANALYSIS_INCOMPLETE:
+                outcome_queue.put(("error", f"unexpected report status: {report.status}"))
+                return
+            if not report.metadata.budget_exhaustions:
+                outcome_queue.put(("error", "exhausted budget metadata is absent"))
+                return
+        if template_name == "condition_fusion.yaml" and report.metadata.budget_exhaustions is not None:
+            outcome_queue.put(("error", "non-exhausted budget metadata must be absent"))
             return
         outcome_queue.put(("ok", ""))
     except ValidationError as error:

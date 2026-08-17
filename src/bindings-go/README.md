@@ -253,7 +253,7 @@ if err != nil {
 ```go
 type StandardReport struct {
     FilePath    string
-    Status      ReportStatus         // StatusOK or StatusError (StatusError when the template fails to parse)
+    Status      ReportStatus         // OK, ANALYSIS_INCOMPLETE (findings may be omitted), or ERROR (pipeline failure)
     Version     string
     Metadata    ReportMetadata
     Performance PerformanceMetrics
@@ -299,4 +299,4 @@ type Entity struct {
 ```
 
 `Severity` and `RuleOrigin` are string types with named constants (`cfnvalidate.SeverityWarn`,
-`cfnvalidate.RuleOriginGuard`, …); `ReportStatus` is `StatusOK` / `StatusError`.
+`cfnvalidate.RuleOriginGuard`, …); `ReportStatus` is `StatusOK`, `StatusAnalysisIncomplete`, or `StatusError`.

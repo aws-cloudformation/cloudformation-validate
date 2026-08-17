@@ -176,7 +176,7 @@ Performance metrics are always collected unconditionally.
 
 ```rust
 report.file_path            // path to the validated template
-report.status               // ReportStatus::Ok or ReportStatus::Error
+report.status               // Ok, AnalysisIncomplete (findings may be omitted), or Error (pipeline failure)
 report.diagnostics          // Vec<Diagnostic> - all findings
 report.metadata.counts      // Summary { fatal, errors, warnings, informational, debug }
 report.metadata.suppressed  // diagnostics removed by filters/severity gating
@@ -184,6 +184,7 @@ report.metadata.resources_scanned
 report.metadata.rules_evaluated
 report.metadata.strict      // whether strict mode was enabled
 report.metadata.severity_level // minimum severity threshold used
+report.metadata.budget_exhaustions // Some(records) only when deterministic budgets were exhausted
 report.performance          // PerformanceMetrics with per-phase timings
 ```
 

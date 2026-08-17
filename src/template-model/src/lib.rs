@@ -1,6 +1,7 @@
 #[cfg(feature = "uniffi-bindings")]
 uniffi::setup_scaffolding!();
 
+pub mod budget;
 pub mod coercion;
 pub mod conditions;
 pub mod consts;
@@ -36,6 +37,7 @@ pub(crate) mod transform_expansion;
 pub(crate) mod value_identity;
 pub mod value_patterns;
 
+pub use budget::BudgetKind;
 pub use consts::PSEUDO_PARAMETERS;
 pub use consts::{
     DEFAULT_ACCOUNT_ID, DEFAULT_STACK_NAME, FORMAT_VERSION, MARKER_CONDITIONAL, MARKER_DYNAMIC, MARKER_ENUM,

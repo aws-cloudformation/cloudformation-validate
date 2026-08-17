@@ -700,6 +700,126 @@ def gen_combined_conditions() -> None:
     write("combined_conditions.yaml", "\n".join(lines) + "\n")
 
 
+# ForEach branch-explosion fixture. Three levels of nested Fn::ForEach loops each
+# iterating over a collection of values. The loop body is intentionally wide
+# (many properties per resource) so that the combinatorial expansion exhausts the
+# 100k work budget after a few hundred generated resources, allowing both engines
+# and all binding suites to finish within 60 seconds.
+FOREACH_EXPLOSION_OUTER = 8
+FOREACH_EXPLOSION_MIDDLE = 8
+FOREACH_EXPLOSION_INNER = 8
+# Number of metadata entries copied into each generated resource. Metadata is
+# intentionally schema-opaque: it creates deterministic transform work without
+# producing one schema diagnostic per synthetic field. At 256 entries, the full
+# 8³ expansion exceeds the 100k work budget before 500 resources materialize.
+FOREACH_BODY_PROPERTIES = 256
+
+
+def gen_foreach_branch_explosion() -> None:
+    """Nested Fn::ForEach loops that exceed the expansion-work budget."""
+    outer_items = ", ".join(f"O{i}" for i in range(FOREACH_EXPLOSION_OUTER))
+    middle_items = ", ".join(f"M{i}" for i in range(FOREACH_EXPLOSION_MIDDLE))
+    inner_items = ", ".join(f"I{i}" for i in range(FOREACH_EXPLOSION_INNER))
+    # Build a wide metadata body so each iteration consumes deterministic
+    # expansion work without asking the resource schema to validate fake fields.
+    prop_lines = ""
+    for p in range(FOREACH_BODY_PROPERTIES):
+        prop_lines += f"                    Prop{p}: !Sub \"value-${{A}}-${{B}}-${{C}}-{p}\"\n"
+    content = f"""{HEADER}AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  Fixture: nested Fn::ForEach branch explosion. Generated; no sensitive data.
+Transform: AWS::LanguageExtensions
+Resources:
+  Fn::ForEach::Outer:
+    - A
+    - [{outer_items}]
+    - Fn::ForEach::Middle:
+        - B
+        - [{middle_items}]
+        - Fn::ForEach::Inner:
+            - C
+            - [{inner_items}]
+            - R&{{A}}&{{B}}&{{C}}:
+                Type: AWS::SNS::Topic
+                Properties:
+                  TopicName: !Sub "topic-${{A}}-${{B}}-${{C}}"
+                Metadata:
+                  ExpansionPayload:
+{prop_lines}"""
+    write("foreach_branch_explosion.yaml", content)
+
+
+# Deep YAML nesting fixture. A YAML template with mapping-heavy nesting
+# at a depth that would overflow a recursive traversal. Confirms the YAML
+# loader enforces the structural nesting bound and rejects the document with
+# a located parse error rather than building a deep tree that could exhaust
+# the stack during traversal/drop.
+YAML_NESTING_DEPTH = 600
+
+
+def gen_deep_yaml_nesting() -> None:
+    """A YAML template with very deep mapping nesting."""
+    lines = [
+        HEADER.rstrip(),
+        'AWSTemplateFormatVersion: "2010-09-09"',
+        "Description: >-",
+        "  Fixture: deeply nested YAML mappings. Generated; no sensitive data.",
+        "Resources:",
+        "  DeepResource:",
+        "    Type: AWS::SNS::Topic",
+        "    Properties:",
+        "      DeliveryPolicy:",
+    ]
+    indent = 8
+    for i in range(YAML_NESTING_DEPTH):
+        lines.append(f"{' ' * indent}Level{i}:")
+        indent += 2
+    lines.append(f"{' ' * indent}leaf: value")
+    write("deep_yaml_nesting.yaml", "\n".join(lines) + "\n")
+
+
+# Deep valid-intrinsic resolution fixture. A template with deeply nested Fn::If
+# intrinsics that the resolver must walk. It uses long-form mappings so this
+# fixture isolates intrinsic construction and resolution; the separate deep-YAML
+# fixture covers parser depth. The depth remains substantial but below both the
+# resolver and YAML nesting limits.
+DEEP_INTRINSIC_DEPTH = 64
+
+
+def gen_deep_intrinsic_resolution() -> None:
+    """A valid template with deeply nested long-form Fn::If mappings."""
+    lines = [
+        HEADER.rstrip(),
+        'AWSTemplateFormatVersion: "2010-09-09"',
+        "Description: >-",
+        "  Fixture: deeply nested Fn::If chains. Generated; no sensitive data.",
+        "Conditions:",
+        "  IsUsEast1: !Equals [!Ref 'AWS::Region', 'us-east-1']",
+        "Resources:",
+        "  DeepIfResource:",
+        "    Type: AWS::SNS::Topic",
+        "    Properties:",
+        "      TopicName:",
+        "        Fn::If:",
+    ]
+
+    # Each true branch contains another long-form Fn::If. Reusing one condition
+    # verifies that scenario resolution follows an established assignment rather
+    # than materializing an exponential set of impossible worlds.
+    def append_if_arguments(depth: int, indent: int) -> None:
+        prefix = " " * indent
+        lines.append(f"{prefix}- IsUsEast1")
+        if depth + 1 == DEEP_INTRINSIC_DEPTH:
+            lines.append(f'{prefix}- "deep-leaf-value"')
+        else:
+            lines.append(f"{prefix}- Fn::If:")
+            append_if_arguments(depth + 1, indent + 4)
+        lines.append(f"{prefix}- fallback-{depth}")
+
+    append_if_arguments(0, 10)
+
+    write("deep_intrinsic_resolution.yaml", "\n".join(lines) + "\n")
+
 def main() -> None:
     gen_deep_nesting()
     gen_many_conditions()
@@ -711,6 +831,9 @@ def main() -> None:
     gen_condition_chain_boundary()
     gen_condition_chain_wide()
     gen_combined_conditions()
+    gen_foreach_branch_explosion()
+    gen_deep_yaml_nesting()
+    gen_deep_intrinsic_resolution()
 
 
 if __name__ == "__main__":

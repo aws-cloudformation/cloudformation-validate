@@ -239,7 +239,7 @@ All report and diagnostic types are dataclass-like records re-exported from `clo
 @dataclass
 class StandardReport:
     file_path: str
-    status: ReportStatus  # ReportStatus.OK or ReportStatus.ERROR (ERROR when the template fails to parse)
+    status: ReportStatus  # OK, ANALYSIS_INCOMPLETE (findings may be omitted), or ERROR (pipeline failure)
     version: str
     metadata: ReportMetadata
     performance: PerformanceMetrics

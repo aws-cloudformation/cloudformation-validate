@@ -13,14 +13,8 @@
 //! is lossy - several unrelated expressions share one wording - and two distinct
 //! reads that share a wording would otherwise look like a duplicate.
 
-use crate::consts::KEY_ROLE_ARN;
+use crate::consts::{KEY_ROLE_ARN, MAX_FINGERPRINT_DEPTH};
 use crate::ir::{Arena, IntrinsicFn, NULL_REF, Node, NodeRef, cfn_function_name};
-
-/// Nesting depth walked while building a fingerprint. A subtree deeper than this
-/// yields no fingerprint at all rather than a truncated one, because a truncated
-/// fingerprint could be shared by two expressions that differ only below the cut
-/// and would turn into a duplicate report about values that were never compared.
-const MAX_FINGERPRINT_DEPTH: u32 = 64;
 
 /// A fingerprint of the expression at `node`, or `None` when the expression
 /// cannot be fingerprinted in full. Two expressions share a fingerprint exactly
@@ -29,9 +23,14 @@ const MAX_FINGERPRINT_DEPTH: u32 = 64;
 ///
 /// Object keys are ordered, so the same call written with its arguments in a
 /// different order keeps one fingerprint.
-pub(crate) fn expression_fingerprint(arena: &Arena, node: NodeRef) -> Option<String> {
+pub(crate) fn expression_fingerprint_signaled(arena: &Arena, node: NodeRef) -> (Option<String>, bool) {
+    let mut depth_exceeded = false;
     let mut fingerprint = String::new();
-    if write_node(arena, node, 0, &mut fingerprint) { Some(fingerprint) } else { None }
+    if write_node(arena, node, 0, &mut fingerprint, &mut depth_exceeded) {
+        (Some(fingerprint), false)
+    } else {
+        (None, depth_exceeded)
+    }
 }
 
 /// A canonical fingerprint of a resolved JSON value. Object keys are sorted so
@@ -84,8 +83,12 @@ fn write_json_value(value: &serde_json::Value, out: &mut String) {
     }
 }
 
-fn write_node(arena: &Arena, node: NodeRef, depth: u32, out: &mut String) -> bool {
-    if node == NULL_REF || depth > MAX_FINGERPRINT_DEPTH {
+fn write_node(arena: &Arena, node: NodeRef, depth: u32, out: &mut String, depth_exceeded: &mut bool) -> bool {
+    if node == NULL_REF {
+        return false;
+    }
+    if depth > MAX_FINGERPRINT_DEPTH {
+        *depth_exceeded = true;
         return false;
     }
     match &arena.get(node).node {
@@ -115,21 +118,27 @@ fn write_node(arena: &Arena, node: NodeRef, depth: u32, out: &mut String) -> boo
         }
         Node::List(items) => {
             out.push('[');
-            let written = write_nodes(arena, items, depth, out);
+            let written = write_nodes(arena, items, depth, out, depth_exceeded);
             out.push(']');
             written
         }
         Node::Map(entries) => {
             out.push('{');
-            let written = write_keyed(arena, entries, depth, out, &[]);
+            let written = write_keyed(arena, entries, depth, out, &[], depth_exceeded);
             out.push('}');
             written
         }
-        Node::Intrinsic(intrinsic) => write_intrinsic(arena, intrinsic, depth, out),
+        Node::Intrinsic(intrinsic) => write_intrinsic(arena, intrinsic, depth, out, depth_exceeded),
     }
 }
 
-fn write_intrinsic(arena: &Arena, intrinsic: &IntrinsicFn, depth: u32, out: &mut String) -> bool {
+fn write_intrinsic(
+    arena: &Arena,
+    intrinsic: &IntrinsicFn,
+    depth: u32,
+    out: &mut String,
+    depth_exceeded: &mut bool,
+) -> bool {
     out.push_str(cfn_function_name(intrinsic));
     out.push('(');
     let written = match intrinsic {
@@ -150,7 +159,7 @@ fn write_intrinsic(arena: &Arena, intrinsic: &IntrinsicFn, depth: u32, out: &mut
             match variables {
                 Some(entries) => {
                     out.push(',');
-                    write_keyed(arena, entries, depth, out, &[])
+                    write_keyed(arena, entries, depth, out, &[], depth_exceeded)
                 }
                 None => true,
             }
@@ -161,56 +170,62 @@ fn write_intrinsic(arena: &Arena, intrinsic: &IntrinsicFn, depth: u32, out: &mut
         | IntrinsicFn::Equals(first, second)
         | IntrinsicFn::Contains(first, second)
         | IntrinsicFn::EachMemberEquals(first, second)
-        | IntrinsicFn::EachMemberIn(first, second) => write_nodes(arena, &[*first, *second], depth, out),
+        | IntrinsicFn::EachMemberIn(first, second) => {
+            write_nodes(arena, &[*first, *second], depth, out, depth_exceeded)
+        }
         IntrinsicFn::If(condition, when_true, when_false) => {
             write_literal(condition, out);
             out.push(',');
-            write_nodes(arena, &[*when_true, *when_false], depth, out)
+            write_nodes(arena, &[*when_true, *when_false], depth, out, depth_exceeded)
         }
         IntrinsicFn::IfExpr(condition, when_true, when_false) | IntrinsicFn::Cidr(condition, when_true, when_false) => {
-            write_nodes(arena, &[*condition, *when_true, *when_false], depth, out)
+            write_nodes(arena, &[*condition, *when_true, *when_false], depth, out, depth_exceeded)
         }
         IntrinsicFn::FindInMap(map_name, first_key, second_key, default_value) => {
             let mut refs = vec![*map_name, *first_key, *second_key];
             if let Some(default_value) = default_value {
                 refs.push(*default_value);
             }
-            write_nodes(arena, &refs, depth, out)
+            write_nodes(arena, &refs, depth, out, depth_exceeded)
         }
         IntrinsicFn::Base64(argument)
         | IntrinsicFn::GetAZs(argument)
         | IntrinsicFn::ImportValue(argument)
         | IntrinsicFn::Not(argument)
         | IntrinsicFn::ToJsonString(argument)
-        | IntrinsicFn::Length(argument) => write_nodes(arena, &[*argument], depth, out),
+        | IntrinsicFn::Length(argument) => write_nodes(arena, &[*argument], depth, out, depth_exceeded),
         // `RoleArn` names the credentials used to perform the read, not which
         // output is read, so two calls that differ only there still read one
         // value and stay a duplicate.
-        IntrinsicFn::GetStackOutput(arguments) => write_keyed(arena, arguments, depth, out, &[KEY_ROLE_ARN]),
+        IntrinsicFn::GetStackOutput(arguments) => {
+            write_keyed(arena, arguments, depth, out, &[KEY_ROLE_ARN], depth_exceeded)
+        }
         IntrinsicFn::Transform(name, parameters) => {
             write_literal(name, out);
             out.push(',');
-            write_keyed(arena, parameters, depth, out, &[])
+            write_keyed(arena, parameters, depth, out, &[], depth_exceeded)
         }
-        IntrinsicFn::And(operands) | IntrinsicFn::Or(operands) => write_nodes(arena, operands, depth, out),
+        IntrinsicFn::And(operands) | IntrinsicFn::Or(operands) => {
+            write_nodes(arena, operands, depth, out, depth_exceeded)
+        }
         IntrinsicFn::ForEach(identifier, unique_id, collection, body) => {
             write_literal(identifier, out);
             out.push(',');
             write_literal(unique_id, out);
             out.push(',');
-            write_nodes(arena, &[*collection, *body], depth, out)
+            write_nodes(arena, &[*collection, *body], depth, out, depth_exceeded)
         }
     };
     out.push(')');
     written
 }
 
-fn write_nodes(arena: &Arena, refs: &[NodeRef], depth: u32, out: &mut String) -> bool {
+fn write_nodes(arena: &Arena, refs: &[NodeRef], depth: u32, out: &mut String, depth_exceeded: &mut bool) -> bool {
     for (index, node) in refs.iter().enumerate() {
         if index > 0 {
             out.push(',');
         }
-        if !write_node(arena, *node, depth + 1, out) {
+        if !write_node(arena, *node, depth + 1, out, depth_exceeded) {
             return false;
         }
     }
@@ -225,6 +240,7 @@ fn write_keyed(
     depth: u32,
     out: &mut String,
     ignored_keys: &[&str],
+    depth_exceeded: &mut bool,
 ) -> bool {
     let mut ordered: Vec<&(String, NodeRef)> =
         entries.iter().filter(|(key, _)| !ignored_keys.contains(&key.as_str())).collect();
@@ -235,7 +251,7 @@ fn write_keyed(
         }
         write_literal(key, out);
         out.push('=');
-        if !write_node(arena, *node, depth + 1, out) {
+        if !write_node(arena, *node, depth + 1, out, depth_exceeded) {
             return false;
         }
     }
@@ -259,7 +275,44 @@ fn write_literal(value: &str, out: &mut String) {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use crate::ir::SpannedNode;
     use crate::model::SemanticModel;
+    use crate::span::UNKNOWN_SPAN;
+
+    fn nested_list_arena(depth: u32) -> (Arena, NodeRef) {
+        let mut arena = Arena::new();
+        let mut root =
+            arena.alloc(SpannedNode { node: Node::String("leaf".into()), span: UNKNOWN_SPAN, path: "leaf".into() });
+        for level in 0..depth {
+            root = arena.alloc(SpannedNode {
+                node: Node::List(vec![root]),
+                span: UNKNOWN_SPAN,
+                path: format!("level-{level}"),
+            });
+        }
+        (arena, root)
+    }
+
+    #[test]
+    fn fingerprint_at_depth_limit_is_complete() {
+        let (arena, root) = nested_list_arena(MAX_FINGERPRINT_DEPTH);
+
+        let (fingerprint, depth_exceeded) = expression_fingerprint_signaled(&arena, root);
+
+        assert!(fingerprint.is_some());
+        assert!(!depth_exceeded);
+    }
+
+    #[test]
+    fn fingerprint_one_level_beyond_limit_is_rejected() {
+        let (arena, root) = nested_list_arena(MAX_FINGERPRINT_DEPTH + 1);
+
+        let (fingerprint, depth_exceeded) = expression_fingerprint_signaled(&arena, root);
+
+        assert!(fingerprint.is_none());
+        assert!(depth_exceeded);
+    }
 
     /// Identity of the value written at `path` of resource `R` in `template`.
     fn identity_of(template: &str, path: &str) -> Option<String> {

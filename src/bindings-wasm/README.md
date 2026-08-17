@@ -238,7 +238,7 @@ validator.free();
 ```typescript
 interface StandardReport {
     filePath: string;
-    status: "OK" | "ERROR";           // ERROR when the template fails to parse
+    status: "OK" | "ANALYSIS_INCOMPLETE" | "ERROR"; // ERROR is a pipeline failure; ANALYSIS_INCOMPLETE may omit findings
     version: string;
     metadata: ReportMetadata;
     performance: PerformanceMetrics;

@@ -153,6 +153,10 @@ pub(crate) struct Resolver<'a> {
     condition_stack: Vec<(String, bool)>, // (condition_name, is_true_branch)
     current_path: String,
     depth: u32,
+    /// Whether the resolver exceeded its recursion depth limit during resolution.
+    pub(crate) depth_exceeded: bool,
+    /// Whether enum variant expansion exceeded its limit during resolution.
+    pub(crate) enum_expansion_exceeded: bool,
     local_bindings: HashMap<String, ResolvedValue>,
     /// Per-resource `DefinitionSubstitutions` keys: a `${var}` placeholder in a
     /// Step Functions definition is legitimate exactly when `var` is one of the
@@ -198,6 +202,8 @@ impl<'a> Resolver<'a> {
             condition_stack: Vec::new(),
             current_path: String::new(),
             depth: 0,
+            depth_exceeded: false,
+            enum_expansion_exceeded: false,
             local_bindings: HashMap::new(),
             def_subs_resources: HashMap::new(),
         }
@@ -218,6 +224,7 @@ impl<'a> Resolver<'a> {
         }
         if self.depth >= MAX_RESOLVE_DEPTH {
             warn!("Recursion depth limit ({}) exceeded at path '{}'", MAX_RESOLVE_DEPTH, self.current_path);
+            self.depth_exceeded = true;
             return ResolvedValue::Dynamic { reason: "recursion limit exceeded".into() };
         }
         self.depth += 1;
@@ -449,7 +456,11 @@ impl<'a> Resolver<'a> {
                                         | ResolvedValue::Conditional { condition: _, if_true: _, if_false: _ }
                                 )
                             }) {
-                                return join_with_enum_list(ds, items);
+                                let (result, was_curtailed) = join_with_enum_list(ds, items);
+                                if was_curtailed {
+                                    self.enum_expansion_exceeded = true;
+                                }
+                                return result;
                             }
                             // Partial join: substitute concrete items, placeholder for others
                             let parts: Vec<String> = items
@@ -1661,9 +1672,12 @@ fn join_resolved(delim: &str, values: &ResolvedValue) -> ResolvedValue {
     }
 }
 
-fn join_with_enum_list(delim: &str, items: &[ResolvedValue]) -> ResolvedValue {
-    // Build cartesian product of all items, expanding Enum variants
+pub(crate) fn join_with_enum_list(delim: &str, items: &[ResolvedValue]) -> (ResolvedValue, bool) {
+    // Build cartesian product of all items, expanding Enum variants.
+    // Returns (result, curtailed) where curtailed is true only if a combination
+    // that would have been the (MAX_ENUM_EXPANSION+1)th was attempted.
     let mut combos: Vec<Vec<String>> = vec![vec![]];
+    let mut curtailed = false;
     for item in items {
         match item {
             ResolvedValue::Concrete { value: v } => {
@@ -1684,35 +1698,40 @@ fn join_with_enum_list(delim: &str, items: &[ResolvedValue]) -> ResolvedValue {
                     })
                     .collect();
                 if strs.is_empty() {
-                    return ResolvedValue::Dynamic { reason: "Join with non-concrete enum".into() };
+                    return (ResolvedValue::Dynamic { reason: "Join with non-concrete enum".into() }, false);
                 }
                 let mut new_combos = Vec::new();
                 for combo in &combos {
                     for s in &strs {
+                        if new_combos.len() == MAX_ENUM_EXPANSION {
+                            curtailed = true;
+                            break;
+                        }
                         let mut c = combo.clone();
                         c.push(s.clone());
                         new_combos.push(c);
-                        if new_combos.len() > MAX_ENUM_EXPANSION {
-                            break;
-                        }
                     }
-                    if new_combos.len() > MAX_ENUM_EXPANSION {
+                    if curtailed {
                         break;
                     }
                 }
                 combos = new_combos;
             }
             _ => {
-                return ResolvedValue::Dynamic { reason: "Join with unresolvable list element".into() };
+                return (ResolvedValue::Dynamic { reason: "Join with unresolvable list element".into() }, false);
             }
         }
     }
     let results: Vec<ResolvedValue> = combos
         .into_iter()
-        .take(MAX_ENUM_EXPANSION)
         .map(|parts| ResolvedValue::Concrete { value: serde_json::Value::String(parts.join(delim)).into() })
         .collect();
-    if results.len() == 1 { results.into_iter().next().unwrap() } else { ResolvedValue::Enum { variants: results } }
+    let result = if results.len() == 1 {
+        results.into_iter().next().unwrap()
+    } else {
+        ResolvedValue::Enum { variants: results }
+    };
+    (result, curtailed)
 }
 
 fn select_resolved(idx: &serde_json::Value, list: &ResolvedValue) -> ResolvedValue {

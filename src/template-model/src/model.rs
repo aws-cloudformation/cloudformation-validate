@@ -1,3 +1,4 @@
+use crate::budget::{BudgetKind, BudgetTracker};
 use crate::conditions::ConditionModel;
 use crate::consts::*;
 use crate::defect::ParseDefect;
@@ -13,6 +14,7 @@ use crate::span::SpanProvider;
 use log::{debug, info, warn};
 use serde::Serialize;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
+use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -217,6 +219,9 @@ pub struct SemanticModel {
     /// Bounds total scenario-expansion work the way `ConditionModel`'s
     /// `sat_iterations_used` bounds total satisfiability work.
     scenario_combinations_used: AtomicU64,
+    /// Deterministic, deduplicating tracker for all validation-budget
+    /// exhaustions across model construction and downstream validation.
+    budget_tracker: Arc<BudgetTracker>,
 }
 
 /// Values used for AWS pseudo parameters (Ref AWS::Region, AWS::AccountId, ...) when
@@ -377,7 +382,18 @@ impl SemanticModel {
         // Parameters section to feed the unused-parameter check.
         let params_referenced_in_definitions = collect_parameter_definition_refs(&ir, &parameters);
         let (mappings, mapping_diagnostics) = extract_mappings(&ir);
-        let mut conditions = ConditionModel::from_ir(&ir, &parameters, &config.pseudo_parameters, &mappings);
+
+        // Create the shared budget tracker early so it is available before any
+        // condition-model or resolver work can exhaust a budget.
+        let budget_tracker = Arc::new(BudgetTracker::new());
+
+        let mut conditions = ConditionModel::from_ir_with_tracker(
+            &ir,
+            &parameters,
+            &config.pseudo_parameters,
+            &mappings,
+            Arc::clone(&budget_tracker),
+        );
 
         let resource_ids: Vec<String> = if ir.resources != NULL_REF {
             ir.arena
@@ -524,6 +540,8 @@ impl SemanticModel {
 
         let resolution_sources = resolver.resolution_sources();
         let value_nodes = resolver.value_nodes();
+        let resolver_depth_exceeded = resolver.depth_exceeded;
+        let resolver_enum_expansion_exceeded = resolver.enum_expansion_exceeded;
         let mut all_edges = resolver.edges;
         for (id, res) in &resources {
             for dep in &res.depends_on {
@@ -884,6 +902,13 @@ impl SemanticModel {
         }
         let is_cdk = resources_by_type.contains_key(CDK_METADATA_TYPE);
 
+        if resolver_depth_exceeded {
+            budget_tracker.record(BudgetKind::ResolverDepth);
+        }
+        if resolver_enum_expansion_exceeded {
+            budget_tracker.record(BudgetKind::EnumExpansion);
+        }
+
         Ok(ParseResult {
             model: SemanticModel {
                 arena: ir.arena,
@@ -919,6 +944,7 @@ impl SemanticModel {
                 resolve_memo: Mutex::new(HashMap::new()),
                 scenario_memo: Mutex::new(HashMap::new()),
                 scenario_combinations_used: AtomicU64::new(0),
+                budget_tracker,
             },
             model_build_ms,
         })
@@ -1105,8 +1131,11 @@ impl SemanticModel {
             return Some(format!("value:{fingerprint}"));
         }
         let node = *self.value_nodes.get(&(resource_id.to_string(), path.to_string()))?;
-        crate::value_identity::expression_fingerprint(&self.arena, node)
-            .map(|fingerprint| format!("expr:{fingerprint}"))
+        let (result, depth_exhausted) = crate::value_identity::expression_fingerprint_signaled(&self.arena, node);
+        if depth_exhausted {
+            self.budget_tracker.record(BudgetKind::ExpressionFingerprintDepth);
+        }
+        result.map(|fingerprint| format!("expr:{fingerprint}"))
     }
 
     /// True when the value at `path` (or any ancestor up to the resource root) was
@@ -1178,6 +1207,21 @@ impl SemanticModel {
         self.scenario_combinations_used.load(Ordering::Relaxed) >= MAX_TOTAL_SCENARIO_COMBINATIONS
     }
 
+    /// Record that a budget kind was exhausted. Delegates to the shared tracker.
+    pub fn record_budget_exhaustion(&self, kind: BudgetKind) {
+        self.budget_tracker.record(kind);
+    }
+
+    /// Returns the set of exhausted budget kinds in deterministic order.
+    pub fn exhausted_budget_kinds(&self) -> BTreeSet<BudgetKind> {
+        self.budget_tracker.exhausted_kinds()
+    }
+
+    /// Whether any exhausted budget makes the analysis incomplete.
+    pub fn budget_analysis_incomplete(&self) -> bool {
+        self.budget_tracker.analysis_incomplete()
+    }
+
     /// Cumulative scenarios materialized by this model so far.
     #[must_use]
     pub fn scenario_combinations_used(&self) -> u64 {
@@ -1191,6 +1235,40 @@ impl SemanticModel {
     #[cfg(test)]
     fn add_scenario_combinations_for_test(&self, count: u64) {
         self.scenario_combinations_used.fetch_add(count, Ordering::Relaxed);
+    }
+
+    /// Charges expanded scenarios against the cumulative budget. Exact
+    /// consumption is complete; only an omitted result records exhaustion.
+    fn charge_scenario_budget(
+        &self,
+        results: &mut Vec<(ResolvedValue, HashMap<String, bool>)>,
+    ) -> Vec<(ResolvedValue, HashMap<String, bool>)> {
+        let requested = results.len() as u64;
+        if requested == 0 {
+            return std::mem::take(results);
+        }
+
+        let reserved = loop {
+            let used = self.scenario_combinations_used.load(Ordering::Relaxed);
+            let remaining = MAX_TOTAL_SCENARIO_COMBINATIONS.saturating_sub(used);
+            let reserved = requested.min(remaining);
+            let updated = used.saturating_add(reserved).min(MAX_TOTAL_SCENARIO_COMBINATIONS);
+            match self.scenario_combinations_used.compare_exchange_weak(
+                used,
+                updated,
+                Ordering::Relaxed,
+                Ordering::Relaxed,
+            ) {
+                Ok(_) => break reserved,
+                Err(_) => continue,
+            }
+        };
+
+        if reserved < requested {
+            results.truncate(reserved as usize);
+            self.budget_tracker.record(BudgetKind::ScenarioCombinationsTotal);
+        }
+        std::mem::take(results)
     }
 
     fn resolved_properties_value(&self, resource_id: &str) -> Option<ResolvedValue> {
@@ -1214,15 +1292,19 @@ impl SemanticModel {
 
     pub fn resolve_properties_scenarios(&self, resource_id: &str) -> Vec<(ResolvedValue, HashMap<String, bool>)> {
         if self.scenario_budget_exhausted() {
+            self.budget_tracker.record(BudgetKind::ScenarioCombinationsTotal);
             return vec![];
         }
         let Some(properties) = self.resolved_properties_value(resource_id) else {
             return vec![];
         };
         let mut results = Vec::new();
-        collect_scenarios(&properties, &HashMap::new(), &mut results);
-        self.scenario_combinations_used.fetch_add(results.len() as u64, Ordering::Relaxed);
-        results
+        let mut curtailed = false;
+        collect_scenarios_signaled(&properties, &HashMap::new(), &mut results, &mut curtailed);
+        if curtailed {
+            self.budget_tracker.record(BudgetKind::ScenarioCombinationsPerValue);
+        }
+        self.charge_scenario_budget(&mut results)
     }
 
     /// Returns the authored, branch-qualified source path for an effective path in
@@ -1243,13 +1325,8 @@ impl SemanticModel {
     }
 
     pub fn resolve_scenarios(&self, resource_id: &str, path: &str) -> Vec<(ResolvedValue, HashMap<String, bool>)> {
-        // Once the cumulative scenario budget for this model is spent, stop
-        // materializing scenarios (the conservative truncation documented on
-        // `MAX_TOTAL_SCENARIO_COMBINATIONS`). Checked before any resolution so an
-        // exhausted call costs O(1), keeping a template with a flood of
-        // heavily-gated values bounded - the per-value `MAX_SCENARIO_COMBINATIONS`
-        // cap alone does not bound the number of such values.
         if self.scenario_budget_exhausted() {
+            self.budget_tracker.record(BudgetKind::ScenarioCombinationsTotal);
             return vec![];
         }
         let val = match self.resolve_deep(resource_id, path) {
@@ -1263,9 +1340,12 @@ impl SemanticModel {
             },
         };
         let mut results = Vec::new();
-        collect_scenarios(&val, &HashMap::new(), &mut results);
-        self.scenario_combinations_used.fetch_add(results.len() as u64, Ordering::Relaxed);
-        results
+        let mut curtailed = false;
+        collect_scenarios_signaled(&val, &HashMap::new(), &mut results, &mut curtailed);
+        if curtailed {
+            self.budget_tracker.record(BudgetKind::ScenarioCombinationsPerValue);
+        }
+        self.charge_scenario_budget(&mut results)
     }
 
     /// Fallback lookup when `Properties` is wrapped in an `Fn::If`: walks
@@ -3031,5 +3111,125 @@ Resources:
     fn output_fn_if_string_branches_not_flagged() {
         let template = "Conditions:\n  C:\n    Fn::Equals: [\"a\", \"a\"]\nResources:\n  R:\n    Type: T\nOutputs:\n  O:\n    Value:\n      Fn::If: [C, \"yes\", \"no\"]\n";
         assert_eq!(output_string_type_diagnostics(template), 0);
+    }
+
+    #[test]
+    fn join_with_enum_list_exact_4096_not_curtailed() {
+        use crate::consts::MAX_ENUM_EXPANSION;
+        use crate::resolver::join_with_enum_list;
+        // Build items that produce exactly MAX_ENUM_EXPANSION combinations:
+        // 64 * 64 = 4096 (no truncation needed)
+        let variants_a: Vec<ResolvedValue> = (0..64)
+            .map(|i| ResolvedValue::Concrete { value: serde_json::Value::String(format!("a{i}")).into() })
+            .collect();
+        let variants_b: Vec<ResolvedValue> = (0..64)
+            .map(|i| ResolvedValue::Concrete { value: serde_json::Value::String(format!("b{i}")).into() })
+            .collect();
+        let items = vec![ResolvedValue::Enum { variants: variants_a }, ResolvedValue::Enum { variants: variants_b }];
+        let (result, curtailed) = join_with_enum_list(",", &items);
+        assert!(!curtailed, "exactly {MAX_ENUM_EXPANSION} combinations must not signal curtailment");
+        if let ResolvedValue::Enum { variants } = &result {
+            assert_eq!(variants.len(), MAX_ENUM_EXPANSION);
+        } else {
+            panic!("expected Enum result");
+        }
+    }
+
+    #[test]
+    fn join_with_enum_list_one_over_curtailed() {
+        use crate::consts::MAX_ENUM_EXPANSION;
+        use crate::resolver::join_with_enum_list;
+        // 65 * 64 = 4160 > 4096 — must curtail
+        let variants_a: Vec<ResolvedValue> = (0..65)
+            .map(|i| ResolvedValue::Concrete { value: serde_json::Value::String(format!("a{i}")).into() })
+            .collect();
+        let variants_b: Vec<ResolvedValue> = (0..64)
+            .map(|i| ResolvedValue::Concrete { value: serde_json::Value::String(format!("b{i}")).into() })
+            .collect();
+        let items = vec![ResolvedValue::Enum { variants: variants_a }, ResolvedValue::Enum { variants: variants_b }];
+        let (result, curtailed) = join_with_enum_list(",", &items);
+        assert!(curtailed, "exceeding {MAX_ENUM_EXPANSION} combinations must signal curtailment");
+        if let ResolvedValue::Enum { variants } = &result {
+            assert_eq!(variants.len(), MAX_ENUM_EXPANSION);
+        } else {
+            panic!("expected Enum result");
+        }
+    }
+
+    #[test]
+    fn cumulative_scenario_exact_boundary_no_curtailment() {
+        use crate::budget::BudgetKind;
+        let input = br#"{
+            "Parameters": {"Env": {"Type": "String"}},
+            "Conditions": {"IsProd": {"Fn::Equals": [{"Ref": "Env"}, "prod"]}},
+            "Resources": {"R": {"Type": "T", "Properties": {"V": {"Fn::If": ["IsProd", "a", "b"]}}}}
+        }"#;
+        let model = SemanticModel::from_bytes(input).unwrap();
+        // Fast-forward to exactly fill remaining capacity such that the next
+        // resolve_scenarios call produces exactly MAX_TOTAL_SCENARIO_COMBINATIONS
+        // total without any omission.
+        let first = model.resolve_scenarios("R", "Properties.V");
+        let produced = first.len() as u64;
+        // Set counter so that `counter + produced == MAX_TOTAL_SCENARIO_COMBINATIONS`
+        let target = MAX_TOTAL_SCENARIO_COMBINATIONS - produced;
+        let add = target - model.scenario_combinations_used();
+        model.add_scenario_combinations_for_test(add);
+
+        let second = model.resolve_scenarios("R", "Properties.V");
+        assert_eq!(second.len(), produced as usize, "exact boundary must return all results");
+        assert_eq!(model.scenario_combinations_used(), MAX_TOTAL_SCENARIO_COMBINATIONS);
+        assert!(
+            !model.exhausted_budget_kinds().contains(&BudgetKind::ScenarioCombinationsTotal),
+            "exact consumption without omission must not record exhaustion"
+        );
+    }
+
+    #[test]
+    fn cumulative_scenario_one_over_records_and_caps() {
+        use crate::budget::BudgetKind;
+        let input = br#"{
+            "Parameters": {"Env": {"Type": "String"}},
+            "Conditions": {"IsProd": {"Fn::Equals": [{"Ref": "Env"}, "prod"]}},
+            "Resources": {"R": {"Type": "T", "Properties": {"V": {"Fn::If": ["IsProd", "a", "b"]}}}}
+        }"#;
+        let model = SemanticModel::from_bytes(input).unwrap();
+        let first = model.resolve_scenarios("R", "Properties.V");
+        let produced = first.len() as u64;
+        assert!(produced >= 2, "conditional must produce at least 2 scenarios");
+        // Set counter so that only 1 slot remains (produced > 1, so next call overflows)
+        let target = MAX_TOTAL_SCENARIO_COMBINATIONS - 1;
+        let add = target - model.scenario_combinations_used();
+        model.add_scenario_combinations_for_test(add);
+
+        let second = model.resolve_scenarios("R", "Properties.V");
+        assert_eq!(second.len(), 1, "must cap to remaining capacity");
+        assert!(
+            model.exhausted_budget_kinds().contains(&BudgetKind::ScenarioCombinationsTotal),
+            "capping must record exhaustion"
+        );
+        assert!(
+            model.scenario_combinations_used() <= MAX_TOTAL_SCENARIO_COMBINATIONS,
+            "counter must not overshoot max"
+        );
+    }
+
+    #[test]
+    fn cumulative_scenario_query_at_exhausted_records_and_returns_empty() {
+        use crate::budget::BudgetKind;
+        let input = br#"{
+            "Parameters": {"Env": {"Type": "String"}},
+            "Conditions": {"IsProd": {"Fn::Equals": [{"Ref": "Env"}, "prod"]}},
+            "Resources": {"R": {"Type": "T", "Properties": {"V": {"Fn::If": ["IsProd", "a", "b"]}}}}
+        }"#;
+        let model = SemanticModel::from_bytes(input).unwrap();
+        model.add_scenario_combinations_for_test(MAX_TOTAL_SCENARIO_COMBINATIONS);
+        assert!(model.scenario_budget_exhausted());
+
+        let result = model.resolve_scenarios("R", "Properties.V");
+        assert!(result.is_empty(), "query at exhausted budget must return empty");
+        assert!(
+            model.exhausted_budget_kinds().contains(&BudgetKind::ScenarioCombinationsTotal),
+            "attempted query at exhausted budget must record exhaustion"
+        );
     }
 }

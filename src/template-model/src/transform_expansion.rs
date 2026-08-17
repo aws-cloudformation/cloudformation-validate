@@ -40,20 +40,90 @@ const MAX_EXPANSION_DEPTH: u32 = MAX_RESOLVE_DEPTH;
 /// and a hash map would make that vary run to run.
 type Bindings = BTreeMap<String, String>;
 
+/// Cumulative deterministic work budget for `Fn::ForEach` expansion across all
+/// sections of one template. Ordinary traversal outside a loop is free. A limit
+/// may be consumed exactly; expansion fails only when another unit is attempted.
+struct ExpansionBudget {
+    remaining: u64,
+    limit: u64,
+    halted: bool,
+}
+
+impl ExpansionBudget {
+    fn new(limit: u64) -> Self {
+        Self { remaining: limit, limit, halted: false }
+    }
+
+    fn halted(&self) -> bool {
+        self.halted
+    }
+
+    fn charge(&mut self, diagnostics: &mut Vec<ParseDefect>, span: SourceSpan, path: &str) -> bool {
+        if self.halted {
+            return false;
+        }
+        if self.remaining > 0 {
+            self.remaining -= 1;
+            return true;
+        }
+
+        self.halted = true;
+        diagnostics.push(transform_error(
+            &format!(
+                "Fn::ForEach expansion budget exceeded (deterministic work limit: {}); no partial transformed section was applied",
+                self.limit
+            ),
+            span,
+            path,
+        ));
+        false
+    }
+
+    fn halt_for_depth(&mut self, diagnostics: &mut Vec<ParseDefect>, span: SourceSpan, path: &str) {
+        if self.halted {
+            return;
+        }
+        self.halted = true;
+        diagnostics.push(transform_error(
+            &format!(
+                "Fn::ForEach expansion depth exceeds the deterministic limit of {MAX_EXPANSION_DEPTH}; no partial transformed section was applied"
+            ),
+            span,
+            path,
+        ));
+    }
+}
+
 pub(crate) fn expand_language_extensions(ir: &mut TemplateIR) -> Vec<ParseDefect> {
+    expand_language_extensions_with_budget(ir, crate::consts::MAX_FOREACH_EXPANSION_WORK)
+}
+
+fn expand_language_extensions_with_budget(ir: &mut TemplateIR, limit: u64) -> Vec<ParseDefect> {
     if !ir.transforms.iter().any(|t| t == TRANSFORM_LANGUAGE_EXTENSIONS) {
         return Vec::new();
     }
 
     let mut diagnostics = Vec::new();
     let bindings = Bindings::new();
+    let mut budget = ExpansionBudget::new(limit);
     // `Fn::ForEach` is expanded where CloudFormation applies it: the
     // Conditions, Mappings, Resources, and Outputs top-level maps. The walk
     // recurses into nested maps/lists from there, so nested loops are covered.
     for section_ref in [ir.conditions, ir.mappings, ir.resources, ir.outputs] {
         if section_ref != NULL_REF {
-            let rewritten =
-                walk(&mut ir.arena, section_ref, &bindings, 0, &mut diagnostics, ir.parameters, ir.mappings);
+            let rewritten = walk(
+                &mut ir.arena,
+                section_ref,
+                &bindings,
+                0,
+                &mut diagnostics,
+                ir.parameters,
+                ir.mappings,
+                &mut budget,
+            );
+            if budget.halted() {
+                break;
+            }
             replace_node_in_place(&mut ir.arena, section_ref, rewritten);
         }
     }
@@ -82,11 +152,24 @@ fn walk(
     diagnostics: &mut Vec<ParseDefect>,
     parameters: NodeRef,
     mappings: NodeRef,
+    budget: &mut ExpansionBudget,
 ) -> NodeRef {
-    if depth > MAX_EXPANSION_DEPTH {
+    if budget.halted() {
         return node_ref;
     }
+    if depth > MAX_EXPANSION_DEPTH {
+        let span = arena.span(node_ref);
+        let path = arena.get(node_ref).path.clone();
+        budget.halt_for_depth(diagnostics, span, &path);
+        return node_ref;
+    }
+
     let spanned = arena.get(node_ref).clone();
+    // Every node copied or substituted under an active loop binding is one unit
+    // of generated work. Ordinary traversal outside a loop remains uncharged.
+    if !bindings.is_empty() && !budget.charge(diagnostics, spanned.span, &spanned.path) {
+        return node_ref;
+    }
     match &spanned.node {
         Node::String(s) => {
             let substituted = substitute_string(s, bindings);
@@ -97,17 +180,20 @@ fn walk(
             }
         }
         Node::Intrinsic(intrinsic) => {
-            walk_intrinsic(arena, intrinsic, &spanned, bindings, depth, diagnostics, parameters, mappings)
+            walk_intrinsic(arena, intrinsic, &spanned, bindings, depth, diagnostics, parameters, mappings, budget)
         }
         Node::Map(entries) => {
-            walk_map(arena, entries.clone(), &spanned, bindings, depth, diagnostics, parameters, mappings)
+            walk_map(arena, entries.clone(), &spanned, bindings, depth, diagnostics, parameters, mappings, budget)
         }
         Node::List(items) => {
             let items = items.clone();
             let mut new_items = Vec::with_capacity(items.len());
             let mut changed = false;
             for item in &items {
-                let rewritten = walk(arena, *item, bindings, depth + 1, diagnostics, parameters, mappings);
+                let rewritten = walk(arena, *item, bindings, depth + 1, diagnostics, parameters, mappings, budget);
+                if budget.halted() {
+                    return node_ref;
+                }
                 changed |= rewritten != *item;
                 new_items.push(rewritten);
             }
@@ -130,6 +216,7 @@ fn walk_intrinsic(
     diagnostics: &mut Vec<ParseDefect>,
     parameters: NodeRef,
     mappings: NodeRef,
+    budget: &mut ExpansionBudget,
 ) -> NodeRef {
     match intrinsic {
         // A `Ref` to a bound loop variable resolves to that variable's scalar
@@ -165,7 +252,7 @@ fn walk_intrinsic(
                     .map(|(k, v)| {
                         (
                             substitute_string(k, bindings),
-                            walk(arena, *v, bindings, depth + 1, diagnostics, parameters, mappings),
+                            walk(arena, *v, bindings, depth + 1, diagnostics, parameters, mappings, budget),
                         )
                     })
                     .collect()
@@ -208,7 +295,7 @@ fn walk_intrinsic(
         // variable nested inside it (e.g. inside Fn::Select / Fn::Join) is
         // substituted rather than left literal.
         other => {
-            let rebuilt = rebuild_intrinsic(arena, other, bindings, depth, diagnostics, parameters, mappings);
+            let rebuilt = rebuild_intrinsic(arena, other, bindings, depth, diagnostics, parameters, mappings, budget);
             arena.alloc(SpannedNode { node: Node::Intrinsic(rebuilt), span: spanned.span, path: spanned.path.clone() })
         }
     }
@@ -223,6 +310,7 @@ fn walk_map(
     diagnostics: &mut Vec<ParseDefect>,
     parameters: NodeRef,
     mappings: NodeRef,
+    budget: &mut ExpansionBudget,
 ) -> NodeRef {
     let mut new_entries: Vec<(String, NodeRef)> = Vec::new();
     for (key, value) in &entries {
@@ -238,11 +326,18 @@ fn walk_map(
                 mappings,
                 spanned,
                 &mut new_entries,
+                budget,
             );
+            if budget.halted() {
+                return arena.alloc(spanned.clone());
+            }
             continue;
         }
         let new_key = substitute_string(key, bindings);
-        let new_value = walk(arena, *value, bindings, depth + 1, diagnostics, parameters, mappings);
+        let new_value = walk(arena, *value, bindings, depth + 1, diagnostics, parameters, mappings, budget);
+        if budget.halted() {
+            return arena.alloc(spanned.clone());
+        }
         insert_unique(&mut new_entries, new_key, new_value, spanned.span, diagnostics);
     }
     // A `Fn::GetAtt` whose arguments were dynamic before expansion (e.g.
@@ -299,6 +394,7 @@ fn expand_foreach(
     mappings: NodeRef,
     parent: &SpannedNode,
     out: &mut Vec<(String, NodeRef)>,
+    budget: &mut ExpansionBudget,
 ) {
     let span = arena.span(macro_ref);
     let Some(items) = arena.as_list(macro_ref).map(<[NodeRef]>::to_vec) else {
@@ -317,6 +413,12 @@ fn expand_foreach(
     let collection = resolve_collection(arena, items[1], bindings, parameters, mappings);
 
     for value in collection {
+        // Charge one deterministic work unit for selecting this collection item;
+        // generated body nodes are charged by `walk` below.
+        if !budget.charge(diagnostics, span, &parent.path) {
+            return;
+        }
+
         let mut iter_bindings = bindings.clone();
         iter_bindings.insert(identifier.clone(), value);
         // The body must be a map whose keys/values are templated per iteration.
@@ -337,11 +439,19 @@ fn expand_foreach(
                     mappings,
                     parent,
                     out,
+                    budget,
                 );
+                if budget.halted() {
+                    return;
+                }
                 continue;
             }
             let new_key = substitute_string(body_key, &iter_bindings);
-            let new_value = walk(arena, *body_value, &iter_bindings, depth + 1, diagnostics, parameters, mappings);
+            let new_value =
+                walk(arena, *body_value, &iter_bindings, depth + 1, diagnostics, parameters, mappings, budget);
+            if budget.halted() {
+                return;
+            }
             insert_unique(out, new_key, new_value, span, diagnostics);
         }
     }
@@ -506,8 +616,9 @@ fn rebuild_intrinsic(
     diagnostics: &mut Vec<ParseDefect>,
     parameters: NodeRef,
     mappings: NodeRef,
+    budget: &mut ExpansionBudget,
 ) -> IntrinsicFn {
-    let mut w = |child: NodeRef| walk(arena, child, bindings, depth + 1, diagnostics, parameters, mappings);
+    let mut w = |child: NodeRef| walk(arena, child, bindings, depth + 1, diagnostics, parameters, mappings, budget);
     match intrinsic {
         IntrinsicFn::If(cond, t, f) => IntrinsicFn::If(cond.clone(), w(*t), w(*f)),
         IntrinsicFn::IfExpr(c, t, f) => IntrinsicFn::IfExpr(w(*c), w(*t), w(*f)),
@@ -601,6 +712,7 @@ fn transform_error(message: &str, span: SourceSpan, build_path: &str) -> ParseDe
 #[cfg(test)]
 mod tests {
     use crate::SemanticModel;
+    use crate::defect::ParseDefect;
 
     fn model(yaml: &str) -> SemanticModel {
         SemanticModel::from_bytes(yaml.as_bytes()).expect("model builds")
@@ -839,5 +951,81 @@ Resources:
             _ => None,
         };
         assert_eq!(resolved.as_deref(), Some("lit-${NotAVar}-end"), "escape must render as CloudFormation does");
+    }
+
+    /// A single loop within the budget must expand cleanly without diagnostics.
+    #[test]
+    fn foreach_within_budget_expands_cleanly() {
+        // A loop producing 10 elements is well within the budget.
+        let items: Vec<String> = (0..10).map(|i| format!("V{}", i)).collect();
+        let collection = items.join(", ");
+        let yaml = format!(
+            "Transform: AWS::LanguageExtensions\nResources:\n  Fn::ForEach::Loop:\n    - Id\n    - [{}]\n    - R${{Id}}:\n        Type: AWS::SNS::Topic\n",
+            collection
+        );
+        let m = model(&yaml);
+        assert_eq!(m.resources.len(), 10);
+        assert!(
+            !m.diagnostics.iter().any(|d| d.message.contains("expansion budget")),
+            "must not emit budget diagnostic within limits"
+        );
+    }
+
+    /// Nested loops that exceed the budget must emit one transform diagnostic
+    /// and stop materialization safely.
+    #[test]
+    fn foreach_exceeding_budget_emits_diagnostic() {
+        // Two nested loops: 5x5=25 iterations. With budget of 20, it must exhaust.
+        let yaml = "Transform: AWS::LanguageExtensions\nResources:\n  Fn::ForEach::Outer:\n    - A\n    - [A0, A1, A2, A3, A4]\n    - Fn::ForEach::Inner:\n        - B\n        - [B0, B1, B2, B3, B4]\n        - R&{A}&{B}:\n            Type: AWS::SNS::Topic\n";
+
+        let mut ir = crate::parser::parse(yaml.as_bytes()).expect("fixture must parse");
+        assert!(
+            ir.transforms.iter().any(|t| t == "AWS::LanguageExtensions"),
+            "transforms must include LanguageExtensions after parse; got: {:?}",
+            ir.transforms
+        );
+        let diagnostics = super::expand_language_extensions_with_budget(&mut ir, 20);
+        let budget_diags: Vec<&ParseDefect> =
+            diagnostics.iter().filter(|d| d.message.contains("expansion budget")).collect();
+        assert_eq!(budget_diags.len(), 1, "exactly one budget-exhaustion diagnostic expected, got: {:?}", budget_diags);
+        assert_eq!(budget_diags[0].rule_id, "E0001");
+        // Budget was 20; 25+ iterations attempted; materialization must be truncated.
+        let resource_count = ir.arena.as_map(ir.resources).map(|m| m.len()).unwrap_or(0);
+        assert!(
+            resource_count < 25,
+            "materialization must be truncated below the full product, got {} resources",
+            resource_count
+        );
+    }
+
+    /// A budget exactly at the boundary succeeds; one unit over fails.
+    #[test]
+    fn foreach_budget_exact_boundary() {
+        let yaml = "Transform: AWS::LanguageExtensions\nResources:\n  Fn::ForEach::Loop:\n    - X\n    - [A, B, C, D, E]\n    - R${X}:\n        Type: AWS::SNS::Topic\n";
+
+        // Each simple iteration costs exactly three units: one collection item,
+        // one generated resource map, and its `Type` scalar. Five iterations
+        // therefore consume exactly 15 units and must succeed.
+        let mut ir = crate::parser::parse(yaml.as_bytes()).expect("fixture must parse");
+        let diagnostics = super::expand_language_extensions_with_budget(&mut ir, 15);
+        assert!(
+            !diagnostics.iter().any(|d| d.message.contains("expansion budget")),
+            "the exact 15-unit budget must succeed; got: {:?}",
+            diagnostics
+        );
+        let resource_count = ir.arena.as_map(ir.resources).map(|m| m.len()).unwrap_or(0);
+        assert_eq!(resource_count, 5, "all 5 resources must materialize");
+
+        // One unit below the exact cost must fail visibly and leave the original
+        // section in place rather than apply a partial transformed section.
+        let mut ir = crate::parser::parse(yaml.as_bytes()).expect("fixture must parse");
+        let diagnostics = super::expand_language_extensions_with_budget(&mut ir, 14);
+        let budget_diags: Vec<&ParseDefect> =
+            diagnostics.iter().filter(|d| d.message.contains("expansion budget")).collect();
+        assert_eq!(budget_diags.len(), 1, "a 14-unit budget must trigger exactly one exhaustion diagnostic");
+        assert_eq!(budget_diags[0].rule_id, "E0001");
+        let keys: Vec<&str> =
+            ir.arena.as_map(ir.resources).unwrap_or_default().iter().map(|(key, _)| key.as_str()).collect();
+        assert_eq!(keys, ["Fn::ForEach::Loop"], "the original untransformed section must remain intact");
     }
 }

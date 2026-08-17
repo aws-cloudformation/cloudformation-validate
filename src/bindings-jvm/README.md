@@ -234,7 +234,7 @@ val diagnostics = validator.validate(File("template.yaml"))
 ```kotlin
 data class StandardReport(
     val filePath: String,
-    val status: ReportStatus,            // OK or ERROR (ERROR when template fails to parse)
+    val status: ReportStatus,            // OK, ANALYSIS_INCOMPLETE (findings may be omitted), or ERROR (pipeline failure)
     val version: String,
     val metadata: ReportMetadata,
     val performance: PerformanceMetrics,

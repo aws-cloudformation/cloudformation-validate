@@ -14,13 +14,16 @@ const (
 	SeverityDebug Severity = "DEBUG"
 )
 
-// ReportStatus is the outcome of a validation run. StatusOK means the engine
-// completed; StatusError means the pipeline could not run (e.g. parse failure).
+// ReportStatus is the outcome of a validation run. StatusOK means validation
+// completed without correctness-affecting curtailment. StatusAnalysisIncomplete
+// means a deterministic budget curtailed analysis and could omit findings.
+// StatusError means the validation pipeline could not run, such as a parse failure.
 type ReportStatus string
 
 const (
-	StatusOK    ReportStatus = "OK"
-	StatusError ReportStatus = "ERROR"
+	StatusOK                 ReportStatus = "OK"
+	StatusAnalysisIncomplete ReportStatus = "ANALYSIS_INCOMPLETE"
+	StatusError              ReportStatus = "ERROR"
 )
 
 type EntityType string
@@ -123,16 +126,24 @@ type Summary struct {
 	Debug         int `json:"debug"`
 }
 
+// BudgetExhaustionRecord is a single budget-exhaustion entry in report metadata.
+type BudgetExhaustionRecord struct {
+	Kind               string `json:"kind"`
+	Limit              uint64 `json:"limit"`
+	AnalysisIncomplete bool   `json:"analysisIncomplete"`
+}
+
 // ReportMetadata describes the validation run.
 type ReportMetadata struct {
-	RulesEvaluated        int      `json:"rulesEvaluated"`
-	CfnLintVersion        string   `json:"cfnLintVersion"`
-	ResourceSchemaVersion string   `json:"resourceSchemaVersion"`
-	ResourcesScanned      int      `json:"resourcesScanned"`
-	Counts                Summary  `json:"counts"`
-	Suppressed            int      `json:"suppressed"`
-	Strict                bool     `json:"strict"`
-	SeverityLevel         Severity `json:"severityLevel"`
+	RulesEvaluated        int                      `json:"rulesEvaluated"`
+	CfnLintVersion        string                   `json:"cfnLintVersion"`
+	ResourceSchemaVersion string                   `json:"resourceSchemaVersion"`
+	ResourcesScanned      int                      `json:"resourcesScanned"`
+	Counts                Summary                  `json:"counts"`
+	Suppressed            int                      `json:"suppressed"`
+	Strict                bool                     `json:"strict"`
+	SeverityLevel         Severity                 `json:"severityLevel"`
+	BudgetExhaustions     []BudgetExhaustionRecord `json:"budgetExhaustions,omitempty"`
 }
 
 // PhaseMetric is the duration of one pipeline phase.

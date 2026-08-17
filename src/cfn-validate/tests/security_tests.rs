@@ -15,7 +15,7 @@ mod common;
 use std::time::Duration;
 
 use cel_engine::CelEngine;
-use diagnostics::DetailLevel;
+use diagnostics::{DetailLevel, ReportStatus, ValidationReport};
 use rego_engine::RegoEngine;
 use rules::Severity;
 use schema_validator::SchemaValidator;
@@ -48,12 +48,14 @@ fn build_engine(engine_name: &str) -> Result<Box<dyn ValidationEngine>, String> 
     }
 }
 
-/// Validates `bytes` on a freshly built engine in a worker thread. Returns
-/// `Some(Ok(rule_ids))` with the rule ID of every diagnostic produced if it
-/// finishes within `budget`, `Some(Err(_))` if validation errored, or `None` if
-/// it did not finish in time. Running on a worker thread means a hang fails the
-/// test instead of blocking the whole suite.
-fn validate_within(budget: Duration, engine_name: &'static str, bytes: Vec<u8>) -> Option<Result<Vec<String>, String>> {
+/// Validates `bytes` on a freshly built engine in a worker thread. Returns a
+/// completed report, a structured error, or `None` when the test-only deadline
+/// expires.
+fn validate_report_within(
+    budget: Duration,
+    engine_name: &'static str,
+    bytes: Vec<u8>,
+) -> Option<Result<ValidationReport, String>> {
     let (sender, receiver) = std::sync::mpsc::channel();
     std::thread::spawn(move || {
         let outcome = match build_engine(engine_name) {
@@ -71,14 +73,30 @@ fn validate_within(budget: Duration, engine_name: &'static str, bytes: Vec<u8>) 
                     config,
                     "security-fixture".to_string(),
                 )
-                .map(|report| report.diagnostics.iter().map(|d| d.rule_id.clone()).collect::<Vec<String>>())
-                .map_err(|e| e.to_string())
+                .map_err(|error| error.to_string())
             }
-            Err(e) => Err(e),
+            Err(error) => Err(error),
         };
         let _ = sender.send(outcome);
     });
     receiver.recv_timeout(budget).ok()
+}
+
+fn validate_within(budget: Duration, engine_name: &'static str, bytes: Vec<u8>) -> Option<Result<Vec<String>, String>> {
+    validate_report_within(budget, engine_name, bytes).map(|outcome| {
+        outcome.map(|report| report.diagnostics.into_iter().map(|diagnostic| diagnostic.rule_id).collect())
+    })
+}
+
+fn budget_metadata(report: &ValidationReport) -> Vec<(String, u64, bool)> {
+    report
+        .metadata
+        .budget_exhaustions
+        .as_deref()
+        .unwrap_or_default()
+        .iter()
+        .map(|record| (record.kind.clone(), record.limit, record.analysis_incomplete))
+        .collect()
 }
 
 fn collect_security_templates(directory: &std::path::Path, templates: &mut Vec<std::path::PathBuf>) {
@@ -143,15 +161,45 @@ fn every_security_template_is_exercised_by_both_engines() {
                 )
             });
             if let Err(error) = finished {
-                assert_eq!(
-                    template.file_name().and_then(|name| name.to_str()),
-                    Some("deep_nesting.json"),
+                let filename = template.file_name().and_then(|name| name.to_str()).unwrap_or("");
+                assert!(
+                    filename == "deep_nesting.json" || filename == "deep_yaml_nesting.yaml",
                     "{engine_name}: security fixture {} returned an unexpected error: {error}",
                     template.display()
                 );
             }
         }
     }
+}
+
+#[test]
+fn schema_scenario_assignment_boundary_is_explicit_and_bounded() {
+    const CURTAILED_ANALYSIS_ADVISORY: &str = "W9052";
+    let mut engine_reports = Vec::new();
+    for engine_name in ["rego", "cel"] {
+        let report = validate_report_within(
+            COMPLETION_BUDGET,
+            engine_name,
+            common::load_security("scenario_assignment_budget.yaml"),
+        )
+        .unwrap_or_else(|| {
+            panic!("{engine_name}: schema scenario assignment boundary must complete within {COMPLETION_BUDGET:?}")
+        })
+        .expect("schema assignment boundary validation must return a structured report");
+        let curtailed_count =
+            report.diagnostics.iter().filter(|diagnostic| diagnostic.rule_id == CURTAILED_ANALYSIS_ADVISORY).count();
+        assert_eq!(curtailed_count, 1, "{engine_name}: budget exhaustion must produce one aggregate warning");
+        assert_eq!(
+            report.status,
+            ReportStatus::AnalysisIncomplete,
+            "{engine_name}: assignment truncation must mark analysis incomplete"
+        );
+        assert!(report.metadata.budget_exhaustions.is_some());
+        engine_reports.push(report);
+    }
+
+    assert_eq!(budget_metadata(&engine_reports[0]), budget_metadata(&engine_reports[1]));
+    assert_eq!(engine_reports[0].status, engine_reports[1].status);
 }
 
 #[test]
@@ -192,31 +240,33 @@ fn pathological_condition_closures_resolve_within_budget() {
 
 #[test]
 fn conditions_layered_over_shared_inputs_are_analyzed_without_curtailing() {
-    // The shape that made CDK's default template validation stall for hours: two
-    // hundred conditions all reaching the same three inputs, so the whole
-    // condition set is connected through them. The deterministic,
-    // machine-independent signature that the analysis stayed affordable is the
-    // absence of the advisory that reports a curtailed satisfiability analysis -
-    // if deciding these conditions ever costs more than the budgets allow, the
-    // validator says so, and this test fails instead of merely getting slower.
-    const CURTAILED_ANALYSIS_ADVISORY: &str = "I9052";
+    const CURTAILED_ANALYSIS_ADVISORY: &str = "W9052";
+    let mut engine_reports = Vec::new();
     for engine_name in ["rego", "cel"] {
-        let bytes = common::load_security("condition_fusion.yaml");
-        let finished = validate_within(COMPLETION_BUDGET, engine_name, bytes);
-        let rule_ids = finished
-            .unwrap_or_else(|| {
-                panic!(
-                    "{engine_name}: conditions layered over shared inputs must validate within \
-                     {COMPLETION_BUDGET:?}"
-                )
-            })
-            .expect("validation should return a structured report");
+        let report =
+            validate_report_within(COMPLETION_BUDGET, engine_name, common::load_security("condition_fusion.yaml"))
+                .unwrap_or_else(|| {
+                    panic!(
+                        "{engine_name}: conditions layered over shared inputs must validate within \
+                 {COMPLETION_BUDGET:?}"
+                    )
+                })
+                .expect("validation must return a structured report");
         assert!(
-            !rule_ids.iter().any(|rule_id| rule_id == CURTAILED_ANALYSIS_ADVISORY),
-            "{engine_name}: every condition pair in this template must be decided within budget, \
-             so no curtailed-analysis advisory may be reported"
+            report.diagnostics.iter().all(|diagnostic| diagnostic.rule_id != CURTAILED_ANALYSIS_ADVISORY),
+            "{engine_name}: the fully decided condition fixture must not report curtailment"
         );
+        assert_eq!(
+            report.status,
+            ReportStatus::Ok,
+            "{engine_name}: complete condition analysis must keep the report status ok"
+        );
+        assert!(report.metadata.budget_exhaustions.is_none(), "{engine_name}: no budget may be exhausted");
+        engine_reports.push(report);
     }
+
+    assert_eq!(budget_metadata(&engine_reports[0]), budget_metadata(&engine_reports[1]));
+    assert_eq!(engine_reports[0].status, engine_reports[1].status);
 }
 
 #[test]
@@ -499,5 +549,74 @@ fn cross_resource_pair_comparison_produces_a_deterministic_bounded_count() {
              diagnostic - proving the quadratic pair-comparison ran to completion and produced a \
              bounded, deterministic result; got {uniqueness_diagnostics}"
         );
+    }
+}
+
+#[test]
+fn foreach_branch_explosion_is_bounded_within_budget() {
+    // A triple-nested Fn::ForEach with combinatorial output and a wide body must
+    // produce one transform diagnostic and leave the original section in
+    // place—never apply a partially expanded set of resources.
+    let bytes = common::load_security("foreach_branch_explosion.yaml");
+    let start = std::time::Instant::now();
+    let model = SemanticModel::from_bytes(&bytes).expect("model must build even when budget is exhausted");
+    let elapsed = start.elapsed();
+    assert!(
+        elapsed < Duration::from_secs(30),
+        "model construction must complete quickly once the budget caps expansion; took {:?}",
+        elapsed
+    );
+    let budget_diags: Vec<_> = model.diagnostics.iter().filter(|d| d.message.contains("expansion budget")).collect();
+    assert_eq!(
+        budget_diags.len(),
+        1,
+        "exactly one budget-exhaustion diagnostic (E0001) must be emitted; got: {:?}",
+        model.diagnostics.iter().map(|d| &d.rule_id).collect::<Vec<_>>()
+    );
+    assert_eq!(budget_diags[0].rule_id, "E0001");
+    assert!(
+        model.resources.len() <= 1,
+        "a failed transform must not apply a partial generated section; got {} modeled resources",
+        model.resources.len()
+    );
+    // The universal sweep above validates that both engines return within the
+    // test-only wall-clock deadline on this same fixture.
+}
+
+#[test]
+fn deep_yaml_nesting_is_rejected_with_structured_error() {
+    let bytes = common::load_security("deep_yaml_nesting.yaml");
+    let result = SemanticModel::from_bytes(&bytes);
+    let error = match result {
+        Err(e) => e,
+        Ok(_) => panic!("a deeply nested YAML template must fail with a parse error"),
+    };
+    let msg = error.to_string().to_lowercase();
+    assert!(msg.contains("nesting depth"), "error must reference nesting depth, got: {}", error);
+}
+
+#[test]
+fn deep_intrinsic_resolution_completes_within_budget() {
+    // A valid template with deeply nested block-style Fn::If chains (64 levels,
+    // one condition) must parse to a SemanticModel, produce the expected resource,
+    // and resolve within the timeout on both engines without error.
+    let bytes = common::load_security("deep_intrinsic_resolution.yaml");
+
+    // Phase 1: Assert the SemanticModel builds and has the expected shape.
+    let model =
+        SemanticModel::from_bytes(&bytes).expect("deeply nested Fn::If must parse successfully into a SemanticModel");
+    assert_eq!(model.resources.len(), 1, "fixture has exactly one resource (DeepIfResource)");
+    assert!(model.resources.contains_key("DeepIfResource"), "resource logical ID must be DeepIfResource");
+    assert!(model.conditions.conditions.contains_key("IsUsEast1"), "fixture declares a single condition IsUsEast1");
+
+    // Phase 2: Both engines complete validation without error.
+    for engine_name in ["rego", "cel"] {
+        let engine_bytes = common::load_security("deep_intrinsic_resolution.yaml");
+        let finished = validate_within(COMPLETION_BUDGET, engine_name, engine_bytes);
+        assert!(
+            finished.is_some(),
+            "{engine_name}: deep intrinsic resolution must complete within {COMPLETION_BUDGET:?}"
+        );
+        finished.unwrap().unwrap_or_else(|e| panic!("{engine_name}: deep intrinsic resolution must not error: {e}"));
     }
 }
