@@ -1,9 +1,8 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Transform: AWS::LanguageExtensions
 Description: >
-  Reachable invalid transformed lifecycle policies. Every satisfiable branch is
-  checked against the policy's allowed values, and AWS::NoValue remains an
-  unsupported authored value rather than becoming ordinary omission.
+  Reachable invalid lifecycle policies without a transform. Every satisfiable
+  branch is checked against the policy's allowed values, and AWS::NoValue remains
+  an unsupported authored value rather than becoming ordinary omission.
 Parameters:
   Policy:
     Type: String
@@ -29,6 +28,11 @@ Resources:
     Type: AWS::S3::Bucket
     DeletionPolicy: !Ref AWS::NoValue
     UpdateReplacePolicy: !Ref AWS::NoValue
+
+  StackIdPolicies:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    DeletionPolicy: !Ref AWS::StackId
+    UpdateReplacePolicy: !Ref AWS::StackId
 
   ConditionalNoValuePolicies:
     Type: AWS::S3::Bucket

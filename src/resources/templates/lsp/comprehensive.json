@@ -3,7 +3,6 @@
   "Description": "Comprehensive CloudFormation template showcasing ALL complex syntax - GOOD STATE",
   
   "Transform": [
-    "AWS::LanguageExtensions",
     "AWS::Serverless-2016-10-31",
     "AWS::Include"
   ],

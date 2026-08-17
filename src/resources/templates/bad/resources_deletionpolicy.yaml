@@ -1,6 +1,5 @@
 ---
 AWSTemplateFormatVersion: "2010-09-09"
-Transform: AWS::LanguageExtensions
 Description: >
   Bad Template for testing DeletionPolicies
 Parameters:
