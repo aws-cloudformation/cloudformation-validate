@@ -1502,7 +1502,8 @@ impl SemanticModel {
 
     /// Whether any scenario expansion for this model omitted possible results
     /// because a per-value or model-wide analysis limit was reached. The flag is
-    /// monotonic and is queried by the validation pipeline to emit one advisory.
+    /// monotonic so callers can distinguish complete expansion from conservative
+    /// fallback behavior.
     #[must_use]
     pub fn scenario_expansion_curtailed(&self) -> bool {
         self.scenario_expansion_curtailed.load(Ordering::Relaxed)

@@ -135,7 +135,7 @@ jobs:
         if [[ -n "$BENCHMARK_ITERATIONS" ]]; then
           benchmark_command+=(--iterations "$BENCHMARK_ITERATIONS")
         fi
-        
+
         if [[ -n "$TOP_SLOWEST" ]]; then
           benchmark_command+=(--top-slowest "$TOP_SLOWEST")
         fi
