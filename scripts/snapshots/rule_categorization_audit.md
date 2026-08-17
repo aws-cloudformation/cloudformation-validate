@@ -6,7 +6,7 @@ severity model documented in `product.md`.
 ## Summary
 
 - Total rules: **302**
-- By severity: Fatal=69, Error=148, Warn=62, Info=23
+- By severity: Fatal=69, Error=148, Warn=63, Info=22
 - By true origin: CfnLint=203, Engine=29, Engine(collision)=1, Schema=69
 - By category: BestPractice=49, Deprecation=8, Intrinsic=52, Parameter=8, Reference=2, Resource=87, Schema=25, Security=14, Structure=57
 - cfn-lint reference: 322 rule IDs loaded
@@ -65,7 +65,7 @@ cfn-lint's `shortdesc`. Fatal rules are exempt
 
 ## 3. Severity/category model compliance
 
-### Warn in unexpected categories (6)
+### Warn in unexpected categories (7)
 
 | ID | Category | Description |
 |----|----------|-------------|
@@ -75,6 +75,7 @@ cfn-lint's `shortdesc`. Fatal rules are exempt
 | `W1100` | Structure | YAML merge key '<<' is not supported by CloudFormation |
 | `W1103` | Intrinsic | Unknown intrinsic function name |
 | `W3030` | Schema | Value not in allowed enum |
+| `W9052` | Structure | Deterministic validation budgets were exhausted; see report metadata for completeness impact |
 
 ## 4. Duplicate descriptions
 
@@ -547,7 +548,6 @@ _Scanned 257 CEL sites (195 IDs), 279 Rego sites (193 IDs)._
 | `I9002` | Info | BestPractice | Engine | Engine | Property is ignored in this configuration (from extension) |
 | `I9003` | Info | BestPractice | Engine | Engine | Region-scoped values validated against all regions because no region was supplied |
 | `I9040` | Info | BestPractice | Engine | Engine | Resource should have Tags |
-| `I9052` | Info | Structure | Engine | Engine | Condition-dependent validation could not be completed because an analysis budget was exceeded |
 | `W1001` | Warn | BestPractice | CfnLint | CfnLint | Ref/GetAtt to resource that is available when conditions are applied |
 | `W1011` | Warn | Security | CfnLint | CfnLint | Instead of REFing a parameter for a secret use a dynamic reference |
 | `W1019` | Warn | Intrinsic | CfnLint | CfnLint | Parameter in Fn::Sub variable map is not used in the template string |
@@ -608,6 +608,7 @@ _Scanned 257 CEL sites (195 IDs), 279 Rego sites (193 IDs)._
 | `W9011` | Warn | Security | Engine | Engine | RDS instance PubliclyAccessible is true |
 | `W9012` | Warn | BestPractice | Engine | Engine | Provided pseudo-parameter override value is not a valid AWS value |
 | `W9013` | Warn | Security | Engine | Engine | Hardcoded account ID in ARN |
+| `W9052` | Warn | Structure | Engine | Engine | Deterministic validation budgets were exhausted; see report metadata for completeness impact |
 | `W9053` | Warn | BestPractice | Engine | Engine | Conditions are semantically equivalent and can be consolidated |
 | `W9054` | Warn | BestPractice | Engine | Engine | Write-only property referenced in output |
 
