@@ -1,0 +1,40 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Exercises valid condition-correlated DynamoDB property worlds.
+
+Conditions:
+  OnDemand: !Equals [!Ref AWS::Region, us-east-1]
+  HasGSI: !Equals [!Ref AWS::Region, us-west-2]
+
+Resources:
+  CorrelatedBilling:
+    Type: AWS::DynamoDB::Table
+    Properties: !If
+      - OnDemand
+      - BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions: [{AttributeName: pk, AttributeType: S}]
+        KeySchema: [{AttributeName: pk, KeyType: HASH}]
+        Tags: [{Key: Name, Value: correlated-billing}]
+      - ProvisionedThroughput: {ReadCapacityUnits: 1, WriteCapacityUnits: 1}
+        AttributeDefinitions: [{AttributeName: pk, AttributeType: S}]
+        KeySchema: [{AttributeName: pk, KeyType: HASH}]
+        Tags: [{Key: Name, Value: correlated-billing}]
+
+  CorrelatedIndex:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions: !If
+        - HasGSI
+        - - {AttributeName: pk, AttributeType: S}
+          - {AttributeName: gsi_key, AttributeType: S}
+        - - {AttributeName: pk, AttributeType: S}
+      KeySchema: [{AttributeName: pk, KeyType: HASH}]
+      GlobalSecondaryIndexes: !If
+        - HasGSI
+        - - IndexName: by-gsi
+            KeySchema: [{AttributeName: gsi_key, KeyType: HASH}]
+            Projection: {ProjectionType: ALL}
+        - !Ref AWS::NoValue
+      Tags:
+        - Key: Name
+          Value: correlated-index

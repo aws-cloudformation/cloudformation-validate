@@ -17,14 +17,28 @@ fn selected_findings(engine: &dyn ValidationEngine, template: &str, rule_ids: &[
     findings
 }
 
+fn selected_findings_with_spans(engine: &dyn ValidationEngine, template: &str, rule_ids: &[&str]) -> Vec<String> {
+    let validator = SchemaValidator::default();
+    let report = validate_bytes(engine, &validator, template.as_bytes(), ValidateConfig::default()).unwrap();
+    let mut findings: Vec<String> = report
+        .diagnostics
+        .iter()
+        .filter(|diagnostic| rule_ids.contains(&diagnostic.rule_id.as_str()))
+        .map(|diagnostic| format!("{}|{:?}", diagnostic_identity(diagnostic), diagnostic.location))
+        .collect();
+    findings.sort();
+    findings
+}
+
 fn diagnostic_identity(diagnostic: &Diagnostic) -> String {
     format!(
-        "{}|{:?}|{}|{}|{}",
+        "{}|{:?}|{}|{}|{}|{}",
         diagnostic.rule_id,
         diagnostic.severity,
         diagnostic.resource_logical_id().unwrap_or(""),
         diagnostic.property_path.as_deref().unwrap_or(""),
-        diagnostic.message
+        diagnostic.message,
+        diagnostic.suggested_fix.as_deref().unwrap_or("")
     )
 }
 
@@ -54,6 +68,74 @@ Resources:
     assert!(rego_findings.iter().any(|finding| finding.contains("AWS::NotAService::NotAResource")));
     assert!(rego_findings.iter().any(|finding| finding.contains("AWS::S3::MODULE::Bucket")));
     assert!(rego_findings.iter().all(|finding| !finding.contains("AWS::S3::Bucket::MODULE")));
+}
+
+#[test]
+fn unsupported_lifecycle_attributes_have_identical_authored_paths() {
+    let template = r#"
+Resources:
+  UnsupportedBucket:
+    Type: AWS::S3::Bucket
+    CreationPolicy:
+      ResourceSignal:
+        Count: 1
+    UpdatePolicy:
+      AutoScalingRollingUpdate:
+        MinInstancesInService: 1
+  UnsupportedTopic:
+    Type: AWS::SNS::Topic
+    CreationPolicy:
+      ResourceSignal:
+        Count: 1
+"#;
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E3016", "E3055"]);
+    let cel_findings = selected_findings(&cel, template, &["E3016", "E3055"]);
+    assert_eq!(rego_findings, cel_findings);
+    assert_eq!(rego_findings.len(), 3, "each unsupported lifecycle attribute should be reported: {rego_findings:?}");
+    assert!(rego_findings.iter().any(|finding| finding.contains("|UnsupportedBucket|CreationPolicy|")));
+    assert!(rego_findings.iter().any(|finding| finding.contains("|UnsupportedBucket|UpdatePolicy|")));
+    assert!(rego_findings.iter().any(|finding| finding.contains("|UnsupportedTopic|CreationPolicy|")));
+}
+
+#[test]
+fn statically_removed_update_policy_is_not_reported() {
+    let template = r#"
+Conditions:
+  Never: !Equals [always, never]
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    UpdatePolicy: !If
+      - Never
+      - AutoScalingRollingUpdate:
+          MinInstancesInService: 1
+      - !Ref AWS::NoValue
+"#;
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E3016"]);
+    let cel_findings = selected_findings(&cel, template, &["E3016"]);
+    assert_eq!(rego_findings, cel_findings);
+    assert!(rego_findings.is_empty(), "an unreachable policy branch must not count as present: {rego_findings:?}");
+}
+
+#[test]
+fn scalar_update_policy_has_structure_and_policy_diagnostics() {
+    let template = r#"
+Resources:
+  ScalarUpdatePolicy:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    UpdatePolicy: 7
+"#;
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E3001", "E3016"]);
+    let cel_findings = selected_findings(&cel, template, &["E3001", "E3016"]);
+    assert_eq!(rego_findings, cel_findings);
+    assert_eq!(rego_findings.len(), 2, "both compatibility diagnostics must be emitted: {rego_findings:?}");
+    assert!(rego_findings.iter().any(|finding| finding.starts_with("E3001|")));
+    assert!(rego_findings.iter().any(|finding| {
+        finding.starts_with("E3016|") && finding.contains("|ScalarUpdatePolicy|UpdatePolicy|7 is not of type 'object'|")
+    }));
 }
 
 #[test]
@@ -722,11 +804,13 @@ Resources:
     let rego_findings = selected_findings(&rego, template, &["E3039"]);
     let cel_findings = selected_findings(&cel, template, &["E3039"]);
     assert_eq!(rego_findings, cel_findings);
-    // missing_sk is in table KeySchema but not in AttributeDefinitions — always wrong.
-    assert_eq!(rego_findings.len(), 1, "Expected missing definition finding: {rego_findings:?}");
-    assert!(rego_findings[0].contains("missing definitions: [missing_sk]"));
-    // gsi_pk should NOT be reported as unused because the conditional index could use it.
-    assert!(!rego_findings[0].contains("unused"), "unused must be suppressed: {rego_findings:?}");
+    assert_eq!(rego_findings.len(), 2, "both index-presence worlds must be checked: {rego_findings:?}");
+    assert!(rego_findings.iter().all(|finding| finding.contains("missing definitions: [missing_sk]")));
+    assert_eq!(
+        rego_findings.iter().filter(|finding| finding.contains("unused definitions: [gsi_pk]")).count(),
+        1,
+        "the index-absent world must expose its unused definition: {rego_findings:?}"
+    );
 }
 
 #[test]
@@ -767,7 +851,7 @@ Resources:
 }
 
 #[test]
-fn dynamodb_conditional_index_no_false_positive_when_valid() {
+fn dynamodb_conditional_index_reports_unused_definition_when_absent() {
     let template = r#"
 Parameters:
   AddGSI:
@@ -775,7 +859,7 @@ Parameters:
 Conditions:
   CreateGSI: !Equals [!Ref AddGSI, "true"]
 Resources:
-  ValidTableWithConditionalGSI:
+  TableWithConditionalGSI:
     Type: AWS::DynamoDB::Table
     Properties:
       BillingMode: PAY_PER_REQUEST
@@ -801,9 +885,8 @@ Resources:
     let rego_findings = selected_findings(&rego, template, &["E3039"]);
     let cel_findings = selected_findings(&cel, template, &["E3039"]);
     assert_eq!(rego_findings, cel_findings);
-    // Table KeySchema only uses pk (defined), gsi_pk is for the conditional index.
-    // No missing and no unused (index might use gsi_pk).
-    assert!(rego_findings.is_empty(), "Valid table should not fire: {rego_findings:?}");
+    assert_eq!(rego_findings.len(), 1, "the index-absent world must be reported: {rego_findings:?}");
+    assert!(rego_findings[0].contains("unused definitions: [gsi_pk]"));
 }
 
 #[test]
@@ -978,6 +1061,109 @@ Resources:
 }
 
 #[test]
+fn identity_policy_scenario_gap_findings_match_with_exact_spans() {
+    let template = r#"
+Parameters:
+  WholeArn:
+    Type: String
+    Default: not-an-arn
+Conditions:
+  IsProd: !Equals [!Ref AWS::Region, us-east-1]
+Resources:
+  IdenticalBranches:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Action: s3:GetObject
+            Resource: !If
+              - IsProd
+              - not-an-arn
+              - not-an-arn
+  LiteralAndMalformedSub:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Action: s3:GetObject
+            Resource: !If
+              - IsProd
+              - !Sub 'bad-${AWS::AccountId}'
+              - also-not-an-arn
+  ValidSub:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - {Effect: Allow, Action: s3:GetObject, Resource: !Sub 'arn:${AWS::Partition}:s3:::bucket/*'}
+  IndeterminateSub:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - {Effect: Allow, Action: s3:GetObject, Resource: !Sub '${WholeArn}'}
+  RawPlaceholders:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - {Effect: Allow, Action: s3:GetObject, Resource: 'arn:aws:s3:::${BucketName}/*'}
+          - {Effect: Deny, Action: s3:DeleteObject, NotResource: 'arn:aws:s3:::${ProtectedBucket}/*'}
+  ShiftedLiteralNull:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Action:
+              - !If [IsProd, !Ref AWS::NoValue, s3:GetObject]
+              - null
+            Resource: '*'
+  EmptyNotAction:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            NotAction:
+              - !If [IsProd, !Ref AWS::NoValue, s3:GetObject]
+              - !If [IsProd, !Ref AWS::NoValue, s3:PutObject]
+            Resource: '*'
+"#;
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings_with_spans(&rego, template, &["E3510"]);
+    let cel_findings = selected_findings_with_spans(&cel, template, &["E3510"]);
+
+    assert_eq!(rego_findings, cel_findings, "IAM diagnostics must match through source spans");
+    assert_eq!(rego_findings.len(), 8, "expected every and only authored IAM defect: {rego_findings:#?}");
+    assert_eq!(
+        rego_findings.iter().filter(|finding| finding.contains("IdenticalBranches")).count(),
+        2,
+        "identical branches must remain distinct by source span: {rego_findings:#?}"
+    );
+    assert_eq!(
+        rego_findings.iter().filter(|finding| finding.contains("LiteralAndMalformedSub")).count(),
+        2,
+        "both the malformed Sub and literal branch must fire: {rego_findings:#?}"
+    );
+    assert_eq!(rego_findings.iter().filter(|finding| finding.contains("RawPlaceholders")).count(), 2);
+    assert!(rego_findings.iter().any(|finding| {
+        finding.contains("ShiftedLiteralNull")
+            && finding.contains("Properties.PolicyDocument.Statement.0.Action.1")
+            && finding.contains("not of type 'string'")
+    }));
+    assert!(rego_findings.iter().any(|finding| {
+        finding.contains("EmptyNotAction")
+            && finding.contains("Properties.PolicyDocument.Statement.0.NotAction")
+            && finding.contains("too short")
+    }));
+    assert!(rego_findings.iter().all(|finding| !finding.contains("ValidSub")));
+    assert!(rego_findings.iter().all(|finding| !finding.contains("IndeterminateSub")));
+}
+
+#[test]
 fn identity_policy_resource_arn_boundaries_are_identical() {
     let template = r#"
 Resources:
@@ -995,7 +1181,7 @@ Resources:
       PolicyDocument:
         Statement:
           - {Effect: Allow, Action: sqs:SendMessage, Resource: 'arn:aws:sqs'}
-          - {Effect: Allow, Action: iam:GetUser, Resource: 'arn:${AWS::Partition}:iam::${AWS::AccountId}:user/${aws:username}'}
+          - {Effect: Allow, Action: iam:GetUser, Resource: !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:user/${aws:username}'}
           - {Effect: Allow, Action: s3:GetObject, Resource: 'arn:*:s3:::bucket/key'}
           - {Effect: Allow, Action: s3:GetObject, Resource: '*'}
 "#;
@@ -1032,4 +1218,470 @@ Resources:
     let cel_findings = selected_findings(&cel, template, &["E3510", "E3512"]);
     assert_eq!(rego_findings, cel_findings);
     assert!(rego_findings.is_empty(), "resource-based policies may contain a string Id: {rego_findings:?}");
+}
+
+#[test]
+fn e3510_conditional_whole_policies_validates_both_branches() {
+    let template = r#"
+Parameters:
+  Env:
+    Type: String
+    Default: prod
+Conditions:
+  IsProd: !Equals [!Ref Env, prod]
+Resources:
+  Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies: !If
+        - IsProd
+        - - PolicyName: P1
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action: s3:GetObject
+                  Resource: not-an-arn
+          - PolicyName: P2
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action: logs:*
+                  Resource: '*'
+        - - PolicyName: Dev
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action: s3:*
+                  Resource: also-bad
+"#;
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E3510"]);
+    let cel_findings = selected_findings(&cel, template, &["E3510"]);
+    assert_eq!(rego_findings, cel_findings);
+    assert_eq!(rego_findings.len(), 2, "both branches with bad ARNs must fire: {rego_findings:?}");
+}
+
+#[test]
+fn w2512_conditional_whole_policies_notaction_branch() {
+    let template = r#"
+Parameters:
+  Env:
+    Type: String
+    Default: prod
+Conditions:
+  IsProd: !Equals [!Ref Env, prod]
+Resources:
+  Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies: !If
+        - IsProd
+        - - PolicyName: ProdWide
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  NotAction: iam:*
+                  Resource: '*'
+        - - PolicyName: DevNarrow
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action: s3:GetObject
+                  Resource: '*'
+"#;
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["W2512"]);
+    let cel_findings = selected_findings(&cel, template, &["W2512"]);
+    assert_eq!(rego_findings, cel_findings);
+    assert_eq!(rego_findings.len(), 1, "NotAction in one branch must fire: {rego_findings:?}");
+}
+
+#[test]
+fn w2512_single_object_statement_fires() {
+    let template = r#"
+Resources:
+  Policy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          Effect: Allow
+          NotAction: iam:*
+          Resource: '*'
+"#;
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["W2512"]);
+    let cel_findings = selected_findings(&cel, template, &["W2512"]);
+    assert_eq!(rego_findings, cel_findings);
+    assert_eq!(rego_findings.len(), 1, "single-object Statement with NotAction must fire: {rego_findings:?}");
+}
+
+#[test]
+fn w2512_novalue_branch_does_not_false_positive() {
+    let template = r#"
+Parameters:
+  Env:
+    Type: String
+    Default: prod
+Conditions:
+  IsProd: !Equals [!Ref Env, prod]
+Resources:
+  Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies: !If
+        - IsProd
+        - - PolicyName: P1
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action: s3:GetObject
+                  Resource: '*'
+        - !Ref AWS::NoValue
+"#;
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["W2512"]);
+    let cel_findings = selected_findings(&cel, template, &["W2512"]);
+    assert_eq!(rego_findings, cel_findings);
+    assert!(rego_findings.is_empty(), "NoValue branch must not false-positive: {rego_findings:?}");
+}
+
+#[test]
+fn e3510_novalue_branch_suppressed() {
+    let template = r#"
+Parameters:
+  Env:
+    Type: String
+    Default: prod
+Conditions:
+  IsProd: !Equals [!Ref Env, prod]
+Resources:
+  Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies: !If
+        - IsProd
+        - - PolicyName: P1
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action: s3:GetObject
+                  Resource: '*'
+        - !Ref AWS::NoValue
+"#;
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E3510"]);
+    let cel_findings = selected_findings(&cel, template, &["E3510"]);
+    assert_eq!(rego_findings, cel_findings);
+    assert!(rego_findings.is_empty(), "NoValue Policies branch must not fire E3510: {rego_findings:?}");
+}
+
+#[test]
+fn e3510_different_branch_list_lengths() {
+    let template = r#"
+Parameters:
+  Env:
+    Type: String
+    Default: prod
+Conditions:
+  IsProd: !Equals [!Ref Env, prod]
+Resources:
+  Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies: !If
+        - IsProd
+        - - PolicyName: P1
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action: s3:Get*
+                  Resource: '*'
+          - PolicyName: P2
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action: logs:*
+                  Resource: '*'
+        - - PolicyName: SingleDev
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action: s3:*
+                  Resource: '*'
+"#;
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E3510"]);
+    let cel_findings = selected_findings(&cel, template, &["E3510"]);
+    assert_eq!(rego_findings, cel_findings);
+    assert!(rego_findings.is_empty(), "valid templates with different branch lengths must not fire: {rego_findings:?}");
+}
+
+#[test]
+fn w2512_dynamic_and_reachability_boundaries() {
+    let template = r#"
+Parameters:
+  Unknown:
+    Type: String
+  Env:
+    Type: String
+    Default: prod
+Conditions:
+  IsProd: !Equals [!Ref Env, prod]
+Resources:
+  WholeDocument:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument: !Ref Unknown
+  UnknownStatement:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Statement: !Ref Unknown
+  UnknownEffect:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Statement:
+          Effect: !Ref Unknown
+          NotAction: iam:*
+          Resource: '*'
+  RemovedNotAction:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Statement:
+          Effect: Allow
+          Action: s3:GetObject
+          NotAction: !Ref AWS::NoValue
+          Resource: '*'
+  DenyNotAction:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Statement:
+          Effect: Deny
+          NotAction: iam:*
+          Resource: '*'
+  UnknownNotAction:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Statement:
+          Effect: Allow
+          NotAction: !Ref Unknown
+          Resource: '*'
+  CorrelatedPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Condition: IsProd
+    Properties:
+      PolicyDocument:
+        Statement: !If
+          - IsProd
+          - Effect: Allow
+            Action: s3:GetObject
+            Resource: '*'
+          - Effect: Allow
+            NotAction: iam:*
+            Resource: '*'
+"#;
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["W2512"]);
+    let cel_findings = selected_findings(&cel, template, &["W2512"]);
+    assert_eq!(rego_findings, cel_findings);
+    assert_eq!(
+        rego_findings.len(),
+        1,
+        "only the authored unknown NotAction value is definitely in use: {rego_findings:?}"
+    );
+    assert!(rego_findings[0].contains("UnknownNotAction"));
+}
+
+#[test]
+fn fargate_whole_properties_placement_follows_compatible_branch() {
+    let template = r#"
+Conditions:
+  IsFargate: !Equals [!Ref AWS::Region, us-east-1]
+Resources:
+  PlacementInFargateBranch:
+    Type: AWS::ECS::TaskDefinition
+    Properties: !If
+      - IsFargate
+      - RequiresCompatibilities: [FARGATE]
+        NetworkMode: awsvpc
+        Cpu: '256'
+        Memory: '512'
+        PlacementConstraints: [{Type: memberOf, Expression: 'attribute:ecs.instance-type =~ t3.*'}]
+        ContainerDefinitions: [{Name: app, Image: nginx}]
+      - RequiresCompatibilities: [EC2]
+        ContainerDefinitions: [{Name: app, Image: nginx}]
+  PlacementOnlyInEc2Branch:
+    Type: AWS::ECS::TaskDefinition
+    Properties: !If
+      - IsFargate
+      - RequiresCompatibilities: [FARGATE]
+        NetworkMode: awsvpc
+        Cpu: '256'
+        Memory: '512'
+        ContainerDefinitions: [{Name: app, Image: nginx}]
+      - RequiresCompatibilities: [EC2]
+        PlacementConstraints: [{Type: memberOf, Expression: 'attribute:ecs.instance-type =~ t3.*'}]
+        ContainerDefinitions: [{Name: app, Image: nginx}]
+"#;
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E3048"]);
+    let cel_findings = selected_findings(&cel, template, &["E3048"]);
+    assert_eq!(rego_findings, cel_findings);
+    assert_eq!(rego_findings.len(), 1, "only Fargate-compatible placement is unsupported: {rego_findings:?}");
+    assert!(rego_findings[0].contains("PlacementInFargateBranch"));
+}
+
+#[test]
+fn dynamodb_whole_properties_correlates_billing_mode_and_throughput() {
+    let template = r#"
+Conditions:
+  OnDemand: !Equals [!Ref AWS::Region, us-east-1]
+Resources:
+  InvalidDefaultBranch:
+    Type: AWS::DynamoDB::Table
+    Properties: !If
+      - OnDemand
+      - BillingMode: PAY_PER_REQUEST
+      - {}
+  ValidCorrelated:
+    Type: AWS::DynamoDB::Table
+    Properties: !If
+      - OnDemand
+      - BillingMode: PAY_PER_REQUEST
+      - ProvisionedThroughput: {ReadCapacityUnits: 1, WriteCapacityUnits: 1}
+"#;
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E3639"]);
+    let cel_findings = selected_findings(&cel, template, &["E3639"]);
+    assert_eq!(rego_findings, cel_findings);
+    assert_eq!(rego_findings.len(), 1, "only the defaulted branch without throughput is invalid: {rego_findings:?}");
+    assert!(rego_findings[0].contains("InvalidDefaultBranch"));
+}
+
+#[test]
+fn dynamodb_conditional_gsi_and_lsi_check_absent_worlds() {
+    let template = r#"
+Conditions:
+  HasGSI: !Equals [!Ref AWS::Region, us-east-1]
+  HasLSI: !Equals [!Ref AWS::Region, us-west-2]
+Resources:
+  ConditionalGSI:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - {AttributeName: pk, AttributeType: S}
+        - {AttributeName: gsi_key, AttributeType: S}
+      KeySchema: [{AttributeName: pk, KeyType: HASH}]
+      GlobalSecondaryIndexes: !If
+        - HasGSI
+        - - IndexName: by-gsi
+            KeySchema: [{AttributeName: gsi_key, KeyType: HASH}]
+            Projection: {ProjectionType: ALL}
+        - !Ref AWS::NoValue
+  ConditionalLSI:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - {AttributeName: pk, AttributeType: S}
+        - {AttributeName: sk, AttributeType: S}
+        - {AttributeName: lsi_key, AttributeType: S}
+      KeySchema:
+        - {AttributeName: pk, KeyType: HASH}
+        - {AttributeName: sk, KeyType: RANGE}
+      LocalSecondaryIndexes: !If
+        - HasLSI
+        - - IndexName: by-lsi
+            KeySchema:
+              - {AttributeName: pk, KeyType: HASH}
+              - {AttributeName: lsi_key, KeyType: RANGE}
+            Projection: {ProjectionType: ALL}
+        - !Ref AWS::NoValue
+"#;
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E3039"]);
+    let cel_findings = selected_findings(&cel, template, &["E3039"]);
+    assert_eq!(rego_findings, cel_findings);
+    assert_eq!(rego_findings.len(), 2, "each absent-index world must expose its unused definition: {rego_findings:?}");
+    assert!(rego_findings.iter().any(|finding| finding.contains("unused definitions: [gsi_key]")));
+    assert!(rego_findings.iter().any(|finding| finding.contains("unused definitions: [lsi_key]")));
+}
+
+#[test]
+fn tagging_follows_reachable_whole_properties_scenarios() {
+    let template = r#"
+Conditions:
+  UseFirst: !Equals [!Ref AWS::Region, us-east-1]
+Resources:
+  TaggedInBothWorlds:
+    Type: AWS::S3::Bucket
+    Properties: !If
+      - UseFirst
+      - Tags: [{Key: Name, Value: first}]
+      - Tags: [{Key: Name, Value: second}]
+  MissingInOneWorld:
+    Type: AWS::S3::Bucket
+    Properties: !If
+      - UseFirst
+      - Tags: [{Key: Name, Value: tagged}]
+      - {}
+"#;
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["I9040"]);
+    let cel_findings = selected_findings(&cel, template, &["I9040"]);
+    assert_eq!(rego_findings, cel_findings);
+    assert_eq!(rego_findings.len(), 1, "only a reachable untagged world should be reported: {rego_findings:?}");
+    assert!(rego_findings[0].contains("MissingInOneWorld"));
 }

@@ -68,6 +68,83 @@ fn is_unresolved_intrinsic(val: &serde_json::Value) -> bool {
     is_intrinsic_key(obj.keys().next().unwrap())
 }
 
+fn condition_context_matches_scenario(
+    m: &Arc<SemanticModel>,
+    context: Option<&str>,
+    scenario: &HashMap<String, bool>,
+) -> bool {
+    let Some(context) = context else {
+        return true;
+    };
+    let mut combined = scenario.clone();
+    for assumption in context.split(',') {
+        let (condition, expected) = assumption.strip_prefix('!').map_or((assumption, true), |name| (name, false));
+        if let Some(actual) = combined.insert(condition.to_string(), expected)
+            && actual != expected
+        {
+            return false;
+        }
+    }
+    is_satisfiable(m, &combined)
+}
+
+/// Whether the authored value at `prop_path` reads a caller-overridable template
+/// parameter in the current condition scenario. Reference edges retain nested
+/// intrinsic paths and branch assumptions, so a parameter in one `Fn::If`
+/// branch does not hide a deterministic violation in the other branch.
+fn value_depends_on_parameter_in_scenario(
+    m: &Arc<SemanticModel>,
+    rid: &str,
+    prop_path: &str,
+    scenario: &HashMap<String, bool>,
+) -> bool {
+    let descendant_prefix = format!("{prop_path}.");
+    m.graph.outgoing(rid).into_iter().any(|edge| {
+        (edge.source_path == prop_path || edge.source_path.starts_with(&descendant_prefix))
+            && m.parameters.contains_key(&edge.target)
+            && condition_context_matches_scenario(m, edge.condition_context.as_deref(), scenario)
+    })
+}
+
+fn defer_value_constraints(
+    m: &Arc<SemanticModel>,
+    rid: &str,
+    prop_path: &str,
+    val: &serde_json::Value,
+    scenario: &HashMap<String, bool>,
+) -> bool {
+    if value_depends_on_parameter_in_scenario(m, rid, prop_path, scenario) {
+        return true;
+    }
+
+    let mut pending = vec![(prop_path.to_string(), val)];
+    while let Some((path, candidate)) = pending.pop() {
+        if is_unresolved_intrinsic(candidate)
+            || (m.is_from_intrinsic(rid, &path)
+                && coerce_to_string(candidate).is_some_and(|value| value.contains("${")))
+        {
+            return true;
+        }
+
+        match candidate {
+            serde_json::Value::Array(items) => {
+                pending.extend(
+                    items
+                        .iter()
+                        .enumerate()
+                        .map(|(index, item)| (append_property_path(&path, &index.to_string()), item)),
+                );
+            }
+            serde_json::Value::Object(properties) => {
+                pending
+                    .extend(properties.iter().map(|(property, value)| (append_property_path(&path, property), value)));
+            }
+            _ => {}
+        }
+    }
+    false
+}
+
 pub fn validate_all_resources(
     store: &CompiledSchemaStore,
     model: &Arc<SemanticModel>,
@@ -708,10 +785,7 @@ fn all_members_absent_witness(
     members: &[String],
     base_path: &str,
 ) -> Option<HashMap<String, bool>> {
-    let seed = active_scenario_filter();
-    if !assignment_is_proven_satisfiable(m, &seed) {
-        return None;
-    }
+    let seed = active_scenario_filter(m, rid)?;
 
     let mut alternatives = Vec::new();
     for property in members {
@@ -725,7 +799,8 @@ fn all_members_absent_witness(
         alternatives.push(property_alternatives);
     }
     alternatives.sort_by_key(Vec::len);
-    compatible_alternative_witness(m, &alternatives, 0, &seed)
+    let mut merge_attempts = 0;
+    compatible_alternative_witness(m, &alternatives, 0, &seed, &mut merge_attempts)
 }
 
 /// Finds a concrete condition assignment proving that two distinct authored
@@ -738,10 +813,7 @@ fn multiple_members_present_witness(
     members: &[String],
     base_path: &str,
 ) -> Option<HashMap<String, bool>> {
-    let seed = active_scenario_filter();
-    if !assignment_is_proven_satisfiable(m, &seed) {
-        return None;
-    }
+    let seed = active_scenario_filter(m, rid)?;
 
     let present_alternatives: Vec<Vec<HashMap<String, bool>>> = members
         .iter()
@@ -749,6 +821,7 @@ fn multiple_members_present_witness(
         .map(|property| property_presence_alternatives(m, rid, base_path, property, true, &seed))
         .collect();
 
+    let mut merge_attempts = 0;
     for left in 0..present_alternatives.len() {
         for right in (left + 1)..present_alternatives.len() {
             for left_assignment in &present_alternatives[left] {
@@ -759,6 +832,10 @@ fn multiple_members_present_witness(
                     continue;
                 }
                 for right_assignment in &present_alternatives[right] {
+                    if merge_attempts >= MAX_GROUP_WITNESS_MERGE_ATTEMPTS {
+                        return None;
+                    }
+                    merge_attempts += 1;
                     let Some(merged) = try_merge_assignments(&left_merged, right_assignment) else {
                         continue;
                     };
@@ -772,8 +849,19 @@ fn multiple_members_present_witness(
     None
 }
 
-fn active_scenario_filter() -> HashMap<String, bool> {
-    SCENARIO_FILTER.with(|filter| filter.borrow().clone().unwrap_or_default())
+/// The active composition assignment plus the resource's own creation
+/// condition. A schema violation is actionable only in a world where the
+/// resource can exist, so an impossible or unproven seed yields no witness.
+fn active_scenario_filter(m: &Arc<SemanticModel>, rid: &str) -> Option<HashMap<String, bool>> {
+    let mut seed = SCENARIO_FILTER.with(|filter| filter.borrow().clone().unwrap_or_default());
+    if m.resource_condition_is_valid(rid)
+        && let Some(condition) = m.resources.get(rid).and_then(|resource| resource.condition.as_ref())
+        && let Some(previous) = seed.insert(condition.clone(), true)
+        && !previous
+    {
+        return None;
+    }
+    assignment_is_proven_satisfiable(m, &seed).then_some(seed)
 }
 
 /// Returns the distinct reachable assignments under which one property is
@@ -791,7 +879,11 @@ fn property_presence_alternatives(
     if m.scenario_budget_exhausted() {
         return Vec::new();
     }
-    let scenarios = outer_resolved_scenarios(m, rid, &format!("{base_path}.{property}"));
+    let (scenarios, was_curtailed) =
+        m.resolve_scenarios_with_limit(rid, &format!("{base_path}.{property}"), MAX_GROUP_PROPERTY_SCENARIOS);
+    if was_curtailed && !m.scenario_budget_exhausted() {
+        m.record_budget_exhaustion(BudgetKind::SchemaScenarioAssignments);
+    }
     let mut alternatives = Vec::new();
     let mut seen = HashSet::new();
     for (value, conditions) in scenarios {
@@ -814,18 +906,23 @@ fn compatible_alternative_witness(
     alternatives: &[Vec<HashMap<String, bool>>],
     index: usize,
     assignment: &HashMap<String, bool>,
+    merge_attempts: &mut usize,
 ) -> Option<HashMap<String, bool>> {
     let Some(group) = alternatives.get(index) else {
         return Some(assignment.clone());
     };
     for alternative in group {
+        if *merge_attempts >= MAX_GROUP_WITNESS_MERGE_ATTEMPTS {
+            return None;
+        }
+        *merge_attempts += 1;
         let Some(merged) = try_merge_assignments(assignment, alternative) else {
             continue;
         };
         if !assignment_is_proven_satisfiable(m, &merged) {
             continue;
         }
-        if let Some(witness) = compatible_alternative_witness(m, alternatives, index + 1, &merged) {
+        if let Some(witness) = compatible_alternative_witness(m, alternatives, index + 1, &merged, merge_attempts) {
             return Some(witness);
         }
     }
@@ -913,13 +1010,17 @@ fn required_group_scenario_assignments(
     property_scenario_assignments(m, rid, &refs)
 }
 
+const MAX_GROUP_PROPERTY_SCENARIOS: usize = MAX_GROUP_SCENARIO_ASSIGNMENTS + 1;
+const MAX_GROUP_WITNESS_MERGE_ATTEMPTS: usize = MAX_GROUP_SCENARIO_MERGE_ATTEMPTS;
+
 /// Computes the distinct satisfiable condition assignments under which a group
 /// of property paths must be evaluated.
 ///
 /// The active scenario filter seeds the expansion. Each property contributes
-/// its distinct satisfiable alternatives, which are conflict-checked and
-/// combined with prior assignments. Missing, dynamic, and opaque properties do
-/// not add alternatives. Returns `None` when exact enumeration exceeds the
+/// its distinct satisfiable condition alternatives, which are conflict-checked
+/// and combined with prior assignments. Dynamic values still contribute because
+/// their presence is known even when their contents are not. Missing properties
+/// add no alternatives. Returns `None` when exact enumeration exceeds the
 /// bounded work budget; callers then omit the group finding rather than infer a
 /// schema violation from an incomplete set of condition worlds.
 fn property_scenario_assignments(
@@ -927,11 +1028,20 @@ fn property_scenario_assignments(
     rid: &str,
     property_paths: &[&str],
 ) -> Option<Vec<HashMap<String, bool>>> {
-    let seed: HashMap<String, bool> = SCENARIO_FILTER.with(|filter| filter.borrow().clone().unwrap_or_default());
+    let Some(seed) = active_scenario_filter(m, rid) else {
+        return Some(Vec::new());
+    };
     let mut assignments: Vec<HashMap<String, bool>> = vec![seed.clone()];
 
     for property_path in property_paths {
-        let scenarios = m.resolve_scenarios_json(rid, property_path);
+        let (scenarios, was_curtailed) =
+            m.resolve_scenarios_with_limit(rid, property_path, MAX_GROUP_PROPERTY_SCENARIOS);
+        if was_curtailed {
+            if !m.scenario_budget_exhausted() {
+                m.record_budget_exhaustion(BudgetKind::SchemaScenarioAssignments);
+            }
+            return None;
+        }
         if scenarios.is_empty() {
             continue;
         }
@@ -1011,17 +1121,17 @@ fn try_merge_assignments(a: &HashMap<String, bool>, b: &HashMap<String, bool>) -
     Some(merged)
 }
 
-/// Whether a property resolves to a concrete non-null value in at least one
-/// satisfiable scenario that is consistent with `assignment`. Restricts
-/// evaluation to the scenarios reachable under a given condition assignment, so
-/// that mutually exclusive branches are never mixed.
+/// Whether a property resolves to a non-null value in at least one satisfiable
+/// scenario that is consistent with `assignment`. Dynamic values count as
+/// present because their contents are unknown but the authored property survives;
+/// only a concrete null represents `AWS::NoValue` absence.
 ///
 /// When called from within `validate_sub_under_assignment`, the active
 /// `SCENARIO_FILTER` is also respected - a scenario must be consistent with
 /// both the group assignment and the outer branch filter.
 ///
-/// When resolution yields no scenarios (the value is opaque/dynamic), the
-/// property is conservatively considered present.
+/// When resolution yields no scenarios (the value is opaque), the property is
+/// conservatively considered present.
 fn property_present_under(
     m: &Arc<SemanticModel>,
     rid: &str,
@@ -1029,7 +1139,7 @@ fn property_present_under(
     prop: &str,
     assignment: &HashMap<String, bool>,
 ) -> bool {
-    let scenarios = m.resolve_scenarios_json(rid, &format!("{}.{}", base, prop));
+    let scenarios = m.resolve_scenarios(rid, &format!("{}.{}", base, prop));
     if scenarios.is_empty() {
         return true;
     }
@@ -1060,7 +1170,7 @@ fn property_present_under(
                 return false;
             }
         }
-        !val.is_null()
+        !matches!(val, ResolvedValue::Concrete { value } if value.is_null())
     })
 }
 
@@ -1209,7 +1319,7 @@ fn validate_object_keys_inner(
     let group_assignments = if any_of.is_empty() && one_of.is_empty() {
         Some(Vec::new())
     } else {
-        branch_scenario_assignments(m, rid, any_of.iter().chain(one_of.iter()), base_path)
+        branch_scenario_assignments(m, rid, any_of.iter().chain(one_of.iter()), defs, base_path)
     }
     .unwrap_or_default();
 
@@ -1397,6 +1507,8 @@ fn validate_sub(
                 base_path,
                 Some(&format!("Add '{}'", req)),
             ));
+        } else {
+            check_required_not_null(out, m, rid, base_path, req);
         }
     }
 
@@ -1589,7 +1701,6 @@ fn schema_value_failure_reasons(
     if let Some(ref pattern) = effective.pattern
         && let Some(compiled) = compile_pattern(pattern)
         && let Some(actual) = coerce_to_string(value)
-        && !actual.contains("${")
         && !compiled.is_match(&actual)
     {
         reasons.push(CompositionFailureReason::new(
@@ -1599,7 +1710,6 @@ fn schema_value_failure_reasons(
     }
     if let Some(ref format) = effective.format
         && let Some(actual) = coerce_to_string(value)
-        && !actual.contains("${")
         && !format_value_matches(&actual, format)
     {
         reasons.push(CompositionFailureReason::new(
@@ -1646,9 +1756,8 @@ fn schema_value_failure_reasons(
 
     if (effective.min_length.is_some() || effective.max_length.is_some())
         && let Some(actual) = coerce_to_string(value)
-        && !actual.contains("${")
     {
-        let length = actual.len() as u64;
+        let length = actual.chars().count() as u64;
         if let Some(maximum) = effective.max_length
             && length > maximum
         {
@@ -1711,7 +1820,8 @@ fn schema_value_failure_reasons(
     }
 
     if let Some(object) = value.as_object() {
-        let property_count = object.len() as u64;
+        let property_present = |property: &str| object.get(property).is_some_and(|candidate| !candidate.is_null());
+        let property_count = object.values().filter(|candidate| !candidate.is_null()).count() as u64;
         if let Some(maximum) = effective.max_properties
             && property_count > maximum
         {
@@ -1729,15 +1839,15 @@ fn schema_value_failure_reasons(
             ));
         }
         for required in &effective.required {
-            if !object.contains_key(required) {
+            if !property_present(required) {
                 reasons
                     .push(CompositionFailureReason::new(format!("'{required}' is a required property"), property_path));
             }
         }
         for (trigger, dependencies) in &effective.dependent_required {
-            if object.contains_key(trigger) {
+            if property_present(trigger) {
                 for dependency in dependencies {
-                    if !object.contains_key(dependency) {
+                    if !property_present(dependency) {
                         reasons.push(CompositionFailureReason::new(
                             format!("'{dependency}' is a dependency of '{trigger}'"),
                             property_path,
@@ -1747,9 +1857,9 @@ fn schema_value_failure_reasons(
             }
         }
         for (trigger, excluded) in &effective.dependent_excluded {
-            if object.contains_key(trigger) {
+            if property_present(trigger) {
                 for property in excluded {
-                    if object.contains_key(property) {
+                    if property_present(property) {
                         reasons.push(CompositionFailureReason::new(
                             format!("'{property}' should not be included with '{trigger}'"),
                             append_property_path(property_path, property),
@@ -1758,11 +1868,7 @@ fn schema_value_failure_reasons(
                 }
             }
         }
-        if !effective.required_or.is_empty()
-            && !effective
-                .required_or
-                .iter()
-                .any(|property| object.get(property.as_str()).is_some_and(|candidate| !candidate.is_null()))
+        if !effective.required_or.is_empty() && !effective.required_or.iter().any(|property| property_present(property))
         {
             reasons.push(CompositionFailureReason::new(
                 format!(
@@ -1773,11 +1879,7 @@ fn schema_value_failure_reasons(
             ));
         }
         if !effective.required_xor.is_empty() {
-            let present = effective
-                .required_xor
-                .iter()
-                .filter(|property| object.get(property.as_str()).is_some_and(|candidate| !candidate.is_null()))
-                .count();
+            let present = effective.required_xor.iter().filter(|property| property_present(property)).count();
             if present != 1 {
                 reasons.push(CompositionFailureReason::new(
                     format!(
@@ -1798,8 +1900,8 @@ fn schema_value_failure_reasons(
         {
             let pattern_matchers: Vec<Option<Arc<CompiledPattern>>> =
                 effective.pattern_properties.keys().map(|pattern| compile_pattern(pattern)).collect();
-            for property in object.keys() {
-                if effective.properties.contains_key(property) {
+            for (property, property_value) in object {
+                if property_value.is_null() || effective.properties.contains_key(property) {
                     continue;
                 }
                 let allowed = pattern_matchers
@@ -1864,7 +1966,11 @@ fn schema_value_failure_reasons(
     }
     for conditional in effective.if_then_else.iter().filter(|conditional| conditional.enforce_full_branch) {
         if let Some(object) = value.as_object() {
-            let object_keys: Vec<String> = object.keys().cloned().collect();
+            let object_keys: Vec<String> = object
+                .iter()
+                .filter(|(_, candidate)| !candidate.is_null())
+                .map(|(property, _)| property.clone())
+                .collect();
             let condition_matches =
                 condition_schema_value_matches(&conditional.condition, object, &object_keys, defs, depth + 1);
             let branch = if condition_matches { &conditional.then_schema } else { &conditional.else_schema };
@@ -2002,8 +2108,8 @@ fn validate_sub_value_constraints(
 
         // Check if ANY satisfiable scenario matches the branch constraint
         let any_scenario_matches = scenarios.iter().any(|(val, conds)| {
-            if !is_satisfiable(m, conds) || val.is_null() {
-                return true; // conservative: unsatisfiable or null doesn't cause mismatch
+            if !is_satisfiable(m, conds) || val.is_null() || defer_value_constraints(m, rid, &prop_path, val, conds) {
+                return true; // conservative: unresolved scenarios do not cause a mismatch
             }
             schema_value_matches(val, &resolved, defs, 0)
         });
@@ -2014,7 +2120,11 @@ fn validate_sub_value_constraints(
             // failure so the primary composition finding can explain this branch.
             let (offending, failure_detail) = scenarios
                 .iter()
-                .find(|(val, conds)| is_satisfiable(m, conds) && !val.is_null())
+                .find(|(val, conds)| {
+                    is_satisfiable(m, conds)
+                        && !val.is_null()
+                        && !defer_value_constraints(m, rid, &prop_path, val, conds)
+                })
                 .map(|(val, _)| {
                     let reasons = schema_value_failure_reasons(val, &resolved, defs, 0, &prop_path);
                     (format_value(val), render_composition_reasons(&reasons, &prop_path))
@@ -2034,11 +2144,11 @@ fn validate_sub_value_constraints(
         }
     }
 
-    // Also check branch-level scalar constraints (type/enum/const on the branch
-    // itself, not on a named property - used when the branch constrains the value
-    // at the composition point rather than a sub-property).
-    let branch_has_scalar_self_constraint = sub_self_constrains_value(sub);
-    if branch_has_scalar_self_constraint {
+    // Also check constraints on the branch value itself rather than on a named
+    // property. Structural fields are projected out because scenario-aware key
+    // validation above already enforces them.
+    if sub_self_constrains_value(sub) {
+        let self_schema = schema_for_self_value_constraints(sub);
         let scenarios: Vec<(serde_json::Value, HashMap<String, bool>)> = m
             .resolve_scenarios_json(rid, base_path)
             .into_iter()
@@ -2046,25 +2156,30 @@ fn validate_sub_value_constraints(
             .collect();
         if !scenarios.is_empty() {
             let any_scenario_matches = scenarios.iter().any(|(val, conds)| {
-                if !is_satisfiable(m, conds) || val.is_null() {
+                if !is_satisfiable(m, conds) || val.is_null() || defer_value_constraints(m, rid, base_path, val, conds)
+                {
                     return true;
                 }
-                schema_value_matches(val, sub, defs, 0)
+                schema_value_matches(val, &self_schema, defs, 0)
             });
             if !any_scenario_matches {
                 let (offending, failure_detail) = scenarios
                     .iter()
-                    .find(|(val, conds)| is_satisfiable(m, conds) && !val.is_null())
+                    .find(|(val, conds)| {
+                        is_satisfiable(m, conds)
+                            && !val.is_null()
+                            && !defer_value_constraints(m, rid, base_path, val, conds)
+                    })
                     .map(|(val, _)| {
-                        let reasons = schema_value_failure_reasons(val, sub, defs, 0, base_path);
+                        let reasons = schema_value_failure_reasons(val, &self_schema, defs, 0, base_path);
                         (format_value(val), render_composition_reasons(&reasons, base_path))
                     })
-                    .unwrap_or_else(|| ("Value".to_string(), describe_prop_constraints(sub)));
+                    .unwrap_or_else(|| ("Value".to_string(), describe_prop_constraints(&self_schema)));
                 out.push(build_diagnostic(
                     "F3017",
                     &format!(
                         "{offending} does not satisfy the composition branch constraint ({}): {failure_detail}",
-                        describe_prop_constraints(sub)
+                        describe_prop_constraints(&self_schema)
                     ),
                     m,
                     rid,
@@ -2083,18 +2198,19 @@ fn branch_scenario_assignments<'a>(
     m: &Arc<SemanticModel>,
     rid: &str,
     branches: impl Iterator<Item = &'a SubSchema>,
+    defs: &HashMap<String, PropSchema>,
     base_path: &str,
 ) -> Option<Vec<HashMap<String, bool>>> {
-    let mut property_names: Vec<&String> = Vec::new();
+    let mut property_names = BTreeSet::new();
     for branch in branches {
-        property_names.extend(branch.properties.keys());
-        property_names.extend(&branch.required_or);
-        property_names.extend(&branch.required_xor);
+        let effective_branch = branch.resolve(defs);
+        property_names.extend(effective_branch.properties.keys().cloned());
+        property_names.extend(effective_branch.required.iter().cloned());
+        property_names.extend(effective_branch.required_or.iter().cloned());
+        property_names.extend(effective_branch.required_xor.iter().cloned());
     }
-    property_names.sort();
-    property_names.dedup();
 
-    let paths: Vec<String> = property_names.iter().map(|name| format!("{}.{}", base_path, name)).collect();
+    let paths: Vec<String> = property_names.into_iter().map(|name| format!("{}.{}", base_path, name)).collect();
     let refs: Vec<&str> = paths.iter().map(String::as_str).collect();
     property_scenario_assignments(m, rid, &refs)
 }
@@ -2507,8 +2623,10 @@ fn validate_sub_under_assignment(
             }
             None => assignment.clone(),
         };
-        *filter.borrow_mut() = Some(merged);
-        validate_sub(out, m, rid, rtype, actual_keys, sub, defs, base_path, 0);
+        *filter.borrow_mut() = Some(merged.clone());
+        let effective_keys: Vec<String> =
+            actual_keys.iter().filter(|key| property_present_under(m, rid, base_path, key, &merged)).cloned().collect();
+        validate_sub(out, m, rid, rtype, &effective_keys, sub, defs, base_path, 0);
         *filter.borrow_mut() = previous;
     });
 }
@@ -2642,6 +2760,22 @@ fn sub_self_constrains_value(sub: &PropSchema) -> bool {
         || !any_of.is_empty()
         || !one_of.is_empty()
         || !if_then_else.is_empty()
+}
+
+fn schema_for_self_value_constraints(sub: &PropSchema) -> PropSchema {
+    PropSchema {
+        ref_name: None,
+        properties: HashMap::new(),
+        required: Vec::new(),
+        required_present: false,
+        additional_properties: None,
+        pattern_properties: HashMap::new(),
+        dependent_required: HashMap::new(),
+        dependent_excluded: HashMap::new(),
+        required_or: Vec::new(),
+        required_xor: Vec::new(),
+        ..sub.clone()
+    }
 }
 
 /// A short, human-readable summary of the constraints a property schema states,
@@ -3039,6 +3173,25 @@ fn validate_prop(
         }
     }
 
+    if !schema.not_enum.is_empty() {
+        for (val, conds) in &scenarios {
+            if !is_satisfiable(m, conds) || val.is_null() || defer_value_constraints(m, rid, prop_path, val, conds) {
+                continue;
+            }
+            if enum_matches(val, &schema.not_enum) {
+                out.push(build_diagnostic_conditional(
+                    "F3030",
+                    &format!("{} must not be one of {}", format_value(val), format_allowed_values(&schema.not_enum)),
+                    m,
+                    rid,
+                    prop_path,
+                    None,
+                    condition_map(conds),
+                ));
+            }
+        }
+    }
+
     if let Some(ref cv) = schema.const_value {
         for (val, conds) in &scenarios {
             if !is_satisfiable(m, conds) || val.is_null() {
@@ -3073,9 +3226,6 @@ fn validate_prop(
                 continue;
             }
             if let Some(s) = coerce_to_string(val) {
-                if s.contains("${") {
-                    continue;
-                }
                 if s.contains("{{") && s.contains("resolve") {
                     continue;
                 }
@@ -3191,13 +3341,10 @@ fn validate_prop(
             let Some(s) = coerce_to_string(val) else {
                 continue;
             };
-            if s.contains("${") {
-                continue;
-            }
             if from_param {
                 continue;
             }
-            let len = s.len() as u64;
+            let len = s.chars().count() as u64;
             if let Some(max) = schema.max_length
                 && len > max
             {
@@ -3570,7 +3717,7 @@ fn enum_matches_case_insensitive(val: &serde_json::Value, allowed: &[serde_json:
 
 fn check_required_not_null(out: &mut Vec<Diagnostic>, m: &Arc<SemanticModel>, rid: &str, base: &str, req: &str) {
     for (value, conds) in &outer_resolved_scenarios(m, rid, &format!("{}.{}", base, req)) {
-        if !is_satisfiable(m, conds) {
+        if !is_satisfiable(m, conds) || !scenario_consistent_with_filter(m, conds) {
             continue;
         }
         if matches!(value, ResolvedValue::Concrete { value } if value.is_null()) {
@@ -3981,7 +4128,7 @@ fn validate_prop_composition(
     // allOf: every branch must match for every satisfiable scenario
     for branch in &schema.all_of {
         for (val, conds) in scenarios {
-            if !is_satisfiable(m, conds) || val.is_null() || is_unresolved_intrinsic(val) {
+            if !is_satisfiable(m, conds) || val.is_null() || defer_value_constraints(m, rid, prop_path, val, conds) {
                 continue;
             }
             if !schema_value_matches(val, branch, defs, 0) {
@@ -4002,7 +4149,7 @@ fn validate_prop_composition(
     // anyOf: at least one branch must match for each satisfiable scenario
     if !schema.any_of.is_empty() {
         for (val, conds) in scenarios {
-            if !is_satisfiable(m, conds) || val.is_null() || is_unresolved_intrinsic(val) {
+            if !is_satisfiable(m, conds) || val.is_null() || defer_value_constraints(m, rid, prop_path, val, conds) {
                 continue;
             }
             let evaluations = evaluate_value_composition_branches(val, &schema.any_of, defs, prop_path);
@@ -4025,7 +4172,7 @@ fn validate_prop_composition(
     // oneOf: exactly one branch must match for each satisfiable scenario
     if !schema.one_of.is_empty() {
         for (val, conds) in scenarios {
-            if !is_satisfiable(m, conds) || val.is_null() || is_unresolved_intrinsic(val) {
+            if !is_satisfiable(m, conds) || val.is_null() || defer_value_constraints(m, rid, prop_path, val, conds) {
                 continue;
             }
             let evaluations = evaluate_value_composition_branches(val, &schema.one_of, defs, prop_path);
@@ -4051,14 +4198,18 @@ fn validate_prop_composition(
     // dedicated rules (see `IfThenElse::enforce_full_branch`).
     for ite in schema.if_then_else.iter().filter(|ite| ite.enforce_full_branch) {
         for (val, conds) in scenarios {
-            if !is_satisfiable(m, conds) || val.is_null() || is_unresolved_intrinsic(val) {
+            if !is_satisfiable(m, conds) || val.is_null() || defer_value_constraints(m, rid, prop_path, val, conds) {
                 continue;
             }
             // For scalar if/then/else, the condition evaluates against the value
             // itself when the value is an object, otherwise conservative (condition
             // passes, only then-branch is checked).
             let cond_matches = if let Some(obj) = val.as_object() {
-                let obj_keys: Vec<String> = obj.keys().cloned().collect();
+                let obj_keys: Vec<String> = obj
+                    .iter()
+                    .filter(|(_, candidate)| !candidate.is_null())
+                    .map(|(property, _)| property.clone())
+                    .collect();
                 condition_schema_value_matches(&ite.condition, obj, &obj_keys, defs, 0)
             } else {
                 // Scalar value: condition cannot meaningfully constrain it
@@ -4101,7 +4252,7 @@ fn validate_format(
             continue;
         }
         if let Some(s) = coerce_to_string(val) {
-            if s.contains("${") {
+            if s.contains("${") && m.is_from_intrinsic(rid, prop_path) {
                 continue;
             }
             if m.is_from_parameter(rid, prop_path) {

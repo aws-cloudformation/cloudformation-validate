@@ -1,0 +1,44 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: F2012 CommaDelimitedList Default splitting - valid cases
+Parameters:
+  CDLSingleElementAllowed:
+    Type: CommaDelimitedList
+    Default: one
+    AllowedValues:
+      - one
+      - two
+      - three
+  CDLMultipleElementsAllowed:
+    Type: CommaDelimitedList
+    Default: one,two
+    AllowedValues:
+      - one
+      - two
+      - three
+  CDLWhitespaceTrimsToValid:
+    Description: Whitespace around elements is trimmed before comparison
+    Type: CommaDelimitedList
+    Default: " one , two "
+    AllowedValues:
+      - one
+      - two
+  CDLListStringTypeValid:
+    Description: List<String> behaves like CommaDelimitedList
+    Type: List<String>
+    Default: good, better
+    AllowedValues:
+      - good
+      - better
+  CDLNoAllowedValues:
+    Description: No AllowedValues means no F2012 check
+    Type: CommaDelimitedList
+    Default: anything,goes
+  CDLEmptyAllowedValues:
+    Description: Empty AllowedValues means no F2012 check
+    Type: CommaDelimitedList
+    Default: anything
+    AllowedValues: []
+Resources:
+  WaitHandle:
+    Type: AWS::CloudFormation::WaitConditionHandle

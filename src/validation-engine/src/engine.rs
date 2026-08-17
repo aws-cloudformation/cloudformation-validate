@@ -271,6 +271,10 @@ pub(crate) fn validate(
         // queries are observable. Budget exhaustions are recorded into the
         // model-level tracker by the condition model as they occur.
 
+        if let Some(diagnostic) = scenario_expansion_curtailment_diagnostic(model.scenario_expansion_curtailed()) {
+            all_diagnostics.push(diagnostic);
+        }
+
         if config.pseudo_parameter_overrides.region.is_none() && region_enums::template_has_region_scoped_value(&model)
         {
             all_diagnostics.push(
@@ -480,6 +484,18 @@ pub fn validate_bytes_with_path(
     let mut report = validate(engine, schema_validator, result, config, file_path)?;
     report.performance.validate_total = phase_metric(total_start);
     Ok(report)
+}
+
+fn scenario_expansion_curtailment_diagnostic(curtailed: bool) -> Option<Diagnostic> {
+    curtailed.then(|| {
+        RegisteredDiagnostic::new(
+            "I9052",
+            "Scenario expansion was curtailed because a condition-scenario analysis budget was exceeded; \
+             some condition combinations were not fully explored",
+        )
+        .property_path("Template")
+        .build()
+    })
 }
 
 /// Runs `operation`, converting any unwinding panic into an error produced by
@@ -856,7 +872,7 @@ pub(crate) fn build_context(
         "F3033" | "W9006" => {
             if let Some(v) = resolve_val(property_path) {
                 if let Some(s) = v.as_str() {
-                    extra.insert("actual_length".into(), serde_json::json!(s.len()).into());
+                    extra.insert("actual_length".into(), serde_json::json!(s.chars().count()).into());
                 }
                 actual_value = Some(v.into());
             }
@@ -2980,5 +2996,19 @@ Resources:
             ),
             Err(other) => panic!("expected ValidationError::Engine, got {other:?}"),
         }
+    }
+
+    #[test]
+    fn scenario_expansion_curtailment_builds_exactly_one_advisory() {
+        let diagnostics: Vec<_> = scenario_expansion_curtailment_diagnostic(true).into_iter().collect();
+        assert_eq!(diagnostics.len(), 1);
+        assert_eq!(diagnostics[0].rule_id, "I9052");
+        assert_eq!(diagnostics[0].property_path.as_deref(), Some("Template"));
+        assert!(diagnostics[0].message.contains("Scenario expansion was curtailed"));
+    }
+
+    #[test]
+    fn complete_scenario_expansion_builds_no_advisory() {
+        assert!(scenario_expansion_curtailment_diagnostic(false).is_none());
     }
 }

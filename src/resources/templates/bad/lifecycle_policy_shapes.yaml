@@ -1,4 +1,9 @@
 AWSTemplateFormatVersion: "2010-09-09"
+Parameters:
+  Policy:
+    Type: String
+Conditions:
+  Never: !Equals [always, never]
 Resources:
   ListPolicies:
     Type: AWS::S3::Bucket
@@ -11,3 +16,31 @@ Resources:
       Value: Retain
     UpdateReplacePolicy:
       Value: Retain
+
+  CreationConditional:
+    Type: AWS::CloudFormation::WaitCondition
+    CreationPolicy: !If
+      - Never
+      - ResourceSignal: {Count: 1}
+      - ResourceSignal: {Count: 2}
+
+  CreationNoValueOnUnsupportedType:
+    Type: AWS::S3::Bucket
+    CreationPolicy: !Ref AWS::NoValue
+
+  IntrinsicPoliciesWithoutTransform:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    DeletionPolicy: !If [Never, Retain, Delete]
+    UpdateReplacePolicy: !Ref Policy
+
+  NoValuePoliciesWithoutTransform:
+    Type: AWS::SQS::Queue
+    DeletionPolicy: !Ref AWS::NoValue
+    UpdateReplacePolicy: !Ref AWS::NoValue
+
+  UnreachableIntrinsics:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    Condition: Never
+    CreationPolicy: !Ref Policy
+    DeletionPolicy: !Ref Policy
+    UpdateReplacePolicy: !Ref Policy

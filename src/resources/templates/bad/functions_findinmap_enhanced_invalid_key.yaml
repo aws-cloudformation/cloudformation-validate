@@ -1,0 +1,16 @@
+Transform: AWS::LanguageExtensions
+Mappings:
+  MapName:
+    TopKey1:
+      SecondKey1: Value1
+      '{"To":"Json","String":"Function"}': Value2
+Resources:
+  Cluster:
+    Type: 'AWS::ECS::Cluster'
+    Properties:
+      ClusterName: !FindInMap
+        - MapName
+        - TopKey1
+        - 'Fn::ToJsonString':
+            To: Json
+            String: Function

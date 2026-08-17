@@ -37,6 +37,7 @@ log = "0.4"
 env_logger = "0.11"
 
 [dev-dependencies]
+resources = { path = "../resources" }
 tempfile = "3"
 validation-engine = { path = "../validation-engine", features = ["test"] }
 

@@ -42,15 +42,19 @@ violation contains make_diag_at("I3042", "INFO", name,
 violation contains make_diag("W3011", "WARN", name,
     "Both 'UpdateReplacePolicy' and 'DeletionPolicy' are needed to protect resource from deletion") if {
     some name, res in input.resources
-    res.deletionPolicy != null
+    deletion_status := lifecycle_attribute_status(name, "DeletionPolicy")
+    update_status := lifecycle_attribute_status(name, "UpdateReplacePolicy")
+    deletion_status.mayBePresent
+    not update_status.mayBePresent
     res.deletionPolicy != "Delete"
-    res.updateReplacePolicy == null
 }
 
 violation contains make_diag("W3011", "WARN", name,
     "Both 'UpdateReplacePolicy' and 'DeletionPolicy' are needed to protect resource from deletion") if {
     some name, res in input.resources
-    res.updateReplacePolicy != null
+    deletion_status := lifecycle_attribute_status(name, "DeletionPolicy")
+    update_status := lifecycle_attribute_status(name, "UpdateReplacePolicy")
+    update_status.mayBePresent
+    not deletion_status.mayBePresent
     res.updateReplacePolicy != "Delete"
-    res.deletionPolicy == null
 }

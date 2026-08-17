@@ -143,8 +143,8 @@ pub(crate) struct Resolver<'a> {
     pub(crate) extra_condition_refs: HashMap<String, Vec<String>>,
     pub(crate) inline_conditions: Vec<(String, crate::conditions::ConditionExpr)>,
     resolution_source_map: HashMap<(String, String), String>, // (resource_id, property_path) → source description
-    /// (resource_id, property_path) → the authored expression behind a value that
-    /// stayed opaque, used to establish whether two such values are one value.
+    /// (resource_id, property_path) → authored expression retained for opaque
+    /// value identity or for inspecting an intrinsic that resolved concretely.
     value_node_map: HashMap<(String, String), NodeRef>,
     parameter_overrides: &'a HashMap<String, String>,
     pseudo_parameter_overrides: &'a crate::model::PseudoParameterOverrides,
@@ -231,11 +231,12 @@ impl<'a> Resolver<'a> {
         let result = self.resolve_node_inner(node_ref);
         self.depth -= 1;
         let result = opaque_if_dynamic_reference(result);
-        // A value that stays opaque carries no contents to compare, so the
-        // expression that produced it is kept: it is the only thing that can
-        // later show whether two such values are the same value. A value that
-        // resolved to contents needs no such record.
-        if !matches!(result, ResolvedValue::Concrete { value: _ })
+        // Opaque values retain their authored expression because it is the only
+        // way to establish value identity. Intrinsics also retain their node when
+        // they resolve concretely so validators can inspect authored structure
+        // rather than mistaking a parameter default for the deploy-time value.
+        let authored_intrinsic = matches!(self.arena.node(node_ref), Node::Intrinsic(_));
+        if (!matches!(result, ResolvedValue::Concrete { value: _ }) || authored_intrinsic)
             && let Some(ref resource_id) = self.current_resource
         {
             self.value_node_map.insert((resource_id.clone(), self.current_path.clone()), node_ref);

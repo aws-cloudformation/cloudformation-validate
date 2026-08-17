@@ -2,9 +2,10 @@
 //!
 //! EC2 allows exactly one route table per subnet, so two
 //! `AWS::EC2::SubnetRouteTableAssociation` resources naming the same subnet
-//! fail at deploy time. A subnet's identity here is the authored reference: the
-//! `Ref` target, the `GetAtt` target and attribute, or the literal string,
-//! evaluated through `Fn::If` branches.
+//! fail at deploy time. A subnet's identity here is the complete authored or
+//! resolved value: identical expressions prove one subnet, while expressions
+//! that merely share a component reference do not, evaluated through `Fn::If`
+//! branches.
 //!
 //! Two associations clash only when their combined resource-level and
 //! property-level condition assumptions are co-satisfiable — if no parameter
@@ -13,7 +14,7 @@
 
 use crate::conditions::Satisfiability;
 use crate::model::SemanticModel;
-use crate::resolver::{RefKind, ResolvedValue};
+use crate::resolver::ResolvedValue;
 
 /// A clash finding anchored at `Properties.SubnetId`.
 #[derive(Debug, Clone)]
@@ -57,19 +58,11 @@ fn build_assumptions(resource_condition: Option<&str>, property_condition: Optio
 }
 
 /// Checks whether the combined assumptions from two value keys can be
-/// simultaneously satisfied. An unconditional value (no resource condition and
-/// no property condition) is always co-satisfiable with anything.
+/// simultaneously satisfied. Empty assumptions on one side still require the
+/// other side to be satisfiable.
 fn are_co_satisfiable(model: &SemanticModel, left: &ValueKey, right: &ValueKey) -> bool {
-    let left_assumptions = build_assumptions(left.0.as_deref(), left.1.as_deref());
-    let right_assumptions = build_assumptions(right.0.as_deref(), right.1.as_deref());
-
-    // If either side is fully unconditional, they always co-exist.
-    if left_assumptions.is_empty() || right_assumptions.is_empty() {
-        return true;
-    }
-
-    let mut combined = left_assumptions;
-    combined.extend(right_assumptions);
+    let mut combined = build_assumptions(left.0.as_deref(), left.1.as_deref());
+    combined.extend(build_assumptions(right.0.as_deref(), right.1.as_deref()));
     matches!(model.conditions.satisfiability(&combined), Satisfiability::Satisfiable)
 }
 
@@ -91,36 +84,14 @@ pub fn duplicate_subnet_associations(model: &SemanticModel) -> Vec<AssociationFi
     for name in &names {
         let resource = &model.resources[*name];
         let mut values = Vec::new();
-        let mut reference_paths = Vec::new();
-
-        // Resolution can collapse a parameter Ref into its default, so use the
-        // graph to retain the target name and branch context the author wrote.
-        for edge in model.graph.outgoing(name) {
-            if edge.source_path != "Properties.SubnetId" && !edge.source_path.starts_with("Properties.SubnetId.") {
-                continue;
-            }
-            let identity = match &edge.kind {
-                RefKind::GetAtt { attr } => format!("{}.{}", edge.target, attr),
-                RefKind::Ref => edge.target.clone(),
-                _ => continue,
-            };
-            reference_paths.push(edge.source_path.clone());
-            let key = (resource.condition.clone(), edge.condition_context.clone(), identity);
-            if !values.contains(&key) {
-                values.push(key);
-            }
-        }
-
-        // Literal subnet IDs do not create graph edges. Exclude any concrete
-        // value produced by a reference (for example, a parameter default),
-        // because its authored identity is already represented by that edge.
         if let Some(subnet) = resource.properties.get("SubnetId") {
-            collect_literal_subnet_values(
+            collect_subnet_values(
+                model,
+                name,
                 subnet,
                 resource.condition.as_deref(),
                 None,
                 "Properties.SubnetId",
-                &reference_paths,
                 &mut values,
             );
         }
@@ -174,49 +145,49 @@ pub fn duplicate_subnet_associations(model: &SemanticModel) -> Vec<AssociationFi
     findings
 }
 
-fn collect_literal_subnet_values(
+fn collect_subnet_values(
+    model: &SemanticModel,
+    resource_id: &str,
     value: &ResolvedValue,
     resource_condition: Option<&str>,
     property_condition: Option<&str>,
     path: &str,
-    reference_paths: &[String],
     out: &mut Vec<ValueKey>,
 ) {
     match value {
         ResolvedValue::Conditional { condition, if_true, if_false } => {
             let true_condition = append_condition(property_condition, condition, true);
             let false_condition = append_condition(property_condition, condition, false);
-            collect_literal_subnet_values(
+            collect_subnet_values(
+                model,
+                resource_id,
                 if_true,
                 resource_condition,
                 Some(&true_condition),
                 &format!("{}.Fn::If.1", path),
-                reference_paths,
                 out,
             );
-            collect_literal_subnet_values(
+            collect_subnet_values(
+                model,
+                resource_id,
                 if_false,
                 resource_condition,
                 Some(&false_condition),
                 &format!("{}.Fn::If.2", path),
-                reference_paths,
                 out,
             );
         }
-        ResolvedValue::Concrete { value } => {
-            let nested_prefix = format!("{}.", path);
-            let comes_from_reference = reference_paths
-                .iter()
-                .any(|reference_path| reference_path == path || reference_path.starts_with(&nested_prefix));
-            if !comes_from_reference && let Some(subnet) = value.as_str() {
-                let key =
-                    (resource_condition.map(String::from), property_condition.map(String::from), subnet.to_string());
+        ResolvedValue::Concrete { value } if value.as_str().is_none() => {}
+        ResolvedValue::List { .. } | ResolvedValue::Map { .. } => {}
+        ResolvedValue::Dynamic { .. } if !model.is_from_intrinsic(resource_id, path) => {}
+        _ => {
+            if let Some(identity) = model.resolved_value_identity(resource_id, path, value) {
+                let key = (resource_condition.map(String::from), property_condition.map(String::from), identity);
                 if !out.contains(&key) {
                     out.push(key);
                 }
             }
         }
-        _ => {}
     }
 }
 
@@ -250,6 +221,66 @@ mod tests {
     }
 
     #[test]
+    fn distinct_compound_substitutions_sharing_a_component_are_clean() {
+        let template = r#"
+Parameters:
+  Prefix:
+    Type: String
+    Default: subnet-
+    AllowedValues: [subnet-]
+  SuffixA:
+    Type: String
+    Default: aaaaaaaaaaaaaaaaa
+    AllowedValues: [aaaaaaaaaaaaaaaaa]
+  SuffixB:
+    Type: String
+    Default: bbbbbbbbbbbbbbbbb
+    AllowedValues: [bbbbbbbbbbbbbbbbb]
+Resources:
+  One:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: rt-1
+      SubnetId: !Sub '${Prefix}${SuffixA}'
+  Two:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: rt-2
+      SubnetId: !Sub '${Prefix}${SuffixB}'
+"#;
+        assert!(findings(template).is_empty());
+    }
+
+    #[test]
+    fn identical_compound_substitutions_report_both_associations() {
+        let template = r#"
+Parameters:
+  Prefix:
+    Type: String
+  Suffix:
+    Type: String
+Resources:
+  One:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: rt-1
+      SubnetId: !Sub '${Prefix}${Suffix}'
+  Two:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: rt-2
+      SubnetId: !Sub '${Prefix}${Suffix}'
+"#;
+        assert_eq!(
+            findings(template),
+            [
+                ("One".to_string(), "SubnetId in One is also associated with Two".to_string()),
+                ("Two".to_string(), "SubnetId in Two is also associated with One".to_string()),
+            ]
+        );
+    }
+
+    #[test]
     fn same_ref_target_reports_both_associations() {
         let template = "Parameters:\n  A:\n    Type: String\nResources:\n  One:\n    Type: AWS::EC2::SubnetRouteTableAssociation\n    Properties:\n      RouteTableId: rt-1\n      SubnetId: !Ref A\n  Two:\n    Type: AWS::EC2::SubnetRouteTableAssociation\n    Properties:\n      RouteTableId: rt-2\n      SubnetId: !Ref A\n";
         assert_eq!(
@@ -259,6 +290,30 @@ mod tests {
                 ("Two".to_string(), "SubnetId in Two is also associated with One".to_string()),
             ]
         );
+    }
+
+    #[test]
+    fn impossible_condition_does_not_clash_with_unconditioned_association() {
+        let template = r#"
+Parameters:
+  Subnet:
+    Type: String
+Conditions:
+  Never: !Equals [always, never]
+Resources:
+  Plain:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: rt-1
+      SubnetId: !Ref Subnet
+  Impossible:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Condition: Never
+    Properties:
+      RouteTableId: rt-2
+      SubnetId: !Ref Subnet
+"#;
+        assert!(findings(template).is_empty());
     }
 
     #[test]

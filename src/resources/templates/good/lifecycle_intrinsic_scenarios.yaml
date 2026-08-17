@@ -1,0 +1,62 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::LanguageExtensions
+Description: >
+  Valid lifecycle intrinsic scenarios. DeletionPolicy and UpdateReplacePolicy
+  use only transform-supported functions and resolve to allowed policy values.
+Parameters:
+  Policy:
+    Type: String
+    AllowedValues: [Retain, Delete]
+  Toggle:
+    Type: String
+    AllowedValues: [enabled, disabled]
+Mappings:
+  Policies:
+    Retain:
+      Deletion: Retain
+      Replacement: Retain
+    Delete:
+      Deletion: Delete
+      Replacement: Delete
+Conditions:
+  Maybe: !Equals [!Ref Toggle, enabled]
+  NotMaybe: !Not [!Condition Maybe]
+  Never: !And [!Condition Maybe, !Condition NotMaybe]
+Resources:
+  CreationPolicyObject:
+    Type: AWS::CloudFormation::WaitCondition
+    CreationPolicy:
+      ResourceSignal:
+        Count: 1
+
+  ConditionalValidPolicies:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    DeletionPolicy: !If [Maybe, Retain, Delete]
+    UpdateReplacePolicy: !If [Maybe, Retain, Delete]
+
+  FindInMapPolicies:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    DeletionPolicy: !FindInMap [Policies, !Ref Policy, Deletion]
+    UpdateReplacePolicy: !FindInMap [Policies, !Ref Policy, Replacement]
+
+  DynamicRefPolicies:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    DeletionPolicy: !Ref Policy
+    UpdateReplacePolicy: !Ref Policy
+
+  CorrelatedConditionalPolicies:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    Condition: Maybe
+    DeletionPolicy: !If [Maybe, Retain, InvalidDeletion]
+    UpdateReplacePolicy: !If [Maybe, Retain, InvalidReplacement]
+
+  ImpossibleBranchPolicies:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    DeletionPolicy: !If [Never, InvalidDeletion, Retain]
+    UpdateReplacePolicy: !If [Never, InvalidReplacement, Retain]
+
+  ImpossibleResourcePolicies:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    Condition: Never
+    DeletionPolicy: InvalidDeletion
+    UpdateReplacePolicy: InvalidReplacement
