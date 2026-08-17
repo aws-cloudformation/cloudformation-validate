@@ -88,14 +88,14 @@ fn validate_within(budget: Duration, engine_name: &'static str, bytes: Vec<u8>) 
     })
 }
 
-fn budget_metadata(report: &ValidationReport) -> Vec<(String, u64, bool)> {
+fn budget_metadata(report: &ValidationReport) -> Vec<(String, String, u64, bool)> {
     report
         .metadata
         .budget_exhaustions
         .as_deref()
         .unwrap_or_default()
         .iter()
-        .map(|record| (record.kind.clone(), record.limit, record.analysis_incomplete))
+        .map(|record| (record.kind.clone(), record.description.clone(), record.limit, record.analysis_incomplete))
         .collect()
 }
 

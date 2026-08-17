@@ -45,6 +45,9 @@ def validate_security_template(engine_name, template_path, outcome_queue):
             if not report.metadata.budget_exhaustions:
                 outcome_queue.put(("error", "exhausted budget metadata is absent"))
                 return
+            if not report.metadata.budget_exhaustions[0].description.endswith("."):
+                outcome_queue.put(("error", "budget description is not a sentence"))
+                return
         if template_name == "condition_fusion.yaml" and report.metadata.budget_exhaustions is not None:
             outcome_queue.put(("error", "non-exhausted budget metadata must be absent"))
             return

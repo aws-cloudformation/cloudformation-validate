@@ -89,6 +89,8 @@ func TestEverySecurityTemplateWithBothEngines(t *testing.T) {
 						}
 						if len(validation.report.Metadata.BudgetExhaustions) == 0 {
 							t.Error("exhausted budget metadata is absent")
+						} else if !strings.HasSuffix(validation.report.Metadata.BudgetExhaustions[0].Description, ".") {
+							t.Error("budget description is not a sentence")
 						}
 					}
 					if relativePath == "condition_fusion.yaml" && validation.report.Metadata.BudgetExhaustions != nil {

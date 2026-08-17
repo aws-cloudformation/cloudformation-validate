@@ -47,6 +47,7 @@ class SecurityTest {
                             if (relativePath == "scenario_assignment_budget.yaml") {
                                 assertEquals("ANALYSIS_INCOMPLETE", report.status.name)
                                 assertTrue(!report.metadata.budgetExhaustions.isNullOrEmpty())
+                                assertTrue(report.metadata.budgetExhaustions?.first()?.description?.endsWith(".") == true)
                             }
                             if (relativePath == "condition_fusion.yaml") {
                                 assertTrue(report.metadata.budgetExhaustions == null)

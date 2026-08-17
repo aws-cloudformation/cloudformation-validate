@@ -129,6 +129,7 @@ type Summary struct {
 // BudgetExhaustionRecord is a single budget-exhaustion entry in report metadata.
 type BudgetExhaustionRecord struct {
 	Kind               string `json:"kind"`
+	Description        string `json:"description"`
 	Limit              uint64 `json:"limit"`
 	AnalysisIncomplete bool   `json:"analysisIncomplete"`
 }

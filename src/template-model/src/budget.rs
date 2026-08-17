@@ -17,7 +17,8 @@ use std::sync::Mutex;
 /// budget that was exhausted; no occurrence count, path, or query detail is
 /// stored so the tracker remains bounded and order-insensitive.
 ///
-/// Serialized as lower camelCase strings for report metadata.
+/// `as_str` provides the stable lower camelCase identifier used by report
+/// consumers. `description` provides a human-readable sentence.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum BudgetKind {
     /// Intrinsic-resolution recursion depth.
@@ -73,7 +74,7 @@ impl BudgetKind {
         !matches!(self, Self::RequiredPropertyCombinations)
     }
 
-    /// Lower camelCase string representation for serialization.
+    /// Lower camelCase string representation for stable machine consumption.
     pub const fn as_str(self) -> &'static str {
         match self {
             Self::ResolverDepth => "resolverDepth",
@@ -88,6 +89,45 @@ impl BudgetKind {
             Self::SchemaMatchDepth => "schemaMatchDepth",
             Self::RequiredPropertyCombinations => "requiredPropertyCombinations",
             Self::ExpressionFingerprintDepth => "expressionFingerprintDepth",
+        }
+    }
+
+    /// Human-readable explanation of the exhausted budget. This prose may evolve;
+    /// integrations should use `as_str` as the stable identifier.
+    pub const fn description(self) -> &'static str {
+        match self {
+            Self::ResolverDepth => "Resolving intrinsic functions exceeded the maximum supported nesting depth.",
+            Self::EnumExpansion => "Resolving a value produced more possible values than the supported limit.",
+            Self::ScenarioCombinationsPerValue => {
+                "Resolving a value produced more conditional scenarios than the supported limit."
+            }
+            Self::ScenarioCombinationsTotal => {
+                "Resolving the template produced more conditional scenarios than the supported cumulative limit."
+            }
+            Self::ConditionParameterCombinations => {
+                "Evaluating template conditions required more parameter combinations than the supported limit."
+            }
+            Self::ConditionSatIterationsPerQuery => {
+                "Evaluating one set of template conditions exceeded the supported work limit."
+            }
+            Self::ConditionSatIterationsTotal => {
+                "Evaluating template conditions exceeded the supported cumulative work limit."
+            }
+            Self::SchemaScenarioAssignments => {
+                "Checking resource schemas required more conditional value assignments than the supported limit."
+            }
+            Self::SchemaScenarioMergeAttempts => {
+                "Checking resource schemas exceeded the supported number of conditional assignment merge attempts."
+            }
+            Self::SchemaMatchDepth => {
+                "Checking resource schemas exceeded the maximum supported recursive matching depth."
+            }
+            Self::RequiredPropertyCombinations => {
+                "Checking required properties omitted some explanation combinations after reaching the supported limit."
+            }
+            Self::ExpressionFingerprintDepth => {
+                "Comparing resolved expressions exceeded the maximum supported nesting depth."
+            }
         }
     }
 }
@@ -181,5 +221,33 @@ mod tests {
         assert_eq!(BudgetKind::SchemaMatchDepth.as_str(), "schemaMatchDepth");
         assert_eq!(BudgetKind::RequiredPropertyCombinations.as_str(), "requiredPropertyCombinations");
         assert_eq!(BudgetKind::ExpressionFingerprintDepth.as_str(), "expressionFingerprintDepth");
+    }
+
+    #[test]
+    fn descriptions_are_human_readable_sentences() {
+        let descriptions = [
+            BudgetKind::ResolverDepth.description(),
+            BudgetKind::EnumExpansion.description(),
+            BudgetKind::ScenarioCombinationsPerValue.description(),
+            BudgetKind::ScenarioCombinationsTotal.description(),
+            BudgetKind::ConditionParameterCombinations.description(),
+            BudgetKind::ConditionSatIterationsPerQuery.description(),
+            BudgetKind::ConditionSatIterationsTotal.description(),
+            BudgetKind::SchemaScenarioAssignments.description(),
+            BudgetKind::SchemaScenarioMergeAttempts.description(),
+            BudgetKind::SchemaMatchDepth.description(),
+            BudgetKind::RequiredPropertyCombinations.description(),
+            BudgetKind::ExpressionFingerprintDepth.description(),
+        ];
+
+        assert!(descriptions.iter().all(|description| description.ends_with('.')));
+        assert_eq!(
+            BudgetKind::ConditionParameterCombinations.description(),
+            "Evaluating template conditions required more parameter combinations than the supported limit."
+        );
+        assert_eq!(
+            BudgetKind::RequiredPropertyCombinations.description(),
+            "Checking required properties omitted some explanation combinations after reaching the supported limit."
+        );
     }
 }

@@ -250,6 +250,11 @@ class StandardReport:
 `rule_description`, `phase` (`PARSE` | `SCHEMA` | `LINT`), and `context` (a `ViolationContext` with `actual_value`,
 `expected_constraint`, `resolution_source`, etc.).
 
+Each optional budget-exhaustion record retains a stable machine-readable kind and also includes a
+human-readable description sentence, the numeric limit, and whether that specific exhaustion makes analysis
+incomplete. `requiredPropertyCombinations` is context-only, so its `analysis_incomplete` value is `False` and the
+report can remain `ReportStatus.OK`.
+
 ### StandardDiagnostic
 
 ```python

@@ -90,8 +90,11 @@ All report types share: `file_path`, `status` (`Ok`/`AnalysisIncomplete`/`Error`
 
 `ReportMetadata`: `rules_evaluated`, `cfn_lint_version`, `resource_schema_version`, `resources_scanned`, `counts`
 (Summary by severity), `suppressed`, `strict`, `severity_level`, and optional `budget_exhaustions`. The optional field
-is absent when no deterministic budget was exhausted. `rules_evaluated` is `0` when no rules ran. Source versions use
-canonical `https://github.com/aws-cloudformation/<source>@<version>` values.
+is absent when no deterministic budget was exhausted. Each record contains a stable `kind`, a human-readable
+`description` sentence, the numeric `limit`, and `analysis_incomplete`. A false `analysis_incomplete` value means the
+budget curtailed only diagnostic context, so the report can remain `Ok`; `requiredPropertyCombinations` is the current
+context-only budget. `rules_evaluated` is `0` when no rules ran.
+Source versions use canonical `https://github.com/aws-cloudformation/<source>@<version>` values.
 
 ## Detail Level
 

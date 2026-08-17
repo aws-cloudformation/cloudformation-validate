@@ -184,9 +184,13 @@ report.metadata.resources_scanned
 report.metadata.rules_evaluated
 report.metadata.strict      // whether strict mode was enabled
 report.metadata.severity_level // minimum severity threshold used
-report.metadata.budget_exhaustions // Some(records) only when deterministic budgets were exhausted
+report.metadata.budget_exhaustions // optional records with stable kind, description, limit, and per-budget impact
 report.performance          // PerformanceMetrics with per-phase timings
 ```
+
+Each record's `analysis_incomplete` value reports whether that specific exhausted budget can cause findings to be
+omitted. `RequiredPropertyCombinations` is context-only, so its value is `false` and the report can remain `Ok`; the
+report becomes `AnalysisIncomplete` when any exhausted budget has a `true` value.
 
 Convert to output format:
 

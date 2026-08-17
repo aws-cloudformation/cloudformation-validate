@@ -382,8 +382,11 @@ pub struct PerformanceMetrics {
 #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Record))]
 #[serde(rename_all = "camelCase")]
 pub struct BudgetExhaustionRecord {
-    /// Lower camelCase budget kind name.
+    /// Stable lower camelCase budget kind identifier.
     pub kind: String,
+    /// Human-readable explanation of the exhausted budget.
+    #[serde(default)]
+    pub description: String,
     /// The numeric limit that was exhausted.
     pub limit: u64,
     /// Whether exhausting this budget makes the overall analysis incomplete.
@@ -718,6 +721,32 @@ mod tests {
             "https://github.com/aws-cloudformation/resource-provider-enhanced-schemas@2026-08-07T18:20:13Z"
         );
         assert!(json.get("budgetExhaustions").is_none());
+    }
+
+    #[test]
+    fn budget_exhaustion_record_serializes_description() {
+        let record = BudgetExhaustionRecord {
+            kind: "resolverDepth".to_string(),
+            description: "Resolving intrinsic functions exceeded the maximum supported nesting depth.".to_string(),
+            limit: 64,
+            analysis_incomplete: true,
+        };
+
+        let json = serde_json::to_value(record).expect("budget exhaustion record should serialize");
+        assert_eq!(json["kind"], "resolverDepth");
+        assert_eq!(json["description"], "Resolving intrinsic functions exceeded the maximum supported nesting depth.");
+    }
+
+    #[test]
+    fn budget_exhaustion_record_accepts_legacy_input_without_description() {
+        let record: BudgetExhaustionRecord = serde_json::from_value(serde_json::json!({
+            "kind": "resolverDepth",
+            "limit": 64,
+            "analysisIncomplete": true
+        }))
+        .expect("legacy budget exhaustion record should deserialize");
+
+        assert!(record.description.is_empty());
     }
 
     #[test]

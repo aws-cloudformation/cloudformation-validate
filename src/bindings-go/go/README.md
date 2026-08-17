@@ -265,6 +265,11 @@ type StandardReport struct {
 `StandardDiagnostic` and add `DocumentationURL`, `RuleDescription`, `Phase` (`PARSE` | `SCHEMA` | `LINT`), and
 `Context` (a `*ViolationContext` with `ActualValue`, `ExpectedConstraint`, `ResolutionSource`, etc.).
 
+Each optional budget-exhaustion record retains a stable machine-readable kind and also includes a
+human-readable description sentence, the numeric limit, and whether that specific exhaustion makes analysis
+incomplete. `requiredPropertyCombinations` is context-only, so its `AnalysisIncomplete` value is `false` and the
+report can remain `StatusOK`.
+
 ### StandardDiagnostic
 
 ```go

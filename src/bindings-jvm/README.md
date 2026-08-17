@@ -246,6 +246,11 @@ data class StandardReport(
 `ruleDescription`, `phase` (`PARSE` | `SCHEMA` | `LINT`), and `context` (`ViolationContext` with
 `actualValue`, `expectedConstraint`, `resolutionSource`, etc.).
 
+Each optional budget-exhaustion record retains a stable machine-readable kind and also includes a
+human-readable description sentence, the numeric limit, and whether that specific exhaustion makes analysis
+incomplete. `requiredPropertyCombinations` is context-only, so its `analysisIncomplete` value is `false` and the
+report can remain `ReportStatus.OK`.
+
 ### StandardDiagnostic
 
 ```kotlin

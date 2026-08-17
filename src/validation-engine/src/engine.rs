@@ -316,6 +316,7 @@ pub(crate) fn validate(
         .iter()
         .map(|kind| BudgetExhaustionRecord {
             kind: kind.as_str().to_string(),
+            description: kind.description().to_string(),
             limit: kind.limit(),
             analysis_incomplete: kind.analysis_incomplete(),
         })
@@ -328,13 +329,14 @@ pub(crate) fn validate(
         } else {
             "Deterministic validation budgets were exhausted; analysis completed but some detail was omitted"
         };
-        let budget_context = exhausted_kinds
+        let budget_context = budget_exhaustion_records
             .iter()
-            .map(|kind| {
+            .map(|record| {
                 serde_json::json!({
-                    "kind": kind.as_str(),
-                    "limit": kind.limit(),
-                    "analysisIncomplete": kind.analysis_incomplete(),
+                    "kind": record.kind.as_str(),
+                    "description": record.description.as_str(),
+                    "limit": record.limit,
+                    "analysisIncomplete": record.analysis_incomplete,
                 })
             })
             .collect();
@@ -2769,8 +2771,10 @@ Resources:
         assert_eq!(budget_exhaustions.len(), 2, "two distinct kinds, not three");
         // Deterministic order (BTreeSet)
         assert_eq!(budget_exhaustions[0].kind, "resolverDepth");
+        assert_eq!(budget_exhaustions[0].description, BudgetKind::ResolverDepth.description());
         assert_eq!(budget_exhaustions[0].limit, BudgetKind::ResolverDepth.limit());
         assert_eq!(budget_exhaustions[1].kind, "enumExpansion");
+        assert_eq!(budget_exhaustions[1].description, BudgetKind::EnumExpansion.description());
 
         // Context must be present in detailed format
         assert!(w.context.is_some(), "budget warning context must be attached in detailed format");
@@ -2810,6 +2814,7 @@ Resources:
             report.metadata.budget_exhaustions.as_deref().expect("context-only exhaustion must be present in metadata");
         assert_eq!(budget_exhaustions.len(), 1);
         assert_eq!(budget_exhaustions[0].kind, "requiredPropertyCombinations");
+        assert_eq!(budget_exhaustions[0].description, BudgetKind::RequiredPropertyCombinations.description());
         assert_eq!(budget_exhaustions[0].limit, BudgetKind::RequiredPropertyCombinations.limit());
         assert!(!budget_exhaustions[0].analysis_incomplete);
     }
