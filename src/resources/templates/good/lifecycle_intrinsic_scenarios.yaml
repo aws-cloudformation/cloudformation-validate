@@ -1,8 +1,8 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Transform: AWS::LanguageExtensions
 Description: >
-  Valid lifecycle intrinsic scenarios. DeletionPolicy and UpdateReplacePolicy
-  use only transform-supported functions and resolve to allowed policy values.
+  Valid lifecycle intrinsic scenarios. CreationPolicy contains nested functions
+  and a root Fn::If, while DeletionPolicy and UpdateReplacePolicy use standard
+  intrinsic functions without a transform and resolve to allowed policy values.
 Parameters:
   Policy:
     Type: String
@@ -27,7 +27,26 @@ Resources:
     Type: AWS::CloudFormation::WaitCondition
     CreationPolicy:
       ResourceSignal:
-        Count: 1
+        Count: !Select [0, [1, 2]]
+        Timeout: !Sub
+          - 'PT${Minutes}M'
+          - Minutes: 10
+
+  ConditionalCreationPolicy:
+    Type: AWS::CloudFormation::WaitCondition
+    CreationPolicy: !If
+      - Maybe
+      - ResourceSignal: {Count: 1}
+      - ResourceSignal: {Count: 2}
+
+  CorrelatedCreationPolicy:
+    Type: AWS::CloudFormation::WaitCondition
+    Condition: Maybe
+    CreationPolicy: !If [Maybe, {ResourceSignal: {Count: 1}}, invalid]
+
+  ImpossibleCreationPolicyBranch:
+    Type: AWS::CloudFormation::WaitCondition
+    CreationPolicy: !If [Never, invalid, {ResourceSignal: {Count: 1}}]
 
   ConditionalValidPolicies:
     Type: AWS::CloudFormation::WaitConditionHandle
@@ -43,6 +62,25 @@ Resources:
     Type: AWS::CloudFormation::WaitConditionHandle
     DeletionPolicy: !Ref Policy
     UpdateReplacePolicy: !Ref Policy
+
+  SubPolicies:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    DeletionPolicy: !Sub
+      - '${DeletionPolicyName}'
+      - DeletionPolicyName: Retain
+    UpdateReplacePolicy: !Sub
+      - '${ReplacementPolicyName}'
+      - ReplacementPolicyName: Delete
+
+  SelectPolicies:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    DeletionPolicy: !Select [0, [Retain, Delete]]
+    UpdateReplacePolicy: !Select [1, [Delete, Retain]]
+
+  JoinPolicies:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    DeletionPolicy: !Join ['t', [Re, ain]]
+    UpdateReplacePolicy: !Join ['t', [Dele, e]]
 
   CorrelatedConditionalPolicies:
     Type: AWS::CloudFormation::WaitConditionHandle

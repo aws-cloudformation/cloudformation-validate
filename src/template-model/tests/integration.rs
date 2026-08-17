@@ -1348,7 +1348,6 @@ Resources:
 #[test]
 fn lifecycle_policy_scenarios_expands_conditional_branches() {
     let yaml = b"
-Transform: AWS::LanguageExtensions
 Parameters:
   Policy:
     Type: String
@@ -1362,6 +1361,12 @@ Resources:
   DirectNoValue:
     Type: AWS::S3::Bucket
     DeletionPolicy: !Ref AWS::NoValue
+  JoinPolicy:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: !Join ['', [Re, tain]]
+  StackIdPolicy:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: !Ref AWS::StackId
   ImpossibleBranch:
     Type: AWS::S3::Bucket
     DeletionPolicy: !If [Never, InvalidPolicy, !Ref AWS::NoValue]
@@ -1392,6 +1397,17 @@ Resources:
     let novalue = model.lifecycle_policy_scenarios("DirectNoValue", "DeletionPolicy");
     assert_eq!(novalue.len(), 1, "direct NoValue remains an invalid null value: {:?}", novalue);
     assert!(novalue[0].0.is_null());
+
+    let join = model.lifecycle_policy_scenarios("JoinPolicy", "DeletionPolicy");
+    assert_eq!(join.len(), 1, "Join resolves before lifecycle value validation: {join:?}");
+    assert_eq!(join[0].0.as_str(), Some("Retain"));
+
+    let stack_id = model.lifecycle_policy_scenarios("StackIdPolicy", "DeletionPolicy");
+    assert_eq!(stack_id.len(), 1, "StackId has a deterministic pseudo-parameter value: {stack_id:?}");
+    assert!(
+        stack_id[0].0.as_str().is_some_and(|value| value.starts_with("arn:") && value.contains(":stack/")),
+        "StackId must reach final-value validation as a concrete ARN: {stack_id:?}"
+    );
 
     let impossible = model.lifecycle_policy_scenarios("ImpossibleBranch", "DeletionPolicy");
     assert_eq!(impossible.len(), 1, "the reachable NoValue branch remains invalid: {:?}", impossible);
@@ -1431,7 +1447,6 @@ Resources:
 #[test]
 fn lifecycle_attribute_status_respects_conditions_for_all_attributes() {
     let yaml = b"
-Transform: AWS::LanguageExtensions
 Parameters:
   Policy:
     Type: String
@@ -1475,7 +1490,7 @@ Resources:
     assert!(direct.may_be_present, "illegal NoValue remains an authored CreationPolicy");
 
     let impossible = model.lifecycle_attribute_status("ImpossibleBranch", "CreationPolicy");
-    assert!(impossible.may_be_present, "unsupported top-level Fn::If remains authored");
+    assert!(impossible.may_be_present, "a root CreationPolicy Fn::If remains authored");
 
     let resource = model.lifecycle_attribute_status("ImpossibleResource", "CreationPolicy");
     assert!(!resource.may_be_present, "impossible resource means absent");
@@ -1500,23 +1515,25 @@ Resources:
 }
 
 #[test]
-fn lifecycle_intrinsics_require_a_supported_attribute_and_transform() {
+fn lifecycle_policy_intrinsics_and_creation_policy_if_do_not_require_a_transform() {
     let yaml = b"
 Parameters:
   Policy:
     Type: String
+    AllowedValues: [Retain, Delete]
 Conditions:
   Never: !Equals [always, never]
+  Maybe: !Equals [!Ref Policy, Retain]
 Resources:
   CreationConditional:
     Type: AWS::CloudFormation::WaitCondition
     CreationPolicy: !If
-      - Never
+      - Maybe
       - ResourceSignal: {Count: 1}
       - ResourceSignal: {Count: 2}
   DeletionConditional:
     Type: AWS::CloudFormation::WaitConditionHandle
-    DeletionPolicy: !If [Never, Retain, Delete]
+    DeletionPolicy: !If [Maybe, Retain, Delete]
   UpdateRef:
     Type: AWS::CloudFormation::WaitConditionHandle
     UpdateReplacePolicy: !Ref Policy
@@ -1528,26 +1545,12 @@ Resources:
 ";
     let model = SemanticModel::from_bytes(yaml).expect("lifecycle placement template parses");
     let findings: Vec<_> = model.diagnostics.iter().filter(|finding| finding.rule_id == "F1101").collect();
-    assert_eq!(findings.len(), 3, "each reachable unsupported placement is reported once: {findings:?}");
-    assert!(findings.iter().any(|finding| {
-        finding.resource_id.as_deref() == Some("CreationConditional")
-            && finding.message.contains("not supported as a top-level CreationPolicy")
-    }));
-    assert!(findings.iter().any(|finding| {
-        finding.resource_id.as_deref() == Some("DeletionConditional")
-            && finding.message.contains("requires the AWS::LanguageExtensions transform")
-    }));
-    assert!(findings.iter().any(|finding| {
-        finding.resource_id.as_deref() == Some("UpdateRef")
-            && finding.message.contains("requires the AWS::LanguageExtensions transform")
-    }));
-    assert!(!findings.iter().any(|finding| finding.resource_id.as_deref() == Some("Unreachable")));
+    assert!(findings.is_empty(), "valid lifecycle intrinsics must not produce placement findings: {findings:?}");
 }
 
 #[test]
-fn transformed_lifecycle_intrinsics_restrict_functions_and_ref_targets() {
+fn lifecycle_policy_intrinsics_have_no_function_or_ref_placement_allowlist() {
     let yaml = b"
-Transform: AWS::LanguageExtensions
 Parameters:
   Policy:
     Type: String
@@ -1562,38 +1565,135 @@ Conditions:
 Resources:
   Target:
     Type: AWS::CloudFormation::WaitConditionHandle
-  Valid:
+  ValidConditional:
     Type: AWS::CloudFormation::WaitConditionHandle
     DeletionPolicy: !If
       - Maybe
       - !FindInMap [Policies, !Ref AWS::Region, Deletion]
       - !Ref Policy
+  ValidSub:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    DeletionPolicy: !Sub
+      - '${PolicyName}'
+      - PolicyName: Retain
+  ValidSelect:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    UpdateReplacePolicy: !Select [1, [Delete, Retain]]
+  ValidJoin:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    DeletionPolicy: !Join ['', [Re, tain]]
   CreationConditional:
     Type: AWS::CloudFormation::WaitCondition
     CreationPolicy: !If [Maybe, {ResourceSignal: {Count: 1}}, {ResourceSignal: {Count: 2}}]
-  UnsupportedFunction:
-    Type: AWS::CloudFormation::WaitConditionHandle
-    DeletionPolicy: !Sub '${AWS::Region}'
-  UnsupportedPseudo:
+  NoValueRef:
     Type: AWS::CloudFormation::WaitConditionHandle
     UpdateReplacePolicy: !Ref AWS::NoValue
-  UnsupportedResourceRef:
+  StackIdRef:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    DeletionPolicy: !Ref AWS::StackId
+  ResourceRef:
     Type: AWS::CloudFormation::WaitConditionHandle
     DeletionPolicy: !Ref Target
-  UnreachableUnsupported:
+  UnreachableJoin:
     Type: AWS::CloudFormation::WaitConditionHandle
     Condition: Never
-    DeletionPolicy: !Sub '${AWS::Region}'
+    DeletionPolicy: !Join ['', [Re, tain]]
 ";
-    let model = SemanticModel::from_bytes(yaml).expect("transformed lifecycle template parses");
+    let model = SemanticModel::from_bytes(yaml).expect("lifecycle intrinsic template parses");
     let findings: Vec<_> = model.diagnostics.iter().filter(|finding| finding.rule_id == "F1101").collect();
-    assert_eq!(findings.len(), 4, "only reachable unsupported lifecycle intrinsics are reported: {findings:?}");
-    for resource_id in ["CreationConditional", "UnsupportedFunction", "UnsupportedPseudo", "UnsupportedResourceRef"] {
+    assert!(findings.is_empty(), "lifecycle policy functions and Ref targets are not placement errors: {findings:?}");
+}
+
+#[test]
+fn creation_policy_root_intrinsics_match_service_shape_contract() {
+    let yaml = b"
+Parameters:
+  CreationValue:
+    Type: String
+    Default: not-an-object
+  Toggle:
+    Type: String
+    AllowedValues: [enabled, disabled]
+Mappings:
+  CreationValues:
+    Primary:
+      Policy: not-an-object
+Conditions:
+  Maybe: !Equals [!Ref Toggle, enabled]
+  Never: !Equals [always, never]
+Resources:
+  ValidIf:
+    Type: AWS::CloudFormation::WaitCondition
+    CreationPolicy: !If
+      - Maybe
+      - ResourceSignal: {Count: 1}
+      - ResourceSignal: {Count: 2}
+  NestedIf:
+    Type: AWS::CloudFormation::WaitCondition
+    CreationPolicy: !If
+      - Maybe
+      - !If [Never, invalid, {ResourceSignal: {Count: 1}}]
+      - ResourceSignal: {Count: 2}
+  ImpossibleScalarBranch:
+    Type: AWS::CloudFormation::WaitCondition
+    CreationPolicy: !If [Never, invalid, {ResourceSignal: {Count: 1}}]
+  CorrelatedScalarBranch:
+    Type: AWS::CloudFormation::WaitCondition
+    Condition: Maybe
+    CreationPolicy: !If [Maybe, {ResourceSignal: {Count: 1}}, invalid]
+  ReachableScalarBranch:
+    Type: AWS::CloudFormation::WaitCondition
+    CreationPolicy: !If [Maybe, {ResourceSignal: {Count: 1}}, invalid]
+  RootRef:
+    Type: AWS::CloudFormation::WaitCondition
+    CreationPolicy: !Ref CreationValue
+  RootFindInMap:
+    Type: AWS::CloudFormation::WaitCondition
+    CreationPolicy: !FindInMap [CreationValues, Primary, Policy]
+  RootSelect:
+    Type: AWS::CloudFormation::WaitCondition
+    CreationPolicy: !Select
+      - 0
+      - - ResourceSignal: {Count: 1}
+        - ResourceSignal: {Count: 2}
+  RootSub:
+    Type: AWS::CloudFormation::WaitCondition
+    CreationPolicy: !Sub
+      - '${Value}'
+      - Value: not-an-object
+  NestedFunctions:
+    Type: AWS::CloudFormation::WaitCondition
+    CreationPolicy:
+      ResourceSignal:
+        Count: !Select [0, [1, 2]]
+        Timeout: !Sub
+          - 'PT${Minutes}M'
+          - Minutes: 10
+";
+    let model = SemanticModel::from_bytes(yaml).expect("CreationPolicy matrix parses");
+    let findings: Vec<_> = model.diagnostics.iter().filter(|finding| finding.rule_id == "F1101").collect();
+    assert_eq!(findings.len(), 5, "four rejected roots and one reachable scalar branch: {findings:?}");
+
+    for resource_id in ["RootRef", "RootFindInMap", "RootSelect", "RootSub"] {
         assert!(
-            findings.iter().any(|finding| finding.resource_id.as_deref() == Some(resource_id)),
-            "missing lifecycle placement finding for {resource_id}: {findings:?}"
+            findings.iter().any(|finding| {
+                finding.resource_id.as_deref() == Some(resource_id)
+                    && finding.message.contains("not supported as a top-level CreationPolicy")
+            }),
+            "missing root CreationPolicy finding for {resource_id}: {findings:?}"
         );
     }
-    assert!(!findings.iter().any(|finding| finding.resource_id.as_deref() == Some("Valid")));
-    assert!(!findings.iter().any(|finding| finding.resource_id.as_deref() == Some("UnreachableUnsupported")));
+    assert!(
+        findings.iter().any(|finding| {
+            finding.resource_id.as_deref() == Some("ReachableScalarBranch")
+                && finding.message.contains("Fn::If branch in CreationPolicy must be an object")
+        }),
+        "missing reachable branch-shape finding: {findings:?}"
+    );
+    for resource_id in ["ValidIf", "NestedIf", "ImpossibleScalarBranch", "CorrelatedScalarBranch", "NestedFunctions"] {
+        assert!(
+            !findings.iter().any(|finding| finding.resource_id.as_deref() == Some(resource_id)),
+            "unexpected CreationPolicy finding for {resource_id}: {findings:?}"
+        );
+    }
 }

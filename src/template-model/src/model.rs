@@ -602,28 +602,17 @@ impl SemanticModel {
         diagnostics.extend(crate::intrinsic_arg_shapes::validate_intrinsic_arg_shapes(&ir.arena, &ir.transforms));
         diagnostics.extend(crate::lang_ext_shapes::validate_lang_ext_parameter_shapes(&ir.arena, &ir.transforms));
         diagnostics.extend(crate::language_extensions::validate_language_extensions(&ir.arena, &ir.transforms));
-        let mut lifecycle_resource_ids: Vec<_> =
-            lifecycle_attribute_nodes.keys().map(|(resource_id, _)| resource_id.as_str()).collect();
-        lifecycle_resource_ids.sort_unstable();
-        lifecycle_resource_ids.dedup();
-        let unreachable_lifecycle_resources: HashSet<String> = lifecycle_resource_ids
-            .into_iter()
-            .filter_map(|resource_id| {
-                if invalid_resource_conditions.contains(resource_id) {
-                    return None;
-                }
-                let resource = resources.get(resource_id)?;
-                let condition = resource.condition.as_ref()?;
-                matches!(conditions.satisfiability(&[(condition.clone(), true)]), Satisfiability::Unsatisfiable)
-                    .then(|| resource_id.to_string())
+        let lifecycle_resource_conditions: HashMap<String, String> = resources
+            .iter()
+            .filter_map(|(resource_id, resource)| {
+                resource.condition.as_ref().map(|condition| (resource_id.clone(), condition.clone()))
             })
             .collect();
         diagnostics.extend(crate::language_extensions::validate_lifecycle_intrinsics(
             &ir.arena,
-            &ir.global_index,
-            &ir.transforms,
+            &conditions,
             &lifecycle_attribute_nodes,
-            &unreachable_lifecycle_resources,
+            &lifecycle_resource_conditions,
         ));
         diagnostics.extend(crate::dynamic_ref::validate_dynamic_references(&ir.arena, ir.resources));
 

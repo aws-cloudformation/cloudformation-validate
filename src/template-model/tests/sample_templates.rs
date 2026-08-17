@@ -55,11 +55,7 @@ fn template_metadata_fields() {
     let m = load("lsp/comprehensive.yaml");
     assert_eq!(m.format_version.as_deref(), Some("2010-09-09"));
     assert!(m.description.as_ref().unwrap().contains("Comprehensive"), "description should contain 'Comprehensive'");
-    assert_eq!(m.transforms.len(), 3);
-    assert!(
-        m.transforms.contains(&"AWS::LanguageExtensions".to_string()),
-        "transforms should contain AWS::LanguageExtensions"
-    );
+    assert_eq!(m.transforms.len(), 2);
     assert!(
         m.transforms.contains(&"AWS::Serverless-2016-10-31".to_string()),
         "transforms should contain AWS::Serverless-2016-10-31"
@@ -572,7 +568,7 @@ fn rego_input_complete_structure() {
     let m = load("lsp/comprehensive.yaml");
     let json = serde_json::to_value(m.to_diagnostic_json()).unwrap();
     assert!(json["template"]["formatVersion"].as_str().is_some(), "formatVersion should be a string");
-    assert_eq!(json["template"]["transforms"].as_array().unwrap().len(), 3);
+    assert_eq!(json["template"]["transforms"].as_array().unwrap().len(), 2);
     assert_eq!(json["parameters"].as_object().unwrap().len(), 8);
     assert_eq!(json["resources"].as_object().unwrap().len(), 12);
     assert_eq!(json["outputs"].as_object().unwrap().len(), 6);
