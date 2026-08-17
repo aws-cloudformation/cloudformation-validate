@@ -2,7 +2,6 @@
 mod source_versions;
 
 use source_versions::{SOURCE_VERSIONS_FILE, SourceVersions};
-use std::collections::{BTreeMap, BTreeSet};
 use std::env;
 use std::fs;
 use std::io::Cursor;
@@ -80,10 +79,9 @@ fn main() {
     let generated_sv_dir = manifest_dir.join("generated").join("schema-validator");
     let generated_cel_dir = manifest_dir.join("generated").join("cel-rules");
     let handwritten_dir = manifest_dir.join("handwritten");
-    let upstream_schema_dir = manifest_dir.join("upstream").join("schemas");
     let rego_hw_dir = manifest_dir.parent().unwrap().join("rego-engine").join("handwritten").join("rego");
 
-    for dir in [&generated_data_dir, &generated_sv_dir, &generated_cel_dir, &handwritten_dir, &upstream_schema_dir] {
+    for dir in [&generated_data_dir, &generated_sv_dir, &generated_cel_dir, &handwritten_dir] {
         println!("cargo:rerun-if-changed={}", dir.display());
     }
     println!("cargo:rerun-if-changed={}", rego_hw_dir.display());
@@ -122,9 +120,6 @@ fn main() {
         embed_minified_json(&path, const_name, &out_dir, &mut code);
     }
 
-    let aws_api_actions = build_aws_api_action_catalog(&upstream_schema_dir);
-    embed_minified_value(&aws_api_actions, "AWS_API_ACTIONS", &out_dir, &mut code);
-
     // CEL generated rules
     let cel_rules_path = generated_cel_dir.join("generated_rules.json");
     if !cel_rules_path.exists() {
@@ -146,7 +141,6 @@ fn main() {
     for (_filename, const_name) in GENERATED_JSON.iter().chain(HANDWRITTEN_JSON.iter()) {
         code.push_str(&format!("    let _ = &*{}_BYTES;\n", const_name));
     }
-    code.push_str("    let _ = &*AWS_API_ACTIONS_BYTES;\n");
     code.push_str("    let _ = &*GENERATED_RULES_BYTES;\n");
     code.push_str("}\n");
 
@@ -186,69 +180,13 @@ fn assert_exists(path: &Path, _label: &str) {
     }
 }
 
-/// Build an IAM action -> provider handler role -> CloudFormation resource type
-/// catalog directly from the checked-in enhanced provider schemas. The schemas
-/// remain the source of truth; this compact index exists only in Cargo's output
-/// directory and is never checked in as a second metadata bundle.
-fn build_aws_api_action_catalog(schema_dir: &Path) -> serde_json::Value {
-    let mut paths: Vec<PathBuf> = fs::read_dir(schema_dir)
-        .unwrap_or_else(|error| panic!("failed to read enhanced schema directory {}: {error}", schema_dir.display()))
-        .map(|entry| {
-            entry.unwrap_or_else(|error| panic!("failed to read an entry in {}: {error}", schema_dir.display())).path()
-        })
-        .filter(|path| path.extension().and_then(|extension| extension.to_str()) == Some("json"))
-        .collect();
-    paths.sort();
-
-    let mut actions: BTreeMap<String, BTreeMap<String, BTreeSet<String>>> = BTreeMap::new();
-    for path in paths {
-        let raw = fs::read_to_string(&path)
-            .unwrap_or_else(|error| panic!("failed to read enhanced schema {}: {error}", path.display()));
-        let schema: serde_json::Value = serde_json::from_str(&raw)
-            .unwrap_or_else(|error| panic!("failed to parse enhanced schema {}: {error}", path.display()));
-        let Some(type_name) = schema.get("typeName").and_then(serde_json::Value::as_str) else {
-            continue;
-        };
-        let Some(handlers) = schema.get("handlers").and_then(serde_json::Value::as_object) else {
-            continue;
-        };
-        for role in ["create", "update", "delete", "read", "list"] {
-            let Some(permissions) = handlers
-                .get(role)
-                .and_then(serde_json::Value::as_object)
-                .and_then(|handler| handler.get("permissions"))
-                .and_then(serde_json::Value::as_array)
-            else {
-                continue;
-            };
-            for action in permissions.iter().filter_map(serde_json::Value::as_str) {
-                if !action.contains(':') {
-                    continue;
-                }
-                actions
-                    .entry(action.to_ascii_lowercase())
-                    .or_default()
-                    .entry(role.to_string())
-                    .or_default()
-                    .insert(type_name.to_string());
-            }
-        }
-    }
-
-    serde_json::to_value(actions).expect("AWS API action catalog must serialize")
-}
-
 /// Minify JSON, compress with zstd level 9, and embed as
 /// `pub static NAME_BYTES: LazyLock<Vec<u8>>` that lazily decompresses on first access.
 /// Uses `ruzstd` (pure-Rust decoder) at runtime to keep WASM builds portable.
 fn embed_minified_json(path: &Path, const_name: &str, out_dir: &Path, code: &mut String) {
     let raw = fs::read_to_string(path).unwrap();
     let value: serde_json::Value = serde_json::from_str(&raw).unwrap();
-    embed_minified_value(&value, const_name, out_dir, code);
-}
-
-fn embed_minified_value(value: &serde_json::Value, const_name: &str, out_dir: &Path, code: &mut String) {
-    let minified = serde_json::to_vec(value).unwrap();
+    let minified = serde_json::to_vec(&value).unwrap();
     let compressed = zstd::encode_all(Cursor::new(&minified), 9).unwrap();
 
     let bin_path = out_dir.join(format!("{}.json.zst", const_name.to_lowercase()));

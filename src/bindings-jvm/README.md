@@ -13,8 +13,8 @@ All types live in the `software.amazon.cloudformation.validate` package.
 
 Available
 on [Maven Central](https://central.sonatype.com/artifact/software.amazon.cloudformation/cloudformation-validate)
-as `software.amazon.cloudformation:cloudformation-validate`. Both snippets below resolve the latest published version;
-substitute a specific version to pin one.
+as `software.amazon.cloudformation:cloudformation-validate`. The library requires Java 8 or later. Both snippets below
+resolve the latest published version; substitute a specific version to pin one.
 
 Gradle:
 
@@ -107,6 +107,93 @@ validator does not perform network requests. Every result reports `status`, `ope
 `resourceTypes`, and `reason`; skipped requests have a null `report`. `validateAwsApiRequestStandard` returns standard
 diagnostics, while `validateAwsApiRequestDetailed` and its `validateAwsApiRequest` alias return detailed diagnostics.
 The same classes and methods are callable from Java with conventional generated getters.
+
+#### AWS SDK for Java 2.x integration
+
+An `ExecutionInterceptor` can validate the real `SdkRequest` in `beforeExecution`, before the SDK marshals or sends it.
+Convert `SdkPojo` fields recursively so nested request models and `SdkBytes` retain their values:
+
+```java
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import software.amazon.awssdk.core.SdkBytes;
+import software.amazon.awssdk.core.SdkField;
+import software.amazon.awssdk.core.SdkPojo;
+import software.amazon.awssdk.core.interceptor.Context;
+import software.amazon.awssdk.core.interceptor.ExecutionAttributes;
+import software.amazon.awssdk.core.interceptor.ExecutionInterceptor;
+import software.amazon.awssdk.core.interceptor.SdkExecutionAttribute;
+import software.amazon.cloudformation.validate.AwsApiRequest;
+import software.amazon.cloudformation.validate.RegoEngine;
+import software.amazon.cloudformation.validate.ValidateConfig;
+import software.amazon.cloudformation.validate.engine.DetailedAwsApiRequestValidation;
+
+public final class CloudFormationValidationInterceptor implements ExecutionInterceptor {
+    private final RegoEngine engine = new RegoEngine();
+
+    @Override
+    public void beforeExecution(Context.BeforeExecution context, ExecutionAttributes attributes) {
+        DetailedAwsApiRequestValidation result = engine.validateAwsApiRequest(
+            new AwsApiRequest(
+                attributes.getAttribute(SdkExecutionAttribute.SERVICE_NAME),
+                attributes.getAttribute(SdkExecutionAttribute.OPERATION_NAME),
+                sdkFields(context.request())
+            ),
+            new ValidateConfig()
+        );
+
+        if (result.getReport() != null) {
+            result.getReport().getDiagnostics().forEach(diagnostic ->
+                System.out.println(diagnostic.getRuleId() + ": " + diagnostic.getMessage())
+            );
+        } else {
+            System.out.println(result.getStatus() + ": " + result.getReason());
+        }
+    }
+
+    private static Map<String, Object> sdkFields(SdkPojo pojo) {
+        Map<String, Object> values = new LinkedHashMap<>();
+        for (SdkField<?> field : pojo.sdkFields()) {
+            Object value = field.getValueOrDefault(pojo);
+            if (value != null) {
+                values.put(field.memberName(), sdkValue(value));
+            }
+        }
+        return values;
+    }
+
+    private static Object sdkValue(Object value) {
+        if (value instanceof SdkBytes) {
+            return ((SdkBytes) value).asByteArray();
+        }
+        if (value instanceof SdkPojo) {
+            return sdkFields((SdkPojo) value);
+        }
+        if (value instanceof Map) {
+            Map<String, Object> converted = new LinkedHashMap<>();
+            for (Map.Entry<?, ?> entry : ((Map<?, ?>) value).entrySet()) {
+                converted.put(String.valueOf(entry.getKey()), sdkValue(entry.getValue()));
+            }
+            return converted;
+        }
+        if (value instanceof Iterable) {
+            List<Object> converted = new ArrayList<>();
+            for (Object item : (Iterable<?>) value) {
+                converted.add(sdkValue(item));
+            }
+            return converted;
+        }
+        return value;
+    }
+}
+```
+
+Register the interceptor through the SDK client's `overrideConfiguration`. The engine is safe to reuse; constructing it
+for every request needlessly recompiles the bundled rules. The example reports findings, but an interceptor can instead
+throw after applying application-specific policy to prevent the API call. The adapter adds no AWS SDK dependency to
+`cloudformation-validate` itself.
 
 ### `EngineConfig`
 

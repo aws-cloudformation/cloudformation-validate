@@ -1,6 +1,7 @@
 [bindings.kotlin]
 package_name = "software.amazon.cloudformation.validate.diagnostics"
 generate_immutable_records = true
+disable_java_cleaner = true
 
 [bindings.kotlin.external_packages]
 rules = "software.amazon.cloudformation.validate.rules"

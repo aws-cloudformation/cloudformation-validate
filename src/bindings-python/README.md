@@ -17,7 +17,7 @@ Available on [PyPI](https://pypi.org/project/cloudformation-validate/) as `cloud
 pip install cloudformation-validate
 ```
 
-Requires Python 3.10+ and has no runtime dependencies. PyPI publishes a separate wheel for every supported native
+Requires Python 3.9+ and has no runtime dependencies. PyPI publishes a separate wheel for every supported native
 target. Each wheel carries exactly one native library and an accurate platform tag, so pip downloads only the
 artifact compatible with the installer host.
 
@@ -90,6 +90,46 @@ validator does not perform network requests. The result always reports `status`,
 `resource_types`, and `reason`; skipped requests have `report is None`. Use
 `validate_aws_api_request_standard` for standard diagnostics or `validate_aws_api_request_detailed` (also exposed as
 `validate_aws_api_request`) for detailed diagnostics.
+
+#### AWS CLI integration
+
+AWS CLI emits `provide-client-params.<service>.<operation>` before serializing or sending each request. Register a
+handler on the CLI's botocore session to validate the exact parameter dictionary without making another network call:
+
+```python
+from cloudformation_validate import AwsApiRequest, RegoEngine
+
+engine = RegoEngine()  # construct once and reuse
+
+
+def validate_create_stack(params, model, **_kwargs):
+    service = model.service_model
+    result = engine.validate_aws_api_request(
+        AwsApiRequest(
+            service_name=service.service_name,
+            service_prefix=service.signing_name,
+            operation_name=model.name,
+            http_method=model.http.get("method"),
+            parameters=params,
+        )
+    )
+    if result.report is not None:
+        for diagnostic in result.report.diagnostics:
+            print(diagnostic.rule_id, diagnostic.message)
+    else:
+        print(result.status.name, result.reason)
+
+
+# `session` is the botocore session owned by the AWS CLI driver or plugin.
+session.register(
+    "provide-client-params.cloudformation.CreateStack",
+    validate_create_stack,
+)
+```
+
+The callback receives the real botocore `OperationModel`, so it does not need a duplicate service model. For
+`CreateStack` and `UpdateStack`, the request's `TemplateBody` string or bytes are validated exactly. A handler that
+must prevent the API call can raise after applying its own policy to the returned diagnostics.
 
 ### EngineConfig
 

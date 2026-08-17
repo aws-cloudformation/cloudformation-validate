@@ -122,6 +122,12 @@ if [ "$CLASS_COUNT" -eq 0 ] || [ "$KT_COUNT" -eq 0 ]; then
     echo "Error: $JAR_FILE is missing compiled output - $CLASS_COUNT .class and $KT_COUNT .kt entries (both must be non-zero)." >&2
     exit 1
 fi
+PUBLIC_API_CLASS="software.amazon.cloudformation.validate.ApiKt"
+CLASS_FILE_MAJOR=$(javap -classpath "$JAR_FILE" -verbose "$PUBLIC_API_CLASS" | awk '/major version:/ { print $3; exit }')
+if [ "$CLASS_FILE_MAJOR" != "52" ]; then
+    echo "Error: $JAR_FILE must target Java 8 classfile version 52, found $CLASS_FILE_MAJOR." >&2
+    exit 1
+fi
 for required_metadata in LICENSE NOTICE README.md THIRD-PARTY-LICENSES.txt; do
     if ! jar tf "$JAR_FILE" | grep -Fxq "META-INF/$required_metadata"; then
         echo "Error: $JAR_FILE is missing META-INF/$required_metadata" >&2
@@ -137,7 +143,7 @@ JAR_SIZE=$(du -sh "$JAR_FILE" | cut -f1)
 echo ""
 echo "Build complete: $GENERATED_DIR"
 echo "  Kotlin sources: $KT_SIZE ($KT_COUNT .kt files bundled)"
-echo "  Compiled classes: $CLASS_COUNT .class entries bundled"
+echo "  Compiled classes: $CLASS_COUNT .class entries bundled (Java 8 bytecode)"
 echo "  Native library: $LIB_SIZE ($LIB_NAME, bundled in jar)"
 echo "  JAR:            $JAR_SIZE ($(basename "$JAR_FILE"))"
 echo ""

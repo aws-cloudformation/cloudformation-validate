@@ -68,8 +68,8 @@ EOF
 # ── Prerequisites ─────────────────────────────────────────────────────────────
 command -v "$PYTHON" &>/dev/null || { echo "Error: $PYTHON not found on PATH" >&2; exit 1; }
 command -v unzip &>/dev/null || { echo "Error: unzip not found on PATH" >&2; exit 1; }
-"$PYTHON" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)' \
-    || { echo "Error: Python 3.10+ required, found $("$PYTHON" --version)" >&2; exit 1; }
+"$PYTHON" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 9) else 1)' \
+    || { echo "Error: Python 3.9+ required, found $("$PYTHON" --version)" >&2; exit 1; }
 "$PYTHON" -m pip --version &>/dev/null \
     || { echo "Error: pip not available ($PYTHON -m pip failed)" >&2; exit 1; }
 
@@ -142,7 +142,8 @@ for module in modules:
     text = module.read_text(encoding="utf-8")
     if OLD not in text:
         sys.exit(f"error: expected loader line not found in {module.name} - did the uniffi template change?")
-    module.write_text(sort_relative_imports(text.replace(OLD, NEW)), encoding="utf-8", newline="\n")
+    with module.open("w", encoding="utf-8", newline="\n") as output:
+        output.write(sort_relative_imports(text.replace(OLD, NEW)))
 print(f"  patched {len(modules)} modules")
 EOF
 

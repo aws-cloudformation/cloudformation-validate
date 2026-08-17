@@ -1,10 +1,8 @@
-use data_source::embedded::AWS_API_ACTIONS_BYTES;
 use diagnostics::{DetailedReport, StandardReport, Summary, ValidationReport};
 use rules::Severity;
 use schema_validator::{PropertyValueType, ResourceSchemaMetadata, SchemaValidator};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
-use std::sync::LazyLock;
 
 use crate::{ValidateConfig, ValidationEngine, ValidationError, validate_bytes_with_path};
 
@@ -268,8 +266,7 @@ pub fn validate_aws_api_request_with_path(
     config: ValidateConfig,
     file_path: String,
 ) -> Result<AwsApiRequestValidation, ValidationError> {
-    let catalog = action_catalog()?;
-    let classification = classify_operation(request, schema_validator, catalog);
+    let classification = classify_operation(request, schema_validator);
     let synthesis = synthesize_request(request, &classification, schema_validator)?;
     let Some(template) = synthesis.template else {
         return Ok(AwsApiRequestValidation {
@@ -296,18 +293,6 @@ pub fn validate_aws_api_request_with_path(
     })
 }
 
-type HandlerRoles = HashMap<String, Vec<String>>;
-type ActionCatalog = HashMap<String, HandlerRoles>;
-
-static ACTION_CATALOG: LazyLock<Result<ActionCatalog, String>> = LazyLock::new(|| {
-    serde_json::from_slice(&AWS_API_ACTIONS_BYTES)
-        .map_err(|error| format!("embedded AWS API action catalog is invalid: {error}"))
-});
-
-fn action_catalog() -> Result<&'static ActionCatalog, ValidationError> {
-    ACTION_CATALOG.as_ref().map_err(|message| ValidationError::Engine(message.clone()))
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum OperationPhase {
     Read,
@@ -316,17 +301,6 @@ enum OperationPhase {
     Delete,
     Data,
     Unknown,
-}
-
-impl OperationPhase {
-    fn handler_role(self) -> Option<&'static str> {
-        match self {
-            Self::Create => Some("create"),
-            Self::Update => Some("update"),
-            Self::Delete => Some("delete"),
-            _ => None,
-        }
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -510,17 +484,11 @@ const DATA_PLANE_VERBS: &[&str] = &[
 const DATA_PLANE_IF_UNMAPPED_VERBS: &[&str] =
     &["Execute", "Invoke", "Post", "Publish", "Put", "Send", "Upload", "Write"];
 
-fn classify_operation(
-    request: &AwsApiRequest,
-    schema_validator: &SchemaValidator,
-    catalog: &ActionCatalog,
-) -> Classification {
+fn classify_operation(request: &AwsApiRequest, schema_validator: &SchemaValidator) -> Classification {
     let prefix = request.effective_service_prefix();
     let words = operation_words(&request.operation_name);
     let verb = effective_verb(&words);
-    let action_key = format!("{prefix}:{}", request.operation_name).to_ascii_lowercase();
-    let action_roles = catalog.get(&action_key);
-    let phase = operation_phase(request, action_roles, verb);
+    let phase = operation_phase(request, verb);
 
     match phase {
         OperationPhase::Read => Classification { kind: AwsApiOperationKind::ReadOnly, phase, candidates: Vec::new() },
@@ -528,10 +496,9 @@ fn classify_operation(
             Classification { kind: AwsApiOperationKind::DataPlaneMutation, phase, candidates: Vec::new() }
         }
         OperationPhase::Create | OperationPhase::Update | OperationPhase::Delete => {
-            let candidates =
-                explicit_resource_type(request, schema_validator).map(|type_name| vec![type_name]).unwrap_or_else(
-                    || candidate_types(schema_validator, action_roles, phase, prefix, operation_noun(&words)),
-                );
+            let candidates = explicit_resource_type(request, schema_validator)
+                .map(|type_name| vec![type_name])
+                .unwrap_or_else(|| candidate_types(schema_validator, prefix, operation_noun(&words)));
             if candidates.is_empty() {
                 let is_data_plane = DATA_PLANE_IF_UNMAPPED_VERBS.contains(&verb);
                 Classification {
@@ -559,7 +526,7 @@ fn classify_operation(
     }
 }
 
-fn operation_phase(request: &AwsApiRequest, action_roles: Option<&HandlerRoles>, verb: &str) -> OperationPhase {
+fn operation_phase(request: &AwsApiRequest, verb: &str) -> OperationPhase {
     if request.is_read_only == Some(true) || READ_VERBS.contains(&verb) {
         return OperationPhase::Read;
     }
@@ -580,21 +547,7 @@ fn operation_phase(request: &AwsApiRequest, action_roles: Option<&HandlerRoles>,
         Some("DELETE") => return OperationPhase::Delete,
         _ => {}
     }
-    action_roles.and_then(phase_from_roles).unwrap_or(OperationPhase::Unknown)
-}
-
-fn phase_from_roles(action_roles: &HandlerRoles) -> Option<OperationPhase> {
-    if action_roles.contains_key("read") || action_roles.contains_key("list") {
-        return None;
-    }
-    let write_roles: Vec<&str> =
-        ["create", "update", "delete"].into_iter().filter(|role| action_roles.contains_key(*role)).collect();
-    match write_roles.as_slice() {
-        ["create"] => Some(OperationPhase::Create),
-        ["update"] => Some(OperationPhase::Update),
-        ["delete"] => Some(OperationPhase::Delete),
-        _ => None,
-    }
+    OperationPhase::Unknown
 }
 
 fn operation_words(operation_name: &str) -> Vec<String> {
@@ -644,34 +597,12 @@ fn explicit_resource_type(request: &AwsApiRequest, schema_validator: &SchemaVali
     }
 }
 
-fn candidate_types(
-    schema_validator: &SchemaValidator,
-    action_roles: Option<&HandlerRoles>,
-    phase: OperationPhase,
-    prefix: &str,
-    noun: String,
-) -> Vec<String> {
-    let mut role_candidates = BTreeSet::new();
-    if let (Some(action_roles), Some(role)) = (action_roles, phase.handler_role()) {
-        if let Some(candidates) = action_roles.get(role) {
-            role_candidates
-                .extend(candidates.iter().filter(|candidate| schema_validator.has_resource_type(candidate)).cloned());
-        }
-        if phase == OperationPhase::Update
-            && let Some(candidates) = action_roles.get("create")
-        {
-            role_candidates
-                .extend(candidates.iter().filter(|candidate| schema_validator.has_resource_type(candidate)).cloned());
-        }
-    }
-
-    let mut resource_candidates = role_candidates.clone();
-    resource_candidates.extend(
-        schema_validator
-            .resource_type_names()
-            .filter(|type_name| score_candidate(type_name, prefix, &noun) > 0)
-            .map(str::to_string),
-    );
+fn candidate_types(schema_validator: &SchemaValidator, prefix: &str, noun: String) -> Vec<String> {
+    let resource_candidates: BTreeSet<String> = schema_validator
+        .resource_type_names()
+        .filter(|type_name| score_candidate(type_name, prefix, &noun) > 0)
+        .map(str::to_string)
+        .collect();
     let scores: BTreeMap<String, u32> = resource_candidates
         .into_iter()
         .map(|type_name| {
@@ -1095,7 +1026,7 @@ mod tests {
 
     fn synthesized_json(request: &AwsApiRequest) -> (Classification, Synthesis, serde_json::Value) {
         let schema_validator = SchemaValidator::default();
-        let classification = classify_operation(request, &schema_validator, action_catalog().expect("catalog loads"));
+        let classification = classify_operation(request, &schema_validator);
         let synthesis = synthesize_request(request, &classification, &schema_validator).expect("synthesis succeeds");
         let template = synthesis.template.as_ref().expect("request must synthesize");
         let document = serde_json::from_slice(template).expect("template must be JSON");
@@ -1112,7 +1043,6 @@ mod tests {
     #[test]
     fn representative_operations_have_closed_classifications() {
         let schema_validator = SchemaValidator::default();
-        let catalog = action_catalog().expect("catalog loads");
         for (service, operation, expected, candidate) in [
             ("s3", "CreateBucket", AwsApiOperationKind::CloudFormationCreate, Some("AWS::S3::Bucket")),
             ("dynamodb", "CreateTable", AwsApiOperationKind::CloudFormationCreate, Some("AWS::DynamoDB::Table")),
@@ -1121,7 +1051,7 @@ mod tests {
             ("s3", "DeleteBucket", AwsApiOperationKind::CloudFormationDelete, Some("AWS::S3::Bucket")),
         ] {
             let classification =
-                classify_operation(&request(service, operation, serde_json::json!({})), &schema_validator, catalog);
+                classify_operation(&request(service, operation, serde_json::json!({})), &schema_validator);
             assert_eq!(classification.kind, expected, "{service}:{operation}");
             if let Some(candidate) = candidate {
                 assert_eq!(classification.candidates, [candidate], "{service}:{operation}");
@@ -1132,16 +1062,12 @@ mod tests {
     #[test]
     fn explicit_readonly_and_http_get_are_authoritative_read_signals() {
         let schema_validator = SchemaValidator::default();
-        let catalog = ActionCatalog::new();
         let mut explicitly_readonly = request("test", "CreateThing", serde_json::json!({}));
         explicitly_readonly.is_read_only = Some(true);
-        assert_eq!(
-            classify_operation(&explicitly_readonly, &schema_validator, &catalog).kind,
-            AwsApiOperationKind::ReadOnly
-        );
+        assert_eq!(classify_operation(&explicitly_readonly, &schema_validator).kind, AwsApiOperationKind::ReadOnly);
         let mut get_request = request("test", "FrobnicateThing", serde_json::json!({}));
         get_request.http_method = Some("GET".into());
-        assert_eq!(classify_operation(&get_request, &schema_validator, &catalog).kind, AwsApiOperationKind::ReadOnly);
+        assert_eq!(classify_operation(&get_request, &schema_validator).kind, AwsApiOperationKind::ReadOnly);
     }
 
     #[test]
@@ -1150,7 +1076,7 @@ mod tests {
         let mut request = request("cloudformation", "CreateChangeSet", serde_json::json!({}));
         let template = br#"{"Resources":{}}"#.to_vec();
         request.parameters.insert("TemplateBody".into(), AwsApiValue::Bytes { value: template.clone() });
-        let classification = classify_operation(&request, &schema_validator, action_catalog().expect("catalog loads"));
+        let classification = classify_operation(&request, &schema_validator);
         let synthesis = synthesize_request(&request, &classification, &schema_validator).expect("synthesis succeeds");
         assert_eq!(synthesis.source, Some(AwsApiTemplateSource::TemplateBody));
         assert_eq!(synthesis.template, Some(template));
@@ -1164,7 +1090,7 @@ mod tests {
             "CreateStack",
             serde_json::json!({"TemplateURL": "https://example.com/template.json"}),
         );
-        let classification = classify_operation(&request, &schema_validator, action_catalog().expect("catalog loads"));
+        let classification = classify_operation(&request, &schema_validator);
         let synthesis = synthesize_request(&request, &classification, &schema_validator).expect("synthesis succeeds");
         assert!(synthesis.template.is_none());
         assert!(synthesis.reason.contains("unavailable"));
@@ -1189,7 +1115,7 @@ mod tests {
             "CreateResource",
             serde_json::json!({"TypeName": "AWS::Unknown::Type", "DesiredState": "{}"}),
         );
-        let classification = classify_operation(&unknown, &schema_validator, action_catalog().expect("catalog loads"));
+        let classification = classify_operation(&unknown, &schema_validator);
         let synthesis = synthesize_request(&unknown, &classification, &schema_validator).expect("synthesis succeeds");
         assert!(synthesis.template.is_none());
         assert!(synthesis.reason.contains("known CloudFormation TypeName"));
@@ -1214,7 +1140,7 @@ mod tests {
         let schema_validator = SchemaValidator::default();
         let request =
             request("lambda", "CreateFunction", serde_json::json!({"FunctionName": "Synthetic", "MemorySize": 128}));
-        let classification = classify_operation(&request, &schema_validator, action_catalog().expect("catalog loads"));
+        let classification = classify_operation(&request, &schema_validator);
         let synthesis = synthesize_request(&request, &classification, &schema_validator).expect("synthesis succeeds");
         assert!(synthesis.template.is_none());
         assert!(synthesis.reason.contains("Code, Role"), "{}", synthesis.reason);
@@ -1251,8 +1177,7 @@ mod tests {
             request("dynamodb", "PutItem", serde_json::json!({"TableName": "Synthetic"})),
             request("s3", "DeleteBucket", serde_json::json!({"Bucket": "synthetic-bucket"})),
         ] {
-            let classification =
-                classify_operation(&request, &schema_validator, action_catalog().expect("catalog loads"));
+            let classification = classify_operation(&request, &schema_validator);
             let synthesis =
                 synthesize_request(&request, &classification, &schema_validator).expect("synthesis succeeds");
             assert!(synthesis.template.is_none());

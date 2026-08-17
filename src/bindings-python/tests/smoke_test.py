@@ -204,6 +204,9 @@ class AwsApiRequestValidationTest(unittest.TestCase):
             self.assertEqual(["AWS::S3::Bucket"], result.resource_types)
             self.assertIsNotNone(result.report)
         self.assertEqual(diagnostic_keys(results[0].report), diagnostic_keys(results[1].report))
+        standard = REGO.validate_aws_api_request_standard(request)
+        self.assertEqual(AwsApiRequestValidationStatus.VALIDATED, standard.status)
+        self.assertIsNotNone(standard.report)
         self.assertEqual({"Bucket": "synthetic-bucket", "Tags": {"Team": "CLI"}}, parameters)
 
     def test_template_body_bytes_are_validated_exactly(self):
