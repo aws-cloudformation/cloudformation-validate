@@ -1,7 +1,10 @@
+use anyhow::Context;
 use data_source::{generate_all, sync_upstream};
 use log::{error, info};
 use std::env;
-use std::path::PathBuf;
+use std::fs;
+use std::io::ErrorKind;
+use std::path::{Path, PathBuf};
 use std::process;
 
 fn main() -> anyhow::Result<()> {
@@ -39,11 +42,21 @@ fn main() -> anyhow::Result<()> {
     let generated_dir = manifest.join("generated");
     let handwritten_dir = manifest.join("handwritten");
 
+    for cache_directory in [upstream_dir.clone(), generated_dir.join("patched_schemas")] {
+        clear_cache_directory(&cache_directory)?;
+    }
+
     sync_upstream(&upstream_dir, &rule_source_root)?;
     generate_all(&upstream_dir, &generated_dir, &handwritten_dir)?;
 
     info!("Sync and generation complete");
     Ok(())
+}
+
+fn clear_cache_directory(cache_directory: &Path) -> anyhow::Result<()> {
+    fs::remove_dir_all(cache_directory)
+        .or_else(|error| if error.kind() == ErrorKind::NotFound { Ok(()) } else { Err(error) })
+        .with_context(|| format!("failed to clear cache directory {}", cache_directory.display()))
 }
 
 fn print_usage() {
