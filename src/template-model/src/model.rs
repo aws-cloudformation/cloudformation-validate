@@ -1734,6 +1734,19 @@ impl SemanticModel {
         if resource_id.is_empty() {
             return self.walk_up_span(prop_path).unwrap_or(UNKNOWN_SPAN);
         }
+        // Resolver paths preserve literal dots and slashes inside map keys, so converting
+        // them into the slash-keyed index can be ambiguous. A terminal intrinsic can be
+        // resolved through its exact authored parent path without lossy conversion.
+        if let Some((authored_path, function_name)) = prop_path.rsplit_once('.')
+            && let Some(node_ref) = self.value_nodes.get(&(resource_id.to_string(), authored_path.to_string()))
+            && let Node::Intrinsic(intrinsic) = self.arena.node(*node_ref)
+            && cfn_function_name(intrinsic) == function_name
+        {
+            let intrinsic_path = format!("{}/{}", self.arena.get(*node_ref).path, function_name);
+            if let Some(span) = self.walk_up_span(&intrinsic_path) {
+                return span;
+            }
+        }
         let specific = if prop_path.is_empty() {
             format!("Resources/{}", resource_id)
         } else {

@@ -47,6 +47,19 @@ fn engines() -> (RegoEngine, CelEngine) {
 }
 
 #[test]
+fn redundant_substitution_has_identical_intrinsic_path_and_span() {
+    let template = "Resources:\n  Instance:\n    Type: AWS::EC2::Instance\n    Metadata:\n      Files:\n        /etc/awslogs/awslogs.conf:\n          content:\n            Fn::Sub: no-vars\n";
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings_with_spans(&rego, template, &["W1020"]);
+    let cel_findings = selected_findings_with_spans(&cel, template, &["W1020"]);
+
+    assert_eq!(rego_findings, cel_findings, "redundant substitutions must have identical diagnostics");
+    assert_eq!(rego_findings.len(), 1, "expected one redundant substitution: {rego_findings:?}");
+    assert!(rego_findings[0].contains("|Instance|Metadata.Files./etc/awslogs/awslogs.conf.content.Fn::Sub|"));
+    assert!(rego_findings[0].contains("start_line: 8"), "expected the authored Fn::Sub line: {rego_findings:?}");
+}
+
+#[test]
 fn only_terminal_module_suffix_is_exempt_from_unknown_aws_type_validation() {
     let template = r#"
 Resources:
