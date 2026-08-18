@@ -126,12 +126,10 @@
     "AWS::ApplicationSignals::Discovery": "string",
     "AWS::ApplicationSignals::GroupingConfiguration": "string",
     "AWS::ApplicationSignals::ServiceLevelObjective": "string",
-    "AWS::Artifact::Report": "string",
     "AWS::Athena::CapacityReservation": "string",
     "AWS::Athena::DataCatalog": "string",
     "AWS::Athena::NamedQuery": "string",
     "AWS::Athena::PreparedStatement": "string",
-    "AWS::Athena::Session": "string",
     "AWS::Athena::WorkGroup": "string",
     "AWS::AuditManager::Assessment": "string",
     "AWS::AuditManager::AssessmentFramework": "string",
@@ -149,7 +147,6 @@
     "AWS::B2BI::Transformer": "string",
     "AWS::BCM::Dashboard": "string",
     "AWS::BCMDataExports::Export": "string",
-    "AWS::BCMDataExports::Table": "string",
     "AWS::Backup::BackupPlan": "string",
     "AWS::Backup::BackupSelection": "string",
     "AWS::Backup::BackupVault": "string",
@@ -161,7 +158,6 @@
     "AWS::Backup::RestoreTestingSelection": "string",
     "AWS::Backup::TieringConfiguration": "string",
     "AWS::BackupGateway::Hypervisor": "string",
-    "AWS::BackupSearch::SearchJob": "string",
     "AWS::Batch::ComputeEnvironment": "string",
     "AWS::Batch::ConsumableResource": "string",
     "AWS::Batch::JobDefinition": "string",
@@ -179,7 +175,6 @@
     "AWS::Bedrock::DataAutomationLibrary": "string",
     "AWS::Bedrock::DataAutomationProject": "string",
     "AWS::Bedrock::DataSource": "string",
-    "AWS::Bedrock::DefaultPromptRouter": "string",
     "AWS::Bedrock::EnforcedGuardrailConfiguration": "string",
     "AWS::Bedrock::Flow": "string",
     "AWS::Bedrock::FlowAlias": "string",
@@ -189,17 +184,14 @@
     "AWS::Bedrock::IntelligentPromptRouter": "string",
     "AWS::Bedrock::KnowledgeBase": "string",
     "AWS::Bedrock::KnowledgeBasePolicy": "string",
-    "AWS::Bedrock::ModelInvocationJob": "string",
     "AWS::Bedrock::Prompt": "string",
     "AWS::Bedrock::PromptVersion": "string",
     "AWS::Bedrock::ResourcePolicy": "string",
     "AWS::Bedrock::Session": "string",
     "AWS::BedrockAgentCore::ApiKeyCredentialProvider": "string",
-    "AWS::BedrockAgentCore::Browser": "string",
     "AWS::BedrockAgentCore::BrowserCustom": "string",
     "AWS::BedrockAgentCore::BrowserProfile": "string",
     "AWS::BedrockAgentCore::CapacityProvider": "string",
-    "AWS::BedrockAgentCore::CodeInterpreter": "string",
     "AWS::BedrockAgentCore::CodeInterpreterCustom": "string",
     "AWS::BedrockAgentCore::ConfigurationBundle": "string",
     "AWS::BedrockAgentCore::Dataset": "string",
@@ -221,7 +213,6 @@
     "AWS::BedrockAgentCore::ResourcePolicy": "string",
     "AWS::BedrockAgentCore::Runtime": "string",
     "AWS::BedrockAgentCore::RuntimeEndpoint": "string",
-    "AWS::BedrockAgentCore::TokenVault": "string",
     "AWS::BedrockAgentCore::WorkloadIdentity": "string",
     "AWS::BedrockMantle::Project": "string",
     "AWS::Billing::BillingView": "string",
@@ -283,7 +274,6 @@
     "AWS::CloudFormation::PublicTypeVersion": "string",
     "AWS::CloudFormation::Publisher": "string",
     "AWS::CloudFormation::ResourceDefaultVersion": "string",
-    "AWS::CloudFormation::ResourceScan": "string",
     "AWS::CloudFormation::ResourceVersion": "string",
     "AWS::CloudFormation::Stack": "string",
     "AWS::CloudFormation::StackSet": "string",
@@ -326,15 +316,11 @@
     "AWS::CloudWatch::MetricStream": "string",
     "AWS::CloudWatch::OTelEnrichment": "string",
     "AWS::CodeArtifact::Domain": "string",
-    "AWS::CodeArtifact::Package": "string",
     "AWS::CodeArtifact::PackageGroup": "string",
     "AWS::CodeArtifact::Repository": "string",
-    "AWS::CodeBuild::Build": "string",
-    "AWS::CodeBuild::BuildBatch": "string",
     "AWS::CodeBuild::Fleet": "string",
     "AWS::CodeBuild::Project": "string",
     "AWS::CodeBuild::ReportGroup": "string",
-    "AWS::CodeBuild::Sandbox": "string",
     "AWS::CodeBuild::SourceCredential": "string",
     "AWS::CodeCommit::Repository": "string",
     "AWS::CodeConnections::Connection": "string",
@@ -369,7 +355,6 @@
     "AWS::Cognito::UserPoolUICustomizationAttachment": "string",
     "AWS::Cognito::UserPoolUser": "string",
     "AWS::Cognito::UserPoolUserToGroupAttachment": "string",
-    "AWS::CognitoSync::Dataset": "string",
     "AWS::Comprehend::DocumentClassifier": "string",
     "AWS::Comprehend::Flywheel": "string",
     "AWS::ComputeOptimizer::AutomationRule": "string",
@@ -423,9 +408,6 @@
     "AWS::Connect::Workspace": "string",
     "AWS::ConnectCampaigns::Campaign": "string",
     "AWS::ConnectCampaignsV2::Campaign": "string",
-    "AWS::ControlCatalog::CommonControl": "string",
-    "AWS::ControlCatalog::Control": "string",
-    "AWS::ControlCatalog::Objective": "string",
     "AWS::ControlTower::EnabledBaseline": "string",
     "AWS::ControlTower::EnabledControl": "string",
     "AWS::ControlTower::LandingZone": "string",
@@ -462,7 +444,6 @@
     "AWS::DataBrew::Ruleset": "string",
     "AWS::DataBrew::Schedule": "string",
     "AWS::DataExchange::DataSet": "string",
-    "AWS::DataExchange::EntitledDataSets": "string",
     "AWS::DataPipeline::Pipeline": "string",
     "AWS::DataSync::Agent": "string",
     "AWS::DataSync::LocationAzureBlob": "string",
@@ -541,9 +522,7 @@
     "AWS::DocDB::GlobalCluster": "string",
     "AWS::DocDBElastic::Cluster": "string",
     "AWS::DynamoDB::Backup": "string",
-    "AWS::DynamoDB::Export": "string",
     "AWS::DynamoDB::GlobalTable": "string",
-    "AWS::DynamoDB::Stream": "string",
     "AWS::DynamoDB::Table": "string",
     "AWS::EC2::CapacityManagerDataExport": "string",
     "AWS::EC2::CapacityReservation": "string",
@@ -695,7 +674,6 @@
     "AWS::EMR::Cluster": "string",
     "AWS::EMR::InstanceFleetConfig": "string",
     "AWS::EMR::InstanceGroupConfig": "string",
-    "AWS::EMR::NotebookExecution": "string",
     "AWS::EMR::SecurityConfiguration": "string",
     "AWS::EMR::Step": "string",
     "AWS::EMR::Studio": "string",
@@ -710,7 +688,6 @@
     "AWS::ElastiCache::GlobalReplicationGroup": "string",
     "AWS::ElastiCache::ParameterGroup": "string",
     "AWS::ElastiCache::ReplicationGroup": "string",
-    "AWS::ElastiCache::ReservedCacheNode": "string",
     "AWS::ElastiCache::SecurityGroup": "string",
     "AWS::ElastiCache::SecurityGroupIngress": "string",
     "AWS::ElastiCache::ServerlessCache": "string",
@@ -748,7 +725,6 @@
     "AWS::Events::Endpoint": "string",
     "AWS::Events::EventBus": "string",
     "AWS::Events::EventBusPolicy": "string",
-    "AWS::Events::Replay": "string",
     "AWS::Events::Rule": "string",
     "AWS::Evidently::Experiment": "string",
     "AWS::Evidently::Feature": "string",
@@ -756,7 +732,6 @@
     "AWS::Evidently::Project": "string",
     "AWS::Evidently::Segment": "string",
     "AWS::FIS::ExperimentTemplate": "string",
-    "AWS::FIS::SafetyLever": "string",
     "AWS::FIS::TargetAccountConfiguration": "string",
     "AWS::FMS::NotificationChannel": "string",
     "AWS::FMS::Policy": "string",
@@ -816,7 +791,6 @@
     "AWS::Glue::SchemaVersion": "string",
     "AWS::Glue::SchemaVersionMetadata": "string",
     "AWS::Glue::SecurityConfiguration": "string",
-    "AWS::Glue::Session": "string",
     "AWS::Glue::Table": "string",
     "AWS::Glue::TableOptimizer": "string",
     "AWS::Glue::Trigger": "string",
@@ -840,9 +814,7 @@
     "AWS::Greengrass::ResourceDefinitionVersion": "string",
     "AWS::Greengrass::SubscriptionDefinition": "string",
     "AWS::Greengrass::SubscriptionDefinitionVersion": "string",
-    "AWS::GreengrassV2::Component": "string",
     "AWS::GreengrassV2::ComponentVersion": "string",
-    "AWS::GreengrassV2::CoreDevice": "string",
     "AWS::GreengrassV2::Deployment": "string",
     "AWS::GroundStation::Config": "string",
     "AWS::GroundStation::DataflowEndpointGroup": "string",
@@ -889,11 +861,8 @@
     "AWS::IVS::StreamKey": "string",
     "AWS::IVSChat::LoggingConfiguration": "string",
     "AWS::IVSChat::Room": "string",
-    "AWS::IdentityStore::AllGroupMemberships": "string",
     "AWS::IdentityStore::Group": "string",
     "AWS::IdentityStore::GroupMembership": "string",
-    "AWS::ImageBuilder::AllImageBuildVersions": "string",
-    "AWS::ImageBuilder::AllWorkflowBuildVersions": "string",
     "AWS::ImageBuilder::Component": "string",
     "AWS::ImageBuilder::ContainerRecipe": "string",
     "AWS::ImageBuilder::DistributionConfiguration": "string",
@@ -903,8 +872,6 @@
     "AWS::ImageBuilder::InfrastructureConfiguration": "string",
     "AWS::ImageBuilder::LifecyclePolicy": "string",
     "AWS::ImageBuilder::Workflow": "string",
-    "AWS::ImageBuilder::WorkflowExecution": "string",
-    "AWS::ImageBuilder::WorkflowStepExecution": "string",
     "AWS::Inspector::AssessmentTarget": "string",
     "AWS::Inspector::AssessmentTemplate": "string",
     "AWS::Inspector::ResourceGroup": "string",
@@ -928,7 +895,6 @@
     "AWS::IoT::DomainConfiguration": "string",
     "AWS::IoT::EncryptionConfiguration": "string",
     "AWS::IoT::FleetMetric": "string",
-    "AWS::IoT::Index": "string",
     "AWS::IoT::Job": "string",
     "AWS::IoT::JobTemplate": "string",
     "AWS::IoT::Logging": "string",
@@ -1135,12 +1101,10 @@
     "AWS::MediaLive::Multiplexprogram": "string",
     "AWS::MediaLive::Network": "string",
     "AWS::MediaLive::Node": "string",
-    "AWS::MediaLive::Offering": "string",
     "AWS::MediaLive::SdiSource": "string",
     "AWS::MediaLive::SignalMap": "string",
     "AWS::MediaPackage::Asset": "string",
     "AWS::MediaPackage::Channel": "string",
-    "AWS::MediaPackage::HarvestJob": "string",
     "AWS::MediaPackage::OriginEndpoint": "string",
     "AWS::MediaPackage::PackagingConfiguration": "string",
     "AWS::MediaPackage::PackagingGroup": "string",
@@ -1160,9 +1124,7 @@
     "AWS::MemoryDB::ACL": "string",
     "AWS::MemoryDB::Cluster": "string",
     "AWS::MemoryDB::MultiRegionCluster": "string",
-    "AWS::MemoryDB::MultiRegionParameterGroup": "string",
     "AWS::MemoryDB::ParameterGroup": "string",
-    "AWS::MemoryDB::ReservedNode": "string",
     "AWS::MemoryDB::SubnetGroup": "string",
     "AWS::MemoryDB::User": "string",
     "AWS::Neptune::DBCluster": "string",
@@ -1214,7 +1176,6 @@
     "AWS::ODB::OdbNetwork": "string",
     "AWS::ODB::OdbPeeringConnection": "string",
     "AWS::OSIS::Pipeline": "string",
-    "AWS::OSIS::PipelineBlueprint": "string",
     "AWS::Oam::Link": "string",
     "AWS::Oam::Sink": "string",
     "AWS::ObservabilityAdmin::OrganizationCentralizationRule": "string",
@@ -1225,7 +1186,6 @@
     "AWS::ObservabilityAdmin::TelemetryRule": "string",
     "AWS::Omics::AnnotationStore": "string",
     "AWS::Omics::Configuration": "string",
-    "AWS::Omics::Reference": "string",
     "AWS::Omics::ReferenceStore": "string",
     "AWS::Omics::RunGroup": "string",
     "AWS::Omics::SequenceStore": "string",
@@ -1272,11 +1232,9 @@
     "AWS::Panorama::PackageVersion": "string",
     "AWS::PaymentCryptography::Alias": "string",
     "AWS::PaymentCryptography::Key": "string",
-    "AWS::Personalize::DataDeletionJob": "string",
     "AWS::Personalize::Dataset": "string",
     "AWS::Personalize::DatasetGroup": "string",
     "AWS::Personalize::EventTracker": "string",
-    "AWS::Personalize::Recipe": "string",
     "AWS::Personalize::Schema": "string",
     "AWS::Personalize::Solution": "string",
     "AWS::Pinpoint::ADMChannel": "string",
@@ -1320,8 +1278,6 @@
     "AWS::QuickSight::Agent": "string",
     "AWS::QuickSight::Analysis": "string",
     "AWS::QuickSight::ApprovalPolicy": "string",
-    "AWS::QuickSight::AssetBundleExportJob": "string",
-    "AWS::QuickSight::AssetBundleImportJob": "string",
     "AWS::QuickSight::CustomPermissions": "string",
     "AWS::QuickSight::DLPSetting": "string",
     "AWS::QuickSight::Dashboard": "string",
@@ -1357,7 +1313,6 @@
     "AWS::RDS::GlobalCluster": "string",
     "AWS::RDS::Integration": "string",
     "AWS::RDS::OptionGroup": "string",
-    "AWS::RDS::ReservedDBInstance": "string",
     "AWS::RTBFabric::InboundExternalLink": "string",
     "AWS::RTBFabric::Link": "string",
     "AWS::RTBFabric::LinkRoutingRule": "string",
@@ -1378,7 +1333,6 @@
     "AWS::Redshift::ScheduledAction": "string",
     "AWS::Redshift::SnapshotSchedule": "string",
     "AWS::RedshiftServerless::Namespace": "string",
-    "AWS::RedshiftServerless::RecoveryPoint": "string",
     "AWS::RedshiftServerless::Snapshot": "string",
     "AWS::RedshiftServerless::Workgroup": "string",
     "AWS::RefactorSpaces::Application": "string",
@@ -1435,7 +1389,6 @@
     "AWS::Route53RecoveryReadiness::ReadinessCheck": "string",
     "AWS::Route53RecoveryReadiness::RecoveryGroup": "string",
     "AWS::Route53RecoveryReadiness::ResourceSet": "string",
-    "AWS::Route53Resolver::FirewallConfig": "string",
     "AWS::Route53Resolver::FirewallDomainList": "string",
     "AWS::Route53Resolver::FirewallRuleGroup": "string",
     "AWS::Route53Resolver::FirewallRuleGroupAssociation": "string",
@@ -1529,7 +1482,6 @@
     "AWS::SSM::ResourceDataSync": "string",
     "AWS::SSM::ResourcePolicy": "string",
     "AWS::SSM::ServiceSetting": "string",
-    "AWS::SSM::Session": "string",
     "AWS::SSMContacts::Contact": "string",
     "AWS::SSMContacts::ContactChannel": "string",
     "AWS::SSMContacts::Plan": "string",
@@ -1541,7 +1493,6 @@
     "AWS::SSMQuickSetup::LifecycleAutomation": "string",
     "AWS::SSO::Application": "string",
     "AWS::SSO::ApplicationAssignment": "string",
-    "AWS::SSO::ApplicationProvider": "string",
     "AWS::SSO::Assignment": "string",
     "AWS::SSO::Instance": "string",
     "AWS::SSO::InstanceAccessControlAttributeConfiguration": "string",
@@ -1574,13 +1525,11 @@
     "AWS::SageMaker::Model": "string",
     "AWS::SageMaker::ModelBiasJobDefinition": "string",
     "AWS::SageMaker::ModelCard": "string",
-    "AWS::SageMaker::ModelCardExportJob": "string",
     "AWS::SageMaker::ModelExplainabilityJobDefinition": "string",
     "AWS::SageMaker::ModelPackage": "string",
     "AWS::SageMaker::ModelPackageGroup": "string",
     "AWS::SageMaker::ModelQualityJobDefinition": "string",
     "AWS::SageMaker::MonitoringSchedule": "string",
-    "AWS::SageMaker::MonitoringScheduleAlert": "string",
     "AWS::SageMaker::NotebookInstance": "string",
     "AWS::SageMaker::NotebookInstanceLifecycleConfig": "string",
     "AWS::SageMaker::PartnerApp": "string",
@@ -1589,7 +1538,6 @@
     "AWS::SageMaker::Project": "string",
     "AWS::SageMaker::Space": "string",
     "AWS::SageMaker::StudioLifecycleConfig": "string",
-    "AWS::SageMaker::TransformJob": "string",
     "AWS::SageMaker::TrialComponent": "string",
     "AWS::SageMaker::UserProfile": "string",
     "AWS::SageMaker::Workforce": "string",
@@ -1657,12 +1605,9 @@
     "AWS::Shield::Protection": "string",
     "AWS::Shield::ProtectionGroup": "string",
     "AWS::Signer::ProfilePermission": "string",
-    "AWS::Signer::SigningJob": "string",
     "AWS::Signer::SigningProfile": "string",
     "AWS::SimSpaceWeaver::Simulation": "string",
-    "AWS::States::Execution": "string",
     "AWS::StepFunctions::Activity": "string",
-    "AWS::StepFunctions::MapRun": "string",
     "AWS::StepFunctions::StateMachine": "string",
     "AWS::StepFunctions::StateMachineAlias": "string",
     "AWS::StepFunctions::StateMachineVersion": "string",
@@ -1673,13 +1618,11 @@
     "AWS::Synthetics::Canary": "string",
     "AWS::Synthetics::Group": "string",
     "AWS::SystemsManagerSAP::Application": "string",
-    "AWS::ThinClient::SoftwareSet": "string",
     "AWS::Timestream::Database": "string",
     "AWS::Timestream::InfluxDBCluster": "string",
     "AWS::Timestream::InfluxDBInstance": "string",
     "AWS::Timestream::ScheduledQuery": "string",
     "AWS::Timestream::Table": "string",
-    "AWS::Transcribe::MedicalTranscriptionJob": "string",
     "AWS::Transcribe::VocabularyFilter": "string",
     "AWS::Transfer::Agreement": "string",
     "AWS::Transfer::Certificate": "string",
@@ -1691,7 +1634,6 @@
     "AWS::Transfer::WebApp": "string",
     "AWS::Transfer::Workflow": "string",
     "AWS::UXC::AccountCustomization": "string",
-    "AWS::UserNotifications::ManagedNotificationConfiguration": "string",
     "AWS::VerifiedPermissions::IdentitySource": "string",
     "AWS::VerifiedPermissions::Policy": "string",
     "AWS::VerifiedPermissions::PolicyStore": "string",
@@ -2961,24 +2903,6 @@
       "LastUpdatedTime": "integer",
       "Name": "string"
     },
-    "AWS::Artifact::Report": {
-      "AcceptanceType": "string",
-      "Arn": "string",
-      "Category": "string",
-      "CompanyName": "string",
-      "CreatedAt": "string",
-      "Description": "string",
-      "Name": "string",
-      "PeriodEnd": "string",
-      "PeriodStart": "string",
-      "ProductName": "string",
-      "ReportId": "string",
-      "SequenceNumber": "integer",
-      "Series": "string",
-      "State": "string",
-      "TermArn": "string",
-      "Version": "string"
-    },
     "AWS::Athena::CapacityReservation": {
       "AllocatedDpus": "integer",
       "CreationTime": "string",
@@ -3008,13 +2932,6 @@
       "Description": "string",
       "QueryStatement": "string",
       "StatementName": "string",
-      "WorkGroup": "string"
-    },
-    "AWS::Athena::Session": {
-      "Arn": "string",
-      "EngineVersion": "string",
-      "ExecutionRole": "string",
-      "SessionId": "string",
       "WorkGroup": "string"
     },
     "AWS::Athena::WorkGroup": {
@@ -3216,12 +3133,6 @@
       "ExportArn": "string",
       "Tags": "array"
     },
-    "AWS::BCMDataExports::Table": {
-      "Arn": "string",
-      "Description": "string",
-      "Schema": "array",
-      "TableName": "string"
-    },
     "AWS::Backup::BackupPlan": {
       "BackupPlanArn": "string",
       "BackupPlanId": "string",
@@ -3310,14 +3221,6 @@
       "Password": "string",
       "Tags": "array",
       "Username": "string"
-    },
-    "AWS::BackupSearch::SearchJob": {
-      "CreationTime": "string",
-      "Name": "string",
-      "SearchJobArn": "string",
-      "SearchJobIdentifier": "string",
-      "Status": "string",
-      "Tags": "array"
     },
     "AWS::Batch::ComputeEnvironment": {
       "ComputeEnvironmentArn": "string",
@@ -3469,17 +3372,6 @@
       "Name": "string",
       "UpdatedAt": "string"
     },
-    "AWS::Bedrock::DefaultPromptRouter": {
-      "CreatedAt": "string",
-      "Description": "string",
-      "Models": "array",
-      "PromptRouterArn": "string",
-      "PromptRouterId": "string",
-      "PromptRouterName": "string",
-      "Status": "string",
-      "Type": "string",
-      "UpdatedAt": "string"
-    },
     "AWS::Bedrock::EnforcedGuardrailConfiguration": {
       "ConfigId": "string",
       "CreatedAt": "string",
@@ -3570,17 +3462,6 @@
       "PolicyDocument": "object",
       "RevisionId": "string"
     },
-    "AWS::Bedrock::ModelInvocationJob": {
-      "JobArn": "string",
-      "JobExpirationTime": "string",
-      "JobName": "string",
-      "LastModifiedTime": "string",
-      "ModelId": "string",
-      "RoleArn": "string",
-      "SubmitTime": "string",
-      "Tags": "array",
-      "TimeoutDurationInHours": "integer"
-    },
     "AWS::Bedrock::Prompt": {
       "Arn": "string",
       "CreatedAt": "string",
@@ -3630,12 +3511,6 @@
       "Name": "string",
       "Tags": "array"
     },
-    "AWS::BedrockAgentCore::Browser": {
-      "BrowserArn": "string",
-      "BrowserId": "string",
-      "Name": "string",
-      "Status": "string"
-    },
     "AWS::BedrockAgentCore::BrowserCustom": {
       "CreatedAt": "string",
       "Description": "string",
@@ -3652,11 +3527,6 @@
       "Name": "string",
       "Status": "string",
       "Tags": "array"
-    },
-    "AWS::BedrockAgentCore::CodeInterpreter": {
-      "CodeInterpreterArn": "string",
-      "CodeInterpreterId": "string",
-      "Status": "string"
     },
     "AWS::BedrockAgentCore::CodeInterpreterCustom": {
       "CreatedAt": "string",
@@ -3863,11 +3733,6 @@
     },
     "AWS::BedrockAgentCore::RuntimeEndpoint": {
       "FailureReason": "string"
-    },
-    "AWS::BedrockAgentCore::TokenVault": {
-      "Arn": "string",
-      "LastModifiedDate": "string",
-      "TokenVaultId": "string"
     },
     "AWS::BedrockAgentCore::WorkloadIdentity": {
       "AllowedResourceOauth2ReturnUrls": "array",
@@ -4434,14 +4299,6 @@
       "TypeVersionArn": "string",
       "VersionId": "string"
     },
-    "AWS::CloudFormation::ResourceScan": {
-      "PercentageCompleted": "number",
-      "ResourceScanId": "string",
-      "ScanFilters": "array",
-      "ScanId": "string",
-      "StartTime": "string",
-      "Status": "string"
-    },
     "AWS::CloudFormation::ResourceVersion": {
       "Arn": "string",
       "ExecutionRoleArn": "string",
@@ -4825,15 +4682,6 @@
       "PermissionsPolicyDocument": "object",
       "Tags": "array"
     },
-    "AWS::CodeArtifact::Package": {
-      "Arn": "string",
-      "DomainName": "string",
-      "Format": "string",
-      "Name": "string",
-      "Namespace": "string",
-      "OriginConfiguration": "object",
-      "Repository": "string"
-    },
     "AWS::CodeArtifact::PackageGroup": {
       "Arn": "string",
       "ContactInfo": "string",
@@ -4855,36 +4703,6 @@
       "RepositoryName": "string",
       "Tags": "array",
       "Upstreams": "array"
-    },
-    "AWS::CodeBuild::Build": {
-      "Arn": "string",
-      "BuildComplete": "boolean",
-      "BuildNumber": "integer",
-      "BuildStatus": "string",
-      "CurrentPhase": "string",
-      "EncryptionKey": "string",
-      "EndTime": "string",
-      "Id": "string",
-      "Initiator": "string",
-      "ProjectName": "string",
-      "QueuedTimeoutInMinutes": "integer",
-      "ServiceRole": "string",
-      "StartTime": "string",
-      "TimeoutInMinutes": "integer"
-    },
-    "AWS::CodeBuild::BuildBatch": {
-      "Arn": "string",
-      "BuildBatchNumber": "integer",
-      "BuildBatchStatus": "string",
-      "BuildTimeoutInMinutes": "integer",
-      "Complete": "boolean",
-      "CurrentPhase": "string",
-      "EncryptionKey": "string",
-      "Id": "string",
-      "Initiator": "string",
-      "ProjectName": "string",
-      "QueuedTimeoutInMinutes": "integer",
-      "StartTime": "string"
     },
     "AWS::CodeBuild::Fleet": {
       "Arn": "string",
@@ -4925,18 +4743,6 @@
       "Name": "string",
       "Tags": "array",
       "Type": "string"
-    },
-    "AWS::CodeBuild::Sandbox": {
-      "Arn": "string",
-      "EncryptionKey": "string",
-      "Id": "string",
-      "ProjectName": "string",
-      "QueuedTimeoutInMinutes": "integer",
-      "RequestTime": "string",
-      "ServiceRole": "string",
-      "StartTime": "string",
-      "Status": "string",
-      "TimeoutInMinutes": "integer"
     },
     "AWS::CodeBuild::SourceCredential": {
       "AuthType": "string",
@@ -5241,17 +5047,6 @@
       "GroupName": "string",
       "UserPoolId": "string",
       "Username": "string"
-    },
-    "AWS::CognitoSync::Dataset": {
-      "Arn": "string",
-      "CreationDate": "string",
-      "DataStorage": "integer",
-      "DatasetName": "string",
-      "IdentityId": "string",
-      "IdentityPoolId": "string",
-      "LastModifiedBy": "string",
-      "LastModifiedDate": "string",
-      "NumRecords": "integer"
     },
     "AWS::Comprehend::DocumentClassifier": {
       "Arn": "string",
@@ -5731,36 +5526,6 @@
       "Arn": "string",
       "Tags": "array"
     },
-    "AWS::ControlCatalog::CommonControl": {
-      "Arn": "string",
-      "CommonControlId": "string",
-      "CreateTime": "string",
-      "Description": "string",
-      "Domain": "object",
-      "LastUpdateTime": "string",
-      "Name": "string",
-      "Objective": "object"
-    },
-    "AWS::ControlCatalog::Control": {
-      "Aliases": "array",
-      "Arn": "string",
-      "Behavior": "string",
-      "ControlId": "string",
-      "CreateTime": "string",
-      "Description": "string",
-      "GovernedResources": "array",
-      "Name": "string",
-      "Severity": "string"
-    },
-    "AWS::ControlCatalog::Objective": {
-      "Arn": "string",
-      "CreateTime": "string",
-      "Description": "string",
-      "Domain": "object",
-      "LastUpdateTime": "string",
-      "Name": "string",
-      "ObjectiveId": "string"
-    },
     "AWS::ControlTower::EnabledBaseline": {
       "BaselineIdentifier": "string",
       "BaselineVersion": "string",
@@ -6126,18 +5891,6 @@
       "Name": "string",
       "Origin": "string",
       "Tags": "array",
-      "UpdatedAt": "string"
-    },
-    "AWS::DataExchange::EntitledDataSets": {
-      "Arn": "string",
-      "AssetType": "string",
-      "CreatedAt": "string",
-      "DataSetId": "string",
-      "Description": "string",
-      "Id": "string",
-      "Name": "string",
-      "Origin": "string",
-      "SourceId": "string",
       "UpdatedAt": "string"
     },
     "AWS::DataPipeline::Pipeline": {
@@ -6980,26 +6733,6 @@
       "BackupType": "string",
       "TableName": "string"
     },
-    "AWS::DynamoDB::Export": {
-      "BilledSizeBytes": "integer",
-      "EndTime": "string",
-      "ExportArn": "string",
-      "ExportFormat": "string",
-      "ExportId": "string",
-      "ExportManifest": "string",
-      "ExportStatus": "string",
-      "ExportTime": "string",
-      "ExportType": "string",
-      "ItemCount": "integer",
-      "S3Bucket": "string",
-      "S3BucketOwner": "string",
-      "S3Prefix": "string",
-      "S3SseAlgorithm": "string",
-      "StartTime": "string",
-      "TableArn": "string",
-      "TableId": "string",
-      "TableName": "string"
-    },
     "AWS::DynamoDB::GlobalTable": {
       "Arn": "string",
       "AttributeDefinitions": "array",
@@ -7012,15 +6745,6 @@
       "Replicas": "array",
       "StreamArn": "string",
       "TableId": "string",
-      "TableName": "string"
-    },
-    "AWS::DynamoDB::Stream": {
-      "CreationRequestDateTime": "string",
-      "KeySchema": "array",
-      "StreamArn": "string",
-      "StreamLabel": "string",
-      "StreamStatus": "string",
-      "StreamViewType": "string",
       "TableName": "string"
     },
     "AWS::DynamoDB::Table": {
@@ -8566,17 +8290,6 @@
       "Market": "string",
       "Name": "string"
     },
-    "AWS::EMR::NotebookExecution": {
-      "Arn": "string",
-      "EnvironmentVariables": "object",
-      "NotebookExecutionId": "string",
-      "NotebookExecutionName": "string",
-      "NotebookParams": "string",
-      "OutputNotebookFormat": "string",
-      "StartTime": "string",
-      "Status": "string",
-      "Tags": "array"
-    },
     "AWS::EMR::SecurityConfiguration": {
       "Name": "string"
     },
@@ -8766,22 +8479,6 @@
       "TransitEncryptionEnabled": "boolean",
       "TransitEncryptionMode": "string",
       "UserGroupIds": "array"
-    },
-    "AWS::ElastiCache::ReservedCacheNode": {
-      "CacheNodeCount": "integer",
-      "CacheNodeType": "string",
-      "Duration": "integer",
-      "FixedPrice": "number",
-      "OfferingType": "string",
-      "ProductDescription": "string",
-      "RecurringCharges": "array",
-      "ReservationARN": "string",
-      "ReservedCacheNodeId": "string",
-      "ReservedCacheNodesOfferingId": "string",
-      "StartTime": "string",
-      "State": "string",
-      "Tags": "array",
-      "UsagePrice": "number"
     },
     "AWS::ElastiCache::SecurityGroup": {
       "Description": "string",
@@ -9124,16 +8821,6 @@
       "Principal": "string",
       "StatementId": "string"
     },
-    "AWS::Events::Replay": {
-      "Destination": "object",
-      "EventEndTime": "string",
-      "EventSourceArn": "string",
-      "EventStartTime": "string",
-      "ReplayArn": "string",
-      "ReplayName": "string",
-      "ReplayStartTime": "string",
-      "State": "string"
-    },
     "AWS::Events::Rule": {
       "Arn": "string",
       "Description": "string",
@@ -9195,12 +8882,6 @@
     },
     "AWS::FIS::ExperimentTemplate": {
       "Tags": "object"
-    },
-    "AWS::FIS::SafetyLever": {
-      "Arn": "string",
-      "Id": "string",
-      "Reason": "string",
-      "Status": "string"
     },
     "AWS::FMS::Policy": {
       "DeleteAllPolicyResources": "boolean",
@@ -9754,25 +9435,6 @@
     "AWS::Glue::SecurityConfiguration": {
       "Name": "string"
     },
-    "AWS::Glue::Session": {
-      "Arn": "string",
-      "CreatedOn": "string",
-      "DefaultArguments": "object",
-      "Description": "string",
-      "GlueVersion": "string",
-      "Id": "string",
-      "IdleTimeout": "integer",
-      "MaxCapacity": "number",
-      "NumberOfWorkers": "integer",
-      "Progress": "number",
-      "RequestOrigin": "string",
-      "Role": "string",
-      "SecurityConfiguration": "string",
-      "Status": "string",
-      "Tags": "array",
-      "Timeout": "integer",
-      "WorkerType": "string"
-    },
     "AWS::Glue::Table": {
       "CatalogId": "string",
       "DatabaseName": "string",
@@ -9931,28 +9593,12 @@
       "SubscriptionDefinitionId": "string",
       "Subscriptions": "array"
     },
-    "AWS::GreengrassV2::Component": {
-      "Arn": "string",
-      "ComponentName": "string",
-      "Tags": "array"
-    },
     "AWS::GreengrassV2::ComponentVersion": {
       "Arn": "string",
       "ComponentName": "string",
       "ComponentVersion": "string",
       "InlineRecipe": "string",
       "Tags": "object"
-    },
-    "AWS::GreengrassV2::CoreDevice": {
-      "Architecture": "string",
-      "Arn": "string",
-      "CoreDeviceThingName": "string",
-      "CoreVersion": "string",
-      "LastStatusUpdateTimestamp": "string",
-      "Platform": "string",
-      "Runtime": "string",
-      "Status": "string",
-      "Tags": "array"
     },
     "AWS::GreengrassV2::Deployment": {
       "Components": "object",
@@ -10323,17 +9969,6 @@
       "Name": "string",
       "Tags": "array"
     },
-    "AWS::IdentityStore::AllGroupMemberships": {
-      "Arn": "string",
-      "CreatedAt": "string",
-      "CreatedBy": "string",
-      "GroupId": "string",
-      "IdentityStoreId": "string",
-      "MemberId": "object",
-      "MembershipId": "string",
-      "UpdatedAt": "string",
-      "UpdatedBy": "string"
-    },
     "AWS::IdentityStore::Group": {
       "Description": "string",
       "DisplayName": "string",
@@ -10344,38 +9979,6 @@
       "GroupId": "string",
       "IdentityStoreId": "string",
       "MembershipId": "string"
-    },
-    "AWS::ImageBuilder::AllImageBuildVersions": {
-      "Arn": "string",
-      "BuildNumber": "string",
-      "BuildType": "string",
-      "DateCreated": "string",
-      "EnhancedImageMetadataEnabled": "boolean",
-      "ExecutionRole": "string",
-      "ImageTestsConfiguration": "object",
-      "ImageVersionArn": "string",
-      "Name": "string",
-      "OsVersion": "string",
-      "Platform": "string",
-      "State": "object",
-      "Tags": "array",
-      "Type": "string",
-      "Version": "string"
-    },
-    "AWS::ImageBuilder::AllWorkflowBuildVersions": {
-      "Arn": "string",
-      "BuildNumber": "string",
-      "ChangeDescription": "string",
-      "Data": "string",
-      "DateCreated": "string",
-      "Description": "string",
-      "Name": "string",
-      "Owner": "string",
-      "Parameters": "array",
-      "Tags": "array",
-      "Version": "string",
-      "WorkflowType": "string",
-      "WorkflowVersionArn": "string"
     },
     "AWS::ImageBuilder::Component": {
       "Arn": "string",
@@ -10493,35 +10096,6 @@
       "Type": "string",
       "Uri": "string",
       "Version": "string"
-    },
-    "AWS::ImageBuilder::WorkflowExecution": {
-      "Arn": "string",
-      "EndTime": "string",
-      "ImageBuildVersionArn": "string",
-      "StartTime": "string",
-      "Status": "string",
-      "TotalStepCount": "integer",
-      "TotalStepsFailed": "integer",
-      "TotalStepsSkipped": "integer",
-      "TotalStepsSucceeded": "integer",
-      "Type": "string",
-      "WorkflowBuildVersionArn": "string",
-      "WorkflowExecutionId": "string"
-    },
-    "AWS::ImageBuilder::WorkflowStepExecution": {
-      "Action": "string",
-      "EndTime": "string",
-      "ImageBuildVersionArn": "string",
-      "Inputs": "string",
-      "Name": "string",
-      "OnFailure": "string",
-      "Outputs": "string",
-      "StartTime": "string",
-      "Status": "string",
-      "StepExecutionId": "string",
-      "TimeoutSeconds": "integer",
-      "WorkflowBuildVersionArn": "string",
-      "WorkflowExecutionId": "string"
     },
     "AWS::Inspector::AssessmentTarget": {
       "Arn": "string",
@@ -10710,12 +10284,6 @@
       "Tags": "array",
       "Unit": "string",
       "Version": "number"
-    },
-    "AWS::IoT::Index": {
-      "Arn": "string",
-      "IndexName": "string",
-      "IndexStatus": "string",
-      "Schema": "string"
     },
     "AWS::IoT::Job": {
       "Arn": "string",
@@ -12496,18 +12064,6 @@
       "SdiSourceMappings": "array",
       "Tags": "array"
     },
-    "AWS::MediaLive::Offering": {
-      "Arn": "string",
-      "CurrencyCode": "string",
-      "Duration": "integer",
-      "DurationUnits": "string",
-      "FixedPrice": "number",
-      "OfferingDescription": "string",
-      "OfferingId": "string",
-      "OfferingType": "string",
-      "Region": "string",
-      "UsagePrice": "number"
-    },
     "AWS::MediaLive::SdiSource": {
       "Arn": "string",
       "Id": "string",
@@ -12549,16 +12105,6 @@
       "Description": "string",
       "Id": "string",
       "Tags": "array"
-    },
-    "AWS::MediaPackage::HarvestJob": {
-      "Arn": "string",
-      "ChannelId": "string",
-      "CreatedAt": "string",
-      "EndTime": "string",
-      "Id": "string",
-      "OriginEndpointId": "string",
-      "StartTime": "string",
-      "Status": "string"
     },
     "AWS::MediaPackage::OriginEndpoint": {
       "Arn": "string",
@@ -12747,31 +12293,11 @@
       "Tags": "array",
       "UpdateStrategy": "string"
     },
-    "AWS::MemoryDB::MultiRegionParameterGroup": {
-      "Arn": "string",
-      "Description": "string",
-      "Family": "string",
-      "MultiRegionParameterGroupName": "string"
-    },
     "AWS::MemoryDB::ParameterGroup": {
       "ARN": "string",
       "Description": "string",
       "Family": "string",
       "ParameterGroupName": "string",
-      "Tags": "array"
-    },
-    "AWS::MemoryDB::ReservedNode": {
-      "Arn": "string",
-      "Duration": "integer",
-      "FixedPrice": "number",
-      "NodeCount": "integer",
-      "NodeType": "string",
-      "OfferingType": "string",
-      "RecurringCharges": "array",
-      "ReservationId": "string",
-      "ReservedNodesOfferingId": "string",
-      "StartTime": "string",
-      "State": "string",
       "Tags": "array"
     },
     "AWS::MemoryDB::SubnetGroup": {
@@ -13382,15 +12908,6 @@
       "VpcEndpointService": "string",
       "VpcEndpoints": "array"
     },
-    "AWS::OSIS::PipelineBlueprint": {
-      "Arn": "string",
-      "BlueprintName": "string",
-      "DisplayDescription": "string",
-      "DisplayName": "string",
-      "PipelineConfigurationBody": "string",
-      "Service": "string",
-      "UseCase": "string"
-    },
     "AWS::Oam::Link": {
       "Arn": "string",
       "Label": "string",
@@ -13450,20 +12967,6 @@
       "Name": "string",
       "Status": "string",
       "Uuid": "string"
-    },
-    "AWS::Omics::Reference": {
-      "Arn": "string",
-      "CreationJobId": "string",
-      "CreationTime": "string",
-      "CreationType": "string",
-      "Description": "string",
-      "Id": "string",
-      "Md5": "string",
-      "Name": "string",
-      "ReferenceStoreId": "string",
-      "Status": "string",
-      "Tags": "array",
-      "UpdateTime": "string"
     },
     "AWS::Omics::ReferenceStore": {
       "Arn": "string",
@@ -13878,15 +13381,6 @@
       "ReplicationRegions": "array",
       "Tags": "array"
     },
-    "AWS::Personalize::DataDeletionJob": {
-      "CreationDateTime": "string",
-      "DataDeletionJobArn": "string",
-      "DatasetGroupArn": "string",
-      "JobName": "string",
-      "LastUpdatedDateTime": "string",
-      "RoleArn": "string",
-      "Status": "string"
-    },
     "AWS::Personalize::Dataset": {
       "DatasetArn": "string",
       "DatasetGroupArn": "string",
@@ -13907,17 +13401,6 @@
       "Name": "string",
       "Tags": "array",
       "TrackingId": "string"
-    },
-    "AWS::Personalize::Recipe": {
-      "AlgorithmArn": "string",
-      "CreationDateTime": "string",
-      "Description": "string",
-      "FeatureTransformationArn": "string",
-      "LastUpdatedDateTime": "string",
-      "Name": "string",
-      "RecipeArn": "string",
-      "RecipeType": "string",
-      "Status": "string"
     },
     "AWS::Personalize::Schema": {
       "Domain": "string",
@@ -14327,28 +13810,6 @@
       "PolicyArn": "string",
       "PolicyId": "string",
       "UpdatedAt": "string"
-    },
-    "AWS::QuickSight::AssetBundleExportJob": {
-      "Arn": "string",
-      "AssetBundleExportJobId": "string",
-      "AwsAccountId": "string",
-      "CreatedTime": "string",
-      "ExportFormat": "string",
-      "IncludeAllDependencies": "boolean",
-      "IncludeFolderMembers": "string",
-      "IncludeFolderMemberships": "boolean",
-      "IncludePermissions": "boolean",
-      "IncludeTags": "boolean",
-      "JobStatus": "string",
-      "ResourceArns": "array"
-    },
-    "AWS::QuickSight::AssetBundleImportJob": {
-      "Arn": "string",
-      "AssetBundleImportJobId": "string",
-      "AwsAccountId": "string",
-      "CreatedTime": "string",
-      "FailureAction": "string",
-      "JobStatus": "string"
     },
     "AWS::QuickSight::CustomPermissions": {
       "Arn": "string",
@@ -14874,24 +14335,6 @@
       "OptionGroupName": "string",
       "Tags": "array"
     },
-    "AWS::RDS::ReservedDBInstance": {
-      "CurrencyCode": "string",
-      "DBInstanceClass": "string",
-      "DBInstanceCount": "integer",
-      "Duration": "integer",
-      "FixedPrice": "number",
-      "MultiAZ": "boolean",
-      "OfferingType": "string",
-      "ProductDescription": "string",
-      "RecurringCharges": "array",
-      "ReservedDBInstanceArn": "string",
-      "ReservedDBInstanceId": "string",
-      "ReservedDBInstancesOfferingId": "string",
-      "StartTime": "string",
-      "State": "string",
-      "Tags": "array",
-      "UsagePrice": "number"
-    },
     "AWS::RUM::AppMonitor": {
       "CwLogEnabled": "boolean",
       "Domain": "string",
@@ -15072,15 +14515,6 @@
       "RedshiftIdcApplicationArn": "string",
       "SnapshotCopyConfigurations": "array",
       "Tags": "array"
-    },
-    "AWS::RedshiftServerless::RecoveryPoint": {
-      "Arn": "string",
-      "NamespaceArn": "string",
-      "NamespaceName": "string",
-      "RecoveryPointCreateTime": "string",
-      "RecoveryPointId": "string",
-      "Tags": "array",
-      "TotalSizeInMegaBytes": "number"
     },
     "AWS::RedshiftServerless::Snapshot": {
       "NamespaceName": "string",
@@ -15534,13 +14968,6 @@
       "ResourceSetType": "string",
       "Resources": "array",
       "Tags": "array"
-    },
-    "AWS::Route53Resolver::FirewallConfig": {
-      "Arn": "string",
-      "FirewallFailOpen": "string",
-      "Id": "string",
-      "OwnerId": "string",
-      "ResourceId": "string"
     },
     "AWS::Route53Resolver::FirewallDomainList": {
       "Arn": "string",
@@ -16266,16 +15693,6 @@
       "SettingValue": "string",
       "Status": "string"
     },
-    "AWS::SSM::Session": {
-      "AccessType": "string",
-      "Arn": "string",
-      "Owner": "string",
-      "Reason": "string",
-      "SessionId": "string",
-      "StartDate": "string",
-      "Status": "string",
-      "Target": "string"
-    },
     "AWS::SSMContacts::Contact": {
       "Alias": "string",
       "Arn": "string",
@@ -16350,10 +15767,6 @@
       "ApplicationArn": "string",
       "PrincipalId": "string",
       "PrincipalType": "string"
-    },
-    "AWS::SSO::ApplicationProvider": {
-      "ApplicationProviderArn": "string",
-      "FederationProtocol": "string"
     },
     "AWS::SSO::Assignment": {
       "InstanceArn": "string",
@@ -16629,15 +16042,6 @@
       "ModelCardVersion": "integer",
       "Tags": "array"
     },
-    "AWS::SageMaker::ModelCardExportJob": {
-      "CreatedAt": "string",
-      "LastModifiedAt": "string",
-      "ModelCardExportJobArn": "string",
-      "ModelCardExportJobName": "string",
-      "ModelCardName": "string",
-      "ModelCardVersion": "integer",
-      "Status": "string"
-    },
     "AWS::SageMaker::ModelExplainabilityJobDefinition": {
       "CreationTime": "string",
       "JobDefinitionArn": "string",
@@ -16665,16 +16069,6 @@
       "MonitoringScheduleArn": "string",
       "MonitoringScheduleStatus": "string",
       "Tags": "array"
-    },
-    "AWS::SageMaker::MonitoringScheduleAlert": {
-      "AlertStatus": "string",
-      "Arn": "string",
-      "CreationTime": "string",
-      "DatapointsToAlert": "integer",
-      "EvaluationPeriod": "integer",
-      "LastModifiedTime": "string",
-      "MonitoringAlertName": "string",
-      "MonitoringScheduleName": "string"
     },
     "AWS::SageMaker::NotebookInstance": {
       "AcceleratorTypes": "array",
@@ -16764,27 +16158,6 @@
       "StudioLifecycleConfigContent": "string",
       "StudioLifecycleConfigName": "string",
       "Tags": "array"
-    },
-    "AWS::SageMaker::TransformJob": {
-      "BatchStrategy": "string",
-      "CreationTime": "string",
-      "DataCaptureConfig": "object",
-      "DataProcessing": "object",
-      "Environment": "object",
-      "ExperimentConfig": "object",
-      "MaxConcurrentTransforms": "integer",
-      "MaxPayloadInMB": "integer",
-      "ModelClientConfig": "object",
-      "ModelName": "string",
-      "Tags": "array",
-      "TransformEndTime": "string",
-      "TransformInput": "object",
-      "TransformJobArn": "string",
-      "TransformJobName": "string",
-      "TransformJobStatus": "string",
-      "TransformOutput": "object",
-      "TransformResources": "object",
-      "TransformStartTime": "string"
     },
     "AWS::SageMaker::TrialComponent": {
       "CreationTime": "string",
@@ -17423,21 +16796,6 @@
       "ProfileVersion": "string",
       "StatementId": "string"
     },
-    "AWS::Signer::SigningJob": {
-      "Arn": "string",
-      "CompletedAt": "string",
-      "CreatedAt": "string",
-      "JobId": "string",
-      "JobInvoker": "string",
-      "JobOwner": "string",
-      "PlatformDisplayName": "string",
-      "PlatformId": "string",
-      "ProfileName": "string",
-      "ProfileVersion": "string",
-      "RequestedBy": "string",
-      "SignatureExpiresAt": "string",
-      "Status": "string"
-    },
     "AWS::Signer::SigningProfile": {
       "Tags": "array"
     },
@@ -17447,31 +16805,10 @@
       "Name": "string",
       "RoleArn": "string"
     },
-    "AWS::States::Execution": {
-      "ExecutionArn": "string",
-      "Input": "string",
-      "Name": "string",
-      "RedriveCount": "integer",
-      "RedriveStatus": "string",
-      "StartDate": "string",
-      "StateMachineArn": "string",
-      "StateMachineName": "string",
-      "Status": "string"
-    },
     "AWS::StepFunctions::Activity": {
       "Arn": "string",
       "Name": "string",
       "Tags": "array"
-    },
-    "AWS::StepFunctions::MapRun": {
-      "ExecutionArn": "string",
-      "MapRunArn": "string",
-      "MaxConcurrency": "integer",
-      "StartDate": "string",
-      "Status": "string",
-      "StopDate": "string",
-      "ToleratedFailureCount": "integer",
-      "ToleratedFailurePercentage": "number"
     },
     "AWS::StepFunctions::StateMachine": {
       "Arn": "string",
@@ -17560,15 +16897,6 @@
       "Sid": "string",
       "Tags": "array"
     },
-    "AWS::ThinClient::SoftwareSet": {
-      "Arn": "string",
-      "Id": "string",
-      "ReleasedAt": "string",
-      "Software": "array",
-      "Tags": "array",
-      "ValidationStatus": "string",
-      "Version": "string"
-    },
     "AWS::Timestream::Database": {
       "Arn": "string",
       "DatabaseName": "string",
@@ -17649,18 +16977,6 @@
       "Schema": "object",
       "TableName": "string",
       "Tags": "array"
-    },
-    "AWS::Transcribe::MedicalTranscriptionJob": {
-      "Arn": "string",
-      "CreationTime": "string",
-      "LanguageCode": "string",
-      "MediaFormat": "string",
-      "MediaSampleRateHertz": "integer",
-      "MedicalTranscriptionJobName": "string",
-      "Specialty": "string",
-      "Tags": "array",
-      "TranscriptionJobStatus": "string",
-      "Type": "string"
     },
     "AWS::Transcribe::VocabularyFilter": {
       "Arn": "string",
@@ -17779,13 +17095,6 @@
       "AccountId": "string",
       "VisibleRegions": "array",
       "VisibleServices": "array"
-    },
-    "AWS::UserNotifications::ManagedNotificationConfiguration": {
-      "Arn": "string",
-      "Category": "string",
-      "Description": "string",
-      "Name": "string",
-      "SubCategory": "string"
     },
     "AWS::VerifiedPermissions::IdentitySource": {
       "IdentitySourceId": "string",
