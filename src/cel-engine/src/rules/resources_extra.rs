@@ -383,21 +383,6 @@ fn route53_scenario_source_path(
     m.scenario_source_path(resource_id, effective_path, conditions).unwrap_or_else(|| effective_path.to_string())
 }
 
-fn standalone_route53_record_source_path(
-    m: &SemanticModel,
-    resource_id: &str,
-    effective_path: &str,
-    conditions: &HashMap<String, bool>,
-) -> String {
-    let source_path = route53_scenario_source_path(m, resource_id, effective_path, conditions);
-    let direct_conditional_prefix = format!("Properties.ResourceRecords.{}.", FN_IF);
-    if source_path.starts_with(&direct_conditional_prefix) {
-        "Properties.ResourceRecords".to_string()
-    } else {
-        source_path
-    }
-}
-
 fn push_route53_record_value_diagnostics<F>(
     diagnostics: &mut Vec<Diagnostic>,
     m: &SemanticModel,
@@ -2769,7 +2754,6 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                 "AWS_LAMBDA_RUNTIME_API",
                 "LAMBDA_TASK_ROOT",
                 "LAMBDA_RUNTIME_DIR",
-                "TZ",
             ];
             for key in env_vars.keys() {
                 if RESERVED_KEYS.contains(&key.as_str()) {
@@ -3347,7 +3331,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                     &record_type,
                     &records,
                     "Properties.ResourceRecords",
-                    |property_path| standalone_route53_record_source_path(m, name, property_path, &conditions),
+                    |property_path| route53_scenario_source_path(m, name, property_path, &conditions),
                 );
             }
         }

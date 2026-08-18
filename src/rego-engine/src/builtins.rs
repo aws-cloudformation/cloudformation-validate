@@ -23,6 +23,7 @@ use template_model::resolved_value::{contains_dynamic_resolved, json_contains_ma
 use template_model::resolver::{MapEntry, RefKind, ResolvedValue};
 use template_model::{MARKER_DYNAMIC, MARKER_PARAM_TYPE, MARKER_REF};
 use template_model::{SourceSpan, UNKNOWN_SPAN, render_value, render_value_list};
+use validation_engine::DIAGNOSTIC_SOURCE_PATH_FIELD;
 
 pub(crate) fn serde_json_to_rego_value(v: &serde_json::Value) -> Value {
     json_to_value(v)
@@ -2116,6 +2117,7 @@ fn register_make_diag_at_source(rego: &mut regorus::Engine, holder: SharedModel)
                 "rule_id": rule_id.as_ref(), "severity": severity.as_ref(),
                 "message": message.as_ref(), "resource_id": resource_id.as_ref(),
                 "resource_path": prop_path.as_ref(),
+                (DIAGNOSTIC_SOURCE_PATH_FIELD): source_path.as_ref(),
             });
             if span != UNKNOWN_SPAN {
                 let fields = obj.as_object_mut().unwrap();
