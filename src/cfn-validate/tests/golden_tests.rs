@@ -5,7 +5,7 @@ use common::{DETAILED_ONLY_DIAGNOSTIC_FIELDS, deep_diff, discover_all_templates,
 use data_source::embedded::{CFN_LINT_VERSION, RESOURCE_SCHEMA_VERSION};
 use diagnostics::DetailLevel;
 use rego_engine::RegoEngine;
-use rules::Severity;
+use rules::{RULE_REGISTRY, Severity};
 use schema_validator::SchemaValidator;
 use validation_engine::{EngineConfig, ValidateConfig, ValidationEngine, validate_bytes_with_path};
 
@@ -171,7 +171,9 @@ fn cel_standard_matches_golden() {
     check_standard("cel", &engine);
 }
 
-const EXPECTED_RULES_EVALUATED: u64 = 302;
+fn expected_rules_evaluated() -> u64 {
+    RULE_REGISTRY.len() as u64
+}
 
 #[test]
 fn rules_evaluated_is_full_rule_count() {
@@ -185,7 +187,7 @@ fn rules_evaluated_is_full_rule_count() {
     ] {
         assert_eq!(
             report["metadata"]["rulesEvaluated"].as_u64(),
-            Some(EXPECTED_RULES_EVALUATED),
+            Some(expected_rules_evaluated()),
             "{name}: rulesEvaluated must be the full built-in rule count"
         );
     }
@@ -225,7 +227,7 @@ fn report_metadata_contains_embedded_source_versions_on_all_outcomes() {
     ]);
 
     for (name, bytes, expected_rules_evaluated) in [
-        ("success", load_template("good/generic.yaml"), EXPECTED_RULES_EVALUATED),
+        ("success", load_template("good/generic.yaml"), expected_rules_evaluated()),
         ("parse error", b"Resources: [".to_vec(), 0),
     ] {
         let report = validate_to_json(&rego, &bytes, name, DetailLevel::Detailed);

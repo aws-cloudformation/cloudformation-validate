@@ -129,7 +129,7 @@ pub(crate) struct Resolver<'a> {
     resource_ids: HashSet<String>,
     pub(crate) edges: Vec<ResolverEdge>,
     pub(crate) diagnostics: Vec<ParseDefect>,
-    pub(crate) find_in_map_refs: HashMap<String, Vec<String>>,
+    pub(crate) find_in_map_refs: HashMap<String, Vec<(String, String)>>,
     pub(crate) simple_subs: HashMap<String, Vec<(String, String)>>,
     pub(crate) redundant_subs: HashMap<String, Vec<String>>,
     pub(crate) empty_joins: HashMap<String, Vec<String>>,
@@ -408,7 +408,7 @@ impl<'a> Resolver<'a> {
                     && self.is_simple_join(*values_ref)
                 {
                     let key = self.current_resource.clone().unwrap_or_else(|| OUTPUTS_PSEUDO_RESOURCE.into());
-                    self.empty_joins.entry(key).or_default().push(join_path.clone());
+                    self.empty_joins.entry(key).or_default().push(format!("{}.0", join_path));
                 }
                 self.current_path = format!("{}.1", join_path);
                 let values = self.resolve_node(*values_ref);
@@ -486,8 +486,12 @@ impl<'a> Resolver<'a> {
                 }
             }
             IntrinsicFn::Select(idx_ref, list_ref) => {
+                let saved = self.current_path.clone();
+                self.current_path = format!("{}.Fn::Select.0", saved);
                 let idx = self.resolve_node(*idx_ref);
+                self.current_path = format!("{}.Fn::Select.1", saved);
                 let list = self.resolve_node(*list_ref);
+                self.current_path = saved;
                 match (&idx, &list) {
                     (ResolvedValue::Concrete { value: i }, ResolvedValue::Concrete { value: l }) => {
                         if let Some(arr) = l.as_array()
@@ -644,7 +648,10 @@ impl<'a> Resolver<'a> {
                     self.resolution_source_map
                         .insert((rid.clone(), self.current_path.clone()), "Intrinsic/Fn::GetAZs".to_string());
                 }
+                let saved = self.current_path.clone();
+                self.current_path = format!("{}.Fn::GetAZs", saved);
                 let region_val = self.resolve_node(*region_ref);
+                self.current_path = saved;
                 resolve_getazs_value(&region_val, self.pseudo_parameter_overrides)
             }
             IntrinsicFn::Cidr(ip_ref, count_ref, bits_ref) => {
@@ -1006,7 +1013,8 @@ impl<'a> Resolver<'a> {
             ResolvedValue::Concrete { value: name_val } => {
                 let map_name = name_val.as_str().unwrap_or("");
                 if let Some(ref rid) = self.current_resource {
-                    self.find_in_map_refs.entry(rid.clone()).or_default().push(map_name.to_string());
+                    let map_name_path = format!("{}.0", fim_path);
+                    self.find_in_map_refs.entry(rid.clone()).or_default().push((map_name_path, map_name.to_string()));
                 }
                 self.lookup_mapping(map_name, &first_key, &second_key, default_ref)
             }
@@ -1021,7 +1029,11 @@ impl<'a> Resolver<'a> {
                             }
                         };
                         if let Some(ref rid) = self.current_resource {
-                            self.find_in_map_refs.entry(rid.clone()).or_default().push(map_name.clone());
+                            let map_name_path = format!("{}.0", fim_path);
+                            self.find_in_map_refs
+                                .entry(rid.clone())
+                                .or_default()
+                                .push((map_name_path, map_name.clone()));
                         }
                         self.lookup_mapping(&map_name, &first_key, &second_key, default_ref)
                     })
@@ -1327,9 +1339,12 @@ impl<'a> Resolver<'a> {
         let mut sub_map: HashMap<String, ResolvedValue> = HashMap::new();
         let invalid_refs_before = self.invalid_ref_count();
         if let Some(explicit_subs) = subs {
+            let saved_path = self.current_path.clone();
             for (k, v) in explicit_subs {
+                self.current_path = format!("{}.Fn::Sub.1.{}", saved_path, k);
                 sub_map.insert(k.clone(), self.resolve_node(*v));
             }
+            self.current_path = saved_path;
             if let Some(ref rid) = self.current_resource {
                 for (k, _) in explicit_subs {
                     if !vars.iter().any(|v| v == k) {
@@ -1407,7 +1422,7 @@ impl<'a> Resolver<'a> {
             && !template.contains("${!")
             && let Some(ref rid) = self.current_resource
         {
-            self.redundant_subs.entry(rid.clone()).or_default().push(self.current_path.clone());
+            self.redundant_subs.entry(rid.clone()).or_default().push(format!("{}.Fn::Sub", self.current_path));
         }
 
         if template.contains("arn:aws:")
@@ -2400,6 +2415,14 @@ mod tests {
     }
 
     #[test]
+    fn resolve_empty_join_records_delimiter_path() {
+        let input = r#"{"Resources":{"R":{"Type":"T","Properties":{"V":{"Fn::Join":["",["a","b"]]}}}}}"#;
+        let model = crate::model::SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        let resource = model.resource("R").unwrap();
+        assert_eq!(resource.diagnostics.empty_joins, ["Properties.V.Fn::Join.0"]);
+    }
+
+    #[test]
     fn resolve_ref_param_override_bypasses_allowed_values() {
         let input = r#"{"Parameters":{"Env":{"Type":"String","AllowedValues":["dev","prod"]}},"Resources":{"R":{"Type":"T","Properties":{"V":{"Ref":"Env"}}}}}"#;
         let ir = parser::parse(input.as_bytes()).unwrap();
@@ -2489,8 +2512,8 @@ mod tests {
     fn resolve_sub_no_variables_is_redundant() {
         let input = r#"{"Resources":{"R":{"Type":"T","Properties":{"V":{"Fn::Sub":"no-vars-here"}}}}}"#;
         let model = crate::model::SemanticModel::from_bytes(input.as_bytes()).unwrap();
-        let r = model.resource("R").unwrap();
-        assert!(!r.diagnostics.redundant_subs.is_empty());
+        let resource = model.resource("R").unwrap();
+        assert_eq!(resource.diagnostics.redundant_subs, ["Properties.V.Fn::Sub"]);
     }
 
     #[test]

@@ -562,7 +562,7 @@ fn findinmap_refs_tracked() {
     let m = load("lsp/comprehensive.yaml");
     let db = m.resource("Database").unwrap();
     assert!(
-        db.diagnostics.find_in_map_refs.contains(&"EnvironmentMap".to_string()),
+        db.diagnostics.find_in_map_refs.iter().any(|name| name == "EnvironmentMap"),
         "find_in_map_refs should contain EnvironmentMap"
     );
 }

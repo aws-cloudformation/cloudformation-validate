@@ -765,12 +765,6 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         origin: RuleOrigin::Engine,
     },
     RuleDefinition {
-        id: "E2504",
-        category: Category::Resource,
-        description: "FIFO queue name must end with .fifo",
-        origin: RuleOrigin::Engine,
-    },
-    RuleDefinition {
         id: "E2529",
         category: Category::Resource,
         description: "Check for SubscriptionFilters beyond 2 attachments to a CloudWatch Log Group",
@@ -1302,7 +1296,7 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         id: "W2509",
         category: Category::Security,
         description: "Password parameter should have NoEcho",
-        origin: RuleOrigin::Engine,
+        origin: RuleOrigin::CfnLint,
     },
     RuleDefinition {
         id: "W2511",

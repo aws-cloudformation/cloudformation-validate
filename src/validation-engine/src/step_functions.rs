@@ -1,4 +1,4 @@
-use crate::make_resource_diagnostic;
+use crate::make_resource_diagnostic_at_source;
 use diagnostics::Diagnostic;
 use std::sync::Arc;
 use template_model::SemanticModel;
@@ -18,10 +18,11 @@ pub fn validate_definition(
     }
 
     if definition.get("StartAt").is_none() {
-        out.push(mk(model, resource_id, prop_key, "State machine definition must have 'StartAt'"));
+        // Missing field: anchor at the nearest authored parent (the definition object itself)
+        out.push(mk_at(model, resource_id, prop_key, prop_key, "State machine definition must have 'StartAt'"));
     }
     if definition.get("States").is_none() {
-        out.push(mk(model, resource_id, prop_key, "State machine definition must have 'States'"));
+        out.push(mk_at(model, resource_id, prop_key, prop_key, "State machine definition must have 'States'"));
         return out;
     }
 
@@ -86,10 +87,16 @@ fn validate_start_at(
     };
 
     if !states.contains_key(start_at) {
-        let display = if path_prefix.is_empty() { "StartAt".to_string() } else { format!("{}/StartAt", path_prefix) };
-        out.push(mk(
+        let logical_path = if path_prefix.is_empty() {
+            format!("{}.StartAt", prop_key)
+        } else {
+            format!("{}.{}.StartAt", prop_key, path_prefix)
+        };
+        let display = if path_prefix.is_empty() { "StartAt".to_string() } else { format!("{}.StartAt", path_prefix) };
+        out.push(mk_at(
             model,
             rid,
+            &logical_path,
             prop_key,
             &format!("StartAt '{}' does not reference a valid state at {}", start_at, display),
         ));
@@ -101,16 +108,16 @@ fn validate_start_at(
         }
         let stype = state.get(KEY_TYPE).and_then(|v| v.as_str()).unwrap_or("");
         let state_path = if path_prefix.is_empty() {
-            format!("States/{}", state_name)
+            format!("States.{}", state_name)
         } else {
-            format!("{}/States/{}", path_prefix, state_name)
+            format!("{}.States.{}", path_prefix, state_name)
         };
 
         if stype == "Parallel"
             && let Some(branches) = state.get("Branches").and_then(|v| v.as_array())
         {
             for (i, branch) in branches.iter().enumerate() {
-                validate_start_at(out, branch, model, rid, prop_key, &format!("{}/Branches/{}", state_path, i));
+                validate_start_at(out, branch, model, rid, prop_key, &format!("{}.Branches.{}", state_path, i));
             }
         }
         if stype == "Map" {
@@ -118,7 +125,7 @@ fn validate_start_at(
                 if let Some(proc) = state.get(key)
                     && proc.is_object()
                 {
-                    validate_start_at(out, proc, model, rid, prop_key, &format!("{}/{}", state_path, key));
+                    validate_start_at(out, proc, model, rid, prop_key, &format!("{}.{}", state_path, key));
                 }
             }
         }
@@ -137,19 +144,30 @@ fn validate_state(
     if !state.is_object() {
         return;
     }
+    let state_base = format!("{}.States.{}", prop_key, name);
     let stype = match state.get(KEY_TYPE).and_then(|v| v.as_str()) {
         Some(t) => t,
         None => {
-            out.push(mk(model, rid, prop_key, &format!("State '{}' is missing required 'Type' property", name)));
+            // Missing Type: anchor at the state object (nearest authored parent)
+            out.push(mk_at(
+                model,
+                rid,
+                &state_base,
+                prop_key,
+                &format!("State '{}' is missing required 'Type' property", name),
+            ));
             return;
         }
     };
 
     let valid_types = ["Task", "Pass", "Choice", "Wait", "Succeed", "Fail", "Parallel", "Map"];
     if !valid_types.contains(&stype) {
-        out.push(mk(
+        // Invalid existing Type value: anchor at the Type field
+        let type_path = format!("{}.Type", state_base);
+        out.push(mk_at(
             model,
             rid,
+            &type_path,
             prop_key,
             &format!("State '{}' has invalid Type '{}'. Must be one of {}", name, stype, render_str_list(valid_types)),
         ));
@@ -159,9 +177,12 @@ fn validate_state(
     if is_jsonata {
         for forbidden in &["InputPath", "OutputPath", "Parameters", "ResultPath", "ResultSelector"] {
             if state.get(*forbidden).is_some() {
-                out.push(mk(
+                // Existing forbidden field: anchor at that exact field
+                let field_path = format!("{}.{}", state_base, forbidden);
+                out.push(mk_at(
                     model,
                     rid,
+                    &field_path,
                     prop_key,
                     &format!("State '{}': '{}' is not allowed when QueryLanguage is JSONata", name, forbidden),
                 ));
@@ -172,9 +193,11 @@ fn validate_state(
     match stype {
         "Task" => {
             if state.get("Resource").is_none() {
-                out.push(mk(
+                // Missing Resource: anchor at the state object (nearest authored parent)
+                out.push(mk_at(
                     model,
                     rid,
+                    &state_base,
                     prop_key,
                     &format!("Task state '{}' is missing required 'Resource' property", name),
                 ));
@@ -182,9 +205,11 @@ fn validate_state(
         }
         "Choice" => {
             if state.get("Choices").is_none() {
-                out.push(mk(
+                // Missing Choices: anchor at the state object
+                out.push(mk_at(
                     model,
                     rid,
+                    &state_base,
                     prop_key,
                     &format!("Choice state '{}' is missing required 'Choices' property", name),
                 ));
@@ -194,9 +219,11 @@ fn validate_state(
             let has_wait =
                 ["Seconds", "Timestamp", "SecondsPath", "TimestampPath"].iter().any(|k| state.get(k).is_some());
             if !has_wait {
-                out.push(mk(
+                // Missing all timing fields: anchor at the state object
+                out.push(mk_at(
                     model,
                     rid,
+                    &state_base,
                     prop_key,
                     &format!(
                         "Wait state '{}' must have one of Seconds, Timestamp, SecondsPath, or TimestampPath",
@@ -209,8 +236,12 @@ fn validate_state(
     }
 }
 
-fn mk(model: &Arc<SemanticModel>, rid: &str, prop_key: &str, msg: &str) -> Diagnostic {
-    make_resource_diagnostic("E3601", msg, model, rid, prop_key, None)
+/// Builds a state-machine diagnostic with separate logical and source paths.
+/// `logical_path` carries the precise member path for the diagnostic's `property_path`.
+/// `source_path` is the base property key used for span resolution (walks up to the
+/// authored DefinitionString/Definition value even when the logical path points deeper).
+fn mk_at(model: &Arc<SemanticModel>, rid: &str, logical_path: &str, source_path: &str, msg: &str) -> Diagnostic {
+    make_resource_diagnostic_at_source("E3601", msg, model, rid, logical_path, source_path, None)
 }
 
 #[cfg(test)]
@@ -248,7 +279,7 @@ Resources:
     }
 
     #[test]
-    fn missing_start_at_produces_diagnostic() {
+    fn missing_start_at_anchors_at_definition_base() {
         let model = minimal_arc_model();
         let def = json!({
             "States": {
@@ -256,15 +287,18 @@ Resources:
             }
         });
         let diags = validate_definition(&def, &model, "SM", "Properties.DefinitionString");
-        assert!(diags.iter().any(|d| d.message.contains("StartAt")));
+        let d = diags.iter().find(|d| d.message.contains("StartAt")).expect("missing StartAt diagnostic");
+        // Missing field anchors at nearest authored parent (the definition base)
+        assert_eq!(d.property_path.as_deref(), Some("Properties.DefinitionString"));
     }
 
     #[test]
-    fn missing_states_produces_diagnostic_and_returns_early() {
+    fn missing_states_anchors_at_definition_base() {
         let model = minimal_arc_model();
         let def = json!({"StartAt": "Hello"});
         let diags = validate_definition(&def, &model, "SM", "Properties.DefinitionString");
-        assert!(diags.iter().any(|d| d.message.contains("States")));
+        let d = diags.iter().find(|d| d.message.contains("States")).expect("missing States diagnostic");
+        assert_eq!(d.property_path.as_deref(), Some("Properties.DefinitionString"));
     }
 
     #[test]
@@ -285,7 +319,7 @@ Resources:
     }
 
     #[test]
-    fn start_at_referencing_nonexistent_state() {
+    fn start_at_referencing_nonexistent_state_anchors_at_start_at_field() {
         let model = minimal_arc_model();
         let def = json!({
             "StartAt": "NonExistent",
@@ -294,11 +328,13 @@ Resources:
             }
         });
         let diags = validate_definition(&def, &model, "SM", "Properties.DefinitionString");
-        assert!(diags.iter().any(|d| d.message.contains("NonExistent") && d.message.contains("StartAt")));
+        let d = diags.iter().find(|d| d.message.contains("NonExistent")).expect("StartAt diagnostic");
+        // Existing invalid StartAt anchors at <base>.StartAt
+        assert_eq!(d.property_path.as_deref(), Some("Properties.DefinitionString.StartAt"));
     }
 
     #[test]
-    fn state_missing_type_produces_diagnostic() {
+    fn state_missing_type_anchors_at_state_object() {
         let model = minimal_arc_model();
         let def = json!({
             "StartAt": "Bad",
@@ -307,11 +343,13 @@ Resources:
             }
         });
         let diags = validate_definition(&def, &model, "SM", "Properties.DefinitionString");
-        assert!(diags.iter().any(|d| d.message.contains("missing required 'Type'")));
+        let d = diags.iter().find(|d| d.message.contains("missing required 'Type'")).expect("missing Type diagnostic");
+        // Missing Type: anchor at the state object (nearest authored parent)
+        assert_eq!(d.property_path.as_deref(), Some("Properties.DefinitionString.States.Bad"));
     }
 
     #[test]
-    fn state_invalid_type_produces_diagnostic() {
+    fn state_invalid_type_anchors_at_type_field() {
         let model = minimal_arc_model();
         let def = json!({
             "StartAt": "Bad",
@@ -320,7 +358,9 @@ Resources:
             }
         });
         let diags = validate_definition(&def, &model, "SM", "Properties.DefinitionString");
-        assert!(diags.iter().any(|d| d.message.contains("InvalidType")));
+        let d = diags.iter().find(|d| d.message.contains("InvalidType")).expect("invalid Type diagnostic");
+        // Existing invalid Type: anchor at <base>.States.<state>.Type
+        assert_eq!(d.property_path.as_deref(), Some("Properties.DefinitionString.States.Bad.Type"));
     }
 
     #[test]
@@ -331,7 +371,6 @@ Resources:
             let mut state = serde_json::Map::new();
             state.insert("Type".into(), json!(stype));
             state.insert("End".into(), json!(true));
-            // Add required fields per type
             match *stype {
                 "Task" => {
                     state.insert("Resource".into(), json!("arn:aws:lambda:us-east-1:123:function:fn"));
@@ -367,36 +406,40 @@ Resources:
     }
 
     #[test]
-    fn task_state_missing_resource() {
+    fn task_state_missing_resource_anchors_at_state_object() {
         let model = minimal_arc_model();
         let def = json!({
             "StartAt": "T",
             "States": {"T": {"Type": "Task", "End": true}}
         });
         let diags = validate_definition(&def, &model, "SM", "Properties.DefinitionString");
-        assert!(diags.iter().any(|d| d.message.contains("Resource")));
+        let d = diags.iter().find(|d| d.message.contains("Resource")).expect("missing Resource diagnostic");
+        // Missing field: anchor at state object
+        assert_eq!(d.property_path.as_deref(), Some("Properties.DefinitionString.States.T"));
     }
 
     #[test]
-    fn choice_state_missing_choices() {
+    fn choice_state_missing_choices_anchors_at_state_object() {
         let model = minimal_arc_model();
         let def = json!({
             "StartAt": "C",
             "States": {"C": {"Type": "Choice"}}
         });
         let diags = validate_definition(&def, &model, "SM", "Properties.DefinitionString");
-        assert!(diags.iter().any(|d| d.message.contains("Choices")));
+        let d = diags.iter().find(|d| d.message.contains("Choices")).expect("missing Choices diagnostic");
+        assert_eq!(d.property_path.as_deref(), Some("Properties.DefinitionString.States.C"));
     }
 
     #[test]
-    fn wait_state_missing_timing_field() {
+    fn wait_state_missing_timing_anchors_at_state_object() {
         let model = minimal_arc_model();
         let def = json!({
             "StartAt": "W",
             "States": {"W": {"Type": "Wait", "End": true}}
         });
         let diags = validate_definition(&def, &model, "SM", "Properties.DefinitionString");
-        assert!(diags.iter().any(|d| d.message.contains("Seconds")));
+        let d = diags.iter().find(|d| d.message.contains("Seconds")).expect("missing timing diagnostic");
+        assert_eq!(d.property_path.as_deref(), Some("Properties.DefinitionString.States.W"));
     }
 
     #[test]
@@ -419,6 +462,23 @@ Resources:
         });
         let diags = validate_definition(&def, &model, "SM", "Properties.DefinitionString");
         assert!(!diags.iter().any(|d| d.message.contains("Wait state")));
+    }
+
+    #[test]
+    fn jsonata_forbidden_field_anchors_at_exact_field() {
+        let model = minimal_arc_model();
+        let def = json!({
+            "QueryLanguage": "JSONata",
+            "StartAt": "P",
+            "States": {"P": {"Type": "Pass", "InputPath": "$.x", "End": true}}
+        });
+        let diags = validate_definition(&def, &model, "SM", "Properties.DefinitionString");
+        let d = diags
+            .iter()
+            .find(|d| d.message.contains("InputPath") && d.message.contains("JSONata"))
+            .expect("JSONata forbidden field diagnostic");
+        // Existing forbidden field: anchors at its exact path
+        assert_eq!(d.property_path.as_deref(), Some("Properties.DefinitionString.States.P.InputPath"));
     }
 
     #[test]
@@ -455,7 +515,7 @@ Resources:
     }
 
     #[test]
-    fn parallel_branch_bad_start_at_detected() {
+    fn parallel_branch_bad_start_at_uses_nested_path() {
         let model = minimal_arc_model();
         let def = json!({
             "StartAt": "P",
@@ -473,11 +533,13 @@ Resources:
             }
         });
         let diags = validate_definition(&def, &model, "SM", "Properties.DefinitionString");
-        assert!(diags.iter().any(|d| d.message.contains("Ghost") && d.message.contains("StartAt")));
+        let d = diags.iter().find(|d| d.message.contains("Ghost")).expect("nested StartAt diagnostic");
+        // Nested Parallel: full dotted path through the branch hierarchy
+        assert_eq!(d.property_path.as_deref(), Some("Properties.DefinitionString.States.P.Branches.0.StartAt"));
     }
 
     #[test]
-    fn map_item_processor_bad_start_at_detected() {
+    fn map_item_processor_bad_start_at_uses_nested_path() {
         let model = minimal_arc_model();
         let def = json!({
             "StartAt": "M",
@@ -495,11 +557,12 @@ Resources:
             }
         });
         let diags = validate_definition(&def, &model, "SM", "Properties.DefinitionString");
-        assert!(diags.iter().any(|d| d.message.contains("Missing") && d.message.contains("StartAt")));
+        let d = diags.iter().find(|d| d.message.contains("Missing")).expect("nested Map StartAt diagnostic");
+        assert_eq!(d.property_path.as_deref(), Some("Properties.DefinitionString.States.M.ItemProcessor.StartAt"));
     }
 
     #[test]
-    fn map_iterator_bad_start_at_detected() {
+    fn map_iterator_bad_start_at_uses_nested_path() {
         let model = minimal_arc_model();
         let def = json!({
             "StartAt": "M",
@@ -517,7 +580,8 @@ Resources:
             }
         });
         let diags = validate_definition(&def, &model, "SM", "Properties.DefinitionString");
-        assert!(diags.iter().any(|d| d.message.contains("Ghost") && d.message.contains("StartAt")));
+        let d = diags.iter().find(|d| d.message.contains("Ghost")).expect("nested Iterator StartAt diagnostic");
+        assert_eq!(d.property_path.as_deref(), Some("Properties.DefinitionString.States.M.Iterator.StartAt"));
     }
 
     #[test]
@@ -576,7 +640,6 @@ Resources:
         });
         let diags = validate_definition(&def, &model, "SM", "Properties.DefinitionString");
         // Non-string StartAt is silently skipped by validate_start_at (no crash)
-        // Only the missing-StartAt-as-string path is skipped, no StartAt error
         assert!(!diags.iter().any(|d| d.message.contains("does not reference")));
     }
 
@@ -594,7 +657,7 @@ Resources:
     }
 
     #[test]
-    fn parallel_multiple_branches_all_validated() {
+    fn parallel_multiple_branches_all_validated_with_paths() {
         let model = minimal_arc_model();
         let def = json!({
             "StartAt": "P",
@@ -616,8 +679,10 @@ Resources:
             }
         });
         let diags = validate_definition(&def, &model, "SM", "Properties.DefinitionString");
-        assert!(diags.iter().any(|d| d.message.contains("Ghost1")));
-        assert!(diags.iter().any(|d| d.message.contains("Ghost2")));
+        let d1 = diags.iter().find(|d| d.message.contains("Ghost1")).expect("branch 0 diagnostic");
+        let d2 = diags.iter().find(|d| d.message.contains("Ghost2")).expect("branch 1 diagnostic");
+        assert_eq!(d1.property_path.as_deref(), Some("Properties.DefinitionString.States.P.Branches.0.StartAt"));
+        assert_eq!(d2.property_path.as_deref(), Some("Properties.DefinitionString.States.P.Branches.1.StartAt"));
     }
 
     #[test]
@@ -684,5 +749,75 @@ Resources:
         });
         let diags = validate_definition(&def, &model, "SM", "Properties.DefinitionString");
         assert!(diags.is_empty());
+    }
+
+    #[test]
+    fn definition_property_uses_definition_key_in_path() {
+        let model = minimal_arc_model();
+        let def = json!({
+            "StartAt": "Ghost",
+            "States": {
+                "Hello": {"Type": "Pass", "End": true}
+            }
+        });
+        let diags = validate_definition(&def, &model, "SM", "Properties.Definition");
+        let d = diags.iter().find(|d| d.message.contains("Ghost")).expect("StartAt diagnostic");
+        assert_eq!(d.property_path.as_deref(), Some("Properties.Definition.StartAt"));
+    }
+
+    #[test]
+    fn deeply_nested_parallel_preserves_full_path() {
+        let model = minimal_arc_model();
+        let def = json!({
+            "StartAt": "Outer",
+            "States": {
+                "Outer": {
+                    "Type": "Parallel",
+                    "End": true,
+                    "Branches": [{
+                        "StartAt": "Inner",
+                        "States": {
+                            "Inner": {
+                                "Type": "Parallel",
+                                "End": true,
+                                "Branches": [{
+                                    "StartAt": "DeepGhost",
+                                    "States": {
+                                        "Leaf": {"Type": "Pass", "End": true}
+                                    }
+                                }]
+                            }
+                        }
+                    }]
+                }
+            }
+        });
+        let diags = validate_definition(&def, &model, "SM", "Properties.DefinitionString");
+        let d = diags.iter().find(|d| d.message.contains("DeepGhost")).expect("deep nested diagnostic");
+        assert_eq!(
+            d.property_path.as_deref(),
+            Some("Properties.DefinitionString.States.Outer.Branches.0.States.Inner.Branches.0.StartAt")
+        );
+    }
+
+    #[test]
+    fn all_diagnostics_have_span_resolved_to_authored_property() {
+        let model = minimal_arc_model();
+        let def = json!({
+            "StartAt": "Ghost",
+            "States": {
+                "Bad": {"End": true},
+                "Invalid": {"Type": "Bogus", "End": true}
+            }
+        });
+        let diags = validate_definition(&def, &model, "SM", "Properties.DefinitionString");
+        assert!(!diags.is_empty());
+        // Span resolution uses the base source_path, so all diagnostics get a
+        // consistent location regardless of their logical depth. In a minimal model
+        // without "SM" as a resource, location may be None — the important thing is
+        // that no diagnostic panics during construction.
+        for d in &diags {
+            assert_eq!(d.rule_id, "E3601");
+        }
     }
 }

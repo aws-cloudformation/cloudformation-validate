@@ -15,7 +15,7 @@ use schema_validator::{
 };
 use serde::{Deserialize, Serialize};
 use std::any::Any;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::error;
 use std::fmt;
 use std::panic::{AssertUnwindSafe, catch_unwind};
@@ -776,6 +776,39 @@ pub(crate) fn finalize_diagnostics(diagnostics: &mut Vec<Diagnostic>, config: &V
             && a.message == b.message
             && a.property_path == b.property_path
     });
+
+    // Semantic deduplication: when a more specific diagnostic fires for the
+    // same condition as a generic diagnostic, the generic finding is noise.
+    // Each entry maps a preferred rule and optional redundant-message marker
+    // to the redundant rule. Matching is limited to the same template entity.
+    const SUBSUMPTION_PAIRS: &[(&str, Option<&str>, &str)] = &[
+        // The billing-mode diagnostic explains why throughput is required;
+        // the generic schema diagnostic only states that it is required.
+        ("E3639", Some("ProvisionedThroughput"), "F3003"),
+        // A usage-based password warning is more precise than the parameter-name
+        // heuristic when both identify the same parameter.
+        ("W2501", None, "W2509"),
+    ];
+
+    for &(preferred_rule, redundant_message_marker, redundant_rule) in SUBSUMPTION_PAIRS {
+        let preferred_entities: HashSet<(EntityType, String)> = diagnostics
+            .iter()
+            .filter(|diagnostic| diagnostic.rule_id == preferred_rule)
+            .filter_map(|diagnostic| {
+                diagnostic.entity.as_ref().map(|entity| (entity.entity_type, entity.logical_id.clone()))
+            })
+            .collect();
+        if !preferred_entities.is_empty() {
+            diagnostics.retain(|diagnostic| {
+                let same_entity = diagnostic.entity.as_ref().is_some_and(|entity| {
+                    preferred_entities.contains(&(entity.entity_type, entity.logical_id.clone()))
+                });
+                let message_matches =
+                    redundant_message_marker.map(|marker| diagnostic.message.contains(marker)).unwrap_or(true);
+                !(diagnostic.rule_id == redundant_rule && same_entity && message_matches)
+            });
+        }
+    }
 
     let suppressed = total_before.saturating_sub(diagnostics.len() as u32);
     (total_before, suppressed)
@@ -1860,6 +1893,22 @@ Resources:
         }
     }
 
+    fn make_entity_diag(
+        rule_id: &str,
+        severity: Severity,
+        entity_type: EntityType,
+        logical_id: &str,
+        message: &str,
+    ) -> Diagnostic {
+        Diagnostic {
+            rule_id: rule_id.into(),
+            severity,
+            message: message.into(),
+            entity: Some(Entity { logical_id: logical_id.into(), entity_type, resource_type: None }),
+            ..default_diag()
+        }
+    }
+
     fn make_transform_error_diag() -> Diagnostic {
         Diagnostic {
             message: format!(
@@ -1964,6 +2013,97 @@ Resources:
         let mut diags = vec![d1, d2];
         finalize_diagnostics(&mut diags, &config);
         assert_eq!(diags.len(), 2);
+    }
+
+    #[test]
+    fn finalize_prefers_billing_mode_explanation_for_same_resource() {
+        let config = ValidateConfig::default();
+        let mut diags = vec![
+            make_entity_diag(
+                "F3003",
+                Severity::Fatal,
+                EntityType::Resource,
+                "Table",
+                "'ProvisionedThroughput' is a required property",
+            ),
+            make_entity_diag(
+                "E3639",
+                Severity::Error,
+                EntityType::Resource,
+                "Table",
+                "ProvisionedThroughput is required for the selected billing mode",
+            ),
+        ];
+
+        let (_, suppressed) = finalize_diagnostics(&mut diags, &config);
+
+        assert_eq!(suppressed, 1);
+        assert_eq!(diags.len(), 1);
+        assert_eq!(diags[0].rule_id, "E3639");
+    }
+
+    #[test]
+    fn finalize_keeps_unrelated_required_property_diagnostic() {
+        let config = ValidateConfig::default();
+        let mut diags = vec![
+            make_entity_diag(
+                "F3003",
+                Severity::Fatal,
+                EntityType::Resource,
+                "Table",
+                "'ServiceToken' is a required property",
+            ),
+            make_entity_diag(
+                "E3639",
+                Severity::Error,
+                EntityType::Resource,
+                "Table",
+                "ProvisionedThroughput is required for the selected billing mode",
+            ),
+        ];
+
+        let (_, suppressed) = finalize_diagnostics(&mut diags, &config);
+
+        assert_eq!(suppressed, 0);
+        assert_eq!(diags.len(), 2);
+    }
+
+    #[test]
+    fn finalize_prefers_usage_based_password_warning_for_same_parameter() {
+        let config = ValidateConfig::default();
+        let mut diags = vec![
+            make_entity_diag(
+                "W2501",
+                Severity::Warn,
+                EntityType::Parameter,
+                "DatabasePassword",
+                "Parameter is used by a password property without NoEcho",
+            ),
+            make_entity_diag(
+                "W2509",
+                Severity::Warn,
+                EntityType::Parameter,
+                "DatabasePassword",
+                "Parameter name appears to contain a password",
+            ),
+            make_entity_diag(
+                "W2509",
+                Severity::Warn,
+                EntityType::Parameter,
+                "IndependentSecret",
+                "Parameter name appears to contain a password",
+            ),
+        ];
+
+        let (_, suppressed) = finalize_diagnostics(&mut diags, &config);
+
+        assert_eq!(suppressed, 1);
+        assert_eq!(diags.len(), 2);
+        assert!(diags.iter().any(|diagnostic| diagnostic.rule_id == "W2501"));
+        assert!(diags.iter().any(|diagnostic| {
+            diagnostic.rule_id == "W2509"
+                && diagnostic.entity.as_ref().map(|entity| entity.logical_id.as_str()) == Some("IndependentSecret")
+        }));
     }
 
     /// Regression for a dedup bug where the same rule/message/line was duplicated

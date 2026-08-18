@@ -4,7 +4,7 @@ import rego.v1
 
 # W3005: DependsOn is unnecessary when an intrinsic function already creates a dependency
 violation contains make_diag_full("W3005", "WARN", name,
-    "DependsOn",
+    dep_path,
     sprintf("'%s' dependency already enforced by a '%s' at '%s'", [dep, edge.kind, edge.sourcePath]),
     "Remove the DependsOn entry",
     "") if {
@@ -16,4 +16,5 @@ violation contains make_diag_full("W3005", "WARN", name,
     some edge in res.outgoingRefs
     edge.target == dep
     edge.kind in {"Ref", "GetAtt", "Sub"}
+    some dep_path in authored_depends_on_paths(res, dep)
 }

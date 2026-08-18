@@ -14,7 +14,7 @@ use yaml_rust2::yaml::{Hash, Yaml};
 /// path, and any duplicate-key diagnostics found during the load.
 struct LoadedYaml {
     docs: Vec<Yaml>,
-    span_map: HashMap<String, (u32, u32)>,
+    span_map: HashMap<String, SourceSpan>,
     dup_key_diagnostics: Vec<ParseDefect>,
     merge_key_spans: Vec<SourceSpan>,
 }
@@ -287,6 +287,7 @@ fn path_from_frames(frames: &[PathFrame]) -> String {
 
 /// Converts YAML shorthand tags (!Ref, !Sub, etc.) into map-form intrinsics.
 struct CfnYamlLoader {
+    source: String,
     docs: Vec<Yaml>,
     doc_stack: Vec<(Yaml, usize)>,
     key_stack: Vec<Yaml>,
@@ -298,7 +299,7 @@ struct CfnYamlLoader {
     pending_tags: Vec<(String, usize)>,
     /// One frame per open container, parallel to `doc_stack`; see [`PathFrame`].
     path_frames: Vec<PathFrame>,
-    span_map: HashMap<String, (u32, u32)>,
+    span_map: HashMap<String, SourceSpan>,
     /// Source position of the key currently awaiting its value, one entry per open
     /// mapping (parallel to `key_stack`). Used to anchor duplicate-key diagnostics.
     key_marks: Vec<Option<(u32, u32)>>,
@@ -337,8 +338,9 @@ struct CfnYamlLoader {
 }
 
 impl CfnYamlLoader {
-    fn new() -> Self {
+    fn new(source: &str) -> Self {
         Self {
+            source: source.to_string(),
             docs: Vec::new(),
             doc_stack: Vec::new(),
             key_stack: Vec::new(),
@@ -359,7 +361,7 @@ impl CfnYamlLoader {
     }
 
     fn load(text: &str) -> Result<LoadedYaml, ParseError> {
-        let mut loader = Self::new();
+        let mut loader = Self::new(text);
         let mut parser = Parser::new_from_str(text);
         // The scanner error carries a Marker locating the failure; surface it so the
         // resulting F1101 diagnostic is anchored at the offending position instead of
@@ -406,25 +408,76 @@ impl CfnYamlLoader {
         (mark.line() as u32, mark.col() as u32 + 1)
     }
 
-    /// Anchors a mapping value at its key's position, overwriting any earlier entry so
-    /// a duplicate key resolves to the surviving (last) occurrence - matching how the
-    /// loaded `Hash` keeps the last value written for a repeated key. Object-property
-    /// diagnostics anchor at the key, so this is where the value's span lives.
-    fn record_key_span(&mut self, mark: Marker) {
+    fn span_with_width(mark: Marker, width: u32) -> SourceSpan {
+        let (line, column) = Self::mark_position(mark);
+        SourceSpan { start_line: line, start_column: column, end_line: line, end_column: column + width }
+    }
+
+    fn quoted_scalar_width(source: &str, quote: char) -> Option<u32> {
+        let mut characters = source.char_indices().peekable();
+        if characters.next()?.1 != quote {
+            return None;
+        }
+        let mut escaped = false;
+        while let Some((byte_index, character)) = characters.next() {
+            if quote == '"' {
+                if escaped {
+                    escaped = false;
+                    continue;
+                }
+                if character == '\\' {
+                    escaped = true;
+                    continue;
+                }
+            }
+            if character != quote {
+                continue;
+            }
+            if quote == '\'' && characters.peek().is_some_and(|(_, next)| *next == '\'') {
+                characters.next();
+                continue;
+            }
+            let end = byte_index + character.len_utf8();
+            return Some(source[..end].chars().count() as u32);
+        }
+        None
+    }
+
+    fn scalar_source_width(&self, mark: Marker, style: yaml_rust2::scanner::TScalarStyle, value: &str) -> u32 {
+        let source = self.source.get(mark.index()..).unwrap_or_default();
+        match style {
+            yaml_rust2::scanner::TScalarStyle::SingleQuoted => Self::quoted_scalar_width(source, '\''),
+            yaml_rust2::scanner::TScalarStyle::DoubleQuoted => Self::quoted_scalar_width(source, '"'),
+            yaml_rust2::scanner::TScalarStyle::Literal | yaml_rust2::scanner::TScalarStyle::Folded => Some(1),
+            yaml_rust2::scanner::TScalarStyle::Plain => Some(value.chars().count() as u32),
+        }
+        .unwrap_or_else(|| value.chars().count().max(1) as u32)
+    }
+
+    /// Anchors a mapping value at its key's authored token, overwriting any earlier
+    /// entry so a duplicate key resolves to the surviving occurrence.
+    fn record_key_span(&mut self, mark: Marker, style: yaml_rust2::scanner::TScalarStyle, key: &str) {
         let path = self.current_path();
         if !path.is_empty() {
-            self.span_map.insert(path, Self::mark_position(mark));
+            let width = self.scalar_source_width(mark, style, key);
+            self.span_map.insert(path, Self::span_with_width(mark, width));
         }
     }
 
-    /// Anchors a value that no key precedes - a sequence element, or a container opened
-    /// directly inside a sequence - at its own position. Never overwrites a span a key
-    /// already assigned to the same path (a container that is a mapping *value* is
-    /// reached here too, but its key recorded the authoritative position first).
+    /// Anchors a container without a preceding mapping key at its own position.
     fn record_value_span(&mut self, mark: Marker) {
         let path = self.current_path();
         if !path.is_empty() {
-            self.span_map.entry(path).or_insert_with(|| Self::mark_position(mark));
+            let width = path.rsplit('/').next().map(|segment| segment.chars().count()).unwrap_or(1).max(1) as u32;
+            self.span_map.entry(path).or_insert_with(|| Self::span_with_width(mark, width));
+        }
+    }
+
+    fn record_scalar_value_span(&mut self, mark: Marker, style: yaml_rust2::scanner::TScalarStyle, value: &str) {
+        let path = self.current_path();
+        if !path.is_empty() {
+            let width = self.scalar_source_width(mark, style, value);
+            self.span_map.entry(path).or_insert_with(|| Self::span_with_width(mark, width));
         }
     }
 
@@ -514,7 +567,7 @@ impl CfnYamlLoader {
         }
 
         let descendant_prefix = format!("{}/", base_path);
-        let descendant_spans: Vec<(String, (u32, u32))> = self
+        let descendant_spans: Vec<(String, SourceSpan)> = self
             .span_map
             .iter()
             .filter_map(|(path, span)| {
@@ -779,7 +832,7 @@ impl MarkedEventReceiver for CfnYamlLoader {
                     if let Some(PathFrame::Map(slot)) = self.path_frames.last_mut() {
                         *slot = Some(slot_name);
                     }
-                    self.record_key_span(mark);
+                    self.record_key_span(mark, style, &v);
                     // Remember this key's position so a later duplicate of it can be
                     // anchored at the offending occurrence.
                     if let Some(slot) = self.key_marks.last_mut() {
@@ -787,7 +840,7 @@ impl MarkedEventReceiver for CfnYamlLoader {
                     }
                 } else if matches!(self.doc_stack.last(), Some((Yaml::Array(_), _))) {
                     // A sequence element: no key precedes it, so anchor it at itself.
-                    self.record_value_span(mark);
+                    self.record_scalar_value_span(mark, style, &v);
                 }
 
                 if let Some(tag_name) = cfn_tag {
@@ -1040,16 +1093,8 @@ pub fn parse_yaml(bytes: &[u8]) -> Result<TemplateIR, ParseError> {
 
     let sections = TemplateSections::extract(&builder.arena, root);
 
-    for (path, (line, col)) in &raw_spans {
-        builder.span_index.insert(
-            path.clone(),
-            SourceSpan {
-                start_line: *line,
-                start_column: *col,
-                end_line: *line,
-                end_column: *col + path.rsplit('/').next().unwrap_or(path).len() as u32,
-            },
-        );
+    for (path, span) in raw_spans {
+        builder.span_index.insert(path, span);
     }
     info!("YAML span assignment complete: {} entries from marker tracking", builder.span_index.len());
 
@@ -1110,23 +1155,38 @@ mod tests {
         assert_eq!(ir.arena.as_map(ir.resources).unwrap().len(), 1);
     }
 
-    /// Span-index paths must carry the array index, matching the paths the shared
-    /// builder assigns. A key inside an array element (`Ingress/1/Port`) and a scalar
-    /// array element (`Cidrs/1`) each get their own span, so a diagnostic on them
-    /// anchors at the offending line rather than walking up to the enclosing array.
     #[test]
     fn array_element_spans_include_index() {
-        //             1          2       3      4              5           6            7             8              9
-        let input = "Resources:\n  R:\n    Type: T\n    Properties:\n      Ingress:\n      - Port: 80\n      - Port: 443\n      Cidrs:\n      - 10.0.0.0/16\n";
+        let input = concat!(
+            "Resources:\n",
+            "  R:\n",
+            "    Type: T\n",
+            "    Properties:\n",
+            "      Ingress:\n",
+            "      - Port: 80\n",
+            "      - Port: 443\n",
+            "      Cidrs:\n",
+            "      - 10.0.0.0/16\n",
+            "      - \"127.0.0.1\"\n",
+            "      - 'FirstTopic'\n",
+        );
         let ir = parse_yaml(input.as_bytes()).unwrap();
-        let line = |path: &str| ir.span_index.get(path).map(|s| s.start_line);
-        // Keys inside distinct array elements resolve to distinct element lines,
-        // never collapsing onto a single index-less `Ingress/Port` key.
-        assert_eq!(line("Resources/R/Properties/Ingress/0/Port"), Some(6));
-        assert_eq!(line("Resources/R/Properties/Ingress/1/Port"), Some(7));
-        assert!(line("Resources/R/Properties/Ingress/Port").is_none(), "index-less array key must not exist");
-        // A scalar array element is anchored at itself.
-        assert_eq!(line("Resources/R/Properties/Cidrs/0"), Some(9));
+        let span = |path: &str| ir.span_index.get(path).copied();
+        assert_eq!(span("Resources/R/Properties/Ingress/0/Port").map(|value| value.start_line), Some(6));
+        assert_eq!(span("Resources/R/Properties/Ingress/1/Port").map(|value| value.start_line), Some(7));
+        assert!(span("Resources/R/Properties/Ingress/Port").is_none(), "index-less array key must not exist");
+        assert_eq!(
+            span("Resources/R/Properties/Cidrs/0"),
+            Some(SourceSpan { start_line: 9, start_column: 9, end_line: 9, end_column: 20 })
+        );
+        assert_eq!(
+            span("Resources/R/Properties/Cidrs/1"),
+            Some(SourceSpan { start_line: 10, start_column: 9, end_line: 10, end_column: 20 })
+        );
+        assert_eq!(
+            span("Resources/R/Properties/Cidrs/2"),
+            Some(SourceSpan { start_line: 11, start_column: 9, end_line: 11, end_column: 21 })
+        );
     }
 
     #[test]

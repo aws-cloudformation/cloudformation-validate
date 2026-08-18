@@ -5,62 +5,39 @@ severity model documented in `product.md`.
 
 ## Summary
 
-- Total rules: **302**
-- By severity: Fatal=69, Error=148, Warn=62, Info=23
-- By true origin: CfnLint=203, Engine=29, Engine(collision)=1, Schema=69
-- By category: BestPractice=49, Deprecation=8, Intrinsic=52, Parameter=8, Reference=2, Resource=87, Schema=25, Security=14, Structure=57
+- Total rules: **301**
+- By severity: Fatal=69, Error=147, Warn=62, Info=23
+- By true origin: CfnLint=183, Engine=24, Engine(collision)=1, Schema=93
+- By category: BestPractice=49, Deprecation=8, Intrinsic=52, Parameter=8, Reference=2, Resource=86, Schema=25, Security=14, Structure=57
 - cfn-lint reference: 322 rule IDs loaded
-- E→F promoted rules: 51
-- Engine-extra rules: 60
+- cfn-lint→engine mappings: 52 total (40 E→F promotions, 11 E→E same/split, 1 E→W downgrades)
+- Engine-extra rules: 52 (1 with number collisions)
 
 ## 1. Origin correctness
 
-True origin is computed by checking cfn-lint source, not the registry's
-`origin:` field. Mismatches indicate the registry needs updating.
+True origin is derived from Fatal severity, explicit non-Fatal schema
+evidence verified against required production emitters, and exact or
+documented cfn-lint equivalences. The registry `origin:` field is compared
+only after that derivation; mismatches indicate metadata needs updating.
 
-**1 issue(s) found.**
-
-| ID | Registry origin | True origin | Note |
-|----|-----------------|-------------|------|
-| `W9003` | CfnLint | Engine | registry says CfnLint but no cfn-lint equivalent (exact ID or alias) exists |
+_All registry origins match computed true origins._
 
 ## 2. Description parity vs cfn-lint
 
 For non-Fatal CfnLint-origin rules, our description should align with
 cfn-lint's `shortdesc`. Fatal rules are exempt
 
-### Hard mismatches (3) - likely different rule
-
-| ID | Sev | Sim | Our description | cfn-lint shortdesc |
-|----|-----|----:|------------------|--------------------|
-| `E1022` | Error | 0.09 | Fn::Join requires a string delimiter and a list of strings or string-producing intrinsics | Join validation of parameters |
-| `E1024` | Error | 0.09 | Fn::Cidr requires a CIDR-format ipBlock string and integer count/cidrBits | Cidr validation of parameters |
-| `E1031` | Error | 0.09 | Fn::ToJsonString argument must be a non-empty array/object or a supported function | ToJsonString validation of parameters |
-
-### Soft mismatches (21) - wording divergence
+### Soft mismatches (8) - wording divergence
 
 | ID | Sev | Sim | Our description | cfn-lint shortdesc |
 |----|-----|----:|------------------|--------------------|
 | `E0001` | Error | 0.10 | SAM (AWS::Serverless) transform would reject the template | Error found when transforming the template |
-| `E1017` | Error | 0.10 | Fn::Select requires exactly two operands and a list source | Select validation of parameters |
-| `E1019` | Error | 0.10 | Fn::Sub variable map values must be strings or string-producing intrinsics | Sub validation of parameters |
-| `E1030` | Error | 0.11 | Fn::Length argument must be an array or a list-producing function | Length validation of parameters |
-| `E8004` | Error | 0.11 | Fn::And must take between 2 and 10 boolean conditions | Check Fn::And structure for validity |
-| `E8006` | Error | 0.11 | Fn::Or must take between 2 and 10 boolean conditions | Check Fn::Or structure for validity |
-| `E1011` | Error | 0.12 | Fn::FindInMap operands must be strings or one of Ref/Fn::FindInMap | FindInMap validation of configuration |
-| `E1018` | Error | 0.12 | Fn::Split source must be a string or a string-producing intrinsic | Split validation of parameters |
-| `E1021` | Error | 0.12 | Fn::Base64 argument must be a string or a string-producing intrinsic | Base64 validation of parameters |
-| `E8005` | Error | 0.12 | Fn::Not must take exactly one boolean condition | Check Fn::Not structure for validity |
-| `E1028` | Error | 0.14 | Fn::If condition must exist in Conditions section | Check Fn::If structure for validity |
 | `E2531` | Error | 0.14 | Check if Lambda Function Runtimes are blocked for create | Validate if lambda runtime is deprecated |
 | `E6003` | Error | 0.14 | Outputs section must be an object of named output definitions | Check the type of Outputs |
-| `E8007` | Error | 0.14 | Condition function value must be a string referencing a defined condition | Check Condition structure for validity |
 | `E3040` | Error | 0.17 | Read only property should not be specified | Validate we aren't configuring read only properties |
 | `W1051` | Warn | 0.17 | Dynamic reference resolves secret value but property expects the secret ARN | Validate dynamic references to secrets manager are not used when a secrets manager ARN was expected |
 | `E1050` | Error | 0.22 | Dynamic reference must match the SSM, ssm-secure, or Secrets Manager format | Validate the structure of a dynamic reference |
-| `E8003` | Error | 0.22 | Fn::Equals must take exactly two scalar operands | Check Fn::Equals structure for validity |
 | `E1029` | Error | 0.25 | Substitution variable ${X} requires Fn::Sub | Sub is required if a variable is used in a string |
-| `E8001` | Error | 0.25 | Conditions section must have valid structure | Conditions have appropriate properties |
 | `W1019` | Warn | 0.25 | Parameter in Fn::Sub variable map is not used in the template string | Validate that parameters to a Fn::Sub are used |
 
 ## 3. Severity/category model compliance
@@ -95,7 +72,7 @@ excuse list: rules cfn-lint also implements are never auto-waved-through.)
 | ID | Severity | True origin | Description | cfn-lint rule |
 |----|----------|-------------|-------------|---------------|
 | `E9003` | Error | CfnLint | GetAtt return type may not match usage context | E1010, E1017 |
-| `E9004` | Error | CfnLint | GetAtt attribute must exist on target resource type | E1010, E1017 |
+| `E9004` | Error | Schema | GetAtt attribute must exist on target resource type | E1010, E1017 |
 | `E9006` | Error | CfnLint | Property value not valid for conditional extension enum | E3690, E3691 |
 
 ## 7. Missing cfn-lint coverage
@@ -133,7 +110,7 @@ schema-validator extensions or Fatal schema rules).
 | `W3704` | Warn | ForwardedValues is ignored when CachePolicyId is specified | DistributionCacheBehaviorForwardedValuesIgnored.py |
 | `W3705` | Warn | MethodSettings entry is ignored without any setting properties | StageMethodSettingsIgnored.py |
 
-### Covered via different mechanism (70)
+### Covered via different mechanism (69)
 
 These cfn-lint rule IDs have no matching engine ID but are enforced
 through our schema-validator (extensions/patches from cfn-lint) or
@@ -143,7 +120,7 @@ via a Fatal schema rule covering the same concern.
 |-------------|----------------------|---------------|------|
 | `E0100` | Validate deployment file configuration | `out-of-scope` | CLI deployment file |
 | `E0200` | Validate parameter file configuration | `out-of-scope` | CLI parameter file |
-| `E1001` | Basic CloudFormation Template Configuration | `F0002/F0005` | Base template JSON schema (top-level structure) |
+| `E1001` | Basic CloudFormation Template Configuration | `F0002/F0005` | Top-level structure (partial: covers format version + section names only) |
 | `E1003` | Validate the max size of a description | `F0011` | description max length 1024 |
 | `E1157` | Validate KMS key ARN format | `schema-format` | KMS key ARN format (schema format field) |
 | `E1158` | Validate SNS topic ARN format | `schema-format` | SNS topic ARN format (schema format field) |
@@ -195,9 +172,8 @@ via a Fatal schema rule covering the same concern.
 | `E4002` | Validate the configuration of the Metadata section | `F0005` | Metadata section config |
 | `E6002` | Outputs have required properties | `F0040` | Output Value required |
 | `E6010` | Output limit not exceeded | `F0004` | Output limit 200 |
-| `E7010` | Max number of properties for Mappings | `F0008` | Mappings limit 200 |
-| `I1002` | Validate approaching the template size limit | `I2010/I6010` | approaching template size (via parameter/output limit warns) |
-| `I3010` | Resource limit | `I2010` | resource limit approach |
+| `I1002` | Validate approaching the template size limit | `out-of-scope` | Template body size approaching limit (no approaching-limit analog) |
+| `I3010` | Resource limit | `out-of-scope` | Resource count approaching limit (no approaching-limit analog) |
 | `W1031` | Validate the values that come from a Fn::Sub function | `F3012+W9003` | Fn::Sub resolved values (via resolver) |
 | `W1032` | Validate the values that come from a Fn::Join function | `F3012+W9003` | Fn::Join resolved values |
 | `W1033` | Validate the values that come from a Fn::Split function | `F3012+W9003` | Fn::Split resolved values |
@@ -214,13 +190,26 @@ via a Fatal schema rule covering the same concern.
 
 ## 8. Source emission checks
 
-Static regex scan of `.rs` and `.rego` files for rule ID usage.
+Static regex scan of production runtime Rust and Rego source files.
 
-**Unregistered IDs:** none ✅
+**Scanned crates:**
+- `template-model` (`src/template-model/src`)
+- `schema-validator` (`src/schema-validator/src`)
+- `validation-engine` (`src/validation-engine/src`)
+- `diagnostics` (`src/diagnostics/src`)
+- `cel-engine` (`src/cel-engine/src`)
+- `rego-engine` (`src/rego-engine/src`)
+- `rego-engine/handwritten` (`src/rego-engine/handwritten/rego`)
+
+**Excluded:** generated code, registry definition, `#[cfg(test)]` modules,
+bindings crates, `cfn-validate` (CLI frontend), `resources` (test fixtures),
+`guard-translator` (IR only).
+
+**Unregistered IDs:** none (across scanned production crates) ✅
 
 **Rego severity mismatches:** none ✅
 
-### Dual-use rule IDs (13)
+### Dual-use rule IDs (14)
 
 Same rule ID emitted with semantically different messages.
 
@@ -233,6 +222,11 @@ Same rule ID emitted with semantically different messages.
 
 - Cluster 1 (1 sites): "UpdatePolicy is not supported on resource type '{}'"
 - Cluster 2 (1 sites): "{} is not of type 'object'"
+
+**`E3023`** - registry: "Validate Route53 RecordSets"
+
+- Cluster 1 (1 sites): "CNAME records must have at most 1 ResourceRecord"
+- Cluster 2 (1 sites): "CNAME record Name '{}' must not match HostedZoneName '{}' exactly"
 
 **`E3029`** - registry: "Validate Route53 record set aliases"
 
@@ -294,15 +288,10 @@ Same rule ID emitted with semantically different messages.
 - Cluster 2 (1 sites): "Property '{}' should not be a hardcoded string - use a parameter with NoEcho or "
 - Cluster 3 (1 sites): "Parameter {} used as {}, therefore NoEcho should be True"
 
-### Engine source parity gaps
+**Engine source ID presence:** native CEL and handwritten Rego emit the same rule IDs ✅
+_(ID presence only — behavioral parity is verified by running both engines on real templates.)_
 
-Rule IDs found in one engine's source but not the other.
-May be false positives from regex limitations - cross-reference
-with `cargo test -p cfn-validate --test engine_parity` for ground truth.
-
-**CEL only (2):** `E3023`, `E3510`
-
-_Scanned 257 CEL sites (195 IDs), 279 Rego sites (193 IDs)._
+_Scanned 453 Rust sites (284 IDs), 300 Rego sites (194 IDs)._
 
 ## Appendix: full rule inventory
 
@@ -311,21 +300,21 @@ _Scanned 257 CEL sites (195 IDs), 279 Rego sites (193 IDs)._
 | `E0001` | Error | Structure | CfnLint | CfnLint | SAM (AWS::Serverless) transform would reject the template |
 | `E1002` | Error | Structure | CfnLint | CfnLint | Validate if a template size is too large |
 | `E1005` | Error | Structure | CfnLint | CfnLint | Validate Transform configuration |
-| `E1011` | Error | Intrinsic | Schema ⚠ | CfnLint | Fn::FindInMap operands must be strings or one of Ref/Fn::FindInMap |
-| `E1015` | Error | Intrinsic | Schema ⚠ | CfnLint | GetAz validation of parameters |
-| `E1016` | Error | Intrinsic | Schema ⚠ | CfnLint | ImportValue validation of parameters |
-| `E1017` | Error | Intrinsic | Schema ⚠ | CfnLint | Fn::Select requires exactly two operands and a list source |
-| `E1018` | Error | Intrinsic | Schema ⚠ | CfnLint | Fn::Split source must be a string or a string-producing intrinsic |
-| `E1019` | Error | Intrinsic | Schema ⚠ | CfnLint | Fn::Sub variable map values must be strings or string-producing intrinsics |
-| `E1021` | Error | Intrinsic | Schema ⚠ | CfnLint | Fn::Base64 argument must be a string or a string-producing intrinsic |
-| `E1022` | Error | Intrinsic | Schema ⚠ | CfnLint | Fn::Join requires a string delimiter and a list of strings or string-producing intrinsics |
-| `E1024` | Error | Intrinsic | Schema ⚠ | CfnLint | Fn::Cidr requires a CIDR-format ipBlock string and integer count/cidrBits |
+| `E1011` | Error | Intrinsic | Schema | Schema | Fn::FindInMap operands must be strings or one of Ref/Fn::FindInMap |
+| `E1015` | Error | Intrinsic | Schema | Schema | GetAz validation of parameters |
+| `E1016` | Error | Intrinsic | Schema | Schema | ImportValue validation of parameters |
+| `E1017` | Error | Intrinsic | Schema | Schema | Fn::Select requires exactly two operands and a list source |
+| `E1018` | Error | Intrinsic | Schema | Schema | Fn::Split source must be a string or a string-producing intrinsic |
+| `E1019` | Error | Intrinsic | Schema | Schema | Fn::Sub variable map values must be strings or string-producing intrinsics |
+| `E1021` | Error | Intrinsic | Schema | Schema | Fn::Base64 argument must be a string or a string-producing intrinsic |
+| `E1022` | Error | Intrinsic | Schema | Schema | Fn::Join requires a string delimiter and a list of strings or string-producing intrinsics |
+| `E1024` | Error | Intrinsic | Schema | Schema | Fn::Cidr requires a CIDR-format ipBlock string and integer count/cidrBits |
 | `E1027` | Error | Intrinsic | CfnLint | CfnLint | Check dynamic references secure strings are in supported locations |
-| `E1028` | Error | Intrinsic | Schema ⚠ | CfnLint | Fn::If condition must exist in Conditions section |
+| `E1028` | Error | Intrinsic | Schema | Schema | Fn::If condition must exist in Conditions section |
 | `E1029` | Error | Intrinsic | CfnLint | CfnLint | Substitution variable ${X} requires Fn::Sub |
-| `E1030` | Error | Intrinsic | Schema ⚠ | CfnLint | Fn::Length argument must be an array or a list-producing function |
-| `E1031` | Error | Intrinsic | Schema ⚠ | CfnLint | Fn::ToJsonString argument must be a non-empty array/object or a supported function |
-| `E1033` | Error | Intrinsic | Schema ⚠ | CfnLint | GetStackOutput validation of parameters |
+| `E1030` | Error | Intrinsic | Schema | Schema | Fn::Length argument must be an array or a list-producing function |
+| `E1031` | Error | Intrinsic | Schema | Schema | Fn::ToJsonString argument must be a non-empty array/object or a supported function |
+| `E1033` | Error | Intrinsic | Schema | Schema | GetStackOutput validation of parameters |
 | `E1040` | Error | Intrinsic | CfnLint | CfnLint | Check if GetAtt matches destination format |
 | `E1041` | Error | Intrinsic | CfnLint | CfnLint | Check if Ref matches destination format |
 | `E1050` | Error | Intrinsic | CfnLint | CfnLint | Dynamic reference must match the SSM, ssm-secure, or Secrets Manager format |
@@ -340,7 +329,6 @@ _Scanned 257 CEL sites (195 IDs), 279 Rego sites (193 IDs)._
 | `E1155` | Error | Intrinsic | CfnLint | CfnLint | Validate CloudWatch logs group name |
 | `E1156` | Error | Intrinsic | CfnLint | CfnLint | Validate IAM role ARN format |
 | `E2001` | Error | Parameter | CfnLint | CfnLint | Parameters have appropriate properties |
-| `E2504` | Error | Resource | Engine | Engine | FIFO queue name must end with .fifo |
 | `E2529` | Error | Resource | CfnLint | CfnLint | Check for SubscriptionFilters beyond 2 attachments to a CloudWatch Log Group |
 | `E2530` | Error | Resource | CfnLint | CfnLint | SnapStart supports the configured runtime |
 | `E2531` | Error | Deprecation | CfnLint | CfnLint | Check if Lambda Function Runtimes are blocked for create |
@@ -441,21 +429,21 @@ _Scanned 257 CEL sites (195 IDs), 279 Rego sites (193 IDs)._
 | `E5001` | Error | Structure | CfnLint | CfnLint | Check that Modules resources are valid |
 | `E6001` | Error | Structure | CfnLint | CfnLint | Outputs have appropriate properties |
 | `E6003` | Error | Structure | CfnLint | CfnLint | Outputs section must be an object of named output definitions |
-| `E6005` | Error | Structure | Schema ⚠ | CfnLint | Condition referenced by an output must exist in the Conditions section |
+| `E6005` | Error | Structure | Schema | Schema | Condition referenced by an output must exist in the Conditions section |
 | `E7001` | Error | Structure | CfnLint | CfnLint | Mappings are appropriately configured |
-| `E8001` | Error | Structure | Schema ⚠ | CfnLint | Conditions section must have valid structure |
-| `E8002` | Error | Structure | Schema ⚠ | CfnLint | Condition referenced by resource is not defined |
-| `E8003` | Error | Intrinsic | Schema ⚠ | CfnLint | Fn::Equals must take exactly two scalar operands |
-| `E8004` | Error | Intrinsic | Schema ⚠ | CfnLint | Fn::And must take between 2 and 10 boolean conditions |
-| `E8005` | Error | Intrinsic | Schema ⚠ | CfnLint | Fn::Not must take exactly one boolean condition |
-| `E8006` | Error | Intrinsic | Schema ⚠ | CfnLint | Fn::Or must take between 2 and 10 boolean conditions |
-| `E8007` | Error | Intrinsic | Schema ⚠ | CfnLint | Condition function value must be a string referencing a defined condition |
+| `E8001` | Error | Structure | Schema | Schema | Conditions section must have valid structure |
+| `E8002` | Error | Structure | Schema | Schema | Condition referenced by resource is not defined |
+| `E8003` | Error | Intrinsic | Schema | Schema | Fn::Equals must take exactly two scalar operands |
+| `E8004` | Error | Intrinsic | Schema | Schema | Fn::And must take between 2 and 10 boolean conditions |
+| `E8005` | Error | Intrinsic | Schema | Schema | Fn::Not must take exactly one boolean condition |
+| `E8006` | Error | Intrinsic | Schema | Schema | Fn::Or must take between 2 and 10 boolean conditions |
+| `E8007` | Error | Intrinsic | Schema | Schema | Condition function value must be a string referencing a defined condition |
 | `E9002` | Error | Resource | Engine | Engine | SecurityGroup FromPort must be <= ToPort for the TCP and UDP protocols |
 | `E9003` | Error | Intrinsic | CfnLint | CfnLint | GetAtt return type may not match usage context |
-| `E9004` | Error | Intrinsic | Schema ⚠ | CfnLint | GetAtt attribute must exist on target resource type |
+| `E9004` | Error | Intrinsic | Schema | Schema | GetAtt attribute must exist on target resource type |
 | `E9006` | Error | Schema | CfnLint | CfnLint | Property value not valid for conditional extension enum |
-| `E9101` | Error | Intrinsic | Schema ⚠ | Engine | Invalid nesting of intrinsic functions |
-| `E9106` | Error | Structure | Schema ⚠ | Engine | Circular dependency in condition definitions |
+| `E9101` | Error | Intrinsic | Schema | Schema | Invalid nesting of intrinsic functions |
+| `E9106` | Error | Structure | Schema | Schema | Circular dependency in condition definitions |
 | `F0000` | Fatal | Structure | Schema | Schema | Duplicate key in template |
 | `F0001` | Fatal | Structure | Schema | Schema | Resources section must exist and be non-empty |
 | `F0002` | Fatal | Structure | Schema | Schema | AWSTemplateFormatVersion must be 2010-09-09 |
@@ -567,7 +555,7 @@ _Scanned 257 CEL sites (195 IDs), 279 Rego sites (193 IDs)._
 | `W2503` | Warn | BestPractice | Engine | Engine | Resource references conditional resource with mutually exclusive condition |
 | `W2506` | Warn | BestPractice | CfnLint | CfnLint | Check if ImageId Parameters have the correct type |
 | `W2508` | Warn | Security | Engine | Engine | Security group allows open access to sensitive port |
-| `W2509` | Warn | Security | Engine | Engine | Password parameter should have NoEcho |
+| `W2509` | Warn | Security | CfnLint | CfnLint | Password parameter should have NoEcho |
 | `W2511` | Warn | Security | CfnLint | CfnLint | Check IAM Resource Policies syntax |
 | `W2512` | Warn | Security | Engine | Engine | IAM policy with NotAction |
 | `W2530` | Warn | BestPractice | CfnLint | CfnLint | Validate that SnapStart is properly configured |
@@ -599,7 +587,7 @@ _Scanned 257 CEL sites (195 IDs), 279 Rego sites (193 IDs)._
 | `W8602` | Warn | BestPractice | Engine | Engine | Rule has unknown property |
 | `W8608` | Warn | BestPractice | Engine | Engine | Rule assertion has unknown property |
 | `W9002` | Warn | BestPractice | Engine | Engine | Hardcoded ARN property |
-| `W9003` | Warn | BestPractice | CfnLint ⚠ | Engine | Property type coercion warning |
+| `W9003` | Warn | BestPractice | CfnLint | CfnLint | Property type coercion warning |
 | `W9006` | Warn | BestPractice | Engine | Engine | String length estimation through Fn::Sub |
 | `W9007` | Warn | BestPractice | Engine | Engine | Array items must be unique when required |
 | `W9008` | Warn | Security | Engine | Engine | RDS instance should have StorageEncrypted |

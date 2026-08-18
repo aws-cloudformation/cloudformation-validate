@@ -49,6 +49,8 @@ pub struct ConditionalNullEntry {
 pub struct ResourceDiagnostics {
     /// Mapping names referenced by Fn::FindInMap within this resource.
     pub find_in_map_refs: Vec<String>,
+    /// Map-name arguments paired with their authored property paths.
+    pub find_in_map_ref_paths: Vec<PathValuePair>,
     /// Fn::Sub uses whose template is a single variable that could be a plain Ref; each pairs the property path with the variable name.
     pub simple_subs: Vec<PathValuePair>,
     /// Property paths where Fn::Sub wraps a constant string with no variables to substitute.
@@ -563,11 +565,17 @@ impl SemanticModel {
         let value_nodes = resolver.value_nodes();
         let mut all_edges = resolver.edges;
         for (id, res) in &resources {
-            for dep in &res.depends_on {
+            for (dependency_index, dependency) in res.depends_on.iter().enumerate() {
+                let indexed_source_path = format!("Resources/{}/{}/{}", id, KEY_DEPENDS_ON, dependency_index);
+                let source_path = if ir.span_index.contains_key(&indexed_source_path) {
+                    format!("{}.{}", KEY_DEPENDS_ON, dependency_index)
+                } else {
+                    KEY_DEPENDS_ON.to_string()
+                };
                 all_edges.push(ResolverEdge {
                     source_resource: id.clone(),
-                    source_path: KEY_DEPENDS_ON.to_string(),
-                    target: dep.clone(),
+                    source_path,
+                    target: dependency.clone(),
                     kind: RefKind::DependsOn,
                     span: UNKNOWN_SPAN,
                     condition_context: None,
@@ -834,11 +842,16 @@ impl SemanticModel {
                 if let Some(cond) = &resources[rid].condition
                     && !conditions.conditions.contains_key(cond)
                 {
-                    diagnostics.push(crate::make_parse_defect_for_resource(
+                    let cond_span =
+                        ir.span_index.get(&format!("Resources/{}/Condition", rid)).copied().unwrap_or_else(|| {
+                            ir.span_index.get(&format!("Resources/{}", rid)).copied().unwrap_or(UNKNOWN_SPAN)
+                        });
+                    diagnostics.push(crate::defect::make_resource_defect_with_path(
                         "E8002",
                         format!("Condition '{}' referenced by resource '{}' is not defined", cond, rid),
-                        ir.span_index.get(&format!("Resources/{}", rid)).copied().unwrap_or(UNKNOWN_SPAN),
+                        cond_span,
                         rid,
+                        KEY_CONDITION,
                     ));
                 }
             }
@@ -1683,19 +1696,26 @@ impl SemanticModel {
     /// here would silently mislocate every dotted-path diagnostic onto the
     /// resource declaration line.
     pub fn resource_span(&self, resource_id: &str, prop_path: &str) -> SourceSpan {
-        // An empty resource id means the path is already a section-absolute span-index
-        // key (e.g. an output's `Outputs/X/Value.Fn::Join`); prefixing it with
-        // `Resources/` would mislocate the finding onto the Resources block. Resolve it
-        // as-is (no dot-to-slash conversion, since dots in segment names like `Fn::Join`
-        // are literal, not path separators). Returns UNKNOWN when nothing resolves so
-        // callers fall back to section-level or backfill-based location.
+        // An empty resource id means the path is already section-absolute
+        // (for example, an output Value). Resolve mixed slash/dot intrinsic
+        // suffixes through the authored arena path before walking ancestors.
         if resource_id.is_empty() {
-            return self.walk_up_span(prop_path).unwrap_or(UNKNOWN_SPAN);
+            return self
+                .authored_absolute_intrinsic_span(prop_path)
+                .or_else(|| self.walk_up_span(prop_path))
+                .unwrap_or(UNKNOWN_SPAN);
         }
+        if let Some(span) = self.authored_intrinsic_span(resource_id, prop_path) {
+            return span;
+        }
+        if let Some(span) = self.authored_value_intrinsic_span(resource_id, prop_path) {
+            return span;
+        }
+        let lookup_path = self.authored_lookup_path(resource_id, prop_path);
         let specific = if prop_path.is_empty() {
             format!("Resources/{}", resource_id)
         } else {
-            format!("Resources/{}/{}", resource_id, prop_path.replace('.', "/"))
+            format!("Resources/{}/{}", resource_id, lookup_path.replace('.', "/"))
         };
         // Walk up from the exact path to the nearest indexed ancestor, so a leaf that
         // carries no span of its own - a synthetic intrinsic key (`…/Topic/Fn::Sub`),
@@ -1703,6 +1723,98 @@ impl SemanticModel {
         // collapsing straight to the resource declaration. The resource path itself is
         // the final ancestor, preserving the previous resource-level fallback.
         self.walk_up_span(&specific).unwrap_or(UNKNOWN_SPAN)
+    }
+
+    fn dotted_numeric_indices(property_path: &str) -> Option<String> {
+        let bytes = property_path.as_bytes();
+        let mut normalized = String::with_capacity(property_path.len());
+        let mut cursor = 0;
+        let mut changed = false;
+        while cursor < bytes.len() {
+            if bytes[cursor] == b'[' {
+                let digit_start = cursor + 1;
+                let mut end = digit_start;
+                while end < bytes.len() && bytes[end].is_ascii_digit() {
+                    end += 1;
+                }
+                if end > digit_start && end < bytes.len() && bytes[end] == b']' {
+                    normalized.push('.');
+                    normalized.push_str(&property_path[digit_start..end]);
+                    cursor = end + 1;
+                    changed = true;
+                    continue;
+                }
+            }
+            let character = property_path[cursor..].chars().next()?;
+            normalized.push(character);
+            cursor += character.len_utf8();
+        }
+        changed.then_some(normalized)
+    }
+
+    fn authored_lookup_path<'a>(&self, resource_id: &str, property_path: &'a str) -> std::borrow::Cow<'a, str> {
+        let original_key = (resource_id.to_string(), property_path.to_string());
+        let original_source_path = format!("Resources/{}/{}", resource_id, property_path.replace('.', "/"));
+        if self.value_nodes.contains_key(&original_key) || self.span_index.contains_key(&original_source_path) {
+            return std::borrow::Cow::Borrowed(property_path);
+        }
+        if let Some(normalized) = Self::dotted_numeric_indices(property_path) {
+            let normalized_source_path = format!("Resources/{}/{}", resource_id, normalized.replace('.', "/"));
+            if self.value_nodes.contains_key(&(resource_id.to_string(), normalized.clone()))
+                || self.span_index.contains_key(&normalized_source_path)
+            {
+                return std::borrow::Cow::Owned(normalized);
+            }
+        }
+        std::borrow::Cow::Borrowed(property_path)
+    }
+
+    fn authored_intrinsic_span(&self, resource_id: &str, property_path: &str) -> Option<SourceSpan> {
+        let lookup_path = self.authored_lookup_path(resource_id, property_path);
+        for (separator_index, _) in lookup_path.match_indices('.').rev() {
+            let intrinsic_suffix = &lookup_path[separator_index + 1..];
+            if !intrinsic_suffix.starts_with("Fn::") && intrinsic_suffix != "Ref" {
+                continue;
+            }
+            let value_path = &lookup_path[..separator_index];
+            let Some(node_ref) = self.value_nodes.get(&(resource_id.to_string(), value_path.to_string())) else {
+                continue;
+            };
+            let authored_path = &self.arena.get(*node_ref).path;
+            let source_path = format!("{}/{}", authored_path, intrinsic_suffix.replace('.', "/"));
+            return self.walk_up_span(&source_path);
+        }
+        None
+    }
+
+    fn authored_value_intrinsic_span(&self, resource_id: &str, property_path: &str) -> Option<SourceSpan> {
+        let lookup_path = self.authored_lookup_path(resource_id, property_path);
+        let node_ref = self.value_nodes.get(&(resource_id.to_string(), lookup_path.into_owned()))?;
+        let Node::Intrinsic(intrinsic) = self.arena.node(*node_ref) else {
+            return None;
+        };
+        let source_path = format!("{}/{}", self.arena.get(*node_ref).path, cfn_function_name(intrinsic));
+        self.walk_up_span(&source_path)
+    }
+
+    fn authored_absolute_intrinsic_span(&self, property_path: &str) -> Option<SourceSpan> {
+        for (separator_index, _) in property_path.match_indices('.').rev() {
+            let intrinsic_suffix = &property_path[separator_index + 1..];
+            if !intrinsic_suffix.starts_with("Fn::") && intrinsic_suffix != "Ref" {
+                continue;
+            }
+            let value_path = &property_path[..separator_index];
+            let authored_value_exists = self.span_index.contains_key(value_path)
+                || (0..self.arena.len()).any(|index| self.arena.get(index as NodeRef).path == value_path);
+            if !authored_value_exists {
+                continue;
+            }
+            let source_path = format!("{}/{}", value_path, intrinsic_suffix.replace('.', "/"));
+            if let Some(span) = self.walk_up_span(&source_path) {
+                return Some(span);
+            }
+        }
+        None
     }
 
     /// Walks up `key` (a `/`-separated span-index path), trimming one trailing
@@ -1746,7 +1858,11 @@ impl SemanticModel {
         let rid = resource_id.filter(|r| !r.is_empty());
 
         if property_path.contains('/') || (rid.is_none() && !property_path.is_empty()) {
-            // Absolute, section-rooted path: resolve directly.
+            // Absolute, section-rooted paths may mix slash-form section segments
+            // with dotted intrinsic suffixes retained by engine diagnostics.
+            if let Some(span) = self.authored_absolute_intrinsic_span(property_path) {
+                return Some(span);
+            }
             if let Some(span) = self.walk_up_span(property_path) {
                 return Some(span);
             }
@@ -1983,6 +2099,7 @@ fn validate_resource_shape(
     // `Type` is required and must be a string.
     match entries.iter().find(|(k, _)| k == KEY_TYPE) {
         None => {
+            // Missing Type has no authored child to point at.
             out.push(crate::make_parse_defect_for_resource(
                 "E3001",
                 format!("Resource '{}' is missing required property 'Type'", name),
@@ -1992,11 +2109,12 @@ fn validate_resource_shape(
         }
         Some((_, type_ref)) if !matches!(arena.node(*type_ref), Node::String(_)) => {
             let type_span = span_index.get(&format!("Resources/{}/Type", name)).copied().unwrap_or(resource_span);
-            out.push(crate::make_parse_defect_for_resource(
+            out.push(crate::defect::make_resource_defect_with_path(
                 "E3001",
                 format!("Resource '{}' property 'Type' must be a string", name),
                 type_span,
                 name,
+                KEY_TYPE,
             ));
         }
         _ => {}
@@ -2005,11 +2123,12 @@ fn validate_resource_shape(
     // `Condition` must be a string when present.
     if invalid_resource_condition_ref(arena, node_ref).is_some() {
         let cond_span = span_index.get(&format!("Resources/{}/Condition", name)).copied().unwrap_or(resource_span);
-        out.push(crate::make_parse_defect_for_resource(
+        out.push(crate::defect::make_resource_defect_with_path(
             "E3001",
             format!("Resource '{}' property 'Condition' must be a string", name),
             cond_span,
             name,
+            KEY_CONDITION,
         ));
     }
 
@@ -2022,11 +2141,12 @@ fn validate_resource_shape(
                     if !matches!(arena.node(*item_ref), Node::String(_)) {
                         let dep_span =
                             span_index.get(&format!("Resources/{}/DependsOn", name)).copied().unwrap_or(resource_span);
-                        out.push(crate::make_parse_defect_for_resource(
+                        out.push(crate::defect::make_resource_defect_with_path(
                             "E3001",
                             format!("Resource '{}' property 'DependsOn' list elements must be strings", name),
                             dep_span,
                             name,
+                            KEY_DEPENDS_ON,
                         ));
                         break;
                     }
@@ -2035,11 +2155,12 @@ fn validate_resource_shape(
             _ => {
                 let dep_span =
                     span_index.get(&format!("Resources/{}/DependsOn", name)).copied().unwrap_or(resource_span);
-                out.push(crate::make_parse_defect_for_resource(
+                out.push(crate::defect::make_resource_defect_with_path(
                     "E3001",
                     format!("Resource '{}' property 'DependsOn' must be a string or list of strings", name),
                     dep_span,
                     name,
+                    KEY_DEPENDS_ON,
                 ));
             }
         }
@@ -2051,18 +2172,20 @@ fn validate_resource_shape(
         if let Some((_, version_ref)) = entries.iter().find(|(key, _)| key == "Version") {
             let version_span = span_index.get(&format!("Resources/{}/Version", name)).copied().unwrap_or(resource_span);
             if !is_custom_resource {
-                out.push(crate::make_parse_defect_for_resource(
+                out.push(crate::defect::make_resource_defect_with_path(
                     "E3001",
                     format!("Resource '{}' property 'Version' is only valid for custom resources", name),
                     version_span,
                     name,
+                    "Version",
                 ));
             } else if !matches!(arena.node(*version_ref), Node::String(_) | Node::Int(_)) {
-                out.push(crate::make_parse_defect_for_resource(
+                out.push(crate::defect::make_resource_defect_with_path(
                     "E3001",
                     format!("Resource '{}' property 'Version' must be a string or integer", name),
                     version_span,
                     name,
+                    "Version",
                 ));
             }
         }
@@ -2074,18 +2197,20 @@ fn validate_resource_shape(
             let policy_span =
                 span_index.get(&format!("Resources/{}/{}", name, policy_name)).copied().unwrap_or(resource_span);
             if is_custom_resource {
-                out.push(crate::make_parse_defect_for_resource(
+                out.push(crate::defect::make_resource_defect_with_path(
                     "E3001",
                     format!("Resource '{}' property '{}' is not valid for custom resources", name, policy_name),
                     policy_span,
                     name,
+                    policy_name,
                 ));
             } else if !matches!(arena.node(*policy_ref), Node::Map(_) | Node::Intrinsic(_)) {
-                out.push(crate::make_parse_defect_for_resource(
+                out.push(crate::defect::make_resource_defect_with_path(
                     "E3001",
                     format!("Resource '{}' property '{}' must be an object", name, policy_name),
                     policy_span,
                     name,
+                    policy_name,
                 ));
             }
         }
@@ -2099,7 +2224,7 @@ fn validate_resource_shape(
             continue;
         }
         let key_span = span_index.get(&format!("Resources/{}/{}", name, key)).copied().unwrap_or(resource_span);
-        out.push(crate::make_parse_defect_for_resource(
+        out.push(crate::defect::make_resource_defect_with_path(
             "E3001",
             format!(
                 "Resource '{}' has invalid property '{}'. Valid resource attributes: {}",
@@ -2109,6 +2234,7 @@ fn validate_resource_shape(
             ),
             key_span,
             name,
+            key,
         ));
     }
 
@@ -2263,6 +2389,15 @@ fn resolve_resource(arena: &Arena, name: &str, node_ref: NodeRef, resolver: &mut
     condition_refs.sort();
     condition_refs.dedup();
 
+    let find_in_map_ref_paths: Vec<PathValuePair> = resolver
+        .find_in_map_refs
+        .remove(name)
+        .unwrap_or_default()
+        .into_iter()
+        .map(|(path, value)| PathValuePair { path, value })
+        .collect();
+    let find_in_map_refs = find_in_map_ref_paths.iter().map(|entry| entry.value.clone()).collect();
+
     ResolvedResource {
         logical_id: name.to_string(),
         resource_type,
@@ -2276,7 +2411,8 @@ fn resolve_resource(arena: &Arena, name: &str, node_ref: NodeRef, resolver: &mut
         properties,
         properties_dynamic,
         diagnostics: ResourceDiagnostics {
-            find_in_map_refs: resolver.find_in_map_refs.remove(name).unwrap_or_default(),
+            find_in_map_refs,
+            find_in_map_ref_paths,
             simple_subs: resolver
                 .simple_subs
                 .remove(name)
@@ -2798,14 +2934,24 @@ Resources:
     fn model_findinmap_refs_tracked() {
         let input = br#"{"Resources":{"R":{"Type":"T","Properties":{"V":{"Fn::FindInMap":["MyMap","k1","k2"]}}}}}"#;
         let model = SemanticModel::from_bytes(input).unwrap();
-        assert!(model.resource("R").unwrap().diagnostics.find_in_map_refs.contains(&"MyMap".to_string()));
+        let diagnostics = &model.resource("R").unwrap().diagnostics;
+        assert!(diagnostics.find_in_map_refs.contains(&"MyMap".to_string()));
+        assert!(
+            diagnostics.find_in_map_ref_paths.iter().any(|entry| entry.path.ends_with(".Fn::FindInMap.0")),
+            "path must end with the map-name argument index"
+        );
     }
 
     #[test]
     fn model_findinmap_refs_tracked_yaml() {
         let input = b"Resources:\n  R:\n    Type: T\n    Properties:\n      V: !FindInMap [MyMap, k1, k2]\n";
         let model = SemanticModel::from_bytes(input).unwrap();
-        assert!(model.resource("R").unwrap().diagnostics.find_in_map_refs.contains(&"MyMap".to_string()));
+        let diagnostics = &model.resource("R").unwrap().diagnostics;
+        assert!(diagnostics.find_in_map_refs.contains(&"MyMap".to_string()));
+        assert!(
+            diagnostics.find_in_map_ref_paths.iter().any(|entry| entry.path == "Properties.V.Fn::FindInMap.0"),
+            "path must be the full property path to the map-name operand"
+        );
     }
 
     #[test]
@@ -3101,6 +3247,57 @@ Resources:
     }
 
     #[test]
+    fn resource_span_accepts_bracketed_numeric_indices() {
+        let input =
+            "Resources:\n  R:\n    Type: T\n    Properties:\n      Ingress:\n      - Port: 80\n      - Port: 443\n";
+        let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        let dotted = model.resource_span("R", "Properties.Ingress.1.Port");
+        let bracketed = model.resource_span("R", "Properties.Ingress[1].Port");
+        assert_eq!(bracketed, dotted);
+        assert_eq!(bracketed.start_line, 7);
+    }
+
+    #[test]
+    fn resource_span_logical_value_uses_authored_intrinsic_node() {
+        let input = concat!(
+            "Parameters:\n  Image:\n    Type: String\n",
+            "Resources:\n  R:\n    Type: T\n    Properties:\n      ImageId:\n        Ref: Image\n",
+        );
+        let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        let exact =
+            *model.source_location("Resources/R/Properties/ImageId/Ref").expect("Ref source path must be indexed");
+        let logical = model.resource_span("R", "Properties.ImageId");
+        assert_eq!(logical, exact);
+        assert_eq!(logical.start_line, 9);
+    }
+
+    #[test]
+    fn resource_span_uses_authored_intrinsic_path_through_literal_metadata_keys() {
+        let input = concat!(
+            "Resources:\n",
+            "  R:\n",
+            "    Type: T\n",
+            "    Metadata:\n",
+            "      AWS::CloudFormation::Init:\n",
+            "        config:\n",
+            "          files:\n",
+            "            /etc/cfn/cfn-hup.conf:\n",
+            "              content: !Sub constant\n",
+        );
+        let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        let exact_source_path =
+            "Resources/R/Metadata/AWS::CloudFormation::Init/config/files//etc/cfn/cfn-hup.conf/content/Fn::Sub";
+        let expected = *model.source_location(exact_source_path).expect("intrinsic source path must be indexed");
+        let actual = model.resource_span(
+            "R",
+            "Metadata.AWS::CloudFormation::Init.config.files./etc/cfn/cfn-hup.conf.content.Fn::Sub",
+        );
+
+        assert_eq!(actual, expected);
+        assert_eq!(actual.start_line, 9);
+    }
+
+    #[test]
     fn resource_span_empty_id_resolves_section_absolute_path_precisely() {
         // A finding with no resource id (e.g. an Outputs-level diagnostic) carries a
         // section-absolute span-index path. It must resolve against that path directly,
@@ -3120,15 +3317,10 @@ Resources:
     }
 
     #[test]
-    fn resource_span_empty_id_fused_intrinsic_suffix_anchors_at_nearest_slash_ancestor() {
-        // A synthetic intrinsic suffix (`.Fn::Join`) is joined to its parent by a DOT,
-        // which is deliberately not treated as a path separator here: real span-index
-        // keys contain literal dots inside a single segment (e.g. API Gateway's
-        // `method.request.path.proxy`), so splitting on dots would shred those paths and
-        // mis-anchor. The walk-up therefore trims the whole `Value.Fn::Join` segment on
-        // the nearest `/`, landing on the enclosing output - still within Outputs, never
-        // on the Resources block. Both engines resolve this identically, which is what
-        // keeps them at parity.
+    fn resource_span_empty_id_fused_intrinsic_suffix_uses_authored_value() {
+        // A section-absolute path can contain slash-separated section members and a
+        // dotted intrinsic suffix. The authored arena path safely reconstructs that
+        // suffix without splitting literal dots in unrelated key names.
         let input = concat!(
             "Resources:\n  R:\n    Type: T\n",                                  // lines 1-3
             "Outputs:\n  Combined:\n    Value: !Join [\"\", [\"a\", \"b\"]]\n", // lines 4-6
@@ -3136,8 +3328,8 @@ Resources:
         let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
         let span = model.resource_span("", "Outputs/Combined/Value.Fn::Join");
         assert_eq!(
-            span.start_line, 5,
-            "fused-suffix path must anchor at the enclosing output (line 5), got {:?}",
+            span.start_line, 6,
+            "fused-suffix path must anchor at the authored output value (line 6), got {:?}",
             span
         );
     }
@@ -3619,5 +3811,104 @@ Resources:
             "parse-time output ref diagnostic must have dot-separated path"
         );
         assert_ne!(ref_defect.span, crate::UNKNOWN_SPAN, "span must be resolved");
+    }
+
+    #[test]
+    fn resource_shape_non_string_type_has_type_property_path() {
+        let input = r#"{"Resources":{"R":{"Type":123,"Properties":{}}}}"#;
+        let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        let d = model.diagnostics.iter().find(|d| d.message.contains("'Type' must be a string")).expect("type defect");
+        assert_eq!(d.resource_id.as_deref(), Some("R"));
+        assert_eq!(d.property_path.as_deref(), Some("Type"), "authored member must be the property path");
+    }
+
+    #[test]
+    fn resource_shape_missing_type_has_no_property_path() {
+        let input = r#"{"Resources":{"R":{"Properties":{"X":"Y"}}}}"#;
+        let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        let d = model
+            .diagnostics
+            .iter()
+            .find(|d| d.message.contains("missing required property 'Type'"))
+            .expect("missing type");
+        assert_eq!(d.resource_id.as_deref(), Some("R"));
+        assert_eq!(d.property_path, None, "missing Type has no child to point at");
+    }
+
+    #[test]
+    fn resource_shape_non_object_body_has_no_property_path() {
+        let input = "Resources:\n  R: a string\n";
+        let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        let d = model.diagnostics.iter().find(|d| d.message.contains("body must be an object")).expect("body defect");
+        assert_eq!(d.resource_id.as_deref(), Some("R"));
+        assert_eq!(d.property_path, None, "non-object body has no child to point at");
+    }
+
+    #[test]
+    fn resource_shape_non_string_condition_has_condition_path() {
+        let input = r#"{"Resources":{"R":{"Type":"T","Condition":123,"Properties":{}}}}"#;
+        let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        let d =
+            model.diagnostics.iter().find(|d| d.message.contains("'Condition' must be a string")).expect("cond defect");
+        assert_eq!(d.resource_id.as_deref(), Some("R"));
+        assert_eq!(d.property_path.as_deref(), Some("Condition"));
+    }
+
+    #[test]
+    fn resource_shape_invalid_depends_on_has_depends_on_path() {
+        let input = r#"{"Resources":{"R":{"Type":"T","DependsOn":123,"Properties":{}}}}"#;
+        let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        let d = model.diagnostics.iter().find(|d| d.message.contains("DependsOn")).expect("depends_on defect");
+        assert_eq!(d.resource_id.as_deref(), Some("R"));
+        assert_eq!(d.property_path.as_deref(), Some("DependsOn"));
+    }
+
+    #[test]
+    fn resource_shape_unknown_key_has_key_property_path() {
+        let input = r#"{"Resources":{"R":{"Type":"T","Bogus":"V","Properties":{}}}}"#;
+        let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        let d =
+            model.diagnostics.iter().find(|d| d.message.contains("invalid property 'Bogus'")).expect("bogus defect");
+        assert_eq!(d.resource_id.as_deref(), Some("R"));
+        assert_eq!(d.property_path.as_deref(), Some("Bogus"));
+    }
+
+    #[test]
+    fn resource_shape_lifecycle_attribute_has_attribute_path() {
+        let input = r#"{"Resources":{"R":{"Type":"T","CreationPolicy":"bad","Properties":{}}}}"#;
+        let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        let d = model.diagnostics.iter().find(|d| d.message.contains("CreationPolicy")).expect("policy defect");
+        assert_eq!(d.resource_id.as_deref(), Some("R"));
+        assert_eq!(d.property_path.as_deref(), Some("CreationPolicy"));
+    }
+
+    #[test]
+    fn e8002_undefined_condition_points_at_condition_attribute() {
+        let input = "Resources:\n  R:\n    Type: T\n    Condition: DoesNotExist\n    Properties:\n      X: Y\n";
+        let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        let d = model.diagnostics.iter().find(|d| d.rule_id == "E8002").expect("E8002 expected");
+        assert_eq!(d.resource_id.as_deref(), Some("R"));
+        assert_eq!(d.property_path.as_deref(), Some("Condition"), "span and path must target the Condition attribute");
+    }
+
+    #[test]
+    fn fn_sub_explicit_map_invalid_ref_has_map_key_path() {
+        let input =
+            r#"{"Resources":{"R":{"Type":"T","Properties":{"V":{"Fn::Sub":["${x}",{"x":{"Ref":"NoSuchThing"}}]}}}}}"#;
+        let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        let r = model.resource("R").unwrap();
+        let invalid = r.diagnostics.invalid_refs.iter().find(|r| r.value == "NoSuchThing").expect("invalid ref");
+        assert_eq!(invalid.path, "Properties.V.Fn::Sub.1.x", "path must descend into the substitution map key");
+    }
+
+    #[test]
+    fn findinmap_ref_carries_map_name_operand_path() {
+        let input = r#"{"Resources":{"R":{"Type":"T","Properties":{"A":{"Fn::FindInMap":["M1","k","v"]},"B":{"Fn::FindInMap":["M2","k","v"]}}}}}"#;
+        let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        let refs = &model.resource("R").unwrap().diagnostics.find_in_map_ref_paths;
+        let m1 = refs.iter().find(|r| r.value == "M1").expect("M1 entry");
+        assert_eq!(m1.path, "Properties.A.Fn::FindInMap.0");
+        let m2 = refs.iter().find(|r| r.value == "M2").expect("M2 entry");
+        assert_eq!(m2.path, "Properties.B.Fn::FindInMap.0");
     }
 }

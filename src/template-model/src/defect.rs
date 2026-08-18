@@ -120,6 +120,24 @@ pub(crate) fn make_parse_defect_for_resource(
     ParseDefect::new(rule_id, message).location(span).resource(resource_id).phase(DefectPhase::Parse)
 }
 
+/// Like [`make_parse_defect_for_resource`], but also records a resource-relative
+/// property path locating the offending attribute within the resource body.
+/// Used when the defect points at a specific authored key (e.g. `Type`,
+/// `Condition`, `DependsOn`, or an unknown attribute).
+pub(crate) fn make_resource_defect_with_path(
+    rule_id: &str,
+    message: String,
+    span: SourceSpan,
+    resource_id: &str,
+    property_path: &str,
+) -> ParseDefect {
+    ParseDefect::new(rule_id, message)
+        .location(span)
+        .resource(resource_id)
+        .property_path(property_path)
+        .phase(DefectPhase::Parse)
+}
+
 pub(crate) fn make_parse_defect(rule_id: &str, message: String, span: SourceSpan) -> ParseDefect {
     ParseDefect::new(rule_id, message).location(span).phase(DefectPhase::Parse)
 }
@@ -197,5 +215,13 @@ mod tests {
         let defect = make_parse_defect_at("E8005", "msg".into(), UNKNOWN_SPAN, "Conditions/C/Fn::And");
         assert_eq!(defect.resource_id, None);
         assert_eq!(defect.property_path.as_deref(), Some("Conditions/C/Fn::And"));
+    }
+
+    #[test]
+    fn make_resource_defect_with_path_anchors_at_resource_and_member() {
+        let defect = make_resource_defect_with_path("E3001", "msg".into(), UNKNOWN_SPAN, "R", "Condition");
+        assert_eq!(defect.resource_id.as_deref(), Some("R"));
+        assert_eq!(defect.property_path.as_deref(), Some("Condition"));
+        assert_eq!(defect.phase, Some(DefectPhase::Parse));
     }
 }

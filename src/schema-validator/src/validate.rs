@@ -232,6 +232,24 @@ pub fn validate_all_resources(
             validate_extensions(&mut out, store, model, rid, res);
         }
     }
+    // Custom:: resources are not in the provider schema store, so
+    // validate_resource never sees them. ServiceToken is unconditionally
+    // required by CloudFormation for all custom resources using the Custom::
+    // prefix; AWS::CloudFormation::CustomResource is already handled by its
+    // compiled schema. Check each Custom:: resource individually.
+    for (rid, res) in &model.resources {
+        if res.resource_type.starts_with("Custom::") && !res.properties.contains_key("ServiceToken") {
+            out.push(build_diagnostic(
+                "F3003",
+                "'ServiceToken' is a required property",
+                model,
+                rid,
+                KEY_PROPERTIES,
+                Some("Add a ServiceToken property (ARN of the Lambda or SNS topic backing this custom resource)"),
+            ));
+        }
+    }
+
     for (resource_id, property_path) in take_scenario_analysis_curtailments() {
         out.push(build_diagnostic(
             "I9052",

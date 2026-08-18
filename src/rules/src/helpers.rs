@@ -185,7 +185,6 @@ mod tests {
     #[test]
     fn category_for_rule_id_applies_three_char_overrides() {
         assert_eq!(category_for_rule_id("E2529"), Category::Resource);
-        assert_eq!(category_for_rule_id("E2504"), Category::Resource);
         assert_eq!(category_for_rule_id("I2530"), Category::BestPractice);
         assert_eq!(category_for_rule_id("F8600"), Category::Structure);
     }

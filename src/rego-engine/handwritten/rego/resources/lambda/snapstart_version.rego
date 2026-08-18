@@ -4,7 +4,7 @@ import rego.v1
 
 # W2530: SnapStart enabled but no Lambda::Version resource attached
 violation contains make_diag_full("W2530", "WARN", name,
-    "Properties.SnapStart",
+    "Properties.SnapStart.ApplyOn",
     "SnapStart is enabled but no AWS::Lambda::Version resource is attached",
     "Add an AWS::Lambda::Version resource that references this function",
     "") if {

@@ -520,7 +520,7 @@ mod rule_category_tests {
     #[test]
     fn resources_sqs_fifo_no_suffix() {
         let ids = validate_file("bad/sqs_fifo_no_suffix.yaml");
-        assert!(has_rule(&ids, "E3501") || has_rule(&ids, "E2504"), "Expected SQS FIFO error, got: {:?}", ids);
+        assert!(has_rule(&ids, "E3501"), "Expected SQS FIFO error, got: {:?}", ids);
     }
 
     #[test]

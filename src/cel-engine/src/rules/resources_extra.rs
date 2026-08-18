@@ -581,7 +581,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                     &format!("Unknown resource type '{}'", res.resource_type),
                     m,
                     name,
-                    "",
+                    "Type",
                     None,
                 ));
             }
@@ -1022,9 +1022,8 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         if let Some(serde_json::Value::Array(stages)) = resolve_concrete(m, name, "Properties.Stages")
             && let Some(first) = stages.first()
         {
-            let has_source = first
-                .get("Actions")
-                .and_then(|a| a.as_array())
+            let actions = first.get("Actions").and_then(|a| a.as_array());
+            let has_source = actions
                 .map(|actions| {
                     actions.iter().any(|a| {
                         a.get("ActionTypeId").and_then(|at| at.get("Category")).and_then(|c| c.as_str())
@@ -1033,12 +1032,29 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                 })
                 .unwrap_or(false);
             if !has_source {
+                // When exactly one action exists and has a non-Source Category,
+                // anchor to its Category property for precise attribution.
+                // With multiple actions, no single action is uniquely at fault,
+                // so the stage object is the most defensible anchor.
+                let prop_path = match actions {
+                    Some(acts)
+                        if acts.len() == 1
+                            && acts[0]
+                                .get("ActionTypeId")
+                                .and_then(|at| at.get("Category"))
+                                .and_then(|c| c.as_str())
+                                .is_some() =>
+                    {
+                        "Properties.Stages.0.Actions.0.ActionTypeId.Category"
+                    }
+                    _ => "Properties.Stages[0]",
+                };
                 out.push(make_resource_diagnostic(
                     "E3700",
                     "First stage of a pipeline must contain at least one Source action",
                     m,
                     name,
-                    "Properties.Stages[0]",
+                    prop_path,
                     Some("Add an action with ActionTypeId.Category=Source to the first stage"),
                 ));
             }
@@ -1057,17 +1073,18 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                 &format!("Runtime '{}' is not supported with Code.ZipFile - use nodejs or python", rt),
                 m,
                 name,
-                "",
+                "Properties.Runtime",
                 None,
             ));
         }
     }
 
     for name in m.resources_of_type("AWS::SQS::Queue") {
-        if let Some(serde_json::Value::Bool(true)) = resolve_concrete(m, name, "Properties.FifoQueue")
-            && let Some(serde_json::Value::String(qname)) = resolve_concrete(m, name, "Properties.QueueName")
-            && !qname.ends_with(".fifo")
-        {
+        let fifo = resolve_concrete(m, name, "Properties.FifoQueue");
+        let Some(serde_json::Value::String(qname)) = resolve_concrete(m, name, "Properties.QueueName") else {
+            continue;
+        };
+        if fifo == Some(serde_json::Value::Bool(true)) && !qname.ends_with(".fifo") {
             out.push(make_resource_diagnostic(
                 "E3501",
                 &format!("FIFO queue name '{}' must end with '.fifo'", qname),
@@ -1075,6 +1092,15 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                 name,
                 "Properties.QueueName",
                 Some("Append .fifo to the queue name"),
+            ));
+        } else if fifo != Some(serde_json::Value::Bool(true)) && qname.ends_with(".fifo") {
+            out.push(make_resource_diagnostic(
+                "E3501",
+                &format!("Non-FIFO queue name '{}' must not end with '.fifo'", qname),
+                m,
+                name,
+                "Properties.QueueName",
+                Some("Remove .fifo suffix or set FifoQueue to true"),
             ));
         }
     }
@@ -1491,7 +1517,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                 "NetworkConfiguration required when TaskDefinition NetworkMode is 'awsvpc'",
                 m,
                 name,
-                "",
+                "Properties",
                 None,
             ));
         }
@@ -1548,19 +1574,21 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             for (si, stage) in stages.iter().enumerate() {
                 let stage_name = stage.get("Name").and_then(|n| n.as_str()).unwrap_or("unknown");
                 if let Some(actions) = stage.get("Actions").and_then(|a| a.as_array()) {
-                    for action in actions {
+                    for (ai, action) in actions.iter().enumerate() {
                         let aname = action.get("Name").and_then(|n| n.as_str()).unwrap_or("unknown");
                         if let Some(outs) = action.get("OutputArtifacts").and_then(|o| o.as_array()) {
-                            for o in outs {
+                            for (oi, o) in outs.iter().enumerate() {
                                 if let Some(n) = o.get("Name").and_then(|n| n.as_str())
                                     && !seen_outputs.insert(n.to_string())
                                 {
+                                    let path =
+                                        format!("Properties.Stages.{}.Actions.{}.OutputArtifacts.{}.Name", si, ai, oi);
                                     out.push(make_resource_diagnostic(
                                         "E3701",
                                         &format!("Duplicate OutputArtifact name '{}'", n),
                                         m,
                                         name,
-                                        "",
+                                        &path,
                                         None,
                                     ));
                                 }
@@ -1569,11 +1597,13 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                         if si > 0
                             && let Some(ins) = action.get("InputArtifacts").and_then(|i| i.as_array())
                         {
-                            for i in ins {
+                            for (ii, i) in ins.iter().enumerate() {
                                 if let Some(n) = i.get("Name").and_then(|n| n.as_str())
                                     && !seen_outputs.contains(n)
                                 {
-                                    out.push(make_resource_diagnostic("E3701", &format!("InputArtifact '{}' in stage '{}' action '{}' does not reference a previously defined OutputArtifact", n, stage_name, aname), m, name, "", None));
+                                    let path =
+                                        format!("Properties.Stages.{}.Actions.{}.InputArtifacts.{}.Name", si, ai, ii);
+                                    out.push(make_resource_diagnostic("E3701", &format!("InputArtifact '{}' in stage '{}' action '{}' does not reference a previously defined OutputArtifact", n, stage_name, aname), m, name, &path, None));
                                 }
                             }
                         }
@@ -1589,9 +1619,9 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         let stages_json =
             m.resolve_deep(name, "Properties.Stages").map(|rv| resolved_to_json_preserving_conditionals(&rv));
         if let Some(serde_json::Value::Array(stages)) = stages_json {
-            for stage in &stages {
+            for (si, stage) in stages.iter().enumerate() {
                 if let Some(actions) = stage.get("Actions").and_then(|a| a.as_array()) {
-                    for action in actions {
+                    for (ai, action) in actions.iter().enumerate() {
                         let action_type_id = action.get("ActionTypeId");
                         let owner = action_type_id.and_then(|a| a.get("Owner")).and_then(|c| c.as_str());
                         let category = action_type_id.and_then(|a| a.get("Category")).and_then(|c| c.as_str());
@@ -1606,6 +1636,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                         };
                         let aname = action.get("Name").and_then(|n| n.as_str()).unwrap_or("unknown");
                         let key = format!("{owner}/{category}/{provider}");
+                        let action_path = format!("Properties.Stages.{}.Actions.{}", si, ai);
                         if let Some(counts) = ctx.cached_data.codepipeline_artifact_counts.get(&key) {
                             // An artifact list may be authored directly or wrapped
                             // in an Fn::If; enumerate every branch's count (walk each
@@ -1621,7 +1652,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                                         ),
                                         m,
                                         name,
-                                        "",
+                                        &action_path,
                                         None,
                                     ));
                                 }
@@ -1634,7 +1665,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                                         ),
                                         m,
                                         name,
-                                        "",
+                                        &action_path,
                                         None,
                                     ));
                                 }
@@ -1649,7 +1680,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                                         ),
                                         m,
                                         name,
-                                        "",
+                                        &action_path,
                                         None,
                                     ));
                                 }
@@ -1662,7 +1693,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                                         ),
                                         m,
                                         name,
-                                        "",
+                                        &action_path,
                                         None,
                                     ));
                                 }
@@ -1809,7 +1840,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                     "SnapStart is enabled but no AWS::Lambda::Version resource is attached",
                     m,
                     name,
-                    "Properties.SnapStart",
+                    "Properties.SnapStart.ApplyOn",
                     Some("Add an AWS::Lambda::Version resource that references this function"),
                 ));
             }
@@ -2778,7 +2809,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                         &format!("Environment variable '{}' is a Lambda reserved key", key),
                         m,
                         name,
-                        "Properties.Environment.Variables",
+                        &format!("Properties.Environment.Variables.{}", key),
                         None,
                     ));
                 }
@@ -3061,54 +3092,63 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             }
         }
 
-        let wildcard_enum_checks: &[(&str, &str, &str, &str, &str)] = &[
+        let indexed_enum_checks: &[(&str, &str, &str, &str, &str)] = &[
             (
                 "E3642",
                 "AWS::SageMaker::InferenceExperiment",
-                "Properties.ModelVariants.{}.InfrastructureConfig.RealTimeInferenceConfig.InstanceType",
-                "Properties.ModelVariants.InfrastructureConfig.RealTimeInferenceConfig.InstanceType",
+                "Properties.ModelVariants",
+                "InfrastructureConfig.RealTimeInferenceConfig.InstanceType",
                 "data/aws_sagemaker_hosting_instancetype_enum",
             ),
             (
                 "E3643",
                 "AWS::SageMaker::ModelPackage",
-                "Properties.ValidationSpecification.ValidationProfiles.{}.TransformJobDefinition.TransformResources.InstanceType",
-                "Properties.ValidationSpecification.ValidationProfiles.TransformJobDefinition.TransformResources.InstanceType",
+                "Properties.ValidationSpecification.ValidationProfiles",
+                "TransformJobDefinition.TransformResources.InstanceType",
                 "data/aws_sagemaker_transform_instancetype_enum",
             ),
             (
                 "E3644",
                 "AWS::SageMaker::Cluster",
-                "Properties.InstanceGroups.{}.InstanceType",
-                "Properties.InstanceGroups.InstanceType",
+                "Properties.InstanceGroups",
+                "InstanceType",
                 "data/aws_sagemaker_cluster_instancetype_enum",
             ),
             (
                 "E3644",
                 "AWS::SageMaker::Cluster",
-                "Properties.RestrictedInstanceGroups.{}.InstanceType",
-                "Properties.RestrictedInstanceGroups.InstanceType",
+                "Properties.RestrictedInstanceGroups",
+                "InstanceType",
                 "data/aws_sagemaker_cluster_instancetype_enum",
             ),
         ];
-        for &(rule_id, rtype, wildcard_path, report_path, enum_key) in wildcard_enum_checks {
+        for &(rule_id, rtype, list_path, item_path, enum_key) in indexed_enum_checks {
             let Some(allowed) = region_flat_allowed(&ctx.cached_data.enum_data, enum_key, region) else {
                 continue;
             };
             for name in m.resources_of_type(rtype) {
                 let mut reported = HashSet::new();
-                for val in resolve_concrete_strings(m, name, wildcard_path) {
-                    if allowed.contains(val.as_str()) || !reported.insert(val.clone()) {
-                        continue;
+                for list_value in resolve_all_json(m, name, list_path) {
+                    let Some(items) = list_value.as_array() else { continue };
+                    for (index, item) in items.iter().enumerate() {
+                        let Some(value) = item_path.split('.').try_fold(item, |current, segment| current.get(segment))
+                        else {
+                            continue;
+                        };
+                        let Some(val) = value.as_str() else { continue };
+                        let report_path = format!("{}.{}.{}", list_path, index, item_path);
+                        if allowed.contains(val) || !reported.insert((report_path.clone(), val.to_string())) {
+                            continue;
+                        }
+                        out.push(make_resource_diagnostic(
+                            rule_id,
+                            &region_enums::flat_invalid_message(val, region),
+                            m,
+                            name,
+                            &report_path,
+                            None,
+                        ));
                     }
-                    out.push(make_resource_diagnostic(
-                        rule_id,
-                        &region_enums::flat_invalid_message(&val, region),
-                        m,
-                        name,
-                        report_path,
-                        None,
-                    ));
                 }
             }
         }
@@ -4108,40 +4148,6 @@ fn resolve_enum_string(m: &SemanticModel, rid: &str, path: &str) -> Option<Strin
     match resolved_to_json_best_effort(&resolved) {
         serde_json::Value::String(s) => Some(s),
         _ => None,
-    }
-}
-
-fn resolve_concrete_strings(m: &SemanticModel, rid: &str, path: &str) -> Vec<String> {
-    let Some(resolved) = m.resolve_deep(rid, path).or_else(|| m.resolve(rid, path).cloned()) else {
-        return Vec::new();
-    };
-    let mut out = Vec::new();
-    collect_concrete_strings(&resolved, &mut out);
-    out
-}
-
-fn collect_concrete_strings(value: &ResolvedValue, out: &mut Vec<String>) {
-    match value {
-        ResolvedValue::Concrete { value: v } => {
-            if let Some(s) = v.0.as_str() {
-                out.push(s.to_string());
-            }
-        }
-        ResolvedValue::Enum { variants } => {
-            for variant in variants {
-                collect_concrete_strings(variant, out);
-            }
-        }
-        ResolvedValue::List { items } => {
-            for item in items {
-                collect_concrete_strings(item, out);
-            }
-        }
-        ResolvedValue::Conditional { if_true, if_false, .. } => {
-            collect_concrete_strings(if_true, out);
-            collect_concrete_strings(if_false, out);
-        }
-        _ => {}
     }
 }
 

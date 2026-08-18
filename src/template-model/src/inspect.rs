@@ -318,8 +318,11 @@ fn inspect_file(path: &str) {
             println!("  │  Properties: <dynamic - resolved at deploy time>");
         }
 
-        if !res.diagnostics.find_in_map_refs.is_empty() {
-            println!("  │  FindInMap refs: {}", res.diagnostics.find_in_map_refs.join(", "));
+        if !res.diagnostics.find_in_map_ref_paths.is_empty() {
+            println!("  │  FindInMap refs:");
+            for entry in &res.diagnostics.find_in_map_ref_paths {
+                println!("  │    {} → {}", entry.path, entry.value);
+            }
         }
         if !res.diagnostics.simple_subs.is_empty() {
             println!("  │  Simple Subs:");

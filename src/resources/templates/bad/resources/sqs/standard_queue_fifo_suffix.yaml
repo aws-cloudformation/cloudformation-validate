@@ -1,0 +1,7 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  StandardQueueWithFifoSuffix:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: standard-queue.fifo
+      FifoQueue: false

@@ -8,8 +8,9 @@ import rego.v1
 # any other namespace (private registry types, `Custom::` resources, modules,
 # hook-shaped names) may be registered per account/region, so they are skipped
 # entirely rather than guessed at.
-violation contains make_diag("F3006", "FATAL", name,
-    sprintf("Unknown resource type '%s'", [rtype])) if {
+violation contains make_diag_full("F3006", "FATAL", name, "Type",
+    sprintf("Unknown resource type '%s'", [rtype]),
+    "", "") if {
     some name, res in input.resources
     rtype := res.resourceType
     is_string(rtype)

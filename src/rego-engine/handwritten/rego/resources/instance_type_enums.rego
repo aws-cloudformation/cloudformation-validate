@@ -127,35 +127,45 @@ violation contains make_diag_full("E3640", "ERROR", name, path, msg, "", "") if 
     msg := region_flat_invalid(data.aws_sagemaker_processing_instancetype_enum, val)
 }
 
-# E3642: SageMaker hosting/inference InstanceType not valid for region
-violation contains make_diag_full("E3642", "ERROR", name,
-    "Properties.ModelVariants.InfrastructureConfig.RealTimeInferenceConfig.InstanceType", msg, "", "") if {
+# Hosting/inference instance types are reported at the exact model-variant entry.
+violation contains make_diag_full("E3642", "ERROR", name, report_path, msg, "", "") if {
     some name in resources_of_type("AWS::SageMaker::InferenceExperiment")
-    some val in resolve_all(name, "Properties.ModelVariants.{}.InfrastructureConfig.RealTimeInferenceConfig.InstanceType")
+    some variants in resolve_all(name, "Properties.ModelVariants")
+    is_array(variants)
+    some index, variant in variants
+    val := variant.InfrastructureConfig.RealTimeInferenceConfig.InstanceType
     is_string(val)
+    report_path := sprintf("Properties.ModelVariants.%d.InfrastructureConfig.RealTimeInferenceConfig.InstanceType", [index])
     msg := region_flat_invalid(data.aws_sagemaker_hosting_instancetype_enum, val)
 }
 
-# E3643: SageMaker transform InstanceType not valid for region.
-violation contains make_diag_full("E3643", "ERROR", name,
-    "Properties.ValidationSpecification.ValidationProfiles.TransformJobDefinition.TransformResources.InstanceType", msg, "", "") if {
+# Transform instance types are reported at the exact validation-profile entry.
+violation contains make_diag_full("E3643", "ERROR", name, report_path, msg, "", "") if {
     some name in resources_of_type("AWS::SageMaker::ModelPackage")
-    some val in resolve_all(name, "Properties.ValidationSpecification.ValidationProfiles.{}.TransformJobDefinition.TransformResources.InstanceType")
+    some profiles in resolve_all(name, "Properties.ValidationSpecification.ValidationProfiles")
+    is_array(profiles)
+    some index, profile in profiles
+    val := profile.TransformJobDefinition.TransformResources.InstanceType
     is_string(val)
+    report_path := sprintf("Properties.ValidationSpecification.ValidationProfiles.%d.TransformJobDefinition.TransformResources.InstanceType", [index])
     msg := region_flat_invalid(data.aws_sagemaker_transform_instancetype_enum, val)
 }
 
-# E3644: SageMaker cluster InstanceType not valid for region
-_e3644_paths := {
-    "Properties.InstanceGroups.InstanceType": "Properties.InstanceGroups.{}.InstanceType",
-    "Properties.RestrictedInstanceGroups.InstanceType": "Properties.RestrictedInstanceGroups.{}.InstanceType",
+_cluster_instance_type_lists := {
+    "Properties.InstanceGroups",
+    "Properties.RestrictedInstanceGroups",
 }
 
+# Cluster instance types are reported at the exact group entry.
 violation contains make_diag_full("E3644", "ERROR", name, report_path, msg, "", "") if {
     some name in resources_of_type("AWS::SageMaker::Cluster")
-    some report_path, wildcard_path in _e3644_paths
-    some val in resolve_all(name, wildcard_path)
+    some list_path in _cluster_instance_type_lists
+    some groups in resolve_all(name, list_path)
+    is_array(groups)
+    some index, group in groups
+    val := group.InstanceType
     is_string(val)
+    report_path := sprintf("%s.%d.InstanceType", [list_path, index])
     msg := region_flat_invalid(data.aws_sagemaker_cluster_instancetype_enum, val)
 }
 

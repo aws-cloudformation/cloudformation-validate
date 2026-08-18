@@ -196,6 +196,12 @@ fn build_resources(
                     outgoing_refs: outgoing,
                     incoming_refs: incoming,
                     find_in_map_refs: res.diagnostics.find_in_map_refs.clone(),
+                    find_in_map_ref_paths: res
+                        .diagnostics
+                        .find_in_map_ref_paths
+                        .iter()
+                        .map(|entry| PathTarget { path: entry.path.clone(), target: entry.value.clone() })
+                        .collect(),
                     simple_subs: res
                         .diagnostics
                         .simple_subs

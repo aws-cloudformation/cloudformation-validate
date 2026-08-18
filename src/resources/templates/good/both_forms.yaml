@@ -33,6 +33,7 @@ Resources:
   WithGetAtt:
     Type: Custom::IntrinsicTest
     Properties:
+      ServiceToken: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test"
       ShortForm: !GetAtt BucketShort.Arn
       LongFormDotted:
         Fn::GetAtt: BucketShort.DomainName
@@ -43,6 +44,7 @@ Resources:
   WithJoin:
     Type: Custom::IntrinsicTest
     Properties:
+      ServiceToken: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test"
       Short: !Join ["-", [a, b, c]]
       Long:
         Fn::Join:
@@ -51,6 +53,7 @@ Resources:
   WithSelect:
     Type: Custom::IntrinsicTest
     Properties:
+      ServiceToken: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test"
       Short: !Select [0, [a, b]]
       Long:
         Fn::Select:
@@ -59,6 +62,7 @@ Resources:
   WithIf:
     Type: Custom::IntrinsicTest
     Properties:
+      ServiceToken: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test"
       Short: !If [IsProd, yes, no]
       Long:
         Fn::If:
@@ -68,6 +72,7 @@ Resources:
   WithFindInMap:
     Type: Custom::IntrinsicTest
     Properties:
+      ServiceToken: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test"
       Short: !FindInMap [MyMap, !Ref Env, key]
       Long:
         Fn::FindInMap:
@@ -77,12 +82,14 @@ Resources:
   WithBase64:
     Type: Custom::IntrinsicTest
     Properties:
+      ServiceToken: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test"
       Short: !Base64 hello
       Long:
         Fn::Base64: hello-long
   WithSplit:
     Type: Custom::IntrinsicTest
     Properties:
+      ServiceToken: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test"
       Short: !Split [",", "a,b,c"]
       Long:
         Fn::Split:
@@ -91,18 +98,21 @@ Resources:
   WithImport:
     Type: Custom::IntrinsicTest
     Properties:
+      ServiceToken: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test"
       Short: !ImportValue SharedStack-Output
       Long:
         Fn::ImportValue: SharedStack-Output2
   WithGetAZs:
     Type: Custom::IntrinsicTest
     Properties:
+      ServiceToken: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test"
       Short: !GetAZs us-east-1
       Long:
         Fn::GetAZs: us-west-2
   WithCidr:
     Type: Custom::IntrinsicTest
     Properties:
+      ServiceToken: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test"
       Short: !Cidr ["10.0.0.0/16", 6, 8]
       Long:
         Fn::Cidr:
@@ -112,6 +122,7 @@ Resources:
   SubBlock:
     Type: Custom::IntrinsicTest
     Properties:
+      ServiceToken: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test"
       UserData: !Sub |
         #!/bin/bash
         echo ${Env}

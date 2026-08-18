@@ -777,3 +777,26 @@ fn i9001_conditional_create_only_not_emitted_when_property_is_absent() {
         "control VPC without InstanceTenancy must not emit I9001 for InstanceTenancy, got: {control_diagnostics:?}"
     );
 }
+
+#[test]
+fn custom_prefix_missing_service_token_fires_f3003() {
+    let diags = validate_fixture("bad/resources/properties/custom_missing_service_token.yaml");
+    let f3003 = diags_for(&diags, "F3003");
+    assert!(
+        f3003.iter().any(|d| d.message.contains("ServiceToken")
+            && d.entity.as_ref().map(|e| e.logical_id == "CustomPrefixMissingToken").unwrap_or(false)),
+        "F3003 should fire for Custom:: resource missing ServiceToken, got: {:?}",
+        f3003
+    );
+}
+
+#[test]
+fn custom_with_service_token_passes_clean() {
+    let diags = validate_fixture("good/resources/properties/custom_with_service_token.yaml");
+    let f3003 = diags_for(&diags, "F3003");
+    assert!(
+        f3003.is_empty(),
+        "F3003 should not fire when ServiceToken is present, got: {:?}",
+        f3003.iter().map(|d| &d.message).collect::<Vec<_>>()
+    );
+}

@@ -659,3 +659,254 @@ fn walk_recursive(dir: &std::path::Path, out: &mut Vec<std::path::PathBuf>) {
         }
     }
 }
+
+#[test]
+fn standard_queue_names_respect_the_fifo_suffix_boundary() {
+    let invalid = "bad/resources/sqs/standard_queue_fifo_suffix.yaml";
+    let valid = "good/resources/sqs/standard_queue_name.yaml";
+    let findings = |engine: &dyn ValidationEngine, template: &str| {
+        validate_template(engine, template)
+            .into_iter()
+            .filter(|diagnostic| diagnostic.rule_id == "E3501")
+            .collect::<Vec<_>>()
+    };
+
+    let rego_invalid = findings(&*REGO, invalid);
+    let cel_invalid = findings(&*CEL, invalid);
+    assert_eq!(rego_invalid.len(), 1);
+    assert_eq!(rego_invalid[0].property_path.as_deref(), Some("Properties.QueueName"));
+    assert_eq!(serde_json::to_value(&rego_invalid).unwrap(), serde_json::to_value(&cel_invalid).unwrap());
+
+    assert!(findings(&*REGO, valid).is_empty());
+    assert!(findings(&*CEL, valid).is_empty());
+}
+
+#[test]
+fn obsolete_dependencies_anchor_each_array_entry() {
+    let template = br#"
+Resources:
+  FirstTopic:
+    Type: AWS::SNS::Topic
+  SecondTopic:
+    Type: AWS::SNS::Topic
+  ConsumerTopic:
+    Type: AWS::SNS::Topic
+    DependsOn:
+      - FirstTopic
+      - SecondTopic
+    Properties:
+      DisplayName: !Sub "${FirstTopic}-${SecondTopic}"
+"#;
+    let schema_validator = SchemaValidator::default();
+    let findings = |engine: &dyn ValidationEngine| {
+        let report = validate_bytes(engine, &schema_validator, template, ValidateConfig::default()).unwrap();
+        let mut diagnostics: Vec<Diagnostic> =
+            report.diagnostics.into_iter().filter(|diagnostic| diagnostic.rule_id == "W3005").collect();
+        diagnostics.sort_by(|left, right| left.property_path.cmp(&right.property_path));
+        diagnostics
+    };
+
+    let rego = findings(&*REGO);
+    let cel = findings(&*CEL);
+    assert_eq!(
+        rego.iter().filter_map(|diagnostic| diagnostic.property_path.as_deref()).collect::<Vec<_>>(),
+        ["DependsOn.0", "DependsOn.1"]
+    );
+    assert_eq!(serde_json::to_value(&rego).unwrap(), serde_json::to_value(&cel).unwrap());
+}
+
+#[test]
+fn nested_metadata_intrinsics_use_authored_source_locations() {
+    let template = br#"Resources:
+  R:
+    Type: AWS::EC2::Instance
+    Metadata:
+      AWS::CloudFormation::Init:
+        config:
+          files:
+            /etc/cfn/cfn-hup.conf:
+              content: !Sub constant
+            /etc/cfn/cfn-auto-reloader.conf:
+              content: !Join ["", ["a", "b"]]
+"#;
+    let schema_validator = SchemaValidator::default();
+    let findings = |engine: &dyn ValidationEngine| {
+        let report = validate_bytes(engine, &schema_validator, template, ValidateConfig::default()).unwrap();
+        let mut diagnostics: Vec<Diagnostic> = report
+            .diagnostics
+            .into_iter()
+            .filter(|diagnostic| matches!(diagnostic.rule_id.as_str(), "W1020" | "I1022"))
+            .collect();
+        diagnostics.sort_by(|left, right| left.rule_id.cmp(&right.rule_id));
+        diagnostics
+    };
+
+    let rego = findings(&*REGO);
+    let cel = findings(&*CEL);
+    assert_eq!(serde_json::to_value(&rego).unwrap(), serde_json::to_value(&cel).unwrap());
+    assert_eq!(rego.len(), 2, "expected one finding for each redundant intrinsic: {rego:?}");
+    assert_eq!(rego[0].rule_id, "I1022");
+    assert_eq!(rego[0].location.as_ref().map(|location| location.start_line), Some(11));
+    assert_eq!(rego[1].rule_id, "W1020");
+    assert_eq!(rego[1].location.as_ref().map(|location| location.start_line), Some(9));
+}
+
+#[test]
+fn dependency_diagnostics_preserve_authored_scalar_and_array_paths() {
+    let template = br#"Resources:
+  Existing:
+    Type: AWS::SNS::Topic
+  MissingArray:
+    Type: AWS::SNS::Topic
+    DependsOn:
+      - NotPresentArray
+  MissingScalar:
+    Type: AWS::SNS::Topic
+    DependsOn: NotPresentScalar
+  RedundantArray:
+    Type: AWS::SNS::Topic
+    DependsOn:
+      - Existing
+    Properties:
+      DisplayName: !Ref Existing
+  RedundantScalar:
+    Type: AWS::SNS::Topic
+    DependsOn: Existing
+    Properties:
+      DisplayName: !Ref Existing
+"#;
+    let schema_validator = SchemaValidator::default();
+    let findings = |engine: &dyn ValidationEngine| {
+        let report = validate_bytes(engine, &schema_validator, template, ValidateConfig::default()).unwrap();
+        let mut diagnostics: Vec<Diagnostic> = report
+            .diagnostics
+            .into_iter()
+            .filter(|diagnostic| matches!(diagnostic.rule_id.as_str(), "E3005" | "W3005"))
+            .collect();
+        diagnostics.sort_by(|left, right| {
+            left.entity
+                .as_ref()
+                .map(|entity| entity.logical_id.as_str())
+                .cmp(&right.entity.as_ref().map(|entity| entity.logical_id.as_str()))
+        });
+        diagnostics
+    };
+
+    let rego = findings(&*REGO);
+    let cel = findings(&*CEL);
+    assert_eq!(serde_json::to_value(&rego).unwrap(), serde_json::to_value(&cel).unwrap());
+    let identities: Vec<(&str, &str, &str)> = rego
+        .iter()
+        .map(|diagnostic| {
+            (
+                diagnostic.entity.as_ref().map(|entity| entity.logical_id.as_str()).unwrap_or_default(),
+                diagnostic.rule_id.as_str(),
+                diagnostic.property_path.as_deref().unwrap_or_default(),
+            )
+        })
+        .collect();
+    assert_eq!(
+        identities,
+        [
+            ("MissingArray", "E3005", "DependsOn.0"),
+            ("MissingScalar", "E3005", "DependsOn"),
+            ("RedundantArray", "W3005", "DependsOn.0"),
+            ("RedundantScalar", "W3005", "DependsOn"),
+        ]
+    );
+}
+
+#[test]
+fn diagnostics_retain_precise_authored_member_paths() {
+    let cases = [
+        ("bad/E9001_unknown_resource_type.yaml", "F3006", "Mystery", "Type"),
+        ("bad/sam/transform_bogus_name.yaml", "E3038", "MyFn", "Type"),
+        ("bad/lambda_zipfile_java.yaml", "E3677", "LambdaFn", "Properties.Runtime"),
+        ("bad/fargate_daemon.yaml", "E3052", "FargateDaemon", "Properties"),
+        ("bad/findinmap_bad.yaml", "F1012", "Bucket", "Properties.Tags.0.Value.Fn::FindInMap.0"),
+        (
+            "bad/functions_getaz.yaml",
+            "E9004",
+            "mySubnet3",
+            "Properties.AvailabilityZone.Fn::Select.1.Fn::GetAZs.Fn::GetAtt.1",
+        ),
+        (
+            "bad/codepipeline_bad_artifacts.yaml",
+            "E3701",
+            "Pipeline",
+            "Properties.Stages.1.Actions.0.InputArtifacts.0.Name",
+        ),
+        ("bad/codepipeline_bad_artifact_counts.yaml", "E3702", "Pipeline", "Properties.Stages.1.Actions.0"),
+        ("bad/stepfunctions_bad_start_at.yaml", "E3601", "SM", "Properties.DefinitionString.StartAt"),
+        ("bad/core/E3001_resource_shape.yaml", "E3001", "NumericType", "Type"),
+        ("bad/undefined_condition.yaml", "E8002", "R", "Condition"),
+        ("bad/lambda_snapstart_no_version.yaml", "W2530", "Func", "Properties.SnapStart.ApplyOn"),
+        ("bad/cross_resource_task10.yaml", "E3663", "BadEnvLambda", "Properties.Environment.Variables.AWS_REGION"),
+        (
+            "bad/sagemaker_instance_types.yaml",
+            "E3642",
+            "InferenceExperiment",
+            "Properties.ModelVariants.0.InfrastructureConfig.RealTimeInferenceConfig.InstanceType",
+        ),
+        (
+            "bad/sagemaker_instance_types.yaml",
+            "E3643",
+            "ModelPackage",
+            "Properties.ValidationSpecification.ValidationProfiles.0.TransformJobDefinition.TransformResources.InstanceType",
+        ),
+        ("bad/sagemaker_instance_types.yaml", "E3644", "Cluster", "Properties.InstanceGroups.0.InstanceType"),
+    ];
+
+    for (template, rule_id, resource_id, expected_path) in cases {
+        let selected = |engine: &dyn ValidationEngine| {
+            validate_template(engine, template)
+                .into_iter()
+                .filter(|diagnostic| {
+                    diagnostic.rule_id == rule_id
+                        && diagnostic.entity.as_ref().map(|entity| entity.logical_id.as_str()) == Some(resource_id)
+                })
+                .collect::<Vec<_>>()
+        };
+        let rego = selected(&*REGO);
+        let cel = selected(&*CEL);
+        assert_eq!(serde_json::to_value(&rego).unwrap(), serde_json::to_value(&cel).unwrap(), "{template}");
+        assert!(
+            rego.iter().any(|diagnostic| diagnostic.property_path.as_deref() == Some(expected_path)),
+            "{template}: expected {rule_id} on {resource_id} at {expected_path}, got {rego:?}"
+        );
+    }
+}
+
+#[test]
+fn output_intrinsics_use_authored_value_spans() {
+    let findings = |engine: &dyn ValidationEngine, template: &str, rule_id: &str| {
+        let mut diagnostics: Vec<Diagnostic> = validate_template(engine, template)
+            .into_iter()
+            .filter(|diagnostic| diagnostic.rule_id == rule_id)
+            .collect();
+        diagnostics.sort_by_key(|diagnostic| diagnostic.location.as_ref().map(|location| location.start_line));
+        diagnostics
+    };
+
+    let rego_invalid = findings(&*REGO, "bad/output_invalid_references.yaml", "F6101");
+    let cel_invalid = findings(&*CEL, "bad/output_invalid_references.yaml", "F6101");
+    assert_eq!(serde_json::to_value(&rego_invalid).unwrap(), serde_json::to_value(&cel_invalid).unwrap());
+    assert_eq!(
+        rego_invalid
+            .iter()
+            .filter_map(|diagnostic| diagnostic.location.as_ref().map(|location| location.start_line))
+            .collect::<Vec<_>>(),
+        [7, 9]
+    );
+
+    let rego_joins = findings(&*REGO, "integration/getatt-types.yaml", "I1022");
+    let cel_joins = findings(&*CEL, "integration/getatt-types.yaml", "I1022");
+    assert_eq!(serde_json::to_value(&rego_joins).unwrap(), serde_json::to_value(&cel_joins).unwrap());
+    assert_eq!(
+        rego_joins
+            .iter()
+            .filter_map(|diagnostic| diagnostic.location.as_ref().map(|location| location.start_line))
+            .collect::<Vec<_>>(),
+        [91, 93]
+    );
+}

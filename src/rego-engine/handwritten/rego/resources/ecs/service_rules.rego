@@ -46,8 +46,9 @@ violation contains make_diag_full("E3054", "ERROR", target_name,
 }
 
 # E3052: ECS Service network config - awsvpc TaskDef requires NetworkConfiguration
-violation contains make_diag("E3052", "ERROR", svc_name,
-    "NetworkConfiguration required when TaskDefinition NetworkMode is 'awsvpc'") if {
+violation contains make_diag_full("E3052", "ERROR", svc_name, "Properties",
+    "NetworkConfiguration required when TaskDefinition NetworkMode is 'awsvpc'",
+    "", "") if {
     some svc_name in resources_of_type("AWS::ECS::Service")
     target_name := follow_ref(svc_name, "Properties.TaskDefinition")
     target_name != null

@@ -29,7 +29,7 @@ violation contains make_diag_at("E3676", "ERROR", name,
 
 # E3663: Lambda environment variable reserved keys
 violation contains make_diag_at("E3663", "ERROR", name,
-    "Properties.Environment.Variables",
+    sprintf("Properties.Environment.Variables.%s", [key]),
     sprintf("Environment variable '%s' is a Lambda reserved key", [key])) if {
     some name in resources_of_type("AWS::Lambda::Function")
     env := resolve(name, "Properties.Environment.Variables")

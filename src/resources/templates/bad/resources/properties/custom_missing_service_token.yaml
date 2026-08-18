@@ -1,0 +1,10 @@
+Resources:
+  CustomPrefixMissingToken:
+    Type: Custom::MyHandler
+    Properties:
+      SomeInput: value
+
+  CloudFormationCustomMissingToken:
+    Type: AWS::CloudFormation::CustomResource
+    Properties:
+      SomeInput: value

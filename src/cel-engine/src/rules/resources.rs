@@ -201,22 +201,6 @@ fn eval_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    for name in m.resources_of_type("AWS::SQS::Queue") {
-        if let Some(serde_json::Value::Bool(true)) = resolve_concrete(m, name, "Properties.FifoQueue")
-            && let Some(serde_json::Value::String(qname)) = resolve_concrete(m, name, "Properties.QueueName")
-            && !qname.ends_with(".fifo")
-        {
-            out.push(make_resource_diagnostic(
-                "E2504",
-                &format!("FIFO queue name '{}' must end with '.fifo'", qname),
-                m,
-                name,
-                "Properties.QueueName",
-                None,
-            ));
-        }
-    }
-
     out
 }
 

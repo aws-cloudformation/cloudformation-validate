@@ -732,7 +732,8 @@ fn e2e_lambda_zipfile_valid() {
 #[test]
 fn e2e_dynamodb_billing_mode() {
     let report = validate_fixture("bad/dynamodb_provisioned_no_throughput.yaml");
-    assert!(has_rule(&report, "F3003"), "Expected F3003 for PROVISIONED without throughput (required property)");
+    assert!(has_rule(&report, "E3639"), "Expected the billing-mode diagnostic for PROVISIONED without throughput");
+    assert!(!has_rule(&report, "F3003"), "The generic missing-property diagnostic should be suppressed");
 }
 
 #[test]

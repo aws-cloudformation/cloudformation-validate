@@ -2,10 +2,12 @@ package intrinsics
 
 import rego.v1
 
-# F1012: FindInMap map name must exist in Mappings
-violation contains make_diag("F1012", "FATAL", name,
-    sprintf("Fn::FindInMap references non-existent mapping '%s'", [map_name])) if {
+# A literal mapping name must identify a declared Mappings entry.
+violation contains make_diag_full("F1012", "FATAL", name, entry.path,
+    sprintf("Fn::FindInMap references non-existent mapping '%s'", [map_name]),
+    "", "") if {
     some name, res in input.resources
-    some map_name in res.findInMapRefs
+    some entry in res.findInMapRefPaths
+    map_name := entry.target
     not object.get(input, "mappings", {})[map_name]
 }

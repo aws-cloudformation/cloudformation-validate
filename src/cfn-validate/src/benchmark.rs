@@ -22,6 +22,16 @@ fn replace_extension_suffix(s: &str, suffix: &str, replacement: &str) -> String 
     }
 }
 
+fn reset_benchmark_performance(report: &mut ValidationReport) {
+    report.performance.schema_init.duration_ms = 0.0;
+    report.performance.engine_init.duration_ms = 0.0;
+    report.performance.model_build.duration_ms = 0.0;
+    report.performance.schema_validate.duration_ms = 0.0;
+    report.performance.rule_evaluation.duration_ms = 0.0;
+    report.performance.diagnostic_finalize.duration_ms = 0.0;
+    report.performance.validate_total.duration_ms = 0.0;
+}
+
 fn main() {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("warn")).init();
     if let Err(e) = run() {
@@ -240,19 +250,10 @@ fn run() -> Result<(), String> {
                     .map_err(|report_error| {
                         format!("failed to create parse-failure report for '{relative_path}': {report_error}")
                     })?;
-                    report.diagnostics.clear();
-                    report.metadata.counts.fatal = 0;
-                    report.metadata.counts.errors = 0;
-                    report.metadata.counts.warnings = 0;
-                    report.metadata.counts.informational = 0;
-                    report.metadata.counts.debug = 0;
-                    report.performance.schema_init.duration_ms = 0.0;
-                    report.performance.engine_init.duration_ms = 0.0;
-                    report.performance.model_build.duration_ms = 0.0;
-                    report.performance.schema_validate.duration_ms = 0.0;
-                    report.performance.rule_evaluation.duration_ms = 0.0;
-                    report.performance.diagnostic_finalize.duration_ms = 0.0;
-                    report.performance.validate_total.duration_ms = 0.0;
+                    // Retain parse diagnostics so the benchmark report matches
+                    // command-line validation. Only zero the performance timings
+                    // because no iterated measurement was performed.
+                    reset_benchmark_performance(&mut report);
                     let benchmark_metrics = serde_json::json!({
                         "iterations": 0,
                         "firstIteration": {
@@ -922,4 +923,39 @@ fn run_fingerprint(corpus_fp: &str, engine: &str, format: &str, iterations: usiz
     let mut h = Sha256::new();
     h.update(format!("{}|{}|{}|{}", corpus_fp, engine, format, iterations).as_bytes());
     to_hex(h.finalize())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn performance_reset_preserves_parse_findings() {
+        let schema_validator = SchemaValidator::default();
+        let engine = RegoEngine::new(EngineConfig::default()).unwrap();
+        let mut report = validate_bytes_with_path(
+            &engine,
+            &schema_validator,
+            b"totally not yaml { or json [",
+            ValidateConfig::default(),
+            "bad.yaml".to_string(),
+        )
+        .unwrap();
+        let diagnostic_count = report.diagnostics.len();
+        let fatal_count = report.metadata.counts.fatal;
+        assert!(diagnostic_count > 0);
+        assert!(fatal_count > 0);
+
+        reset_benchmark_performance(&mut report);
+
+        assert_eq!(report.diagnostics.len(), diagnostic_count);
+        assert_eq!(report.metadata.counts.fatal, fatal_count);
+        assert_eq!(report.performance.schema_init.duration_ms, 0.0);
+        assert_eq!(report.performance.engine_init.duration_ms, 0.0);
+        assert_eq!(report.performance.model_build.duration_ms, 0.0);
+        assert_eq!(report.performance.schema_validate.duration_ms, 0.0);
+        assert_eq!(report.performance.rule_evaluation.duration_ms, 0.0);
+        assert_eq!(report.performance.diagnostic_finalize.duration_ms, 0.0);
+        assert_eq!(report.performance.validate_total.duration_ms, 0.0);
+    }
 }

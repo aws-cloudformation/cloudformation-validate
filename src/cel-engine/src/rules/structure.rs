@@ -504,7 +504,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                     &format!("Resource type '{}' requires the AWS::Serverless-2016-10-31 transform", res.resource_type),
                     m,
                     name,
-                    "",
+                    "Type",
                     None,
                 ));
             }

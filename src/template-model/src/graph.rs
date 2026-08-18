@@ -151,7 +151,6 @@ impl ReferenceGraph {
                     format!("Circular Dependencies for resource {source}. Circular dependency with [{path}]"),
                 )
                 .resource(source.to_string())
-                .property_path(format!("Resources/{}", source))
                 .location(span)
                 .phase(DefectPhase::Lint)
             })
@@ -761,6 +760,26 @@ mod tests {
         let diags = graph.cycle_diagnostics(&span_index);
         let a = diags.iter().find(|d| d.resource_logical_id() == Some("A")).expect("F3004 for A");
         assert_eq!(a.span.start_line, 42);
-        assert_eq!(a.property_path.as_deref(), Some("Resources/A"));
+        assert_eq!(a.property_path, None, "resource-anchored defect uses resource root (no property path)");
+    }
+
+    /// Circular dependency diagnostics anchor at the resource root: a finding
+    /// already carries the resource logical ID, so there is no child property
+    /// to descend into. property_path must be None.
+    #[test]
+    fn graph_cycle_diagnostics_property_path_is_resource_root() {
+        let edges = vec![make_edge("A", "B"), make_edge("B", "C"), make_edge("C", "A")];
+        let ids = vec!["A".into(), "B".into(), "C".into()];
+        let graph = ReferenceGraph::build(edges, &ids);
+        let diags = graph.cycle_diagnostics(&HashMap::new());
+        for d in &diags {
+            assert_eq!(
+                d.property_path,
+                None,
+                "F3004 for {} must have no property_path (resource root), got {:?}",
+                d.resource_logical_id().unwrap_or("?"),
+                d.property_path,
+            );
+        }
     }
 }

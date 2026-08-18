@@ -14,6 +14,32 @@ use template_model::resolver::RefKind;
 use template_model::{PSEUDO_PARAMETERS, SemanticModel, is_custom_resource_type, is_known_region};
 use validation_engine::make_resource_diagnostic;
 
+/// Build a diagnostic property path pointing at the GetAtt resource-name element
+/// (index 0). Appends `.Fn::GetAtt.0` unless sourcePath already ends with
+/// `Fn::GetAtt`, in which case `.0` is sufficient.
+fn getatt_target_path(source_path: &str) -> String {
+    if source_path.is_empty() {
+        "Fn::GetAtt.0".to_string()
+    } else if source_path.ends_with("Fn::GetAtt") {
+        format!("{}.0", source_path)
+    } else {
+        format!("{}.Fn::GetAtt.0", source_path)
+    }
+}
+
+/// Build a diagnostic property path pointing at the GetAtt attribute element
+/// (index 1). Appends `.Fn::GetAtt.1` unless sourcePath already ends with
+/// `Fn::GetAtt`, in which case `.1` is sufficient.
+fn getatt_attr_path(source_path: &str) -> String {
+    if source_path.is_empty() {
+        "Fn::GetAtt.1".to_string()
+    } else if source_path.ends_with("Fn::GetAtt") {
+        format!("{}.1", source_path)
+    } else {
+        format!("{}.Fn::GetAtt.1", source_path)
+    }
+}
+
 pub fn register(reg: &mut NativeRuleRegistry) {
     reg.add(Category::Intrinsic, eval_intrinsics);
     reg.add(Category::Intrinsic, eval_intrinsic_params);
@@ -88,7 +114,7 @@ fn eval_intrinsics(ctx: &EvalContext) -> Vec<Diagnostic> {
                                 &format!("Fn::GetAtt references non-existent resource '{}'", target),
                                 m,
                                 name,
-                                "",
+                                &getatt_target_path(source_path),
                                 Some("Check that the GetAtt target resource exists in the template"),
                             ));
                         } else if !attr.is_empty()
@@ -109,7 +135,7 @@ fn eval_intrinsics(ctx: &EvalContext) -> Vec<Diagnostic> {
                                 &format!("'{}' is not one of {}", attr, render_str_list(valid_list)),
                                 m,
                                 name,
-                                source_path,
+                                &getatt_attr_path(source_path),
                                 Some("Check the resource type documentation for valid GetAtt attributes"),
                             ));
                         }
@@ -162,17 +188,17 @@ fn eval_intrinsics(ctx: &EvalContext) -> Vec<Diagnostic> {
             }
         }
 
-        if let Some(refs) = res.get("findInMapRefs").and_then(|r| r.as_array()) {
-            for map_ref in refs {
-                if let Some(map_name) = map_ref.as_str()
-                    && !m.mappings.contains_key(map_name)
-                {
+        if let Some(refs) = res.get("findInMapRefPaths").and_then(|r| r.as_array()) {
+            for entry in refs {
+                let map_name = entry.get("target").and_then(|target| target.as_str()).unwrap_or("");
+                let path = entry.get("path").and_then(|path| path.as_str()).unwrap_or("");
+                if !map_name.is_empty() && !m.mappings.contains_key(map_name) {
                     out.push(make_resource_diagnostic(
                         "F1012",
                         &format!("Fn::FindInMap references non-existent mapping '{}'", map_name),
                         m,
                         name,
-                        "",
+                        path,
                         None,
                     ));
                 }

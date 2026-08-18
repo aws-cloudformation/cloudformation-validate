@@ -3,7 +3,7 @@ package intrinsics
 import rego.v1
 
 # E9004: GetAtt attribute must exist on target resource type
-violation contains make_diag_full("E9004", "ERROR", name, edge.sourcePath,
+violation contains make_diag_full("E9004", "ERROR", name, _getatt_attr_path(edge.sourcePath),
     sprintf("'%s' is not one of %s", [attr, render_list(valid_attrs)]),
     "Check the resource type documentation for valid GetAtt attributes",
     "") if {
@@ -39,7 +39,7 @@ _is_map_member_attr(attr, target_type) if {
 # to strings when the destination property is typed as string.
 
 # E1020: GetAtt resource must exist in template
-violation contains make_diag_full("F1020", "FATAL", name, "",
+violation contains make_diag_full("F1020", "FATAL", name, _getatt_target_path(edge.sourcePath),
     sprintf("Fn::GetAtt references non-existent resource '%s'", [target]),
     "Check that the GetAtt target resource exists in the template",
     "") if {
@@ -76,6 +76,38 @@ _skip_getatt_types := {
     "AWS::CloudFormation::Stack",
     "AWS::CloudFormation::CustomResource",
     "AWS::CloudFormation::Macro",
+}
+
+# Build a property path pointing at the GetAtt resource-name element (index 0).
+# If sourcePath already ends with `Fn::GetAtt` (or is empty), append `.0`;
+# otherwise append `.Fn::GetAtt.0`.
+_getatt_target_path(source_path) := sprintf("%s.Fn::GetAtt.0", [source_path]) if {
+    source_path != ""
+    not endswith(source_path, "Fn::GetAtt")
+}
+
+_getatt_target_path(source_path) := sprintf("%s.0", [source_path]) if {
+    source_path != ""
+    endswith(source_path, "Fn::GetAtt")
+}
+
+_getatt_target_path(source_path) := "Fn::GetAtt.0" if {
+    source_path == ""
+}
+
+# Build a property path pointing at the GetAtt attribute element (index 1).
+_getatt_attr_path(source_path) := sprintf("%s.Fn::GetAtt.1", [source_path]) if {
+    source_path != ""
+    not endswith(source_path, "Fn::GetAtt")
+}
+
+_getatt_attr_path(source_path) := sprintf("%s.1", [source_path]) if {
+    source_path != ""
+    endswith(source_path, "Fn::GetAtt")
+}
+
+_getatt_attr_path(source_path) := "Fn::GetAtt.1" if {
+    source_path == ""
 }
 
 # GetAtt attribute format mapping

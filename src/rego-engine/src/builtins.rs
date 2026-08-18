@@ -1624,22 +1624,24 @@ fn register_pipeline_artifacts(rego: &mut regorus::Engine, holder: SharedModel) 
                 Some(a) => a,
                 None => continue,
             };
-            for action in actions {
+            for (action_idx, action) in actions.iter().enumerate() {
                 let action_name = action.get("Name").and_then(|v| v.as_str()).unwrap_or("unknown");
                 if let Some(outputs) = action.get("OutputArtifacts").and_then(|v| v.as_array()) {
-                    for out in outputs {
+                    for (out_idx, out) in outputs.iter().enumerate() {
                         if let Some(name) = out.get("Name").and_then(|v| v.as_str())
                             && !seen_outputs.insert(name.to_string()) {
-                                issues.push(serde_json::json!({"message": format!("Duplicate OutputArtifact name '{}' in stage '{}' action '{}'", name, stage_name, action_name)}));
+                                let path = format!("Properties.Stages.{}.Actions.{}.OutputArtifacts.{}.Name", stage_idx, action_idx, out_idx);
+                                issues.push(serde_json::json!({"message": format!("Duplicate OutputArtifact name '{}'", name), "path": path}));
                             }
                     }
                 }
                 if stage_idx > 0
                     && let Some(inputs) = action.get("InputArtifacts").and_then(|v| v.as_array()) {
-                        for inp in inputs {
+                        for (in_idx, inp) in inputs.iter().enumerate() {
                             if let Some(name) = inp.get("Name").and_then(|v| v.as_str())
                                 && !seen_outputs.contains(name) {
-                                    issues.push(serde_json::json!({"message": format!("InputArtifact '{}' in stage '{}' action '{}' does not reference a previously defined OutputArtifact", name, stage_name, action_name)}));
+                                    let path = format!("Properties.Stages.{}.Actions.{}.InputArtifacts.{}.Name", stage_idx, action_idx, in_idx);
+                                    issues.push(serde_json::json!({"message": format!("InputArtifact '{}' in stage '{}' action '{}' does not reference a previously defined OutputArtifact", name, stage_name, action_name), "path": path}));
                                 }
                         }
                     }
@@ -1715,11 +1717,11 @@ fn pipeline_artifact_count_issues(
     let Some(stages) = stages_json.and_then(|v| v.as_array()) else {
         return issues;
     };
-    for stage in stages {
+    for (si, stage) in stages.iter().enumerate() {
         let Some(actions) = stage.get("Actions").and_then(|a| a.as_array()) else {
             continue;
         };
-        for action in actions {
+        for (ai, action) in actions.iter().enumerate() {
             let action_type_id = action.get("ActionTypeId");
             let (Some(owner), Some(category), Some(provider)) = (
                 action_type_id.and_then(|a| a.get("Owner")).and_then(|c| c.as_str()),
@@ -1730,6 +1732,7 @@ fn pipeline_artifact_count_issues(
             };
             let aname = action.get("Name").and_then(|n| n.as_str()).unwrap_or("unknown");
             let key = format!("{owner}/{category}/{provider}");
+            let action_path = format!("Properties.Stages.{}.Actions.{}", si, ai);
             let Some(bounds) = counts.get(&key) else { continue };
             let bound = |field: &str| bounds.get(field).and_then(|v| v.as_u64()).map(|v| v as usize);
             let (min_in, max_in) = (bound("min_input"), bound("max_input"));
@@ -1739,13 +1742,15 @@ fn pipeline_artifact_count_issues(
                     && n < lo
                 {
                     issues.push(serde_json::json!({"message":
-                        format!("Action '{}' ({}) has {} input artifacts, expected at least {}", aname, key, n, lo)}));
+                        format!("Action '{}' ({}) has {} input artifacts, expected at least {}", aname, key, n, lo),
+                        "path": action_path}));
                 }
                 if let Some(hi) = max_in
                     && n > hi
                 {
                     issues.push(serde_json::json!({"message":
-                        format!("Action '{}' ({}) has {} input artifacts, expected at most {}", aname, key, n, hi)}));
+                        format!("Action '{}' ({}) has {} input artifacts, expected at most {}", aname, key, n, hi),
+                        "path": action_path}));
                 }
             }
             for n in rego_artifact_count_scenarios(action.get("OutputArtifacts")) {
@@ -1753,13 +1758,15 @@ fn pipeline_artifact_count_issues(
                     && n < lo
                 {
                     issues.push(serde_json::json!({"message":
-                        format!("Action '{}' ({}) has {} output artifacts, expected at least {}", aname, key, n, lo)}));
+                        format!("Action '{}' ({}) has {} output artifacts, expected at least {}", aname, key, n, lo),
+                        "path": action_path}));
                 }
                 if let Some(hi) = max_out
                     && n > hi
                 {
                     issues.push(serde_json::json!({"message":
-                        format!("Action '{}' ({}) has {} output artifacts, expected at most {}", aname, key, n, hi)}));
+                        format!("Action '{}' ({}) has {} output artifacts, expected at most {}", aname, key, n, hi),
+                        "path": action_path}));
                 }
             }
         }

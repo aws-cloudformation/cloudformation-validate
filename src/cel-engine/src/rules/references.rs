@@ -1,6 +1,7 @@
 use super::{EvalContext, NativeRuleRegistry};
 use diagnostics::Diagnostic;
 use rules::Category;
+use template_model::SemanticModel;
 use template_model::consts::{
     EDGE_KIND_GET_ATT, EDGE_KIND_REF, EDGE_KIND_SUB, FIELD_CONDITION_CONTEXT, FIELD_KIND, FIELD_OUTGOING_REFS,
     FIELD_RESOURCES, FIELD_SOURCE_PATH, FIELD_TARGET, KEY_DEPENDS_ON, OUTPUT_PSEUDO_RESOURCE_PREFIX,
@@ -21,13 +22,27 @@ fn path_inside_fn_if_branch(path: &str) -> bool {
     segments.windows(2).any(|w| w[0] == "Fn::If" && (w[1] == "1" || w[1] == "2"))
 }
 
+fn depends_on_path(model: &SemanticModel, resource_id: &str, dependency_index: usize) -> String {
+    let indexed_path = format!("{}.{}", KEY_DEPENDS_ON, dependency_index);
+    if model
+        .graph
+        .outgoing(resource_id)
+        .iter()
+        .any(|edge| matches!(&edge.kind, RefKind::DependsOn) && edge.source_path == indexed_path)
+    {
+        indexed_path
+    } else {
+        KEY_DEPENDS_ON.to_string()
+    }
+}
+
 fn eval_references(ctx: &EvalContext) -> Vec<Diagnostic> {
     let mut out = Vec::new();
     let m = ctx.model;
     let input = ctx.input;
 
     for (name, res) in &m.resources {
-        for dep in &res.depends_on {
+        for (dependency_index, dep) in res.depends_on.iter().enumerate() {
             if !m.resources.contains_key(dep.as_str()) && !m.sam_implicit_resources.contains(dep.as_str()) {
                 // A dynamic reference cannot name a resource: DependsOn takes
                 // literal logical IDs only, so say that rather than implying a
@@ -37,13 +52,14 @@ fn eval_references(ctx: &EvalContext) -> Vec<Diagnostic> {
                 } else {
                     format!("DependsOn target '{}' does not exist as a resource", dep)
                 };
-                out.push(make_resource_diagnostic("E3005", &message, m, name, "", None));
+                let property_path = depends_on_path(m, name, dependency_index);
+                out.push(make_resource_diagnostic("E3005", &message, m, name, &property_path, None));
             }
         }
     }
 
     for (name, res) in &m.resources {
-        for dep in &res.depends_on {
+        for (dependency_index, dep) in res.depends_on.iter().enumerate() {
             if let Some(dep_res) = m.resources.get(dep.as_str())
                 && let Some(ref dep_cond) = dep_res.condition
             {
@@ -56,12 +72,13 @@ fn eval_references(ctx: &EvalContext) -> Vec<Diagnostic> {
                         None => false, // unconditional resource depends on conditional
                     };
                     if !implies {
+                        let property_path = depends_on_path(m, name, dependency_index);
                         out.push(make_resource_diagnostic(
                             "E3005",
                             &format!("'{}' will not exist when condition '{}' is False", dep, dep_cond),
                             m,
                             name,
-                            KEY_DEPENDS_ON,
+                            &property_path,
                             Some(&format!("Add a Condition to '{}' that implies '{}'", name, dep_cond)),
                         ));
                     }
@@ -71,7 +88,7 @@ fn eval_references(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     for (name, res) in &m.resources {
-        for dep in &res.depends_on {
+        for (dep_idx, dep) in res.depends_on.iter().enumerate() {
             for edge in m.graph.outgoing(name) {
                 if edge.target == *dep {
                     let kind_str = match &edge.kind {
@@ -80,12 +97,13 @@ fn eval_references(ctx: &EvalContext) -> Vec<Diagnostic> {
                         RefKind::Sub { var: _ } => EDGE_KIND_SUB,
                         _ => continue,
                     };
+                    let anchor = depends_on_path(m, name, dep_idx);
                     out.push(make_resource_diagnostic(
                         "W3005",
                         &format!("'{}' dependency already enforced by a '{}' at '{}'", dep, kind_str, edge.source_path),
                         m,
                         name,
-                        KEY_DEPENDS_ON,
+                        &anchor,
                         Some("Remove the DependsOn entry"),
                     ));
                 }

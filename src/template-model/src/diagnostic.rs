@@ -210,8 +210,10 @@ pub struct DiagnosticResource {
     pub properties: HashMap<String, JsonValue>,
     pub outgoing_refs: Vec<OutgoingRef>,
     pub incoming_refs: Vec<IncomingRef>,
-    /// Mapping names referenced by Fn::FindInMap within this resource.
+    /// Mapping names referenced by Fn::FindInMap.
     pub find_in_map_refs: Vec<String>,
+    /// Map-name arguments paired with their authored property paths.
+    pub find_in_map_ref_paths: Vec<PathTarget>,
     /// Fn::Sub uses whose template is a single variable with no surrounding text, which could be written as a plain reference.
     pub simple_subs: Vec<PathVariable>,
     /// Property paths where Fn::Sub has no variables to substitute.
