@@ -37,6 +37,9 @@
       "RestApiId",
       "StageName"
     ],
+    "AWS::ApiGatewayV2::ApiGatewayManagedOverrides": [
+      "ApiId"
+    ],
     "AWS::ApiGatewayV2::DomainName": [
       "DomainName"
     ],
@@ -354,6 +357,9 @@
     "AWS::DMS::EventSubscription": [
       "SubscriptionName"
     ],
+    "AWS::DMS::ReplicationSubnetGroup": [
+      "ReplicationSubnetGroupIdentifier"
+    ],
     "AWS::DataBrew::Dataset": [
       "Name"
     ],
@@ -395,6 +401,12 @@
     ],
     "AWS::DevOpsAgent::PrivateConnection": [
       "Name"
+    ],
+    "AWS::DocDB::DBClusterParameterGroup": [
+      "Name"
+    ],
+    "AWS::DocDB::DBSubnetGroup": [
+      "DBSubnetGroupName"
     ],
     "AWS::DocDB::EventSubscription": [
       "SubscriptionName"
@@ -652,6 +664,9 @@
     "AWS::Glue::DataCatalogEncryptionSettings": [
       "CatalogId"
     ],
+    "AWS::Glue::DataQualityRuleset": [
+      "Name"
+    ],
     "AWS::Glue::Database": [
       "DatabaseName"
     ],
@@ -662,6 +677,15 @@
       "SchemaVersionId",
       "Key",
       "Value"
+    ],
+    "AWS::Glue::SecurityConfiguration": [
+      "Name"
+    ],
+    "AWS::Glue::TableOptimizer": [
+      "TableName",
+      "DatabaseName",
+      "Type",
+      "CatalogId"
     ],
     "AWS::Glue::Trigger": [
       "Name"
@@ -1230,9 +1254,16 @@
       "AnalysisId",
       "AwsAccountId"
     ],
+    "AWS::QuickSight::ApprovalPolicy": [
+      "PolicyId"
+    ],
     "AWS::QuickSight::CustomPermissions": [
       "AwsAccountId",
       "CustomPermissionsName"
+    ],
+    "AWS::QuickSight::DLPSetting": [
+      "AwsAccountId",
+      "DlpSettingId"
     ],
     "AWS::QuickSight::Dashboard": [
       "AwsAccountId",
@@ -1449,6 +1480,9 @@
     ],
     "AWS::SES::MultiRegionEndpoint": [
       "EndpointName"
+    ],
+    "AWS::SES::ReceiptRuleSet": [
+      "RuleSetName"
     ],
     "AWS::SES::Tenant": [
       "TenantName"

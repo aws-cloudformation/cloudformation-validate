@@ -1,6 +1,6 @@
 # cloudformation-validate vs cfn-lint - Parity Report
 
-> Generated: 2026-08-18 12:52:33  
+> Generated: 2026-08-18 13:06:01  
 > Engine: **rego**  
 > Detail level: **detailed**  
 > Matching: `(rule_id, resource_id, path)` two-pass with `(rule_id, resource_id)` fallback + aliases  
@@ -22,13 +22,13 @@
 
 | Metric | Value |
 |--------|------:|
-| True Positives | 4043 |
+| True Positives | 4047 |
 | False Positives (engine bugs) | 92 |
 | Engine Extra (correct, cfn-lint gap) | 8287 |
-| False Negatives (engine misses) | 356 |
+| False Negatives (engine misses) | 352 |
 | Precision | 97.78% |
-| Recall | 91.91% |
-| F1 | 94.75% |
+| Recall | 92.00% |
+| F1 | 94.80% |
 | Unique rules detected | 237 |
 | Perfect templates | 493/664 |
 | Location mismatches (matched pairs) | 7 |
@@ -37,12 +37,12 @@
 
 | Severity | TP | FP | EE | FN | Precision | Recall |
 |----------|---:|---:|---:|---:|----------:|-------:|
-| Fatal | 443 | 11 | 81 | 149 | 97.58% | 74.83% |
+| Fatal | 447 | 11 | 81 | 145 | 97.60% | 75.51% |
 | Error | 850 | 69 | 12 | 140 | 92.49% | 85.86% |
 | Warning | 2080 | 0 | 371 | 57 | 100.00% | 97.33% |
 | Info | 670 | 12 | 7823 | 10 | 98.24% | 98.53% |
 
-## False Negatives - 356 missed findings across 91 rules
+## False Negatives - 352 missed findings across 91 rules
 
 These are diagnostics cfn-lint expects but the engine does not report.
 
@@ -225,31 +225,6 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **W1031** `Bucket7` → `Properties.BucketName.Fn::Sub` L64 in `lsp_parameter_usage_yaml`
   > {'Fn::Sub': 'Bucket-${AWS::Region}'} is not a 'AWS::S3::Bucket.Name' with pattern '^(?![.\\-])(?!.*\\.\\.)(?!.*\\-\\.)(?!.*\\.\\-)[a-z0-9.\\-]{3,63}(?<![.\\-])$' when 'Fn::Sub' is resolved
 
-### F3014 - 11 missed - Validate only one of a set of required properties are specified
-
-- **F3014** (cfn-lint: E3014) `myInstance2` → `Properties.BlockDeviceMappings.Fn::If.2.0.Fn::If.1.Ebs` L47 in `bad_core_conditions_yaml`
-  > Only one of ['VirtualName', 'Ebs', 'NoDevice'] is a required property
-- **F3014** (cfn-lint: E3014) `myInstance2` → `Properties.BlockDeviceMappings.Fn::If.2.0.Fn::If.1.VirtualName` L46 in `bad_core_conditions_yaml`
-  > Only one of ['VirtualName', 'Ebs', 'NoDevice'] is a required property
-- **F3014** (cfn-lint: E3014) `mySecurityGroupVpc` → `Properties.SecurityGroupIngress.1.CidrIp` L39 in `bad_properties_sg_ingress_yaml`
-  > Only one of ['CidrIp', 'CidrIpv6', 'SourcePrefixListId', 'SourceSecurityGroupId', 'SourceSecurityGroupName'] is a required property
-- **F3014** (cfn-lint: E3014) `mySecurityGroupVpc` → `Properties.SecurityGroupIngress.1.SourceSecurityGroupId` L40 in `bad_properties_sg_ingress_yaml`
-  > Only one of ['CidrIp', 'CidrIpv6', 'SourcePrefixListId', 'SourceSecurityGroupId', 'SourceSecurityGroupName'] is a required property
-- **F3014** (cfn-lint: E3014) `mySecurityGroupVpc` → `Properties.SecurityGroupIngress.4.CidrIp` L50 in `bad_properties_sg_ingress_yaml`
-  > Only one of ['CidrIp', 'CidrIpv6', 'SourcePrefixListId', 'SourceSecurityGroupId', 'SourceSecurityGroupName'] is a required property
-- **F3014** (cfn-lint: E3014) `mySecurityGroupVpc` → `Properties.SecurityGroupIngress.4.SourceSecurityGroupId` L49 in `bad_properties_sg_ingress_yaml`
-  > Only one of ['CidrIp', 'CidrIpv6', 'SourcePrefixListId', 'SourceSecurityGroupId', 'SourceSecurityGroupName'] is a required property
-- **F3014** (cfn-lint: E3014) `Policy` → `Properties.ScalingTargetId` L16 in `bad_schema_required_xor_conditional_yaml`
-  > Only one of ['ScalingTargetId', 'ResourceId'] is a required property
-- **F3014** (cfn-lint: E3014) `ScalingPolicyBothIds` → `Properties.ScalingTargetId` L28 in `bad_schema_structural_yaml`
-  > Only one of ['ScalingTargetId', 'ResourceId'] is a required property
-- **F3014** (cfn-lint: E3014) `PromAlarm` → `Properties` L5 in `gh-issues_issue-67_json`
-  > Only one of ['Metrics', 'MetricName'] is a required property
-- **F3014** (cfn-lint: E3014) `myInstance2` → `Properties.BlockDeviceMappings.Fn::If.2.0.Fn::If.1.Ebs` L49 in `good_core_conditions_yaml`
-  > Only one of ['VirtualName', 'Ebs', 'NoDevice'] is a required property
-- **F3014** (cfn-lint: E3014) `myInstance2` → `Properties.BlockDeviceMappings.Fn::If.2.0.Fn::If.1.VirtualName` L48 in `good_core_conditions_yaml`
-  > Only one of ['VirtualName', 'Ebs', 'NoDevice'] is a required property
-
 ### F3016 - 11 missed - Check DeletionPolicy values for Resources
 
 - **F3016** (cfn-lint: E3035) `DynamicObjectPolicy` → `DeletionPolicy` L44 in `bad_lifecycle_conditional_invalid_policies_yaml`
@@ -414,6 +389,23 @@ but found another document
   > {'Fn::Transform': {'Name': 'DynamicUserData'}} is not of type 'array', 'string'
 - **E1021** `LaunchConfiguration` → `Properties.UserData.Fn::Base64.Fn::Sub` L27 in `good_parameters_used_transforms_yaml`
   > {'Fn::Transform': {'Name': 'DynamicUserData'}} is not of type 'array', 'string'
+
+### F3014 - 7 missed - Validate only one of a set of required properties are specified
+
+- **F3014** (cfn-lint: E3014) `myInstance2` → `Properties.BlockDeviceMappings.Fn::If.2.0.Fn::If.1.VirtualName` L46 in `bad_core_conditions_yaml`
+  > Only one of ['VirtualName', 'Ebs', 'NoDevice'] is a required property
+- **F3014** (cfn-lint: E3014) `mySecurityGroupVpc` → `Properties.SecurityGroupIngress.4.CidrIp` L50 in `bad_properties_sg_ingress_yaml`
+  > Only one of ['CidrIp', 'CidrIpv6', 'SourcePrefixListId', 'SourceSecurityGroupId', 'SourceSecurityGroupName'] is a required property
+- **F3014** (cfn-lint: E3014) `mySecurityGroupVpc` → `Properties.SecurityGroupIngress.4.SourceSecurityGroupId` L49 in `bad_properties_sg_ingress_yaml`
+  > Only one of ['CidrIp', 'CidrIpv6', 'SourcePrefixListId', 'SourceSecurityGroupId', 'SourceSecurityGroupName'] is a required property
+- **F3014** (cfn-lint: E3014) `Policy` → `Properties.ScalingTargetId` L16 in `bad_schema_required_xor_conditional_yaml`
+  > Only one of ['ScalingTargetId', 'ResourceId'] is a required property
+- **F3014** (cfn-lint: E3014) `ScalingPolicyBothIds` → `Properties.ScalingTargetId` L28 in `bad_schema_structural_yaml`
+  > Only one of ['ScalingTargetId', 'ResourceId'] is a required property
+- **F3014** (cfn-lint: E3014) `PromAlarm` → `Properties` L5 in `gh-issues_issue-67_json`
+  > Only one of ['Metrics', 'MetricName'] is a required property
+- **F3014** (cfn-lint: E3014) `myInstance2` → `Properties.BlockDeviceMappings.Fn::If.2.0.Fn::If.1.VirtualName` L48 in `good_core_conditions_yaml`
+  > Only one of ['VirtualName', 'Ebs', 'NoDevice'] is a required property
 
 ### W1001 - 7 missed - Ref/GetAtt to resource that is available when conditions are applied
 
@@ -18045,11 +18037,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `F6101` ×4, `F0013` ×3
 - EE: `I9001` ×11, `I9040` ×6, `E1028` ×3, `I9003`, `W9008`, `W9010`
 
-### `bad_core_conditions_yaml` - 6 mismatches (17 TP, 0 FP, 17 EE, 6 FN)
-
-- FN: `F3014` ×2, `W1001` ×2, `F3003`, `W3698`
-- EE: `I9001` ×10, `I9040` ×7
-
 ### `bad_core_resource_attributes_yaml` - 6 mismatches (15 TP, 1 FP, 5 EE, 5 FN)
 
 - FN: `E3001` ×2, `E3066` ×2, `E3055`
@@ -18080,6 +18067,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 - FN: `W1031` ×4, `W1032` ×2
 - EE: `I9001` ×5, `I9040` ×5
+
+### `bad_core_conditions_yaml` - 5 mismatches (18 TP, 0 FP, 17 EE, 5 FN)
+
+- FN: `W1001` ×2, `F3003`, `F3014`, `W3698`
+- EE: `I9001` ×10, `I9040` ×7
 
 ### `bad_resources_elasticache_cache_cluster_failover_yaml` - 5 mismatches (12 TP, 0 FP, 18 EE, 5 FN)
 
@@ -18115,11 +18107,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `F2015` ×4
 - EE: `F2012` ×8
 
-### `bad_properties_sg_ingress_yaml` - 4 mismatches (16 TP, 0 FP, 28 EE, 4 FN)
-
-- FN: `F3014` ×4
-- EE: `I9001` ×18, `W9003` ×7, `I9040` ×3
-
 ### `bad_resources_iam_iam_policy_yaml` - 4 mismatches (20 TP, 1 FP, 4 EE, 3 FN)
 
 - FN: `F3003` ×3
@@ -18145,11 +18132,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 - FN: `I3010` ×4
 - EE: `I9001`, `I9040`
-
-### `good_core_conditions_yaml` - 4 mismatches (6 TP, 0 FP, 22 EE, 4 FN)
-
-- FN: `F3014` ×2, `W1001`, `W3698`
-- EE: `I9001` ×10, `I9040` ×7, `W9010` ×4, `I9003`
 
 ### `quickstart_nat-instance_json` - 4 mismatches (5 TP, 0 FP, 12 EE, 4 FN)
 
@@ -18230,6 +18212,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 - FN: `F3003` ×3
 - EE: `I9001`, `I9040`, `W2508`
+
+### `good_core_conditions_yaml` - 3 mismatches (7 TP, 0 FP, 22 EE, 3 FN)
+
+- FN: `F3014`, `W1001`, `W3698`
+- EE: `I9001` ×10, `I9040` ×7, `W9010` ×4, `I9003`
 
 ### `good_resources_dynamodb_attributes_transform_yaml` - 3 mismatches (6 TP, 3 FP, 10 EE, 0 FN)
 
@@ -18313,6 +18300,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 - FN: `E3512`, `E3514`
 - EE: `I9001` ×3, `I9040` ×3
+
+### `bad_properties_sg_ingress_yaml` - 2 mismatches (18 TP, 0 FP, 28 EE, 2 FN)
+
+- FN: `F3014` ×2
+- EE: `I9001` ×18, `W9003` ×7, `I9040` ×3
 
 ### `bad_resources_ecs_fargate_task_sizes_e3047_yaml` - 2 mismatches (11 TP, 0 FP, 67 EE, 2 FN)
 
@@ -18815,11 +18807,11 @@ other tool's output. They are excluded from precision/recall scoring.
 
 | Cause | Count | % of FN | Rules |
 |-------|------:|--------:|-------|
-| Other | 180 | 50.56% | E0002, E2001, E2531, E2533, E5001, E6001, E6010, E7001, E7010, E8003, E8004, E8005, E9004, F0000, F0013, F0018, F1018, F1020, F2015, F3002, F3003, F3006, F3012, F3014, F3016, F3017, F3018, F3030, F3037, F6101 |
-| Resource property validation | 81 | 22.75% | E3001, E3005, E3010, E3023, E3024, E3026, E3039, E3043, E3047, E3048, E3055, E3065, E3066, E3504, E3510, E3512, E3513, E3514, E3530, E3673, E3678, E3682, E3685, E3692, E3698, E3699, E3700, E3701, E3707, E3712, E3719, E3720, E3724 |
-| Warning-level checks | 57 | 16.01% | W1001, W1028, W1030, W1031, W1032, W1034, W1036, W2001, W2002, W3037, W3691, W3698, W6001 |
-| Intrinsic function validation | 28 | 7.87% | E1001, E1002, E1003, E1005, E1011, E1016, E1017, E1021, E1041, E1150, E1161, E1701 |
-| Informational checks | 10 | 2.81% | I3010, I3013, I3510 |
+| Other | 176 | 50.00% | E0002, E2001, E2531, E2533, E5001, E6001, E6010, E7001, E7010, E8003, E8004, E8005, E9004, F0000, F0013, F0018, F1018, F1020, F2015, F3002, F3003, F3006, F3012, F3014, F3016, F3017, F3018, F3030, F3037, F6101 |
+| Resource property validation | 81 | 23.01% | E3001, E3005, E3010, E3023, E3024, E3026, E3039, E3043, E3047, E3048, E3055, E3065, E3066, E3504, E3510, E3512, E3513, E3514, E3530, E3673, E3678, E3682, E3685, E3692, E3698, E3699, E3700, E3701, E3707, E3712, E3719, E3720, E3724 |
+| Warning-level checks | 57 | 16.19% | W1001, W1028, W1030, W1031, W1032, W1034, W1036, W2001, W2002, W3037, W3691, W3698, W6001 |
+| Intrinsic function validation | 28 | 7.95% | E1001, E1002, E1003, E1005, E1011, E1016, E1017, E1021, E1041, E1150, E1161, E1701 |
+| Informational checks | 10 | 2.84% | I3010, I3013, I3510 |
 
 ### False Positive Root Causes
 
