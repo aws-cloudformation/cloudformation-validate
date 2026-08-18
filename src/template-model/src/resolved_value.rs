@@ -75,6 +75,36 @@ pub fn resolved_value_at_path(val: &ResolvedValue, path: &str) -> Option<Resolve
     }
 }
 
+/// Converts an authored scenario source path into its public effective path.
+/// Every `Fn::If` branch selector is an implementation detail of the authored
+/// syntax and is removed; malformed selectors are rejected rather than treated
+/// as ordinary property segments.
+pub fn effective_path_from_scenario_source_path(source_path: &str) -> Option<String> {
+    if source_path.is_empty() {
+        return Some(String::new());
+    }
+    let segments: Vec<&str> = source_path.split('.').collect();
+    if segments.iter().any(|segment| segment.is_empty()) {
+        return None;
+    }
+    let mut effective_segments = Vec::with_capacity(segments.len());
+    let mut index = 0;
+    while index < segments.len() {
+        if segments[index] == FN_IF {
+            match segments.get(index + 1).copied() {
+                Some("1" | "2") => {
+                    index += 2;
+                    continue;
+                }
+                _ => return None,
+            }
+        }
+        effective_segments.push(segments[index]);
+        index += 1;
+    }
+    Some(effective_segments.join("."))
+}
+
 pub fn scenario_source_path_at(
     value: &ResolvedValue,
     effective_path: &str,
@@ -786,6 +816,32 @@ mod tests {
         collect_condition_refs_from_resolved(&val, &mut refs);
         refs.sort();
         assert_eq!(refs, vec!["C1", "C2"]);
+    }
+
+    #[test]
+    fn effective_path_removes_conditional_branch_segments() {
+        assert_eq!(
+            effective_path_from_scenario_source_path("Properties.ResourceRecords.Fn::If.1.0"),
+            Some("Properties.ResourceRecords.0".to_string())
+        );
+    }
+
+    #[test]
+    fn effective_path_removes_nested_conditional_branch_segments() {
+        assert_eq!(
+            effective_path_from_scenario_source_path("Properties.Fn::If.2.Records.0.Fn::If.1.Value"),
+            Some("Properties.Records.0.Value".to_string())
+        );
+    }
+
+    #[test]
+    fn effective_path_preserves_other_intrinsic_segments() {
+        assert_eq!(
+            effective_path_from_scenario_source_path("Properties.Value.Fn::GetAtt.1"),
+            Some("Properties.Value.Fn::GetAtt.1".to_string())
+        );
+        assert_eq!(effective_path_from_scenario_source_path("Properties.Value.Fn::If.0"), None);
+        assert_eq!(effective_path_from_scenario_source_path("Properties..Value"), None);
     }
 
     #[test]

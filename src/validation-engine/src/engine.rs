@@ -20,11 +20,14 @@ use std::error;
 use std::fmt;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::sync::Arc;
+use template_model::resolved_value::effective_path_from_scenario_source_path;
 use template_model::{
     EntityType, JsonValue, ParseConfig, ParseError, ParseResult, PseudoParameterOverrides, SemanticModel, SourceSpan,
     UNKNOWN_SPAN, entity_identity, is_sam_transform_error_message, region_enums, span_to_option,
 };
 use web_time::Instant;
+
+pub const DIAGNOSTIC_SOURCE_PATH_FIELD: &str = "source_path";
 
 #[derive(Debug)]
 pub enum ValidationError {
@@ -540,6 +543,111 @@ fn panic_message(payload: &(dyn Any + Send)) -> String {
     }
 }
 
+fn parse_span_coordinate(
+    diagnostic: &serde_json::Value,
+    field_name: &str,
+    rule_id: &str,
+) -> Result<Option<u32>, String> {
+    let Some(value) = diagnostic.get(field_name) else {
+        return Ok(None);
+    };
+    if value.is_null() {
+        return Ok(None);
+    }
+    let coordinate = value
+        .as_u64()
+        .ok_or_else(|| format!("Diagnostic '{}' field '{}' must be a non-negative integer", rule_id, field_name))?;
+    u32::try_from(coordinate)
+        .map(Some)
+        .map_err(|_| format!("Diagnostic '{}' field '{}' exceeds the supported coordinate range", rule_id, field_name))
+}
+
+fn resolve_model_diagnostic_span(
+    rule_id: &str,
+    model: &SemanticModel,
+    resource_id: Option<&str>,
+    property_path: Option<&str>,
+    source_path: Option<&str>,
+) -> Result<SourceSpan, String> {
+    if let Some(source_path) = source_path {
+        let resource_id = resource_id.ok_or_else(|| {
+            format!("Diagnostic '{}' provides '{}' without a resource_id", rule_id, DIAGNOSTIC_SOURCE_PATH_FIELD)
+        })?;
+        let property_path = property_path.ok_or_else(|| {
+            format!(
+                "Diagnostic '{}' on resource '{}' provides '{}' without a resource_path",
+                rule_id, resource_id, DIAGNOSTIC_SOURCE_PATH_FIELD
+            )
+        })?;
+        let effective_source_path = effective_path_from_scenario_source_path(source_path)
+            .ok_or_else(|| format!("Diagnostic '{}' has malformed scenario source path '{}'", rule_id, source_path))?;
+        if effective_source_path != property_path {
+            return Err(format!(
+                "Diagnostic '{}' source path '{}' resolves to '{}' instead of resource path '{}'",
+                rule_id, source_path, effective_source_path, property_path
+            ));
+        }
+    }
+
+    let location_path = source_path.or(property_path).unwrap_or("");
+    Ok(if let Some(resource_id) = resource_id {
+        model.resource_span(resource_id, location_path)
+    } else {
+        model.diagnostic_span(None, location_path).unwrap_or_else(|| resolve_section_span(rule_id, model))
+    })
+}
+
+fn validate_explicit_diagnostic_span(
+    diagnostic: &serde_json::Value,
+    rule_id: &str,
+    model_span: SourceSpan,
+) -> Result<(), String> {
+    let start_line = parse_span_coordinate(diagnostic, "start_line", rule_id)?;
+    let start_column = parse_span_coordinate(diagnostic, "start_column", rule_id)?;
+    let end_line = parse_span_coordinate(diagnostic, "end_line", rule_id)?;
+    let end_column = parse_span_coordinate(diagnostic, "end_column", rule_id)?;
+
+    if start_line.is_none() && start_column.is_none() && end_line.is_none() && end_column.is_none() {
+        return Ok(());
+    }
+    let (Some(start_line), Some(start_column)) = (start_line, start_column) else {
+        return Err(format!("Diagnostic '{}' explicit span must provide both start_line and start_column", rule_id));
+    };
+    let explicit_end = match (end_line, end_column) {
+        (None, None) => None,
+        (Some(line), Some(column)) => Some((line, column)),
+        _ => {
+            return Err(format!("Diagnostic '{}' explicit span must provide both end_line and end_column", rule_id));
+        }
+    };
+    if model_span == UNKNOWN_SPAN {
+        return Err(format!(
+            "Diagnostic '{}' explicit span cannot be verified because its resource path has no model-derived location",
+            rule_id
+        ));
+    }
+
+    let start_matches = start_line == model_span.start_line && start_column == model_span.start_column;
+    let end_matches =
+        explicit_end.is_none_or(|(line, column)| line == model_span.end_line && column == model_span.end_column);
+    if !start_matches || !end_matches {
+        let (explicit_end_line, explicit_end_column) = explicit_end.unwrap_or((start_line, start_column));
+        return Err(format!(
+            "Diagnostic '{}' explicit span {}:{}-{}:{} does not match model-derived span {}:{}-{}:{}",
+            rule_id,
+            start_line,
+            start_column,
+            explicit_end_line,
+            explicit_end_column,
+            model_span.start_line,
+            model_span.start_column,
+            model_span.end_line,
+            model_span.end_column
+        ));
+    }
+    Ok(())
+}
+
 pub(crate) fn parse_diagnostic(
     val: &serde_json::Value,
     model: &SemanticModel,
@@ -565,27 +673,19 @@ pub(crate) fn parse_diagnostic(
     let property_path =
         val.get("resource_path").and_then(|v| v.as_str()).filter(|s| !s.is_empty()).map(|s| s.to_string());
 
-    let explicit_span = match (
-        val.get("start_line").and_then(|value| value.as_u64()),
-        val.get("start_column").and_then(|value| value.as_u64()),
-    ) {
-        (Some(line), Some(column)) => Some(SourceSpan {
-            start_line: line as u32,
-            start_column: column as u32,
-            end_line: val.get("end_line").and_then(|value| value.as_u64()).unwrap_or(line) as u32,
-            end_column: val.get("end_column").and_then(|value| value.as_u64()).unwrap_or(column) as u32,
-        }),
-        _ => None,
-    };
-    let span = explicit_span.unwrap_or_else(|| {
-        if let Some(ref resource_id) = resource_id {
-            model.resource_span(resource_id, property_path.as_deref().unwrap_or(""))
-        } else {
-            model
-                .diagnostic_span(None, property_path.as_deref().unwrap_or(""))
-                .unwrap_or_else(|| resolve_section_span(&rule_id, model))
+    let source_path = match val.get(DIAGNOSTIC_SOURCE_PATH_FIELD) {
+        None | Some(serde_json::Value::Null) => None,
+        Some(serde_json::Value::String(path)) if !path.is_empty() => Some(path.as_str()),
+        Some(_) => {
+            return Err(format!(
+                "Diagnostic '{}' field '{}' must be a non-empty string",
+                rule_id, DIAGNOSTIC_SOURCE_PATH_FIELD
+            ));
         }
-    });
+    };
+    let span =
+        resolve_model_diagnostic_span(&rule_id, model, resource_id.as_deref(), property_path.as_deref(), source_path)?;
+    validate_explicit_diagnostic_span(val, &rule_id, span)?;
 
     let is_custom_or_guard = source_override.is_some_and(|o| matches!(o, RuleOrigin::Custom | RuleOrigin::Guard));
 
@@ -1536,25 +1636,29 @@ Resources:
     }
 
     #[test]
-    fn parse_diagnostic_with_explicit_start_line_column() {
+    fn parse_diagnostic_accepts_model_matching_explicit_location() {
         let model = minimal_model();
+        let expected = model.resource_span("Bucket", "Properties.BucketName");
         let val = serde_json::json!({
             "rule_id": "E3012",
             "severity": Severity::Error.as_str(),
             "message": "x",
-            "start_line": 42,
-            "start_column": 7
+            "resource_id": "Bucket",
+            "resource_path": "Properties.BucketName",
+            "start_line": expected.start_line,
+            "start_column": expected.start_column,
+            "end_line": expected.end_line,
+            "end_column": expected.end_column
         });
-        let diag = parse_diagnostic(&val, &model, None).unwrap();
-        assert_eq!(diag.location.as_ref().unwrap().start_line, 42);
-        assert_eq!(diag.location.as_ref().unwrap().start_column, 7);
+        let diag = parse_diagnostic(&val, &model, None).expect("model-matching coordinates should be accepted");
+        assert_eq!(diag.location, Some(expected));
     }
 
     #[test]
-    fn parse_diagnostic_resource_preserves_explicit_location() {
+    fn parse_diagnostic_rejects_unverified_explicit_location() {
         let model = minimal_model();
         let val = serde_json::json!({
-            "rule_id": "E3012",
+            "rule_id": "XCUSTOM",
             "severity": Severity::Error.as_str(),
             "message": "x",
             "resource_id": "Bucket",
@@ -1564,8 +1668,67 @@ Resources:
             "end_line": 43,
             "end_column": 9
         });
-        let diag = parse_diagnostic(&val, &model, None).unwrap();
-        assert_eq!(diag.location, Some(SourceSpan { start_line: 42, start_column: 7, end_line: 43, end_column: 9 }));
+        let error = parse_diagnostic(&val, &model, Some(&RuleOrigin::Custom))
+            .expect_err("custom coordinates outside the declared property must be rejected");
+        assert!(error.contains("does not match model-derived span"), "got: {error}");
+    }
+
+    #[test]
+    fn parse_diagnostic_accepts_verified_conditional_source_path() {
+        let model = SemanticModel::from_bytes(
+            br#"
+Parameters:
+  Mode: {Type: String}
+Conditions:
+  UseFirst: !Equals [!Ref Mode, first]
+Resources:
+  Record:
+    Type: Custom::Record
+    Properties:
+      Values: !If
+        - UseFirst
+        - [invalid]
+        - [valid]
+"#,
+        )
+        .expect("conditional model should parse");
+        let source_path = "Properties.Values.Fn::If.1.0";
+        let expected = model.resource_span("Record", source_path);
+        let val = serde_json::json!({
+            "rule_id": "E3012",
+            "severity": Severity::Error.as_str(),
+            "message": "x",
+            "resource_id": "Record",
+            "resource_path": "Properties.Values.0",
+            (DIAGNOSTIC_SOURCE_PATH_FIELD): source_path,
+            "start_line": expected.start_line,
+            "start_column": expected.start_column,
+            "end_line": expected.end_line,
+            "end_column": expected.end_column
+        });
+        let diag = parse_diagnostic(&val, &model, None).expect("verified conditional source path should be accepted");
+        assert_eq!(diag.location, Some(expected));
+    }
+
+    #[test]
+    fn parse_diagnostic_rejects_source_path_for_another_property() {
+        let model = minimal_model();
+        let expected = model.resource_span("Bucket", "Properties.BucketName");
+        let val = serde_json::json!({
+            "rule_id": "E3012",
+            "severity": Severity::Error.as_str(),
+            "message": "x",
+            "resource_id": "Bucket",
+            "resource_path": "Properties.BucketName",
+            (DIAGNOSTIC_SOURCE_PATH_FIELD): "Properties.Tags.Fn::If.1.0",
+            "start_line": expected.start_line,
+            "start_column": expected.start_column,
+            "end_line": expected.end_line,
+            "end_column": expected.end_column
+        });
+        let error = parse_diagnostic(&val, &model, None)
+            .expect_err("a source path for another property must not relocate the diagnostic");
+        assert!(error.contains("instead of resource path 'Properties.BucketName'"), "got: {error}");
     }
 
     #[test]

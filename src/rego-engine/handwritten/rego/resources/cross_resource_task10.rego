@@ -44,7 +44,7 @@ _lambda_reserved_env_keys := {
     "AWS_LAMBDA_FUNCTION_VERSION", "AWS_LAMBDA_LOG_GROUP_NAME",
     "AWS_LAMBDA_LOG_STREAM_NAME", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY",
     "AWS_SESSION_TOKEN", "AWS_LAMBDA_RUNTIME_API", "LAMBDA_TASK_ROOT",
-    "LAMBDA_RUNTIME_DIR", "TZ",
+    "LAMBDA_RUNTIME_DIR",
 }
 
 # E3685: Container image Lambda functions cannot specify Handler, Runtime, or

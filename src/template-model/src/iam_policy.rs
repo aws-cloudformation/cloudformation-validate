@@ -17,11 +17,11 @@
 
 use crate::conditions::Satisfiability;
 use crate::consts::{
-    FN_IF, MARKER_CONDITIONAL, MARKER_DYNAMIC, MARKER_ENUM, MARKER_IF_FALSE, MARKER_IF_TRUE, MARKER_INTRINSIC,
-    MARKER_REF,
+    MARKER_CONDITIONAL, MARKER_DYNAMIC, MARKER_ENUM, MARKER_IF_FALSE, MARKER_IF_TRUE, MARKER_INTRINSIC, MARKER_REF,
 };
 use crate::message::render_str_list;
 use crate::model::SemanticModel;
+use crate::resolved_value::effective_path_from_scenario_source_path;
 use crate::resolver::{MapEntry, ResolvedValue};
 use crate::serialization::resolved_value_to_json;
 use serde_json::Value;
@@ -909,18 +909,7 @@ fn source_path_for_effective_path(
 
 fn public_policy_path(document_path: &str, source_path: &str, fallback: &str) -> String {
     let relative = source_path.strip_prefix(document_path).and_then(|path| path.strip_prefix('.')).unwrap_or(fallback);
-    let segments: Vec<&str> = relative.split('.').collect();
-    let mut public_segments = Vec::with_capacity(segments.len());
-    let mut index = 0;
-    while index < segments.len() {
-        if segments[index] == FN_IF && segments.get(index + 1).is_some_and(|branch| *branch == "1" || *branch == "2") {
-            index += 2;
-        } else {
-            public_segments.push(segments[index]);
-            index += 1;
-        }
-    }
-    public_segments.join(".")
+    effective_path_from_scenario_source_path(relative).unwrap_or_else(|| fallback.to_string())
 }
 
 fn validate_identity_statement(

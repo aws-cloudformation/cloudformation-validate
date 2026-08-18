@@ -1952,10 +1952,14 @@ fn issue_264_conditional_record_arrays_validate_reachable_branches() {
         &invalid_diags,
         "E3023",
         &[
-            ("StandaloneInvalidTrue", 19, 7),
-            ("StandaloneInvalidFalse", 30, 7),
+            ("StandaloneInvalidTrue", 21, 12),
+            ("StandaloneInvalidFalse", 33, 12),
+            ("StandaloneMixedInvalidTrue", 44, 13),
+            ("StandaloneMixedInvalidFalse", 57, 13),
             ("GroupInvalidTrue", 67, 31),
             ("GroupInvalidFalse", 85, 31),
+            ("GroupMixedInvalidTrue", 97, 17),
+            ("GroupMixedInvalidFalse", 117, 17),
         ],
     );
 
@@ -2053,4 +2057,33 @@ fn issue_264_cname_cardinality_counts_effective_records() {
             ("GroupUnresolvedCnameCardinality", "Properties.RecordSets.0.ResourceRecords"),
         ],
     );
+}
+
+/// Issue #278: Lambda documents `TZ` as an unreserved environment variable, while
+/// reserved runtime-owned keys must continue to be rejected.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/278
+#[test]
+fn issue_278_tz_is_unreserved_without_disabling_reserved_key_validation() {
+    let tz_diagnostics = validate_both("issue-278.yaml");
+    assert_absent(&tz_diagnostics, "E3663");
+
+    let reserved_template = br#"
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  Function:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        ZipFile: "exports.handler = async () => ({ statusCode: 200 });"
+      Handler: index.handler
+      Role: !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/lambda-role"
+      Runtime: nodejs22.x
+      Environment:
+        Variables:
+          AWS_REGION: us-east-1
+"#;
+    let reserved_diagnostics = validate_both_bytes(reserved_template);
+    assert_rule_parity(&reserved_diagnostics, "E3663");
+    assert_count(&reserved_diagnostics, "E3663", 1);
+    assert_fires_on_property(&reserved_diagnostics, "E3663", "Properties.Environment.Variables");
 }
