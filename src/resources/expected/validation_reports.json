@@ -7250,13 +7250,13 @@
     "metadata": {
       "resourcesScanned": 8,
       "counts": {
-        "fatal": 3,
+        "fatal": 4,
         "errors": 11,
         "warnings": 3,
         "informational": 17,
         "debug": 0
       },
-      "suppressed": 3,
+      "suppressed": 5,
       "strict": false,
       "severityLevel": "DEBUG"
     },
@@ -7318,6 +7318,33 @@
         "endColumn": 26,
         "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
         "ruleDescription": "Required property missing",
+        "phase": "SCHEMA",
+        "context": {
+          "resolutionSource": "Fn::If on condition 'isPrimaryAndProduction'"
+        }
+      },
+      {
+        "ruleId": "F3014",
+        "severity": "FATAL",
+        "message": "Exactly one of ['VirtualName', 'Ebs', 'NoDevice'] must be specified",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "myInstance2",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.BlockDeviceMappings.{}",
+        "category": "Schema",
+        "startLine": 36,
+        "startColumn": 7,
+        "endLine": 36,
+        "endColumn": 26,
+        "conditionScenario": {
+          "isPrimary": true,
+          "isPrimaryAndProduction": true
+        },
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Exactly one of properties required (requiredXor)",
         "phase": "SCHEMA",
         "context": {
           "resolutionSource": "Fn::If on condition 'isPrimaryAndProduction'"
@@ -89563,7 +89590,7 @@
     "metadata": {
       "resourcesScanned": 9,
       "counts": {
-        "fatal": 3,
+        "fatal": 5,
         "errors": 13,
         "warnings": 7,
         "informational": 21,
@@ -89593,6 +89620,44 @@
         "endColumn": 15,
         "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
         "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F3014",
+        "severity": "FATAL",
+        "message": "Exactly one of ['CidrIp', 'CidrIpv6', 'SourcePrefixListId', 'SourceSecurityGroupId', 'SourceSecurityGroupName'] must be specified",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "mySecurityGroupVpc",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.SecurityGroupIngress.1",
+        "category": "Schema",
+        "startLine": 38,
+        "startColumn": 19,
+        "endLine": 38,
+        "endColumn": 20,
+        "ruleDescription": "Exactly one of properties required (requiredXor)",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F3014",
+        "severity": "FATAL",
+        "message": "Exactly one of ['CidrIp', 'CidrIpv6', 'SourcePrefixListId', 'SourceSecurityGroupId', 'SourceSecurityGroupName'] must be specified",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "mySecurityGroupVpc",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.SecurityGroupIngress.4",
+        "category": "Schema",
+        "startLine": 48,
+        "startColumn": 19,
+        "endLine": 48,
+        "endColumn": 20,
+        "ruleDescription": "Exactly one of properties required (requiredXor)",
         "phase": "SCHEMA"
       },
       {
@@ -209857,13 +209922,13 @@
     "metadata": {
       "resourcesScanned": 8,
       "counts": {
-        "fatal": 1,
+        "fatal": 2,
         "errors": 0,
         "warnings": 9,
         "informational": 18,
         "debug": 0
       },
-      "suppressed": 0,
+      "suppressed": 2,
       "strict": false,
       "severityLevel": "DEBUG"
     },
@@ -209890,6 +209955,33 @@
         },
         "ruleDescription": "Required property missing",
         "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F3014",
+        "severity": "FATAL",
+        "message": "Exactly one of ['VirtualName', 'Ebs', 'NoDevice'] must be specified",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "myInstance2",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.BlockDeviceMappings.{}",
+        "category": "Schema",
+        "startLine": 36,
+        "startColumn": 7,
+        "endLine": 36,
+        "endColumn": 26,
+        "conditionScenario": {
+          "isPrimary": true,
+          "isPrimaryAndProduction": true
+        },
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Exactly one of properties required (requiredXor)",
+        "phase": "SCHEMA",
+        "context": {
+          "resolutionSource": "Fn::If on condition 'isPrimaryAndProduction'"
+        }
       },
       {
         "ruleId": "W1028",
