@@ -25,6 +25,7 @@ const GENERATED_JSON: &[(&str, &str)] = &[
     ("getatt_attributes", "GETATT_ATTRIBUTES"),
     ("known_resource_types", "KNOWN_RESOURCE_TYPES"),
     ("stateful_resource_types", "STATEFUL_RESOURCE_TYPES"),
+    ("aws_api_operation_catalog", "AWS_API_OPERATION_CATALOG"),
     // Tables extracted from cfn-lint rule code during sync
     ("retention_period_requirements", "RETENTION_PERIOD_REQUIREMENTS"),
     ("codepipeline_action_artifact_counts", "CODEPIPELINE_ACTION_ARTIFACT_COUNTS"),

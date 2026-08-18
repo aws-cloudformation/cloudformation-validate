@@ -187,7 +187,7 @@ class ValidateTest(unittest.TestCase):
 
 class AwsApiRequestValidationTest(unittest.TestCase):
     def test_synthesized_create_validates_with_both_engines(self):
-        parameters = {"Bucket": "synthetic-bucket", "Tags": {"Team": "CLI"}}
+        parameters = {"Bucket": "synthetic-bucket"}
         request = AwsApiRequest(
             "s3",
             "CreateBucket",
@@ -207,7 +207,7 @@ class AwsApiRequestValidationTest(unittest.TestCase):
         standard = REGO.validate_aws_api_request_standard(request)
         self.assertEqual(AwsApiRequestValidationStatus.VALIDATED, standard.status)
         self.assertIsNotNone(standard.report)
-        self.assertEqual({"Bucket": "synthetic-bucket", "Tags": {"Team": "CLI"}}, parameters)
+        self.assertEqual({"Bucket": "synthetic-bucket"}, parameters)
 
     def test_template_body_bytes_are_validated_exactly(self):
         request = AwsApiRequest(
@@ -262,6 +262,35 @@ class AwsApiRequestValidationTest(unittest.TestCase):
             len(report.diagnostics),
             counts.fatal + counts.errors + counts.warnings + counts.informational + counts.debug,
         )
+
+    def test_unregistered_operation_never_maps_to_resource_type(self):
+        request = AwsApiRequest(
+            "ecs",
+            "RunTask",
+            {"TaskDefinition": "my-task"},
+            service_prefix="ecs",
+            http_method="POST",
+        )
+
+        result = REGO.validate_aws_api_request(request)
+
+        self.assertEqual(AwsApiRequestValidationStatus.SKIPPED, result.status)
+        self.assertEqual([], result.resource_types)
+        self.assertIsNone(result.report)
+
+    def test_java_sdk_service_name_casing_resolves_adapter(self):
+        request = AwsApiRequest(
+            "S3",
+            "CreateBucket",
+            {"Bucket": "synthetic-bucket"},
+            service_prefix="S3",
+            http_method="PUT",
+        )
+
+        result = REGO.validate_aws_api_request(request)
+
+        self.assertEqual(AwsApiOperationKind.CLOUD_FORMATION_CREATE, result.operation_kind)
+        self.assertEqual(["AWS::S3::Bucket"], result.resource_types)
 
 
 class AdditionalSchemasTest(unittest.TestCase):

@@ -36,8 +36,8 @@ On parse failure, `validate_bytes_with_path` returns `Ok(report)` with a synthet
 ## Validating an AWS API Request
 
 `validate_aws_api_request` accepts raw service, operation, HTTP, trait, and request-parameter context. It owns operation
-classification, CloudFormation resource-type selection, request-to-template modeling, schema-backed property mapping,
-and partial-update diagnostic scoping:
+classification, deterministic CloudFormation resource-type selection, request-to-template modeling, schema-backed property
+mapping, and diagnostic scoping to explicitly modeled properties:
 
 ```rust
 use rego_engine::RegoEngine;
@@ -53,11 +53,6 @@ let request = AwsApiRequest::new(
     "CreateBucket",
     [
         ("Bucket".into(), AwsApiValue::String { value: "example-bucket".into() }),
-        ("Tags".into(), AwsApiValue::Object {
-            entries: [("Team".into(), AwsApiValue::String { value: "Platform".into() })]
-                .into_iter()
-                .collect(),
-        }),
     ],
 )
 .with_service_prefix("s3")
@@ -83,6 +78,22 @@ bytes are validated without rewriting; `TemplateURL` is skipped because validati
 an operation kind, validation status, optional template source, resource candidates, and reason. `Validated` means the
 modeled template reached the normal validation pipeline; `Skipped` has no report and explains why. Use
 `validate_aws_api_request_with_path` when the embedding application needs a custom report path.
+
+**Deterministic closed-adapter contract.** Operation-to-resource mapping uses a generated adapter catalog keyed by
+case-normalized canonical `service_name` and exact operation name. The catalog is produced by
+`data-source/scripts/generate_aws_api_catalog.py` from each resource type's own provider handler metadata, resolved
+against botocore service models and structurally verified against the compiled CloudFormation schemas; it covers
+create and delete lifecycles for roughly seventy percent of all resource types plus curated update entries. Each
+adapter declares one CloudFormation resource type with explicit request-parameter-to-property pairs. Unregistered
+operations never receive an *inferred* resource type and are classified as `UnmappedMutation` (or
+`DataPlaneMutation` for data-plane verbs) with `Skipped` status.
+Cloud Control `UpdateResource` and `DeleteResource` may report a known `TypeName` supplied explicitly by the request,
+but they never synthesize state. There is no fuzzy inference, substring matching, or generic property-name guessing.
+`TemplateBody` validation is restricted to the closed set of CloudFormation operations that accept it;
+`TypeName`+`DesiredState` wrapping is restricted to exact Cloud Control `CreateResource`. `service_name` is the
+authoritative mapping identity; the optional signing `service_prefix` cannot override it. Case normalization supports
+both CLI names (for example, `s3`) and Java SDK `SERVICE_NAME` values (for example, `S3`) without punctuation or
+substring aliases.
 
 ## Constructing an Engine
 

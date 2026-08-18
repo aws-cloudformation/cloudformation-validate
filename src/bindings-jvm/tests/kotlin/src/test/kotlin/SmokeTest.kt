@@ -144,7 +144,6 @@ class SmokeTest {
     fun synthesizedAwsApiCreateValidatesWithBothEnginesWithoutMutatingInput() {
         val parameters = linkedMapOf<String, Any?>(
             "Bucket" to "synthetic-bucket",
-            "Tags" to linkedMapOf("Team" to "CLI"),
         )
         val request = AwsApiRequest(
             serviceName = "s3",
@@ -168,7 +167,7 @@ class SmokeTest {
         assertEquals(AwsApiRequestValidationStatus.VALIDATED, standard.status)
         assertNotNull(standard.report)
         assertEquals(
-            linkedMapOf<String, Any?>("Bucket" to "synthetic-bucket", "Tags" to linkedMapOf("Team" to "CLI")),
+            linkedMapOf<String, Any?>("Bucket" to "synthetic-bucket"),
             parameters,
         )
     }
@@ -229,6 +228,39 @@ class SmokeTest {
             report.diagnostics.size.toUInt(),
             counts.fatal + counts.errors + counts.warnings + counts.informational + counts.debug,
         )
+    }
+
+    @Test
+    fun awsApiJavaSdkServiceNameCasingResolvesAdapter() {
+        val result = REGO.validateAwsApiRequest(
+            AwsApiRequest(
+                serviceName = "S3",
+                operationName = "CreateBucket",
+                parameters = mapOf("Bucket" to "synthetic-bucket"),
+                servicePrefix = "S3",
+                httpMethod = "PUT",
+            ),
+            defaultConfig(),
+        )
+        assertEquals(AwsApiOperationKind.CLOUD_FORMATION_CREATE, result.operationKind)
+        assertEquals(listOf("AWS::S3::Bucket"), result.resourceTypes)
+    }
+
+    @Test
+    fun awsApiUnregisteredOperationNeverMapsToResourceType() {
+        val result = REGO.validateAwsApiRequest(
+            AwsApiRequest(
+                serviceName = "ecs",
+                operationName = "RunTask",
+                parameters = mapOf("TaskDefinition" to "my-task"),
+                servicePrefix = "ecs",
+                httpMethod = "POST",
+            ),
+            defaultConfig(),
+        )
+        assertEquals(AwsApiRequestValidationStatus.SKIPPED, result.status)
+        assertTrue(result.resourceTypes.isEmpty(), "unregistered operation must not produce resource types")
+        assertNull(result.report)
     }
 
     // ── SchemaValidator ──────────────────────────────────────────────────────

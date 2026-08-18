@@ -73,7 +73,7 @@ result = engine.validate_aws_api_request(
         service_prefix="s3",
         operation_name="CreateBucket",
         http_method="PUT",
-        parameters={"Bucket": "example-bucket", "Tags": {"Team": "Platform"}},
+        parameters={"Bucket": "example-bucket"},
     )
 )
 
@@ -90,6 +90,16 @@ validator does not perform network requests. The result always reports `status`,
 `resource_types`, and `reason`; skipped requests have `report is None`. Use
 `validate_aws_api_request_standard` for standard diagnostics or `validate_aws_api_request_detailed` (also exposed as
 `validate_aws_api_request`) for detailed diagnostics.
+
+Operation-to-resource mapping uses a deterministic closed adapter catalog generated from each resource type's own
+provider handler metadata and verified against botocore models and the compiled CloudFormation schemas: only
+verified service+operation pairs produce inferred resource types and synthesized templates. Unregistered operations are classified as
+`UNMAPPED_MUTATION` or `DATA_PLANE_MUTATION` with `SKIPPED` status and no inferred resource types. Cloud Control
+`UpdateResource` and `DeleteResource` may echo a known `TypeName` supplied by the request, but never synthesize state.
+The canonical `service_name` is authoritative; `service_prefix` cannot override it. Case normalization accepts CLI
+names (for example, `s3`) and Java SDK casing (for example, `S3`) without fuzzy or punctuation aliases.
+`TemplateBody` validation is restricted to CloudFormation operations that accept it, and
+`TypeName`+`DesiredState` wrapping applies only to exact Cloud Control `CreateResource`.
 
 #### AWS CLI integration
 
