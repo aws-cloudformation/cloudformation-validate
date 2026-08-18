@@ -5,11 +5,10 @@ import software.amazon.cloudformation.validate.diagnostics.DetailedReport
 import software.amazon.cloudformation.validate.diagnostics.StandardDiagnostic
 import software.amazon.cloudformation.validate.diagnostics.StandardReport
 import software.amazon.cloudformation.validate.engine.AwsApiRequestContext as NativeAwsApiRequest
+import software.amazon.cloudformation.validate.engine.AwsApiRequestValidation
 import software.amazon.cloudformation.validate.engine.AwsApiValue as NativeAwsApiValue
-import software.amazon.cloudformation.validate.engine.DetailedAwsApiRequestValidation
 import software.amazon.cloudformation.validate.engine.EngineConfig
 import software.amazon.cloudformation.validate.engine.ExternalRuleSource
-import software.amazon.cloudformation.validate.engine.StandardAwsApiRequestValidation
 import software.amazon.cloudformation.validate.rules.RuleInfo
 import software.amazon.cloudformation.validate.schemavalidator.SchemaValidatorConfig
 import java.io.File
@@ -20,21 +19,7 @@ interface Engine {
     fun validateAwsApiRequest(
         request: AwsApiRequest,
         config: ValidateConfig = ValidateConfig(),
-    ): DetailedAwsApiRequestValidation = validateAwsApiRequestDetailed(request, config)
-    fun validateAwsApiRequestStandard(
-        request: AwsApiRequest,
-        config: ValidateConfig = ValidateConfig(),
-    ): StandardAwsApiRequestValidation =
-        throw UnsupportedOperationException(
-            "AWS API request validation is not supported by this Engine implementation",
-        )
-    fun validateAwsApiRequestDetailed(
-        request: AwsApiRequest,
-        config: ValidateConfig = ValidateConfig(),
-    ): DetailedAwsApiRequestValidation =
-        throw UnsupportedOperationException(
-            "AWS API request validation is not supported by this Engine implementation",
-        )
+    ): AwsApiRequestValidation
     fun listRules(): List<RuleInfo>
     fun engineName(): String
 }
@@ -161,15 +146,10 @@ class RegoEngine(
     override fun validateDetailed(template: File, config: ValidateConfig): DetailedReport =
         inner.validateDetailed(template.readBytes(), config, template.path)
 
-    override fun validateAwsApiRequestStandard(
+    override fun validateAwsApiRequest(
         request: AwsApiRequest,
         config: ValidateConfig,
-    ): StandardAwsApiRequestValidation = inner.validateAwsApiRequestStandard(request.toNative(), config)
-
-    override fun validateAwsApiRequestDetailed(
-        request: AwsApiRequest,
-        config: ValidateConfig,
-    ): DetailedAwsApiRequestValidation = inner.validateAwsApiRequestDetailed(request.toNative(), config)
+    ): AwsApiRequestValidation = inner.validateAwsApiRequest(request.toNative(), config)
 
     override fun listRules(): List<RuleInfo> = inner.listRules()
     override fun engineName(): String = inner.engineName()
@@ -186,15 +166,10 @@ class CelEngine(
     override fun validateDetailed(template: File, config: ValidateConfig): DetailedReport =
         inner.validateDetailed(template.readBytes(), config, template.path)
 
-    override fun validateAwsApiRequestStandard(
+    override fun validateAwsApiRequest(
         request: AwsApiRequest,
         config: ValidateConfig,
-    ): StandardAwsApiRequestValidation = inner.validateAwsApiRequestStandard(request.toNative(), config)
-
-    override fun validateAwsApiRequestDetailed(
-        request: AwsApiRequest,
-        config: ValidateConfig,
-    ): DetailedAwsApiRequestValidation = inner.validateAwsApiRequestDetailed(request.toNative(), config)
+    ): AwsApiRequestValidation = inner.validateAwsApiRequest(request.toNative(), config)
 
     override fun listRules(): List<RuleInfo> = inner.listRules()
     override fun engineName(): String = inner.engineName()

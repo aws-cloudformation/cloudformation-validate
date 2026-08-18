@@ -287,3 +287,57 @@ type ValidateConfig struct {
 	Strict                   *bool                     `json:"strict,omitempty"`
 	DisableBuiltinRules      *bool                     `json:"disableBuiltinRules,omitempty"`
 }
+
+// AWSAPIRequest holds an AWS API service call for offline CloudFormation
+// validation. ServiceName and OperationName identify the API; Parameters carry
+// the request values (maps, strings, numbers, booleans, byte slices, etc.).
+type AWSAPIRequest struct {
+	ServiceName   string         `json:"serviceName"`
+	OperationName string         `json:"operationName"`
+	Parameters    map[string]any `json:"parameters"`
+	ServicePrefix string         `json:"servicePrefix,omitempty"`
+	HTTPMethod    string         `json:"httpMethod,omitempty"`
+	IsReadOnly    *bool          `json:"isReadOnly,omitempty"`
+}
+
+// AWSAPIOperationKind classifies an AWS API operation.
+type AWSAPIOperationKind string
+
+const (
+	AWSAPIOperationKindReadOnly             AWSAPIOperationKind = "READ_ONLY"
+	AWSAPIOperationKindCloudFormationCreate AWSAPIOperationKind = "CLOUD_FORMATION_CREATE"
+	AWSAPIOperationKindCloudFormationUpdate AWSAPIOperationKind = "CLOUD_FORMATION_UPDATE"
+	AWSAPIOperationKindCloudFormationDelete AWSAPIOperationKind = "CLOUD_FORMATION_DELETE"
+	AWSAPIOperationKindDataPlaneMutation    AWSAPIOperationKind = "DATA_PLANE_MUTATION"
+	AWSAPIOperationKindUnmappedMutation     AWSAPIOperationKind = "UNMAPPED_MUTATION"
+)
+
+// AWSAPIRequestValidationStatus indicates whether validation ran or was skipped.
+type AWSAPIRequestValidationStatus string
+
+const (
+	AWSAPIRequestValidationStatusValidated AWSAPIRequestValidationStatus = "VALIDATED"
+	AWSAPIRequestValidationStatusSkipped   AWSAPIRequestValidationStatus = "SKIPPED"
+)
+
+// AWSAPITemplateSource identifies the provenance of the template validated for
+// an API request.
+type AWSAPITemplateSource string
+
+const (
+	AWSAPITemplateSourceTemplateBody             AWSAPITemplateSource = "TEMPLATE_BODY"
+	AWSAPITemplateSourceCloudControlDesiredState AWSAPITemplateSource = "CLOUD_CONTROL_DESIRED_STATE"
+	AWSAPITemplateSourceSynthesizedCreate        AWSAPITemplateSource = "SYNTHESIZED_CREATE"
+	AWSAPITemplateSourceSynthesizedUpdate        AWSAPITemplateSource = "SYNTHESIZED_UPDATE"
+)
+
+// AWSAPIRequestValidation is the canonical result of validating an AWS API
+// request. Report is present only when Status is VALIDATED.
+type AWSAPIRequestValidation struct {
+	OperationKind  AWSAPIOperationKind           `json:"operationKind"`
+	Status         AWSAPIRequestValidationStatus `json:"status"`
+	TemplateSource *AWSAPITemplateSource         `json:"templateSource,omitempty"`
+	ResourceTypes  []string                      `json:"resourceTypes"`
+	Reason         string                        `json:"reason"`
+	Report         *StandardReport               `json:"report,omitempty"`
+}

@@ -103,8 +103,7 @@ result.report?.diagnostics?.forEach { diagnostic ->
 `AwsApiRequest.parameters` accepts nested maps, iterables and arrays, scalars, byte arrays, and Java temporal values
 without mutating the supplied map. `TemplateBody` bytes are validated exactly; `TemplateURL` is skipped because the
 validator does not perform network requests. Every result reports `status`, `operationKind`, `templateSource`,
-`resourceTypes`, and `reason`; skipped requests have a null `report`. `validateAwsApiRequestStandard` returns standard
-diagnostics, while `validateAwsApiRequestDetailed` and its `validateAwsApiRequest` alias return detailed diagnostics.
+`resourceTypes`, and `reason`; skipped requests have a null `report`.
 The same classes and methods are callable from Java with conventional generated getters.
 
 Operation-to-resource mapping uses a deterministic closed adapter catalog generated from each resource type's own
@@ -137,14 +136,14 @@ import software.amazon.awssdk.core.interceptor.SdkExecutionAttribute;
 import software.amazon.cloudformation.validate.AwsApiRequest;
 import software.amazon.cloudformation.validate.RegoEngine;
 import software.amazon.cloudformation.validate.ValidateConfig;
-import software.amazon.cloudformation.validate.engine.DetailedAwsApiRequestValidation;
+import software.amazon.cloudformation.validate.engine.AwsApiRequestValidation;
 
 public final class CloudFormationValidationInterceptor implements ExecutionInterceptor {
     private final RegoEngine engine = new RegoEngine();
 
     @Override
     public void beforeExecution(Context.BeforeExecution context, ExecutionAttributes attributes) {
-        DetailedAwsApiRequestValidation result = engine.validateAwsApiRequest(
+        AwsApiRequestValidation result = engine.validateAwsApiRequest(
             new AwsApiRequest(
                 attributes.getAttribute(SdkExecutionAttribute.SERVICE_NAME),
                 attributes.getAttribute(SdkExecutionAttribute.OPERATION_NAME),

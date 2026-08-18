@@ -177,6 +177,42 @@ fn to_json<T: serde::Serialize>(value: &T) -> Result<String, ValidationError> {
     serde_json::to_string(value).map_err(|e| ValidationError::new(format!("failed to serialize result: {e}")))
 }
 
+/// Wire struct for an AWS API request received from Go as JSON.
+///
+/// Field names match the Go `AWSAPIRequest` struct's `json` tags exactly.
+/// Unknown fields are rejected so a drifted field name surfaces as an error
+/// instead of silently ignoring the caller's intent.
+#[derive(Debug, serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct AwsApiRequestWire {
+    service_name: String,
+    operation_name: String,
+    parameters: HashMap<String, validation_engine::AwsApiValue>,
+    #[serde(default)]
+    service_prefix: Option<String>,
+    #[serde(default)]
+    http_method: Option<String>,
+    #[serde(default)]
+    is_read_only: Option<bool>,
+}
+
+impl AwsApiRequestWire {
+    fn parse(json: &str) -> Result<Self, ValidationError> {
+        serde_json::from_str(json).map_err(|e| ValidationError::new(format!("invalid AWS API request JSON: {e}")))
+    }
+
+    fn into_context(self) -> validation_engine::AwsApiRequestContext {
+        validation_engine::AwsApiRequestContext {
+            service_name: self.service_name,
+            operation_name: self.operation_name,
+            parameters: self.parameters,
+            service_prefix: self.service_prefix,
+            http_method: self.http_method,
+            is_read_only: self.is_read_only,
+        }
+    }
+}
+
 #[derive(uniffi::Object)]
 pub struct GoSchemaValidator {
     inner: schema_validator::SchemaValidator,
@@ -307,6 +343,29 @@ macro_rules! impl_go_engine {
                         )
                         .map_err(ValidationError::new)?;
                         to_json(&report.to_detailed())
+                    },
+                    panic_to_error,
+                )
+            }
+
+            /// Validates an AWS API request and returns the canonical result as JSON.
+            pub fn validate_aws_api_request_json(
+                &self,
+                request_json: String,
+                options_json: String,
+            ) -> Result<String, ValidationError> {
+                catch_panics(
+                    || {
+                        let request = AwsApiRequestWire::parse(&request_json)?.into_context();
+                        let config = ValidateOptions::parse(&options_json)?.to_core(DetailLevel::Standard);
+                        let result = validation_engine::validate_aws_api_request(
+                            &self.engine,
+                            &self.schema_validator,
+                            &request,
+                            config,
+                        )
+                        .map_err(ValidationError::new)?;
+                        to_json(&result)
                     },
                     panic_to_error,
                 )
@@ -615,5 +674,133 @@ mod tests {
             error.to_string().contains("invalid schema validator config JSON"),
             "error must identify the failing input: {error}"
         );
+    }
+
+    #[test]
+    fn aws_api_request_parses_valid_minimal_request() {
+        let wire = AwsApiRequestWire::parse(
+            r#"{"serviceName":"s3","operationName":"CreateBucket","parameters":{"Bucket":{"type":"STRING","value":"test"}}}"#,
+        )
+        .expect("valid minimal request must parse");
+
+        assert_eq!(wire.service_name, "s3");
+        assert_eq!(wire.operation_name, "CreateBucket");
+        assert!(wire.parameters.contains_key("Bucket"));
+        assert_eq!(wire.service_prefix, None);
+        assert_eq!(wire.http_method, None);
+        assert_eq!(wire.is_read_only, None);
+    }
+
+    #[test]
+    fn aws_api_request_parses_nested_values_and_bytes() {
+        let wire = AwsApiRequestWire::parse(
+            r#"{
+                "serviceName": "cloudformation",
+                "operationName": "CreateStack",
+                "parameters": {
+                    "TemplateBody": {"type": "BYTES", "value": [123, 125]},
+                    "Tags": {"type": "ARRAY", "items": [
+                        {"type": "OBJECT", "entries": {"Key": {"type": "STRING", "value": "env"}}}
+                    ]},
+                    "Count": {"type": "INTEGER", "value": 42}
+                },
+                "servicePrefix": "cloudformation",
+                "httpMethod": "POST",
+                "isReadOnly": false
+            }"#,
+        )
+        .expect("nested request must parse");
+
+        assert_eq!(wire.service_name, "cloudformation");
+        assert_eq!(wire.service_prefix, Some("cloudformation".to_string()));
+        assert_eq!(wire.http_method, Some("POST".to_string()));
+        assert_eq!(wire.is_read_only, Some(false));
+
+        let context = wire.into_context();
+        match context.parameters.get("TemplateBody") {
+            Some(validation_engine::AwsApiValue::Bytes { value }) => assert_eq!(value, &[123, 125]),
+            other => panic!("expected Bytes, got {other:?}"),
+        }
+        match context.parameters.get("Count") {
+            Some(validation_engine::AwsApiValue::Integer { value }) => assert_eq!(*value, 42),
+            other => panic!("expected Integer, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn aws_api_request_rejects_malformed_json() {
+        let error = AwsApiRequestWire::parse("not json").expect_err("malformed JSON must fail");
+        assert!(
+            error.to_string().contains("invalid AWS API request JSON"),
+            "error must identify the failing input: {error}"
+        );
+    }
+
+    #[test]
+    fn aws_api_request_rejects_unknown_fields() {
+        let error = AwsApiRequestWire::parse(
+            r#"{"serviceName":"s3","operationName":"CreateBucket","parameters":{},"unknownField":"x"}"#,
+        )
+        .expect_err("unknown field must fail");
+        assert!(error.to_string().contains("unknownField"), "error must name the offending key: {error}");
+    }
+
+    #[test]
+    fn aws_api_request_rejects_missing_required_fields() {
+        let error =
+            AwsApiRequestWire::parse(r#"{"serviceName":"s3"}"#).expect_err("missing required operationName must fail");
+        assert!(error.to_string().contains("operationName"), "error must name the missing field: {error}");
+    }
+
+    #[test]
+    fn aws_api_value_unsupported_uses_type_name_field() {
+        let json = r#"{"type":"UNSUPPORTED","type_name":"non-finite floating-point number"}"#;
+        let value: validation_engine::AwsApiValue =
+            serde_json::from_str(json).expect("UNSUPPORTED with type_name must parse");
+        match value {
+            validation_engine::AwsApiValue::Unsupported { type_name } => {
+                assert_eq!(type_name, "non-finite floating-point number");
+            }
+            other => panic!("expected Unsupported, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn aws_api_value_bytes_parses_integer_array() {
+        let json = r#"{"type":"BYTES","value":[72,101,108,108,111]}"#;
+        let value: validation_engine::AwsApiValue =
+            serde_json::from_str(json).expect("BYTES with integer array must parse");
+        match value {
+            validation_engine::AwsApiValue::Bytes { value } => {
+                assert_eq!(value, vec![72, 101, 108, 108, 111]);
+            }
+            other => panic!("expected Bytes, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn aws_api_value_empty_array_has_items_field() {
+        let json = r#"{"type":"ARRAY","items":[]}"#;
+        let value: validation_engine::AwsApiValue =
+            serde_json::from_str(json).expect("ARRAY with empty items must parse");
+        match value {
+            validation_engine::AwsApiValue::Array { items } => {
+                assert!(items.is_empty());
+            }
+            other => panic!("expected Array, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn aws_api_value_empty_object_has_entries_field() {
+        let json = r#"{"type":"OBJECT","entries":{}}"#;
+        let value: validation_engine::AwsApiValue =
+            serde_json::from_str(json).expect("OBJECT with empty entries must parse");
+        match value {
+            validation_engine::AwsApiValue::Object { entries } => {
+                assert!(entries.is_empty());
+            }
+            other => panic!("expected Object, got {other:?}"),
+        }
     }
 }

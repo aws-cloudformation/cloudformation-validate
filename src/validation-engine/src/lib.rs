@@ -8,8 +8,7 @@ pub(crate) mod step_functions;
 
 pub use aws_api::{
     AwsApiOperationKind, AwsApiRequest, AwsApiRequestContext, AwsApiRequestValidation, AwsApiRequestValidationStatus,
-    AwsApiTemplateSource, AwsApiValue, DetailedAwsApiRequestValidation, StandardAwsApiRequestValidation,
-    validate_aws_api_request, validate_aws_api_request_with_path,
+    AwsApiTemplateSource, AwsApiValue, validate_aws_api_request, validate_aws_api_request_with_path,
 };
 pub use engine::{
     EngineConfig, EngineType, ExternalRuleSource, ValidateConfig, ValidationEngine, ValidationError, build_rule_list,

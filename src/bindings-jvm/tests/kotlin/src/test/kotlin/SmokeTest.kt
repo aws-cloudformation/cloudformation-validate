@@ -163,9 +163,6 @@ class SmokeTest {
             assertNotNull(result.report)
         }
         assertEquals(gson.toJson(results[0].report?.diagnostics), gson.toJson(results[1].report?.diagnostics))
-        val standard = REGO.validateAwsApiRequestStandard(request, defaultConfig())
-        assertEquals(AwsApiRequestValidationStatus.VALIDATED, standard.status)
-        assertNotNull(standard.report)
         assertEquals(
             linkedMapOf<String, Any?>("Bucket" to "synthetic-bucket"),
             parameters,

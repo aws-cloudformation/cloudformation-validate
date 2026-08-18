@@ -96,27 +96,26 @@ from .schema_validator import SchemaValidatorConfig
 from .validation_engine import (
     AwsApiOperationKind,
     AwsApiRequestContext as _NativeAwsApiRequest,
+    AwsApiRequestValidation,
     AwsApiRequestValidationStatus,
     AwsApiTemplateSource,
     AwsApiValue as _NativeAwsApiValue,
-    DetailedAwsApiRequestValidation,
     EngineConfig,
     EngineType,
     ExternalRuleSource,
-    StandardAwsApiRequestValidation,
 )
 
 __all__ = [
     "AdditionalSchemaSource",
     "AwsApiOperationKind",
     "AwsApiRequest",
+    "AwsApiRequestValidation",
     "AwsApiRequestValidationStatus",
     "AwsApiTemplateSource",
     "CelEngine",
     "ConditionalNull",
     "ConditionalNullEntry",
     "DetailLevel",
-    "DetailedAwsApiRequestValidation",
     "DetailedDiagnostic",
     "DetailedReport",
     "DiagnosticCondition",
@@ -172,7 +171,6 @@ __all__ = [
     "ServiceFilter",
     "Severity",
     "SourceSpan",
-    "StandardAwsApiRequestValidation",
     "StandardDiagnostic",
     "StandardReport",
     "Summary",
@@ -328,31 +326,14 @@ class Engine:
 
     def validate_aws_api_request(
         self, request: AwsApiRequest, config: typing.Optional[ValidateConfig] = None
-    ) -> DetailedAwsApiRequestValidation:
+    ) -> AwsApiRequestValidation:
         """Classifies, models, and validates an AWS API request.
 
-        This detailed variant is the primary integration entry point. A skipped
-        request has ``report is None`` and an explicit status and reason.
+        A skipped request has ``report is None`` and an explicit status and reason.
         """
-        return self.validate_aws_api_request_detailed(request, config)
-
-    def validate_aws_api_request_standard(
-        self, request: AwsApiRequest, config: typing.Optional[ValidateConfig] = None
-    ) -> StandardAwsApiRequestValidation:
-        """Validates an AWS API request and returns standard diagnostics."""
         if not isinstance(request, AwsApiRequest):
             raise TypeError("request must be an AwsApiRequest")
-        return self._inner.validate_aws_api_request_standard(
-            request._to_native(), config if config is not None else ValidateConfig()
-        )
-
-    def validate_aws_api_request_detailed(
-        self, request: AwsApiRequest, config: typing.Optional[ValidateConfig] = None
-    ) -> DetailedAwsApiRequestValidation:
-        """Validates an AWS API request and returns detailed diagnostics."""
-        if not isinstance(request, AwsApiRequest):
-            raise TypeError("request must be an AwsApiRequest")
-        return self._inner.validate_aws_api_request_detailed(
+        return self._inner.validate_aws_api_request(
             request._to_native(), config if config is not None else ValidateConfig()
         )
 

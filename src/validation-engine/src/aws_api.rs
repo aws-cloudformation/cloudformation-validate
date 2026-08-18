@@ -1,4 +1,4 @@
-use diagnostics::{DetailedReport, StandardReport, Summary, ValidationReport};
+use diagnostics::{DetailLevel, StandardReport, Summary, ValidationReport};
 use rules::Severity;
 use schema_validator::{PropertyValueType, ResourceSchemaMetadata, SchemaValidator};
 use serde::{Deserialize, Serialize};
@@ -182,8 +182,14 @@ pub enum AwsApiTemplateSource {
     SynthesizedUpdate,
 }
 
-/// Full Rust result for AWS API request validation.
-#[derive(Debug, Clone)]
+/// Canonical result for AWS API request validation.
+///
+/// Contains standard diagnostics only — detailed enrichment is not meaningful
+/// for synthesized API-request templates because there is no user-authored
+/// source to annotate with context.
+#[derive(Debug, Clone, Serialize)]
+#[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Record))]
+#[serde(rename_all = "camelCase")]
 #[must_use]
 pub struct AwsApiRequestValidation {
     pub operation_kind: AwsApiOperationKind,
@@ -191,57 +197,7 @@ pub struct AwsApiRequestValidation {
     pub template_source: Option<AwsApiTemplateSource>,
     pub resource_types: Vec<String>,
     pub reason: String,
-    pub report: Option<ValidationReport>,
-}
-
-/// AWS API request result containing standard diagnostics.
-#[derive(Debug, Clone, Serialize)]
-#[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Record))]
-#[serde(rename_all = "camelCase")]
-pub struct StandardAwsApiRequestValidation {
-    pub operation_kind: AwsApiOperationKind,
-    pub status: AwsApiRequestValidationStatus,
-    pub template_source: Option<AwsApiTemplateSource>,
-    pub resource_types: Vec<String>,
-    pub reason: String,
     pub report: Option<StandardReport>,
-}
-
-/// AWS API request result containing detailed diagnostics and context.
-#[derive(Debug, Clone, Serialize)]
-#[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Record))]
-#[serde(rename_all = "camelCase")]
-pub struct DetailedAwsApiRequestValidation {
-    pub operation_kind: AwsApiOperationKind,
-    pub status: AwsApiRequestValidationStatus,
-    pub template_source: Option<AwsApiTemplateSource>,
-    pub resource_types: Vec<String>,
-    pub reason: String,
-    pub report: Option<DetailedReport>,
-}
-
-impl AwsApiRequestValidation {
-    pub fn to_standard(&self) -> StandardAwsApiRequestValidation {
-        StandardAwsApiRequestValidation {
-            operation_kind: self.operation_kind,
-            status: self.status,
-            template_source: self.template_source,
-            resource_types: self.resource_types.clone(),
-            reason: self.reason.clone(),
-            report: self.report.as_ref().map(ValidationReport::to_standard),
-        }
-    }
-
-    pub fn to_detailed(&self) -> DetailedAwsApiRequestValidation {
-        DetailedAwsApiRequestValidation {
-            operation_kind: self.operation_kind,
-            status: self.status,
-            template_source: self.template_source,
-            resource_types: self.resource_types.clone(),
-            reason: self.reason.clone(),
-            report: self.report.as_ref().map(ValidationReport::to_detailed),
-        }
-    }
 }
 
 /// Classifies, models, and validates one AWS API request entirely offline.
@@ -276,7 +232,10 @@ pub fn validate_aws_api_request_with_path(
         });
     };
 
-    let mut report = validate_bytes_with_path(engine, schema_validator, &template, config, file_path)?;
+    // Force standard detail level — detailed enrichment is not meaningful for
+    // synthesized API-request templates (no user-authored source to annotate).
+    let standard_config = ValidateConfig { detail_level: DetailLevel::Standard, ..config };
+    let mut report = validate_bytes_with_path(engine, schema_validator, &template, standard_config, file_path)?;
     if let Some(properties) = synthesis.diagnostic_properties.as_ref() {
         scope_synthesized_report(&mut report, properties);
     }
@@ -286,7 +245,7 @@ pub fn validate_aws_api_request_with_path(
         template_source: synthesis.source,
         resource_types: synthesis.resource_types,
         reason: synthesis.reason,
-        report: Some(report),
+        report: Some(report.to_standard()),
     })
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]

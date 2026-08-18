@@ -23,8 +23,8 @@ pub use template_model::model::{
 pub use template_model::resolver::{MapEntry, ParameterInfo, RefKind, ResolvedValue};
 pub use template_model::{JsonValue, PseudoParameterOverrides, SourceSpan};
 pub use validation_engine::{
-    AwsApiOperationKind, AwsApiRequestContext, AwsApiRequestValidationStatus, AwsApiTemplateSource, AwsApiValue,
-    DetailedAwsApiRequestValidation, EngineConfig, EngineType, ExternalRuleSource, StandardAwsApiRequestValidation,
+    AwsApiOperationKind, AwsApiRequestContext, AwsApiRequestValidation, AwsApiRequestValidationStatus,
+    AwsApiTemplateSource, AwsApiValue, EngineConfig, EngineType, ExternalRuleSource,
 };
 
 pub use schema_validator::SchemaValidatorConfig;
@@ -200,11 +200,11 @@ macro_rules! impl_jvm_engine {
                 )
             }
 
-            pub fn validate_aws_api_request_standard(
+            pub fn validate_aws_api_request(
                 &self,
                 request: AwsApiRequestContext,
                 config: ValidateConfig,
-            ) -> Result<StandardAwsApiRequestValidation, ValidationError> {
+            ) -> Result<AwsApiRequestValidation, ValidationError> {
                 validation_engine::catch_panics(
                     || {
                         let core_config = config.to_core(DetailLevel::Standard);
@@ -215,28 +215,7 @@ macro_rules! impl_jvm_engine {
                             core_config,
                         )
                         .map_err(|e| ValidationError::Engine { msg: e.to_string() })?;
-                        Ok(validation.to_standard())
-                    },
-                    panic_to_error,
-                )
-            }
-
-            pub fn validate_aws_api_request_detailed(
-                &self,
-                request: AwsApiRequestContext,
-                config: ValidateConfig,
-            ) -> Result<DetailedAwsApiRequestValidation, ValidationError> {
-                validation_engine::catch_panics(
-                    || {
-                        let core_config = config.to_core(DetailLevel::Detailed);
-                        let validation = validation_engine::validate_aws_api_request(
-                            &self.engine,
-                            &self.schema_validator,
-                            &request,
-                            core_config,
-                        )
-                        .map_err(|e| ValidationError::Engine { msg: e.to_string() })?;
-                        Ok(validation.to_detailed())
+                        Ok(validation)
                     },
                     panic_to_error,
                 )

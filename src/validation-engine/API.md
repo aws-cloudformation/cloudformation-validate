@@ -64,8 +64,8 @@ let result = validate_aws_api_request(
     &request,
     ValidateConfig::default(),
 )?;
-if let Some(report) = result.report {
-    for diagnostic in report.diagnostics {
+if let Some(report) = &result.report {
+    for diagnostic in &report.diagnostics {
         println!("{}: {}", diagnostic.rule_id, diagnostic.message);
     }
 } else {
@@ -76,8 +76,10 @@ if let Some(report) = result.report {
 `AwsApiValue` preserves bytes and 64-bit integer widths and explicitly marks unsupported values. Exact `TemplateBody`
 bytes are validated without rewriting; `TemplateURL` is skipped because validation is offline. Every result includes
 an operation kind, validation status, optional template source, resource candidates, and reason. `Validated` means the
-modeled template reached the normal validation pipeline; `Skipped` has no report and explains why. Use
-`validate_aws_api_request_with_path` when the embedding application needs a custom report path.
+modeled template reached the normal validation pipeline; `Skipped` has no report and explains why.
+`AwsApiRequestValidation` contains an `Option<StandardReport>` directly — detailed enrichment is not supported for
+synthesized API-request templates because there is no user-authored source to annotate with context.
+Use `validate_aws_api_request_with_path` when the embedding application needs a custom report path.
 
 **Deterministic closed-adapter contract.** Operation-to-resource mapping uses a generated adapter catalog keyed by
 case-normalized canonical `service_name` and exact operation name. The catalog is produced by
