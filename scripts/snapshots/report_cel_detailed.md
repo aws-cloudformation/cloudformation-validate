@@ -1,6 +1,6 @@
 # cloudformation-validate vs cfn-lint - Parity Report
 
-> Generated: 2026-08-17 18:51:06  
+> Generated: 2026-08-18 10:52:43  
 > Engine: **cel**  
 > Detail level: **detailed**  
 > Matching: `(rule_id, resource_id, path)` two-pass with `(rule_id, resource_id)` fallback + aliases  
@@ -31,7 +31,7 @@
 | F1 | 72.56% |
 | Unique rules detected | 237 |
 | Perfect templates | 487/664 |
-| Location mismatches (matched pairs) | 4 |
+| Location mismatches (matched pairs) | 7 |
 
 ### By Severity
 
@@ -4957,9 +4957,9 @@ These are diagnostics the engine reports but cfn-lint does not expect (potential
   > 'invalid-group-mixed-true' is not a valid IPv4 address for record type 'A'
 - **E3023** `GroupUnresolvedCnameCardinality` (AWS::Route53::RecordSetGroup) → `Properties.RecordSets.0.ResourceRecords` L136 in `bad_route53_conditional_record_arrays_yaml`
   > CNAME records must have at most 1 ResourceRecord
-- **E3023** `StandaloneMixedInvalidFalse` (AWS::Route53::RecordSet) → `Properties.ResourceRecords.1` L53 in `bad_route53_conditional_record_arrays_yaml`
+- **E3023** `StandaloneMixedInvalidFalse` (AWS::Route53::RecordSet) → `Properties.ResourceRecords.1` L57 in `bad_route53_conditional_record_arrays_yaml`
   > 'invalid-standalone-mixed-false' is not a valid IPv4 address for record type 'A'
-- **E3023** `StandaloneMixedInvalidTrue` (AWS::Route53::RecordSet) → `Properties.ResourceRecords.1` L41 in `bad_route53_conditional_record_arrays_yaml`
+- **E3023** `StandaloneMixedInvalidTrue` (AWS::Route53::RecordSet) → `Properties.ResourceRecords.1` L44 in `bad_route53_conditional_record_arrays_yaml`
   > 'invalid-standalone-mixed-true' is not a valid IPv4 address for record type 'A'
 - **E3023** `StandaloneUnresolvedCnameCardinality` (AWS::Route53::RecordSet) → `Properties.ResourceRecords` L125 in `bad_route53_conditional_record_arrays_yaml`
   > CNAME records must have at most 1 ResourceRecord
@@ -22661,9 +22661,10 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 These templates cannot be compared because no counterpart exists in the
 other tool's output. They are excluded from precision/recall scoring.
 
-### Engine reports with no cfn-lint result — 2 templates, 0 diagnostics
+### Engine reports with no cfn-lint result — 3 templates, 1 diagnostics
 
 - `empty_yaml` (0 diagnostics)
+- `gh-issues_issue-278_yaml` (1 diagnostics)
 - `malformed_yaml` (0 diagnostics)
 
 ## Root-Cause Analysis
@@ -22687,7 +22688,7 @@ other tool's output. They are excluded from precision/recall scoring.
 | Other | 50 | 4.81% | E0001, F0018, F1018, F1020, F1031, F3016, F3017 |
 | Over-reporting property/intrinsic errors | 35 | 3.37% | E1155, E3001, E3019, E3022, E3023, E3029, E3055, E3510, E3639 |
 
-## Location Mismatches - 4 matched pairs disagree on line
+## Location Mismatches - 7 matched pairs disagree on line
 
 Same rule ID + resource + path, but the engine start line differs from
 the reference. (Messages are not compared - wording may differ freely.)
@@ -22697,6 +22698,9 @@ findings at the resource's first line because the
 transform loses property line fidelity; the engine anchors at the
 actual property line - deliberately more precise, not a defect.
 
+- **E3023** `StandaloneInvalidFalse` → `Properties.ResourceRecords.0` in `bad_route53_conditional_record_arrays_yaml`: reference L30 vs engine L33
+- **E3023** `StandaloneInvalidTrue` → `Properties.ResourceRecords.0` in `bad_route53_conditional_record_arrays_yaml`: reference L19 vs engine L21
+- **E3023** `MyCNAMERecordSetConditions` → `Properties.ResourceRecords` in `bad_route53_yaml`: reference L90 vs engine L93
 - **I3042** `myKms` → `Properties.KeyPolicy.Statement.2.Principal.AWS.0.Fn::Sub` in `bad_resources_circular_dependency_yaml`: reference L191 vs engine L192
 - **I3042** `CognitoAuthorizer` → `Properties.ProviderARNs.0.Fn::Sub` in `integration_cfn-gather_yaml`: reference L60 vs engine L61
 - **W1028** `ProductionBucket` → `Properties.PublicAccessBlockConfiguration.BlockPublicAcls.Fn::If.2` in `lsp_condition-usage_yaml`: reference L66 vs engine L69
