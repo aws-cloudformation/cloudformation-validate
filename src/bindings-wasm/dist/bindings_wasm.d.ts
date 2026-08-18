@@ -307,6 +307,28 @@ export interface DiagnosticRuleAssertion {
 }
 
 /**
+ * A single budget-exhaustion record in report metadata.
+ */
+export interface BudgetExhaustionRecord {
+    /**
+     * Stable lower camelCase budget kind identifier.
+     */
+    kind: string;
+    /**
+     * Human-readable explanation of the exhausted budget.
+     */
+    description?: string;
+    /**
+     * The numeric limit that was exhausted.
+     */
+    limit: number;
+    /**
+     * Whether exhausting this budget makes the overall analysis incomplete.
+     */
+    analysisIncomplete: boolean;
+}
+
+/**
  * A single edge in the template\'s reference graph, from a referencing resource to its target.
  */
 export interface ReferenceEdge {
@@ -692,10 +714,12 @@ export interface IdRange {
 }
 
 /**
- * Outcome of a validation run. `Ok` means the engine completed; `Error` means
- * the pipeline could not run (e.g. parse failure).
+ * Outcome of a validation run. `Ok` means validation completed without
+ * correctness-affecting curtailment. `AnalysisIncomplete` means a deterministic
+ * budget curtailed analysis in a way that could omit findings. `Error` means
+ * the validation pipeline could not run, such as when parsing fails.
  */
-export type ReportStatus = 'OK' | 'ERROR';
+export type ReportStatus = 'OK' | 'ANALYSIS_INCOMPLETE' | 'ERROR';
 
 /**
  * Per-resource observations collected while resolving intrinsics, used to drive lint checks.
@@ -1074,6 +1098,11 @@ export interface ReportMetadata {
      * Minimum severity included in the report; lower-severity findings are omitted.
      */
     severityLevel: Severity;
+    /**
+     * Records of deterministic validation budgets exhausted during this run.
+     * Absent when no budget was exhausted.
+     */
+    budgetExhaustions?: BudgetExhaustionRecord[] | undefined;
 }
 
 export interface Summary {
