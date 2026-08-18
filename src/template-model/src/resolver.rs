@@ -1418,7 +1418,7 @@ impl<'a> Resolver<'a> {
             && !template.contains("${!")
             && let Some(ref rid) = self.current_resource
         {
-            self.redundant_subs.entry(rid.clone()).or_default().push(self.current_path.clone());
+            self.redundant_subs.entry(rid.clone()).or_default().push(format!("{}.Fn::Sub", self.current_path));
         }
 
         if template.contains("arn:aws:")
