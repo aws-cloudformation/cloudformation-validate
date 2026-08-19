@@ -403,15 +403,10 @@ pub(crate) fn validate(
 struct DataSourceVersions {
     cfn_lint_version: &'static str,
     resource_schema_version: &'static str,
-    available: bool,
 }
 
-static DATA_SOURCE_VERSIONS: DataSourceVersions = match (CFN_LINT_VERSION, RESOURCE_SCHEMA_VERSION) {
-    (Some(cfn_lint_version), Some(resource_schema_version)) => {
-        DataSourceVersions { cfn_lint_version, resource_schema_version, available: true }
-    }
-    _ => DataSourceVersions { cfn_lint_version: "", resource_schema_version: "", available: false },
-};
+static DATA_SOURCE_VERSIONS: DataSourceVersions =
+    DataSourceVersions { cfn_lint_version: CFN_LINT_VERSION, resource_schema_version: RESOURCE_SCHEMA_VERSION };
 
 #[cfg(any(test, feature = "test"))]
 pub fn validate_bytes(
@@ -430,11 +425,6 @@ pub fn validate_bytes_with_path(
     config: ValidateConfig,
     file_path: String,
 ) -> Result<ValidationReport, ValidationError> {
-    if !DATA_SOURCE_VERSIONS.available {
-        return Err(ValidationError::Engine(
-            "data source versions are unavailable; run the full data-source sync with --cfn-lint-root".to_string(),
-        ));
-    }
     let total_start = Instant::now();
     let result = match SemanticModel::parse(
         bytes,

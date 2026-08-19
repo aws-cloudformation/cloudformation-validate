@@ -37,11 +37,13 @@ impl CompiledSchemaStore {
     pub fn new() -> Self {
         let schemas: HashMap<String, CompiledSchema> =
             serde_json::from_slice(&COMPILED_SCHEMAS_BYTES).expect("Embedded compiled schemas must be valid JSON");
+        assert!(!schemas.is_empty(), "Embedded compiled schemas must not be empty");
         let ref_types = RefTypeStore::load(&REF_TYPES_BYTES);
         let lifecycle = LifecycleStore::load(&RESOURCE_LIFECYCLE_BYTES, &LAMBDA_RUNTIMES_BYTES);
         let mut extensions = ExtensionStore::load(&EXTENSIONS_BYTES);
         extensions.remap_keys(&schemas);
-        let region_enums = RegionEnumStore::load(&REGION_ENUMS_BYTES);
+        let region_enums =
+            RegionEnumStore::load(&REGION_ENUMS_BYTES).expect("Embedded region_enums data must be valid and populated");
         let mut store = CompiledSchemaStore {
             schemas,
             region_types: HashMap::new(),
@@ -53,7 +55,9 @@ impl CompiledSchemaStore {
         // Load the embedded per-region resource-type map so region-availability
         // (F3006) validates against the target region. Without this the region
         // check is dormant and unavailable types slip through.
-        store.load_region_data(&REGION_RESOURCE_TYPES_BYTES);
+        store
+            .load_region_data(&REGION_RESOURCE_TYPES_BYTES)
+            .expect("Embedded region_resource_types data must be valid and populated");
         assert!(
             store.has_region_data(),
             "Embedded region-availability data (region_resource_types) is empty; the build is missing regional data"
@@ -65,20 +69,29 @@ impl CompiledSchemaStore {
         store
     }
 
-    pub fn load_region_data(&mut self, json_bytes: &[u8]) {
-        if let Ok(wrapper) = serde_json::from_slice::<serde_json::Value>(json_bytes)
-            && let Some(obj) = wrapper.get("region_resource_types").and_then(|v| v.as_object())
-        {
-            for (region, types) in obj {
-                let mut type_map = HashMap::new();
-                if let Some(tobj) = types.as_object() {
-                    for (t, _) in tobj {
-                        type_map.insert(t.clone(), true);
-                    }
-                }
-                self.region_types.insert(region.clone(), type_map);
-            }
+    pub fn load_region_data(&mut self, json_bytes: &[u8]) -> Result<(), String> {
+        let wrapper: serde_json::Value = serde_json::from_slice(json_bytes)
+            .map_err(|error| format!("region_resource_types must be valid JSON: {error}"))?;
+        let regions = wrapper
+            .get("region_resource_types")
+            .and_then(|value| value.as_object())
+            .ok_or_else(|| "region_resource_types must contain a region_resource_types object".to_string())?;
+        if regions.is_empty() {
+            return Err("region_resource_types must not be empty".to_string());
         }
+
+        let mut parsed_regions = HashMap::new();
+        for (region, types) in regions {
+            let type_object =
+                types.as_object().ok_or_else(|| format!("region_resource_types entry '{region}' must be an object"))?;
+            if type_object.is_empty() {
+                return Err(format!("region_resource_types entry '{region}' must not be empty"));
+            }
+            let type_map = type_object.keys().map(|resource_type| (resource_type.clone(), true)).collect();
+            parsed_regions.insert(region.clone(), type_map);
+        }
+        self.region_types.extend(parsed_regions);
+        Ok(())
     }
 
     pub fn get(&self, type_name: &str) -> Option<&CompiledSchema> {
@@ -182,18 +195,21 @@ pub struct RefTypeStore {
 impl RefTypeStore {
     fn load(bytes: &[u8]) -> Self {
         let json: serde_json::Value = serde_json::from_slice(bytes).expect("Embedded ref_types must be valid JSON");
-        let ref_returns = json
+        let ref_returns: HashMap<String, String> = json
             .get("ref_returns")
             .and_then(|v| serde_json::from_value(v.clone()).ok())
             .expect("Embedded ref_types must contain ref_returns");
-        let getatt_returns = json
+        let getatt_returns: HashMap<String, HashMap<String, String>> = json
             .get("getatt_returns")
             .and_then(|v| serde_json::from_value(v.clone()).ok())
             .expect("Embedded ref_types must contain getatt_returns");
-        let format_compatible_types = json
+        let format_compatible_types: HashMap<String, Vec<String>> = json
             .get("format_compatible_types")
             .and_then(|v| serde_json::from_value(v.clone()).ok())
             .expect("Embedded ref_types must contain format_compatible_types");
+        assert!(!ref_returns.is_empty(), "Embedded ref_returns must not be empty");
+        assert!(!getatt_returns.is_empty(), "Embedded getatt_returns must not be empty");
+        assert!(!format_compatible_types.is_empty(), "Embedded format_compatible_types must not be empty");
         RefTypeStore { ref_returns, getatt_returns, format_compatible_types }
     }
 
@@ -293,54 +309,79 @@ pub struct RuntimeLifecycle {
 
 impl LifecycleStore {
     fn load(lifecycle_bytes: &[u8], runtimes_bytes: &[u8]) -> Self {
-        let lc_json: serde_json::Value =
+        let lifecycle_document: serde_json::Value =
             serde_json::from_slice(lifecycle_bytes).expect("Embedded resource_lifecycle must be valid JSON");
+        let lifecycle_entries = lifecycle_document
+            .get("resource_lifecycle")
+            .and_then(|value| value.as_object())
+            .expect("Embedded resource_lifecycle must contain a resource_lifecycle object");
+        assert!(!lifecycle_entries.is_empty(), "Embedded resource_lifecycle must not be empty");
         let mut resource_lifecycle = HashMap::new();
-        if let Some(obj) = lc_json.get("resource_lifecycle").and_then(|v| v.as_object()) {
-            for (type_name, entry) in obj {
-                let status = entry.get("status").and_then(|v| v.as_str()).unwrap_or("").to_string();
-                let date = entry.get("date").and_then(|v| v.as_str()).map(String::from);
-                if !status.is_empty() {
-                    resource_lifecycle.insert(type_name.clone(), LifecycleEntry { status, date });
-                }
-            }
+        for (type_name, entry) in lifecycle_entries {
+            let status = entry
+                .get("status")
+                .and_then(|value| value.as_str())
+                .expect("Embedded resource lifecycle entries must contain a status");
+            assert!(!status.is_empty(), "Embedded resource lifecycle status must not be empty");
+            let date = entry.get("date").and_then(|value| value.as_str()).map(String::from);
+            resource_lifecycle.insert(type_name.clone(), LifecycleEntry { status: status.to_string(), date });
         }
 
-        let rt_json: serde_json::Value =
+        let runtime_document: serde_json::Value =
             serde_json::from_slice(runtimes_bytes).expect("Embedded lambda_runtimes must be valid JSON");
-        let deprecated_runtimes = rt_json
+        let runtime_data = runtime_document
             .get("lambda_runtimes")
-            .and_then(|v| v.get("deprecated"))
-            .and_then(|v| v.as_array())
-            .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
-            .unwrap_or_default();
-        let eol_runtimes = rt_json
-            .get("lambda_runtimes")
-            .and_then(|v| v.get("eol"))
-            .and_then(|v| v.as_array())
-            .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
-            .unwrap_or_default();
-        let create_blocked_runtimes = rt_json
-            .get("lambda_runtimes")
-            .and_then(|v| v.get("create_blocked"))
-            .and_then(|v| v.as_array())
-            .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
-            .unwrap_or_default();
+            .and_then(|value| value.as_object())
+            .expect("Embedded lambda_runtimes must contain a lambda_runtimes object");
+        let parse_runtime_list = |field: &str| -> Vec<String> {
+            runtime_data
+                .get(field)
+                .and_then(|value| value.as_array())
+                .unwrap_or_else(|| panic!("Embedded lambda_runtimes must contain a '{}' array", field))
+                .iter()
+                .map(|value| {
+                    value
+                        .as_str()
+                        .unwrap_or_else(|| panic!("Embedded lambda_runtimes '{}' entries must be strings", field))
+                        .to_string()
+                })
+                .collect()
+        };
+        let current_runtimes = parse_runtime_list("current");
+        let deprecated_runtimes = parse_runtime_list("deprecated");
+        let create_blocked_runtimes = parse_runtime_list("create_blocked");
+        let eol_runtimes = parse_runtime_list("eol");
+        assert!(
+            !current_runtimes.is_empty()
+                || !deprecated_runtimes.is_empty()
+                || !create_blocked_runtimes.is_empty()
+                || !eol_runtimes.is_empty(),
+            "Embedded lambda_runtimes lists must not all be empty"
+        );
 
+        let lifecycle_dates = runtime_data
+            .get("lifecycle")
+            .and_then(|value| value.as_object())
+            .expect("Embedded lambda_runtimes must contain a lifecycle object");
+        assert!(!lifecycle_dates.is_empty(), "Embedded lambda runtime lifecycle must not be empty");
         let mut runtime_lifecycle = HashMap::new();
-        if let Some(obj) = rt_json.get("lambda_runtimes").and_then(|v| v.get("lifecycle")).and_then(|v| v.as_object()) {
-            for (runtime, dates) in obj {
-                let get = |k: &str| dates.get(k).and_then(|v| v.as_str()).unwrap_or("").to_string();
-                runtime_lifecycle.insert(
-                    runtime.clone(),
-                    RuntimeLifecycle {
-                        deprecated: get("deprecated"),
-                        create_block: get("create_block"),
-                        update_block: get("update_block"),
-                        successor: dates.get("successor").and_then(|v| v.as_str()).map(String::from),
-                    },
-                );
-            }
+        for (runtime, dates) in lifecycle_dates {
+            let required_date = |field: &str| {
+                dates
+                    .get(field)
+                    .and_then(|value| value.as_str())
+                    .unwrap_or_else(|| panic!("Embedded runtime lifecycle must contain a '{}' string", field))
+                    .to_string()
+            };
+            runtime_lifecycle.insert(
+                runtime.clone(),
+                RuntimeLifecycle {
+                    deprecated: required_date("deprecated"),
+                    create_block: required_date("create_block"),
+                    update_block: required_date("update_block"),
+                    successor: dates.get("successor").and_then(|value| value.as_str()).map(String::from),
+                },
+            );
         }
 
         LifecycleStore {
@@ -381,11 +422,12 @@ impl ExtensionStore {
     fn load(bytes: &[u8]) -> Self {
         let json: HashMap<String, serde_json::Value> =
             serde_json::from_slice(bytes).expect("Embedded extensions must be valid JSON");
+        assert!(!json.is_empty(), "Embedded extensions must not be empty");
         let mut extensions = HashMap::new();
-        for (type_name, val) in json {
-            if let Some(arr) = val.as_array() {
-                extensions.insert(type_name, arr.clone());
-            }
+        for (type_name, value) in json {
+            let fragments = value.as_array().expect("Embedded extension entries must be arrays");
+            assert!(!fragments.is_empty(), "Embedded extension arrays must not be empty");
+            extensions.insert(type_name, fragments.clone());
         }
         ExtensionStore { extensions }
     }
@@ -419,10 +461,16 @@ pub struct RegionEnumStore {
 }
 
 impl RegionEnumStore {
-    fn load(bytes: &[u8]) -> Self {
+    fn load(bytes: &[u8]) -> Result<Self, String> {
         let enums: HashMap<String, HashMap<String, Vec<String>>> =
-            serde_json::from_slice(bytes).expect("Embedded region_enums must be valid JSON");
-        RegionEnumStore { enums }
+            serde_json::from_slice(bytes).map_err(|error| format!("region_enums must be valid JSON: {error}"))?;
+        if enums.is_empty() {
+            return Err("region_enums must not be empty".to_string());
+        }
+        if !enums.values().all(|regions| !regions.is_empty() && regions.values().all(|values| !values.is_empty())) {
+            return Err("region_enums entries must not be empty".to_string());
+        }
+        Ok(RegionEnumStore { enums })
     }
 
     /// Key format: "AWS::EC2::Instance::InstanceType"
@@ -497,7 +545,7 @@ mod tests {
                 "eu-west-1": { "AWS::S3::Bucket": true }
             }
         });
-        store.load_region_data(serde_json::to_vec(&region_json).unwrap().as_slice());
+        store.load_region_data(serde_json::to_vec(&region_json).unwrap().as_slice()).expect("valid region data");
         assert!(store.has_region_data());
         assert!(store.is_available_in_region("AWS::S3::Bucket", "us-east-1"));
         assert!(store.is_available_in_region("AWS::EC2::Instance", "us-east-1"));
@@ -512,26 +560,26 @@ mod tests {
                 "us-east-1": { "AWS::S3::Bucket": true }
             }
         });
-        store.load_region_data(serde_json::to_vec(&region_json).unwrap().as_slice());
+        store.load_region_data(serde_json::to_vec(&region_json).unwrap().as_slice()).expect("valid region data");
         assert!(store.is_available_in_region("AWS::S3::Bucket", "ap-southeast-99"));
     }
 
     #[test]
-    fn store_load_region_data_invalid_json_no_panic() {
-        // Start from an empty region map (new() preloads the embedded one) so the
-        // test verifies that malformed input adds nothing rather than panicking.
+    fn store_load_region_data_invalid_json_returns_error() {
         let mut store = CompiledSchemaStore::new();
-        store.region_types.clear();
-        store.load_region_data(b"not json");
-        assert!(!store.has_region_data());
+
+        let error = store.load_region_data(b"not json").expect_err("invalid JSON must fail");
+
+        assert!(error.contains("must be valid JSON"), "unexpected error: {error}");
     }
 
     #[test]
-    fn store_load_region_data_wrong_structure_no_panic() {
+    fn store_load_region_data_wrong_structure_returns_error() {
         let mut store = CompiledSchemaStore::new();
-        store.region_types.clear();
-        store.load_region_data(b"{}");
-        assert!(!store.has_region_data());
+
+        let error = store.load_region_data(b"{}").expect_err("a missing wrapper must fail");
+
+        assert!(error.contains("must contain a region_resource_types object"), "unexpected error: {error}");
     }
 
     #[test]
@@ -647,10 +695,10 @@ mod tests {
     }
 
     #[test]
-    fn region_enum_store_from_empty_bytes() {
-        let re = RegionEnumStore::load(b"{}");
-        assert!(!re.has_data());
-        assert!(re.get("AWS::EC2::Instance", "InstanceType", "us-east-1").is_none());
+    fn region_enum_store_rejects_empty_document() {
+        let error = RegionEnumStore::load(b"{}").err().expect("empty required enum data must fail");
+
+        assert!(error.contains("must not be empty"), "unexpected error: {error}");
     }
 
     #[test]
@@ -661,7 +709,7 @@ mod tests {
                 "eu-west-1": ["t2.micro"]
             }
         });
-        let re = RegionEnumStore::load(serde_json::to_vec(&data).unwrap().as_slice());
+        let re = RegionEnumStore::load(serde_json::to_vec(&data).unwrap().as_slice()).expect("valid region enums");
         assert!(re.has_data());
         let vals =
             re.get("AWS::EC2::Instance", "InstanceType", "us-east-1").expect("expected enum values for us-east-1");
@@ -683,7 +731,7 @@ mod tests {
                 "description": ["should.be.ignored"]
             }
         });
-        RegionEnumStore::load(serde_json::to_vec(&data).unwrap().as_slice())
+        RegionEnumStore::load(serde_json::to_vec(&data).unwrap().as_slice()).expect("valid region enum fixture")
     }
 
     #[test]
