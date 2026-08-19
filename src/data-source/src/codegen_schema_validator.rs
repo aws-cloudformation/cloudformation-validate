@@ -1,4 +1,5 @@
 use crate::compiled_schema::{CompiledSchema, RefSiblings, compile_schema_with};
+use crate::types::GetattData;
 use log::info;
 use std::collections::BTreeMap;
 use std::collections::HashSet;
@@ -88,26 +89,23 @@ fn generate_ref_types(
     }
 
     let getatt_path = generated_dir.join("data").join("getatt_attributes.json");
-    if getatt_path.exists() {
-        if let Ok(content) = fs::read_to_string(&getatt_path) {
-            if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
-                if let Some(types) = json.get("getatt_attribute_types").and_then(|v| v.as_object()) {
-                    for (type_name, attrs) in types {
-                        if let Some(attr_obj) = attrs.as_object() {
-                            let mut attr_map = BTreeMap::new();
-                            for (attr, type_val) in attr_obj {
-                                if let Some(t) = type_val.as_str() {
-                                    attr_map.insert(attr.clone(), t.to_string());
-                                }
-                            }
-                            if !attr_map.is_empty() {
-                                getatt_returns.insert(type_name.clone(), attr_map);
-                            }
-                        }
-                    }
-                }
-            }
-        }
+    let content = fs::read_to_string(&getatt_path)
+        .map_err(|source| anyhow::anyhow!("failed to read required {}: {}", getatt_path.display(), source))?;
+    let getatt_data: GetattData = serde_json::from_str(&content)
+        .map_err(|source| anyhow::anyhow!("failed to parse required {}: {}", getatt_path.display(), source))?;
+    anyhow::ensure!(
+        !getatt_data.getatt_attribute_types.is_empty(),
+        "{}: getatt_attribute_types must not be empty",
+        getatt_path.display()
+    );
+    for (type_name, attrs) in getatt_data.getatt_attribute_types {
+        anyhow::ensure!(
+            !attrs.is_empty(),
+            "{}: GetAtt types for '{}' must not be empty",
+            getatt_path.display(),
+            type_name
+        );
+        getatt_returns.insert(type_name, attrs.into_iter().collect());
     }
 
     let format_compatible: BTreeMap<String, Vec<String>> = [
@@ -183,28 +181,35 @@ fn generate_region_enums(generated_dir: &Path, output_dir: &Path) -> anyhow::Res
 
     for (file_key, resource_type, prop_name) in enum_file_mappings {
         let path = data_dir.join(format!("{}.json", file_key));
-        if !path.exists() {
-            continue;
-        }
-        let content = fs::read_to_string(&path)?;
-        let json: serde_json::Value = serde_json::from_str(&content)?;
-        let Some(data) = json.get(*file_key).and_then(|v| v.as_object()) else {
-            continue;
-        };
+        let content = fs::read_to_string(&path)
+            .map_err(|source| anyhow::anyhow!("failed to read required {}: {}", path.display(), source))?;
+        let json: serde_json::Value = serde_json::from_str(&content)
+            .map_err(|source| anyhow::anyhow!("failed to parse required {}: {}", path.display(), source))?;
+        let data = json
+            .get(*file_key)
+            .and_then(|v| v.as_object())
+            .ok_or_else(|| anyhow::anyhow!("{} is missing required '{}' object", path.display(), file_key))?;
+        anyhow::ensure!(!data.is_empty(), "{}: '{}' must not be empty", path.display(), file_key);
 
         let map_key = format!("{}::{}", resource_type, prop_name);
         let mut per_region: BTreeMap<String, Vec<String>> = BTreeMap::new();
         for (region, region_data) in data {
-            if let Some(enum_vals) = region_data.get("enum").and_then(|v| v.as_array()) {
-                let vals: Vec<String> = enum_vals.iter().filter_map(|v| v.as_str().map(String::from)).collect();
-                if !vals.is_empty() {
-                    per_region.insert(region.clone(), vals);
-                }
-            }
+            let enum_vals = region_data.get("enum").and_then(|v| v.as_array()).ok_or_else(|| {
+                anyhow::anyhow!("{}: region '{}' is missing required enum array", path.display(), region)
+            })?;
+            let vals: Vec<String> = enum_vals
+                .iter()
+                .map(|value| {
+                    value.as_str().map(String::from).ok_or_else(|| {
+                        anyhow::anyhow!("{}: region '{}' enum value must be a string", path.display(), region)
+                    })
+                })
+                .collect::<Result<_, _>>()?;
+            anyhow::ensure!(!vals.is_empty(), "{}: region '{}' enum must not be empty", path.display(), region);
+            per_region.insert(region.clone(), vals);
         }
-        if !per_region.is_empty() {
-            region_enums.insert(map_key, per_region);
-        }
+        anyhow::ensure!(!per_region.is_empty(), "{} produced no regional enum values", path.display());
+        region_enums.insert(map_key, per_region);
     }
 
     let bytes = serde_json::to_string_pretty(&region_enums)?;
@@ -216,12 +221,10 @@ fn generate_region_enums(generated_dir: &Path, output_dir: &Path) -> anyhow::Res
 /// Merge all extension files into a single extensions.json keyed by resource type.
 fn generate_extension_data(upstream_dir: &Path, output_dir: &Path) -> anyhow::Result<()> {
     let ext_dir = upstream_dir.join("extensions");
-    if !ext_dir.exists() {
-        return Ok(());
-    }
+    anyhow::ensure!(ext_dir.is_dir(), "Required extensions directory not found: {}", ext_dir.display());
     let mut extensions: BTreeMap<String, serde_json::Value> = BTreeMap::new();
-    for entry in fs::read_dir(&ext_dir)?.flatten() {
-        let path = entry.path();
+    for entry in fs::read_dir(&ext_dir)? {
+        let path = entry?.path();
         let Some(name) = path.file_name().and_then(|n| n.to_str()) else {
             continue;
         };
@@ -242,13 +245,14 @@ fn generate_extension_data(upstream_dir: &Path, output_dir: &Path) -> anyhow::Re
             .collect::<Vec<_>>()
             .join("::");
         // Fix: AWS::Ec2::Instance → need proper casing from the actual type names
-        // The extension JSON itself doesn't contain the type name, so we use the filename convention
-        if let Ok(content) = fs::read_to_string(&path) {
-            if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
-                extensions.insert(type_name, json);
-            }
-        }
+        // The extension JSON itself doesn't contain the type name, so we use the filename convention.
+        let content = fs::read_to_string(&path)
+            .map_err(|source| anyhow::anyhow!("failed to read required {}: {}", path.display(), source))?;
+        let json = serde_json::from_str::<serde_json::Value>(&content)
+            .map_err(|source| anyhow::anyhow!("failed to parse required {}: {}", path.display(), source))?;
+        extensions.insert(type_name, json);
     }
+    anyhow::ensure!(!extensions.is_empty(), "No extension files found in {}", ext_dir.display());
     let bytes = serde_json::to_string_pretty(&extensions)?;
     fs::write(output_dir.join("extensions.json"), bytes.as_bytes())?;
     info!("Compiled {} resource type extensions -> extensions.json", extensions.len());
@@ -260,11 +264,8 @@ fn generate_extension_data(upstream_dir: &Path, output_dir: &Path) -> anyhow::Re
 /// and write the result to the schema-validator output directory.
 pub fn compile_step_functions_schema(upstream_dir: &Path, output_dir: &Path) -> anyhow::Result<()> {
     let raw_path = upstream_dir.join("step_functions_statemachine.json");
-    if !raw_path.exists() {
-        info!("Step Functions schema not found at {}, skipping", raw_path.display());
-        return Ok(());
-    }
-    let content = fs::read_to_string(&raw_path)?;
+    let content = fs::read_to_string(&raw_path)
+        .map_err(|source| anyhow::anyhow!("failed to read required {}: {}", raw_path.display(), source))?;
     let mut schema: serde_json::Value = serde_json::from_str(&content)?;
 
     flatten_sf_schema(&mut schema);

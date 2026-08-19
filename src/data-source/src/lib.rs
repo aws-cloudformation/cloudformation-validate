@@ -8,6 +8,10 @@ uniffi::setup_scaffolding!();
 pub mod additional_schema_source;
 #[cfg(feature = "maintenance")]
 pub mod additional_specs;
+pub mod rule_data;
+
+/// Re-export under the old name for backward compatibility with existing consumers.
+pub use rule_data as cfnlint_rule_data;
 #[cfg(feature = "maintenance")]
 pub mod cfnlint_tables;
 #[cfg(feature = "maintenance")]
@@ -125,7 +129,7 @@ pub fn sync_upstream(upstream_dir: &Path, rule_source_root: &str) -> anyhow::Res
     let (table_stats, cfn_lint_version) = cfnlint_tables::sync_cfnlint_tables(&rule_source_dir, &generated_data)?;
     table_stats.fail_on_errors("CfnLintTables")?;
 
-    verify_files_exist_and_populated(REQUIRED_SYNC_FILES, &generated_data, None, "Sync")?;
+    verify_files_exist_and_populated(REQUIRED_SYNC_FILES, &generated_data, "Sync")?;
     let source_versions =
         source_versions::SourceVersions::new(cfn_lint_version, resource_schema_version).map_err(anyhow::Error::msg)?;
     write_source_versions(&source_versions_path, source_versions)?;
@@ -153,10 +157,8 @@ pub fn generate_all(upstream_dir: &Path, generated_dir: &Path, handwritten_dir: 
     Ok(())
 }
 
-/// Expected data files that must exist and contain real data (not empty stubs)
-/// after a successful sync+generate. build.rs creates `{}` stubs for these so
-/// the crate compiles from a clean workspace, but the pipeline must populate
-/// them with real content.
+/// Expected data files that must exist and contain real data after a
+/// successful sync+generate.
 
 /// Files produced by sync_upstream (extensions, regions, additional specs).
 #[cfg(feature = "maintenance")]
@@ -191,21 +193,20 @@ const REQUIRED_SYNC_FILES: &[&str] = &[
     "getatt_additions",
     "retention_period_requirements",
     "codepipeline_action_artifact_counts",
+    "cfnlint_rule_tables",
 ];
 
-/// Files produced by generate_all (schema processing, codegen).
+/// Data files produced by generate_all schema processing.
 #[cfg(feature = "maintenance")]
-const REQUIRED_GENERATE_FILES: &[&str] = &[
-    "compiled_schemas",
-    "ref_types",
-    "extensions",
-    "region_enums",
-    "resource_lifecycle",
-    "schema_metadata",
-    "primary_identifiers",
-    "getatt_attributes",
-    "known_resource_types",
-];
+const REQUIRED_GENERATE_DATA_FILES: &[&str] =
+    &["resource_lifecycle", "schema_metadata", "primary_identifiers", "getatt_attributes", "known_resource_types"];
+
+/// Schema-validator files produced by generate_all.
+#[cfg(feature = "maintenance")]
+const REQUIRED_SCHEMA_VALIDATOR_FILES: &[&str] = &["compiled_schemas", "ref_types", "extensions", "region_enums"];
+
+#[cfg(feature = "maintenance")]
+const REQUIRED_CEL_RULE_FILES: &[&str] = &["generated_rules"];
 
 #[cfg(feature = "maintenance")]
 const REQUIRED_HANDWRITTEN_FILES: &[&str] = &[
@@ -220,51 +221,42 @@ const REQUIRED_HANDWRITTEN_FILES: &[&str] = &[
 fn verify_sync_outputs(data_dir: &Path) -> anyhow::Result<()> {
     source_versions::SourceVersions::read(&data_dir.join(source_versions::SOURCE_VERSIONS_FILE))
         .map_err(anyhow::Error::msg)?;
-    verify_files_exist_and_populated(REQUIRED_SYNC_FILES, data_dir, None, "Sync")
+    verify_files_exist_and_populated(REQUIRED_SYNC_FILES, data_dir, "Sync")
 }
 
 #[cfg(feature = "maintenance")]
 fn verify_outputs(generated_dir: &Path, handwritten_dir: &Path) -> anyhow::Result<()> {
     let data_dir = generated_dir.join("data");
-    let sv_dir = generated_dir.join("schema-validator");
+    let schema_validator_dir = generated_dir.join("schema-validator");
+    let cel_rules_dir = generated_dir.join("cel-rules");
 
     verify_sync_outputs(&data_dir)?;
-    // Check generate-produced files
-    verify_files_exist_and_populated(REQUIRED_GENERATE_FILES, &data_dir, Some(&sv_dir), "Generate")?;
-    verify_files_exist_and_populated(REQUIRED_HANDWRITTEN_FILES, handwritten_dir, None, "Handwritten")?;
+    verify_files_exist_and_populated(REQUIRED_GENERATE_DATA_FILES, &data_dir, "Generate data")?;
+    verify_files_exist_and_populated(REQUIRED_SCHEMA_VALIDATOR_FILES, &schema_validator_dir, "Schema validator")?;
+    verify_files_exist_and_populated(REQUIRED_CEL_RULE_FILES, &cel_rules_dir, "Generated CEL rules")?;
+    verify_files_exist_and_populated(REQUIRED_HANDWRITTEN_FILES, handwritten_dir, "Handwritten")?;
 
-    let total = REQUIRED_SYNC_FILES.len() + REQUIRED_GENERATE_FILES.len() + REQUIRED_HANDWRITTEN_FILES.len() + 1;
+    let total = REQUIRED_SYNC_FILES.len()
+        + REQUIRED_GENERATE_DATA_FILES.len()
+        + REQUIRED_SCHEMA_VALIDATOR_FILES.len()
+        + REQUIRED_CEL_RULE_FILES.len()
+        + REQUIRED_HANDWRITTEN_FILES.len()
+        + 1;
     info!("Verified {total} required data files");
     Ok(())
 }
 
 #[cfg(feature = "maintenance")]
-fn verify_files_exist_and_populated(
-    names: &[&str],
-    primary_dir: &Path,
-    fallback_dir: Option<&Path>,
-    label: &str,
-) -> anyhow::Result<()> {
+fn verify_files_exist_and_populated(names: &[&str], directory: &Path, label: &str) -> anyhow::Result<()> {
     let mut missing = Vec::new();
     let mut stubs = Vec::new();
 
     for name in names {
-        let primary = primary_dir.join(format!("{name}.json"));
-        let fallback = fallback_dir.map(|d| d.join(format!("{name}.json")));
-
-        let path = if primary.exists() {
-            primary
-        } else if let Some(ref fb) = fallback {
-            if fb.exists() {
-                fb.clone()
-            } else {
-                missing.push(name.to_string());
-                continue;
-            }
-        } else {
+        let path = directory.join(format!("{name}.json"));
+        if !path.is_file() {
             missing.push(name.to_string());
             continue;
-        };
+        }
 
         if is_stub(&path) {
             stubs.push(name.to_string());
@@ -288,7 +280,7 @@ fn verify_files_exist_and_populated(
     Ok(())
 }
 
-/// A file is a stub if it's just `{}` or `[]` (created by build.rs for clean-workspace builds).
+/// A file is an invalid empty stub if it contains only `{}` or `[]`.
 #[cfg(feature = "maintenance")]
 fn is_stub(path: &Path) -> bool {
     match fs::read_to_string(path) {

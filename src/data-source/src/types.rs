@@ -3,40 +3,38 @@ use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct KnownResourceTypes {
-    #[serde(default)]
     pub known_resource_types: Vec<String>,
 }
 
 /// Resource type → valid GetAtt attribute names and their return types.
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct GetattData {
-    #[serde(default)]
     pub getatt_attributes: HashMap<String, Vec<String>>,
-    #[serde(default)]
     pub getatt_attribute_types: HashMap<String, HashMap<String, String>>,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct StatefulResourceTypes {
-    #[serde(default)]
     pub stateful_resource_types: HashSet<String>,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct RetentionPeriodRequirements {
-    #[serde(default)]
     pub retention_period_requirements: HashMap<String, Vec<String>>,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct PrimaryIdentifiers {
-    #[serde(default)]
     pub primary_identifiers: HashMap<String, Vec<String>>,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
+pub struct IamActionResourcePatterns {
+    pub iam_action_resource_patterns: HashMap<String, Vec<String>>,
+}
+
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct CodepipelineArtifactCounts {
-    #[serde(default)]
     pub codepipeline_action_artifact_counts: HashMap<String, ArtifactCountEntry>,
 }
 
@@ -50,25 +48,36 @@ pub struct ArtifactCountEntry {
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct DeprecatedResourceTypes {
-    #[serde(default)]
     pub deprecated_resource_types: Vec<String>,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct SensitivePorts {
-    #[serde(default)]
     pub sensitive_ports: Vec<u16>,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct SecretsManagerArnFields {
-    #[serde(default)]
     pub secretsmanager_arn_fields: Vec<String>,
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn required_document_fields_must_be_present() {
+        assert!(serde_json::from_str::<KnownResourceTypes>("{}").is_err());
+        assert!(serde_json::from_str::<GetattData>("{}").is_err());
+        assert!(serde_json::from_str::<StatefulResourceTypes>("{}").is_err());
+        assert!(serde_json::from_str::<RetentionPeriodRequirements>("{}").is_err());
+        assert!(serde_json::from_str::<PrimaryIdentifiers>("{}").is_err());
+        assert!(serde_json::from_str::<IamActionResourcePatterns>("{}").is_err());
+        assert!(serde_json::from_str::<CodepipelineArtifactCounts>("{}").is_err());
+        assert!(serde_json::from_str::<DeprecatedResourceTypes>("{}").is_err());
+        assert!(serde_json::from_str::<SensitivePorts>("{}").is_err());
+        assert!(serde_json::from_str::<SecretsManagerArnFields>("{}").is_err());
+    }
 
     #[test]
     fn postcard_roundtrip_known_resource_types() {
