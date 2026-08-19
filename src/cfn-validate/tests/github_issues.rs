@@ -5,7 +5,7 @@
 //! bug that has since been fixed, the test asserts the corrected behavior (the
 //! focal rule no longer fires); where the bug still reproduces, the test asserts
 //! that it does, so the report stays honest and any future change is caught. The
-//! same fixtures are also covered by the golden-file tests because discovery
+//! same fixtures are also covered by the snapshot tests because discovery
 //! recursively covers the entire `resources/templates/` tree, so this file adds
 //! focused, rule-level assertions on top of the full-report snapshots.
 //!
@@ -52,7 +52,7 @@ fn validate_both(fixture: &str) -> Vec<(&'static str, Vec<Diagnostic>)> {
 
 /// Like [`validate_both`] but for an inline template. Used by the companion tests
 /// that guard the positive boundary of a false-positive fix (the rule must still
-/// fire on a genuine violation): these adversarial templates are not golden
+/// fire on a genuine violation): these adversarial templates are not snapshot
 /// fixtures, so they live inline rather than under `gh-issues/`.
 fn validate_both_bytes(template: &[u8]) -> Vec<(&'static str, Vec<Diagnostic>)> {
     let sv = SchemaValidator::default();
@@ -669,7 +669,7 @@ fn issue_54_no_f3003_when_ownershipcontrols_present() {
 /// value). CEL does fire it; rego does not (it keys on the resolved value, which
 /// is unresolvable here) - a rego false-negative and a rego/cel divergence. Pinned with inline
 /// bytes because the fixture diverges between engines and so cannot live in the
-/// rego==cel golden corpus. Tighten to both-fire once rego keys on presence.
+/// rego==cel snapshot corpus. Tighten to both-fire once rego keys on presence.
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/54
 #[test]
 fn issue_54_w3045_diverges_on_symbolic_accesscontrol_ref() {
@@ -1276,7 +1276,7 @@ fn w9007_still_fires_when_two_entries_read_one_deploy_time_value() {
 // ---------------------------------------------------------------------------
 // Issue #36 - the IAM-role-ARN checks use a future-proof `arn:aws[a-zA-Z-]*`
 // partition prefix, so ADC-partition ARNs no longer false-positive and the two
-// engines agree. The committed fixture uses `arn:aws-iso:` (golden-compatible);
+// engines agree. The committed fixture uses `arn:aws-iso:` (snapshot-compatible);
 // the previously-divergent E3511 path is exercised here with inline bytes using
 // `arn:aws-isob:`, which both engines must now accept identically.
 // ---------------------------------------------------------------------------

@@ -48,12 +48,12 @@ src/
 ├── bindings-go/                # Go bindings (UniFFI via uniffi-bindgen-go) — JSON-over-FFI, cgo static linking
 │   ├── go/                     # The published Go module: hand-maintained API + types, generated
 │   │                           # internal/bindings_go, and per-platform libs/ static libraries (committed)
-│   ├── tests/                  # Go test harness module (smoke, golden, config, security tests; run.sh)
+│   ├── tests/                  # Go test harness module (smoke, snapshot, config, security tests; run.sh)
 │   ├── bench/                  # Go benchmark harness module (main.go — corpus/report benchmark)
 │   └── native/                 # Hand-maintained cgo link directives copied into the generated package
 └── resources/                  # Test-fixture CRATE (workspace member)
-    ├── src/                    # Corpus discovery API (templates_dir, validation_reports_file, GOLDEN_DIRS, …)
-    ├── examples/               # generate_validation_reports.rs — golden-file regeneration
+    ├── src/                    # Corpus discovery API (templates_dir, load_merged_snapshots, discover_snapshot_chunks, …)
+    ├── examples/               # generate_validation_reports.rs — snapshot regeneration
     ├── templates/              # Test corpus
     │   ├── good/               # Valid templates — expect zero diagnostics
     │   ├── bad/                # Invalid templates — named after the rule/behavior they test
@@ -64,7 +64,7 @@ src/
     │   ├── quickstart/         # AWS QuickStart templates (performance corpus)
     │   ├── public/             # Public example templates
     │   └── cdk/                # CDK-synthesized templates
-    ├── expected/               # validation_reports.json — the golden file (both engines must agree)
+    ├── expected/               # validation_reports*.json — numbered snapshot chunks (both engines must agree)
     ├── rules/                  # Custom rule fixtures for testing (Rego, CEL, Guard)
     └── security/               # Security/stress fixtures (pathological conditions, deep nesting)
 ```

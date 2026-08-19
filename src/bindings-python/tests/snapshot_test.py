@@ -1,11 +1,11 @@
-"""Golden-file validation, mirroring the wasm and JVM suites.
+"""Snapshot validation, mirroring the wasm and JVM suites.
 
 Every template in the corpus is validated through both engines at both detail
-levels, and the result must match resources/expected/validation_reports.json exactly
-(up to the fields the golden file intentionally excludes). The typed uniffi
-records are serialized back into serde's JSON shape (camelCase names, enum
-names, unwrapped JsonValue variants, Nones omitted), so this also proves the
-Python type surface is faithful to the serialized report shape.
+levels, and the result must match resources/expected/validation_reports*.json
+chunks exactly (up to the fields the snapshot file intentionally excludes). The
+typed uniffi records are serialized back into serde's JSON shape (camelCase
+names, enum names, unwrapped JsonValue variants, Nones omitted), so this also
+proves the Python type surface is faithful to the serialized report shape.
 """
 
 import copy
@@ -27,11 +27,12 @@ from cloudformation_validate import (
 TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
 WORKSPACE = os.path.dirname(os.path.dirname(TESTS_DIR))
 TEMPLATES_ROOT = os.path.join(WORKSPACE, "resources", "templates")
-GOLDEN_FILE = os.path.join(WORKSPACE, "resources", "expected", "validation_reports.json")
+EXPECTED_DIR = os.path.join(WORKSPACE, "resources", "expected")
 
-GOLDEN_DIRS = ["bad", "cdk", "good", "gh-issues", "integration", "issues", "lsp", "public", "quickstart"]
+CHUNK_PREFIX = "validation_reports"
+CHUNK_EXTENSION = ".json"
 
-# Fields present only in detailed reports; stripped from the golden entry when
+# Fields present only in detailed reports; stripped from the snapshot entry when
 # comparing standard reports.
 DETAILED_ONLY_DIAGNOSTIC_FIELDS = ["documentationUrl", "context", "ruleDescription", "phase", "section"]
 
@@ -75,21 +76,20 @@ def to_jsonable(obj):
     }
 
 
-def discover_golden_templates():
+def discover_snapshot_templates():
+    """Recursively scan the entire templates directory for .yaml/.yml/.json files."""
     templates = []
-    for sub in GOLDEN_DIRS:
-        root = os.path.join(TEMPLATES_ROOT, sub)
-        if not os.path.isdir(root):
-            continue
-        for dirpath, _, filenames in os.walk(root):
-            for filename in filenames:
-                if filename.endswith((".yaml", ".yml", ".json")):
-                    full = os.path.join(dirpath, filename)
-                    templates.append(os.path.relpath(full, TEMPLATES_ROOT).replace(os.sep, "/"))
+    if not os.path.isdir(TEMPLATES_ROOT):
+        return templates
+    for dirpath, _, filenames in os.walk(TEMPLATES_ROOT):
+        for filename in filenames:
+            if filename.endswith((".yaml", ".yml", ".json")):
+                full = os.path.join(dirpath, filename)
+                templates.append(os.path.relpath(full, TEMPLATES_ROOT).replace(os.sep, "/"))
     return sorted(templates)
 
 
-def strip_golden_excluded_fields(report, file_path=None):
+def strip_snapshot_excluded_fields(report, file_path=None):
     if file_path is not None:
         report["filePath"] = file_path
     report.pop("version", None)
@@ -108,10 +108,45 @@ def strip_detailed_only_fields(report):
     return report
 
 
-with open(GOLDEN_FILE, encoding="utf-8") as f:
-    GOLDEN = json.load(f)
+def _load_combined_snapshots():
+    """Discover all numbered snapshot chunks in numeric order and merge them strictly."""
+    pattern = re.compile(rf"^{re.escape(CHUNK_PREFIX)}([1-9][0-9]*){re.escape(CHUNK_EXTENSION)}$")
+    chunks = []
+    for entry in os.listdir(EXPECTED_DIR):
+        match = pattern.match(entry)
+        if match:
+            index = int(match.group(1))
+            chunks.append((index, os.path.join(EXPECTED_DIR, entry)))
+    if not chunks:
+        raise RuntimeError(
+            f"no snapshot chunk files ({CHUNK_PREFIX}N{CHUNK_EXTENSION}) found in {EXPECTED_DIR}"
+        )
+    chunks.sort(key=lambda pair: pair[0])
 
-EXPECTED_TEMPLATES = discover_golden_templates()
+    for i, (idx, filepath) in enumerate(chunks):
+        if idx != i + 1:
+            raise RuntimeError(
+                f"non-contiguous snapshot chunk sequence: expected index {i + 1} but found {idx}"
+            )
+
+    merged = {}
+    for index, filepath in chunks:
+        with open(filepath, encoding="utf-8") as f:
+            data = json.load(f)
+        if not isinstance(data, dict):
+            raise RuntimeError(f"snapshot chunk {os.path.basename(filepath)} is not a JSON object")
+        for key, value in data.items():
+            if key in merged:
+                raise RuntimeError(
+                    f"duplicate template key {key!r} in chunk {os.path.basename(filepath)}"
+                )
+            merged[key] = value
+    return merged
+
+
+SNAPSHOTS = _load_combined_snapshots()
+
+EXPECTED_TEMPLATES = discover_snapshot_templates()
 
 DEBUG_LEVEL = ValidateConfig(severity_level=Severity.DEBUG)
 
@@ -119,37 +154,37 @@ REGO = RegoEngine()
 CEL = CelEngine()
 
 
-class GoldenFileValidationTest(unittest.TestCase):
+class SnapshotValidationTest(unittest.TestCase):
     maxDiff = None
 
     def setUp(self):
         self.assertTrue(EXPECTED_TEMPLATES, "no templates discovered")
 
-    def assert_matches_golden(self, engine, detailed):
+    def assert_matches_snapshot(self, engine, detailed):
         for rel in EXPECTED_TEMPLATES:
             with self.subTest(template=rel):
-                self.assertIn(rel, GOLDEN, f"{rel}: missing golden entry")
+                self.assertIn(rel, SNAPSHOTS, f"{rel}: missing snapshot entry")
                 path = os.path.join(TEMPLATES_ROOT, rel)
                 if detailed:
                     report = engine.validate_detailed(path, DEBUG_LEVEL)
-                    expected = strip_golden_excluded_fields(copy.deepcopy(GOLDEN[rel]))
+                    expected = strip_snapshot_excluded_fields(copy.deepcopy(SNAPSHOTS[rel]))
                 else:
                     report = engine.validate_standard(path, DEBUG_LEVEL)
-                    expected = strip_detailed_only_fields(strip_golden_excluded_fields(copy.deepcopy(GOLDEN[rel])))
-                actual = strip_golden_excluded_fields(to_jsonable(report), rel)
-                self.assertEqual(expected, actual, f"{rel}: report does not match golden")
+                    expected = strip_detailed_only_fields(strip_snapshot_excluded_fields(copy.deepcopy(SNAPSHOTS[rel])))
+                actual = strip_snapshot_excluded_fields(to_jsonable(report), rel)
+                self.assertEqual(expected, actual, f"{rel}: report does not match snapshot")
 
-    def test_rego_detailed_matches_golden(self):
-        self.assert_matches_golden(REGO, detailed=True)
+    def test_rego_detailed_matches_snapshot(self):
+        self.assert_matches_snapshot(REGO, detailed=True)
 
-    def test_rego_standard_matches_golden(self):
-        self.assert_matches_golden(REGO, detailed=False)
+    def test_rego_standard_matches_snapshot(self):
+        self.assert_matches_snapshot(REGO, detailed=False)
 
-    def test_cel_detailed_matches_golden(self):
-        self.assert_matches_golden(CEL, detailed=True)
+    def test_cel_detailed_matches_snapshot(self):
+        self.assert_matches_snapshot(CEL, detailed=True)
 
-    def test_cel_standard_matches_golden(self):
-        self.assert_matches_golden(CEL, detailed=False)
+    def test_cel_standard_matches_snapshot(self):
+        self.assert_matches_snapshot(CEL, detailed=False)
 
 
 class PerformanceMetricsTest(unittest.TestCase):

@@ -63,17 +63,17 @@ Apply these rules when choosing validation:
 - **Non-Rust-only changes** such as documentation, GitHub workflows, scripts, or binding-language code: do not run
   Cargo format, clippy, or tests unless the changed file is a Cargo/build input and the command actually exercises it.
   Use the relevant syntax checker, build, test runner, or dry-run for the changed artifact instead.
-- **Rule, schema-data, or template changes:** run the focused validator, parity, corpus, and golden-file checks that
+- **Rule, schema-data, or template changes:** run the focused validator, parity, corpus, and snapshot checks that
   exercise the changed diagnostics. A file being non-Rust does not remove those domain-specific requirements, but it
   also does not justify unrelated Cargo tests.
 
-Regenerate the golden file (`resources/expected/validation_reports.json`) after any change that alters diagnostics:
+Regenerate the snapshot files (`resources/expected/validation_reports*.json`) after any change that alters diagnostics:
 
 ```bash
 cargo run --release -p resources --example generate_validation_reports
 ```
 
-It runs both engines on the whole corpus in parallel, verifies they agree, and rewrites the golden file.
+It runs both engines on the whole corpus in parallel, verifies they agree, and rewrites the snapshot chunk files.
 
 ## Reference projects — compatibility evidence
 
@@ -162,7 +162,7 @@ unrelated changes such as documentation or workflow-only edits.
    is correct. Fatal rules are checked against the compiled schemas.
 5. Run `cfn-validate` with both `--engine rego` and `--engine cel` on the repro template. Outputs must be identical on
    rule ID, severity, location, and message.
-6. Run the full test corpus with both engines. Zero new false positives on `templates/good/`. Regenerate the golden
+6. Run the full test corpus with both engines. Zero new false positives on `templates/good/`. Regenerate the snapshot
    file if diagnostics legitimately changed.
 7. For core Rust changes, run targeted Cargo tests that cover the change; use `cargo test --workspace` once only when
    the broad suite provides relevant coverage. Do not use Cargo tests to validate binding-only changes.
