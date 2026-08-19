@@ -44,7 +44,7 @@ Validation depends on the changed surface:
 - Non-Rust-only changes such as documentation, GitHub workflows, scripts, or binding-language code: do not run Cargo
   format, clippy, or tests unless the file is a Cargo/build input and the command actually exercises it. Use the
   artifact-specific syntax checker, build, test runner, or dry-run instead.
-- Rule, schema-data, or template changes still require the focused validator, engine-parity, corpus, and golden-file
+- Rule, schema-data, or template changes still require the focused validator, engine-parity, corpus, and snapshot
   checks that exercise the changed diagnostics; they do not justify unrelated Cargo tests.
 
 ### Debugging tools (use these, not `println!`)
@@ -149,7 +149,7 @@ workflow-only edits.
 4. Compare against cfn-lint for E/W/I or cfn-guard for Guard. Investigate a cfn-lint mismatch using the independent
    evidence rather than assuming cfn-lint is correct. Validate Fatal behavior against the compiled schemas.
 5. Run `cfn-validate` with both engines, then the corpus; preserve parity and zero false positives. Regenerate the
-   golden file if diagnostics legitimately changed.
+   snapshot files if diagnostics legitimately changed.
 6. For core Rust changes, run only Cargo tests that cover the change; use the workspace suite once only when its broad
    coverage is relevant. For every Rust change, run format and clippy. For binding changes, run the affected packaged
    binding build/tests instead of Cargo tests and revert any generated binding artifacts afterward.

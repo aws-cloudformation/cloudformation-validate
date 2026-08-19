@@ -25,13 +25,62 @@ function loadRule(filename: string): string {
     return fs.readFileSync(path.join(RULES_DIR, filename), 'utf-8');
 }
 
-const COMBINED_GOLDEN: Record<string, unknown> = JSON.parse(
-    fs.readFileSync(path.join(EXPECTED_DIR, 'validation_reports.json'), 'utf-8'),
-);
+const CHUNK_PREFIX = 'validation_reports';
+const CHUNK_EXTENSION = '.json';
 
-const GOLDEN_DIRS = ['bad', 'cdk', 'good', 'gh-issues', 'integration', 'issues', 'lsp', 'public', 'quickstart'];
+/**
+ * Discover all numbered snapshot chunk files (validation_reportsN.json) in numeric
+ * order and strictly merge them into a single map. Fails on no chunks, non-object
+ * JSON, or duplicate template keys.
+ */
+function loadCombinedSnapshots(): Record<string, unknown> {
+    const entries = fs.readdirSync(EXPECTED_DIR);
+    const chunks: { index: number; path: string }[] = [];
+    const pattern = new RegExp(`^${CHUNK_PREFIX}([1-9][0-9]*)${CHUNK_EXTENSION.replace('.', '\\.')}$`);
+    for (const entry of entries) {
+        const match = pattern.exec(entry);
+        if (match) {
+            const index = parseInt(match[1], 10);
+            chunks.push({ index, path: path.join(EXPECTED_DIR, entry) });
+        }
+    }
+    if (chunks.length === 0) {
+        throw new Error(`no snapshot chunk files (${CHUNK_PREFIX}N${CHUNK_EXTENSION}) found in ${EXPECTED_DIR}`);
+    }
+    chunks.sort((a, b) => a.index - b.index);
 
+    for (let i = 0; i < chunks.length; i++) {
+        if (chunks[i].index !== i + 1) {
+            throw new Error(`non-contiguous snapshot chunk sequence: expected index ${i + 1} but found ${chunks[i].index}`);
+        }
+    }
+
+    const merged: Record<string, unknown> = {};
+    for (const chunk of chunks) {
+        const data = JSON.parse(fs.readFileSync(chunk.path, 'utf-8'));
+        if (typeof data !== 'object' || data === null || Array.isArray(data)) {
+            throw new Error(`snapshot chunk ${path.basename(chunk.path)} is not a JSON object`);
+        }
+        for (const [key, value] of Object.entries(data)) {
+            if (key in merged) {
+                throw new Error(`duplicate template key "${key}" in chunk ${path.basename(chunk.path)}`);
+            }
+            merged[key] = value;
+        }
+    }
+    return merged;
+}
+
+const COMBINED_SNAPSHOTS: Record<string, unknown> = loadCombinedSnapshots();
+
+/**
+ * Recursively discover all template files (.yaml/.yml/.json) under the templates
+ * root, excluding security fixtures. Returns sorted forward-slash relative paths.
+ */
 function discoverAllTemplates(): string[] {
+    if (!fs.existsSync(TEMPLATES_ROOT)) {
+        throw new Error(`templates directory does not exist: ${TEMPLATES_ROOT}`);
+    }
     const templates: string[] = [];
     function walk(dir: string) {
         for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -42,9 +91,9 @@ function discoverAllTemplates(): string[] {
             }
         }
     }
-    for (const sub of GOLDEN_DIRS) {
-        const dir = path.join(TEMPLATES_ROOT, sub);
-        if (fs.existsSync(dir)) walk(dir);
+    walk(TEMPLATES_ROOT);
+    if (templates.length === 0) {
+        throw new Error(`no templates discovered in ${TEMPLATES_ROOT}`);
     }
     return templates.sort();
 }
@@ -74,11 +123,11 @@ const LAMBDA_OVERLAY_SCHEMA = `{
   "properties": {"TestForOverride": {"type": "string"}}
 }`;
 
-function loadGolden(rel: string): unknown {
-    return COMBINED_GOLDEN[rel];
+function loadSnapshot(rel: string): unknown {
+    return COMBINED_SNAPSHOTS[rel];
 }
 
-function stripGoldenExcludedFields(report: any, filePath?: string): unknown {
+function stripSnapshotExcludedFields(report: any, filePath?: string): unknown {
     const clone = JSON.parse(JSON.stringify(report));
     if (filePath !== undefined) {
         clone.filePath = filePath;
@@ -461,25 +510,25 @@ function stripDetailedOnlyFields(report: any): unknown {
     return clone;
 }
 
-describe('golden file validation', () => {
+describe('snapshot validation', () => {
     function detailedTests(engineName: string, engine: any) {
-        describe(`${engineName} detailed matches golden`, () => {
+        describe(`${engineName} detailed matches snapshot`, () => {
             for (const rel of EXPECTED_TEMPLATES) {
                 it(rel, () => {
                     const actual = engine.validateDetailed(loadTemplate(rel), { severityLevel: 'DEBUG' });
-                    expect(stripGoldenExcludedFields(actual, rel)).toEqual(stripGoldenExcludedFields(loadGolden(rel)));
+                    expect(stripSnapshotExcludedFields(actual, rel)).toEqual(stripSnapshotExcludedFields(loadSnapshot(rel)));
                 });
             }
         });
     }
 
     function standardTests(engineName: string, engine: any) {
-        describe(`${engineName} standard matches golden`, () => {
+        describe(`${engineName} standard matches snapshot`, () => {
             for (const rel of EXPECTED_TEMPLATES) {
                 it(rel, () => {
                     const actual = engine.validateStandard(loadTemplate(rel), { severityLevel: 'DEBUG' });
-                    expect(stripGoldenExcludedFields(actual, rel)).toEqual(
-                        stripGoldenExcludedFields(stripDetailedOnlyFields(loadGolden(rel))),
+                    expect(stripSnapshotExcludedFields(actual, rel)).toEqual(
+                        stripSnapshotExcludedFields(stripDetailedOnlyFields(loadSnapshot(rel))),
                     );
                 });
             }
@@ -492,7 +541,7 @@ describe('golden file validation', () => {
     standardTests('cel', CEL);
 });
 
-describe('report fields excluded from golden', () => {
+describe('report fields excluded from snapshot', () => {
     const REPORT_TEMPLATE = 'good/generic.yaml';
 
     it('performance is present with a timing metric per phase', () => {

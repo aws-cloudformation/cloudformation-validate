@@ -38,22 +38,24 @@ pub fn load_security_rule(filename: &str) -> String {
     std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("read security rule {}: {e}", path.display()))
 }
 
-/// Discover every regular template covered by persisted golden reports.
+/// Discover every regular template covered by persisted snapshot reports.
 pub fn discover_all_templates() -> Vec<String> {
     resources::discover_templates()
 }
 
-pub const MIN_GOLDEN_TEMPLATES: usize = 400;
+pub const MIN_SNAPSHOT_TEMPLATES: usize = 400;
 
-pub fn load_combined_golden() -> serde_json::Map<String, Value> {
-    let path = resources_root().join("expected").join("validation_reports.json");
-    let bytes = std::fs::read(&path).unwrap_or_else(|e| panic!("read golden {}: {e}", path.display()));
-    let val: Value = serde_json::from_slice(&bytes).unwrap_or_else(|e| panic!("parse golden {}: {e}", path.display()));
-    let map = val.as_object().cloned().unwrap_or_default();
+/// Load and merge all numbered snapshot chunk files, verifying the combined result
+/// exceeds the minimum expected template count.
+pub fn load_combined_snapshots() -> serde_json::Map<String, Value> {
+    let map = resources::load_merged_snapshots().unwrap_or_else(|e| {
+        panic!(
+            "load snapshot chunks: {e} — run `cargo run --release -p resources --example generate_validation_reports`"
+        )
+    });
     assert!(
-        map.len() > MIN_GOLDEN_TEMPLATES,
-        "golden {} must contain more than {MIN_GOLDEN_TEMPLATES} templates, found {} - the file is missing, empty, or truncated",
-        path.display(),
+        map.len() > MIN_SNAPSHOT_TEMPLATES,
+        "snapshot chunks must contain more than {MIN_SNAPSHOT_TEMPLATES} templates, found {} — the files are missing, empty, or truncated",
         map.len()
     );
     map
@@ -66,7 +68,7 @@ pub fn deep_diff(expected: &Value, actual: &Value, path: &str) -> Vec<String> {
     match (expected, actual) {
         (Value::Object(exp), Value::Object(act)) => {
             for key in exp.keys() {
-                if GOLDEN_EXCLUDED_FIELDS.contains(&key.as_str()) {
+                if SNAPSHOT_EXCLUDED_FIELDS.contains(&key.as_str()) {
                     continue;
                 }
                 let child_path = if path.is_empty() { key.clone() } else { format!("{path}.{key}") };
@@ -76,7 +78,7 @@ pub fn deep_diff(expected: &Value, actual: &Value, path: &str) -> Vec<String> {
                 }
             }
             for key in act.keys() {
-                if !exp.contains_key(key) && !GOLDEN_EXCLUDED_FIELDS.contains(&key.as_str()) {
+                if !exp.contains_key(key) && !SNAPSHOT_EXCLUDED_FIELDS.contains(&key.as_str()) {
                     let child_path = if path.is_empty() { key.clone() } else { format!("{path}.{key}") };
                     diffs.push(format!("{child_path}: unexpected in actual"));
                 }
@@ -105,5 +107,5 @@ pub fn deep_diff(expected: &Value, actual: &Value, path: &str) -> Vec<String> {
 
 pub const DETAILED_ONLY_DIAGNOSTIC_FIELDS: &[&str] = &["documentationUrl", "context", "ruleDescription", "phase"];
 
-pub const GOLDEN_EXCLUDED_FIELDS: &[&str] =
+pub const SNAPSHOT_EXCLUDED_FIELDS: &[&str] =
     &["performance", "version", "rulesEvaluated", "cfnLintVersion", "resourceSchemaVersion", "suppressed"];

@@ -44,7 +44,7 @@ def _camel_case(name: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Serde-compatible JSON serialization (mirrors tests/golden_test.py exactly)
+# Serde-compatible JSON serialization (mirrors tests/snapshot_test.py exactly)
 #
 # The cloudformation_validate types (JsonValue, EntityType) are imported lazily
 # inside main(). These functions reference them via module globals that are set

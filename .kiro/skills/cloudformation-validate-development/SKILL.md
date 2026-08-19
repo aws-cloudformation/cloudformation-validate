@@ -1,6 +1,6 @@
 ---
 name: cloudformation-validate-development
-description: Development workflow, correctness rules, and code-quality standards for the cloudformation-validate repository - a Rust workspace that validates AWS CloudFormation templates with two parity rule engines (Rego and CEL). Use when writing, modifying, reviewing, or debugging any code in this repo; when adding or fixing validation rules; when running builds, tests, or lints; when regenerating the golden file; or when validating a fix against cfn-lint or cloudformation-guard baselines.
+description: Development workflow, correctness rules, and code-quality standards for the cloudformation-validate repository - a Rust workspace that validates AWS CloudFormation templates with two parity rule engines (Rego and CEL). Use when writing, modifying, reviewing, or debugging any code in this repo; when adding or fixing validation rules; when running builds, tests, or lints; when regenerating the snapshot files; or when validating a fix against cfn-lint or cloudformation-guard baselines.
 license: Apache-2.0
 metadata:
   repository: cloudformation-validate
@@ -49,7 +49,7 @@ cargo clippy --locked --all-targets --workspace -- -D warnings
 cargo run -p cfn-validate -- <template|dir> --engine rego|cel --format standard|detailed --level fatal|error|warn|info|debug
 cargo run -p cfn-validate -- --list-rules
 
-# Regenerate after a change that alters diagnostics; verifies engine parity and rewrites the golden file.
+# Regenerate after a change that alters diagnostics; verifies engine parity and rewrites the snapshot chunk files.
 cargo run --release -p resources --example generate_validation_reports
 ```
 
@@ -65,7 +65,7 @@ Apply these rules when choosing validation:
 - **Non-Rust-only changes** such as documentation, GitHub workflows, scripts, or binding-language code: do not run
   Cargo format, clippy, or tests unless the file is a Cargo/build input and the command actually exercises it. Use the
   relevant syntax checker, build, test runner, or dry-run instead.
-- **Rule, schema-data, or template changes:** run the focused validator, parity, corpus, and golden-file checks that
+- **Rule, schema-data, or template changes:** run the focused validator, parity, corpus, and snapshot checks that
   exercise the changed diagnostics. Their non-Rust extension does not remove domain-specific validation or justify
   unrelated Cargo tests.
 - **Mixed changes:** use the union of checks relevant to each changed surface.
@@ -165,7 +165,7 @@ Apply every relevant step below; do not apply this procedure wholesale to docume
 4. Compare against cfn-lint for E/W/I or cfn-guard for Guard. Investigate a cfn-lint mismatch using the independent
    evidence rather than assuming cfn-lint is correct. Check Fatal rules against the compiled schemas.
 5. Run `cfn-validate` with both engines on the repro, then run the corpus. Preserve parity and zero false positives;
-   regenerate the golden file if diagnostics legitimately changed.
+   regenerate the snapshot files if diagnostics legitimately changed.
 6. For core Rust changes, run only Cargo tests that exercise the change; use the workspace suite once only when its
    broad coverage is relevant. For every Rust change, run format and clippy.
 7. For binding changes, build and test the affected packaged consumer artifact instead of using Cargo tests as a

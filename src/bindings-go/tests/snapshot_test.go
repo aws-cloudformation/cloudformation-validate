@@ -1,9 +1,9 @@
-// Golden-file validation, mirroring the wasm and JVM suites: every template in
+// Snapshot validation, mirroring the wasm and JVM suites: every template in
 // the corpus is validated through both engines at both detail levels, and the
-// result must match resources/expected/validation_reports.json exactly (up to the
-// fields the golden file intentionally excludes). Reports round-trip through
-// the typed Go structs before comparison, so this also proves the Go type
-// surface is faithful to the serialized report shape.
+// result must match resources/expected/validation_reports*.json chunks exactly
+// (up to the fields the snapshot file intentionally excludes). Reports round-trip
+// through the typed Go structs before comparison, so this also proves the Go
+// type surface is faithful to the serialized report shape.
 package cfnvalidate_test
 
 import (
@@ -12,69 +12,123 @@ import (
 	"path/filepath"
 	"reflect"
 	"sort"
+	"strconv"
 	"strings"
 	"testing"
 
 	cfnvalidate "github.com/aws-cloudformation/cloudformation-validate/src/bindings-go/go"
 )
 
-var goldenDirs = []string{"bad", "cdk", "good", "gh-issues", "integration", "issues", "lsp", "public", "quickstart"}
+const chunkPrefix = "validation_reports"
+const chunkExtension = ".json"
 
-// Fields present only in detailed reports; stripped from the golden entry when
+// Fields present only in detailed reports; stripped from the snapshot entry when
 // comparing standard reports.
 var detailedOnlyDiagnosticFields = []string{"documentationUrl", "context", "ruleDescription", "phase", "section"}
 
 var templatesRoot = filepath.Join(workspaceDir, "resources", "templates")
 
-func discoverGoldenTemplates(t *testing.T) []string {
+func discoverSnapshotTemplates(t *testing.T) []string {
 	t.Helper()
 	var templates []string
-	for _, sub := range goldenDirs {
-		root := filepath.Join(templatesRoot, sub)
-		if _, err := os.Stat(root); err != nil {
-			continue
-		}
-		err := filepath.WalkDir(root, func(path string, entry os.DirEntry, err error) error {
-			if err != nil {
-				return err
-			}
-			if entry.IsDir() {
-				return nil
-			}
-			switch filepath.Ext(entry.Name()) {
-			case ".yaml", ".yml", ".json":
-				rel, relErr := filepath.Rel(templatesRoot, path)
-				if relErr != nil {
-					return relErr
-				}
-				templates = append(templates, filepath.ToSlash(rel))
-			}
-			return nil
-		})
+	err := filepath.WalkDir(templatesRoot, func(path string, entry os.DirEntry, err error) error {
 		if err != nil {
-			t.Fatalf("discovering templates under %s: %v", root, err)
+			return err
 		}
+		if entry.IsDir() {
+			return nil
+		}
+		switch filepath.Ext(entry.Name()) {
+		case ".yaml", ".yml", ".json":
+			rel, relErr := filepath.Rel(templatesRoot, path)
+			if relErr != nil {
+				return relErr
+			}
+			templates = append(templates, filepath.ToSlash(rel))
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("discovering templates: %v", err)
 	}
 	sort.Strings(templates)
 	return templates
 }
 
-func loadGolden(t *testing.T) map[string]map[string]any {
+func loadSnapshots(t *testing.T) map[string]map[string]any {
 	t.Helper()
-	content, err := os.ReadFile(filepath.Join(workspaceDir, "resources", "expected", "validation_reports.json"))
+	expectedDir := filepath.Join(workspaceDir, "resources", "expected")
+	entries, err := os.ReadDir(expectedDir)
 	if err != nil {
-		t.Fatalf("reading golden file: %v", err)
+		t.Fatalf("reading expected directory: %v", err)
 	}
-	var golden map[string]map[string]any
-	if err := json.Unmarshal(content, &golden); err != nil {
-		t.Fatalf("decoding golden file: %v", err)
+
+	type chunk struct {
+		index int
+		path  string
 	}
-	return golden
+	var chunks []chunk
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		name := entry.Name()
+		if !strings.HasPrefix(name, chunkPrefix) || !strings.HasSuffix(name, chunkExtension) {
+			continue
+		}
+		indexStr := strings.TrimPrefix(strings.TrimSuffix(name, chunkExtension), chunkPrefix)
+		if indexStr == "" {
+			continue // skip legacy validation_reports.json
+		}
+		if len(indexStr) > 1 && indexStr[0] == '0' {
+			continue
+		}
+		if indexStr == "0" {
+			continue
+		}
+		idx, parseErr := strconv.Atoi(indexStr)
+		if parseErr != nil || idx < 1 {
+			continue
+		}
+		chunks = append(chunks, chunk{index: idx, path: filepath.Join(expectedDir, name)})
+	}
+	if len(chunks) == 0 {
+		t.Fatalf("no snapshot chunk files (%sN%s) found in %s", chunkPrefix, chunkExtension, expectedDir)
+	}
+	sort.Slice(chunks, func(i, j int) bool { return chunks[i].index < chunks[j].index })
+
+	for i, c := range chunks {
+		if c.index != i+1 {
+			t.Fatalf("non-contiguous snapshot chunk sequence: expected index %d but found %d", i+1, c.index)
+		}
+	}
+
+	snapshots := make(map[string]map[string]any)
+	for _, c := range chunks {
+		content, readErr := os.ReadFile(c.path)
+		if readErr != nil {
+			t.Fatalf("reading snapshot chunk %s: %v", filepath.Base(c.path), readErr)
+		}
+		var chunkData map[string]map[string]any
+		if err := json.Unmarshal(content, &chunkData); err != nil {
+			t.Fatalf("decoding snapshot chunk %s: %v", filepath.Base(c.path), err)
+		}
+		if chunkData == nil {
+			t.Fatalf("snapshot chunk %s decoded to nil (JSON null), not an object", filepath.Base(c.path))
+		}
+		for key, value := range chunkData {
+			if _, exists := snapshots[key]; exists {
+				t.Fatalf("duplicate template key %q in chunk %s", key, filepath.Base(c.path))
+			}
+			snapshots[key] = value
+		}
+	}
+	return snapshots
 }
 
-// stripGoldenExcludedFields removes the report fields the golden file excludes
+// stripSnapshotExcludedFields removes the report fields the snapshot file excludes
 // (version, performance, and changing metadata provenance) and normalizes filePath.
-func stripGoldenExcludedFields(report map[string]any, filePath string) map[string]any {
+func stripSnapshotExcludedFields(report map[string]any, filePath string) map[string]any {
 	if filePath != "" {
 		report["filePath"] = filePath
 	}
@@ -104,7 +158,7 @@ func stripDetailedOnlyFields(report map[string]any) map[string]any {
 }
 
 // toComparable round-trips a typed report through JSON into the same generic
-// shape as the golden entries.
+// shape as the snapshot entries.
 func toComparable(t *testing.T, report any) map[string]any {
 	t.Helper()
 	data, err := json.Marshal(report)
@@ -118,15 +172,15 @@ func toComparable(t *testing.T, report any) map[string]any {
 	return out
 }
 
-func cloneGoldenEntry(t *testing.T, entry map[string]any) map[string]any {
+func cloneSnapshotEntry(t *testing.T, entry map[string]any) map[string]any {
 	t.Helper()
 	data, err := json.Marshal(entry)
 	if err != nil {
-		t.Fatalf("cloning golden entry: %v", err)
+		t.Fatalf("cloning snapshot entry: %v", err)
 	}
 	var out map[string]any
 	if err := json.Unmarshal(data, &out); err != nil {
-		t.Fatalf("cloning golden entry: %v", err)
+		t.Fatalf("cloning snapshot entry: %v", err)
 	}
 	return out
 }
@@ -138,23 +192,23 @@ func diffJSON(t *testing.T, rel string, actual, expected map[string]any) {
 	}
 	actualJSON, _ := json.MarshalIndent(actual, "", " ")
 	expectedJSON, _ := json.MarshalIndent(expected, "", " ")
-	t.Errorf("%s: report does not match golden\n--- actual ---\n%s\n--- expected ---\n%s", rel, actualJSON, expectedJSON)
+	t.Errorf("%s: report does not match snapshot\n--- actual ---\n%s\n--- expected ---\n%s", rel, actualJSON, expectedJSON)
 }
 
-func TestGoldenFileValidation(t *testing.T) {
-	templates := discoverGoldenTemplates(t)
+func TestSnapshotValidation(t *testing.T) {
+	templates := discoverSnapshotTemplates(t)
 	if len(templates) == 0 {
 		t.Fatal("no templates discovered")
 	}
-	golden := loadGolden(t)
+	snapshots := loadSnapshots(t)
 	debugLevel := &cfnvalidate.ValidateConfig{SeverityLevel: cfnvalidate.SeverityDebug}
 
 	for engineName, engine := range bothEngines(t) {
-		t.Run(engineName+" detailed matches golden", func(t *testing.T) {
+		t.Run(engineName+" detailed matches snapshot", func(t *testing.T) {
 			for _, rel := range templates {
-				expected, ok := golden[rel]
+				expected, ok := snapshots[rel]
 				if !ok {
-					t.Errorf("%s: missing golden entry", rel)
+					t.Errorf("%s: missing snapshot entry", rel)
 					continue
 				}
 				report, err := engine.ValidateDetailedFile(filepath.Join(templatesRoot, rel), debugLevel)
@@ -162,17 +216,17 @@ func TestGoldenFileValidation(t *testing.T) {
 					t.Errorf("%s: validation failed: %v", rel, err)
 					continue
 				}
-				actual := stripGoldenExcludedFields(toComparable(t, report), rel)
-				want := stripGoldenExcludedFields(cloneGoldenEntry(t, expected), "")
+				actual := stripSnapshotExcludedFields(toComparable(t, report), rel)
+				want := stripSnapshotExcludedFields(cloneSnapshotEntry(t, expected), "")
 				diffJSON(t, rel, actual, want)
 			}
 		})
 
-		t.Run(engineName+" standard matches golden", func(t *testing.T) {
+		t.Run(engineName+" standard matches snapshot", func(t *testing.T) {
 			for _, rel := range templates {
-				expected, ok := golden[rel]
+				expected, ok := snapshots[rel]
 				if !ok {
-					t.Errorf("%s: missing golden entry", rel)
+					t.Errorf("%s: missing snapshot entry", rel)
 					continue
 				}
 				report, err := engine.ValidateStandardFile(filepath.Join(templatesRoot, rel), debugLevel)
@@ -180,8 +234,8 @@ func TestGoldenFileValidation(t *testing.T) {
 					t.Errorf("%s: validation failed: %v", rel, err)
 					continue
 				}
-				actual := stripGoldenExcludedFields(toComparable(t, report), rel)
-				want := stripDetailedOnlyFields(stripGoldenExcludedFields(cloneGoldenEntry(t, expected), ""))
+				actual := stripSnapshotExcludedFields(toComparable(t, report), rel)
+				want := stripDetailedOnlyFields(stripSnapshotExcludedFields(cloneSnapshotEntry(t, expected), ""))
 				diffJSON(t, rel, actual, want)
 			}
 		})

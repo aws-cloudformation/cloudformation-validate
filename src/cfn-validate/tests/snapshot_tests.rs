@@ -1,7 +1,9 @@
 mod common;
 
 use cel_engine::CelEngine;
-use common::{DETAILED_ONLY_DIAGNOSTIC_FIELDS, deep_diff, discover_all_templates, load_combined_golden, load_template};
+use common::{
+    DETAILED_ONLY_DIAGNOSTIC_FIELDS, deep_diff, discover_all_templates, load_combined_snapshots, load_template,
+};
 use data_source::embedded::{CFN_LINT_VERSION, RESOURCE_SCHEMA_VERSION};
 use diagnostics::DetailLevel;
 use rego_engine::RegoEngine;
@@ -38,20 +40,20 @@ fn strip_detailed_only_fields(val: &mut serde_json::Value) {
 }
 
 fn check_detailed(engine_name: &str, engine: &dyn ValidationEngine) {
-    let combined = load_combined_golden();
+    let combined = load_combined_snapshots();
     let all_templates = discover_all_templates();
     let mut failures = Vec::new();
-    let mut missing_goldens = Vec::new();
+    let mut missing_snapshots = Vec::new();
 
     for relative_path in &all_templates {
-        let Some(golden) = combined.get(relative_path.as_str()) else {
-            missing_goldens.push(relative_path.clone());
+        let Some(snapshot) = combined.get(relative_path.as_str()) else {
+            missing_snapshots.push(relative_path.clone());
             continue;
         };
         let bytes = load_template(relative_path);
         let actual = validate_to_json(engine, &bytes, relative_path, DetailLevel::Detailed);
 
-        let expected = golden.clone();
+        let expected = snapshot.clone();
 
         let diffs = deep_diff(&expected, &actual, "");
         if !diffs.is_empty() {
@@ -61,34 +63,34 @@ fn check_detailed(engine_name: &str, engine: &dyn ValidationEngine) {
     }
 
     assert!(
-        missing_goldens.is_empty(),
-        "{engine_name} detailed: {} template(s) missing from validation_reports.json - run `cargo run --release -p resources --example generate_validation_reports`:\n{}",
-        missing_goldens.len(),
-        missing_goldens.iter().take(20).cloned().collect::<Vec<_>>().join("\n")
+        missing_snapshots.is_empty(),
+        "{engine_name} detailed: {} template(s) missing from snapshot chunks - run `cargo run --release -p resources --example generate_validation_reports`:\n{}",
+        missing_snapshots.len(),
+        missing_snapshots.iter().take(20).cloned().collect::<Vec<_>>().join("\n")
     );
     assert!(
         failures.is_empty(),
-        "{engine_name} detailed: {} template(s) differ from golden:\n{}",
+        "{engine_name} detailed: {} template(s) differ from snapshot:\n{}",
         failures.len(),
         failures.join("\n\n")
     );
 }
 
 fn check_standard(engine_name: &str, engine: &dyn ValidationEngine) {
-    let combined = load_combined_golden();
+    let combined = load_combined_snapshots();
     let all_templates = discover_all_templates();
     let mut failures = Vec::new();
-    let mut missing_goldens = Vec::new();
+    let mut missing_snapshots = Vec::new();
 
     for relative_path in &all_templates {
-        let Some(golden) = combined.get(relative_path.as_str()) else {
-            missing_goldens.push(relative_path.clone());
+        let Some(snapshot) = combined.get(relative_path.as_str()) else {
+            missing_snapshots.push(relative_path.clone());
             continue;
         };
         let bytes = load_template(relative_path);
         let actual = validate_to_json(engine, &bytes, relative_path, DetailLevel::Standard);
 
-        let mut expected = golden.clone();
+        let mut expected = snapshot.clone();
         strip_detailed_only_fields(&mut expected);
 
         let diffs = deep_diff(&expected, &actual, "");
@@ -99,24 +101,24 @@ fn check_standard(engine_name: &str, engine: &dyn ValidationEngine) {
     }
 
     assert!(
-        missing_goldens.is_empty(),
-        "{engine_name} standard: {} template(s) missing from validation_reports.json - run `cargo run --release -p resources --example generate_validation_reports`:\n{}",
-        missing_goldens.len(),
-        missing_goldens.iter().take(20).cloned().collect::<Vec<_>>().join("\n")
+        missing_snapshots.is_empty(),
+        "{engine_name} standard: {} template(s) missing from snapshot chunks - run `cargo run --release -p resources --example generate_validation_reports`:\n{}",
+        missing_snapshots.len(),
+        missing_snapshots.iter().take(20).cloned().collect::<Vec<_>>().join("\n")
     );
     assert!(
         failures.is_empty(),
-        "{engine_name} standard: {} template(s) differ from golden:\n{}",
+        "{engine_name} standard: {} template(s) differ from snapshot:\n{}",
         failures.len(),
         failures.join("\n\n")
     );
 }
 
 #[test]
-fn regular_golden_discovery_matches_persisted_template_report_keys() {
+fn regular_snapshot_discovery_matches_persisted_template_report_keys() {
     use std::collections::BTreeSet;
 
-    let combined = load_combined_golden();
+    let combined = load_combined_snapshots();
     let discovered: BTreeSet<String> = discover_all_templates().into_iter().collect();
     let persisted: BTreeSet<String> = combined.keys().filter(|path| !path.starts_with("security/")).cloned().collect();
     let missing: Vec<_> = discovered.difference(&persisted).cloned().collect();
@@ -137,7 +139,7 @@ fn snapshot_discovery_matches_all_persisted_report_keys() {
     use std::collections::BTreeSet;
 
     let discovered: BTreeSet<String> = resources::discover_snapshot_templates().into_iter().collect();
-    let persisted: BTreeSet<String> = load_combined_golden().keys().cloned().collect();
+    let persisted: BTreeSet<String> = load_combined_snapshots().keys().cloned().collect();
     let security_count = discovered.iter().filter(|path| path.starts_with("security/")).count();
 
     assert!(security_count > 0, "snapshot discovery must include security fixtures");
@@ -148,25 +150,25 @@ fn snapshot_discovery_matches_all_persisted_report_keys() {
 }
 
 #[test]
-fn rego_detailed_matches_golden() {
+fn rego_detailed_matches_snapshot() {
     let engine = RegoEngine::new(EngineConfig::default()).expect("rego engine");
     check_detailed("rego", &engine);
 }
 
 #[test]
-fn rego_standard_matches_golden() {
+fn rego_standard_matches_snapshot() {
     let engine = RegoEngine::new(EngineConfig::default()).expect("rego engine");
     check_standard("rego", &engine);
 }
 
 #[test]
-fn cel_detailed_matches_golden() {
+fn cel_detailed_matches_snapshot() {
     let engine = CelEngine::new(EngineConfig::default()).expect("cel engine");
     check_detailed("cel", &engine);
 }
 
 #[test]
-fn cel_standard_matches_golden() {
+fn cel_standard_matches_snapshot() {
     let engine = CelEngine::new(EngineConfig::default()).expect("cel engine");
     check_standard("cel", &engine);
 }
@@ -277,8 +279,8 @@ fn message_defect_flags_bad_text_and_accepts_clean_text() {
 }
 
 #[test]
-fn golden_messages_are_clean_ascii_text() {
-    let combined = load_combined_golden();
+fn snapshot_messages_are_clean_ascii_text() {
+    let combined = load_combined_snapshots();
 
     let mut violations = Vec::new();
     let mut messages_checked = 0usize;
@@ -305,7 +307,7 @@ fn golden_messages_are_clean_ascii_text() {
 
     assert!(
         violations.is_empty(),
-        "{} golden message(s) contain non-ASCII, control chars, or unicode escapes:\n{}",
+        "{} snapshot message(s) contain non-ASCII, control chars, or unicode escapes:\n{}",
         violations.len(),
         violations.iter().take(30).cloned().collect::<Vec<_>>().join("\n")
     );

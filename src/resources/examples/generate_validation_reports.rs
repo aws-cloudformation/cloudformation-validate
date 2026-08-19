@@ -1,10 +1,14 @@
-//! Regenerate the golden `expected/validation_reports.json` from `cfn-validate`
-//! `--format detailed` output - a Rust port of the former `generate.py`, run in
-//! parallel across CPU cores because serial Python (≈1000 engine-initializing
-//! subprocess launches) is too slow.
+//! Regenerate the `expected/validation_reports*.json` snapshot chunks from
+//! `cfn-validate --format detailed` output — a Rust port of the former
+//! `generate.py`, run in parallel across CPU cores because serial Python
+//! (≈1000 engine-initializing subprocess launches) is too slow.
 //!
 //! Runs BOTH engines (rego and cel) on every template and verifies they produce
 //! identical diagnostics. Fails loudly on any divergence or missing output.
+//!
+//! Reports are deterministically partitioned into numbered files
+//! (`validation_reports1.json`, `validation_reports2.json`, …) with at most
+//! [`TEMPLATES_PER_CHUNK`] template reports per file, sorted by template key.
 //!
 //! Run from the workspace root, in release (the generator itself is CPU-bound):
 //!     cargo run --release -p resources --example generate_validation_reports
@@ -19,20 +23,23 @@ use std::sync::Mutex;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Instant;
 
-use resources::{discover_snapshot_templates, resources_root, templates_dir, validation_reports_file, workspace_root};
+use resources::{
+    TEMPLATES_PER_CHUNK, discover_snapshot_chunks, discover_snapshot_templates, expected_dir,
+    legacy_validation_reports_file, resources_root, snapshot_chunk_filename, templates_dir, workspace_root,
+};
 use serde_json::{Map, Value};
 
 /// Engines that must agree on every template. Rego is the reference persisted to
-/// the golden file; cel is validated against it for parity.
+/// the snapshot chunks; cel is validated against it for parity.
 const ENGINES: &[&str] = &["rego", "cel"];
 
 /// Fields stripped before the rego-vs-cel parity comparison
 const PARITY_IGNORED_FIELDS: &[&str] = &["performance", "benchmarkMetrics", "suppressed"];
 
-/// Top-level fields compared across engines but not persisted to the golden file.
+/// Top-level fields compared across engines but not persisted to the snapshot chunks.
 const OUTPUT_ONLY_TOP_LEVEL_FIELDS: &[&str] = &["performance"];
 
-/// `metadata` fields compared across engines but not persisted to the golden file because they describe
+/// `metadata` fields compared across engines but not persisted to the snapshot chunks because they describe
 /// the current binary's rule and data-source bundle.
 const OUTPUT_ONLY_METADATA_FIELDS: &[&str] = &["rulesEvaluated", "cfnLintVersion", "resourceSchemaVersion"];
 
@@ -56,7 +63,8 @@ fn main() {
     };
 
     let templates = discover_snapshot_templates();
-    println!("Output file: {}", validation_reports_file().display());
+    let output_dir = expected_dir();
+    println!("Output directory: {}", output_dir.display());
     println!("Discovered {} templates", templates.len());
     println!("Running both engines ({}) on each template...\n", ENGINES.join(" + "));
 
@@ -96,15 +104,62 @@ fn main() {
         fail(&format!("{} template(s) have engine parity failures", parity_failures.len()));
     }
 
-    let count = persisted.len();
-    let rendered = serde_json::to_string_pretty(&Value::Object(persisted))
-        .unwrap_or_else(|e| fail(&format!("serialize golden: {e}")));
-    if let Err(e) = std::fs::write(validation_reports_file(), rendered + "\n") {
-        fail(&format!("write {}: {e}", validation_reports_file().display()));
+    let total_count = persisted.len();
+    if total_count == 0 {
+        fail("no template reports were produced — nothing to write");
+    }
+    write_chunked_snapshots(&persisted);
+    cleanup_stale_artifacts(total_count);
+
+    println!("\nWrote {total_count} template results across chunks to {}", output_dir.display());
+    println!("Engine parity verified: rego == cel on all {total_count} templates");
+}
+
+/// Partition the persisted reports into deterministically-sorted chunks and write each.
+fn write_chunked_snapshots(persisted: &Map<String, Value>) {
+    let mut sorted_keys: Vec<&String> = persisted.keys().collect();
+    sorted_keys.sort();
+
+    let dir = expected_dir();
+    for (chunk_index_zero, chunk_keys) in sorted_keys.chunks(TEMPLATES_PER_CHUNK).enumerate() {
+        let chunk_number = chunk_index_zero + 1;
+        let chunk_map: Map<String, Value> =
+            chunk_keys.iter().map(|key| ((*key).clone(), persisted[*key].clone())).collect();
+
+        let rendered = serde_json::to_string_pretty(&Value::Object(chunk_map))
+            .unwrap_or_else(|e| fail(&format!("serialize chunk {chunk_number}: {e}")));
+
+        let path = dir.join(snapshot_chunk_filename(chunk_number));
+        if let Err(e) = std::fs::write(&path, rendered + "\n") {
+            fail(&format!("write {}: {e}", path.display()));
+        }
+        println!("  wrote {} ({} templates)", snapshot_chunk_filename(chunk_number), chunk_keys.len());
+    }
+}
+
+/// Remove the legacy single file and any stale numbered chunks beyond what was just written.
+/// Failures are fatal (except NotFound, which is race-safe to ignore).
+fn cleanup_stale_artifacts(total_templates: usize) {
+    let expected_chunk_count = total_templates.div_ceil(TEMPLATES_PER_CHUNK);
+
+    let legacy = legacy_validation_reports_file();
+    match std::fs::remove_file(&legacy) {
+        Ok(()) => println!("  removed legacy validation_reports.json"),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+        Err(e) => fail(&format!("remove legacy {}: {e}", legacy.display())),
     }
 
-    println!("\nWrote {count} template results to {}", validation_reports_file().display());
-    println!("Engine parity verified: rego == cel on all {count} templates");
+    let existing_chunks =
+        discover_snapshot_chunks().unwrap_or_else(|e| fail(&format!("discover stale chunks for cleanup: {e}")));
+    for (index, path) in existing_chunks {
+        if index > expected_chunk_count {
+            match std::fs::remove_file(&path) {
+                Ok(()) => println!("  removed stale {}", snapshot_chunk_filename(index)),
+                Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+                Err(e) => fail(&format!("remove stale chunk {}: {e}", path.display())),
+            }
+        }
+    }
 }
 
 /// Build the release `cfn-validate` binary this generator drives, and return its path.
@@ -213,7 +268,7 @@ fn run_cfn_validate(cfn_validate: &PathBuf, template: &str, engine: &str) -> Res
 }
 
 /// Set every `durationMs` value (at any depth) to zero, so timing noise never
-/// reaches the golden file or the parity comparison.
+/// reaches the snapshot chunks or the parity comparison.
 fn zero_durations(value: &mut Value) {
     match value {
         Value::Object(map) => {

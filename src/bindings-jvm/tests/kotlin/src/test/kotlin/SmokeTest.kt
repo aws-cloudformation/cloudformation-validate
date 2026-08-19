@@ -362,42 +362,42 @@ class SmokeTest {
     }
 
     @TestFactory
-    fun regoDetailedMatchesGolden(): List<DynamicTest> = goldenDetailedTests("rego", REGO)
+    fun regoDetailedMatchesSnapshot(): List<DynamicTest> = snapshotDetailedTests("rego", REGO)
 
     @TestFactory
-    fun regoStandardMatchesGolden(): List<DynamicTest> = goldenStandardTests("rego", REGO)
+    fun regoStandardMatchesSnapshot(): List<DynamicTest> = snapshotStandardTests("rego", REGO)
 
     @TestFactory
-    fun celDetailedMatchesGolden(): List<DynamicTest> = goldenDetailedTests("cel", CEL)
+    fun celDetailedMatchesSnapshot(): List<DynamicTest> = snapshotDetailedTests("cel", CEL)
 
     @TestFactory
-    fun celStandardMatchesGolden(): List<DynamicTest> = goldenStandardTests("cel", CEL)
+    fun celStandardMatchesSnapshot(): List<DynamicTest> = snapshotStandardTests("cel", CEL)
 
-    private fun goldenDetailedTests(engineName: String, engine: Any): List<DynamicTest> {
+    private fun snapshotDetailedTests(engineName: String, engine: Any): List<DynamicTest> {
         return EXPECTED_TEMPLATES.map { rel ->
             DynamicTest.dynamicTest("$engineName detailed:$rel") {
                 val actual = parseJson(gson.toJson(validateDetailed(engine, rel)))
                 @Suppress("UNCHECKED_CAST")
-                val expected = COMBINED_GOLDEN[rel] as Map<String, Any?>
+                val expected = COMBINED_SNAPSHOTS[rel] as Map<String, Any?>
                 assertEquals(
-                    stripGoldenExcludedFields(expected),
-                    stripGoldenExcludedFields(actual, rel),
-                    "$engineName detailed output for $rel differs from golden"
+                    stripSnapshotExcludedFields(expected),
+                    stripSnapshotExcludedFields(actual, rel),
+                    "$engineName detailed output for $rel differs from snapshot"
                 )
             }
         }
     }
 
-    private fun goldenStandardTests(engineName: String, engine: Any): List<DynamicTest> {
+    private fun snapshotStandardTests(engineName: String, engine: Any): List<DynamicTest> {
         return EXPECTED_TEMPLATES.map { rel ->
             DynamicTest.dynamicTest("$engineName standard:$rel") {
                 val actual = parseJson(gson.toJson(validateStandard(engine, rel)))
                 @Suppress("UNCHECKED_CAST")
-                val expected = stripDetailedOnlyFields(COMBINED_GOLDEN[rel] as Map<String, Any?>)
+                val expected = stripDetailedOnlyFields(COMBINED_SNAPSHOTS[rel] as Map<String, Any?>)
                 assertEquals(
-                    stripGoldenExcludedFields(expected),
-                    stripGoldenExcludedFields(actual, rel),
-                    "$engineName standard output for $rel differs from golden"
+                    stripSnapshotExcludedFields(expected),
+                    stripSnapshotExcludedFields(actual, rel),
+                    "$engineName standard output for $rel differs from snapshot"
                 )
             }
         }
@@ -435,7 +435,7 @@ class SmokeTest {
     }
 
     @Suppress("UNCHECKED_CAST")
-    private fun stripGoldenExcludedFields(report: Map<String, Any?>, filePath: String? = null): Map<String, Any?> {
+    private fun stripSnapshotExcludedFields(report: Map<String, Any?>, filePath: String? = null): Map<String, Any?> {
         val out = LinkedHashMap(report)
         if (filePath != null) out["filePath"] = filePath
         out.remove("version")
@@ -480,26 +480,73 @@ class SmokeTest {
         private val gson = buildBindingsGson()
 
         private val EXPECTED_TEMPLATES: List<String>
-        private val COMBINED_GOLDEN: Map<String, Any?>
+        private val COMBINED_SNAPSHOTS: Map<String, Any?>
 
-        private val GOLDEN_DIRS = listOf("bad", "cdk", "good", "gh-issues", "integration", "issues", "lsp", "public", "quickstart")
+        private const val CHUNK_PREFIX = "validation_reports"
+        private const val CHUNK_EXTENSION = ".json"
 
         init {
-            val goldenFile = File(expectedDir, "validation_reports.json")
-            @Suppress("UNCHECKED_CAST")
-            COMBINED_GOLDEN = JsonParser(goldenFile.readText()).parseValue() as Map<String, Any?>
+            COMBINED_SNAPSHOTS = loadCombinedSnapshots()
             EXPECTED_TEMPLATES = discoverAllTemplates()
         }
 
-        private fun discoverAllTemplates(): List<String> {
-            val templates = mutableListOf<String>()
-            for (sub in GOLDEN_DIRS) {
-                val dir = File(templatesRoot, sub)
-                if (dir.isDirectory) {
-                    dir.walkTopDown().filter { it.isFile && it.extension in listOf("yaml", "yml", "json") }.forEach {
-                        templates.add(it.relativeTo(templatesRoot).path.replace('\\', '/'))
+        /**
+         * Discover all numbered snapshot chunk files in numeric order and merge
+         * them strictly. Fails on no chunks, non-object JSON, or duplicate keys.
+         */
+        private fun loadCombinedSnapshots(): Map<String, Any?> {
+            val pattern = Regex("^${Regex.escape(CHUNK_PREFIX)}([1-9][0-9]*)${Regex.escape(CHUNK_EXTENSION)}$")
+            val chunkFiles = (expectedDir.listFiles() ?: error("cannot list $expectedDir"))
+                .filter { it.isFile }
+                .mapNotNull { file ->
+                    pattern.matchEntire(file.name)?.let { match ->
+                        val indexStr = match.groupValues[1]
+                        val index = indexStr.toIntOrNull()
+                            ?: error("snapshot chunk index overflows Int: ${file.name}")
+                        require(index >= 1) { "snapshot chunk index must be >= 1: ${file.name}" }
+                        index to file
                     }
                 }
+                .sortedBy { it.first }
+
+            require(chunkFiles.isNotEmpty()) {
+                "no snapshot chunk files (${CHUNK_PREFIX}N${CHUNK_EXTENSION}) found in $expectedDir"
+            }
+
+            for ((i, pair) in chunkFiles.withIndex()) {
+                require(pair.first == i + 1) {
+                    "non-contiguous snapshot chunk sequence: expected index ${i + 1} but found ${pair.first}"
+                }
+            }
+
+            val merged = linkedMapOf<String, Any?>()
+            for ((_, file) in chunkFiles) {
+                @Suppress("UNCHECKED_CAST")
+                val chunkData = JsonParser(file.readText()).parseValue() as? Map<String, Any?>
+                    ?: error("snapshot chunk ${file.name} is not a JSON object")
+                for ((key, value) in chunkData) {
+                    require(key !in merged) {
+                        "duplicate template key \"$key\" in chunk ${file.name}"
+                    }
+                    merged[key] = value
+                }
+            }
+            return merged
+        }
+
+        /**
+         * Recursively scan the entire templates directory for .yaml/.yml/.json.
+         */
+        private fun discoverAllTemplates(): List<String> {
+            require(templatesRoot.isDirectory) {
+                "templates directory does not exist: ${templatesRoot.absolutePath}"
+            }
+            val templates = mutableListOf<String>()
+            templatesRoot.walkTopDown().filter { it.isFile && it.extension in listOf("yaml", "yml", "json") }.forEach {
+                templates.add(it.relativeTo(templatesRoot).path.replace('\\', '/'))
+            }
+            require(templates.isNotEmpty()) {
+                "no templates discovered in ${templatesRoot.absolutePath}"
             }
             return templates.sorted()
         }
@@ -511,7 +558,7 @@ class SmokeTest {
     }
 }
 
-// ── Minimal JSON parser (for golden file comparison) ─────────────────────────
+// ── Minimal JSON parser (for snapshot file comparison) ─────────────────────────
 
 private class JsonParser(private val src: String) {
     private var pos = 0
