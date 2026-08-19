@@ -23,25 +23,20 @@ violation contains make_diag_full("E3055", "ERROR", name,
 }
 
 # E3016: UpdatePolicy is only valid on specific resource types
-valid_update_policy_types := {
-    "AWS::AutoScaling::AutoScalingGroup",
-    "AWS::ElastiCache::ReplicationGroup",
-    "AWS::OpenSearchService::Domain",
-    "AWS::Elasticsearch::Domain",
-    "AWS::Lambda::Alias",
-    "AWS::AppStream::Fleet",
-}
+# Use set for membership testing; preserve the array order for messages.
+_update_policy_types := {t | some t in data.rule_tables.update_policy_resource_types}
 
 violation contains make_diag_full("E3016", "ERROR", name,
     "UpdatePolicy",
     sprintf("UpdatePolicy is not supported on resource type '%s'", [rtype]),
-    sprintf("Remove UpdatePolicy or change resource type to one of: %s", [concat(", ", valid_update_policy_types)]),
+    sprintf("Remove UpdatePolicy or change resource type to one of: %s",
+        [concat(", ", sort(data.rule_tables.update_policy_resource_types))]),
     "") if {
     some name, res in input.resources
     status := lifecycle_attribute_status(name, "UpdatePolicy")
     status.mayBePresent
     rtype := res.resourceType
-    not rtype in valid_update_policy_types
+    not rtype in _update_policy_types
 }
 
 violation contains make_diag_full("E3016", "ERROR", name,
@@ -51,7 +46,7 @@ violation contains make_diag_full("E3016", "ERROR", name,
     "") if {
     some name, res in input.resources
     rtype := res.resourceType
-    rtype in valid_update_policy_types
+    rtype in _update_policy_types
     status := lifecycle_attribute_status(name, "UpdatePolicy")
     status.invalidValue != ""
 }

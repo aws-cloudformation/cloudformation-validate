@@ -4,16 +4,7 @@ import rego.v1
 
 # F0018: UpdateReplacePolicy must be valid
 _base_update_policies := {"Delete", "Retain"}
-_snapshot_capable_update_types := {
-    "AWS::DocDB::DBCluster",
-    "AWS::EC2::Volume",
-    "AWS::ElastiCache::CacheCluster",
-    "AWS::ElastiCache::ReplicationGroup",
-    "AWS::Neptune::DBCluster",
-    "AWS::RDS::DBCluster",
-    "AWS::RDS::DBInstance",
-    "AWS::Redshift::Cluster"
-}
+_snapshot_capable_update_types := {t | some t in data.rule_tables.snapshot_capable_resource_types}
 
 violation contains make_diag_full("F0018", "FATAL", name, "UpdateReplacePolicy",
     sprintf("UpdateReplacePolicy must be one of Delete, Retain, Snapshot, got '%s'", [policy]),

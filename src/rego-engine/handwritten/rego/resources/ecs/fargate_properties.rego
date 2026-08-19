@@ -66,7 +66,7 @@ violation contains make_diag_full("E3048", "ERROR", name,
 violation contains make_diag_full("E3048", "ERROR", name,
     sprintf("Properties.ContainerDefinitions.%v.LogConfiguration.LogDriver", [driver_scenario.path_index]),
     sprintf("Fargate does not support log driver '%s'. Supported drivers: %s", [driver_scenario.value, _fargate_log_drivers_str]),
-    "Use 'awslogs', 'splunk', or 'awsfirelens'",
+    _fargate_log_driver_fix,
     "") if {
     some name in resources_of_type("AWS::ECS::TaskDefinition")
     some driver_scenario in _fargate_invalid_log_drivers(name)
@@ -83,7 +83,7 @@ _fargate_invalid_log_drivers(name) := {scenario |
     some container_index, container in container_scenario.value
     driver := container.LogConfiguration.LogDriver
     is_string(driver)
-    not driver in _fargate_supported_log_drivers
+    not driver in data.fargate_supported_log_drivers
     scenario := {"path_index": container_index, "value": driver}
 }
 
@@ -114,6 +114,23 @@ _fargate_property_scenarios(name, path) := {property_scenario |
     _scenario_conditions_compatible(name, compatibility_scenario.conditions, property_scenario.conditions)
 }
 
-_fargate_supported_log_drivers := {"awslogs", "splunk", "awsfirelens"}
 _fargate_cpu_list_str := "['256', '512', '1024', '2048', '4096', '8192', '16384', '32768']"
-_fargate_log_drivers_str := "['awslogs', 'splunk', 'awsfirelens']"
+_fargate_log_drivers_str := sprintf("['%s']", [concat("', '", data.fargate_supported_log_drivers)])
+
+_fargate_log_driver_fix := sprintf("Use '%s'", [data.fargate_supported_log_drivers[0]]) if {
+    count(data.fargate_supported_log_drivers) == 1
+}
+
+_fargate_log_driver_fix := sprintf("Use '%s' or '%s'", [
+    data.fargate_supported_log_drivers[0],
+    data.fargate_supported_log_drivers[1],
+]) if {
+    count(data.fargate_supported_log_drivers) == 2
+}
+
+_fargate_log_driver_fix := sprintf("Use '%s', or '%s'", [
+    concat("', '", array.slice(data.fargate_supported_log_drivers, 0, count(data.fargate_supported_log_drivers) - 1)),
+    data.fargate_supported_log_drivers[count(data.fargate_supported_log_drivers) - 1],
+]) if {
+    count(data.fargate_supported_log_drivers) > 2
+}
