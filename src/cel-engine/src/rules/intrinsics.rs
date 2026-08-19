@@ -406,10 +406,6 @@ fn eval_secretsmanager_arn(ctx: &EvalContext) -> Vec<Diagnostic> {
     let input = ctx.input;
     let arn_fields = &ctx.cached_data.secretsmanager_arn_fields;
 
-    if arn_fields.is_empty() {
-        return out;
-    }
-
     let resources = match input.get(FIELD_RESOURCES).and_then(|r| r.as_object()) {
         Some(r) => r,
         None => return out,

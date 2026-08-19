@@ -1,5 +1,5 @@
 use crate::SyncStats;
-use log::{info, warn};
+use log::info;
 use serde::Deserialize;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::fs;
@@ -89,28 +89,25 @@ pub fn process_schemas(upstream_dir: &Path, generated_dir: &Path, handwritten_di
     // The extension fragments below are the separately-synced enum/constraint
     // documents the engines query at runtime, not schema patches.
     let extensions_dir = upstream_dir.join("extensions");
+    anyhow::ensure!(extensions_dir.is_dir(), "Required extensions directory not found: {}", extensions_dir.display());
     let mut ext_count = 0;
-    if extensions_dir.exists() {
-        for (type_name, schema_json) in &mut raw_schemas {
-            let ext_name = type_name.replace("::", "-").to_lowercase();
-            let ext_file = extensions_dir.join(format!("{}.ext.json", ext_name));
-            if !ext_file.exists() {
-                continue;
-            }
-            let fragments: Vec<serde_json::Value> = serde_json::from_str(&fs::read_to_string(&ext_file)?)?;
-            if fragments.is_empty() {
-                continue;
-            }
-            if schema_json.get("allOf").is_none() {
-                schema_json["allOf"] = serde_json::Value::Array(Vec::new());
-            }
-            if let Some(all_of) = schema_json["allOf"].as_array_mut() {
-                for fragment in fragments {
-                    all_of.push(fragment);
-                }
-            }
-            ext_count += 1;
+    for (type_name, schema_json) in &mut raw_schemas {
+        let ext_name = type_name.replace("::", "-").to_lowercase();
+        let ext_file = extensions_dir.join(format!("{}.ext.json", ext_name));
+        if !ext_file.exists() {
+            continue;
         }
+        let fragments: Vec<serde_json::Value> = serde_json::from_str(&fs::read_to_string(&ext_file)?)?;
+        anyhow::ensure!(!fragments.is_empty(), "Required extension file is empty: {}", ext_file.display());
+        if schema_json.get("allOf").is_none() {
+            schema_json["allOf"] = serde_json::Value::Array(Vec::new());
+        }
+        if let Some(all_of) = schema_json["allOf"].as_array_mut() {
+            for fragment in fragments {
+                all_of.push(fragment);
+            }
+        }
+        ext_count += 1;
     }
     info!("Applied extensions to {} schemas", ext_count);
 
@@ -183,25 +180,30 @@ pub fn process_schemas(upstream_dir: &Path, generated_dir: &Path, handwritten_di
 /// region.
 fn read_region_resource_types_union(data_dir: &Path) -> anyhow::Result<BTreeSet<String>> {
     let region_file = data_dir.join("region_resource_types.json");
-    if !region_file.exists() {
-        warn!("{} not found - known_resource_types will not include per-region types", region_file.display());
-        return Ok(BTreeSet::new());
-    }
-    let content = fs::read_to_string(&region_file)?;
+    let content = fs::read_to_string(&region_file)
+        .map_err(|source| anyhow::anyhow!("failed to read required {}: {}", region_file.display(), source))?;
     let parsed: serde_json::Value = serde_json::from_str(&content)?;
     let regions = parsed
         .get("region_resource_types")
         .and_then(|v| v.as_object())
         .ok_or_else(|| anyhow::anyhow!("{}: missing 'region_resource_types' object", region_file.display()))?;
     let mut union: BTreeSet<String> = BTreeSet::new();
-    for type_map in regions.values() {
-        let Some(type_obj) = type_map.as_object() else {
-            continue;
-        };
+    anyhow::ensure!(!regions.is_empty(), "{}: region_resource_types must not be empty", region_file.display());
+    for (region, type_map) in regions {
+        let type_obj = type_map.as_object().ok_or_else(|| {
+            anyhow::anyhow!("{}: region '{}' resource types must be an object", region_file.display(), region)
+        })?;
+        anyhow::ensure!(
+            !type_obj.is_empty(),
+            "{}: region '{}' resource types must not be empty",
+            region_file.display(),
+            region
+        );
         for type_name in type_obj.keys() {
             union.insert(type_name.clone());
         }
     }
+    anyhow::ensure!(!union.is_empty(), "{} contains no resource types", region_file.display());
     info!("Collected {} unique resource types across regions for known_resource_types union", union.len());
     Ok(union)
 }
@@ -452,13 +454,15 @@ fn strip_superseded_dependent_excluded(
         remove_dependent_excluded: BTreeMap<String, Vec<String>>,
     }
     let path = handwritten_dir.join("schema_dependent_excluded_overrides.json");
-    if !path.exists() {
-        return Ok(0);
-    }
     let contents =
         fs::read_to_string(&path).map_err(|source| anyhow::anyhow!("failed to read {}: {}", path.display(), source))?;
     let parsed: Overrides = serde_json::from_str(&contents)
         .map_err(|source| anyhow::anyhow!("failed to parse {}: {}", path.display(), source))?;
+    anyhow::ensure!(
+        !parsed.remove_dependent_excluded.is_empty(),
+        "{}: remove_dependent_excluded must not be empty",
+        path.display()
+    );
 
     let mut removed = 0;
     for (type_name, triggers) in &parsed.remove_dependent_excluded {
@@ -509,13 +513,13 @@ fn read_getatt_additions(data_dir: &Path) -> anyhow::Result<BTreeMap<String, Vec
         fs::read_to_string(&path).map_err(|source| anyhow::anyhow!("failed to read {}: {}", path.display(), source))?;
     let parsed: GetAttAdditions = serde_json::from_str(&contents)
         .map_err(|source| anyhow::anyhow!("failed to parse {}: {}", path.display(), source))?;
+    anyhow::ensure!(!parsed.getatt_additions.is_empty(), "{}: getatt_additions must not be empty", path.display());
     Ok(parsed.getatt_additions)
 }
 
 /// Reads overrides for the type CloudFormation returns from `Fn::GetAtt` on
 /// specific attributes, where it differs from the raw schema property type
-/// (CloudFormation stringifies many GetAtt return values). Missing file yields
-/// an empty map.
+/// (CloudFormation stringifies many GetAtt return values).
 fn read_getatt_return_type_overrides(
     handwritten_dir: &Path,
 ) -> anyhow::Result<BTreeMap<String, BTreeMap<String, String>>> {
@@ -524,13 +528,15 @@ fn read_getatt_return_type_overrides(
         getatt_return_type_overrides: BTreeMap<String, BTreeMap<String, String>>,
     }
     let path = handwritten_dir.join("getatt_return_type_overrides.json");
-    if !path.exists() {
-        return Ok(BTreeMap::new());
-    }
     let contents =
         fs::read_to_string(&path).map_err(|source| anyhow::anyhow!("failed to read {}: {}", path.display(), source))?;
     let parsed: Overrides = serde_json::from_str(&contents)
         .map_err(|source| anyhow::anyhow!("failed to parse {}: {}", path.display(), source))?;
+    anyhow::ensure!(
+        !parsed.getatt_return_type_overrides.is_empty(),
+        "{}: getatt_return_type_overrides must not be empty",
+        path.display()
+    );
     Ok(parsed.getatt_return_type_overrides)
 }
 
@@ -773,19 +779,14 @@ mod tests {
         // Copy schemas into temp upstream dir
         let tmp_schemas = tmp_upstream.join("schemas");
         copy_dir(&upstream_dir.join("schemas"), &tmp_schemas);
-        if upstream_dir.join("extensions").exists() {
-            copy_dir(&upstream_dir.join("extensions"), &tmp_upstream.join("extensions"));
-        }
-        // getatt_additions is a sync output (extracted from cfn-lint) read from
-        // the generated data dir; seed it from the real one if present.
+        copy_dir(&upstream_dir.join("extensions"), &tmp_upstream.join("extensions"));
         let tmp_data = tmp.join("data");
         fs::create_dir_all(&tmp_data).unwrap();
-        let real_additions = manifest.join("generated").join("data").join("getatt_additions.json");
-        if real_additions.exists() {
-            fs::copy(&real_additions, tmp_data.join("getatt_additions.json")).unwrap();
-        } else {
-            fs::write(tmp_data.join("getatt_additions.json"), r#"{"getatt_additions":{}}"#).unwrap();
-        }
+        let generated_data = manifest.join("generated").join("data");
+        fs::copy(generated_data.join("getatt_additions.json"), tmp_data.join("getatt_additions.json"))
+            .expect("required GetAtt additions fixture");
+        fs::copy(generated_data.join("region_resource_types.json"), tmp_data.join("region_resource_types.json"))
+            .expect("required region resource types fixture");
 
         let result = process_schemas(&tmp_upstream, &tmp, &manifest.join("handwritten"));
         let stats = result.expect("process_schemas should succeed");
@@ -842,12 +843,16 @@ mod tests {
     }
 
     #[test]
-    fn region_resource_types_union_returns_empty_when_file_absent() {
-        let dir = unique_tempdir("region_types_missing");
+    fn region_resource_types_union_errors_when_file_absent() {
+        let directory = unique_tempdir("region_types_missing");
 
-        let union = read_region_resource_types_union(&dir).expect("should succeed when file absent");
+        let error = read_region_resource_types_union(&directory)
+            .expect_err("missing required region_resource_types.json must fail");
 
-        assert!(union.is_empty(), "expected empty set when region_resource_types.json is absent, got {:?}", union);
+        assert!(
+            error.to_string().contains("failed to read required"),
+            "error must identify the missing required file: {error}"
+        );
     }
 
     #[test]

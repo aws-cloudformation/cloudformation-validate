@@ -3,32 +3,7 @@ package structure
 import rego.v1
 
 # F2002: Parameter Type must be valid
-valid_param_types := {
-    "String", "Number", "List<Number>", "List<String>", "CommaDelimitedList",
-    "AWS::SSM::Parameter::Name",
-    "AWS::SSM::Parameter::Value<String>",
-    "AWS::SSM::Parameter::Value<List<String>>",
-    "AWS::SSM::Parameter::Value<CommaDelimitedList>",
-    "AWS::EC2::AvailabilityZone::Name",
-    "AWS::EC2::Image::Id",
-    "AWS::EC2::Instance::Id",
-    "AWS::EC2::KeyPair::KeyName",
-    "AWS::EC2::SecurityGroup::GroupName",
-    "AWS::EC2::SecurityGroup::Id",
-    "AWS::EC2::Subnet::Id",
-    "AWS::EC2::Volume::Id",
-    "AWS::EC2::VPC::Id",
-    "AWS::Route53::HostedZone::Id",
-    "List<AWS::EC2::AvailabilityZone::Name>",
-    "List<AWS::EC2::Image::Id>",
-    "List<AWS::EC2::Instance::Id>",
-    "List<AWS::EC2::SecurityGroup::GroupName>",
-    "List<AWS::EC2::SecurityGroup::Id>",
-    "List<AWS::EC2::Subnet::Id>",
-    "List<AWS::EC2::Volume::Id>",
-    "List<AWS::EC2::VPC::Id>",
-    "List<AWS::Route53::HostedZone::Id>"
-}
+_valid_param_types := {t | some t in data.rule_tables.valid_parameter_types}
 
 violation contains make_diag_at("F2002", "FATAL", "",
     sprintf("Parameters/%s/Type", [name]),
@@ -36,8 +11,7 @@ violation contains make_diag_at("F2002", "FATAL", "",
     some name, param in input.parameters
     ptype := param.type
     ptype != null
-    not ptype in valid_param_types
-    not startswith(ptype, "AWS::SSM::Parameter::Value<")
+    not ptype in _valid_param_types
 }
 
 # F0015: Default value must be numeric when parameter Type is Number
@@ -67,16 +41,7 @@ violation contains make_diag_at("F0016", "FATAL", "",
 
 # F3016: DeletionPolicy must be valid
 _base_deletion_policies := {"Delete", "Retain", "RetainExceptOnCreate"}
-_snapshot_capable_types := {
-    "AWS::DocDB::DBCluster",
-    "AWS::EC2::Volume",
-    "AWS::ElastiCache::CacheCluster",
-    "AWS::ElastiCache::ReplicationGroup",
-    "AWS::Neptune::DBCluster",
-    "AWS::RDS::DBCluster",
-    "AWS::RDS::DBInstance",
-    "AWS::Redshift::Cluster"
-}
+_snapshot_capable_types := {t | some t in data.rule_tables.snapshot_capable_resource_types}
 
 violation contains make_diag_full("F3016", "FATAL", name, "DeletionPolicy",
     sprintf("DeletionPolicy must be one of Delete, Retain, RetainExceptOnCreate, Snapshot, got '%s'", [dp]),
@@ -123,19 +88,40 @@ violation contains make_diag_full("F3016", "FATAL", name, "DeletionPolicy",
 }
 
 # W2506: ImageId parameters should use AWS::EC2::Image::Id type
-_image_id_param_types := {"AWS::EC2::Image::Id", "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>"}
+_image_id_param_types := {t | some t in data.rule_tables.image_id_parameter_types}
 
-# The exact AWS::EC2::Image::Id-typed property slots W2506 applies to, keyed by
-# resource type. Each value is a set of source-path patterns (relative to the
-# resource); the `[0-9]+` in the SpotFleet pattern matches a single array index.
-_image_id_slots := {
-    "AWS::AutoScaling::LaunchConfiguration": {`^Properties\.ImageId$`},
-    "AWS::Batch::ComputeEnvironment": {`^Properties\.ComputeResources\.ImageId$`},
-    "AWS::Cloud9::EnvironmentEC2": {`^Properties\.ImageId$`},
-    "AWS::EC2::Instance": {`^Properties\.ImageId$`},
-    "AWS::EC2::LaunchTemplate": {`^Properties\.LaunchTemplateData\.ImageId$`},
-    "AWS::EC2::SpotFleet": {`^Properties\.SpotFleetRequestConfigData\.LaunchSpecifications\.[0-9]+\.ImageId$`},
-    "AWS::ImageBuilder::Image": {`^Properties\.ImageId$`},
+# Build a mapping from resource type to a set of regex patterns for the
+# property paths where ImageId can appear. Each entry from the table is of the
+# form "Resources/<type>/Properties/path/possibly/with/*/segments" — we extract
+# the type, convert the remainder to a regex anchored to the source-path format
+# used by outgoingRefs (dot-separated, array indices as digits).
+_image_id_slots[rtype] contains pattern if {
+    some raw_path in data.rule_tables.image_id_property_paths
+    parts := split(raw_path, "/")
+    count(parts) > 2
+    parts[0] == "Resources"
+    rtype := parts[1]
+    prop_parts := array.slice(parts, 2, count(parts))
+    pattern := _path_parts_to_regex(prop_parts)
+}
+
+# Convert a path parts array (from splitting on /) into an anchored regex
+# suitable for matching outgoingRefs sourcePath values. Wildcards (*) become
+# [0-9]+ to match array indices.
+_path_parts_to_regex(parts) := regex_str if {
+    segments := [seg |
+        some p in parts
+        seg := _path_segment_to_regex(p)
+    ]
+    regex_str := sprintf("^%s$", [concat("\\.", segments)])
+}
+
+_path_segment_to_regex(seg) := "[0-9]+" if {
+    seg == "*"
+}
+
+_path_segment_to_regex(seg) := seg if {
+    seg != "*"
 }
 
 violation contains make_diag_at("W2506", "WARN", "",

@@ -6,31 +6,27 @@ import rego.v1
 # Checks the parent property (e.g. Code, Content, TemplateURL) as a string.
 # If the value is a string that doesn't start with s3:// or https://, it warns.
 # SAM templates are excluded entirely (has_serverless_transform check).
-_w3002_package_props := {
-    "AWS::Lambda::Function": ["Code"],
-    "AWS::Lambda::LayerVersion": ["Content"],
-    "AWS::ElasticBeanstalk::ApplicationVersion": ["SourceBundle"],
-    "AWS::StepFunctions::StateMachine": ["DefinitionS3Location"],
-    "AWS::AppSync::GraphQLSchema": ["DefinitionS3Location"],
-    "AWS::AppSync::Resolver": ["RequestMappingTemplateS3Location", "ResponseMappingTemplateS3Location"],
-    "AWS::AppSync::FunctionConfiguration": ["RequestMappingTemplateS3Location", "ResponseMappingTemplateS3Location"],
-    "AWS::CloudFormation::Stack": ["TemplateURL"],
-    "AWS::CodeCommit::Repository": ["Code.S3"],
-    "AWS::ApiGateway::RestApi": ["BodyS3Location"],
+_w3002_checks contains {"type": rtype, "path": prop_path} if {
+    some raw_path in data.rule_tables.package_property_paths
+    parts := split(raw_path, "/")
+    count(parts) > 2
+    parts[0] == "Resources"
+    rtype := parts[1]
+    prop_parts := array.slice(parts, 2, count(parts))
+    prop_path := concat(".", prop_parts)
 }
 
 violation contains make_diag_at("W3002", "WARN", name,
-    sprintf("Properties.%s", [prop]),
+    check.path,
     "This code may only work with 'package' cli command") if {
     not has_transform("AWS::Serverless-2016-10-31")
-    some rtype, props in _w3002_package_props
-    some name in resources_of_type(rtype)
-    some prop in props
+    some check in _w3002_checks
+    some name in resources_of_type(check.type)
     # Only string literals are inspected here; a value wrapped in an intrinsic
     # (Fn::Join/Fn::Sub building an S3 URL) resolves at deploy time and is left
     # alone.
-    not is_from_intrinsic(name, sprintf("Properties.%s", [prop]))
-    val := resolve(name, sprintf("Properties.%s", [prop]))
+    not is_from_intrinsic(name, check.path)
+    val := resolve(name, check.path)
     is_string(val)
     not startswith(val, "s3://")
     not startswith(val, "https://")

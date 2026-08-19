@@ -511,7 +511,9 @@ fn region_availability_e3037() {
             "us-east-1": { "AWS::S3::Bucket": true }
         }
     });
-    store.load_region_data(serde_json::to_vec(&region_json).unwrap().as_slice());
+    store
+        .load_region_data(serde_json::to_vec(&region_json).unwrap().as_slice())
+        .expect("valid region availability fixture");
     let diags = validate_all_resources(&store, &model, Some("us-east-1"));
     let f3006 = diags.iter().filter(|d| d.rule_id == "F3006").count();
     assert!(
@@ -538,7 +540,9 @@ fn region_availability_widens_to_union_when_no_region() {
             "us-west-2": { rtype.clone(): true }
         }
     });
-    store.load_region_data(serde_json::to_vec(&region_json).unwrap().as_slice());
+    store
+        .load_region_data(serde_json::to_vec(&region_json).unwrap().as_slice())
+        .expect("valid region availability fixture");
 
     let at_us_east_1 = validate_all_resources(&store, &model, Some("us-east-1"));
     assert!(

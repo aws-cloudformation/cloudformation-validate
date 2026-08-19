@@ -3,13 +3,14 @@ package resources
 import rego.v1
 
 # E3511: IAM Role ARN must match expected pattern
-iam_role_arn_properties := {
-    {"type": "AWS::Backup::BackupSelection", "path": "Properties.BackupSelection.IamRoleArn"},
-    {"type": "AWS::Batch::ComputeEnvironment", "path": "Properties.ComputeResources.SpotIamFleetRole"},
-    {"type": "AWS::Batch::ComputeEnvironment", "path": "Properties.ServiceRole"},
-    {"type": "AWS::EC2::SpotFleet", "path": "Properties.SpotFleetRequestConfigData.IamFleetRole"},
-    {"type": "AWS::ECS::TaskDefinition", "path": "Properties.ExecutionRoleArn"},
-    {"type": "AWS::S3::Bucket", "path": "Properties.ReplicationConfiguration.Role"},
+_iam_role_arn_checks contains {"type": rtype, "path": prop_path} if {
+    some raw_path in data.rule_tables.iam_role_arn_property_paths
+    parts := split(raw_path, "/")
+    count(parts) > 2
+    parts[0] == "Resources"
+    rtype := parts[1]
+    prop_parts := array.slice(parts, 2, count(parts))
+    prop_path := concat(".", prop_parts)
 }
 
 violation contains make_diag_full("E3511", "ERROR", name,
@@ -17,7 +18,7 @@ violation contains make_diag_full("E3511", "ERROR", name,
     sprintf("IAM Role ARN '%s' does not match expected pattern", [val]),
     "Use format: arn:aws:iam::123456789012:role/role-name",
     "") if {
-    some prop in iam_role_arn_properties
+    some prop in _iam_role_arn_checks
     some name in resources_of_type(prop.type)
     val := resolve(name, prop.path)
     is_string(val)

@@ -6,6 +6,7 @@ import rego.v1
 # Report a single diagnostic listing every missing property, anchored at the
 # Code property (CloudFormation rejects the resource once, not once per
 # property), so collect them and emit one finding.
+# The array from rule_tables preserves source order for the rendered message.
 violation contains make_diag_full("W2533", "WARN", name,
     "Properties.Code",
     sprintf("Properties [%s] missing for zip file deployment at Resources/%s/Properties", [formatted, name]),
@@ -13,7 +14,10 @@ violation contains make_diag_full("W2533", "WARN", name,
     "") if {
     some name in resources_of_type("AWS::Lambda::Function")
     _is_zip(name)
-    missing := [prop | some prop in ["Handler", "Runtime"]; not has_property(name, prop)]
+    missing := [prop |
+        some prop in data.rule_tables.lambda_zip_required_properties
+        not has_property(name, prop)
+    ]
     count(missing) > 0
     formatted := concat(", ", [sprintf("'%s'", [prop]) | some prop in missing])
 }

@@ -178,8 +178,12 @@ fn eval_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             // at the Code property (CloudFormation rejects the resource once, not
             // once per property). Collect them and emit one finding rather than
             // one per property.
-            let missing: Vec<&str> = ["Handler", "Runtime"]
-                .into_iter()
+            let missing: Vec<&str> = ctx
+                .cached_data
+                .rule_tables
+                .lambda_zip_required_properties
+                .iter()
+                .map(|s| s.as_str())
                 .filter(|prop| {
                     !m.resources.get(name.as_str()).map(|r| r.properties.contains_key(*prop)).unwrap_or(false)
                 })

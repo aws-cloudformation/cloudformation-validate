@@ -263,6 +263,253 @@
       }
     ]
   },
+  "bad/E2530_I2530_snapstart_sourced_tables.yaml": {
+    "filePath": "bad/E2530_I2530_snapstart_sourced_tables.yaml",
+    "status": "OK",
+    "version": "1.8.0",
+    "metadata": {
+      "resourcesScanned": 5,
+      "counts": {
+        "fatal": 0,
+        "errors": 2,
+        "warnings": 3,
+        "informational": 6,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E2530",
+        "severity": "ERROR",
+        "message": "SnapStart is not supported with runtime 'python3.8'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "UnsupportedPython",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.SnapStart.ApplyOn",
+        "suggestedFix": "Use a supported Python, Java, or .NET runtime",
+        "category": "Resource",
+        "startLine": 40,
+        "startColumn": 9,
+        "endLine": 40,
+        "endColumn": 16,
+        "ruleDescription": "SnapStart supports the configured runtime",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E2531",
+        "severity": "ERROR",
+        "message": "Runtime 'java8' was deprecated on '2024-01-08'. Creation was disabled on '2024-02-08' and update on '2027-03-03'. Please consider updating to 'java25'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ExcludedJava8",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.Runtime",
+        "category": "Deprecation",
+        "startLine": 15,
+        "startColumn": 7,
+        "endLine": 15,
+        "endColumn": 14,
+        "ruleDescription": "Check if Lambda Function Runtimes are blocked for create",
+        "phase": "SCHEMA",
+        "context": {
+          "actualValue": "java8",
+          "lifecycle": "create-blocked"
+        }
+      },
+      {
+        "ruleId": "W2530",
+        "severity": "WARN",
+        "message": "SnapStart is enabled but no AWS::Lambda::Version resource is attached",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "UnsupportedPython",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.SnapStart",
+        "suggestedFix": "Add an AWS::Lambda::Version resource that references this function",
+        "category": "Best Practice",
+        "startLine": 39,
+        "startColumn": 7,
+        "endLine": 39,
+        "endColumn": 16,
+        "ruleDescription": "Validate that SnapStart is properly configured",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W2530",
+        "severity": "WARN",
+        "message": "SnapStart is enabled but no AWS::Lambda::Version resource is attached",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "RegionLimitedJava",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.SnapStart",
+        "suggestedFix": "Add an AWS::Lambda::Version resource that references this function",
+        "category": "Best Practice",
+        "startLine": 50,
+        "startColumn": 7,
+        "endLine": 50,
+        "endColumn": 16,
+        "ruleDescription": "Validate that SnapStart is properly configured",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W2531",
+        "severity": "WARN",
+        "message": "Runtime 'python3.8' was deprecated on '2024-10-14'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'python3.14'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "UnsupportedPython",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.Runtime",
+        "category": "Deprecation",
+        "startLine": 33,
+        "startColumn": 7,
+        "endLine": 33,
+        "endColumn": 14,
+        "ruleDescription": "Check if EOL Lambda Function Runtimes are used",
+        "phase": "SCHEMA",
+        "context": {
+          "actualValue": "python3.8",
+          "lifecycle": "deprecated"
+        }
+      },
+      {
+        "ruleId": "I2530",
+        "severity": "INFO",
+        "message": "Runtime 'java25' should consider using SnapStart for improved performance",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "RecommendedJava",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.SnapStart.ApplyOn",
+        "suggestedFix": "Add SnapStart with ApplyOn set to 'PublishedVersions'",
+        "category": "Best Practice",
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 15,
+        "documentationUrl": "https://docs.aws.amazon.com/lambda/latest/dg/snapstart.html",
+        "ruleDescription": "Validate that SnapStart is configured for >= Java11 runtimes",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'RecommendedJava' of type 'AWS::Lambda::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "RecommendedJava",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'ExcludedJava8' of type 'AWS::Lambda::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ExcludedJava8",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 14,
+        "startColumn": 5,
+        "endLine": 14,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'NotRecommendedDotNet' of type 'AWS::Lambda::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "NotRecommendedDotNet",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 23,
+        "startColumn": 5,
+        "endLine": 23,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'UnsupportedPython' of type 'AWS::Lambda::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "UnsupportedPython",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 32,
+        "startColumn": 5,
+        "endLine": 32,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'RegionLimitedJava' of type 'AWS::Lambda::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "RegionLimitedJava",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 43,
+        "startColumn": 5,
+        "endLine": 43,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
   "bad/E3019_four_way_group.yaml": {
     "filePath": "bad/E3019_four_way_group.yaml",
     "status": "OK",
@@ -1427,6 +1674,299 @@
       }
     ]
   },
+  "bad/E3512_opensearch_access_policy.yaml": {
+    "filePath": "bad/E3512_opensearch_access_policy.yaml",
+    "status": "OK",
+    "version": "1.8.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 1,
+        "warnings": 0,
+        "informational": 3,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E3512",
+        "severity": "ERROR",
+        "message": "Resource-based policy must have a Statement property",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "Domain",
+          "entityType": "Resource",
+          "resourceType": "AWS::OpenSearchService::Domain"
+        },
+        "propertyPath": "Properties.AccessPolicies",
+        "suggestedFix": "Add a Statement array to the policy document",
+        "category": "Resource",
+        "startLine": 6,
+        "startColumn": 7,
+        "endLine": 6,
+        "endColumn": 21,
+        "ruleDescription": "Validate resource based IAM policies",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "Domain",
+          "entityType": "Resource",
+          "resourceType": "AWS::OpenSearchService::Domain"
+        },
+        "category": "Best Practice",
+        "startLine": 3,
+        "startColumn": 3,
+        "endLine": 3,
+        "endColumn": 9,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "Domain",
+          "entityType": "Resource",
+          "resourceType": "AWS::OpenSearchService::Domain"
+        },
+        "category": "Best Practice",
+        "startLine": 3,
+        "startColumn": 3,
+        "endLine": 3,
+        "endColumn": 9,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Domain' of type 'AWS::OpenSearchService::Domain' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Domain",
+          "entityType": "Resource",
+          "resourceType": "AWS::OpenSearchService::Domain"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
+  "bad/E3663_reserved_environment_keys.yaml": {
+    "filePath": "bad/E3663_reserved_environment_keys.yaml",
+    "status": "OK",
+    "version": "1.8.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 2,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E3663",
+        "severity": "ERROR",
+        "message": "Environment variable 'AWS_ACCESS_KEY' is a Lambda reserved key",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "Function",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.Environment.Variables",
+        "category": "Resource",
+        "startLine": 13,
+        "startColumn": 9,
+        "endLine": 13,
+        "endColumn": 18,
+        "ruleDescription": "Validate Lambda environment variable names aren't reserved",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3663",
+        "severity": "ERROR",
+        "message": "Environment variable 'AWS_LAMBDA_INITIALIZATION_TYPE' is a Lambda reserved key",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "Function",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.Environment.Variables",
+        "category": "Resource",
+        "startLine": 13,
+        "startColumn": 9,
+        "endLine": 13,
+        "endColumn": 18,
+        "ruleDescription": "Validate Lambda environment variable names aren't reserved",
+        "phase": "LINT"
+      }
+    ]
+  },
+  "bad/E3679_classic_elb_listener_index.yaml": {
+    "filePath": "bad/E3679_classic_elb_listener_index.yaml",
+    "status": "OK",
+    "version": "1.8.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 1,
+        "warnings": 4,
+        "informational": 1,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E3679",
+        "severity": "ERROR",
+        "message": "SSL listener requires SSLCertificateId",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "LoadBalancer",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElasticLoadBalancing::LoadBalancer"
+        },
+        "propertyPath": "Properties.Listeners.0",
+        "category": "Resource",
+        "startLine": 7,
+        "startColumn": 27,
+        "endLine": 7,
+        "endColumn": 28,
+        "ruleDescription": "Validate ELB protocols that require certificates have a certificate specified",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "443 is not of type 'string' - automatically coerced (number to string)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "LoadBalancer",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElasticLoadBalancing::LoadBalancer"
+        },
+        "propertyPath": "Properties.Listeners.0.LoadBalancerPort",
+        "category": "Best Practice",
+        "startLine": 7,
+        "startColumn": 11,
+        "endLine": 7,
+        "endColumn": 27,
+        "documentationUrl": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-elb.html",
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "80 is not of type 'string' - automatically coerced (number to string)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "LoadBalancer",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElasticLoadBalancing::LoadBalancer"
+        },
+        "propertyPath": "Properties.Listeners.0.InstancePort",
+        "category": "Best Practice",
+        "startLine": 8,
+        "startColumn": 11,
+        "endLine": 8,
+        "endColumn": 23,
+        "documentationUrl": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-elb.html",
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "80 is not of type 'string' - automatically coerced (number to string)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "LoadBalancer",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElasticLoadBalancing::LoadBalancer"
+        },
+        "propertyPath": "Properties.Listeners.1.LoadBalancerPort",
+        "category": "Best Practice",
+        "startLine": 10,
+        "startColumn": 11,
+        "endLine": 10,
+        "endColumn": 27,
+        "documentationUrl": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-elb.html",
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "80 is not of type 'string' - automatically coerced (number to string)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "LoadBalancer",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElasticLoadBalancing::LoadBalancer"
+        },
+        "propertyPath": "Properties.Listeners.1.InstancePort",
+        "category": "Best Practice",
+        "startLine": 11,
+        "startColumn": 11,
+        "endLine": 11,
+        "endColumn": 23,
+        "documentationUrl": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-elb.html",
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'LoadBalancer' of type 'AWS::ElasticLoadBalancing::LoadBalancer' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "LoadBalancer",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElasticLoadBalancing::LoadBalancer"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
   "bad/E3699_authorizer_literal_and_param_rest_api.yaml": {
     "filePath": "bad/E3699_authorizer_literal_and_param_rest_api.yaml",
     "status": "OK",
@@ -2098,6 +2638,75 @@
       }
     ]
   },
+  "bad/F2002_unsupported_ssm_parameter_type.yaml": {
+    "filePath": "bad/F2002_unsupported_ssm_parameter_type.yaml",
+    "status": "OK",
+    "version": "1.8.0",
+    "metadata": {
+      "resourcesScanned": 0,
+      "counts": {
+        "fatal": 2,
+        "errors": 0,
+        "warnings": 1,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "F0001",
+        "severity": "FATAL",
+        "message": "Resources section must exist and be non-empty",
+        "source": "SCHEMA",
+        "category": "Structure",
+        "startLine": 5,
+        "startColumn": 1,
+        "endLine": 5,
+        "endColumn": 10,
+        "ruleDescription": "Resources section must exist and be non-empty",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F2002",
+        "severity": "FATAL",
+        "message": "Parameter 'Unsupported' has invalid Type 'AWS::SSM::Parameter::Value<Boolean>'",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "Unsupported",
+          "entityType": "Parameter"
+        },
+        "propertyPath": "Parameters/Unsupported/Type",
+        "category": "Parameter",
+        "startLine": 4,
+        "startColumn": 5,
+        "endLine": 4,
+        "endColumn": 9,
+        "ruleDescription": "Parameter Type must be valid",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W2001",
+        "severity": "WARN",
+        "message": "Parameter 'Unsupported' is not referenced anywhere in the template",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "Unsupported",
+          "entityType": "Parameter"
+        },
+        "propertyPath": "Parameters/Unsupported",
+        "category": "Best Practice",
+        "startLine": 3,
+        "startColumn": 3,
+        "endLine": 3,
+        "endColumn": 14,
+        "ruleDescription": "Check if Parameters are Used",
+        "phase": "LINT"
+      }
+    ]
+  },
   "bad/F3006_invalid_aws_namespaces.yaml": {
     "filePath": "bad/F3006_invalid_aws_namespaces.yaml",
     "status": "OK",
@@ -2492,6 +3101,305 @@
         "startLine": 7,
         "startColumn": 5,
         "endLine": 7,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
+  "bad/I3100_previous_generation_sourced_routes.yaml": {
+    "filePath": "bad/I3100_previous_generation_sourced_routes.yaml",
+    "status": "OK",
+    "version": "1.8.0",
+    "metadata": {
+      "resourcesScanned": 3,
+      "counts": {
+        "fatal": 5,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 7,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "F3002",
+        "severity": "FATAL",
+        "message": "Additional properties are not allowed ('FleetLaunchTemplateOverridesRequest' was unexpected)",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "Fleet",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::EC2Fleet"
+        },
+        "propertyPath": "Properties.FleetLaunchTemplateOverridesRequest",
+        "category": "Schema",
+        "startLine": 15,
+        "startColumn": 7,
+        "endLine": 15,
+        "endColumn": 42,
+        "documentationUrl": "https://github.com/aws-cloudformation",
+        "ruleDescription": "Additional properties are not allowed",
+        "phase": "SCHEMA",
+        "context": {
+          "property": "FleetLaunchTemplateOverridesRequest",
+          "extra": {
+            "allowed_properties": [
+              "Context",
+              "ExcessCapacityTerminationPolicy",
+              "FleetId",
+              "LaunchTemplateConfigs",
+              "OnDemandOptions",
+              "ReplaceUnhealthyInstances",
+              "ReservedCapacityOptions",
+              "SpotOptions",
+              "TagSpecifications",
+              "TargetCapacitySpecification",
+              "TerminateInstancesWithExpiration",
+              "Type",
+              "ValidFrom",
+              "ValidUntil"
+            ]
+          }
+        }
+      },
+      {
+        "ruleId": "F3002",
+        "severity": "FATAL",
+        "message": "Additional properties are not allowed ('SpotFleetLaunchSpecification' was unexpected)",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "SpotFleet",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SpotFleet"
+        },
+        "propertyPath": "Properties.SpotFleetLaunchSpecification",
+        "category": "Schema",
+        "startLine": 23,
+        "startColumn": 7,
+        "endLine": 23,
+        "endColumn": 35,
+        "ruleDescription": "Additional properties are not allowed",
+        "phase": "SCHEMA",
+        "context": {
+          "property": "SpotFleetLaunchSpecification",
+          "extra": {
+            "allowed_properties": [
+              "Id",
+              "SpotFleetRequestConfigData",
+              "Tags"
+            ]
+          }
+        }
+      },
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'Members' is a required property",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "GlobalCache",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElastiCache::GlobalReplicationGroup"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add the required property 'Members'",
+        "category": "Schema",
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 15,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-elasticache",
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'LaunchTemplateConfigs' is a required property",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "Fleet",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::EC2Fleet"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add the required property 'LaunchTemplateConfigs'",
+        "category": "Schema",
+        "startLine": 10,
+        "startColumn": 5,
+        "endLine": 10,
+        "endColumn": 15,
+        "documentationUrl": "https://github.com/aws-cloudformation",
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F3014",
+        "severity": "FATAL",
+        "message": "Exactly one of ['LaunchSpecifications', 'LaunchTemplateConfigs'] must be specified",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "SpotFleet",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SpotFleet"
+        },
+        "propertyPath": "Properties.SpotFleetRequestConfigData",
+        "category": "Schema",
+        "startLine": 20,
+        "startColumn": 7,
+        "endLine": 20,
+        "endColumn": 33,
+        "ruleDescription": "Exactly one of properties required (requiredXor)",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "I3100",
+        "severity": "INFO",
+        "message": "Previous generation instance type 'cache.m3.medium' - consider upgrading",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "GlobalCache",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElastiCache::GlobalReplicationGroup"
+        },
+        "propertyPath": "Properties.CacheNodeType",
+        "suggestedFix": "Upgrade to a current generation instance type",
+        "category": "Best Practice",
+        "startLine": 6,
+        "startColumn": 7,
+        "endLine": 6,
+        "endColumn": 20,
+        "ruleDescription": "Checks for legacy instance type generations",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3100",
+        "severity": "INFO",
+        "message": "Previous generation instance type 'm3.large' - consider upgrading",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "Fleet",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::EC2Fleet"
+        },
+        "propertyPath": "Properties.FleetLaunchTemplateOverridesRequest.InstanceType",
+        "suggestedFix": "Upgrade to a current generation instance type",
+        "category": "Best Practice",
+        "startLine": 16,
+        "startColumn": 9,
+        "endLine": 16,
+        "endColumn": 21,
+        "ruleDescription": "Checks for legacy instance type generations",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3100",
+        "severity": "INFO",
+        "message": "Previous generation instance type 'c3.large' - consider upgrading",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "SpotFleet",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SpotFleet"
+        },
+        "propertyPath": "Properties.SpotFleetLaunchSpecification.InstanceType",
+        "suggestedFix": "Upgrade to a current generation instance type",
+        "category": "Best Practice",
+        "startLine": 24,
+        "startColumn": 9,
+        "endLine": 24,
+        "endColumn": 21,
+        "ruleDescription": "Checks for legacy instance type generations",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Type' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Fleet",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::EC2Fleet"
+        },
+        "propertyPath": "Properties.Type",
+        "category": "Best Practice",
+        "startLine": 11,
+        "startColumn": 7,
+        "endLine": 11,
+        "endColumn": 11,
+        "documentationUrl": "https://github.com/aws-cloudformation",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'TargetCapacitySpecification.DefaultTargetCapacityType' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Fleet",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::EC2Fleet"
+        },
+        "propertyPath": "Properties.TargetCapacitySpecification.DefaultTargetCapacityType",
+        "category": "Best Practice",
+        "startLine": 14,
+        "startColumn": 9,
+        "endLine": 14,
+        "endColumn": 34,
+        "documentationUrl": "https://github.com/aws-cloudformation",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'SpotFleetRequestConfigData.IamFleetRole' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "SpotFleet",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SpotFleet"
+        },
+        "propertyPath": "Properties.SpotFleetRequestConfigData.IamFleetRole",
+        "category": "Best Practice",
+        "startLine": 21,
+        "startColumn": 9,
+        "endLine": 21,
+        "endColumn": 21,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'SpotFleet' of type 'AWS::EC2::SpotFleet' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "SpotFleet",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SpotFleet"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 19,
+        "startColumn": 5,
+        "endLine": 19,
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"
@@ -2987,6 +3895,106 @@
         "startLine": 5,
         "startColumn": 5,
         "endLine": 5,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
+  "bad/W2501_nested_password_W1011_exact_path.yaml": {
+    "filePath": "bad/W2501_nested_password_W1011_exact_path.yaml",
+    "status": "OK",
+    "version": "1.8.0",
+    "metadata": {
+      "resourcesScanned": 2,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 2,
+        "informational": 2,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "W1011",
+        "severity": "WARN",
+        "message": "Use dynamic references (e.g., SSM SecureString) instead of parameter 'SecretParameter' for secrets",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "User",
+          "entityType": "Resource",
+          "resourceType": "AWS::IAM::User"
+        },
+        "propertyPath": "Properties.LoginProfile.Password",
+        "category": "Security",
+        "startLine": 20,
+        "startColumn": 9,
+        "endLine": 20,
+        "endColumn": 17,
+        "ruleDescription": "Instead of REFing a parameter for a secret use a dynamic reference",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W2501",
+        "severity": "WARN",
+        "message": "Property 'AccountPassword' should not be a hardcoded string - use a parameter with NoEcho or a dynamic reference",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "Directory",
+          "entityType": "Resource",
+          "resourceType": "AWS::AppStream::DirectoryConfig"
+        },
+        "propertyPath": "Properties.ServiceAccountCredentials.AccountPassword",
+        "category": "Security",
+        "startLine": 15,
+        "startColumn": 9,
+        "endLine": 15,
+        "endColumn": 24,
+        "ruleDescription": "Check if Password Properties are correctly configured",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'DirectoryName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Directory",
+          "entityType": "Resource",
+          "resourceType": "AWS::AppStream::DirectoryConfig"
+        },
+        "propertyPath": "Properties.DirectoryName",
+        "category": "Best Practice",
+        "startLine": 10,
+        "startColumn": 7,
+        "endLine": 10,
+        "endColumn": 20,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'User' of type 'AWS::IAM::User' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "User",
+          "entityType": "Resource",
+          "resourceType": "AWS::IAM::User"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 18,
+        "startColumn": 5,
+        "endLine": 18,
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"
@@ -3929,6 +4937,545 @@
         "context": {
           "lifecycle": "create-only"
         }
+      }
+    ]
+  },
+  "bad/W3660_api_gateway_body_mixing.yaml": {
+    "filePath": "bad/W3660_api_gateway_body_mixing.yaml",
+    "status": "OK",
+    "version": "1.8.0",
+    "metadata": {
+      "resourcesScanned": 7,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 6,
+        "informational": 13,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "W3660",
+        "severity": "WARN",
+        "message": "Defining 'Body' with a relation to resource 'Authorizer' of type 'AWS::ApiGateway::Authorizer' may result in drift and orphaned resources",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "Api",
+          "entityType": "Resource",
+          "resourceType": "AWS::ApiGateway::RestApi"
+        },
+        "propertyPath": "Properties.Body",
+        "category": "Best Practice",
+        "startLine": 6,
+        "startColumn": 7,
+        "endLine": 6,
+        "endColumn": 11,
+        "ruleDescription": "Validate if multiple resources are modifying a Rest API definition",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W3660",
+        "severity": "WARN",
+        "message": "Defining 'Body' with a relation to resource 'Method' of type 'AWS::ApiGateway::Method' may result in drift and orphaned resources",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "Api",
+          "entityType": "Resource",
+          "resourceType": "AWS::ApiGateway::RestApi"
+        },
+        "propertyPath": "Properties.Body",
+        "category": "Best Practice",
+        "startLine": 6,
+        "startColumn": 7,
+        "endLine": 6,
+        "endColumn": 11,
+        "ruleDescription": "Validate if multiple resources are modifying a Rest API definition",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W3660",
+        "severity": "WARN",
+        "message": "Defining 'Body' with a relation to resource 'Model' of type 'AWS::ApiGateway::Model' may result in drift and orphaned resources",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "Api",
+          "entityType": "Resource",
+          "resourceType": "AWS::ApiGateway::RestApi"
+        },
+        "propertyPath": "Properties.Body",
+        "category": "Best Practice",
+        "startLine": 6,
+        "startColumn": 7,
+        "endLine": 6,
+        "endColumn": 11,
+        "ruleDescription": "Validate if multiple resources are modifying a Rest API definition",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W3660",
+        "severity": "WARN",
+        "message": "Defining 'Body' with a relation to resource 'Resource' of type 'AWS::ApiGateway::Resource' may result in drift and orphaned resources",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "Api",
+          "entityType": "Resource",
+          "resourceType": "AWS::ApiGateway::RestApi"
+        },
+        "propertyPath": "Properties.Body",
+        "category": "Best Practice",
+        "startLine": 6,
+        "startColumn": 7,
+        "endLine": 6,
+        "endColumn": 11,
+        "ruleDescription": "Validate if multiple resources are modifying a Rest API definition",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W3660",
+        "severity": "WARN",
+        "message": "Defining 'Body' with a relation to resource 'Response' of type 'AWS::ApiGateway::GatewayResponse' may result in drift and orphaned resources",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "Api",
+          "entityType": "Resource",
+          "resourceType": "AWS::ApiGateway::RestApi"
+        },
+        "propertyPath": "Properties.Body",
+        "category": "Best Practice",
+        "startLine": 6,
+        "startColumn": 7,
+        "endLine": 6,
+        "endColumn": 11,
+        "ruleDescription": "Validate if multiple resources are modifying a Rest API definition",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W3660",
+        "severity": "WARN",
+        "message": "Defining 'Body' with a relation to resource 'Validator' of type 'AWS::ApiGateway::RequestValidator' may result in drift and orphaned resources",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "Api",
+          "entityType": "Resource",
+          "resourceType": "AWS::ApiGateway::RestApi"
+        },
+        "propertyPath": "Properties.Body",
+        "category": "Best Practice",
+        "startLine": 6,
+        "startColumn": 7,
+        "endLine": 6,
+        "endColumn": 11,
+        "ruleDescription": "Validate if multiple resources are modifying a Rest API definition",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'RestApiId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Method",
+          "entityType": "Resource",
+          "resourceType": "AWS::ApiGateway::Method"
+        },
+        "propertyPath": "Properties.RestApiId",
+        "category": "Best Practice",
+        "startLine": 14,
+        "startColumn": 7,
+        "endLine": 14,
+        "endColumn": 16,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-apigateway.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'Api'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'ResourceId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Method",
+          "entityType": "Resource",
+          "resourceType": "AWS::ApiGateway::Method"
+        },
+        "propertyPath": "Properties.ResourceId",
+        "category": "Best Practice",
+        "startLine": 15,
+        "startColumn": 7,
+        "endLine": 15,
+        "endColumn": 17,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-apigateway.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'HttpMethod' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Method",
+          "entityType": "Resource",
+          "resourceType": "AWS::ApiGateway::Method"
+        },
+        "propertyPath": "Properties.HttpMethod",
+        "category": "Best Practice",
+        "startLine": 16,
+        "startColumn": 7,
+        "endLine": 16,
+        "endColumn": 17,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-apigateway.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'RestApiId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Model",
+          "entityType": "Resource",
+          "resourceType": "AWS::ApiGateway::Model"
+        },
+        "propertyPath": "Properties.RestApiId",
+        "category": "Best Practice",
+        "startLine": 21,
+        "startColumn": 7,
+        "endLine": 21,
+        "endColumn": 16,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-apigateway",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'Api'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'ContentType' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Model",
+          "entityType": "Resource",
+          "resourceType": "AWS::ApiGateway::Model"
+        },
+        "propertyPath": "Properties.ContentType",
+        "category": "Best Practice",
+        "startLine": 22,
+        "startColumn": 7,
+        "endLine": 22,
+        "endColumn": 18,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-apigateway",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'RestApiId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Resource",
+          "entityType": "Resource",
+          "resourceType": "AWS::ApiGateway::Resource"
+        },
+        "propertyPath": "Properties.RestApiId",
+        "category": "Best Practice",
+        "startLine": 26,
+        "startColumn": 7,
+        "endLine": 26,
+        "endColumn": 16,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-apigateway",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'Api'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'ParentId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Resource",
+          "entityType": "Resource",
+          "resourceType": "AWS::ApiGateway::Resource"
+        },
+        "propertyPath": "Properties.ParentId",
+        "category": "Best Practice",
+        "startLine": 27,
+        "startColumn": 7,
+        "endLine": 27,
+        "endColumn": 15,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-apigateway",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'PathPart' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Resource",
+          "entityType": "Resource",
+          "resourceType": "AWS::ApiGateway::Resource"
+        },
+        "propertyPath": "Properties.PathPart",
+        "category": "Best Practice",
+        "startLine": 28,
+        "startColumn": 7,
+        "endLine": 28,
+        "endColumn": 15,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-apigateway",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'RestApiId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Response",
+          "entityType": "Resource",
+          "resourceType": "AWS::ApiGateway::GatewayResponse"
+        },
+        "propertyPath": "Properties.RestApiId",
+        "category": "Best Practice",
+        "startLine": 32,
+        "startColumn": 7,
+        "endLine": 32,
+        "endColumn": 16,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'Api'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'ResponseType' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Response",
+          "entityType": "Resource",
+          "resourceType": "AWS::ApiGateway::GatewayResponse"
+        },
+        "propertyPath": "Properties.ResponseType",
+        "category": "Best Practice",
+        "startLine": 33,
+        "startColumn": 7,
+        "endLine": 33,
+        "endColumn": 19,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'RestApiId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Validator",
+          "entityType": "Resource",
+          "resourceType": "AWS::ApiGateway::RequestValidator"
+        },
+        "propertyPath": "Properties.RestApiId",
+        "category": "Best Practice",
+        "startLine": 37,
+        "startColumn": 7,
+        "endLine": 37,
+        "endColumn": 16,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-apigateway",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'Api'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'RestApiId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Authorizer",
+          "entityType": "Resource",
+          "resourceType": "AWS::ApiGateway::Authorizer"
+        },
+        "propertyPath": "Properties.RestApiId",
+        "category": "Best Practice",
+        "startLine": 41,
+        "startColumn": 7,
+        "endLine": 41,
+        "endColumn": 16,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-apigateway.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'Api'"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Api' of type 'AWS::ApiGateway::RestApi' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Api",
+          "entityType": "Resource",
+          "resourceType": "AWS::ApiGateway::RestApi"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
+  "bad/W3671_spotfleet_ebs_iops.yaml": {
+    "filePath": "bad/W3671_spotfleet_ebs_iops.yaml",
+    "status": "OK",
+    "version": "1.8.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 1,
+        "informational": 3,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "W3671",
+        "severity": "WARN",
+        "message": "Iops is ignored when VolumeType is 'gp2'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "Fleet",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SpotFleet"
+        },
+        "propertyPath": "Properties.SpotFleetRequestConfigData.LaunchSpecifications.0.BlockDeviceMappings.0.Ebs.Iops",
+        "category": "Best Practice",
+        "startLine": 16,
+        "startColumn": 19,
+        "endLine": 16,
+        "endColumn": 23,
+        "ruleDescription": "Iops is ignored for certain EBS volume types",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'SpotFleetRequestConfigData.IamFleetRole' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Fleet",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SpotFleet"
+        },
+        "propertyPath": "Properties.SpotFleetRequestConfigData.IamFleetRole",
+        "category": "Best Practice",
+        "startLine": 7,
+        "startColumn": 9,
+        "endLine": 7,
+        "endColumn": 21,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'SpotFleetRequestConfigData.LaunchSpecifications' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Fleet",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SpotFleet"
+        },
+        "propertyPath": "Properties.SpotFleetRequestConfigData.LaunchSpecifications",
+        "category": "Best Practice",
+        "startLine": 9,
+        "startColumn": 9,
+        "endLine": 9,
+        "endColumn": 29,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Fleet' of type 'AWS::EC2::SpotFleet' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Fleet",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SpotFleet"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
       }
     ]
   },
@@ -20280,13 +21827,13 @@
           "entityType": "Resource",
           "resourceType": "AWS::Lambda::Function"
         },
-        "propertyPath": "Properties.Runtime",
+        "propertyPath": "Properties.SnapStart.ApplyOn",
         "suggestedFix": "Add SnapStart with ApplyOn set to 'PublishedVersions'",
         "category": "Best Practice",
-        "startLine": 7,
-        "startColumn": 7,
-        "endLine": 7,
-        "endColumn": 14,
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 15,
         "documentationUrl": "https://docs.aws.amazon.com/lambda/latest/dg/snapstart.html",
         "ruleDescription": "Validate that SnapStart is configured for >= Java11 runtimes",
         "phase": "LINT"
@@ -20971,13 +22518,13 @@
           "entityType": "Resource",
           "resourceType": "AWS::Lambda::Function"
         },
-        "propertyPath": "Properties.Runtime",
+        "propertyPath": "Properties.SnapStart.ApplyOn",
         "suggestedFix": "Add SnapStart with ApplyOn set to 'PublishedVersions'",
         "category": "Best Practice",
-        "startLine": 7,
-        "startColumn": 7,
-        "endLine": 7,
-        "endColumn": 14,
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 15,
         "documentationUrl": "https://docs.aws.amazon.com/lambda/latest/dg/snapstart.html",
         "ruleDescription": "Validate that SnapStart is configured for >= Java11 runtimes",
         "phase": "LINT"
@@ -86039,7 +87586,7 @@
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
-        "fatal": 1,
+        "fatal": 2,
         "errors": 14,
         "warnings": 16,
         "informational": 3,
@@ -86064,6 +87611,24 @@
         "startLine": 22,
         "startColumn": 5,
         "endLine": 22,
+        "endColumn": 9,
+        "ruleDescription": "Parameter Type must be valid",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F2002",
+        "severity": "FATAL",
+        "message": "Parameter 'mySsmParam' has invalid Type 'AWS::SSM::Parameter::Value<Test>'",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "mySsmParam",
+          "entityType": "Parameter"
+        },
+        "propertyPath": "Parameters/mySsmParam/Type",
+        "category": "Parameter",
+        "startLine": 30,
+        "startColumn": 5,
+        "endLine": 30,
         "endColumn": 9,
         "ruleDescription": "Parameter Type must be valid",
         "phase": "SCHEMA"
@@ -208639,6 +210204,25 @@
         }
       }
     ]
+  },
+  "good/E3663_custom_environment_key.yaml": {
+    "filePath": "good/E3663_custom_environment_key.yaml",
+    "status": "OK",
+    "version": "1.8.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": []
   },
   "good/E9001_aws_cdk_metadata.yaml": {
     "filePath": "good/E9001_aws_cdk_metadata.yaml",

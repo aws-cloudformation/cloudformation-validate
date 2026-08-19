@@ -2,24 +2,24 @@ package resources
 
 import rego.v1
 
-# W3660: API Gateway - warn when resources reference a RestApi that has Body/BodyS3Location
-apigw_has_body(api_id) if {
-    body := resolve(api_id, "Properties.Body")
-    body != null
+# API Gateway definitions must not mix an inline or packaged body with related
+# resources that independently modify the same RestApi.
+_apigw_mixing_types := {t | some t in data.rule_tables.api_gateway_mixing_resource_types}
+
+_apigw_body_property(api_id) := "Body" if {
+    has_property(api_id, "Body")
 }
 
-apigw_has_body(api_id) if {
-    body := resolve(api_id, "Properties.BodyS3Location")
-    body != null
+_apigw_body_property(api_id) := "BodyS3Location" if {
+    has_property(api_id, "BodyS3Location")
 }
 
-violation contains make_diag_at("W3660", "WARN", name,
-    "Properties.RestApiId",
-    sprintf("Resource references RestApi '%s' which has Body/BodyS3Location - mixing inline definitions with external body", [api_id])) if {
-    apigw_types := {"AWS::ApiGateway::Method"}
-    some rtype in apigw_types
+violation contains make_diag_at("W3660", "WARN", api_id,
+    sprintf("Properties.%s", [property]),
+    sprintf("Defining '%s' with a relation to resource '%s' of type '%s' may result in drift and orphaned resources", [property, name, rtype])) if {
+    some rtype in _apigw_mixing_types
     some name in resources_of_type(rtype)
     api_id := follow_ref(name, "Properties.RestApiId")
     api_id != null
-    apigw_has_body(api_id)
+    property := _apigw_body_property(api_id)
 }

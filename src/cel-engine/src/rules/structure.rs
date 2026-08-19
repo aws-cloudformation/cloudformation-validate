@@ -213,7 +213,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
             ));
         }
 
-        if !is_valid_parameter_type(&param.param_type) {
+        if !is_valid_parameter_type(&param.param_type, &ctx.cached_data.rule_tables.valid_parameter_types) {
             out.push(make_resource_diagnostic(
                 "F2002",
                 &format!("Parameter '{}' has invalid Type '{}'", pname, param.param_type),
@@ -420,22 +420,13 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    const SNAPSHOT_CAPABLE_TYPES: &[&str] = &[
-        "AWS::DocDB::DBCluster",
-        "AWS::EC2::Volume",
-        "AWS::ElastiCache::CacheCluster",
-        "AWS::ElastiCache::ReplicationGroup",
-        "AWS::Neptune::DBCluster",
-        "AWS::RDS::DBCluster",
-        "AWS::RDS::DBInstance",
-        "AWS::Redshift::Cluster",
-    ];
+    let snapshot_capable_types = &ctx.cached_data.rule_tables.snapshot_capable_resource_types;
     let base_deletion = [POLICY_DELETE, POLICY_RETAIN, POLICY_RETAIN_EXCEPT_ON_CREATE];
     let base_update = [POLICY_DELETE, POLICY_RETAIN];
     if let Some(resources) = input.get(FIELD_RESOURCES).and_then(|r| r.as_object()) {
         for (name, _res) in resources {
             let rtype = m.resources.get(name.as_str()).map(|r| r.resource_type.as_str()).unwrap_or("");
-            let snapshot_ok = SNAPSHOT_CAPABLE_TYPES.contains(&rtype);
+            let snapshot_ok = snapshot_capable_types.iter().any(|t| t == rtype);
 
             for scenario_val in m.lifecycle_policy_scenarios(name, KEY_DELETION_POLICY) {
                 let allowed = if snapshot_ok {
@@ -888,6 +879,8 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     let mut flagged_image_params = HashSet::new();
+    let image_id_paths = &ctx.cached_data.rule_tables.image_id_property_paths;
+    let image_id_param_types = &ctx.cached_data.rule_tables.image_id_parameter_types;
     if let Some(resources) = input.get(FIELD_RESOURCES).and_then(|r| r.as_object()) {
         for (_name, res) in resources {
             let rtype = res.get(FIELD_RESOURCE_TYPE).and_then(|t| t.as_str()).unwrap_or("");
@@ -897,9 +890,9 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                     let sp = edge.get(FIELD_SOURCE_PATH).and_then(|p| p.as_str()).unwrap_or("");
                     let target = edge.get(FIELD_TARGET).and_then(|t| t.as_str()).unwrap_or("");
                     if kind == EDGE_KIND_REF
-                        && is_image_id_slot(rtype, sp)
+                        && is_image_id_slot(rtype, sp, image_id_paths)
                         && let Some(param) = m.parameters.get(target)
-                        && !APPROPRIATE_IMAGE_ID_PARAM_TYPES.contains(&param.param_type.as_str())
+                        && !image_id_param_types.iter().any(|t| t == &param.param_type)
                         && flagged_image_params.insert(target)
                     {
                         out.push(make_resource_diagnostic("W2506", &format!("Parameter '{}' is used as an ImageId but has Type '{}' - consider using 'AWS::EC2::Image::Id'", target, param.param_type), m, "", &format!("{}/{}", SECTION_PARAMETERS, target),
@@ -1128,68 +1121,39 @@ fn non_string_policy_shape(value: &serde_json::Value) -> Option<&'static str> {
     }
 }
 
-fn is_valid_parameter_type(ptype: &str) -> bool {
-    matches!(
-        ptype,
-        "String"
-            | "Number"
-            | "CommaDelimitedList"
-            | "AWS::SSM::Parameter::Name"
-            | "AWS::EC2::AvailabilityZone::Name"
-            | "AWS::EC2::Image::Id"
-            | "AWS::EC2::Instance::Id"
-            | "AWS::EC2::KeyPair::KeyName"
-            | "AWS::EC2::SecurityGroup::GroupName"
-            | "AWS::EC2::SecurityGroup::Id"
-            | "AWS::EC2::Subnet::Id"
-            | "AWS::EC2::Volume::Id"
-            | "AWS::EC2::VPC::Id"
-            | "AWS::Route53::HostedZone::Id"
-            | "List<Number>"
-            | "List<String>"
-            | "List<AWS::EC2::AvailabilityZone::Name>"
-            | "List<AWS::EC2::Image::Id>"
-            | "List<AWS::EC2::Instance::Id>"
-            | "List<AWS::EC2::SecurityGroup::GroupName>"
-            | "List<AWS::EC2::SecurityGroup::Id>"
-            | "List<AWS::EC2::Subnet::Id>"
-            | "List<AWS::EC2::Volume::Id>"
-            | "List<AWS::EC2::VPC::Id>"
-            | "List<AWS::Route53::HostedZone::Id>"
-    ) || ptype.starts_with("AWS::SSM::Parameter::Value<")
+fn is_valid_parameter_type(ptype: &str, valid_types: &[String]) -> bool {
+    valid_types.iter().any(|t| t == ptype)
 }
 
-/// The exact `AWS::EC2::Image::Id`-typed property slots the ImageId-parameter-type
-/// check (W2506) applies to: a fixed set of `(resource type, property path)` pairs.
-/// The path is relative to the resource (it always starts with `Properties.`); the
-/// `*` in the SpotFleet path matches a single array-index segment.
-fn is_image_id_slot(resource_type: &str, source_path: &str) -> bool {
-    const IMAGE_ID_SLOTS: &[(&str, &str)] = &[
-        ("AWS::AutoScaling::LaunchConfiguration", "Properties.ImageId"),
-        ("AWS::Batch::ComputeEnvironment", "Properties.ComputeResources.ImageId"),
-        ("AWS::Cloud9::EnvironmentEC2", "Properties.ImageId"),
-        ("AWS::EC2::Instance", "Properties.ImageId"),
-        ("AWS::EC2::LaunchTemplate", "Properties.LaunchTemplateData.ImageId"),
-        ("AWS::EC2::SpotFleet", "Properties.SpotFleetRequestConfigData.LaunchSpecifications.*.ImageId"),
-        ("AWS::ImageBuilder::Image", "Properties.ImageId"),
-    ];
-    IMAGE_ID_SLOTS
+/// Checks whether a given `(resource type, source path)` pair matches one of
+/// the generated ImageId property slots from rule tables. The source path uses
+/// dotted segments (e.g. `Properties.ImageId`) while the rule table paths use
+/// slash-separated segments with `*` wildcards.
+fn is_image_id_slot(
+    resource_type: &str,
+    source_path: &str,
+    image_id_paths: &[data_source::rule_data::ResourcePropertyPath],
+) -> bool {
+    image_id_paths
         .iter()
-        .filter(|(rtype, _)| *rtype == resource_type)
-        .any(|(_, slot)| path_matches_slot(source_path, slot))
+        .filter(|p| p.resource_type == resource_type)
+        .any(|p| path_matches_resource_property_path(source_path, &p.segments))
 }
 
-/// Match a concrete source path against a slot pattern whose only wildcard is a
-/// `*` segment standing for a single array index.
-fn path_matches_slot(path: &str, slot: &str) -> bool {
-    let (path_segs, slot_segs): (Vec<&str>, Vec<&str>) = (path.split('.').collect(), slot.split('.').collect());
-    path_segs.len() == slot_segs.len() && slot_segs.iter().zip(&path_segs).all(|(s, p)| *s == "*" || s == p)
+/// Match a dotted source path against parsed property path segments that may
+/// contain wildcards. The source path uses dots as separators (e.g.
+/// `Properties.LaunchSpecifications.0.ImageId`) while `segments` starts from
+/// `Properties` onward and uses `PathSegment::Wildcard` for `*`.
+fn path_matches_resource_property_path(source_path: &str, segments: &[data_source::rule_data::PathSegment]) -> bool {
+    let path_segs: Vec<&str> = source_path.split('.').collect();
+    if path_segs.len() != segments.len() {
+        return false;
+    }
+    segments.iter().zip(&path_segs).all(|(seg, part)| match seg {
+        data_source::rule_data::PathSegment::Wildcard => true,
+        data_source::rule_data::PathSegment::Literal(expected) => expected == *part,
+    })
 }
-
-/// The two parameter types that are appropriate for an ImageId property; any
-/// other type used for an ImageId Ref triggers W2506.
-const APPROPRIATE_IMAGE_ID_PARAM_TYPES: &[&str] =
-    &["AWS::EC2::Image::Id", "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>"];
 
 /// Determines whether a GetAtt edge from an output is in "string position" -
 /// that is, the GetAtt result feeds into a context where a string is expected.
@@ -1227,45 +1191,82 @@ fn output_edge_is_in_string_position(source_path: &str) -> bool {
 mod tests {
     use super::*;
 
+    /// A representative subset of valid parameter types for unit tests.
+    fn test_valid_types() -> Vec<String> {
+        vec![
+            "String",
+            "Number",
+            "CommaDelimitedList",
+            "AWS::EC2::VPC::Id",
+            "AWS::EC2::Subnet::Id",
+            "AWS::EC2::SecurityGroup::Id",
+            "AWS::EC2::Image::Id",
+            "AWS::Route53::HostedZone::Id",
+            "AWS::SSM::Parameter::Name",
+            "List<Number>",
+            "List<String>",
+            "List<AWS::EC2::Subnet::Id>",
+            "List<AWS::EC2::VPC::Id>",
+            "AWS::SSM::Parameter::Value<String>",
+            "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>",
+        ]
+        .into_iter()
+        .map(String::from)
+        .collect()
+    }
+
     #[test]
     fn valid_basic_types() {
-        assert!(is_valid_parameter_type("String"));
-        assert!(is_valid_parameter_type("Number"));
-        assert!(is_valid_parameter_type("CommaDelimitedList"));
+        let types = test_valid_types();
+        assert!(is_valid_parameter_type("String", &types));
+        assert!(is_valid_parameter_type("Number", &types));
+        assert!(is_valid_parameter_type("CommaDelimitedList", &types));
     }
 
     #[test]
     fn valid_aws_specific_types() {
-        assert!(is_valid_parameter_type("AWS::EC2::VPC::Id"));
-        assert!(is_valid_parameter_type("AWS::EC2::Subnet::Id"));
-        assert!(is_valid_parameter_type("AWS::EC2::SecurityGroup::Id"));
-        assert!(is_valid_parameter_type("AWS::Route53::HostedZone::Id"));
+        let types = test_valid_types();
+        assert!(is_valid_parameter_type("AWS::EC2::VPC::Id", &types));
+        assert!(is_valid_parameter_type("AWS::EC2::Subnet::Id", &types));
+        assert!(is_valid_parameter_type("AWS::EC2::SecurityGroup::Id", &types));
+        assert!(is_valid_parameter_type("AWS::Route53::HostedZone::Id", &types));
     }
 
     #[test]
     fn valid_list_types() {
-        assert!(is_valid_parameter_type("List<Number>"));
-        assert!(is_valid_parameter_type("List<AWS::EC2::Subnet::Id>"));
-        assert!(is_valid_parameter_type("List<AWS::EC2::VPC::Id>"));
+        let types = test_valid_types();
+        assert!(is_valid_parameter_type("List<Number>", &types));
+        assert!(is_valid_parameter_type("List<AWS::EC2::Subnet::Id>", &types));
+        assert!(is_valid_parameter_type("List<AWS::EC2::VPC::Id>", &types));
     }
 
     #[test]
     fn valid_ssm_parameter_type() {
-        assert!(is_valid_parameter_type("AWS::SSM::Parameter::Value<String>"));
-        assert!(is_valid_parameter_type("AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>"));
+        let types = test_valid_types();
+        assert!(is_valid_parameter_type("AWS::SSM::Parameter::Value<String>", &types));
+        assert!(is_valid_parameter_type("AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>", &types));
     }
 
     #[test]
     fn invalid_types() {
-        assert!(!is_valid_parameter_type("Integer"));
-        assert!(!is_valid_parameter_type("Boolean"));
-        assert!(!is_valid_parameter_type(""));
-        assert!(!is_valid_parameter_type("NotString"));
+        let types = test_valid_types();
+        assert!(!is_valid_parameter_type("Integer", &types));
+        assert!(!is_valid_parameter_type("Boolean", &types));
+        assert!(!is_valid_parameter_type("", &types));
+        assert!(!is_valid_parameter_type("NotString", &types));
     }
 
     #[test]
     fn list_of_string_is_valid() {
-        assert!(is_valid_parameter_type("List<String>"));
+        let types = test_valid_types();
+        assert!(is_valid_parameter_type("List<String>", &types));
+    }
+
+    #[test]
+    fn ssm_prefix_no_longer_a_blanket_pass() {
+        let types = test_valid_types();
+        // Only explicitly listed SSM types are valid; arbitrary SSM types are rejected.
+        assert!(!is_valid_parameter_type("AWS::SSM::Parameter::Value<FakeType>", &types));
     }
 
     #[test]
