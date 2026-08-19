@@ -402,9 +402,6 @@
     "AWS::DevOpsAgent::PrivateConnection": [
       "Name"
     ],
-    "AWS::DocDB::DBClusterParameterGroup": [
-      "Name"
-    ],
     "AWS::DocDB::DBSubnetGroup": [
       "DBSubnetGroupName"
     ],
