@@ -75,6 +75,36 @@ pub fn resolved_value_at_path(val: &ResolvedValue, path: &str) -> Option<Resolve
     }
 }
 
+/// Converts an authored scenario source path into its public effective path.
+/// Every `Fn::If` branch selector is an implementation detail of the authored
+/// syntax and is removed; malformed selectors are rejected rather than treated
+/// as ordinary property segments.
+pub fn effective_path_from_scenario_source_path(source_path: &str) -> Option<String> {
+    if source_path.is_empty() {
+        return Some(String::new());
+    }
+    let segments: Vec<&str> = source_path.split('.').collect();
+    if segments.iter().any(|segment| segment.is_empty()) {
+        return None;
+    }
+    let mut effective_segments = Vec::with_capacity(segments.len());
+    let mut index = 0;
+    while index < segments.len() {
+        if segments[index] == FN_IF {
+            match segments.get(index + 1).copied() {
+                Some("1" | "2") => {
+                    index += 2;
+                    continue;
+                }
+                _ => return None,
+            }
+        }
+        effective_segments.push(segments[index]);
+        index += 1;
+    }
+    Some(effective_segments.join("."))
+}
+
 pub fn scenario_source_path_at(
     value: &ResolvedValue,
     effective_path: &str,
@@ -306,6 +336,17 @@ fn push_scenario(
         results.push((value.clone(), assumptions.clone()));
         false
     }
+}
+
+/// Expands deployment scenarios using the standard per-value limit and reports
+/// whether at least one possible scenario was omitted.
+pub fn collect_scenarios_signaled(
+    value: &ResolvedValue,
+    assumptions: &HashMap<String, bool>,
+    results: &mut Vec<(ResolvedValue, HashMap<String, bool>)>,
+    curtailed: &mut bool,
+) {
+    *curtailed |= collect_scenarios(value, assumptions, MAX_SCENARIO_COMBINATIONS, results);
 }
 
 pub fn contains_dynamic_resolved(rv: &ResolvedValue) -> bool {
@@ -778,6 +819,32 @@ mod tests {
     }
 
     #[test]
+    fn effective_path_removes_conditional_branch_segments() {
+        assert_eq!(
+            effective_path_from_scenario_source_path("Properties.ResourceRecords.Fn::If.1.0"),
+            Some("Properties.ResourceRecords.0".to_string())
+        );
+    }
+
+    #[test]
+    fn effective_path_removes_nested_conditional_branch_segments() {
+        assert_eq!(
+            effective_path_from_scenario_source_path("Properties.Fn::If.2.Records.0.Fn::If.1.Value"),
+            Some("Properties.Records.0.Value".to_string())
+        );
+    }
+
+    #[test]
+    fn effective_path_preserves_other_intrinsic_segments() {
+        assert_eq!(
+            effective_path_from_scenario_source_path("Properties.Value.Fn::GetAtt.1"),
+            Some("Properties.Value.Fn::GetAtt.1".to_string())
+        );
+        assert_eq!(effective_path_from_scenario_source_path("Properties.Value.Fn::If.0"), None);
+        assert_eq!(effective_path_from_scenario_source_path("Properties..Value"), None);
+    }
+
+    #[test]
     fn scenario_source_path_selects_conditional_list_branch() {
         let value = ResolvedValue::Conditional {
             condition: "ChooseFirst".into(),
@@ -904,6 +971,43 @@ mod tests {
         collect_scenarios(&val, &assumptions, MAX_SCENARIO_COMBINATIONS, &mut results);
         assert_eq!(results.len(), 1);
         assert!(matches!(&results[0].0, ResolvedValue::Concrete { value: v } if v.0 == json!(1)));
+    }
+
+    #[test]
+    fn direct_enum_at_scenario_limit_is_not_curtailed() {
+        let value = ResolvedValue::Enum {
+            variants: (0..MAX_SCENARIO_COMBINATIONS)
+                .map(|index| ResolvedValue::Concrete { value: json!(index).into() })
+                .collect(),
+        };
+        let mut scenarios = Vec::new();
+        let mut curtailed = false;
+
+        collect_scenarios_signaled(&value, &HashMap::new(), &mut scenarios, &mut curtailed);
+
+        assert_eq!(scenarios.len(), MAX_SCENARIO_COMBINATIONS);
+        assert!(!curtailed, "an exact-fit direct enum must not report omitted scenarios");
+    }
+
+    #[test]
+    fn conditional_branch_one_over_scenario_limit_is_curtailed() {
+        let value = ResolvedValue::Conditional {
+            condition: "UseEnum".into(),
+            if_true: Box::new(ResolvedValue::Enum {
+                variants: (0..MAX_SCENARIO_COMBINATIONS)
+                    .map(|index| ResolvedValue::Concrete { value: json!(index).into() })
+                    .collect(),
+            }),
+            if_false: Box::new(ResolvedValue::Concrete { value: json!("fallback").into() }),
+        };
+        let mut scenarios = Vec::new();
+        let mut curtailed = false;
+
+        collect_scenarios_signaled(&value, &HashMap::new(), &mut scenarios, &mut curtailed);
+
+        assert_eq!(scenarios.len(), MAX_SCENARIO_COMBINATIONS);
+        assert!(curtailed, "the first omitted conditional-branch scenario must be reported");
+        assert!(scenarios.iter().all(|(_, conditions)| conditions.get("UseEnum") == Some(&true)));
     }
 
     #[test]

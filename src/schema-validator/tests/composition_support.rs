@@ -2397,11 +2397,11 @@ fn independent_optional_conditionals_have_bounded_composition_work() {
         diagnostics.iter().all(|diagnostic| !diagnostic.rule_id.starts_with('F')),
         "bounded analysis must not turn uncertainty into a schema violation: {diagnostics:#?}"
     );
-    let advisories: Vec<_> = diagnostics.iter().filter(|diagnostic| diagnostic.rule_id == "I9052").collect();
-    assert_eq!(advisories.len(), 1, "curtailment must be reported once per resource path: {diagnostics:#?}");
+    // The budget-exhaustion warning is emitted by the validation engine, not the schema validator.
+    // The schema validator records budget exhaustions to the model tracker.
     assert!(
-        advisories[0].message.contains("was curtailed"),
-        "the advisory must explain that analysis was curtailed: {diagnostics:#?}"
+        diagnostics.iter().all(|diagnostic| diagnostic.rule_id != "W9052"),
+        "schema validator must not emit per-path budget diagnostics: {diagnostics:#?}"
     );
 }
 
@@ -2449,7 +2449,7 @@ fn required_or_scenario_budget_boundary_is_non_silent() {
         "all 256 condition worlds must be analyzed, including the all-false world: {diagnostics:#?}"
     );
     assert!(
-        diagnostics.iter().all(|diagnostic| diagnostic.rule_id != "I9052"),
+        diagnostics.iter().all(|diagnostic| diagnostic.rule_id != "W9052"),
         "the exact assignment limit must remain fully analyzable: {diagnostics:#?}"
     );
 
@@ -2461,12 +2461,11 @@ fn required_or_scenario_budget_boundary_is_non_silent() {
         1,
         "targeted witness search must find the reachable all-false world beyond the exact-enumeration limit: {diagnostics:#?}"
     );
-    let advisories: Vec<_> = diagnostics.iter().filter(|diagnostic| diagnostic.rule_id == "I9052").collect();
-    assert_eq!(advisories.len(), 1, "budget exhaustion must emit one deduplicated advisory: {diagnostics:#?}");
-    assert_eq!(advisories[0].property_path.as_deref(), Some("Properties"));
+    // The budget-exhaustion warning is emitted by the validation engine at report level, not per-path.
+    // Schema validator records the exhaustion to the model budget tracker.
     assert!(
-        advisories[0].message.contains("was curtailed"),
-        "the advisory must explain that full conditional schema analysis was curtailed: {diagnostics:#?}"
+        diagnostics.iter().all(|diagnostic| diagnostic.rule_id != "W9052"),
+        "schema validator must not emit per-path budget diagnostics: {diagnostics:#?}"
     );
 }
 
@@ -2530,8 +2529,8 @@ fn required_xor_fallback_bounds_adversarial_branch_expansion() {
         "exactly one property is present in every reachable world: {diagnostics:#?}"
     );
     assert!(
-        diagnostics.iter().any(|diagnostic| diagnostic.rule_id == "I9052"),
-        "bounded analysis must report its curtailment: {diagnostics:#?}"
+        semantic_model.exhausted_budget_kinds().contains(&template_model::BudgetKind::SchemaScenarioAssignments),
+        "bounded analysis must record its curtailment on the model: {diagnostics:#?}"
     );
     assert!(
         semantic_model.scenario_combinations_used() <= MAX_ACCOUNTED_SCENARIOS,

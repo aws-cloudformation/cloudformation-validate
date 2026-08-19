@@ -19,10 +19,11 @@
 //! slot permits each function, mirroring the per-slot argument schemas, and fires
 //! only in permitting positions.
 
+use crate::conditions::{ConditionModel, Satisfiability};
 use crate::consts::*;
 use crate::defect::{DefectPhase, ParseDefect};
 use crate::ir::*;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 /// A `Fn::ForEach::<name>` looping key: the prefix followed by a non-empty
 /// alphanumeric loop name. Matches the section-level key that introduces a loop.
@@ -74,119 +75,135 @@ pub fn validate_language_extensions(arena: &Arena, transforms: &[String]) -> Vec
     out
 }
 
-/// Validates intrinsic functions authored as lifecycle attribute values. A
-/// top-level `CreationPolicy` is always an object; the language extension only
-/// enables `Ref`, `Fn::FindInMap`, and `Fn::If` for `DeletionPolicy` and
-/// `UpdateReplacePolicy`. Resources proven unreachable are ignored because none
-/// of their lifecycle attributes can be applied.
+/// Validates the shape of intrinsic functions authored as a top-level
+/// `CreationPolicy`. CloudFormation accepts `Fn::If` there when every reachable
+/// result is an object; other root intrinsic functions are rejected. Functions
+/// nested inside an object are ordinary property values and are not restricted
+/// here. `DeletionPolicy` and `UpdateReplacePolicy` rely on generic intrinsic
+/// validation and resolved-value validation rather than a function allowlist.
 pub fn validate_lifecycle_intrinsics(
     arena: &Arena,
-    global_index: &GlobalIndex,
-    transforms: &[String],
+    conditions: &ConditionModel,
     lifecycle_attribute_nodes: &HashMap<(String, String), NodeRef>,
-    unreachable_resources: &HashSet<String>,
+    resource_conditions: &HashMap<String, String>,
 ) -> Vec<ParseDefect> {
-    let has_language_extensions = transforms.iter().any(|transform| transform == TRANSFORM_LANGUAGE_EXTENSIONS);
     let mut roots: Vec<_> = lifecycle_attribute_nodes.iter().collect();
     roots.sort_unstable_by_key(|(_, node_ref)| **node_ref);
 
     let mut out = Vec::new();
     for ((resource_id, attribute), node_ref) in roots {
-        if unreachable_resources.contains(resource_id) {
+        if attribute != KEY_CREATION_POLICY {
             continue;
         }
+
+        let mut assumptions =
+            resource_conditions.get(resource_id).map(|condition| vec![(condition.clone(), true)]).unwrap_or_default();
+        if matches!(conditions.satisfiability(&assumptions), Satisfiability::Unsatisfiable) {
+            continue;
+        }
+
         let node_ref = *node_ref;
         let Node::Intrinsic(intrinsic) = arena.node(node_ref) else {
             continue;
         };
-
-        if attribute == KEY_CREATION_POLICY {
-            out.push(crate::make_parse_defect_at(
+        match intrinsic {
+            IntrinsicFn::If(condition, when_true, when_false) => validate_creation_policy_if(
+                arena,
+                conditions,
+                Some(condition),
+                *when_true,
+                *when_false,
+                &mut assumptions,
+                &mut out,
+            ),
+            IntrinsicFn::IfExpr(_, when_true, when_false) => validate_creation_policy_if(
+                arena,
+                conditions,
+                None,
+                *when_true,
+                *when_false,
+                &mut assumptions,
+                &mut out,
+            ),
+            _ => out.push(crate::make_parse_defect_at(
                 "F1101",
                 format!(
-                    "{} is not supported as a top-level {} value; {} must be an object",
+                    "{} is not supported as a top-level {} value; {} must be an object or {} returning an object",
                     cfn_function_name(intrinsic),
                     KEY_CREATION_POLICY,
-                    KEY_CREATION_POLICY
+                    KEY_CREATION_POLICY,
+                    FN_IF
                 ),
                 arena.span(node_ref),
                 &arena.get(node_ref).path,
-            ));
-            continue;
+            )),
         }
-
-        if !matches!(attribute.as_str(), KEY_DELETION_POLICY | KEY_UPDATE_REPLACE_POLICY) {
-            continue;
-        }
-        if !has_language_extensions {
-            out.push(crate::make_parse_defect_at(
-                "F1101",
-                format!(
-                    "{} in {} requires the AWS::LanguageExtensions transform, but it is not declared. Add 'Transform: AWS::LanguageExtensions' to use it",
-                    cfn_function_name(intrinsic),
-                    attribute
-                ),
-                arena.span(node_ref),
-                &arena.get(node_ref).path,
-            ));
-            continue;
-        }
-
-        validate_lifecycle_policy_node(arena, global_index, node_ref, attribute, &mut out);
     }
     out
 }
 
-fn validate_lifecycle_policy_node(
+fn validate_creation_policy_if(
     arena: &Arena,
-    global_index: &GlobalIndex,
-    node_ref: NodeRef,
-    attribute: &str,
+    conditions: &ConditionModel,
+    condition: Option<&str>,
+    when_true: NodeRef,
+    when_false: NodeRef,
+    assumptions: &mut Vec<(String, bool)>,
     out: &mut Vec<ParseDefect>,
 ) {
-    let Node::Intrinsic(intrinsic) = arena.node(node_ref) else {
+    for (branch, expected) in [(when_true, true), (when_false, false)] {
+        if let Some(condition) = condition {
+            assumptions.push((condition.to_string(), expected));
+        }
+        validate_creation_policy_branch(arena, conditions, branch, assumptions, out);
+        if condition.is_some() {
+            assumptions.pop();
+        }
+    }
+}
+
+fn validate_creation_policy_branch(
+    arena: &Arena,
+    conditions: &ConditionModel,
+    node_ref: NodeRef,
+    assumptions: &mut Vec<(String, bool)>,
+    out: &mut Vec<ParseDefect>,
+) {
+    if matches!(conditions.satisfiability(assumptions), Satisfiability::Unsatisfiable) {
         return;
-    };
-    match intrinsic {
-        IntrinsicFn::Ref(target) => {
-            let is_supported_pseudo = matches!(target.as_str(), PSEUDO_ACCOUNT_ID | PSEUDO_REGION | PSEUDO_PARTITION);
-            let is_parameter = global_index.contains_key(&format!("{}/{}", SECTION_PARAMETERS, target));
-            let is_known_resource = global_index.contains_key(&format!("{}/{}", SECTION_RESOURCES, target));
-            let unsupported_target = (target.starts_with(PSEUDO_PREFIX) && !is_supported_pseudo) || is_known_resource;
-            if unsupported_target && !is_parameter {
-                out.push(crate::make_parse_defect_at(
-                    "F1101",
-                    format!(
-                        "{} target '{}' is not supported in {}; use a parameter or one of {}, {}, {}",
-                        FN_REF, target, attribute, PSEUDO_ACCOUNT_ID, PSEUDO_REGION, PSEUDO_PARTITION
-                    ),
-                    arena.span(node_ref),
-                    &arena.get(node_ref).path,
-                ));
-            }
+    }
+
+    match arena.node(node_ref) {
+        Node::Map(_) => {}
+        Node::Intrinsic(IntrinsicFn::If(condition, when_true, when_false)) => {
+            validate_creation_policy_if(arena, conditions, Some(condition), *when_true, *when_false, assumptions, out)
         }
-        IntrinsicFn::If(_, when_true, when_false) | IntrinsicFn::IfExpr(_, when_true, when_false) => {
-            validate_lifecycle_policy_node(arena, global_index, *when_true, attribute, out);
-            validate_lifecycle_policy_node(arena, global_index, *when_false, attribute, out);
+        Node::Intrinsic(IntrinsicFn::IfExpr(_, when_true, when_false)) => {
+            validate_creation_policy_if(arena, conditions, None, *when_true, *when_false, assumptions, out)
         }
-        IntrinsicFn::FindInMap(map, key1, key2, default) => {
-            for child in [Some(*map), Some(*key1), Some(*key2), *default].into_iter().flatten() {
-                validate_lifecycle_policy_node(arena, global_index, child, attribute, out);
-            }
-        }
-        _ => out.push(crate::make_parse_defect_at(
+        node => out.push(crate::make_parse_defect_at(
             "F1101",
             format!(
-                "{} is not supported in {}; AWS::LanguageExtensions allows only {}, {}, and {}",
-                cfn_function_name(intrinsic),
-                attribute,
-                FN_REF,
-                FN_FIND_IN_MAP,
-                FN_IF
+                "{} branch in {} must be an object, got {}",
+                FN_IF,
+                KEY_CREATION_POLICY,
+                creation_policy_value_shape(node)
             ),
             arena.span(node_ref),
             &arena.get(node_ref).path,
         )),
+    }
+}
+
+fn creation_policy_value_shape(node: &Node) -> String {
+    match node {
+        Node::Null => "null".to_string(),
+        Node::Bool(_) => "a boolean".to_string(),
+        Node::Int(_) | Node::Float(_) => "a number".to_string(),
+        Node::String(_) => "a string".to_string(),
+        Node::List(_) => "a list".to_string(),
+        Node::Map(_) => "an object".to_string(),
+        Node::Intrinsic(intrinsic) => cfn_function_name(intrinsic).to_string(),
     }
 }
 

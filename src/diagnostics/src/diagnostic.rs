@@ -376,6 +376,27 @@ pub struct PerformanceMetrics {
     pub validate_total: PhaseMetric,
 }
 
+/// A single budget-exhaustion record in report metadata.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
+#[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Record))]
+#[serde(rename_all = "camelCase")]
+pub struct BudgetExhaustionRecord {
+    /// Stable lower camelCase budget kind identifier.
+    pub kind: String,
+    /// Human-readable explanation of the exhausted budget.
+    #[serde(default)]
+    pub description: String,
+    /// The numeric limit that was exhausted.
+    pub limit: u64,
+    /// Whether exhausting this budget makes the overall analysis incomplete.
+    pub analysis_incomplete: bool,
+}
+
+fn budget_exhaustions_are_absent_or_empty(records: &Option<Vec<BudgetExhaustionRecord>>) -> bool {
+    records.as_ref().is_none_or(Vec::is_empty)
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
 #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Record))]
@@ -396,6 +417,10 @@ pub struct ReportMetadata {
     pub strict: bool,
     /// Minimum severity included in the report; lower-severity findings are omitted.
     pub severity_level: Severity,
+    /// Records of deterministic validation budgets exhausted during this run.
+    /// Absent when no budget was exhausted.
+    #[serde(default, skip_serializing_if = "budget_exhaustions_are_absent_or_empty")]
+    pub budget_exhaustions: Option<Vec<BudgetExhaustionRecord>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -410,14 +435,17 @@ pub struct Summary {
     pub debug: u32,
 }
 
-/// Outcome of a validation run. `Ok` means the engine completed; `Error` means
-/// the pipeline could not run (e.g. parse failure).
+/// Outcome of a validation run. `Ok` means validation completed without
+/// correctness-affecting curtailment. `AnalysisIncomplete` means a deterministic
+/// budget curtailed analysis in a way that could omit findings. `Error` means
+/// the validation pipeline could not run, such as when parsing fails.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
 #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Enum))]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ReportStatus {
     Ok,
+    AnalysisIncomplete,
     Error,
 }
 
@@ -682,6 +710,7 @@ mod tests {
             suppressed: 0,
             strict: false,
             severity_level: Severity::Info,
+            budget_exhaustions: None,
         };
 
         let json = serde_json::to_value(metadata).expect("metadata should serialize");
@@ -691,11 +720,39 @@ mod tests {
             json["resourceSchemaVersion"],
             "https://github.com/aws-cloudformation/resource-provider-enhanced-schemas@2026-08-07T18:20:13Z"
         );
+        assert!(json.get("budgetExhaustions").is_none());
+    }
+
+    #[test]
+    fn budget_exhaustion_record_serializes_description() {
+        let record = BudgetExhaustionRecord {
+            kind: "resolverDepth".to_string(),
+            description: "Resolving intrinsic functions exceeded the maximum supported nesting depth.".to_string(),
+            limit: 64,
+            analysis_incomplete: true,
+        };
+
+        let json = serde_json::to_value(record).expect("budget exhaustion record should serialize");
+        assert_eq!(json["kind"], "resolverDepth");
+        assert_eq!(json["description"], "Resolving intrinsic functions exceeded the maximum supported nesting depth.");
+    }
+
+    #[test]
+    fn budget_exhaustion_record_accepts_legacy_input_without_description() {
+        let record: BudgetExhaustionRecord = serde_json::from_value(serde_json::json!({
+            "kind": "resolverDepth",
+            "limit": 64,
+            "analysisIncomplete": true
+        }))
+        .expect("legacy budget exhaustion record should deserialize");
+
+        assert!(record.description.is_empty());
     }
 
     #[test]
     fn report_status_serializes_as_screaming_snake_case() {
         assert_eq!(serde_json::to_string(&ReportStatus::Ok).unwrap(), "\"OK\"");
+        assert_eq!(serde_json::to_string(&ReportStatus::AnalysisIncomplete).unwrap(), "\"ANALYSIS_INCOMPLETE\"");
         assert_eq!(serde_json::to_string(&ReportStatus::Error).unwrap(), "\"ERROR\"");
     }
 
@@ -727,5 +784,28 @@ mod tests {
                 "missing field error must name {required_field}: {error}"
             );
         }
+    }
+
+    #[test]
+    fn report_metadata_budget_exhaustions_defaults_to_none() {
+        // Older reports without budget exhaustion metadata should still deserialize.
+        let minimal = serde_json::json!({
+            "rulesEvaluated": 0,
+            "cfnLintVersion": "v",
+            "resourceSchemaVersion": "v",
+            "resourcesScanned": 0,
+            "counts": {
+                "fatal": 0,
+                "errors": 0,
+                "warnings": 0,
+                "informational": 0,
+                "debug": 0
+            },
+            "suppressed": 0,
+            "strict": false,
+            "severityLevel": "INFO"
+        });
+        let metadata: ReportMetadata = serde_json::from_value(minimal).unwrap();
+        assert!(metadata.budget_exhaustions.is_none(), "missing metadata should deserialize to None");
     }
 }

@@ -25,8 +25,10 @@ pub(crate) static GETATT_RETURN_TYPE_OVERRIDES: LazyLock<HashMap<String, HashMap
         let overrides = artifact
             .get("getatt_return_type_overrides")
             .expect("Embedded getatt_return_type_overrides must contain getatt_return_type_overrides");
-        serde_json::from_value(overrides.clone())
-            .expect("Embedded getatt_return_type_overrides must contain a valid override map")
+        let overrides: HashMap<String, HashMap<String, String>> = serde_json::from_value(overrides.clone())
+            .expect("Embedded getatt_return_type_overrides must contain a valid override map");
+        assert!(!overrides.is_empty(), "Embedded getatt_return_type_overrides must not be empty");
+        overrides
     });
 
 /// Applies the hand-maintained GetAtt return-type corrections for `type_name`

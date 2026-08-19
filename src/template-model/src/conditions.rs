@@ -1,3 +1,4 @@
+use crate::budget::{BudgetKind, BudgetTracker};
 use crate::consts::{
     CONDITION_REF_PREFIX, FN_AND, FN_CONDITION, FN_EQUALS, FN_NOT, FN_OR, MAX_PARAM_COMBINATIONS, MAX_SAT_ITERATIONS,
     MAX_TOTAL_SAT_ITERATIONS, PARAM_UNKNOWN_SENTINEL, PSEUDO_PREFIX, PSEUDO_REGION,
@@ -7,8 +8,8 @@ use crate::model::PseudoParameterOverrides;
 use crate::resolver::{MappingData, ParameterInfo};
 use log::{debug, info};
 use std::collections::{HashMap, HashSet};
-use std::sync::OnceLock;
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Arc, OnceLock};
 
 /// How many budget-exhausted satisfiability queries are retained for the
 /// advisory diagnostic. The advisory tells an author that analysis of their
@@ -100,6 +101,9 @@ pub struct ConditionModel {
     /// condition set after construction.
     referenced_param_values: OnceLock<HashMap<String, Vec<String>>>,
     budget_exhausted_queries: std::sync::Mutex<Vec<String>>,
+    /// Budget exhaustions are shared with the owning semantic model, or kept in
+    /// a standalone tracker when this condition model is constructed directly.
+    budget_tracker: Arc<BudgetTracker>,
 }
 
 pub fn format_condition_expr(expr: &ConditionExpr) -> String {
@@ -153,6 +157,19 @@ impl ConditionModel {
         pseudo_overrides: &PseudoParameterOverrides,
         mappings: &MappingData,
     ) -> Self {
+        Self::from_ir_with_tracker(ir, parameters, pseudo_overrides, mappings, Arc::new(BudgetTracker::new()))
+    }
+
+    /// Constructs a `ConditionModel` with a pre-created shared budget tracker.
+    /// Used by `SemanticModel::parse` to share a single tracker across model
+    /// construction and downstream consumers.
+    pub(crate) fn from_ir_with_tracker(
+        ir: &TemplateIR,
+        parameters: &HashMap<String, ParameterInfo>,
+        pseudo_overrides: &PseudoParameterOverrides,
+        mappings: &MappingData,
+        tracker: Arc<BudgetTracker>,
+    ) -> Self {
         let mut conditions = HashMap::new();
 
         if ir.conditions != NULL_REF
@@ -185,6 +202,7 @@ impl ConditionModel {
             sat_iterations_used: AtomicU64::new(0),
             referenced_param_values: OnceLock::new(),
             budget_exhausted_queries: std::sync::Mutex::new(Vec::new()),
+            budget_tracker: tracker,
         }
     }
 
@@ -304,6 +322,7 @@ impl ConditionModel {
             self.charge_satisfiability_work(steps);
             let query_description = format_satisfiability_assumptions(assumptions);
             self.record_curtailed_analysis(query_description);
+            self.budget_tracker.record(BudgetKind::ConditionParameterCombinations);
             return Satisfiability::Unknown;
         }
 
@@ -316,6 +335,7 @@ impl ConditionModel {
             // rather than leaking `__`-prefixed identifiers into the advisory.
             let query_description = format_satisfiability_assumptions(assumptions);
             self.record_curtailed_analysis(query_description);
+            self.budget_tracker.record(BudgetKind::ConditionSatIterationsPerQuery);
             return Satisfiability::Unknown;
         }
         if satisfiable { Satisfiability::Satisfiable } else { Satisfiability::Unsatisfiable }
@@ -328,6 +348,7 @@ impl ConditionModel {
         let before = self.sat_iterations_used.fetch_add(steps, Ordering::Relaxed);
         if before < MAX_TOTAL_SAT_ITERATIONS && before.saturating_add(steps) >= MAX_TOTAL_SAT_ITERATIONS {
             self.record_curtailed_analysis(WHOLE_CONDITION_SET_DESCRIPTION.to_string());
+            self.budget_tracker.record(BudgetKind::ConditionSatIterationsTotal);
         }
     }
 

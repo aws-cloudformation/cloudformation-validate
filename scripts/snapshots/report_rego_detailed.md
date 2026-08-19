@@ -1,10 +1,10 @@
 # cloudformation-validate vs cfn-lint - Parity Report
 
-> Generated: 2026-08-16 17:50:25  
+> Generated: 2026-08-18 23:39:45  
 > Engine: **rego**  
 > Detail level: **detailed**  
 > Matching: `(rule_id, resource_id, path)` two-pass with `(rule_id, resource_id)` fallback + aliases  
-> Templates compared: **664**  
+> Templates compared: **665**  
 
 ## Terminology
 
@@ -22,1826 +22,29 @@
 
 | Metric | Value |
 |--------|------:|
-| True Positives | 3094 |
-| False Positives (engine bugs) | 1037 |
-| Engine Extra (correct, cfn-lint gap) | 8293 |
-| False Negatives (engine misses) | 1290 |
-| Precision | 74.90% |
-| Recall | 70.57% |
-| F1 | 72.67% |
-| Unique rules detected | 237 |
-| Perfect templates | 487/664 |
-| Location mismatches (matched pairs) | 4 |
+| True Positives | 4053 |
+| False Positives (engine bugs) | 87 |
+| Engine Extra (correct, cfn-lint gap) | 8288 |
+| False Negatives (engine misses) | 356 |
+| Precision | 97.90% |
+| Recall | 91.93% |
+| F1 | 94.82% |
+| Unique rules detected | 238 |
+| Perfect templates | 494/665 |
+| Location mismatches (matched pairs) | 9 |
 
 ### By Severity
 
 | Severity | TP | FP | EE | FN | Precision | Recall |
 |----------|---:|---:|---:|---:|----------:|-------:|
-| Fatal | 438 | 14 | 87 | 148 | 96.90% | 74.74% |
-| Error | 850 | 69 | 12 | 136 | 92.49% | 86.21% |
-| Warning | 1178 | 900 | 371 | 954 | 56.69% | 55.25% |
-| Info | 628 | 54 | 7823 | 52 | 92.08% | 92.35% |
+| Fatal | 447 | 12 | 81 | 145 | 97.39% | 75.51% |
+| Error | 856 | 63 | 12 | 140 | 93.14% | 85.94% |
+| Warning | 2080 | 0 | 371 | 61 | 100.00% | 97.15% |
+| Info | 670 | 12 | 7824 | 10 | 98.24% | 98.53% |
 
-## False Negatives - 1290 missed findings across 95 rules
+## False Negatives - 356 missed findings across 93 rules
 
 These are diagnostics cfn-lint expects but the engine does not report.
-
-### W1020 - 897 missed - Sub isn't needed if it doesn't have a variable defined
-
-- **W1020** `Resource1` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L61 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource1` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L20 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource1` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L55 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource10` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L952 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource10` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L911 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource10` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L946 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource100` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L9862 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource100` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L9821 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource100` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L9856 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource101` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L9961 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource101` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L9920 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource101` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L9955 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource102` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L10060 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource102` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L10019 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource102` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L10054 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource103` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L10159 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource103` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L10118 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource103` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L10153 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource104` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L10258 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource104` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L10217 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource104` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L10252 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource105` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L10357 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource105` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L10316 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource105` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L10351 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource106` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L10456 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource106` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L10415 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource106` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L10450 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource107` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L10555 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource107` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L10514 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource107` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L10549 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource108` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L10654 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource108` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L10613 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource108` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L10648 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource109` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L10753 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource109` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L10712 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource109` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L10747 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource11` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L1051 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource11` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L1010 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource11` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L1045 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource110` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L10852 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource110` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L10811 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource110` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L10846 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource111` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L10951 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource111` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L10910 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource111` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L10945 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource112` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L11050 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource112` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L11009 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource112` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L11044 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource113` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L11149 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource113` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L11108 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource113` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L11143 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource114` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L11248 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource114` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L11207 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource114` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L11242 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource115` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L11347 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource115` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L11306 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource115` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L11341 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource116` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L11446 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource116` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L11405 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource116` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L11440 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource117` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L11545 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource117` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L11504 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource117` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L11539 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource118` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L11644 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource118` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L11603 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource118` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L11638 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource119` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L11743 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource119` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L11702 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource119` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L11737 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource12` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L1150 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource12` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L1109 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource12` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L1144 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource120` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L11842 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource120` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L11801 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource120` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L11836 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource121` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L11941 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource121` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L11900 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource121` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L11935 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource122` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L12040 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource122` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L11999 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource122` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L12034 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource123` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L12139 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource123` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L12098 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource123` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L12133 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource124` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L12238 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource124` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L12197 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource124` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L12232 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource125` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L12337 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource125` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L12296 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource125` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L12331 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource126` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L12436 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource126` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L12395 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource126` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L12430 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource127` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L12535 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource127` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L12494 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource127` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L12529 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource128` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L12634 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource128` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L12593 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource128` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L12628 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource129` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L12733 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource129` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L12692 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource129` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L12727 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource13` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L1249 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource13` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L1208 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource13` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L1243 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource130` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L12832 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource130` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L12791 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource130` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L12826 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource131` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L12931 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource131` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L12890 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource131` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L12925 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource132` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L13030 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource132` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L12989 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource132` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L13024 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource133` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L13129 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource133` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L13088 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource133` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L13123 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource134` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L13228 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource134` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L13187 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource134` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L13222 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource135` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L13327 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource135` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L13286 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource135` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L13321 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource136` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L13426 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource136` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L13385 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource136` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L13420 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource137` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L13525 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource137` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L13484 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource137` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L13519 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource138` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L13624 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource138` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L13583 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource138` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L13618 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource139` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L13723 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource139` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L13682 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource139` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L13717 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource14` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L1348 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource14` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L1307 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource14` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L1342 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource140` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L13822 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource140` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L13781 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource140` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L13816 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource141` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L13921 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource141` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L13880 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource141` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L13915 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource142` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L14020 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource142` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L13979 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource142` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L14014 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource143` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L14119 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource143` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L14078 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource143` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L14113 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource144` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L14218 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource144` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L14177 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource144` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L14212 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource145` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L14317 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource145` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L14276 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource145` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L14311 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource146` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L14416 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource146` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L14375 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource146` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L14410 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource147` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L14515 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource147` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L14474 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource147` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L14509 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource148` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L14614 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource148` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L14573 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource148` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L14608 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource149` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L14713 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource149` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L14672 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource149` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L14707 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource15` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L1447 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource15` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L1406 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource15` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L1441 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource150` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L14812 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource150` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L14771 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource150` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L14806 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource151` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L14911 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource151` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L14870 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource151` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L14905 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource152` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L15010 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource152` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L14969 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource152` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L15004 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource153` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L15109 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource153` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L15068 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource153` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L15103 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource154` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L15208 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource154` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L15167 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource154` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L15202 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource155` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L15307 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource155` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L15266 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource155` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L15301 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource156` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L15406 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource156` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L15365 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource156` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L15400 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource157` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L15505 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource157` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L15464 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource157` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L15499 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource158` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L15604 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource158` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L15563 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource158` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L15598 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource159` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L15703 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource159` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L15662 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource159` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L15697 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource16` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L1546 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource16` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L1505 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource16` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L1540 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource160` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L15802 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource160` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L15761 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource160` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L15796 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource161` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L15901 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource161` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L15860 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource161` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L15895 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource162` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L16000 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource162` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L15959 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource162` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L15994 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource163` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L16099 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource163` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L16058 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource163` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L16093 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource164` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L16198 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource164` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L16157 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource164` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L16192 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource165` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L16297 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource165` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L16256 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource165` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L16291 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource166` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L16396 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource166` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L16355 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource166` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L16390 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource167` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L16495 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource167` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L16454 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource167` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L16489 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource168` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L16594 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource168` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L16553 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource168` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L16588 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource169` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L16693 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource169` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L16652 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource169` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L16687 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource17` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L1645 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource17` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L1604 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource17` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L1639 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource170` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L16792 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource170` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L16751 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource170` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L16786 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource171` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L16891 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource171` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L16850 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource171` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L16885 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource172` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L16990 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource172` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L16949 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource172` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L16984 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource173` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L17089 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource173` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L17048 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource173` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L17083 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource174` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L17188 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource174` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L17147 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource174` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L17182 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource175` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L17287 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource175` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L17246 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource175` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L17281 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource176` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L17386 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource176` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L17345 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource176` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L17380 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource177` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L17485 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource177` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L17444 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource177` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L17479 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource178` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L17584 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource178` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L17543 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource178` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L17578 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource179` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L17683 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource179` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L17642 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource179` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L17677 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource18` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L1744 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource18` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L1703 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource18` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L1738 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource180` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L17782 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource180` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L17741 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource180` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L17776 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource181` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L17881 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource181` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L17840 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource181` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L17875 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource182` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L17980 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource182` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L17939 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource182` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L17974 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource183` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L18079 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource183` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L18038 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource183` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L18073 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource184` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L18178 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource184` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L18137 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource184` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L18172 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource185` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L18277 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource185` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L18236 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource185` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L18271 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource186` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L18376 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource186` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L18335 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource186` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L18370 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource187` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L18475 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource187` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L18434 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource187` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L18469 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource188` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L18574 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource188` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L18533 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource188` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L18568 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource189` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L18673 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource189` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L18632 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource189` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L18667 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource19` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L1843 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource19` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L1802 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource19` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L1837 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource190` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L18772 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource190` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L18731 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource190` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L18766 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource191` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L18871 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource191` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L18830 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource191` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L18865 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource192` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L18970 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource192` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L18929 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource192` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L18964 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource193` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L19069 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource193` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L19028 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource193` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L19063 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource194` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L19168 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource194` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L19127 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource194` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L19162 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource195` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L19267 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource195` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L19226 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource195` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L19261 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource196` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L19366 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource196` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L19325 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource196` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L19360 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource197` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L19465 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource197` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L19424 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource197` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L19459 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource198` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L19564 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource198` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L19523 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource198` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L19558 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource199` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L19663 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource199` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L19622 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource199` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L19657 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource2` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L160 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource2` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L119 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource2` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L154 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource20` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L1942 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource20` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L1901 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource20` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L1936 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource200` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L19762 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource200` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L19721 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource200` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L19756 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource201` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L19861 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource201` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L19820 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource201` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L19855 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource202` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L19960 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource202` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L19919 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource202` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L19954 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource203` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L20059 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource203` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L20018 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource203` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L20053 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource204` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L20158 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource204` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L20117 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource204` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L20152 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource205` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L20257 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource205` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L20216 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource205` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L20251 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource206` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L20356 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource206` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L20315 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource206` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L20350 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource207` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L20455 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource207` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L20414 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource207` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L20449 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource208` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L20554 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource208` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L20513 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource208` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L20548 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource209` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L20653 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource209` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L20612 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource209` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L20647 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource21` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L2041 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource21` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L2000 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource21` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L2035 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource210` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L20752 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource210` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L20711 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource210` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L20746 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource211` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L20851 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource211` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L20810 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource211` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L20845 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource212` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L20950 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource212` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L20909 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource212` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L20944 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource213` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L21049 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource213` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L21008 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource213` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L21043 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource214` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L21148 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource214` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L21107 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource214` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L21142 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource215` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L21247 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource215` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L21206 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource215` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L21241 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource216` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L21346 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource216` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L21305 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource216` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L21340 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource217` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L21445 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource217` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L21404 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource217` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L21439 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource218` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L21544 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource218` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L21503 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource218` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L21538 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource219` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L21643 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource219` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L21602 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource219` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L21637 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource22` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L2140 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource22` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L2099 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource22` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L2134 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource220` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L21742 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource220` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L21701 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource220` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L21736 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource221` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L21841 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource221` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L21800 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource221` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L21835 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource222` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L21940 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource222` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L21899 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource222` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L21934 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource223` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L22039 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource223` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L21998 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource223` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L22033 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource224` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L22138 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource224` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L22097 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource224` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L22132 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource225` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L22237 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource225` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L22196 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource225` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L22231 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource226` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L22336 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource226` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L22295 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource226` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L22330 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource227` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L22435 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource227` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L22394 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource227` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L22429 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource228` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L22534 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource228` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L22493 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource228` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L22528 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource229` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L22633 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource229` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L22592 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource229` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L22627 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource23` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L2239 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource23` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L2198 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource23` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L2233 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource230` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L22732 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource230` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L22691 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource230` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L22726 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource231` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L22831 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource231` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L22790 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource231` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L22825 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource232` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L22930 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource232` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L22889 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource232` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L22924 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource233` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L23029 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource233` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L22988 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource233` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L23023 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource234` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L23128 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource234` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L23087 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource234` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L23122 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource235` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L23227 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource235` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L23186 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource235` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L23221 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource236` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L23326 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource236` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L23285 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource236` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L23320 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource237` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L23425 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource237` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L23384 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource237` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L23419 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource238` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L23524 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource238` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L23483 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource238` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L23518 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource239` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L23623 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource239` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L23582 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource239` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L23617 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource24` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L2338 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource24` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L2297 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource24` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L2332 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource240` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L23722 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource240` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L23681 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource240` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L23716 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource241` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L23821 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource241` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L23780 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource241` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L23815 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource242` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L23920 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource242` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L23879 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource242` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L23914 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource243` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L24019 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource243` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L23978 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource243` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L24013 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource244` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L24118 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource244` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L24077 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource244` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L24112 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource245` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L24217 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource245` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L24176 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource245` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L24211 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource246` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L24316 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource246` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L24275 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource246` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L24310 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource247` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L24415 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource247` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L24374 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource247` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L24409 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource248` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L24514 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource248` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L24473 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource248` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L24508 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource249` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L24613 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource249` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L24572 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource249` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L24607 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource25` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L2437 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource25` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L2396 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource25` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L2431 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource250` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L24712 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource250` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L24671 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource250` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L24706 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource251` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L24811 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource251` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L24770 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource251` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L24805 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource252` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L24910 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource252` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L24869 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource252` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L24904 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource253` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L25009 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource253` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L24968 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource253` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L25003 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource254` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L25108 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource254` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L25067 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource254` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L25102 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource255` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L25207 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource255` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L25166 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource255` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L25201 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource256` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L25306 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource256` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L25265 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource256` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L25300 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource257` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L25405 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource257` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L25364 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource257` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L25399 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource258` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L25504 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource258` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L25463 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource258` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L25498 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource259` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L25603 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource259` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L25562 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource259` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L25597 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource26` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L2536 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource26` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L2495 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource26` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L2530 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource260` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L25702 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource260` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L25661 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource260` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L25696 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource261` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L25801 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource261` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L25760 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource261` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L25795 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource262` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L25900 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource262` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L25859 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource262` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L25894 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource263` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L25999 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource263` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L25958 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource263` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L25993 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource264` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L26098 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource264` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L26057 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource264` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L26092 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource265` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L26197 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource265` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L26156 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource265` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L26191 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource266` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L26296 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource266` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L26255 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource266` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L26290 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource267` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L26395 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource267` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L26354 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource267` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L26389 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource268` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L26494 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource268` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L26453 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource268` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L26488 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource269` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L26593 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource269` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L26552 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource269` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L26587 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource27` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L2635 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource27` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L2594 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource27` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L2629 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource270` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L26692 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource270` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L26651 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource270` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L26686 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource271` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L26791 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource271` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L26750 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource271` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L26785 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource272` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L26890 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource272` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L26849 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource272` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L26884 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource273` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L26989 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource273` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L26948 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource273` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L26983 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource274` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L27088 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource274` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L27047 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource274` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L27082 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource275` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L27187 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource275` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L27146 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource275` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L27181 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource276` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L27286 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource276` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L27245 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource276` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L27280 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource277` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L27385 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource277` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L27344 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource277` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L27379 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource278` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L27484 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource278` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L27443 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource278` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L27478 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource279` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L27583 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource279` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L27542 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource279` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L27577 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource28` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L2734 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource28` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L2693 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource28` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L2728 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource280` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L27682 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource280` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L27641 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource280` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L27676 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource281` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L27781 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource281` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L27740 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource281` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L27775 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource282` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L27880 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource282` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L27839 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource282` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L27874 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource283` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L27979 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource283` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L27938 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource283` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L27973 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource284` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L28078 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource284` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L28037 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource284` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L28072 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource285` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L28177 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource285` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L28136 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource285` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L28171 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource286` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L28276 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource286` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L28235 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource286` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L28270 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource287` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L28375 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource287` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L28334 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource287` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L28369 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource288` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L28474 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource288` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L28433 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource288` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L28468 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource289` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L28573 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource289` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L28532 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource289` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L28567 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource29` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L2833 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource29` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L2792 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource29` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L2827 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource290` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L28672 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource290` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L28631 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource290` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L28666 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource291` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L28771 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource291` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L28730 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource291` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L28765 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource292` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L28870 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource292` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L28829 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource292` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L28864 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource293` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L28969 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource293` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L28928 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource293` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L28963 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource294` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L29068 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource294` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L29027 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource294` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L29062 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource295` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L29167 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource295` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L29126 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource295` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L29161 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource296` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L29266 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource296` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L29225 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource296` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L29260 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource297` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L29365 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource297` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L29324 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource297` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L29359 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource298` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L29464 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource298` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L29423 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource298` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L29458 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource299` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L29563 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource299` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L29522 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource299` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L29557 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource3` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L259 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource3` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L218 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource3` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L253 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource30` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L2932 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource30` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L2891 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource30` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L2926 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource31` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L3031 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource31` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L2990 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource31` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L3025 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource32` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L3130 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource32` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L3089 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource32` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L3124 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource33` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L3229 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource33` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L3188 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource33` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L3223 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource34` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L3328 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource34` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L3287 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource34` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L3322 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource35` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L3427 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource35` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L3386 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource35` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L3421 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource36` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L3526 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource36` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L3485 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource36` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L3520 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource37` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L3625 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource37` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L3584 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource37` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L3619 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource38` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L3724 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource38` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L3683 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource38` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L3718 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource39` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L3823 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource39` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L3782 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource39` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L3817 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource4` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L358 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource4` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L317 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource4` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L352 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource40` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L3922 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource40` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L3881 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource40` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L3916 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource41` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L4021 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource41` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L3980 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource41` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L4015 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource42` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L4120 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource42` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L4079 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource42` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L4114 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource43` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L4219 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource43` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L4178 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource43` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L4213 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource44` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L4318 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource44` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L4277 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource44` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L4312 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource45` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L4417 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource45` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L4376 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource45` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L4411 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource46` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L4516 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource46` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L4475 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource46` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L4510 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource47` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L4615 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource47` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L4574 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource47` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L4609 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource48` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L4714 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource48` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L4673 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource48` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L4708 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource49` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L4813 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource49` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L4772 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource49` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L4807 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource5` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L457 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource5` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L416 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource5` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L451 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource50` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L4912 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource50` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L4871 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource50` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L4906 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource51` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L5011 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource51` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L4970 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource51` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L5005 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource52` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L5110 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource52` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L5069 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource52` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L5104 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource53` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L5209 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource53` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L5168 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource53` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L5203 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource54` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L5308 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource54` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L5267 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource54` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L5302 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource55` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L5407 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource55` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L5366 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource55` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L5401 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource56` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L5506 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource56` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L5465 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource56` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L5500 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource57` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L5605 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource57` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L5564 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource57` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L5599 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource58` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L5704 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource58` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L5663 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource58` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L5698 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource59` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L5803 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource59` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L5762 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource59` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L5797 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource6` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L556 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource6` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L515 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource6` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L550 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource60` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L5902 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource60` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L5861 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource60` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L5896 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource61` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L6001 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource61` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L5960 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource61` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L5995 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource62` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L6100 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource62` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L6059 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource62` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L6094 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource63` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L6199 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource63` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L6158 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource63` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L6193 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource64` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L6298 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource64` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L6257 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource64` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L6292 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource65` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L6397 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource65` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L6356 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource65` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L6391 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource66` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L6496 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource66` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L6455 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource66` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L6490 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource67` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L6595 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource67` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L6554 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource67` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L6589 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource68` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L6694 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource68` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L6653 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource68` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L6688 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource69` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L6793 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource69` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L6752 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource69` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L6787 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource7` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L655 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource7` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L614 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource7` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L649 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource70` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L6892 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource70` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L6851 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource70` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L6886 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource71` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L6991 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource71` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L6950 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource71` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L6985 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource72` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L7090 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource72` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L7049 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource72` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L7084 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource73` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L7189 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource73` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L7148 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource73` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L7183 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource74` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L7288 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource74` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L7247 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource74` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L7282 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource75` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L7387 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource75` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L7346 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource75` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L7381 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource76` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L7486 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource76` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L7445 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource76` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L7480 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource77` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L7585 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource77` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L7544 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource77` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L7579 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource78` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L7684 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource78` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L7643 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource78` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L7678 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource79` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L7783 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource79` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L7742 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource79` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L7777 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource8` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L754 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource8` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L713 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource8` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L748 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource80` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L7882 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource80` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L7841 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource80` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L7876 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource81` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L7981 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource81` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L7940 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource81` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L7975 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource82` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L8080 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource82` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L8039 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource82` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L8074 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource83` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L8179 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource83` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L8138 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource83` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L8173 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource84` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L8278 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource84` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L8237 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource84` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L8272 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource85` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L8377 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource85` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L8336 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource85` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L8371 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource86` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L8476 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource86` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L8435 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource86` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L8470 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource87` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L8575 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource87` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L8534 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource87` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L8569 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource88` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L8674 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource88` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L8633 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource88` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L8668 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource89` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L8773 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource89` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L8732 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource89` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L8767 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource9` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L853 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource9` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L812 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource9` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L847 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource90` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L8872 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource90` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L8831 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource90` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L8866 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource91` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L8971 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource91` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L8930 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource91` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L8965 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource92` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L9070 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource92` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L9029 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource92` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L9064 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource93` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L9169 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource93` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L9128 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource93` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L9163 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource94` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L9268 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource94` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L9227 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource94` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L9262 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource95` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L9367 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource95` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L9326 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource95` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L9361 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource96` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L9466 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource96` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L9425 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource96` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L9460 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource97` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L9565 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource97` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L9524 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource97` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L9559 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource98` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L9664 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource98` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L9623 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource98` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L9658 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource99` → `Metadata.AWS::CloudFormation::Init.config.files./configure_magento.sh.source.Fn::Sub` L9763 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource99` → `Metadata.AWS::CloudFormation::Init.config.files./etc/awslogs/awslogs.conf.content.Fn::Sub` L9722 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
-- **W1020** `Resource99` → `Metadata.AWS::CloudFormation::Init.config.files./install_magento.sh.source.Fn::Sub` L9757 in `bad_limit_size_yaml`
-  > 'Fn::Sub' isn't needed because there are no variables
 
 ### F3003 - 61 missed - Required Resource properties are missing
 
@@ -1968,92 +171,34 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **F3003** (cfn-lint: E3003) `MyApi` → `Properties` L8 in `lsp_test-template_yaml`
   > 'StageName' is a required property
 
-### I1022 - 42 missed - Use Sub instead of Join
+### W1030 - 13 missed - Validate the values that come from a Ref function
 
-- **I1022** `WatchmakerInstance` → `Metadata.AWS::CloudFormation::Init.make-app.commands.05-get-appscript.command.Fn::Join.0` L870 in `public_watchmaker_json`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `WatchmakerInstance` → `Metadata.AWS::CloudFormation::Init.make-app.commands.10-make-app.command.Fn::Join.0` L888 in `public_watchmaker_json`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `WatchmakerInstance` → `Metadata.AWS::CloudFormation::Init.setup.files./etc/cfn/cfn-hup.conf.content.Fn::Join.1.7.Fn::If.1.Fn::Join.0` L933 in `public_watchmaker_json`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `WatchmakerInstance` → `Metadata.AWS::CloudFormation::Init.setup.files./etc/cfn/cfn-hup.conf.content.Fn::Join.1.8.Fn::If.1.Fn::Join.0` L951 in `public_watchmaker_json`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `WatchmakerInstance` → `Metadata.AWS::CloudFormation::Init.setup.files./etc/cfn/hooks.d/cfn-auto-reloader.conf.content.Fn::Join.1.7.Fn::If.1.Fn::Join.0` L994 in `public_watchmaker_json`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `WatchmakerInstance` → `Metadata.AWS::CloudFormation::Init.setup.files./etc/cfn/hooks.d/cfn-auto-reloader.conf.content.Fn::Join.1.8.Fn::If.1.Fn::Join.0` L1011 in `public_watchmaker_json`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `WatchmakerInstance` → `Metadata.AWS::CloudFormation::Init.setup.files./etc/cfn/scripts/watchmaker-install.sh.content.Fn::Join.0` L1039 in `public_watchmaker_json`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `WatchmakerInstance` → `Metadata.AWS::CloudFormation::Init.watchmaker-launch.commands.10-watchmaker-launch.command.Fn::Join.1.3.Fn::If.1.Fn::Join.0` L1102 in `public_watchmaker_json`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `WatchmakerInstance` → `Metadata.AWS::CloudFormation::Init.watchmaker-launch.commands.10-watchmaker-launch.command.Fn::Join.1.4.Fn::If.1.Fn::Join.0` L1120 in `public_watchmaker_json`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `WatchmakerInstance` → `Metadata.AWS::CloudFormation::Init.watchmaker-launch.commands.10-watchmaker-launch.command.Fn::Join.1.5.Fn::If.1.Fn::Join.0` L1138 in `public_watchmaker_json`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `WatchmakerInstance` → `Metadata.AWS::CloudFormation::Init.watchmaker-launch.commands.10-watchmaker-launch.command.Fn::Join.1.6.Fn::If.1.Fn::Join.0` L1156 in `public_watchmaker_json`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `WatchmakerInstance` → `Metadata.AWS::CloudFormation::Init.watchmaker-launch.commands.10-watchmaker-launch.command.Fn::Join.1.7.Fn::If.1.Fn::Join.0` L1174 in `public_watchmaker_json`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `WatchmakerInstance` → `Metadata.AWS::CloudFormation::Init.watchmaker-launch.commands.10-watchmaker-launch.command.Fn::Join.1.8.Fn::If.1.Fn::Join.0` L1192 in `public_watchmaker_json`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `WatchmakerInstance` → `Metadata.AWS::CloudFormation::Init.watchmaker-update.commands.10-watchmaker-update.command.Fn::Join.1.4.Fn::If.1.Fn::Join.0` L1227 in `public_watchmaker_json`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `WatchmakerInstance` → `Metadata.AWS::CloudFormation::Init.watchmaker-update.commands.10-watchmaker-update.command.Fn::Join.1.5.Fn::If.1.Fn::Join.0` L1245 in `public_watchmaker_json`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `WatchmakerInstance` → `Metadata.AWS::CloudFormation::Init.watchmaker-update.commands.10-watchmaker-update.command.Fn::Join.1.6.Fn::If.1.Fn::Join.0` L1263 in `public_watchmaker_json`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `WatchmakerInstance` → `Metadata.AWS::CloudFormation::Init.watchmaker-update.commands.10-watchmaker-update.command.Fn::Join.1.7.Fn::If.1.Fn::Join.0` L1281 in `public_watchmaker_json`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `WatchmakerInstance` → `Metadata.AWS::CloudFormation::Init.watchmaker-update.commands.10-watchmaker-update.command.Fn::Join.1.8.Fn::If.1.Fn::Join.0` L1299 in `public_watchmaker_json`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `WatchmakerInstance` → `Metadata.AWS::CloudFormation::Init.watchmaker-update.commands.10-watchmaker-update.command.Fn::Join.1.9.Fn::If.1.Fn::Join.0` L1317 in `public_watchmaker_json`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `WatchmakerInstance` → `Properties.Tags.0.Value.Fn::Join.0` L1441 in `public_watchmaker_json`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `WatchmakerInstance` → `Properties.UserData.Fn::Base64.Fn::Join.1.88.Fn::If.1.Fn::Join.0` L1597 in `public_watchmaker_json`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `WatchmakerInstance` → `Properties.UserData.Fn::Base64.Fn::Join.1.89.Fn::If.1.Fn::Join.0` L1614 in `public_watchmaker_json`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `WatchmakerInstance` → `Properties.UserData.Fn::Base64.Fn::Join.1.98.Fn::If.1.Fn::Join.0` L1643 in `public_watchmaker_json`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `WatchmakerInstance` → `Properties.UserData.Fn::Base64.Fn::Join.1.99.Fn::If.1.Fn::Join.0` L1660 in `public_watchmaker_json`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `rAutoScalingConfigApp` → `Metadata.AWS::CloudFormation::Init.installDeepSecurityAgent.commands.0-download-DSA.command.Fn::Join.0` L245 in `quickstart_nist_application_yaml`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `rAutoScalingConfigApp` → `Metadata.AWS::CloudFormation::Init.installDeepSecurityAgent.commands.3-activate-DSA.command.Fn::Join.0` L256 in `quickstart_nist_application_yaml`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `rAutoScalingConfigApp` → `Metadata.AWS::CloudFormation::Init.install_cfn.files./etc/cfn/cfn-hup.conf.content.Fn::Join.0` L265 in `quickstart_nist_application_yaml`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `rAutoScalingConfigApp` → `Metadata.AWS::CloudFormation::Init.install_cfn.files./etc/cfn/hooks.d/cfn-auto-reloader.conf.content.Fn::Join.0` L285 in `quickstart_nist_application_yaml`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `rAutoScalingConfigApp` → `Metadata.AWS::CloudFormation::Init.install_wordpress.files./tmp/create-wp-config.content.Fn::Join.0` L325 in `quickstart_nist_application_yaml`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `rAutoScalingConfigApp` → `Properties.UserData.Fn::Base64.Fn::Join.0` L389 in `quickstart_nist_application_yaml`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `rAutoScalingConfigWeb` → `Metadata.AWS::CloudFormation::Init.installDeepSecurityAgent.commands.3-activate-DSA.command.Fn::Join.0` L442 in `quickstart_nist_application_yaml`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `rAutoScalingConfigWeb` → `Metadata.AWS::CloudFormation::Init.nginx.files./tmp/nginx/default.conf.content.Fn::Join.0` L451 in `quickstart_nist_application_yaml`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `rAutoScalingConfigWeb` → `Properties.UserData.Fn::Base64.Fn::Join.0` L521 in `quickstart_nist_application_yaml`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `rMgmtBastionInstance` → `Metadata.AWS::CloudFormation::Init.installDeepSecurityAgent.commands.3-activate-DSA.command.Fn::Join.0` L505 in `quickstart_nist_vpc_management_yaml`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `rMgmtBastionInstance` → `Properties.UserData.Fn::Base64.Fn::Join.0` L528 in `quickstart_nist_vpc_management_yaml`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `AnsibleConfigServer` → `Metadata.AWS::CloudFormation::Init.GetPublicKey.files./root/.ssh/public.key.content.Fn::Join.0` L305 in `quickstart_openshift_yaml`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `AnsibleConfigServer` → `Metadata.AWS::CloudFormation::Init.SetPrivateKey.files./root/.ssh/id_rsa.content.Fn::Join.0` L328 in `quickstart_openshift_yaml`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `OpenShiftEtcdLaunchConfig` → `Metadata.AWS::CloudFormation::Init.GetPublicKey.files./root/.ssh/public.key.content.Fn::Join.0` L873 in `quickstart_openshift_yaml`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `OpenShiftMasterASLaunchConfig` → `Metadata.AWS::CloudFormation::Init.GetPublicKey.files./root/.ssh/public.key.content.Fn::Join.0` L1098 in `quickstart_openshift_yaml`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `OpenShiftNodesLaunchConfig` → `Metadata.AWS::CloudFormation::Init.GetPublicKey.files./root/.ssh/public.key.content.Fn::Join.0` L1427 in `quickstart_openshift_yaml`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `rMgmtBastionInstance` → `Metadata.AWS::CloudFormation::Init.installDeepSecurityAgent.commands.3-activate-DSA.command.Fn::Join.0` L706 in `quickstart_vpc-management_json`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `rMgmtBastionInstance` → `Properties.UserData.Fn::Base64.Fn::Join.0` L660 in `quickstart_vpc-management_json`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
+- **W1030** `Bucket` → `Properties.BucketName.Ref` L14 in `bad_W9006_every_allowed_value_too_long_json`
+  > {'Ref': 'BucketNameChoice'} is longer than 63 when 'Ref' is resolved
+- **W1030** `Bucket` → `Properties.BucketName.Ref` L14 in `bad_W9006_every_allowed_value_too_long_json`
+  > {'Ref': 'BucketNameChoice'} is not a 'AWS::S3::Bucket.Name' with pattern '^(?![.\\-])(?!.*\\.\\.)(?!.*\\-\\.)(?!.*\\.\\-)[a-z0-9.\\-]{3,63}(?<![.\\-])$' when 'Ref' is resolved
+- **W1030** `StackIdPolicies` → `DeletionPolicy.Ref` L34 in `bad_lifecycle_conditional_invalid_policies_yaml`
+  > {'Ref': 'AWS::StackId'} is not one of ['Delete', 'Retain', 'RetainExceptOnCreate'] when 'Ref' is resolved
+- **W1030** `StackIdPolicies` → `UpdateReplacePolicy.Ref` L35 in `bad_lifecycle_conditional_invalid_policies_yaml`
+  > {'Ref': 'AWS::StackId'} is not one of ['Delete', 'Retain'] when 'Ref' is resolved
+- **W1030** `PolicyDynamicActionBadEffect` → `Properties.PolicyDocument.Statement.0.Action.Ref` L82 in `bad_resources_iam_identity_policy_e3510_yaml`
+  > 'arn' is not one of ['a2c', 'a4b', 'access-analyzer', 'account', 'account-access', 'acm', 'acm-pca', 'aco-automation', 'action-recommendations', 'activate', 'agent-registry', 'agentaccess-mcp', 'aidev
+- **W1030** `ParameterUsername` → `Properties.MasterUsername.Ref` L13 in `good_resources_rds_not_enum_master_username_parameter_yaml`
+  > {'Ref': 'DatabaseUser'} should not be valid under {'enum': [{'Ref': 'DatabaseUser'}]} when 'Ref' is resolved
+- **W1030** `rNatInstanceEni` → `Properties.GroupSet.0.Ref` L82 in `quickstart_nat-instance_json`
+  > {'Ref': 'pSecurityGroupSSHFromVpc'} is not a 'AWS::EC2::SecurityGroup.Id' with pattern '^sg-([a-fA-F0-9]{8}|[a-fA-F0-9]{17})$' when 'Ref' is resolved
+- **W1030** `rNatInstanceEni` → `Properties.GroupSet.1.Ref` L84 in `quickstart_nat-instance_json`
+  > {'Ref': 'pSecurityGroupVpcNat'} is not a 'AWS::EC2::SecurityGroup.Id' with pattern '^sg-([a-fA-F0-9]{8}|[a-fA-F0-9]{17})$' when 'Ref' is resolved
+- **W1030** `rNatInstanceEni` → `Properties.SubnetId.Ref` L79 in `quickstart_nat-instance_json`
+  > {'Ref': 'pDMZSubnetA'} is not a 'AWS::EC2::Subnet.Id' with pattern '^[\\.\\-_\\/#A-Za-z0-9]{1,512}\\Z' when 'Ref' is resolved
+- **W1030** `rNatInstanceEni` → `Properties.SubnetId.Ref` L79 in `quickstart_nat-instance_json`
+  > {'Ref': 'pDMZSubnetA'} is not a 'AWS::EC2::Subnet.Id' with pattern '^subnet-(([0-9A-Fa-f]{8})|([0-9A-Fa-f]{17}))$' when 'Ref' is resolved
+- **W1030** → `Parameters.pSecurityAlarmTopic.Default` L198 in `quickstart_nist_application_yaml`
+  > {'Ref': 'pSecurityAlarmTopic'} does not match '^(arn:(aws[A-Za-z\\-]*?|\\*):[^:]+:[^:]*(:(?:\\d{12}|\\*|aws)?:.+|)|\\*)$' when 'Ref' is resolved at 'Resources/rPostProcInstanceRole/Properties/Policies
+- **W1030** `rAutoScalingConfigApp` → `Properties.KeyName.Ref` L383 in `quickstart_nist_application_yaml`
+  > {'Ref': 'pEC2KeyPair'} is shorter than 1 when 'Ref' is resolved
+- **W1030** `rAutoScalingConfigWeb` → `Properties.KeyName.Ref` L515 in `quickstart_nist_application_yaml`
+  > {'Ref': 'pEC2KeyPair'} is shorter than 1 when 'Ref' is resolved
 
 ### W1031 - 12 missed - Validate the values that come from a Fn::Sub function
 
@@ -2082,53 +227,53 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **W1031** `Bucket7` → `Properties.BucketName.Fn::Sub` L64 in `lsp_parameter_usage_yaml`
   > {'Fn::Sub': 'Bucket-${AWS::Region}'} is not a 'AWS::S3::Bucket.Name' with pattern '^(?![.\\-])(?!.*\\.\\.)(?!.*\\-\\.)(?!.*\\.\\-)[a-z0-9.\\-]{3,63}(?<![.\\-])$' when 'Fn::Sub' is resolved
 
-### F3014 - 11 missed - Validate only one of a set of required properties are specified
+### F3016 - 11 missed - Check DeletionPolicy values for Resources
 
-- **F3014** (cfn-lint: E3014) `myInstance2` → `Properties.BlockDeviceMappings.Fn::If.2.0.Fn::If.1.Ebs` L47 in `bad_core_conditions_yaml`
-  > Only one of ['VirtualName', 'Ebs', 'NoDevice'] is a required property
-- **F3014** (cfn-lint: E3014) `myInstance2` → `Properties.BlockDeviceMappings.Fn::If.2.0.Fn::If.1.VirtualName` L46 in `bad_core_conditions_yaml`
-  > Only one of ['VirtualName', 'Ebs', 'NoDevice'] is a required property
-- **F3014** (cfn-lint: E3014) `mySecurityGroupVpc` → `Properties.SecurityGroupIngress.1.CidrIp` L39 in `bad_properties_sg_ingress_yaml`
-  > Only one of ['CidrIp', 'CidrIpv6', 'SourcePrefixListId', 'SourceSecurityGroupId', 'SourceSecurityGroupName'] is a required property
-- **F3014** (cfn-lint: E3014) `mySecurityGroupVpc` → `Properties.SecurityGroupIngress.1.SourceSecurityGroupId` L40 in `bad_properties_sg_ingress_yaml`
-  > Only one of ['CidrIp', 'CidrIpv6', 'SourcePrefixListId', 'SourceSecurityGroupId', 'SourceSecurityGroupName'] is a required property
-- **F3014** (cfn-lint: E3014) `mySecurityGroupVpc` → `Properties.SecurityGroupIngress.4.CidrIp` L50 in `bad_properties_sg_ingress_yaml`
-  > Only one of ['CidrIp', 'CidrIpv6', 'SourcePrefixListId', 'SourceSecurityGroupId', 'SourceSecurityGroupName'] is a required property
-- **F3014** (cfn-lint: E3014) `mySecurityGroupVpc` → `Properties.SecurityGroupIngress.4.SourceSecurityGroupId` L49 in `bad_properties_sg_ingress_yaml`
-  > Only one of ['CidrIp', 'CidrIpv6', 'SourcePrefixListId', 'SourceSecurityGroupId', 'SourceSecurityGroupName'] is a required property
-- **F3014** (cfn-lint: E3014) `Policy` → `Properties.ScalingTargetId` L16 in `bad_schema_required_xor_conditional_yaml`
-  > Only one of ['ScalingTargetId', 'ResourceId'] is a required property
-- **F3014** (cfn-lint: E3014) `ScalingPolicyBothIds` → `Properties.ScalingTargetId` L28 in `bad_schema_structural_yaml`
-  > Only one of ['ScalingTargetId', 'ResourceId'] is a required property
-- **F3014** (cfn-lint: E3014) `PromAlarm` → `Properties` L5 in `gh-issues_issue-67_json`
-  > Only one of ['Metrics', 'MetricName'] is a required property
-- **F3014** (cfn-lint: E3014) `myInstance2` → `Properties.BlockDeviceMappings.Fn::If.2.0.Fn::If.1.Ebs` L49 in `good_core_conditions_yaml`
-  > Only one of ['VirtualName', 'Ebs', 'NoDevice'] is a required property
-- **F3014** (cfn-lint: E3014) `myInstance2` → `Properties.BlockDeviceMappings.Fn::If.2.0.Fn::If.1.VirtualName` L48 in `good_core_conditions_yaml`
-  > Only one of ['VirtualName', 'Ebs', 'NoDevice'] is a required property
+- **F3016** (cfn-lint: E3035) `DynamicObjectPolicy` → `DeletionPolicy` L44 in `bad_lifecycle_conditional_invalid_policies_yaml`
+  > {'Value': {'Ref': 'Policy'}} is not one of ['Delete', 'Retain', 'RetainExceptOnCreate']
+- **F3016** (cfn-lint: E3035) `ListPolicies` → `DeletionPolicy` L18 in `bad_lifecycle_policy_shapes_yaml`
+  > ['Retain'] is not one of ['Delete', 'Retain', 'RetainExceptOnCreate']
+- **F3016** (cfn-lint: E3035) `ObjectPolicies` → `DeletionPolicy` L23 in `bad_lifecycle_policy_shapes_yaml`
+  > {'Value': 'Retain'} is not one of ['Delete', 'Retain', 'RetainExceptOnCreate']
+- **F3016** (cfn-lint: E3035) `InvalidMapping` → `DeletionPolicy` L43 in `bad_resources_deletionpolicy_yaml`
+  > {'A': 'a1', 'B': ['b1', 'b2']} is not one of ['Delete', 'Retain', 'RetainExceptOnCreate', 'Snapshot']
+- **F3016** (cfn-lint: E3035) `PolicyList` → `DeletionPolicy` L16 in `bad_resources_deletionpolicy_yaml`
+  > ['Snapshot', 'Retain'] is not one of ['Delete', 'Retain', 'RetainExceptOnCreate', 'Snapshot']
+- **F3016** (cfn-lint: E3035) `UnsupportedIntrinsic` → `DeletionPolicy` L32 in `bad_resources_deletionpolicy_yaml`
+  > {'Fn::Cidr': ['192.168.0.0/24', 6, 5]} is not one of ['Delete', 'Retain', 'RetainExceptOnCreate']
+- **F3016** (cfn-lint: E3035) `CorrelatedConditionalPolicies` → `DeletionPolicy.Fn::If.2` L88 in `good_lifecycle_intrinsic_scenarios_yaml`
+  > 'InvalidDeletion' is not one of ['Delete', 'Retain', 'RetainExceptOnCreate']
+- **F3016** (cfn-lint: E3035) `ImpossibleBranchPolicies` → `DeletionPolicy.Fn::If.1` L93 in `good_lifecycle_intrinsic_scenarios_yaml`
+  > 'InvalidDeletion' is not one of ['Delete', 'Retain', 'RetainExceptOnCreate']
+- **F3016** (cfn-lint: E3035) `ImpossibleResourcePolicies` → `DeletionPolicy` L99 in `good_lifecycle_intrinsic_scenarios_yaml`
+  > 'InvalidDeletion' is not one of ['Delete', 'Retain', 'RetainExceptOnCreate']
+- **F3016** (cfn-lint: E3035) `JoinPolicies` → `DeletionPolicy` L82 in `good_lifecycle_intrinsic_scenarios_yaml`
+  > {'Fn::Join': ['t', ['Re', 'ain']]} is not of type 'string'
+- **F3016** (cfn-lint: E3035) `JoinPolicies` → `DeletionPolicy` L82 in `good_lifecycle_intrinsic_scenarios_yaml`
+  > {'Fn::Join': ['t', ['Re', 'ain']]} is not one of ['Delete', 'Retain', 'RetainExceptOnCreate']
 
-### W1030 - 10 missed - Validate the values that come from a Ref function
+### F0018 - 10 missed - Check UpdateReplacePolicy values for Resources
 
-- **W1030** `Bucket` → `Properties.BucketName.Ref` L14 in `bad_W9006_every_allowed_value_too_long_json`
-  > {'Ref': 'BucketNameChoice'} is longer than 63 when 'Ref' is resolved
-- **W1030** `Bucket` → `Properties.BucketName.Ref` L14 in `bad_W9006_every_allowed_value_too_long_json`
-  > {'Ref': 'BucketNameChoice'} is not a 'AWS::S3::Bucket.Name' with pattern '^(?![.\\-])(?!.*\\.\\.)(?!.*\\-\\.)(?!.*\\.\\-)[a-z0-9.\\-]{3,63}(?<![.\\-])$' when 'Ref' is resolved
-- **W1030** `PolicyDynamicActionBadEffect` → `Properties.PolicyDocument.Statement.0.Action.Ref` L82 in `bad_resources_iam_identity_policy_e3510_yaml`
-  > 'arn' is not one of ['a2c', 'a4b', 'access-analyzer', 'account', 'acm', 'acm-pca', 'aco-automation', 'action-recommendations', 'activate', 'agentaccess-mcp', 'aidevops', 'aiops', 'airflow', 'airflow-s
-- **W1030** `rNatInstanceEni` → `Properties.GroupSet.0.Ref` L82 in `quickstart_nat-instance_json`
-  > {'Ref': 'pSecurityGroupSSHFromVpc'} is not a 'AWS::EC2::SecurityGroup.Id' with pattern '^sg-([a-fA-F0-9]{8}|[a-fA-F0-9]{17})$' when 'Ref' is resolved
-- **W1030** `rNatInstanceEni` → `Properties.GroupSet.1.Ref` L84 in `quickstart_nat-instance_json`
-  > {'Ref': 'pSecurityGroupVpcNat'} is not a 'AWS::EC2::SecurityGroup.Id' with pattern '^sg-([a-fA-F0-9]{8}|[a-fA-F0-9]{17})$' when 'Ref' is resolved
-- **W1030** `rNatInstanceEni` → `Properties.SubnetId.Ref` L79 in `quickstart_nat-instance_json`
-  > {'Ref': 'pDMZSubnetA'} is not a 'AWS::EC2::Subnet.Id' with pattern '^[\\.\\-_\\/#A-Za-z0-9]{1,512}\\Z' when 'Ref' is resolved
-- **W1030** `rNatInstanceEni` → `Properties.SubnetId.Ref` L79 in `quickstart_nat-instance_json`
-  > {'Ref': 'pDMZSubnetA'} is not a 'AWS::EC2::Subnet.Id' with pattern '^subnet-(([0-9A-Fa-f]{8})|([0-9A-Fa-f]{17}))$' when 'Ref' is resolved
-- **W1030** → `Parameters.pSecurityAlarmTopic.Default` L198 in `quickstart_nist_application_yaml`
-  > {'Ref': 'pSecurityAlarmTopic'} does not match '^(arn:(aws[A-Za-z\\-]*?|\\*):[^:]+:[^:]*(:(?:\\d{12}|\\*|aws)?:.+|)|\\*)$' when 'Ref' is resolved at 'Resources/rPostProcInstanceRole/Properties/Policies
-- **W1030** `rAutoScalingConfigApp` → `Properties.KeyName.Ref` L383 in `quickstart_nist_application_yaml`
-  > {'Ref': 'pEC2KeyPair'} is shorter than 1 when 'Ref' is resolved
-- **W1030** `rAutoScalingConfigWeb` → `Properties.KeyName.Ref` L515 in `quickstart_nist_application_yaml`
-  > {'Ref': 'pEC2KeyPair'} is shorter than 1 when 'Ref' is resolved
+- **F0018** (cfn-lint: E3036) `ListPolicies` → `UpdateReplacePolicy` L19 in `bad_lifecycle_policy_shapes_yaml`
+  > ['Retain'] is not one of ['Delete', 'Retain']
+- **F0018** (cfn-lint: E3036) `ObjectPolicies` → `UpdateReplacePolicy` L25 in `bad_lifecycle_policy_shapes_yaml`
+  > {'Value': 'Retain'} is not one of ['Delete', 'Retain']
+- **F0018** (cfn-lint: E3036) `InvalidMapping` → `UpdateReplacePolicy` L43 in `bad_resources_updatereplacepolicy_yaml`
+  > {'A': 'a1', 'B': ['b1', 'b2']} is not one of ['Delete', 'Retain', 'Snapshot']
+- **F0018** (cfn-lint: E3036) `PolicyList` → `UpdateReplacePolicy` L16 in `bad_resources_updatereplacepolicy_yaml`
+  > ['Snapshot', 'Retain'] is not one of ['Delete', 'Retain', 'Snapshot']
+- **F0018** (cfn-lint: E3036) `UnsupportedIntrinsic` → `UpdateReplacePolicy` L32 in `bad_resources_updatereplacepolicy_yaml`
+  > {'Fn::Cidr': ['192.168.0.0/24', 6, 5]} is not one of ['Delete', 'Retain']
+- **F0018** (cfn-lint: E3036) `CorrelatedConditionalPolicies` → `UpdateReplacePolicy.Fn::If.2` L89 in `good_lifecycle_intrinsic_scenarios_yaml`
+  > 'InvalidReplacement' is not one of ['Delete', 'Retain']
+- **F0018** (cfn-lint: E3036) `ImpossibleBranchPolicies` → `UpdateReplacePolicy.Fn::If.1` L94 in `good_lifecycle_intrinsic_scenarios_yaml`
+  > 'InvalidReplacement' is not one of ['Delete', 'Retain']
+- **F0018** (cfn-lint: E3036) `ImpossibleResourcePolicies` → `UpdateReplacePolicy` L100 in `good_lifecycle_intrinsic_scenarios_yaml`
+  > 'InvalidReplacement' is not one of ['Delete', 'Retain']
+- **F0018** (cfn-lint: E3036) `JoinPolicies` → `UpdateReplacePolicy` L83 in `good_lifecycle_intrinsic_scenarios_yaml`
+  > {'Fn::Join': ['t', ['Dele', 'e']]} is not of type 'string'
+- **F0018** (cfn-lint: E3036) `JoinPolicies` → `UpdateReplacePolicy` L83 in `good_lifecycle_intrinsic_scenarios_yaml`
+  > {'Fn::Join': ['t', ['Dele', 'e']]} is not one of ['Delete', 'Retain']
 
 ### F0000 - 9 missed - Parsing error found when parsing the template
 
@@ -2153,27 +298,6 @@ but found another document
   > Template needs to be an object.
 - **F0000** (cfn-lint: E0000) L12 in `bad_template_yaml`
   > did not find expected key
-
-### F3016 - 9 missed - Check DeletionPolicy values for Resources
-
-- **F3016** (cfn-lint: E3035) `DynamicObjectPolicy` → `DeletionPolicy` L40 in `bad_lifecycle_conditional_invalid_policies_yaml`
-  > {'Value': {'Ref': 'Policy'}} is not one of ['Delete', 'Retain', 'RetainExceptOnCreate']
-- **F3016** (cfn-lint: E3035) `ListPolicies` → `DeletionPolicy` L10 in `bad_lifecycle_policy_shapes_yaml`
-  > ['Retain'] is not one of ['Delete', 'Retain', 'RetainExceptOnCreate']
-- **F3016** (cfn-lint: E3035) `ObjectPolicies` → `DeletionPolicy` L15 in `bad_lifecycle_policy_shapes_yaml`
-  > {'Value': 'Retain'} is not one of ['Delete', 'Retain', 'RetainExceptOnCreate']
-- **F3016** (cfn-lint: E3035) `InvalidMapping` → `DeletionPolicy` L44 in `bad_resources_deletionpolicy_yaml`
-  > {'A': 'a1', 'B': ['b1', 'b2']} is not one of ['Delete', 'Retain', 'RetainExceptOnCreate', 'Snapshot']
-- **F3016** (cfn-lint: E3035) `PolicyList` → `DeletionPolicy` L17 in `bad_resources_deletionpolicy_yaml`
-  > ['Snapshot', 'Retain'] is not one of ['Delete', 'Retain', 'RetainExceptOnCreate', 'Snapshot']
-- **F3016** (cfn-lint: E3035) `UnsupportedIntrinsic` → `DeletionPolicy` L33 in `bad_resources_deletionpolicy_yaml`
-  > {'Fn::Cidr': ['192.168.0.0/24', 6, 5]} is not one of ['Delete', 'Retain', 'RetainExceptOnCreate']
-- **F3016** (cfn-lint: E3035) `CorrelatedConditionalPolicies` → `DeletionPolicy.Fn::If.2` L50 in `good_lifecycle_intrinsic_scenarios_yaml`
-  > 'InvalidDeletion' is not one of ['Delete', 'Retain', 'RetainExceptOnCreate']
-- **F3016** (cfn-lint: E3035) `ImpossibleBranchPolicies` → `DeletionPolicy.Fn::If.1` L55 in `good_lifecycle_intrinsic_scenarios_yaml`
-  > 'InvalidDeletion' is not one of ['Delete', 'Retain', 'RetainExceptOnCreate']
-- **F3016** (cfn-lint: E3035) `ImpossibleResourcePolicies` → `DeletionPolicy` L61 in `good_lifecycle_intrinsic_scenarios_yaml`
-  > 'InvalidDeletion' is not one of ['Delete', 'Retain', 'RetainExceptOnCreate']
 
 ### E0002 - 8 missed - Error processing rule on the template
 
@@ -2212,25 +336,6 @@ but found another document
   > Nested stack template parameter "Two" is not specified at Resources/StackNormal/Properties/Parameters
 - **E3043** `StackNormal` → `Properties.Parameters.Three` L12 in `bad_resources_cloudformation_stacks_yaml`
   > Specified parameter "Three" doesn't exist in nested stack template at Resources/StackNormal/Properties/Parameters/Three
-
-### F0018 - 8 missed - Check UpdateReplacePolicy values for Resources
-
-- **F0018** (cfn-lint: E3036) `ListPolicies` → `UpdateReplacePolicy` L11 in `bad_lifecycle_policy_shapes_yaml`
-  > ['Retain'] is not one of ['Delete', 'Retain']
-- **F0018** (cfn-lint: E3036) `ObjectPolicies` → `UpdateReplacePolicy` L17 in `bad_lifecycle_policy_shapes_yaml`
-  > {'Value': 'Retain'} is not one of ['Delete', 'Retain']
-- **F0018** (cfn-lint: E3036) `InvalidMapping` → `UpdateReplacePolicy` L44 in `bad_resources_updatereplacepolicy_yaml`
-  > {'A': 'a1', 'B': ['b1', 'b2']} is not one of ['Delete', 'Retain', 'Snapshot']
-- **F0018** (cfn-lint: E3036) `PolicyList` → `UpdateReplacePolicy` L17 in `bad_resources_updatereplacepolicy_yaml`
-  > ['Snapshot', 'Retain'] is not one of ['Delete', 'Retain', 'Snapshot']
-- **F0018** (cfn-lint: E3036) `UnsupportedIntrinsic` → `UpdateReplacePolicy` L33 in `bad_resources_updatereplacepolicy_yaml`
-  > {'Fn::Cidr': ['192.168.0.0/24', 6, 5]} is not one of ['Delete', 'Retain']
-- **F0018** (cfn-lint: E3036) `CorrelatedConditionalPolicies` → `UpdateReplacePolicy.Fn::If.2` L51 in `good_lifecycle_intrinsic_scenarios_yaml`
-  > 'InvalidReplacement' is not one of ['Delete', 'Retain']
-- **F0018** (cfn-lint: E3036) `ImpossibleBranchPolicies` → `UpdateReplacePolicy.Fn::If.1` L56 in `good_lifecycle_intrinsic_scenarios_yaml`
-  > 'InvalidReplacement' is not one of ['Delete', 'Retain']
-- **F0018** (cfn-lint: E3036) `ImpossibleResourcePolicies` → `UpdateReplacePolicy` L62 in `good_lifecycle_intrinsic_scenarios_yaml`
-  > 'InvalidReplacement' is not one of ['Delete', 'Retain']
 
 ### F2015 - 8 missed - Default value is within parameter constraints
 
@@ -2287,6 +392,23 @@ but found another document
 - **E1021** `LaunchConfiguration` → `Properties.UserData.Fn::Base64.Fn::Sub` L27 in `good_parameters_used_transforms_yaml`
   > {'Fn::Transform': {'Name': 'DynamicUserData'}} is not of type 'array', 'string'
 
+### F3014 - 7 missed - Validate only one of a set of required properties are specified
+
+- **F3014** (cfn-lint: E3014) `myInstance2` → `Properties.BlockDeviceMappings.Fn::If.2.0.Fn::If.1.VirtualName` L46 in `bad_core_conditions_yaml`
+  > Only one of ['VirtualName', 'Ebs', 'NoDevice'] is a required property
+- **F3014** (cfn-lint: E3014) `mySecurityGroupVpc` → `Properties.SecurityGroupIngress.4.CidrIp` L50 in `bad_properties_sg_ingress_yaml`
+  > Only one of ['CidrIp', 'CidrIpv6', 'SourcePrefixListId', 'SourceSecurityGroupId', 'SourceSecurityGroupName'] is a required property
+- **F3014** (cfn-lint: E3014) `mySecurityGroupVpc` → `Properties.SecurityGroupIngress.4.SourceSecurityGroupId` L49 in `bad_properties_sg_ingress_yaml`
+  > Only one of ['CidrIp', 'CidrIpv6', 'SourcePrefixListId', 'SourceSecurityGroupId', 'SourceSecurityGroupName'] is a required property
+- **F3014** (cfn-lint: E3014) `Policy` → `Properties.ScalingTargetId` L16 in `bad_schema_required_xor_conditional_yaml`
+  > Only one of ['ScalingTargetId', 'ResourceId'] is a required property
+- **F3014** (cfn-lint: E3014) `ScalingPolicyBothIds` → `Properties.ScalingTargetId` L28 in `bad_schema_structural_yaml`
+  > Only one of ['ScalingTargetId', 'ResourceId'] is a required property
+- **F3014** (cfn-lint: E3014) `PromAlarm` → `Properties` L5 in `gh-issues_issue-67_json`
+  > Only one of ['Metrics', 'MetricName'] is a required property
+- **F3014** (cfn-lint: E3014) `myInstance2` → `Properties.BlockDeviceMappings.Fn::If.2.0.Fn::If.1.VirtualName` L48 in `good_core_conditions_yaml`
+  > Only one of ['VirtualName', 'Ebs', 'NoDevice'] is a required property
+
 ### W1001 - 7 missed - Ref/GetAtt to resource that is available when conditions are applied
 
 - **W1001** `AMIIDLookup` → `Properties.Role.Fn::If.1` L102 in `bad_core_conditions_yaml`
@@ -2295,13 +417,13 @@ but found another document
   > Ref to resource 'mySubnet' that may not be available when condition 'isPrimaryAndProduction' is False and when condition 'isDevelopment' is True at Resources/myInstance1/Properties/SubnetId/Fn::If/1
 - **W1001** `myInstance1` → `Properties.SubnetId.Fn::If.1` L30 in `good_core_conditions_yaml`
   > Ref to resource 'mySubnet' that may not be available when condition 'isPrimaryAndProduction' is False and when condition 'isDevelopment' is True at Resources/myInstance1/Properties/SubnetId/Fn::If/1
-- **W1001** `AutoScalingGroup` → `Properties.VPCZoneIdentifier.0.Fn::If.1` L587-589 in `lsp_comprehensive_json`
+- **W1001** `AutoScalingGroup` → `Properties.VPCZoneIdentifier.0.Fn::If.1` L586-588 in `lsp_comprehensive_json`
   > Ref to resource 'PublicSubnet' that may not be available when condition 'IsProductionOrStaging' is False and when condition 'HasMultipleAZs' is True at Resources/AutoScalingGroup/Properties/VPCZoneIde
-- **W1001** `AutoScalingGroup` → `Properties.VPCZoneIdentifier.0.Fn::If.2` L590-592 in `lsp_comprehensive_json`
+- **W1001** `AutoScalingGroup` → `Properties.VPCZoneIdentifier.0.Fn::If.2` L589-591 in `lsp_comprehensive_json`
   > Ref to resource 'PublicSubnet' that may not be available when condition 'IsProductionOrStaging' is False and when condition 'HasMultipleAZs' is False at Resources/AutoScalingGroup/Properties/VPCZoneId
-- **W1001** `AutoScalingGroup` → `Properties.VPCZoneIdentifier.0.Fn::If.1` L244 in `lsp_comprehensive_yaml`
+- **W1001** `AutoScalingGroup` → `Properties.VPCZoneIdentifier.0.Fn::If.1` L243 in `lsp_comprehensive_yaml`
   > Ref to resource 'PublicSubnet' that may not be available when condition 'IsProductionOrStaging' is False and when condition 'HasMultipleAZs' is True at Resources/AutoScalingGroup/Properties/VPCZoneIde
-- **W1001** `AutoScalingGroup` → `Properties.VPCZoneIdentifier.0.Fn::If.2` L244 in `lsp_comprehensive_yaml`
+- **W1001** `AutoScalingGroup` → `Properties.VPCZoneIdentifier.0.Fn::If.2` L243 in `lsp_comprehensive_yaml`
   > Ref to resource 'PublicSubnet' that may not be available when condition 'IsProductionOrStaging' is False and when condition 'HasMultipleAZs' is False at Resources/AutoScalingGroup/Properties/VPCZoneId
 
 ### E3530 - 6 missed - Validate IAM trust polices
@@ -2412,6 +534,32 @@ but found another document
 - **F3006** (cfn-lint: E3006) `UnbundledAmznType` → `Type` L14 in `good_unknown_resource_types_ignored_yaml`
   > Resource type 'AMZN::Internal::UnbundledType' does not exist in 'us-east-1'
 
+### W1028 - 5 missed - Check Fn::If has a path that cannot be reached
+
+- **W1028** `conditionLoadBalancer` → `Properties.Fn::If.1.Listeners.0.Fn::If.2` L161-164 in `bad_generic_yaml`
+  > ['Fn::If', 2] is not reachable. When setting condition 'IsProduction' to False from current status True
+- **W1028** `conditionLoadBalancer` → `Properties.Fn::If.1.Tags.0.Fn::If.2` L178-180 in `bad_generic_yaml`
+  > ['Fn::If', 2] is not reachable. When setting condition 'IsProduction' to False from current status True
+- **W1028** `ImpossibleBranchPolicies` → `DeletionPolicy.Fn::If.1` L93 in `good_lifecycle_intrinsic_scenarios_yaml`
+  > ['Fn::If', 1] is not reachable. When setting condition 'Never' to True
+- **W1028** `ImpossibleBranchPolicies` → `UpdateReplacePolicy.Fn::If.1` L94 in `good_lifecycle_intrinsic_scenarios_yaml`
+  > ['Fn::If', 1] is not reachable. When setting condition 'Never' to True
+- **W1028** `ImpossibleCreationPolicyBranch` → `CreationPolicy.Fn::If.1` L49 in `good_lifecycle_intrinsic_scenarios_yaml`
+  > ['Fn::If', 1] is not reachable. When setting condition 'Never' to True
+
+### W1032 - 5 missed - Validate the values that come from a Fn::Join function
+
+- **W1032** `JoinedUsername` → `Properties.MasterUsername.Fn::Join` L9 in `bad_resources_rds_not_enum_master_username_join_yaml`
+  > {'Fn::Join': ['', ['rds', 'admin']]} should not be valid under {'enum': [{'Fn::Join': ['', ['rds', 'admin']]}]} when 'Fn::Join' is resolved
+- **W1032** `Bucket2` → `Properties.BucketName.Fn::Join` L42 in `lsp_parameter_usage_json`
+  > {'Fn::Join': ['-', [{'Ref': 'AWS::Region'}, 'bucketName']]} does not match '^([a-z0-9][a-z0-9.-]*[a-z0-9])?$' when 'Fn::Join' is resolved
+- **W1032** `Bucket2` → `Properties.BucketName.Fn::Join` L42 in `lsp_parameter_usage_json`
+  > {'Fn::Join': ['-', [{'Ref': 'AWS::Region'}, 'bucketName']]} is not a 'AWS::S3::Bucket.Name' with pattern '^(?![.\\-])(?!.*\\.\\.)(?!.*\\-\\.)(?!.*\\.\\-)[a-z0-9.\\-]{3,63}(?<![.\\-])$' when 'Fn::Join'
+- **W1032** `Bucket3` → `Properties.BucketName.Fn::Join` L42 in `lsp_parameter_usage_yaml`
+  > {'Fn::Join': ['-', [{'Ref': 'AWS::Region'}, 'bucketName']]} does not match '^([a-z0-9][a-z0-9.-]*[a-z0-9])?$' when 'Fn::Join' is resolved
+- **W1032** `Bucket3` → `Properties.BucketName.Fn::Join` L42 in `lsp_parameter_usage_yaml`
+  > {'Fn::Join': ['-', [{'Ref': 'AWS::Region'}, 'bucketName']]} is not a 'AWS::S3::Bucket.Name' with pattern '^(?![.\\-])(?!.*\\.\\.)(?!.*\\-\\.)(?!.*\\.\\-)[a-z0-9.\\-]{3,63}(?<![.\\-])$' when 'Fn::Join'
+
 ### E2001 - 4 missed - Parameters have appropriate properties
 
 - **E2001** → `Parameters.NullParamType` L35 in `bad_parameters_configuration_yaml`
@@ -2431,7 +579,7 @@ but found another document
   > True is not one of ['*']
 - **E3001** `UnsupportedAttributes` → `IgnoreGlobals` L21 in `bad_core_resource_attributes_yaml`
   > True is not valid under any of the given schemas
-- **E3001** `ImpossibleResourcePolicies` → `Resources.ImpossibleResourcePolicies` L58 in `good_lifecycle_intrinsic_scenarios_yaml`
+- **E3001** `ImpossibleResourcePolicies` → `Resources.ImpossibleResourcePolicies` L96 in `good_lifecycle_intrinsic_scenarios_yaml`
   > Exception "When setting condition 'Never' to True" raised while validating 'cfnLint'
 
 ### E3023 - 4 missed - Validate Route53 RecordSets
@@ -2444,6 +592,17 @@ but found another document
   > 'No valid domain name' is not valid under any of the given schemas
 - **E3023** `GroupUnreachableInvalid` → `Properties.RecordSets.Fn::If.2.0.ResourceRecords.0` L61 in `good_route53_conditional_record_arrays_yaml`
   > 'unreachable-group-invalid' is not a 'ipv4'
+
+### E3055 - 4 missed - Check CreationPolicy values for Resources
+
+- **E3055** `ScalarCreationPolicy` → `CreationPolicy` L8 in `bad_core_resource_attributes_yaml`
+  > 'invalid' is not of type 'object'
+- **E3055** `CreationConditionalInvalid` → `CreationPolicy.Fn::If.2` L51 in `bad_lifecycle_policy_shapes_yaml`
+  > 'invalid' is not of type 'object'
+- **E3055** `CorrelatedCreationPolicy` → `CreationPolicy.Fn::If.2` L45 in `good_lifecycle_intrinsic_scenarios_yaml`
+  > 'invalid' is not of type 'object'
+- **E3055** `ImpossibleCreationPolicyBranch` → `CreationPolicy.Fn::If.1` L49 in `good_lifecycle_intrinsic_scenarios_yaml`
+  > 'invalid' is not of type 'object'
 
 ### E3513 - 4 missed - Validate ECR repository policy
 
@@ -2467,7 +626,7 @@ but found another document
 - **E3707** `AuroraDB` → `Properties.Engine` L6 in `good_aurora_dbinstance_yaml`
   > {'$data': '/cluster/Engine'} was expected
 
-### E3724 - 4 missed - Validate Globals section
+### E3724 - 4 missed - Validate Globals section and IgnoreGlobals entries
 
 - **E3724** → `Globals.Function` L3 in `bad_sam_globals_section_not_dict_yaml`
   > 'notadict' is not of type 'object'
@@ -2477,17 +636,6 @@ but found another document
   > Additional properties are not allowed ('Foo' was unexpected)
 - **E3724** → `Globals.Function.CodeUri` L9 in `good_parameters_used_transforms_yaml`
   > {'Bucket': 'somebucket', 'Key': {'Fn::Sub': 'lambda/code/lambda-${Version}-shaded.jar'}} is not of type 'string'
-
-### F1020 - 4 missed - Ref validation of value
-
-- **F1020** (cfn-lint: E1020) `Bucket` → `Properties.BucketName` L11 in `bad_F2002_ssm_parameter_type_invalid_yaml`
-  > {'Ref': 'BadType'} is not of type 'string'
-- **F1020** (cfn-lint: E1020) → `Conditions.TagEnvironments.Fn::Not.0.Fn::Equals.1` L15 in `bad_conditions_equals_yaml`
-  > {'Ref': 'Environments'} is not of type 'string'
-- **F1020** (cfn-lint: E1020) `Bucket` → `Properties.Tags.0.Value.Ref` L34 in `lsp_constants_json`
-  > 'foo' is not one of ['Bucket', 'PersonalS3', 'AWS::AccountId', 'AWS::NoValue', 'AWS::NotificationARNs', 'AWS::Partition', 'AWS::Region', 'AWS::StackId', 'AWS::StackName', 'AWS::URLSuffix']
-- **F1020** (cfn-lint: E1020) `Bucket` → `Properties.Tags.0.Value.Ref` L21 in `lsp_constants_yaml`
-  > 'foo' is not one of ['Bucket', 'PersonalS3', 'AWS::AccountId', 'AWS::NoValue', 'AWS::NotificationARNs', 'AWS::Partition', 'AWS::Region', 'AWS::StackId', 'AWS::StackName', 'AWS::URLSuffix']
 
 ### F6101 - 4 missed - Validate that outputs values are a string
 
@@ -2511,36 +659,14 @@ but found another document
 - **I3010** `Memory` → `Properties.MemoryStrategies.3` L36-49 in `gh-issues_issue-38_json`
   > 'Resources/Memory/Properties/MemoryStrategies/3' is approaching the limit of 1 properties
 
-### W1028 - 4 missed - Check Fn::If has a path that cannot be reached
-
-- **W1028** `conditionLoadBalancer` → `Properties.Fn::If.1.Listeners.0.Fn::If.2` L161-164 in `bad_generic_yaml`
-  > ['Fn::If', 2] is not reachable. When setting condition 'IsProduction' to False from current status True
-- **W1028** `conditionLoadBalancer` → `Properties.Fn::If.1.Tags.0.Fn::If.2` L178-180 in `bad_generic_yaml`
-  > ['Fn::If', 2] is not reachable. When setting condition 'IsProduction' to False from current status True
-- **W1028** `ImpossibleBranchPolicies` → `DeletionPolicy.Fn::If.1` L55 in `good_lifecycle_intrinsic_scenarios_yaml`
-  > ['Fn::If', 1] is not reachable. When setting condition 'Never' to True
-- **W1028** `ImpossibleBranchPolicies` → `UpdateReplacePolicy.Fn::If.1` L56 in `good_lifecycle_intrinsic_scenarios_yaml`
-  > ['Fn::If', 1] is not reachable. When setting condition 'Never' to True
-
-### W1032 - 4 missed - Validate the values that come from a Fn::Join function
-
-- **W1032** `Bucket2` → `Properties.BucketName.Fn::Join` L42 in `lsp_parameter_usage_json`
-  > {'Fn::Join': ['-', [{'Ref': 'AWS::Region'}, 'bucketName']]} does not match '^([a-z0-9][a-z0-9.-]*[a-z0-9])?$' when 'Fn::Join' is resolved
-- **W1032** `Bucket2` → `Properties.BucketName.Fn::Join` L42 in `lsp_parameter_usage_json`
-  > {'Fn::Join': ['-', [{'Ref': 'AWS::Region'}, 'bucketName']]} is not a 'AWS::S3::Bucket.Name' with pattern '^(?![.\\-])(?!.*\\.\\.)(?!.*\\-\\.)(?!.*\\.\\-)[a-z0-9.\\-]{3,63}(?<![.\\-])$' when 'Fn::Join'
-- **W1032** `Bucket3` → `Properties.BucketName.Fn::Join` L42 in `lsp_parameter_usage_yaml`
-  > {'Fn::Join': ['-', [{'Ref': 'AWS::Region'}, 'bucketName']]} does not match '^([a-z0-9][a-z0-9.-]*[a-z0-9])?$' when 'Fn::Join' is resolved
-- **W1032** `Bucket3` → `Properties.BucketName.Fn::Join` L42 in `lsp_parameter_usage_yaml`
-  > {'Fn::Join': ['-', [{'Ref': 'AWS::Region'}, 'bucketName']]} is not a 'AWS::S3::Bucket.Name' with pattern '^(?![.\\-])(?!.*\\.\\.)(?!.*\\-\\.)(?!.*\\.\\-)[a-z0-9.\\-]{3,63}(?<![.\\-])$' when 'Fn::Join'
-
 ### E1011 - 3 missed - FindInMap validation of configuration
 
 - **E1011** `Bucket` → `Properties.Tags.0.Value.Fn::FindInMap.0` L9 in `bad_findinmap_bad_yaml`
   > 'NonExistentMap' is not one of []
-- **E1011** `Topic` → `Properties.DisplayName.Fn::FindInMap` L15 in `bad_functions_findinmap_default_value_no_transform_yaml`
-  > expected maximum item count: 3, found: 4
 - **E1011** `lambdaMap2` → `Properties.SecurityGroupIngress.0` L206-207 in `bad_generic_yaml`
   > {'Fn::FindInMap': ['runtime', {'Ref': 'AWS::Region'}, 'production']} is not of type 'object'
+- **E1011** `CreationRootFindInMap` → `CreationPolicy` L34 in `bad_lifecycle_policy_shapes_yaml`
+  > {'Fn::FindInMap': ['CreationValues', 'Primary', 'Policy']} is not of type 'object'
 
 ### E3047 - 3 missed - Validate ECS Fargate tasks have the right combination of CPU and memory
 
@@ -2578,14 +704,14 @@ but found another document
 - **E7001** → `Mappings.myMap.us-east-1.64` L7 in `good_functions_findinmap_yaml`
   > 64 does not match any of the regexes: '^[a-zA-Z0-9]+$'
 
-### F1018 - 3 missed - Sub validation of parameters
+### F1020 - 3 missed - Ref validation of value
 
-- **F1018** (cfn-lint: E1019) `myInstanceSub` → `Properties.UserData.Fn::Sub` L218 in `bad_resources_circular_dependency_yaml`
-  > {'Test': 'bad configuration'} is not of type 'array', 'string'
-- **F1018** (cfn-lint: E1019) `Bucket` → `Properties.BucketName.Fn::Sub` L28 in `lsp_constants_json`
-  > 'foo' is not one of ['Bucket', 'PersonalS3', 'AWS::AccountId', 'AWS::NoValue', 'AWS::NotificationARNs', 'AWS::Partition', 'AWS::Region', 'AWS::StackId', 'AWS::StackName', 'AWS::URLSuffix']
-- **F1018** (cfn-lint: E1019) `Bucket` → `Properties.BucketName.Fn::Sub` L18 in `lsp_constants_yaml`
-  > 'foo' is not one of ['Bucket', 'PersonalS3', 'AWS::AccountId', 'AWS::NoValue', 'AWS::NotificationARNs', 'AWS::Partition', 'AWS::Region', 'AWS::StackId', 'AWS::StackName', 'AWS::URLSuffix']
+- **F1020** (cfn-lint: E1020) `Bucket` → `Properties.BucketName` L11 in `bad_F2002_ssm_parameter_type_invalid_yaml`
+  > {'Ref': 'BadType'} is not of type 'string'
+- **F1020** (cfn-lint: E1020) → `Conditions.TagEnvironments.Fn::Not.0.Fn::Equals.1` L15 in `bad_conditions_equals_yaml`
+  > {'Ref': 'Environments'} is not of type 'string'
+- **F1020** (cfn-lint: E1020) `CreationRootRef` → `CreationPolicy` L30 in `bad_lifecycle_policy_shapes_yaml`
+  > {'Ref': 'Policy'} is not of type 'object'
 
 ### F3002 - 3 missed - Resource properties are invalid
 
@@ -2632,15 +758,6 @@ but found another document
 - **W1034** `CustomVpcRestrictDefaultSGCustomResourceProviderHandlerDC833E5E` → `Properties.Runtime.Fn::FindInMap` L579 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStack.template_json`
   > Runtime {'Fn::FindInMap': ['LatestNodeRuntimeMap', {'Ref': 'AWS::Region'}, 'value']} was deprecated on '2026-04-30'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider u
 
-### W2010 - 3 missed - NoEcho parameters are not masked when used in Metadata and Outputs
-
-- **W2010** `SNSTopicWithSecretNameInRef` → `Metadata.NoEchoParamInMetadata.Ref` L13 in `bad_noecho_yaml`
-  > Don't use 'NoEcho' parameter 'NoEchoParam' in resource metadata
-- **W2010** `SNSTopicWithSecretNameInSub` → `Metadata.NoEchoParamInMetadata.Fn::Sub` L19 in `bad_noecho_yaml`
-  > Don't use 'NoEcho' parameter 'NoEchoParam' in resource metadata
-- **W2010** `rAutoScalingConfigApp` → `Metadata.AWS::CloudFormation::Init.install_wordpress.files./tmp/create-wp-config.content.Fn::Join.1.9.Ref` L343 in `quickstart_nist_application_yaml`
-  > Don't use 'NoEcho' parameter 'pDBPassword' in resource metadata
-
 ### E1016 - 2 missed - ImportValue validation of parameters
 
 - **E1016** `subnet` → `Properties.CidrBlock.Fn::ImportValue` L10 in `bad_functions_import_value_yaml`
@@ -2657,9 +774,9 @@ but found another document
 
 ### E1701 - 2 missed - Validate the configuration of Assertions
 
-- **E1701** → `Rules.ValidateParameterCombinations.Assertions.1.Assert` L313 in `lsp_comprehensive_json`
+- **E1701** → `Rules.ValidateParameterCombinations.Assertions.1.Assert` L312 in `lsp_comprehensive_json`
   > {'Fn::Implies': [{'Fn::Equals': [{'Ref': 'BooleanParameter'}, 'true']}, {'Fn::And': [{'Fn::Not': [{'Fn::Equals': [{'Ref': 'InstanceCount'}, 1]}]}, {'Fn::Not': [{'Fn::Equals': [{'Ref': 'SSMParameter'},
-- **E1701** → `Rules.ValidateParameterCombinations.Assertions.1.Assert` L131 in `lsp_comprehensive_yaml`
+- **E1701** → `Rules.ValidateParameterCombinations.Assertions.1.Assert` L130 in `lsp_comprehensive_yaml`
   > {'Fn::Implies': [{'Fn::Equals': [{'Ref': 'BooleanParameter'}, 'true']}, {'Fn::And': [{'Fn::Not': [{'Fn::Equals': [{'Ref': 'InstanceCount'}, 1]}]}, {'Fn::Not': [{'Fn::Equals': [{'Ref': 'SSMParameter'},
 
 ### E2531 - 2 missed - Validate if lambda runtime is deprecated
@@ -2704,6 +821,13 @@ but found another document
 - **E9004** (cfn-lint: E1010) `SsmParameter` → `Properties.Value.Fn::GetAtt` L18 in `integration_getatt-types_yaml`
   > {'Fn::GetAtt': ['CapacityReservation', 'InstanceCount']} is not of type 'string'
 
+### F1018 - 2 missed - Sub validation of parameters
+
+- **F1018** (cfn-lint: E1019) `CreationRootSub` → `CreationPolicy` L45 in `bad_lifecycle_policy_shapes_yaml`
+  > {'Fn::Sub': ['${Value}', {'Value': 'not-an-object'}]} is not of type 'object'
+- **F1018** (cfn-lint: E1019) `myInstanceSub` → `Properties.UserData.Fn::Sub` L218 in `bad_resources_circular_dependency_yaml`
+  > {'Test': 'bad configuration'} is not of type 'array', 'string'
+
 ### F3017 - 2 missed - Check Properties that need at least one of a list of properties
 
 - **F3017** (cfn-lint: E3017) `MyAPI` → `Properties.EndpointConfiguration` L17 in `good_parameters_used_transform_removed_yaml`
@@ -2724,6 +848,13 @@ but found another document
   > ['arn:aws:iam::aws:policy/AdministratorPolicy', 'arn:aws:iam::aws:policy/AdministratorPolicy', {'Ref': 'IamPolicy'}, {'Ref': 'IamPolicy'}] has non-unique elements
 - **F3037** (cfn-lint: E3037) `IamGroupWithConditions` → `Properties.ManagedPolicyArns` L22 in `bad_resources_properties_list_duplicates_yaml`
   > ['arn:aws:iam::aws:policy/AdministratorPolicy', 'arn:aws:iam::aws:policy/AdministratorPolicy', {'Ref': 'IamPolicy'}, {'Ref': 'IamPolicy'}] has non-unique elements
+
+### W2533 - 2 missed - Check required properties for Lambda if the deployment package is a .zip file
+
+- **W2533** `Fn` → `Properties.CodeUri` L6 in `bad_sam_function_zip_missing_runtime_handler_yaml`
+  > Properties ['Handler', 'Runtime'] missing for zip file deployment at Resources/Fn/Properties
+- **W2533** `MyFunction` → `Properties.CodeUri` L5 in `lsp_test-template_yaml`
+  > Properties ['Handler', 'Runtime'] missing for zip file deployment at Resources/MyFunction/Properties
 
 ### W3037 - 2 missed - Check IAM Permission configuration
 
@@ -2769,6 +900,11 @@ but found another document
 - **E1150** `Ingress` → `Properties.GroupId` L8 in `good_resources_properties_exclusive_yaml`
   > 'sg-abc1234567' is not a 'AWS::EC2::SecurityGroup.Id' with pattern '^sg-([a-fA-F0-9]{8}|[a-fA-F0-9]{17})$'
 
+### E2529 - 1 missed - Check for SubscriptionFilters have beyond 2 attachments to a CloudWatch Log Group
+
+- **E2529** `LogSubscriptionFunction` → `Properties.Events.FunctionDLogGroup.Properties.LogGroupName` L76 in `bad_some_logs_stream_lambda_yaml`
+  > You can only have 2 Subscription Filters per CloudWatch Log Group
+
 ### E2533 - 1 missed - Check if Lambda Function Runtimes are updatable
 
 - **E2533** `myFunction` → `Properties.Runtime` L9 in `bad_transform_serverless_template_yaml`
@@ -2788,11 +924,6 @@ but found another document
 
 - **E3039** `myFunctionRole` → `Properties` L68 in `bad_transform_serverless_template_yaml`
   > The set of Attributes in AttributeDefinitions: [] and KeySchemas: ['String'] must match at Resources/myFunctionRole/Properties
-
-### E3055 - 1 missed - Check CreationPolicy values for Resources
-
-- **E3055** `ScalarCreationPolicy` → `CreationPolicy` L8 in `bad_core_resource_attributes_yaml`
-  > 'invalid' is not of type 'object'
 
 ### E3065 - 1 missed - Check if a list has more unique values than allowed
 
@@ -2889,11 +1020,6 @@ but found another document
 - **E8005** → `Conditions.TestNotNull.Fn::Not` L30 in `bad_conditions_condition_functions_json`
   > None is not of type 'array'
 
-### F1031 - 1 missed - ToJsonString validation of parameters
-
-- **F1031** (cfn-lint: E1031) `Topic` → `Metadata.Custom` L14 in `bad_functions_tojsonstring_no_transform_yaml`
-  > Fn::ToJsonString is not supported without 'AWS::LanguageExtensions' transform
-
 ### W2001 - 1 missed - Check if Parameters are Used
 
 - **W2001** → `Parameters.NullParameter` L34 in `bad_parameters_configuration_yaml`
@@ -2914,1893 +1040,9 @@ but found another document
 - **W6001** → `Outputs.ImportedValue.Value.Fn::ImportValue` L39 in `good_output_value_string_yaml`
   > The output value {'Fn::ImportValue': 'SomeExportedName'} is an import from another output
 
-## False Positives - 1037 extra findings across 20 rules
+## False Positives - 87 extra findings across 14 rules
 
 These are diagnostics the engine reports but cfn-lint does not expect (potential bugs).
-
-### W1020 - 897 extra - Sub isn't needed if it doesn't have a variable defined
-
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L18 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L117 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L216 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L315 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L414 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L513 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L612 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L711 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L810 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L909 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L1008 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L1107 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L1206 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L1305 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L1404 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L1503 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L1602 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L1701 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L1800 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L1899 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L1998 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L2097 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L2196 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L2295 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L2394 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L2493 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L2592 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L2691 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L2790 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L2889 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L2988 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L3087 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L3186 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L3285 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L3384 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L3483 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L3582 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L3681 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L3780 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L3879 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L3978 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L4077 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L4176 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L4275 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L4374 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L4473 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L4572 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L4671 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L4770 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L4869 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L4968 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L5067 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L5166 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L5265 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L5364 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L5463 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L5562 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L5661 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L5760 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L5859 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L5958 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L6057 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L6156 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L6255 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L6354 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L6453 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L6552 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L6651 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L6750 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L6849 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L6948 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L7047 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L7146 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L7245 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L7344 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L7443 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L7542 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L7641 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L7740 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L7839 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L7938 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L8037 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L8136 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L8235 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L8334 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L8433 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L8532 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L8631 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L8730 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L8829 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L8928 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L9027 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L9126 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L9225 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L9324 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L9423 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L9522 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L9621 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L9720 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L9819 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L9918 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L10017 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L10116 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L10215 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L10314 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L10413 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L10512 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L10611 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L10710 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L10809 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L10908 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L11007 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L11106 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L11205 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L11304 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L11403 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L11502 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L11601 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L11700 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L11799 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L11898 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L11997 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L12096 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L12195 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L12294 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L12393 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L12492 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L12591 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L12690 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L12789 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L12888 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L12987 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L13086 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L13185 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L13284 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L13383 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L13482 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L13581 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L13680 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L13779 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L13878 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L13977 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L14076 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L14175 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L14274 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L14373 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L14472 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L14571 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L14670 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L14769 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L14868 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L14967 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L15066 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L15165 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L15264 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L15363 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L15462 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L15561 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L15660 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L15759 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L15858 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L15957 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L16056 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L16155 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L16254 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L16353 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L16452 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L16551 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L16650 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L16749 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L16848 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L16947 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L17046 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L17145 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L17244 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L17343 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L17442 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L17541 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L17640 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L17739 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L17838 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L17937 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L18036 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L18135 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L18234 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L18333 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L18432 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L18531 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L18630 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L18729 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L18828 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L18927 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L19026 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L19125 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L19224 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L19323 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L19422 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L19521 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L19620 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L19719 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L19818 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L19917 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L20016 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L20115 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L20214 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L20313 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L20412 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L20511 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L20610 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L20709 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L20808 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L20907 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L21006 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L21105 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L21204 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L21303 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L21402 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L21501 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L21600 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L21699 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L21798 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L21897 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L21996 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L22095 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L22194 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L22293 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L22392 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L22491 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L22590 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L22689 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L22788 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L22887 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L22986 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L23085 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L23184 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L23283 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L23382 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L23481 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L23580 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L23679 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L23778 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L23877 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L23976 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L24075 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L24174 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L24273 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L24372 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L24471 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L24570 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L24669 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L24768 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L24867 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L24966 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L25065 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L25164 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L25263 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L25362 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L25461 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L25560 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L25659 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L25758 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L25857 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L25956 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L26055 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L26154 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L26253 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L26352 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L26451 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L26550 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L26649 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L26748 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L26847 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L26946 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L27045 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L27144 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L27243 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L27342 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L27441 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L27540 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L27639 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L27738 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L27837 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L27936 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L28035 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L28134 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L28233 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L28332 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L28431 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L28530 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L28629 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L28728 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L28827 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L28926 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L29025 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L29124 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L29223 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L29322 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L29421 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..configure_magento.sh.source` L29520 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L18 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L117 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L216 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L315 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L414 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L513 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L612 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L711 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L810 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L909 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L1008 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L1107 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L1206 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L1305 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L1404 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L1503 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L1602 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L1701 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L1800 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L1899 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L1998 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L2097 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L2196 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L2295 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L2394 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L2493 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L2592 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L2691 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L2790 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L2889 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L2988 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L3087 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L3186 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L3285 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L3384 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L3483 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L3582 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L3681 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L3780 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L3879 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L3978 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L4077 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L4176 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L4275 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L4374 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L4473 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L4572 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L4671 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L4770 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L4869 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L4968 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L5067 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L5166 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L5265 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L5364 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L5463 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L5562 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L5661 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L5760 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L5859 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L5958 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L6057 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L6156 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L6255 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L6354 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L6453 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L6552 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L6651 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L6750 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L6849 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L6948 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L7047 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L7146 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L7245 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L7344 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L7443 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L7542 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L7641 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L7740 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L7839 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L7938 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L8037 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L8136 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L8235 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L8334 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L8433 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L8532 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L8631 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L8730 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L8829 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L8928 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L9027 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L9126 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L9225 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L9324 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L9423 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L9522 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L9621 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L9720 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L9819 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L9918 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L10017 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L10116 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L10215 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L10314 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L10413 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L10512 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L10611 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L10710 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L10809 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L10908 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L11007 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L11106 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L11205 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L11304 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L11403 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L11502 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L11601 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L11700 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L11799 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L11898 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L11997 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L12096 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L12195 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L12294 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L12393 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L12492 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L12591 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L12690 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L12789 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L12888 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L12987 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L13086 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L13185 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L13284 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L13383 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L13482 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L13581 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L13680 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L13779 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L13878 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L13977 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L14076 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L14175 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L14274 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L14373 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L14472 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L14571 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L14670 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L14769 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L14868 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L14967 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L15066 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L15165 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L15264 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L15363 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L15462 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L15561 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L15660 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L15759 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L15858 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L15957 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L16056 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L16155 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L16254 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L16353 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L16452 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L16551 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L16650 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L16749 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L16848 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L16947 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L17046 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L17145 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L17244 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L17343 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L17442 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L17541 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L17640 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L17739 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L17838 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L17937 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L18036 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L18135 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L18234 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L18333 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L18432 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L18531 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L18630 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L18729 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L18828 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L18927 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L19026 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L19125 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L19224 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L19323 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L19422 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L19521 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L19620 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L19719 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L19818 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L19917 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L20016 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L20115 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L20214 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L20313 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L20412 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L20511 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L20610 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L20709 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L20808 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L20907 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L21006 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L21105 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L21204 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L21303 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L21402 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L21501 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L21600 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L21699 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L21798 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L21897 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L21996 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L22095 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L22194 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L22293 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L22392 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L22491 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L22590 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L22689 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L22788 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L22887 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L22986 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L23085 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L23184 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L23283 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L23382 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L23481 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L23580 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L23679 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L23778 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L23877 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L23976 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L24075 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L24174 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L24273 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L24372 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L24471 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L24570 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L24669 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L24768 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L24867 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L24966 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L25065 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L25164 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L25263 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L25362 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L25461 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L25560 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L25659 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L25758 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L25857 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L25956 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L26055 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L26154 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L26253 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L26352 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L26451 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L26550 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L26649 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L26748 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L26847 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L26946 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L27045 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L27144 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L27243 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L27342 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L27441 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L27540 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L27639 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L27738 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L27837 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L27936 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L28035 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L28134 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L28233 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L28332 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L28431 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L28530 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L28629 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L28728 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L28827 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L28926 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L29025 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L29124 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L29223 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L29322 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L29421 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..etc.awslogs.awslogs.conf.content` L29520 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L18 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L117 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L216 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L315 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L414 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L513 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L612 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L711 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L810 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L909 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L1008 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L1107 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L1206 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L1305 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L1404 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L1503 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L1602 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L1701 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L1800 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L1899 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L1998 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L2097 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L2196 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L2295 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L2394 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L2493 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L2592 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L2691 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L2790 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L2889 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L2988 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L3087 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L3186 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L3285 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L3384 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L3483 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L3582 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L3681 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L3780 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L3879 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L3978 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L4077 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L4176 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L4275 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L4374 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L4473 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L4572 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L4671 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L4770 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L4869 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L4968 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L5067 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L5166 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L5265 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L5364 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L5463 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L5562 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L5661 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L5760 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L5859 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L5958 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L6057 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L6156 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L6255 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L6354 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L6453 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L6552 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L6651 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L6750 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L6849 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L6948 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L7047 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L7146 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L7245 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L7344 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L7443 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L7542 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L7641 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L7740 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L7839 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L7938 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L8037 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L8136 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L8235 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L8334 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L8433 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L8532 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L8631 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L8730 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L8829 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L8928 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L9027 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L9126 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L9225 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L9324 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L9423 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L9522 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L9621 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L9720 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L9819 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L9918 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L10017 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L10116 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L10215 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L10314 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L10413 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L10512 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L10611 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L10710 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L10809 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L10908 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L11007 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L11106 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L11205 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L11304 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L11403 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L11502 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L11601 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L11700 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L11799 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L11898 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L11997 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L12096 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L12195 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L12294 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L12393 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L12492 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L12591 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L12690 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L12789 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L12888 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L12987 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L13086 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L13185 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L13284 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L13383 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L13482 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L13581 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L13680 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L13779 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L13878 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L13977 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L14076 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L14175 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L14274 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L14373 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L14472 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L14571 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L14670 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L14769 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L14868 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L14967 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L15066 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L15165 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L15264 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L15363 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L15462 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L15561 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L15660 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L15759 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L15858 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L15957 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L16056 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L16155 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L16254 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L16353 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L16452 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L16551 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L16650 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L16749 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L16848 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L16947 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L17046 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L17145 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L17244 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L17343 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L17442 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L17541 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L17640 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L17739 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L17838 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L17937 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L18036 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L18135 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L18234 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L18333 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L18432 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L18531 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L18630 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L18729 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L18828 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L18927 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L19026 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L19125 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L19224 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L19323 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L19422 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L19521 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L19620 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L19719 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L19818 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L19917 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L20016 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L20115 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L20214 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L20313 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L20412 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L20511 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L20610 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L20709 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L20808 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L20907 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L21006 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L21105 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L21204 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L21303 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L21402 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L21501 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L21600 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L21699 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L21798 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L21897 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L21996 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L22095 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L22194 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L22293 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L22392 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L22491 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L22590 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L22689 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L22788 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L22887 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L22986 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L23085 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L23184 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L23283 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L23382 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L23481 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L23580 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L23679 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L23778 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L23877 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L23976 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L24075 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L24174 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L24273 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L24372 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L24471 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L24570 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L24669 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L24768 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L24867 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L24966 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L25065 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L25164 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L25263 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L25362 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L25461 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L25560 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L25659 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L25758 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L25857 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L25956 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L26055 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L26154 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L26253 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L26352 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L26451 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L26550 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L26649 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L26748 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L26847 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L26946 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L27045 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L27144 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L27243 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L27342 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L27441 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L27540 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L27639 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L27738 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L27837 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L27936 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L28035 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L28134 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L28233 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L28332 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L28431 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L28530 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L28629 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L28728 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L28827 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L28926 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L29025 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L29124 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L29223 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L29322 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L29421 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-- **W1020** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.config.files..install_magento.sh.source` L29520 in `bad_limit_size_yaml`
-  > Fn::Sub isn't needed because there are no variables
-
-### I1022 - 42 extra - Use Sub instead of Join
-
-- **I1022** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.cw-agent-install.commands.01-get-cloudwatch-agent.command.Fn::Join` L647 in `public_watchmaker_json`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.cw-agent-install.commands.02-extract-cloudwatch-agent.command.Fn::Join` L662 in `public_watchmaker_json`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.cw-agent-install.commands.10-install-cloudwatch-agent.command.Fn::Join` L673 in `public_watchmaker_json`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.finalize.commands.10-signal-success.command.Fn::Join.1.4.Fn::If.1.Fn::Join` L816 in `public_watchmaker_json`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.finalize.commands.10-signal-success.command.Fn::Join.1.5.Fn::If.1.Fn::Join` L833 in `public_watchmaker_json`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.make-app.commands.05-get-appscript.command.Fn::Join` L869 in `public_watchmaker_json`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.make-app.commands.10-make-app.command.Fn::Join` L887 in `public_watchmaker_json`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.setup.files..etc.cfn.cfn-hup.conf.content.Fn::Join.1.7.Fn::If.1.Fn::Join` L911 in `public_watchmaker_json`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.setup.files..etc.cfn.cfn-hup.conf.content.Fn::Join.1.8.Fn::If.1.Fn::Join` L911 in `public_watchmaker_json`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.setup.files..etc.cfn.hooks.d.cfn-auto-reloader.conf.content.Fn::Join.1.7.Fn::If.1.Fn::Join` L911 in `public_watchmaker_json`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.setup.files..etc.cfn.hooks.d.cfn-auto-reloader.conf.content.Fn::Join.1.8.Fn::If.1.Fn::Join` L911 in `public_watchmaker_json`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.setup.files..etc.cfn.scripts.watchmaker-install.sh.content.Fn::Join` L911 in `public_watchmaker_json`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.watchmaker-launch.commands.10-watchmaker-launch.command.Fn::Join.1.3.Fn::If.1.Fn::Join` L1101 in `public_watchmaker_json`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.watchmaker-launch.commands.10-watchmaker-launch.command.Fn::Join.1.4.Fn::If.1.Fn::Join` L1119 in `public_watchmaker_json`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.watchmaker-launch.commands.10-watchmaker-launch.command.Fn::Join.1.5.Fn::If.1.Fn::Join` L1137 in `public_watchmaker_json`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.watchmaker-launch.commands.10-watchmaker-launch.command.Fn::Join.1.6.Fn::If.1.Fn::Join` L1155 in `public_watchmaker_json`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.watchmaker-launch.commands.10-watchmaker-launch.command.Fn::Join.1.7.Fn::If.1.Fn::Join` L1173 in `public_watchmaker_json`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.watchmaker-launch.commands.10-watchmaker-launch.command.Fn::Join.1.8.Fn::If.1.Fn::Join` L1191 in `public_watchmaker_json`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.watchmaker-update.commands.10-watchmaker-update.command.Fn::Join.1.4.Fn::If.1.Fn::Join` L1226 in `public_watchmaker_json`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.watchmaker-update.commands.10-watchmaker-update.command.Fn::Join.1.5.Fn::If.1.Fn::Join` L1244 in `public_watchmaker_json`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.watchmaker-update.commands.10-watchmaker-update.command.Fn::Join.1.6.Fn::If.1.Fn::Join` L1262 in `public_watchmaker_json`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.watchmaker-update.commands.10-watchmaker-update.command.Fn::Join.1.7.Fn::If.1.Fn::Join` L1280 in `public_watchmaker_json`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.watchmaker-update.commands.10-watchmaker-update.command.Fn::Join.1.8.Fn::If.1.Fn::Join` L1298 in `public_watchmaker_json`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.watchmaker-update.commands.10-watchmaker-update.command.Fn::Join.1.9.Fn::If.1.Fn::Join` L1316 in `public_watchmaker_json`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** (AWS::AutoScaling::LaunchConfiguration) → `Metadata.AWS::CloudFormation::Init.installDeepSecurityAgent.commands.0-download-DSA.command.Fn::Join` L430 in `quickstart_nist_application_yaml`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** (AWS::AutoScaling::LaunchConfiguration) → `Metadata.AWS::CloudFormation::Init.installDeepSecurityAgent.commands.3-activate-DSA.command.Fn::Join` L255 in `quickstart_nist_application_yaml`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** (AWS::AutoScaling::LaunchConfiguration) → `Metadata.AWS::CloudFormation::Init.installDeepSecurityAgent.commands.3-activate-DSA.command.Fn::Join` L441 in `quickstart_nist_application_yaml`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** (AWS::AutoScaling::LaunchConfiguration) → `Metadata.AWS::CloudFormation::Init.install_cfn.files..etc.cfn.cfn-hup.conf.content.Fn::Join` L261 in `quickstart_nist_application_yaml`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** (AWS::AutoScaling::LaunchConfiguration) → `Metadata.AWS::CloudFormation::Init.install_cfn.files..etc.cfn.hooks.d.cfn-auto-reloader.conf.content.Fn::Join` L261 in `quickstart_nist_application_yaml`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** (AWS::AutoScaling::LaunchConfiguration) → `Metadata.AWS::CloudFormation::Init.install_wordpress.files..tmp.create-wp-config.content.Fn::Join` L324 in `quickstart_nist_application_yaml`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** (AWS::AutoScaling::LaunchConfiguration) → `Metadata.AWS::CloudFormation::Init.nginx.files..tmp.nginx.default.conf.content.Fn::Join` L447 in `quickstart_nist_application_yaml`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** → `Outputs.LandingPageURL.Value.Fn::Join` L92 in `quickstart_nist_application_yaml`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** → `Outputs.WebsiteURL.Value.Fn::Join` L105 in `quickstart_nist_application_yaml`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.installDeepSecurityAgent.commands.0-download-DSA.command.Fn::Join` L491 in `quickstart_nist_vpc_management_yaml`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.installDeepSecurityAgent.commands.3-activate-DSA.command.Fn::Join` L504 in `quickstart_nist_vpc_management_yaml`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** (AWS::AutoScaling::LaunchConfiguration) → `Metadata.AWS::CloudFormation::Init.GetPublicKey.files..root..ssh.public.key.content.Fn::Join` L1094 in `quickstart_openshift_yaml`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** (AWS::AutoScaling::LaunchConfiguration) → `Metadata.AWS::CloudFormation::Init.GetPublicKey.files..root..ssh.public.key.content.Fn::Join` L1423 in `quickstart_openshift_yaml`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.SetPrivateKey.files..root..ssh.id_rsa.content.Fn::Join` L324 in `quickstart_openshift_yaml`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** → `Outputs.ContainerAccessELBName.Value.Fn::Join` L123 in `quickstart_openshift_yaml`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** → `Outputs.OpenShiftUI.Value.Fn::Join` L132 in `quickstart_openshift_yaml`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.installDeepSecurityAgent.commands.0-download-DSA.command.Fn::Join` L687 in `quickstart_vpc-management_json`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** (AWS::EC2::Instance) → `Metadata.AWS::CloudFormation::Init.installDeepSecurityAgent.commands.3-activate-DSA.command.Fn::Join` L705 in `quickstart_vpc-management_json`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
 
 ### E0001 - 34 extra
 
@@ -4923,21 +1165,6 @@ These are diagnostics the engine reports but cfn-lint does not expect (potential
 - **E3639** `DDBTableTransformKeySchema` (AWS::DynamoDB::Table) → `Properties.ProvisionedThroughput` L20 in `good_resources_dynamodb_attributes_transform_yaml`
   > ProvisionedThroughput is required when BillingMode defaults to 'PROVISIONED'
 
-### E3023 - 6 extra - Validate Route53 RecordSets
-
-- **E3023** `GroupMixedInvalidFalse` (AWS::Route53::RecordSetGroup) → `Properties.RecordSets.0.ResourceRecords.1` L117 in `bad_route53_conditional_record_arrays_yaml`
-  > 'invalid-group-mixed-false' is not a valid IPv4 address for record type 'A'
-- **E3023** `GroupMixedInvalidTrue` (AWS::Route53::RecordSetGroup) → `Properties.RecordSets.0.ResourceRecords.1` L97 in `bad_route53_conditional_record_arrays_yaml`
-  > 'invalid-group-mixed-true' is not a valid IPv4 address for record type 'A'
-- **E3023** `GroupUnresolvedCnameCardinality` (AWS::Route53::RecordSetGroup) → `Properties.RecordSets.0.ResourceRecords` L136 in `bad_route53_conditional_record_arrays_yaml`
-  > CNAME records must have at most 1 ResourceRecord
-- **E3023** `StandaloneMixedInvalidFalse` (AWS::Route53::RecordSet) → `Properties.ResourceRecords.1` L53 in `bad_route53_conditional_record_arrays_yaml`
-  > 'invalid-standalone-mixed-false' is not a valid IPv4 address for record type 'A'
-- **E3023** `StandaloneMixedInvalidTrue` (AWS::Route53::RecordSet) → `Properties.ResourceRecords.1` L41 in `bad_route53_conditional_record_arrays_yaml`
-  > 'invalid-standalone-mixed-true' is not a valid IPv4 address for record type 'A'
-- **E3023** `StandaloneUnresolvedCnameCardinality` (AWS::Route53::RecordSet) → `Properties.ResourceRecords` L125 in `bad_route53_conditional_record_arrays_yaml`
-  > CNAME records must have at most 1 ResourceRecord
-
 ### E3019 - 4 extra - Validate that all resources have unique primary identifiers
 
 - **E3019** `ExplicitSubBucket` (AWS::S3::Bucket) → `Properties.BucketName` L18 in `bad_E3019_identity_reference_forms_yaml`
@@ -4964,12 +1191,34 @@ These are diagnostics the engine reports but cfn-lint does not expect (potential
 
 - **E3055** `CustomLifecyclePolicies` (Custom::Thing) → `CreationPolicy` L16 in `bad_core_resource_attributes_yaml`
   > CreationPolicy is not supported on resource type 'Custom::Thing'
-- **E3055** `CreationNoValueOnUnsupportedType` (AWS::S3::Bucket) → `CreationPolicy` L29 in `bad_lifecycle_policy_shapes_yaml`
+- **E3055** `CreationNoValueOnUnsupportedType` (AWS::S3::Bucket) → `CreationPolicy` L55 in `bad_lifecycle_policy_shapes_yaml`
   > CreationPolicy is not supported on resource type 'AWS::S3::Bucket'
 - **E3055** `MyModule` (My::Organization::Custom::MODULE) → `CreationPolicy` L6 in `bad_modules_bad_has_create_policy_yaml`
   > CreationPolicy is not supported on resource type 'My::Organization::Custom::MODULE'
 - **E3055** `MyBucket` (AWS::S3::Bucket) → `CreationPolicy` L5 in `bad_resources_creation_policy_unsupported_e3055_yaml`
   > CreationPolicy is not supported on resource type 'AWS::S3::Bucket'
+
+### F0018 - 4 extra - Check UpdateReplacePolicy values for Resources
+
+- **F0018** `ConditionalNoValuePolicies` (AWS::S3::Bucket) → `UpdateReplacePolicy` L40 in `bad_lifecycle_conditional_invalid_policies_yaml`
+  > UpdateReplacePolicy must be one of Delete, Retain, got null
+- **F0018** `DirectNoValuePolicies` (AWS::S3::Bucket) → `UpdateReplacePolicy` L30 in `bad_lifecycle_conditional_invalid_policies_yaml`
+  > UpdateReplacePolicy must be one of Delete, Retain, got null
+- **F0018** `StackIdPolicies` (AWS::CloudFormation::WaitConditionHandle) → `UpdateReplacePolicy` L35 in `bad_lifecycle_conditional_invalid_policies_yaml`
+  > UpdateReplacePolicy must be one of Delete, Retain, got 'arn:aws:cloudformation:us-east-1:123456789012:stack/teststack/51af3dc0-da77-11e4-872e-1234567db123'
+- **F0018** `NoValuePoliciesWithoutTransform` (AWS::SQS::Queue) → `UpdateReplacePolicy` L65 in `bad_lifecycle_policy_shapes_yaml`
+  > UpdateReplacePolicy must be one of Delete, Retain, got null
+
+### F3016 - 4 extra - Check DeletionPolicy values for Resources
+
+- **F3016** `ConditionalNoValuePolicies` (AWS::S3::Bucket) → `DeletionPolicy` L39 in `bad_lifecycle_conditional_invalid_policies_yaml`
+  > DeletionPolicy must be one of Delete, Retain, RetainExceptOnCreate, got null
+- **F3016** `DirectNoValuePolicies` (AWS::S3::Bucket) → `DeletionPolicy` L29 in `bad_lifecycle_conditional_invalid_policies_yaml`
+  > DeletionPolicy must be one of Delete, Retain, RetainExceptOnCreate, got null
+- **F3016** `StackIdPolicies` (AWS::CloudFormation::WaitConditionHandle) → `DeletionPolicy` L34 in `bad_lifecycle_conditional_invalid_policies_yaml`
+  > DeletionPolicy must be one of Delete, Retain, RetainExceptOnCreate, got 'arn:aws:cloudformation:us-east-1:123456789012:stack/teststack/51af3dc0-da77-11e4-872e-1234567db123'
+- **F3016** `NoValuePoliciesWithoutTransform` (AWS::SQS::Queue) → `DeletionPolicy` L64 in `bad_lifecycle_policy_shapes_yaml`
+  > DeletionPolicy must be one of Delete, Retain, RetainExceptOnCreate, got null
 
 ### E3510 - 3 extra - Validate identity based IAM polices
 
@@ -4980,24 +1229,6 @@ These are diagnostics the engine reports but cfn-lint does not expect (potential
 - **E3510** `WildcardServicePolicy` (AWS::IAM::ManagedPolicy) → `Properties.PolicyDocument.Statement.0.Resource` L13 in `bad_resources_iam_identity_policy_wildcard_service_yaml`
   > 'arn:aws:*:::example-bucket/*' does not match '^(arn:(aws[A-Za-z\-]*?|[A-Za-z?*\-]*[?*][A-Za-z?*\-]*):[^:*?]+:[^:]*(:(?:\d{12}|\*|aws)?:.+|)|\*)$'
 
-### F0018 - 3 extra - Check UpdateReplacePolicy values for Resources
-
-- **F0018** `ConditionalNoValuePolicies` (AWS::S3::Bucket) → `UpdateReplacePolicy` L36 in `bad_lifecycle_conditional_invalid_policies_yaml`
-  > UpdateReplacePolicy must be one of Delete, Retain, got null
-- **F0018** `DirectNoValuePolicies` (AWS::S3::Bucket) → `UpdateReplacePolicy` L31 in `bad_lifecycle_conditional_invalid_policies_yaml`
-  > UpdateReplacePolicy must be one of Delete, Retain, got null
-- **F0018** `NoValuePoliciesWithoutTransform` (AWS::SQS::Queue) → `UpdateReplacePolicy` L39 in `bad_lifecycle_policy_shapes_yaml`
-  > UpdateReplacePolicy must be one of Delete, Retain, got null
-
-### F3016 - 3 extra - Check DeletionPolicy values for Resources
-
-- **F3016** `ConditionalNoValuePolicies` (AWS::S3::Bucket) → `DeletionPolicy` L35 in `bad_lifecycle_conditional_invalid_policies_yaml`
-  > DeletionPolicy must be one of Delete, Retain, RetainExceptOnCreate, got null
-- **F3016** `DirectNoValuePolicies` (AWS::S3::Bucket) → `DeletionPolicy` L30 in `bad_lifecycle_conditional_invalid_policies_yaml`
-  > DeletionPolicy must be one of Delete, Retain, RetainExceptOnCreate, got null
-- **F3016** `NoValuePoliciesWithoutTransform` (AWS::SQS::Queue) → `DeletionPolicy` L38 in `bad_lifecycle_policy_shapes_yaml`
-  > DeletionPolicy must be one of Delete, Retain, RetainExceptOnCreate, got null
-
 ### F3017 - 3 extra - Check Properties that need at least one of a list of properties
 
 - **F3017** `Topic` (AWS::SNS::Topic) → `Properties.KmsMasterKeyId` L11 in `bad_hardcoded_partition_yaml`
@@ -5007,35 +1238,12 @@ These are diagnostics the engine reports but cfn-lint does not expect (potential
 - **F3017** `MyDB` (AWS::RDS::DBCluster) → `Properties.MasterUsername` L7 in `bad_resources_rds_not_enum_master_username_yaml`
   > 'rdsadmin' at 'MasterUsername' does not satisfy the composition branch constraint (none of ['rdsadmin']): 'rdsadmin' must not be one of ['rdsadmin']
 
-### W2010 - 3 extra - NoEcho parameters are not masked when used in Metadata and Outputs
-
-- **W2010** (AWS::SNS::Topic) → `Metadata.NoEchoParamInMetadata` L13 in `bad_noecho_yaml`
-  > Don't use 'NoEcho' parameter 'NoEchoParam' in resource metadata
-- **W2010** (AWS::SNS::Topic) → `Metadata.NoEchoParamInMetadata` L19 in `bad_noecho_yaml`
-  > Don't use 'NoEcho' parameter 'NoEchoParam' in resource metadata
-- **W2010** (AWS::AutoScaling::LaunchConfiguration) → `Metadata.AWS::CloudFormation::Init.install_wordpress.files..tmp.create-wp-config.content.Fn::Join.1.9` L343 in `quickstart_nist_application_yaml`
-  > Don't use 'NoEcho' parameter 'pDBPassword' in resource metadata
-
 ### E3029 - 2 extra - Validate Route53 record set aliases
 
 - **E3029** `ConditionalInvalidAliasTypes` (AWS::Route53::RecordSet) → `Properties.AliasTarget` L48 in `bad_route53_conditional_scenarios_yaml`
   > AliasTarget cannot be used with record type 'NS'
 - **E3029** `ConditionalInvalidAliasTypes` (AWS::Route53::RecordSet) → `Properties.AliasTarget` L48 in `bad_route53_conditional_scenarios_yaml`
   > AliasTarget cannot be used with record type 'SOA'
-
-### F1018 - 2 extra - Sub validation of parameters
-
-- **F1018** (AWS::S3::Bucket) → `Metadata.Test` L19 in `lsp_constants_json`
-  > Fn::Sub variable '${sub}' does not reference a valid resource, parameter, or pseudo-parameter
-- **F1018** (AWS::S3::Bucket) → `Metadata.Test` L15 in `lsp_constants_yaml`
-  > Fn::Sub variable '${sub}' does not reference a valid resource, parameter, or pseudo-parameter
-
-### F1020 - 2 extra - Ref validation of value
-
-- **F1020** (AWS::S3::Bucket) → `Metadata.TestObj` L22 in `lsp_constants_json`
-  > 'obj' is not one of ['AWS::AccountId', 'AWS::NoValue', 'AWS::NotificationARNs', 'AWS::Partition', 'AWS::Region', 'AWS::StackId', 'AWS::StackName', 'AWS::URLSuffix', 'Bucket', 'PersonalS3']
-- **F1020** (AWS::S3::Bucket) → `Metadata.TestObj` L16 in `lsp_constants_yaml`
-  > 'obj' is not one of ['AWS::AccountId', 'AWS::NoValue', 'AWS::NotificationARNs', 'AWS::Partition', 'AWS::Region', 'AWS::StackId', 'AWS::StackName', 'AWS::URLSuffix', 'Bucket', 'PersonalS3']
 
 ### E1155 - 1 extra
 
@@ -5047,12 +1255,12 @@ These are diagnostics the engine reports but cfn-lint does not expect (potential
 - **E3001** `myBucketFirstAndLastPass` (AWS::S3::Bucket) L19 in `bad_core_directives_yaml`
   > Resource 'myBucketFirstAndLastPass' has invalid property 'BadProperty'. Valid resource attributes: Type, Properties, DependsOn, Condition, Metadata, DeletionPolicy, UpdateReplacePolicy, UpdatePolicy, 
 
-### F1031 - 1 extra - ToJsonString validation of parameters
+### F2002 - 1 extra - Parameters have appropriate type
 
-- **F1031** (AWS::SNS::Topic) → `Metadata.Custom` L14 in `bad_functions_tojsonstring_no_transform_yaml`
-  > Fn::ToJsonString requires the AWS::LanguageExtensions transform, but it is not declared. Add 'Transform: AWS::LanguageExtensions' to use it
+- **F2002** → `Parameters.mySsmParam.Type` L30 in `bad_parameters_configuration_yaml`
+  > Parameter 'mySsmParam' has invalid Type 'AWS::SSM::Parameter::Value<Test>'
 
-## Engine Extra - 8293 correct findings across 43 rules
+## Engine Extra - 8288 correct findings across 43 rules
 
 These are correct diagnostics the engine reports that cfn-lint does not cover.
 
@@ -7548,13 +3756,13 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'Name' is create-only; updating it will cause resource replacement
 - **I9001** `MyBucket` (AWS::S3::Bucket) → `Properties.BucketName` L10 in `bad_resources_creation_policy_unsupported_e3055_yaml`
   > Property 'BucketName' is create-only; updating it will cause resource replacement
-- **I9001** `InvalidMapping` (AWS::RDS::DBInstance) → `Properties.Engine` L43 in `bad_resources_deletionpolicy_yaml`
+- **I9001** `InvalidMapping` (AWS::RDS::DBInstance) → `Properties.Engine` L42 in `bad_resources_deletionpolicy_yaml`
   > Property 'Engine' is conditionally create-only; updating it may cause resource replacement
-- **I9001** `MadeUpPolicy` (AWS::RDS::DBInstance) → `Properties.Engine` L23 in `bad_resources_deletionpolicy_yaml`
+- **I9001** `MadeUpPolicy` (AWS::RDS::DBInstance) → `Properties.Engine` L22 in `bad_resources_deletionpolicy_yaml`
   > Property 'Engine' is conditionally create-only; updating it may cause resource replacement
-- **I9001** `MyIAMUser` (AWS::IAM::User) → `Properties.UserName` L29 in `bad_resources_deletionpolicy_yaml`
+- **I9001** `MyIAMUser` (AWS::IAM::User) → `Properties.UserName` L28 in `bad_resources_deletionpolicy_yaml`
   > Property 'UserName' is create-only; updating it will cause resource replacement
-- **I9001** `PolicyList` (AWS::RDS::DBInstance) → `Properties.Engine` L16 in `bad_resources_deletionpolicy_yaml`
+- **I9001** `PolicyList` (AWS::RDS::DBInstance) → `Properties.Engine` L15 in `bad_resources_deletionpolicy_yaml`
   > Property 'Engine' is conditionally create-only; updating it may cause resource replacement
 - **I9001** `DDBTableTransformAttributeDefinitions` (AWS::DynamoDB::Table) → `Properties.KeySchema` L15 in `bad_resources_dynamodb_attributes_transform_e3639_yaml`
   > Property 'KeySchema' is conditionally create-only; updating it may cause resource replacement
@@ -7980,13 +4188,13 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'TopicName' is create-only; updating it will cause resource replacement
 - **I9001** `MyBucket` (AWS::S3::Bucket) → `Properties.BucketName` L9 in `bad_resources_update_policy_unsupported_e3016_yaml`
   > Property 'BucketName' is create-only; updating it will cause resource replacement
-- **I9001** `InvalidMapping` (AWS::RDS::DBInstance) → `Properties.Engine` L43 in `bad_resources_updatereplacepolicy_yaml`
+- **I9001** `InvalidMapping` (AWS::RDS::DBInstance) → `Properties.Engine` L42 in `bad_resources_updatereplacepolicy_yaml`
   > Property 'Engine' is conditionally create-only; updating it may cause resource replacement
-- **I9001** `MadeUpPolicy` (AWS::RDS::DBInstance) → `Properties.Engine` L23 in `bad_resources_updatereplacepolicy_yaml`
+- **I9001** `MadeUpPolicy` (AWS::RDS::DBInstance) → `Properties.Engine` L22 in `bad_resources_updatereplacepolicy_yaml`
   > Property 'Engine' is conditionally create-only; updating it may cause resource replacement
-- **I9001** `MyIAMUser` (AWS::IAM::User) → `Properties.UserName` L29 in `bad_resources_updatereplacepolicy_yaml`
+- **I9001** `MyIAMUser` (AWS::IAM::User) → `Properties.UserName` L28 in `bad_resources_updatereplacepolicy_yaml`
   > Property 'UserName' is create-only; updating it will cause resource replacement
-- **I9001** `PolicyList` (AWS::RDS::DBInstance) → `Properties.Engine` L16 in `bad_resources_updatereplacepolicy_yaml`
+- **I9001** `PolicyList` (AWS::RDS::DBInstance) → `Properties.Engine` L15 in `bad_resources_updatereplacepolicy_yaml`
   > Property 'Engine' is conditionally create-only; updating it may cause resource replacement
 - **I9001** `GroupInvalidFalse` (AWS::Route53::RecordSetGroup) → `Properties.HostedZoneName` L75 in `bad_route53_conditional_record_arrays_yaml`
   > Property 'HostedZoneName' is create-only; updating it will cause resource replacement
@@ -13912,7 +10120,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'ProjectArn' is create-only; updating it will cause resource replacement
 - **I9001** `TestPipeline` (AWS::CodePipeline::Pipeline) → `Properties.Name` L8 in `good_resources_codepipeline_yaml`
   > Property 'Name' is create-only; updating it will cause resource replacement
-- **I9001** `PolicyList` (AWS::RDS::DBInstance) → `Properties.Engine` L36 in `good_resources_deletionpolicy_yaml`
+- **I9001** `PolicyList` (AWS::RDS::DBInstance) → `Properties.Engine` L31 in `good_resources_deletionpolicy_yaml`
   > Property 'Engine' is conditionally create-only; updating it may cause resource replacement
 - **I9001** `DDBTableTransformAttributeDefinitions` (AWS::DynamoDB::Table) → `Properties.KeySchema` L13 in `good_resources_dynamodb_attributes_transform_object_yaml`
   > Property 'KeySchema' is conditionally create-only; updating it may cause resource replacement
@@ -14090,7 +10298,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'Name' is create-only; updating it will cause resource replacement
 - **I9001** `MyFunction` (AWS::Lambda::Function) → `Properties.FunctionName` L29 in `good_resources_update_policy_supported_yaml`
   > Property 'FunctionName' is create-only; updating it will cause resource replacement
-- **I9001** `PolicyList` (AWS::RDS::DBInstance) → `Properties.Engine` L36 in `good_resources_updatereplacepolicy_yaml`
+- **I9001** `PolicyList` (AWS::RDS::DBInstance) → `Properties.Engine` L31 in `good_resources_updatereplacepolicy_yaml`
   > Property 'Engine' is conditionally create-only; updating it may cause resource replacement
 - **I9001** `GroupBothBranchesValid` (AWS::Route53::RecordSetGroup) → `Properties.HostedZoneName` L36 in `good_route53_conditional_record_arrays_yaml`
   > Property 'HostedZoneName' is create-only; updating it will cause resource replacement
@@ -14174,17 +10382,17 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'BucketName' is create-only; updating it will cause resource replacement
 - **I9001** `Bucket` (AWS::S3::Bucket) → `Properties.BucketName` L9 in `good_sub_not_needed_yaml`
   > Property 'BucketName' is create-only; updating it will cause resource replacement
-- **I9001** `MySubnet` (AWS::EC2::Subnet) → `Properties.AvailabilityZoneId` L99 in `good_transform_language_extension_yaml`
+- **I9001** `MySubnet` (AWS::EC2::Subnet) → `Properties.AvailabilityZoneId` L95 in `good_transform_language_extension_yaml`
   > Property 'AvailabilityZoneId' is create-only; updating it will cause resource replacement
-- **I9001** `MySubnet` (AWS::EC2::Subnet) → `Properties.CidrBlock` L98 in `good_transform_language_extension_yaml`
+- **I9001** `MySubnet` (AWS::EC2::Subnet) → `Properties.CidrBlock` L94 in `good_transform_language_extension_yaml`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `MySubnet` (AWS::EC2::Subnet) → `Properties.VpcId` L97 in `good_transform_language_extension_yaml`
+- **I9001** `MySubnet` (AWS::EC2::Subnet) → `Properties.VpcId` L93 in `good_transform_language_extension_yaml`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `PolicyList` (AWS::RDS::DBInstance) → `Properties.Engine` L58 in `good_transform_language_extension_yaml`
+- **I9001** `PolicyList` (AWS::RDS::DBInstance) → `Properties.Engine` L54 in `good_transform_language_extension_yaml`
   > Property 'Engine' is conditionally create-only; updating it may cause resource replacement
-- **I9001** `SecurityGroups` (AWS::EC2::SecurityGroup) → `Properties.GroupDescription` L91 in `good_transform_language_extension_yaml`
+- **I9001** `SecurityGroups` (AWS::EC2::SecurityGroup) → `Properties.GroupDescription` L87 in `good_transform_language_extension_yaml`
   > Property 'GroupDescription' is create-only; updating it will cause resource replacement
-- **I9001** `SecurityGroups` (AWS::EC2::SecurityGroup) → `Properties.VpcId` L92 in `good_transform_language_extension_yaml`
+- **I9001** `SecurityGroups` (AWS::EC2::SecurityGroup) → `Properties.VpcId` L88 in `good_transform_language_extension_yaml`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
 - **I9001** `MyVPC` (AWS::EC2::VPC) → `Properties.CidrBlock` L6 in `good_vpc_subnets_yaml`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
@@ -14484,101 +10692,101 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'Region' is conditionally create-only; updating it may cause resource replacement
 - **I9001** `VmdEventsSubscription` (AWS::SNS::Subscription) → `Properties.TopicArn` L268 in `issues_sam_w_conditions_yaml`
   > Property 'TopicArn' is create-only; updating it will cause resource replacement
-- **I9001** `AutoScalingGroup` (AWS::AutoScaling::AutoScalingGroup) → `Properties.AutoScalingGroupName` L566 in `lsp_comprehensive_json`
+- **I9001** `AutoScalingGroup` (AWS::AutoScaling::AutoScalingGroup) → `Properties.AutoScalingGroupName` L565 in `lsp_comprehensive_json`
   > Property 'AutoScalingGroupName' is create-only; updating it will cause resource replacement
-- **I9001** `AutoScalingGroup` (AWS::AutoScaling::AutoScalingGroup) → `Properties.LaunchTemplate` L569 in `lsp_comprehensive_json`
+- **I9001** `AutoScalingGroup` (AWS::AutoScaling::AutoScalingGroup) → `Properties.LaunchTemplate` L568 in `lsp_comprehensive_json`
   > Property 'LaunchTemplate' is conditionally create-only; updating it may cause resource replacement
-- **I9001** `AutoScalingGroup` (AWS::AutoScaling::AutoScalingGroup) → `Properties.VPCZoneIdentifier` L583 in `lsp_comprehensive_json`
+- **I9001** `AutoScalingGroup` (AWS::AutoScaling::AutoScalingGroup) → `Properties.VPCZoneIdentifier` L582 in `lsp_comprehensive_json`
   > Property 'VPCZoneIdentifier' is conditionally create-only; updating it may cause resource replacement
-- **I9001** `BastionSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.GroupDescription` L492 in `lsp_comprehensive_json`
+- **I9001** `BastionSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.GroupDescription` L491 in `lsp_comprehensive_json`
   > Property 'GroupDescription' is create-only; updating it will cause resource replacement
-- **I9001** `BastionSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.VpcId` L493 in `lsp_comprehensive_json`
+- **I9001** `BastionSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.VpcId` L492 in `lsp_comprehensive_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `Database` (AWS::RDS::DBInstance) → `Properties.BackupRetentionPeriod` L673 in `lsp_comprehensive_json`
+- **I9001** `Database` (AWS::RDS::DBInstance) → `Properties.BackupRetentionPeriod` L672 in `lsp_comprehensive_json`
   > Property 'BackupRetentionPeriod' is conditionally create-only; updating it may cause resource replacement
-- **I9001** `Database` (AWS::RDS::DBInstance) → `Properties.DBInstanceIdentifier` L635 in `lsp_comprehensive_json`
+- **I9001** `Database` (AWS::RDS::DBInstance) → `Properties.DBInstanceIdentifier` L634 in `lsp_comprehensive_json`
   > Property 'DBInstanceIdentifier' is create-only; updating it will cause resource replacement
-- **I9001** `Database` (AWS::RDS::DBInstance) → `Properties.Engine` L647 in `lsp_comprehensive_json`
+- **I9001** `Database` (AWS::RDS::DBInstance) → `Properties.Engine` L646 in `lsp_comprehensive_json`
   > Property 'Engine' is conditionally create-only; updating it may cause resource replacement
-- **I9001** `Database` (AWS::RDS::DBInstance) → `Properties.MasterUsername` L664 in `lsp_comprehensive_json`
+- **I9001** `Database` (AWS::RDS::DBInstance) → `Properties.MasterUsername` L663 in `lsp_comprehensive_json`
   > Property 'MasterUsername' is create-only; updating it will cause resource replacement
-- **I9001** `Database` (AWS::RDS::DBInstance) → `Properties.MultiAZ` L680 in `lsp_comprehensive_json`
+- **I9001** `Database` (AWS::RDS::DBInstance) → `Properties.MultiAZ` L679 in `lsp_comprehensive_json`
   > Property 'MultiAZ' is conditionally create-only; updating it may cause resource replacement
-- **I9001** `Database` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L657 in `lsp_comprehensive_json`
+- **I9001** `Database` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L656 in `lsp_comprehensive_json`
   > Property 'StorageEncrypted' is create-only; updating it will cause resource replacement
-- **I9001** `DatabaseAlarm` (AWS::CloudWatch::Alarm) → `Properties.AlarmName` L847 in `lsp_comprehensive_json`
+- **I9001** `DatabaseAlarm` (AWS::CloudWatch::Alarm) → `Properties.AlarmName` L846 in `lsp_comprehensive_json`
   > Property 'AlarmName' is create-only; updating it will cause resource replacement
-- **I9001** `DatabaseSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.GroupDescription` L717 in `lsp_comprehensive_json`
+- **I9001** `DatabaseSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.GroupDescription` L716 in `lsp_comprehensive_json`
   > Property 'GroupDescription' is create-only; updating it will cause resource replacement
-- **I9001** `DatabaseSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.VpcId` L718 in `lsp_comprehensive_json`
+- **I9001** `DatabaseSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.VpcId` L717 in `lsp_comprehensive_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `LambdaFunction` (AWS::Lambda::Function) → `Properties.FunctionName` L736 in `lsp_comprehensive_json`
+- **I9001** `LambdaFunction` (AWS::Lambda::Function) → `Properties.FunctionName` L735 in `lsp_comprehensive_json`
   > Property 'FunctionName' is create-only; updating it will cause resource replacement
-- **I9001** `LambdaRole` (AWS::IAM::Role) → `Properties.RoleName` L803 in `lsp_comprehensive_json`
+- **I9001** `LambdaRole` (AWS::IAM::Role) → `Properties.RoleName` L802 in `lsp_comprehensive_json`
   > Property 'RoleName' is create-only; updating it will cause resource replacement
-- **I9001** `LaunchTemplate` (AWS::EC2::LaunchTemplate) → `Properties.LaunchTemplateName` L509 in `lsp_comprehensive_json`
+- **I9001** `LaunchTemplate` (AWS::EC2::LaunchTemplate) → `Properties.LaunchTemplateName` L508 in `lsp_comprehensive_json`
   > Property 'LaunchTemplateName' is create-only; updating it will cause resource replacement
-- **I9001** `PublicSubnet` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L402 in `lsp_comprehensive_json`
+- **I9001** `PublicSubnet` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L401 in `lsp_comprehensive_json`
   > Property 'AvailabilityZone' is create-only; updating it will cause resource replacement
-- **I9001** `PublicSubnet` (AWS::EC2::Subnet) → `Properties.CidrBlock` L394 in `lsp_comprehensive_json`
+- **I9001** `PublicSubnet` (AWS::EC2::Subnet) → `Properties.CidrBlock` L393 in `lsp_comprehensive_json`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `PublicSubnet` (AWS::EC2::Subnet) → `Properties.VpcId` L391 in `lsp_comprehensive_json`
+- **I9001** `PublicSubnet` (AWS::EC2::Subnet) → `Properties.VpcId` L390 in `lsp_comprehensive_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `SNSTopic` (AWS::SNS::Topic) → `Properties.TopicName` L878 in `lsp_comprehensive_json`
+- **I9001** `SNSTopic` (AWS::SNS::Topic) → `Properties.TopicName` L877 in `lsp_comprehensive_json`
   > Property 'TopicName' is create-only; updating it will cause resource replacement
-- **I9001** `VPC` (AWS::EC2::VPC) → `Properties.CidrBlock` L363 in `lsp_comprehensive_json`
+- **I9001** `VPC` (AWS::EC2::VPC) → `Properties.CidrBlock` L362 in `lsp_comprehensive_json`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `WebSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.GroupDescription` L444 in `lsp_comprehensive_json`
+- **I9001** `WebSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.GroupDescription` L443 in `lsp_comprehensive_json`
   > Property 'GroupDescription' is create-only; updating it will cause resource replacement
-- **I9001** `WebSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.VpcId` L445 in `lsp_comprehensive_json`
+- **I9001** `WebSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.VpcId` L444 in `lsp_comprehensive_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `AutoScalingGroup` (AWS::AutoScaling::AutoScalingGroup) → `Properties.AutoScalingGroupName` L238 in `lsp_comprehensive_yaml`
+- **I9001** `AutoScalingGroup` (AWS::AutoScaling::AutoScalingGroup) → `Properties.AutoScalingGroupName` L237 in `lsp_comprehensive_yaml`
   > Property 'AutoScalingGroupName' is create-only; updating it will cause resource replacement
-- **I9001** `AutoScalingGroup` (AWS::AutoScaling::AutoScalingGroup) → `Properties.LaunchTemplate` L239 in `lsp_comprehensive_yaml`
+- **I9001** `AutoScalingGroup` (AWS::AutoScaling::AutoScalingGroup) → `Properties.LaunchTemplate` L238 in `lsp_comprehensive_yaml`
   > Property 'LaunchTemplate' is conditionally create-only; updating it may cause resource replacement
-- **I9001** `AutoScalingGroup` (AWS::AutoScaling::AutoScalingGroup) → `Properties.VPCZoneIdentifier` L243 in `lsp_comprehensive_yaml`
+- **I9001** `AutoScalingGroup` (AWS::AutoScaling::AutoScalingGroup) → `Properties.VPCZoneIdentifier` L242 in `lsp_comprehensive_yaml`
   > Property 'VPCZoneIdentifier' is conditionally create-only; updating it may cause resource replacement
-- **I9001** `BastionSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.GroupDescription` L205 in `lsp_comprehensive_yaml`
+- **I9001** `BastionSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.GroupDescription` L204 in `lsp_comprehensive_yaml`
   > Property 'GroupDescription' is create-only; updating it will cause resource replacement
-- **I9001** `BastionSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.VpcId` L206 in `lsp_comprehensive_yaml`
+- **I9001** `BastionSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.VpcId` L205 in `lsp_comprehensive_yaml`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `Database` (AWS::RDS::DBInstance) → `Properties.BackupRetentionPeriod` L280 in `lsp_comprehensive_yaml`
+- **I9001** `Database` (AWS::RDS::DBInstance) → `Properties.BackupRetentionPeriod` L279 in `lsp_comprehensive_yaml`
   > Property 'BackupRetentionPeriod' is conditionally create-only; updating it may cause resource replacement
-- **I9001** `Database` (AWS::RDS::DBInstance) → `Properties.DBInstanceIdentifier` L269 in `lsp_comprehensive_yaml`
+- **I9001** `Database` (AWS::RDS::DBInstance) → `Properties.DBInstanceIdentifier` L268 in `lsp_comprehensive_yaml`
   > Property 'DBInstanceIdentifier' is create-only; updating it will cause resource replacement
-- **I9001** `Database` (AWS::RDS::DBInstance) → `Properties.Engine` L271 in `lsp_comprehensive_yaml`
+- **I9001** `Database` (AWS::RDS::DBInstance) → `Properties.Engine` L270 in `lsp_comprehensive_yaml`
   > Property 'Engine' is conditionally create-only; updating it may cause resource replacement
-- **I9001** `Database` (AWS::RDS::DBInstance) → `Properties.MasterUsername` L276 in `lsp_comprehensive_yaml`
+- **I9001** `Database` (AWS::RDS::DBInstance) → `Properties.MasterUsername` L275 in `lsp_comprehensive_yaml`
   > Property 'MasterUsername' is create-only; updating it will cause resource replacement
-- **I9001** `Database` (AWS::RDS::DBInstance) → `Properties.MultiAZ` L281 in `lsp_comprehensive_yaml`
+- **I9001** `Database` (AWS::RDS::DBInstance) → `Properties.MultiAZ` L280 in `lsp_comprehensive_yaml`
   > Property 'MultiAZ' is conditionally create-only; updating it may cause resource replacement
-- **I9001** `Database` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L275 in `lsp_comprehensive_yaml`
+- **I9001** `Database` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L274 in `lsp_comprehensive_yaml`
   > Property 'StorageEncrypted' is create-only; updating it will cause resource replacement
-- **I9001** `DatabaseAlarm` (AWS::CloudWatch::Alarm) → `Properties.AlarmName` L370 in `lsp_comprehensive_yaml`
+- **I9001** `DatabaseAlarm` (AWS::CloudWatch::Alarm) → `Properties.AlarmName` L369 in `lsp_comprehensive_yaml`
   > Property 'AlarmName' is create-only; updating it will cause resource replacement
-- **I9001** `DatabaseSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.GroupDescription` L294 in `lsp_comprehensive_yaml`
+- **I9001** `DatabaseSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.GroupDescription` L293 in `lsp_comprehensive_yaml`
   > Property 'GroupDescription' is create-only; updating it will cause resource replacement
-- **I9001** `DatabaseSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.VpcId` L295 in `lsp_comprehensive_yaml`
+- **I9001** `DatabaseSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.VpcId` L294 in `lsp_comprehensive_yaml`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `LambdaFunction` (AWS::Lambda::Function) → `Properties.FunctionName` L306 in `lsp_comprehensive_yaml`
+- **I9001** `LambdaFunction` (AWS::Lambda::Function) → `Properties.FunctionName` L305 in `lsp_comprehensive_yaml`
   > Property 'FunctionName' is create-only; updating it will cause resource replacement
-- **I9001** `LambdaRole` (AWS::IAM::Role) → `Properties.RoleName` L344 in `lsp_comprehensive_yaml`
+- **I9001** `LambdaRole` (AWS::IAM::Role) → `Properties.RoleName` L343 in `lsp_comprehensive_yaml`
   > Property 'RoleName' is create-only; updating it will cause resource replacement
-- **I9001** `LaunchTemplate` (AWS::EC2::LaunchTemplate) → `Properties.LaunchTemplateName` L217 in `lsp_comprehensive_yaml`
+- **I9001** `LaunchTemplate` (AWS::EC2::LaunchTemplate) → `Properties.LaunchTemplateName` L216 in `lsp_comprehensive_yaml`
   > Property 'LaunchTemplateName' is create-only; updating it will cause resource replacement
-- **I9001** `PublicSubnet` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L161 in `lsp_comprehensive_yaml`
+- **I9001** `PublicSubnet` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L160 in `lsp_comprehensive_yaml`
   > Property 'AvailabilityZone' is create-only; updating it will cause resource replacement
-- **I9001** `PublicSubnet` (AWS::EC2::Subnet) → `Properties.CidrBlock` L160 in `lsp_comprehensive_yaml`
+- **I9001** `PublicSubnet` (AWS::EC2::Subnet) → `Properties.CidrBlock` L159 in `lsp_comprehensive_yaml`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `PublicSubnet` (AWS::EC2::Subnet) → `Properties.VpcId` L159 in `lsp_comprehensive_yaml`
+- **I9001** `PublicSubnet` (AWS::EC2::Subnet) → `Properties.VpcId` L158 in `lsp_comprehensive_yaml`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `SNSTopic` (AWS::SNS::Topic) → `Properties.TopicName` L391 in `lsp_comprehensive_yaml`
+- **I9001** `SNSTopic` (AWS::SNS::Topic) → `Properties.TopicName` L390 in `lsp_comprehensive_yaml`
   > Property 'TopicName' is create-only; updating it will cause resource replacement
-- **I9001** `VPC` (AWS::EC2::VPC) → `Properties.CidrBlock` L143 in `lsp_comprehensive_yaml`
+- **I9001** `VPC` (AWS::EC2::VPC) → `Properties.CidrBlock` L142 in `lsp_comprehensive_yaml`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `WebSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.GroupDescription` L177 in `lsp_comprehensive_yaml`
+- **I9001** `WebSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.GroupDescription` L176 in `lsp_comprehensive_yaml`
   > Property 'GroupDescription' is create-only; updating it will cause resource replacement
-- **I9001** `WebSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.VpcId` L178 in `lsp_comprehensive_yaml`
+- **I9001** `WebSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.VpcId` L177 in `lsp_comprehensive_yaml`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
 - **I9001** `ConditionalResource` (AWS::EC2::Instance) → `Properties.ImageId` L104 in `lsp_condition-usage_json`
   > Property 'ImageId' is create-only; updating it will cause resource replacement
@@ -15989,7 +12197,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **I9001** `VPCGatewayAttachment` (AWS::EC2::VPCGatewayAttachment) → `Properties.VpcId` L558 in `quickstart_vpc_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
 
-### I9040 - 2297 findings
+### I9040 - 2298 findings
 
 - **I9040** `Instance` (AWS::EC2::Instance) → `Properties.Tags` L8 in `bad_E1150_network_interfaces_groupset_multi_yaml`
   > Resource 'Instance' of type 'AWS::EC2::Instance' supports Tags but none are configured
@@ -16347,25 +12555,25 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'Func' of type 'AWS::Lambda::Function' supports Tags but none are configured
 - **I9040** `LambdaFn` (AWS::Lambda::Function) → `Properties.Tags` L5 in `bad_lambda_zipfile_java_yaml`
   > Resource 'LambdaFn' of type 'AWS::Lambda::Function' supports Tags but none are configured
-- **I9040** `BothBranchesInvalid` (AWS::S3::Bucket) → `Properties.Tags` L24 in `bad_lifecycle_conditional_invalid_policies_yaml`
+- **I9040** `BothBranchesInvalid` (AWS::S3::Bucket) → `Properties.Tags` L23 in `bad_lifecycle_conditional_invalid_policies_yaml`
   > Resource 'BothBranchesInvalid' of type 'AWS::S3::Bucket' supports Tags but none are configured
-- **I9040** `ConditionalInvalidDeletion` (AWS::S3::Bucket) → `Properties.Tags` L16 in `bad_lifecycle_conditional_invalid_policies_yaml`
+- **I9040** `ConditionalInvalidDeletion` (AWS::S3::Bucket) → `Properties.Tags` L15 in `bad_lifecycle_conditional_invalid_policies_yaml`
   > Resource 'ConditionalInvalidDeletion' of type 'AWS::S3::Bucket' supports Tags but none are configured
-- **I9040** `ConditionalInvalidUpdate` (AWS::S3::Bucket) → `Properties.Tags` L20 in `bad_lifecycle_conditional_invalid_policies_yaml`
+- **I9040** `ConditionalInvalidUpdate` (AWS::S3::Bucket) → `Properties.Tags` L19 in `bad_lifecycle_conditional_invalid_policies_yaml`
   > Resource 'ConditionalInvalidUpdate' of type 'AWS::S3::Bucket' supports Tags but none are configured
-- **I9040** `ConditionalNoValuePolicies` (AWS::S3::Bucket) → `Properties.Tags` L33 in `bad_lifecycle_conditional_invalid_policies_yaml`
+- **I9040** `ConditionalNoValuePolicies` (AWS::S3::Bucket) → `Properties.Tags` L37 in `bad_lifecycle_conditional_invalid_policies_yaml`
   > Resource 'ConditionalNoValuePolicies' of type 'AWS::S3::Bucket' supports Tags but none are configured
-- **I9040** `DirectNoValuePolicies` (AWS::S3::Bucket) → `Properties.Tags` L28 in `bad_lifecycle_conditional_invalid_policies_yaml`
+- **I9040** `DirectNoValuePolicies` (AWS::S3::Bucket) → `Properties.Tags` L27 in `bad_lifecycle_conditional_invalid_policies_yaml`
   > Resource 'DirectNoValuePolicies' of type 'AWS::S3::Bucket' supports Tags but none are configured
-- **I9040** `DynamicObjectPolicy` (AWS::S3::Bucket) → `Properties.Tags` L38 in `bad_lifecycle_conditional_invalid_policies_yaml`
+- **I9040** `DynamicObjectPolicy` (AWS::S3::Bucket) → `Properties.Tags` L42 in `bad_lifecycle_conditional_invalid_policies_yaml`
   > Resource 'DynamicObjectPolicy' of type 'AWS::S3::Bucket' supports Tags but none are configured
-- **I9040** `CreationNoValueOnUnsupportedType` (AWS::S3::Bucket) → `Properties.Tags` L27 in `bad_lifecycle_policy_shapes_yaml`
+- **I9040** `CreationNoValueOnUnsupportedType` (AWS::S3::Bucket) → `Properties.Tags` L53 in `bad_lifecycle_policy_shapes_yaml`
   > Resource 'CreationNoValueOnUnsupportedType' of type 'AWS::S3::Bucket' supports Tags but none are configured
-- **I9040** `ListPolicies` (AWS::S3::Bucket) → `Properties.Tags` L8 in `bad_lifecycle_policy_shapes_yaml`
+- **I9040** `ListPolicies` (AWS::S3::Bucket) → `Properties.Tags` L16 in `bad_lifecycle_policy_shapes_yaml`
   > Resource 'ListPolicies' of type 'AWS::S3::Bucket' supports Tags but none are configured
-- **I9040** `NoValuePoliciesWithoutTransform` (AWS::SQS::Queue) → `Properties.Tags` L36 in `bad_lifecycle_policy_shapes_yaml`
+- **I9040** `NoValuePoliciesWithoutTransform` (AWS::SQS::Queue) → `Properties.Tags` L62 in `bad_lifecycle_policy_shapes_yaml`
   > Resource 'NoValuePoliciesWithoutTransform' of type 'AWS::SQS::Queue' supports Tags but none are configured
-- **I9040** `ObjectPolicies` (AWS::S3::Bucket) → `Properties.Tags` L13 in `bad_lifecycle_policy_shapes_yaml`
+- **I9040** `ObjectPolicies` (AWS::S3::Bucket) → `Properties.Tags` L21 in `bad_lifecycle_policy_shapes_yaml`
   > Resource 'ObjectPolicies' of type 'AWS::S3::Bucket' supports Tags but none are configured
 - **I9040** `Resource1` (AWS::SNS::Topic) → `Properties.Tags` L405 in `bad_limit_numbers_yaml`
   > Resource 'Resource1' of type 'AWS::SNS::Topic' supports Tags but none are configured
@@ -17517,13 +13725,13 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'TestPipeline' of type 'AWS::CodePipeline::Pipeline' supports Tags but none are configured
 - **I9040** `MyBucket` (AWS::S3::Bucket) → `Properties.Tags` L9 in `bad_resources_creation_policy_unsupported_e3055_yaml`
   > Resource 'MyBucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
-- **I9040** `InvalidMapping` (AWS::RDS::DBInstance) → `Properties.Tags` L40 in `bad_resources_deletionpolicy_yaml`
+- **I9040** `InvalidMapping` (AWS::RDS::DBInstance) → `Properties.Tags` L39 in `bad_resources_deletionpolicy_yaml`
   > Resource 'InvalidMapping' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
-- **I9040** `MadeUpPolicy` (AWS::RDS::DBInstance) → `Properties.Tags` L20 in `bad_resources_deletionpolicy_yaml`
+- **I9040** `MadeUpPolicy` (AWS::RDS::DBInstance) → `Properties.Tags` L19 in `bad_resources_deletionpolicy_yaml`
   > Resource 'MadeUpPolicy' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
-- **I9040** `MyIAMUser` (AWS::IAM::User) → `Properties.Tags` L27 in `bad_resources_deletionpolicy_yaml`
+- **I9040** `MyIAMUser` (AWS::IAM::User) → `Properties.Tags` L26 in `bad_resources_deletionpolicy_yaml`
   > Resource 'MyIAMUser' of type 'AWS::IAM::User' supports Tags but none are configured
-- **I9040** `PolicyList` (AWS::RDS::DBInstance) → `Properties.Tags` L13 in `bad_resources_deletionpolicy_yaml`
+- **I9040** `PolicyList` (AWS::RDS::DBInstance) → `Properties.Tags` L12 in `bad_resources_deletionpolicy_yaml`
   > Resource 'PolicyList' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
 - **I9040** `DDBTableTransformAttributeDefinitions` (AWS::DynamoDB::Table) → `Properties.Tags` L9 in `bad_resources_dynamodb_attributes_transform_e3639_yaml`
   > Resource 'DDBTableTransformAttributeDefinitions' of type 'AWS::DynamoDB::Table' supports Tags but none are configured
@@ -17719,13 +13927,13 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'Name' of type 'AWS::SNS::Topic' supports Tags but none are configured
 - **I9040** `MyBucket` (AWS::S3::Bucket) → `Properties.Tags` L8 in `bad_resources_update_policy_unsupported_e3016_yaml`
   > Resource 'MyBucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
-- **I9040** `InvalidMapping` (AWS::RDS::DBInstance) → `Properties.Tags` L40 in `bad_resources_updatereplacepolicy_yaml`
+- **I9040** `InvalidMapping` (AWS::RDS::DBInstance) → `Properties.Tags` L39 in `bad_resources_updatereplacepolicy_yaml`
   > Resource 'InvalidMapping' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
-- **I9040** `MadeUpPolicy` (AWS::RDS::DBInstance) → `Properties.Tags` L20 in `bad_resources_updatereplacepolicy_yaml`
+- **I9040** `MadeUpPolicy` (AWS::RDS::DBInstance) → `Properties.Tags` L19 in `bad_resources_updatereplacepolicy_yaml`
   > Resource 'MadeUpPolicy' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
-- **I9040** `MyIAMUser` (AWS::IAM::User) → `Properties.Tags` L27 in `bad_resources_updatereplacepolicy_yaml`
+- **I9040** `MyIAMUser` (AWS::IAM::User) → `Properties.Tags` L26 in `bad_resources_updatereplacepolicy_yaml`
   > Resource 'MyIAMUser' of type 'AWS::IAM::User' supports Tags but none are configured
-- **I9040** `PolicyList` (AWS::RDS::DBInstance) → `Properties.Tags` L13 in `bad_resources_updatereplacepolicy_yaml`
+- **I9040** `PolicyList` (AWS::RDS::DBInstance) → `Properties.Tags` L12 in `bad_resources_updatereplacepolicy_yaml`
   > Resource 'PolicyList' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
 - **I9040** `Bucket` (AWS::S3::Bucket) → `Properties.Tags` L5 in `bad_s3_tiering_bad_days_yaml`
   > Resource 'Bucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
@@ -19329,6 +15537,8 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'ALB' of type 'AWS::ElasticLoadBalancingV2::LoadBalancer' supports Tags but none are configured
 - **I9040** `EIP` (AWS::EC2::EIP) → `Properties.Tags` L8 in `gh-issues_issue-264_yaml`
   > Resource 'EIP' of type 'AWS::EC2::EIP' supports Tags but none are configured
+- **I9040** `Function` (AWS::Lambda::Function) → `Properties.Tags` L5 in `gh-issues_issue-278_yaml`
+  > Resource 'Function' of type 'AWS::Lambda::Function' supports Tags but none are configured
 - **I9040** `Instance` (AWS::EC2::Instance) → `Properties.Tags` L15 in `gh-issues_issue-34_json`
   > Resource 'Instance' of type 'AWS::EC2::Instance' supports Tags but none are configured
 - **I9040** `Instance2` (AWS::EC2::Instance) → `Properties.Tags` L22 in `gh-issues_issue-34_json`
@@ -19815,7 +16025,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'CloudFrontDistribution' of type 'AWS::CloudFront::Distribution' supports Tags but none are configured
 - **I9040** `TestPipeline` (AWS::CodePipeline::Pipeline) → `Properties.Tags` L7 in `good_resources_codepipeline_yaml`
   > Resource 'TestPipeline' of type 'AWS::CodePipeline::Pipeline' supports Tags but none are configured
-- **I9040** `PolicyList` (AWS::RDS::DBInstance) → `Properties.Tags` L33 in `good_resources_deletionpolicy_yaml`
+- **I9040** `PolicyList` (AWS::RDS::DBInstance) → `Properties.Tags` L28 in `good_resources_deletionpolicy_yaml`
   > Resource 'PolicyList' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
 - **I9040** `DDBTableTransformAttributeDefinitions` (AWS::DynamoDB::Table) → `Properties.Tags` L6 in `good_resources_dynamodb_attributes_transform_object_yaml`
   > Resource 'DDBTableTransformAttributeDefinitions' of type 'AWS::DynamoDB::Table' supports Tags but none are configured
@@ -19945,7 +16155,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'MyASG' of type 'AWS::AutoScaling::AutoScalingGroup' supports Tags but none are configured
 - **I9040** `MyFunction` (AWS::Lambda::Function) → `Properties.Tags` L28 in `good_resources_update_policy_supported_yaml`
   > Resource 'MyFunction' of type 'AWS::Lambda::Function' supports Tags but none are configured
-- **I9040** `PolicyList` (AWS::RDS::DBInstance) → `Properties.Tags` L33 in `good_resources_updatereplacepolicy_yaml`
+- **I9040** `PolicyList` (AWS::RDS::DBInstance) → `Properties.Tags` L28 in `good_resources_updatereplacepolicy_yaml`
   > Resource 'PolicyList' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
 - **I9040** `MyApi` (AWS::Serverless::Api) → `Properties.Tags` L5 in `good_sam_api_stagename_valid_yaml`
   > Resource 'MyApi' of type 'AWS::Serverless::Api' supports Tags but none are configured
@@ -20053,15 +16263,15 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'Function' of type 'AWS::Serverless::Function' supports Tags but none are configured
 - **I9040** `HelloWorldFunction` (AWS::Serverless::Function) → `Properties.Tags` L6 in `good_transform_function_using_image_yaml`
   > Resource 'HelloWorldFunction' of type 'AWS::Serverless::Function' supports Tags but none are configured
-- **I9040** `MySubnet` (AWS::EC2::Subnet) → `Properties.Tags` L96 in `good_transform_language_extension_yaml`
+- **I9040** `MySubnet` (AWS::EC2::Subnet) → `Properties.Tags` L92 in `good_transform_language_extension_yaml`
   > Resource 'MySubnet' of type 'AWS::EC2::Subnet' supports Tags but none are configured
-- **I9040** `PolicyList` (AWS::RDS::DBInstance) → `Properties.Tags` L55 in `good_transform_language_extension_yaml`
+- **I9040** `PolicyList` (AWS::RDS::DBInstance) → `Properties.Tags` L51 in `good_transform_language_extension_yaml`
   > Resource 'PolicyList' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
-- **I9040** `SecurityGroups` (AWS::EC2::SecurityGroup) → `Properties.Tags` L90 in `good_transform_language_extension_yaml`
+- **I9040** `SecurityGroups` (AWS::EC2::SecurityGroup) → `Properties.Tags` L86 in `good_transform_language_extension_yaml`
   > Resource 'SecurityGroups' of type 'AWS::EC2::SecurityGroup' supports Tags but none are configured
-- **I9040** `TestLambdaFunction` (AWS::Serverless::Function) → `Properties.Tags` L80 in `good_transform_language_extension_yaml`
+- **I9040** `TestLambdaFunction` (AWS::Serverless::Function) → `Properties.Tags` L76 in `good_transform_language_extension_yaml`
   > Resource 'TestLambdaFunction' of type 'AWS::Serverless::Function' supports Tags but none are configured
-- **I9040** `TestStateMachine` (AWS::Serverless::StateMachine) → `Properties.Tags` L67 in `good_transform_language_extension_yaml`
+- **I9040** `TestStateMachine` (AWS::Serverless::StateMachine) → `Properties.Tags` L63 in `good_transform_language_extension_yaml`
   > Resource 'TestStateMachine' of type 'AWS::Serverless::StateMachine' supports Tags but none are configured
 - **I9040** `Function` (AWS::Serverless::Function) → `Properties.Tags` L16 in `good_transform_list_transform_many_yaml`
   > Resource 'Function' of type 'AWS::Serverless::Function' supports Tags but none are configured
@@ -20261,21 +16471,21 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'VmdEventsLambdaErrorsGreaterThanZeroAlarm' of type 'AWS::CloudWatch::Alarm' supports Tags but none are configured
 - **I9040** `VmdEventsQueue` (AWS::SQS::Queue) → `Properties.Tags` L206 in `issues_sam_w_conditions_yaml`
   > Resource 'VmdEventsQueue' of type 'AWS::SQS::Queue' supports Tags but none are configured
-- **I9040** `BastionSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.Tags` L491 in `lsp_comprehensive_json`
+- **I9040** `BastionSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.Tags` L490 in `lsp_comprehensive_json`
   > Resource 'BastionSecurityGroup' of type 'AWS::EC2::SecurityGroup' supports Tags but none are configured
-- **I9040** `DatabaseAlarm` (AWS::CloudWatch::Alarm) → `Properties.Tags` L846 in `lsp_comprehensive_json`
+- **I9040** `DatabaseAlarm` (AWS::CloudWatch::Alarm) → `Properties.Tags` L845 in `lsp_comprehensive_json`
   > Resource 'DatabaseAlarm' of type 'AWS::CloudWatch::Alarm' supports Tags but none are configured
-- **I9040** `DatabaseSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.Tags` L716 in `lsp_comprehensive_json`
+- **I9040** `DatabaseSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.Tags` L715 in `lsp_comprehensive_json`
   > Resource 'DatabaseSecurityGroup' of type 'AWS::EC2::SecurityGroup' supports Tags but none are configured
-- **I9040** `LambdaRole` (AWS::IAM::Role) → `Properties.Tags` L802 in `lsp_comprehensive_json`
+- **I9040** `LambdaRole` (AWS::IAM::Role) → `Properties.Tags` L801 in `lsp_comprehensive_json`
   > Resource 'LambdaRole' of type 'AWS::IAM::Role' supports Tags but none are configured
-- **I9040** `BastionSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.Tags` L204 in `lsp_comprehensive_yaml`
+- **I9040** `BastionSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.Tags` L203 in `lsp_comprehensive_yaml`
   > Resource 'BastionSecurityGroup' of type 'AWS::EC2::SecurityGroup' supports Tags but none are configured
-- **I9040** `DatabaseAlarm` (AWS::CloudWatch::Alarm) → `Properties.Tags` L369 in `lsp_comprehensive_yaml`
+- **I9040** `DatabaseAlarm` (AWS::CloudWatch::Alarm) → `Properties.Tags` L368 in `lsp_comprehensive_yaml`
   > Resource 'DatabaseAlarm' of type 'AWS::CloudWatch::Alarm' supports Tags but none are configured
-- **I9040** `DatabaseSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.Tags` L293 in `lsp_comprehensive_yaml`
+- **I9040** `DatabaseSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.Tags` L292 in `lsp_comprehensive_yaml`
   > Resource 'DatabaseSecurityGroup' of type 'AWS::EC2::SecurityGroup' supports Tags but none are configured
-- **I9040** `LambdaRole` (AWS::IAM::Role) → `Properties.Tags` L343 in `lsp_comprehensive_yaml`
+- **I9040** `LambdaRole` (AWS::IAM::Role) → `Properties.Tags` L342 in `lsp_comprehensive_yaml`
   > Resource 'LambdaRole' of type 'AWS::IAM::Role' supports Tags but none are configured
 - **I9040** `Database` (AWS::RDS::DBInstance) → `Properties.Tags` L93 in `lsp_condition-usage_json`
   > Resource 'Database' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
@@ -20678,7 +16888,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > 1 is not of type 'string' - automatically coerced (number to string)
 - **W9003** `Instance1` (AWS::EC2::Instance) → `Properties.NetworkInterfaces.2.DeviceIndex` L41 in `integration_formats_yaml`
   > 2 is not of type 'string' - automatically coerced (number to string)
-- **W9003** `WebSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupEgress.0.IpProtocol` L196 in `lsp_comprehensive_yaml`
+- **W9003** `WebSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupEgress.0.IpProtocol` L195 in `lsp_comprehensive_yaml`
   > -1 is not of type 'string' - automatically coerced (number to string)
 - **W9003** `BillingChangesCloudWatchFilter` (AWS::Logs::MetricFilter) → `Properties.MetricTransformations.0.MetricValue` L2197 in `quickstart_cis_benchmark_yaml`
   > 1 is not of type 'string' - automatically coerced (number to string)
@@ -21155,11 +17365,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > RDS instance should have StorageEncrypted set to true
 - **W9008** `Db` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L7 in `bad_rds_dbinstanceclass_mixed_case_engine_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `InvalidMapping` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L40 in `bad_resources_deletionpolicy_yaml`
+- **W9008** `InvalidMapping` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L39 in `bad_resources_deletionpolicy_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `MadeUpPolicy` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L20 in `bad_resources_deletionpolicy_yaml`
+- **W9008** `MadeUpPolicy` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L19 in `bad_resources_deletionpolicy_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `PolicyList` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L13 in `bad_resources_deletionpolicy_yaml`
+- **W9008** `PolicyList` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L12 in `bad_resources_deletionpolicy_yaml`
   > RDS instance should have StorageEncrypted set to true
 - **W9008** `DBInstance2` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L18 in `bad_resources_rds_instance_sizes_yaml`
   > RDS instance should have StorageEncrypted set to true
@@ -21173,11 +17383,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > RDS instance should have StorageEncrypted set to true
 - **W9008** `DBInstance9` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L58 in `bad_resources_rds_instance_sizes_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `InvalidMapping` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L40 in `bad_resources_updatereplacepolicy_yaml`
+- **W9008** `InvalidMapping` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L39 in `bad_resources_updatereplacepolicy_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `MadeUpPolicy` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L20 in `bad_resources_updatereplacepolicy_yaml`
+- **W9008** `MadeUpPolicy` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L19 in `bad_resources_updatereplacepolicy_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `PolicyList` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L13 in `bad_resources_updatereplacepolicy_yaml`
+- **W9008** `PolicyList` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L12 in `bad_resources_updatereplacepolicy_yaml`
   > RDS instance should have StorageEncrypted set to true
 - **W9008** `RDSE0E96D00` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L93 in `cdk_py-docker-app-with-asg-alb--RDSStack.template_json`
   > RDS instance should have StorageEncrypted set to true
@@ -21209,7 +17419,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > RDS instance should have StorageEncrypted set to true
 - **W9008** `DB` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L9 in `good_deletion_policies_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `PolicyList` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L33 in `good_resources_deletionpolicy_yaml`
+- **W9008** `PolicyList` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L28 in `good_resources_deletionpolicy_yaml`
   > RDS instance should have StorageEncrypted set to true
 - **W9008** `MyDB` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L17 in `good_resources_properties_password_yaml`
   > RDS instance should have StorageEncrypted set to true
@@ -21225,13 +17435,13 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > RDS instance should have StorageEncrypted set to true
 - **W9008** `DBInstance6` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L44 in `good_resources_rds_instance_sizes_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `PolicyList` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L33 in `good_resources_updatereplacepolicy_yaml`
+- **W9008** `PolicyList` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L28 in `good_resources_updatereplacepolicy_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `PolicyList` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L55 in `good_transform_language_extension_yaml`
+- **W9008** `PolicyList` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L51 in `good_transform_language_extension_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `Database` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L657 in `lsp_comprehensive_json`
+- **W9008** `Database` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L656 in `lsp_comprehensive_json`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `Database` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L275 in `lsp_comprehensive_yaml`
+- **W9008** `Database` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L274 in `lsp_comprehensive_yaml`
   > RDS instance should have StorageEncrypted set to true
 - **W9008** `Database` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L93 in `lsp_condition-usage_json`
   > RDS instance should have StorageEncrypted set to true
@@ -21411,51 +17621,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **F0001** L21 in `integration_metdata_yaml`
   > Resources section must exist and be non-empty
 
-### F1101 - 21 findings
-
-- **F1101** `Topic` (AWS::SNS::Topic) → `Properties.DisplayName` L14 in `bad_functions_findinmap_default_value_no_transform_yaml`
-  > Fn::FindInMap: the 'DefaultValue' element requires the AWS::LanguageExtensions transform; without it Fn::FindInMap accepts at most 3 elements
-- **F1101** `ConditionalNoValuePolicies` (AWS::S3::Bucket) → `DeletionPolicy.Fn::If.2` L35 in `bad_lifecycle_conditional_invalid_policies_yaml`
-  > Ref target 'AWS::NoValue' is not supported in DeletionPolicy; use a parameter or one of AWS::AccountId, AWS::Region, AWS::Partition
-- **F1101** `ConditionalNoValuePolicies` (AWS::S3::Bucket) → `UpdateReplacePolicy.Fn::If.2` L36 in `bad_lifecycle_conditional_invalid_policies_yaml`
-  > Ref target 'AWS::NoValue' is not supported in UpdateReplacePolicy; use a parameter or one of AWS::AccountId, AWS::Region, AWS::Partition
-- **F1101** `DirectNoValuePolicies` (AWS::S3::Bucket) → `DeletionPolicy` L30 in `bad_lifecycle_conditional_invalid_policies_yaml`
-  > Ref target 'AWS::NoValue' is not supported in DeletionPolicy; use a parameter or one of AWS::AccountId, AWS::Region, AWS::Partition
-- **F1101** `DirectNoValuePolicies` (AWS::S3::Bucket) → `UpdateReplacePolicy` L31 in `bad_lifecycle_conditional_invalid_policies_yaml`
-  > Ref target 'AWS::NoValue' is not supported in UpdateReplacePolicy; use a parameter or one of AWS::AccountId, AWS::Region, AWS::Partition
-- **F1101** `CreationConditional` (AWS::CloudFormation::WaitCondition) → `CreationPolicy` L22 in `bad_lifecycle_policy_shapes_yaml`
-  > Fn::If is not supported as a top-level CreationPolicy value; CreationPolicy must be an object
-- **F1101** `CreationNoValueOnUnsupportedType` (AWS::S3::Bucket) → `CreationPolicy` L29 in `bad_lifecycle_policy_shapes_yaml`
-  > Ref is not supported as a top-level CreationPolicy value; CreationPolicy must be an object
-- **F1101** `IntrinsicPoliciesWithoutTransform` (AWS::CloudFormation::WaitConditionHandle) → `DeletionPolicy` L33 in `bad_lifecycle_policy_shapes_yaml`
-  > Fn::If in DeletionPolicy requires the AWS::LanguageExtensions transform, but it is not declared. Add 'Transform: AWS::LanguageExtensions' to use it
-- **F1101** `IntrinsicPoliciesWithoutTransform` (AWS::CloudFormation::WaitConditionHandle) → `UpdateReplacePolicy` L34 in `bad_lifecycle_policy_shapes_yaml`
-  > Ref in UpdateReplacePolicy requires the AWS::LanguageExtensions transform, but it is not declared. Add 'Transform: AWS::LanguageExtensions' to use it
-- **F1101** `NoValuePoliciesWithoutTransform` (AWS::SQS::Queue) → `DeletionPolicy` L38 in `bad_lifecycle_policy_shapes_yaml`
-  > Ref in DeletionPolicy requires the AWS::LanguageExtensions transform, but it is not declared. Add 'Transform: AWS::LanguageExtensions' to use it
-- **F1101** `NoValuePoliciesWithoutTransform` (AWS::SQS::Queue) → `UpdateReplacePolicy` L39 in `bad_lifecycle_policy_shapes_yaml`
-  > Ref in UpdateReplacePolicy requires the AWS::LanguageExtensions transform, but it is not declared. Add 'Transform: AWS::LanguageExtensions' to use it
-- **F1101** `UnsupportedIntrinsic` (AWS::CloudFormation::WaitConditionHandle) → `DeletionPolicy` L33 in `bad_resources_deletionpolicy_yaml`
-  > Fn::Cidr is not supported in DeletionPolicy; AWS::LanguageExtensions allows only Ref, Fn::FindInMap, and Fn::If
-- **F1101** `DDBTableTransformAttributeDefinitions` (AWS::DynamoDB::Table) → `Properties.AttributeDefinitions.Fn::Transform` L11 in `bad_resources_dynamodb_attributes_transform_e3639_yaml`
-  > Fn::Transform: Fn::Transform value must be an object
-- **F1101** `DDBTableTransformBoth` (AWS::DynamoDB::Table) → `Properties.AttributeDefinitions.Fn::Transform` L33 in `bad_resources_dynamodb_attributes_transform_e3639_yaml`
-  > Fn::Transform: Fn::Transform value must be an object
-- **F1101** `DDBTableTransformBoth` (AWS::DynamoDB::Table) → `Properties.KeySchema.Fn::Transform` L38 in `bad_resources_dynamodb_attributes_transform_e3639_yaml`
-  > Fn::Transform: Fn::Transform value must be an object
-- **F1101** `DDBTableTransformKeySchema` (AWS::DynamoDB::Table) → `Properties.KeySchema.Fn::Transform` L25 in `bad_resources_dynamodb_attributes_transform_e3639_yaml`
-  > Fn::Transform: Fn::Transform value must be an object
-- **F1101** `UnsupportedIntrinsic` (AWS::CloudFormation::WaitConditionHandle) → `UpdateReplacePolicy` L33 in `bad_resources_updatereplacepolicy_yaml`
-  > Fn::Cidr is not supported in UpdateReplacePolicy; AWS::LanguageExtensions allows only Ref, Fn::FindInMap, and Fn::If
-- **F1101** `DDBTableTransformAttributeDefinitions` (AWS::DynamoDB::Table) → `Properties.AttributeDefinitions.Fn::Transform` L11 in `good_resources_dynamodb_attributes_transform_yaml`
-  > Fn::Transform: Fn::Transform value must be an object
-- **F1101** `DDBTableTransformBoth` (AWS::DynamoDB::Table) → `Properties.AttributeDefinitions.Fn::Transform` L33 in `good_resources_dynamodb_attributes_transform_yaml`
-  > Fn::Transform: Fn::Transform value must be an object
-- **F1101** `DDBTableTransformBoth` (AWS::DynamoDB::Table) → `Properties.KeySchema.Fn::Transform` L38 in `good_resources_dynamodb_attributes_transform_yaml`
-  > Fn::Transform: Fn::Transform value must be an object
-- **F1101** `DDBTableTransformKeySchema` (AWS::DynamoDB::Table) → `Properties.KeySchema.Fn::Transform` L25 in `good_resources_dynamodb_attributes_transform_yaml`
-  > Fn::Transform: Fn::Transform value must be an object
-
 ### W2508 - 19 findings
 
 - **W2508** `OpenSSH` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress` L7 in `bad_security_issues_yaml`
@@ -21468,9 +17633,9 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Security group allows 0.0.0.0/0 access to sensitive port 22 (range 22-22)
 - **W2508** `VPCSSHSecurityGroup0495A24F` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress` L229 in `cdk_ec2-instance--EC2Example.template_json`
   > Security group allows 0.0.0.0/0 access to sensitive port 22 (range 22-22)
-- **W2508** `BastionSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress` L496 in `lsp_comprehensive_json`
+- **W2508** `BastionSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress` L495 in `lsp_comprehensive_json`
   > Security group allows 0.0.0.0/0 access to sensitive port 22 (range 22-22)
-- **W2508** `BastionSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress` L207 in `lsp_comprehensive_yaml`
+- **W2508** `BastionSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress` L206 in `lsp_comprehensive_yaml`
   > Security group allows 0.0.0.0/0 access to sensitive port 22 (range 22-22)
 - **W2508** `rSecurityGroupBastion` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress` L689 in `quickstart_nist_vpc_management_yaml`
   > Security group allows 0.0.0.0/0 access to sensitive port 22 (range 22-22)
@@ -21496,6 +17661,39 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Security group allows 0.0.0.0/0 access to sensitive port 22 (range 22-22)
 - **W2508** `rSecurityGroupPeered` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress` L425 in `quickstart_vpc-management_json`
   > Security group allows 0.0.0.0/0 access to sensitive port 22 (range 22-22)
+
+### F1101 - 15 findings
+
+- **F1101** `Topic` (AWS::SNS::Topic) → `Properties.DisplayName` L14 in `bad_functions_findinmap_default_value_no_transform_yaml`
+  > Fn::FindInMap: the 'DefaultValue' element requires the AWS::LanguageExtensions transform; without it Fn::FindInMap accepts at most 3 elements
+- **F1101** `CreationConditionalInvalid` (AWS::CloudFormation::WaitCondition) → `CreationPolicy.Fn::If.2` L51 in `bad_lifecycle_policy_shapes_yaml`
+  > Fn::If branch in CreationPolicy must be an object, got a string
+- **F1101** `CreationNoValueOnUnsupportedType` (AWS::S3::Bucket) → `CreationPolicy` L55 in `bad_lifecycle_policy_shapes_yaml`
+  > Ref is not supported as a top-level CreationPolicy value; CreationPolicy must be an object or Fn::If returning an object
+- **F1101** `CreationRootFindInMap` (AWS::CloudFormation::WaitCondition) → `CreationPolicy` L34 in `bad_lifecycle_policy_shapes_yaml`
+  > Fn::FindInMap is not supported as a top-level CreationPolicy value; CreationPolicy must be an object or Fn::If returning an object
+- **F1101** `CreationRootRef` (AWS::CloudFormation::WaitCondition) → `CreationPolicy` L30 in `bad_lifecycle_policy_shapes_yaml`
+  > Ref is not supported as a top-level CreationPolicy value; CreationPolicy must be an object or Fn::If returning an object
+- **F1101** `CreationRootSelect` (AWS::CloudFormation::WaitCondition) → `CreationPolicy` L38 in `bad_lifecycle_policy_shapes_yaml`
+  > Fn::Select is not supported as a top-level CreationPolicy value; CreationPolicy must be an object or Fn::If returning an object
+- **F1101** `CreationRootSub` (AWS::CloudFormation::WaitCondition) → `CreationPolicy` L45 in `bad_lifecycle_policy_shapes_yaml`
+  > Fn::Sub is not supported as a top-level CreationPolicy value; CreationPolicy must be an object or Fn::If returning an object
+- **F1101** `DDBTableTransformAttributeDefinitions` (AWS::DynamoDB::Table) → `Properties.AttributeDefinitions.Fn::Transform` L11 in `bad_resources_dynamodb_attributes_transform_e3639_yaml`
+  > Fn::Transform: Fn::Transform value must be an object
+- **F1101** `DDBTableTransformBoth` (AWS::DynamoDB::Table) → `Properties.AttributeDefinitions.Fn::Transform` L33 in `bad_resources_dynamodb_attributes_transform_e3639_yaml`
+  > Fn::Transform: Fn::Transform value must be an object
+- **F1101** `DDBTableTransformBoth` (AWS::DynamoDB::Table) → `Properties.KeySchema.Fn::Transform` L38 in `bad_resources_dynamodb_attributes_transform_e3639_yaml`
+  > Fn::Transform: Fn::Transform value must be an object
+- **F1101** `DDBTableTransformKeySchema` (AWS::DynamoDB::Table) → `Properties.KeySchema.Fn::Transform` L25 in `bad_resources_dynamodb_attributes_transform_e3639_yaml`
+  > Fn::Transform: Fn::Transform value must be an object
+- **F1101** `DDBTableTransformAttributeDefinitions` (AWS::DynamoDB::Table) → `Properties.AttributeDefinitions.Fn::Transform` L11 in `good_resources_dynamodb_attributes_transform_yaml`
+  > Fn::Transform: Fn::Transform value must be an object
+- **F1101** `DDBTableTransformBoth` (AWS::DynamoDB::Table) → `Properties.AttributeDefinitions.Fn::Transform` L33 in `good_resources_dynamodb_attributes_transform_yaml`
+  > Fn::Transform: Fn::Transform value must be an object
+- **F1101** `DDBTableTransformBoth` (AWS::DynamoDB::Table) → `Properties.KeySchema.Fn::Transform` L38 in `good_resources_dynamodb_attributes_transform_yaml`
+  > Fn::Transform: Fn::Transform value must be an object
+- **F1101** `DDBTableTransformKeySchema` (AWS::DynamoDB::Table) → `Properties.KeySchema.Fn::Transform` L25 in `good_resources_dynamodb_attributes_transform_yaml`
+  > Fn::Transform: Fn::Transform value must be an object
 
 ### F2012 - 15 findings
 
@@ -21663,9 +17861,9 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 ### F8611 - 2 findings
 
-- **F8611** → `Rules.ValidateRegionAndEnvironment` L198 in `lsp_comprehensive_json`
+- **F8611** → `Rules.ValidateRegionAndEnvironment` L197 in `lsp_comprehensive_json`
   > 'Fn::FindInMap' is not supported in the Rules section - allowed: ['Ref', 'Fn::ValueOf', 'Fn::ValueOfAll', 'Fn::RefAll', 'Fn::Contains', 'Fn::EachMemberEquals', 'Fn::EachMemberIn', 'Fn::Equals', 'Fn::A
-- **F8611** → `Rules.ValidateRegionAndEnvironment` L111 in `lsp_comprehensive_yaml`
+- **F8611** → `Rules.ValidateRegionAndEnvironment` L110 in `lsp_comprehensive_yaml`
   > 'Fn::FindInMap' is not supported in the Rules section - allowed: ['Ref', 'Fn::ValueOf', 'Fn::ValueOfAll', 'Fn::RefAll', 'Fn::Contains', 'Fn::EachMemberEquals', 'Fn::EachMemberIn', 'Fn::Equals', 'Fn::A
 
 ### W1103 - 2 findings
@@ -21771,25 +17969,17 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **W9054** `CertAuth` (AWS::ACMPCA::CertificateAuthorityActivation) → `Properties.Certificate` L8 in `bad_schema_write_only_yaml`
   > Write-only property 'Certificate' of 'CertAuth' is referenced in output 'WriteOnlyOutput'
 
-## Per-Template Breakdown - 177 templates with mismatches
+## Per-Template Breakdown - 171 templates with mismatches
 
-### `bad_limit_size_yaml` - 1796 mismatches (299 TP, 897 FP, 899 EE, 899 FN)
+### `good_lifecycle_intrinsic_scenarios_yaml` - 16 mismatches (0 TP, 0 FP, 0 EE, 16 FN)
 
-- FN: `W1020` ×897, `E1002`, `E1003`
-- FP: `W1020` ×897
-- EE: `I9001` ×897, `F0011`, `I9003`
+- FN: `F0018` ×5, `F3016` ×5, `W1028` ×3, `E3055` ×2, `E3001`
 
-### `public_watchmaker_json` - 48 mismatches (8 TP, 24 FP, 9 EE, 24 FN)
+### `bad_lifecycle_policy_shapes_yaml` - 11 mismatches (6 TP, 3 FP, 10 EE, 8 FN)
 
-- FN: `I1022` ×24
-- FP: `I1022` ×24
-- EE: `I9001` ×7, `I9003`, `I9040`
-
-### `quickstart_nist_application_yaml` - 23 mismatches (34 TP, 10 FP, 113 EE, 13 FN)
-
-- FN: `I1022` ×9, `W1030` ×3, `W2010`
-- FP: `I1022` ×9, `W2010`
-- EE: `W9003` ×53, `I9001` ×50, `I9040` ×10
+- FN: `F0018` ×2, `F3016` ×2, `E1011`, `E3055`, `F1018`, `F1020`
+- FP: `E3055`, `F0018`, `F3016`
+- EE: `F1101` ×6, `I9040` ×4
 
 ### `good_both_forms_yaml` - 11 mismatches (1 TP, 0 FP, 2 EE, 11 FN)
 
@@ -21806,15 +17996,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `F3003` ×2, `E2533`, `E3039`, `F3002`, `F3012`, `F3018`
 - FP: `E0001` ×3
 
-### `quickstart_openshift_yaml` - 10 mismatches (36 TP, 5 FP, 73 EE, 5 FN)
+### `bad_lifecycle_conditional_invalid_policies_yaml` - 9 mismatches (9 TP, 6 FP, 6 EE, 3 FN)
 
-- FN: `I1022` ×5
-- FP: `I1022` ×5
-- EE: `I9001` ×54, `I9040` ×10, `W2508` ×7, `I9003`, `W9010`
-
-### `good_lifecycle_intrinsic_scenarios_yaml` - 9 mismatches (0 TP, 0 FP, 0 EE, 9 FN)
-
-- FN: `F0018` ×3, `F3016` ×3, `W1028` ×2, `E3001`
+- FN: `W1030` ×2, `F3016`
+- FP: `F0018` ×3, `F3016` ×3
+- EE: `I9040` ×6
 
 ### `bad_resources_cloudformation_stacks_yaml` - 8 mismatches (6 TP, 0 FP, 2 EE, 8 FN)
 
@@ -21841,11 +18027,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `W1031` ×6, `W1032` ×2
 - EE: `I9001` ×7, `I9040` ×7
 
-### `bad_lifecycle_policy_shapes_yaml` - 7 mismatches (6 TP, 3 FP, 10 EE, 4 FN)
+### `bad_parameters_configuration_yaml` - 7 mismatches (33 TP, 1 FP, 1 EE, 6 FN)
 
-- FN: `F0018` ×2, `F3016` ×2
-- FP: `E3055`, `F0018`, `F3016`
-- EE: `F1101` ×6, `I9040` ×4
+- FN: `E2001` ×4, `W2001`, `W2002`
+- FP: `F2002`
+- EE: `I9040`
 
 ### `bad_schema_composition_yaml` - 7 mismatches (4 TP, 0 FP, 3 EE, 7 FN)
 
@@ -21863,26 +18049,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `F6101` ×4, `F0013` ×3
 - EE: `I9001` ×11, `I9040` ×6, `E1028` ×3, `I9003`, `W9008`, `W9010`
 
-### `bad_core_conditions_yaml` - 6 mismatches (17 TP, 0 FP, 17 EE, 6 FN)
-
-- FN: `F3014` ×2, `W1001` ×2, `F3003`, `W3698`
-- EE: `I9001` ×10, `I9040` ×7
-
 ### `bad_core_resource_attributes_yaml` - 6 mismatches (15 TP, 1 FP, 5 EE, 5 FN)
 
 - FN: `E3001` ×2, `E3066` ×2, `E3055`
 - FP: `E3055`
 - EE: `I9040` ×4, `W9013`
-
-### `bad_parameters_configuration_yaml` - 6 mismatches (33 TP, 0 FP, 1 EE, 6 FN)
-
-- FN: `E2001` ×4, `W2001`, `W2002`
-- EE: `I9040`
-
-### `bad_route53_conditional_record_arrays_yaml` - 6 mismatches (4 TP, 6 FP, 15 EE, 0 FN)
-
-- FP: `E3023` ×6
-- EE: `I9001` ×15
 
 ### `good_ecs_fargate_units_and_sizes_yaml` - 6 mismatches (0 TP, 0 FP, 43 EE, 6 FN)
 
@@ -21899,11 +18070,10 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `W1031` ×4, `W1032` ×2
 - EE: `I9001` ×5, `I9040` ×5
 
-### `bad_lifecycle_conditional_invalid_policies_yaml` - 5 mismatches (9 TP, 4 FP, 10 EE, 1 FN)
+### `bad_core_conditions_yaml` - 5 mismatches (18 TP, 0 FP, 17 EE, 5 FN)
 
-- FN: `F3016`
-- FP: `F0018` ×2, `F3016` ×2
-- EE: `I9040` ×6, `F1101` ×4
+- FN: `W1001` ×2, `F3003`, `F3014`, `W3698`
+- EE: `I9001` ×10, `I9040` ×7
 
 ### `bad_resources_elasticache_cache_cluster_failover_yaml` - 5 mismatches (12 TP, 0 FP, 18 EE, 5 FN)
 
@@ -21914,18 +18084,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 - FN: `F3003` ×5
 - EE: `I9040`
-
-### `lsp_constants_json` - 5 mismatches (3 TP, 2 FP, 3 EE, 3 FN)
-
-- FN: `E3024`, `F1018`, `F1020`
-- FP: `F1018`, `F1020`
-- EE: `I9001` ×2, `I9040`
-
-### `lsp_constants_yaml` - 5 mismatches (3 TP, 2 FP, 3 EE, 3 FN)
-
-- FN: `E3024`, `F1018`, `F1020`
-- FP: `F1018`, `F1020`
-- EE: `I9001` ×2, `I9040`
 
 ### `bad_E3019_identity_reference_forms_yaml` - 4 mismatches (5 TP, 4 FP, 12 EE, 0 FN)
 
@@ -21946,21 +18104,10 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `E1021` ×4
 - EE: `I9001` ×4, `I9040` ×2
 
-### `bad_noecho_yaml` - 4 mismatches (0 TP, 2 FP, 2 EE, 2 FN)
-
-- FN: `W2010` ×2
-- FP: `W2010` ×2
-- EE: `I9040` ×2
-
 ### `bad_parameters_F2012_cdl_default_split_yaml` - 4 mismatches (5 TP, 0 FP, 8 EE, 4 FN)
 
 - FN: `F2015` ×4
 - EE: `F2012` ×8
-
-### `bad_properties_sg_ingress_yaml` - 4 mismatches (16 TP, 0 FP, 28 EE, 4 FN)
-
-- FN: `F3014` ×4
-- EE: `I9001` ×18, `W9003` ×7, `I9040` ×3
 
 ### `bad_resources_iam_iam_policy_yaml` - 4 mismatches (20 TP, 1 FP, 4 EE, 3 FN)
 
@@ -21988,27 +18135,10 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `I3010` ×4
 - EE: `I9001`, `I9040`
 
-### `good_core_conditions_yaml` - 4 mismatches (6 TP, 0 FP, 22 EE, 4 FN)
-
-- FN: `F3014` ×2, `W1001`, `W3698`
-- EE: `I9001` ×10, `I9040` ×7, `W9010` ×4, `I9003`
-
 ### `quickstart_nat-instance_json` - 4 mismatches (5 TP, 0 FP, 12 EE, 4 FN)
 
 - FN: `W1030` ×4
 - EE: `I9001` ×10, `I9003`, `I9040`
-
-### `quickstart_nist_vpc_management_yaml` - 4 mismatches (34 TP, 2 FP, 68 EE, 2 FN)
-
-- FN: `I1022` ×2
-- FP: `I1022` ×2
-- EE: `I9001` ×59, `I9040` ×5, `W2508` ×2, `I9003`, `W2502`
-
-### `quickstart_vpc-management_json` - 4 mismatches (20 TP, 2 FP, 83 EE, 2 FN)
-
-- FN: `I1022` ×2
-- FP: `I1022` ×2
-- EE: `I9001` ×59, `W9003` ×15, `I9040` ×5, `W2508` ×2, `I9003`, `W2502`
 
 ### `bad_conditions_condition_functions_json` - 3 mismatches (31 TP, 0 FP, 1 EE, 3 FN)
 
@@ -22045,10 +18175,10 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `W3037` ×2, `F1018`
 - EE: `I9001` ×20, `I9040` ×9, `W9003` ×5, `I9003`
 
-### `bad_resources_deletionpolicy_yaml` - 3 mismatches (17 TP, 0 FP, 13 EE, 3 FN)
+### `bad_resources_deletionpolicy_yaml` - 3 mismatches (18 TP, 0 FP, 12 EE, 3 FN)
 
 - FN: `F3016` ×3
-- EE: `I9001` ×4, `I9040` ×4, `W9008` ×3, `F1101`, `I9003`
+- EE: `I9001` ×4, `I9040` ×4, `W9008` ×3, `I9003`
 
 ### `bad_resources_dynamodb_attributes_transform_e3639_yaml` - 3 mismatches (6 TP, 3 FP, 10 EE, 0 FN)
 
@@ -22060,10 +18190,10 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FP: `E3639` ×3
 - EE: `I9001` ×10, `I9040` ×7, `F3003`
 
-### `bad_resources_updatereplacepolicy_yaml` - 3 mismatches (19 TP, 0 FP, 13 EE, 3 FN)
+### `bad_resources_updatereplacepolicy_yaml` - 3 mismatches (20 TP, 0 FP, 12 EE, 3 FN)
 
 - FN: `F0018` ×3
-- EE: `I9001` ×4, `I9040` ×4, `W9008` ×3, `F1101`, `I9003`
+- EE: `I9001` ×4, `I9040` ×4, `W9008` ×3, `I9003`
 
 ### `bad_route53_yaml` - 3 mismatches (31 TP, 0 FP, 20 EE, 3 FN)
 
@@ -22084,6 +18214,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 - FN: `F3003` ×3
 - EE: `I9001`, `I9040`, `W2508`
+
+### `good_core_conditions_yaml` - 3 mismatches (7 TP, 0 FP, 22 EE, 3 FN)
+
+- FN: `F3014`, `W1001`, `W3698`
+- EE: `I9001` ×10, `I9040` ×7, `W9010` ×4, `I9003`
 
 ### `good_resources_dynamodb_attributes_transform_yaml` - 3 mismatches (6 TP, 3 FP, 10 EE, 0 FN)
 
@@ -22108,6 +18243,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 - FN: `W1001` ×2, `E1701`
 - EE: `I9001` ×24, `I9040` ×4, `F8611`, `I9003`, `W1103`, `W2508`, `W9003`, `W9008`
+
+### `quickstart_nist_application_yaml` - 3 mismatches (44 TP, 0 FP, 113 EE, 3 FN)
+
+- FN: `W1030` ×3
+- EE: `W9003` ×53, `I9001` ×50, `I9040` ×10
 
 ### `bad_F3018_conditional_required_novalue_yaml` - 2 mismatches (1 TP, 0 FP, 3 EE, 2 FN)
 
@@ -22148,11 +18288,10 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `E1016` ×2
 - EE: `I9001` ×2, `I9040`
 
-### `bad_functions_tojsonstring_no_transform_yaml` - 2 mismatches (2 TP, 1 FP, 1 EE, 1 FN)
+### `bad_limit_size_yaml` - 2 mismatches (1196 TP, 0 FP, 899 EE, 2 FN)
 
-- FN: `F1031`
-- FP: `F1031`
-- EE: `I9040`
+- FN: `E1002`, `E1003`
+- EE: `I9001` ×897, `F0011`, `I9003`
 
 ### `bad_modules_bad_has_create_policy_yaml` - 2 mismatches (1 TP, 1 FP, 0 EE, 1 FN)
 
@@ -22163,6 +18302,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 - FN: `E3512`, `E3514`
 - EE: `I9001` ×3, `I9040` ×3
+
+### `bad_properties_sg_ingress_yaml` - 2 mismatches (18 TP, 0 FP, 28 EE, 2 FN)
+
+- FN: `F3014` ×2
+- EE: `I9001` ×18, `W9003` ×7, `I9040` ×3
 
 ### `bad_resources_ecs_fargate_task_sizes_e3047_yaml` - 2 mismatches (11 TP, 0 FP, 67 EE, 2 FN)
 
@@ -22177,6 +18321,12 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 - FN: `F3012` ×2
 - EE: `I9040` ×2, `W9013` ×2
+
+### `bad_resources_rds_not_enum_master_username_join_yaml` - 2 mismatches (1 TP, 1 FP, 2 EE, 1 FN)
+
+- FN: `W1032`
+- FP: `F3017`
+- EE: `I9001` ×2
 
 ### `bad_resources_rds_not_enum_master_username_yaml` - 2 mismatches (4 TP, 1 FP, 3 EE, 1 FN)
 
@@ -22212,6 +18362,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 ### `bad_sam_function_url_config_missing_authtype_yaml` - 2 mismatches (0 TP, 1 FP, 0 EE, 1 FN)
 
 - FN: `F3003`
+- FP: `E0001`
+
+### `bad_sam_function_zip_missing_runtime_handler_yaml` - 2 mismatches (0 TP, 1 FP, 0 EE, 1 FN)
+
+- FN: `W2533`
 - FP: `E0001`
 
 ### `bad_sam_globals_not_dict_yaml` - 2 mismatches (0 TP, 1 FP, 0 EE, 1 FN)
@@ -22304,6 +18459,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `F3012` ×2
 - EE: `I9040` ×2
 
+### `lsp_test-template_yaml` - 2 mismatches (2 TP, 0 FP, 2 EE, 2 FN)
+
+- FN: `F3003`, `W2533`
+- EE: `I9040` ×2
+
 ### `bad_F2002_ssm_parameter_type_invalid_yaml` - 1 mismatches (1 TP, 0 FP, 2 EE, 1 FN)
 
 - FN: `F1020`
@@ -22356,11 +18516,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 ### `bad_empty_file_yaml` - 1 mismatches (0 TP, 0 FP, 0 EE, 1 FN)
 
 - FN: `E1001`
-
-### `bad_functions_findinmap_default_value_no_transform_yaml` - 1 mismatches (0 TP, 0 FP, 2 EE, 1 FN)
-
-- FN: `E1011`
-- EE: `F1101`, `I9040`
 
 ### `bad_functions_select_yaml` - 1 mismatches (8 TP, 0 FP, 12 EE, 1 FN)
 
@@ -22452,11 +18607,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `E3065`
 - EE: `I9040` ×3
 
-### `bad_resources_rds_not_enum_master_username_join_yaml` - 1 mismatches (1 TP, 1 FP, 2 EE, 0 FN)
-
-- FP: `F3017`
-- EE: `I9001` ×2
-
 ### `bad_sam_function_autopublishalias_invalid_name_yaml` - 1 mismatches (0 TP, 1 FP, 0 EE, 0 FN)
 
 - FP: `E0001`
@@ -22482,10 +18632,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FP: `E0001`
 
 ### `bad_sam_function_versiondeletionpolicy_without_alias_yaml` - 1 mismatches (0 TP, 1 FP, 0 EE, 0 FN)
-
-- FP: `E0001`
-
-### `bad_sam_function_zip_missing_runtime_handler_yaml` - 1 mismatches (0 TP, 1 FP, 0 EE, 0 FN)
 
 - FP: `E0001`
 
@@ -22527,6 +18673,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 - FN: `F3014`
 - EE: `I9001` ×8, `I9040` ×2
+
+### `bad_some_logs_stream_lambda_yaml` - 1 mismatches (12 TP, 0 FP, 12 EE, 1 FN)
+
+- FN: `E2529`
+- EE: `I9040` ×8, `I9001` ×4
 
 ### `bad_string_yaml` - 1 mismatches (0 TP, 0 FP, 0 EE, 1 FN)
 
@@ -22619,6 +18770,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `E1150`
 - EE: `I9001` ×5, `I9040`
 
+### `good_resources_rds_not_enum_master_username_parameter_yaml` - 1 mismatches (0 TP, 0 FP, 2 EE, 1 FN)
+
+- FN: `W1030`
+- EE: `I9001` ×2
+
 ### `good_route53_conditional_record_arrays_yaml` - 1 mismatches (2 TP, 0 FP, 9 EE, 1 FN)
 
 - FN: `E3023`
@@ -22633,19 +18789,48 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `E9004`
 - EE: `I9001` ×10, `I9040` ×7
 
-### `lsp_test-template_yaml` - 1 mismatches (2 TP, 0 FP, 2 EE, 1 FN)
+### `lsp_constants_json` - 1 mismatches (5 TP, 0 FP, 3 EE, 1 FN)
 
-- FN: `F3003`
-- EE: `I9040` ×2
+- FN: `E3024`
+- EE: `I9001` ×2, `I9040`
+
+### `lsp_constants_yaml` - 1 mismatches (5 TP, 0 FP, 3 EE, 1 FN)
+
+- FN: `E3024`
+- EE: `I9001` ×2, `I9040`
 
 ## Inputs Excluded from Parity Comparison
 
 These templates cannot be compared because no counterpart exists in the
 other tool's output. They are excluded from precision/recall scoring.
 
-### Engine reports with no cfn-lint result — 2 templates, 0 diagnostics
+### cfn-lint results with no engine report — 11 templates, 34 diagnostics
 
+- `bad_resources_cloudformation_sam_app_nested_yaml` (3 diagnostics)
+- `bad_resources_cloudformation_sam_stacks_yaml` (12 diagnostics)
+- `bad_resources_lambda_sam_required_properties_yaml` (5 diagnostics)
+- `bad_resources_serverless_ignore_globals_typo_yaml` (4 diagnostics)
+- `good_functions_getatt_serverless_function_version_yaml` (0 diagnostics)
+- `good_resources_cloudformation_sam_app_nested_yaml` (3 diagnostics)
+- `good_resources_cloudformation_sam_stacks_yaml` (0 diagnostics)
+- `good_resources_lambda_sam_required_properties_yaml` (1 diagnostics)
+- `good_resources_serverless_ignore_globals_valid_yaml` (1 diagnostics)
+- `integration_creationpolicy_yaml` (4 diagnostics)
+- `integration_updatepolicy_yaml` (1 diagnostics)
+
+### Engine reports with no cfn-lint result — 12 templates, 65 diagnostics
+
+- `bad_E2530_I2530_snapstart_sourced_tables_yaml` (11 diagnostics)
+- `bad_E3512_opensearch_access_policy_yaml` (4 diagnostics)
+- `bad_E3663_reserved_environment_keys_yaml` (2 diagnostics)
+- `bad_E3679_classic_elb_listener_index_yaml` (6 diagnostics)
+- `bad_F2002_unsupported_ssm_parameter_type_yaml` (3 diagnostics)
+- `bad_I3100_previous_generation_sourced_routes_yaml` (12 diagnostics)
+- `bad_W2501_nested_password_W1011_exact_path_yaml` (4 diagnostics)
+- `bad_W3660_api_gateway_body_mixing_yaml` (19 diagnostics)
+- `bad_W3671_spotfleet_ebs_iops_yaml` (4 diagnostics)
 - `empty_yaml` (0 diagnostics)
+- `good_E3663_custom_environment_key_yaml` (0 diagnostics)
 - `malformed_yaml` (0 diagnostics)
 
 ## Root-Cause Analysis
@@ -22654,22 +18839,21 @@ other tool's output. They are excluded from precision/recall scoring.
 
 | Cause | Count | % of FN | Rules |
 |-------|------:|--------:|-------|
-| Warning-level checks | 954 | 73.95% | W1001, W1020, W1028, W1030, W1031, W1032, W1034, W1036, W2001, W2002, W2010, W3037, W3691, W3698, W6001 |
-| Other | 179 | 13.88% | E0002, E2001, E2531, E2533, E5001, E6001, E6010, E7001, E7010, E8003, E8004, E8005, E9004, F0000, F0013, F0018, F1018, F1020, F1031, F2015, F3002, F3003, F3006, F3012, F3014, F3016, F3017, F3018, F3030, F3037, F6101 |
-| Resource property validation | 78 | 6.05% | E3001, E3005, E3010, E3023, E3024, E3026, E3039, E3043, E3047, E3048, E3055, E3065, E3066, E3504, E3510, E3512, E3513, E3514, E3530, E3673, E3678, E3682, E3685, E3692, E3698, E3699, E3700, E3701, E3707, E3712, E3719, E3720, E3724 |
-| Informational checks | 52 | 4.03% | I1022, I3010, I3013, I3510 |
-| Intrinsic function validation | 27 | 2.09% | E1001, E1002, E1003, E1005, E1011, E1016, E1017, E1021, E1041, E1150, E1161, E1701 |
+| Other | 177 | 49.72% | E0002, E2001, E2529, E2531, E2533, E5001, E6001, E6010, E7001, E7010, E8003, E8004, E8005, E9004, F0000, F0013, F0018, F1018, F1020, F2015, F3002, F3003, F3006, F3012, F3014, F3016, F3017, F3018, F3030, F3037, F6101 |
+| Resource property validation | 81 | 22.75% | E3001, E3005, E3010, E3023, E3024, E3026, E3039, E3043, E3047, E3048, E3055, E3065, E3066, E3504, E3510, E3512, E3513, E3514, E3530, E3673, E3678, E3682, E3685, E3692, E3698, E3699, E3700, E3701, E3707, E3712, E3719, E3720, E3724 |
+| Warning-level checks | 61 | 17.13% | W1001, W1028, W1030, W1031, W1032, W1034, W1036, W2001, W2002, W2533, W3037, W3691, W3698, W6001 |
+| Intrinsic function validation | 27 | 7.58% | E1001, E1002, E1003, E1005, E1011, E1016, E1017, E1021, E1041, E1150, E1161, E1701 |
+| Informational checks | 10 | 2.81% | I3010, I3013, I3510 |
 
 ### False Positive Root Causes
 
 | Cause | Count | % of FP | Rules |
 |-------|------:|--------:|-------|
-| Stricter than cfn-lint (warnings) | 900 | 86.79% | W1020, W2010 |
-| Stricter than cfn-lint (informational) | 54 | 5.21% | I1022, I3011 |
-| Other | 48 | 4.63% | E0001, F0018, F1018, F1020, F1031, F3016, F3017 |
-| Over-reporting property/intrinsic errors | 35 | 3.38% | E1155, E3001, E3019, E3022, E3023, E3029, E3055, E3510, E3639 |
+| Other | 46 | 52.87% | E0001, F0018, F2002, F3016, F3017 |
+| Over-reporting property/intrinsic errors | 29 | 33.33% | E1155, E3001, E3019, E3022, E3029, E3055, E3510, E3639 |
+| Stricter than cfn-lint (informational) | 12 | 13.79% | I3011 |
 
-## Location Mismatches - 4 matched pairs disagree on line
+## Location Mismatches - 9 matched pairs disagree on line
 
 Same rule ID + resource + path, but the engine start line differs from
 the reference. (Messages are not compared - wording may differ freely.)
@@ -22679,6 +18863,11 @@ findings at the resource's first line because the
 transform loses property line fidelity; the engine anchors at the
 actual property line - deliberately more precise, not a defect.
 
+- **E3023** `StandaloneInvalidFalse` → `Properties.ResourceRecords.0` in `bad_route53_conditional_record_arrays_yaml`: reference L30 vs engine L33
+- **E3023** `StandaloneInvalidTrue` → `Properties.ResourceRecords.0` in `bad_route53_conditional_record_arrays_yaml`: reference L19 vs engine L21
+- **E3023** `StandaloneMixedInvalidFalse` → `Properties.ResourceRecords.1` in `bad_route53_conditional_record_arrays_yaml`: reference L53 vs engine L57
+- **E3023** `StandaloneMixedInvalidTrue` → `Properties.ResourceRecords.1` in `bad_route53_conditional_record_arrays_yaml`: reference L41 vs engine L44
+- **E3023** `MyCNAMERecordSetConditions` → `Properties.ResourceRecords` in `bad_route53_yaml`: reference L90 vs engine L93
 - **I3042** `myKms` → `Properties.KeyPolicy.Statement.2.Principal.AWS.0.Fn::Sub` in `bad_resources_circular_dependency_yaml`: reference L191 vs engine L192
 - **I3042** `CognitoAuthorizer` → `Properties.ProviderARNs.0.Fn::Sub` in `integration_cfn-gather_yaml`: reference L60 vs engine L61
 - **W1028** `ProductionBucket` → `Properties.PublicAccessBlockConfiguration.BlockPublicAcls.Fn::If.2` in `lsp_condition-usage_yaml`: reference L66 vs engine L69

@@ -1,5 +1,5 @@
 use crate::process::SchemaTop;
-use log::{info, warn};
+use log::info;
 use serde_json::json;
 use std::collections::HashMap;
 use std::fs;
@@ -35,17 +35,15 @@ pub fn generate(generated_dir: &Path, handwritten_dir: &Path) -> anyhow::Result<
     info!("Loaded {} patched schemas", raw_schemas.len());
 
     let mut schemas: HashMap<String, SchemaTop> = HashMap::new();
-    let mut skipped = 0;
-    for (tn, json) in &raw_schemas {
-        let schema: SchemaTop = serde_json::from_value(json.clone()).unwrap_or_default();
-        if schema.type_name.is_none() {
-            skipped += 1;
-            continue;
-        }
-        schemas.insert(tn.clone(), schema);
-    }
-    if skipped > 0 {
-        warn!("Skipped {} schemas with no typeName", skipped);
+    for (type_name, json) in &raw_schemas {
+        let schema: SchemaTop = serde_json::from_value(json.clone())
+            .map_err(|error| anyhow::anyhow!("failed to deserialize patched schema '{}': {}", type_name, error))?;
+        anyhow::ensure!(
+            schema.type_name.as_deref() == Some(type_name),
+            "patched schema '{}' did not preserve its required typeName",
+            type_name
+        );
+        schemas.insert(type_name.clone(), schema);
     }
     info!("Parsed {} schemas for CEL codegen", schemas.len());
 

@@ -9,15 +9,17 @@ use template_model::coercion::{CoerceResult, coerce_to_number, coerce_to_string,
 use template_model::conditions::Satisfiability;
 use template_model::consts::{
     FN_CONDITION, FN_FOR_EACH_KEY_PREFIX, FN_IF, FN_REF, INTRINSIC_FN_PATH_SEGMENTS, KEY_PROPERTIES, KEY_TYPE,
-    PARAM_TYPE_COMMA_DELIMITED_LIST, PARAM_TYPE_NUMBER, PARAM_TYPE_STRING, SAM_FUNCTION_TYPE,
-    SAM_SERVERLESS_TYPE_PREFIX,
+    MAX_REQUIRED_PROPERTY_COMBINATIONS, MAX_SCHEMA_MATCH_DEPTH as MAX_MATCH_DEPTH,
+    MAX_SCHEMA_SCENARIO_ASSIGNMENTS as MAX_GROUP_SCENARIO_ASSIGNMENTS,
+    MAX_SCHEMA_SCENARIO_MERGE_ATTEMPTS as MAX_GROUP_SCENARIO_MERGE_ATTEMPTS, PARAM_TYPE_COMMA_DELIMITED_LIST,
+    PARAM_TYPE_NUMBER, PARAM_TYPE_STRING, SAM_FUNCTION_TYPE, SAM_SERVERLESS_TYPE_PREFIX,
 };
 use template_model::message::{render_str_list, render_value, render_value_list};
 use template_model::model::ResolvedResource;
 use template_model::region_enums;
 use template_model::resolver::{RefKind, ResolvedValue};
 use template_model::{
-    CompiledPattern, IAM_ROLE_ARN_PATTERN, SECURITY_GROUP_NAME_PATTERN, SemanticModel, compile_pattern,
+    BudgetKind, CompiledPattern, IAM_ROLE_ARN_PATTERN, SECURITY_GROUP_NAME_PATTERN, SemanticModel, compile_pattern,
     is_custom_resource_type, resolved_value_to_json,
 };
 
@@ -148,7 +150,7 @@ pub fn validate_all_resources(
     model: &Arc<SemanticModel>,
     region: Option<&str>,
 ) -> Vec<Diagnostic> {
-    reset_scenario_analysis_curtailments();
+    reset_schema_budget_exhaustions();
     let mut out = Vec::new();
     let relevant: HashSet<&str> = model.resources.values().map(|r| r.resource_type.as_str()).collect();
 
@@ -232,16 +234,7 @@ pub fn validate_all_resources(
             validate_extensions(&mut out, store, model, rid, res);
         }
     }
-    for (resource_id, property_path) in take_scenario_analysis_curtailments() {
-        out.push(build_diagnostic(
-            "I9052",
-            "Conditional schema analysis budget exhausted; validation of this property's condition scenarios was curtailed and some schema diagnostics may be omitted",
-            model,
-            &resource_id,
-            &property_path,
-            None,
-        ));
-    }
+    drain_schema_budget_exhaustions(model);
     out
 }
 
@@ -420,6 +413,9 @@ pub fn enrich_schema_context(diagnostics: &mut [Diagnostic], store: &CompiledSch
             _ => {}
         }
     }
+    // Drain any budget exhaustions recorded by schema-local functions (e.g.
+    // depth-limited matching) during the context enrichment pass.
+    drain_schema_budget_exhaustions(model);
 }
 
 pub fn enrich_schema_context_standalone(diagnostics: &mut [Diagnostic], model: &Arc<SemanticModel>) {
@@ -883,8 +879,11 @@ fn property_presence_alternatives(
     if m.scenario_budget_exhausted() {
         return Vec::new();
     }
-    let (scenarios, _) =
+    let (scenarios, was_curtailed) =
         m.resolve_scenarios_with_limit(rid, &format!("{base_path}.{property}"), MAX_GROUP_PROPERTY_SCENARIOS);
+    if was_curtailed && !m.scenario_budget_exhausted() {
+        m.record_budget_exhaustion(BudgetKind::SchemaScenarioAssignments);
+    }
     let mut alternatives = Vec::new();
     let mut seen = HashSet::new();
     for (value, conditions) in scenarios {
@@ -1008,27 +1007,11 @@ fn required_group_scenario_assignments(
 ) -> Option<Vec<HashMap<String, bool>>> {
     let paths: Vec<String> = members.iter().map(|name| format!("{}.{}", base_path, name)).collect();
     let refs: Vec<&str> = paths.iter().map(String::as_str).collect();
-    property_scenario_assignments(m, rid, base_path, &refs)
+    property_scenario_assignments(m, rid, &refs)
 }
 
-const MAX_GROUP_SCENARIO_ASSIGNMENTS: usize = 256;
-const MAX_GROUP_SCENARIO_MERGE_ATTEMPTS: usize = 4_096;
 const MAX_GROUP_PROPERTY_SCENARIOS: usize = MAX_GROUP_SCENARIO_ASSIGNMENTS + 1;
 const MAX_GROUP_WITNESS_MERGE_ATTEMPTS: usize = MAX_GROUP_SCENARIO_MERGE_ATTEMPTS;
-
-fn record_scenario_analysis_curtailment(resource_id: &str, property_path: &str) {
-    SCENARIO_ANALYSIS_CURTAILMENTS.with(|curtailments| {
-        curtailments.borrow_mut().insert((resource_id.to_string(), property_path.to_string()));
-    });
-}
-
-fn reset_scenario_analysis_curtailments() {
-    SCENARIO_ANALYSIS_CURTAILMENTS.with(|curtailments| curtailments.borrow_mut().clear());
-}
-
-fn take_scenario_analysis_curtailments() -> BTreeSet<(String, String)> {
-    SCENARIO_ANALYSIS_CURTAILMENTS.with(|curtailments| std::mem::take(&mut *curtailments.borrow_mut()))
-}
 
 /// Computes the distinct satisfiable condition assignments under which a group
 /// of property paths must be evaluated.
@@ -1043,7 +1026,6 @@ fn take_scenario_analysis_curtailments() -> BTreeSet<(String, String)> {
 fn property_scenario_assignments(
     m: &Arc<SemanticModel>,
     rid: &str,
-    group_path: &str,
     property_paths: &[&str],
 ) -> Option<Vec<HashMap<String, bool>>> {
     let Some(seed) = active_scenario_filter(m, rid) else {
@@ -1055,7 +1037,9 @@ fn property_scenario_assignments(
         let (scenarios, was_curtailed) =
             m.resolve_scenarios_with_limit(rid, property_path, MAX_GROUP_PROPERTY_SCENARIOS);
         if was_curtailed {
-            record_scenario_analysis_curtailment(rid, group_path);
+            if !m.scenario_budget_exhausted() {
+                m.record_budget_exhaustion(BudgetKind::SchemaScenarioAssignments);
+            }
             return None;
         }
         if scenarios.is_empty() {
@@ -1070,7 +1054,7 @@ fn property_scenario_assignments(
             }
             if seen_property_assignments.insert(canonical_assignment(conditions)) {
                 if property_assignments.len() == MAX_GROUP_SCENARIO_ASSIGNMENTS {
-                    record_scenario_analysis_curtailment(rid, group_path);
+                    m.record_budget_exhaustion(BudgetKind::SchemaScenarioAssignments);
                     return None;
                 }
                 property_assignments.push(conditions.clone());
@@ -1088,7 +1072,7 @@ fn property_scenario_assignments(
             for alternative in &property_assignments {
                 merge_attempts += 1;
                 if merge_attempts > MAX_GROUP_SCENARIO_MERGE_ATTEMPTS {
-                    record_scenario_analysis_curtailment(rid, group_path);
+                    m.record_budget_exhaustion(BudgetKind::SchemaScenarioMergeAttempts);
                     return None;
                 }
                 let Some(merged) = try_merge_assignments(existing, alternative) else {
@@ -1099,7 +1083,7 @@ fn property_scenario_assignments(
                 }
                 if seen_assignments.insert(canonical_assignment(&merged)) {
                     if next_assignments.len() == MAX_GROUP_SCENARIO_ASSIGNMENTS {
-                        record_scenario_analysis_curtailment(rid, group_path);
+                        m.record_budget_exhaustion(BudgetKind::SchemaScenarioAssignments);
                         return None;
                     }
                     next_assignments.push(merged);
@@ -1477,6 +1461,7 @@ fn validate_sub(
     // conditionals, so recursion is bounded the same way value matching is: a
     // crafted definition graph must never exhaust the stack.
     if depth > MAX_MATCH_DEPTH {
+        m.record_budget_exhaustion(BudgetKind::SchemaMatchDepth);
         return;
     }
     // Resolve $ref in the branch - a branch that references a definition uses
@@ -1591,8 +1576,6 @@ fn validate_sub(
 /// Maximum depth for recursive `schema_value_matches` calls through nested
 /// composition (allOf/anyOf/oneOf) and items. Prevents unbounded recursion
 /// from cyclic or deeply nested schemas.
-const MAX_MATCH_DEPTH: usize = 16;
-
 /// Returns `true` when `value` satisfies all representable constraints in
 /// `schema`. Designed for branch matching: when no satisfiable scenario
 /// produces a matching value, the branch is non-matching.
@@ -1639,6 +1622,9 @@ fn schema_value_failure_reasons(
     property_path: &str,
 ) -> Vec<CompositionFailureReason> {
     if depth > MAX_MATCH_DEPTH || value.is_null() {
+        if depth > MAX_MATCH_DEPTH {
+            record_schema_budget_exhaustion(BudgetKind::SchemaMatchDepth);
+        }
         return Vec::new();
     }
 
@@ -2026,6 +2012,7 @@ fn condition_schema_value_matches(
     depth: usize,
 ) -> bool {
     if depth > MAX_MATCH_DEPTH {
+        record_schema_budget_exhaustion(BudgetKind::SchemaMatchDepth);
         return true; // conservative
     }
 
@@ -2225,7 +2212,7 @@ fn branch_scenario_assignments<'a>(
 
     let paths: Vec<String> = property_names.into_iter().map(|name| format!("{}.{}", base_path, name)).collect();
     let refs: Vec<&str> = paths.iter().map(String::as_str).collect();
-    property_scenario_assignments(m, rid, base_path, &refs)
+    property_scenario_assignments(m, rid, &refs)
 }
 
 /// The scenario tag for a group diagnostic: `None` for the unconditional
@@ -2274,6 +2261,7 @@ struct CompositionBranchEvaluation {
     branch: usize,
     matched: bool,
     required_property_combinations: Vec<Vec<String>>,
+    required_property_combinations_curtailed: bool,
     failure_reasons: Vec<CompositionFailureReason>,
 }
 
@@ -2281,9 +2269,11 @@ impl CompositionBranchEvaluation {
     fn new(
         branch: usize,
         matched: bool,
-        mut required_property_combinations: Vec<Vec<String>>,
+        required_property_combinations: (Vec<Vec<String>>, bool),
         failure_reasons: Vec<CompositionFailureReason>,
     ) -> Self {
+        let (mut required_property_combinations, required_property_combinations_curtailed) =
+            required_property_combinations;
         for combination in &mut required_property_combinations {
             combination.sort();
             combination.dedup();
@@ -2295,6 +2285,7 @@ impl CompositionBranchEvaluation {
             branch,
             matched,
             required_property_combinations,
+            required_property_combinations_curtailed,
             failure_reasons: deduplicate_composition_reasons(failure_reasons),
         }
     }
@@ -2356,16 +2347,20 @@ fn evaluate_object_composition_branches(
         .collect()
 }
 
+/// Maximum required-property combinations retained for one composition branch's
+/// diagnostic context. These combinations explain a failure; they do not decide
+/// whether the branch matched. Capping them therefore bounds message/context work
+/// without changing validation correctness.
 fn required_property_combinations(
     branch: &SubSchema,
     defs: &HashMap<String, PropSchema>,
     rtype: Option<&str>,
-) -> Vec<Vec<String>> {
+) -> (Vec<Vec<String>>, bool) {
     let resolved;
     let effective = if branch.ref_name.is_some() {
         resolved = branch.resolve(defs);
         if resolved.ref_name.is_some() {
-            return Vec::new();
+            return (Vec::new(), false);
         }
         &*resolved
     } else {
@@ -2383,35 +2378,49 @@ fn required_property_combinations(
     base.sort();
     base.dedup();
 
-    let mut combinations = vec![base];
-    expand_required_choice_group(&mut combinations, &effective.required_or, false);
-    expand_required_choice_group(&mut combinations, &effective.required_xor, true);
     if effective.required.is_empty() && effective.required_or.is_empty() && effective.required_xor.is_empty() {
-        return Vec::new();
+        return (Vec::new(), false);
     }
-    combinations
+
+    let mut combinations = vec![base];
+    let mut curtailed = expand_required_choice_group(&mut combinations, &effective.required_or, false);
+    curtailed |= expand_required_choice_group(&mut combinations, &effective.required_xor, true);
+    (combinations, curtailed)
 }
 
-fn expand_required_choice_group(combinations: &mut Vec<Vec<String>>, choices: &[String], exactly_one: bool) {
+/// Expands one required-choice group, returning whether the explanation set was
+/// curtailed at [`MAX_REQUIRED_PROPERTY_COMBINATIONS`].
+fn expand_required_choice_group(combinations: &mut Vec<Vec<String>>, choices: &[String], exactly_one: bool) -> bool {
     if choices.is_empty() {
-        return;
+        return false;
     }
+
     let mut expanded = Vec::new();
-    for combination in combinations.iter() {
+    let mut curtailed = false;
+    'combinations: for combination in combinations.iter() {
         let present = choices.iter().filter(|choice| combination.contains(choice)).count();
         if present > 0 {
             if !exactly_one || present == 1 {
+                if expanded.len() == MAX_REQUIRED_PROPERTY_COMBINATIONS {
+                    curtailed = true;
+                    break;
+                }
                 expanded.push(combination.clone());
             }
             continue;
         }
         for choice in choices {
+            if expanded.len() == MAX_REQUIRED_PROPERTY_COMBINATIONS {
+                curtailed = true;
+                break 'combinations;
+            }
             let mut candidate = combination.clone();
             candidate.push(choice.clone());
             expanded.push(candidate);
         }
     }
     *combinations = expanded;
+    curtailed
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -2446,10 +2455,22 @@ fn build_composition_diagnostic(
         ),
     };
 
-    let mut valid_combinations: Vec<Vec<String>> =
-        evaluations.iter().flat_map(|evaluation| evaluation.required_property_combinations.iter().cloned()).collect();
-    valid_combinations.sort();
-    valid_combinations.dedup();
+    let mut valid_combination_set = BTreeSet::new();
+    let mut combinations_curtailed =
+        evaluations.iter().any(|evaluation| evaluation.required_property_combinations_curtailed);
+    'evaluations: for evaluation in evaluations {
+        for combination in &evaluation.required_property_combinations {
+            if valid_combination_set.contains(combination) {
+                continue;
+            }
+            if valid_combination_set.len() == MAX_REQUIRED_PROPERTY_COMBINATIONS {
+                combinations_curtailed = true;
+                break 'evaluations;
+            }
+            valid_combination_set.insert(combination.clone());
+        }
+    }
+    let valid_combinations: Vec<Vec<String>> = valid_combination_set.into_iter().collect();
     if !valid_combinations.is_empty() {
         message.push_str(" Required property combinations: ");
         message.push_str(
@@ -2465,6 +2486,12 @@ fn build_composition_diagnostic(
                 .join(" or "),
         );
         message.push('.');
+    }
+    if combinations_curtailed {
+        m.record_budget_exhaustion(BudgetKind::RequiredPropertyCombinations);
+        message.push_str(&format!(
+            " Additional required-property combinations were omitted after the deterministic limit of {MAX_REQUIRED_PROPERTY_COMBINATIONS}."
+        ));
     }
 
     if match_count == 0 {
@@ -2490,6 +2517,13 @@ fn build_composition_diagnostic(
     extra.insert("matchCount".to_string(), serde_json::json!(match_count).into());
     if !valid_combinations.is_empty() {
         extra.insert("validPropertyCombinations".to_string(), serde_json::json!(valid_combinations).into());
+    }
+    if combinations_curtailed {
+        extra.insert("validPropertyCombinationsCurtailed".to_string(), serde_json::json!(true).into());
+        extra.insert(
+            "validPropertyCombinationsLimit".to_string(),
+            serde_json::json!(MAX_REQUIRED_PROPERTY_COMBINATIONS).into(),
+        );
     }
     if !matching_branches.is_empty() {
         extra.insert("matchingBranches".to_string(), serde_json::json!(matching_branches).into());
@@ -2598,12 +2632,6 @@ fn validate_sub_under_assignment(
 }
 
 thread_local! {
-    /// Resource paths where exact conditional schema analysis exceeded its work
-    /// budget. Kept separately from branch diagnostics so the advisory cannot
-    /// make an otherwise matching composition branch appear invalid.
-    static SCENARIO_ANALYSIS_CURTAILMENTS: std::cell::RefCell<BTreeSet<(String, String)>> =
-        const { std::cell::RefCell::new(BTreeSet::new()) };
-
     /// The condition assignment the current branch-matching pass is scoped to.
     ///
     /// Threaded as task-local state rather than a parameter because
@@ -2611,6 +2639,30 @@ thread_local! {
     /// composition, and the filter applies uniformly to every value lookup
     /// underneath one group decision.
     static SCENARIO_FILTER: std::cell::RefCell<Option<HashMap<String, bool>>> = const { std::cell::RefCell::new(None) };
+
+    /// Budget kinds exhausted by schema-local functions that lack direct access
+    /// to the SemanticModel. Drained into the model's budget tracker after
+    /// initial schema validation and after schema context enrichment.
+    static SCHEMA_BUDGET_EXHAUSTIONS: std::cell::RefCell<BTreeSet<BudgetKind>> =
+        const { std::cell::RefCell::new(BTreeSet::new()) };
+}
+
+fn record_schema_budget_exhaustion(kind: BudgetKind) {
+    SCHEMA_BUDGET_EXHAUSTIONS.with(|exhaustions| {
+        exhaustions.borrow_mut().insert(kind);
+    });
+}
+
+fn reset_schema_budget_exhaustions() {
+    SCHEMA_BUDGET_EXHAUSTIONS.with(|exhaustions| exhaustions.borrow_mut().clear());
+}
+
+fn drain_schema_budget_exhaustions(model: &Arc<SemanticModel>) {
+    SCHEMA_BUDGET_EXHAUSTIONS.with(|exhaustions| {
+        for kind in std::mem::take(&mut *exhaustions.borrow_mut()) {
+            model.record_budget_exhaustion(kind);
+        }
+    });
 }
 
 /// Whether a value scenario's conditions are consistent with the active
@@ -5520,5 +5572,33 @@ mod tests {
         let actual = json!({"inner": {"key": "val"}});
         let constraint = json!({"properties": {"inner": {"properties": {"key": {"const": "val"}}}}});
         assert!(gather_prop_matches(&actual, &constraint));
+    }
+
+    fn property_names(prefix: &str, count: usize) -> Vec<String> {
+        (0..count).map(|index| format!("{prefix}{index}")).collect()
+    }
+
+    #[test]
+    fn required_property_combinations_accept_exact_cardinality_boundary() {
+        let branch = SubSchema {
+            required_or: property_names("Or", 16),
+            required_xor: property_names("Xor", 16),
+            ..Default::default()
+        };
+        let (combinations, curtailed) = required_property_combinations(&branch, &HashMap::new(), None);
+        assert_eq!(combinations.len(), MAX_REQUIRED_PROPERTY_COMBINATIONS);
+        assert!(!curtailed, "exactly 16 × 16 combinations must be retained in full");
+    }
+
+    #[test]
+    fn required_property_combinations_report_one_over_boundary() {
+        let branch = SubSchema {
+            required_or: property_names("Or", 17),
+            required_xor: property_names("Xor", 16),
+            ..Default::default()
+        };
+        let (combinations, curtailed) = required_property_combinations(&branch, &HashMap::new(), None);
+        assert_eq!(combinations.len(), MAX_REQUIRED_PROPERTY_COMBINATIONS);
+        assert!(curtailed, "17 × 16 combinations must visibly hit the explanation limit");
     }
 }

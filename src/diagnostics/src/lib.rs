@@ -12,8 +12,9 @@ pub mod phase;
 pub use builder::{RegisteredDiagnostic, diagnostic_from_parse_defect};
 pub use detail_level::DetailLevel;
 pub use diagnostic::{
-    DetailedDiagnostic, DetailedReport, Diagnostic, Entity, PerformanceMetrics, RelatedResource, ReportMetadata,
-    ReportStatus, ResourceRef, StandardDiagnostic, StandardReport, Summary, ValidationReport, ViolationContext,
+    BudgetExhaustionRecord, DetailedDiagnostic, DetailedReport, Diagnostic, Entity, PerformanceMetrics,
+    RelatedResource, ReportMetadata, ReportStatus, ResourceRef, StandardDiagnostic, StandardReport, Summary,
+    ValidationReport, ViolationContext,
 };
 pub use filter::{Filterable, apply_filters};
 pub use helpers::{resolve_section_span, source_for_rule};

@@ -317,7 +317,7 @@ if err != nil {
 ```go
 type StandardReport struct {
     FilePath    string
-    Status      ReportStatus         // StatusOK or StatusError (StatusError when the template fails to parse)
+    Status      ReportStatus         // OK, ANALYSIS_INCOMPLETE (findings may be omitted), or ERROR (pipeline failure)
     Version     string
     Metadata    ReportMetadata
     Performance PerformanceMetrics
@@ -328,6 +328,11 @@ type StandardReport struct {
 `DetailedReport` has the same structure but its diagnostics are `DetailedDiagnostic`, which embed
 `StandardDiagnostic` and add `DocumentationURL`, `RuleDescription`, `Phase` (`PARSE` | `SCHEMA` | `LINT`), and
 `Context` (a `*ViolationContext` with `ActualValue`, `ExpectedConstraint`, `ResolutionSource`, etc.).
+
+Each optional budget-exhaustion record retains a stable machine-readable kind and also includes a
+human-readable description sentence, the numeric limit, and whether that specific exhaustion makes analysis
+incomplete. `requiredPropertyCombinations` is context-only, so its `AnalysisIncomplete` value is `false` and the
+report can remain `StatusOK`.
 
 ### StandardDiagnostic
 
@@ -363,4 +368,4 @@ type Entity struct {
 ```
 
 `Severity` and `RuleOrigin` are string types with named constants (`cfnvalidate.SeverityWarn`,
-`cfnvalidate.RuleOriginGuard`, …); `ReportStatus` is `StatusOK` / `StatusError`.
+`cfnvalidate.RuleOriginGuard`, …); `ReportStatus` is `StatusOK`, `StatusAnalysisIncomplete`, or `StatusError`.

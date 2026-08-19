@@ -380,6 +380,8 @@ _NON_RESOURCE_SECTIONS = (
 
 def _normalize_engine_identity(resource_id, resource_path):
     """Normalize section paths to cfn-lint's dotted, resource-free identity."""
+    if resource_id:
+        return resource_id, resource_path
     for section in _NON_RESOURCE_SECTIONS:
         if resource_path == section or resource_path.startswith((f"{section}/", f"{section}.")):
             return "", resource_path.replace("/", ".")

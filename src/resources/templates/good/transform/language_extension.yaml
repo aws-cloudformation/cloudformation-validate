@@ -7,10 +7,6 @@ Conditions:
 Parameters:
   DBPolicy:
     Type: String
-    AllowedValues: [Retain, Delete]
-  StackKey:
-    Type: String
-    AllowedValues: [teststack1, teststack2]
   AutoPublishAliasParameter:
     Type: String
     Default: TestAliasRef
@@ -47,7 +43,7 @@ Resources:
     UpdateReplacePolicy:
       Fn::FindInMap:
         - "StackIdMap01"
-        - "Ref": "StackKey"
+        - "Ref": "AWS::StackId"
         - "DeletionPolicy"
     DeletionPolicy: "Retain"
   PolicyList:

@@ -2,9 +2,9 @@
 use data_source::AdditionalSchemaSource;
 use data_source::embedded::{CFN_LINT_VERSION, RESOURCE_SCHEMA_VERSION};
 use diagnostics::{
-    DetailLevel, Diagnostic, Entity, PerformanceMetrics, Phase, PhaseMetric, RegisteredDiagnostic, RelatedResource,
-    ReportMetadata, ReportStatus, ResourceRef, Summary, ValidationReport, ViolationContext, apply_filters,
-    diagnostic_from_parse_defect, phase_metric, resolve_section_span,
+    BudgetExhaustionRecord, DetailLevel, Diagnostic, Entity, PerformanceMetrics, Phase, PhaseMetric,
+    RegisteredDiagnostic, RelatedResource, ReportMetadata, ReportStatus, ResourceRef, Summary, ValidationReport,
+    ViolationContext, apply_filters, diagnostic_from_parse_defect, phase_metric, resolve_section_span,
 };
 use rules::{
     FilterConfig, RuleInfo, RuleMetadataEntry, RuleOrigin, Severity, is_fatal_rule, is_valid_custom_rule_id,
@@ -20,11 +20,14 @@ use std::error;
 use std::fmt;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::sync::Arc;
+use template_model::resolved_value::effective_path_from_scenario_source_path;
 use template_model::{
     EntityType, JsonValue, ParseConfig, ParseError, ParseResult, PseudoParameterOverrides, SemanticModel, SourceSpan,
     UNKNOWN_SPAN, entity_identity, is_sam_transform_error_message, region_enums, span_to_option,
 };
 use web_time::Instant;
+
+pub const DIAGNOSTIC_SOURCE_PATH_FIELD: &str = "source_path";
 
 #[derive(Debug)]
 pub enum ValidationError {
@@ -268,21 +271,8 @@ pub(crate) fn validate(
 
         // The satisfiability budget is consumed almost entirely by the rule
         // evaluation that just ran, so this is the earliest point the exhausted
-        // queries are observable. Emitting it here (rather than at model build)
-        // is what lets the diagnostic actually fire.
-        for query in model.conditions.budget_exhausted_queries() {
-            all_diagnostics.push(
-                RegisteredDiagnostic::new(
-                    "I9052",
-                    format!("Condition satisfiability analysis budget exhausted during: {}", query),
-                )
-                .build(),
-            );
-        }
-
-        if let Some(diagnostic) = scenario_expansion_curtailment_diagnostic(model.scenario_expansion_curtailed()) {
-            all_diagnostics.push(diagnostic);
-        }
+        // queries are observable. Budget exhaustions are recorded into the
+        // model-level tracker by the condition model as they occur.
 
         if config.pseudo_parameter_overrides.region.is_none() && region_enums::template_has_region_scoped_value(&model)
         {
@@ -322,6 +312,57 @@ pub(crate) fn validate(
         }
     }
 
+    // Filtering may suppress the visible warning, so report metadata is captured
+    // independently before finalization.
+    let exhausted_kinds = model.exhausted_budget_kinds();
+    let budget_exhaustion_records: Vec<BudgetExhaustionRecord> = exhausted_kinds
+        .iter()
+        .map(|kind| BudgetExhaustionRecord {
+            kind: kind.as_str().to_string(),
+            description: kind.description().to_string(),
+            limit: kind.limit(),
+            analysis_incomplete: kind.analysis_incomplete(),
+        })
+        .collect();
+    let analysis_incomplete = model.budget_analysis_incomplete();
+
+    if !config.disable_builtin_rules && !exhausted_kinds.is_empty() {
+        let message = if analysis_incomplete {
+            "Deterministic validation budgets were exhausted; analysis may be incomplete and some findings may be omitted"
+        } else {
+            "Deterministic validation budgets were exhausted; analysis completed but some detail was omitted"
+        };
+        let budget_context = budget_exhaustion_records
+            .iter()
+            .map(|record| {
+                serde_json::json!({
+                    "kind": record.kind.as_str(),
+                    "description": record.description.as_str(),
+                    "limit": record.limit,
+                    "analysisIncomplete": record.analysis_incomplete,
+                })
+            })
+            .collect();
+        let mut context_extra = HashMap::new();
+        context_extra.insert("budgetExhaustions".to_string(), serde_json::Value::Array(budget_context).into());
+        let mut budget_warning = RegisteredDiagnostic::new("W9052", message).build();
+        budget_warning.context = Some(ViolationContext {
+            actual_value: None,
+            expected_constraint: None,
+            property: None,
+            lifecycle: None,
+            resolution_source: None,
+            extra: Some(context_extra),
+        });
+
+        let warning_index = all_diagnostics.len();
+        all_diagnostics.push(budget_warning);
+        let warning_slice = &mut all_diagnostics[warning_index..];
+        backfill_locations(warning_slice, &model);
+        backfill_entities(warning_slice, &model);
+        enrich_diagnostics(warning_slice, &model, registry_metadata, &external_metadata, &config.detail_level);
+    }
+
     let (total_before, suppressed) = finalize_diagnostics(&mut all_diagnostics, &config);
 
     if suppressed > 0 {
@@ -343,6 +384,10 @@ pub(crate) fn validate(
         config.severity_level,
         file_path,
     );
+    if analysis_incomplete {
+        report.status = ReportStatus::AnalysisIncomplete;
+    }
+    report.metadata.budget_exhaustions = (!budget_exhaustion_records.is_empty()).then_some(budget_exhaustion_records);
     let finalize_metric = phase_metric(t_post);
 
     report.performance.schema_init = schema_validator.init_metric().clone();
@@ -358,15 +403,10 @@ pub(crate) fn validate(
 struct DataSourceVersions {
     cfn_lint_version: &'static str,
     resource_schema_version: &'static str,
-    available: bool,
 }
 
-static DATA_SOURCE_VERSIONS: DataSourceVersions = match (CFN_LINT_VERSION, RESOURCE_SCHEMA_VERSION) {
-    (Some(cfn_lint_version), Some(resource_schema_version)) => {
-        DataSourceVersions { cfn_lint_version, resource_schema_version, available: true }
-    }
-    _ => DataSourceVersions { cfn_lint_version: "", resource_schema_version: "", available: false },
-};
+static DATA_SOURCE_VERSIONS: DataSourceVersions =
+    DataSourceVersions { cfn_lint_version: CFN_LINT_VERSION, resource_schema_version: RESOURCE_SCHEMA_VERSION };
 
 #[cfg(any(test, feature = "test"))]
 pub fn validate_bytes(
@@ -385,11 +425,6 @@ pub fn validate_bytes_with_path(
     config: ValidateConfig,
     file_path: String,
 ) -> Result<ValidationReport, ValidationError> {
-    if !DATA_SOURCE_VERSIONS.available {
-        return Err(ValidationError::Engine(
-            "data source versions are unavailable; run the full data-source sync with --cfn-lint-root".to_string(),
-        ));
-    }
     let total_start = Instant::now();
     let result = match SemanticModel::parse(
         bytes,
@@ -420,6 +455,7 @@ pub fn validate_bytes_with_path(
                     suppressed: 0,
                     strict: config.strict,
                     severity_level: config.severity_level,
+                    budget_exhaustions: None,
                 },
                 performance: PerformanceMetrics {
                     schema_init: PhaseMetric { duration_ms: 0.0 },
@@ -437,18 +473,6 @@ pub fn validate_bytes_with_path(
     let mut report = validate(engine, schema_validator, result, config, file_path)?;
     report.performance.validate_total = phase_metric(total_start);
     Ok(report)
-}
-
-fn scenario_expansion_curtailment_diagnostic(curtailed: bool) -> Option<Diagnostic> {
-    curtailed.then(|| {
-        RegisteredDiagnostic::new(
-            "I9052",
-            "Scenario expansion was curtailed because a condition-scenario analysis budget was exceeded; \
-             some condition combinations were not fully explored",
-        )
-        .property_path("Template")
-        .build()
-    })
 }
 
 /// Runs `operation`, converting any unwinding panic into an error produced by
@@ -509,6 +533,111 @@ fn panic_message(payload: &(dyn Any + Send)) -> String {
     }
 }
 
+fn parse_span_coordinate(
+    diagnostic: &serde_json::Value,
+    field_name: &str,
+    rule_id: &str,
+) -> Result<Option<u32>, String> {
+    let Some(value) = diagnostic.get(field_name) else {
+        return Ok(None);
+    };
+    if value.is_null() {
+        return Ok(None);
+    }
+    let coordinate = value
+        .as_u64()
+        .ok_or_else(|| format!("Diagnostic '{}' field '{}' must be a non-negative integer", rule_id, field_name))?;
+    u32::try_from(coordinate)
+        .map(Some)
+        .map_err(|_| format!("Diagnostic '{}' field '{}' exceeds the supported coordinate range", rule_id, field_name))
+}
+
+fn resolve_model_diagnostic_span(
+    rule_id: &str,
+    model: &SemanticModel,
+    resource_id: Option<&str>,
+    property_path: Option<&str>,
+    source_path: Option<&str>,
+) -> Result<SourceSpan, String> {
+    if let Some(source_path) = source_path {
+        let resource_id = resource_id.ok_or_else(|| {
+            format!("Diagnostic '{}' provides '{}' without a resource_id", rule_id, DIAGNOSTIC_SOURCE_PATH_FIELD)
+        })?;
+        let property_path = property_path.ok_or_else(|| {
+            format!(
+                "Diagnostic '{}' on resource '{}' provides '{}' without a resource_path",
+                rule_id, resource_id, DIAGNOSTIC_SOURCE_PATH_FIELD
+            )
+        })?;
+        let effective_source_path = effective_path_from_scenario_source_path(source_path)
+            .ok_or_else(|| format!("Diagnostic '{}' has malformed scenario source path '{}'", rule_id, source_path))?;
+        if effective_source_path != property_path {
+            return Err(format!(
+                "Diagnostic '{}' source path '{}' resolves to '{}' instead of resource path '{}'",
+                rule_id, source_path, effective_source_path, property_path
+            ));
+        }
+    }
+
+    let location_path = source_path.or(property_path).unwrap_or("");
+    Ok(if let Some(resource_id) = resource_id {
+        model.resource_span(resource_id, location_path)
+    } else {
+        model.diagnostic_span(None, location_path).unwrap_or_else(|| resolve_section_span(rule_id, model))
+    })
+}
+
+fn validate_explicit_diagnostic_span(
+    diagnostic: &serde_json::Value,
+    rule_id: &str,
+    model_span: SourceSpan,
+) -> Result<(), String> {
+    let start_line = parse_span_coordinate(diagnostic, "start_line", rule_id)?;
+    let start_column = parse_span_coordinate(diagnostic, "start_column", rule_id)?;
+    let end_line = parse_span_coordinate(diagnostic, "end_line", rule_id)?;
+    let end_column = parse_span_coordinate(diagnostic, "end_column", rule_id)?;
+
+    if start_line.is_none() && start_column.is_none() && end_line.is_none() && end_column.is_none() {
+        return Ok(());
+    }
+    let (Some(start_line), Some(start_column)) = (start_line, start_column) else {
+        return Err(format!("Diagnostic '{}' explicit span must provide both start_line and start_column", rule_id));
+    };
+    let explicit_end = match (end_line, end_column) {
+        (None, None) => None,
+        (Some(line), Some(column)) => Some((line, column)),
+        _ => {
+            return Err(format!("Diagnostic '{}' explicit span must provide both end_line and end_column", rule_id));
+        }
+    };
+    if model_span == UNKNOWN_SPAN {
+        return Err(format!(
+            "Diagnostic '{}' explicit span cannot be verified because its resource path has no model-derived location",
+            rule_id
+        ));
+    }
+
+    let start_matches = start_line == model_span.start_line && start_column == model_span.start_column;
+    let end_matches =
+        explicit_end.is_none_or(|(line, column)| line == model_span.end_line && column == model_span.end_column);
+    if !start_matches || !end_matches {
+        let (explicit_end_line, explicit_end_column) = explicit_end.unwrap_or((start_line, start_column));
+        return Err(format!(
+            "Diagnostic '{}' explicit span {}:{}-{}:{} does not match model-derived span {}:{}-{}:{}",
+            rule_id,
+            start_line,
+            start_column,
+            explicit_end_line,
+            explicit_end_column,
+            model_span.start_line,
+            model_span.start_column,
+            model_span.end_line,
+            model_span.end_column
+        ));
+    }
+    Ok(())
+}
+
 pub(crate) fn parse_diagnostic(
     val: &serde_json::Value,
     model: &SemanticModel,
@@ -534,27 +663,19 @@ pub(crate) fn parse_diagnostic(
     let property_path =
         val.get("resource_path").and_then(|v| v.as_str()).filter(|s| !s.is_empty()).map(|s| s.to_string());
 
-    let explicit_span = match (
-        val.get("start_line").and_then(|value| value.as_u64()),
-        val.get("start_column").and_then(|value| value.as_u64()),
-    ) {
-        (Some(line), Some(column)) => Some(SourceSpan {
-            start_line: line as u32,
-            start_column: column as u32,
-            end_line: val.get("end_line").and_then(|value| value.as_u64()).unwrap_or(line) as u32,
-            end_column: val.get("end_column").and_then(|value| value.as_u64()).unwrap_or(column) as u32,
-        }),
-        _ => None,
-    };
-    let span = explicit_span.unwrap_or_else(|| {
-        if let Some(ref resource_id) = resource_id {
-            model.resource_span(resource_id, property_path.as_deref().unwrap_or(""))
-        } else {
-            model
-                .diagnostic_span(None, property_path.as_deref().unwrap_or(""))
-                .unwrap_or_else(|| resolve_section_span(&rule_id, model))
+    let source_path = match val.get(DIAGNOSTIC_SOURCE_PATH_FIELD) {
+        None | Some(serde_json::Value::Null) => None,
+        Some(serde_json::Value::String(path)) if !path.is_empty() => Some(path.as_str()),
+        Some(_) => {
+            return Err(format!(
+                "Diagnostic '{}' field '{}' must be a non-empty string",
+                rule_id, DIAGNOSTIC_SOURCE_PATH_FIELD
+            ));
         }
-    });
+    };
+    let span =
+        resolve_model_diagnostic_span(&rule_id, model, resource_id.as_deref(), property_path.as_deref(), source_path)?;
+    validate_explicit_diagnostic_span(val, &rule_id, span)?;
 
     let is_custom_or_guard = source_override.is_some_and(|o| matches!(o, RuleOrigin::Custom | RuleOrigin::Guard));
 
@@ -704,6 +825,7 @@ fn build_report_with_versions(
             suppressed,
             strict,
             severity_level,
+            budget_exhaustions: None,
         },
         performance: PerformanceMetrics {
             schema_init: PhaseMetric { duration_ms: 0.0 },
@@ -1116,7 +1238,7 @@ pub fn make_resource_diagnostic_at_source(
 mod tests {
     use super::*;
     use diagnostics::Phase;
-    use rules::{Category, build_rule_metadata_map, lookup_rule};
+    use rules::{Category, RuleFilterConfig, build_rule_metadata_map, lookup_rule};
     use template_model::{SAM_TRANSFORM_ERROR_PREFIX, SAM_TRANSFORM_ERROR_RULE_ID};
 
     const TEST_CFN_LINT_VERSION: &str = "https://github.com/aws-cloudformation/cfn-lint@1.54.0";
@@ -1504,25 +1626,29 @@ Resources:
     }
 
     #[test]
-    fn parse_diagnostic_with_explicit_start_line_column() {
+    fn parse_diagnostic_accepts_model_matching_explicit_location() {
         let model = minimal_model();
+        let expected = model.resource_span("Bucket", "Properties.BucketName");
         let val = serde_json::json!({
             "rule_id": "E3012",
             "severity": Severity::Error.as_str(),
             "message": "x",
-            "start_line": 42,
-            "start_column": 7
+            "resource_id": "Bucket",
+            "resource_path": "Properties.BucketName",
+            "start_line": expected.start_line,
+            "start_column": expected.start_column,
+            "end_line": expected.end_line,
+            "end_column": expected.end_column
         });
-        let diag = parse_diagnostic(&val, &model, None).unwrap();
-        assert_eq!(diag.location.as_ref().unwrap().start_line, 42);
-        assert_eq!(diag.location.as_ref().unwrap().start_column, 7);
+        let diag = parse_diagnostic(&val, &model, None).expect("model-matching coordinates should be accepted");
+        assert_eq!(diag.location, Some(expected));
     }
 
     #[test]
-    fn parse_diagnostic_resource_preserves_explicit_location() {
+    fn parse_diagnostic_rejects_unverified_explicit_location() {
         let model = minimal_model();
         let val = serde_json::json!({
-            "rule_id": "E3012",
+            "rule_id": "XCUSTOM",
             "severity": Severity::Error.as_str(),
             "message": "x",
             "resource_id": "Bucket",
@@ -1532,8 +1658,67 @@ Resources:
             "end_line": 43,
             "end_column": 9
         });
-        let diag = parse_diagnostic(&val, &model, None).unwrap();
-        assert_eq!(diag.location, Some(SourceSpan { start_line: 42, start_column: 7, end_line: 43, end_column: 9 }));
+        let error = parse_diagnostic(&val, &model, Some(&RuleOrigin::Custom))
+            .expect_err("custom coordinates outside the declared property must be rejected");
+        assert!(error.contains("does not match model-derived span"), "got: {error}");
+    }
+
+    #[test]
+    fn parse_diagnostic_accepts_verified_conditional_source_path() {
+        let model = SemanticModel::from_bytes(
+            br#"
+Parameters:
+  Mode: {Type: String}
+Conditions:
+  UseFirst: !Equals [!Ref Mode, first]
+Resources:
+  Record:
+    Type: Custom::Record
+    Properties:
+      Values: !If
+        - UseFirst
+        - [invalid]
+        - [valid]
+"#,
+        )
+        .expect("conditional model should parse");
+        let source_path = "Properties.Values.Fn::If.1.0";
+        let expected = model.resource_span("Record", source_path);
+        let val = serde_json::json!({
+            "rule_id": "E3012",
+            "severity": Severity::Error.as_str(),
+            "message": "x",
+            "resource_id": "Record",
+            "resource_path": "Properties.Values.0",
+            (DIAGNOSTIC_SOURCE_PATH_FIELD): source_path,
+            "start_line": expected.start_line,
+            "start_column": expected.start_column,
+            "end_line": expected.end_line,
+            "end_column": expected.end_column
+        });
+        let diag = parse_diagnostic(&val, &model, None).expect("verified conditional source path should be accepted");
+        assert_eq!(diag.location, Some(expected));
+    }
+
+    #[test]
+    fn parse_diagnostic_rejects_source_path_for_another_property() {
+        let model = minimal_model();
+        let expected = model.resource_span("Bucket", "Properties.BucketName");
+        let val = serde_json::json!({
+            "rule_id": "E3012",
+            "severity": Severity::Error.as_str(),
+            "message": "x",
+            "resource_id": "Bucket",
+            "resource_path": "Properties.BucketName",
+            (DIAGNOSTIC_SOURCE_PATH_FIELD): "Properties.Tags.Fn::If.1.0",
+            "start_line": expected.start_line,
+            "start_column": expected.start_column,
+            "end_line": expected.end_line,
+            "end_column": expected.end_column
+        });
+        let error = parse_diagnostic(&val, &model, None)
+            .expect_err("a source path for another property must not relocate the diagnostic");
+        assert!(error.contains("instead of resource path 'Properties.BucketName'"), "got: {error}");
     }
 
     #[test]
@@ -2658,6 +2843,245 @@ Resources:
 
     const WELL_FORMED_TEMPLATE: &[u8] = b"Resources:\n  Bucket:\n    Type: AWS::S3::Bucket\n";
 
+    /// A test engine that records specified budget kinds during evaluation.
+    struct BudgetExhaustingEngine {
+        kinds: Vec<template_model::BudgetKind>,
+        metadata: HashMap<String, RuleMetadataEntry>,
+        metric: PhaseMetric,
+    }
+
+    impl BudgetExhaustingEngine {
+        fn new(kinds: Vec<template_model::BudgetKind>) -> Self {
+            Self { kinds, metadata: build_rule_metadata_map(), metric: PhaseMetric { duration_ms: 0.0 } }
+        }
+    }
+
+    impl ValidationEngine for BudgetExhaustingEngine {
+        fn engine_name(&self) -> &str {
+            "budget-test-engine"
+        }
+
+        fn evaluate_rules(
+            &self,
+            model: &Arc<SemanticModel>,
+            _config: &ValidateConfig,
+        ) -> Result<Vec<Diagnostic>, ValidationError> {
+            for kind in &self.kinds {
+                model.record_budget_exhaustion(*kind);
+            }
+            Ok(Vec::new())
+        }
+
+        fn list_rules(&self) -> Vec<RuleInfo> {
+            Vec::new()
+        }
+
+        fn rule_metadata(&self) -> &HashMap<String, RuleMetadataEntry> {
+            &self.metadata
+        }
+
+        fn external_rule_metadata(&self) -> HashMap<String, RuleMetadataEntry> {
+            HashMap::new()
+        }
+
+        fn init_metric(&self) -> &PhaseMetric {
+            &self.metric
+        }
+    }
+
+    #[test]
+    fn budget_exhaustion_emits_one_warning_with_metadata() {
+        use template_model::BudgetKind;
+        let engine = BudgetExhaustingEngine::new(vec![
+            BudgetKind::ResolverDepth,
+            BudgetKind::EnumExpansion,
+            BudgetKind::ResolverDepth, // duplicate — must not create a second entry
+        ]);
+        let schema_validator = SchemaValidator::default();
+        let report = validate_bytes(
+            &engine,
+            &schema_validator,
+            WELL_FORMED_TEMPLATE,
+            ValidateConfig { detail_level: DetailLevel::Detailed, ..Default::default() },
+        )
+        .expect("validation must succeed");
+
+        let budget_warnings: Vec<_> = report.diagnostics.iter().filter(|d| d.rule_id == "W9052").collect();
+        assert_eq!(budget_warnings.len(), 1, "exactly one aggregate budget warning must be emitted");
+        let w = budget_warnings[0];
+        assert_eq!(w.severity, Severity::Warn);
+        assert_eq!(
+            w.rule_description.as_deref(),
+            Some("Deterministic validation budgets were exhausted; see report metadata for completeness impact")
+        );
+        assert_eq!(w.category.as_deref(), Some(Category::Structure.as_str()));
+        assert_eq!(w.source, RuleOrigin::Engine);
+        assert_eq!(w.phase, Some(Phase::Lint));
+
+        assert_eq!(report.status, ReportStatus::AnalysisIncomplete);
+        let budget_exhaustions =
+            report.metadata.budget_exhaustions.as_deref().expect("exhausted budgets must be present in metadata");
+        assert_eq!(budget_exhaustions.len(), 2, "two distinct kinds, not three");
+        // Deterministic order (BTreeSet)
+        assert_eq!(budget_exhaustions[0].kind, "resolverDepth");
+        assert_eq!(budget_exhaustions[0].description, BudgetKind::ResolverDepth.description());
+        assert_eq!(budget_exhaustions[0].limit, BudgetKind::ResolverDepth.limit());
+        assert_eq!(budget_exhaustions[1].kind, "enumExpansion");
+        assert_eq!(budget_exhaustions[1].description, BudgetKind::EnumExpansion.description());
+
+        // Context must be present in detailed format
+        assert!(w.context.is_some(), "budget warning context must be attached in detailed format");
+        let ctx = w.context.as_ref().unwrap();
+        let extra = ctx.extra.as_ref().expect("context.extra must be populated");
+        assert!(extra.contains_key("budgetExhaustions"));
+    }
+
+    #[test]
+    fn context_only_required_property_combinations_keeps_report_status_ok() {
+        use template_model::BudgetKind;
+
+        let choice_count = BudgetKind::RequiredPropertyCombinations.limit() as usize + 1;
+        let choices: Vec<String> = (0..choice_count).map(|index| format!("Choice{index:03}")).collect();
+        let properties: serde_json::Map<String, serde_json::Value> =
+            choices.iter().map(|choice| (choice.clone(), serde_json::json!({"type": "string"}))).collect();
+        let schema_validator = SchemaValidator::try_with_additional_schemas(vec![(
+            "AWS::Test::RequiredCombinationBudget",
+            serde_json::json!({
+                "properties": properties,
+                "anyOf": [{"requiredOr": choices}],
+                "additionalProperties": false
+            }),
+        )])
+        .expect("test schema must compile");
+        let template = b"Resources:\n  R:\n    Type: AWS::Test::RequiredCombinationBudget\n    Properties: {}\n";
+        let engine = BudgetExhaustingEngine::new(Vec::new());
+
+        let report = validate_bytes(&engine, &schema_validator, template, ValidateConfig::default())
+            .expect("validation must succeed");
+
+        let budget_warnings: Vec<_> =
+            report.diagnostics.iter().filter(|diagnostic| diagnostic.rule_id == "W9052").collect();
+        assert_eq!(budget_warnings.len(), 1);
+        assert_eq!(report.status, ReportStatus::Ok);
+        let budget_exhaustions =
+            report.metadata.budget_exhaustions.as_deref().expect("context-only exhaustion must be present in metadata");
+        assert_eq!(budget_exhaustions.len(), 1);
+        assert_eq!(budget_exhaustions[0].kind, "requiredPropertyCombinations");
+        assert_eq!(budget_exhaustions[0].description, BudgetKind::RequiredPropertyCombinations.description());
+        assert_eq!(budget_exhaustions[0].limit, BudgetKind::RequiredPropertyCombinations.limit());
+        assert!(!budget_exhaustions[0].analysis_incomplete);
+    }
+
+    #[test]
+    fn severity_filtering_removes_warning_but_metadata_persists() {
+        use template_model::BudgetKind;
+        let engine = BudgetExhaustingEngine::new(vec![BudgetKind::ResolverDepth]);
+        let schema_validator = SchemaValidator::default();
+        let report = validate_bytes(
+            &engine,
+            &schema_validator,
+            WELL_FORMED_TEMPLATE,
+            ValidateConfig { severity_level: Severity::Error, ..Default::default() },
+        )
+        .expect("validation must succeed");
+
+        let budget_warnings: Vec<_> = report.diagnostics.iter().filter(|d| d.rule_id == "W9052").collect();
+        assert!(budget_warnings.is_empty(), "severity filter must remove the warning");
+        assert_eq!(
+            report.status,
+            ReportStatus::AnalysisIncomplete,
+            "status reflects correctness-affecting exhaustion regardless of filter"
+        );
+        assert!(report.metadata.budget_exhaustions.is_some());
+    }
+
+    #[test]
+    fn parse_error_sets_error_status_without_budget_warning() {
+        let schema_validator = SchemaValidator::default();
+        let engine = BudgetExhaustingEngine::new(vec![]);
+        let report = validate_bytes_with_path(
+            &engine,
+            &schema_validator,
+            b"{ not valid yaml or json <<<",
+            ValidateConfig::default(),
+            "bad.yaml".to_string(),
+        )
+        .expect("parse errors return Ok with error diagnostics");
+
+        assert_eq!(report.status, ReportStatus::Error);
+        assert!(report.metadata.budget_exhaustions.is_none());
+        let budget_warnings: Vec<_> = report.diagnostics.iter().filter(|d| d.rule_id == "W9052").collect();
+        assert!(budget_warnings.is_empty(), "parse errors must not emit a budget warning");
+    }
+
+    #[test]
+    fn category_filtering_removes_warning_but_metadata_persists() {
+        use template_model::BudgetKind;
+        let engine = BudgetExhaustingEngine::new(vec![BudgetKind::ResolverDepth]);
+        let schema_validator = SchemaValidator::default();
+        let filters = FilterConfig::new(
+            RuleFilterConfig::default(),
+            RuleFilterConfig {
+                categories: vec![Category::Structure.as_str().to_string()],
+                ..RuleFilterConfig::default()
+            },
+        );
+        let report = validate_bytes(
+            &engine,
+            &schema_validator,
+            WELL_FORMED_TEMPLATE,
+            ValidateConfig { filters, ..ValidateConfig::default() },
+        )
+        .expect("validation must succeed");
+
+        assert!(report.diagnostics.iter().all(|diagnostic| diagnostic.rule_id != "W9052"));
+        assert_eq!(report.status, ReportStatus::AnalysisIncomplete);
+        let budget_exhaustions = report
+            .metadata
+            .budget_exhaustions
+            .as_deref()
+            .expect("exhausted budget must be present despite warning suppression");
+        assert_eq!(budget_exhaustions.len(), 1);
+        assert_eq!(budget_exhaustions[0].kind, "resolverDepth");
+    }
+
+    #[test]
+    fn disabling_builtins_suppresses_warning_but_metadata_persists() {
+        use template_model::BudgetKind;
+        let engine = BudgetExhaustingEngine::new(vec![BudgetKind::ResolverDepth]);
+        let schema_validator = SchemaValidator::default();
+        let report = validate_bytes(
+            &engine,
+            &schema_validator,
+            WELL_FORMED_TEMPLATE,
+            ValidateConfig { disable_builtin_rules: true, ..ValidateConfig::default() },
+        )
+        .expect("validation must succeed");
+
+        assert!(report.diagnostics.iter().all(|diagnostic| diagnostic.rule_id != "W9052"));
+        assert_eq!(report.status, ReportStatus::AnalysisIncomplete);
+        let budget_exhaustions = report
+            .metadata
+            .budget_exhaustions
+            .as_deref()
+            .expect("exhausted budget must be present despite warning suppression");
+        assert_eq!(budget_exhaustions.len(), 1);
+        assert_eq!(budget_exhaustions[0].kind, "resolverDepth");
+    }
+
+    #[test]
+    fn non_curtailed_fixture_omits_exhaustions_and_has_ok_status() {
+        let engine = BudgetExhaustingEngine::new(vec![]); // no exhaustions
+        let schema_validator = SchemaValidator::default();
+        let report = validate_bytes(&engine, &schema_validator, WELL_FORMED_TEMPLATE, ValidateConfig::default())
+            .expect("validation must succeed");
+
+        assert_eq!(report.status, ReportStatus::Ok);
+        assert!(report.metadata.budget_exhaustions.is_none());
+        let budget_warnings: Vec<_> = report.diagnostics.iter().filter(|d| d.rule_id == "W9052").collect();
+        assert!(budget_warnings.is_empty());
+    }
+
     #[test]
     fn engine_exception_surfaces_as_error_never_as_diagnostic() {
         let schema_validator = SchemaValidator::default();
@@ -2709,19 +3133,5 @@ Resources:
             ),
             Err(other) => panic!("expected ValidationError::Engine, got {other:?}"),
         }
-    }
-
-    #[test]
-    fn scenario_expansion_curtailment_builds_exactly_one_advisory() {
-        let diagnostics: Vec<_> = scenario_expansion_curtailment_diagnostic(true).into_iter().collect();
-        assert_eq!(diagnostics.len(), 1);
-        assert_eq!(diagnostics[0].rule_id, "I9052");
-        assert_eq!(diagnostics[0].property_path.as_deref(), Some("Template"));
-        assert!(diagnostics[0].message.contains("Scenario expansion was curtailed"));
-    }
-
-    #[test]
-    fn complete_scenario_expansion_builds_no_advisory() {
-        assert!(scenario_expansion_curtailment_diagnostic(false).is_none());
     }
 }

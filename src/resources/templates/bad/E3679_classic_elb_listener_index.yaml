@@ -1,0 +1,12 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+  LoadBalancer:
+    Type: AWS::ElasticLoadBalancing::LoadBalancer
+    Properties:
+      Listeners:
+        - LoadBalancerPort: 443
+          InstancePort: 80
+          Protocol: SSL
+        - LoadBalancerPort: 80
+          InstancePort: 80
+          Protocol: http

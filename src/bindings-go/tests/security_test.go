@@ -83,6 +83,19 @@ func TestEverySecurityTemplateWithBothEngines(t *testing.T) {
 					if validation.report == nil {
 						t.Fatal("detailed validation returned no report")
 					}
+					if relativePath == "scenario_assignment_budget.yaml" {
+						if validation.report.Status != cfnvalidate.StatusAnalysisIncomplete {
+							t.Errorf("status = %s, want ANALYSIS_INCOMPLETE", validation.report.Status)
+						}
+						if len(validation.report.Metadata.BudgetExhaustions) == 0 {
+							t.Error("exhausted budget metadata is absent")
+						} else if !strings.HasSuffix(validation.report.Metadata.BudgetExhaustions[0].Description, ".") {
+							t.Error("budget description is not a sentence")
+						}
+					}
+					if relativePath == "condition_fusion.yaml" && validation.report.Metadata.BudgetExhaustions != nil {
+						t.Error("non-exhausted budget metadata must be nil")
+					}
 				case <-time.After(securityTimeout):
 					t.Fatalf("exceeded the hard %s limit", securityTimeout)
 				}

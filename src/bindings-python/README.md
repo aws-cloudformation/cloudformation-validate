@@ -324,7 +324,7 @@ All report and diagnostic types are dataclass-like records re-exported from `clo
 @dataclass
 class StandardReport:
     file_path: str
-    status: ReportStatus  # ReportStatus.OK or ReportStatus.ERROR (ERROR when the template fails to parse)
+    status: ReportStatus  # OK, ANALYSIS_INCOMPLETE (findings may be omitted), or ERROR (pipeline failure)
     version: str
     metadata: ReportMetadata
     performance: PerformanceMetrics
@@ -334,6 +334,11 @@ class StandardReport:
 `DetailedReport` has the same structure but its diagnostics are `DetailedDiagnostic`, which add `documentation_url`,
 `rule_description`, `phase` (`PARSE` | `SCHEMA` | `LINT`), and `context` (a `ViolationContext` with `actual_value`,
 `expected_constraint`, `resolution_source`, etc.).
+
+Each optional budget-exhaustion record retains a stable machine-readable kind and also includes a
+human-readable description sentence, the numeric limit, and whether that specific exhaustion makes analysis
+incomplete. `requiredPropertyCombinations` is context-only, so its `analysis_incomplete` value is `False` and the
+report can remain `ReportStatus.OK`.
 
 ### StandardDiagnostic
 

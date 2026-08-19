@@ -24,6 +24,8 @@ interface WorkerResult {
     ok: boolean;
     structuredError?: string;
     reportStatus?: string;
+    budgetExhaustionCount?: number;
+    budgetDescription?: string;
     diagnosticCount?: number;
 }
 
@@ -41,6 +43,8 @@ function validateInWorker(engineName: string, templatePath: string): Promise<Wor
             parentPort.postMessage({
                 ok: true,
                 reportStatus: report.status,
+                budgetExhaustionCount: report.metadata.budgetExhaustions?.length,
+                budgetDescription: report.metadata.budgetExhaustions?.[0]?.description,
                 diagnosticCount: report.diagnostics.length,
             });
         } catch (error) {
@@ -100,6 +104,14 @@ describe('security templates', () => {
                     }
                     expect(outcome.ok, outcome.structuredError).toBe(true);
                     expect(outcome.reportStatus).toBeDefined();
+                    if (templateName === 'scenario_assignment_budget.yaml') {
+                        expect(outcome.reportStatus).toBe('ANALYSIS_INCOMPLETE');
+                        expect(outcome.budgetExhaustionCount).toBeGreaterThan(0);
+                        expect(outcome.budgetDescription).toMatch(/\.$/);
+                    }
+                    if (templateName === 'condition_fusion.yaml') {
+                        expect(outcome.budgetExhaustionCount).toBeUndefined();
+                    }
                     expect(outcome.diagnosticCount).toBeGreaterThanOrEqual(0);
                 },
                 SECURITY_TIMEOUT_MS + 5_000,

@@ -2,19 +2,15 @@ package resources
 
 import rego.v1
 
-# E3679: HTTPS/SSL listener requires SSLCertificateId
+# Certificate protocols require SSLCertificateId.
 violation contains make_diag_at("E3679", "ERROR", name,
-    "Properties.Listeners",
+    sprintf("Properties.Listeners.%d", [item.index]),
     sprintf("%s listener requires SSLCertificateId", [proto])) if {
     some name in resources_of_type("AWS::ElasticLoadBalancing::LoadBalancer")
     some item in flatten_list(name, "Properties.Listeners")
     listener := item.value
     is_object(listener)
     proto := object.get(listener, "Protocol", "")
-    proto in {"HTTPS", "SSL"}
-    # The schema requires only that the key be PRESENT (a JSON Schema
-    # `required`); an explicit empty-string certificate id satisfies it. Test for
-    # an absent key, not an empty value - `not object.get(..., null)` never holds
-    # (null is truthy in Rego), so check the key set directly.
+    proto in data.classic_load_balancer_certificate_protocols
     not "SSLCertificateId" in object.keys(listener)
 }

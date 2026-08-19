@@ -2,8 +2,16 @@ AWSTemplateFormatVersion: "2010-09-09"
 Parameters:
   Policy:
     Type: String
+  Toggle:
+    Type: String
+    AllowedValues: [enabled, disabled]
+Mappings:
+  CreationValues:
+    Primary:
+      Policy: not-an-object
 Conditions:
   Never: !Equals [always, never]
+  Maybe: !Equals [!Ref Toggle, enabled]
 Resources:
   ListPolicies:
     Type: AWS::S3::Bucket
@@ -17,12 +25,30 @@ Resources:
     UpdateReplacePolicy:
       Value: Retain
 
-  CreationConditional:
+  CreationRootRef:
     Type: AWS::CloudFormation::WaitCondition
-    CreationPolicy: !If
-      - Never
-      - ResourceSignal: {Count: 1}
-      - ResourceSignal: {Count: 2}
+    CreationPolicy: !Ref Policy
+
+  CreationRootFindInMap:
+    Type: AWS::CloudFormation::WaitCondition
+    CreationPolicy: !FindInMap [CreationValues, Primary, Policy]
+
+  CreationRootSelect:
+    Type: AWS::CloudFormation::WaitCondition
+    CreationPolicy: !Select
+      - 0
+      - - ResourceSignal: {Count: 1}
+        - ResourceSignal: {Count: 2}
+
+  CreationRootSub:
+    Type: AWS::CloudFormation::WaitCondition
+    CreationPolicy: !Sub
+      - '${Value}'
+      - Value: not-an-object
+
+  CreationConditionalInvalid:
+    Type: AWS::CloudFormation::WaitCondition
+    CreationPolicy: !If [Maybe, {ResourceSignal: {Count: 1}}, invalid]
 
   CreationNoValueOnUnsupportedType:
     Type: AWS::S3::Bucket

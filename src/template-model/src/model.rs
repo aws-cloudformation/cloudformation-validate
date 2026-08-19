@@ -1,3 +1,4 @@
+use crate::budget::{BudgetKind, BudgetTracker};
 use crate::conditions::{ConditionModel, Satisfiability};
 use crate::consts::*;
 use crate::defect::{DefectPhase, ParseDefect};
@@ -13,6 +14,7 @@ use crate::span::SpanProvider;
 use log::{debug, info, warn};
 use serde::Serialize;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
+use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
@@ -235,6 +237,9 @@ pub struct SemanticModel {
     /// Bounds total scenario-expansion work the way `ConditionModel`'s
     /// `sat_iterations_used` bounds total satisfiability work.
     scenario_combinations_used: AtomicU64,
+    /// Deterministic, deduplicating tracker for all validation-budget
+    /// exhaustions across model construction and downstream validation.
+    budget_tracker: Arc<BudgetTracker>,
     /// Serializes scenario expansion and budget charging. Scenario queries may
     /// run concurrently in rule-engine workers; holding this lock from budget
     /// reservation through accounting prevents concurrent queries from jointly
@@ -404,7 +409,18 @@ impl SemanticModel {
         // Parameters section to feed the unused-parameter check.
         let params_referenced_in_definitions = collect_parameter_definition_refs(&ir, &parameters);
         let (mappings, mapping_diagnostics) = extract_mappings(&ir);
-        let mut conditions = ConditionModel::from_ir(&ir, &parameters, &config.pseudo_parameters, &mappings);
+
+        // Create the shared budget tracker early so it is available before any
+        // condition-model or resolver work can exhaust a budget.
+        let budget_tracker = Arc::new(BudgetTracker::new());
+
+        let mut conditions = ConditionModel::from_ir_with_tracker(
+            &ir,
+            &parameters,
+            &config.pseudo_parameters,
+            &mappings,
+            Arc::clone(&budget_tracker),
+        );
 
         let resource_ids: Vec<String> = if ir.resources != NULL_REF {
             ir.arena
@@ -561,6 +577,8 @@ impl SemanticModel {
 
         let resolution_sources = resolver.resolution_sources();
         let value_nodes = resolver.value_nodes();
+        let resolver_depth_exceeded = resolver.depth_exceeded;
+        let resolver_enum_expansion_exceeded = resolver.enum_expansion_exceeded;
         let mut all_edges = resolver.edges;
         for (id, res) in &resources {
             for dep in &res.depends_on {
@@ -602,28 +620,17 @@ impl SemanticModel {
         diagnostics.extend(crate::intrinsic_arg_shapes::validate_intrinsic_arg_shapes(&ir.arena, &ir.transforms));
         diagnostics.extend(crate::lang_ext_shapes::validate_lang_ext_parameter_shapes(&ir.arena, &ir.transforms));
         diagnostics.extend(crate::language_extensions::validate_language_extensions(&ir.arena, &ir.transforms));
-        let mut lifecycle_resource_ids: Vec<_> =
-            lifecycle_attribute_nodes.keys().map(|(resource_id, _)| resource_id.as_str()).collect();
-        lifecycle_resource_ids.sort_unstable();
-        lifecycle_resource_ids.dedup();
-        let unreachable_lifecycle_resources: HashSet<String> = lifecycle_resource_ids
-            .into_iter()
-            .filter_map(|resource_id| {
-                if invalid_resource_conditions.contains(resource_id) {
-                    return None;
-                }
-                let resource = resources.get(resource_id)?;
-                let condition = resource.condition.as_ref()?;
-                matches!(conditions.satisfiability(&[(condition.clone(), true)]), Satisfiability::Unsatisfiable)
-                    .then(|| resource_id.to_string())
+        let lifecycle_resource_conditions: HashMap<String, String> = resources
+            .iter()
+            .filter_map(|(resource_id, resource)| {
+                resource.condition.as_ref().map(|condition| (resource_id.clone(), condition.clone()))
             })
             .collect();
         diagnostics.extend(crate::language_extensions::validate_lifecycle_intrinsics(
             &ir.arena,
-            &ir.global_index,
-            &ir.transforms,
+            &conditions,
             &lifecycle_attribute_nodes,
-            &unreachable_lifecycle_resources,
+            &lifecycle_resource_conditions,
         ));
         diagnostics.extend(crate::dynamic_ref::validate_dynamic_references(&ir.arena, ir.resources));
 
@@ -944,6 +951,12 @@ impl SemanticModel {
         }
         let is_cdk = resources_by_type.contains_key(CDK_METADATA_TYPE);
 
+        if resolver_depth_exceeded {
+            budget_tracker.record(BudgetKind::ResolverDepth);
+        }
+        if resolver_enum_expansion_exceeded {
+            budget_tracker.record(BudgetKind::EnumExpansion);
+        }
         // Invalid Ref targets in Outputs. The resolver records these under the
         // `__output__<Name>` pseudo-resource key, but the engines only see
         // top-level edges (which are not created for unknown Ref targets). Emit
@@ -1023,6 +1036,7 @@ impl SemanticModel {
                 scenario_memo: Mutex::new(HashMap::new()),
                 lifecycle_policy_scenario_cache: Mutex::new(HashMap::new()),
                 scenario_combinations_used: AtomicU64::new(0),
+                budget_tracker,
                 scenario_expansion_lock: Mutex::new(()),
                 scenario_expansion_curtailed: AtomicBool::new(false),
             },
@@ -1378,8 +1392,11 @@ impl SemanticModel {
             return Some(format!("value:{fingerprint}"));
         }
         let node = *self.value_nodes.get(&(resource_id.to_string(), path.to_string()))?;
-        crate::value_identity::expression_fingerprint(&self.arena, node)
-            .map(|fingerprint| format!("expr:{fingerprint}"))
+        let (result, depth_exhausted) = crate::value_identity::expression_fingerprint_signaled(&self.arena, node);
+        if depth_exhausted {
+            self.budget_tracker.record(BudgetKind::ExpressionFingerprintDepth);
+        }
+        result.map(|fingerprint| format!("expr:{fingerprint}"))
     }
 
     /// True when the value at `path` (or any ancestor up to the resource root) was
@@ -1451,6 +1468,21 @@ impl SemanticModel {
         self.scenario_combinations_used.load(Ordering::Relaxed) >= MAX_TOTAL_SCENARIO_COMBINATIONS
     }
 
+    /// Record that a budget kind was exhausted. Delegates to the shared tracker.
+    pub fn record_budget_exhaustion(&self, kind: BudgetKind) {
+        self.budget_tracker.record(kind);
+    }
+
+    /// Returns the set of exhausted budget kinds in deterministic order.
+    pub fn exhausted_budget_kinds(&self) -> BTreeSet<BudgetKind> {
+        self.budget_tracker.exhausted_kinds()
+    }
+
+    /// Whether any exhausted budget makes the analysis incomplete.
+    pub fn budget_analysis_incomplete(&self) -> bool {
+        self.budget_tracker.analysis_incomplete()
+    }
+
     /// Cumulative scenarios materialized by this model so far.
     #[must_use]
     pub fn scenario_combinations_used(&self) -> u64 {
@@ -1459,7 +1491,8 @@ impl SemanticModel {
 
     /// Whether any scenario expansion for this model omitted possible results
     /// because a per-value or model-wide analysis limit was reached. The flag is
-    /// monotonic and is queried by the validation pipeline to emit one advisory.
+    /// monotonic so callers can distinguish complete expansion from conservative
+    /// fallback behavior.
     #[must_use]
     pub fn scenario_expansion_curtailed(&self) -> bool {
         self.scenario_expansion_curtailed.load(Ordering::Relaxed)
@@ -1485,6 +1518,9 @@ impl SemanticModel {
         let used = self.scenario_combinations_used.load(Ordering::Relaxed);
         if used >= total_limit {
             self.scenario_expansion_curtailed.store(true, Ordering::Relaxed);
+            if total_limit == MAX_TOTAL_SCENARIO_COMBINATIONS {
+                self.budget_tracker.record(BudgetKind::ScenarioCombinationsTotal);
+            }
             return (Vec::new(), true);
         }
 
@@ -1495,6 +1531,12 @@ impl SemanticModel {
         let was_curtailed = collect_scenarios(value, assumptions, effective_limit, &mut scenarios);
         if was_curtailed {
             self.scenario_expansion_curtailed.store(true, Ordering::Relaxed);
+            if per_value_limit == MAX_SCENARIO_COMBINATIONS && per_value_limit <= remaining_limit {
+                self.budget_tracker.record(BudgetKind::ScenarioCombinationsPerValue);
+            }
+            if total_limit == MAX_TOTAL_SCENARIO_COMBINATIONS && remaining_limit <= per_value_limit {
+                self.budget_tracker.record(BudgetKind::ScenarioCombinationsTotal);
+            }
         }
         self.scenario_combinations_used.store(used + scenarios.len() as u64, Ordering::Relaxed);
         (scenarios, was_curtailed)
@@ -1691,6 +1733,19 @@ impl SemanticModel {
         // callers fall back to section-level or backfill-based location.
         if resource_id.is_empty() {
             return self.walk_up_span(prop_path).unwrap_or(UNKNOWN_SPAN);
+        }
+        // Resolver paths preserve literal dots and slashes inside map keys, so converting
+        // them into the slash-keyed index can be ambiguous. A terminal intrinsic can be
+        // resolved through its exact authored parent path without lossy conversion.
+        if let Some((authored_path, function_name)) = prop_path.rsplit_once('.')
+            && let Some(node_ref) = self.value_nodes.get(&(resource_id.to_string(), authored_path.to_string()))
+            && let Node::Intrinsic(intrinsic) = self.arena.node(*node_ref)
+            && cfn_function_name(intrinsic) == function_name
+        {
+            let intrinsic_path = format!("{}/{}", self.arena.get(*node_ref).path, function_name);
+            if let Some(span) = self.walk_up_span(&intrinsic_path) {
+                return span;
+            }
         }
         let specific = if prop_path.is_empty() {
             format!("Resources/{}", resource_id)
@@ -3481,6 +3536,49 @@ Resources:
     fn output_fn_if_string_branches_not_flagged() {
         let template = "Conditions:\n  C:\n    Fn::Equals: [\"a\", \"a\"]\nResources:\n  R:\n    Type: T\nOutputs:\n  O:\n    Value:\n      Fn::If: [C, \"yes\", \"no\"]\n";
         assert_eq!(output_string_type_diagnostics(template), 0);
+    }
+
+    #[test]
+    fn join_with_enum_list_exact_4096_not_curtailed() {
+        use crate::consts::MAX_ENUM_EXPANSION;
+        use crate::resolver::join_with_enum_list;
+        // Build items that produce exactly MAX_ENUM_EXPANSION combinations:
+        // 64 * 64 = 4096 (no truncation needed)
+        let variants_a: Vec<ResolvedValue> = (0..64)
+            .map(|i| ResolvedValue::Concrete { value: serde_json::Value::String(format!("a{i}")).into() })
+            .collect();
+        let variants_b: Vec<ResolvedValue> = (0..64)
+            .map(|i| ResolvedValue::Concrete { value: serde_json::Value::String(format!("b{i}")).into() })
+            .collect();
+        let items = vec![ResolvedValue::Enum { variants: variants_a }, ResolvedValue::Enum { variants: variants_b }];
+        let (result, curtailed) = join_with_enum_list(",", &items);
+        assert!(!curtailed, "exactly {MAX_ENUM_EXPANSION} combinations must not signal curtailment");
+        if let ResolvedValue::Enum { variants } = &result {
+            assert_eq!(variants.len(), MAX_ENUM_EXPANSION);
+        } else {
+            panic!("expected Enum result");
+        }
+    }
+
+    #[test]
+    fn join_with_enum_list_one_over_curtailed() {
+        use crate::consts::MAX_ENUM_EXPANSION;
+        use crate::resolver::join_with_enum_list;
+        // 65 * 64 = 4160 > 4096 — must curtail
+        let variants_a: Vec<ResolvedValue> = (0..65)
+            .map(|i| ResolvedValue::Concrete { value: serde_json::Value::String(format!("a{i}")).into() })
+            .collect();
+        let variants_b: Vec<ResolvedValue> = (0..64)
+            .map(|i| ResolvedValue::Concrete { value: serde_json::Value::String(format!("b{i}")).into() })
+            .collect();
+        let items = vec![ResolvedValue::Enum { variants: variants_a }, ResolvedValue::Enum { variants: variants_b }];
+        let (result, curtailed) = join_with_enum_list(",", &items);
+        assert!(curtailed, "exceeding {MAX_ENUM_EXPANSION} combinations must signal curtailment");
+        if let ResolvedValue::Enum { variants } = &result {
+            assert_eq!(variants.len(), MAX_ENUM_EXPANSION);
+        } else {
+            panic!("expected Enum result");
+        }
     }
 
     #[test]

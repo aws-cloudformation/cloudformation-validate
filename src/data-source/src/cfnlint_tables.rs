@@ -7,8 +7,12 @@ use std::process::Command;
 /// Data files emitted by the cfn-lint table extractor. These originate as Python
 /// dicts inside cfn-lint rule code, so a Python helper imports cfn-lint and
 /// writes them as JSON rather than us re-parsing Python or hand-copying values.
-const EXTRACTED_FILES: &[&str] =
-    &["getatt_additions.json", "retention_period_requirements.json", "codepipeline_action_artifact_counts.json"];
+const EXTRACTED_FILES: &[&str] = &[
+    "getatt_additions.json",
+    "retention_period_requirements.json",
+    "codepipeline_action_artifact_counts.json",
+    "cfnlint_rule_tables.json",
+];
 
 /// Read the version exported by the exact cfn-lint checkout used for extraction.
 fn extract_cfn_lint_version(rule_source_dir: &Path) -> anyhow::Result<String> {

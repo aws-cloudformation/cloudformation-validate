@@ -238,7 +238,7 @@ validator.free();
 ```typescript
 interface StandardReport {
     filePath: string;
-    status: "OK" | "ERROR";           // ERROR when the template fails to parse
+    status: "OK" | "ANALYSIS_INCOMPLETE" | "ERROR"; // ERROR is a pipeline failure; ANALYSIS_INCOMPLETE may omit findings
     version: string;
     metadata: ReportMetadata;
     performance: PerformanceMetrics;
@@ -249,6 +249,11 @@ interface StandardReport {
 `DetailedReport` has the same structure but its diagnostics include additional fields: `documentationUrl`,
 `ruleDescription`, `phase` (`PARSE` | `SCHEMA` | `LINT`), and `context` (`ViolationContext` with
 `actualValue`, `expectedConstraint`, `resolutionSource`, etc.).
+
+Each optional budget-exhaustion record retains a stable machine-readable kind and also includes a
+human-readable description sentence, the numeric limit, and whether that specific exhaustion makes analysis
+incomplete. `requiredPropertyCombinations` is context-only, so its `analysisIncomplete` value is `false` and the
+report can remain `"OK"`.
 
 ### StandardDiagnostic
 

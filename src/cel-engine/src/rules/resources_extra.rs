@@ -1,5 +1,6 @@
 use super::EvalContext;
 use super::patterns::AMI_ID_RE;
+use data_source::rule_data::{PathSegment, ResourcePropertyPath};
 use diagnostics::Diagnostic;
 use diagnostics::RelatedResource;
 use diagnostics::ResourceRef;
@@ -52,16 +53,57 @@ static MX_RECORD_RE: LazyLock<regex::Regex> =
 static ARN_HAS_ACCOUNT_RE: LazyLock<regex::Regex> =
     LazyLock::new(|| regex::Regex::new(r":\d{12}:").expect("Invalid ARN_HAS_ACCOUNT_RE pattern"));
 
-/// Resource types that carry EBS `BlockDeviceMappings`, paired with the property
-/// prefix under which the mappings array lives. The E3671 Iops-required check
-/// applies to each `<prefix>[*].Ebs`. SpotFleet nests its mappings one array
-/// deeper (under each launch specification), so it is handled separately.
-const EBS_IOPS_BLOCK_DEVICE_PATHS: &[(&str, &str)] = &[
-    ("AWS::AutoScaling::LaunchConfiguration", "Properties.BlockDeviceMappings"),
-    ("AWS::EC2::Instance", "Properties.BlockDeviceMappings"),
-    ("AWS::EC2::LaunchTemplate", "Properties.LaunchTemplateData.BlockDeviceMappings"),
-    ("AWS::OpsWorks::Instance", "Properties.BlockDeviceMappings"),
-];
+/// Converts a `ResourcePropertyPath`'s segments (after the `Properties` prefix)
+/// into a dot-separated property path string suitable for `resolve_concrete` and
+/// diagnostic anchoring. Wildcard segments are excluded from the prefix because
+/// the caller iterates over them explicitly.
+///
+/// Example: segments `[Properties, BlockDeviceMappings, *, Ebs]` yields
+/// `"Properties.BlockDeviceMappings"` — the caller iterates the array and
+/// appends `.{idx}.Ebs` per element.
+fn property_path_prefix(path: &ResourcePropertyPath) -> String {
+    path.segments
+        .iter()
+        .take_while(|s| !matches!(s, PathSegment::Wildcard))
+        .filter_map(|s| match s {
+            PathSegment::Literal(l) => Some(l.as_str()),
+            _ => None,
+        })
+        .collect::<Vec<_>>()
+        .join(".")
+}
+
+/// Converts a full `ResourcePropertyPath` to a dot-separated property path
+/// string, using `*` for wildcard segments. Suitable for diagnostic path
+/// rendering when the complete path is needed.
+fn full_property_path(path: &ResourcePropertyPath) -> String {
+    path.segments
+        .iter()
+        .map(|s| match s {
+            PathSegment::Literal(l) => l.as_str(),
+            PathSegment::Wildcard => "*",
+        })
+        .collect::<Vec<_>>()
+        .join(".")
+}
+
+/// Counts the number of wildcard segments in a path.
+fn wildcard_count(path: &ResourcePropertyPath) -> usize {
+    path.segments.iter().filter(|s| matches!(s, PathSegment::Wildcard)).count()
+}
+
+/// Navigates a dot-separated property path through a JSON value, returning the
+/// leaf value if every segment resolves. Returns `None` if any segment is missing.
+fn navigate_json_path<'a>(value: &'a serde_json::Value, dot_path: &str) -> Option<&'a serde_json::Value> {
+    let mut current = value;
+    for seg in dot_path.split('.') {
+        if seg.is_empty() {
+            continue;
+        }
+        current = current.get(seg)?;
+    }
+    Some(current)
+}
 
 /// Renders a resolved value to JSON while preserving `Fn::If` structure as
 /// `{"Fn::If": [condition, then, else]}`, so callers can enumerate both branches
@@ -151,30 +193,22 @@ fn ebs_block_device_mappings(m: &SemanticModel, rid: &str, prefix: &str) -> Vec<
     out
 }
 
-/// Whether a Lambda runtime supports SnapStart: any Python, Java, or .NET
-/// runtime qualifies except the legacy `dotnetcore*` family and an explicit
-/// list of deprecated versions. Using allow/deny logic (rather than a fixed
-/// Java-only allowlist) keeps newer supported runtimes from being flagged.
-fn snapstart_runtime_supported(runtime: &str) -> bool {
-    const SNAPSTART_UNSUPPORTED_RUNTIMES: &[&str] = &[
-        "dotnet5.0",
-        "dotnet6",
-        "dotnet7",
-        "java8.al2",
-        "java8",
-        "python3.7",
-        "python3.8",
-        "python3.9",
-        "python3.10",
-        "python3.11",
-    ];
-    if !(runtime.starts_with("python") || runtime.starts_with("java") || runtime.starts_with("dotnet")) {
+/// Whether a Lambda runtime supports SnapStart, based on rule-tables data.
+/// A runtime is supported if it starts with one of the configured prefixes
+/// AND is not in the explicitly unsupported prefix/runtime lists.
+fn snapstart_runtime_supported(
+    runtime: &str,
+    runtime_prefixes: &[String],
+    unsupported_runtime_prefixes: &[String],
+    unsupported_runtimes: &[String],
+) -> bool {
+    if !runtime_prefixes.iter().any(|prefix| runtime.starts_with(prefix.as_str())) {
         return false;
     }
-    if runtime.starts_with("dotnetcore") {
+    if unsupported_runtime_prefixes.iter().any(|prefix| runtime.starts_with(prefix.as_str())) {
         return false;
     }
-    !SNAPSTART_UNSUPPORTED_RUNTIMES.contains(&runtime)
+    !unsupported_runtimes.iter().any(|r| r == runtime)
 }
 
 fn resolve_all_json(m: &SemanticModel, rid: &str, path: &str) -> Vec<serde_json::Value> {
@@ -383,21 +417,6 @@ fn route53_scenario_source_path(
     m.scenario_source_path(resource_id, effective_path, conditions).unwrap_or_else(|| effective_path.to_string())
 }
 
-fn standalone_route53_record_source_path(
-    m: &SemanticModel,
-    resource_id: &str,
-    effective_path: &str,
-    conditions: &HashMap<String, bool>,
-) -> String {
-    let source_path = route53_scenario_source_path(m, resource_id, effective_path, conditions);
-    let direct_conditional_prefix = format!("Properties.ResourceRecords.{}.", FN_IF);
-    if source_path.starts_with(&direct_conditional_prefix) {
-        "Properties.ResourceRecords".to_string()
-    } else {
-        source_path
-    }
-}
-
 fn push_route53_record_value_diagnostics<F>(
     diagnostics: &mut Vec<Diagnostic>,
     m: &SemanticModel,
@@ -563,28 +582,26 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     let m = ctx.model;
     let input = ctx.input;
 
-    if !ctx.cached_data.known_types.is_empty() {
-        for (name, res) in &m.resources {
-            // An AWS-namespaced type absent from the compiled schema set is a
-            // typo or nonexistent type - CloudFormation owns the reserved
-            // `AWS::` namespace, so the embedded catalog is authoritative for
-            // it. Types in any other namespace (private registry types,
-            // `Custom::` resources, modules, hook-shaped names) may be
-            // registered per account/region, so they are skipped entirely
-            // rather than guessed at.
-            if res.resource_type.starts_with("AWS::")
-                && !res.resource_type.ends_with("::MODULE")
-                && !ctx.cached_data.known_types.contains(&res.resource_type)
-            {
-                out.push(make_resource_diagnostic(
-                    "F3006",
-                    &format!("Unknown resource type '{}'", res.resource_type),
-                    m,
-                    name,
-                    "",
-                    None,
-                ));
-            }
+    for (name, res) in &m.resources {
+        // An AWS-namespaced type absent from the compiled schema set is a
+        // typo or nonexistent type - CloudFormation owns the reserved
+        // `AWS::` namespace, so the embedded catalog is authoritative for
+        // it. Types in any other namespace (private registry types,
+        // `Custom::` resources, modules, hook-shaped names) may be
+        // registered per account/region, so they are skipped entirely
+        // rather than guessed at.
+        if res.resource_type.starts_with("AWS::")
+            && !res.resource_type.ends_with("::MODULE")
+            && !ctx.cached_data.known_types.contains(&res.resource_type)
+        {
+            out.push(make_resource_diagnostic(
+                "F3006",
+                &format!("Unknown resource type '{}'", res.resource_type),
+                m,
+                name,
+                "",
+                None,
+            ));
         }
     }
 
@@ -876,15 +893,10 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    let resource_policy_types = [
-        ("AWS::KMS::Key", "Properties.KeyPolicy"),
-        ("AWS::S3::BucketPolicy", "Properties.PolicyDocument"),
-        ("AWS::SNS::TopicPolicy", "Properties.PolicyDocument"),
-        ("AWS::SQS::QueuePolicy", "Properties.PolicyDocument"),
-    ];
-    for (rtype, path) in &resource_policy_types {
-        for name in m.resources_of_type(rtype) {
-            if let Some(doc) = resolve_concrete(m, name, path)
+    for rpp in &ctx.cached_data.rule_tables.resource_policy_paths {
+        let path = full_property_path(rpp);
+        for name in m.resources_of_type(&rpp.resource_type) {
+            if let Some(doc) = resolve_concrete(m, name, &path)
                 && doc.is_object()
                 && doc.get("Statement").is_none()
             {
@@ -893,7 +905,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                     "Resource-based policy must have a Statement property",
                     m,
                     name,
-                    path,
+                    &path,
                     Some("Add a Statement array to the policy document"),
                 ));
             }
@@ -1145,16 +1157,13 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     ];
     let creation_policy_fix =
         format!("Remove CreationPolicy or change resource type to one of: {}", creation_policy_types.join(", "));
-    let update_policy_types = [
-        "AWS::AppStream::Fleet",
-        "AWS::AutoScaling::AutoScalingGroup",
-        "AWS::ElastiCache::ReplicationGroup",
-        "AWS::Elasticsearch::Domain",
-        "AWS::Lambda::Alias",
-        "AWS::OpenSearchService::Domain",
-    ];
-    let update_policy_fix =
-        format!("Remove UpdatePolicy or change resource type to one of: {}", update_policy_types.join(", "));
+    let update_policy_types = &ctx.cached_data.rule_tables.update_policy_resource_types;
+    let mut update_policy_types_for_message = update_policy_types.clone();
+    update_policy_types_for_message.sort();
+    let update_policy_fix = format!(
+        "Remove UpdatePolicy or change resource type to one of: {}",
+        update_policy_types_for_message.join(", ")
+    );
     if let Some(resources) = input.get(FIELD_RESOURCES).and_then(|r| r.as_object()) {
         for (name, res) in resources {
             let creation_policy_status = m.lifecycle_attribute_status(name, KEY_CREATION_POLICY);
@@ -1174,7 +1183,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             let update_policy_status = m.lifecycle_attribute_status(name, KEY_UPDATE_POLICY);
             if update_policy_status.may_be_present {
                 let rtype = res.get(FIELD_RESOURCE_TYPE).and_then(|t| t.as_str()).unwrap_or("");
-                if !update_policy_types.contains(&rtype) {
+                if !update_policy_types.iter().any(|t| t == rtype) {
                     out.push(make_resource_diagnostic(
                         "E3016",
                         &format!("UpdatePolicy is not supported on resource type '{}'", rtype),
@@ -1297,16 +1306,43 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         if let Some(snap) = resolve_concrete(m, name, "Properties.SnapStart")
             && snap.get("ApplyOn").and_then(|a| a.as_str()) == Some("PublishedVersions")
             && let Some(serde_json::Value::String(rt)) = resolve_concrete(m, name, "Properties.Runtime")
-            && !snapstart_runtime_supported(&rt)
+            && !snapstart_runtime_supported(
+                &rt,
+                &ctx.cached_data.rule_tables.snapstart_runtime_prefixes,
+                &ctx.cached_data.rule_tables.snapstart_unsupported_runtime_prefixes,
+                &ctx.cached_data.rule_tables.snapstart_unsupported_runtimes,
+            )
         {
             out.push(make_resource_diagnostic(
                 "E2530",
                 &format!("SnapStart is not supported with runtime '{}'", rt),
                 m,
                 name,
-                "Properties.SnapStart",
+                "Properties.SnapStart.ApplyOn",
                 Some("Use a supported Python, Java, or .NET runtime"),
             ));
+        }
+    }
+
+    // SnapStart enabled in an unsupported region. Only fires when a
+    // region is explicitly configured and absent from the supported regions list.
+    let snapstart_supported_regions = &ctx.cached_data.rule_tables.snapstart_supported_regions;
+    if let Some(region) = ctx.region.as_ref()
+        && !snapstart_supported_regions.iter().any(|sr| sr == region)
+    {
+        for name in m.resources_of_type("AWS::Lambda::Function") {
+            if let Some(snap) = resolve_concrete(m, name, "Properties.SnapStart")
+                && snap.get("ApplyOn").and_then(|a| a.as_str()) == Some("PublishedVersions")
+            {
+                out.push(make_resource_diagnostic(
+                    "E2530",
+                    &format!("SnapStart is not supported in region '{}'", region),
+                    m,
+                    name,
+                    "Properties.SnapStart.ApplyOn",
+                    Some("Deploy to a region that supports SnapStart or disable SnapStart"),
+                ));
+            }
         }
     }
 
@@ -1436,40 +1472,27 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    static PREV_GEN_RE: LazyLock<regex::Regex> = LazyLock::new(|| {
-        regex::Regex::new(r"(^|\.)([cmr][1-3]|cc2|cg1|cr1|g2|hi1|hs1|i2|t1)(\.|$)").expect("Invalid PREV_GEN_RE")
-    });
-    let instance_type_checks: &[(&str, &str)] = &[
-        ("AWS::AutoScaling::LaunchConfiguration", "Properties.InstanceType"),
-        ("AWS::EC2::Instance", "Properties.InstanceType"),
-        ("AWS::EC2::Host", "Properties.InstanceType"),
-        ("AWS::EC2::CapacityReservation", "Properties.InstanceType"),
-        ("AWS::RDS::DBInstance", "Properties.DBInstanceClass"),
-        ("AWS::ElastiCache::CacheCluster", "Properties.CacheNodeType"),
-        ("AWS::ElastiCache::ReplicationGroup", "Properties.CacheNodeType"),
-        ("AWS::EC2::LaunchTemplate", "Properties.LaunchTemplateData.InstanceType"),
-        ("AWS::OpenSearchService::Domain", "Properties.ClusterConfig.InstanceType"),
-        ("AWS::Elasticsearch::Domain", "Properties.ElasticsearchClusterConfig.InstanceType"),
-    ];
-    for (rtype, prop_path) in instance_type_checks {
-        for name in m.resources_of_type(rtype) {
+    let prev_gen_re = &ctx.cached_data.previous_generation_instance_regex;
+    for rpp in &ctx.cached_data.rule_tables.previous_generation_instance_property_paths {
+        let path = full_property_path(rpp);
+        for name in m.resources_of_type(&rpp.resource_type) {
             // Only literal string instance types are checked; a value that comes
             // from a parameter Ref or other intrinsic is left alone because its
             // deploy-time value is not known here (the default is just one of many
             // possible values). Skip those to avoid flagging a parameter default
             // the author may never use.
-            if m.is_from_parameter(name, prop_path) || m.is_from_intrinsic(name, prop_path) {
+            if m.is_from_parameter(name, &path) || m.is_from_intrinsic(name, &path) {
                 continue;
             }
-            if let Some(serde_json::Value::String(val)) = resolve_concrete(m, name, prop_path)
-                && PREV_GEN_RE.is_match(&val)
+            if let Some(serde_json::Value::String(val)) = resolve_concrete(m, name, &path)
+                && prev_gen_re.is_match(&val)
             {
                 out.push(make_resource_diagnostic(
                     "I3100",
                     &format!("Previous generation instance type '{}' - consider upgrading", val),
                     m,
                     name,
-                    prop_path,
+                    &path,
                     Some("Upgrade to a current generation instance type"),
                 ));
             }
@@ -1816,17 +1839,10 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    let role_arn_props = [
-        ("AWS::Backup::BackupSelection", "Properties.BackupSelection.IamRoleArn"),
-        ("AWS::Batch::ComputeEnvironment", "Properties.ComputeResources.SpotIamFleetRole"),
-        ("AWS::Batch::ComputeEnvironment", "Properties.ServiceRole"),
-        ("AWS::EC2::SpotFleet", "Properties.SpotFleetRequestConfigData.IamFleetRole"),
-        ("AWS::ECS::TaskDefinition", "Properties.ExecutionRoleArn"),
-        ("AWS::S3::Bucket", "Properties.ReplicationConfiguration.Role"),
-    ];
-    for (rtype, path) in &role_arn_props {
-        for name in m.resources_of_type(rtype) {
-            if let Some(serde_json::Value::String(val)) = resolve_concrete(m, name, path)
+    for rpp in &ctx.cached_data.rule_tables.iam_role_arn_property_paths {
+        let path = full_property_path(rpp);
+        for name in m.resources_of_type(&rpp.resource_type) {
+            if let Some(serde_json::Value::String(val)) = resolve_concrete(m, name, &path)
                 && !ARN_RE.is_match(&val)
             {
                 out.push(make_resource_diagnostic(
@@ -1834,7 +1850,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                     &format!("IAM Role ARN '{}' does not match expected pattern", val),
                     m,
                     name,
-                    path,
+                    &path,
                     None,
                 ));
             }
@@ -2379,40 +2395,19 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    {
-        if let Some(iam_obj) = ctx
-            .cached_data
-            .iam_action_resource_patterns
-            .get("iam_action_resource_patterns")
-            .and_then(|v| v.as_object())
-            .or_else(|| ctx.cached_data.iam_action_resource_patterns.as_object())
-        {
-            let mut iam_patterns: HashMap<String, Vec<String>> = HashMap::new();
-            for (k, v) in iam_obj {
-                if let Some(arr) = v.as_array() {
-                    let formats: Vec<String> = arr.iter().filter_map(|s| s.as_str().map(String::from)).collect();
-                    if !formats.is_empty() {
-                        iam_patterns.insert(k.clone(), formats);
-                    }
-                }
-            }
-            if !iam_patterns.is_empty() {
-                for name in m.resources_of_type("AWS::IAM::Policy") {
-                    let doc_rv = m
-                        .resolve_deep(name, "Properties.PolicyDocument")
-                        .or_else(|| m.resolve(name, "Properties.PolicyDocument").cloned());
-                    let Some(rv) = doc_rv else {
-                        continue;
-                    };
-                    // Preserve Fn::If as `{"Fn::If": [cond, then, else]}` (rather
-                    // than collapsing to one branch) so the action-format check
-                    // can consider every branch's ARN - a resource is acceptable
-                    // if any reachable branch matches the action.
-                    let doc = resolved_to_json_preserving_conditionals(&rv);
-                    check_iam_action_resources(&mut out, m, name, &doc, &iam_patterns);
-                }
-            }
-        }
+    for name in m.resources_of_type("AWS::IAM::Policy") {
+        let doc_rv = m
+            .resolve_deep(name, "Properties.PolicyDocument")
+            .or_else(|| m.resolve(name, "Properties.PolicyDocument").cloned());
+        let Some(rv) = doc_rv else {
+            continue;
+        };
+        // Preserve Fn::If as `{"Fn::If": [cond, then, else]}` (rather
+        // than collapsing to one branch) so the action-format check
+        // can consider every branch's ARN - a resource is acceptable
+        // if any reachable branch matches the action.
+        let doc = resolved_to_json_preserving_conditionals(&rv);
+        check_iam_action_resources(&mut out, m, name, &doc, &ctx.cached_data.iam_action_resource_patterns);
     }
 
     for vpc_name in m.resources_of_type("AWS::EC2::VPC") {
@@ -2715,7 +2710,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     for name in m.resources_of_type("AWS::ElasticLoadBalancingV2::Listener") {
         if let Some(serde_json::Value::String(proto)) = resolve_concrete(m, name, "Properties.Protocol")
-            && (proto == "HTTPS" || proto == "TLS")
+            && ctx.cached_data.load_balancer_v2_certificate_protocols.contains(&proto)
             && resolve_concrete(m, name, "Properties.Certificates").is_none()
         {
             out.push(make_resource_diagnostic(
@@ -2733,7 +2728,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         if let Some(serde_json::Value::Array(listeners)) = resolve_concrete(m, name, "Properties.Listeners") {
             for (i, listener) in listeners.iter().enumerate() {
                 let proto = listener.get("Protocol").and_then(|p| p.as_str()).unwrap_or("");
-                if (proto.eq_ignore_ascii_case("HTTPS") || proto.eq_ignore_ascii_case("SSL"))
+                if ctx.cached_data.classic_load_balancer_certificate_protocols.contains(proto)
                     && listener.get("SSLCertificateId").is_none()
                 {
                     out.push(make_resource_diagnostic(
@@ -2752,27 +2747,8 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     for name in m.resources_of_type("AWS::Lambda::Function") {
         if let Some(serde_json::Value::Object(env_vars)) = resolve_concrete(m, name, "Properties.Environment.Variables")
         {
-            const RESERVED_KEYS: &[&str] = &[
-                "_HANDLER",
-                "_X_AMZN_TRACE_ID",
-                "AWS_DEFAULT_REGION",
-                "AWS_REGION",
-                "AWS_EXECUTION_ENV",
-                "AWS_LAMBDA_FUNCTION_NAME",
-                "AWS_LAMBDA_FUNCTION_MEMORY_SIZE",
-                "AWS_LAMBDA_FUNCTION_VERSION",
-                "AWS_LAMBDA_LOG_GROUP_NAME",
-                "AWS_LAMBDA_LOG_STREAM_NAME",
-                "AWS_ACCESS_KEY_ID",
-                "AWS_SECRET_ACCESS_KEY",
-                "AWS_SESSION_TOKEN",
-                "AWS_LAMBDA_RUNTIME_API",
-                "LAMBDA_TASK_ROOT",
-                "LAMBDA_RUNTIME_DIR",
-                "TZ",
-            ];
             for key in env_vars.keys() {
-                if RESERVED_KEYS.contains(&key.as_str()) {
+                if ctx.cached_data.lambda_reserved_environment_keys.contains(key) {
                     out.push(make_resource_diagnostic(
                         "E3663",
                         &format!("Environment variable '{}' is a Lambda reserved key", key),
@@ -2796,9 +2772,11 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             // value - so an excluded property whose value is an unresolved
             // Ref/intrinsic still anchors the finding.
             let props = m.resources.get(name.as_str()).map(|r| &r.properties);
-            if let Some(first_excluded) = ["Handler", "Runtime", "Layers"]
+            if let Some(first_excluded) = ctx
+                .cached_data
+                .lambda_image_excluded_properties
                 .iter()
-                .find(|excluded| props.map(|p| p.contains_key(**excluded)).unwrap_or(false))
+                .find(|excluded| props.map(|p| p.contains_key(excluded.as_str())).unwrap_or(false))
             {
                 out.push(make_resource_diagnostic(
                     "E3685",
@@ -2891,30 +2869,60 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             Some(_) => {}
         }
     };
-    for &(rtype, bdm_prefix) in EBS_IOPS_BLOCK_DEVICE_PATHS {
-        for name in m.resources_of_type(rtype) {
-            for (bdm_path, ebs) in ebs_block_device_mappings(m, name, bdm_prefix) {
-                emit_ebs_iops(name, &bdm_path, &ebs, &mut out);
+    for rpp in &ctx.cached_data.rule_tables.ebs_iops_property_paths {
+        let wc_count = wildcard_count(rpp);
+        if wc_count == 1 {
+            // Single-wildcard: iterate over the array at the prefix path
+            let prefix = property_path_prefix(rpp);
+            for name in m.resources_of_type(&rpp.resource_type) {
+                for (bdm_path, ebs) in ebs_block_device_mappings(m, name, &prefix) {
+                    emit_ebs_iops(name, &bdm_path, &ebs, &mut out);
+                }
             }
-        }
-    }
-    // SpotFleet nests its block device mappings one array deeper, under each
-    // launch specification.
-    for name in m.resources_of_type("AWS::EC2::SpotFleet") {
-        if let Some(serde_json::Value::Array(specs)) =
-            resolve_concrete(m, name, "Properties.SpotFleetRequestConfigData.LaunchSpecifications")
-        {
-            for (spec_idx, spec) in specs.iter().enumerate() {
-                let Some(mappings) = spec.get("BlockDeviceMappings").and_then(|v| v.as_array()) else {
-                    continue;
-                };
-                for (idx, mapping) in mappings.iter().enumerate() {
-                    if let Some(ebs) = mapping.get("Ebs") {
-                        let path = format!(
-                            "Properties.SpotFleetRequestConfigData.LaunchSpecifications.{}.BlockDeviceMappings.{}",
-                            spec_idx, idx
-                        );
-                        emit_ebs_iops(name, &path, ebs, &mut out);
+        } else if wc_count == 2 {
+            // Double-wildcard (SpotFleet pattern): outer array then inner
+            // BlockDeviceMappings. The prefix is the path up to the FIRST
+            // wildcard; the middle segments are between the two wildcards.
+            let Some(first_wc) = rpp.segments.iter().position(|s| matches!(s, PathSegment::Wildcard)) else {
+                continue;
+            };
+            let outer_prefix: String = rpp.segments[..first_wc]
+                .iter()
+                .filter_map(|s| match s {
+                    PathSegment::Literal(l) => Some(l.as_str()),
+                    _ => None,
+                })
+                .collect::<Vec<_>>()
+                .join(".");
+            // Middle segments between first and second wildcard
+            let Some(second_wc) = rpp.segments.iter().rposition(|s| matches!(s, PathSegment::Wildcard)) else {
+                continue;
+            };
+            let middle_segments: String = rpp.segments[first_wc + 1..second_wc]
+                .iter()
+                .filter_map(|s| match s {
+                    PathSegment::Literal(l) => Some(l.as_str()),
+                    _ => None,
+                })
+                .collect::<Vec<_>>()
+                .join(".");
+            for name in m.resources_of_type(&rpp.resource_type) {
+                if let Some(serde_json::Value::Array(specs)) = resolve_concrete(m, name, &outer_prefix) {
+                    for (spec_idx, spec) in specs.iter().enumerate() {
+                        let inner_val = if middle_segments.is_empty() {
+                            Some(spec)
+                        } else {
+                            navigate_json_path(spec, &middle_segments)
+                        };
+                        let Some(serde_json::Value::Array(mappings)) = inner_val else {
+                            continue;
+                        };
+                        for (idx, mapping) in mappings.iter().enumerate() {
+                            if let Some(ebs) = mapping.get("Ebs") {
+                                let path = format!("{}.{}.{}.{}", outer_prefix, spec_idx, middle_segments, idx);
+                                emit_ebs_iops(name, &path, ebs, &mut out);
+                            }
+                        }
                     }
                 }
             }
@@ -3347,7 +3355,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                     &record_type,
                     &records,
                     "Properties.ResourceRecords",
-                    |property_path| standalone_route53_record_source_path(m, name, property_path, &conditions),
+                    |property_path| route53_scenario_source_path(m, name, property_path, &conditions),
                 );
             }
         }
@@ -3547,55 +3555,38 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     // if its value is a string not starting with s3:// or https://, it warns.
     // SAM templates are excluded entirely.
     if !m.transforms.iter().any(|t| t == TRANSFORM_SERVERLESS) {
-        const PACKAGE_PROPS: &[(&str, &[&str])] = &[
-            ("AWS::Lambda::Function", &["Code"]),
-            ("AWS::Lambda::LayerVersion", &["Content"]),
-            ("AWS::ElasticBeanstalk::ApplicationVersion", &["SourceBundle"]),
-            ("AWS::StepFunctions::StateMachine", &["DefinitionS3Location"]),
-            ("AWS::AppSync::GraphQLSchema", &["DefinitionS3Location"]),
-            ("AWS::AppSync::Resolver", &["RequestMappingTemplateS3Location", "ResponseMappingTemplateS3Location"]),
-            (
-                "AWS::AppSync::FunctionConfiguration",
-                &["RequestMappingTemplateS3Location", "ResponseMappingTemplateS3Location"],
-            ),
-            ("AWS::CloudFormation::Stack", &["TemplateURL"]),
-            ("AWS::CodeCommit::Repository", &["Code.S3"]),
-            ("AWS::ApiGateway::RestApi", &["BodyS3Location"]),
-        ];
-        for (rtype, props) in PACKAGE_PROPS {
-            for name in m.resources_of_type(rtype) {
-                for prop in *props {
-                    let path = format!("Properties.{}", prop);
-                    // Only string literals are inspected here; a value wrapped in
-                    // an intrinsic (Fn::Join/Fn::Sub building an S3 URL) resolves
-                    // at deploy time and is left alone, so skip intrinsic-sourced
-                    // values.
-                    if m.is_from_intrinsic(name, &path) {
+        for rpp in &ctx.cached_data.rule_tables.package_property_paths {
+            let path = full_property_path(rpp);
+            for name in m.resources_of_type(&rpp.resource_type) {
+                // Only string literals are inspected here; a value wrapped in
+                // an intrinsic (Fn::Join/Fn::Sub building an S3 URL) resolves
+                // at deploy time and is left alone, so skip intrinsic-sourced
+                // values.
+                if m.is_from_intrinsic(name, &path) {
+                    continue;
+                }
+                if let Some(serde_json::Value::String(val)) = resolve_concrete(m, name, &path) {
+                    if val.starts_with("s3://") || val.starts_with("https://") {
                         continue;
                     }
-                    if let Some(serde_json::Value::String(val)) = resolve_concrete(m, name, &path) {
-                        if val.starts_with("s3://") || val.starts_with("https://") {
-                            continue;
-                        }
-                        out.push(make_resource_diagnostic(
-                            "W3002",
-                            "This code may only work with 'package' cli command",
-                            m,
-                            name,
-                            &path,
-                            None,
-                        ));
-                    }
+                    out.push(make_resource_diagnostic(
+                        "W3002",
+                        "This code may only work with 'package' cli command",
+                        m,
+                        name,
+                        &path,
+                        None,
+                    ));
                 }
             }
         }
     }
 
-    // API Gateway mixing inline definitions with external Body
+    // API Gateway mixing inline definitions with related resources
     {
-        let apigw_resource_types = ["AWS::ApiGateway::Method"];
+        let apigw_resource_types = &ctx.cached_data.rule_tables.api_gateway_mixing_resource_types;
         let mut rest_api_refs: HashMap<String, Vec<String>> = HashMap::new();
-        for rtype in &apigw_resource_types {
+        for rtype in apigw_resource_types {
             for name in m.resources_of_type(rtype) {
                 if let Some(api_id) = m.follow_ref(name, "Properties.RestApiId") {
                     rest_api_refs.entry(api_id.to_string()).or_default().push(name.to_string());
@@ -3603,20 +3594,24 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             }
         }
         for (api_id, referrers) in &rest_api_refs {
-            if referrers.is_empty() {
+            let Some(api) = m.resources.get(api_id) else {
                 continue;
-            }
-            let has_body = resolve_concrete(m, api_id, "Properties.Body").is_some()
-                || resolve_concrete(m, api_id, "Properties.BodyS3Location").is_some();
-            if has_body {
+            };
+            for property in ["Body", "BodyS3Location"] {
+                if !api.properties.contains_key(property) {
+                    continue;
+                }
                 for referrer in referrers {
+                    let resource_type = &m.resources[referrer].resource_type;
                     out.push(make_resource_diagnostic(
                         "W3660",
                         &format!(
-                            "Resource references RestApi '{}' which has Body/BodyS3Location - mixing inline definitions with external body",
-                            api_id
+                            "Defining '{property}' with a relation to resource '{referrer}' of type '{resource_type}' may result in drift and orphaned resources"
                         ),
-                        m, referrer, "Properties.RestApiId", None,
+                        m,
+                        api_id,
+                        &format!("Properties.{property}"),
+                        None,
                     ));
                 }
             }
@@ -3657,35 +3652,55 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     // EBS Iops silently ignored for certain volume types
     {
-        const IOPS_IGNORED_TYPES: &[&str] = &["gp2", "st1", "sc1", "standard"];
-        const BDM_RESOURCE_TYPES: &[(&str, &str)] = &[
-            ("AWS::EC2::Instance", "Properties.BlockDeviceMappings"),
-            ("AWS::EC2::LaunchTemplate", "Properties.LaunchTemplateData.BlockDeviceMappings"),
-            ("AWS::EC2::SpotFleet", "Properties.SpotFleetRequestConfigData.LaunchSpecifications"),
-            ("AWS::AutoScaling::LaunchConfiguration", "Properties.BlockDeviceMappings"),
-            ("AWS::OpsWorks::Instance", "Properties.BlockDeviceMappings"),
-        ];
-        for (rtype, base_path) in BDM_RESOURCE_TYPES {
-            for name in m.resources_of_type(rtype) {
-                if *rtype == "AWS::EC2::SpotFleet" {
-                    // SpotFleet has nested launch specs
-                    if let Some(serde_json::Value::Array(specs)) = resolve_concrete(m, name, base_path) {
+        let iops_ignored_types = &ctx.cached_data.rule_tables.ebs_iops_ignored_volume_types;
+        let iops_ignored_refs: Vec<&str> = iops_ignored_types.iter().map(|s| s.as_str()).collect();
+        for rpp in &ctx.cached_data.rule_tables.ebs_iops_property_paths {
+            let wc_count = wildcard_count(rpp);
+            if wc_count == 1 {
+                let prefix = property_path_prefix(rpp);
+                for name in m.resources_of_type(&rpp.resource_type) {
+                    if let Some(serde_json::Value::Array(bdms)) = resolve_concrete(m, name, &prefix) {
+                        check_bdm_iops_ignored(&mut out, m, name, &bdms, &prefix, "W3671", &iops_ignored_refs);
+                    }
+                }
+            } else if wc_count == 2 {
+                // SpotFleet-style double-wildcard
+                let Some(first_wc) = rpp.segments.iter().position(|s| matches!(s, PathSegment::Wildcard)) else {
+                    continue;
+                };
+                let outer_prefix: String = rpp.segments[..first_wc]
+                    .iter()
+                    .filter_map(|s| match s {
+                        PathSegment::Literal(l) => Some(l.as_str()),
+                        _ => None,
+                    })
+                    .collect::<Vec<_>>()
+                    .join(".");
+                let Some(second_wc) = rpp.segments.iter().rposition(|s| matches!(s, PathSegment::Wildcard)) else {
+                    continue;
+                };
+                let middle_segments: String = rpp.segments[first_wc + 1..second_wc]
+                    .iter()
+                    .filter_map(|s| match s {
+                        PathSegment::Literal(l) => Some(l.as_str()),
+                        _ => None,
+                    })
+                    .collect::<Vec<_>>()
+                    .join(".");
+                for name in m.resources_of_type(&rpp.resource_type) {
+                    if let Some(serde_json::Value::Array(specs)) = resolve_concrete(m, name, &outer_prefix) {
                         for (si, spec) in specs.iter().enumerate() {
-                            if let Some(bdms) = spec.get("BlockDeviceMappings").and_then(|b| b.as_array()) {
-                                check_bdm_iops_ignored(
-                                    &mut out,
-                                    m,
-                                    name,
-                                    bdms,
-                                    &format!("{}.{}.BlockDeviceMappings", base_path, si),
-                                    "W3671",
-                                    IOPS_IGNORED_TYPES,
-                                );
+                            let bdms_val = if middle_segments.is_empty() {
+                                Some(spec)
+                            } else {
+                                navigate_json_path(spec, &middle_segments)
+                            };
+                            if let Some(serde_json::Value::Array(bdms)) = bdms_val {
+                                let base = format!("{}.{}.{}", outer_prefix, si, middle_segments);
+                                check_bdm_iops_ignored(&mut out, m, name, bdms, &base, "W3671", &iops_ignored_refs);
                             }
                         }
                     }
-                } else if let Some(serde_json::Value::Array(bdms)) = resolve_concrete(m, name, base_path) {
-                    check_bdm_iops_ignored(&mut out, m, name, &bdms, base_path, "W3671", IOPS_IGNORED_TYPES);
                 }
             }
         }
@@ -3792,37 +3807,18 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     // VirtualName ignored when Ebs is specified in block device mappings
     {
-        const BDM_RESOURCE_TYPES_W3698: &[(&str, &str)] = &[
-            ("AWS::EC2::Instance", "Properties.BlockDeviceMappings"),
-            ("AWS::EC2::LaunchTemplate", "Properties.LaunchTemplateData.BlockDeviceMappings"),
-            ("AWS::EC2::SpotFleet", "Properties.SpotFleetRequestConfigData.LaunchSpecifications"),
-            ("AWS::AutoScaling::LaunchConfiguration", "Properties.BlockDeviceMappings"),
-            ("AWS::OpsWorks::Instance", "Properties.BlockDeviceMappings"),
-        ];
-        for (rtype, base_path) in BDM_RESOURCE_TYPES_W3698 {
-            for name in m.resources_of_type(rtype) {
-                if *rtype == "AWS::EC2::SpotFleet" {
-                    if let Some(serde_json::Value::Array(specs)) = resolve_concrete(m, name, base_path) {
-                        for (si, spec) in specs.iter().enumerate() {
-                            if let Some(bdms) = spec.get("BlockDeviceMappings").and_then(|b| b.as_array()) {
-                                check_bdm_virtualname_ignored(
-                                    &mut out,
-                                    m,
-                                    name,
-                                    bdms,
-                                    &format!("{}.{}.BlockDeviceMappings", base_path, si),
-                                );
-                            }
-                        }
-                    }
-                } else {
+        for rpp in &ctx.cached_data.rule_tables.ebs_iops_property_paths {
+            let wc_count = wildcard_count(rpp);
+            if wc_count == 1 {
+                let prefix = property_path_prefix(rpp);
+                for name in m.resources_of_type(&rpp.resource_type) {
                     // Concrete resolution handles the common non-conditional case.
-                    if let Some(serde_json::Value::Array(bdms)) = resolve_concrete(m, name, base_path) {
-                        check_bdm_virtualname_ignored(&mut out, m, name, &bdms, base_path);
+                    if let Some(serde_json::Value::Array(bdms)) = resolve_concrete(m, name, &prefix) {
+                        check_bdm_virtualname_ignored(&mut out, m, name, &bdms, &prefix);
                     } else {
                         // Fall back to conditional branch traversal for the
                         // virtual-name-ignored check only
-                        let bdm_arrays = resolve_all_json(m, name, base_path);
+                        let bdm_arrays = resolve_all_json(m, name, &prefix);
                         for bdms_val in &bdm_arrays {
                             if let serde_json::Value::Array(bdms) = bdms_val {
                                 for (i, bdm) in bdms.iter().enumerate() {
@@ -3834,11 +3830,55 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                                                 "E3715",
                                                 &format!("'{}' is not a valid ephemeral device name. Expected format is 'ephemeralN' where N is 0-23", vname),
                                                 m, name,
-                                                &format!("{}.{}.VirtualName", base_path, i),
+                                                &format!("{}.{}.VirtualName", prefix, i),
                                                 None,
                                             ));
                                     }
                                 }
+                            }
+                        }
+                    }
+                }
+            } else if wc_count == 2 {
+                // SpotFleet-style double-wildcard
+                let Some(first_wc) = rpp.segments.iter().position(|s| matches!(s, PathSegment::Wildcard)) else {
+                    continue;
+                };
+                let outer_prefix: String = rpp.segments[..first_wc]
+                    .iter()
+                    .filter_map(|s| match s {
+                        PathSegment::Literal(l) => Some(l.as_str()),
+                        _ => None,
+                    })
+                    .collect::<Vec<_>>()
+                    .join(".");
+                let Some(second_wc) = rpp.segments.iter().rposition(|s| matches!(s, PathSegment::Wildcard)) else {
+                    continue;
+                };
+                let middle_segments: String = rpp.segments[first_wc + 1..second_wc]
+                    .iter()
+                    .filter_map(|s| match s {
+                        PathSegment::Literal(l) => Some(l.as_str()),
+                        _ => None,
+                    })
+                    .collect::<Vec<_>>()
+                    .join(".");
+                for name in m.resources_of_type(&rpp.resource_type) {
+                    if let Some(serde_json::Value::Array(specs)) = resolve_concrete(m, name, &outer_prefix) {
+                        for (si, spec) in specs.iter().enumerate() {
+                            let bdms_val = if middle_segments.is_empty() {
+                                spec.as_array()
+                            } else {
+                                navigate_json_path(spec, &middle_segments).and_then(|v| v.as_array())
+                            };
+                            if let Some(bdms) = bdms_val {
+                                check_bdm_virtualname_ignored(
+                                    &mut out,
+                                    m,
+                                    name,
+                                    bdms,
+                                    &format!("{}.{}.{}", outer_prefix, si, middle_segments),
+                                );
                             }
                         }
                     }
@@ -3851,7 +3891,9 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     // Each property scenario is paired with a compatible Fargate scenario so
     // values from mutually exclusive EC2 deployments cannot create findings.
     {
-        const FARGATE_SUPPORTED_LOG_DRIVERS: &[&str] = &["awslogs", "splunk", "awsfirelens"];
+        let supported_log_drivers = &ctx.cached_data.fargate_supported_log_drivers;
+        let supported_log_drivers_rendered = render_str_list(supported_log_drivers);
+        let supported_log_driver_fix = &ctx.cached_data.fargate_supported_log_driver_fix;
 
         for name in m.resources_of_type("AWS::ECS::TaskDefinition") {
             let fargate_scenarios = fargate_condition_scenarios(m, name);
@@ -3980,7 +4022,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                     else {
                         continue;
                     };
-                    if FARGATE_SUPPORTED_LOG_DRIVERS.contains(&driver)
+                    if supported_log_drivers.iter().any(|supported| supported == driver)
                         || !reported_drivers.insert((container_index, driver.to_string()))
                     {
                         continue;
@@ -3991,13 +4033,12 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                         "E3048",
                         &format!(
                             "Fargate does not support log driver '{}'. Supported drivers: {}",
-                            driver,
-                            render_str_list(FARGATE_SUPPORTED_LOG_DRIVERS),
+                            driver, supported_log_drivers_rendered,
                         ),
                         m,
                         name,
                         &driver_path,
-                        Some("Use 'awslogs', 'splunk', or 'awsfirelens'"),
+                        Some(supported_log_driver_fix),
                     ));
                 }
             }
