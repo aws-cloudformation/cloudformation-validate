@@ -70,6 +70,8 @@ static REGORUS_DATA: LazyLock<Vec<(&str, &[u8])>> = LazyLock::new(|| {
         ("data/retention_period_requirements", &*embedded::RETENTION_PERIOD_REQUIREMENTS_BYTES),
         ("data/sensitive_ports", &*embedded::SENSITIVE_PORTS_BYTES),
         ("data/secretsmanager_arn_fields", &*embedded::SECRETSMANAGER_ARN_FIELDS_BYTES),
+        ("data/rule_data", &*embedded::RULE_DATA_BYTES),
+        ("data/rule_tables", &*embedded::RULE_TABLES_BYTES),
     ]
 });
 
@@ -118,6 +120,7 @@ fn extend_known_resource_types(extra_types: &[String]) -> anyhow::Result<Option<
     }
     let mut catalog: KnownResourceTypes = serde_json::from_slice(&embedded::KNOWN_RESOURCE_TYPES_BYTES)
         .map_err(|e| anyhow::anyhow!("Failed to parse the embedded known_resource_types data: {e}"))?;
+    anyhow::ensure!(!catalog.known_resource_types.is_empty(), "Embedded known_resource_types data must not be empty");
     for type_name in extra_types {
         if !catalog.known_resource_types.contains(type_name) {
             catalog.known_resource_types.push(type_name.clone());
@@ -255,13 +258,16 @@ impl RegoEngine {
                     (KNOWN_RESOURCE_TYPES_PATH, Some(extended), _, _) => extended,
                     (GETATT_ATTRIBUTES_PATH, _, Some(extended), _) => extended,
                     (PRIMARY_IDENTIFIERS_PATH, _, _, Some(extended)) => extended,
-                    _ => from_utf8(json_bytes).expect("Embedded JSON data is valid UTF-8"),
+                    _ => from_utf8(json_bytes).map_err(|error| {
+                        anyhow::anyhow!("Embedded JSON data '{}' is not valid UTF-8: {}", path, error)
+                    })?,
                 };
                 let inner = json_str
                     .trim()
                     .strip_prefix('{')
-                    .and_then(|s| s.strip_suffix('}'))
-                    .expect("Embedded JSON must be a top-level object");
+                    .and_then(|value| value.strip_suffix('}'))
+                    .ok_or_else(|| anyhow::anyhow!("Embedded JSON data '{}' must be a top-level object", path))?;
+                anyhow::ensure!(!inner.trim().is_empty(), "Embedded JSON data '{}' must not be empty", path);
                 if i > 0 {
                     merged.push(',');
                 }
@@ -333,7 +339,7 @@ impl RegoEngine {
 
         let model_holder: SharedModel = Arc::new(Mutex::new(None));
         let region_holder: SharedRegion = Arc::new(Mutex::new(None));
-        crate::builtins::register_all(&mut rego, model_holder.clone(), region_holder.clone(), overlay_catalog);
+        crate::builtins::register_all(&mut rego, model_holder.clone(), region_holder.clone(), overlay_catalog)?;
 
         let registry_metadata = build_rule_metadata_map();
         let mut external_rule_metadata: HashMap<String, RuleMetadataEntry> = HashMap::new();

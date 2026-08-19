@@ -1,6 +1,6 @@
 use crate::engine::{SharedModel, SharedRegion};
 use data_source::embedded::{GETATT_ATTRIBUTES_BYTES, SCHEMA_METADATA_BYTES};
-use data_source::types::GetattData;
+use data_source::types::{ArtifactCountEntry, CodepipelineArtifactCounts, GetattData};
 use regorus::Value;
 use schema_validator::OverlayCatalog;
 use std::collections::{BTreeSet, HashMap, HashSet};
@@ -38,7 +38,7 @@ pub(crate) fn register_all(
     holder: SharedModel,
     region_holder: SharedRegion,
     overlay_catalog: &OverlayCatalog,
-) {
+) -> anyhow::Result<()> {
     register_resolve(rego, holder.clone());
     register_resolve_preserving_conditionals(rego, holder.clone());
     register_resolve_all(rego, holder.clone());
@@ -82,9 +82,10 @@ pub(crate) fn register_all(
     register_is_satisfiable(rego, holder.clone());
     register_get_resource(rego, holder.clone());
     register_resolve_ref_target(rego, holder.clone());
+    register_matching_property_paths(rego);
     register_flatten_list(rego, holder.clone());
     register_pipeline_artifacts(rego, holder.clone());
-    register_pipeline_artifact_count_issues(rego, holder.clone());
+    register_pipeline_artifact_count_issues(rego, holder.clone())?;
     register_resolve_type(rego, holder.clone());
     let schema_registry: LazySchemaRegistry = build_schema_registry(overlay_catalog);
     let getatt_registry: LazyGetattRegistry = build_getatt_registry(overlay_catalog);
@@ -123,6 +124,7 @@ pub(crate) fn register_all(
     register_iam_identity_policy_findings(rego, holder.clone());
     register_iam_inline_policy_document_paths(rego, holder.clone());
     register_iam_policy_has_allow_not_action(rego, holder);
+    Ok(())
 }
 
 fn resolved_to_rego(rv: &ResolvedValue) -> Value {
@@ -1131,6 +1133,60 @@ fn register_resolve_ref_target(rego: &mut regorus::Engine, holder: SharedModel) 
     );
 }
 
+fn matching_property_paths(properties: &serde_json::Value, property_names: &HashSet<String>) -> Vec<serde_json::Value> {
+    fn visit(
+        value: &serde_json::Value,
+        property_names: &HashSet<String>,
+        segments: &mut Vec<String>,
+        matches: &mut Vec<serde_json::Value>,
+    ) {
+        match value {
+            serde_json::Value::Object(map) => {
+                for (property, child) in map {
+                    segments.push(property.clone());
+                    if property_names.contains(property) {
+                        matches.push(serde_json::json!({
+                            "path": format!("Properties.{}", segments.join(".")),
+                            "property": property,
+                            "value": child,
+                        }));
+                    }
+                    visit(child, property_names, segments, matches);
+                    segments.pop();
+                }
+            }
+            serde_json::Value::Array(items) => {
+                for (index, child) in items.iter().enumerate() {
+                    segments.push(index.to_string());
+                    visit(child, property_names, segments, matches);
+                    segments.pop();
+                }
+            }
+            _ => {}
+        }
+    }
+
+    let mut matches = Vec::new();
+    visit(properties, property_names, &mut Vec::new(), &mut matches);
+    matches
+}
+
+fn register_matching_property_paths(rego: &mut regorus::Engine) {
+    let _ = rego.add_extension(
+        "matching_property_paths".into(),
+        2,
+        Box::new(|params: Vec<Value>| {
+            let properties: serde_json::Value = serde_json::from_str(&params[0].to_json_str()?)?;
+            let names = params[1].as_array()?;
+            let mut property_names = HashSet::with_capacity(names.len());
+            for name in names.iter() {
+                property_names.insert(name.as_string()?.to_string());
+            }
+            Ok(json_to_value(&serde_json::Value::Array(matching_property_paths(&properties, &property_names))))
+        }),
+    );
+}
+
 fn register_flatten_list(rego: &mut regorus::Engine, holder: SharedModel) {
     let _ = rego.add_extension(
         "flatten_list".into(),
@@ -1679,16 +1735,13 @@ fn rego_artifact_count_scenarios(value: Option<&serde_json::Value>) -> Vec<usize
 /// Returns the E3702 artifact-count violation messages for a pipeline, keyed by
 /// the Owner/Category/Provider tuple. Resolves Stages preserving `Fn::If` so an
 /// artifact list authored behind a condition has EVERY branch's count checked
-fn register_pipeline_artifact_count_issues(rego: &mut regorus::Engine, holder: SharedModel) {
-    // The embedded document wraps the count table under a single top-level key
-    // (`codepipeline_action_artifact_counts`); unwrap it to reach the per-tuple
-    // bounds.
-    let counts: HashMap<String, serde_json::Value> =
-        serde_json::from_slice::<serde_json::Value>(&data_source::embedded::CODEPIPELINE_ACTION_ARTIFACT_COUNTS_BYTES)
-            .ok()
-            .and_then(|v| v.as_object().and_then(|o| o.values().next()).and_then(|v| v.as_object()).cloned())
-            .map(|o| o.into_iter().collect())
-            .unwrap_or_default();
+fn register_pipeline_artifact_count_issues(rego: &mut regorus::Engine, holder: SharedModel) -> anyhow::Result<()> {
+    let document: CodepipelineArtifactCounts =
+        serde_json::from_slice(&data_source::embedded::CODEPIPELINE_ACTION_ARTIFACT_COUNTS_BYTES).map_err(|error| {
+            anyhow::anyhow!("Failed to parse embedded codepipeline_action_artifact_counts data: {}", error)
+        })?;
+    let counts = document.codepipeline_action_artifact_counts;
+    anyhow::ensure!(!counts.is_empty(), "Embedded codepipeline_action_artifact_counts data must not be empty");
     let _ = rego.add_extension(
         "pipeline_artifact_count_issues".into(),
         1,
@@ -1704,13 +1757,14 @@ fn register_pipeline_artifact_count_issues(rego: &mut regorus::Engine, holder: S
             Value::from_json_str(&serde_json::json!({ "issues": issues }).to_string())
         }),
     );
+    Ok(())
 }
 
 /// Computes the E3702 count-violation messages from a Stages JSON that preserves
 /// `Fn::If` structure. Shared helper so the builtin stays readable.
 fn pipeline_artifact_count_issues(
     stages_json: Option<&serde_json::Value>,
-    counts: &HashMap<String, serde_json::Value>,
+    counts: &HashMap<String, ArtifactCountEntry>,
 ) -> Vec<serde_json::Value> {
     let mut issues = Vec::new();
     let Some(stages) = stages_json.and_then(|v| v.as_array()) else {
@@ -1732,35 +1786,32 @@ fn pipeline_artifact_count_issues(
             let aname = action.get("Name").and_then(|n| n.as_str()).unwrap_or("unknown");
             let key = format!("{owner}/{category}/{provider}");
             let Some(bounds) = counts.get(&key) else { continue };
-            let bound = |field: &str| bounds.get(field).and_then(|v| v.as_u64()).map(|v| v as usize);
-            let (min_in, max_in) = (bound("min_input"), bound("max_input"));
-            let (min_out, max_out) = (bound("min_output"), bound("max_output"));
             for n in rego_artifact_count_scenarios(action.get("InputArtifacts")) {
-                if let Some(lo) = min_in
-                    && n < lo
-                {
-                    issues.push(serde_json::json!({"message":
-                        format!("Action '{}' ({}) has {} input artifacts, expected at least {}", aname, key, n, lo)}));
+                if n < bounds.min_input {
+                    issues.push(serde_json::json!({"message": format!(
+                        "Action '{}' ({}) has {} input artifacts, expected at least {}",
+                        aname, key, n, bounds.min_input
+                    )}));
                 }
-                if let Some(hi) = max_in
-                    && n > hi
-                {
-                    issues.push(serde_json::json!({"message":
-                        format!("Action '{}' ({}) has {} input artifacts, expected at most {}", aname, key, n, hi)}));
+                if n > bounds.max_input {
+                    issues.push(serde_json::json!({"message": format!(
+                        "Action '{}' ({}) has {} input artifacts, expected at most {}",
+                        aname, key, n, bounds.max_input
+                    )}));
                 }
             }
             for n in rego_artifact_count_scenarios(action.get("OutputArtifacts")) {
-                if let Some(lo) = min_out
-                    && n < lo
-                {
-                    issues.push(serde_json::json!({"message":
-                        format!("Action '{}' ({}) has {} output artifacts, expected at least {}", aname, key, n, lo)}));
+                if n < bounds.min_output {
+                    issues.push(serde_json::json!({"message": format!(
+                        "Action '{}' ({}) has {} output artifacts, expected at least {}",
+                        aname, key, n, bounds.min_output
+                    )}));
                 }
-                if let Some(hi) = max_out
-                    && n > hi
-                {
-                    issues.push(serde_json::json!({"message":
-                        format!("Action '{}' ({}) has {} output artifacts, expected at most {}", aname, key, n, hi)}));
+                if n > bounds.max_output {
+                    issues.push(serde_json::json!({"message": format!(
+                        "Action '{}' ({}) has {} output artifacts, expected at most {}",
+                        aname, key, n, bounds.max_output
+                    )}));
                 }
             }
         }
@@ -1817,11 +1868,12 @@ struct SchemaInfo {
 fn load_schema_registry() -> HashMap<String, SchemaInfo> {
     #[derive(serde::Deserialize)]
     struct Wrapper {
-        #[serde(default)]
         schema_metadata: HashMap<String, SchemaInfo>,
     }
-    let w: Wrapper = serde_json::from_slice(&SCHEMA_METADATA_BYTES).expect("Failed to parse schema_metadata JSON");
-    w.schema_metadata
+    let wrapper: Wrapper =
+        serde_json::from_slice(&SCHEMA_METADATA_BYTES).expect("Failed to parse schema_metadata JSON");
+    assert!(!wrapper.schema_metadata.is_empty(), "Embedded schema_metadata must not be empty");
+    wrapper.schema_metadata
 }
 
 type LazySchemaRegistry = Arc<OnceLock<HashMap<String, SchemaInfo>>>;
@@ -1959,6 +2011,7 @@ fn register_attribute_type(rego: &mut regorus::Engine, registry: LazySchemaRegis
 fn load_getatt_type_registry() -> HashMap<String, HashMap<String, String>> {
     let data: GetattData =
         serde_json::from_slice(&GETATT_ATTRIBUTES_BYTES).expect("Failed to deserialize getatt_attributes JSON data");
+    assert!(!data.getatt_attribute_types.is_empty(), "Embedded getatt_attribute_types must not be empty");
     data.getatt_attribute_types
 }
 
@@ -2589,6 +2642,31 @@ mod tests {
     use template_model::{MARKER_DYNAMIC, MARKER_PARAM_TYPE, MARKER_REF};
 
     #[test]
+    fn matching_property_paths_finds_nested_objects_and_arrays() {
+        let properties = serde_json::json!({
+            "Config": {"AccountPassword": "first"},
+            "Items": [{"Password": "second"}, {"Other": "value"}],
+        });
+        let names = HashSet::from(["AccountPassword".to_string(), "Password".to_string()]);
+
+        assert_eq!(
+            matching_property_paths(&properties, &names),
+            vec![
+                serde_json::json!({
+                    "path": "Properties.Config.AccountPassword",
+                    "property": "AccountPassword",
+                    "value": "first",
+                }),
+                serde_json::json!({
+                    "path": "Properties.Items.0.Password",
+                    "property": "Password",
+                    "value": "second",
+                }),
+            ]
+        );
+    }
+
+    #[test]
     fn json_to_value_preserves_nested_structure() {
         let v = json_to_value(&serde_json::json!({"a": [1, "two", true], "b": {"c": null}}));
         let obj = v.as_object().expect("should be object");
@@ -2908,7 +2986,7 @@ mod tests {
         let region: SharedRegion = Arc::new(Mutex::new(None));
         let mut rego = regorus::Engine::new();
         rego.set_strict_builtin_errors(false);
-        register_all(&mut rego, holder, region, &OverlayCatalog::default());
+        register_all(&mut rego, holder, region, &OverlayCatalog::default()).expect("register builtins");
         let policy = format!("package test\nimport rego.v1\nresult := {}", expr);
         rego.add_policy("test.rego".into(), policy).unwrap();
         rego.set_input(Value::new_object());
@@ -3112,7 +3190,7 @@ mod tests {
         let region: SharedRegion = Arc::new(Mutex::new(Some("us-west-2".to_string())));
         let mut rego = regorus::Engine::new();
         rego.set_strict_builtin_errors(false);
-        register_all(&mut rego, holder, region, &OverlayCatalog::default());
+        register_all(&mut rego, holder, region, &OverlayCatalog::default()).expect("register builtins");
         rego.add_policy("test.rego".into(), "package test\nimport rego.v1\nresult := input_region()".into()).unwrap();
         rego.set_input(Value::new_object());
         let v = rego.eval_rule("data.test.result".into()).unwrap();
