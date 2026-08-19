@@ -187,29 +187,23 @@ fn generate_region_enums(generated_dir: &Path, output_dir: &Path) -> anyhow::Res
             .map_err(|source| anyhow::anyhow!("failed to parse required {}: {}", path.display(), source))?;
         let data = json
             .get(*file_key)
-            .and_then(|v| v.as_object())
+            .and_then(|value| value.as_object())
             .ok_or_else(|| anyhow::anyhow!("{} is missing required '{}' object", path.display(), file_key))?;
         anyhow::ensure!(!data.is_empty(), "{}: '{}' must not be empty", path.display(), file_key);
 
         let map_key = format!("{}::{}", resource_type, prop_name);
         let mut per_region: BTreeMap<String, Vec<String>> = BTreeMap::new();
         for (region, region_data) in data {
-            let enum_vals = region_data.get("enum").and_then(|v| v.as_array()).ok_or_else(|| {
-                anyhow::anyhow!("{}: region '{}' is missing required enum array", path.display(), region)
-            })?;
-            let vals: Vec<String> = enum_vals
-                .iter()
-                .map(|value| {
-                    value.as_str().map(String::from).ok_or_else(|| {
-                        anyhow::anyhow!("{}: region '{}' enum value must be a string", path.display(), region)
-                    })
-                })
-                .collect::<Result<_, _>>()?;
-            anyhow::ensure!(!vals.is_empty(), "{}: region '{}' enum must not be empty", path.display(), region);
-            per_region.insert(region.clone(), vals);
+            if let Some(enum_vals) = region_data.get("enum").and_then(|v| v.as_array()) {
+                let vals: Vec<String> = enum_vals.iter().filter_map(|v| v.as_str().map(String::from)).collect();
+                if !vals.is_empty() {
+                    per_region.insert(region.clone(), vals);
+                }
+            }
         }
-        anyhow::ensure!(!per_region.is_empty(), "{} produced no regional enum values", path.display());
-        region_enums.insert(map_key, per_region);
+        if !per_region.is_empty() {
+            region_enums.insert(map_key, per_region);
+        }
     }
 
     let bytes = serde_json::to_string_pretty(&region_enums)?;

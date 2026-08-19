@@ -118770,23 +118770,16 @@
     "type_name": "AWS::DocDB::DBClusterParameterGroup",
     "properties": {
       "Description": {
-        "type": "string",
-        "min_length": 1,
-        "max_length": 255,
-        "description": "The description for the DB cluster parameter group."
+        "type": "string"
       },
       "Family": {
-        "type": "string",
-        "min_length": 1,
-        "max_length": 255,
-        "description": "The DB cluster parameter group family name (e.g. docdb5.0)."
+        "type": "string"
+      },
+      "Id": {
+        "type": "string"
       },
       "Name": {
-        "type": "string",
-        "pattern": "[a-zA-Z0-9-]*",
-        "min_length": 1,
-        "max_length": 255,
-        "description": "The name of the DB cluster parameter group. If omitted, CloudFormation generates a unique name. The name is stored as lowercase."
+        "type": "string"
       },
       "Parameters": {
         "type": [
@@ -118797,7 +118790,6 @@
       },
       "Tags": {
         "type": "array",
-        "description": "An array of key-value pairs to apply to this resource.",
         "items": {
           "ref_name": "Tag"
         }
@@ -118806,20 +118798,17 @@
     "definitions": {
       "Tag": {
         "type": "object",
-        "description": "A key-value pair to associate with a resource.",
         "properties": {
           "Key": {
-            "type": "string",
-            "description": "The key name of the tag."
+            "type": "string"
           },
           "Value": {
-            "type": "string",
-            "description": "The value for the tag."
+            "type": "string"
           }
         },
         "required": [
-          "Key",
-          "Value"
+          "Value",
+          "Key"
         ],
         "additional_properties": false
       }
@@ -118830,14 +118819,16 @@
       "Parameters"
     ],
     "additional_properties": false,
-    "read_only_properties": [],
+    "read_only_properties": [
+      "Id"
+    ],
     "create_only_properties": [
       "Family",
       "Description",
       "Name"
     ],
     "primary_identifier": [
-      "Name"
+      "Id"
     ],
     "description": "Resource Type definition for AWS::DocDB::DBClusterParameterGroup"
   },
@@ -137556,6 +137547,9 @@
     "additional_properties": false,
     "read_only_properties": [
       "VolumeId"
+    ],
+    "write_only_properties": [
+      "OutpostArn"
     ],
     "primary_identifier": [
       "VolumeId"
@@ -226256,6 +226250,14 @@
         ],
         "additional_properties": false
       },
+      "JwtSigningAlgorithm": {
+        "type": "string",
+        "enum": [
+          "RS256",
+          "ES384"
+        ],
+        "description": "The algorithm used to sign the STS JWT assertion."
+      },
       "KafkaCluster": {
         "type": "object",
         "description": "Details of a Kafka cluster for replication.",
@@ -226284,6 +226286,9 @@
         "properties": {
           "MTLS": {
             "ref_name": "KafkaClusterMtlsAuthentication"
+          },
+          "SaslOAuthBearer": {
+            "ref_name": "KafkaClusterSaslOAuthBearerAuthentication"
           },
           "SaslScram": {
             "ref_name": "KafkaClusterSaslScramAuthentication"
@@ -226358,6 +226363,99 @@
         },
         "required": [
           "SecretArn"
+        ],
+        "additional_properties": false
+      },
+      "KafkaClusterOAuthClientCredentials": {
+        "type": "object",
+        "description": "Details for SASL/OAUTHBEARER using the standard client_credentials grant. The referenced secret must contain client_id and client_secret.",
+        "properties": {
+          "TokenRequestSecretArn": {
+            "type": "string",
+            "description": "Secrets Manager ARN of the secret containing the client_id and client_secret used to obtain an OAuth Bearer token via the client_credentials grant."
+          }
+        },
+        "required": [
+          "TokenRequestSecretArn"
+        ],
+        "additional_properties": false
+      },
+      "KafkaClusterOAuthClientCredentialsAssertion": {
+        "type": "object",
+        "description": "Details for SASL/OAUTHBEARER using the client credentials grant with a JWT client assertion (RFC 7521/7523 Section 2.2). An STS-vended JWT is used as the client_assertion.",
+        "properties": {
+          "Audience": {
+            "type": "string",
+            "description": "The audience (aud claim) set in the STS JWT client assertion."
+          },
+          "SigningAlgorithm": {
+            "ref_name": "JwtSigningAlgorithm"
+          },
+          "TokenRequestSecretArn": {
+            "type": "string",
+            "description": "Optional Secrets Manager ARN for identity providers that require client_id as a form parameter alongside the JWT client assertion."
+          }
+        },
+        "required": [
+          "Audience",
+          "SigningAlgorithm"
+        ],
+        "additional_properties": false
+      },
+      "KafkaClusterOAuthIamJwtBearer": {
+        "type": "object",
+        "description": "Details for SASL/OAUTHBEARER using the JWT Bearer assertion grant (RFC 7523). An STS-vended JWT is used as the assertion.",
+        "properties": {
+          "Audience": {
+            "type": "string",
+            "description": "The audience (aud claim) set in the STS JWT assertion."
+          },
+          "SigningAlgorithm": {
+            "ref_name": "JwtSigningAlgorithm"
+          },
+          "TokenRequestSecretArn": {
+            "type": "string",
+            "description": "Optional Secrets Manager ARN for identity providers that require client authentication alongside the JWT Bearer assertion."
+          }
+        },
+        "required": [
+          "Audience",
+          "SigningAlgorithm"
+        ],
+        "additional_properties": false
+      },
+      "KafkaClusterSaslOAuthBearerAuthentication": {
+        "type": "object",
+        "description": "Details for client authentication using SASL/OAUTHBEARER.",
+        "properties": {
+          "ClientCredentials": {
+            "ref_name": "KafkaClusterOAuthClientCredentials"
+          },
+          "ClientCredentialsAssertion": {
+            "ref_name": "KafkaClusterOAuthClientCredentialsAssertion"
+          },
+          "IamJwtBearer": {
+            "ref_name": "KafkaClusterOAuthIamJwtBearer"
+          },
+          "Scope": {
+            "type": "string",
+            "description": "OAuth scope to request. Included in the token request if provided."
+          },
+          "TokenEndpointAuthenticationMethod": {
+            "ref_name": "TokenEndpointAuthenticationMethod"
+          },
+          "TokenEndpointTlsCertificateArn": {
+            "type": "string",
+            "description": "Secrets Manager ARN containing a custom CA certificate for the identity provider. Required only if the identity provider uses a private CA."
+          },
+          "TokenEndpointUrl": {
+            "type": "string",
+            "description": "The HTTPS URL of the OAuth token endpoint that vends OAuth Bearer tokens per RFC 6749."
+          }
+        },
+        "required": [
+          "TokenEndpointUrl",
+          "TokenEndpointAuthenticationMethod"
         ],
         "additional_properties": false
       },
@@ -226536,6 +226634,15 @@
           "Key"
         ],
         "additional_properties": false
+      },
+      "TokenEndpointAuthenticationMethod": {
+        "type": "string",
+        "enum": [
+          "POST",
+          "BASIC",
+          "NONE"
+        ],
+        "description": "How client credentials are sent to the identity provider's token endpoint."
       },
       "TopicReplication": {
         "type": "object",
@@ -262511,6 +262618,15 @@
         "min_length": 0,
         "max_length": 256,
         "description": "The ARN of the schema to associate with the dataset. The schema defines the dataset fields."
+      },
+      "Tags": {
+        "type": "array",
+        "min_items": 0,
+        "max_items": 50,
+        "description": "The tags used to organize, track, or control access for this resource.",
+        "items": {
+          "ref_name": "Tag"
+        }
       }
     },
     "definitions": {
@@ -262559,6 +262675,27 @@
           }
         },
         "additional_properties": false
+      },
+      "Tag": {
+        "type": "object",
+        "properties": {
+          "Key": {
+            "type": "string",
+            "pattern": "^(?!aws:)[a-zA-Z+-=._:/]+$",
+            "min_length": 1,
+            "max_length": 128
+          },
+          "Value": {
+            "type": "string",
+            "min_length": 0,
+            "max_length": 256
+          }
+        },
+        "required": [
+          "Key",
+          "Value"
+        ],
+        "additional_properties": false
       }
     },
     "required": [
@@ -262575,7 +262712,8 @@
       "Name",
       "DatasetType",
       "DatasetGroupArn",
-      "SchemaArn"
+      "SchemaArn",
+      "Tags"
     ],
     "primary_identifier": [
       "DatasetArn"
@@ -262623,9 +262761,40 @@
         "max_length": 256,
         "format": "AWS::IAM::Role.Arn",
         "description": "The ARN of the AWS Identity and Access Management (IAM) role that has permissions to access the AWS Key Management Service (KMS) key. Supplying an IAM role is only valid when also specifying a KMS key."
+      },
+      "Tags": {
+        "type": "array",
+        "min_items": 0,
+        "max_items": 50,
+        "description": "The tags used to organize, track, or control access for this resource.",
+        "items": {
+          "ref_name": "Tag"
+        }
       }
     },
-    "definitions": {},
+    "definitions": {
+      "Tag": {
+        "type": "object",
+        "properties": {
+          "Key": {
+            "type": "string",
+            "pattern": "^(?!aws:)[a-zA-Z+-=._:/]+$",
+            "min_length": 1,
+            "max_length": 128
+          },
+          "Value": {
+            "type": "string",
+            "min_length": 0,
+            "max_length": 256
+          }
+        },
+        "required": [
+          "Key",
+          "Value"
+        ],
+        "additional_properties": false
+      }
+    },
     "required": [
       "Name"
     ],
@@ -262637,7 +262806,8 @@
       "Name",
       "RoleArn",
       "KmsKeyArn",
-      "Domain"
+      "Domain",
+      "Tags"
     ],
     "primary_identifier": [
       "DatasetGroupArn"
@@ -262755,9 +262925,40 @@
         "pattern": "arn:([a-z\\d-]+):personalize:.*:.*:.+",
         "max_length": 256,
         "description": "Arn for the schema."
+      },
+      "Tags": {
+        "type": "array",
+        "min_items": 0,
+        "max_items": 50,
+        "description": "The tags used to organize, track, or control access for this resource.",
+        "items": {
+          "ref_name": "Tag"
+        }
       }
     },
-    "definitions": {},
+    "definitions": {
+      "Tag": {
+        "type": "object",
+        "properties": {
+          "Key": {
+            "type": "string",
+            "pattern": "^(?!aws:)[a-zA-Z+-=._:/]+$",
+            "min_length": 1,
+            "max_length": 128
+          },
+          "Value": {
+            "type": "string",
+            "min_length": 0,
+            "max_length": 256
+          }
+        },
+        "required": [
+          "Key",
+          "Value"
+        ],
+        "additional_properties": false
+      }
+    },
     "required": [
       "Name",
       "Schema"
@@ -262769,7 +262970,8 @@
     "create_only_properties": [
       "Name",
       "Schema",
-      "Domain"
+      "Domain",
+      "Tags"
     ],
     "primary_identifier": [
       "SchemaArn"
@@ -262820,6 +263022,15 @@
       },
       "SolutionConfig": {
         "ref_name": "SolutionConfig"
+      },
+      "Tags": {
+        "type": "array",
+        "min_items": 0,
+        "max_items": 50,
+        "description": "The tags used to organize, track, or control access for this resource.",
+        "items": {
+          "ref_name": "Tag"
+        }
       }
     },
     "definitions": {
@@ -263047,6 +263258,27 @@
           }
         },
         "additional_properties": false
+      },
+      "Tag": {
+        "type": "object",
+        "properties": {
+          "Key": {
+            "type": "string",
+            "pattern": "^(?!aws:)[a-zA-Z+-=._:/]+$",
+            "min_length": 1,
+            "max_length": 128
+          },
+          "Value": {
+            "type": "string",
+            "min_length": 0,
+            "max_length": 256
+          }
+        },
+        "required": [
+          "Key",
+          "Value"
+        ],
+        "additional_properties": false
       }
     },
     "required": [
@@ -263064,7 +263296,8 @@
       "PerformAutoML",
       "PerformHPO",
       "RecipeArn",
-      "SolutionConfig"
+      "SolutionConfig",
+      "Tags"
     ],
     "primary_identifier": [
       "SolutionArn"
@@ -320838,6 +321071,7 @@
                     "15.00.4460.4.v1",
                     "15.00.4465.1.v1",
                     "15.00.4470.1.v1",
+                    "15.00.4480.2.v1",
                     "16.00.4085.2.v1",
                     "16.00.4125.3.v1",
                     "16.00.4140.3.v1",
@@ -320854,7 +321088,8 @@
                     "16.00.4236.2.v1",
                     "16.00.4240.4.v1",
                     "16.00.4250.1.v1",
-                    "16.00.4255.1.v1"
+                    "16.00.4255.1.v1",
+                    "16.00.4262.2.v1"
                   ]
                 }
               }
@@ -320899,6 +321134,7 @@
                     "15.00.4460.4.v1",
                     "15.00.4465.1.v1",
                     "15.00.4470.1.v1",
+                    "15.00.4480.2.v1",
                     "16.00.4085.2.v1",
                     "16.00.4125.3.v1",
                     "16.00.4140.3.v1",
@@ -320915,7 +321151,8 @@
                     "16.00.4236.2.v1",
                     "16.00.4240.4.v1",
                     "16.00.4250.1.v1",
-                    "16.00.4255.1.v1"
+                    "16.00.4255.1.v1",
+                    "16.00.4262.2.v1"
                   ]
                 }
               }
@@ -320960,6 +321197,7 @@
                     "15.00.4460.4.v1",
                     "15.00.4465.1.v1",
                     "15.00.4470.1.v1",
+                    "15.00.4480.2.v1",
                     "16.00.4085.2.v1",
                     "16.00.4125.3.v1",
                     "16.00.4140.3.v1",
@@ -320976,7 +321214,8 @@
                     "16.00.4236.2.v1",
                     "16.00.4240.4.v1",
                     "16.00.4250.1.v1",
-                    "16.00.4255.1.v1"
+                    "16.00.4255.1.v1",
+                    "16.00.4262.2.v1"
                   ]
                 }
               }
@@ -321175,7 +321414,8 @@
                     "11.8.4",
                     "11.8.5",
                     "11.8.6",
-                    "11.8.8"
+                    "11.8.8",
+                    "12.3.2"
                   ]
                 }
               }
@@ -346906,12 +347146,14 @@
     "definitions": {
       "Filter": {
         "type": "object",
+        "description": "A structure that describes the IP address filter to create, which consists of a name, an IP address range, and whether to allow or block mail from it.",
         "properties": {
           "IpFilter": {
             "ref_name": "IpFilter"
           },
           "Name": {
-            "type": "string"
+            "type": "string",
+            "description": "The name of the IP address filter."
           }
         },
         "required": [
@@ -346921,13 +347163,20 @@
       },
       "IpFilter": {
         "type": "object",
+        "description": "A structure that provides the IP addresses to block or allow, and whether to block or allow incoming mail from them.",
         "properties": {
           "Cidr": {
             "type": "string",
-            "format": "ipv4-network"
+            "format": "ipv4-network",
+            "description": "A single IP address or a range of IP addresses to block or allow, specified in CIDR notation."
           },
           "Policy": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "Allow",
+              "Block"
+            ],
+            "description": "Indicates whether to block or allow incoming mail from the specified IP addresses."
           }
         },
         "required": [
@@ -346945,7 +347194,11 @@
       "Id"
     ],
     "create_only_properties": [
-      "Filter"
+      "Filter",
+      "Filter.Name",
+      "Filter.IpFilter",
+      "Filter.IpFilter.Policy",
+      "Filter.IpFilter.Cidr"
     ],
     "primary_identifier": [
       "Id"

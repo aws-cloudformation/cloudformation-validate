@@ -1048,7 +1048,8 @@
         "ml.t3.medium",
         "ml.t3.xlarge",
         "ml.trn1.32xlarge",
-        "ml.trn1n.32xlarge"
+        "ml.trn1n.32xlarge",
+        "ml.trn2.3xlarge"
       ]
     },
     "ap-southeast-5": {
@@ -1866,7 +1867,8 @@
         "ml.t3.medium",
         "ml.t3.xlarge",
         "ml.trn1.32xlarge",
-        "ml.trn1n.32xlarge"
+        "ml.trn1n.32xlarge",
+        "ml.trn2.3xlarge"
       ]
     },
     "eu-west-2": {
@@ -2224,7 +2226,8 @@
         "ml.t3.medium",
         "ml.t3.xlarge",
         "ml.trn1.32xlarge",
-        "ml.trn1n.32xlarge"
+        "ml.trn1n.32xlarge",
+        "ml.trn2.3xlarge"
       ]
     },
     "us-east-1": {
@@ -2942,7 +2945,8 @@
         "ml.t3.medium",
         "ml.t3.xlarge",
         "ml.trn1.32xlarge",
-        "ml.trn1n.32xlarge"
+        "ml.trn1n.32xlarge",
+        "ml.trn2.3xlarge"
       ]
     }
   }

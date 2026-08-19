@@ -2551,6 +2551,9 @@
       "Port",
       "ReadEndpoint"
     ],
+    "AWS::DocDB::DBClusterParameterGroup": [
+      "Id"
+    ],
     "AWS::DocDB::DBInstance": [
       "Endpoint",
       "Id",
@@ -13878,6 +13881,7 @@
     "AWS::DocDB::DBClusterParameterGroup": {
       "Description": "string",
       "Family": "string",
+      "Id": "string",
       "Name": "string",
       "Tags": "array"
     },
@@ -20602,14 +20606,16 @@
       "DatasetGroupArn": "string",
       "DatasetType": "string",
       "Name": "string",
-      "SchemaArn": "string"
+      "SchemaArn": "string",
+      "Tags": "array"
     },
     "AWS::Personalize::DatasetGroup": {
       "DatasetGroupArn": "string",
       "Domain": "string",
       "KmsKeyArn": "string",
       "Name": "string",
-      "RoleArn": "string"
+      "RoleArn": "string",
+      "Tags": "array"
     },
     "AWS::Personalize::EventTracker": {
       "DatasetGroupArn": "string",
@@ -20622,7 +20628,8 @@
       "Domain": "string",
       "Name": "string",
       "Schema": "string",
-      "SchemaArn": "string"
+      "SchemaArn": "string",
+      "Tags": "array"
     },
     "AWS::Personalize::Solution": {
       "DatasetGroupArn": "string",
@@ -20630,7 +20637,8 @@
       "Name": "string",
       "PerformAutoML": "boolean",
       "PerformHPO": "boolean",
-      "RecipeArn": "string"
+      "RecipeArn": "string",
+      "Tags": "array"
     },
     "AWS::Pinpoint::ADMChannel": {
       "ApplicationId": "string",
