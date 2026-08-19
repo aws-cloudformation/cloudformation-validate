@@ -136,6 +136,108 @@ pub fn sync_upstream(upstream_dir: &Path, rule_source_root: &str) -> anyhow::Res
 }
 
 #[cfg(feature = "maintenance")]
+const AWS_API_OPERATION_CATALOG_FORMAT_VERSION: u64 = 1;
+
+#[cfg(feature = "maintenance")]
+#[derive(serde::Deserialize)]
+struct AwsApiOperationCatalog {
+    format_version: u64,
+    adapters: Vec<serde_json::Value>,
+}
+
+/// Generate the AWS API operation catalog from synced provider schemas and compiled schemas.
+#[cfg(feature = "maintenance")]
+pub fn generate_aws_api_catalog(upstream_dir: &Path, generated_dir: &Path, aws_cli_root: &Path) -> anyhow::Result<()> {
+    let botocore_root = aws_cli_root.join("awscli");
+    let botocore_package = botocore_root.join("botocore").join("__init__.py");
+    let provider_schemas = upstream_dir.join("schemas");
+    let compiled_schemas = generated_dir.join("schema-validator").join("compiled_schemas.json");
+    let catalog_path = generated_dir.join("data").join("aws_api_operation_catalog.json");
+    let script_path = Path::new(env!("CARGO_MANIFEST_DIR")).join("scripts").join("generate_aws_api_catalog.py");
+
+    anyhow::ensure!(script_path.is_file(), "AWS API catalog generator not found at {}", script_path.display());
+    anyhow::ensure!(aws_cli_root.is_dir(), "AWS CLI checkout not found at {}", aws_cli_root.display());
+    anyhow::ensure!(
+        botocore_package.is_file(),
+        "AWS CLI checkout does not contain botocore at {}",
+        botocore_package.display()
+    );
+    anyhow::ensure!(
+        provider_schemas.is_dir(),
+        "provider schemas directory not found at {}",
+        provider_schemas.display()
+    );
+    anyhow::ensure!(compiled_schemas.is_file(), "compiled schemas not found at {}", compiled_schemas.display());
+
+    info!("Generating AWS API operation catalog via {}", script_path.display());
+    let status = std::process::Command::new("python3")
+        .arg(&script_path)
+        .arg("--botocore-root")
+        .arg(&botocore_root)
+        .arg("--provider-schemas")
+        .arg(&provider_schemas)
+        .arg("--compiled-schemas")
+        .arg(&compiled_schemas)
+        .arg("--output")
+        .arg(&catalog_path)
+        .status()
+        .map_err(|error| anyhow::anyhow!("failed to start AWS API catalog generator: {error}"))?;
+    anyhow::ensure!(status.success(), "AWS API catalog generator failed with {status}");
+
+    let catalog_bytes = fs::read(&catalog_path)
+        .map_err(|error| anyhow::anyhow!("failed to read generated catalog {}: {error}", catalog_path.display()))?;
+    let adapter_count = validate_aws_api_catalog(&catalog_bytes)?;
+    info!("Generated AWS API operation catalog with {adapter_count} adapters at {}", catalog_path.display());
+    Ok(())
+}
+
+#[cfg(feature = "maintenance")]
+fn validate_aws_api_catalog(catalog_bytes: &[u8]) -> anyhow::Result<usize> {
+    let catalog: AwsApiOperationCatalog = serde_json::from_slice(catalog_bytes)
+        .map_err(|error| anyhow::anyhow!("generated AWS API operation catalog is invalid JSON: {error}"))?;
+    anyhow::ensure!(
+        catalog.format_version == AWS_API_OPERATION_CATALOG_FORMAT_VERSION,
+        "generated AWS API operation catalog has format version {}, expected {}",
+        catalog.format_version,
+        AWS_API_OPERATION_CATALOG_FORMAT_VERSION
+    );
+    anyhow::ensure!(!catalog.adapters.is_empty(), "generated AWS API operation catalog contains no adapters");
+    Ok(catalog.adapters.len())
+}
+
+#[cfg(all(test, feature = "maintenance"))]
+mod aws_api_catalog_tests {
+    use super::*;
+
+    #[test]
+    fn current_catalog_format_with_adapters_is_valid() {
+        let catalog = br#"{"format_version":1,"adapters":[{}]}"#;
+
+        let adapter_count = validate_aws_api_catalog(catalog).expect("catalog should be valid");
+
+        assert_eq!(1, adapter_count);
+    }
+
+    #[test]
+    fn unsupported_catalog_format_is_rejected() {
+        let catalog = br#"{"format_version":2,"adapters":[{}]}"#;
+
+        let error = validate_aws_api_catalog(catalog).expect_err("unsupported format must fail");
+
+        assert!(error.to_string().contains("format version 2, expected 1"));
+    }
+
+    #[test]
+    fn catalog_without_adapters_is_rejected() {
+        let catalog = br#"{"format_version":1,"adapters":[]}"#;
+
+        let error = validate_aws_api_catalog(catalog).expect_err("empty adapters must fail");
+
+        assert!(error.to_string().contains("contains no adapters"));
+    }
+}
+
+#[cfg(feature = "maintenance")]
 pub fn generate_all(upstream_dir: &Path, generated_dir: &Path, handwritten_dir: &Path) -> anyhow::Result<()> {
     info!("=== Generate phase ===");
 

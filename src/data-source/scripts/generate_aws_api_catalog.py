@@ -29,7 +29,8 @@ Types or operations that fail any gate are omitted: an uncovered operation is
 validated as SKIPPED at runtime, never guessed.
 
 Usage:
-    PYTHONPATH=<path with botocore> python3 generate_aws_api_catalog.py \
+    python3 generate_aws_api_catalog.py \
+        --botocore-root /path/to/botocore \
         --provider-schemas schemas-standard.zip \
         --compiled-schemas ../generated/schema-validator/compiled_schemas.json \
         --output ../generated/data/aws_api_operation_catalog.json
@@ -37,15 +38,13 @@ Usage:
 
 import argparse
 import hashlib
+import importlib
 import json
 import subprocess
 import sys
 import zipfile
 from collections import defaultdict
 from pathlib import Path
-
-import botocore
-import botocore.session
 
 FORMAT_VERSION = 1
 
@@ -182,6 +181,7 @@ EXPECTED_PAIRS = {
 
 def _parse_args():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--botocore-root', required=True, type=Path)
     parser.add_argument('--provider-schemas', required=True, type=Path)
     parser.add_argument('--compiled-schemas', required=True, type=Path)
     parser.add_argument('--output', required=True, type=Path)
@@ -196,7 +196,8 @@ class BotocoreIndex:
     """Resolves IAM action prefixes to concrete botocore operations."""
 
     def __init__(self):
-        self._session = botocore.session.Session()
+        botocore_session = importlib.import_module('botocore.session')
+        self._session = botocore_session.Session()
         self._identities = {}
         self._operations = {}
         self._by_identity = defaultdict(set)
@@ -726,22 +727,152 @@ def _compute_coverage(unique_adapters, index, compiled_schemas):
     }
 
 
+def _render_derivation(role, counters):
+    """Explain how provider resource types were matched to API operations."""
+    rejection_reasons = (
+        ('type_not_compiled', 'Missing from compiled CloudFormation schemas'),
+        ('no_handler', f'No {role} handler declared in the provider schema'),
+        ('excluded_service', 'Service excluded from catalog generation'),
+        (
+            'no_candidates',
+            'Handler permissions contained no usable botocore API operation',
+        ),
+        (
+            'rejected',
+            'Best candidate failed resource-name/property matching safety checks',
+        ),
+        ('tied_rejected', 'Multiple API operations tied for best candidate'),
+    )
+    known_outcomes = {
+        'verified',
+        'stale_model_rejected',
+        *(outcome for outcome, _ in rejection_reasons),
+    }
+    unknown_outcomes = set(counters) - known_outcomes
+    if unknown_outcomes:
+        names = ', '.join(sorted(unknown_outcomes))
+        raise ValueError(f'no reader-facing description for derivation outcomes: {names}')
+
+    selected = counters.get('verified', 0)
+    not_selected = sum(
+        counters.get(outcome, 0) for outcome, _ in rejection_reasons
+    )
+    stale_model_rejected = counters.get('stale_model_rejected', 0)
+    rejected = counters.get('rejected', 0)
+    if stale_model_rejected > rejected:
+        raise ValueError(
+            'stale-model rejection count exceeds total candidate rejections'
+        )
+
+    title = role.capitalize()
+    lines = [
+        f'{title} API operation matching:',
+        f'  Resource types evaluated from provider schemas: {selected + not_selected:,}',
+        f'  Resource types with one API operation selected: {selected:,}',
+        f'  Resource types without an operation selection: {not_selected:,}',
+    ]
+    for outcome, description in rejection_reasons:
+        count = counters.get(outcome, 0)
+        if count == 0:
+            continue
+        lines.append(f'    {description}: {count:,}')
+        if outcome == 'rejected' and stale_model_rejected:
+            lines.append(
+                f'      Of those, the exact {role} operation from handler '
+                'permissions was absent from the loaded botocore models: '
+                f'{stale_model_rejected:,}'
+            )
+    return lines
+
+
+def _render_fraction(description, entry):
+    covered = entry['covered']
+    total = entry['total']
+    percent = (covered / total * 100) if total > 0 else 0.0
+    return f'  {description}: {covered:,} of {total:,} ({percent:.1f}%)'
+
+
 def _render_coverage(coverage):
-    """Render coverage metrics as human-readable lines."""
-    lines = []
-    for label in (
-        'catalog_services', 'catalog_resources', 'catalog_commands',
-        'state_services', 'state_resources', 'state_commands',
-        'writable_properties',
-    ):
-        entry = coverage[label]
-        covered = entry['covered']
-        total = entry['total']
-        percent = (covered / total * 100) if total > 0 else 0.0
-        lines.append(f'{label}: {covered}/{total} ({percent:.1f}%)')
+    """Render coverage metrics with explicit populations and denominators."""
+    lines = [
+        'Catalog coverage (all final create, update, and delete adapters):',
+        _render_fraction(
+            'botocore services represented', coverage['catalog_services']
+        ),
+        _render_fraction(
+            'Compiled CloudFormation resource types represented',
+            coverage['catalog_resources'],
+        ),
+        _render_fraction(
+            'botocore API operations represented', coverage['catalog_commands']
+        ),
+        '',
+        (
+            'State validation coverage (create/update adapters with at least '
+            'one writable-property mapping):'
+        ),
+        _render_fraction(
+            'botocore services with state validation', coverage['state_services']
+        ),
+        _render_fraction(
+            'Compiled CloudFormation resource types with state validation',
+            coverage['state_resources'],
+        ),
+        _render_fraction(
+            'botocore API operations used for state validation',
+            coverage['state_commands'],
+        ),
+        _render_fraction(
+            'Writable CloudFormation properties mapped for state validation',
+            coverage['writable_properties'],
+        ),
+        '',
+        'Final adapters by lifecycle phase:',
+    ]
     lifecycle = coverage.get('lifecycle_adapters', {})
-    parts = ', '.join(f'{k} {v}' for k, v in sorted(lifecycle.items()))
-    lines.append(f'lifecycle_adapters: {parts}')
+    for phase in ('create', 'update', 'delete'):
+        lines.append(f'  {phase.capitalize()} adapters: {lifecycle.get(phase, 0):,}')
+    for phase in sorted(set(lifecycle) - {'create', 'update', 'delete'}):
+        lines.append(f'  {phase.capitalize()} adapters: {lifecycle[phase]:,}')
+    return lines
+
+
+def _render_generation_report(
+    create_counters,
+    delete_counters,
+    dropped_count,
+    coverage,
+    adapter_count,
+    output_path,
+):
+    """Render the complete catalog generation report."""
+    lines = [
+        'AWS API catalog generation summary',
+        (
+            'An adapter links one CloudFormation resource type and lifecycle '
+            'action to one botocore API operation.'
+        ),
+        '',
+    ]
+    lines.extend(_render_derivation('create', create_counters))
+    lines.append('')
+    lines.extend(_render_derivation('delete', delete_counters))
+    lines.extend([
+        '',
+        'API operation uniqueness check:',
+        (
+            '  Adapters removed so each botocore API operation appears only '
+            f'once: {dropped_count:,}'
+        ),
+        '',
+    ])
+    lines.extend(_render_coverage(coverage))
+    lines.extend([
+        '',
+        'Catalog output:',
+        f'  Adapters written: {adapter_count:,}',
+        f'  File: {output_path}',
+    ])
     return lines
 
 
@@ -762,6 +893,18 @@ def _run_unit_tests():
 def main():
     args = _parse_args()
     _run_unit_tests()
+    if not args.botocore_root.is_dir():
+        raise SystemExit(
+            f'botocore root directory not found: {args.botocore_root}'
+        )
+    sys.path.insert(0, str(args.botocore_root.resolve()))
+    try:
+        botocore_module = importlib.import_module('botocore')
+    except ModuleNotFoundError as error:
+        raise SystemExit(
+            f'cannot import botocore from {args.botocore_root}: {error}'
+        ) from error
+
     compiled_schemas = json.loads(args.compiled_schemas.read_text())
     provider_schemas = _load_provider_schemas(args.provider_schemas)
     index = BotocoreIndex()
@@ -813,7 +956,7 @@ def main():
             'compiled_schemas_sha256': _source_sha256(
                 args.compiled_schemas
             ),
-            'botocore_version': botocore.__version__,
+            'botocore_version': botocore_module.__version__,
             'botocore_service_count': index.service_count,
             'provider_type_count': len(provider_schemas),
             'compiled_type_count': len(compiled_schemas),
@@ -824,12 +967,15 @@ def main():
     args.output.write_text(json.dumps(document, indent=1, sort_keys=True) + '\n')
 
     coverage = _compute_coverage(unique_adapters, index, compiled_schemas)
-    print(f'create derivation: {dict(create_counters)}')
-    print(f'delete derivation: {dict(delete_counters)}')
-    print(f'uniqueness dropped: {len(dropped)}')
-    for line in _render_coverage(coverage):
+    for line in _render_generation_report(
+        create_counters,
+        delete_counters,
+        len(dropped),
+        coverage,
+        len(unique_adapters),
+        args.output,
+    ):
         print(line)
-    print(f"catalog: {len(unique_adapters)} adapters -> {args.output}")
     return 0
 
 

@@ -257,6 +257,49 @@ class CoverageMetricsTest(unittest.TestCase):
         coverage = self._synthetic_coverage(adapters)
         self.assertEqual(coverage['writable_properties']['covered'], 1)
 
+    def test_render_derivation_explains_outcomes_and_subset(self):
+        counters = {
+            'verified': 1305,
+            'rejected': 113,
+            'no_candidates': 118,
+            'no_handler': 175,
+            'tied_rejected': 3,
+            'excluded_service': 15,
+            'stale_model_rejected': 1,
+        }
+
+        lines = catalog._render_derivation('create', counters)
+
+        self.assertEqual([
+            'Create API operation matching:',
+            '  Resource types evaluated from provider schemas: 1,729',
+            '  Resource types with one API operation selected: 1,305',
+            '  Resource types without an operation selection: 424',
+            '    No create handler declared in the provider schema: 175',
+            '    Service excluded from catalog generation: 15',
+            (
+                '    Handler permissions contained no usable botocore API '
+                'operation: 118'
+            ),
+            (
+                '    Best candidate failed resource-name/property matching '
+                'safety checks: 113'
+            ),
+            (
+                '      Of those, the exact create operation from handler '
+                'permissions was absent from the loaded botocore models: 1'
+            ),
+            '    Multiple API operations tied for best candidate: 3',
+        ], lines)
+
+    def test_render_derivation_rejects_unexplained_outcome(self):
+        with self.assertRaisesRegex(
+            ValueError, 'no reader-facing description.*new_outcome'
+        ):
+            catalog._render_derivation(
+                'create', {'verified': 1, 'new_outcome': 1}
+            )
+
     def test_render_coverage_formats_percentages(self):
         coverage = {
             'catalog_services': {'covered': 3, 'total': 10},
@@ -268,15 +311,80 @@ class CoverageMetricsTest(unittest.TestCase):
             'writable_properties': {'covered': 15, 'total': 100},
             'lifecycle_adapters': {'create': 4, 'delete': 3},
         }
+
         lines = catalog._render_coverage(coverage)
-        self.assertIn('catalog_services: 3/10 (30.0%)', lines)
-        self.assertIn('catalog_resources: 5/20 (25.0%)', lines)
-        self.assertIn('catalog_commands: 7/50 (14.0%)', lines)
-        self.assertIn('state_services: 2/10 (20.0%)', lines)
-        self.assertIn('state_resources: 4/20 (20.0%)', lines)
-        self.assertIn('state_commands: 4/50 (8.0%)', lines)
-        self.assertIn('writable_properties: 15/100 (15.0%)', lines)
-        self.assertIn('lifecycle_adapters: create 4, delete 3', lines)
+
+        self.assertEqual([
+            'Catalog coverage (all final create, update, and delete adapters):',
+            '  botocore services represented: 3 of 10 (30.0%)',
+            (
+                '  Compiled CloudFormation resource types represented: '
+                '5 of 20 (25.0%)'
+            ),
+            '  botocore API operations represented: 7 of 50 (14.0%)',
+            '',
+            (
+                'State validation coverage (create/update adapters with at '
+                'least one writable-property mapping):'
+            ),
+            '  botocore services with state validation: 2 of 10 (20.0%)',
+            (
+                '  Compiled CloudFormation resource types with state '
+                'validation: 4 of 20 (20.0%)'
+            ),
+            (
+                '  botocore API operations used for state validation: '
+                '4 of 50 (8.0%)'
+            ),
+            (
+                '  Writable CloudFormation properties mapped for state '
+                'validation: 15 of 100 (15.0%)'
+            ),
+            '',
+            'Final adapters by lifecycle phase:',
+            '  Create adapters: 4',
+            '  Update adapters: 0',
+            '  Delete adapters: 3',
+        ], lines)
+
+    def test_generation_report_explains_uniqueness_and_output(self):
+        coverage = {
+            'catalog_services': {'covered': 1, 'total': 1},
+            'catalog_resources': {'covered': 1, 'total': 1},
+            'catalog_commands': {'covered': 2, 'total': 2},
+            'state_services': {'covered': 1, 'total': 1},
+            'state_resources': {'covered': 1, 'total': 1},
+            'state_commands': {'covered': 1, 'total': 2},
+            'writable_properties': {'covered': 1, 'total': 2},
+            'lifecycle_adapters': {'create': 1, 'delete': 1},
+        }
+
+        lines = catalog._render_generation_report(
+            {'verified': 1},
+            {'verified': 1},
+            2,
+            coverage,
+            2,
+            Path('/tmp/catalog.json'),
+        )
+
+        self.assertEqual('AWS API catalog generation summary', lines[0])
+        self.assertIn(
+            'An adapter links one CloudFormation resource type and lifecycle '
+            'action to one botocore API operation.',
+            lines,
+        )
+        self.assertIn('API operation uniqueness check:', lines)
+        self.assertIn(
+            '  Adapters removed so each botocore API operation appears only '
+            'once: 2',
+            lines,
+        )
+        self.assertEqual([
+            'Catalog output:',
+            '  Adapters written: 2',
+            '  File: /tmp/catalog.json',
+        ], lines[-3:])
 
     def test_zero_total_does_not_divide_by_zero(self):
         coverage = {
@@ -289,8 +397,12 @@ class CoverageMetricsTest(unittest.TestCase):
             'writable_properties': {'covered': 0, 'total': 0},
             'lifecycle_adapters': {},
         }
+
         lines = catalog._render_coverage(coverage)
-        self.assertTrue(all('0.0%' in line for line in lines if '/' in line))
+
+        percentage_lines = [line for line in lines if line.endswith('%)')]
+        self.assertEqual(7, len(percentage_lines))
+        self.assertTrue(all('(0.0%)' in line for line in percentage_lines))
 
     def test_exact_percentage_calculation(self):
         adapters = [
