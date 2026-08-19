@@ -38,6 +38,7 @@ Usage:
 import argparse
 import hashlib
 import json
+import subprocess
 import sys
 import zipfile
 from collections import defaultdict
@@ -99,6 +100,7 @@ CURATED_UPDATE_ADAPTERS = [
             {'source': 'Timeout', 'target': 'Timeout'},
             {'source': 'MemorySize', 'target': 'MemorySize'},
         ],
+        'ignored_inputs': ['FunctionName'],
     },
 ]
 
@@ -121,6 +123,41 @@ FORBIDDEN_OPERATIONS = frozenset({
     ('quicksight', 'CreateTopic'),
     ('quicksight', 'DeleteTopic'),
 })
+
+# Explicit input member names safe to ignore during all-or-nothing synthesis.
+# These are request-control fields that do not represent desired resource state.
+# Detection: by exact name match from this curated set, or botocore shape
+# metadata (idempotencyToken trait).
+IGNORED_INPUT_NAMES = frozenset({
+    'ClientToken',
+    'ClientRequestToken',
+    'IdempotencyToken',
+    'RequestToken',
+    'DryRun',
+})
+
+
+def _ignored_inputs_for_operation(members, phase, service, operation):
+    """Determine which input members are safe to ignore.
+
+    Returns a sorted list of member names that the runtime can discard without
+    affecting state validation.  Only exact name matches against the curated
+    request-control set and botocore idempotency-token metadata qualify.
+    """
+    ignored = set()
+    for name, shape in members.items():
+        if name in IGNORED_INPUT_NAMES:
+            ignored.add(name)
+        elif getattr(shape, 'metadata', None) and shape.metadata.get(
+            'idempotencyToken'
+        ):
+            ignored.add(name)
+        elif hasattr(shape, 'serialization') and isinstance(
+            shape.serialization, dict
+        ) and shape.serialization.get('idempotencyToken'):
+            ignored.add(name)
+    return sorted(ignored)
+
 
 # Known-good pairs the derivation must reproduce exactly; guards regressions
 # in the derivation rules themselves.
@@ -185,6 +222,11 @@ class BotocoreIndex:
     @property
     def service_count(self):
         return len(self._operations)
+
+    @property
+    def operation_count(self):
+        """Total number of operations across all services."""
+        return sum(len(ops) for ops in self._operations.values())
 
     def input_members(self, service, operation):
         model = self._session.get_service_model(service)
@@ -532,6 +574,9 @@ def _derive_role(role, verbs, provider_schemas, compiled_schemas, index, require
                 {'source': source, 'target': target}
                 for source, target in mappings
             ],
+            'ignored_inputs': _ignored_inputs_for_operation(
+                index.input_members(top[4], top[5]), role, top[4], top[5]
+            ),
             'noun_matched': noun,
         }
         counters['verified'] += 1
@@ -573,12 +618,14 @@ def _verify_curated_updates(compiled_schemas, index):
             )
         property_schemas, read_only, primary, definitions = constraints
         members = index.input_members(adapter['service'], adapter['operation'])
+        mapping_sources = set()
         for mapping in adapter['mappings']:
             if mapping['source'] not in members:
                 raise SystemExit(
                     f"curated mapping source {mapping['source']} is not an input of "
                     f"{adapter['service']}:{adapter['operation']}"
                 )
+            mapping_sources.add(mapping['source'])
             target = mapping['target']
             if target not in property_schemas or target in read_only or target in primary:
                 raise SystemExit(
@@ -592,10 +639,129 @@ def _verify_curated_updates(compiled_schemas, index):
                     f"curated mapping {mapping['source']} -> {target} is not "
                     "runtime shape-compatible"
                 )
+        for ignored_name in adapter.get('ignored_inputs', []):
+            if ignored_name not in members:
+                raise SystemExit(
+                    f"curated ignored_inputs entry '{ignored_name}' is not an input of "
+                    f"{adapter['service']}:{adapter['operation']}"
+                )
+            if ignored_name in mapping_sources:
+                raise SystemExit(
+                    f"curated ignored_inputs entry '{ignored_name}' overlaps a mapping "
+                    f"source in {adapter['service']}:{adapter['operation']}"
+                )
+
+
+def _compute_coverage(unique_adapters, index, compiled_schemas):
+    """Compute catalog and state-validation coverage metrics.
+
+    Catalog coverage counts all adapters regardless of phase.
+    State-validation coverage counts only create/update adapters with at least
+    one property mapping.
+
+    Denominators:
+      services    — botocore available services (index.service_count)
+      resources   — compiled CloudFormation schema types (len(compiled_schemas))
+      commands    — total botocore operations (index.operation_count)
+      writable_properties — unique (type, property) pairs across all compiled
+                            schemas excluding read-only properties
+    """
+    botocore_services = index.service_count
+    botocore_operations = index.operation_count
+    compiled_types = len(compiled_schemas)
+
+    writable_pairs = set()
+    for type_name, schema in compiled_schemas.items():
+        if not isinstance(schema, dict):
+            continue
+        properties = schema.get('properties') or {}
+        read_only = set(schema.get('read_only_properties') or [])
+        for prop in set(properties) - read_only:
+            writable_pairs.add((type_name, prop))
+
+    state_adapters = [
+        a for a in unique_adapters
+        if a['phase'] in ('create', 'update') and len(a.get('mappings', [])) > 0
+    ]
+
+    covered_writable_pairs = set()
+    for adapter in state_adapters:
+        for mapping in adapter.get('mappings', []):
+            covered_writable_pairs.add((adapter['cfn_type'], mapping['target']))
+
+    phases = defaultdict(int)
+    for adapter in unique_adapters:
+        phases[adapter['phase']] += 1
+
+    return {
+        'catalog_services': {
+            'covered': len({a['service'] for a in unique_adapters}),
+            'total': botocore_services,
+        },
+        'catalog_resources': {
+            'covered': len({a['cfn_type'] for a in unique_adapters}),
+            'total': compiled_types,
+        },
+        'catalog_commands': {
+            'covered': len(unique_adapters),
+            'total': botocore_operations,
+        },
+        'state_services': {
+            'covered': len({a['service'] for a in state_adapters}),
+            'total': botocore_services,
+        },
+        'state_resources': {
+            'covered': len({a['cfn_type'] for a in state_adapters}),
+            'total': compiled_types,
+        },
+        'state_commands': {
+            'covered': len(state_adapters),
+            'total': botocore_operations,
+        },
+        'writable_properties': {
+            'covered': len(covered_writable_pairs),
+            'total': len(writable_pairs),
+        },
+        'lifecycle_adapters': dict(phases),
+    }
+
+
+def _render_coverage(coverage):
+    """Render coverage metrics as human-readable lines."""
+    lines = []
+    for label in (
+        'catalog_services', 'catalog_resources', 'catalog_commands',
+        'state_services', 'state_resources', 'state_commands',
+        'writable_properties',
+    ):
+        entry = coverage[label]
+        covered = entry['covered']
+        total = entry['total']
+        percent = (covered / total * 100) if total > 0 else 0.0
+        lines.append(f'{label}: {covered}/{total} ({percent:.1f}%)')
+    lifecycle = coverage.get('lifecycle_adapters', {})
+    parts = ', '.join(f'{k} {v}' for k, v in sorted(lifecycle.items()))
+    lines.append(f'lifecycle_adapters: {parts}')
+    return lines
+
+
+def _run_unit_tests():
+    test_file = Path(__file__).with_name('test_generate_aws_api_catalog.py')
+    completed = subprocess.run(
+        [sys.executable, '-m', 'unittest', '-v', test_file.stem],
+        cwd=test_file.parent,
+        check=False,
+    )
+    if completed.returncode != 0:
+        raise SystemExit(
+            'catalog generator unit tests failed with exit code '
+            f'{completed.returncode}'
+        )
 
 
 def main():
     args = _parse_args()
+    _run_unit_tests()
     compiled_schemas = json.loads(args.compiled_schemas.read_text())
     provider_schemas = _load_provider_schemas(args.provider_schemas)
     index = BotocoreIndex()
@@ -635,6 +801,8 @@ def main():
 
     for adapter in unique_adapters:
         adapter.pop('noun_matched', None)
+        if not adapter.get('ignored_inputs'):
+            adapter.pop('ignored_inputs', None)
     unique_adapters.sort(key=lambda a: (a['cfn_type'], a['phase']))
     document = {
         'format_version': FORMAT_VERSION,
@@ -655,17 +823,13 @@ def main():
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(document, indent=1, sort_keys=True) + '\n')
 
-    phases = defaultdict(int)
-    for adapter in unique_adapters:
-        phases[adapter['phase']] += 1
+    coverage = _compute_coverage(unique_adapters, index, compiled_schemas)
     print(f'create derivation: {dict(create_counters)}')
     print(f'delete derivation: {dict(delete_counters)}')
     print(f'uniqueness dropped: {len(dropped)}')
-    print(
-        f"catalog: {len(unique_adapters)} adapters "
-        f"({phases['create']} create, {phases['update']} update, "
-        f"{phases['delete']} delete) -> {args.output}"
-    )
+    for line in _render_coverage(coverage):
+        print(line)
+    print(f"catalog: {len(unique_adapters)} adapters -> {args.output}")
     return 0
 
 

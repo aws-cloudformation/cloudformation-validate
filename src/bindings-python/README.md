@@ -87,7 +87,10 @@ else:
 `AwsApiRequest.parameters` accepts nested mappings and sequences, scalars, `bytes`, and `datetime.datetime` values
 without mutating the supplied mapping. `TemplateBody` bytes are validated exactly; `TemplateURL` is skipped because the
 validator does not perform network requests. The result always reports `status`, `operation_kind`, `template_source`,
-`resource_types`, and `reason`; skipped requests have `report is None`.
+`resource_types`, and `reason`; skipped requests have `report is None`. The `template` field carries the exact bytes
+validated — the caller's original `TemplateBody` without reserializing, or the synthesized JSON for adapter-mapped
+requests — so consumers can display the modeled template that produced the diagnostics. Skipped requests have
+`template is None`.
 
 Operation-to-resource mapping uses a deterministic closed adapter catalog generated from each resource type's own
 provider handler metadata and verified against botocore models and the compiled CloudFormation schemas: only

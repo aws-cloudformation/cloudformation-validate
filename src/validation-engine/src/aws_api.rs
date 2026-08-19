@@ -198,6 +198,14 @@ pub struct AwsApiRequestValidation {
     pub resource_types: Vec<String>,
     pub reason: String,
     pub report: Option<StandardReport>,
+    /// The exact template bytes that were validated, or `None` when the request
+    /// was skipped. For `TemplateBody` requests, this is the caller's original
+    /// bytes without reserializing. For synthesized requests, this is the
+    /// generated JSON template. Consumers can display this to show the modeled
+    /// template that produced the diagnostics.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
+    pub template: Option<Vec<u8>>,
 }
 
 /// Classifies, models, and validates one AWS API request entirely offline.
@@ -229,6 +237,7 @@ pub fn validate_aws_api_request_with_path(
             resource_types: synthesis.resource_types,
             reason: synthesis.reason,
             report: None,
+            template: None,
         });
     };
 
@@ -246,6 +255,7 @@ pub fn validate_aws_api_request_with_path(
         resource_types: synthesis.resource_types,
         reason: synthesis.reason,
         report: Some(report.to_standard()),
+        template: Some(template),
     })
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
@@ -269,6 +279,9 @@ struct OperationAdapter {
     phase: AdapterPhase,
     cfn_type: String,
     mappings: Vec<PropertyMapping>,
+    /// Request-control fields safe to ignore during all-or-nothing synthesis.
+    #[serde(default)]
+    ignored_inputs: Vec<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -823,7 +836,12 @@ fn adapter_template(
         ));
     };
 
-    let properties = map_adapter_properties(&request.parameters, &schema, adapter)?;
+    let properties = match map_adapter_properties(&request.parameters, &schema, adapter)? {
+        AdapterMappingResult::Mapped(properties) => properties,
+        AdapterMappingResult::Skip(reason) => {
+            return Ok(Synthesis::skipped(reason, vec![type_name.clone()]));
+        }
+    };
 
     if properties.is_empty() {
         return Ok(Synthesis::skipped("no request parameters map to resource properties", vec![type_name.clone()]));
@@ -850,11 +868,17 @@ fn adapter_template(
     })
 }
 
+#[derive(Debug)]
+enum AdapterMappingResult {
+    Mapped(BTreeMap<String, serde_json::Value>),
+    Skip(String),
+}
+
 fn map_adapter_properties(
     parameters: &HashMap<String, AwsApiValue>,
     schema: &ResourceSchemaMetadata,
     adapter: &OperationAdapter,
-) -> Result<BTreeMap<String, serde_json::Value>, ValidationError> {
+) -> Result<AdapterMappingResult, ValidationError> {
     let mut excluded = schema.read_only_properties.clone();
     if adapter.phase == AdapterPhase::Update {
         excluded.extend(schema.primary_identifier_properties.iter().cloned());
@@ -862,6 +886,7 @@ fn map_adapter_properties(
 
     let mut sources = BTreeSet::new();
     let mut targets = BTreeSet::new();
+    let mut mapped_sources: BTreeSet<&str> = BTreeSet::new();
     let mut mapped = BTreeMap::new();
     for mapping in &adapter.mappings {
         if !sources.insert(mapping.source.as_str()) {
@@ -891,11 +916,42 @@ fn map_adapter_properties(
         let Some(value) = parameters.get(&mapping.source) else {
             continue;
         };
-        if let Some(json_value) = mapped_value(value, accepted_types, &mapping.target) {
-            mapped.insert(mapping.target.clone(), json_value);
+        mapped_sources.insert(&mapping.source);
+        match mapped_value(value, accepted_types, &mapping.target) {
+            Some(json_value) => {
+                mapped.insert(mapping.target.clone(), json_value);
+            }
+            None => {
+                return Ok(AdapterMappingResult::Skip(format!(
+                    "parameter '{}' cannot be represented as property '{}' on {}",
+                    mapping.source, mapping.target, adapter.cfn_type
+                )));
+            }
         }
     }
-    Ok(mapped)
+
+    // Build the set of parameters that are safe to ignore: explicitly declared
+    // ignored_inputs, plus primary identifier properties for update adapters.
+    let mut ignored: BTreeSet<&str> = adapter.ignored_inputs.iter().map(String::as_str).collect();
+    if adapter.phase == AdapterPhase::Update {
+        ignored.extend(schema.primary_identifier_properties.iter().map(String::as_str));
+    }
+
+    // All-or-nothing: every supplied parameter must either be mapped or
+    // in the ignored set.
+    for param_name in parameters.keys() {
+        if mapped_sources.contains(param_name.as_str()) {
+            continue;
+        }
+        if ignored.contains(param_name.as_str()) {
+            continue;
+        }
+        return Ok(AdapterMappingResult::Skip(format!(
+            "parameter '{}' has no mapping to a property on {}",
+            param_name, adapter.cfn_type
+        )));
+    }
+    Ok(AdapterMappingResult::Mapped(mapped))
 }
 
 fn resource_template(
@@ -1089,6 +1145,7 @@ mod tests {
             phase: AdapterPhase::Create,
             cfn_type: "AWS::S3::Bucket".into(),
             mappings,
+            ignored_inputs: Vec::new(),
         };
         match map_adapter_properties(&HashMap::new(), &schema, &adapter)
             .expect_err("malformed adapter must return an error")
@@ -1185,9 +1242,16 @@ mod tests {
             let schema = schema_validator
                 .resource_schema_metadata(&adapter.cfn_type)
                 .unwrap_or_else(|| panic!("{} missing schema metadata", adapter.cfn_type));
-            map_adapter_properties(&empty, &schema, adapter).unwrap_or_else(|error| {
+            let result = map_adapter_properties(&empty, &schema, adapter).unwrap_or_else(|error| {
                 panic!("adapter {}:{} violates registry invariants: {error}", adapter.service, adapter.operation)
             });
+            // Empty parameters always produce Mapped (no supplied params to conflict).
+            assert!(
+                matches!(result, AdapterMappingResult::Mapped(_)),
+                "adapter {}:{} must accept empty parameters",
+                adapter.service,
+                adapter.operation
+            );
         }
     }
 
@@ -1209,7 +1273,7 @@ mod tests {
     }
 
     #[test]
-    fn nested_values_are_omitted_without_recursive_shape_mappings() {
+    fn nested_values_are_rejected_without_recursive_shape_mappings() {
         let object_types = BTreeSet::from([PropertyValueType::Object]);
         let array_types = BTreeSet::from([PropertyValueType::Array]);
         let object = AwsApiValue::from_json(serde_json::json!({"lowerCamel": "value"}));
@@ -1367,7 +1431,8 @@ mod tests {
     }
 
     #[test]
-    fn dynamodb_create_table_synthesizes_with_explicit_mappings() {
+    fn dynamodb_create_table_skips_when_nested_values_are_unrepresentable() {
+        let schema_validator = SchemaValidator::default();
         let request = request(
             "dynamodb",
             "CreateTable",
@@ -1377,6 +1442,25 @@ mod tests {
                 "AttributeDefinitions": [{"AttributeName": "id", "AttributeType": "S"}],
                 "BillingMode": "PAY_PER_REQUEST"
             }),
+        );
+        let classification = classify_operation(&request, &schema_validator).expect("classification succeeds");
+        assert_eq!(classification.kind, AwsApiOperationKind::CloudFormationCreate);
+        assert_eq!(classification.candidates, ["AWS::DynamoDB::Table"]);
+        let synthesis = synthesize_request(&request, &classification, &schema_validator).expect("synthesis succeeds");
+        assert!(synthesis.template.is_none(), "nested struct arrays must skip synthesis");
+        assert!(
+            synthesis.reason.contains("cannot be represented"),
+            "reason must explain the type mismatch: {}",
+            synthesis.reason
+        );
+    }
+
+    #[test]
+    fn dynamodb_create_table_synthesizes_with_scalar_only_parameters() {
+        let request = request(
+            "dynamodb",
+            "CreateTable",
+            serde_json::json!({"TableName": "Synthetic", "BillingMode": "PAY_PER_REQUEST"}),
         );
         let (classification, synthesis, document) = synthesized_json(&request);
         assert_eq!(classification.kind, AwsApiOperationKind::CloudFormationCreate);
@@ -1427,7 +1511,7 @@ mod tests {
     }
 
     #[test]
-    fn lambda_create_function_synthesizes_partial_and_scopes_diagnostics() {
+    fn lambda_create_function_synthesizes_all_supplied_scalar_properties() {
         let request =
             request("lambda", "CreateFunction", serde_json::json!({"FunctionName": "Synthetic", "MemorySize": 128}));
         let (classification, synthesis, document) = synthesized_json(&request);
@@ -1440,7 +1524,7 @@ mod tests {
     }
 
     #[test]
-    fn lambda_update_function_configuration_synthesizes_partial_update() {
+    fn lambda_update_function_configuration_maps_all_supplied_mutable_properties() {
         let request = request(
             "lambda",
             "UpdateFunctionConfiguration",
@@ -1754,7 +1838,8 @@ mod tests {
         }
     }
     #[test]
-    fn incompatible_optional_property_is_omitted() {
+    fn incompatible_property_value_skips_synthesis() {
+        let schema_validator = SchemaValidator::default();
         let request = request(
             "iam",
             "CreateRole",
@@ -1764,10 +1849,14 @@ mod tests {
                 "Tags": {"Key": 42}
             }),
         );
-        let (_, _, document) = synthesized_json(&request);
-        let properties = &document["Resources"]["Resource"]["Properties"];
-        assert_eq!(properties["RoleName"], "Synthetic");
-        assert!(properties.get("Tags").is_none() || properties["Tags"].is_null());
+        let classification = classify_operation(&request, &schema_validator).expect("classification succeeds");
+        let synthesis = synthesize_request(&request, &classification, &schema_validator).expect("synthesis succeeds");
+        assert!(synthesis.template.is_none(), "incompatible value must skip synthesis");
+        assert!(
+            synthesis.reason.contains("cannot be represented"),
+            "reason must explain the type mismatch: {}",
+            synthesis.reason
+        );
     }
 
     #[test]
@@ -1781,6 +1870,11 @@ mod tests {
         assert_eq!(validation.status, AwsApiRequestValidationStatus::Validated);
         assert_eq!(validation.template_source, Some(AwsApiTemplateSource::TemplateBody));
         assert!(validation.report.is_some());
+        assert_eq!(
+            validation.template,
+            Some(br#"{"Resources":{}}"#.to_vec()),
+            "exact TemplateBody bytes must be preserved without reserializing"
+        );
 
         let read = request("iam", "GetRole", serde_json::json!({"RoleName": "Synthetic"}));
         let validation = validate_aws_api_request(&engine, &schema_validator, &read, ValidateConfig::default())
@@ -1788,6 +1882,7 @@ mod tests {
         assert_eq!(validation.status, AwsApiRequestValidationStatus::Skipped);
         assert_eq!(validation.operation_kind, AwsApiOperationKind::ReadOnly);
         assert!(validation.report.is_none());
+        assert_eq!(validation.template, None, "skipped requests must have template=None");
     }
 
     #[test]
@@ -1924,6 +2019,12 @@ mod tests {
             report.diagnostics.len() as u32,
             counts.fatal + counts.errors + counts.warnings + counts.informational + counts.debug,
         );
+        // The template field carries the synthesized JSON used for validation.
+        let template_bytes = validation.template.expect("validated requests carry template bytes");
+        let template_json: serde_json::Value =
+            serde_json::from_slice(&template_bytes).expect("template must be valid JSON");
+        assert_eq!(template_json["Resources"]["Resource"]["Type"], "AWS::Lambda::Function");
+        assert_eq!(template_json["Resources"]["Resource"]["Properties"]["MemorySize"], 0);
     }
 
     #[test]
@@ -1995,5 +2096,118 @@ mod tests {
         let classification = classify_operation(&req, &schema_validator).expect("classification succeeds");
         assert_eq!(classification.kind, AwsApiOperationKind::UnmappedMutation);
         assert!(classification.candidates.is_empty());
+    }
+
+    #[test]
+    fn unmapped_parameter_skips_synthesis_with_reason() {
+        let schema_validator = SchemaValidator::default();
+        let req = request("s3", "CreateBucket", serde_json::json!({"Bucket": "test-bucket", "UnknownParam": "value"}));
+        let classification = classify_operation(&req, &schema_validator).expect("classification succeeds");
+        let synthesis = synthesize_request(&req, &classification, &schema_validator).expect("synthesis succeeds");
+        assert!(synthesis.template.is_none(), "unmapped parameter must skip synthesis");
+        assert!(
+            synthesis.reason.contains("UnknownParam") && synthesis.reason.contains("no mapping"),
+            "reason must name the unmapped parameter: {}",
+            synthesis.reason
+        );
+    }
+
+    #[test]
+    fn ignored_input_does_not_block_synthesis() {
+        let schema_validator = SchemaValidator::default();
+        let schema = schema_validator.resource_schema_metadata("AWS::S3::Bucket").expect("S3 bucket schema must exist");
+        let adapter = OperationAdapter {
+            service: "s3".into(),
+            operation: "CreateBucket".into(),
+            phase: AdapterPhase::Create,
+            cfn_type: "AWS::S3::Bucket".into(),
+            mappings: vec![mapping("Bucket", "BucketName")],
+            ignored_inputs: vec!["ClientToken".into()],
+        };
+        let parameters: HashMap<String, AwsApiValue> = [
+            ("Bucket".into(), AwsApiValue::String { value: "test".into() }),
+            ("ClientToken".into(), AwsApiValue::String { value: "idempotent-token".into() }),
+        ]
+        .into_iter()
+        .collect();
+        let result = map_adapter_properties(&parameters, &schema, &adapter).expect("mapping must succeed");
+        match result {
+            AdapterMappingResult::Mapped(properties) => {
+                assert_eq!(properties.len(), 1);
+                assert_eq!(properties["BucketName"], serde_json::json!("test"));
+            }
+            AdapterMappingResult::Skip(reason) => {
+                panic!("ignored input should not skip synthesis: {reason}");
+            }
+        }
+    }
+
+    #[test]
+    fn update_adapter_ignores_primary_identifier_parameters() {
+        let schema_validator = SchemaValidator::default();
+        let schema = schema_validator
+            .resource_schema_metadata("AWS::Lambda::Function")
+            .expect("Lambda function schema must exist");
+        let adapter = OperationAdapter {
+            service: "lambda".into(),
+            operation: "UpdateFunctionConfiguration".into(),
+            phase: AdapterPhase::Update,
+            cfn_type: "AWS::Lambda::Function".into(),
+            mappings: vec![mapping("MemorySize", "MemorySize")],
+            ignored_inputs: Vec::new(),
+        };
+        // FunctionName is a primary identifier for AWS::Lambda::Function
+        let parameters: HashMap<String, AwsApiValue> = [
+            ("MemorySize".into(), AwsApiValue::Integer { value: 256 }),
+            ("FunctionName".into(), AwsApiValue::String { value: "my-func".into() }),
+        ]
+        .into_iter()
+        .collect();
+        let result = map_adapter_properties(&parameters, &schema, &adapter).expect("mapping must succeed");
+        match result {
+            AdapterMappingResult::Mapped(properties) => {
+                assert_eq!(properties.len(), 1);
+                assert_eq!(properties["MemorySize"], serde_json::json!(256));
+            }
+            AdapterMappingResult::Skip(reason) => {
+                panic!("primary identifier on update must be ignored: {reason}");
+            }
+        }
+    }
+
+    #[test]
+    fn all_mapped_parameters_produce_successful_synthesis() {
+        let schema_validator = SchemaValidator::default();
+        let req = request("s3", "CreateBucket", serde_json::json!({"Bucket": "all-mapped"}));
+        let classification = classify_operation(&req, &schema_validator).expect("classification succeeds");
+        let synthesis = synthesize_request(&req, &classification, &schema_validator).expect("synthesis succeeds");
+        assert!(synthesis.template.is_some(), "all-mapped parameters must synthesize");
+    }
+
+    #[test]
+    fn catalog_ignored_inputs_deserialize_from_missing_field() {
+        let json = br#"{
+            "format_version": 1,
+            "adapters": [
+                {"service":"test","operation":"Create","phase":"create","cfn_type":"AWS::Test::Type","mappings":[]}
+            ]
+        }"#;
+        let registry = parse_adapter_registry(json).expect("catalog without ignored_inputs must parse");
+        let adapter = registry.get(&("test".to_string(), "Create".to_string())).expect("adapter must exist");
+        assert!(adapter.ignored_inputs.is_empty(), "missing field defaults to empty");
+    }
+
+    #[test]
+    fn catalog_ignored_inputs_deserialize_from_explicit_field() {
+        let json = br#"{
+            "format_version": 1,
+            "adapters": [
+                {"service":"test","operation":"Create","phase":"create","cfn_type":"AWS::Test::Type",
+                 "mappings":[],"ignored_inputs":["ClientToken","DryRun"]}
+            ]
+        }"#;
+        let registry = parse_adapter_registry(json).expect("catalog with ignored_inputs must parse");
+        let adapter = registry.get(&("test".to_string(), "Create".to_string())).expect("adapter must exist");
+        assert_eq!(adapter.ignored_inputs, vec!["ClientToken", "DryRun"]);
     }
 }

@@ -13,6 +13,13 @@ cargo run -p data-source --features maintenance --example generate
 
 # Refresh all upstream sources, then generate every output (cfn-lint root is required)
 cargo run -p data-source --features maintenance --example sync -- --cfn-lint-root <DIR>
+
+# Generate the AWS API operation catalog; unit tests run first
+PYTHONPATH=<path-to-botocore-or-aws-cli-checkout> \
+  python3 data-source/scripts/generate_aws_api_catalog.py \
+    --provider-schemas data-source/upstream/schemas \
+    --compiled-schemas data-source/generated/schema-validator/compiled_schemas.json \
+    --output data-source/generated/data/aws_api_operation_catalog.json
 ```
 
 The `generate` and `sync` examples require the `maintenance` feature, which enables dependencies used only by the
@@ -38,28 +45,3 @@ data-source/
     ├── cel-rules/                     # CEL rule descriptors
     └── schema-validator/              # Compiled schemas for schema-validator
 ```
-
-## AWS API operation catalog
-
-`generated/data/aws_api_operation_catalog.json` is produced by
-`scripts/generate_aws_api_catalog.py`. The generator derives create and delete adapters from each resource type's own
-handler permissions in the public
-[`resource-provider-enhanced-schemas`](https://github.com/aws-cloudformation/resource-provider-enhanced-schemas)
-release, resolves actions against a pinned botocore checkout, and verifies writable mappings against this repository's
-compiled schemas. It rejects unavailable lifecycle operations, unsafe nested shapes, unreviewed operation collisions,
-and known data-plane actions. Curated update adapters remain explicit because update requests carry partial state.
-
-Maintainers regenerate it only after the compiled schemas have been generated:
-
-```bash
-PYTHONPATH=<aws-cli-or-botocore-checkout> \
-python3 scripts/generate_aws_api_catalog.py \
-  --provider-schemas <schemas-standard.zip-or-upstream/schemas> \
-  --compiled-schemas generated/schema-validator/compiled_schemas.json \
-  --output generated/data/aws_api_operation_catalog.json
-```
-
-The output records SHA-256 hashes for both schema inputs, the botocore version and service count, and source/type counts.
-Use the same enhanced-schema release, compiled-schema artifact, and botocore version to reproduce a catalog byte for
-byte. Run `python3 -m unittest scripts/test_generate_aws_api_catalog.py` with that botocore checkout on `PYTHONPATH`
-before committing a maintainer-generated artifact.

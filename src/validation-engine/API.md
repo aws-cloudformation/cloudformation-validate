@@ -79,6 +79,9 @@ an operation kind, validation status, optional template source, resource candida
 modeled template reached the normal validation pipeline; `Skipped` has no report and explains why.
 `AwsApiRequestValidation` contains an `Option<StandardReport>` directly — detailed enrichment is not supported for
 synthesized API-request templates because there is no user-authored source to annotate with context.
+The `template` field carries the exact bytes that were validated — the caller's original `TemplateBody` without
+reserializing, or the synthesized JSON template for adapter-mapped requests — so consumers can display the modeled
+template that produced the diagnostics. It is `None` when the request was skipped.
 Use `validate_aws_api_request_with_path` when the embedding application needs a custom report path.
 
 **Deterministic closed-adapter contract.** Operation-to-resource mapping uses a generated adapter catalog keyed by
@@ -89,6 +92,14 @@ create and delete lifecycles for roughly seventy percent of all resource types p
 adapter declares one CloudFormation resource type with explicit request-parameter-to-property pairs. Unregistered
 operations never receive an *inferred* resource type and are classified as `UnmappedMutation` (or
 `DataPlaneMutation` for data-plane verbs) with `Skipped` status.
+
+**Strict all-supplied-state mapping.** Template synthesis is all-or-nothing: every request parameter the caller
+supplies must either (a) map to a resource property with a representable value, or (b) be an explicitly safe-to-ignore
+field (idempotency tokens, DryRun, or a declared primary identifier on update operations). If any supplied parameter
+fails both conditions — because it has no mapping, or its value cannot be type-matched to the target property —
+synthesis is SKIPPED and the reason names the offending parameter. This guarantees that validated templates faithfully
+represent the full caller-supplied state: no parameter is ever silently omitted from the synthesized template.
+
 Cloud Control `UpdateResource` and `DeleteResource` may report a known `TypeName` supplied explicitly by the request,
 but they never synthesize state. There is no fuzzy inference, substring matching, or generic property-name guessing.
 `TemplateBody` validation is restricted to the closed set of CloudFormation operations that accept it;

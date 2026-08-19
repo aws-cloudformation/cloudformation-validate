@@ -8,10 +8,13 @@ import generate_aws_api_catalog as catalog
 
 
 class Shape:
-    def __init__(self, type_name, *, member=None, value=None):
+    def __init__(self, type_name, *, member=None, value=None, metadata=None,
+                 serialization=None):
         self.type_name = type_name
         self.member = member
         self.value = value
+        self.metadata = metadata or {}
+        self.serialization = serialization or {}
 
 
 class CatalogGeneratorTest(unittest.TestCase):
@@ -101,6 +104,224 @@ class CatalogGeneratorTest(unittest.TestCase):
 
         self.assertEqual(["AWS::Test::A", "AWS::Test::B"], sorted(schemas))
         self.assertEqual(first_hash, second_hash)
+
+
+class IgnoredInputsTest(unittest.TestCase):
+    """Tests for _ignored_inputs_for_operation."""
+
+    def test_curated_name_is_ignored(self):
+        members = {
+            'ClientToken': Shape('string'),
+            'BucketName': Shape('string'),
+        }
+        result = catalog._ignored_inputs_for_operation(members, 'create', 's3', 'CreateBucket')
+        self.assertEqual(result, ['ClientToken'])
+
+    def test_dry_run_is_ignored(self):
+        members = {
+            'DryRun': Shape('boolean'),
+            'InstanceId': Shape('string'),
+        }
+        result = catalog._ignored_inputs_for_operation(members, 'create', 'ec2', 'RunInstances')
+        self.assertEqual(result, ['DryRun'])
+
+    def test_idempotency_token_metadata_is_detected(self):
+        members = {
+            'Token': Shape('string', metadata={'idempotencyToken': True}),
+            'Name': Shape('string'),
+        }
+        result = catalog._ignored_inputs_for_operation(members, 'create', 'test', 'CreateThing')
+        self.assertEqual(result, ['Token'])
+
+    def test_idempotency_token_serialization_is_detected(self):
+        members = {
+            'RequestId': Shape('string', serialization={'idempotencyToken': True}),
+            'Data': Shape('string'),
+        }
+        result = catalog._ignored_inputs_for_operation(members, 'create', 'test', 'CreateThing')
+        self.assertEqual(result, ['RequestId'])
+
+    def test_update_phase_does_not_add_curated_identifiers(self):
+        """_ignored_inputs_for_operation derives only request-control fields."""
+        members = {
+            'FunctionName': Shape('string'),
+            'MemorySize': Shape('integer'),
+        }
+        result = catalog._ignored_inputs_for_operation(
+            members, 'update', 'lambda', 'UpdateFunctionConfiguration'
+        )
+        self.assertNotIn('FunctionName', result)
+
+    def test_no_heuristic_detection(self):
+        """Members not in the curated set or metadata are never ignored."""
+        members = {
+            'TokenValue': Shape('string'),
+            'RequestId': Shape('string'),
+            'Nonce': Shape('string'),
+        }
+        result = catalog._ignored_inputs_for_operation(members, 'create', 'test', 'CreateThing')
+        self.assertEqual(result, [])
+
+    def test_returns_sorted(self):
+        members = {
+            'DryRun': Shape('boolean'),
+            'ClientToken': Shape('string'),
+            'BucketName': Shape('string'),
+        }
+        result = catalog._ignored_inputs_for_operation(members, 'create', 's3', 'CreateBucket')
+        self.assertEqual(result, sorted(result))
+
+
+class CoverageMetricsTest(unittest.TestCase):
+    """Tests for _compute_coverage and _render_coverage with synthetic data."""
+
+    def _synthetic_coverage(self, adapters, botocore_operations=100,
+                            botocore_services=10, compiled_schemas=None):
+        """Build a synthetic coverage computation."""
+        if compiled_schemas is None:
+            compiled_schemas = {
+                'AWS::Test::Type': {
+                    'properties': {'Name': {}, 'Arn': {}, 'Id': {}},
+                    'read_only_properties': ['Arn'],
+                },
+            }
+
+        class FakeIndex:
+            def __init__(self, services, operations):
+                self.service_count = services
+                self.operation_count = operations
+
+        index = FakeIndex(botocore_services, botocore_operations)
+        return catalog._compute_coverage(adapters, index, compiled_schemas)
+
+    def test_zero_adapters_yields_zero_coverage(self):
+        coverage = self._synthetic_coverage([])
+        self.assertEqual(coverage['catalog_services']['covered'], 0)
+        self.assertEqual(coverage['catalog_resources']['covered'], 0)
+        self.assertEqual(coverage['writable_properties']['covered'], 0)
+        self.assertEqual(coverage['catalog_commands']['covered'], 0)
+        self.assertEqual(coverage['state_commands']['covered'], 0)
+
+    def test_single_create_adapter_coverage(self):
+        adapters = [{
+            'service': 'test',
+            'operation': 'CreateThing',
+            'cfn_type': 'AWS::Test::Type',
+            'phase': 'create',
+            'mappings': [{'source': 'Name', 'target': 'Name'}],
+        }]
+        coverage = self._synthetic_coverage(adapters)
+        self.assertEqual(coverage['catalog_services']['covered'], 1)
+        self.assertEqual(coverage['catalog_services']['total'], 10)
+        self.assertEqual(coverage['catalog_resources']['covered'], 1)
+        self.assertEqual(coverage['catalog_commands']['covered'], 1)
+        self.assertEqual(coverage['catalog_commands']['total'], 100)
+        self.assertEqual(coverage['state_commands']['covered'], 1)
+        self.assertEqual(coverage['state_services']['covered'], 1)
+        self.assertEqual(coverage['state_resources']['covered'], 1)
+        self.assertEqual(coverage['writable_properties']['covered'], 1)
+        # Total writable is 2 (Name + Id; Arn is read-only)
+        self.assertEqual(coverage['writable_properties']['total'], 2)
+
+    def test_delete_adapter_does_not_count_as_state_validation(self):
+        adapters = [{
+            'service': 'test',
+            'operation': 'DeleteThing',
+            'cfn_type': 'AWS::Test::Type',
+            'phase': 'delete',
+            'mappings': [],
+        }]
+        coverage = self._synthetic_coverage(adapters)
+        self.assertEqual(coverage['state_commands']['covered'], 0)
+        self.assertEqual(coverage['catalog_commands']['covered'], 1)
+        self.assertEqual(coverage['lifecycle_adapters'], {'delete': 1})
+
+    def test_writable_properties_are_deduplicated_across_adapters(self):
+        """Two adapters mapping to the same (cfn_type, target) count once."""
+        adapters = [
+            {
+                'service': 'test',
+                'operation': 'Create',
+                'cfn_type': 'AWS::Test::Type',
+                'phase': 'create',
+                'mappings': [{'source': 'Name', 'target': 'Name'}],
+            },
+            {
+                'service': 'test',
+                'operation': 'Update',
+                'cfn_type': 'AWS::Test::Type',
+                'phase': 'update',
+                'mappings': [{'source': 'Name', 'target': 'Name'}],
+            },
+        ]
+        coverage = self._synthetic_coverage(adapters)
+        self.assertEqual(coverage['writable_properties']['covered'], 1)
+
+    def test_render_coverage_formats_percentages(self):
+        coverage = {
+            'catalog_services': {'covered': 3, 'total': 10},
+            'catalog_resources': {'covered': 5, 'total': 20},
+            'catalog_commands': {'covered': 7, 'total': 50},
+            'state_services': {'covered': 2, 'total': 10},
+            'state_resources': {'covered': 4, 'total': 20},
+            'state_commands': {'covered': 4, 'total': 50},
+            'writable_properties': {'covered': 15, 'total': 100},
+            'lifecycle_adapters': {'create': 4, 'delete': 3},
+        }
+        lines = catalog._render_coverage(coverage)
+        self.assertIn('catalog_services: 3/10 (30.0%)', lines)
+        self.assertIn('catalog_resources: 5/20 (25.0%)', lines)
+        self.assertIn('catalog_commands: 7/50 (14.0%)', lines)
+        self.assertIn('state_services: 2/10 (20.0%)', lines)
+        self.assertIn('state_resources: 4/20 (20.0%)', lines)
+        self.assertIn('state_commands: 4/50 (8.0%)', lines)
+        self.assertIn('writable_properties: 15/100 (15.0%)', lines)
+        self.assertIn('lifecycle_adapters: create 4, delete 3', lines)
+
+    def test_zero_total_does_not_divide_by_zero(self):
+        coverage = {
+            'catalog_services': {'covered': 0, 'total': 0},
+            'catalog_resources': {'covered': 0, 'total': 0},
+            'catalog_commands': {'covered': 0, 'total': 0},
+            'state_services': {'covered': 0, 'total': 0},
+            'state_resources': {'covered': 0, 'total': 0},
+            'state_commands': {'covered': 0, 'total': 0},
+            'writable_properties': {'covered': 0, 'total': 0},
+            'lifecycle_adapters': {},
+        }
+        lines = catalog._render_coverage(coverage)
+        self.assertTrue(all('0.0%' in line for line in lines if '/' in line))
+
+    def test_exact_percentage_calculation(self):
+        adapters = [
+            {
+                'service': 'svc0',
+                'operation': 'Create',
+                'cfn_type': 'AWS::A::B',
+                'phase': 'create',
+                'mappings': [{'source': 'X', 'target': 'Y'}],
+            },
+            {
+                'service': 'svc1',
+                'operation': 'Update',
+                'cfn_type': 'AWS::A::B',
+                'phase': 'update',
+                'mappings': [{'source': 'Z', 'target': 'W'}],
+            },
+        ]
+        # 2 services out of 4, 2 commands out of 8
+        compiled = {'AWS::A::B': {'properties': {'Y': {}, 'W': {}}, 'read_only_properties': []}}
+        coverage = self._synthetic_coverage(
+            adapters, botocore_operations=8, botocore_services=4,
+            compiled_schemas=compiled,
+        )
+        self.assertEqual(coverage['catalog_services']['covered'], 2)
+        self.assertEqual(coverage['catalog_services']['total'], 4)
+        self.assertEqual(coverage['catalog_commands']['covered'], 2)
+        self.assertEqual(coverage['catalog_commands']['total'], 8)
+        self.assertEqual(coverage['state_commands']['covered'], 2)
+        self.assertEqual(coverage['writable_properties']['covered'], 2)
+        self.assertEqual(coverage['writable_properties']['total'], 2)
 
 
 if __name__ == "__main__":

@@ -227,7 +227,10 @@ class AwsApiRequest:
     ``parameters`` accepts the same Python values used by botocore request
     dictionaries, including nested mappings/sequences, ``bytes``, and
     ``datetime.datetime``. Values that cannot be represented are carried as an
-    explicit unsupported marker and are conservatively omitted during synthesis.
+    explicit unsupported marker. Synthesis enforces all-or-nothing semantics:
+    if any supplied non-control resource-state field lacks a lossless mapping,
+    the entire synthesis/validation is skipped with a reason naming the
+    offending parameter — no parameter is ever silently omitted.
     """
 
     def __init__(
@@ -330,6 +333,8 @@ class Engine:
         """Classifies, models, and validates an AWS API request.
 
         A skipped request has ``report is None`` and an explicit status and reason.
+        The ``template`` field carries the exact bytes validated (the caller's
+        original ``TemplateBody`` or the synthesized JSON), or ``None`` when skipped.
         """
         if not isinstance(request, AwsApiRequest):
             raise TypeError("request must be an AwsApiRequest")
