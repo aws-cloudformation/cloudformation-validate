@@ -1,0 +1,24 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+  GlobalCache:
+    Type: AWS::ElastiCache::GlobalReplicationGroup
+    Properties:
+      CacheNodeType: cache.m3.medium
+      GlobalReplicationGroupDescription: test
+  Fleet:
+    Type: AWS::EC2::EC2Fleet
+    Properties:
+      Type: maintain
+      TargetCapacitySpecification:
+        TotalTargetCapacity: 1
+        DefaultTargetCapacityType: spot
+      FleetLaunchTemplateOverridesRequest:
+        InstanceType: m3.large
+  SpotFleet:
+    Type: AWS::EC2::SpotFleet
+    Properties:
+      SpotFleetRequestConfigData:
+        IamFleetRole: arn:aws:iam::123456789012:role/test
+        TargetCapacity: 1
+      SpotFleetLaunchSpecification:
+        InstanceType: c3.large
