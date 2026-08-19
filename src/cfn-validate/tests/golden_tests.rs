@@ -194,24 +194,8 @@ fn rules_evaluated_is_full_rule_count() {
 #[test]
 fn report_metadata_contains_embedded_source_versions_on_all_outcomes() {
     let rego = RegoEngine::new(EngineConfig::default()).expect("rego engine");
-    let (Some(cfn_lint_version), Some(resource_schema_version)) = (CFN_LINT_VERSION, RESOURCE_SCHEMA_VERSION) else {
-        for (name, bytes) in
-            [("success", load_template("good/generic.yaml")), ("parse error", b"Resources: [".to_vec())]
-        {
-            let error = validate_bytes_with_path(
-                &rego,
-                &SchemaValidator::default(),
-                &bytes,
-                ValidateConfig::default(),
-                name.to_string(),
-            )
-            .expect_err("validation must fail when data source versions are unavailable");
-            assert!(error.to_string().contains("data source versions are unavailable"), "{name}: {error}");
-        }
-        return;
-    };
-    let expected_cfn_lint = serde_json::Value::from(cfn_lint_version);
-    let expected_resource_schema = serde_json::Value::from(resource_schema_version);
+    let expected_cfn_lint = serde_json::Value::from(CFN_LINT_VERSION);
+    let expected_resource_schema = serde_json::Value::from(RESOURCE_SCHEMA_VERSION);
 
     let expected_fields = std::collections::BTreeSet::from([
         "cfnLintVersion",

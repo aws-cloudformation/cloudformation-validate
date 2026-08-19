@@ -8,10 +8,6 @@ uniffi::setup_scaffolding!();
 pub mod additional_schema_source;
 #[cfg(feature = "maintenance")]
 pub mod additional_specs;
-pub mod rule_data;
-
-/// Re-export under the old name for backward compatibility with existing consumers.
-pub use rule_data as cfnlint_rule_data;
 #[cfg(feature = "maintenance")]
 pub mod cfnlint_tables;
 #[cfg(feature = "maintenance")]
@@ -25,6 +21,7 @@ pub mod extensions;
 pub mod process;
 #[cfg(feature = "maintenance")]
 pub mod regions;
+pub mod rule_data;
 #[cfg(feature = "maintenance")]
 pub mod schema;
 #[cfg(feature = "maintenance")]

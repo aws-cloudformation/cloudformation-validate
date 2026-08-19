@@ -2,11 +2,21 @@ use cel_engine::CelEngine;
 use diagnostics::Diagnostic;
 use rego_engine::RegoEngine;
 use schema_validator::SchemaValidator;
+use template_model::PseudoParameterOverrides;
 use validation_engine::{EngineConfig, ValidateConfig, ValidationEngine, validate_bytes};
 
 fn selected_findings(engine: &dyn ValidationEngine, template: &str, rule_ids: &[&str]) -> Vec<String> {
+    selected_findings_with_config(engine, template, rule_ids, ValidateConfig::default())
+}
+
+fn selected_findings_with_config(
+    engine: &dyn ValidationEngine,
+    template: &str,
+    rule_ids: &[&str],
+    config: ValidateConfig,
+) -> Vec<String> {
     let validator = SchemaValidator::default();
-    let report = validate_bytes(engine, &validator, template.as_bytes(), ValidateConfig::default()).unwrap();
+    let report = validate_bytes(engine, &validator, template.as_bytes(), config).unwrap();
     let mut findings: Vec<String> = report
         .diagnostics
         .iter()
@@ -1697,4 +1707,26 @@ Resources:
     assert_eq!(rego_findings, cel_findings);
     assert_eq!(rego_findings.len(), 1, "only a reachable untagged world should be reported: {rego_findings:?}");
     assert!(rego_findings[0].contains("MissingInOneWorld"));
+}
+
+#[test]
+fn snapstart_support_and_recommendations_respect_the_configured_region() {
+    let template = include_str!("../../resources/templates/bad/E2530_I2530_snapstart_sourced_tables.yaml");
+    let config = ValidateConfig {
+        pseudo_parameter_overrides: PseudoParameterOverrides {
+            region: Some("us-gov-west-1".to_string()),
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings_with_config(&rego, template, &["E2530", "I2530"], config.clone());
+    let cel_findings = selected_findings_with_config(&cel, template, &["E2530", "I2530"], config);
+
+    assert_eq!(rego_findings, cel_findings, "SnapStart diagnostics must be identical in a configured region");
+    assert_eq!(rego_findings.len(), 3, "expected one runtime and two region findings: {rego_findings:?}");
+    assert!(rego_findings.iter().all(|finding| finding.starts_with("E2530|")));
+    assert_eq!(rego_findings.iter().filter(|finding| finding.contains("not supported in region")).count(), 2);
+    assert!(rego_findings.iter().any(|finding| finding.contains("not supported with runtime 'python3.8'")));
+    assert!(rego_findings.iter().any(|finding| finding.contains("|RegionLimitedJava|Properties.SnapStart.ApplyOn|")));
 }
