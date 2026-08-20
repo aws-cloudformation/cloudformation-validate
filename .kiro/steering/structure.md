@@ -71,6 +71,10 @@ src/
 
 ## Top-level directories
 
+- `.kiro/steering/` — tracked persistent guidance loaded by Kiro; `private-context.md` directs agents to load local
+  confidential context and skills before starting work
+- `.kiro/private/` — gitignored machine-local confidential agent context and skills for Kiro and Claude; never commit
+  its filenames or contents
 - `scripts/` — Python comparison/audit scripts and their `snapshots/` data (see `tech.md` for usage)
 - `.github/workflows/` — CI: format check, clippy, cargo audit, coverage tests on all supported OSes, JVM + WASM +
   Python + Go test jobs

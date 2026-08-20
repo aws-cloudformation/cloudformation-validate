@@ -5,7 +5,23 @@ AWS CloudFormation templates: parse JSON/YAML → structured diagnostics (schema
 best-practice). Rules + schemas compile into the binary - no network, no credentials. Ships as a Rust CLI,
 Rust library, Node WASM package, Python package, Go module, and JVM (Kotlin/Java) library over one shared core.
 
-Deeper architecture notes live in `.kiro/steering/` (`product.md`, `structure.md`, `tech.md`)
+Deeper architecture notes live in `.kiro/steering/` (`product.md`, `structure.md`, `tech.md`, `private-context.md`,
+and `version-control.md`).
+
+## Confidential agent context and skills
+
+Before starting any task, if `.kiro/private/` exists, recursively discover and read every readable regular file in it
+before planning or making changes. Do not follow symlinks that resolve outside `.kiro/private/`. Use applicable content
+as supplemental agent context, and follow any task-relevant skill instructions found there, resolving conflicts
+according to the normal instruction priority. Treat both filenames and contents as confidential: do not quote,
+summarize, or copy them into tracked files, logs, commit messages, review descriptions, or responses unless the user
+explicitly asks for that specific disclosure. The directory and its contents must remain untracked and must never be
+added to version control. If the directory is absent or empty, continue normally.
+
+## Version control
+
+Never run `git add` or `git commit` in this repository for any path. Do not stage or commit changes through another
+tool. Leave all changes unstaged for the user to review and manage.
 
 ## Commands and validation selection
 
