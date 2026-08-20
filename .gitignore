@@ -62,6 +62,10 @@ src/bindings-python/generated/**/*
 !.kiro/skills/**
 !.kiro/steering/
 !.kiro/steering/**
-# Confidential machine-local agent context and skills; keep explicit even though .kiro/* also ignores it.
-.kiro/private/
 !CLAUDE.md
+
+# Machine-local context
+.kiro/steering/private/
+.kiro/steering/private/**
+.kiro/private/
+.kiro/private/**

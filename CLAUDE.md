@@ -10,13 +10,14 @@ and `version-control.md`).
 
 ## Confidential agent context and skills
 
-Before starting any task, if `.kiro/private/` exists, recursively discover and read every readable regular file in it
-before planning or making changes. Do not follow symlinks that resolve outside `.kiro/private/`. Use applicable content
-as supplemental agent context, and follow any task-relevant skill instructions found there, resolving conflicts
-according to the normal instruction priority. Treat both filenames and contents as confidential: do not quote,
-summarize, or copy them into tracked files, logs, commit messages, review descriptions, or responses unless the user
-explicitly asks for that specific disclosure. The directory and its contents must remain untracked and must never be
-added to version control. If the directory is absent or empty, continue normally.
+Before starting any task, if `.kiro/steering/private/` exists, use a direct filesystem directory read that does not
+apply `.gitignore` to recursively discover and read every readable regular file in it before planning or making changes.
+Do not rely on a gitignore-aware glob or search as the sole discovery mechanism, and do not follow symlinks that resolve
+outside `.kiro/steering/private/`. Use applicable content as supplemental agent context, and follow any task-relevant
+skill instructions found there, resolving conflicts according to the normal instruction priority. Treat both filenames
+and contents as confidential: do not quote, summarize, or copy them into tracked files, logs, commit messages, review
+descriptions, or responses unless the user explicitly asks for that specific disclosure. The directory and its contents
+must remain untracked and must never be added to version control. If the directory is absent or empty, continue normally.
 
 ## Version control
 
