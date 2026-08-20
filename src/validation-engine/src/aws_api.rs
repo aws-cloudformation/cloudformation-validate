@@ -358,7 +358,7 @@ const TEMPLATE_BODY_OPERATIONS: &[(&str, &str)] = &[
     ("cloudformation", "ValidateTemplate"),
 ];
 
-/// CLI and Java SDK service names differ only in casing for the supported adapters.
+/// Callers pass canonical botocore service names, so case-normalization is the only lookup adjustment.
 fn normalize_service(name: &str) -> String {
     name.to_ascii_lowercase()
 }
@@ -1431,7 +1431,7 @@ mod tests {
     }
 
     #[test]
-    fn dynamodb_create_table_skips_when_nested_values_are_unrepresentable() {
+    fn dynamodb_create_table_skips_when_unmapped_nested_parameters_are_present() {
         let schema_validator = SchemaValidator::default();
         let request = request(
             "dynamodb",
@@ -1447,10 +1447,10 @@ mod tests {
         assert_eq!(classification.kind, AwsApiOperationKind::CloudFormationCreate);
         assert_eq!(classification.candidates, ["AWS::DynamoDB::Table"]);
         let synthesis = synthesize_request(&request, &classification, &schema_validator).expect("synthesis succeeds");
-        assert!(synthesis.template.is_none(), "nested struct arrays must skip synthesis");
+        assert!(synthesis.template.is_none(), "unmapped nested parameters must skip synthesis");
         assert!(
-            synthesis.reason.contains("cannot be represented"),
-            "reason must explain the type mismatch: {}",
+            synthesis.reason.contains("has no mapping"),
+            "reason must explain the unmapped parameter: {}",
             synthesis.reason
         );
     }
@@ -1488,8 +1488,7 @@ mod tests {
             "CreateRole",
             serde_json::json!({
                 "RoleName": "Synthetic",
-                "AssumeRolePolicyDocument": "{\"Version\":\"2012-10-17\",\"Statement\":[]}",
-                "Tags": {"Team": "CLI"}
+                "AssumeRolePolicyDocument": "{\"Version\":\"2012-10-17\",\"Statement\":[]}"
             }),
         );
         let (classification, synthesis, document) = synthesized_json(&request);
@@ -1551,7 +1550,7 @@ mod tests {
 
     #[test]
     fn sns_create_topic_synthesizes_with_explicit_mappings() {
-        let request = request("sns", "CreateTopic", serde_json::json!({"Name": "Synthetic", "Tags": {"Team": "CLI"}}));
+        let request = request("sns", "CreateTopic", serde_json::json!({"Name": "Synthetic"}));
         let (classification, synthesis, document) = synthesized_json(&request);
         assert_eq!(classification.kind, AwsApiOperationKind::CloudFormationCreate);
         assert_eq!(classification.candidates, ["AWS::SNS::Topic"]);
@@ -1593,8 +1592,10 @@ mod tests {
         assert!(synthesis.template.is_none());
     }
     #[test]
-    fn java_sdk_service_name_casing_resolves_adapters() {
+    fn canonical_service_name_matching_is_case_insensitive() {
         let schema_validator = SchemaValidator::default();
+        // Non-lowercase spellings of the canonical botocore service name must
+        // normalize to the same adapter; service_name is ASCII case-normalized only.
         for (service, operation, expected_type) in [
             ("S3", "CreateBucket", "AWS::S3::Bucket"),
             ("DynamoDb", "CreateTable", "AWS::DynamoDB::Table"),
@@ -1608,7 +1609,7 @@ mod tests {
             assert_eq!(
                 classification.candidates,
                 [expected_type],
-                "Java SDK casing {service}:{operation} should resolve to {expected_type}"
+                "canonical service name {service}:{operation} must resolve case-insensitively to {expected_type}"
             );
         }
     }
@@ -1840,13 +1841,14 @@ mod tests {
     #[test]
     fn incompatible_property_value_skips_synthesis() {
         let schema_validator = SchemaValidator::default();
+        // MaxSessionDuration is mapped and expects integer; pass a boolean.
         let request = request(
             "iam",
             "CreateRole",
             serde_json::json!({
                 "RoleName": "Synthetic",
                 "AssumeRolePolicyDocument": "{}",
-                "Tags": {"Key": 42}
+                "MaxSessionDuration": true
             }),
         );
         let classification = classify_operation(&request, &schema_validator).expect("classification succeeds");

@@ -303,6 +303,13 @@ type ValidateConfig struct {
 // AWSAPIRequest holds an AWS API service call for offline CloudFormation
 // validation. ServiceName and OperationName identify the API; Parameters carry
 // the request values (maps, strings, numbers, booleans, byte slices, etc.).
+//
+// ServiceName is the canonical botocore service name (for example "s3" or
+// "cloudformation") and is the authoritative mapping identity, normalized only
+// for ASCII case - never a signing name, ARN prefix, or endpoint alias. A
+// future AWS SDK adapter, in any language, must translate its native service
+// identity to the canonical botocore ServiceName before calling; the core does
+// not guess aliases.
 type AWSAPIRequest struct {
 	ServiceName   string         `json:"serviceName"`
 	OperationName string         `json:"operationName"`
@@ -352,4 +359,10 @@ type AWSAPIRequestValidation struct {
 	ResourceTypes  []string                      `json:"resourceTypes"`
 	Reason         string                        `json:"reason"`
 	Report         *StandardReport               `json:"report,omitempty"`
+	// Template is the exact template bytes that were validated: the caller's
+	// original TemplateBody without reserializing, or the synthesized JSON
+	// template for adapter-mapped requests. It is nil when the request was
+	// skipped. The core serializes these bytes as a JSON integer array, which
+	// UnmarshalJSON decodes back into a byte slice.
+	Template []byte `json:"template,omitempty"`
 }

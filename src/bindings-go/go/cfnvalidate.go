@@ -19,6 +19,7 @@
 package cfnvalidate
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"math"
@@ -389,6 +390,61 @@ func encodeAwsApiValue(v any, depth int) awsApiValue {
 	default:
 		return awsApiValue{Type: "UNSUPPORTED", TypeName: rv.Type().String()}
 	}
+}
+
+// UnmarshalJSON decodes an AWSAPIRequestValidation, translating the core's
+// integer-array encoding of the validated template into a byte slice.
+//
+// The core serializes the template as a JSON array of byte-valued integers
+// (serde's representation of a byte vector), which encoding/json cannot decode
+// into a []byte directly - it expects a base64 string. Every other field
+// decodes with the standard rules. On any failure the receiver is left
+// unchanged, so a decode error never leaves a partially populated result.
+func (v *AWSAPIRequestValidation) UnmarshalJSON(data []byte) error {
+	type withoutTemplate AWSAPIRequestValidation
+	var wire struct {
+		withoutTemplate
+		Template json.RawMessage `json:"template"`
+	}
+	if err := json.Unmarshal(data, &wire); err != nil {
+		return err
+	}
+	template, err := decodeTemplateBytes(wire.Template)
+	if err != nil {
+		return err
+	}
+	decoded := AWSAPIRequestValidation(wire.withoutTemplate)
+	decoded.Template = template
+	*v = decoded
+	return nil
+}
+
+// decodeTemplateBytes converts the core's JSON integer-array template encoding
+// into a byte slice. A missing or null field yields nil; an empty array yields
+// a non-nil empty slice; every element must be an integer in the range 0-255.
+func decodeTemplateBytes(raw json.RawMessage) ([]byte, error) {
+	trimmed := bytes.TrimSpace(raw)
+	if len(trimmed) == 0 || string(trimmed) == "null" {
+		return nil, nil
+	}
+	decoder := json.NewDecoder(bytes.NewReader(trimmed))
+	decoder.UseNumber()
+	var elements []json.Number
+	if err := decoder.Decode(&elements); err != nil {
+		return nil, fmt.Errorf("cfnvalidate: template must be a JSON array of byte integers: %w", err)
+	}
+	template := make([]byte, len(elements))
+	for i, element := range elements {
+		value, err := element.Int64()
+		if err != nil {
+			return nil, fmt.Errorf("cfnvalidate: template byte at index %d is not an integer: %s", i, element)
+		}
+		if value < 0 || value > 255 {
+			return nil, fmt.Errorf("cfnvalidate: template byte at index %d is out of range 0-255: %d", i, value)
+		}
+		template[i] = byte(value)
+	}
+	return template, nil
 }
 
 // SchemaValidator validates resources against the compiled CloudFormation

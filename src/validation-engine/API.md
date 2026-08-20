@@ -104,9 +104,11 @@ Cloud Control `UpdateResource` and `DeleteResource` may report a known `TypeName
 but they never synthesize state. There is no fuzzy inference, substring matching, or generic property-name guessing.
 `TemplateBody` validation is restricted to the closed set of CloudFormation operations that accept it;
 `TypeName`+`DesiredState` wrapping is restricted to exact Cloud Control `CreateResource`. `service_name` is the
-authoritative mapping identity; the optional signing `service_prefix` cannot override it. Case normalization supports
-both CLI names (for example, `s3`) and Java SDK `SERVICE_NAME` values (for example, `S3`) without punctuation or
-substring aliases.
+authoritative mapping identity and must be the exact canonical botocore service name, normalized only for ASCII case;
+the optional signing `service_prefix` is context only and cannot override it. There are no signing, endpoint,
+punctuation, or substring aliases. Any caller, including a future AWS SDK adapter in any language, must translate its
+native service identity to the canonical botocore `service_name` before invoking this API; the core intentionally does
+not guess aliases.
 
 ## Constructing an Engine
 

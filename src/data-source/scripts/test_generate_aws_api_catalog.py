@@ -17,6 +17,178 @@ class Shape:
         self.serialization = serialization or {}
 
 
+class ExactServiceResolutionTest(unittest.TestCase):
+    """Resolution is literal: a case-insensitive identity or a reviewed override.
+
+    Punctuation is significant and substrings never match, so an IAM prefix
+    denotes a service only when it equals a service identity exactly (ignoring
+    case) or is a reviewed action-prefix override.
+    """
+
+    @staticmethod
+    def _index(by_identity, operations):
+        index = catalog.BotocoreIndex.__new__(catalog.BotocoreIndex)
+        index._by_identity = {key: set(services) for key, services in by_identity.items()}
+        index._operations = operations
+        index._identities = {service: set() for service in operations}
+        return index
+
+    def test_identity_key_lowercases_and_preserves_punctuation(self):
+        # The identity key folds case only; _normalize is the lossy sibling used
+        # for relatedness. Keeping them distinct is what stops punctuation from
+        # being erased into a false identity match.
+        self.assertEqual('s3-control', catalog._identity_key('S3-Control'))
+        self.assertEqual('kafka-cluster', catalog._identity_key('Kafka-Cluster'))
+        self.assertEqual('s3control', catalog._normalize('S3-Control'))
+
+    def test_substring_service_identity_no_longer_resolves(self):
+        # A prefix that is only a *substring* of a real identity resolves to
+        # nothing: 'mq' is contained in 'amazonmq', but 'amazonmq' is neither an
+        # identity nor an override.
+        index = self._index({'mq': {'mq'}}, {'mq': {'createbroker': 'CreateBroker'}})
+        self.assertEqual(set(), index.resolve('amazonmq', 'CreateBroker'))
+        # 'es' is contained in many identities; without a substring fallback an
+        # unrelated 'es'-containing service is never reached.
+        index = self._index(
+            {'esoteric': {'esoteric'}}, {'esoteric': {'deleteapplication': 'DeleteApplication'}}
+        )
+        self.assertEqual(set(), index.resolve('es', 'DeleteApplication'))
+
+    def test_punctuation_variant_does_not_resolve(self):
+        # The identity is literally 's3-control'; the hyphen is preserved, so the
+        # punctuation-free prefix 's3control' is a different key and reaches no
+        # service. Only the exact-punctuation prefix resolves.
+        index = self._index(
+            {'s3-control': {'s3control'}},
+            {'s3control': {'deletebucketpolicy': 'DeleteBucketPolicy'}},
+        )
+        self.assertEqual(set(), index.resolve('s3control', 'DeleteBucketPolicy'))
+        self.assertEqual(
+            {('s3control', 'DeleteBucketPolicy')},
+            index.resolve('s3-control', 'DeleteBucketPolicy'),
+        )
+
+    def test_exact_identity_resolves(self):
+        index = self._index({'s3': {'s3'}}, {'s3': {'createbucket': 'CreateBucket'}})
+        self.assertEqual({('s3', 'CreateBucket')}, index.resolve('s3', 'CreateBucket'))
+
+    def test_reviewed_action_prefix_overrides_resolve(self):
+        index = self._index(
+            {
+                'kafka': {'kafka'},
+                's3control': {'s3control'},
+                's3-outposts': {'s3outposts'},
+            },
+            {
+                'kafka': {'createtopic': 'CreateTopic'},
+                's3control': {'deletebucket': 'DeleteBucket'},
+                's3outposts': {'createendpoint': 'CreateEndpoint'},
+            },
+        )
+        # 'kafka-cluster' is not a botocore identity, so it resolves only through
+        # the reviewed override to 'kafka'.
+        self.assertEqual({('kafka', 'CreateTopic')}, index.resolve('kafka-cluster', 'CreateTopic'))
+        # The literal 's3-outposts' bucket action resolves only to s3control (the
+        # review); no 's3'-containing service is reached by containment.
+        self.assertEqual({('s3control', 'DeleteBucket')}, index.resolve('s3-outposts', 'DeleteBucket'))
+        # Where the s3outposts service itself owns the operation, its exact
+        # 's3-outposts' endpoint-prefix identity resolves alongside the review.
+        self.assertEqual({('s3outposts', 'CreateEndpoint')}, index.resolve('s3-outposts', 'CreateEndpoint'))
+
+    def test_punctuation_free_override_spelling_does_not_resolve(self):
+        # Override keys are literal ('s3-outposts', 'kafka-cluster'), so the
+        # punctuation-free spellings that punctuation-folding once produced are
+        # not keys and resolve to nothing.
+        index = self._index(
+            {'s3control': {'s3control'}, 'kafka': {'kafka'}},
+            {'s3control': {'deletebucket': 'DeleteBucket'}, 'kafka': {'createtopic': 'CreateTopic'}},
+        )
+        self.assertEqual(set(), index.resolve('s3outposts', 'DeleteBucket'))
+        self.assertEqual(set(), index.resolve('kafkacluster', 'CreateTopic'))
+
+    def test_override_is_silent_when_service_lacks_operation(self):
+        index = self._index({'kafka': {'kafka'}}, {'kafka': {'createcluster': 'CreateCluster'}})
+        self.assertEqual(set(), index.resolve('kafka-cluster', 'CreateTopic'))
+
+
+class PropertyRenameAllowlistTest(unittest.TestCase):
+    """Renames are accepted only in a fully reviewed context."""
+
+    @staticmethod
+    def _mappings(member, target, cfn_type, service, operation, resource_segment='thing'):
+        members = {member: Shape('string')}
+        property_schemas = {target: {'type': 'string'}}
+        writable_by_lower = {target.lower(): target}
+        return catalog._property_mappings(
+            members, property_schemas, writable_by_lower, resource_segment, {},
+            cfn_type, service, operation,
+        )
+
+    def test_case_only_same_identifier_mapping_is_always_allowed(self):
+        # Member and property are the same identifier differing only in case.
+        result = self._mappings('bucketname', 'BucketName', 'AWS::Any::Type', 'any', 'AnyOp')
+        self.assertEqual([('bucketname', 'BucketName')], result)
+
+    def test_reviewed_rename_in_exact_context_is_accepted(self):
+        result = self._mappings('Bucket', 'BucketName', 'AWS::S3::Bucket', 's3', 'CreateBucket')
+        self.assertEqual([('Bucket', 'BucketName')], result)
+
+    def test_reviewed_name_to_segment_rename_is_accepted(self):
+        result = self._mappings(
+            'Name', 'TopicName', 'AWS::SNS::Topic', 'sns', 'CreateTopic', resource_segment='topic'
+        )
+        self.assertEqual([('Name', 'TopicName')], result)
+
+    def test_unreviewed_rename_is_rejected(self):
+        # Same shape of rename, but this (cfn_type, service, operation) tuple was
+        # never reviewed, so the resource-name transform must not be synthesized.
+        self.assertEqual([], self._mappings('Bucket', 'BucketName', 'AWS::Other::Thing', 'other', 'CreateThing'))
+
+    def test_reviewed_rename_rejected_when_any_context_field_changes(self):
+        # Each field individually differs from the reviewed S3 bucket entry.
+        self.assertEqual([], self._mappings('Bucket', 'BucketName', 'AWS::S3::AccessPoint', 's3', 'CreateBucket'))
+        self.assertEqual([], self._mappings('Bucket', 'BucketName', 'AWS::S3::Bucket', 's3control', 'CreateBucket'))
+        self.assertEqual([], self._mappings('Bucket', 'BucketName', 'AWS::S3::Bucket', 's3', 'PutBucket'))
+
+
+class SegmentRelatednessTest(unittest.TestCase):
+    """Service relatedness is exact: an alias or exact identity, never substring containment."""
+
+    @staticmethod
+    def _index(identities):
+        index = catalog.BotocoreIndex.__new__(catalog.BotocoreIndex)
+        index._identities = {service: set(ids) for service, ids in identities.items()}
+        index._by_identity = {}
+        index._operations = {}
+        return index
+
+    def test_containment_without_alias_is_unrelated(self):
+        # 'mq' is a substring of segment 'amazonmq', but without an explicit alias
+        # the service is unrelated: the old containment tier no longer applies.
+        index = self._index({'mq': {'mq'}})
+        self.assertIsNone(index.identity_tier('mq', 'mq', {'amazonmq'}))
+
+    def test_exact_segment_name_is_strongest_tier(self):
+        index = self._index({'kafka': {'kafka'}})
+        self.assertEqual(0, index.identity_tier('kafka', 'kafka', {'msk', 'kafka'}))
+
+    def test_reviewed_alias_relates_exactly(self):
+        # The reviewed 'amazonmq' -> 'mq' alias makes the exact 'mq' identity relate.
+        index = self._index({'mq': {'mq'}})
+        aliases = {'amazonmq'}
+        aliases.update(catalog.SEGMENT_ALIASES.get('amazonmq', ()))
+        self.assertEqual(0, index.identity_tier('mq', 'mq', aliases))
+
+    def test_alias_table_values_are_identity_tuples(self):
+        # Every entry is a tuple of normalized identities so one segment can relate
+        # to more than one service (for example cognito).
+        for segment, identities in catalog.SEGMENT_ALIASES.items():
+            self.assertIsInstance(identities, tuple, segment)
+            self.assertTrue(all(isinstance(identity, str) for identity in identities), segment)
+        self.assertIn('cognitoidp', catalog.SEGMENT_ALIASES['cognito'])
+        self.assertIn('cognitoidentity', catalog.SEGMENT_ALIASES['cognito'])
+
+
 class CatalogGeneratorTest(unittest.TestCase):
     def test_unreviewed_collision_is_dropped(self):
         adapters = [
@@ -80,6 +252,16 @@ class CatalogGeneratorTest(unittest.TestCase):
             )
         )
         self.assertFalse(
+            catalog._is_runtime_safe_mapping(
+                Shape("map", value=Shape("integer")), tags, definitions, "Tags"
+            )
+        )
+        self.assertFalse(
+            catalog._is_runtime_safe_mapping(
+                Shape("map", value=Shape("string")), tags, definitions, "Labels"
+            )
+        )
+        self.assertFalse(
             catalog._is_runtime_safe_mapping(Shape("structure"), {"type": "object"}, {}, "Config")
         )
         self.assertFalse(
@@ -88,6 +270,188 @@ class CatalogGeneratorTest(unittest.TestCase):
                 {"type": "array", "items": {"type": "object"}},
                 {},
                 "Configs",
+            )
+        )
+
+    def test_tag_map_rejects_additional_required_target_field(self):
+        definitions = {
+            "Tag": {
+                "type": "object",
+                "properties": {
+                    "Key": {"type": "string"},
+                    "Value": {"type": "string"},
+                    "PropagateAtLaunch": {"type": "boolean"},
+                },
+                "required": ["Key", "Value", "PropagateAtLaunch"],
+            }
+        }
+        tags = {"type": "array", "items": {"ref_name": "Tag"}}
+
+        self.assertFalse(
+            catalog._is_runtime_safe_mapping(
+                Shape("map", value=Shape("string")), tags, definitions, "Tags"
+            )
+        )
+
+    def test_tag_map_rejects_additional_required_alternative_field(self):
+        definitions = {
+            "Tag": {
+                "type": "object",
+                "properties": {"Key": {"type": "string"}},
+                "required": ["Key"],
+                "any_of": [
+                    {
+                        "properties": {
+                            "Value": {"type": "string"},
+                            "PropagateAtLaunch": {"type": "boolean"},
+                        },
+                        "required": ["Value", "PropagateAtLaunch"],
+                    }
+                ],
+            }
+        }
+        tags = {"type": "array", "items": {"ref_name": "Tag"}}
+
+        self.assertFalse(
+            catalog._is_runtime_safe_mapping(
+                Shape("map", value=Shape("string")), tags, definitions, "Tags"
+            )
+        )
+
+    def test_tag_map_accepts_unambiguous_key_value_alternative(self):
+        definitions = {
+            "Tag": {
+                "one_of": [
+                    {
+                        "type": "object",
+                        "properties": {
+                            "Key": {"type": "string"},
+                            "Value": {"type": "string"},
+                        },
+                        "required": ["Key", "Value"],
+                        "additional_properties": False,
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "TagKey": {"type": "string"},
+                            "TagValue": {"type": "string"},
+                        },
+                        "required": ["TagKey", "TagValue"],
+                        "additional_properties": False,
+                    },
+                ]
+            }
+        }
+        tags = {"type": "array", "items": {"ref_name": "Tag"}}
+
+        self.assertTrue(
+            catalog._is_runtime_safe_mapping(
+                Shape("map", value=Shape("string")), tags, definitions, "Tags"
+            )
+        )
+
+    def test_tag_map_rejects_ambiguous_key_value_alternatives(self):
+        key_value_branch = {
+            "type": "object",
+            "properties": {
+                "Key": {"type": "string"},
+                "Value": {"type": "string"},
+            },
+            "required": ["Key", "Value"],
+        }
+        definitions = {
+            "Tag": {"one_of": [key_value_branch, dict(key_value_branch)]}
+        }
+        tags = {"type": "array", "items": {"ref_name": "Tag"}}
+
+        self.assertFalse(
+            catalog._is_runtime_safe_mapping(
+                Shape("map", value=Shape("string")), tags, definitions, "Tags"
+            )
+        )
+
+    def test_tag_map_rejects_permissive_one_of_sibling(self):
+        definitions = {
+            "Tag": {
+                "one_of": [
+                    {
+                        "type": "object",
+                        "properties": {
+                            "Key": {"type": "string"},
+                            "Value": {"type": "string"},
+                        },
+                        "required": ["Key", "Value"],
+                    },
+                    {"type": "object"},
+                ]
+            }
+        }
+        tags = {"type": "array", "items": {"ref_name": "Tag"}}
+
+        self.assertFalse(
+            catalog._is_runtime_safe_mapping(
+                Shape("map", value=Shape("string")), tags, definitions, "Tags"
+            )
+        )
+
+    def test_tag_map_rejects_unmodeled_object_constraint(self):
+        definitions = {
+            "Tag": {
+                "type": "object",
+                "properties": {
+                    "Key": {"type": "string"},
+                    "Value": {"type": "string"},
+                    "Scope": {"type": "string"},
+                },
+                "required": ["Key", "Value"],
+                "dependent_required": {"Key": ["Scope"]},
+            }
+        }
+        tags = {"type": "array", "items": {"ref_name": "Tag"}}
+
+        self.assertFalse(
+            catalog._is_runtime_safe_mapping(
+                Shape("map", value=Shape("string")), tags, definitions, "Tags"
+            )
+        )
+
+    def test_tag_map_rejects_non_string_value_field(self):
+        definitions = {
+            "Tag": {
+                "type": "object",
+                "properties": {
+                    "Key": {"type": "string"},
+                    "Value": {"type": "integer"},
+                },
+                "required": ["Key", "Value"],
+            }
+        }
+        tags = {"type": "array", "items": {"ref_name": "Tag"}}
+
+        self.assertFalse(
+            catalog._is_runtime_safe_mapping(
+                Shape("map", value=Shape("string")), tags, definitions, "Tags"
+            )
+        )
+
+    def test_tag_map_accepts_optional_additional_target_field(self):
+        definitions = {
+            "Tag": {
+                "type": "object",
+                "properties": {
+                    "Key": {"type": "string"},
+                    "Value": {"type": "string"},
+                    "Description": {"type": "string"},
+                },
+                "required": ["Key", "Value"],
+            }
+        }
+        tags = {"type": "array", "items": {"ref_name": "Tag"}}
+
+        self.assertTrue(
+            catalog._is_runtime_safe_mapping(
+                Shape("map", value=Shape("string")), tags, definitions, "Tags"
             )
         )
 

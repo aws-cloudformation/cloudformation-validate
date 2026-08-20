@@ -97,9 +97,11 @@ provider handler metadata and verified against botocore models and the compiled 
 verified service+operation pairs produce inferred resource types and synthesized templates. Unregistered operations are classified as
 `UNMAPPED_MUTATION` or `DATA_PLANE_MUTATION` with `SKIPPED` status and no inferred resource types. Cloud Control
 `UpdateResource` and `DeleteResource` may echo a known `TypeName` supplied by the request, but never synthesize state.
-The canonical `service_name` is authoritative; `service_prefix` cannot override it. Case normalization accepts CLI
-names (for example, `s3`) and Java SDK casing (for example, `S3`) without fuzzy or punctuation aliases.
-`TemplateBody` validation is restricted to CloudFormation operations that accept it, and
+The canonical `service_name` is authoritative; the optional `service_prefix` is context only and cannot override it.
+`service_name` must be the exact canonical botocore service name, normalized only for ASCII case. The core does not
+guess signing, endpoint, or punctuation aliases and never matches on substrings. Any caller, including a future AWS
+SDK adapter in any language, must translate its native service identity to the canonical botocore `service_name`
+before invoking this API. `TemplateBody` validation is restricted to CloudFormation operations that accept it, and
 `TypeName`+`DesiredState` wrapping applies only to exact Cloud Control `CreateResource`.
 
 #### AWS CLI integration

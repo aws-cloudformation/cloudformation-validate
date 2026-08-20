@@ -227,7 +227,7 @@ if result.Report != nil {
 
 ```go
 type AWSAPIRequest struct {
-    ServiceName   string         // AWS service (e.g. "s3", "DynamoDb") - case-insensitive
+    ServiceName   string         // canonical botocore service name (e.g. "s3") - ASCII case-insensitive
     OperationName string         // operation name (e.g. "CreateBucket") - case-sensitive
     Parameters    map[string]any // request parameters: strings, numbers, booleans, []byte, maps, slices, nil
     ServicePrefix string         // optional signing prefix (e.g. "cloudcontrolapi")
@@ -245,6 +245,13 @@ are represented as unsupported rather than rounded through `float64`. SDK-define
 Non-finite floats, maps with non-string keys, and unsupported types are represented as `UNSUPPORTED` rather than
 coerced.
 
+The canonical `ServiceName` is authoritative; the optional `ServicePrefix` is context only and cannot override it.
+`ServiceName` must be the exact canonical botocore service name, normalized only for ASCII case. The core does not
+guess signing, endpoint, or punctuation aliases and never matches on substrings. Any caller, including a future AWS
+SDK adapter in any language, must translate its native service identity to the canonical botocore `ServiceName` before
+invoking this API. `TemplateBody` validation is restricted to CloudFormation operations that accept it, and
+`TypeName`+`DesiredState` wrapping applies only to exact Cloud Control `CreateResource`.
+
 ### AWSAPIRequestValidation
 
 ```go
@@ -255,8 +262,14 @@ type AWSAPIRequestValidation struct {
     ResourceTypes  []string                      // inferred CloudFormation resource types
     Reason         string                        // human-readable explanation
     Report         *StandardReport               // present only when Status is VALIDATED
+    Template       []byte                        // exact validated/synthesized template bytes; nil when SKIPPED
 }
 ```
+
+`Template` carries the exact bytes that were validated - the caller's original `TemplateBody` without reserializing, or
+the synthesized JSON template for adapter-mapped requests - so consumers can display the modeled template that produced
+the diagnostics. It is nil when the request was skipped. The core serializes these bytes as a JSON integer array, which
+the Go decoder converts back into a `[]byte`.
 
 ## TemplateModel
 

@@ -468,6 +468,111 @@ class SmokeTest {
         }
     }
 
+    // ── AWS API request validation ────────────────────────────────────────────
+
+    private val awsApiEngines: List<Pair<String, Engine>> = listOf("rego" to REGO, "cel" to CEL)
+
+    private fun diagnosticKeys(report: StandardReport): List<String> =
+        report.diagnostics.map { "${it.ruleId}|${it.severity}|${it.startLine}|${it.startColumn}" }.sorted()
+
+    @Suppress("UNCHECKED_CAST")
+    private fun synthesizedBucketName(template: ByteArray?): String {
+        assertNotNull(template, "a validated request must carry the synthesized template bytes")
+        val document = JsonParser(String(template!!)).parseValue() as Map<String, Any?>
+        val resource = (document["Resources"] as Map<String, Any?>)["Resource"] as Map<String, Any?>
+        assertEquals("AWS::S3::Bucket", resource["Type"], "synthesized resource type")
+        return (resource["Properties"] as Map<String, Any?>)["BucketName"] as String
+    }
+
+    @Test
+    fun awsApiS3CreateBucketSynthesizesOnBothEngines() {
+        val request = AwsApiRequest("s3", "CreateBucket", mapOf("Bucket" to "synthetic-bucket"))
+        val perEngine = LinkedHashMap<String, AwsApiRequestValidation>()
+        for ((name, engine) in awsApiEngines) {
+            val validation = engine.validateAwsApiRequest(request)
+            assertEquals(AwsApiRequestValidationStatus.VALIDATED, validation.status, "$name: status")
+            assertEquals(AwsApiOperationKind.CLOUD_FORMATION_CREATE, validation.operationKind, "$name: operation kind")
+            assertEquals(listOf("AWS::S3::Bucket"), validation.resourceTypes, "$name: resource types")
+            assertEquals(AwsApiTemplateSource.SYNTHESIZED_CREATE, validation.templateSource, "$name: template source")
+            assertNotNull(validation.report, "$name: report must be present for a validated request")
+            assertEquals("synthetic-bucket", synthesizedBucketName(validation.template), "$name: synthesized bucket name")
+            perEngine[name] = validation
+        }
+        // Rego/CEL parity on the modeled template and diagnostics, not timings.
+        assertTrue(
+            perEngine.getValue("rego").template.contentEquals(perEngine.getValue("cel").template),
+            "engines must synthesize identical templates",
+        )
+        assertEquals(
+            diagnosticKeys(perEngine.getValue("rego").report!!),
+            diagnosticKeys(perEngine.getValue("cel").report!!),
+            "engines must agree on diagnostics",
+        )
+    }
+
+    @Test
+    fun awsApiValidateTemplatePreservesExactBytes() {
+        // Distinctive whitespace and key order a reserialization would not reproduce.
+        val templateBody = "{\n    \"Resources\": {\n        \"Bucket\": { \"Type\": \"AWS::S3::Bucket\" }\n    }\n}".toByteArray()
+        val request = AwsApiRequest("cloudformation", "ValidateTemplate", mapOf("TemplateBody" to templateBody))
+        for ((name, engine) in awsApiEngines) {
+            val validation = engine.validateAwsApiRequest(request)
+            assertEquals(AwsApiRequestValidationStatus.VALIDATED, validation.status, "$name: status")
+            assertEquals(AwsApiTemplateSource.TEMPLATE_BODY, validation.templateSource, "$name: template source")
+            assertTrue(
+                templateBody.contentEquals(validation.template),
+                "$name: TemplateBody must be preserved byte-for-byte",
+            )
+        }
+    }
+
+    @Test
+    fun awsApiConservativelySkipsNestedDynamoDbFields() {
+        val request = AwsApiRequest(
+            "dynamodb",
+            "CreateTable",
+            mapOf(
+                "TableName" to "Synthetic",
+                "KeySchema" to listOf(mapOf("AttributeName" to "id", "KeyType" to "HASH")),
+                "AttributeDefinitions" to listOf(mapOf("AttributeName" to "id", "AttributeType" to "S")),
+                "BillingMode" to "PAY_PER_REQUEST",
+            ),
+        )
+        for ((name, engine) in awsApiEngines) {
+            val validation = engine.validateAwsApiRequest(request)
+            assertEquals(AwsApiRequestValidationStatus.SKIPPED, validation.status, "$name: status")
+            assertNull(validation.report, "$name: a skipped request must have no report")
+            assertNull(validation.template, "$name: a skipped request must have no template")
+            assertEquals(listOf("AWS::DynamoDB::Table"), validation.resourceTypes, "$name: resource type still identified")
+            assertTrue(
+                validation.reason.contains("has no mapping"),
+                "$name: reason must explain the unmapped nested field: ${validation.reason}",
+            )
+        }
+    }
+
+    @Test
+    fun awsApiDoesNotGuessNoncanonicalServiceAlias() {
+        // CloudWatch's canonical botocore name is "cloudwatch"; "monitoring" is its
+        // signing name. The core resolves the canonical name but never the alias.
+        val canonical = AwsApiRequest("cloudwatch", "PutMetricAlarm", mapOf("AlarmName" to "synthetic"))
+        val alias = AwsApiRequest("monitoring", "PutMetricAlarm", mapOf("AlarmName" to "synthetic"))
+        for ((name, engine) in awsApiEngines) {
+            val canonicalValidation = engine.validateAwsApiRequest(canonical)
+            assertTrue(
+                canonicalValidation.resourceTypes.contains("AWS::CloudWatch::Alarm"),
+                "$name: canonical cloudwatch:PutMetricAlarm must identify AWS::CloudWatch::Alarm",
+            )
+            val aliasValidation = engine.validateAwsApiRequest(alias)
+            assertEquals(AwsApiRequestValidationStatus.SKIPPED, aliasValidation.status, "$name: alias status")
+            assertFalse(
+                aliasValidation.resourceTypes.contains("AWS::CloudWatch::Alarm"),
+                "$name: signing alias 'monitoring' must not resolve to AWS::CloudWatch::Alarm",
+            )
+            assertNull(aliasValidation.template, "$name: an unresolved alias must not synthesize a template")
+        }
+    }
+
     companion object {
         private val resourcesRoot: File = listOf(
             File("${System.getProperty("user.dir")}/../../resources"),

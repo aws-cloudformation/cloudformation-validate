@@ -27,6 +27,13 @@ interface Engine {
 /**
  * Service, operation, and request values for CloudFormation validation.
  *
+ * [serviceName] is the canonical botocore service name (for example "s3" or
+ * "cloudformation") and is the authoritative mapping identity, normalized only
+ * for ASCII case - never a signing name, ARN prefix, or endpoint alias. A future
+ * AWS SDK adapter, in any language, must translate its native service identity to
+ * the canonical botocore [serviceName] before calling; the core does not guess
+ * aliases.
+ *
  * [parameters] accepts nested maps/lists, strings, numbers, booleans, nulls,
  * byte arrays, and Java time values. Unsupported values are marked explicitly
  * and conservatively omitted during request-to-template synthesis.

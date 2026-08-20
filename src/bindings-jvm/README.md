@@ -111,97 +111,12 @@ provider handler metadata and verified against botocore models and the compiled 
 verified service+operation pairs produce inferred resource types and synthesized templates. Unregistered operations are classified as
 `UNMAPPED_MUTATION` or `DATA_PLANE_MUTATION` with `SKIPPED` status and no inferred resource types. Cloud Control
 `UpdateResource` and `DeleteResource` may echo a known `TypeName` supplied by the request, but never synthesize state.
-The canonical `serviceName` is authoritative; `servicePrefix` cannot override it. Case normalization accepts CLI names
-(for example, `s3`) and Java SDK `SERVICE_NAME` values (for example, `S3`) without fuzzy or punctuation aliases.
-`TemplateBody` validation is restricted to CloudFormation operations that accept it, and
+The canonical `serviceName` is authoritative; the optional `servicePrefix` is context only and cannot override it.
+`serviceName` must be the exact canonical botocore service name, normalized only for ASCII case. The core does not
+guess signing, endpoint, or punctuation aliases and never matches on substrings. Any caller, including a future AWS
+SDK adapter in any language, must translate its native service identity to the canonical botocore `serviceName` before
+invoking this API. `TemplateBody` validation is restricted to CloudFormation operations that accept it, and
 `TypeName`+`DesiredState` wrapping applies only to exact Cloud Control `CreateResource`.
-
-#### AWS SDK for Java 2.x integration
-
-An `ExecutionInterceptor` can validate the real `SdkRequest` in `beforeExecution`, before the SDK marshals or sends it.
-Convert `SdkPojo` fields recursively so nested request models and `SdkBytes` retain their values:
-
-```java
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import software.amazon.awssdk.core.SdkBytes;
-import software.amazon.awssdk.core.SdkField;
-import software.amazon.awssdk.core.SdkPojo;
-import software.amazon.awssdk.core.interceptor.Context;
-import software.amazon.awssdk.core.interceptor.ExecutionAttributes;
-import software.amazon.awssdk.core.interceptor.ExecutionInterceptor;
-import software.amazon.awssdk.core.interceptor.SdkExecutionAttribute;
-import software.amazon.cloudformation.validate.AwsApiRequest;
-import software.amazon.cloudformation.validate.RegoEngine;
-import software.amazon.cloudformation.validate.ValidateConfig;
-import software.amazon.cloudformation.validate.engine.AwsApiRequestValidation;
-
-public final class CloudFormationValidationInterceptor implements ExecutionInterceptor {
-    private final RegoEngine engine = new RegoEngine();
-
-    @Override
-    public void beforeExecution(Context.BeforeExecution context, ExecutionAttributes attributes) {
-        AwsApiRequestValidation result = engine.validateAwsApiRequest(
-            new AwsApiRequest(
-                attributes.getAttribute(SdkExecutionAttribute.SERVICE_NAME),
-                attributes.getAttribute(SdkExecutionAttribute.OPERATION_NAME),
-                sdkFields(context.request())
-            ),
-            new ValidateConfig()
-        );
-
-        if (result.getReport() != null) {
-            result.getReport().getDiagnostics().forEach(diagnostic ->
-                System.out.println(diagnostic.getRuleId() + ": " + diagnostic.getMessage())
-            );
-        } else {
-            System.out.println(result.getStatus() + ": " + result.getReason());
-        }
-    }
-
-    private static Map<String, Object> sdkFields(SdkPojo pojo) {
-        Map<String, Object> values = new LinkedHashMap<>();
-        for (SdkField<?> field : pojo.sdkFields()) {
-            Object value = field.getValueOrDefault(pojo);
-            if (value != null) {
-                values.put(field.memberName(), sdkValue(value));
-            }
-        }
-        return values;
-    }
-
-    private static Object sdkValue(Object value) {
-        if (value instanceof SdkBytes) {
-            return ((SdkBytes) value).asByteArray();
-        }
-        if (value instanceof SdkPojo) {
-            return sdkFields((SdkPojo) value);
-        }
-        if (value instanceof Map) {
-            Map<String, Object> converted = new LinkedHashMap<>();
-            for (Map.Entry<?, ?> entry : ((Map<?, ?>) value).entrySet()) {
-                converted.put(String.valueOf(entry.getKey()), sdkValue(entry.getValue()));
-            }
-            return converted;
-        }
-        if (value instanceof Iterable) {
-            List<Object> converted = new ArrayList<>();
-            for (Object item : (Iterable<?>) value) {
-                converted.add(sdkValue(item));
-            }
-            return converted;
-        }
-        return value;
-    }
-}
-```
-
-Register the interceptor through the SDK client's `overrideConfiguration`. The engine is safe to reuse; constructing it
-for every request needlessly recompiles the bundled rules. The example reports findings, but an interceptor can instead
-throw after applying application-specific policy to prevent the API call. The adapter adds no AWS SDK dependency to
-`cloudformation-validate` itself.
 
 ### `EngineConfig`
 

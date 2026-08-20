@@ -224,6 +224,13 @@ def file_to_external_rule_source(path: typing.Union[str, os.PathLike]) -> Extern
 class AwsApiRequest:
     """Service, operation, and request values for CloudFormation validation.
 
+    ``service_name`` is the canonical botocore service name (for example ``"s3"``
+    or ``"cloudformation"``) and is the authoritative mapping identity, normalized
+    only for ASCII case - never a signing name, ARN prefix, or endpoint alias. A
+    future AWS SDK adapter, in any language, must translate its native service
+    identity to the canonical botocore ``service_name`` before calling; the core
+    does not guess aliases.
+
     ``parameters`` accepts the same Python values used by botocore request
     dictionaries, including nested mappings/sequences, ``bytes``, and
     ``datetime.datetime``. Values that cannot be represented are carried as an
