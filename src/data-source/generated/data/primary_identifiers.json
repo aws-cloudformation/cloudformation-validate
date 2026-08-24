@@ -354,6 +354,9 @@
       "DomainName",
       "SegmentDefinitionName"
     ],
+    "AWS::DAX::ParameterGroup": [
+      "ParameterGroupName"
+    ],
     "AWS::DMS::EventSubscription": [
       "SubscriptionName"
     ],
@@ -400,6 +403,9 @@
       "AccountId"
     ],
     "AWS::DevOpsAgent::PrivateConnection": [
+      "Name"
+    ],
+    "AWS::DocDB::DBClusterParameterGroup": [
       "Name"
     ],
     "AWS::DocDB::DBSubnetGroup": [
