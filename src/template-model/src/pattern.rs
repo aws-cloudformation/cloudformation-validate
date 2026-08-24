@@ -140,6 +140,7 @@ fn normalize(pattern: &str) -> String {
     let mut out = pattern.replace(r"\Z", r"\z");
     out = convert_unicode_escapes(&out);
     out = expand_posix_classes(&out);
+    out = rewrite_unicode_other_complement(&out);
     out = repair_char_classes(&out);
     QUANTIFIED_LOOKAROUND.replace_all(&out, "$1").into_owned()
 }
@@ -294,6 +295,41 @@ fn posix_expansion(chars: &[char], index: usize, token: &[char], members: &str, 
     Some(if inside_class { members.to_string() } else { format!("[{members}]") })
 }
 
+const UNICODE_OTHER_COMPLEMENT: &[char] = &['[', '^', '\\', 'p', '{', 'C', '}', ']'];
+const UNICODE_OTHER_LOOKAHEAD: &str = r"(?:(?!\p{C})(?s:.))";
+
+/// A large bounded repetition of `[^\p{C}]` expands beyond the `regex` crate's NFA size limit.
+/// Expressing the same one-scalar predicate as a lookahead keeps the repetition compact in the
+/// backtracking engine: the lookahead rejects Unicode Other and the dot-all atom consumes exactly
+/// one scalar from every remaining general category.
+fn rewrite_unicode_other_complement(pattern: &str) -> String {
+    let chars: Vec<char> = pattern.chars().collect();
+    let mut out = String::with_capacity(pattern.len());
+    let mut index = 0;
+    let mut inside_class = false;
+    while index < chars.len() {
+        if chars[index] == '\\' && index + 1 < chars.len() {
+            out.push(chars[index]);
+            out.push(chars[index + 1]);
+            index += 2;
+            continue;
+        }
+        if !inside_class && chars[index..].starts_with(UNICODE_OTHER_COMPLEMENT) {
+            out.push_str(UNICODE_OTHER_LOOKAHEAD);
+            index += UNICODE_OTHER_COMPLEMENT.len();
+            continue;
+        }
+        match chars[index] {
+            '[' => inside_class = true,
+            ']' => inside_class = false,
+            _ => {}
+        }
+        out.push(chars[index]);
+        index += 1;
+    }
+    out
+}
+
 /// Repair character classes that Rust rejects but which are valid (or intended) service-side:
 /// a `-` immediately after a shorthand (`\w`, `\d`, `\s`, `\p{...}`) or a `[` appearing literally
 /// inside a class. Escaping the hyphen makes it a literal `-` (its only sensible meaning there), and
@@ -417,6 +453,27 @@ mod tests {
         let compiled = compile(r"^[\w.-]{1,255}$").expect("size-limit pattern compiles");
         assert!(matches!(*compiled, CompiledPattern::Fast(_)));
         assert!(compiled.is_match("valid.name-1"));
+    }
+
+    #[test]
+    fn bounded_unicode_other_complement_preserves_category_and_length_constraints() {
+        let compiled = compile(r"^[^\p{C}]{1,2048}$").expect("bounded Unicode category pattern compiles");
+
+        assert!(compiled.is_match("cafe\u{301} 123 ☃!"));
+        assert!(!compiled.is_match(""), "the lower length boundary must be enforced");
+        for (category, value) in [
+            ("Control", "line\nbreak"),
+            ("Format", "zero\u{200B}width"),
+            ("Private Use", "private\u{E000}use"),
+            ("Unassigned", "unassigned\u{0378}"),
+        ] {
+            assert!(!compiled.is_match(value), "Unicode {category} characters must be rejected");
+        }
+
+        let maximum_length = "a".repeat(2048);
+        let above_maximum_length = "a".repeat(2049);
+        assert!(compiled.is_match(&maximum_length), "the upper length boundary must be accepted");
+        assert!(!compiled.is_match(&above_maximum_length), "values above the upper length boundary must be rejected");
     }
 
     #[test]

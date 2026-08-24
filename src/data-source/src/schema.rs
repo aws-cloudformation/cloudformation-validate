@@ -1,5 +1,6 @@
 use crate::SyncStats;
 use crate::source_versions::RESOURCE_SCHEMA_SOURCE;
+use anyhow::Context;
 use chrono::DateTime;
 use log::{debug, info};
 use serde::Deserialize;
@@ -25,7 +26,8 @@ struct ResourceSchemaVersion {
 }
 
 fn parse_resource_schema_version(body: &[u8]) -> anyhow::Result<String> {
-    let document: ResourceSchemaVersion = serde_json::from_slice(body)?;
+    let document: ResourceSchemaVersion = serde_json::from_slice(body)
+        .context("enhanced schema version response is not a valid JSON object with string field schema_date")?;
     let version = document.schema_date.trim();
     anyhow::ensure!(!version.is_empty(), "enhanced schema version has a blank schema_date");
     DateTime::parse_from_rfc3339(version)
@@ -34,9 +36,15 @@ fn parse_resource_schema_version(body: &[u8]) -> anyhow::Result<String> {
 }
 
 fn download_resource_schema_version() -> anyhow::Result<String> {
-    let response = ureq::get(CFN_SCHEMA_VERSION_URL).call()?;
-    let body = response.into_body().read_to_vec()?;
+    let response = ureq::get(CFN_SCHEMA_VERSION_URL).call().with_context(|| {
+        format!("failed to download enhanced schema version metadata from {CFN_SCHEMA_VERSION_URL}")
+    })?;
+    let body = response
+        .into_body()
+        .read_to_vec()
+        .with_context(|| format!("failed to read enhanced schema version metadata from {CFN_SCHEMA_VERSION_URL}"))?;
     parse_resource_schema_version(&body)
+        .with_context(|| format!("failed to parse enhanced schema version metadata from {CFN_SCHEMA_VERSION_URL}"))
 }
 
 /// Download and assemble CloudFormation schemas into `upstream_dir`.
@@ -54,8 +62,13 @@ pub fn download_schemas(upstream_dir: &Path) -> anyhow::Result<(SyncStats, Strin
 
     let version_before_download = download_resource_schema_version()?;
     info!("Downloading enhanced schemas from {}", CFN_SCHEMA_ZIP_URL);
-    let resp = ureq::get(CFN_SCHEMA_ZIP_URL).call()?;
-    let bytes = resp.into_body().read_to_vec()?;
+    let response = ureq::get(CFN_SCHEMA_ZIP_URL)
+        .call()
+        .with_context(|| format!("failed to download enhanced schema archive from {CFN_SCHEMA_ZIP_URL}"))?;
+    let bytes = response
+        .into_body()
+        .read_to_vec()
+        .with_context(|| format!("failed to read enhanced schema archive from {CFN_SCHEMA_ZIP_URL}"))?;
     let resource_schema_version = download_resource_schema_version()?;
     anyhow::ensure!(
         version_before_download == resource_schema_version,
@@ -65,7 +78,8 @@ pub fn download_schemas(upstream_dir: &Path) -> anyhow::Result<(SyncStats, Strin
     );
     info!("Downloaded {} bytes, reading archive", bytes.len());
 
-    let mut archive = zip::ZipArchive::new(Cursor::new(bytes))?;
+    let mut archive = zip::ZipArchive::new(Cursor::new(bytes))
+        .with_context(|| format!("downloaded enhanced schema archive from {CFN_SCHEMA_ZIP_URL} is not a valid ZIP"))?;
 
     // Pass 1: read every provider map (region → {type_name: content_hash}) and
     // persist it for the region-resource-type sync. Build a single type→hash map,
@@ -84,8 +98,11 @@ pub fn download_schemas(upstream_dir: &Path) -> anyhow::Result<(SyncStats, Strin
 
     let mut type_to_hash: BTreeMap<String, String> = BTreeMap::new();
     for name in &region_files {
-        let mut entry = archive.by_name(name)?;
-        let map: BTreeMap<String, String> = serde_json::from_reader(&mut entry)?;
+        let mut entry =
+            archive.by_name(name).with_context(|| format!("failed to read provider map archive entry {name}"))?;
+        let map: BTreeMap<String, String> = serde_json::from_reader(&mut entry).with_context(|| {
+            format!("provider map archive entry {name} is not a valid string-to-string JSON object")
+        })?;
         drop(entry);
         for (type_name, hash) in &map {
             type_to_hash.entry(type_name.clone()).or_insert_with(|| hash.clone());
@@ -100,11 +117,12 @@ pub fn download_schemas(upstream_dir: &Path) -> anyhow::Result<(SyncStats, Strin
     // or truncated download - fail rather than silently dropping the type.
     for (type_name, hash) in &type_to_hash {
         let resource_path = format!("resources/{hash}.json");
-        let mut entry = archive.by_name(&resource_path).map_err(|e| {
-            anyhow::anyhow!("provider maps reference {} but {} is absent: {}", type_name, resource_path, e)
+        let mut entry = archive.by_name(&resource_path).with_context(|| {
+            format!("provider map references {resource_path} for {type_name}, but the archive entry could not be read")
         })?;
-        let schema: Value = serde_json::from_reader(&mut entry)
-            .map_err(|e| anyhow::anyhow!("failed to parse {} for {}: {}", resource_path, type_name, e))?;
+        let schema: Value = serde_json::from_reader(&mut entry).with_context(|| {
+            format!("resource schema archive entry {resource_path} for {type_name} is not valid JSON")
+        })?;
         drop(entry);
         let filename = type_name.replace("::", "-").to_lowercase();
         fs::write(schemas_out.join(format!("{filename}.json")), serde_json::to_string_pretty(&schema)?)?;
@@ -121,13 +139,19 @@ pub fn download_schemas(upstream_dir: &Path) -> anyhow::Result<(SyncStats, Strin
 
 fn download_sam_schemas(output_dir: &Path) -> anyhow::Result<usize> {
     info!("Downloading SAM schema from {}", SAM_SCHEMA_URL);
-    let resp = ureq::get(SAM_SCHEMA_URL).call()?;
-    let body = resp.into_body().read_to_vec()?;
-    let schema: Value = serde_json::from_slice(&body)?;
+    let response = ureq::get(SAM_SCHEMA_URL)
+        .call()
+        .with_context(|| format!("failed to download SAM schema from {SAM_SCHEMA_URL}"))?;
+    let body = response
+        .into_body()
+        .read_to_vec()
+        .with_context(|| format!("failed to read SAM schema from {SAM_SCHEMA_URL}"))?;
+    let schema: Value = serde_json::from_slice(&body)
+        .with_context(|| format!("SAM schema response from {SAM_SCHEMA_URL} is not valid JSON"))?;
     let defs = schema
         .get("definitions")
         .and_then(|d| d.as_object())
-        .ok_or_else(|| anyhow::anyhow!("SAM schema missing 'definitions'"))?;
+        .ok_or_else(|| anyhow::anyhow!("SAM schema response from {SAM_SCHEMA_URL} is missing 'definitions'"))?;
 
     let mut count = 0;
     for (def_name, def_val) in defs {
@@ -254,7 +278,11 @@ mod tests {
 
     #[test]
     fn resource_schema_version_rejects_malformed_json() {
-        assert!(parse_resource_schema_version(b"not json").is_err());
+        let error = parse_resource_schema_version(b"not json").expect_err("malformed JSON must fail");
+        assert_eq!(
+            error.to_string(),
+            "enhanced schema version response is not a valid JSON object with string field schema_date"
+        );
     }
 
     #[test]

@@ -27,6 +27,7 @@
     "AWS::Amplify::App": "string",
     "AWS::Amplify::Branch": "string",
     "AWS::Amplify::Domain": "string",
+    "AWS::Amplify::Webhook": "string",
     "AWS::AmplifyUIBuilder::Component": "string",
     "AWS::AmplifyUIBuilder::Form": "string",
     "AWS::AmplifyUIBuilder::Theme": "string",
@@ -119,6 +120,7 @@
     "AWS::AppSync::GraphQLSchema": "string",
     "AWS::AppSync::Resolver": "string",
     "AWS::AppSync::SourceApiAssociation": "string",
+    "AWS::AppSync::Type": "string",
     "AWS::AppTest::TestCase": "string",
     "AWS::ApplicationAutoScaling::ScalableTarget": "string",
     "AWS::ApplicationAutoScaling::ScalingPolicy": "string",
@@ -228,6 +230,7 @@
     "AWS::CE::AnomalySubscription": "string",
     "AWS::CE::CostCategory": "string",
     "AWS::CUR::ReportDefinition": "string",
+    "AWS::Cases::Case": "string",
     "AWS::Cases::CaseRule": "string",
     "AWS::Cases::Domain": "string",
     "AWS::Cases::Field": "string",
@@ -261,6 +264,7 @@
     "AWS::CleanRoomsML::ConfiguredModelAlgorithmAssociation": "string",
     "AWS::CleanRoomsML::TrainingDataset": "string",
     "AWS::Cloud9::EnvironmentEC2": "string",
+    "AWS::CloudFormation::ChangeSet": "string",
     "AWS::CloudFormation::CustomResource": "string",
     "AWS::CloudFormation::GeneratedTemplate": "string",
     "AWS::CloudFormation::GuardHook": "string",
@@ -324,6 +328,7 @@
     "AWS::CodeBuild::SourceCredential": "string",
     "AWS::CodeCommit::Repository": "string",
     "AWS::CodeConnections::Connection": "string",
+    "AWS::CodeConnections::Host": "string",
     "AWS::CodeDeploy::Application": "string",
     "AWS::CodeDeploy::DeploymentConfig": "string",
     "AWS::CodeDeploy::DeploymentGroup": "string",
@@ -444,6 +449,7 @@
     "AWS::DataBrew::Ruleset": "string",
     "AWS::DataBrew::Schedule": "string",
     "AWS::DataExchange::DataSet": "string",
+    "AWS::DataExchange::EventAction": "string",
     "AWS::DataPipeline::Pipeline": "string",
     "AWS::DataSync::Agent": "string",
     "AWS::DataSync::LocationAzureBlob": "string",
@@ -475,6 +481,7 @@
     "AWS::DataZone::ProjectProfile": "string",
     "AWS::DataZone::SubscriptionTarget": "string",
     "AWS::DataZone::UserProfile": "string",
+    "AWS::Deadline::Budget": "string",
     "AWS::Deadline::Farm": "string",
     "AWS::Deadline::Fleet": "string",
     "AWS::Deadline::LicenseEndpoint": "string",
@@ -486,6 +493,7 @@
     "AWS::Deadline::QueueFleetAssociation": "string",
     "AWS::Deadline::QueueLimitAssociation": "string",
     "AWS::Deadline::StorageProfile": "string",
+    "AWS::Deadline::Worker": "string",
     "AWS::Detective::Graph": "string",
     "AWS::Detective::MemberInvitation": "string",
     "AWS::Detective::OrganizationAdmin": "string",
@@ -791,6 +799,7 @@
     "AWS::Glue::SchemaVersion": "string",
     "AWS::Glue::SchemaVersionMetadata": "string",
     "AWS::Glue::SecurityConfiguration": "string",
+    "AWS::Glue::Session": "string",
     "AWS::Glue::Table": "string",
     "AWS::Glue::TableOptimizer": "string",
     "AWS::Glue::Trigger": "string",
@@ -820,6 +829,7 @@
     "AWS::GroundStation::DataflowEndpointGroup": "string",
     "AWS::GroundStation::DataflowEndpointGroupV2": "string",
     "AWS::GroundStation::MissionProfile": "string",
+    "AWS::GuardDuty::CustomDetectionRuleAssociation": "string",
     "AWS::GuardDuty::Detector": "string",
     "AWS::GuardDuty::Filter": "string",
     "AWS::GuardDuty::IPSet": "string",
@@ -908,6 +918,7 @@
     "AWS::IoT::SecurityProfile": "string",
     "AWS::IoT::SoftwarePackage": "string",
     "AWS::IoT::SoftwarePackageVersion": "string",
+    "AWS::IoT::Stream": "string",
     "AWS::IoT::Thing": "string",
     "AWS::IoT::ThingGroup": "string",
     "AWS::IoT::ThingPrincipalAttachment": "string",
@@ -932,6 +943,7 @@
     "AWS::IoTManagedIntegrations::CredentialLocker": "string",
     "AWS::IoTManagedIntegrations::ManagedThing": "string",
     "AWS::IoTManagedIntegrations::ProvisioningProfile": "string",
+    "AWS::IoTSecureTunneling::Tunnel": "string",
     "AWS::IoTSiteWise::AccessPolicy": "string",
     "AWS::IoTSiteWise::Asset": "string",
     "AWS::IoTSiteWise::AssetModel": "string",
@@ -967,6 +979,8 @@
     "AWS::Kendra::DataSource": "string",
     "AWS::Kendra::Faq": "string",
     "AWS::Kendra::Index": "string",
+    "AWS::Kendra::QuerySuggestionsBlockList": "string",
+    "AWS::Kendra::Thesaurus": "string",
     "AWS::KendraRanking::ExecutionPlan": "string",
     "AWS::Kinesis::ResourcePolicy": "string",
     "AWS::Kinesis::Stream": "string",
@@ -1053,6 +1067,7 @@
     "AWS::M2::Application": "string",
     "AWS::M2::Deployment": "string",
     "AWS::M2::Environment": "string",
+    "AWS::MGN::NetworkMigrationDefinition": "string",
     "AWS::MPA::ApprovalTeam": "string",
     "AWS::MPA::IdentitySource": "string",
     "AWS::MSK::BatchScramSecret": "string",
@@ -1119,6 +1134,7 @@
     "AWS::MediaTailor::Function": "string",
     "AWS::MediaTailor::LiveSource": "string",
     "AWS::MediaTailor::PlaybackConfiguration": "string",
+    "AWS::MediaTailor::PrefetchSchedule": "string",
     "AWS::MediaTailor::SourceLocation": "string",
     "AWS::MediaTailor::VodSource": "string",
     "AWS::MemoryDB::ACL": "string",
@@ -1187,6 +1203,7 @@
     "AWS::Omics::AnnotationStore": "string",
     "AWS::Omics::Configuration": "string",
     "AWS::Omics::ReferenceStore": "string",
+    "AWS::Omics::RunCache": "string",
     "AWS::Omics::RunGroup": "string",
     "AWS::Omics::SequenceStore": "string",
     "AWS::Omics::VariantStore": "string",
@@ -1235,6 +1252,7 @@
     "AWS::Personalize::Dataset": "string",
     "AWS::Personalize::DatasetGroup": "string",
     "AWS::Personalize::EventTracker": "string",
+    "AWS::Personalize::MetricAttribution": "string",
     "AWS::Personalize::Schema": "string",
     "AWS::Personalize::Solution": "string",
     "AWS::Pinpoint::ADMChannel": "string",
@@ -1297,6 +1315,7 @@
     "AWS::QuickSight::VPCConnection": "string",
     "AWS::RAM::Permission": "string",
     "AWS::RAM::ResourceShare": "string",
+    "AWS::RDS::ClusterSnapshot": "string",
     "AWS::RDS::CustomDBEngineVersion": "string",
     "AWS::RDS::DBCluster": "string",
     "AWS::RDS::DBClusterParameterGroup": "string",
@@ -1308,6 +1327,7 @@
     "AWS::RDS::DBSecurityGroup": "string",
     "AWS::RDS::DBSecurityGroupIngress": "string",
     "AWS::RDS::DBShardGroup": "string",
+    "AWS::RDS::DBSnapshot": "string",
     "AWS::RDS::DBSubnetGroup": "string",
     "AWS::RDS::EventSubscription": "string",
     "AWS::RDS::GlobalCluster": "string",
@@ -1618,6 +1638,7 @@
     "AWS::Synthetics::Canary": "string",
     "AWS::Synthetics::Group": "string",
     "AWS::SystemsManagerSAP::Application": "string",
+    "AWS::Textract::Adapter": "string",
     "AWS::Timestream::Database": "string",
     "AWS::Timestream::InfluxDBCluster": "string",
     "AWS::Timestream::InfluxDBInstance": "string",
@@ -1633,6 +1654,7 @@
     "AWS::Transfer::User": "string",
     "AWS::Transfer::WebApp": "string",
     "AWS::Transfer::Workflow": "string",
+    "AWS::Translate::ParallelData": "string",
     "AWS::UXC::AccountCustomization": "string",
     "AWS::VerifiedPermissions::IdentitySource": "string",
     "AWS::VerifiedPermissions::Policy": "string",
@@ -1974,6 +1996,15 @@
       "StatusReason": "string",
       "SubDomainSettings": "array",
       "UpdateStatus": "string"
+    },
+    "AWS::Amplify::Webhook": {
+      "AppId": "string",
+      "Arn": "string",
+      "BranchName": "string",
+      "Description": "string",
+      "Tags": "array",
+      "WebhookId": "string",
+      "WebhookUrl": "string"
     },
     "AWS::AmplifyUIBuilder::Component": {
       "AppId": "string",
@@ -2851,6 +2882,13 @@
       "SourceApiId": "string",
       "SourceApiIdentifier": "string"
     },
+    "AWS::AppSync::Type": {
+      "ApiId": "string",
+      "Arn": "string",
+      "Definition": "string",
+      "Format": "string",
+      "Name": "string"
+    },
     "AWS::AppTest::TestCase": {
       "CreationTime": "string",
       "Description": "string",
@@ -3677,6 +3715,7 @@
       "UpdatedAt": "string"
     },
     "AWS::BedrockAgentCore::PaymentConnector": {
+      "AuthorizationUrl": "string",
       "ConnectorCreatedAt": "string",
       "ConnectorLastUpdatedAt": "string",
       "ConnectorName": "string",
@@ -3887,6 +3926,15 @@
       "Tags": "array",
       "TimeUnit": "string"
     },
+    "AWS::Cases::Case": {
+      "Arn": "string",
+      "CaseId": "string",
+      "CustomerId": "string",
+      "DomainId": "string",
+      "Tags": "array",
+      "TemplateId": "string",
+      "Title": "string"
+    },
     "AWS::Cases::CaseRule": {
       "CaseRuleArn": "string",
       "CaseRuleId": "string",
@@ -4030,8 +4078,8 @@
     },
     "AWS::Chime::AppInstance": {
       "AppInstanceArn": "string",
-      "CreatedTimestamp": "number",
-      "LastUpdatedTimestamp": "number",
+      "CreatedTimestamp": "string",
+      "LastUpdatedTimestamp": "string",
       "Metadata": "string",
       "Name": "string",
       "Tags": "array"
@@ -4039,8 +4087,8 @@
     "AWS::Chime::AppInstanceBot": {
       "AppInstanceArn": "string",
       "AppInstanceBotArn": "string",
-      "CreatedTimestamp": "number",
-      "LastUpdatedTimestamp": "number",
+      "CreatedTimestamp": "string",
+      "LastUpdatedTimestamp": "string",
       "Metadata": "string",
       "Name": "string",
       "Tags": "array"
@@ -4192,6 +4240,26 @@
       "Repositories": "array",
       "SubnetId": "string",
       "Tags": "array"
+    },
+    "AWS::CloudFormation::ChangeSet": {
+      "Capabilities": "array",
+      "ChangeSetId": "string",
+      "ChangeSetName": "string",
+      "ChangeSetType": "string",
+      "CreationTime": "string",
+      "DeploymentMode": "string",
+      "Description": "string",
+      "ImportExistingResources": "boolean",
+      "IncludeNestedStacks": "boolean",
+      "NotificationARNs": "array",
+      "OnStackFailure": "string",
+      "RoleARN": "string",
+      "StackId": "string",
+      "StackName": "string",
+      "Tags": "array",
+      "TemplateBody": "string",
+      "TemplateURL": "string",
+      "UsePreviousTemplate": "boolean"
     },
     "AWS::CloudFormation::CustomResource": {
       "Id": "string",
@@ -4745,8 +4813,8 @@
       "Type": "string"
     },
     "AWS::CodeBuild::SourceCredential": {
+      "Arn": "string",
       "AuthType": "string",
-      "Id": "string",
       "ServerType": "string",
       "Token": "string",
       "Username": "string"
@@ -4770,6 +4838,15 @@
       "HostArn": "string",
       "OwnerAccountId": "string",
       "ProviderType": "string",
+      "Tags": "array"
+    },
+    "AWS::CodeConnections::Host": {
+      "HostArn": "string",
+      "HostId": "string",
+      "Name": "string",
+      "ProviderEndpoint": "string",
+      "ProviderType": "string",
+      "Status": "string",
       "Tags": "array"
     },
     "AWS::CodeDeploy::Application": {
@@ -5648,7 +5725,6 @@
     },
     "AWS::DAX::ParameterGroup": {
       "Description": "string",
-      "Id": "string",
       "ParameterGroupName": "string"
     },
     "AWS::DAX::SubnetGroup": {
@@ -5890,6 +5966,13 @@
       "Id": "string",
       "Name": "string",
       "Origin": "string",
+      "Tags": "array",
+      "UpdatedAt": "string"
+    },
+    "AWS::DataExchange::EventAction": {
+      "Arn": "string",
+      "CreatedAt": "string",
+      "EventActionId": "string",
       "Tags": "array",
       "UpdatedAt": "string"
     },
@@ -6283,6 +6366,17 @@
       "SessionName": "string",
       "UserIdentifier": "string"
     },
+    "AWS::Deadline::Budget": {
+      "Actions": "array",
+      "ApproximateDollarLimit": "number",
+      "Arn": "string",
+      "BudgetId": "string",
+      "Description": "string",
+      "DisplayName": "string",
+      "FarmId": "string",
+      "Status": "string",
+      "Tags": "array"
+    },
     "AWS::Deadline::Farm": {
       "Arn": "string",
       "CostScaleFactor": "number",
@@ -6378,6 +6472,16 @@
       "FarmId": "string",
       "FileSystemLocations": "array",
       "StorageProfileId": "string"
+    },
+    "AWS::Deadline::Worker": {
+      "Arn": "string",
+      "CreatedAt": "string",
+      "CreatedBy": "string",
+      "FarmId": "string",
+      "FleetId": "string",
+      "Status": "string",
+      "Tags": "array",
+      "WorkerId": "string"
     },
     "AWS::Detective::Graph": {
       "Arn": "string",
@@ -6662,7 +6766,6 @@
     "AWS::DocDB::DBClusterParameterGroup": {
       "Description": "string",
       "Family": "string",
-      "Id": "string",
       "Name": "string",
       "Tags": "array"
     },
@@ -7810,6 +7913,7 @@
       "GatewayLoadBalancerArns": "array",
       "NetworkLoadBalancerArns": "array",
       "PayerResponsibility": "string",
+      "PrivateDnsName": "string",
       "ServiceId": "string",
       "SupportedIpAddressTypes": "array",
       "SupportedRegions": "array",
@@ -8181,6 +8285,7 @@
       "SigningStatus": "string"
     },
     "AWS::EKS::Cluster": {
+      "ActiveCertificateAuthorityId": "string",
       "Arn": "string",
       "BootstrapSelfManagedAddons": "boolean",
       "CertificateAuthorityData": "string",
@@ -9436,6 +9541,25 @@
     "AWS::Glue::SecurityConfiguration": {
       "Name": "string"
     },
+    "AWS::Glue::Session": {
+      "Arn": "string",
+      "CreatedOn": "string",
+      "DefaultArguments": "object",
+      "Description": "string",
+      "GlueVersion": "string",
+      "Id": "string",
+      "IdleTimeout": "integer",
+      "MaxCapacity": "number",
+      "NumberOfWorkers": "integer",
+      "Progress": "number",
+      "RequestOrigin": "string",
+      "Role": "string",
+      "SecurityConfiguration": "string",
+      "Status": "string",
+      "Tags": "array",
+      "Timeout": "integer",
+      "WorkerType": "string"
+    },
     "AWS::Glue::Table": {
       "CatalogId": "string",
       "DatabaseName": "string",
@@ -9646,6 +9770,16 @@
       "Tags": "array",
       "TelemetrySinkConfigArn": "string",
       "TrackingConfigArn": "string"
+    },
+    "AWS::GuardDuty::CustomDetectionRuleAssociation": {
+      "AccountId": "string",
+      "Arn": "string",
+      "AssociationId": "string",
+      "CreatedAt": "string",
+      "Mode": "string",
+      "RuleId": "string",
+      "Tags": "array",
+      "UpdatedAt": "string"
     },
     "AWS::GuardDuty::Detector": {
       "Enable": "boolean",
@@ -10398,6 +10532,17 @@
       "Tags": "array",
       "VersionName": "string"
     },
+    "AWS::IoT::Stream": {
+      "Arn": "string",
+      "CreatedAt": "string",
+      "Description": "string",
+      "Files": "array",
+      "LastUpdatedAt": "string",
+      "RoleArn": "string",
+      "StreamId": "string",
+      "StreamVersion": "integer",
+      "Tags": "array"
+    },
     "AWS::IoT::Thing": {
       "Arn": "string",
       "Id": "string",
@@ -10608,6 +10753,13 @@
       "Id": "string",
       "Identifier": "string",
       "Name": "string"
+    },
+    "AWS::IoTSecureTunneling::Tunnel": {
+      "Description": "string",
+      "Status": "string",
+      "Tags": "array",
+      "TunnelArn": "string",
+      "TunnelId": "string"
     },
     "AWS::IoTSiteWise::AccessPolicy": {
       "AccessPolicyArn": "string",
@@ -10914,6 +11066,24 @@
     },
     "AWS::Kendra::Faq": {
       "Arn": "string"
+    },
+    "AWS::Kendra::QuerySuggestionsBlockList": {
+      "Arn": "string",
+      "Description": "string",
+      "Id": "string",
+      "IndexId": "string",
+      "Name": "string",
+      "RoleArn": "string",
+      "Tags": "array"
+    },
+    "AWS::Kendra::Thesaurus": {
+      "Arn": "string",
+      "Description": "string",
+      "Id": "string",
+      "IndexId": "string",
+      "Name": "string",
+      "RoleArn": "string",
+      "Tags": "array"
     },
     "AWS::Kinesis::ResourcePolicy": {
       "ResourceArn": "string",
@@ -11644,6 +11814,17 @@
       "StorageConfigurations": "array",
       "SubnetIds": "array"
     },
+    "AWS::MGN::NetworkMigrationDefinition": {
+      "Arn": "string",
+      "CreatedAt": "string",
+      "Description": "string",
+      "Name": "string",
+      "NetworkMigrationDefinitionID": "string",
+      "SourceConfigurations": "array",
+      "Tags": "array",
+      "TargetDeployment": "string",
+      "UpdatedAt": "string"
+    },
     "AWS::MPA::ApprovalTeam": {
       "Approvers": "array",
       "Arn": "string",
@@ -12225,6 +12406,14 @@
       "Tags": "array",
       "TranscodeProfileName": "string",
       "VideoContentSourceUrl": "string"
+    },
+    "AWS::MediaTailor::PrefetchSchedule": {
+      "Arn": "string",
+      "Name": "string",
+      "PlaybackConfigurationName": "string",
+      "ScheduleType": "string",
+      "StreamId": "string",
+      "Tags": "array"
     },
     "AWS::MediaTailor::SourceLocation": {
       "Arn": "string",
@@ -12976,6 +13165,18 @@
       "Name": "string",
       "ReferenceStoreId": "string"
     },
+    "AWS::Omics::RunCache": {
+      "Arn": "string",
+      "CacheBehavior": "string",
+      "CacheBucketOwnerId": "string",
+      "CacheS3Location": "string",
+      "CreationTime": "string",
+      "Description": "string",
+      "Id": "string",
+      "Name": "string",
+      "Status": "string",
+      "Tags": "array"
+    },
     "AWS::Omics::RunGroup": {
       "Arn": "string",
       "CreationTime": "string",
@@ -13404,6 +13605,13 @@
       "Name": "string",
       "Tags": "array",
       "TrackingId": "string"
+    },
+    "AWS::Personalize::MetricAttribution": {
+      "DatasetGroupArn": "string",
+      "MetricAttributionArn": "string",
+      "Metrics": "array",
+      "Name": "string",
+      "Status": "string"
     },
     "AWS::Personalize::Schema": {
       "Domain": "string",
@@ -14041,6 +14249,29 @@
       "Status": "string",
       "Tags": "array"
     },
+    "AWS::RDS::ClusterSnapshot": {
+      "AllocatedStorage": "integer",
+      "AvailabilityZones": "array",
+      "ClusterCreateTime": "string",
+      "DBClusterIdentifier": "string",
+      "DBClusterSnapshotArn": "string",
+      "DBClusterSnapshotIdentifier": "string",
+      "DbClusterResourceId": "string",
+      "Engine": "string",
+      "EngineMode": "string",
+      "EngineVersion": "string",
+      "IAMDatabaseAuthenticationEnabled": "boolean",
+      "KmsKeyId": "string",
+      "LicenseModel": "string",
+      "MasterUsername": "string",
+      "Port": "integer",
+      "SnapshotCreateTime": "string",
+      "SnapshotType": "string",
+      "Status": "string",
+      "StorageEncrypted": "boolean",
+      "Tags": "array",
+      "VpcId": "string"
+    },
     "AWS::RDS::CustomDBEngineVersion": {
       "DBEngineVersionArn": "string",
       "DatabaseInstallationFiles": "array",
@@ -14294,6 +14525,33 @@
       "MinACU": "number",
       "PubliclyAccessible": "boolean",
       "Tags": "array"
+    },
+    "AWS::RDS::DBSnapshot": {
+      "AllocatedStorage": "integer",
+      "AvailabilityZone": "string",
+      "DBInstanceIdentifier": "string",
+      "DBSnapshotArn": "string",
+      "DBSnapshotIdentifier": "string",
+      "DbiResourceId": "string",
+      "Encrypted": "boolean",
+      "Engine": "string",
+      "EngineVersion": "string",
+      "IAMDatabaseAuthenticationEnabled": "boolean",
+      "InstanceCreateTime": "string",
+      "Iops": "integer",
+      "KmsKeyId": "string",
+      "LicenseModel": "string",
+      "MasterUsername": "string",
+      "OptionGroupName": "string",
+      "OriginalSnapshotCreateTime": "string",
+      "Port": "integer",
+      "SnapshotCreateTime": "string",
+      "SnapshotType": "string",
+      "Status": "string",
+      "StorageThroughput": "integer",
+      "StorageType": "string",
+      "Tags": "array",
+      "VpcId": "string"
     },
     "AWS::RDS::DBSubnetGroup": {
       "DBSubnetGroupArn": "string",
@@ -16902,6 +17160,13 @@
       "Sid": "string",
       "Tags": "array"
     },
+    "AWS::Textract::Adapter": {
+      "AdapterId": "string",
+      "Arn": "string",
+      "CreationTime": "string",
+      "FeatureTypes": "array",
+      "Tags": "array"
+    },
     "AWS::Timestream::Database": {
       "Arn": "string",
       "DatabaseName": "string",
@@ -17094,6 +17359,23 @@
       "Steps": "array",
       "Tags": "array",
       "WorkflowId": "string"
+    },
+    "AWS::Translate::ParallelData": {
+      "Arn": "string",
+      "CreatedAt": "string",
+      "Description": "string",
+      "EncryptionKey": "object",
+      "FailedRecordCount": "integer",
+      "ImportedDataSize": "integer",
+      "ImportedRecordCount": "integer",
+      "LastUpdatedAt": "string",
+      "Name": "string",
+      "ParallelDataConfig": "object",
+      "SkippedRecordCount": "integer",
+      "SourceLanguageCode": "string",
+      "Status": "string",
+      "Tags": "array",
+      "TargetLanguageCodes": "array"
     },
     "AWS::UXC::AccountCustomization": {
       "AccountColor": "string",

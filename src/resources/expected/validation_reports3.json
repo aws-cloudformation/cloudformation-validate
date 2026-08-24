@@ -1021,7 +1021,7 @@
           "extra": {
             "actual_count": 2,
             "max_items": 1,
-            "min_items": 1
+            "min_items": 0
           }
         }
       }
@@ -8196,7 +8196,7 @@
           "extra": {
             "actual_count": 2,
             "max_items": 1,
-            "min_items": 1
+            "min_items": 0
           }
         }
       },
