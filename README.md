@@ -3,6 +3,7 @@
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Main CI](https://github.com/aws-cloudformation/cloudformation-validate/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/aws-cloudformation/cloudformation-validate/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/aws-cloudformation/cloudformation-validate/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/aws-cloudformation/cloudformation-validate/actions/workflows/codeql.yml)
+[![inspect.software](https://raw.githubusercontent.com/inspect-software/badges/main/v1/a/aws-cloudformation/cloudformation-validate.svg)](https://inspect.software/software/aws-cloudformation/cloudformation-validate)
 [![Offline](https://img.shields.io/badge/runtime-fully%20offline-success)](#features)
 
 [![Latest release](https://img.shields.io/github/v/release/aws-cloudformation/cloudformation-validate?include_prereleases)](https://github.com/aws-cloudformation/cloudformation-validate/releases)
@@ -16,7 +17,6 @@
 [![Python](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Ftest.pypi.org%2Fpypi%2Fcloudformation-validate%2Fjson&query=%24.info.requires_python&label=Python&logo=python)](src/bindings-python/README.md)
 [![Go](https://img.shields.io/badge/Go-%3E%3D1.26-00ADD8?logo=go)](src/bindings-go/README.md)
 [![JVM](https://img.shields.io/badge/JVM-21%2B-orange?logo=openjdk)](src/bindings-jvm/README.md)
-[![Platforms](https://img.shields.io/badge/platforms-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey)](INSTALLATION.md)
 
 Fast, offline, embeddable validation for AWS CloudFormation templates.
 
