@@ -235,7 +235,7 @@ fn engine_version_matches_workspace_version() {
         ("rego", validate_to_json(&rego, &bytes, "good/generic.yaml", DetailLevel::Detailed)),
         ("cel", validate_to_json(&cel, &bytes, "good/generic.yaml", DetailLevel::Detailed)),
     ] {
-        assert_eq!(report["version"].as_str(), Some("1.8.0"), "{name}: version must be the workspace crate version");
+        assert_eq!(report["version"].as_str(), Some("1.10.0"), "{name}: version must be the workspace crate version");
     }
 }
 
