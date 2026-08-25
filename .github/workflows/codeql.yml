@@ -42,7 +42,7 @@ jobs:
           - language: python
             build-mode: none
           - language: go
-            build-mode: none
+            build-mode: manual
           - language: actions
             build-mode: none
 
@@ -58,6 +58,12 @@ jobs:
           java-distribution: ${{ needs.get-configs.outputs.java-distribution }}
           kotlin-version: ${{ needs.get-configs.outputs.kotlin-version }}
           ktlint-version: ${{ needs.get-configs.outputs.ktlint-version }}
+
+      - name: Setup Go
+        if: matrix.language == 'go'
+        uses: actions/setup-go@v6
+        with:
+          go-version: ${{ needs.get-configs.outputs.go-version }}
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
@@ -89,6 +95,11 @@ jobs:
           echo "Compiling Kotlin sources under the CodeQL tracer..."
           find "$SRC" -name '*.kt' -type f -print0 \
             | xargs -0 kotlinc -classpath "$LIBS/jna.jar:$LIBS/gson.jar" -d "$RUNNER_TEMP/jvm-classes" -nowarn
+
+      - name: Compile Go bindings for CodeQL extraction
+        if: matrix.language == 'go'
+        working-directory: ${{ needs.get-configs.outputs.working-dir }}/bindings-go/go
+        run: go build ./...
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
