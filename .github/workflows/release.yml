@@ -9,7 +9,7 @@ on:
         required: true
         type: string
       ref:
-        description: "Source ref: main (default), an existing Git tag, or a hotfix/* branch."
+        description: "Source Git commit, branch, or tag"
         required: false
         type: string
         default: 'main'
@@ -21,16 +21,38 @@ jobs:
   get-configs:
     uses: ./.github/workflows/configs.yml
 
+  resolve-ref:
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.source.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Pin release source commit
+        id: source
+        env:
+          RELEASE_SOURCE_REF: ${{ inputs.ref }}
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD^{commit})"
+          echo "sha=$source_commit" >> "$GITHUB_OUTPUT"
+          echo "Resolved release source $RELEASE_SOURCE_REF to commit $source_commit."
+
   validate:
+    needs: [ resolve-ref ]
     uses: ./.github/workflows/validate.yml
     permissions:
       contents: read
     with:
-      ref: ${{ inputs.ref }}
+      ref: ${{ needs.resolve-ref.outputs.sha }}
       fail-fast: true
 
   version-and-tag:
-    needs: [ get-configs, validate ]
+    needs: [ get-configs, resolve-ref, validate ]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -40,30 +62,14 @@ jobs:
       python-version: ${{ steps.validate-release.outputs.python-version }}
     env:
       GO_MODULE_TAG: src/bindings-go/go/v${{ inputs.tag }}
-      RELEASE_SOURCE_REF: ${{ inputs.ref }}
       RELEASE_TAG: ${{ inputs.tag }}
       WORKING_DIR: ${{ needs.get-configs.outputs.working-dir }}
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: ${{ inputs.ref }}
+          ref: ${{ needs.resolve-ref.outputs.sha }}
           fetch-depth: 0
           fetch-tags: true
-
-      - name: Validate source ref
-        run: |
-          set -euo pipefail
-          case "$RELEASE_SOURCE_REF" in
-            main|refs/heads/main|hotfix/*|refs/heads/hotfix/*|refs/tags/*)
-              ;;
-            *)
-              if ! git show-ref --verify --quiet "refs/tags/$RELEASE_SOURCE_REF"; then
-                echo "::error::Source ref must be main, an existing Git tag, or a hotfix/* branch; received $RELEASE_SOURCE_REF."
-                exit 1
-              fi
-              ;;
-          esac
-          echo "Validated release source ref, releasing from ref $RELEASE_SOURCE_REF at commit $(git rev-parse HEAD)."
 
       - name: Get version from Cargo.toml
         id: get-version
@@ -278,7 +284,7 @@ jobs:
 
       - name: Configure AWS credentials for GitHub release signing
         if: steps.check-github-release.outputs.exists != 'true'
-        uses: aws-actions/configure-aws-credentials@v6.2.0
+        uses: aws-actions/configure-aws-credentials@v6.2.3
         with:
           role-to-assume: ${{ secrets.RELEASE_SIGNING_ROLE_ARN }}
           aws-region: ${{ secrets.AWS_REGION }}
@@ -377,7 +383,7 @@ jobs:
 
       - name: Create GitHub Release
         if: steps.check-github-release.outputs.exists != 'true'
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@v3.0.2
         with:
           tag_name: ${{ inputs.tag }}
           prerelease: ${{ env.RELEASE_KIND == 'beta' }}
@@ -435,7 +441,7 @@ jobs:
           echo "Committed jar carries all six platform natives plus compiled classes and sources."
 
       - name: Configure AWS credentials for Maven publishing
-        uses: aws-actions/configure-aws-credentials@v6.2.0
+        uses: aws-actions/configure-aws-credentials@v6.2.3
         with:
           role-to-assume: ${{ secrets.MAVEN_PUBLISHING_ROLE_ARN }}
           aws-region: ${{ secrets.AWS_REGION }}
