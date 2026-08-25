@@ -41,6 +41,8 @@ jobs:
             build-mode: none
           - language: python
             build-mode: none
+          - language: go
+            build-mode: none
           - language: actions
             build-mode: none
 

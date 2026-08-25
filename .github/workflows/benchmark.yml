@@ -52,11 +52,6 @@ jobs:
         toolchain: ${{ needs.get-configs.outputs.rust-toolchain }}
         targets: wasm32-unknown-unknown
 
-    - name: Cache Cargo
-      uses: Swatinem/rust-cache@v2.9.2
-      with:
-        workspaces: ${{ env.WORKING_DIR }}
-
     - name: Setup Node.js ${{ needs.get-configs.outputs.node-version }}
       uses: actions/setup-node@v6
       with:
@@ -77,15 +72,7 @@ jobs:
       with:
         go-version: ${{ needs.get-configs.outputs.go-version }}
 
-    - name: Cache uniffi-bindgen-go
-      id: cache-uniffi-bindgen-go
-      uses: actions/cache@v4
-      with:
-        path: ~/.cargo/bin/uniffi-bindgen-go*
-        key: uniffi-bindgen-go-${{ needs.get-configs.outputs.uniffi-bindgen-go-tag }}-ubuntu-latest
-
     - name: Install uniffi-bindgen-go ${{ needs.get-configs.outputs.uniffi-bindgen-go-tag }}
-      if: steps.cache-uniffi-bindgen-go.outputs.cache-hit != 'true'
       run: cargo install uniffi-bindgen-go --git https://github.com/NordSecurity/uniffi-bindgen-go --tag '${{ needs.get-configs.outputs.uniffi-bindgen-go-tag }}'
 
     - name: Log tool versions
