@@ -47,6 +47,7 @@ jobs:
     uses: ./.github/workflows/validate.yml
     permissions:
       contents: read
+      pull-requests: read
     with:
       ref: ${{ needs.resolve-ref.outputs.sha }}
       fail-fast: true
