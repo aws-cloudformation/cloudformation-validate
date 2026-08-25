@@ -12,11 +12,11 @@ on:
         required: false
         type: boolean
         default: false
-      rust-tests-only:
-        description: 'Run only Rust core tests'
+      release-run:
+        description: 'Run every binding test matrix for a release workflow'
         required: false
         type: boolean
-        default: false
+        default: true
 
   workflow_dispatch:
     inputs:
@@ -29,11 +29,11 @@ on:
         required: false
         type: boolean
         default: false
-      rust-tests-only:
-        description: 'Run only Rust core tests'
+      release-run:
+        description: 'Run every binding test matrix for a release workflow'
         required: false
         type: boolean
-        default: false
+        default: true
 
 permissions:
   contents: read
@@ -41,6 +41,34 @@ permissions:
 jobs:
   get-configs:
     uses: ./.github/workflows/configs.yml
+
+  release-assets:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      run_tests: ${{ inputs.release-run || steps.filter.outputs.release_assets == 'true' }}
+    steps:
+    - if: ${{ !inputs.release-run && github.event_name == 'push' }}
+      uses: actions/checkout@v6
+      with:
+        ref: ${{ inputs.ref }}
+
+    - name: Detect changed release assets
+      if: ${{ !inputs.release-run && (github.event_name == 'pull_request' || github.event_name == 'push') }}
+      id: filter
+      uses: dorny/paths-filter@v4
+      with:
+        base: main
+        filters: |
+          release_assets:
+            - 'release-bin/**'
+            - 'src/bindings-jvm/generated/**'
+            - 'src/bindings-wasm/dist/**'
+            - 'src/bindings-python/generated/dist/**'
+            - 'src/bindings-go/go/internal/**'
+            - 'src/bindings-go/go/libs/**'
 
   format:
     needs: [ get-configs ]
@@ -158,8 +186,8 @@ jobs:
       run: cargo llvm-cov --locked --release --workspace --no-fail-fast
 
   test-jvm:
-    if: ${{ !inputs.rust-tests-only }}
-    needs: [ get-configs ]
+    if: ${{ needs.release-assets.outputs.run_tests == 'true' }}
+    needs: [ get-configs, release-assets ]
     strategy:
       fail-fast: ${{ inputs.fail-fast }}
       matrix:
@@ -210,8 +238,8 @@ jobs:
       run: ./run.sh
 
   test-wasm:
-    if: ${{ !inputs.rust-tests-only }}
-    needs: [ get-configs ]
+    if: ${{ needs.release-assets.outputs.run_tests == 'true' }}
+    needs: [ get-configs, release-assets ]
     strategy:
       fail-fast: ${{ inputs.fail-fast }}
       matrix:
@@ -261,8 +289,8 @@ jobs:
       run: ./run.sh
 
   test-python:
-    if: ${{ !inputs.rust-tests-only }}
-    needs: [ get-configs ]
+    if: ${{ needs.release-assets.outputs.run_tests == 'true' }}
+    needs: [ get-configs, release-assets ]
     strategy:
       fail-fast: ${{ inputs.fail-fast }}
       matrix:
@@ -307,8 +335,8 @@ jobs:
       run: ./bindings-python/tests/run.sh
 
   test-go:
-    if: ${{ !inputs.rust-tests-only }}
-    needs: [ get-configs ]
+    if: ${{ needs.release-assets.outputs.run_tests == 'true' }}
+    needs: [ get-configs, release-assets ]
     strategy:
       fail-fast: ${{ inputs.fail-fast }}
       matrix:
