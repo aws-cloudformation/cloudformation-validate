@@ -1,5 +1,5 @@
 [package]
-name = "data-source"
+name = "cloudformation-validate-data-source"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

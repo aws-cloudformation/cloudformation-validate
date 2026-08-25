@@ -1,6 +1,5 @@
 [package]
-name = "bindings-go"
-publish = false
+name = "cloudformation-validate"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -10,22 +9,18 @@ keywords.workspace = true
 categories.workspace = true
 
 [lib]
-crate-type = ["cdylib", "staticlib"]
-name = "bindings_go"
+name = "cloudformation_validate"
+path = "src/lib.rs"
 
 [dependencies]
-data-source = { workspace = true }
-validation-engine = { workspace = true }
-diagnostics = { workspace = true }
-rules = { workspace = true }
-template-model = { workspace = true }
-rego-engine = { workspace = true }
 cel-engine = { workspace = true }
+data-source = { workspace = true }
+diagnostics = { workspace = true }
+rego-engine = { workspace = true }
+rules = { workspace = true }
 schema-validator = { workspace = true }
-uniffi = "=0.31.2"
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-thiserror = "2"
+template-model = { workspace = true }
+validation-engine = { workspace = true }
 
 [lints]
 workspace = true

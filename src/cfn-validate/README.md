@@ -8,10 +8,6 @@ an engine ([rego-engine](../rego-engine/README.md) or [cel-engine](../cel-engine
 including [schema-validator](../schema-validator/README.md)),
 and renders the resulting report as JSON.
 
-> To embed validation in Rust, depend on the
-> [`cloudformation-validate`](../cloudformation-validate/README.md) library facade. This crate is the CLI and is not
-> published to crates.io.
-
 ## How it works
 
 ```

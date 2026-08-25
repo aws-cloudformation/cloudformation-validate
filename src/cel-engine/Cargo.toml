@@ -1,5 +1,5 @@
 [package]
-name = "cel-engine"
+name = "cloudformation-validate-cel-engine"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -13,13 +13,13 @@ name = "cel_engine"
 path = "src/lib.rs"
 
 [dependencies]
-validation-engine = { path = "../validation-engine" }
-diagnostics = { path = "../diagnostics" }
-rules = { path = "../rules" }
-template-model = { path = "../template-model" }
-guard-translator = { path = "../guard-translator" }
-data-source = { path = "../data-source", default-features = false }
-schema-validator = { path = "../schema-validator" }
+validation-engine = { workspace = true }
+diagnostics = { workspace = true }
+rules = { workspace = true }
+template-model = { workspace = true }
+guard-translator = { workspace = true }
+data-source = { workspace = true }
+schema-validator = { workspace = true }
 cel-interpreter = { version = "0.10", features = ["json"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -30,7 +30,7 @@ web-time = "1"
 regex = "1"
 
 [dev-dependencies]
-validation-engine = { path = "../validation-engine", features = ["test"] }
+validation-engine = { workspace = true, features = ["test"] }
 
 [lints]
 workspace = true

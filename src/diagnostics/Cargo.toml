@@ -1,5 +1,5 @@
 [package]
-name = "diagnostics"
+name = "cloudformation-validate-diagnostics"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -17,8 +17,8 @@ wasm-bindings = ["dep:tsify", "dep:wasm-bindgen", "rules/wasm-bindings", "templa
 uniffi-bindings = ["dep:uniffi", "rules/uniffi-bindings", "template-model/uniffi-bindings"]
 
 [dependencies]
-rules = { path = "../rules" }
-template-model = { path = "../template-model" }
+rules = { workspace = true }
+template-model = { workspace = true }
 log = "0.4"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

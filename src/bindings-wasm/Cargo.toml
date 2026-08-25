@@ -1,5 +1,6 @@
 [package]
 name = "bindings-wasm"
+publish = false
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -12,13 +13,13 @@ categories.workspace = true
 crate-type = ["cdylib"]
 
 [dependencies]
-validation-engine = { path = "../validation-engine", features = ["wasm-bindings"] }
-diagnostics = { path = "../diagnostics", features = ["wasm-bindings"] }
-rules = { path = "../rules", features = ["wasm-bindings"] }
-template-model = { path = "../template-model", features = ["wasm-bindings"] }
-rego-engine = { path = "../rego-engine" }
-cel-engine = { path = "../cel-engine" }
-schema-validator = { path = "../schema-validator", features = ["wasm-bindings"] }
+validation-engine = { workspace = true, features = ["wasm-bindings"] }
+diagnostics = { workspace = true, features = ["wasm-bindings"] }
+rules = { workspace = true, features = ["wasm-bindings"] }
+template-model = { workspace = true, features = ["wasm-bindings"] }
+rego-engine = { workspace = true }
+cel-engine = { workspace = true }
+schema-validator = { workspace = true, features = ["wasm-bindings"] }
 wasm-bindgen = "0.2"
 serde = { version = "1", features = ["derive"] }
 serde-wasm-bindgen = "0.6"

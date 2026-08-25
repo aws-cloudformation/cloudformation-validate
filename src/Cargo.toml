@@ -3,6 +3,7 @@ members = [
     "bindings-go",
     "bindings-jvm",
     "bindings-python",
+    "bindings-rust",
     "bindings-wasm",
     "cel-engine",
     "cfn-validate",
@@ -36,12 +37,21 @@ keywords = [
 ]
 categories = [
     "development-tools",
-    "command-line-utilities",
+    "development-tools::testing",
     "parser-implementations",
     "config"
 ]
 
 [workspace.dependencies]
+cel-engine = { package = "cloudformation-validate-cel-engine", path = "cel-engine" }
+data-source = { package = "cloudformation-validate-data-source", path = "data-source", default-features = false }
+diagnostics = { package = "cloudformation-validate-diagnostics", path = "diagnostics" }
+guard-translator = { package = "cloudformation-validate-guard-translator", path = "guard-translator" }
+rego-engine = { package = "cloudformation-validate-rego-engine", path = "rego-engine" }
+rules = { package = "cloudformation-validate-rules", path = "rules" }
+schema-validator = { package = "cloudformation-validate-schema-validator", path = "schema-validator" }
+template-model = { package = "cloudformation-validate-template-model", path = "template-model" }
+validation-engine = { package = "cloudformation-validate-validation-engine", path = "validation-engine" }
 uniffi = "=0.32.0"
 
 [profile.dev]

@@ -1,5 +1,5 @@
 [package]
-name = "validation-engine"
+name = "cloudformation-validate-validation-engine"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -18,12 +18,12 @@ uniffi-bindings = ["dep:uniffi", "schema-validator/uniffi-bindings"]
 test = []
 
 [dependencies]
-data-source = { path = "../data-source", default-features = false }
-diagnostics = { path = "../diagnostics" }
-rules = { path = "../rules" }
-template-model = { path = "../template-model" }
-schema-validator = { path = "../schema-validator" }
-guard-translator = { path = "../guard-translator" }
+data-source = { workspace = true }
+diagnostics = { workspace = true }
+rules = { workspace = true }
+template-model = { workspace = true }
+schema-validator = { workspace = true }
+guard-translator = { workspace = true }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 log = "0.4"

@@ -1,5 +1,5 @@
 [package]
-name = "schema-validator"
+name = "cloudformation-validate-schema-validator"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -18,10 +18,10 @@ wasm-bindings = ["data-source/wasm-bindings", "dep:tsify", "dep:wasm-bindgen"]
 uniffi-bindings = ["data-source/uniffi-bindings", "dep:uniffi"]
 
 [dependencies]
-template-model = { path = "../template-model" }
-diagnostics = { path = "../diagnostics" }
-rules = { path = "../rules" }
-data-source = { path = "../data-source", default-features = false }
+template-model = { workspace = true }
+diagnostics = { workspace = true }
+rules = { workspace = true }
+data-source = { workspace = true }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
 log = "0.4"

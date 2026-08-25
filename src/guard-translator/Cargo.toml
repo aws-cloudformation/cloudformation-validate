@@ -1,5 +1,5 @@
 [package]
-name = "guard-translator"
+name = "cloudformation-validate-guard-translator"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -13,10 +13,10 @@ name = "guard_translator"
 path = "src/lib.rs"
 
 [dependencies]
-guard-lang = { git = "https://github.com/aws-cloudformation/cloudformation-guard.git", branch = "guard-lib" }
+guard-lang = { version = "=1.0.0", git = "https://github.com/aws-cloudformation/cloudformation-guard.git", rev = "58da2e0c861276d5dad45df6e14c719f8313361c" }
 serde = { version = "1", features = ["derive"] }
 indexmap = "2"
-rules = { path = "../rules" }
+rules = { workspace = true }
 
 [lints]
 workspace = true

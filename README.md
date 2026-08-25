@@ -103,7 +103,7 @@ cargo run -p cfn-validate -- template.yaml --guard-rule-source ./my-rules/
 
 ## Embedding as a library
 
-### Rust
+### Rust [(bindings-rust)](src/bindings-rust/README.md)
 
 Add the library facade:
 
@@ -122,16 +122,16 @@ use cloudformation_validate::{
 let schema_validator = SchemaValidator::default();
 let engine = RegoEngine::new(EngineConfig::default())?;
 
-let bytes = std::fs::read("template.yaml") ?;
+let bytes = std::fs::read("template.yaml")?;
 let report = validate_bytes_with_path(
-    & engine,
-    & schema_validator,
-    & bytes,
-    ValidateConfig::default (),
+    &engine,
+    &schema_validator,
+    &bytes,
+    ValidateConfig::default(),
     "template.yaml".to_string(),
-) ?;
+)?;
 
-for d in & report.diagnostics {
+for d in &report.diagnostics {
     println!("[{}] {} - {}", d.severity, d.rule_id, d.message);
 }
 ```
@@ -209,7 +209,6 @@ This is a Cargo workspace. The main crates:
 
 | Crate                                                | Role                                                                                                                          |
 |------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------|
-| [cloudformation-validate](src/cloudformation-validate/README.md) | Public Rust library facade                                                                                                   |
 | [cfn-validate](src/cfn-validate/README.md)           | `cfn-validate` CLI                                                                                                            |
 | [validation-engine](src/validation-engine/README.md) | `ValidationEngine` trait, orchestration pipeline, Step Functions validation                                                   |
 | [template-model](src/template-model/README.md)       | Template parser, intrinsic resolver, condition SAT solver, reference graph                                                    |

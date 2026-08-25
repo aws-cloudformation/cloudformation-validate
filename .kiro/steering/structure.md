@@ -6,7 +6,7 @@
 src/
 ├── Cargo.toml                  # Workspace root
 ├── rust-toolchain.toml         # Pinned toolchain + wasm32 target
-├── cloudformation-validate/    # Public Rust library facade over engines, schema validation, diagnostics, and models
+├── bindings-rust/              # Public Rust library facade published as `cloudformation-validate`
 ├── cfn-validate/               # CLI binary (`cfn-validate`) and CLI-only helpers
 ├── validation-engine/          # ValidationEngine trait, orchestration pipeline, Step Functions validation
 ├── template-model/             # LEAF crate — parser (JSON/YAML), SemanticModel, intrinsic resolver,
