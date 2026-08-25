@@ -25,6 +25,10 @@ inputs:
       based build.sh which does not use Gradle.
     required: false
     default: ""
+  cache-disabled:
+    description: "Disable Gradle cache restore and save"
+    required: false
+    default: "false"
 
 runs:
   using: composite
@@ -58,9 +62,10 @@ runs:
 
     - name: Setup Gradle ${{ inputs.gradle-version }}
       if: ${{ inputs.gradle-version != '' }}
-      uses: gradle/actions/setup-gradle@v6
+      uses: gradle/actions/setup-gradle@v6.3.0
       with:
         gradle-version: ${{ inputs.gradle-version }}
+        cache-disabled: ${{ inputs.cache-disabled }}
 
     - name: Put configured JDK first on PATH
       shell: bash
