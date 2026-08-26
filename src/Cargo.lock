@@ -567,6 +567,8 @@ dependencies = [
  "cloudformation-validate-schema-validator",
  "cloudformation-validate-template-model",
  "cloudformation-validate-validation-engine",
+ "resources",
+ "serde_json",
 ]
 
 [[package]]
