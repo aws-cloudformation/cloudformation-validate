@@ -23,7 +23,7 @@ resolver = "2"
 name = "cloudformation-validate"
 
 [workspace.package]
-version = "1.10.0"
+version = "1.9.0"
 edition = "2024"
 rust-version = "1.96"
 license = "Apache-2.0"
@@ -44,15 +44,15 @@ categories = [
 ]
 
 [workspace.dependencies]
-cel-engine = { package = "cloudformation-validate-cel-engine", path = "cel-engine" }
-data-source = { package = "cloudformation-validate-data-source", path = "data-source", default-features = false }
-diagnostics = { package = "cloudformation-validate-diagnostics", path = "diagnostics" }
-guard-translator = { package = "cloudformation-validate-guard-translator", path = "guard-translator" }
-rego-engine = { package = "cloudformation-validate-rego-engine", path = "rego-engine" }
-rules = { package = "cloudformation-validate-rules", path = "rules" }
-schema-validator = { package = "cloudformation-validate-schema-validator", path = "schema-validator" }
-template-model = { package = "cloudformation-validate-template-model", path = "template-model" }
-validation-engine = { package = "cloudformation-validate-validation-engine", path = "validation-engine" }
+cel-engine = { package = "cloudformation-validate-cel-engine", path = "cel-engine", version = "=1.9.0" }
+data-source = { package = "cloudformation-validate-data-source", path = "data-source", version = "=1.9.0", default-features = false }
+diagnostics = { package = "cloudformation-validate-diagnostics", path = "diagnostics", version = "=1.9.0" }
+guard-translator = { package = "cloudformation-validate-guard-translator", path = "guard-translator", version = "=1.9.0" }
+rego-engine = { package = "cloudformation-validate-rego-engine", path = "rego-engine", version = "=1.9.0" }
+rules = { package = "cloudformation-validate-rules", path = "rules", version = "=1.9.0" }
+schema-validator = { package = "cloudformation-validate-schema-validator", path = "schema-validator", version = "=1.9.0" }
+template-model = { package = "cloudformation-validate-template-model", path = "template-model", version = "=1.9.0" }
+validation-engine = { package = "cloudformation-validate-validation-engine", path = "validation-engine", version = "=1.9.0" }
 uniffi = "=0.32.0"
 
 [profile.dev]
