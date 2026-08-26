@@ -1,4 +1,4 @@
 {
   "cfn_lint_version": "https://github.com/aws-cloudformation/cfn-lint@1.55.1",
-  "resource_schema_version": "https://github.com/aws-cloudformation/resource-provider-enhanced-schemas@2026-08-24T18:28:31Z"
+  "resource_schema_version": "https://github.com/aws-cloudformation/resource-provider-enhanced-schemas@2026-08-26T16:36:39Z"
 }

@@ -84091,7 +84091,7 @@
     "metadata": {
       "resourcesScanned": 3,
       "counts": {
-        "fatal": 3,
+        "fatal": 5,
         "errors": 0,
         "warnings": 0,
         "informational": 3,
@@ -84143,6 +84143,60 @@
         "context": {
           "actualValue": "",
           "expectedConstraint": "^[a-zA-Z0-9._\\-]+(?<!\\.git)$"
+        }
+      },
+      {
+        "ruleId": "F3033",
+        "severity": "FATAL",
+        "message": "length 130 exceeds maximum 100",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "myRepository",
+          "entityType": "Resource",
+          "resourceType": "AWS::CodeCommit::Repository"
+        },
+        "propertyPath": "Properties.RepositoryName",
+        "category": "Schema",
+        "startLine": 7,
+        "startColumn": 7,
+        "endLine": 7,
+        "endColumn": 21,
+        "ruleDescription": "String length out of bounds",
+        "phase": "SCHEMA",
+        "context": {
+          "actualValue": "abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz",
+          "extra": {
+            "actual_length": 130,
+            "max_length": 100,
+            "min_length": 1
+          }
+        }
+      },
+      {
+        "ruleId": "F3033",
+        "severity": "FATAL",
+        "message": "length 0 is below minimum 1",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "myRepository2",
+          "entityType": "Resource",
+          "resourceType": "AWS::CodeCommit::Repository"
+        },
+        "propertyPath": "Properties.RepositoryName",
+        "category": "Schema",
+        "startLine": 11,
+        "startColumn": 7,
+        "endLine": 11,
+        "endColumn": 21,
+        "ruleDescription": "String length out of bounds",
+        "phase": "SCHEMA",
+        "context": {
+          "actualValue": "",
+          "extra": {
+            "actual_length": 0,
+            "max_length": 100,
+            "min_length": 1
+          }
         }
       },
       {
