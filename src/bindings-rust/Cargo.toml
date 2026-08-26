@@ -2,6 +2,7 @@
 name = "cloudformation-validate"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 license.workspace = true
 description.workspace = true
 repository.workspace = true
@@ -21,6 +22,10 @@ rules = { workspace = true }
 schema-validator = { workspace = true }
 template-model = { workspace = true }
 validation-engine = { workspace = true }
+
+[dev-dependencies]
+resources = { path = "../resources" }
+serde_json = "1"
 
 [lints]
 workspace = true
