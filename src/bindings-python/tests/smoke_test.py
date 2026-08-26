@@ -7,7 +7,6 @@ Standard library only - no test dependencies.
 """
 
 import os
-import re
 import tempfile
 import unittest
 from unittest import mock
@@ -68,23 +67,13 @@ LAMBDA_OVERLAY_SCHEMA = """{
 }"""
 
 
-def read_workspace_version():
-    cargo_toml = os.path.join(WORKSPACE, "Cargo.toml")
-    in_workspace_package = False
-    with open(cargo_toml, encoding="utf-8") as f:
-        for line in f:
-            stripped = line.strip()
-            if stripped == "[workspace.package]":
-                in_workspace_package = True
-                continue
-            if in_workspace_package and stripped.startswith("["):
-                break
-            if in_workspace_package and stripped.startswith("version = "):
-                match = re.fullmatch(r'version = "([^"]+)"', stripped)
-                if not match:
-                    raise AssertionError(f"malformed version line in {cargo_toml}: {line}")
-                return match.group(1)
-    raise AssertionError(f"missing 'version = ' under [workspace.package] in {cargo_toml}")
+def read_expected_version():
+    expected_version_path = os.path.join(RESOURCES, "expected", "version.txt")
+    with open(expected_version_path, encoding="utf-8") as f:
+        expected_version = f.read().strip()
+    if not expected_version:
+        raise AssertionError(f"{expected_version_path} must not be empty")
+    return expected_version
 
 
 def load_rule(filename):
@@ -102,8 +91,8 @@ CEL = CelEngine()
 
 
 class VersionTest(unittest.TestCase):
-    def test_version_matches_workspace_cargo_toml(self):
-        self.assertEqual(read_workspace_version(), version())
+    def test_version_matches_expected_version_fixture(self):
+        self.assertEqual(read_expected_version(), version())
 
 
 class EngineConstructionTest(unittest.TestCase):

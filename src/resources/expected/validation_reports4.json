@@ -2,7 +2,6 @@
   "cdk/aws-transfer-sftp-server--SftpServerStack-prod.template.json": {
     "filePath": "cdk/aws-transfer-sftp-server--SftpServerStack-prod.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 29,
       "counts": {
@@ -1293,7 +1292,6 @@
   "cdk/backup-s3--AwsBackupS3Stack.template.json": {
     "filePath": "cdk/backup-s3--AwsBackupS3Stack.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 8,
       "counts": {
@@ -1426,7 +1424,6 @@
   "cdk/batch-ecr-openmp--AwsBatchOpenmpBenchmarkStack.template.json": {
     "filePath": "cdk/batch-ecr-openmp--AwsBatchOpenmpBenchmarkStack.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 41,
       "counts": {
@@ -2898,7 +2895,6 @@
   "cdk/classic-load-balancer--LoadBalancerStack.template.json": {
     "filePath": "cdk/classic-load-balancer--LoadBalancerStack.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 33,
       "counts": {
@@ -4462,7 +4458,6 @@
   "cdk/cloudfront-functions--DemoCloudfrontFunctionsStack.template.json": {
     "filePath": "cdk/cloudfront-functions--DemoCloudfrontFunctionsStack.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 13,
       "counts": {
@@ -4715,7 +4710,6 @@
   "cdk/codepipeline-build-deploy--CodepipelineBuildDeployStack.template.json": {
     "filePath": "cdk/codepipeline-build-deploy--CodepipelineBuildDeployStack.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 74,
       "counts": {
@@ -7321,7 +7315,6 @@
   "cdk/cognito-api-lambda--CognitoProtectedApi.template.json": {
     "filePath": "cdk/cognito-api-lambda--CognitoProtectedApi.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 14,
       "counts": {
@@ -7901,7 +7894,6 @@
   "cdk/custom-logical-names--MyStack.template.json": {
     "filePath": "cdk/custom-logical-names--MyStack.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 3,
       "counts": {
@@ -7961,7 +7953,6 @@
   "cdk/custom-resource--CustomResourceDemoStack.template.json": {
     "filePath": "cdk/custom-resource--CustomResourceDemoStack.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 7,
       "counts": {
@@ -8147,7 +8138,6 @@
   "cdk/custom-resource-provider--CustomResourceDemoStack.template.json": {
     "filePath": "cdk/custom-resource-provider--CustomResourceDemoStack.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 11,
       "counts": {
@@ -8393,7 +8383,6 @@
   "cdk/ddb-stream-lambda-sns--DdbStreamStack.template.json": {
     "filePath": "cdk/ddb-stream-lambda-sns--DdbStreamStack.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 16,
       "counts": {
@@ -8918,7 +8907,6 @@
   "cdk/ec2-instance--EC2Example.template.json": {
     "filePath": "cdk/ec2-instance--EC2Example.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 28,
       "counts": {
@@ -9941,7 +9929,6 @@
   "cdk/ec2-instance-connect-endpoint--integ-testing-eicendpoint.template.json": {
     "filePath": "cdk/ec2-instance-connect-endpoint--integ-testing-eicendpoint.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 29,
       "counts": {
@@ -10874,7 +10861,6 @@
   "cdk/ecs-cluster--MyFirstEcsCluster.template.json": {
     "filePath": "cdk/ecs-cluster--MyFirstEcsCluster.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 33,
       "counts": {
@@ -12137,7 +12123,6 @@
   "cdk/ecs-cross-stack-load-balancer--CrossStackLBInfra.template.json": {
     "filePath": "cdk/ecs-cross-stack-load-balancer--CrossStackLBInfra.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 25,
       "counts": {
@@ -13108,7 +13093,6 @@
   "cdk/ecs-cross-stack-load-balancer--SplitAtListener-LBStack.template.json": {
     "filePath": "cdk/ecs-cross-stack-load-balancer--SplitAtListener-LBStack.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 3,
       "counts": {
@@ -13259,7 +13243,6 @@
   "cdk/ecs-cross-stack-load-balancer--SplitAtListener-ServiceStack.template.json": {
     "filePath": "cdk/ecs-cross-stack-load-balancer--SplitAtListener-ServiceStack.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 9,
       "counts": {
@@ -14018,7 +14001,6 @@
   "cdk/ecs-cross-stack-load-balancer--SplitAtTargetGroup-LBStack.template.json": {
     "filePath": "cdk/ecs-cross-stack-load-balancer--SplitAtTargetGroup-LBStack.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 5,
       "counts": {
@@ -14322,7 +14304,6 @@
   "cdk/ecs-cross-stack-load-balancer--SplitAtTargetGroup-ServiceStack.template.json": {
     "filePath": "cdk/ecs-cross-stack-load-balancer--SplitAtTargetGroup-ServiceStack.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 7,
       "counts": {
@@ -14908,7 +14889,6 @@
   "cdk/ecs-ecs-service-with-logging--Willkommen.template.json": {
     "filePath": "cdk/ecs-ecs-service-with-logging--Willkommen.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 46,
       "counts": {
@@ -16637,7 +16617,6 @@
   "cdk/ecs-ecs-service-with-task-networking--ec2-service-with-task-networking.template.json": {
     "filePath": "cdk/ecs-ecs-service-with-task-networking--ec2-service-with-task-networking.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 44,
       "counts": {
@@ -18367,7 +18346,6 @@
   "cdk/ecs-ecs-service-with-task-placement--sample-aws-ecs-integ-ecs.template.json": {
     "filePath": "cdk/ecs-ecs-service-with-task-placement--sample-aws-ecs-integ-ecs.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 43,
       "counts": {
@@ -20032,7 +20010,6 @@
   "cdk/ecs-fargate-application-load-balanced-service--Bonjour.template.json": {
     "filePath": "cdk/ecs-fargate-application-load-balanced-service--Bonjour.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 38,
       "counts": {
@@ -21937,7 +21914,6 @@
   "cdk/ecs-fargate-service-with-auto-scaling--aws-fargate-application-autoscaling.template.json": {
     "filePath": "cdk/ecs-fargate-service-with-auto-scaling--aws-fargate-application-autoscaling.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 37,
       "counts": {
@@ -23660,7 +23636,6 @@
   "cdk/ecs-fargate-service-with-logging--Willkommen.template.json": {
     "filePath": "cdk/ecs-fargate-service-with-logging--Willkommen.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 32,
       "counts": {
@@ -25027,7 +25002,6 @@
   "cdk/eventbridge-lambda--EventBridgeLambdaStack.template.json": {
     "filePath": "cdk/eventbridge-lambda--EventBridgeLambdaStack.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 8,
       "counts": {
@@ -25331,7 +25305,6 @@
   "cdk/http-proxy-apigateway--HttpProxy.template.json": {
     "filePath": "cdk/http-proxy-apigateway--HttpProxy.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 9,
       "counts": {
@@ -25695,7 +25668,6 @@
   "cdk/imagebuilder--ImagebuilderStack.template.json": {
     "filePath": "cdk/imagebuilder--ImagebuilderStack.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 11,
       "counts": {
@@ -26401,7 +26373,6 @@
   "cdk/inspector2--Inspector2EnableDelegatedAdminAccountStack.template.json": {
     "filePath": "cdk/inspector2--Inspector2EnableDelegatedAdminAccountStack.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 12,
       "counts": {
@@ -26561,7 +26532,6 @@
   "cdk/inspector2--Inspector2EnableStack.template.json": {
     "filePath": "cdk/inspector2--Inspector2EnableStack.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 4,
       "counts": {
@@ -26641,7 +26611,6 @@
   "cdk/inspector2--Inspector2MonitoringStack.template.json": {
     "filePath": "cdk/inspector2--Inspector2MonitoringStack.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 14,
       "counts": {
@@ -27107,7 +27076,6 @@
   "cdk/lambda-cloudwatch-dashboard--LambdaCloudwatchDashboardStack.template.json": {
     "filePath": "cdk/lambda-cloudwatch-dashboard--LambdaCloudwatchDashboardStack.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 8,
       "counts": {
@@ -27313,7 +27281,6 @@
   "cdk/lambda-cron--LambdaCronExample.template.json": {
     "filePath": "cdk/lambda-cron--LambdaCronExample.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 5,
       "counts": {
@@ -27526,7 +27493,6 @@
   "cdk/lambda-layer--LambdaLayerStack.template.json": {
     "filePath": "cdk/lambda-layer--LambdaLayerStack.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 4,
       "counts": {
@@ -27675,7 +27641,6 @@
   "cdk/lambda-manage-s3-event-notification--AStack.template.json": {
     "filePath": "cdk/lambda-manage-s3-event-notification--AStack.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 4,
       "counts": {
@@ -27756,7 +27721,6 @@
   "cdk/lambda-manage-s3-event-notification--BStack.template.json": {
     "filePath": "cdk/lambda-manage-s3-event-notification--BStack.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 4,
       "counts": {
@@ -27818,7 +27782,6 @@
   "cdk/lambda-manage-s3-event-notification--SharedStack.template.json": {
     "filePath": "cdk/lambda-manage-s3-event-notification--SharedStack.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 5,
       "counts": {
@@ -27963,7 +27926,6 @@
   "cdk/my-widget-service--MyWidgetServiceStack.template.json": {
     "filePath": "cdk/my-widget-service--MyWidgetServiceStack.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 23,
       "counts": {
@@ -29292,7 +29254,6 @@
   "cdk/pat-the-big-fan--TheBigFanStack.template.json": {
     "filePath": "cdk/pat-the-big-fan--TheBigFanStack.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 27,
       "counts": {
@@ -30373,7 +30334,6 @@
   "cdk/pat-the-cloudwatch-dashboard--TheCloudwatchDashboardStack.template.json": {
     "filePath": "cdk/pat-the-cloudwatch-dashboard--TheCloudwatchDashboardStack.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 20,
       "counts": {
@@ -30983,7 +30943,6 @@
   "cdk/pat-the-destined-lambda--TheDestinedLambdaStack.template.json": {
     "filePath": "cdk/pat-the-destined-lambda--TheDestinedLambdaStack.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 28,
       "counts": {
@@ -32240,7 +32199,6 @@
   "cdk/pat-the-dynamo-streamer--TheDynamoStreamerStack.template.json": {
     "filePath": "cdk/pat-the-dynamo-streamer--TheDynamoStreamerStack.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 17,
       "counts": {
@@ -32901,7 +32859,6 @@
   "cdk/pat-the-eventbridge-atm--TheEventbridgeAtmStack.template.json": {
     "filePath": "cdk/pat-the-eventbridge-atm--TheEventbridgeAtmStack.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 28,
       "counts": {
@@ -34323,7 +34280,6 @@
   "cdk/pat-the-eventbridge-circuit-breaker--TheEventbridgeCircuitBreakerStack.template.json": {
     "filePath": "cdk/pat-the-eventbridge-circuit-breaker--TheEventbridgeCircuitBreakerStack.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 22,
       "counts": {
@@ -35401,7 +35357,6 @@
   "cdk/pat-the-eventbridge-etl--TheEventbridgeEtlStack.template.json": {
     "filePath": "cdk/pat-the-eventbridge-etl--TheEventbridgeEtlStack.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 57,
       "counts": {
@@ -37655,7 +37610,6 @@
   "cdk/pat-the-lambda-circuit-breaker--TheLambdaCircuitBreakerStack.template.json": {
     "filePath": "cdk/pat-the-lambda-circuit-breaker--TheLambdaCircuitBreakerStack.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 10,
       "counts": {
@@ -38065,7 +38019,6 @@
   "cdk/pat-the-saga-stepfunction--TheSagaStepfunctionSingleTableStack.template.json": {
     "filePath": "cdk/pat-the-saga-stepfunction--TheSagaStepfunctionSingleTableStack.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 44,
       "counts": {
@@ -39656,7 +39609,6 @@
   "cdk/pat-the-scalable-webhook--TheScalableWebhookStack.template.json": {
     "filePath": "cdk/pat-the-scalable-webhook--TheScalableWebhookStack.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 22,
       "counts": {
@@ -40742,7 +40694,6 @@
   "cdk/pat-the-scheduled-lambda--TheScheduledLambdaStack.template.json": {
     "filePath": "cdk/pat-the-scheduled-lambda--TheScheduledLambdaStack.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 7,
       "counts": {
@@ -41015,7 +40966,6 @@
   "cdk/pat-the-simple-graphql-service--TheSimpleGraphqlServiceStack.template.json": {
     "filePath": "cdk/pat-the-simple-graphql-service--TheSimpleGraphqlServiceStack.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 22,
       "counts": {
@@ -41911,7 +41861,6 @@
   "cdk/pat-the-simple-webservice--TheSimpleWebserviceStack.template.json": {
     "filePath": "cdk/pat-the-simple-webservice--TheSimpleWebserviceStack.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 10,
       "counts": {
@@ -42321,7 +42270,6 @@
   "cdk/pat-the-state-machine--TheStateMachineStack.template.json": {
     "filePath": "cdk/pat-the-state-machine--TheStateMachineStack.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 11,
       "counts": {
@@ -42702,7 +42650,6 @@
   "cdk/pat-the-waf-apigateway--APIGatewayStack.template.json": {
     "filePath": "cdk/pat-the-waf-apigateway--APIGatewayStack.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 12,
       "counts": {
@@ -43276,7 +43223,6 @@
   "cdk/pat-the-waf-apigateway--TheWafStack.template.json": {
     "filePath": "cdk/pat-the-waf-apigateway--TheWafStack.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 3,
       "counts": {
@@ -43387,7 +43333,6 @@
   "cdk/pat-the-xray-tracer--TheXrayDynamoFlow.template.json": {
     "filePath": "cdk/pat-the-xray-tracer--TheXrayDynamoFlow.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 7,
       "counts": {
@@ -43735,7 +43680,6 @@
   "cdk/pat-the-xray-tracer--TheXrayHttpFlow.template.json": {
     "filePath": "cdk/pat-the-xray-tracer--TheXrayHttpFlow.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 6,
       "counts": {
@@ -44041,7 +43985,6 @@
   "cdk/pat-the-xray-tracer--TheXraySQSFlow.template.json": {
     "filePath": "cdk/pat-the-xray-tracer--TheXraySQSFlow.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 11,
       "counts": {
@@ -44548,7 +44491,6 @@
   "cdk/pat-the-xray-tracer--TheXraySnsFlow.template.json": {
     "filePath": "cdk/pat-the-xray-tracer--TheXraySnsFlow.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 12,
       "counts": {
@@ -45118,7 +45060,6 @@
   "cdk/pat-the-xray-tracer--TheXrayTracerStack.template.json": {
     "filePath": "cdk/pat-the-xray-tracer--TheXrayTracerStack.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 14,
       "counts": {
@@ -45662,7 +45603,6 @@
   "cdk/py-api-cors-lambda--ApiCorsLambdaStack.template.json": {
     "filePath": "cdk/py-api-cors-lambda--ApiCorsLambdaStack.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 13,
       "counts": {
@@ -46289,7 +46229,6 @@
   "cdk/py-api-eventbridge-lambda--ApiEventBridgeLambdaStack.template.json": {
     "filePath": "cdk/py-api-eventbridge-lambda--ApiEventBridgeLambdaStack.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 28,
       "counts": {
@@ -47331,7 +47270,6 @@
   "cdk/py-api-sqs-lambda--ApiSqsLambdaStack.template.json": {
     "filePath": "cdk/py-api-sqs-lambda--ApiSqsLambdaStack.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 15,
       "counts": {
@@ -47857,7 +47795,6 @@
   "cdk/py-athena-s3-glue--DemoAthenaS3GlueStack.template.json": {
     "filePath": "cdk/py-athena-s3-glue--DemoAthenaS3GlueStack.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 21,
       "counts": {
@@ -48484,7 +48421,6 @@
   "cdk/py-datasync-s3--cdk-datasync-s3-to-s3-iam.template.json": {
     "filePath": "cdk/py-datasync-s3--cdk-datasync-s3-to-s3-iam.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 5,
       "counts": {
@@ -48682,7 +48618,6 @@
   "cdk/py-datasync-s3--cdk-datasync-s3-to-s3.template.json": {
     "filePath": "cdk/py-datasync-s3--cdk-datasync-s3-to-s3.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 4,
       "counts": {
@@ -48894,7 +48829,6 @@
   "cdk/py-docker-app-with-asg-alb--ASGStack.template.json": {
     "filePath": "cdk/py-docker-app-with-asg-alb--ASGStack.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 13,
       "counts": {
@@ -49789,7 +49723,6 @@
   "cdk/py-docker-app-with-asg-alb--NetworkStack.template.json": {
     "filePath": "cdk/py-docker-app-with-asg-alb--NetworkStack.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 22,
       "counts": {
@@ -50694,7 +50627,6 @@
   "cdk/py-docker-app-with-asg-alb--RDSStack.template.json": {
     "filePath": "cdk/py-docker-app-with-asg-alb--RDSStack.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 6,
       "counts": {
@@ -51022,7 +50954,6 @@
   "cdk/py-docker-app-with-asg-alb--StorageStack.template.json": {
     "filePath": "cdk/py-docker-app-with-asg-alb--StorageStack.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 3,
       "counts": {
@@ -51188,7 +51119,6 @@
   "cdk/py-dynamodb-lambda--dynamodb-lambda.template.json": {
     "filePath": "cdk/py-dynamodb-lambda--dynamodb-lambda.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 11,
       "counts": {
@@ -51616,7 +51546,6 @@
   "cdk/py-ec2-cloudwatch--ec2-cloudwatch.template.json": {
     "filePath": "cdk/py-ec2-cloudwatch--ec2-cloudwatch.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 43,
       "counts": {
@@ -53418,7 +53347,6 @@
   "cdk/py-ecs-serviceconnect--CdkExamplesServiceConnectStack.template.json": {
     "filePath": "cdk/py-ecs-serviceconnect--CdkExamplesServiceConnectStack.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 29,
       "counts": {
@@ -54469,7 +54397,6 @@
   "cdk/py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcrStack6B6F0F99.nested.template.json": {
     "filePath": "cdk/py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcrStack6B6F0F99.nested.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 8,
       "counts": {
@@ -54635,7 +54562,6 @@
   "cdk/py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template.json": {
     "filePath": "cdk/py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 20,
       "counts": {
@@ -56004,7 +55930,6 @@
   "cdk/py-emr--emr-cluster.template.json": {
     "filePath": "cdk/py-emr--emr-cluster.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 16,
       "counts": {
@@ -56774,7 +56699,6 @@
   "cdk/py-iotcore--CdkIotThingStack.template.json": {
     "filePath": "cdk/py-iotcore--CdkIotThingStack.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 19,
       "counts": {
@@ -57361,7 +57285,6 @@
   "cdk/py-lambda-cron--LambdaCronExample.template.json": {
     "filePath": "cdk/py-lambda-cron--LambdaCronExample.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 5,
       "counts": {
@@ -57551,7 +57474,6 @@
   "cdk/py-lambda-from-container--LambdaContainerFunctionStack.template.json": {
     "filePath": "cdk/py-lambda-from-container--LambdaContainerFunctionStack.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 3,
       "counts": {
@@ -57675,7 +57597,6 @@
   "cdk/py-lambda-layer--LambdaLayerExample.template.json": {
     "filePath": "cdk/py-lambda-layer--LambdaLayerExample.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 4,
       "counts": {
@@ -57847,7 +57768,6 @@
   "cdk/py-stepfunctions--aws-stepfunctions-integ.template.json": {
     "filePath": "cdk/py-stepfunctions--aws-stepfunctions-integ.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 8,
       "counts": {
@@ -58093,7 +58013,6 @@
   "cdk/py-url-shortener--urlshort-app.template.json": {
     "filePath": "cdk/py-url-shortener--urlshort-app.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 20,
       "counts": {
@@ -59090,7 +59009,6 @@
   "cdk/py-url-shortener--urlshort-load-test.template.json": {
     "filePath": "cdk/py-url-shortener--urlshort-load-test.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 8,
       "counts": {
@@ -59505,7 +59423,6 @@
   "cdk/r53-resolver--R53ResolverStack.template.json": {
     "filePath": "cdk/r53-resolver--R53ResolverStack.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 18,
       "counts": {
@@ -60287,7 +60204,6 @@
   "cdk/rekognition-lambda-s3-trigger--RekognitionLambdaS3TriggerStack.template.json": {
     "filePath": "cdk/rekognition-lambda-s3-trigger--RekognitionLambdaS3TriggerStack.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 15,
       "counts": {
@@ -60684,7 +60600,6 @@
   "cdk/resource-overrides--resource-overrides.template.json": {
     "filePath": "cdk/resource-overrides--resource-overrides.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 21,
       "counts": {
@@ -61617,7 +61532,6 @@
   "cdk/route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template.json": {
     "filePath": "cdk/route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 31,
       "counts": {
@@ -62914,7 +62828,6 @@
   "cdk/s3-object-lambda--S3ObjectLambdaStack.template.json": {
     "filePath": "cdk/s3-object-lambda--S3ObjectLambdaStack.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 9,
       "counts": {
@@ -63262,7 +63175,6 @@
   "cdk/ssm-document-association--SsmDocumentAssociationStack.template.json": {
     "filePath": "cdk/ssm-document-association--SsmDocumentAssociationStack.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 17,
       "counts": {
@@ -63927,7 +63839,6 @@
   "cdk/static-site-basic--MyStaticSite.template.json": {
     "filePath": "cdk/static-site-basic--MyStaticSite.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 11,
       "counts": {
@@ -64136,7 +64047,6 @@
   "cdk/stepfunction-external-definition--StepfunctionExternalDefinitionStack.template.json": {
     "filePath": "cdk/stepfunction-external-definition--StepfunctionExternalDefinitionStack.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 12,
       "counts": {
@@ -64555,7 +64465,6 @@
   "cdk/stepfunctions-job-poller--aws-stepfunctions-integ.template.json": {
     "filePath": "cdk/stepfunctions-job-poller--aws-stepfunctions-integ.template.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 11,
       "counts": {
@@ -64841,7 +64750,6 @@
   "empty.yaml": {
     "filePath": "empty.yaml",
     "status": "ERROR",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 0,
       "counts": {
@@ -64874,7 +64782,6 @@
   "gh-issues/issue-144.yaml": {
     "filePath": "gh-issues/issue-144.yaml",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -64960,7 +64867,6 @@
   "gh-issues/issue-183.yaml": {
     "filePath": "gh-issues/issue-183.yaml",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 3,
       "counts": {
@@ -65277,7 +65183,6 @@
   "gh-issues/issue-185.yaml": {
     "filePath": "gh-issues/issue-185.yaml",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -65296,7 +65201,6 @@
   "gh-issues/issue-186-clb.json": {
     "filePath": "gh-issues/issue-186-clb.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -65362,7 +65266,6 @@
   "gh-issues/issue-186-imagebuilder.json": {
     "filePath": "gh-issues/issue-186-imagebuilder.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -65428,7 +65331,6 @@
   "gh-issues/issue-194.json": {
     "filePath": "gh-issues/issue-194.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -65466,7 +65368,6 @@
   "gh-issues/issue-201.json": {
     "filePath": "gh-issues/issue-201.json",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 0,
       "counts": {
@@ -65531,7 +65432,6 @@
   "gh-issues/issue-226.yaml": {
     "filePath": "gh-issues/issue-226.yaml",
     "status": "OK",
-    "version": "1.10.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {

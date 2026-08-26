@@ -226,7 +226,13 @@ fn report_metadata_contains_embedded_source_versions_on_all_outcomes() {
 }
 
 #[test]
-fn engine_version_matches_workspace_version() {
+fn engine_version_matches_expected_version_fixture() {
+    let expected_version_path = resources::expected_dir().join("version.txt");
+    let expected_version_text = std::fs::read_to_string(&expected_version_path)
+        .unwrap_or_else(|error| panic!("read {}: {error}", expected_version_path.display()));
+    let expected_version = expected_version_text.trim();
+    assert!(!expected_version.is_empty(), "{} must not be empty", expected_version_path.display());
+
     let rego = RegoEngine::new(EngineConfig::default()).expect("rego engine");
     let cel = CelEngine::new(EngineConfig::default()).expect("cel engine");
     let bytes = load_template("good/generic.yaml");
@@ -235,7 +241,12 @@ fn engine_version_matches_workspace_version() {
         ("rego", validate_to_json(&rego, &bytes, "good/generic.yaml", DetailLevel::Detailed)),
         ("cel", validate_to_json(&cel, &bytes, "good/generic.yaml", DetailLevel::Detailed)),
     ] {
-        assert_eq!(report["version"].as_str(), Some("1.10.0"), "{name}: version must be the workspace crate version");
+        assert_eq!(
+            report["version"].as_str(),
+            Some(expected_version),
+            "{name}: version must match {}",
+            expected_version_path.display()
+        );
     }
 }
 
