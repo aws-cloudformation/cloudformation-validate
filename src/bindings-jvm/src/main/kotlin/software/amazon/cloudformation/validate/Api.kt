@@ -4,6 +4,9 @@ import software.amazon.cloudformation.validate.datasource.AdditionalSchemaSource
 import software.amazon.cloudformation.validate.diagnostics.DetailedReport
 import software.amazon.cloudformation.validate.diagnostics.StandardDiagnostic
 import software.amazon.cloudformation.validate.diagnostics.StandardReport
+import software.amazon.cloudformation.validate.engine.AwsApiRequestContext as NativeAwsApiRequest
+import software.amazon.cloudformation.validate.engine.AwsApiRequestValidation
+import software.amazon.cloudformation.validate.engine.AwsApiValue as NativeAwsApiValue
 import software.amazon.cloudformation.validate.engine.EngineConfig
 import software.amazon.cloudformation.validate.engine.ExternalRuleSource
 import software.amazon.cloudformation.validate.rules.RuleInfo
@@ -13,9 +16,89 @@ import java.io.File
 interface Engine {
     fun validateStandard(template: File, config: ValidateConfig = ValidateConfig()): StandardReport
     fun validateDetailed(template: File, config: ValidateConfig = ValidateConfig()): DetailedReport
+    fun validateAwsApiRequest(
+        request: AwsApiRequest,
+        config: ValidateConfig = ValidateConfig(),
+    ): AwsApiRequestValidation
     fun listRules(): List<RuleInfo>
     fun engineName(): String
 }
+
+/**
+ * Service, operation, and request values for CloudFormation validation.
+ *
+ * [serviceName] is the canonical botocore service name (for example "s3" or
+ * "cloudformation") and is the authoritative mapping identity, normalized only
+ * for ASCII case - never a signing name, ARN prefix, or endpoint alias. A future
+ * AWS SDK adapter, in any language, must translate its native service identity to
+ * the canonical botocore [serviceName] before calling; the core does not guess
+ * aliases.
+ *
+ * [parameters] accepts nested maps/lists, strings, numbers, booleans, nulls,
+ * byte arrays, and Java time values. Unsupported values are marked explicitly
+ * and conservatively omitted during request-to-template synthesis.
+ */
+class AwsApiRequest @JvmOverloads constructor(
+    val serviceName: String,
+    val operationName: String,
+    parameters: Map<String, Any?>,
+    val servicePrefix: String? = null,
+    val httpMethod: String? = null,
+    val isReadOnly: Boolean? = null,
+) {
+    val parameters: Map<String, Any?> = LinkedHashMap(parameters)
+
+    internal fun toNative(): NativeAwsApiRequest =
+        NativeAwsApiRequest(
+            serviceName = serviceName,
+            operationName = operationName,
+            parameters = parameters.mapValues { (_, value) -> value.toNativeAwsApiValue() },
+            servicePrefix = servicePrefix,
+            httpMethod = httpMethod,
+            isReadOnly = isReadOnly,
+        )
+}
+
+private fun Any?.toNativeAwsApiValue(): NativeAwsApiValue =
+    when (this) {
+        null -> NativeAwsApiValue.Null
+        is Boolean -> NativeAwsApiValue.Boolean(value = this)
+        is Byte -> NativeAwsApiValue.Integer(value = toLong())
+        is Short -> NativeAwsApiValue.Integer(value = toLong())
+        is Int -> NativeAwsApiValue.Integer(value = toLong())
+        is Long -> NativeAwsApiValue.Integer(value = this)
+        is UByte -> NativeAwsApiValue.UnsignedInteger(value = toULong())
+        is UShort -> NativeAwsApiValue.UnsignedInteger(value = toULong())
+        is UInt -> NativeAwsApiValue.UnsignedInteger(value = toULong())
+        is ULong -> NativeAwsApiValue.UnsignedInteger(value = this)
+        is Float ->
+            if (isFinite()) {
+                NativeAwsApiValue.Number(value = toDouble())
+            } else {
+                NativeAwsApiValue.Unsupported(typeName = "non-finite floating-point number")
+            }
+        is Double ->
+            if (isFinite()) {
+                NativeAwsApiValue.Number(value = this)
+            } else {
+                NativeAwsApiValue.Unsupported(typeName = "non-finite floating-point number")
+            }
+        is String -> NativeAwsApiValue.String(value = this)
+        is ByteArray -> NativeAwsApiValue.Bytes(value = this)
+        is java.time.temporal.TemporalAccessor -> NativeAwsApiValue.String(value = toString())
+        is Map<*, *> -> {
+            if (keys.any { it !is String }) {
+                NativeAwsApiValue.Unsupported(typeName = "mapping with non-string keys")
+            } else {
+                NativeAwsApiValue.Object(
+                    entries = entries.associate { (key, value) -> key as String to value.toNativeAwsApiValue() },
+                )
+            }
+        }
+        is Iterable<*> -> NativeAwsApiValue.Array(items = map { it.toNativeAwsApiValue() })
+        is Array<*> -> NativeAwsApiValue.Array(items = map { it.toNativeAwsApiValue() })
+        else -> NativeAwsApiValue.Unsupported(typeName = javaClass.name)
+    }
 
 /**
  * Reads a resource provider schema file into an [AdditionalSchemaSource] for
@@ -70,6 +153,11 @@ class RegoEngine(
     override fun validateDetailed(template: File, config: ValidateConfig): DetailedReport =
         inner.validateDetailed(template.readBytes(), config, template.path)
 
+    override fun validateAwsApiRequest(
+        request: AwsApiRequest,
+        config: ValidateConfig,
+    ): AwsApiRequestValidation = inner.validateAwsApiRequest(request.toNative(), config)
+
     override fun listRules(): List<RuleInfo> = inner.listRules()
     override fun engineName(): String = inner.engineName()
 }
@@ -84,6 +172,11 @@ class CelEngine(
 
     override fun validateDetailed(template: File, config: ValidateConfig): DetailedReport =
         inner.validateDetailed(template.readBytes(), config, template.path)
+
+    override fun validateAwsApiRequest(
+        request: AwsApiRequest,
+        config: ValidateConfig,
+    ): AwsApiRequestValidation = inner.validateAwsApiRequest(request.toNative(), config)
 
     override fun listRules(): List<RuleInfo> = inner.listRules()
     override fun engineName(): String = inner.engineName()

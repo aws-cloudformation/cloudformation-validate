@@ -45,11 +45,12 @@ diagnostics for the same template and config.
 
 | Method                                | Returns          | Description                                                                                                      |
 |---------------------------------------|------------------|------------------------------------------------------------------------------------------------------------------|
-| `validateStandard(template, config?)` | `StandardReport` | Validates and returns diagnostics without extended context                                                       |
-| `validateDetailed(template, config?)` | `DetailedReport` | Validates and returns diagnostics with documentation URLs, rule descriptions, phase tags, and `ViolationContext` |
-| `listRules()`                         | `RuleInfo[]`     | Returns metadata for every built-in and loaded custom rule                                                       |
-| `engineName()`                        | `string`         | `"rego"` or `"cel"`                                                                                              |
-| `free()`                              | `void`           | Releases the engine's off-heap memory                                                                            |
+| `validateStandard(template, config?)`      | `StandardReport`            | Validates and returns diagnostics without extended context                                                       |
+| `validateDetailed(template, config?)`      | `DetailedReport`            | Validates and returns diagnostics with documentation URLs, rule descriptions, phase tags, and `ViolationContext` |
+| `validateAwsApiRequest(request, config?)`  | `AwsApiRequestValidation`   | Classifies, models, and validates one AWS API request entirely offline                                            |
+| `listRules()`                              | `RuleInfo[]`                 | Returns metadata for every built-in and loaded custom rule                                                       |
+| `engineName()`                             | `string`                     | `"rego"` or `"cel"`                                                                                              |
+| `free()`                                   | `void`                       | Releases the engine's off-heap memory                                                                            |
 
 ### `EngineConfig`
 
@@ -106,6 +107,44 @@ const engine = new CelEngine({
     },
 });
 ```
+
+## AWS API request validation
+
+`validateAwsApiRequest` classifies and validates an AWS API request against the same bundled CloudFormation schemas and
+rules, without credentials or network access:
+
+```typescript
+import { AwsApiRequest, RegoEngine } from "@aws/cloudformation-validate";
+
+const engine = new RegoEngine();
+try {
+    const request = new AwsApiRequest("s3", "CreateBucket", {
+        Bucket: "my-bucket",
+    });
+    const validation = engine.validateAwsApiRequest(request);
+    console.log(validation.status, validation.resourceTypes);
+    if (validation.template !== null) {
+        console.log(Buffer.from(validation.template).toString("utf8"));
+    }
+} finally {
+    engine.free();
+}
+```
+
+`serviceName` is the exact canonical botocore service name (for example, `"s3"`, `"cloudwatch"`, or
+`"cloudformation"`) and is normalized for ASCII case only. `servicePrefix` is optional context and never overrides
+`serviceName`. The core does not guess endpoint prefixes, signing names, punctuation variants, or other aliases. A
+future SDK adapter in any language must translate its native SDK identity to this canonical name before calling the
+API.
+
+Request parameters accept JavaScript strings, booleans, finite numbers, 64-bit `bigint` values, `null`, `Date`, nested
+arrays and plain objects, and `Uint8Array` (including Node.js `Buffer`) for byte strings. Unsupported values are marked
+explicitly rather than coerced. Synthesis is all-or-nothing: if any supplied resource-state field cannot be represented
+or has no proven mapping, the result is `SKIPPED` with no report or template.
+
+`AwsApiRequestValidation.template` is a `Uint8Array | null`. For CloudFormation `TemplateBody`, it contains the exact
+caller-provided bytes; synthesized requests contain the generated JSON template bytes. A `VALIDATED` result includes a
+standard report, while a `SKIPPED` result explains why validation was not attempted.
 
 ## ValidateConfig
 

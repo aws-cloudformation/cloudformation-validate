@@ -13,8 +13,8 @@ All types live in the `software.amazon.cloudformation.validate` package.
 
 Available
 on [Maven Central](https://central.sonatype.com/artifact/software.amazon.cloudformation/cloudformation-validate)
-as `software.amazon.cloudformation:cloudformation-validate`. Both snippets below resolve the latest published version;
-substitute a specific version to pin one.
+as `software.amazon.cloudformation:cloudformation-validate`. The library requires Java 8 or later. Both snippets below
+resolve the latest published version; substitute a specific version to pin one.
 
 Gradle:
 
@@ -75,6 +75,48 @@ interface Engine {
 | `engineName()`                       | `String`         | `"rego"` or `"cel"`                                                                                              |
 
 `template` is a `java.io.File` - the engine reads the bytes and uses the file path for diagnostic source locations.
+
+### AWS API request validation
+
+Use `validateAwsApiRequest` for AWS SDK-style request values rather than a complete template. The validator classifies
+the operation, selects a CloudFormation resource type, models representable create/update state, and validates the
+resulting template entirely offline:
+
+```kotlin
+val result = RegoEngine().validateAwsApiRequest(
+    AwsApiRequest(
+        serviceName = "s3",
+        servicePrefix = "s3",
+        operationName = "CreateBucket",
+        httpMethod = "PUT",
+        parameters = mapOf(
+            "Bucket" to "example-bucket",
+        ),
+    ),
+)
+
+result.report?.diagnostics?.forEach { diagnostic ->
+    println("${diagnostic.ruleId}: ${diagnostic.message}")
+} ?: println("${result.status}: ${result.reason}")
+```
+
+`AwsApiRequest.parameters` accepts nested maps, iterables and arrays, scalars, byte arrays, and Java temporal values
+without mutating the supplied map. `TemplateBody` bytes are validated exactly; `TemplateURL` is skipped because the
+validator does not perform network requests. Every result reports `status`, `operationKind`, `templateSource`,
+`resourceTypes`, and `reason`; skipped requests have a null `report`.
+The same classes and methods are callable from Java with conventional generated getters.
+
+Operation-to-resource mapping uses a deterministic closed adapter catalog generated from each resource type's own
+provider handler metadata and verified against botocore models and the compiled CloudFormation schemas: only
+verified service+operation pairs produce inferred resource types and synthesized templates. Unregistered operations are classified as
+`UNMAPPED_MUTATION` or `DATA_PLANE_MUTATION` with `SKIPPED` status and no inferred resource types. Cloud Control
+`UpdateResource` and `DeleteResource` may echo a known `TypeName` supplied by the request, but never synthesize state.
+The canonical `serviceName` is authoritative; the optional `servicePrefix` is context only and cannot override it.
+`serviceName` must be the exact canonical botocore service name, normalized only for ASCII case. The core does not
+guess signing, endpoint, or punctuation aliases and never matches on substrings. Any caller, including a future AWS
+SDK adapter in any language, must translate its native service identity to the canonical botocore `serviceName` before
+invoking this API. `TemplateBody` validation is restricted to CloudFormation operations that accept it, and
+`TypeName`+`DesiredState` wrapping applies only to exact Cloud Control `CreateResource`.
 
 ### `EngineConfig`
 

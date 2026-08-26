@@ -17,7 +17,7 @@ Available on [PyPI](https://pypi.org/project/cloudformation-validate/) as `cloud
 pip install cloudformation-validate
 ```
 
-Requires Python 3.12+ and has no runtime dependencies. PyPI publishes a separate wheel for every supported native
+Requires Python 3.9+ and has no runtime dependencies. PyPI publishes a separate wheel for every supported native
 target. Each wheel carries exactly one native library and an accurate platform tag, so pip downloads only the
 artifact compatible with the installer host.
 
@@ -56,6 +56,93 @@ the same template and config.
 | `engine_name()`                            | `str`            | `"rego"` or `"cel"`                                                                                              |
 
 `template` is a file path (`str` / `os.PathLike`) or raw `bytes`; `config` is an optional `ValidateConfig`.
+
+### AWS API request validation
+
+Use `validate_aws_api_request` when the input is an AWS SDK-style request rather than a complete template. The
+validator classifies the operation, selects a CloudFormation resource type, models representable create/update state,
+and validates the resulting template entirely offline:
+
+```python
+from cloudformation_validate import AwsApiRequest, RegoEngine
+
+engine = RegoEngine()
+result = engine.validate_aws_api_request(
+    AwsApiRequest(
+        service_name="s3",
+        service_prefix="s3",
+        operation_name="CreateBucket",
+        http_method="PUT",
+        parameters={"Bucket": "example-bucket"},
+    )
+)
+
+if result.report is not None:
+    for diagnostic in result.report.diagnostics:
+        print(diagnostic.rule_id, diagnostic.message)
+else:
+    print(result.status.name, result.reason)
+```
+
+`AwsApiRequest.parameters` accepts nested mappings and sequences, scalars, `bytes`, and `datetime.datetime` values
+without mutating the supplied mapping. `TemplateBody` bytes are validated exactly; `TemplateURL` is skipped because the
+validator does not perform network requests. The result always reports `status`, `operation_kind`, `template_source`,
+`resource_types`, and `reason`; skipped requests have `report is None`. The `template` field carries the exact bytes
+validated — the caller's original `TemplateBody` without reserializing, or the synthesized JSON for adapter-mapped
+requests — so consumers can display the modeled template that produced the diagnostics. Skipped requests have
+`template is None`.
+
+Operation-to-resource mapping uses a deterministic closed adapter catalog generated from each resource type's own
+provider handler metadata and verified against botocore models and the compiled CloudFormation schemas: only
+verified service+operation pairs produce inferred resource types and synthesized templates. Unregistered operations are classified as
+`UNMAPPED_MUTATION` or `DATA_PLANE_MUTATION` with `SKIPPED` status and no inferred resource types. Cloud Control
+`UpdateResource` and `DeleteResource` may echo a known `TypeName` supplied by the request, but never synthesize state.
+The canonical `service_name` is authoritative; the optional `service_prefix` is context only and cannot override it.
+`service_name` must be the exact canonical botocore service name, normalized only for ASCII case. The core does not
+guess signing, endpoint, or punctuation aliases and never matches on substrings. Any caller, including a future AWS
+SDK adapter in any language, must translate its native service identity to the canonical botocore `service_name`
+before invoking this API. `TemplateBody` validation is restricted to CloudFormation operations that accept it, and
+`TypeName`+`DesiredState` wrapping applies only to exact Cloud Control `CreateResource`.
+
+#### AWS CLI integration
+
+AWS CLI emits `provide-client-params.<service>.<operation>` before serializing or sending each request. Register a
+handler on the CLI's botocore session to validate the exact parameter dictionary without making another network call:
+
+```python
+from cloudformation_validate import AwsApiRequest, RegoEngine
+
+engine = RegoEngine()  # construct once and reuse
+
+
+def validate_create_stack(params, model, **_kwargs):
+    service = model.service_model
+    result = engine.validate_aws_api_request(
+        AwsApiRequest(
+            service_name=service.service_name,
+            service_prefix=service.signing_name,
+            operation_name=model.name,
+            http_method=model.http.get("method"),
+            parameters=params,
+        )
+    )
+    if result.report is not None:
+        for diagnostic in result.report.diagnostics:
+            print(diagnostic.rule_id, diagnostic.message)
+    else:
+        print(result.status.name, result.reason)
+
+
+# `session` is the botocore session owned by the AWS CLI driver or plugin.
+session.register(
+    "provide-client-params.cloudformation.CreateStack",
+    validate_create_stack,
+)
+```
+
+The callback receives the real botocore `OperationModel`, so it does not need a duplicate service model. For
+`CreateStack` and `UpdateStack`, the request's `TemplateBody` string or bytes are validated exactly. A handler that
+must prevent the API call can raise after applying its own policy to the returned diagnostics.
 
 ### EngineConfig
 

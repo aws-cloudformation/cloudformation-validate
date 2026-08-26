@@ -2,6 +2,7 @@ pub mod catalog;
 pub(crate) mod compiled;
 pub(crate) mod convert;
 pub mod overlay;
+pub mod resource_schema;
 pub mod store;
 pub mod validate;
 
@@ -11,6 +12,7 @@ uniffi::setup_scaffolding!();
 pub use catalog::OverlayCatalog;
 pub use data_source::{AdditionalSchemaSource, SchemaSourceError};
 pub use overlay::{MAX_OVERLAY_DEPTH, SchemaOverlayError};
+pub use resource_schema::{PropertyValueType, ResourceSchemaMetadata};
 pub use store::{CompiledSchemaStore, OverlayOutcome};
 
 /// Eagerly decompress all embedded data LazyLocks. Intended to be called once at
@@ -276,6 +278,23 @@ impl SchemaValidator {
 
     pub fn schema_count(&self) -> usize {
         self.store.len()
+    }
+
+    /// Returns the schema fields needed to map request parameters to one
+    /// CloudFormation resource type, including configured schema overlays.
+    pub fn resource_schema_metadata(&self, type_name: &str) -> Option<ResourceSchemaMetadata> {
+        self.store.get(type_name).map(ResourceSchemaMetadata::from_compiled)
+    }
+
+    /// Whether this validator has a bundled or caller-provided schema for a
+    /// CloudFormation resource type.
+    pub fn has_resource_type(&self, type_name: &str) -> bool {
+        self.store.get(type_name).is_some()
+    }
+
+    /// Iterates every bundled and caller-provided CloudFormation resource type.
+    pub fn resource_type_names(&self) -> impl Iterator<Item = &str> {
+        self.store.type_names()
     }
 
     pub fn list_rules(&self) -> Vec<RuleInfo> {

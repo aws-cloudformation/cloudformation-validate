@@ -8,19 +8,26 @@ compile time. Everything compiles into the binary - no runtime fetching.
 ## Commands
 
 ```bash
-# Generate from existing upstream data
+# Generate schema and rule artifacts from existing upstream data
 cargo run -p data-source --features maintenance --example generate
 
-# Refresh all upstream sources, then generate every output (cfn-lint root is required)
-cargo run -p data-source --features maintenance --example sync -- --cfn-lint-root <DIR>
+# Refresh every upstream source and generate every output, including the AWS API operation catalog
+cargo run -p data-source --features maintenance --example sync -- \
+  --cfn-lint-root <DIR> \
+  --aws-cli-root <DIR>
 ```
 
 The `generate` and `sync` examples require the `maintenance` feature, which enables dependencies used only by the
 data maintenance pipeline. `sync` is the complete workflow: it refreshes every upstream source, records source
-versions, and generates all outputs. `generate` reruns code generation from the existing upstream data without network
-access.
+versions, generates the schema and rule outputs, then generates and verifies the AWS API operation catalog. Pass the
+AWS CLI checkout root through `--aws-cli-root`; sync derives its bundled botocore package path, and the catalog
+generator runs its unit tests before generating the catalog.
 
-`--cfn-lint-root` is required by `sync`, which fails before starting work when it is absent.
+`generate` reruns schema and rule generation from existing upstream data without network access. It does not rebuild
+the AWS API operation catalog because that step requires botocore service models and is owned by the complete `sync`
+workflow.
+
+`--cfn-lint-root` and `--aws-cli-root` are required by `sync`, which fails before starting work when either is absent.
 A successful sync records both strict, source-qualified values together only after all source processing succeeds.
 
 ## Directory Structure

@@ -75,7 +75,7 @@ jobs:
       WORKING_DIR: 'src'
       RUST_TOOLCHAIN: '1.96.0'        # keep in sync with src/rust-toolchain.toml
       NODE_VERSION: '22.x'
-      PYTHON_VERSION: '3.12'
+      PYTHON_VERSION: '3.9'
       GO_VERSION: '1.26'
       UNIFFI_BINDGEN_GO_TAG: 'v0.7.1+v0.31.0'  # keep in sync with bindings-go/README.md and the uniffi pin in bindings-go/Cargo.toml
       JAVA_VERSION: '21'

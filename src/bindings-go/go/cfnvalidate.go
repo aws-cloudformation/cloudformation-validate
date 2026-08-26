@@ -19,9 +19,15 @@
 package cfnvalidate
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"math"
 	"os"
+	"reflect"
+	"strconv"
+	"strings"
+	"time"
 
 	bindings "github.com/aws-cloudformation/cloudformation-validate/src/bindings-go/go/internal/bindings_go"
 )
@@ -77,6 +83,7 @@ func decodeInto[T any](data string, what string) (*T, error) {
 type nativeEngine interface {
 	ValidateStandardJson(template []byte, optionsJson string, filePath string) (string, error)
 	ValidateDetailedJson(template []byte, optionsJson string, filePath string) (string, error)
+	ValidateAwsApiRequestJson(requestJson string, optionsJson string) (string, error)
 	ListRulesJson() (string, error)
 	EngineName() string
 	Destroy()
@@ -193,6 +200,251 @@ func (e *Engine) EngineName() string {
 // Destroy releases the native engine. The engine must not be used afterwards.
 func (e *Engine) Destroy() {
 	e.inner.Destroy()
+}
+
+// ValidateAWSAPIRequest classifies and validates an AWS API request against
+// CloudFormation schemas and rules entirely offline. The result contains
+// operation classification, resource type inference, and an optional
+// StandardReport when the request was validated (not skipped).
+func (e *Engine) ValidateAWSAPIRequest(request AWSAPIRequest, config *ValidateConfig) (*AWSAPIRequestValidation, error) {
+	optionsJSON, err := validateConfigJSON(config)
+	if err != nil {
+		return nil, err
+	}
+	requestJSON, err := marshalAWSAPIRequest(request)
+	if err != nil {
+		return nil, err
+	}
+	data, err := e.inner.ValidateAwsApiRequestJson(requestJSON, optionsJSON)
+	if err != nil {
+		return nil, err
+	}
+	return decodeInto[AWSAPIRequestValidation](data, "AWS API request validation")
+}
+
+// marshalAWSAPIRequest encodes an AWSAPIRequest into the wire JSON that the
+// Rust side expects, converting Go parameter values into tagged AwsApiValue
+// objects.
+func marshalAWSAPIRequest(request AWSAPIRequest) (string, error) {
+	wire := awsApiRequestWire{
+		ServiceName:   request.ServiceName,
+		OperationName: request.OperationName,
+		Parameters:    make(map[string]awsApiValue, len(request.Parameters)),
+		ServicePrefix: nilIfEmpty(request.ServicePrefix),
+		HTTPMethod:    nilIfEmpty(request.HTTPMethod),
+		IsReadOnly:    request.IsReadOnly,
+	}
+	for key, value := range request.Parameters {
+		wire.Parameters[key] = encodeAwsApiValue(value, 0)
+	}
+	data, err := json.Marshal(wire)
+	if err != nil {
+		return "", fmt.Errorf("cfnvalidate: encoding AWS API request: %w", err)
+	}
+	return string(data), nil
+}
+
+func nilIfEmpty(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
+}
+
+// awsApiRequestWire is the JSON structure consumed by the Rust wire parser.
+type awsApiRequestWire struct {
+	ServiceName   string                 `json:"serviceName"`
+	OperationName string                 `json:"operationName"`
+	Parameters    map[string]awsApiValue `json:"parameters"`
+	ServicePrefix *string                `json:"servicePrefix,omitempty"`
+	HTTPMethod    *string                `json:"httpMethod,omitempty"`
+	IsReadOnly    *bool                  `json:"isReadOnly,omitempty"`
+}
+
+// awsApiValue is the tagged union wire format matching the core AwsApiValue
+// serde representation (tag = "type", rename_all = "SCREAMING_SNAKE_CASE").
+// Items and Entries use pointer fields so that empty slices/maps serialize as
+// their JSON zero ([] / {}) while remaining absent for unrelated variants.
+type awsApiValue struct {
+	Type     string                  `json:"type"`
+	Value    any                     `json:"value,omitempty"`
+	Items    *[]awsApiValue          `json:"items,omitempty"`
+	Entries  *map[string]awsApiValue `json:"entries,omitempty"`
+	TypeName string                  `json:"type_name,omitempty"`
+}
+
+// maxEncodeDepth prevents stack overflow on cyclic or deeply nested structures.
+const maxEncodeDepth = 64
+
+// encodeAwsApiValue recursively converts a Go value into the tagged wire
+// format. It is non-mutating: no pointer is followed through a write path.
+// Unsupported types are represented as UNSUPPORTED rather than coerced.
+//
+// SDK-defined type aliases (e.g. types.InstanceType is a named string) are
+// handled via reflect.Kind after concrete type checks, so any alias of a
+// scalar kind is encoded correctly without enumerating every SDK type.
+func encodeAwsApiValue(v any, depth int) awsApiValue {
+	if depth > maxEncodeDepth {
+		return awsApiValue{Type: "UNSUPPORTED", TypeName: "recursion depth exceeded"}
+	}
+	if v == nil {
+		return awsApiValue{Type: "NULL"}
+	}
+
+	// Unwrap interface and pointer layers. Count indirections separately because
+	// a pointer-to-interface cycle can otherwise loop before recursive
+	// collection encoding reaches the depth guard.
+	rv := reflect.ValueOf(v)
+	indirections := 0
+	for rv.Kind() == reflect.Ptr || rv.Kind() == reflect.Interface {
+		if depth+indirections > maxEncodeDepth {
+			return awsApiValue{Type: "UNSUPPORTED", TypeName: "recursion depth exceeded"}
+		}
+		if rv.IsNil() {
+			return awsApiValue{Type: "NULL"}
+		}
+		rv = rv.Elem()
+		indirections++
+	}
+	v = rv.Interface()
+
+	// Concrete type checks for stdlib types that carry semantics beyond their
+	// underlying kind (time.Time and json.Number).
+	switch val := v.(type) {
+	case time.Time:
+		return awsApiValue{Type: "STRING", Value: val.UTC().Format(time.RFC3339Nano)}
+
+	case json.Number:
+		text := string(val)
+		if i, err := val.Int64(); err == nil {
+			return awsApiValue{Type: "INTEGER", Value: i}
+		}
+		if u, err := strconv.ParseUint(text, 10, 64); err == nil {
+			return awsApiValue{Type: "UNSIGNED_INTEGER", Value: u}
+		}
+		if !strings.ContainsAny(text, ".eE") && json.Valid([]byte(text)) {
+			return awsApiValue{Type: "UNSUPPORTED", TypeName: "integer outside 64-bit range"}
+		}
+		if f, err := val.Float64(); err == nil {
+			if math.IsInf(f, 0) || math.IsNaN(f) {
+				return awsApiValue{Type: "UNSUPPORTED", TypeName: "non-finite floating-point number"}
+			}
+			return awsApiValue{Type: "NUMBER", Value: f}
+		}
+		return awsApiValue{Type: "UNSUPPORTED", TypeName: "unparseable json.Number"}
+	}
+
+	// Kind-based handling covers both built-in types and SDK-defined aliases
+	// (e.g. types.InstanceType is `type InstanceType string`).
+	switch rv.Kind() {
+	case reflect.Bool:
+		return awsApiValue{Type: "BOOLEAN", Value: rv.Bool()}
+
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return awsApiValue{Type: "INTEGER", Value: rv.Int()}
+
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		return awsApiValue{Type: "UNSIGNED_INTEGER", Value: rv.Uint()}
+
+	case reflect.Float32, reflect.Float64:
+		f := rv.Float()
+		if math.IsInf(f, 0) || math.IsNaN(f) {
+			return awsApiValue{Type: "UNSUPPORTED", TypeName: "non-finite floating-point number"}
+		}
+		return awsApiValue{Type: "NUMBER", Value: f}
+
+	case reflect.String:
+		return awsApiValue{Type: "STRING", Value: rv.String()}
+
+	case reflect.Slice, reflect.Array:
+		// []byte / [N]byte → BYTES, encoded as a JSON integer array so the
+		// Rust side receives Vec<u8> from serde (encoding/json marshals
+		// []byte as base64 which is incompatible with serde's Vec<u8>).
+		if rv.Type().Elem().Kind() == reflect.Uint8 {
+			ints := make([]int, rv.Len())
+			for i := range ints {
+				ints[i] = int(rv.Index(i).Uint())
+			}
+			return awsApiValue{Type: "BYTES", Value: ints}
+		}
+		items := make([]awsApiValue, rv.Len())
+		for i := range items {
+			items[i] = encodeAwsApiValue(rv.Index(i).Interface(), depth+1)
+		}
+		return awsApiValue{Type: "ARRAY", Items: &items}
+
+	case reflect.Map:
+		if rv.Type().Key().Kind() != reflect.String {
+			return awsApiValue{Type: "UNSUPPORTED", TypeName: "mapping with non-string keys"}
+		}
+		entries := make(map[string]awsApiValue, rv.Len())
+		iter := rv.MapRange()
+		for iter.Next() {
+			entries[iter.Key().String()] = encodeAwsApiValue(iter.Value().Interface(), depth+1)
+		}
+		return awsApiValue{Type: "OBJECT", Entries: &entries}
+
+	case reflect.Struct:
+		return awsApiValue{Type: "UNSUPPORTED", TypeName: rv.Type().String()}
+
+	default:
+		return awsApiValue{Type: "UNSUPPORTED", TypeName: rv.Type().String()}
+	}
+}
+
+// UnmarshalJSON decodes an AWSAPIRequestValidation, translating the core's
+// integer-array encoding of the validated template into a byte slice.
+//
+// The core serializes the template as a JSON array of byte-valued integers
+// (serde's representation of a byte vector), which encoding/json cannot decode
+// into a []byte directly - it expects a base64 string. Every other field
+// decodes with the standard rules. On any failure the receiver is left
+// unchanged, so a decode error never leaves a partially populated result.
+func (v *AWSAPIRequestValidation) UnmarshalJSON(data []byte) error {
+	type withoutTemplate AWSAPIRequestValidation
+	var wire struct {
+		withoutTemplate
+		Template json.RawMessage `json:"template"`
+	}
+	if err := json.Unmarshal(data, &wire); err != nil {
+		return err
+	}
+	template, err := decodeTemplateBytes(wire.Template)
+	if err != nil {
+		return err
+	}
+	decoded := AWSAPIRequestValidation(wire.withoutTemplate)
+	decoded.Template = template
+	*v = decoded
+	return nil
+}
+
+// decodeTemplateBytes converts the core's JSON integer-array template encoding
+// into a byte slice. A missing or null field yields nil; an empty array yields
+// a non-nil empty slice; every element must be an integer in the range 0-255.
+func decodeTemplateBytes(raw json.RawMessage) ([]byte, error) {
+	trimmed := bytes.TrimSpace(raw)
+	if len(trimmed) == 0 || string(trimmed) == "null" {
+		return nil, nil
+	}
+	decoder := json.NewDecoder(bytes.NewReader(trimmed))
+	decoder.UseNumber()
+	var elements []json.Number
+	if err := decoder.Decode(&elements); err != nil {
+		return nil, fmt.Errorf("cfnvalidate: template must be a JSON array of byte integers: %w", err)
+	}
+	template := make([]byte, len(elements))
+	for i, element := range elements {
+		value, err := element.Int64()
+		if err != nil {
+			return nil, fmt.Errorf("cfnvalidate: template byte at index %d is not an integer: %s", i, element)
+		}
+		if value < 0 || value > 255 {
+			return nil, fmt.Errorf("cfnvalidate: template byte at index %d is out of range 0-255: %d", i, value)
+		}
+		template[i] = byte(value)
+	}
+	return template, nil
 }
 
 // SchemaValidator validates resources against the compiled CloudFormation

@@ -25,6 +25,7 @@ const GENERATED_JSON: &[(&str, &str)] = &[
     ("data/getatt_attributes.json", "GETATT_ATTRIBUTES"),
     ("data/known_resource_types.json", "KNOWN_RESOURCE_TYPES"),
     ("data/stateful_resource_types.json", "STATEFUL_RESOURCE_TYPES"),
+    ("data/aws_api_operation_catalog.json", "AWS_API_OPERATION_CATALOG"),
     ("data/retention_period_requirements.json", "RETENTION_PERIOD_REQUIREMENTS"),
     ("data/codepipeline_action_artifact_counts.json", "CODEPIPELINE_ACTION_ARTIFACT_COUNTS"),
     ("data/aws_rds_dbinstance_dbinstanceclass_enum.json", "AWS_RDS_DBINSTANCE_DBINSTANCECLASS_ENUM"),

@@ -61,6 +61,7 @@ diagnostics for the same template and config. A `nil` config uses only the built
 | `ValidateStandardFile(path string, config *ValidateConfig)`                  | `(*StandardReport, error)` | Reads a template from disk, then validates it                                                   |
 | `ValidateDetailed(template []byte, config *ValidateConfig, filePath string)` | `(*DetailedReport, error)` | Validates bytes with documentation URLs, rule descriptions, phase tags, and `ViolationContext`  |
 | `ValidateDetailedFile(path string, config *ValidateConfig)`                  | `(*DetailedReport, error)` | Reads a template from disk, then validates it (detailed)                                        |
+| `ValidateAWSAPIRequest(request AWSAPIRequest, config *ValidateConfig)`       | `(*AWSAPIRequestValidation, error)` | Classifies and validates an AWS API request offline                                       |
 | `ListRules()`                                                                | `([]RuleInfo, error)`      | Returns metadata for every built-in and loaded custom rule                                      |
 | `EngineName()`                                                               | `string`                   | `"rego"` or `"cel"`                                                                             |
 | `Destroy()`                                                                  | -                          | Releases the native engine; the engine must not be used afterwards                              |
@@ -193,6 +194,82 @@ type PseudoParameterOverrides struct {
     URLSuffix        *string // AWS::URLSuffix
 }
 ```
+
+## AWS API Request Validation
+
+Validates an AWS API request by classifying the operation, inferring the CloudFormation resource type, and running
+schema and rule validation against a synthesized template - entirely offline. The method returns classification
+metadata and an optional `StandardReport` when the request was validated (not skipped for read-only operations).
+
+```go
+engine, _ := cfnvalidate.NewRegoEngine(nil)
+defer engine.Destroy()
+
+result, err := engine.ValidateAWSAPIRequest(cfnvalidate.AWSAPIRequest{
+    ServiceName:   "s3",
+    OperationName: "CreateBucket",
+    Parameters:    map[string]any{"Bucket": "my-bucket"},
+    HTTPMethod:    "PUT",
+}, nil)
+if err != nil {
+    log.Fatal(err)
+}
+fmt.Printf("Kind: %s  Status: %s  Types: %v\n",
+    result.OperationKind, result.Status, result.ResourceTypes)
+if result.Report != nil {
+    for _, d := range result.Report.Diagnostics {
+        fmt.Printf("  [%s] %s: %s\n", d.Severity, d.RuleID, d.Message)
+    }
+}
+```
+
+### AWSAPIRequest
+
+```go
+type AWSAPIRequest struct {
+    ServiceName   string         // canonical botocore service name (e.g. "s3") - ASCII case-insensitive
+    OperationName string         // operation name (e.g. "CreateBucket") - case-sensitive
+    Parameters    map[string]any // request parameters: strings, numbers, booleans, []byte, maps, slices, nil
+    ServicePrefix string         // optional signing prefix (e.g. "cloudcontrolapi")
+    HTTPMethod    string         // optional HTTP method hint for classification
+    IsReadOnly    *bool          // explicit read-only flag - skips validation when true
+}
+```
+
+`Parameters` values are recursively encoded into the core's tagged value representation. Supported Go types: `nil`,
+`bool`, all signed/unsigned integer widths, `float32`/`float64` (finite only), `string`, `[]byte` (as byte arrays),
+`time.Time` (as an RFC 3339 UTC string), `json.Number`, slices/arrays, and `map[string]any`. Integer-valued
+`json.Number` inputs are preserved across the full signed and unsigned 64-bit range; integer literals outside that range
+are represented as unsupported rather than rounded through `float64`. SDK-defined type aliases (e.g.
+`types.InstanceType` which is `type InstanceType string`) are handled transparently via their underlying kind.
+Non-finite floats, maps with non-string keys, and unsupported types are represented as `UNSUPPORTED` rather than
+coerced.
+
+The canonical `ServiceName` is authoritative; the optional `ServicePrefix` is context only and cannot override it.
+`ServiceName` must be the exact canonical botocore service name, normalized only for ASCII case. The core does not
+guess signing, endpoint, or punctuation aliases and never matches on substrings. Any caller, including a future AWS
+SDK adapter in any language, must translate its native service identity to the canonical botocore `ServiceName` before
+invoking this API. `TemplateBody` validation is restricted to CloudFormation operations that accept it, and
+`TypeName`+`DesiredState` wrapping applies only to exact Cloud Control `CreateResource`.
+
+### AWSAPIRequestValidation
+
+```go
+type AWSAPIRequestValidation struct {
+    OperationKind  AWSAPIOperationKind           // READ_ONLY, CLOUD_FORMATION_CREATE, etc.
+    Status         AWSAPIRequestValidationStatus // VALIDATED or SKIPPED
+    TemplateSource *AWSAPITemplateSource         // TEMPLATE_BODY, SYNTHESIZED_CREATE, etc.
+    ResourceTypes  []string                      // inferred CloudFormation resource types
+    Reason         string                        // human-readable explanation
+    Report         *StandardReport               // present only when Status is VALIDATED
+    Template       []byte                        // exact validated/synthesized template bytes; nil when SKIPPED
+}
+```
+
+`Template` carries the exact bytes that were validated - the caller's original `TemplateBody` without reserializing, or
+the synthesized JSON template for adapter-mapped requests - so consumers can display the modeled template that produced
+the diagnostics. It is nil when the request was skipped. The core serializes these bytes as a JSON integer array, which
+the Go decoder converts back into a `[]byte`.
 
 ## TemplateModel
 

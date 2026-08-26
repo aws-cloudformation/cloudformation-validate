@@ -5,7 +5,10 @@ use rules::{FilterConfig, RuleFilterConfig, Severity};
 use schema_validator::{SchemaValidator, SchemaValidatorConfig};
 use serde::Deserialize;
 use template_model::{PseudoParameterOverrides, SemanticModel};
-use validation_engine::{EngineConfig, ValidationEngine, catch_panics, validate_bytes_with_path};
+use validation_engine::{
+    AwsApiRequestContext, EngineConfig, ValidationEngine, catch_panics, validate_aws_api_request,
+    validate_bytes_with_path,
+};
 use wasm_bindgen::prelude::*;
 
 const SERIALIZER: serde_wasm_bindgen::Serializer = serde_wasm_bindgen::Serializer::json_compatible();
@@ -173,6 +176,26 @@ macro_rules! wasm_engine {
                             validate_bytes_with_path(&self.engine, &self.schema_validator, template, config, file_path)
                                 .map_err(to_js_err)?;
                         to_js(&report.to_detailed())
+                    },
+                    wasm_panic_err,
+                )
+            }
+
+            #[wasm_bindgen(js_name = "validateAwsApiRequest")]
+            pub fn validate_aws_api_request(
+                &self,
+                request: JsValue,
+                options: ValidateConfig,
+            ) -> Result<JsValue, JsValue> {
+                catch_panics(
+                    || {
+                        let request: AwsApiRequestContext = serde_wasm_bindgen::from_value(request)
+                            .map_err(|error| JsValue::from_str(&format!("invalid AWS API request: {error}")))?;
+                        let config = build_core_config(options, DetailLevel::Standard);
+                        let validation =
+                            validate_aws_api_request(&self.engine, &self.schema_validator, &request, config)
+                                .map_err(to_js_err)?;
+                        to_js(&validation)
                     },
                     wasm_panic_err,
                 )

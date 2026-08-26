@@ -53,7 +53,7 @@ See the [Node.js API and examples](src/bindings-wasm/README.md).
 ### Python
 
 Production versions are published to [PyPI](https://pypi.org/project/cloudformation-validate/); prereleases are
-published to [TestPyPI](https://test.pypi.org/project/cloudformation-validate/). The package requires Python 3.12 or
+published to [TestPyPI](https://test.pypi.org/project/cloudformation-validate/). The package requires Python 3.9 or
 later, and its platform-specific wheels have no runtime package dependencies.
 
 ```bash
@@ -95,7 +95,7 @@ See the [Go API and examples](src/bindings-go/README.md).
 
 The JVM library is published to
 [Maven Central as `software.amazon.cloudformation:cloudformation-validate`](https://central.sonatype.com/artifact/software.amazon.cloudformation/cloudformation-validate)
-and requires JDK 21 or later. The jar includes native libraries for all supported platforms; Maven or Gradle resolves
+and requires Java 8 or later. The jar includes native libraries for all supported platforms; Maven or Gradle resolves
 JNA, Gson, and the Kotlin standard library.
 
 Gradle (Kotlin DSL):
@@ -185,7 +185,7 @@ testing the project from source need the tools below. Pinned versions live in
 | Kotlin (`kotlinc`)              | 2.4.0   | JVM binding build                                         |                                                                                                                 |
 | `ktlint`                        | 1.8.0   | JVM binding formatting                                    |                                                                                                                 |
 | Gradle                          | 9.6.1   | JVM binding build/test                                    | Must be on `PATH` - `bindings-jvm/build.sh` and the JVM test runner invoke `gradle`                             |
-| Python                          | 3.12+   | Python binding build/test, license generation, `scripts/` | `setuptools` for the wheel build; no other packages required                                                    |
+| Python                          | 3.9+    | Python binding build/test, license generation, `scripts/` | `setuptools` for the wheel build; no other packages required                                                    |
 | Go                              | 1.26+   | Go binding build/test                                     | cgo must be enabled (default); Windows also needs `rustup target add x86_64-pc-windows-gnu` and MinGW-w64 `gcc` |
 | `uniffi-bindgen-go`             | 0.7.1   | Go binding generation                                     | `cargo install --git https://github.com/NordSecurity/uniffi-bindgen-go --tag v0.7.1+v0.31.0`                    |
 | `git`, `curl`, `openssl`        | -       | source control, fetching JVM deps, verifying releases     | Usually preinstalled                                                                                            |
