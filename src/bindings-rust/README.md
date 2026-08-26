@@ -25,9 +25,9 @@ Or add a version requirement directly:
 cloudformation-validate = "1.10.0"
 ```
 
-The repository builds and tests the crate with the Rust toolchain pinned in
-[`rust-toolchain.toml`](../rust-toolchain.toml). The library performs no runtime network requests and needs no AWS
-credentials.
+The library requires Rust 1.96 or later. The repository pins that toolchain in
+[`rust-toolchain.toml`](../rust-toolchain.toml). Call `cloudformation_validate::version()` when an application needs the
+loaded library version at runtime. The library performs no runtime network requests and needs no AWS credentials.
 
 ## Quick start
 
