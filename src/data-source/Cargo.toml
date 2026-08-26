@@ -1,5 +1,6 @@
 [package]
 name = "cloudformation-validate-data-source"
+publish = true
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

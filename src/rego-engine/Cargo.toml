@@ -1,5 +1,6 @@
 [package]
 name = "cloudformation-validate-rego-engine"
+publish = true
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
