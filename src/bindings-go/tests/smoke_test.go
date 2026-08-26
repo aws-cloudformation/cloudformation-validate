@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"sort"
 	"strings"
 	"testing"
@@ -94,16 +93,17 @@ func diagnosticKeys(report *cfnvalidate.StandardReport) []string {
 	return keys
 }
 
-func TestVersionMatchesWorkspaceCargoToml(t *testing.T) {
-	content, err := os.ReadFile(filepath.Join(workspaceDir, "Cargo.toml"))
+func TestVersionMatchesExpectedVersionFixture(t *testing.T) {
+	expectedVersionPath := filepath.Join(workspaceDir, "resources", "expected", "version.txt")
+	content, err := os.ReadFile(expectedVersionPath)
 	if err != nil {
-		t.Fatalf("reading workspace Cargo.toml: %v", err)
+		t.Fatalf("reading expected version fixture: %v", err)
 	}
-	match := regexp.MustCompile(`(?s)\[workspace\.package\].*?version = "([^"]+)"`).FindSubmatch(content)
-	if match == nil {
-		t.Fatal("missing version under [workspace.package] in workspace Cargo.toml")
+	expectedVersion := strings.TrimSpace(string(content))
+	if expectedVersion == "" {
+		t.Fatalf("%s must not be empty", expectedVersionPath)
 	}
-	if got, want := cfnvalidate.Version(), string(match[1]); got != want {
+	if got, want := cfnvalidate.Version(), expectedVersion; got != want {
 		t.Errorf("Version() = %q, want %q", got, want)
 	}
 }

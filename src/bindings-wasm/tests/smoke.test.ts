@@ -144,33 +144,18 @@ function stripSnapshotExcludedFields(report: any, filePath?: string): unknown {
 
 // ── version ──────────────────────────────────────────────────────────────────
 
-function readWorkspaceVersion(): string {
-    const cargoTomlPath = path.resolve(__dirname, '../../Cargo.toml');
-    const lines = fs.readFileSync(cargoTomlPath, 'utf-8').split('\n');
-    let inWorkspacePackage = false;
-    for (const line of lines) {
-        const trimmed = line.trim();
-        if (trimmed === '[workspace.package]') {
-            inWorkspacePackage = true;
-            continue;
-        }
-        if (inWorkspacePackage && trimmed.startsWith('[')) {
-            break;
-        }
-        if (inWorkspacePackage && trimmed.startsWith('version = ')) {
-            const value = trimmed.slice('version = '.length).trim();
-            if (!value.startsWith('"') || !value.endsWith('"')) {
-                throw new Error(`malformed version line in ${cargoTomlPath}: ${line}`);
-            }
-            return value.slice(1, -1);
-        }
+function readExpectedVersion(): string {
+    const expectedVersionPath = path.join(EXPECTED_DIR, 'version.txt');
+    const expectedVersion = fs.readFileSync(expectedVersionPath, 'utf-8').trim();
+    if (expectedVersion.length === 0) {
+        throw new Error(`${expectedVersionPath} must not be empty`);
     }
-    throw new Error(`missing 'version = ' under [workspace.package] in ${cargoTomlPath}`);
+    return expectedVersion;
 }
 
 describe('version', () => {
-    it('returns the crate version from workspace Cargo.toml', () => {
-        expect(version()).toBe(readWorkspaceVersion());
+    it('returns the expected version fixture', () => {
+        expect(version()).toBe(readExpectedVersion());
     });
 });
 

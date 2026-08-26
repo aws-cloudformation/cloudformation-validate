@@ -37,7 +37,7 @@ const ENGINES: &[&str] = &["rego", "cel"];
 const PARITY_IGNORED_FIELDS: &[&str] = &["performance", "benchmarkMetrics", "suppressed"];
 
 /// Top-level fields compared across engines but not persisted to the snapshot chunks.
-const OUTPUT_ONLY_TOP_LEVEL_FIELDS: &[&str] = &["performance"];
+const OUTPUT_ONLY_TOP_LEVEL_FIELDS: &[&str] = &["performance", "version"];
 
 /// `metadata` fields compared across engines but not persisted to the snapshot chunks because they describe
 /// the current binary's rule and data-source bundle.

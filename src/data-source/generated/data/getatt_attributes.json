@@ -235,7 +235,8 @@
     ],
     "AWS::ApiGatewayV2::Api": [
       "ApiEndpoint",
-      "ApiId"
+      "ApiId",
+      "ExecuteApiArn"
     ],
     "AWS::ApiGatewayV2::ApiGatewayManagedOverrides": [
       "Id"
@@ -1083,6 +1084,7 @@
       "Status",
       "StatusReasons",
       "UpdatedAt",
+      "WebAclArn",
       "WorkloadIdentityDetails"
     ],
     "AWS::BedrockAgentCore::GatewayRateLimit": [
@@ -1765,8 +1767,8 @@
       "Arn",
       "CloneUrlHttp",
       "CloneUrlSsh",
-      "Id",
-      "Name"
+      "Name",
+      "RepositoryId"
     ],
     "AWS::CodeConnections::Connection": [
       "ConnectionArn",
@@ -2701,6 +2703,17 @@
     ],
     "AWS::EC2::FlowLog": [
       "Id"
+    ],
+    "AWS::EC2::FpgaImage": [
+      "Arn",
+      "CreateTime",
+      "DataRetentionSupport",
+      "FpgaImageGlobalId",
+      "FpgaImageId",
+      "OwnerId",
+      "Public",
+      "State",
+      "UpdateTime"
     ],
     "AWS::EC2::GatewayRouteTableAssociation": [
       "AssociationId"
@@ -3797,7 +3810,8 @@
       "Tags"
     ],
     "AWS::Events::Rule": [
-      "Arn"
+      "Arn",
+      "RuleName"
     ],
     "AWS::Evidently::Experiment": [
       "Arn"
@@ -4069,7 +4083,7 @@
       "Name"
     ],
     "AWS::Glue::Connection": [
-      "Id"
+      "Name"
     ],
     "AWS::Glue::DevEndpoint": [
       "Id"
@@ -4438,6 +4452,15 @@
     ],
     "AWS::IdentityStore::GroupMembership": [
       "MembershipId"
+    ],
+    "AWS::IdentityStore::User": [
+      "Arn",
+      "CreatedAt",
+      "CreatedBy",
+      "UpdatedAt",
+      "UpdatedBy",
+      "UserId",
+      "UserStatus"
     ],
     "AWS::ImageBuilder::Component": [
       "Arn",
@@ -5191,6 +5214,14 @@
       "CertificateArn",
       "Status"
     ],
+    "AWS::Lightsail::ContactMethod": [
+      "Arn",
+      "CreatedAt",
+      "Name",
+      "ResourceType",
+      "Status",
+      "SupportCode"
+    ],
     "AWS::Lightsail::Container": [
       "ContainerArn",
       "PrincipalArn",
@@ -5469,6 +5500,7 @@
       "WebserverVpcEndpointService"
     ],
     "AWS::MWAAServerless::Workflow": [
+      "CodeSnapshottedAt",
       "CreatedAt",
       "ModifiedAt",
       "ScheduleConfiguration",
@@ -8585,6 +8617,12 @@
     "AWS::SupportApp::AccountAlias": [
       "AccountAliasResourceId"
     ],
+    "AWS::SupportAuthZ::SupportPermit": [
+      "Arn",
+      "CreatedAt",
+      "PermitId",
+      "Status"
+    ],
     "AWS::Synthetics::Canary": [
       "Code.SourceLocationArn",
       "Id",
@@ -9582,6 +9620,7 @@
       "Description": "string",
       "DisableExecuteApiEndpoint": "boolean",
       "DisableSchemaValidation": "boolean",
+      "ExecuteApiArn": "string",
       "FailOnWarnings": "boolean",
       "IpAddressType": "string",
       "Name": "string",
@@ -10971,7 +11010,8 @@
       "Name": "string",
       "RoleArn": "string",
       "StatusReasons": "array",
-      "UpdatedAt": "string"
+      "UpdatedAt": "string",
+      "WebAclArn": "string"
     },
     "AWS::BedrockAgentCore::GatewayRateLimit": {
       "CreatedAt": "string",
@@ -12175,10 +12215,10 @@
       "Arn": "string",
       "CloneUrlHttp": "string",
       "CloneUrlSsh": "string",
-      "Id": "string",
       "KmsKeyId": "string",
       "Name": "string",
       "RepositoryDescription": "string",
+      "RepositoryId": "string",
       "RepositoryName": "string",
       "Tags": "array",
       "Triggers": "array"
@@ -14392,6 +14432,20 @@
       "Tags": "array",
       "TrafficType": "string"
     },
+    "AWS::EC2::FpgaImage": {
+      "Arn": "string",
+      "CreateTime": "string",
+      "DataRetentionSupport": "boolean",
+      "Description": "string",
+      "FpgaImageGlobalId": "string",
+      "FpgaImageId": "string",
+      "Name": "string",
+      "OwnerId": "string",
+      "Public": "boolean",
+      "State": "string",
+      "Tags": "array",
+      "UpdateTime": "string"
+    },
     "AWS::EC2::GatewayRouteTableAssociation": {
       "AssociationId": "string",
       "GatewayId": "string",
@@ -16161,6 +16215,7 @@
       "Name": "string"
     },
     "AWS::ElementalInference::Feed": {
+      "AccessRoleArn": "string",
       "Arn": "string",
       "DataEndpoints": "array",
       "Id": "string",
@@ -16285,6 +16340,7 @@
       "EventBusName": "string",
       "Name": "string",
       "RoleArn": "string",
+      "RuleName": "string",
       "ScheduleExpression": "string",
       "State": "string",
       "Tags": "array",
@@ -16757,7 +16813,8 @@
     },
     "AWS::Glue::Connection": {
       "CatalogId": "string",
-      "Id": "string"
+      "Name": "string",
+      "Tags": "object"
     },
     "AWS::Glue::Crawler": {
       "Classifiers": "array",
@@ -17466,6 +17523,33 @@
       "GroupId": "string",
       "IdentityStoreId": "string",
       "MembershipId": "string"
+    },
+    "AWS::IdentityStore::User": {
+      "Addresses": "array",
+      "Arn": "string",
+      "Birthdate": "string",
+      "CreatedAt": "string",
+      "CreatedBy": "string",
+      "DisplayName": "string",
+      "Emails": "array",
+      "IdentityStoreId": "string",
+      "Locale": "string",
+      "Name": "object",
+      "NickName": "string",
+      "PhoneNumbers": "array",
+      "Photos": "array",
+      "PreferredLanguage": "string",
+      "ProfileUrl": "string",
+      "Roles": "array",
+      "Timezone": "string",
+      "Title": "string",
+      "UpdatedAt": "string",
+      "UpdatedBy": "string",
+      "UserId": "string",
+      "UserName": "string",
+      "UserStatus": "string",
+      "UserType": "string",
+      "Website": "string"
     },
     "AWS::ImageBuilder::Component": {
       "Arn": "string",
@@ -18768,6 +18852,16 @@
       "Status": "string",
       "SubjectAlternativeNames": "array",
       "Tags": "array"
+    },
+    "AWS::Lightsail::ContactMethod": {
+      "Arn": "string",
+      "ContactEndpoint": "string",
+      "CreatedAt": "string",
+      "Name": "string",
+      "Protocol": "string",
+      "ResourceType": "string",
+      "Status": "string",
+      "SupportCode": "string"
     },
     "AWS::Lightsail::Container": {
       "ContainerArn": "string",
@@ -24473,6 +24567,16 @@
     "AWS::SupportApp::SlackWorkspaceConfiguration": {
       "TeamId": "string",
       "VersionId": "string"
+    },
+    "AWS::SupportAuthZ::SupportPermit": {
+      "Arn": "string",
+      "CreatedAt": "string",
+      "Description": "string",
+      "Name": "string",
+      "PermitId": "string",
+      "Status": "string",
+      "SupportCaseDisplayId": "string",
+      "Tags": "array"
     },
     "AWS::Synthetics::Canary": {
       "ArtifactS3Location": "string",

@@ -548,6 +548,7 @@
     "AWS::EC2::EgressOnlyInternetGateway": "string",
     "AWS::EC2::EnclaveCertificateIamRoleAssociation": "string",
     "AWS::EC2::FlowLog": "string",
+    "AWS::EC2::FpgaImage": "string",
     "AWS::EC2::GatewayRouteTableAssociation": "string",
     "AWS::EC2::Host": "string",
     "AWS::EC2::IPAM": "string",
@@ -873,6 +874,7 @@
     "AWS::IVSChat::Room": "string",
     "AWS::IdentityStore::Group": "string",
     "AWS::IdentityStore::GroupMembership": "string",
+    "AWS::IdentityStore::User": "string",
     "AWS::ImageBuilder::Component": "string",
     "AWS::ImageBuilder::ContainerRecipe": "string",
     "AWS::ImageBuilder::DistributionConfiguration": "string",
@@ -1027,6 +1029,7 @@
     "AWS::Lightsail::Alarm": "string",
     "AWS::Lightsail::Bucket": "string",
     "AWS::Lightsail::Certificate": "string",
+    "AWS::Lightsail::ContactMethod": "string",
     "AWS::Lightsail::Container": "string",
     "AWS::Lightsail::Database": "string",
     "AWS::Lightsail::DatabaseSnapshot": "string",
@@ -1635,6 +1638,7 @@
     "AWS::SupportApp::AccountAlias": "string",
     "AWS::SupportApp::SlackChannelConfiguration": "string",
     "AWS::SupportApp::SlackWorkspaceConfiguration": "string",
+    "AWS::SupportAuthZ::SupportPermit": "string",
     "AWS::Synthetics::Canary": "string",
     "AWS::Synthetics::Group": "string",
     "AWS::SystemsManagerSAP::Application": "string",
@@ -2230,6 +2234,7 @@
       "Description": "string",
       "DisableExecuteApiEndpoint": "boolean",
       "DisableSchemaValidation": "boolean",
+      "ExecuteApiArn": "string",
       "FailOnWarnings": "boolean",
       "IpAddressType": "string",
       "Name": "string",
@@ -3619,7 +3624,8 @@
       "Name": "string",
       "RoleArn": "string",
       "StatusReasons": "array",
-      "UpdatedAt": "string"
+      "UpdatedAt": "string",
+      "WebAclArn": "string"
     },
     "AWS::BedrockAgentCore::GatewayRateLimit": {
       "CreatedAt": "string",
@@ -4823,10 +4829,10 @@
       "Arn": "string",
       "CloneUrlHttp": "string",
       "CloneUrlSsh": "string",
-      "Id": "string",
       "KmsKeyId": "string",
       "Name": "string",
       "RepositoryDescription": "string",
+      "RepositoryId": "string",
       "RepositoryName": "string",
       "Tags": "array",
       "Triggers": "array"
@@ -7040,6 +7046,20 @@
       "Tags": "array",
       "TrafficType": "string"
     },
+    "AWS::EC2::FpgaImage": {
+      "Arn": "string",
+      "CreateTime": "string",
+      "DataRetentionSupport": "boolean",
+      "Description": "string",
+      "FpgaImageGlobalId": "string",
+      "FpgaImageId": "string",
+      "Name": "string",
+      "OwnerId": "string",
+      "Public": "boolean",
+      "State": "string",
+      "Tags": "array",
+      "UpdateTime": "string"
+    },
     "AWS::EC2::GatewayRouteTableAssociation": {
       "AssociationId": "string",
       "GatewayId": "string",
@@ -8809,6 +8829,7 @@
       "Name": "string"
     },
     "AWS::ElementalInference::Feed": {
+      "AccessRoleArn": "string",
       "Arn": "string",
       "DataEndpoints": "array",
       "Id": "string",
@@ -8933,6 +8954,7 @@
       "EventBusName": "string",
       "Name": "string",
       "RoleArn": "string",
+      "RuleName": "string",
       "ScheduleExpression": "string",
       "State": "string",
       "Tags": "array",
@@ -9405,7 +9427,8 @@
     },
     "AWS::Glue::Connection": {
       "CatalogId": "string",
-      "Id": "string"
+      "Name": "string",
+      "Tags": "object"
     },
     "AWS::Glue::Crawler": {
       "Classifiers": "array",
@@ -10114,6 +10137,33 @@
       "GroupId": "string",
       "IdentityStoreId": "string",
       "MembershipId": "string"
+    },
+    "AWS::IdentityStore::User": {
+      "Addresses": "array",
+      "Arn": "string",
+      "Birthdate": "string",
+      "CreatedAt": "string",
+      "CreatedBy": "string",
+      "DisplayName": "string",
+      "Emails": "array",
+      "IdentityStoreId": "string",
+      "Locale": "string",
+      "Name": "object",
+      "NickName": "string",
+      "PhoneNumbers": "array",
+      "Photos": "array",
+      "PreferredLanguage": "string",
+      "ProfileUrl": "string",
+      "Roles": "array",
+      "Timezone": "string",
+      "Title": "string",
+      "UpdatedAt": "string",
+      "UpdatedBy": "string",
+      "UserId": "string",
+      "UserName": "string",
+      "UserStatus": "string",
+      "UserType": "string",
+      "Website": "string"
     },
     "AWS::ImageBuilder::Component": {
       "Arn": "string",
@@ -11416,6 +11466,16 @@
       "Status": "string",
       "SubjectAlternativeNames": "array",
       "Tags": "array"
+    },
+    "AWS::Lightsail::ContactMethod": {
+      "Arn": "string",
+      "ContactEndpoint": "string",
+      "CreatedAt": "string",
+      "Name": "string",
+      "Protocol": "string",
+      "ResourceType": "string",
+      "Status": "string",
+      "SupportCode": "string"
     },
     "AWS::Lightsail::Container": {
       "ContainerArn": "string",
@@ -17121,6 +17181,16 @@
     "AWS::SupportApp::SlackWorkspaceConfiguration": {
       "TeamId": "string",
       "VersionId": "string"
+    },
+    "AWS::SupportAuthZ::SupportPermit": {
+      "Arn": "string",
+      "CreatedAt": "string",
+      "Description": "string",
+      "Name": "string",
+      "PermitId": "string",
+      "Status": "string",
+      "SupportCaseDisplayId": "string",
+      "Tags": "array"
     },
     "AWS::Synthetics::Canary": {
       "ArtifactS3Location": "string",

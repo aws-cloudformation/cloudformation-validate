@@ -1,6 +1,6 @@
 # cloudformation-validate vs cfn-lint - Parity Report
 
-> Generated: 2026-08-18 23:39:45  
+> Generated: 2026-08-26 12:29:04  
 > Engine: **rego**  
 > Detail level: **detailed**  
 > Matching: `(rule_id, resource_id, path)` two-pass with `(rule_id, resource_id)` fallback + aliases  
@@ -23,12 +23,12 @@
 | Metric | Value |
 |--------|------:|
 | True Positives | 4053 |
-| False Positives (engine bugs) | 87 |
+| False Positives (engine bugs) | 89 |
 | Engine Extra (correct, cfn-lint gap) | 8288 |
 | False Negatives (engine misses) | 356 |
-| Precision | 97.90% |
+| Precision | 97.85% |
 | Recall | 91.93% |
-| F1 | 94.82% |
+| F1 | 94.80% |
 | Unique rules detected | 238 |
 | Perfect templates | 494/665 |
 | Location mismatches (matched pairs) | 9 |
@@ -37,7 +37,7 @@
 
 | Severity | TP | FP | EE | FN | Precision | Recall |
 |----------|---:|---:|---:|---:|----------:|-------:|
-| Fatal | 447 | 12 | 81 | 145 | 97.39% | 75.51% |
+| Fatal | 447 | 14 | 81 | 145 | 96.96% | 75.51% |
 | Error | 856 | 63 | 12 | 140 | 93.14% | 85.94% |
 | Warning | 2080 | 0 | 371 | 61 | 100.00% | 97.15% |
 | Info | 670 | 12 | 7824 | 10 | 98.24% | 98.53% |
@@ -1040,7 +1040,7 @@ but found another document
 - **W6001** → `Outputs.ImportedValue.Value.Fn::ImportValue` L39 in `good_output_value_string_yaml`
   > The output value {'Fn::ImportValue': 'SomeExportedName'} is an import from another output
 
-## False Positives - 87 extra findings across 14 rules
+## False Positives - 89 extra findings across 15 rules
 
 These are diagnostics the engine reports but cfn-lint does not expect (potential bugs).
 
@@ -1244,6 +1244,13 @@ These are diagnostics the engine reports but cfn-lint does not expect (potential
   > AliasTarget cannot be used with record type 'NS'
 - **E3029** `ConditionalInvalidAliasTypes` (AWS::Route53::RecordSet) → `Properties.AliasTarget` L48 in `bad_route53_conditional_scenarios_yaml`
   > AliasTarget cannot be used with record type 'SOA'
+
+### F3033 - 2 extra - Check if a string has between min and max number of values specified
+
+- **F3033** `myRepository` (AWS::CodeCommit::Repository) → `Properties.RepositoryName` L7 in `bad_resources_properties_string_size_yaml`
+  > length 130 exceeds maximum 100
+- **F3033** `myRepository2` (AWS::CodeCommit::Repository) → `Properties.RepositoryName` L11 in `bad_resources_properties_string_size_yaml`
+  > length 0 is below minimum 1
 
 ### E1155 - 1 extra
 
@@ -18190,6 +18197,12 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FP: `E3639` ×3
 - EE: `I9001` ×10, `I9040` ×7, `F3003`
 
+### `bad_resources_properties_string_size_yaml` - 3 mismatches (3 TP, 2 FP, 3 EE, 1 FN)
+
+- FN: `E3065`
+- FP: `F3033` ×2
+- EE: `I9040` ×3
+
 ### `bad_resources_updatereplacepolicy_yaml` - 3 mismatches (20 TP, 0 FP, 12 EE, 3 FN)
 
 - FN: `F0018` ×3
@@ -18602,11 +18615,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `E3678`
 - EE: `I9040` ×3, `W9013` ×3, `F3003`, `I9001`
 
-### `bad_resources_properties_string_size_yaml` - 1 mismatches (3 TP, 0 FP, 3 EE, 1 FN)
-
-- FN: `E3065`
-- EE: `I9040` ×3
-
 ### `bad_sam_function_autopublishalias_invalid_name_yaml` - 1 mismatches (0 TP, 1 FP, 0 EE, 0 FN)
 
 - FP: `E0001`
@@ -18849,9 +18857,9 @@ other tool's output. They are excluded from precision/recall scoring.
 
 | Cause | Count | % of FP | Rules |
 |-------|------:|--------:|-------|
-| Other | 46 | 52.87% | E0001, F0018, F2002, F3016, F3017 |
-| Over-reporting property/intrinsic errors | 29 | 33.33% | E1155, E3001, E3019, E3022, E3029, E3055, E3510, E3639 |
-| Stricter than cfn-lint (informational) | 12 | 13.79% | I3011 |
+| Other | 48 | 53.93% | E0001, F0018, F2002, F3016, F3017, F3033 |
+| Over-reporting property/intrinsic errors | 29 | 32.58% | E1155, E3001, E3019, E3022, E3029, E3055, E3510, E3639 |
+| Stricter than cfn-lint (informational) | 12 | 13.48% | I3011 |
 
 ## Location Mismatches - 9 matched pairs disagree on line
 
