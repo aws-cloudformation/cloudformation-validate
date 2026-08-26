@@ -14,7 +14,7 @@ name = "guard_translator"
 path = "src/lib.rs"
 
 [dependencies]
-guard-lang = { version = "=1.0.0", git = "https://github.com/aws-cloudformation/cloudformation-guard.git", rev = "58da2e0c861276d5dad45df6e14c719f8313361c" }
+guard-lang = { package = "cloudformation-guard-lang", version = "=1.0.0" }
 serde = { version = "1", features = ["derive"] }
 indexmap = "2"
 rules = { workspace = true }

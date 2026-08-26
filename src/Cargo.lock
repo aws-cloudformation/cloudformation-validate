@@ -556,6 +556,29 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c8d4a3bb8b1e0c1050499d1815f5ab16d04f0959b233085fb31653fbfc9d98f9"
 
 [[package]]
+name = "cloudformation-guard-lang"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b772510f23124bee8df542527318eb9ff8a04d3d88812291c85e6e87f5bb62f3"
+dependencies = [
+ "chrono",
+ "colored",
+ "cruet",
+ "fancy-regex 0.13.0",
+ "indexmap 1.9.3",
+ "lazy_static",
+ "nom",
+ "nom_locate",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "thiserror 1.0.69",
+ "unsafe-libyaml",
+ "urlencoding",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "cloudformation-validate"
 version = "1.10.0"
 dependencies = [
@@ -567,8 +590,6 @@ dependencies = [
  "cloudformation-validate-schema-validator",
  "cloudformation-validate-template-model",
  "cloudformation-validate-validation-engine",
- "resources",
- "serde_json",
 ]
 
 [[package]]
@@ -632,8 +653,8 @@ dependencies = [
 name = "cloudformation-validate-guard-translator"
 version = "1.10.0"
 dependencies = [
+ "cloudformation-guard-lang",
  "cloudformation-validate-rules",
- "guard-lang",
  "indexmap 2.14.0",
  "serde",
 ]
@@ -1076,28 +1097,6 @@ dependencies = [
  "log",
  "plain",
  "scroll",
-]
-
-[[package]]
-name = "guard-lang"
-version = "1.0.0"
-source = "git+https://github.com/aws-cloudformation/cloudformation-guard.git?rev=58da2e0c861276d5dad45df6e14c719f8313361c#58da2e0c861276d5dad45df6e14c719f8313361c"
-dependencies = [
- "chrono",
- "colored",
- "cruet",
- "fancy-regex 0.13.0",
- "indexmap 1.9.3",
- "lazy_static",
- "nom",
- "nom_locate",
- "serde",
- "serde_json",
- "serde_yaml",
- "thiserror 1.0.69",
- "unsafe-libyaml",
- "urlencoding",
- "wasm-bindgen",
 ]
 
 [[package]]

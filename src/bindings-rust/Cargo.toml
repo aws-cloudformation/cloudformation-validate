@@ -23,9 +23,5 @@ schema-validator = { workspace = true }
 template-model = { workspace = true }
 validation-engine = { workspace = true }
 
-[dev-dependencies]
-resources = { path = "../resources" }
-serde_json = "1"
-
 [lints]
 workspace = true
