@@ -1414,13 +1414,12 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     // list whose schema requires uniqueItems is covered by the Fatal uniqueItems
     // check instead, so it is excluded here. The `Command` property of
     // run-command resources legitimately repeats values and is exempt.
-    if let Some(sm) = ctx.cached_data.schema_metadata().get("schema_metadata").and_then(|s| s.as_object()) {
+    {
+        let schema_metadata = ctx.cached_data.schema_metadata_catalog();
         for (name, res) in &m.resources {
-            let Some(type_meta) = sm.get(&res.resource_type).and_then(|t| t.as_object()) else {
+            let Some(type_meta) = schema_metadata.get(&res.resource_type) else {
                 continue;
             };
-            let known_props = type_meta.get("property_types").and_then(|p| p.as_object());
-            let constraints = type_meta.get("property_constraints").and_then(|p| p.as_object());
             for prop in res.properties.keys() {
                 if prop == "Command" {
                     continue;
@@ -1428,13 +1427,13 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                 // Only a property the schema actually defines can be a "list that
                 // permits duplicates"; an unknown property is a structural error
                 // handled elsewhere.
-                if !known_props.is_some_and(|p| p.contains_key(prop)) {
+                if !type_meta.property_types.contains_key(prop) {
                     continue;
                 }
-                let requires_unique = constraints
-                    .and_then(|c| c.get(prop))
-                    .and_then(|meta| meta.get("uniqueItems"))
-                    .and_then(|v| v.as_bool())
+                let requires_unique = type_meta
+                    .property_constraints
+                    .get(prop)
+                    .and_then(|constraints| constraints.unique_items)
                     .unwrap_or(false);
                 if requires_unique {
                     continue;
@@ -2485,63 +2484,52 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    if let Some(sm) = ctx.cached_data.schema_metadata().get("schema_metadata").and_then(|s| s.as_object()) {
+    {
+        let schema_metadata = ctx.cached_data.schema_metadata_catalog();
         for (name, res) in &m.resources {
-            if let Some(type_meta) = sm.get(&res.resource_type).and_then(|t| t.as_object()) {
-                let prop_types = type_meta.get("property_types").and_then(|p| p.as_object());
-                if let Some(props_meta) = type_meta.get("property_constraints").and_then(|p| p.as_object()) {
-                    for (prop, meta) in props_meta {
-                        let is_string =
-                            prop_types.and_then(|pt| pt.get(prop)).and_then(|v| v.as_str()) == Some("string");
-                        let max_len = meta
-                            .get("maxLength")
-                            .and_then(|v| v.as_u64())
-                            .or_else(|| if is_string { meta.get("maximum").and_then(|v| v.as_u64()) } else { None });
-                        let min_len = meta
-                            .get("minLength")
-                            .and_then(|v| v.as_u64())
-                            .or_else(|| if is_string { meta.get("minimum").and_then(|v| v.as_u64()) } else { None });
-                        if max_len.is_none() && min_len.is_none() {
-                            continue;
+            if let Some(type_meta) = schema_metadata.get(&res.resource_type) {
+                for (prop, constraints) in &type_meta.property_constraints {
+                    let is_string = type_meta.property_types.get(prop).map(|t| t == "string").unwrap_or(false);
+                    let max_len = constraints.max_length.or_else(|| {
+                        if is_string { constraints.maximum.as_ref().and_then(|v| v.as_u64()) } else { None }
+                    });
+                    let min_len = constraints.min_length.or_else(|| {
+                        if is_string { constraints.minimum.as_ref().and_then(|v| v.as_u64()) } else { None }
+                    });
+                    if max_len.is_none() && min_len.is_none() {
+                        continue;
+                    }
+                    let path = format!("Properties.{}", prop);
+                    // Only reported when the constraint is broken whichever
+                    // value the deployment picks: the shortest possibility
+                    // still too long, or the longest still too short. A value
+                    // the template states literally is checked against the
+                    // constraint by schema validation instead, and a value with
+                    // any unknown possibility yields no bounds at all.
+                    if let Some((shortest, longest)) = m.estimated_string_length_bounds(name, &path) {
+                        if let Some(max) = max_len
+                            && shortest as u64 > max
+                        {
+                            out.push(make_resource_diagnostic(
+                                "W9006",
+                                &format!("String length {} exceeds maximum {} for property '{}'", shortest, max, prop),
+                                m,
+                                name,
+                                &path,
+                                None,
+                            ));
                         }
-                        let path = format!("Properties.{}", prop);
-                        // Only reported when the constraint is broken whichever
-                        // value the deployment picks: the shortest possibility
-                        // still too long, or the longest still too short. A value
-                        // the template states literally is checked against the
-                        // constraint by schema validation instead, and a value with
-                        // any unknown possibility yields no bounds at all.
-                        if let Some((shortest, longest)) = m.estimated_string_length_bounds(name, &path) {
-                            if let Some(max) = max_len
-                                && shortest as u64 > max
-                            {
-                                out.push(make_resource_diagnostic(
-                                    "W9006",
-                                    &format!(
-                                        "String length {} exceeds maximum {} for property '{}'",
-                                        shortest, max, prop
-                                    ),
-                                    m,
-                                    name,
-                                    &path,
-                                    None,
-                                ));
-                            }
-                            if let Some(min) = min_len
-                                && (longest as u64) < min
-                            {
-                                out.push(make_resource_diagnostic(
-                                    "W9006",
-                                    &format!(
-                                        "String length {} is below minimum {} for property '{}'",
-                                        longest, min, prop
-                                    ),
-                                    m,
-                                    name,
-                                    &path,
-                                    None,
-                                ));
-                            }
+                        if let Some(min) = min_len
+                            && (longest as u64) < min
+                        {
+                            out.push(make_resource_diagnostic(
+                                "W9006",
+                                &format!("String length {} is below minimum {} for property '{}'", longest, min, prop),
+                                m,
+                                name,
+                                &path,
+                                None,
+                            ));
                         }
                     }
                 }

@@ -4,7 +4,7 @@ use diagnostics::{Diagnostic, PhaseMetric, phase_metric};
 use guard_translator::{ensure_translatable, pack_name_from_path, parse_guard};
 use log::{debug, info, warn};
 use rules::{Category, RuleInfo, RuleMetadataEntry, RuleOrigin, Severity, build_rule_metadata_map};
-use schema_validator::{OverlayCatalog, SchemaValidator};
+use schema_validator::{OverlayCatalog, SchemaMetadataCatalog, SchemaValidator, schema_metadata_catalog_with_overlays};
 use std::collections::HashMap;
 use std::str::from_utf8;
 use std::sync::{Arc, LazyLock, Mutex};
@@ -211,7 +211,9 @@ impl RegoEngine {
     pub fn new(config: EngineConfig) -> anyhow::Result<Self> {
         let overlay_catalog =
             config.build_overlay_catalog().map_err(|e| anyhow::anyhow!("Failed to build overlay catalog: {e}"))?;
-        Self::new_from_catalog(config, &overlay_catalog)
+        let start = web_time::Instant::now();
+        let schema_metadata = schema_metadata_catalog_with_overlays(&overlay_catalog)?;
+        Self::new_from_parts(config, &overlay_catalog, schema_metadata, start)
     }
 
     /// Constructs the engine reusing metadata from an already-built
@@ -220,16 +222,25 @@ impl RegoEngine {
     /// re-resolve overlay schemas.
     ///
     /// This entry point is intended for language bindings and the CLI, which
-    /// construct a `SchemaValidator` once and share it with the engine.
+    /// construct a `SchemaValidator` once and share it with the engine. The
+    /// validator's shared schema-metadata catalog is reused rather than rebuilt,
+    /// so every engine built from the same validator shares one catalog rather
+    /// than rebuilding it.
     #[doc(hidden)]
     pub fn new_with_schema_validator(config: EngineConfig, validator: &SchemaValidator) -> anyhow::Result<Self> {
-        Self::new_from_catalog(config, validator.overlay_catalog())
+        let start = web_time::Instant::now();
+        let schema_metadata = validator.schema_metadata_catalog()?;
+        Self::new_from_parts(config, validator.overlay_catalog(), schema_metadata, start)
     }
 
-    /// Internal constructor that accepts a pre-built overlay catalog.
-    fn new_from_catalog(config: EngineConfig, overlay_catalog: &OverlayCatalog) -> anyhow::Result<Self> {
-        let start = web_time::Instant::now();
-
+    /// Internal constructor that accepts a pre-built overlay catalog and the
+    /// shared schema-metadata catalog resolved for it.
+    fn new_from_parts(
+        config: EngineConfig,
+        overlay_catalog: &OverlayCatalog,
+        schema_metadata: Arc<SchemaMetadataCatalog>,
+        start: web_time::Instant,
+    ) -> anyhow::Result<Self> {
         let mut rego = regorus::Engine::new();
         rego.set_strict_builtin_errors(false);
 
@@ -339,7 +350,13 @@ impl RegoEngine {
 
         let model_holder: SharedModel = Arc::new(Mutex::new(None));
         let region_holder: SharedRegion = Arc::new(Mutex::new(None));
-        crate::builtins::register_all(&mut rego, model_holder.clone(), region_holder.clone(), overlay_catalog)?;
+        crate::builtins::register_all(
+            &mut rego,
+            model_holder.clone(),
+            region_holder.clone(),
+            overlay_catalog,
+            schema_metadata,
+        )?;
 
         let registry_metadata = build_rule_metadata_map();
         let mut external_rule_metadata: HashMap<String, RuleMetadataEntry> = HashMap::new();

@@ -19,11 +19,13 @@ pub fn prewarm_embedded_data() {
     data_source::embedded::warm_all();
 }
 
+pub use data_source::types::SchemaMetadataCatalog;
+use data_source::types::SchemaMetadataDocument;
 use diagnostics::{Diagnostic, PhaseMetric, phase_metric};
 use log::{info, warn};
 use rules::{RuleInfo, lookup_rule};
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 use template_model::SemanticModel;
 
 pub struct SchemaValidationResult {
@@ -142,10 +144,85 @@ fn build_validated_overlay_catalog(
     Ok(OverlayCatalog::from_store(store, type_names))
 }
 
+/// Error reported when the shared schema-metadata catalog cannot be produced.
+#[derive(Debug)]
+pub enum SchemaMetadataError {
+    /// The embedded `schema_metadata` artifact is not valid JSON for the model.
+    Parse(serde_json::Error),
+    /// The embedded `schema_metadata` artifact is present but empty.
+    Empty,
+}
+
+impl std::fmt::Display for SchemaMetadataError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            SchemaMetadataError::Parse(e) => write!(f, "Failed to parse embedded schema_metadata: {e}"),
+            SchemaMetadataError::Empty => write!(f, "Embedded schema_metadata must not be empty"),
+        }
+    }
+}
+
+impl std::error::Error for SchemaMetadataError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            SchemaMetadataError::Parse(e) => Some(e),
+            SchemaMetadataError::Empty => None,
+        }
+    }
+}
+
+/// The process-wide base schema-metadata catalog: the bundled artifact parsed
+/// once into the shared typed model and handed out by reference.
+///
+/// Parsing is lazy and fallible - schema-only construction never triggers it, a
+/// caller that needs the catalog gets the same [`Arc`] every other default
+/// caller shares, and a corrupt embedded artifact surfaces as an error rather
+/// than a panic or a plausible-looking empty catalog.
+pub fn shared_base_schema_metadata() -> Result<Arc<SchemaMetadataCatalog>, SchemaMetadataError> {
+    static BASE: OnceLock<Arc<SchemaMetadataCatalog>> = OnceLock::new();
+    if let Some(existing) = BASE.get() {
+        return Ok(existing.clone());
+    }
+    let document: SchemaMetadataDocument =
+        serde_json::from_slice(&data_source::embedded::SCHEMA_METADATA_BYTES).map_err(SchemaMetadataError::Parse)?;
+    if document.schema_metadata.is_empty() {
+        return Err(SchemaMetadataError::Empty);
+    }
+    // On a construction race the redundant parse is discarded and every caller
+    // still observes the single shared value the winner installed.
+    Ok(BASE.get_or_init(|| Arc::new(document.schema_metadata)).clone())
+}
+
+/// Produce the schema-metadata catalog an engine should use for a given overlay.
+///
+/// With no overlaid metadata this returns the shared global base [`Arc`] itself,
+/// so every default engine and validator in the process shares one parsed
+/// catalog. With overlays it clones the base once and replaces the entry for
+/// each overlaid type, preserving the base for every untouched type.
+#[doc(hidden)]
+pub fn schema_metadata_catalog_with_overlays(
+    overlay: &OverlayCatalog,
+) -> Result<Arc<SchemaMetadataCatalog>, SchemaMetadataError> {
+    let base = shared_base_schema_metadata()?;
+    if overlay.schema_metadata.is_empty() {
+        return Ok(base);
+    }
+    let mut merged = (*base).clone();
+    for (type_name, entry) in &overlay.schema_metadata {
+        merged.insert(type_name.clone(), entry.clone());
+    }
+    Ok(Arc::new(merged))
+}
+
 pub struct SchemaValidator {
     store: CompiledSchemaStore,
     catalog: OverlayCatalog,
     init_metric: PhaseMetric,
+    /// The shared schema-metadata catalog for this validator, resolved lazily on
+    /// first request. A default validator resolves to the global base [`Arc`]; an
+    /// overlay validator clones the base and replaces its overlaid entries once,
+    /// then hands the same [`Arc`] to every engine built from it.
+    metadata_catalog: OnceLock<Arc<SchemaMetadataCatalog>>,
 }
 
 impl Default for SchemaValidator {
@@ -237,6 +314,27 @@ impl SchemaValidator {
         &self.catalog
     }
 
+    /// The shared schema-metadata catalog for this validator, resolved on first
+    /// call and cached thereafter.
+    ///
+    /// A default validator hands back the process-wide base [`Arc`], so every
+    /// default consumer shares one parsed catalog. An overlay validator clones
+    /// the base once, replaces its overlaid entries, and returns the same [`Arc`]
+    /// to every later caller - so a Rego and a CEL engine built from one
+    /// validator share the identical catalog rather than each rebuilding it.
+    ///
+    /// Fallible: a corrupt embedded artifact surfaces as an error instead of a
+    /// panic. Construction never calls this, so a validator that is only used for
+    /// schema validation never parses the metadata.
+    #[doc(hidden)]
+    pub fn schema_metadata_catalog(&self) -> Result<Arc<SchemaMetadataCatalog>, SchemaMetadataError> {
+        if let Some(existing) = self.metadata_catalog.get() {
+            return Ok(existing.clone());
+        }
+        let catalog = schema_metadata_catalog_with_overlays(&self.catalog)?;
+        Ok(self.metadata_catalog.get_or_init(|| catalog).clone())
+    }
+
     fn finish(
         store: CompiledSchemaStore,
         catalog: OverlayCatalog,
@@ -252,7 +350,7 @@ impl SchemaValidator {
         } else {
             info!("SchemaValidator initialized: {} schemas loaded", store.len());
         }
-        SchemaValidator { store, catalog, init_metric }
+        SchemaValidator { store, catalog, init_metric, metadata_catalog: OnceLock::new() }
     }
 
     pub fn init_metric(&self) -> &PhaseMetric {
@@ -382,6 +480,46 @@ Resources:
         let validator = SchemaValidator::new(config).expect("empty config builds");
         assert_eq!(validator.schema_count(), SchemaValidator::default().schema_count());
         assert!(validator.overlay_catalog().is_empty());
+    }
+
+    #[test]
+    fn schema_metadata_is_lazy_and_shared_by_default_validators() {
+        let first = SchemaValidator::default();
+        let second = SchemaValidator::default();
+        assert!(first.metadata_catalog.get().is_none(), "construction must not parse rule metadata");
+        assert!(second.metadata_catalog.get().is_none(), "construction must not parse rule metadata");
+
+        let first_catalog = first.schema_metadata_catalog().expect("embedded metadata parses");
+        let first_again = first.schema_metadata_catalog().expect("cached metadata remains available");
+        let second_catalog = second.schema_metadata_catalog().expect("embedded metadata is shared");
+
+        assert!(Arc::ptr_eq(&first_catalog, &first_again), "one validator must reuse its cached Arc");
+        assert!(Arc::ptr_eq(&first_catalog, &second_catalog), "default validators must share the process-wide Arc");
+    }
+
+    #[test]
+    fn overlay_schema_metadata_is_merged_once_per_validator() {
+        let validator = SchemaValidator::try_with_additional_schemas([(
+            "AWS::S3::Bucket",
+            serde_json::json!({"properties": {"OverlayProperty": {"type": "string"}}}),
+        )])
+        .expect("overlay applies");
+        assert!(validator.metadata_catalog.get().is_none(), "overlay construction must leave rule metadata lazy");
+
+        let base = shared_base_schema_metadata().expect("base metadata parses");
+        let merged = validator.schema_metadata_catalog().expect("overlay metadata merges");
+        let merged_again = validator.schema_metadata_catalog().expect("merged metadata remains available");
+
+        assert!(!Arc::ptr_eq(&base, &merged), "an overlay must not mutate the shared base catalog");
+        assert!(Arc::ptr_eq(&merged, &merged_again), "an overlay validator must cache one merged Arc");
+        assert!(
+            merged["AWS::S3::Bucket"].properties.contains(&"OverlayProperty".to_string()),
+            "the shared engine catalog must contain the overlay-derived property"
+        );
+        assert!(
+            !base["AWS::S3::Bucket"].properties.contains(&"OverlayProperty".to_string()),
+            "the process-wide base catalog must remain unchanged"
+        );
     }
 
     #[test]

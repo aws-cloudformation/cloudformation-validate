@@ -5,7 +5,7 @@ use std::sync::Arc;
 use diagnostics::{Diagnostic, Entity, PhaseMetric, phase_metric};
 use guard_translator::{ensure_translatable, pack_name_from_path, parse_guard};
 use rules::{RuleInfo, RuleMetadataEntry, RuleOrigin, Severity, build_rule_metadata_map, is_valid_custom_rule_id};
-use schema_validator::{OverlayCatalog, SchemaValidator};
+use schema_validator::{OverlayCatalog, SchemaMetadataCatalog, SchemaValidator, schema_metadata_catalog_with_overlays};
 use template_model::{SemanticModel, UNKNOWN_SPAN};
 use validation_engine::{
     EngineConfig, ValidateConfig, ValidationEngine, ValidationError, build_rule_list, semantic_model_to_input_json,
@@ -67,7 +67,9 @@ impl CelEngine {
     pub fn new(config: EngineConfig) -> anyhow::Result<Self> {
         let catalog =
             config.build_overlay_catalog().map_err(|e| anyhow::anyhow!("Failed to build overlay catalog: {e}"))?;
-        Self::new_from_catalog(config, &catalog)
+        let start = web_time::Instant::now();
+        let schema_metadata = schema_metadata_catalog_with_overlays(&catalog)?;
+        Self::new_from_parts(config, &catalog, schema_metadata, start)
     }
 
     /// Constructs the engine reusing metadata from an already-built
@@ -75,16 +77,25 @@ impl CelEngine {
     /// authoritative - the engine does not re-resolve overlay schemas.
     ///
     /// This entry point is intended for language bindings and the CLI, which
-    /// construct a `SchemaValidator` once and share it with the engine.
+    /// construct a `SchemaValidator` once and share it with the engine. The
+    /// validator's shared schema-metadata catalog is reused rather than rebuilt,
+    /// so every engine built from the same validator shares one catalog rather
+    /// than rebuilding it.
     #[doc(hidden)]
     pub fn new_with_schema_validator(config: EngineConfig, validator: &SchemaValidator) -> anyhow::Result<Self> {
-        Self::new_from_catalog(config, validator.overlay_catalog())
+        let start = web_time::Instant::now();
+        let schema_metadata = validator.schema_metadata_catalog()?;
+        Self::new_from_parts(config, validator.overlay_catalog(), schema_metadata, start)
     }
 
-    /// Internal constructor that accepts a pre-built overlay catalog.
-    fn new_from_catalog(config: EngineConfig, overlay_catalog: &OverlayCatalog) -> anyhow::Result<Self> {
-        let start = web_time::Instant::now();
-
+    /// Internal constructor that accepts a pre-built overlay catalog and the
+    /// shared schema-metadata catalog resolved for it.
+    fn new_from_parts(
+        config: EngineConfig,
+        overlay_catalog: &OverlayCatalog,
+        schema_metadata: Arc<SchemaMetadataCatalog>,
+        start: web_time::Instant,
+    ) -> anyhow::Result<Self> {
         let native_rules = NativeRuleRegistry::new();
         let generated_rules = GeneratedRuleRegistry::new()?;
 
@@ -158,6 +169,7 @@ impl CelEngine {
         if !overlay_catalog.is_empty() {
             cached_data.merge_overlay_catalog(overlay_catalog)?;
         }
+        cached_data.set_schema_metadata(schema_metadata);
         let init_metric = phase_metric(start);
         Ok(CelEngine {
             native_rules,

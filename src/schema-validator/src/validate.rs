@@ -152,7 +152,7 @@ pub fn validate_all_resources(
 ) -> Vec<Diagnostic> {
     reset_schema_budget_exhaustions();
     let mut out = Vec::new();
-    let relevant: HashSet<&str> = model.resources.values().map(|r| r.resource_type.as_str()).collect();
+    let relevant: HashSet<&str> = model.resources_by_type.keys().map(String::as_str).collect();
 
     validate_lifecycle(&mut out, store, model);
 
