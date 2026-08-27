@@ -7,6 +7,7 @@
 [![Offline](https://img.shields.io/badge/runtime-fully%20offline-success)](#features)
 
 [![Latest release](https://img.shields.io/github/v/release/aws-cloudformation/cloudformation-validate?include_prereleases)](https://github.com/aws-cloudformation/cloudformation-validate/releases)
+[![crates.io version](https://img.shields.io/crates/v/cloudformation-validate?logo=rust)](https://crates.io/crates/cloudformation-validate)
 [![npm version](https://img.shields.io/npm/v/%40aws%2Fcloudformation-validate?logo=npm)](https://www.npmjs.com/package/@aws/cloudformation-validate)
 [![Maven Central](https://img.shields.io/maven-central/v/software.amazon.cloudformation/cloudformation-validate?logo=apachemaven)](https://central.sonatype.com/artifact/software.amazon.cloudformation/cloudformation-validate)
 [![PyPI version](https://img.shields.io/pypi/v/cloudformation-validate?logo=pypi)](https://pypi.org/project/cloudformation-validate/)

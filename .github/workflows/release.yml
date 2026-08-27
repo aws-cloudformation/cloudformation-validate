@@ -60,9 +60,9 @@ jobs:
     outputs:
       release-kind: ${{ steps.validate-release.outputs.release-kind }}
       release-version: ${{ steps.validate-release.outputs.release-version }}
+      cargo-version: ${{ steps.validate-release.outputs.cargo-version }}
       python-version: ${{ steps.validate-release.outputs.python-version }}
     env:
-      GO_MODULE_TAG: src/bindings-go/go/v${{ inputs.tag }}
       RELEASE_TAG: ${{ inputs.tag }}
       WORKING_DIR: ${{ needs.get-configs.outputs.working-dir }}
     steps:
@@ -102,31 +102,28 @@ jobs:
           {
             echo "release-kind=$release_kind"
             echo "release-version=$VERSION"
+            echo "cargo-version=$RELEASE_TAG"
             echo "python-version=$python_version"
           } >> "$GITHUB_OUTPUT"
-          echo "Tag $RELEASE_TAG is a $release_kind release; Python version is $python_version."
+          echo "Tag $RELEASE_TAG is a $release_kind release; Cargo version is $RELEASE_TAG and Python version is $python_version."
 
-      - name: Check release tags
+      - name: Check release tag
         id: check-tags
         run: |
           set -euo pipefail
           source_commit="$(git rev-parse HEAD^{commit})"
-          missing_tags=false
 
-          for tag in "$RELEASE_TAG" "$GO_MODULE_TAG"; do
-            if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
-              tag_commit="$(git rev-parse "refs/tags/$tag^{commit}")"
-              if [ "$tag_commit" != "$source_commit" ]; then
-                echo "::error::Existing tag $tag points to $tag_commit, not source commit $source_commit."
-                exit 1
-              fi
-              echo "Existing tag $tag already points to source commit $source_commit."
-            else
-              missing_tags=true
+          if git rev-parse -q --verify "refs/tags/$RELEASE_TAG" >/dev/null; then
+            tag_commit="$(git rev-parse "refs/tags/$RELEASE_TAG^{commit}")"
+            if [ "$tag_commit" != "$source_commit" ]; then
+              echo "::error::Existing tag $RELEASE_TAG points to $tag_commit, not source commit $source_commit."
+              exit 1
             fi
-          done
-
-          echo "missing=$missing_tags" >> "$GITHUB_OUTPUT"
+            echo 'missing=false' >> "$GITHUB_OUTPUT"
+            echo "Existing tag $RELEASE_TAG already points to source commit $source_commit."
+          else
+            echo 'missing=true' >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Configure Git
         if: steps.check-tags.outputs.missing == 'true'
@@ -134,23 +131,14 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Create and push release tags
+      - name: Create and push release tag
         if: steps.check-tags.outputs.missing == 'true'
         run: |
           set -euo pipefail
           source_commit="$(git rev-parse HEAD^{commit})"
-          tag_refs=()
-
-          for tag in "$RELEASE_TAG" "$GO_MODULE_TAG"; do
-            if ! git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
-              git tag "$tag" "$source_commit"
-              tag_refs+=("refs/tags/$tag")
-              echo "Created tag $tag at commit $source_commit."
-            fi
-          done
-
-          git push --atomic origin "${tag_refs[@]}"
-          printf 'Pushed tag ref=%s\n' "${tag_refs[@]}"
+          git tag "$RELEASE_TAG" "$source_commit"
+          git push origin "refs/tags/$RELEASE_TAG"
+          echo "Created and pushed tag $RELEASE_TAG at source commit $source_commit."
 
   release:
     needs: [ get-configs, version-and-tag ]
@@ -392,8 +380,467 @@ jobs:
           files: release/*
           fail_on_unmatched_files: true
 
+  verify-release:
+    needs:
+      - get-configs
+      - version-and-tag
+      - release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      PYTHON_VERSION: ${{ needs.version-and-tag.outputs.python-version }}
+      RELEASE_KIND: ${{ needs.version-and-tag.outputs.release-kind }}
+      RELEASE_TAG: ${{ inputs.tag }}
+      RELEASE_VERSION: ${{ needs.version-and-tag.outputs.release-version }}
+      WORKING_DIR: ${{ needs.get-configs.outputs.working-dir }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.tag }}
+
+      - name: Verify published GitHub release artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+
+          release_metadata="$(gh release view "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --json isDraft,isPrerelease,tagName)"
+          expected_prerelease=false
+          if [ "$RELEASE_KIND" = 'beta' ]; then
+            expected_prerelease=true
+          fi
+          if ! jq -e \
+            --arg tag "$RELEASE_TAG" \
+            --argjson prerelease "$expected_prerelease" \
+            '.tagName == $tag and .isDraft == false and .isPrerelease == $prerelease' \
+            <<< "$release_metadata" >/dev/null; then
+            echo "::error::GitHub release metadata does not match tag $RELEASE_TAG and release kind $RELEASE_KIND."
+            jq . <<< "$release_metadata"
+            exit 1
+          fi
+
+          download_directory="$(mktemp -d)"
+          verification_directory="$(mktemp -d)"
+          trap 'rm -rf "$download_directory" "$verification_directory"' EXIT
+          gh release download "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --dir "$download_directory"
+
+          expected_artifacts=(
+            "cloudformation-validate-$RELEASE_TAG.jar"
+            "cloudformation-validate-wasm-$RELEASE_TAG.zip"
+            "cloudformation-validate-go-$RELEASE_TAG.zip"
+            'cloudformation-validate-maven-signing-key.asc'
+            'cloudformation-validate-maven-signing-key.asc.fingerprint'
+          )
+
+          committed_wheels=("$WORKING_DIR"/bindings-python/generated/dist/*.whl)
+          if [ ${#committed_wheels[@]} -ne 6 ]; then
+            echo "::error::Expected six committed Python wheels, found ${#committed_wheels[@]}."
+            exit 1
+          fi
+          for wheel in "${committed_wheels[@]}"; do
+            wheel_name="$(basename "$wheel")"
+            case "$wheel_name" in
+              cloudformation_validate-"$RELEASE_VERSION"-*.whl) ;;
+              *)
+                echo "::error::Committed wheel $wheel_name is not version $RELEASE_VERSION."
+                exit 1
+                ;;
+            esac
+            wheel_suffix="${wheel_name#cloudformation_validate-$RELEASE_VERSION-}"
+            expected_artifacts+=("cloudformation_validate-$PYTHON_VERSION-$wheel_suffix")
+          done
+
+          committed_binaries=("$GITHUB_WORKSPACE"/release-bin/cfn-validate-*)
+          if [ ${#committed_binaries[@]} -eq 0 ]; then
+            echo "::error::No committed cfn-validate binaries found."
+            exit 1
+          fi
+          for binary in "${committed_binaries[@]}"; do
+            binary_name="$(basename "$binary")"
+            platform="${binary_name#cfn-validate-}"
+            extension=''
+            case "$platform" in
+              *.exe) platform="${platform%.exe}"; extension='.exe' ;;
+            esac
+            expected_artifacts+=("cfn-validate-$RELEASE_TAG-${platform}${extension}")
+          done
+
+          expected_files=(
+            'signing-key.pem'
+            'signing-key.pem.sha256'
+          )
+          for artifact in "${expected_artifacts[@]}"; do
+            expected_files+=("$artifact" "$artifact.sig")
+          done
+
+          printf '%s\n' "${expected_files[@]}" | LC_ALL=C sort > "$verification_directory/expected-files"
+          downloaded_paths=("$download_directory"/*)
+          if [ ${#downloaded_paths[@]} -eq 0 ]; then
+            echo "::error::GitHub release $RELEASE_TAG has no downloadable artifacts."
+            exit 1
+          fi
+          for path in "${downloaded_paths[@]}"; do
+            basename "$path"
+          done | LC_ALL=C sort > "$verification_directory/downloaded-files"
+          if ! diff -u "$verification_directory/expected-files" "$verification_directory/downloaded-files"; then
+            echo "::error::GitHub release artifact inventory does not match the expected inventory."
+            exit 1
+          fi
+
+          expected_signing_fingerprint="$(tr -d '[:space:]' \
+            < "$download_directory/signing-key.pem.sha256" | tr '[:upper:]' '[:lower:]')"
+          actual_signing_fingerprint="$(openssl pkey \
+            -pubin \
+            -in "$download_directory/signing-key.pem" \
+            -outform DER \
+            | openssl dgst -sha256 \
+            | awk '{print tolower($NF)}')"
+          if [[ ! "$expected_signing_fingerprint" =~ ^[0-9a-f]{64}$ ]] \
+            || [ "$actual_signing_fingerprint" != "$expected_signing_fingerprint" ]; then
+            echo "::error::Published KMS signing key fingerprint is invalid."
+            exit 1
+          fi
+
+          maven_public_key="$download_directory/cloudformation-validate-maven-signing-key.asc"
+          expected_maven_fingerprint="$(tr -d '[:space:]' \
+            < "$maven_public_key.fingerprint" | tr '[:lower:]' '[:upper:]')"
+          actual_maven_fingerprint="$(gpg --batch --show-keys --with-colons "$maven_public_key" \
+            | awk -F: '$1 == "fpr" { print toupper($10); exit }')"
+          if [ -z "$actual_maven_fingerprint" ] \
+            || [ "$actual_maven_fingerprint" != "$expected_maven_fingerprint" ]; then
+            echo "::error::Published Maven signing key fingerprint is invalid."
+            exit 1
+          fi
+
+          for artifact in "${expected_artifacts[@]}"; do
+            echo "Verifying published artifact: $artifact"
+            if ! openssl dgst \
+              -sha256 \
+              -verify "$download_directory/signing-key.pem" \
+              -signature "$download_directory/$artifact.sig" \
+              "$download_directory/$artifact"; then
+              echo "::error::Signature verification failed for published artifact $artifact."
+              exit 1
+            fi
+          done
+          echo "GitHub release metadata, inventory, signing keys, and all artifact signatures are valid."
+
+  publish-crates:
+    needs: [ get-configs, version-and-tag, verify-release ]
+    runs-on: ubuntu-latest
+    environment: release-crates
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      CRATE_PACKAGES: >-
+        cloudformation-validate-template-model
+        cloudformation-validate-data-source
+        cloudformation-validate-rules
+        cloudformation-validate-diagnostics
+        cloudformation-validate-guard-translator
+        cloudformation-validate-schema-validator
+        cloudformation-validate-validation-engine
+        cloudformation-validate-rego-engine
+        cloudformation-validate-cel-engine
+        cloudformation-validate
+      RELEASE_KIND: ${{ needs.version-and-tag.outputs.release-kind }}
+      RELEASE_VERSION: ${{ needs.version-and-tag.outputs.cargo-version }}
+      WORKSPACE_VERSION: ${{ needs.version-and-tag.outputs.release-version }}
+      WORKING_DIR: ${{ needs.get-configs.outputs.working-dir }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.tag }}
+          fetch-depth: 0
+
+      - name: Check existing crates.io releases
+        id: check-crates
+        run: |
+          set -euo pipefail
+          read -r -a packages <<< "$CRATE_PACKAGES"
+          missing_packages=''
+
+          for package in "${packages[@]}"; do
+            if ! status="$(curl --silent --show-error --location \
+              --header 'User-Agent: aws-cloudformation/cloudformation-validate release workflow' \
+              --output /dev/null --write-out '%{http_code}' \
+              "https://crates.io/api/v1/crates/$package/$RELEASE_VERSION")"; then
+              echo "::error::Failed to check crates.io for $package $RELEASE_VERSION."
+              exit 1
+            fi
+            case "$status" in
+              200)
+                echo "$package $RELEASE_VERSION already exists; skipping publication."
+                ;;
+              404)
+                missing_packages="${missing_packages:+$missing_packages }$package"
+                ;;
+              *)
+                echo "::error::crates.io existence check returned HTTP $status for $package $RELEASE_VERSION; refusing to publish."
+                exit 1
+                ;;
+            esac
+          done
+
+          echo "missing-packages=$missing_packages" >> "$GITHUB_OUTPUT"
+          if [ -z "$missing_packages" ]; then
+            echo "All Rust crates already exist at $RELEASE_VERSION."
+          else
+            read -r -a packages <<< "$missing_packages"
+            for package in "${packages[@]}"; do
+              echo "Missing Rust crate: $package $RELEASE_VERSION"
+            done
+          fi
+
+      - name: Setup Rust toolchain
+        if: steps.check-crates.outputs.missing-packages != ''
+        uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c
+        with:
+          toolchain: ${{ needs.get-configs.outputs.rust-toolchain }}
+
+      - name: Stamp beta Cargo workspace
+        if: env.RELEASE_KIND == 'beta' && steps.check-crates.outputs.missing-packages != ''
+        working-directory: ${{ env.WORKING_DIR }}
+        run: |
+          set -euo pipefail
+          workspace_assignment="version = \"$WORKSPACE_VERSION\""
+          dependency_assignment="version = \"=$WORKSPACE_VERSION\""
+          if [ "$(grep -cFx "$workspace_assignment" Cargo.toml)" -ne 1 ]; then
+            echo "::error::Expected one workspace version assignment for $WORKSPACE_VERSION."
+            exit 1
+          fi
+          if [ "$(grep -oF "$dependency_assignment" Cargo.toml | wc -l)" -ne 9 ]; then
+            echo "::error::Expected nine internal dependency requirements for $WORKSPACE_VERSION."
+            exit 1
+          fi
+
+          WORKSPACE_VERSION="$WORKSPACE_VERSION" RELEASE_VERSION="$RELEASE_VERSION" perl -0pi -e '
+            my $workspace = $ENV{"WORKSPACE_VERSION"};
+            my $release = $ENV{"RELEASE_VERSION"};
+            my $workspace_updates = s{(\[workspace\.package\]\s*\nversion = )"\Q$workspace\E"}{$1 . qq{"$release"}}e;
+            die "expected one workspace version update\n" unless $workspace_updates == 1;
+            my $dependency_updates = s{version = "=\Q$workspace\E"}{qq{version = "=$release"}}ge;
+            die "expected nine dependency version updates\n" unless $dependency_updates == 9;
+          ' Cargo.toml
+
+          metadata="$(cargo metadata --no-deps --format-version 1)"
+          mapfile -t workspace_packages < <(jq -r '.packages[].name' <<< "$metadata")
+          for package in "${workspace_packages[@]}"; do
+            PACKAGE="$package" WORKSPACE_VERSION="$WORKSPACE_VERSION" RELEASE_VERSION="$RELEASE_VERSION" perl -0pi -e '
+              my $package = $ENV{"PACKAGE"};
+              my $workspace = $ENV{"WORKSPACE_VERSION"};
+              my $release = $ENV{"RELEASE_VERSION"};
+              my $updates = s{(\[\[package\]\]\nname = "\Q$package\E"\nversion = )"\Q$workspace\E"}{$1 . qq{"$release"}}e;
+              die "expected one lock entry for $package\n" unless $updates == 1;
+            ' Cargo.lock
+          done
+
+          metadata="$(cargo metadata --locked --no-deps --format-version 1)"
+          if ! jq -e --arg version "$RELEASE_VERSION" 'all(.packages[]; .version == $version)' <<< "$metadata" >/dev/null; then
+            echo "::error::Not every workspace package was stamped to $RELEASE_VERSION."
+            exit 1
+          fi
+          if [ "$(grep -oF "version = \"=$RELEASE_VERSION\"" Cargo.toml | wc -l)" -ne 9 ]; then
+            echo "::error::Not every internal dependency was stamped to =$RELEASE_VERSION."
+            exit 1
+          fi
+          git diff -- Cargo.toml Cargo.lock
+
+      - name: Authenticate to crates.io with Trusted Publishing
+        if: steps.check-crates.outputs.missing-packages != ''
+        id: crates-auth
+        uses: rust-lang/crates-io-auth-action@v1.0.5
+
+      - name: Publish missing Rust crates
+        if: steps.check-crates.outputs.missing-packages != ''
+        working-directory: ${{ env.WORKING_DIR }}
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.crates-auth.outputs.token }}
+          MISSING_PACKAGES: ${{ steps.check-crates.outputs.missing-packages }}
+        run: |
+          set -euo pipefail
+          read -r -a packages <<< "$MISSING_PACKAGES"
+          for package in "${packages[@]}"; do
+            if [ "$RELEASE_KIND" = 'beta' ]; then
+              cargo publish --locked --allow-dirty -p "$package"
+            else
+              cargo publish --locked -p "$package"
+            fi
+          done
+
+  verify-publish-crates:
+    needs: [ resolve-ref, version-and-tag, publish-crates ]
+    runs-on: ubuntu-latest
+    env:
+      CRATE_PACKAGES: >-
+        cloudformation-validate-template-model
+        cloudformation-validate-data-source
+        cloudformation-validate-rules
+        cloudformation-validate-diagnostics
+        cloudformation-validate-guard-translator
+        cloudformation-validate-schema-validator
+        cloudformation-validate-validation-engine
+        cloudformation-validate-rego-engine
+        cloudformation-validate-cel-engine
+        cloudformation-validate
+      RELEASE_SOURCE_COMMIT: ${{ needs.resolve-ref.outputs.sha }}
+      RELEASE_VERSION: ${{ needs.version-and-tag.outputs.cargo-version }}
+    steps:
+      - name: Verify published crate archives
+        run: |
+          set -euo pipefail
+          read -r -a packages <<< "$CRATE_PACKAGES"
+          max_attempts=60
+
+          for package in "${packages[@]}"; do
+            archive="$(mktemp)"
+            available=false
+            for attempt in $(seq 1 "$max_attempts"); do
+              rm -f "$archive"
+              echo "attempt $attempt/$max_attempts: downloading $package $RELEASE_VERSION from crates.io"
+              if curl --fail --silent --show-error --location \
+                --header 'User-Agent: aws-cloudformation/cloudformation-validate release workflow' \
+                "https://crates.io/api/v1/crates/$package/$RELEASE_VERSION/download" \
+                --output "$archive"; then
+                if ! published_commit="$(
+                  tar -xOf "$archive" "$package-$RELEASE_VERSION/.cargo_vcs_info.json" \
+                    | jq -er '.git.sha1'
+                )"; then
+                  rm -f "$archive"
+                  echo "::error::$package $RELEASE_VERSION has missing or malformed Cargo source provenance."
+                  exit 1
+                fi
+                if [ "$published_commit" != "$RELEASE_SOURCE_COMMIT" ]; then
+                  rm -f "$archive"
+                  echo "::error::$package $RELEASE_VERSION records source commit $published_commit, expected $RELEASE_SOURCE_COMMIT."
+                  exit 1
+                fi
+                available=true
+                echo "$package $RELEASE_VERSION records source commit $RELEASE_SOURCE_COMMIT."
+                break
+              fi
+              sleep 10
+            done
+            rm -f "$archive"
+            if [ "$available" != true ]; then
+              echo "::error::Timed out waiting for $package $RELEASE_VERSION on crates.io."
+              exit 1
+            fi
+          done
+
+  publish-go:
+    needs: [ resolve-ref, version-and-tag, verify-release ]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GO_MODULE_TAG: src/bindings-go/go/v${{ inputs.tag }}
+      RELEASE_SOURCE_COMMIT: ${{ needs.resolve-ref.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.resolve-ref.outputs.sha }}
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Check existing Go module release
+        id: check-go-release
+        run: |
+          set -euo pipefail
+          if git rev-parse -q --verify "refs/tags/$GO_MODULE_TAG" >/dev/null; then
+            tag_commit="$(git rev-parse "refs/tags/$GO_MODULE_TAG^{commit}")"
+            if [ "$tag_commit" != "$RELEASE_SOURCE_COMMIT" ]; then
+              echo "::error::Existing tag $GO_MODULE_TAG points to $tag_commit, not source commit $RELEASE_SOURCE_COMMIT."
+              exit 1
+            fi
+            echo 'exists=true' >> "$GITHUB_OUTPUT"
+            echo "Go module $GO_MODULE_TAG already exists at source commit $RELEASE_SOURCE_COMMIT; skipping publication."
+          else
+            echo 'exists=false' >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Configure Git
+        if: steps.check-go-release.outputs.exists != 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Publish Go module tag
+        if: steps.check-go-release.outputs.exists != 'true'
+        run: |
+          set -euo pipefail
+          git tag "$GO_MODULE_TAG" "$RELEASE_SOURCE_COMMIT"
+          git push origin "refs/tags/$GO_MODULE_TAG"
+          echo "Published Go module tag $GO_MODULE_TAG at source commit $RELEASE_SOURCE_COMMIT."
+
+  verify-publish-go:
+    needs: [ publish-go ]
+    runs-on: ubuntu-latest
+    env:
+      GO_MODULE_PATH: github.com/aws-cloudformation/cloudformation-validate/src/bindings-go/go
+      GO_MODULE_VERSION: v${{ inputs.tag }}
+    steps:
+      - name: Verify Go module artifacts resolve from the public proxy
+        run: |
+          set -euo pipefail
+          download_directory="$(mktemp -d)"
+          trap 'rm -rf "$download_directory"' EXIT
+          base="https://proxy.golang.org/$GO_MODULE_PATH/@v/$GO_MODULE_VERSION"
+          expected_prefix="$GO_MODULE_PATH@$GO_MODULE_VERSION/"
+
+          verify() {
+            rm -f "$download_directory"/*
+            curl --fail --silent --show-error --location \
+              --output "$download_directory/module.info" \
+              "$base.info" || return 1
+            curl --fail --silent --show-error --location \
+              --output "$download_directory/go.mod" \
+              "$base.mod" || return 1
+            curl --fail --silent --show-error --location \
+              --output "$download_directory/module.zip" \
+              "$base.zip" || return 1
+
+            jq -e --arg version "$GO_MODULE_VERSION" '.Version == $version' \
+              "$download_directory/module.info" >/dev/null || return 1
+            grep -Fx "module $GO_MODULE_PATH" "$download_directory/go.mod" >/dev/null || return 1
+            unzip -Z1 "$download_directory/module.zip" > "$download_directory/contents"
+
+            expected_files=(
+              go.mod
+              cfnvalidate.go
+              version.go
+              internal/bindings_go/bindings_go.go
+              libs/darwin-aarch64/libbindings_go.a
+              libs/linux-x86-64/libbindings_go.a
+              libs/win32-x86-64/libbindings_go.a
+            )
+            for file in "${expected_files[@]}"; do
+              grep -Fx "$expected_prefix$file" "$download_directory/contents" >/dev/null || return 1
+            done
+          }
+
+          max_attempts=60
+          for attempt in $(seq 1 "$max_attempts"); do
+            echo "attempt $attempt/$max_attempts: downloading $GO_MODULE_PATH@$GO_MODULE_VERSION from proxy.golang.org"
+            if verify; then
+              echo "The public Go proxy serves the expected module metadata, source, generated bindings, and platform libraries."
+              exit 0
+            fi
+            sleep 10
+          done
+
+          echo "::error::Timed out waiting for $GO_MODULE_PATH@$GO_MODULE_VERSION on proxy.golang.org."
+          exit 1
+
   publish-maven:
-    needs: [ get-configs, version-and-tag, release ]
+    needs: [ get-configs, version-and-tag, verify-release ]
     runs-on: ubuntu-latest
     environment: release-maven
     permissions:
@@ -634,7 +1081,7 @@ jobs:
 
   publish-python-beta:
     if: needs.version-and-tag.outputs.release-kind == 'beta'
-    needs: [ version-and-tag, release ]
+    needs: [ version-and-tag, verify-release ]
     runs-on: ubuntu-latest
     environment: release-python-beta
     permissions:
@@ -771,7 +1218,7 @@ jobs:
 
   publish-python-prod:
     if: needs.version-and-tag.outputs.release-kind == 'production'
-    needs: [ version-and-tag, release ]
+    needs: [ version-and-tag, verify-release ]
     runs-on: ubuntu-latest
     environment: release-python-prod
     permissions:
@@ -906,7 +1353,7 @@ jobs:
           exit 1
 
   publish-npm:
-    needs: [ get-configs, version-and-tag, release ]
+    needs: [ get-configs, version-and-tag, verify-release ]
     runs-on: ubuntu-latest
     environment: release-npm
     permissions:
