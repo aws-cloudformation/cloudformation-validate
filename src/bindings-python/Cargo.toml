@@ -1,5 +1,6 @@
 [package]
 name = "bindings-python"
+publish = false
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -13,14 +14,14 @@ crate-type = ["cdylib", "lib"]
 name = "bindings_python"
 
 [dependencies]
-data-source = { path = "../data-source", default-features = false, features = ["uniffi-bindings"] }
-validation-engine = { path = "../validation-engine", features = ["uniffi-bindings"] }
-diagnostics = { path = "../diagnostics", features = ["uniffi-bindings"] }
-rules = { path = "../rules", features = ["uniffi-bindings"] }
-template-model = { path = "../template-model", features = ["uniffi-bindings"] }
-rego-engine = { path = "../rego-engine" }
-cel-engine = { path = "../cel-engine" }
-schema-validator = { path = "../schema-validator", features = ["uniffi-bindings"] }
+data-source = { workspace = true, features = ["uniffi-bindings"] }
+validation-engine = { workspace = true, features = ["uniffi-bindings"] }
+diagnostics = { workspace = true, features = ["uniffi-bindings"] }
+rules = { workspace = true, features = ["uniffi-bindings"] }
+template-model = { workspace = true, features = ["uniffi-bindings"] }
+rego-engine = { workspace = true }
+cel-engine = { workspace = true }
+schema-validator = { workspace = true, features = ["uniffi-bindings"] }
 uniffi = { workspace = true }
 thiserror = "2"
 

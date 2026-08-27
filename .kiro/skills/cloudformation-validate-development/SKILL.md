@@ -37,7 +37,7 @@ cargo build                                   # whole workspace (debug)
 cargo build -p cfn-validate                   # CLI -> target/debug/cfn-validate (add --release for optimized)
 
 # Core Rust tests - only when they cover the changed behavior
-cargo test -p cel-engine <name>               # single crate / filtered test - preferred while iterating
+cargo test -p cloudformation-validate-cel-engine <name>               # single crate / filtered test - preferred while iterating
 cargo test --workspace 2>&1 | tee ../tmp/test-output.txt   # broad core changes only; at most once at completion
 # CI runs coverage, not plain test: cargo llvm-cov --locked --release --workspace --no-fail-fast
 
@@ -74,7 +74,7 @@ Apply these rules when choosing validation:
 
 ```bash
 # Dump the full SemanticModel - ALWAYS start here. If the model is wrong, fix template-model.
-cargo run -p template-model --example inspect -- <template>
+cargo run -p cloudformation-validate-template-model --example inspect -- <template>
 
 # Accuracy vs cfn-lint. Requires a local cfn-lint checkout - first check whether cfn-lint is available on the
 # machine (`cfn-lint --version`), then ask the user for the checkout path; never assume or hardcode a location.

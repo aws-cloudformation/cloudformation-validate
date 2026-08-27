@@ -1,5 +1,6 @@
 [package]
 name = "cfn-validate"
+publish = false
 default-run = "cfn-validate"
 version.workspace = true
 edition.workspace = true
@@ -22,14 +23,14 @@ name = "cfn-benchmark"
 path = "src/benchmark.rs"
 
 [dependencies]
-data-source = { path = "../data-source", default-features = false }
-template-model = { path = "../template-model" }
-diagnostics = { path = "../diagnostics" }
-validation-engine = { path = "../validation-engine" }
-rules = { path = "../rules" }
-schema-validator = { path = "../schema-validator" }
-rego-engine = { path = "../rego-engine" }
-cel-engine = { path = "../cel-engine" }
+data-source = { workspace = true }
+template-model = { workspace = true }
+diagnostics = { workspace = true }
+validation-engine = { workspace = true }
+rules = { workspace = true }
+schema-validator = { workspace = true }
+rego-engine = { workspace = true }
+cel-engine = { workspace = true }
 serde_json = { version = "1", features = ["preserve_order"] }
 sha2 = "0.11"
 chrono = { version = "0.4", default-features = false, features = ["clock"] }
@@ -39,7 +40,7 @@ env_logger = "0.11"
 [dev-dependencies]
 resources = { path = "../resources" }
 tempfile = "3"
-validation-engine = { path = "../validation-engine", features = ["test"] }
+validation-engine = { workspace = true, features = ["test"] }
 
 [lints]
 workspace = true

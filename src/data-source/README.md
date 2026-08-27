@@ -9,10 +9,10 @@ compile time. Everything compiles into the binary - no runtime fetching.
 
 ```bash
 # Generate from existing upstream data
-cargo run -p data-source --features maintenance --example generate
+cargo run -p cloudformation-validate-data-source --features maintenance --example generate
 
 # Refresh all upstream sources, then generate every output (cfn-lint root is required)
-cargo run -p data-source --features maintenance --example sync -- --cfn-lint-root <DIR>
+cargo run -p cloudformation-validate-data-source --features maintenance --example sync -- --cfn-lint-root <DIR>
 ```
 
 The `generate` and `sync` examples require the `maintenance` feature, which enables dependencies used only by the

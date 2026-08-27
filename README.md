@@ -7,6 +7,7 @@
 [![Offline](https://img.shields.io/badge/runtime-fully%20offline-success)](#features)
 
 [![Latest release](https://img.shields.io/github/v/release/aws-cloudformation/cloudformation-validate?include_prereleases)](https://github.com/aws-cloudformation/cloudformation-validate/releases)
+[![crates.io version](https://img.shields.io/crates/v/cloudformation-validate?logo=rust)](https://crates.io/crates/cloudformation-validate)
 [![npm version](https://img.shields.io/npm/v/%40aws%2Fcloudformation-validate?logo=npm)](https://www.npmjs.com/package/@aws/cloudformation-validate)
 [![Maven Central](https://img.shields.io/maven-central/v/software.amazon.cloudformation/cloudformation-validate?logo=apachemaven)](https://central.sonatype.com/artifact/software.amazon.cloudformation/cloudformation-validate)
 [![PyPI version](https://img.shields.io/pypi/v/cloudformation-validate?logo=pypi)](https://pypi.org/project/cloudformation-validate/)
@@ -61,11 +62,13 @@ When a template is submitted, `cloudformation-validate` runs a fixed pipeline:
 
 ## Installation
 
-Use a prebuilt CLI or install a published language binding; Rust and this source repository are not required.
+Use the prebuilt CLI, embed the Rust library, or install a published language binding; this source repository is not
+required.
 
 | Interface | Published artifact | Install |
 |-----------|--------------------|---------|
-| CLI | [GitHub Releases](https://github.com/aws-cloudformation/cloudformation-validate/releases) | [Download the newest binary for Linux, macOS, or Windows](INSTALLATION.md#command-line-interface) |
+| CLI binary | [GitHub Releases](https://github.com/aws-cloudformation/cloudformation-validate/releases) | [Download the newest binary for Linux, macOS, or Windows](INSTALLATION.md#command-line-interface) |
+| Rust library | [crates.io: `cloudformation-validate`](https://crates.io/crates/cloudformation-validate) | `cargo add cloudformation-validate` |
 | Node.js | [npm: `@aws/cloudformation-validate`](https://www.npmjs.com/package/@aws/cloudformation-validate) | `npm install @aws/cloudformation-validate` |
 | Python | [PyPI](https://pypi.org/project/cloudformation-validate/) / [TestPyPI beta](https://test.pypi.org/project/cloudformation-validate/) | `python3 -m pip install cloudformation-validate` |
 | Go | [Go module](https://pkg.go.dev/github.com/aws-cloudformation/cloudformation-validate/src/bindings-go/go) | `go get github.com/aws-cloudformation/cloudformation-validate/src/bindings-go/go@latest` |
@@ -101,28 +104,35 @@ cargo run -p cfn-validate -- template.yaml --guard-rule-source ./my-rules/
 
 ## Embedding as a library
 
-### Rust
+### Rust [(bindings-rust)](src/bindings-rust/README.md)
+
+Add the library facade:
+
+```toml
+[dependencies]
+cloudformation-validate = "1.10.0"
+```
 
 Construct an engine and a schema validator once, then validate many templates:
 
 ```rust
-use rego_engine::RegoEngine;
-use schema_validator::SchemaValidator;
-use validation_engine::{validate_bytes_with_path, EngineConfig, ValidateConfig};
+use cloudformation_validate::{
+    EngineConfig, RegoEngine, SchemaValidator, ValidateConfig, validate_bytes_with_path,
+};
 
 let schema_validator = SchemaValidator::default();
 let engine = RegoEngine::new(EngineConfig::default())?;
 
-let bytes = std::fs::read("template.yaml") ?;
+let bytes = std::fs::read("template.yaml")?;
 let report = validate_bytes_with_path(
-    & engine,
-    & schema_validator,
-    & bytes,
-    ValidateConfig::default (),
+    &engine,
+    &schema_validator,
+    &bytes,
+    ValidateConfig::default(),
     "template.yaml".to_string(),
-) ?;
+)?;
 
-for d in & report.diagnostics {
+for d in &report.diagnostics {
     println!("[{}] {} - {}", d.severity, d.rule_id, d.message);
 }
 ```

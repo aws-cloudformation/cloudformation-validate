@@ -11,11 +11,10 @@
 ## Build-time code generation
 
 The `data-source` crate downloads CloudFormation provider schemas, syncs cfn-lint data, applies patches/extensions, and
-generates schema-validator artifacts and (data-driven) CEL rules. Rego policies are hand-written in
-`rego-engine/handwritten/rego/`. `data-source/build.rs` compresses every generated and hand-written artifact (zstd) and
-exposes them as lazy byte constants via the `data-source::embedded` API. `rego-engine`, `cel-engine`, `schema-validator`,
-and `guard-translator` consume those constants at runtime — none of them have their own `build.rs`. Everything compiles
-into the binary — no runtime fetching.
+generates schema-validator artifacts and (data-driven) CEL rules. `data-source/build.rs` compresses generated and
+hand-maintained JSON artifacts (zstd) and exposes them as lazy byte constants via the `data-source::embedded` API.
+Rego policies remain hand-written in `rego-engine/handwritten/rego/`; `rego-engine/build.rs` discovers and embeds those
+package-local policies. Everything compiles into the binary — no runtime fetching.
 
 `data-source/generated/` is committed generated code — **never hand-edit it, and never run the regeneration
 pipeline yourself**. Regeneration is a maintainer-run operation; if a change requires regenerating these artifacts,
@@ -41,7 +40,7 @@ cargo build                                   # whole workspace (debug)
 cargo build -p cfn-validate                   # CLI -> target/debug/cfn-validate (add --release for optimized)
 
 # Core Rust tests — only when these tests exercise the changed behavior
-cargo test -p cel-engine <name>               # single crate / filtered test — preferred while iterating
+cargo test -p cloudformation-validate-cel-engine <name>               # single crate / filtered test — preferred while iterating
 cargo test --workspace 2>&1 | tee ../tmp/test-output.txt   # broad core changes only; at most once at completion
 # CI runs coverage, not plain test: cargo llvm-cov --locked --release --workspace --no-fail-fast
 
@@ -98,7 +97,7 @@ Use these, not `println!` or ad-hoc logging.
 
 ### inspect — use this first
 
-`cargo run -p template-model --example inspect -- <template>` — dumps the full SemanticModel. Always start here when
+`cargo run -p cloudformation-validate-template-model --example inspect -- <template>` — dumps the full SemanticModel. Always start here when
 debugging. If the model is wrong, fix `template-model`.
 
 ### cfn-validate

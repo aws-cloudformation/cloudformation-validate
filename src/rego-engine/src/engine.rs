@@ -1,3 +1,4 @@
+use crate::policies;
 use data_source::embedded;
 use data_source::types::KnownResourceTypes;
 use diagnostics::{Diagnostic, PhaseMetric, phase_metric};
@@ -277,13 +278,13 @@ impl RegoEngine {
             rego.add_data(regorus::Value::from_json_str(&merged)?)?;
         }
 
-        for (path, source) in embedded::HANDWRITTEN_REGO_POLICIES {
+        for (path, source) in policies::HANDWRITTEN_REGO_POLICIES {
             rego.add_policy(path.to_string(), source.to_string())?;
         }
         debug!(
             "Loaded {} data files, {} handwritten rules",
             REGORUS_DATA.len(),
-            embedded::HANDWRITTEN_REGO_POLICIES.len()
+            policies::HANDWRITTEN_REGO_POLICIES.len()
         );
 
         let mut translated_guard_sources = Vec::new();
@@ -357,7 +358,7 @@ impl RegoEngine {
 
         info!(
             "RegoEngine initialized: {} handwritten rules, {} data files, {} registry + {} external metadata entries",
-            embedded::HANDWRITTEN_REGO_POLICIES.len(),
+            policies::HANDWRITTEN_REGO_POLICIES.len(),
             REGORUS_DATA.len(),
             registry_metadata.len(),
             external_rule_metadata.len()

@@ -122,5 +122,5 @@ Supports AWS SAM templates with automatic handling of SAM transforms and implici
 Prints a detailed human-readable dump of the semantic model for a template or directory of templates.
 
 ```
-cargo run -p template-model --example inspect -- <TEMPLATE|DIR>
+cargo run -p cloudformation-validate-template-model --example inspect -- <TEMPLATE|DIR>
 ```
