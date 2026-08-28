@@ -50435,6 +50435,24 @@
       }
     ]
   },
+  "security/cross_reference_fanout.yaml": {
+    "filePath": "security/cross_reference_fanout.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 500,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": []
+  },
   "security/cross_resource_scale.yaml": {
     "filePath": "security/cross_resource_scale.yaml",
     "status": "OK",
