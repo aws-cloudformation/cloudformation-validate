@@ -152,7 +152,7 @@ pub fn validate_all_resources(
 ) -> Vec<Diagnostic> {
     reset_schema_budget_exhaustions();
     let mut out = Vec::new();
-    let relevant: HashSet<&str> = model.resources.values().map(|r| r.resource_type.as_str()).collect();
+    let relevant: HashSet<&str> = model.resources_by_type.keys().map(String::as_str).collect();
 
     validate_lifecycle(&mut out, store, model);
 
@@ -614,7 +614,10 @@ fn validate_resource(
         );
     }
 
-    for (prop_name, prop_schema) in &schema.properties {
+    for prop_name in res.properties.keys() {
+        let Some(prop_schema) = schema.properties.get(prop_name) else {
+            continue;
+        };
         let resolved = prop_schema.resolve(defs);
         let prop_path = format!("{}.{}", base, prop_name);
         validate_prop(out, store, m, rid, &res.resource_type, &prop_path, &resolved, defs, region);
@@ -2094,11 +2097,9 @@ fn validate_sub_value_constraints(
         // Only scenarios consistent with the active group assignment (if any)
         // participate: a value from a mutually exclusive `Fn::If` branch must
         // not decide this assignment's branch match.
-        let scenarios: Vec<(serde_json::Value, HashMap<String, bool>)> = m
-            .resolve_scenarios_json(rid, &prop_path)
-            .into_iter()
-            .filter(|(_, conds)| scenario_consistent_with_filter(m, conds))
-            .collect();
+        let shared_scenarios = m.resolve_scenarios_json_shared(rid, &prop_path);
+        let scenarios: Vec<_> =
+            shared_scenarios.iter().filter(|(_, conds)| scenario_consistent_with_filter(m, conds)).collect();
 
         // When the property is absent from the template and not required, it
         // does not contribute a mismatch - the constraint is vacuously true.
@@ -2149,11 +2150,9 @@ fn validate_sub_value_constraints(
     // validation above already enforces them.
     if sub_self_constrains_value(sub) {
         let self_schema = schema_for_self_value_constraints(sub);
-        let scenarios: Vec<(serde_json::Value, HashMap<String, bool>)> = m
-            .resolve_scenarios_json(rid, base_path)
-            .into_iter()
-            .filter(|(_, conds)| scenario_consistent_with_filter(m, conds))
-            .collect();
+        let shared_scenarios = m.resolve_scenarios_json_shared(rid, base_path);
+        let scenarios: Vec<_> =
+            shared_scenarios.iter().filter(|(_, conds)| scenario_consistent_with_filter(m, conds)).collect();
         if !scenarios.is_empty() {
             let any_scenario_matches = scenarios.iter().any(|(val, conds)| {
                 if !is_satisfiable(m, conds) || val.is_null() || defer_value_constraints(m, rid, base_path, val, conds)

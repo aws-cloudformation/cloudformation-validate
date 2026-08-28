@@ -482,6 +482,37 @@ fn large_resource_count_validates_to_a_bounded_result_on_both_engines() {
 }
 
 #[test]
+fn dense_cross_resource_fanout_validates_to_a_bounded_result() {
+    const SCALE_RESOURCES: usize = 500;
+    const RESOURCE_REFERENCE_EDGES: usize = 11_875;
+    let bytes = common::load_security("cross_reference_fanout.yaml");
+
+    let model = SemanticModel::from_bytes(&bytes).expect("the cross-reference fixture must parse to a semantic model");
+    assert_eq!(model.resources.len(), SCALE_RESOURCES);
+    let resource_edges = model
+        .graph
+        .edges
+        .iter()
+        .filter(|edge| {
+            model.resources.contains_key(&edge.source_resource) && model.resources.contains_key(&edge.target)
+        })
+        .count();
+    assert_eq!(resource_edges, RESOURCE_REFERENCE_EDGES);
+
+    for engine_name in ["rego", "cel"] {
+        let finished = validate_report_within(COMPLETION_BUDGET, engine_name, bytes.clone()).unwrap_or_else(|| {
+            panic!(
+                "{engine_name}: {RESOURCE_REFERENCE_EDGES} resource references must validate within \
+                 {COMPLETION_BUDGET:?}"
+            )
+        });
+        let _ = finished.unwrap_or_else(|error| {
+            panic!("{engine_name}: dense cross-resource validation must return a structured report: {error}")
+        });
+    }
+}
+
+#[test]
 fn condition_chain_boundary_resolves_within_budget() {
     // 20 parameters, 40 acyclic chained conditions matching the public CDK repro
     // shape, 10 gated resources, and nested Fn::If depth 2 in properties. This

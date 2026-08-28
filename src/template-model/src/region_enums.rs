@@ -161,17 +161,17 @@ pub fn conditional_invalid_message(value: &str, allowed_sorted: &[String], regio
 /// caller skips validation - a dynamic or unknown configured region is not
 /// validated, matching today's per-region lookup that returns `None` for a
 /// missing region.
-pub fn flat_allowed_values<'a>(
+pub fn flat_allowed_value_set<'a>(
     doc: &'a serde_json::Map<String, serde_json::Value>,
     region: Option<&str>,
-) -> Option<BTreeSet<&'a str>> {
+) -> Option<HashSet<&'a str>> {
     match region {
         Some(region) => {
             let values = doc.get(region)?.get("enum")?.as_array()?;
             Some(values.iter().filter_map(|v| v.as_str()).collect())
         }
         None => {
-            let mut union = BTreeSet::new();
+            let mut union = HashSet::new();
             for region in AWS_REGIONS {
                 if let Some(values) = doc.get(*region).and_then(|r| r.get("enum")).and_then(|e| e.as_array()) {
                     union.extend(values.iter().filter_map(|v| v.as_str()));
@@ -184,6 +184,14 @@ pub fn flat_allowed_values<'a>(
             (!union.is_empty()).then_some(union)
         }
     }
+}
+
+/// Returns the same allowed values in deterministic order for callers that iterate them.
+pub fn flat_allowed_values<'a>(
+    doc: &'a serde_json::Map<String, serde_json::Value>,
+    region: Option<&str>,
+) -> Option<BTreeSet<&'a str>> {
+    flat_allowed_value_set(doc, region).map(|allowed| allowed.into_iter().collect())
 }
 
 /// For a conditional RDS document (`{ "<region>": { "allOf": [...] } }`), returns

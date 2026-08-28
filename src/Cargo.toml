@@ -10,6 +10,7 @@ members = [
     "data-source",
     "diagnostics",
     "guard-translator",
+    "performance-harness",
     "rego-engine",
     "resources",
     "rules",

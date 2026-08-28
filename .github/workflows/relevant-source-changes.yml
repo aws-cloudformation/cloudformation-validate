@@ -1,0 +1,64 @@
+name: Relevant Source Changes
+
+on:
+  workflow_call:
+    outputs:
+      relevant:
+        description: Whether at least one changed path requires artifact or performance validation
+        value: ${{ jobs.changes.outputs.relevant }}
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      relevant: ${{ steps.decision.outputs.relevant }}
+    steps:
+      - name: Checkout push history
+        if: ${{ github.event_name == 'push' }}
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Detect relevant paths
+        if: ${{ github.event_name != 'workflow_dispatch' }}
+        id: filter
+        uses: dorny/paths-filter@v4.0.3
+        with:
+          filters: |
+            relevant:
+              - '**'
+              - '!.github/**'
+              - '!scripts/**'
+              - '!.gitattributes'
+              - '!.gitignore'
+              - '!**/*.md'
+              - '!**/*.txt'
+              - '!**/*.jar'
+              - '!LICENSE'
+              - '!NOTICE'
+              - '!gradlew'
+              - '!gradlew.bat'
+              - '!src/bindings-*/**/bench/**'
+              - '!src/bindings-*/examples/**'
+              - '!src/bindings-*/tests/**'
+              - '!src/bindings-jvm/version.properties'
+              - '!src/bindings-wasm/dist/*'
+              - '!src/bindings-python/generated/**'
+              - '!src/bindings-go/go/internal/**'
+              - '!src/bindings-go/go/libs/**'
+              - '!release-bin/*'
+
+      - name: Export decision
+        id: decision
+        env:
+          FILTER_RELEVANT: ${{ steps.filter.outputs.relevant }}
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" || "$FILTER_RELEVANT" == "true" ]]; then
+            echo "relevant=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "relevant=false" >> "$GITHUB_OUTPUT"
+          fi

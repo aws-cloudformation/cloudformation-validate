@@ -14,6 +14,9 @@ Fixtures produced:
                                bundled-schema composition at the exact 256-world
                                assignment boundary and one condition beyond it
     many_resources.yaml        a large number of independent resources
+    cross_reference_fanout.yaml
+                               500 resources with a dense resource-to-resource
+                               reference graph
     cross_resource_scale.yaml  many resources sharing one primary identifier value
                                (worst case for pair-comparison rules)
     pathological_conditions.yaml  conditions with large dependency closures over
@@ -68,6 +71,12 @@ CONDITION_BASE_VARS = 4
 CONDITION_TOTAL = 200
 # Number of resources in the scale fixtures.
 RESOURCE_COUNT = 500
+# Dense cross-resource graph: every policy references every topic. The split
+# reaches the 500-resource template limit while keeping the generated file and
+# repeated security-gate runtime bounded.
+CROSS_REFERENCE_TOPIC_COUNT = 475
+CROSS_REFERENCE_POLICY_COUNT = RESOURCE_COUNT - CROSS_REFERENCE_TOPIC_COUNT
+CROSS_REFERENCE_EDGE_COUNT = CROSS_REFERENCE_TOPIC_COUNT * CROSS_REFERENCE_POLICY_COUNT
 
 # Schema scenario-assignment fixture. The selected provider schema has a
 # nine-way object composition. Eight independently conditional properties
@@ -299,6 +308,54 @@ def gen_many_resources() -> None:
         lines.append(f"  Topic{i:04d}:")
         lines.append("    Type: AWS::SNS::Topic")
     write("many_resources.yaml", "\n".join(lines) + "\n")
+
+
+def gen_cross_reference_fanout() -> None:
+    """A dense resource-to-resource graph with CROSS_REFERENCE_EDGE_COUNT edges.
+
+    Every topic policy references every topic. This produces many distinct Ref
+    edges without cycles or invalid targets, exercising graph construction,
+    serialization, authored-reference rules, and repeated engine evaluation at
+    the 500-resource CloudFormation limit.
+    """
+    lines = [
+        HEADER,
+        "AWSTemplateFormatVersion: '2010-09-09'",
+        "Description: 'Fixture: dense cross-resource reference fan-out. Generated; no sensitive data.'",
+        "Resources:",
+    ]
+    for index in range(CROSS_REFERENCE_TOPIC_COUNT):
+        lines.extend(
+            [
+                f"  Topic{index:04d}:",
+                "    Type: AWS::SNS::Topic",
+                "    Properties:",
+                "      Tags:",
+                "        - Key: Purpose",
+                "          Value: cross-reference-security-fixture",
+            ]
+        )
+    for policy_index in range(CROSS_REFERENCE_POLICY_COUNT):
+        lines.extend(
+            [
+                f"  Policy{policy_index:04d}:",
+                "    Type: AWS::SNS::TopicPolicy",
+                "    Properties:",
+                "      PolicyDocument:",
+                "        Version: '2012-10-17'",
+                "        Statement:",
+                f"          - Sid: AllowEventsPublish{policy_index:04d}",
+                "            Effect: Allow",
+                "            Principal:",
+                "              Service: events.amazonaws.com",
+                "            Action: 'sns:Publish'",
+                "            Resource: '*'",
+                "      Topics:",
+            ]
+        )
+        for topic_index in range(CROSS_REFERENCE_TOPIC_COUNT):
+            lines.append(f"        - !Ref Topic{topic_index:04d}")
+    write("cross_reference_fanout.yaml", "\n".join(lines) + "\n")
 
 
 def gen_cross_resource_scale() -> None:
@@ -825,6 +882,7 @@ def main() -> None:
     gen_many_conditions()
     gen_scenario_assignment_budget()
     gen_many_resources()
+    gen_cross_reference_fanout()
     gen_cross_resource_scale()
     gen_pathological_conditions()
     gen_condition_fusion()

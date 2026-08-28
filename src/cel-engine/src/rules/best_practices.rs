@@ -510,16 +510,15 @@ None,
         }
     }
 
-    if let Some(sm) = ctx.cached_data.schema_metadata().get("schema_metadata") {
+    {
+        let schema_metadata = ctx.cached_data.schema_metadata_catalog();
         for (name, res) in &m.resources {
             if res.resource_type.ends_with("::MODULE") {
                 continue;
             }
-            let supports_tags = sm
+            let supports_tags = schema_metadata
                 .get(&res.resource_type)
-                .and_then(|entry| entry.get("properties"))
-                .and_then(|p| p.as_array())
-                .map(|arr| arr.iter().any(|v| v.as_str() == Some("Tags")))
+                .map(|entry| entry.properties.iter().any(|p| p == "Tags"))
                 .unwrap_or(false);
             let tags_missing = m.resolve_properties_scenarios(name).iter().any(|(properties, conditions)| {
                 scenario_is_reachable(m, name, conditions) && !scenario_has_effective_property(properties, "Tags")

@@ -13,7 +13,8 @@ use crate::sam;
 use crate::span::SpanProvider;
 use log::{debug, info, warn};
 use serde::Serialize;
-use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
+use std::cmp::Reverse;
+use std::collections::{BTreeMap, BTreeSet, BinaryHeap, HashMap, HashSet};
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
@@ -127,6 +128,87 @@ struct PrimaryIdentifierScenario {
     assumptions: Vec<(String, bool)>,
 }
 
+/// Where a candidate comparison sits in the original all-pairs traversal: left
+/// resource, then right resource, then left scenario, then right scenario. Merging
+/// every identity group by this key replays comparisons - and therefore the
+/// satisfiability queries they issue - in the identical order and count the
+/// all-pairs traversal produced, so the model's shared, cumulative satisfiability
+/// budget is drawn down exactly as before.
+type PrimaryIdentifierComparisonOrder = (usize, usize, usize, usize);
+
+/// Yields the resource/scenario comparisons within one primary-identifier identity
+/// group in [`PrimaryIdentifierComparisonOrder`]. Grouping by identity first skips
+/// the cross-identity pairs the all-pairs traversal built only to discard, while
+/// this cursor preserves the surviving comparisons' original order so results and
+/// satisfiability accounting are unchanged.
+struct IdentityGroupPairCursor {
+    /// Distinct resources in the group in ascending `per_resource` index, each with
+    /// its matching scenario indices in ascending order.
+    resources: Vec<(usize, Vec<usize>)>,
+    left_resource: usize,
+    right_resource: usize,
+    left_scenario: usize,
+    right_scenario: usize,
+}
+
+impl IdentityGroupPairCursor {
+    /// A cursor over one identity group's comparisons, or `None` when the group
+    /// spans fewer than two resources and so has nothing to compare. `candidates`
+    /// are `(per_resource index, scenario index)` pairs in ascending order, so
+    /// consecutive entries that share a resource index belong to that resource.
+    fn new(candidates: &[(usize, usize)]) -> Option<Self> {
+        let mut resources: Vec<(usize, Vec<usize>)> = Vec::new();
+        for &(resource_index, scenario_index) in candidates {
+            match resources.last_mut() {
+                Some((last_resource_index, scenario_indices)) if *last_resource_index == resource_index => {
+                    scenario_indices.push(scenario_index);
+                }
+                _ => resources.push((resource_index, vec![scenario_index])),
+            }
+        }
+        if resources.len() < 2 {
+            return None;
+        }
+        Some(Self { resources, left_resource: 0, right_resource: 1, left_scenario: 0, right_scenario: 0 })
+    }
+}
+
+impl Iterator for IdentityGroupPairCursor {
+    type Item = PrimaryIdentifierComparisonOrder;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while self.left_resource + 1 < self.resources.len() {
+            if self.right_resource >= self.resources.len() {
+                self.left_resource += 1;
+                self.right_resource = self.left_resource + 1;
+                self.left_scenario = 0;
+                self.right_scenario = 0;
+                continue;
+            }
+            if self.left_scenario >= self.resources[self.left_resource].1.len() {
+                self.right_resource += 1;
+                self.left_scenario = 0;
+                self.right_scenario = 0;
+                continue;
+            }
+            if self.right_scenario >= self.resources[self.right_resource].1.len() {
+                self.left_scenario += 1;
+                self.right_scenario = 0;
+                continue;
+            }
+            let comparison = (
+                self.resources[self.left_resource].0,
+                self.resources[self.right_resource].0,
+                self.resources[self.left_resource].1[self.left_scenario],
+                self.resources[self.right_resource].1[self.right_scenario],
+            );
+            self.right_scenario += 1;
+            return Some(comparison);
+        }
+        None
+    }
+}
+
 /// An Fn::ForEach loop within a resource that expands a property over a collection.
 #[derive(Debug, Clone, Serialize)]
 #[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
@@ -230,7 +312,7 @@ pub struct SemanticModel {
     resolve_memo: Mutex<HashMap<(String, String), Option<ResolvedValue>>>,
     raw_scenario_memo: Mutex<HashMap<(String, String), Vec<(ResolvedValue, HashMap<String, bool>)>>>,
     properties_scenario_cache: Mutex<HashMap<String, Vec<(ResolvedValue, HashMap<String, bool>)>>>,
-    scenario_memo: Mutex<HashMap<(String, String), Vec<(serde_json::Value, HashMap<String, bool>)>>>,
+    scenario_memo: Mutex<HashMap<(String, String), Arc<Vec<(serde_json::Value, HashMap<String, bool>)>>>>,
     lifecycle_policy_scenario_cache: Mutex<HashMap<(String, String), Vec<(serde_json::Value, HashMap<String, bool>)>>>,
     /// Cumulative count of scenarios materialized by `resolve_scenarios` across
     /// the whole validation, charged against `MAX_TOTAL_SCENARIO_COMBINATIONS`.
@@ -1184,25 +1266,106 @@ impl SemanticModel {
             }
         }
 
+        // When every scenario has one comparison identity, grouping cannot skip
+        // any work. Keep the original tight traversal for that dense case so the
+        // optimization adds no cursor or heap overhead where it has nothing to
+        // prune. The preliminary linear scan is negligible beside the pairwise
+        // traversal and establishes that this is exactly one identity group.
+        let first_identity = per_resource
+            .first()
+            .and_then(|(_, scenarios)| scenarios.first())
+            .map(|scenario| scenario.identity_tuple.as_slice());
+        let has_one_identity = first_identity.is_some_and(|identity| {
+            per_resource
+                .iter()
+                .flat_map(|(_, scenarios)| scenarios)
+                .all(|scenario| scenario.identity_tuple.as_slice() == identity)
+        });
+        if has_one_identity {
+            let mut conflicts: BTreeMap<Vec<String>, (Vec<String>, BTreeSet<String>)> = BTreeMap::new();
+            for left_index in 0..per_resource.len() {
+                for right_index in (left_index + 1)..per_resource.len() {
+                    let (left_resource, left_scenarios) = &per_resource[left_index];
+                    let (right_resource, right_scenarios) = &per_resource[right_index];
+                    for left in left_scenarios {
+                        for right in right_scenarios {
+                            let mut assumptions = left.assumptions.clone();
+                            assumptions.extend(right.assumptions.iter().cloned());
+                            if assumptions.is_empty() || self.conditions.is_satisfiable(&assumptions) {
+                                let (_, resources) = conflicts
+                                    .entry(left.identity_tuple.clone())
+                                    .or_insert_with(|| (left.display_tuple.clone(), BTreeSet::new()));
+                                resources.insert((*left_resource).clone());
+                                resources.insert((*right_resource).clone());
+                            }
+                        }
+                    }
+                }
+            }
+            return conflicts.into_values().collect();
+        }
+
+        // Two resources can only collide when their identifier tuples are equal, so
+        // group scenarios by comparison identity and confine every comparison to a
+        // group. A resource with a unique tuple forms a singleton group and does no
+        // cross-resource or satisfiability work - the common case the earlier
+        // all-pairs traversal paid for on every template.
+        let mut candidates_by_identity: HashMap<&[String], Vec<(usize, usize)>> = HashMap::new();
+        for (resource_index, (_, scenarios)) in per_resource.iter().enumerate() {
+            for (scenario_index, scenario) in scenarios.iter().enumerate() {
+                candidates_by_identity
+                    .entry(scenario.identity_tuple.as_slice())
+                    .or_default()
+                    .push((resource_index, scenario_index));
+            }
+        }
+        let mut cursors: Vec<IdentityGroupPairCursor> = candidates_by_identity
+            .into_values()
+            .filter_map(|candidates| IdentityGroupPairCursor::new(&candidates))
+            .collect();
+
         let mut conflicts: BTreeMap<Vec<String>, (Vec<String>, BTreeSet<String>)> = BTreeMap::new();
-        for left_index in 0..per_resource.len() {
-            for right_index in (left_index + 1)..per_resource.len() {
-                let (left_resource, left_scenarios) = &per_resource[left_index];
-                let (right_resource, right_scenarios) = &per_resource[right_index];
-                for left in left_scenarios {
-                    for right in right_scenarios {
-                        if left.identity_tuple != right.identity_tuple {
-                            continue;
-                        }
-                        let mut assumptions = left.assumptions.clone();
-                        assumptions.extend(right.assumptions.iter().cloned());
-                        if assumptions.is_empty() || self.conditions.is_satisfiable(&assumptions) {
-                            let (_, resources) = conflicts
-                                .entry(left.identity_tuple.clone())
-                                .or_insert_with(|| (left.display_tuple.clone(), BTreeSet::new()));
-                            resources.insert((*left_resource).clone());
-                            resources.insert((*right_resource).clone());
-                        }
+        {
+            let mut record_conflict = |comparison: PrimaryIdentifierComparisonOrder| {
+                let (left_resource_index, right_resource_index, left_scenario_index, right_scenario_index) = comparison;
+                let (left_resource, left_scenarios) = &per_resource[left_resource_index];
+                let (right_resource, right_scenarios) = &per_resource[right_resource_index];
+                let left = &left_scenarios[left_scenario_index];
+                let right = &right_scenarios[right_scenario_index];
+                let mut assumptions = left.assumptions.clone();
+                assumptions.extend(right.assumptions.iter().cloned());
+                if assumptions.is_empty() || self.conditions.is_satisfiable(&assumptions) {
+                    let (_, resources) = conflicts
+                        .entry(left.identity_tuple.clone())
+                        .or_insert_with(|| (left.display_tuple.clone(), BTreeSet::new()));
+                    resources.insert((*left_resource).clone());
+                    resources.insert((*right_resource).clone());
+                }
+            };
+
+            // Visit the surviving comparisons in the exact order the all-pairs
+            // traversal reached them by merging the groups on comparison order. Every
+            // satisfiability query then runs in the identical sequence and count,
+            // leaving the model's shared, cumulative budget drawn down exactly as
+            // before. A single group is already ordered, so it needs no merge and
+            // keeps the all-duplicate case as cheap as the traversal it replaces.
+            if cursors.len() <= 1 {
+                if let Some(cursor) = cursors.pop() {
+                    for comparison in cursor {
+                        record_conflict(comparison);
+                    }
+                }
+            } else {
+                let mut frontier = BinaryHeap::with_capacity(cursors.len());
+                for (cursor_index, cursor) in cursors.iter_mut().enumerate() {
+                    if let Some(comparison) = cursor.next() {
+                        frontier.push(Reverse((comparison, cursor_index)));
+                    }
+                }
+                while let Some(Reverse((comparison, cursor_index))) = frontier.pop() {
+                    record_conflict(comparison);
+                    if let Some(next_comparison) = cursors[cursor_index].next() {
+                        frontier.push(Reverse((next_comparison, cursor_index)));
                     }
                 }
             }
@@ -1661,20 +1824,12 @@ impl SemanticModel {
         resolved_value_at_path(conditional, prop_path)
     }
 
-    pub fn resolve_scenarios_json(
+    fn resolve_scenarios_json_uncached(
         &self,
         resource_id: &str,
         path: &str,
     ) -> Vec<(serde_json::Value, HashMap<String, bool>)> {
-        let memo_key = (resource_id.to_string(), path.to_string());
-        {
-            let memo = self.scenario_memo.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
-            if let Some(memoized) = memo.get(&memo_key) {
-                return memoized.clone();
-            }
-        }
-        let scenarios = self.resolve_scenarios(resource_id, path);
-        let json_scenarios: Vec<_> = scenarios
+        self.resolve_scenarios(resource_id, path)
             .into_iter()
             .filter_map(|(val, conds)| {
                 if contains_dynamic_resolved(&val) {
@@ -1692,9 +1847,49 @@ impl SemanticModel {
                 }
                 Some((json, conds))
             })
-            .collect();
+            .collect()
+    }
+
+    fn cache_json_scenarios(
+        &self,
+        memo_key: (String, String),
+        scenarios: Vec<(serde_json::Value, HashMap<String, bool>)>,
+    ) -> Arc<Vec<(serde_json::Value, HashMap<String, bool>)>> {
         let mut memo = self.scenario_memo.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
-        memo.entry(memo_key).or_insert_with(|| json_scenarios).clone()
+        Arc::clone(memo.entry(memo_key).or_insert_with(|| Arc::new(scenarios)))
+    }
+
+    /// Returns one immutable scenario allocation shared across read-only callers.
+    pub fn resolve_scenarios_json_shared(
+        &self,
+        resource_id: &str,
+        path: &str,
+    ) -> Arc<Vec<(serde_json::Value, HashMap<String, bool>)>> {
+        let memo_key = (resource_id.to_string(), path.to_string());
+        {
+            let memo = self.scenario_memo.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+            if let Some(memoized) = memo.get(&memo_key) {
+                return Arc::clone(memoized);
+            }
+        }
+        let scenarios = self.resolve_scenarios_json_uncached(resource_id, path);
+        self.cache_json_scenarios(memo_key, scenarios)
+    }
+
+    pub fn resolve_scenarios_json(
+        &self,
+        resource_id: &str,
+        path: &str,
+    ) -> Vec<(serde_json::Value, HashMap<String, bool>)> {
+        let memo_key = (resource_id.to_string(), path.to_string());
+        {
+            let memo = self.scenario_memo.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+            if let Some(memoized) = memo.get(&memo_key) {
+                return memoized.as_ref().clone();
+            }
+        }
+        let scenarios = self.resolve_scenarios_json_uncached(resource_id, path);
+        self.cache_json_scenarios(memo_key, scenarios).as_ref().clone()
     }
 
     pub fn follow_ref(&self, resource_id: &str, path: &str) -> Option<&str> {
@@ -2936,6 +3131,28 @@ Resources:
     }
 
     #[test]
+    fn resolve_scenarios_json_shared_reuses_allocation_and_matches_owned() {
+        let input = br#"{
+            "Parameters": {"Mode": {"Type": "String"}},
+            "Conditions": {"ChooseFirst": {"Fn::Equals": [{"Ref": "Mode"}, "first"]}},
+            "Resources": {"R": {"Type": "T", "Properties": {
+                "V": {"Fn::If": ["ChooseFirst", "a", "b"]}
+            }}}
+        }"#;
+        let model = SemanticModel::from_bytes(input).unwrap();
+
+        let first = model.resolve_scenarios_json_shared("R", "Properties.V");
+        let combinations_after_first = model.scenario_combinations_used();
+        let second = model.resolve_scenarios_json_shared("R", "Properties.V");
+        let owned = model.resolve_scenarios_json("R", "Properties.V");
+
+        assert!(Arc::ptr_eq(&first, &second));
+        assert_eq!(first.as_ref(), owned.as_slice());
+        assert!(combinations_after_first > 0);
+        assert_eq!(model.scenario_combinations_used(), combinations_after_first);
+    }
+
+    #[test]
     fn default_scenario_queries_are_memoized_and_global_budget_halts_uncached_expansion() {
         let input = br#"{
             "Parameters": {"Env": {"Type": "String"}},
@@ -3699,6 +3916,285 @@ Resources:
         let value = &tuple[0];
         assert!(!value.contains("$dyn:"), "tuple value must not contain $dyn: marker");
         assert!(!value.contains("expr:"), "tuple value must not contain expr: prefix");
+    }
+
+    /// The pre-grouping all-pairs traversal, kept verbatim so tests can prove the
+    /// grouped implementation is byte-for-byte equivalent - including how the shared
+    /// satisfiability budget is spent.
+    fn primary_identifier_conflicts_all_pairs_reference(
+        model: &SemanticModel,
+        resource_type: &str,
+        identifier_properties: &[String],
+    ) -> Vec<(Vec<String>, BTreeSet<String>)> {
+        let mut per_resource = Vec::new();
+        for resource_id in model.resources_of_type(resource_type) {
+            let scenarios = model.primary_identifier_scenarios(resource_id, identifier_properties);
+            if !scenarios.is_empty() {
+                per_resource.push((resource_id, scenarios));
+            }
+        }
+        let mut conflicts: BTreeMap<Vec<String>, (Vec<String>, BTreeSet<String>)> = BTreeMap::new();
+        for left_index in 0..per_resource.len() {
+            for right_index in (left_index + 1)..per_resource.len() {
+                let (left_resource, left_scenarios) = &per_resource[left_index];
+                let (right_resource, right_scenarios) = &per_resource[right_index];
+                for left in left_scenarios {
+                    for right in right_scenarios {
+                        if left.identity_tuple != right.identity_tuple {
+                            continue;
+                        }
+                        let mut assumptions = left.assumptions.clone();
+                        assumptions.extend(right.assumptions.iter().cloned());
+                        if assumptions.is_empty() || model.conditions.is_satisfiable(&assumptions) {
+                            let (_, resources) = conflicts
+                                .entry(left.identity_tuple.clone())
+                                .or_insert_with(|| (left.display_tuple.clone(), BTreeSet::new()));
+                            resources.insert((*left_resource).clone());
+                            resources.insert((*right_resource).clone());
+                        }
+                    }
+                }
+            }
+        }
+        conflicts.into_values().collect()
+    }
+
+    #[test]
+    fn primary_id_unconditional_resource_collides_with_every_conditional_duplicate() {
+        let template = r#"
+Parameters:
+  Env: {Type: String}
+Conditions:
+  IsAlpha: !Equals [!Ref Env, alpha]
+  IsBeta: !Equals [!Ref Env, beta]
+Resources:
+  Always:
+    Type: AWS::S3::Bucket
+    Properties: {BucketName: shared}
+  WhenAlpha:
+    Type: AWS::S3::Bucket
+    Condition: IsAlpha
+    Properties: {BucketName: shared}
+  WhenBeta:
+    Type: AWS::S3::Bucket
+    Condition: IsBeta
+    Properties: {BucketName: shared}
+"#;
+        let model = SemanticModel::from_bytes(template.as_bytes()).unwrap();
+        let conflicts = model.primary_identifier_conflicts("AWS::S3::Bucket", &["BucketName".to_string()]);
+        assert_eq!(conflicts.len(), 1, "the single shared name is one collision group: {conflicts:?}");
+        let (display, resources) = conflicts.into_iter().next().unwrap();
+        assert_eq!(display, vec!["shared".to_string()]);
+        assert_eq!(
+            resources,
+            BTreeSet::from(["Always".to_string(), "WhenAlpha".to_string(), "WhenBeta".to_string()]),
+            "the unconditional resource collides with each conditional duplicate, joining all three even though the two conditions are themselves mutually exclusive"
+        );
+    }
+
+    #[test]
+    fn primary_id_mutually_exclusive_conditions_across_identities_never_collide() {
+        let template = r#"
+Parameters:
+  Env: {Type: String}
+  Left: {Type: String}
+  Right: {Type: String}
+Conditions:
+  IsProd: !Equals [!Ref Env, prod]
+  IsNotProd: !Not [!Condition IsProd]
+Resources:
+  LeftProd:
+    Type: AWS::S3::Bucket
+    Condition: IsProd
+    Properties: {BucketName: !Ref Left}
+  LeftDev:
+    Type: AWS::S3::Bucket
+    Condition: IsNotProd
+    Properties: {BucketName: !Ref Left}
+  RightProd:
+    Type: AWS::S3::Bucket
+    Condition: IsProd
+    Properties: {BucketName: !Ref Right}
+  RightDev:
+    Type: AWS::S3::Bucket
+    Condition: IsNotProd
+    Properties: {BucketName: !Ref Right}
+"#;
+        let model = SemanticModel::from_bytes(template.as_bytes()).unwrap();
+        let conflicts = model.primary_identifier_conflicts("AWS::S3::Bucket", &["BucketName".to_string()]);
+        assert!(
+            conflicts.is_empty(),
+            "each identity's two resources are guarded by mutually exclusive conditions, so neither identity group yields a collision: {conflicts:?}"
+        );
+    }
+
+    #[test]
+    fn primary_id_duplicate_scenarios_of_one_resource_do_not_self_collide() {
+        let template = r#"
+Parameters:
+  Env: {Type: String}
+Conditions:
+  IsProd: !Equals [!Ref Env, prod]
+Resources:
+  Lonely:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !If [IsProd, shared, shared]
+"#;
+        let model = SemanticModel::from_bytes(template.as_bytes()).unwrap();
+        let scenarios = model.primary_identifier_scenarios("Lonely", &["BucketName".to_string()]);
+        assert!(
+            scenarios.len() >= 2,
+            "the Fn::If must expand into multiple scenarios so self-comparison is actually exercised: {}",
+            scenarios.len()
+        );
+        let identities: BTreeSet<Vec<String>> =
+            scenarios.iter().map(|scenario| scenario.identity_tuple.clone()).collect();
+        assert_eq!(identities.len(), 1, "the branches must share one comparison identity so they land in one group");
+
+        let conflicts = model.primary_identifier_conflicts("AWS::S3::Bucket", &["BucketName".to_string()]);
+        assert!(
+            conflicts.is_empty(),
+            "a single resource whose branches produce the same identifier must not be reported as colliding with itself: {conflicts:?}"
+        );
+    }
+
+    #[test]
+    fn primary_id_overlapping_conditions_collide() {
+        let template = r#"
+Parameters:
+  Env: {Type: String}
+  Name: {Type: String}
+Conditions:
+  NotAlpha: !Not [!Equals [!Ref Env, alpha]]
+  NotBeta: !Not [!Equals [!Ref Env, beta]]
+Resources:
+  One:
+    Type: AWS::S3::Bucket
+    Condition: NotAlpha
+    Properties: {BucketName: !Ref Name}
+  Two:
+    Type: AWS::S3::Bucket
+    Condition: NotBeta
+    Properties: {BucketName: !Ref Name}
+"#;
+        let model = SemanticModel::from_bytes(template.as_bytes()).unwrap();
+        let conflicts = model.primary_identifier_conflicts("AWS::S3::Bucket", &["BucketName".to_string()]);
+        assert_eq!(
+            conflicts.len(),
+            1,
+            "the two resources share one identity and their conditions can both hold: {conflicts:?}"
+        );
+        let (_, resources) = conflicts.into_iter().next().unwrap();
+        assert_eq!(resources, BTreeSet::from(["One".to_string(), "Two".to_string()]));
+    }
+
+    #[test]
+    fn primary_id_display_tuple_comes_from_first_compatible_pair_not_first_candidate() {
+        let template = r#"
+Parameters:
+  Env: {Type: String}
+Conditions:
+  IsProd: !Equals [!Ref Env, prod]
+  IsDev: !Not [!Condition IsProd]
+Resources:
+  ProdKeyed:
+    Type: AWS::S3::Bucket
+    Condition: IsProd
+    Properties:
+      BucketName: {alpha: one, beta: two}
+  DevKeyedFirst:
+    Type: AWS::S3::Bucket
+    Condition: IsDev
+    Properties:
+      BucketName: {beta: two, alpha: one}
+  DevKeyedSecond:
+    Type: AWS::S3::Bucket
+    Condition: IsDev
+    Properties:
+      BucketName: {beta: two, alpha: one}
+"#;
+        let model = SemanticModel::from_bytes(template.as_bytes()).unwrap();
+        let conflicts = model.primary_identifier_conflicts("AWS::S3::Bucket", &["BucketName".to_string()]);
+        assert_eq!(conflicts.len(), 1, "all three author the same key-sorted identity: {conflicts:?}");
+        let (display, resources) = conflicts.into_iter().next().unwrap();
+        assert_eq!(
+            resources,
+            BTreeSet::from(["DevKeyedFirst".to_string(), "DevKeyedSecond".to_string()]),
+            "the earlier-declared prod resource is mutually exclusive with both dev resources, so it never forms a compatible pair and is absent from the group"
+        );
+        assert!(
+            display[0].starts_with("{\"beta\""),
+            "display must come from the left scenario of the first compatible pair (a dev resource, authored beta-first), not the earlier incompatible prod candidate authored alpha-first: {display:?}"
+        );
+    }
+
+    #[test]
+    fn primary_id_grouped_traversal_matches_all_pairs_reference_and_sat_budget() {
+        let template = r#"
+Parameters:
+  Env: {Type: String}
+  Shared: {Type: String}
+Conditions:
+  IsProd: !Equals [!Ref Env, prod]
+  IsStaging: !Equals [!Ref Env, staging]
+  IsProdAlias: !Equals [!Ref Env, prod]
+Resources:
+  AlphaAlways:
+    Type: AWS::S3::Bucket
+    Properties: {BucketName: alpha}
+  AlphaProd:
+    Type: AWS::S3::Bucket
+    Condition: IsProd
+    Properties: {BucketName: alpha}
+  AlphaStaging:
+    Type: AWS::S3::Bucket
+    Condition: IsStaging
+    Properties: {BucketName: alpha}
+  BetaProd:
+    Type: AWS::S3::Bucket
+    Condition: IsProd
+    Properties: {BucketName: beta}
+  BetaProdAlias:
+    Type: AWS::S3::Bucket
+    Condition: IsProdAlias
+    Properties: {BucketName: beta}
+  SharedOne:
+    Type: AWS::S3::Bucket
+    Properties: {BucketName: !Ref Shared}
+  SharedTwo:
+    Type: AWS::S3::Bucket
+    Properties: {BucketName: !Ref Shared}
+  Unique:
+    Type: AWS::S3::Bucket
+    Properties: {BucketName: unique}
+"#;
+        let identifier_properties = ["BucketName".to_string()];
+
+        let reference_model = SemanticModel::from_bytes(template.as_bytes()).unwrap();
+        let reference = primary_identifier_conflicts_all_pairs_reference(
+            &reference_model,
+            "AWS::S3::Bucket",
+            &identifier_properties,
+        );
+        let reference_budget = reference_model.conditions.sat_iterations_used();
+
+        let model = SemanticModel::from_bytes(template.as_bytes()).unwrap();
+        let grouped = model.primary_identifier_conflicts("AWS::S3::Bucket", &identifier_properties);
+        let grouped_budget = model.conditions.sat_iterations_used();
+
+        assert_eq!(
+            grouped, reference,
+            "grouped traversal must produce the identical conflicts as the all-pairs reference"
+        );
+        assert!(
+            reference_budget > 0,
+            "the fixture must drive the satisfiability solver so the budget comparison is meaningful"
+        );
+        assert_eq!(
+            grouped_budget, reference_budget,
+            "grouped traversal must issue satisfiability queries in the same order and count, spending the shared budget identically across multiple identities"
+        );
     }
 
     #[test]

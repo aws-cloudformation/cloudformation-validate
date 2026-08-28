@@ -2,14 +2,14 @@ use data_source::embedded;
 use data_source::rule_data::{NormalizedRuleTablesDocument, RuleData, RuleTables};
 use data_source::types::{
     ArtifactCountEntry, CodepipelineArtifactCounts, DeprecatedResourceTypes, GetattData, IamActionResourcePatterns,
-    KnownResourceTypes, PrimaryIdentifiers, RetentionPeriodRequirements, SecretsManagerArnFields, SensitivePorts,
-    StatefulResourceTypes,
+    KnownResourceTypes, PrimaryIdentifiers, RetentionPeriodRequirements, SchemaMetadataCatalog,
+    SecretsManagerArnFields, SensitivePorts, StatefulResourceTypes,
 };
 use diagnostics::Diagnostic;
 use rules::Category;
 use schema_validator::OverlayCatalog;
 use std::collections::{HashMap, HashSet};
-use std::sync::{Arc, LazyLock, OnceLock};
+use std::sync::{Arc, LazyLock};
 use template_model::SemanticModel;
 
 pub mod best_practices;
@@ -26,7 +26,7 @@ pub struct CachedData {
     pub known_types: HashSet<String>,
     pub getatt_attrs: HashMap<String, Vec<String>>,
     pub getatt_attr_types: HashMap<String, HashMap<String, String>>,
-    schema_metadata_lazy: OnceLock<serde_json::Value>,
+    schema_metadata: Arc<SchemaMetadataCatalog>,
     pub iam_action_resource_patterns: HashMap<String, Vec<String>>,
     pub enum_data: HashMap<String, serde_json::Value>,
     pub stateful_resource_types: HashSet<String>,
@@ -263,7 +263,7 @@ impl CachedData {
             known_types,
             getatt_attrs,
             getatt_attr_types,
-            schema_metadata_lazy: OnceLock::new(),
+            schema_metadata: Arc::new(SchemaMetadataCatalog::new()),
             iam_action_resource_patterns,
             enum_data,
             stateful_resource_types,
@@ -286,8 +286,10 @@ impl CachedData {
 
     /// Merges overlay catalog data into this cached data instance.
     ///
-    /// Called when overlays are non-empty so GetAtt attributes, attribute types,
-    /// primary identifiers, and schema metadata from overlays are visible to rules.
+    /// Called when overlays are non-empty so their resource types, GetAtt
+    /// attributes, attribute types, and primary identifiers are visible to rules.
+    /// Overlay-aware schema metadata is installed separately through
+    /// [`Self::set_schema_metadata`].
     pub fn merge_overlay_catalog(&mut self, catalog: &OverlayCatalog) -> anyhow::Result<()> {
         if catalog.is_empty() {
             return Ok(());
@@ -320,40 +322,20 @@ impl CachedData {
             self.primary_identifiers.insert(type_name.clone(), pids.clone());
         }
 
-        // Eagerly initialize schema metadata with merged overlay data.
-        let base_metadata: serde_json::Value = serde_json::from_slice(&embedded::SCHEMA_METADATA_BYTES)
-            .map_err(|e| anyhow::anyhow!("Failed to parse schema_metadata JSON: {}", e))?;
-        let mut metadata_obj = base_metadata
-            .as_object()
-            .cloned()
-            .ok_or_else(|| anyhow::anyhow!("Embedded schema_metadata data must be an object"))?;
-        let inner_map = metadata_obj
-            .get_mut("schema_metadata")
-            .and_then(|value| value.as_object_mut())
-            .ok_or_else(|| anyhow::anyhow!("Embedded schema_metadata data must contain a schema_metadata object"))?;
-        anyhow::ensure!(!inner_map.is_empty(), "Embedded schema_metadata data must not be empty");
-        for (type_name, entry) in &catalog.schema_metadata {
-            inner_map.insert(
-                type_name.clone(),
-                serde_json::to_value(entry)
-                    .map_err(|e| anyhow::anyhow!("Failed to serialize SchemaMetadataEntry: {}", e))?,
-            );
-        }
-        let merged = serde_json::Value::Object(metadata_obj);
-        // Construct the OnceLock with the merged value. The OnceLock is freshly
-        // created in `load()`, so this is the first and only set call.
-        self.schema_metadata_lazy = OnceLock::new();
-        self.schema_metadata_lazy
-            .set(merged)
-            .map_err(|_| anyhow::anyhow!("schema_metadata OnceLock was unexpectedly already initialized"))?;
         Ok(())
     }
 
-    /// Lazy accessor - parses the 14MB `schema_metadata` JSON on first call.
-    pub fn schema_metadata(&self) -> &serde_json::Value {
-        self.schema_metadata_lazy.get_or_init(|| {
-            serde_json::from_slice(&embedded::SCHEMA_METADATA_BYTES).expect("Failed to parse schema_metadata JSON")
-        })
+    /// Installs the shared, overlay-aware schema-metadata catalog the engine
+    /// resolved. The same [`Arc`] is shared across engines and validators, so no
+    /// catalog is parsed or copied per engine.
+    pub fn set_schema_metadata(&mut self, catalog: Arc<SchemaMetadataCatalog>) {
+        self.schema_metadata = catalog;
+    }
+
+    /// The shared, overlay-aware schema-metadata catalog: resource type name to
+    /// its typed metadata entry.
+    pub fn schema_metadata_catalog(&self) -> &SchemaMetadataCatalog {
+        &self.schema_metadata
     }
 }
 

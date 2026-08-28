@@ -1,6 +1,6 @@
 use crate::engine::{SharedModel, SharedRegion};
-use data_source::embedded::{GETATT_ATTRIBUTES_BYTES, SCHEMA_METADATA_BYTES};
-use data_source::types::{ArtifactCountEntry, CodepipelineArtifactCounts, GetattData};
+use data_source::embedded::GETATT_ATTRIBUTES_BYTES;
+use data_source::types::{ArtifactCountEntry, CodepipelineArtifactCounts, GetattData, SchemaMetadataCatalog};
 use regorus::Value;
 use schema_validator::OverlayCatalog;
 use std::collections::{BTreeSet, HashMap, HashSet};
@@ -38,6 +38,7 @@ pub(crate) fn register_all(
     holder: SharedModel,
     region_holder: SharedRegion,
     overlay_catalog: &OverlayCatalog,
+    schema_metadata: Arc<SchemaMetadataCatalog>,
 ) -> anyhow::Result<()> {
     register_resolve(rego, holder.clone());
     register_resolve_preserving_conditionals(rego, holder.clone());
@@ -87,13 +88,12 @@ pub(crate) fn register_all(
     register_pipeline_artifacts(rego, holder.clone());
     register_pipeline_artifact_count_issues(rego, holder.clone())?;
     register_resolve_type(rego, holder.clone());
-    let schema_registry: LazySchemaRegistry = build_schema_registry(overlay_catalog);
     let getatt_registry: LazyGetattRegistry = build_getatt_registry(overlay_catalog);
-    register_schema_properties(rego, schema_registry.clone());
-    register_schema_required(rego, schema_registry.clone());
-    register_schema_type(rego, schema_registry.clone());
-    register_schema_enum(rego, schema_registry.clone());
-    register_attribute_type(rego, schema_registry.clone());
+    register_schema_properties(rego, schema_metadata.clone());
+    register_schema_required(rego, schema_metadata.clone());
+    register_schema_type(rego, schema_metadata.clone());
+    register_schema_enum(rego, schema_metadata.clone());
+    register_attribute_type(rego, schema_metadata.clone());
     register_getatt_return_type(rego, getatt_registry);
     register_edges_from(rego, holder.clone());
     register_edges_to(rego, holder.clone());
@@ -118,8 +118,8 @@ pub(crate) fn register_all(
     register_fargate_task_size_is_offered(rego);
     register_cfn_type_compatible(rego);
     register_estimated_string_length_bounds(rego, holder.clone());
-    register_schema_string_length(rego, schema_registry.clone());
-    register_schema_requires_unique_items(rego, schema_registry);
+    register_schema_string_length(rego, schema_metadata.clone());
+    register_schema_requires_unique_items(rego, schema_metadata);
     register_unreachable_if_branches(rego, holder.clone());
     register_iam_identity_policy_findings(rego, holder.clone());
     register_iam_inline_policy_document_paths(rego, holder.clone());
@@ -1477,7 +1477,7 @@ fn register_region_flat_invalid(rego: &mut regorus::Engine, holder: SharedRegion
             let Some(map) = region_map.as_object() else {
                 return Ok(Value::Undefined);
             };
-            match region_enums::flat_allowed_values(map, region.as_deref()) {
+            match region_enums::flat_allowed_value_set(map, region.as_deref()) {
                 Some(allowed) if !allowed.contains(value.as_ref()) => {
                     Ok(Value::from(region_enums::flat_invalid_message(value.as_ref(), region.as_deref())))
                 }
@@ -1851,61 +1851,9 @@ fn register_resolve_type(rego: &mut regorus::Engine, holder: SharedModel) {
         }),
     );
 }
-#[derive(Debug, Clone, Default, serde::Deserialize)]
-struct SchemaInfo {
-    #[serde(default)]
-    properties: Vec<String>,
-    #[serde(default)]
-    required: Vec<String>,
-    #[serde(default)]
-    property_types: HashMap<String, String>,
-    #[serde(default)]
-    property_enums: HashMap<String, Vec<serde_json::Value>>,
-    #[serde(default)]
-    property_constraints: HashMap<String, serde_json::Value>,
-}
-
-fn load_schema_registry() -> HashMap<String, SchemaInfo> {
-    #[derive(serde::Deserialize)]
-    struct Wrapper {
-        schema_metadata: HashMap<String, SchemaInfo>,
-    }
-    let wrapper: Wrapper =
-        serde_json::from_slice(&SCHEMA_METADATA_BYTES).expect("Failed to parse schema_metadata JSON");
-    assert!(!wrapper.schema_metadata.is_empty(), "Embedded schema_metadata must not be empty");
-    wrapper.schema_metadata
-}
-
-type LazySchemaRegistry = Arc<OnceLock<HashMap<String, SchemaInfo>>>;
-fn schema_reg(reg: &LazySchemaRegistry) -> &HashMap<String, SchemaInfo> {
-    reg.get_or_init(load_schema_registry)
-}
-
 type LazyGetattRegistry = Arc<OnceLock<HashMap<String, HashMap<String, String>>>>;
 fn getatt_reg(reg: &LazyGetattRegistry) -> &HashMap<String, HashMap<String, String>> {
     reg.get_or_init(load_getatt_type_registry)
-}
-
-/// Build a schema registry, eagerly merging overlay entries if present.
-fn build_schema_registry(catalog: &OverlayCatalog) -> LazySchemaRegistry {
-    if catalog.is_empty() {
-        return Arc::new(OnceLock::new());
-    }
-    let mut base = load_schema_registry();
-    for (type_name, entry) in &catalog.schema_metadata {
-        let info = SchemaInfo {
-            properties: entry.properties.clone(),
-            required: entry.required.clone(),
-            property_types: entry.property_types.clone(),
-            property_enums: entry.property_enums.clone(),
-            property_constraints: entry.property_constraints.iter().map(|(k, v)| (k.clone(), v.clone())).collect(),
-        };
-        base.insert(type_name.clone(), info);
-    }
-    let lock = Arc::new(OnceLock::new());
-    // The lock is freshly constructed above so this set cannot fail.
-    lock.get_or_init(|| base);
-    lock
 }
 
 /// Build a getatt type registry, eagerly merging overlay entries if present.
@@ -1926,15 +1874,15 @@ fn build_getatt_registry(catalog: &OverlayCatalog) -> LazyGetattRegistry {
     lock
 }
 
-fn register_schema_properties(rego: &mut regorus::Engine, registry: LazySchemaRegistry) {
+fn register_schema_properties(rego: &mut regorus::Engine, catalog: Arc<SchemaMetadataCatalog>) {
     let _ = rego.add_extension(
         "schema_properties".into(),
         1,
         Box::new(move |params: Vec<Value>| {
             let rtype = params[0].as_string()?;
-            match schema_reg(&registry).get(rtype.as_ref()) {
-                Some(info) => {
-                    let vals: Vec<Value> = info.properties.iter().map(|s| Value::from(s.as_str())).collect();
+            match catalog.get(rtype.as_ref()) {
+                Some(entry) => {
+                    let vals: Vec<Value> = entry.properties.iter().map(|s| Value::from(s.as_str())).collect();
                     Ok(Value::from(vals))
                 }
                 None => Ok(Value::from(Vec::<Value>::new())),
@@ -1943,15 +1891,15 @@ fn register_schema_properties(rego: &mut regorus::Engine, registry: LazySchemaRe
     );
 }
 
-fn register_schema_required(rego: &mut regorus::Engine, registry: LazySchemaRegistry) {
+fn register_schema_required(rego: &mut regorus::Engine, catalog: Arc<SchemaMetadataCatalog>) {
     let _ = rego.add_extension(
         "schema_required".into(),
         1,
         Box::new(move |params: Vec<Value>| {
             let rtype = params[0].as_string()?;
-            match schema_reg(&registry).get(rtype.as_ref()) {
-                Some(info) => {
-                    let vals: Vec<Value> = info.required.iter().map(|s| Value::from(s.as_str())).collect();
+            match catalog.get(rtype.as_ref()) {
+                Some(entry) => {
+                    let vals: Vec<Value> = entry.required.iter().map(|s| Value::from(s.as_str())).collect();
                     Ok(Value::from(vals))
                 }
                 None => Ok(Value::from(Vec::<Value>::new())),
@@ -1960,14 +1908,14 @@ fn register_schema_required(rego: &mut regorus::Engine, registry: LazySchemaRegi
     );
 }
 
-fn register_schema_type(rego: &mut regorus::Engine, registry: LazySchemaRegistry) {
+fn register_schema_type(rego: &mut regorus::Engine, catalog: Arc<SchemaMetadataCatalog>) {
     let _ = rego.add_extension(
         "schema_type".into(),
         2,
         Box::new(move |params: Vec<Value>| {
             let rtype = params[0].as_string()?;
             let prop = params[1].as_string()?;
-            match schema_reg(&registry).get(rtype.as_ref()).and_then(|i| i.property_types.get(prop.as_ref())) {
+            match catalog.get(rtype.as_ref()).and_then(|entry| entry.property_types.get(prop.as_ref())) {
                 Some(s) => Ok(Value::from(s.as_str())),
                 None => Ok(Value::Undefined),
             }
@@ -1975,14 +1923,14 @@ fn register_schema_type(rego: &mut regorus::Engine, registry: LazySchemaRegistry
     );
 }
 
-fn register_schema_enum(rego: &mut regorus::Engine, registry: LazySchemaRegistry) {
+fn register_schema_enum(rego: &mut regorus::Engine, catalog: Arc<SchemaMetadataCatalog>) {
     let _ = rego.add_extension(
         "schema_enum".into(),
         2,
         Box::new(move |params: Vec<Value>| {
             let rtype = params[0].as_string()?;
             let prop = params[1].as_string()?;
-            match schema_reg(&registry).get(rtype.as_ref()).and_then(|i| i.property_enums.get(prop.as_ref())) {
+            match catalog.get(rtype.as_ref()).and_then(|entry| entry.property_enums.get(prop.as_ref())) {
                 Some(vals) => {
                     let v: Vec<Value> = vals.iter().map(json_to_value).collect();
                     Ok(Value::from(v))
@@ -1993,14 +1941,14 @@ fn register_schema_enum(rego: &mut regorus::Engine, registry: LazySchemaRegistry
     );
 }
 
-fn register_attribute_type(rego: &mut regorus::Engine, registry: LazySchemaRegistry) {
+fn register_attribute_type(rego: &mut regorus::Engine, catalog: Arc<SchemaMetadataCatalog>) {
     let _ = rego.add_extension(
         "attribute_type".into(),
         2,
         Box::new(move |params: Vec<Value>| {
             let rtype = params[0].as_string()?;
             let attr = params[1].as_string()?;
-            match schema_reg(&registry).get(rtype.as_ref()).and_then(|i| i.property_types.get(attr.as_ref())) {
+            match catalog.get(rtype.as_ref()).and_then(|entry| entry.property_types.get(attr.as_ref())) {
                 Some(s) => Ok(Value::from(s.as_str())),
                 None => Ok(Value::Undefined),
             }
@@ -2321,32 +2269,32 @@ fn register_estimated_string_length_bounds(rego: &mut regorus::Engine, holder: S
     );
 }
 
-fn register_schema_string_length(rego: &mut regorus::Engine, registry: LazySchemaRegistry) {
+fn register_schema_string_length(rego: &mut regorus::Engine, catalog: Arc<SchemaMetadataCatalog>) {
     let _ = rego.add_extension(
         "schema_string_length".into(),
         2,
         Box::new(move |params: Vec<Value>| {
             let rtype = params[0].as_string()?;
             let prop = params[1].as_string()?;
-            let info = match schema_reg(&registry).get(rtype.as_ref()) {
-                Some(i) => i,
+            let entry = match catalog.get(rtype.as_ref()) {
+                Some(entry) => entry,
                 None => return Ok(Value::Undefined),
             };
-            let constraints = match info.property_constraints.get(prop.as_ref()) {
-                Some(c) => c,
+            let constraints = match entry.property_constraints.get(prop.as_ref()) {
+                Some(constraints) => constraints,
                 None => return Ok(Value::Undefined),
             };
-            let is_string = info.property_types.get(prop.as_ref()).map(|t| t == "string").unwrap_or(false);
+            let is_string = entry.property_types.get(prop.as_ref()).map(|t| t == "string").unwrap_or(false);
             let mut map = serde_json::Map::new();
-            if let Some(v) = constraints.get("minLength") {
-                map.insert("minLength".into(), v.clone());
-            } else if is_string && let Some(v) = constraints.get("minimum") {
-                map.insert("minLength".into(), v.clone());
+            if let Some(v) = constraints.min_length {
+                map.insert("minLength".into(), serde_json::json!(v));
+            } else if is_string && let Some(v) = &constraints.minimum {
+                map.insert("minLength".into(), serde_json::Value::Number(v.clone()));
             }
-            if let Some(v) = constraints.get("maxLength") {
-                map.insert("maxLength".into(), v.clone());
-            } else if is_string && let Some(v) = constraints.get("maximum") {
-                map.insert("maxLength".into(), v.clone());
+            if let Some(v) = constraints.max_length {
+                map.insert("maxLength".into(), serde_json::json!(v));
+            } else if is_string && let Some(v) = &constraints.maximum {
+                map.insert("maxLength".into(), serde_json::Value::Number(v.clone()));
             }
             if map.is_empty() {
                 return Ok(Value::Undefined);
@@ -2358,18 +2306,17 @@ fn register_schema_string_length(rego: &mut regorus::Engine, registry: LazySchem
 
 /// `schema_requires_unique_items(resource_type, property) -> bool` - true when
 /// the property's schema constraint sets `uniqueItems: true`.
-fn register_schema_requires_unique_items(rego: &mut regorus::Engine, registry: LazySchemaRegistry) {
+fn register_schema_requires_unique_items(rego: &mut regorus::Engine, catalog: Arc<SchemaMetadataCatalog>) {
     let _ = rego.add_extension(
         "schema_requires_unique_items".into(),
         2,
         Box::new(move |params: Vec<Value>| {
             let rtype = params[0].as_string()?;
             let prop = params[1].as_string()?;
-            let requires_unique = schema_reg(&registry)
+            let requires_unique = catalog
                 .get(rtype.as_ref())
-                .and_then(|info| info.property_constraints.get(prop.as_ref()))
-                .and_then(|c| c.get("uniqueItems"))
-                .and_then(|v| v.as_bool())
+                .and_then(|entry| entry.property_constraints.get(prop.as_ref()))
+                .and_then(|constraints| constraints.unique_items)
                 .unwrap_or(false);
             Ok(Value::from(requires_unique))
         }),
@@ -2986,7 +2933,8 @@ mod tests {
         let region: SharedRegion = Arc::new(Mutex::new(None));
         let mut rego = regorus::Engine::new();
         rego.set_strict_builtin_errors(false);
-        register_all(&mut rego, holder, region, &OverlayCatalog::default()).expect("register builtins");
+        register_all(&mut rego, holder, region, &OverlayCatalog::default(), Arc::new(SchemaMetadataCatalog::new()))
+            .expect("register builtins");
         let policy = format!("package test\nimport rego.v1\nresult := {}", expr);
         rego.add_policy("test.rego".into(), policy).unwrap();
         rego.set_input(Value::new_object());
@@ -3190,7 +3138,8 @@ mod tests {
         let region: SharedRegion = Arc::new(Mutex::new(Some("us-west-2".to_string())));
         let mut rego = regorus::Engine::new();
         rego.set_strict_builtin_errors(false);
-        register_all(&mut rego, holder, region, &OverlayCatalog::default()).expect("register builtins");
+        register_all(&mut rego, holder, region, &OverlayCatalog::default(), Arc::new(SchemaMetadataCatalog::new()))
+            .expect("register builtins");
         rego.add_policy("test.rego".into(), "package test\nimport rego.v1\nresult := input_region()".into()).unwrap();
         rego.set_input(Value::new_object());
         let v = rego.eval_rule("data.test.result".into()).unwrap();
