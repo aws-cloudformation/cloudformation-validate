@@ -17,7 +17,6 @@ import re
 import shutil
 import subprocess
 import sys
-import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 from statistics import median
@@ -135,31 +134,6 @@ def remove_worktree(path: Path) -> None:
         shutil.rmtree(path)
 
 
-def configure_harness_dependencies(workspace_dir: Path) -> None:
-    harness_manifest_path = workspace_dir / "performance-harness" / "Cargo.toml"
-    harness_manifest = harness_manifest_path.read_text()
-    dependency_directories = {
-        "cel-engine": "cel-engine",
-        "diagnostics": "diagnostics",
-        "rego-engine": "rego-engine",
-        "rules": "rules",
-        "schema-validator": "schema-validator",
-        "validation-engine": "validation-engine",
-    }
-    for dependency_alias, directory_name in dependency_directories.items():
-        crate_manifest_path = workspace_dir / directory_name / "Cargo.toml"
-        with crate_manifest_path.open("rb") as crate_manifest_file:
-            package_name = tomllib.load(crate_manifest_file)["package"]["name"]
-        original = f'{dependency_alias} = {{ path = "../{directory_name}" }}'
-        replacement = (
-            f'{dependency_alias} = {{ package = "{package_name}", path = "../{directory_name}" }}'
-        )
-        if original not in harness_manifest:
-            raise RuntimeError(f"harness dependency marker not found: {original}")
-        harness_manifest = harness_manifest.replace(original, replacement, 1)
-    harness_manifest_path.write_text(harness_manifest)
-
-
 def prepare_worktree(reference: str, destination: Path, target_dir: Path) -> Path:
     remove_worktree(destination)
     run_command(["git", "worktree", "add", "--detach", str(destination), reference], cwd=PROJECT_ROOT)
@@ -170,7 +144,6 @@ def prepare_worktree(reference: str, destination: Path, target_dir: Path) -> Pat
     if harness_destination.exists():
         shutil.rmtree(harness_destination)
     shutil.copytree(HARNESS_SOURCE, harness_destination)
-    configure_harness_dependencies(workspace_dir)
 
     manifest_path = workspace_dir / "Cargo.toml"
     manifest = manifest_path.read_text()
