@@ -2409,42 +2409,47 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         check_iam_action_resources(&mut out, m, name, &doc, &ctx.cached_data.iam_action_resource_patterns);
     }
 
+    let mut vpc_cidrs: HashMap<&str, (String, Ipv4Cidr)> = HashMap::new();
     for vpc_name in m.resources_of_type("AWS::EC2::VPC") {
-        let vpc_cidr_str = match resolve_concrete(m, vpc_name, "Properties.CidrBlock")
-            .and_then(|v| if let serde_json::Value::String(s) = v { Some(s) } else { None })
+        let Some(serde_json::Value::String(vpc_cidr)) = resolve_concrete(m, vpc_name, "Properties.CidrBlock") else {
+            continue;
+        };
+        if let Some(vpc_network) = parse_ipv4_cidr(&vpc_cidr) {
+            vpc_cidrs.insert(vpc_name, (vpc_cidr, vpc_network));
+        }
+    }
+    for subnet_name in m.resources_of_type("AWS::EC2::Subnet") {
+        let subnet_vpc = resolve_concrete(m, subnet_name, "Properties.VpcId");
+        let referenced_vpc = m
+            .follow_ref(subnet_name, "Properties.VpcId")
+            .or_else(|| subnet_vpc.as_ref().and_then(|value| value.as_str()));
+        let Some((vpc_cidr, vpc_network)) = referenced_vpc.and_then(|vpc_name| vpc_cidrs.get(vpc_name)) else {
+            continue;
+        };
+        if let Some(serde_json::Value::String(subnet_cidr)) = resolve_concrete(m, subnet_name, "Properties.CidrBlock")
+            && let Some(subnet_network) = parse_ipv4_cidr(&subnet_cidr)
+            && !is_subnet_of(subnet_network, *vpc_network)
         {
-            Some(s) => s,
-            None => continue,
-        };
-        let vpc_net = match parse_ipv4_cidr(&vpc_cidr_str) {
-            Some(n) => n,
-            None => continue,
-        };
-        for subnet_name in m.resources_of_type("AWS::EC2::Subnet") {
-            let subnet_vpc = resolve_concrete(m, subnet_name, "Properties.VpcId");
-            let refs_this_vpc = m.follow_ref(subnet_name, "Properties.VpcId").map(|t| t == vpc_name).unwrap_or(false)
-                || subnet_vpc.as_ref().and_then(|v| v.as_str()) == Some(vpc_name);
-            if !refs_this_vpc {
-                continue;
-            }
-            if let Some(serde_json::Value::String(sub_cidr)) = resolve_concrete(m, subnet_name, "Properties.CidrBlock")
-                && let Some(sub_net) = parse_ipv4_cidr(&sub_cidr)
-                && !is_subnet_of(sub_net, vpc_net)
-            {
-                out.push(make_resource_diagnostic(
-                    "E3059",
-                    &format!("Subnet CIDR '{}' is not within VPC CIDR '{}'", sub_cidr, vpc_cidr_str),
-                    m,
-                    subnet_name,
-                    "Properties.CidrBlock",
-                    None,
-                ));
-            }
+            out.push(make_resource_diagnostic(
+                "E3059",
+                &format!("Subnet CIDR '{}' is not within VPC CIDR '{}'", subnet_cidr, vpc_cidr),
+                m,
+                subnet_name,
+                "Properties.CidrBlock",
+                None,
+            ));
         }
     }
 
     {
-        for (resource_type, identifier_properties) in &ctx.cached_data.primary_identifiers {
+        let mut resource_types: Vec<&String> = m
+            .resources_by_type
+            .keys()
+            .filter(|resource_type| ctx.cached_data.primary_identifiers.contains_key(*resource_type))
+            .collect();
+        resource_types.sort_unstable();
+        for resource_type in resource_types {
+            let identifier_properties = &ctx.cached_data.primary_identifiers[resource_type];
             let conflicts = m.primary_identifier_conflicts(resource_type, identifier_properties);
             for (tuple, resources) in &conflicts {
                 let instance_repr = render_primary_id_dict(identifier_properties, tuple);
@@ -3038,10 +3043,14 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             ),
         ];
         for &(rule_id, rtype, prop_path, enum_key) in enum_checks {
+            let resources = m.resources_of_type(rtype);
+            if resources.is_empty() {
+                continue;
+            }
             let Some(allowed) = region_flat_allowed(&ctx.cached_data.enum_data, enum_key, region) else {
                 continue;
             };
-            for name in m.resources_of_type(rtype) {
+            for name in resources {
                 if let Some(val) = resolve_enum_string(m, name, prop_path)
                     && !allowed.contains(val.as_str())
                 {
@@ -3088,10 +3097,14 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             ),
         ];
         for &(rule_id, rtype, wildcard_path, report_path, enum_key) in wildcard_enum_checks {
+            let resources = m.resources_of_type(rtype);
+            if resources.is_empty() {
+                continue;
+            }
             let Some(allowed) = region_flat_allowed(&ctx.cached_data.enum_data, enum_key, region) else {
                 continue;
             };
-            for name in m.resources_of_type(rtype) {
+            for name in resources {
                 let mut reported = HashSet::new();
                 for val in resolve_concrete_strings(m, name, wildcard_path) {
                     if allowed.contains(val.as_str()) || !reported.insert(val.clone()) {
@@ -3172,10 +3185,12 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             }
         }
 
-        if let Some(allowed) =
-            region_flat_allowed(&ctx.cached_data.enum_data, "data/aws_amazonmq_broker_instancetype_enum", region)
+        let amazonmq_brokers = m.resources_of_type("AWS::AmazonMQ::Broker");
+        if !amazonmq_brokers.is_empty()
+            && let Some(allowed) =
+                region_flat_allowed(&ctx.cached_data.enum_data, "data/aws_amazonmq_broker_instancetype_enum", region)
         {
-            for name in m.resources_of_type("AWS::AmazonMQ::Broker") {
+            for name in amazonmq_brokers {
                 if let Some(val) = resolve_enum_string(m, name, "Properties.HostInstanceType")
                     && !allowed.contains(val.as_str())
                 {
@@ -3191,12 +3206,15 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             }
         }
 
-        if let Some(allowed) = region_flat_allowed(
-            &ctx.cached_data.enum_data,
-            "data/aws_emr_cluster_instancetypeconfig_instancetype_enum",
-            region,
-        ) {
-            for name in m.resources_of_type("AWS::EMR::InstanceFleetConfig") {
+        let emr_instance_fleets = m.resources_of_type("AWS::EMR::InstanceFleetConfig");
+        if !emr_instance_fleets.is_empty()
+            && let Some(allowed) = region_flat_allowed(
+                &ctx.cached_data.enum_data,
+                "data/aws_emr_cluster_instancetypeconfig_instancetype_enum",
+                region,
+            )
+        {
+            for name in emr_instance_fleets {
                 if let Some(val) = resolve_enum_string(m, name, "Properties.InstanceType")
                     && !allowed.contains(val.as_str())
                 {
@@ -4124,8 +4142,8 @@ fn region_flat_allowed<'a>(
     enum_data: &'a HashMap<String, serde_json::Value>,
     enum_key: &str,
     region: Option<&str>,
-) -> Option<BTreeSet<&'a str>> {
-    region_enums::flat_allowed_values(region_map_for_key(enum_data, enum_key)?, region)
+) -> Option<HashSet<&'a str>> {
+    region_enums::flat_allowed_value_set(region_map_for_key(enum_data, enum_key)?, region)
 }
 
 /// A scalar string property value, collapsing an `Fn::If`-wrapped value to its

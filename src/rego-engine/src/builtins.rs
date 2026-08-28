@@ -1477,7 +1477,7 @@ fn register_region_flat_invalid(rego: &mut regorus::Engine, holder: SharedRegion
             let Some(map) = region_map.as_object() else {
                 return Ok(Value::Undefined);
             };
-            match region_enums::flat_allowed_values(map, region.as_deref()) {
+            match region_enums::flat_allowed_value_set(map, region.as_deref()) {
                 Some(allowed) if !allowed.contains(value.as_ref()) => {
                     Ok(Value::from(region_enums::flat_invalid_message(value.as_ref(), region.as_deref())))
                 }

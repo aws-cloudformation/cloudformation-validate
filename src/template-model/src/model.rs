@@ -312,7 +312,7 @@ pub struct SemanticModel {
     resolve_memo: Mutex<HashMap<(String, String), Option<ResolvedValue>>>,
     raw_scenario_memo: Mutex<HashMap<(String, String), Vec<(ResolvedValue, HashMap<String, bool>)>>>,
     properties_scenario_cache: Mutex<HashMap<String, Vec<(ResolvedValue, HashMap<String, bool>)>>>,
-    scenario_memo: Mutex<HashMap<(String, String), Vec<(serde_json::Value, HashMap<String, bool>)>>>,
+    scenario_memo: Mutex<HashMap<(String, String), Arc<Vec<(serde_json::Value, HashMap<String, bool>)>>>>,
     lifecycle_policy_scenario_cache: Mutex<HashMap<(String, String), Vec<(serde_json::Value, HashMap<String, bool>)>>>,
     /// Cumulative count of scenarios materialized by `resolve_scenarios` across
     /// the whole validation, charged against `MAX_TOTAL_SCENARIO_COMBINATIONS`.
@@ -1824,20 +1824,12 @@ impl SemanticModel {
         resolved_value_at_path(conditional, prop_path)
     }
 
-    pub fn resolve_scenarios_json(
+    fn resolve_scenarios_json_uncached(
         &self,
         resource_id: &str,
         path: &str,
     ) -> Vec<(serde_json::Value, HashMap<String, bool>)> {
-        let memo_key = (resource_id.to_string(), path.to_string());
-        {
-            let memo = self.scenario_memo.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
-            if let Some(memoized) = memo.get(&memo_key) {
-                return memoized.clone();
-            }
-        }
-        let scenarios = self.resolve_scenarios(resource_id, path);
-        let json_scenarios: Vec<_> = scenarios
+        self.resolve_scenarios(resource_id, path)
             .into_iter()
             .filter_map(|(val, conds)| {
                 if contains_dynamic_resolved(&val) {
@@ -1855,9 +1847,49 @@ impl SemanticModel {
                 }
                 Some((json, conds))
             })
-            .collect();
+            .collect()
+    }
+
+    fn cache_json_scenarios(
+        &self,
+        memo_key: (String, String),
+        scenarios: Vec<(serde_json::Value, HashMap<String, bool>)>,
+    ) -> Arc<Vec<(serde_json::Value, HashMap<String, bool>)>> {
         let mut memo = self.scenario_memo.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
-        memo.entry(memo_key).or_insert_with(|| json_scenarios).clone()
+        Arc::clone(memo.entry(memo_key).or_insert_with(|| Arc::new(scenarios)))
+    }
+
+    /// Returns one immutable scenario allocation shared across read-only callers.
+    pub fn resolve_scenarios_json_shared(
+        &self,
+        resource_id: &str,
+        path: &str,
+    ) -> Arc<Vec<(serde_json::Value, HashMap<String, bool>)>> {
+        let memo_key = (resource_id.to_string(), path.to_string());
+        {
+            let memo = self.scenario_memo.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+            if let Some(memoized) = memo.get(&memo_key) {
+                return Arc::clone(memoized);
+            }
+        }
+        let scenarios = self.resolve_scenarios_json_uncached(resource_id, path);
+        self.cache_json_scenarios(memo_key, scenarios)
+    }
+
+    pub fn resolve_scenarios_json(
+        &self,
+        resource_id: &str,
+        path: &str,
+    ) -> Vec<(serde_json::Value, HashMap<String, bool>)> {
+        let memo_key = (resource_id.to_string(), path.to_string());
+        {
+            let memo = self.scenario_memo.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+            if let Some(memoized) = memo.get(&memo_key) {
+                return memoized.as_ref().clone();
+            }
+        }
+        let scenarios = self.resolve_scenarios_json_uncached(resource_id, path);
+        self.cache_json_scenarios(memo_key, scenarios).as_ref().clone()
     }
 
     pub fn follow_ref(&self, resource_id: &str, path: &str) -> Option<&str> {
@@ -3096,6 +3128,28 @@ Resources:
         let s1 = model.resolve_scenarios_json("R", "Properties.V");
         let s2 = model.resolve_scenarios_json("R", "Properties.V");
         assert_eq!(s1, s2);
+    }
+
+    #[test]
+    fn resolve_scenarios_json_shared_reuses_allocation_and_matches_owned() {
+        let input = br#"{
+            "Parameters": {"Mode": {"Type": "String"}},
+            "Conditions": {"ChooseFirst": {"Fn::Equals": [{"Ref": "Mode"}, "first"]}},
+            "Resources": {"R": {"Type": "T", "Properties": {
+                "V": {"Fn::If": ["ChooseFirst", "a", "b"]}
+            }}}
+        }"#;
+        let model = SemanticModel::from_bytes(input).unwrap();
+
+        let first = model.resolve_scenarios_json_shared("R", "Properties.V");
+        let combinations_after_first = model.scenario_combinations_used();
+        let second = model.resolve_scenarios_json_shared("R", "Properties.V");
+        let owned = model.resolve_scenarios_json("R", "Properties.V");
+
+        assert!(Arc::ptr_eq(&first, &second));
+        assert_eq!(first.as_ref(), owned.as_slice());
+        assert!(combinations_after_first > 0);
+        assert_eq!(model.scenario_combinations_used(), combinations_after_first);
     }
 
     #[test]
