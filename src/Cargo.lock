@@ -1481,6 +1481,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9b4f627cb1b25917193a259e49bdad08f671f8d9708acfd5fe0a8c1455d87220"
 
 [[package]]
+name = "performance-harness"
+version = "1.9.0"
+dependencies = [
+ "cloudformation-validate-cel-engine",
+ "cloudformation-validate-diagnostics",
+ "cloudformation-validate-rego-engine",
+ "cloudformation-validate-rules",
+ "cloudformation-validate-schema-validator",
+ "cloudformation-validate-validation-engine",
+ "serde_json",
+]
+
+[[package]]
 name = "pin-project-lite"
 version = "0.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
