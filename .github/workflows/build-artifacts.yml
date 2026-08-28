@@ -4,27 +4,6 @@ run-name: Build Artifacts ${{ github.actor }} ${{ github.event_name }} (${{ inpu
 on:
   push:
     branches: [ main ]
-    paths-ignore:
-      - '.github/**'
-      - 'scripts/**'
-      - '.gitattributes'
-      - '.gitignore'
-      - '**/*.md'
-      - '**/*.txt'
-      - '**/*.jar'
-      - 'LICENSE'
-      - 'NOTICE'
-      - 'gradlew'
-      - 'gradlew.bat'
-      - 'src/bindings-*/**/bench/**'
-      - 'src/bindings-*/examples/**'
-      - 'src/bindings-*/tests/**'
-      - 'src/bindings-jvm/version.properties'
-      - 'src/bindings-wasm/dist/*'
-      - 'src/bindings-python/generated/**'
-      - 'src/bindings-go/go/internal/**'
-      - 'src/bindings-go/go/libs/**'
-      - 'release-bin/*'
   workflow_dispatch:
     inputs:
       branch:
@@ -41,10 +20,25 @@ permissions:
   contents: read
 
 jobs:
+  relevant-changes:
+    uses: ./.github/workflows/relevant-source-changes.yml
+    permissions:
+      contents: read
+      pull-requests: read
+
+  build-required:
+    needs: [ relevant-changes ]
+    if: ${{ needs.relevant-changes.outputs.relevant == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+    - run: echo "Artifact build required"
+
   get-configs:
+    needs: [ build-required ]
     uses: ./.github/workflows/configs.yml
 
   resolve-ref:
+    needs: [ build-required ]
     runs-on: ubuntu-latest
     outputs:
       sha: ${{ steps.head.outputs.sha }}
