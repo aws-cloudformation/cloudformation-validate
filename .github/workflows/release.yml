@@ -381,10 +381,7 @@ jobs:
           fail_on_unmatched_files: true
 
   verify-release:
-    needs:
-      - get-configs
-      - version-and-tag
-      - release
+    needs: [ get-configs, version-and-tag, release ]
     runs-on: ubuntu-latest
     permissions:
       contents: read
