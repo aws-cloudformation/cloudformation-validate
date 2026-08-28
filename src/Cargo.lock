@@ -240,68 +240,68 @@ checksum = "4372b9543397a4b86050cc5e7ee36953edf4bac9518e8a774c2da694977fb6e4"
 name = "bindings-go"
 version = "1.9.0"
 dependencies = [
- "cel-engine",
- "data-source",
- "diagnostics",
- "rego-engine",
- "rules",
- "schema-validator",
+ "cloudformation-validate-cel-engine",
+ "cloudformation-validate-data-source",
+ "cloudformation-validate-diagnostics",
+ "cloudformation-validate-rego-engine",
+ "cloudformation-validate-rules",
+ "cloudformation-validate-schema-validator",
+ "cloudformation-validate-template-model",
+ "cloudformation-validate-validation-engine",
  "serde",
  "serde_json",
- "template-model",
  "thiserror 2.0.19",
  "uniffi 0.31.2",
- "validation-engine",
 ]
 
 [[package]]
 name = "bindings-jvm"
 version = "1.9.0"
 dependencies = [
- "cel-engine",
- "data-source",
- "diagnostics",
- "rego-engine",
- "rules",
- "schema-validator",
- "template-model",
+ "cloudformation-validate-cel-engine",
+ "cloudformation-validate-data-source",
+ "cloudformation-validate-diagnostics",
+ "cloudformation-validate-rego-engine",
+ "cloudformation-validate-rules",
+ "cloudformation-validate-schema-validator",
+ "cloudformation-validate-template-model",
+ "cloudformation-validate-validation-engine",
  "thiserror 2.0.19",
  "uniffi 0.32.0",
- "validation-engine",
 ]
 
 [[package]]
 name = "bindings-python"
 version = "1.9.0"
 dependencies = [
- "cel-engine",
- "data-source",
- "diagnostics",
- "rego-engine",
- "rules",
- "schema-validator",
- "template-model",
+ "cloudformation-validate-cel-engine",
+ "cloudformation-validate-data-source",
+ "cloudformation-validate-diagnostics",
+ "cloudformation-validate-rego-engine",
+ "cloudformation-validate-rules",
+ "cloudformation-validate-schema-validator",
+ "cloudformation-validate-template-model",
+ "cloudformation-validate-validation-engine",
  "thiserror 2.0.19",
  "uniffi 0.32.0",
- "validation-engine",
 ]
 
 [[package]]
 name = "bindings-wasm"
 version = "1.9.0"
 dependencies = [
- "cel-engine",
+ "cloudformation-validate-cel-engine",
+ "cloudformation-validate-diagnostics",
+ "cloudformation-validate-rego-engine",
+ "cloudformation-validate-rules",
+ "cloudformation-validate-schema-validator",
+ "cloudformation-validate-template-model",
+ "cloudformation-validate-validation-engine",
  "console_error_panic_hook",
- "diagnostics",
  "getrandom 0.3.4",
- "rego-engine",
- "rules",
- "schema-validator",
  "serde",
  "serde-wasm-bindgen",
- "template-model",
  "tsify",
- "validation-engine",
  "wasm-bindgen",
 ]
 
@@ -449,27 +449,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cel-engine"
-version = "1.9.0"
-dependencies = [
- "anyhow",
- "cel-interpreter",
- "data-source",
- "diagnostics",
- "guard-translator",
- "ipnetwork",
- "log",
- "regex",
- "rules",
- "schema-validator",
- "serde",
- "serde_json",
- "template-model",
- "validation-engine",
- "web-time",
-]
-
-[[package]]
 name = "cel-interpreter"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -506,21 +485,21 @@ checksum = "9330f8b2ff13f34540b44e946ef35111825727b38d33286ef986142615121801"
 name = "cfn-validate"
 version = "1.9.0"
 dependencies = [
- "cel-engine",
  "chrono",
- "data-source",
- "diagnostics",
+ "cloudformation-validate-cel-engine",
+ "cloudformation-validate-data-source",
+ "cloudformation-validate-diagnostics",
+ "cloudformation-validate-rego-engine",
+ "cloudformation-validate-rules",
+ "cloudformation-validate-schema-validator",
+ "cloudformation-validate-template-model",
+ "cloudformation-validate-validation-engine",
  "env_logger",
  "log",
- "rego-engine",
  "resources",
- "rules",
- "schema-validator",
  "serde_json",
  "sha2",
  "tempfile",
- "template-model",
- "validation-engine",
 ]
 
 [[package]]
@@ -575,6 +554,199 @@ name = "clap_lex"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c8d4a3bb8b1e0c1050499d1815f5ab16d04f0959b233085fb31653fbfc9d98f9"
+
+[[package]]
+name = "cloudformation-guard-lang"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b772510f23124bee8df542527318eb9ff8a04d3d88812291c85e6e87f5bb62f3"
+dependencies = [
+ "chrono",
+ "colored",
+ "cruet",
+ "fancy-regex 0.13.0",
+ "indexmap 1.9.3",
+ "lazy_static",
+ "nom",
+ "nom_locate",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "thiserror 1.0.69",
+ "unsafe-libyaml",
+ "urlencoding",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "cloudformation-validate"
+version = "1.9.0"
+dependencies = [
+ "cloudformation-validate-cel-engine",
+ "cloudformation-validate-data-source",
+ "cloudformation-validate-diagnostics",
+ "cloudformation-validate-rego-engine",
+ "cloudformation-validate-rules",
+ "cloudformation-validate-schema-validator",
+ "cloudformation-validate-template-model",
+ "cloudformation-validate-validation-engine",
+]
+
+[[package]]
+name = "cloudformation-validate-cel-engine"
+version = "1.9.0"
+dependencies = [
+ "anyhow",
+ "cel-interpreter",
+ "cloudformation-validate-data-source",
+ "cloudformation-validate-diagnostics",
+ "cloudformation-validate-guard-translator",
+ "cloudformation-validate-rules",
+ "cloudformation-validate-schema-validator",
+ "cloudformation-validate-template-model",
+ "cloudformation-validate-validation-engine",
+ "ipnetwork",
+ "log",
+ "regex",
+ "serde",
+ "serde_json",
+ "web-time",
+]
+
+[[package]]
+name = "cloudformation-validate-data-source"
+version = "1.9.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "env_logger",
+ "log",
+ "lz4_flex",
+ "postcard",
+ "ruzstd",
+ "serde",
+ "serde_json",
+ "tsify",
+ "uniffi 0.32.0",
+ "ureq",
+ "wasm-bindgen",
+ "zip",
+ "zstd",
+]
+
+[[package]]
+name = "cloudformation-validate-diagnostics"
+version = "1.9.0"
+dependencies = [
+ "cloudformation-validate-rules",
+ "cloudformation-validate-template-model",
+ "log",
+ "serde",
+ "serde_json",
+ "tsify",
+ "uniffi 0.32.0",
+ "wasm-bindgen",
+ "web-time",
+]
+
+[[package]]
+name = "cloudformation-validate-guard-translator"
+version = "1.9.0"
+dependencies = [
+ "cloudformation-guard-lang",
+ "cloudformation-validate-rules",
+ "indexmap 2.14.0",
+ "serde",
+]
+
+[[package]]
+name = "cloudformation-validate-rego-engine"
+version = "1.9.0"
+dependencies = [
+ "anyhow",
+ "cloudformation-validate-data-source",
+ "cloudformation-validate-diagnostics",
+ "cloudformation-validate-guard-translator",
+ "cloudformation-validate-rules",
+ "cloudformation-validate-schema-validator",
+ "cloudformation-validate-template-model",
+ "cloudformation-validate-validation-engine",
+ "ipnetwork",
+ "log",
+ "regorus",
+ "serde",
+ "serde_json",
+ "web-time",
+]
+
+[[package]]
+name = "cloudformation-validate-rules"
+version = "1.9.0"
+dependencies = [
+ "cloudformation-validate-template-model",
+ "log",
+ "regex",
+ "serde",
+ "serde_json",
+ "tsify",
+ "uniffi 0.32.0",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "cloudformation-validate-schema-validator"
+version = "1.9.0"
+dependencies = [
+ "cloudformation-validate-data-source",
+ "cloudformation-validate-diagnostics",
+ "cloudformation-validate-rules",
+ "cloudformation-validate-template-model",
+ "log",
+ "regex",
+ "serde",
+ "serde_json",
+ "tsify",
+ "uniffi 0.32.0",
+ "wasm-bindgen",
+ "web-time",
+]
+
+[[package]]
+name = "cloudformation-validate-template-model"
+version = "1.9.0"
+dependencies = [
+ "base64",
+ "env_logger",
+ "fancy-regex 0.18.0",
+ "log",
+ "regex",
+ "serde",
+ "serde_json",
+ "tsify",
+ "uniffi 0.32.0",
+ "wasm-bindgen",
+ "web-time",
+ "yaml-rust2",
+]
+
+[[package]]
+name = "cloudformation-validate-validation-engine"
+version = "1.9.0"
+dependencies = [
+ "cloudformation-validate-data-source",
+ "cloudformation-validate-diagnostics",
+ "cloudformation-validate-guard-translator",
+ "cloudformation-validate-rules",
+ "cloudformation-validate-schema-validator",
+ "cloudformation-validate-template-model",
+ "log",
+ "serde",
+ "serde_json",
+ "tsify",
+ "uniffi 0.32.0",
+ "wasm-bindgen",
+ "web-time",
+]
 
 [[package]]
 name = "cobs"
@@ -667,27 +839,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "data-source"
-version = "1.9.0"
-dependencies = [
- "anyhow",
- "chrono",
- "env_logger",
- "log",
- "lz4_flex",
- "postcard",
- "ruzstd",
- "serde",
- "serde_json",
- "tsify",
- "uniffi 0.32.0",
- "ureq",
- "wasm-bindgen",
- "zip",
- "zstd",
-]
-
-[[package]]
 name = "defmt"
 version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -716,21 +867,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "10d60334b3b2e7c9d91ef8150abfb6fa4c1c39ebbcf4a81c2e346aad939fee3e"
 dependencies = [
  "thiserror 2.0.19",
-]
-
-[[package]]
-name = "diagnostics"
-version = "1.9.0"
-dependencies = [
- "log",
- "rules",
- "serde",
- "serde_json",
- "template-model",
- "tsify",
- "uniffi 0.32.0",
- "wasm-bindgen",
- "web-time",
 ]
 
 [[package]]
@@ -961,38 +1097,6 @@ dependencies = [
  "log",
  "plain",
  "scroll",
-]
-
-[[package]]
-name = "guard-lang"
-version = "1.0.0"
-source = "git+https://github.com/aws-cloudformation/cloudformation-guard.git?branch=guard-lib#58da2e0c861276d5dad45df6e14c719f8313361c"
-dependencies = [
- "chrono",
- "colored",
- "cruet",
- "fancy-regex 0.13.0",
- "indexmap 1.9.3",
- "lazy_static",
- "nom",
- "nom_locate",
- "serde",
- "serde_json",
- "serde_yaml",
- "thiserror 1.0.69",
- "unsafe-libyaml",
- "urlencoding",
- "wasm-bindgen",
-]
-
-[[package]]
-name = "guard-translator"
-version = "1.9.0"
-dependencies = [
- "guard-lang",
- "indexmap 2.14.0",
- "rules",
- "serde",
 ]
 
 [[package]]
@@ -1529,26 +1633,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d6f6ff9a378485b298a5286656da665ba74413d36db0979633275d2e708145d4"
 
 [[package]]
-name = "rego-engine"
-version = "1.9.0"
-dependencies = [
- "anyhow",
- "data-source",
- "diagnostics",
- "guard-translator",
- "ipnetwork",
- "log",
- "regorus",
- "rules",
- "schema-validator",
- "serde",
- "serde_json",
- "template-model",
- "validation-engine",
- "web-time",
-]
-
-[[package]]
 name = "regorus"
 version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1587,20 +1671,6 @@ dependencies = [
  "libc",
  "untrusted",
  "windows-sys 0.52.0",
-]
-
-[[package]]
-name = "rules"
-version = "1.9.0"
-dependencies = [
- "log",
- "regex",
- "serde",
- "serde_json",
- "template-model",
- "tsify",
- "uniffi 0.32.0",
- "wasm-bindgen",
 ]
 
 [[package]]
@@ -1683,24 +1753,6 @@ name = "ryu"
 version = "1.0.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9774ba4a74de5f7b1c1451ed6cd5285a32eddb5cccb8cc655a4e50009e06477f"
-
-[[package]]
-name = "schema-validator"
-version = "1.9.0"
-dependencies = [
- "data-source",
- "diagnostics",
- "log",
- "regex",
- "rules",
- "serde",
- "serde_json",
- "template-model",
- "tsify",
- "uniffi 0.32.0",
- "wasm-bindgen",
- "web-time",
-]
 
 [[package]]
 name = "scopeguard"
@@ -1939,24 +1991,6 @@ dependencies = [
  "once_cell",
  "rustix",
  "windows-sys 0.61.2",
-]
-
-[[package]]
-name = "template-model"
-version = "1.9.0"
-dependencies = [
- "base64",
- "env_logger",
- "fancy-regex 0.18.0",
- "log",
- "regex",
- "serde",
- "serde_json",
- "tsify",
- "uniffi 0.32.0",
- "wasm-bindgen",
- "web-time",
- "yaml-rust2",
 ]
 
 [[package]]
@@ -2428,25 +2462,6 @@ checksum = "bf3923a6f5c4c6382e0b653c4117f48d631ea17f38ed86e2a828e6f7412f5239"
 dependencies = [
  "js-sys",
  "wasm-bindgen",
-]
-
-[[package]]
-name = "validation-engine"
-version = "1.9.0"
-dependencies = [
- "data-source",
- "diagnostics",
- "guard-translator",
- "log",
- "rules",
- "schema-validator",
- "serde",
- "serde_json",
- "template-model",
- "tsify",
- "uniffi 0.32.0",
- "wasm-bindgen",
- "web-time",
 ]
 
 [[package]]

@@ -1,8 +1,8 @@
 # Installation
 
-`cloudformation-validate` is distributed as a prebuilt command-line tool and as packages for Node.js, Python, Go, and
-the JVM. All distributions contain the validation rules and CloudFormation resource schemas they need, so validation
-runs offline after installation without AWS credentials or runtime downloads.
+`cloudformation-validate` is distributed as a prebuilt command-line tool and as packages for Rust, Node.js, Python,
+Go, and the JVM. All distributions contain the validation rules and CloudFormation resource schemas they need, so
+validation runs offline after installation without AWS credentials or runtime downloads.
 
 ## Command-line interface
 
@@ -33,6 +33,21 @@ codes.
 
 Package-manager installation is recommended: it selects the compatible native artifact and resolves any runtime
 dependencies. Use an explicit version in applications that require reproducible builds.
+
+### Rust
+
+The Rust library is published to [crates.io as `cloudformation-validate`](https://crates.io/crates/cloudformation-validate)
+and requires Rust 1.96 or later.
+
+```bash
+# Latest release
+cargo add cloudformation-validate
+
+# Specific release (replace <version>)
+cargo add 'cloudformation-validate@=<version>'
+```
+
+See the [Rust API and examples](src/bindings-rust/README.md).
 
 ### Node.js
 

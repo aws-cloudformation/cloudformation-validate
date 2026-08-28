@@ -16,7 +16,7 @@
 //!   - lz4+json            (lz4_flex + serde_json)
 //!   - lz4+postcard        (typed only, lz4_flex + postcard)
 //!
-//! Run: cargo run -p data-source --example embedding_format_bench --features bench --release
+//! Run: cargo run -p cloudformation-validate-data-source --example embedding_format_bench --features bench --release
 
 use data_source::types::{
     CodepipelineArtifactCounts, DeprecatedResourceTypes, GetattData, KnownResourceTypes, PrimaryIdentifiers,

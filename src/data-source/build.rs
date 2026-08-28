@@ -82,12 +82,10 @@ fn main() {
     let generated_sv_dir = generated_dir.join("schema-validator");
     let generated_cel_dir = generated_dir.join("cel-rules");
     let handwritten_dir = manifest_dir.join("handwritten");
-    let rego_hw_dir = manifest_dir.parent().unwrap().join("rego-engine").join("handwritten").join("rego");
 
     for dir in [&generated_data_dir, &generated_sv_dir, &generated_cel_dir, &handwritten_dir] {
         println!("cargo:rerun-if-changed={}", dir.display());
     }
-    println!("cargo:rerun-if-changed={}", rego_hw_dir.display());
 
     let mut code = String::new();
 
@@ -168,16 +166,6 @@ fn main() {
     require_file(&cel_rules_path, "generated CEL rules");
     embed_minified_json(&cel_rules_path, "GENERATED_RULES", &out_dir, &mut code);
 
-    if !rego_hw_dir.is_dir() {
-        panic!("missing required handwritten Rego directory: {}", rego_hw_dir.display());
-    }
-    code.push_str("pub const HANDWRITTEN_REGO_POLICIES: &[(&str, &str)] = &[\n");
-    let rego_file_count = collect_rego_files(&rego_hw_dir, &rego_hw_dir, &mut code);
-    if rego_file_count == 0 {
-        panic!("required handwritten Rego directory contains no .rego files: {}", rego_hw_dir.display());
-    }
-    code.push_str("];\n");
-
     code.push_str(
         "\n/// Force-decompress every embedded data LazyLock. Safe to call multiple times (no-op after first).\n",
     );
@@ -233,23 +221,4 @@ fn embed_minified_json(path: &Path, const_name: &str, out_dir: &Path, code: &mut
          }});\n",
         bin_path.display().to_string(),
     ));
-}
-
-fn collect_rego_files(base: &Path, dir: &Path, code: &mut String) -> usize {
-    let mut entries: Vec<_> =
-        fs::read_dir(dir).unwrap().map(|e| e.expect("failed to read rego directory entry")).collect();
-    entries.sort_by_key(|e| e.path());
-    let mut file_count = 0;
-    for entry in entries {
-        let path = entry.path();
-        if path.is_dir() {
-            file_count += collect_rego_files(base, &path, code);
-        } else if path.extension().and_then(|e| e.to_str()) == Some("rego") {
-            let rel = path.strip_prefix(base).unwrap().display().to_string();
-            let content = fs::read_to_string(&path).unwrap();
-            code.push_str(&format!("    ({rel:?}, {:?}),\n", content));
-            file_count += 1;
-        }
-    }
-    file_count
 }
