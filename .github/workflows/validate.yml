@@ -175,6 +175,14 @@ jobs:
       working-directory: ${{ env.WORKING_DIR }}
       run: cargo llvm-cov --locked --release --workspace --no-fail-fast
 
+  performance:
+    needs: [ get-configs ]
+    uses: ./.github/workflows/performance-regression.yml
+    permissions:
+      contents: read
+    with:
+      ref: ${{ inputs.ref }}
+
   test-jvm:
     if: ${{ needs.release-assets.outputs.run_tests == 'true' }}
     needs: [ get-configs, release-assets ]
