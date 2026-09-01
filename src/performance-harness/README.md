@@ -2,7 +2,7 @@
 
 Performance is checked against a versioned environment profile, not against another Git revision.
 
-* `expected/github-ubuntu-x64.json` is the contract for GitHub-hosted `ubuntu-latest` x64 runners.
+* `expected/github-ubuntu-x64-amd-epyc-7763.json` and `expected/github-ubuntu-x64-amd-epyc-9v74.json` are separate tight contracts for the CPU models currently used by GitHub-hosted `ubuntu-latest` x64 runners. The harness selects and enforces the matching model automatically.
 * `expected/local-macos-arm64.json` is the contract for the recorded reference Apple Silicon Mac. The harness rejects a different Mac model instead of comparing unlike hardware.
 
 The `check` command spawns the current release executable for both engines across synthetic, real-template, and security workloads. Each case discards its first process launch, then uses the median of five independent launches. An apparent failure receives four additional samples and is evaluated again over the combined set.
@@ -36,6 +36,6 @@ cd src
 cargo run --locked --release -p performance-harness -- update
 ```
 
-GitHub expectations must be measured on GitHub-hosted runners. Every workflow run uploads `performance-candidate-baseline.json`; after a confirmed improvement or an intentional regression, use the candidate from repeated hosted-runner measurements to update `github-ubuntu-x64.json` in review. Never copy local Linux measurements into the GitHub profile.
+GitHub expectations must be measured on GitHub-hosted runners. Every workflow run uploads `performance-candidate-baseline.json`; after a confirmed improvement or an intentional regression, use the candidate to update the matching CPU-specific profile in review. A previously unseen CPU model fails closed and requires its own calibrated expected file. Never copy local Linux measurements into a GitHub profile.
 
 Changing workloads causes an exact case-set mismatch and requires an intentional baseline regeneration. Environment mismatches fail before measurement rather than producing misleading performance results.

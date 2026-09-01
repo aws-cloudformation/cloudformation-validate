@@ -52,7 +52,6 @@ jobs:
           set -euo pipefail
           cargo run --locked --release -p performance-harness -- \
             check \
-            --expected performance-harness/expected/github-ubuntu-x64.json \
             --output-dir "$RUNNER_TEMP/performance-check"
 
       - name: Add performance result to job summary
