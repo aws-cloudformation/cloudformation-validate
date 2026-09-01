@@ -189,6 +189,22 @@ Resources:
       Cpu: [256]
       Memory: 512
       ContainerDefinitions: [{Name: app, Image: nginx}]
+  DecimalEquivalent:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: "+2.0 vCPU"
+      Memory: "+4.0 GB"
+      ContainerDefinitions: [{Name: app, Image: nginx}]
+  LeadingZeroEquivalent:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: "02 vCPU"
+      Memory: "04 GB"
+      ContainerDefinitions: [{Name: app, Image: nginx}]
   InvalidCpu:
     Type: AWS::ECS::TaskDefinition
     Properties:
@@ -197,13 +213,73 @@ Resources:
       Cpu: "128"
       Memory: "512"
       ContainerDefinitions: [{Name: app, Image: nginx}]
+  ScientificCpu:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: "2e0 vCPU"
+      Memory: "4 GB"
+      ContainerDefinitions: [{Name: app, Image: nginx}]
+  ScientificMemory:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: "2 vCPU"
+      Memory: "4e0 GB"
+      ContainerDefinitions: [{Name: app, Image: nginx}]
+  LeadingCpuWhitespace:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: " 2 vCPU"
+      Memory: "4 GB"
+      ContainerDefinitions: [{Name: app, Image: nginx}]
+  LeadingMemoryWhitespace:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: "2 vCPU"
+      Memory: " 4 GB"
+      ContainerDefinitions: [{Name: app, Image: nginx}]
 "#;
     let (rego, cel) = engines();
     let rego_findings = selected_findings(&rego, template, &["E3047", "E3048"]);
     let cel_findings = selected_findings(&cel, template, &["E3047", "E3048"]);
     assert_eq!(rego_findings, cel_findings);
-    assert_eq!(rego_findings.len(), 2, "only the offered-size violations should be reported: {rego_findings:?}");
-    assert!(rego_findings.iter().all(|finding| finding.contains("Properties.Cpu")));
+    assert_eq!(rego_findings.len(), 8, "only invalid scalar spellings and sizes should fire: {rego_findings:?}");
+    for clean_resource in
+        ["IntegralFloat", "NonIntegralFloat", "CompositeCpu", "DecimalEquivalent", "LeadingZeroEquivalent"]
+    {
+        assert!(
+            rego_findings.iter().all(|finding| !finding.contains(clean_resource)),
+            "{clean_resource} must not produce Fargate size findings: {rego_findings:?}"
+        );
+    }
+    for (invalid_resource, expected_count) in [
+        ("InvalidCpu", 2),
+        ("ScientificCpu", 2),
+        ("ScientificMemory", 1),
+        ("LeadingCpuWhitespace", 2),
+        ("LeadingMemoryWhitespace", 1),
+    ] {
+        assert_eq!(
+            rego_findings.iter().filter(|finding| finding.contains(invalid_resource)).count(),
+            expected_count,
+            "{invalid_resource} must produce the expected Fargate size findings: {rego_findings:?}"
+        );
+    }
+    let cpu_value_findings = rego_findings.iter().filter(|finding| finding.starts_with("E3048|")).collect::<Vec<_>>();
+    assert_eq!(cpu_value_findings.len(), 3, "expected one Cpu value finding per invalid Cpu: {rego_findings:?}");
+    assert!(cpu_value_findings.iter().all(|finding| {
+        finding.contains(
+            "Valid sizes are ['256', '512', '1024', '2048', '4096', '8192', '16384', '32768'] CPU units or ['0.25', '0.5', '1', '2', '4', '8', '16', '32'] vCPU.",
+        ) && finding.contains("Use a valid Fargate Cpu size in CPU units or vCPU")
+            && !finding.contains("Must be one of")
+    }));
 }
 
 #[test]

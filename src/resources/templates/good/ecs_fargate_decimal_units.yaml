@@ -1,0 +1,85 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  QuarterVcpuDecimal:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: "0.25 vCPU"
+      Memory: "512"
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true
+
+  HalfVcpuDecimal:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: "0.5 vCPU"
+      Memory: "1 GB"
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true
+
+  DecimalEquivalent:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: "2.0 vCPU"
+      Memory: "4.0 GB"
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true
+
+  PlusDecimalEquivalent:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: "+2.0 vCPU"
+      Memory: "+4.0 GB"
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true
+
+  LeadingZeroEquivalent:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: "02 vCPU"
+      Memory: "04 GB"
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true
+
+  LeadingDecimalPointEquivalent:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: ".250 vCPU"
+      Memory: "512"
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true
+
+  TrailingDecimalPointEquivalent:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: "2. vCPU"
+      Memory: "4. GB"
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true

@@ -35,8 +35,12 @@ violation contains make_diag_full("E3048", "ERROR", name,
 
 violation contains make_diag_full("E3048", "ERROR", name,
     "Properties.Cpu",
-    sprintf("Fargate Cpu value %s is not valid. Must be one of %s", [render_value(cpu), _fargate_cpu_list_str]),
-    "Use a valid Fargate Cpu value (256, 512, 1024, 2048, 4096, 8192, 16384, or 32768)",
+    sprintf("Fargate Cpu value %s is not valid. Valid sizes are %s CPU units or %s vCPU.", [
+        render_value(cpu),
+        _fargate_cpu_unit_list_str,
+        _fargate_vcpu_list_str,
+    ]),
+    "Use a valid Fargate Cpu size in CPU units or vCPU",
     "") if {
     some name in resources_of_type("AWS::ECS::TaskDefinition")
     some cpu_scenario in _fargate_property_scenarios(name, "Properties.Cpu")
@@ -114,7 +118,8 @@ _fargate_property_scenarios(name, path) := {property_scenario |
     _scenario_conditions_compatible(name, compatibility_scenario.conditions, property_scenario.conditions)
 }
 
-_fargate_cpu_list_str := "['256', '512', '1024', '2048', '4096', '8192', '16384', '32768']"
+_fargate_cpu_unit_list_str := "['256', '512', '1024', '2048', '4096', '8192', '16384', '32768']"
+_fargate_vcpu_list_str := "['0.25', '0.5', '1', '2', '4', '8', '16', '32']"
 _fargate_log_drivers_str := sprintf("['%s']", [concat("', '", data.fargate_supported_log_drivers)])
 
 _fargate_log_driver_fix := sprintf("Use '%s'", [data.fargate_supported_log_drivers[0]]) if {

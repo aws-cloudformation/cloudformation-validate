@@ -15,7 +15,7 @@ use template_model::consts::{
     KEY_CREATION_POLICY, KEY_PROPERTIES, KEY_UPDATE_POLICY, PARAM_TYPE_STRING, TRANSFORM_SERVERLESS,
 };
 use template_model::dynamodb::analyze_dynamodb_table_scenarios;
-use template_model::fargate::{CPU_UNIT_LABELS, cpu_is_offered};
+use template_model::fargate::{CPU_UNIT_LABELS, VCPU_SIZES, cpu_is_offered};
 use template_model::iam_policy::{inline_identity_policy_document_paths, validate_identity_policy_scenarios};
 use template_model::message::{render_str_list, render_value};
 use template_model::resolver::{RefKind, ResolvedValue};
@@ -3967,14 +3967,15 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                         out.push(make_resource_diagnostic(
                             "E3048",
                             &format!(
-                                "Fargate Cpu value {} is not valid. Must be one of {}",
+                                "Fargate Cpu value {} is not valid. Valid sizes are {} CPU units or {} vCPU.",
                                 rendered,
                                 render_str_list(CPU_UNIT_LABELS),
+                                render_str_list(VCPU_SIZES.iter().map(|(label, _)| *label)),
                             ),
                             m,
                             name,
                             "Properties.Cpu",
-                            Some("Use a valid Fargate Cpu value (256, 512, 1024, 2048, 4096, 8192, 16384, or 32768)"),
+                            Some("Use a valid Fargate Cpu size in CPU units or vCPU"),
                         ));
                     }
                 }
