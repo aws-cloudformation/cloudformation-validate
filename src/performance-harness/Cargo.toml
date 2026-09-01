@@ -16,6 +16,7 @@ rego-engine = { workspace = true }
 rules = { workspace = true }
 schema-validator = { workspace = true }
 validation-engine = { workspace = true }
+serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
 [lints]

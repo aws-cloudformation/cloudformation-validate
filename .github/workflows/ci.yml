@@ -16,3 +16,10 @@ jobs:
     with:
       ref: ${{ github.sha }}
       release-run: false
+
+  performance:
+    uses: ./.github/workflows/performance-regression.yml
+    permissions:
+      contents: read
+    with:
+      ref: ${{ github.sha }}

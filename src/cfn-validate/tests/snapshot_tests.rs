@@ -150,6 +150,14 @@ fn snapshot_discovery_matches_all_persisted_report_keys() {
 }
 
 #[test]
+fn snapshot_comparison_detects_suppressed_metadata_drift() {
+    let expected = serde_json::json!({"metadata": {"suppressed": 3}});
+    let actual = serde_json::json!({"metadata": {"suppressed": 0}});
+
+    assert_eq!(deep_diff(&expected, &actual, ""), vec!["metadata.suppressed: expected=3 actual=0"]);
+}
+
+#[test]
 fn rego_detailed_matches_snapshot() {
     let engine = RegoEngine::new(EngineConfig::default()).expect("rego engine");
     check_detailed("rego", &engine);

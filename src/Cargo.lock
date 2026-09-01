@@ -1490,6 +1490,7 @@ dependencies = [
  "cloudformation-validate-rules",
  "cloudformation-validate-schema-validator",
  "cloudformation-validate-validation-engine",
+ "serde",
  "serde_json",
 ]
 

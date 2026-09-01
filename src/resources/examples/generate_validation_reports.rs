@@ -34,7 +34,7 @@ use serde_json::{Map, Value};
 const ENGINES: &[&str] = &["rego", "cel"];
 
 /// Fields stripped before the rego-vs-cel parity comparison
-const PARITY_IGNORED_FIELDS: &[&str] = &["performance", "benchmarkMetrics", "suppressed"];
+const PARITY_IGNORED_FIELDS: &[&str] = &["performance", "benchmarkMetrics"];
 
 /// Top-level fields compared across engines but not persisted to the snapshot chunks.
 const OUTPUT_ONLY_TOP_LEVEL_FIELDS: &[&str] = &["performance", "version"];
