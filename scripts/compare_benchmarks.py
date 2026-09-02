@@ -1,23 +1,18 @@
 #!/usr/bin/env python3
 """Runs benchmarks for every engine × binding and writes a comparison report.
 
-Steady-state distributions are per-template medians of iterations 2..N (the
-"warmup-excluded" window).  Throughput uses all timed validate() calls
-(iterations 1..N × templates_ok) divided by the aggregate measured wall time.
-When N=1 (single iteration), steady state falls back to the first (and only)
-sample — there is no discard.
-
-This script can also load per-template detailed JSON reports (--report-only)
-produced by each binding harness and validate them for cross-binding
-consistency before generating paired engine comparisons.
+Subsequent distributions are per-template medians of iterations 2..N; throughput
+divides all timed ``validate()`` calls by the measured wall time.
 """
 
 import argparse
 import json
 import math
+import os
 import platform
 import subprocess
 import sys
+import tempfile
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -38,6 +33,8 @@ ALL_BINDINGS = [
 DEFAULT_ITERATIONS = 50
 DEFAULT_TEMPLATE_DIR = SRC_DIR / "resources" / "templates"
 DEFAULT_TOP_SLOWEST = 10
+DEFAULT_STARTUP_SAMPLES = 5
+MIN_STARTUP_SAMPLES = 2
 
 # median/p99/max: median is the typical cost, p99 the tail, max the worst case.
 STATS = ["median", "p99", "max"]
@@ -50,8 +47,7 @@ PHASE_ROWS = [
     ("diagnostic finalize", "diagnostic_finalize_ms"),
 ]
 
-# Metrics required in per-template detailed reports (steadyState object).
-REQUIRED_STEADY_METRICS = [
+REQUIRED_SUBSEQUENT_METRICS = [
     "hostModelMs", "modelBuildMs", "schemaValidateMs",
     "ruleEvaluationMs", "diagnosticFinalizeMs", "engineInternalMs", "wallClockMs",
 ]
@@ -72,10 +68,25 @@ VALID_BINDINGS = {"native", "wasm", "jvm", "python", "go"}
 # Valid engine labels.
 VALID_ENGINES = {"rego", "cel"}
 
+# External process timer used to measure startup and full-corpus memory. The
+# GNU coreutils build ("-v") and the macOS build ("-l") report different
+# formats and different RSS units, handled by the two parsers below.
+TIME_BIN = "/usr/bin/time"
 
-# ──────────────────────────────────────────────────────────────────────────────
-# CLI
-# ──────────────────────────────────────────────────────────────────────────────
+NATIVE_BENCH_BIN = SRC_DIR / "target" / "release" / "cfn-benchmark"
+WASM_BENCH_DIR = SRC_DIR / "bindings-wasm" / "bench"
+WASM_BENCH_JS = WASM_BENCH_DIR / "build" / "benchmark.js"
+JVM_BENCH_DIR = SRC_DIR / "bindings-jvm" / "bench"
+JVM_BENCH_BIN = (
+    JVM_BENCH_DIR / "build" / "install" / "cloudformation-validate-bench" / "bin"
+    / "cloudformation-validate-bench"
+)
+PYTHON_BENCH_DIR = SRC_DIR / "bindings-python" / "bench"
+PYTHON_VENV_PYTHON = PYTHON_BENCH_DIR / ".venv" / "bin" / "python"
+PYTHON_BENCH_SCRIPT = PYTHON_BENCH_DIR / "benchmark.py"
+GO_BENCH_DIR = SRC_DIR / "bindings-go" / "bench"
+GO_BENCH_BIN = GO_BENCH_DIR / "build" / "cfn-benchmark-go"
+
 
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(
@@ -84,7 +95,7 @@ def parse_args(argv=None):
     parser.add_argument(
         "--skip-build",
         action="store_true",
-        help="Skip building artifacts (assume they already exist).",
+        help="Skip building artifacts; validate that the prebuilt executables already exist.",
     )
     parser.add_argument(
         "--report-only",
@@ -96,6 +107,16 @@ def parse_args(argv=None):
         type=int,
         default=DEFAULT_ITERATIONS,
         help=f"Iterations per template (positive integer, default {DEFAULT_ITERATIONS}).",
+    )
+    parser.add_argument(
+        "--startup-samples",
+        type=int,
+        default=DEFAULT_STARTUP_SAMPLES,
+        help=(
+            f"Independent startup-probe processes per engine×binding "
+            f"(>= {MIN_STARTUP_SAMPLES}, default {DEFAULT_STARTUP_SAMPLES}). The first is the "
+            f"cold sample; the rest form the warm distribution."
+        ),
     )
     parser.add_argument(
         "--template-dir",
@@ -128,15 +149,13 @@ def parse_args(argv=None):
         parser.error("--iterations must be a positive integer")
     if args.top_slowest < 1:
         parser.error("--top-slowest must be a positive integer")
+    if args.startup_samples < MIN_STARTUP_SAMPLES:
+        parser.error(f"--startup-samples must be >= {MIN_STARTUP_SAMPLES}")
     if not args.template_dir.is_dir():
         parser.error(f"--template-dir is not a directory: {args.template_dir}")
     args.template_dir = args.template_dir.resolve()
     return args
 
-
-# ──────────────────────────────────────────────────────────────────────────────
-# Deterministic run-plan: pairs engines per binding, alternates AB/BA
-# ──────────────────────────────────────────────────────────────────────────────
 
 def build_run_plan(engines, bindings):
     """Pair selected engines per binding and alternate canonical AB/BA order.
@@ -158,19 +177,80 @@ def build_run_plan(engines, bindings):
     return plan
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Build / Run helpers
-# ──────────────────────────────────────────────────────────────────────────────
+def corpus_command(binding, engine, iterations, template_dir):
+    """The native binary keeps ``--format detailed`` so its invocation stays identical
+    to the one ``compare_cfnlint.py`` relies on. The FFI harnesses hardcode DETAILED
+    and reject ``--format``, so it is passed to native only.
+    """
+    template = str(template_dir)
+    if binding == "native":
+        return (
+            [str(NATIVE_BENCH_BIN), template, "--engine", engine,
+             "--format", "detailed", "--iterations", str(iterations)],
+            SRC_DIR,
+        )
+    if binding == "wasm":
+        return (
+            ["node", str(WASM_BENCH_JS), template, "--engine", engine,
+             "--iterations", str(iterations)],
+            WASM_BENCH_DIR,
+        )
+    if binding == "jvm":
+        return (
+            [str(JVM_BENCH_BIN), template, "--engine", engine,
+             "--iterations", str(iterations)],
+            JVM_BENCH_DIR,
+        )
+    if binding == "python":
+        return (
+            [str(PYTHON_VENV_PYTHON), str(PYTHON_BENCH_SCRIPT), template, "--engine", engine,
+             "--iterations", str(iterations)],
+            PYTHON_BENCH_DIR,
+        )
+    if binding == "go":
+        return (
+            [str(GO_BENCH_BIN), template, "--engine", engine,
+             "--iterations", str(iterations)],
+            GO_BENCH_DIR,
+        )
+    raise ValueError(f"unknown binding: {binding}")
+
+
+def probe_command(binding, engine):
+    if binding == "native":
+        return ([str(NATIVE_BENCH_BIN), "--engine", engine, "--startup-probe"], SRC_DIR)
+    if binding == "wasm":
+        return (["node", str(WASM_BENCH_JS), "--engine", engine, "--startup-probe"], WASM_BENCH_DIR)
+    if binding == "jvm":
+        return ([str(JVM_BENCH_BIN), "--engine", engine, "--startup-probe"], JVM_BENCH_DIR)
+    if binding == "python":
+        return (
+            [str(PYTHON_VENV_PYTHON), str(PYTHON_BENCH_SCRIPT), "--engine", engine, "--startup-probe"],
+            PYTHON_BENCH_DIR,
+        )
+    if binding == "go":
+        return ([str(GO_BENCH_BIN), "--engine", engine, "--startup-probe"], GO_BENCH_DIR)
+    raise ValueError(f"unknown binding: {binding}")
+
+
+def executable_path(binding):
+    return {
+        "native": NATIVE_BENCH_BIN,
+        "wasm": WASM_BENCH_JS,
+        "jvm": JVM_BENCH_BIN,
+        "python": PYTHON_VENV_PYTHON,
+        "go": GO_BENCH_BIN,
+    }.get(binding)
+
 
 def run_cmd(cmd, cwd, label):
     print(f"  $ {' '.join(str(c) for c in cmd)}", file=sys.stderr)
-    result = subprocess.run(cmd, cwd=str(cwd))
+    result = subprocess.run([str(c) for c in cmd], cwd=str(cwd))
     if result.returncode != 0:
         sys.exit(f"{label} failed (exit {result.returncode})")
 
 
 def build_all(bindings):
-    """Build artifacts for the selected bindings using existing build.sh scripts."""
     binding_ids = {b for b, _ in bindings}
 
     if "native" in binding_ids:
@@ -178,81 +258,318 @@ def build_all(bindings):
         run_cmd(["cargo", "build", "--locked", "--release", "--workspace"], SRC_DIR, "cargo build")
 
     if "wasm" in binding_ids:
-        print("=== Building WASM package ===", file=sys.stderr)
+        print("=== Building WASM package + bench ===", file=sys.stderr)
         run_cmd(["bash", str(SRC_DIR / "bindings-wasm" / "build.sh")],
                 SRC_DIR / "bindings-wasm", "WASM build")
-        bench_dir = SRC_DIR / "bindings-wasm" / "bench"
-        if (bench_dir / "package-lock.json").exists():
-            run_cmd(["npm", "ci", "--silent"], bench_dir, "npm ci (bench)")
+        if (WASM_BENCH_DIR / "package-lock.json").exists():
+            run_cmd(["npm", "ci", "--silent"], WASM_BENCH_DIR, "npm ci (wasm bench)")
         else:
-            run_cmd(["npm", "install", "--silent"], bench_dir, "npm install (bench)")
+            run_cmd(["npm", "install", "--silent"], WASM_BENCH_DIR, "npm install (wasm bench)")
+        # Compile benchmark.ts -> build/benchmark.js so the corpus/probe commands run
+        # plain `node build/benchmark.js` instead of ts-node.
+        run_cmd(["npx", "tsc", "-p", "tsconfig.json"], WASM_BENCH_DIR, "compile wasm bench (tsc)")
 
     if "jvm" in binding_ids:
-        print("=== Building JVM native library + bindings ===", file=sys.stderr)
+        print("=== Building JVM native library + bindings + bench ===", file=sys.stderr)
         run_cmd(["bash", str(SRC_DIR / "bindings-jvm" / "build.sh")],
                 SRC_DIR / "bindings-jvm", "JVM build")
+        gradle = str(JVM_BENCH_DIR / "gradlew") if (JVM_BENCH_DIR / "gradlew").exists() else "gradle"
+        run_cmd([gradle, "installDist", "--no-daemon"], JVM_BENCH_DIR, "jvm bench installDist")
 
     if "python" in binding_ids:
-        print("=== Building Python wheel ===", file=sys.stderr)
+        print("=== Building Python wheel + bench venv ===", file=sys.stderr)
         run_cmd(["bash", str(SRC_DIR / "bindings-python" / "build.sh")],
                 SRC_DIR / "bindings-python", "Python build")
-        bench_dir = SRC_DIR / "bindings-python" / "bench"
-        bench_dir.mkdir(parents=True, exist_ok=True)
-        venv_dir = bench_dir / ".venv"
+        PYTHON_BENCH_DIR.mkdir(parents=True, exist_ok=True)
+        venv_dir = PYTHON_BENCH_DIR / ".venv"
         if not venv_dir.exists():
-            run_cmd(["python3", "-m", "venv", str(venv_dir)], bench_dir, "create bench venv")
+            run_cmd(["python3", "-m", "venv", str(venv_dir)], PYTHON_BENCH_DIR, "create bench venv")
         venv_pip = str(venv_dir / "bin" / "pip")
         wheel_dir = SRC_DIR / "bindings-python" / "generated" / "dist"
         wheels = sorted(wheel_dir.glob("*.whl"))
         if not wheels:
             sys.exit(f"No wheel found in {wheel_dir}")
         run_cmd([venv_pip, "install", "--force-reinstall", "--quiet", str(wheels[-1])],
-                bench_dir, "install wheel into bench venv")
+                PYTHON_BENCH_DIR, "install wheel into bench venv")
 
     if "go" in binding_ids:
-        print("=== Building Go native library + bindings ===", file=sys.stderr)
+        print("=== Building Go native library + bindings + bench binary ===", file=sys.stderr)
         run_cmd(["bash", str(SRC_DIR / "bindings-go" / "build.sh")],
                 SRC_DIR / "bindings-go", "Go build")
+        GO_BENCH_BIN.parent.mkdir(parents=True, exist_ok=True)
+        run_cmd(["go", "build", "-o", str(GO_BENCH_BIN), "."], GO_BENCH_DIR, "go bench build")
 
 
-def run_benchmark(binding, engine, iterations, template_dir):
-    print(f"=== {binding} benchmark (engine={engine}) ===", file=sys.stderr)
-    if binding == "native":
-        bench_bin = SRC_DIR / "target" / "release" / "cfn-benchmark"
-        if not bench_bin.exists():
-            sys.exit(f"cfn-benchmark not found at {bench_bin}")
-        run_cmd([str(bench_bin), str(template_dir), "--engine", engine,
-                 "--iterations", str(iterations)], SRC_DIR, "native benchmark")
-    elif binding == "wasm":
-        run_cmd(["npx", "ts-node", "benchmark.ts", str(template_dir), "--engine", engine,
-                 "--iterations", str(iterations)],
-                SRC_DIR / "bindings-wasm" / "bench", "wasm benchmark")
-    elif binding == "jvm":
-        bench_dir = SRC_DIR / "bindings-jvm" / "bench"
-        gradle = str(bench_dir / "gradlew") if (bench_dir / "gradlew").exists() else "gradle"
-        run_cmd([gradle, "run", "--no-daemon",
-                 f"--args={template_dir} --engine {engine} --iterations {iterations}"],
-                bench_dir, "jvm benchmark")
-    elif binding == "python":
-        bench_dir = SRC_DIR / "bindings-python" / "bench"
-        venv_python = str(bench_dir / ".venv" / "bin" / "python")
-        bench_script = str(bench_dir / "benchmark.py")
-        if not Path(bench_script).exists():
-            sys.exit(f"Python benchmark script not found at {bench_script}")
-        run_cmd([venv_python, bench_script, str(template_dir), "--engine", engine,
-                 "--iterations", str(iterations)],
-                bench_dir, "python benchmark")
-    elif binding == "go":
-        run_cmd(["go", "run", ".", str(template_dir), "--engine", engine,
-                 "--iterations", str(iterations)],
-                SRC_DIR / "bindings-go" / "bench", "go benchmark")
+def validate_executables(bindings):
+    missing = []
+    for binding, label in bindings:
+        path = executable_path(binding)
+        if path is None or not path.exists():
+            missing.append(f"{label} ({binding}): {path}")
+    if missing:
+        sys.exit(
+            "--skip-build set but prebuilt executables are missing:\n"
+            + "\n".join(f"  • {m}" for m in missing)
+            + "\nDrop --skip-build to build them."
+        )
+
+
+def _tool_version(cmd):
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=30, check=True)
+    except Exception:
+        return ""
+    out = (result.stdout or result.stderr or "").strip().splitlines()
+    return out[0].strip() if out else ""
+
+
+def benchmark_env():
+    env = os.environ.copy()
+    cargo = _tool_version(["cargo", "--version"])
+    rustc = _tool_version(["rustc", "--version"])
+    if cargo:
+        env["BENCHMARK_CARGO_VERSION"] = cargo
+    if rustc:
+        env["BENCHMARK_RUSTC_VERSION"] = rustc
+    return env
+
+
+def detect_time_flavor():
+    if not Path(TIME_BIN).exists():
+        return None
+    try:
+        gnu = subprocess.run([TIME_BIN, "-v", "true"], capture_output=True, text=True)
+        if "Maximum resident set size" in (gnu.stderr or ""):
+            return "gnu"
+    except OSError:
+        return None
+    if platform.system() != "Darwin":
+        return None
+    try:
+        macos = subprocess.run([TIME_BIN, "-l", "true"], capture_output=True, text=True)
+        if "maximum resident set size" in (macos.stderr or ""):
+            return "macos"
+    except OSError:
+        return None
+    return None
+
+
+def _parse_gnu_elapsed(value):
+    parts = value.split(":")
+    try:
+        nums = [float(p) for p in parts]
+    except ValueError:
+        return None
+    if len(nums) == 3:
+        hours, minutes, seconds = nums
+    elif len(nums) == 2:
+        hours, minutes, seconds = 0.0, nums[0], nums[1]
+    elif len(nums) == 1:
+        hours, minutes, seconds = 0.0, 0.0, nums[0]
     else:
-        sys.exit(f"unknown binding: {binding}")
+        return None
+    return (hours * 3600.0 + minutes * 60.0 + seconds) * 1000.0
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Aggregate loading and validation
-# ──────────────────────────────────────────────────────────────────────────────
+def parse_gnu_time(report):
+    wall_ms = None
+    rss_bytes = None
+    for raw in report.splitlines():
+        line = raw.strip()
+        if line.startswith("Elapsed (wall clock) time"):
+            _, sep, value = line.partition("): ")
+            if sep:
+                wall_ms = _parse_gnu_elapsed(value.strip())
+        elif line.startswith("Maximum resident set size"):
+            _, sep, value = line.rpartition(":")
+            if sep:
+                try:
+                    rss_bytes = int(float(value.strip())) * 1024
+                except ValueError:
+                    rss_bytes = None
+    return wall_ms, rss_bytes
+
+
+def parse_macos_time(report):
+    wall_ms = None
+    rss_bytes = None
+    for raw in report.splitlines():
+        line = raw.strip()
+        if not line:
+            continue
+        tokens = line.split()
+        if wall_ms is None and "real" in tokens:
+            idx = tokens.index("real")
+            if idx > 0:
+                try:
+                    wall_ms = float(tokens[idx - 1]) * 1000.0
+                except ValueError:
+                    wall_ms = None
+        if line.endswith("maximum resident set size") and tokens:
+            try:
+                rss_bytes = int(tokens[0])
+            except ValueError:
+                rss_bytes = None
+    return wall_ms, rss_bytes
+
+
+def run_with_time(cmd, cwd, env, flavor):
+    flag = "-v" if flavor == "gnu" else "-l"
+    fd, time_path = tempfile.mkstemp(prefix="cfnbench-time-", suffix=".txt")
+    os.close(fd)
+    try:
+        wrapped = [TIME_BIN, flag, "-o", time_path, *[str(c) for c in cmd]]
+        proc = subprocess.run(wrapped, cwd=str(cwd), env=env, capture_output=True, text=True)
+        report = Path(time_path).read_text()
+    finally:
+        try:
+            os.unlink(time_path)
+        except OSError:
+            pass
+    parser = parse_gnu_time if flavor == "gnu" else parse_macos_time
+    wall_ms, rss_bytes = parser(report)
+    return proc, wall_ms, rss_bytes
+
+
+def _parse_probe_json(stdout, binding, engine):
+    lines = [ln for ln in stdout.splitlines() if ln.strip()]
+    if not lines:
+        sys.exit(f"startup probe for {binding}/{engine} produced no JSON on stdout")
+    try:
+        data = json.loads(lines[-1])
+    except json.JSONDecodeError as exc:
+        sys.exit(f"startup probe for {binding}/{engine} emitted invalid JSON: {exc}")
+    if not isinstance(data, dict):
+        sys.exit(f"startup probe for {binding}/{engine} JSON is not an object")
+    probe_binding = data.get("binding")
+    if probe_binding is not None and probe_binding != binding:
+        sys.exit(f"startup probe binding mismatch: expected '{binding}', got {probe_binding!r}")
+    probe_engine = data.get("engine")
+    if probe_engine is not None and probe_engine != engine:
+        sys.exit(f"startup probe engine mismatch: expected '{engine}', got {probe_engine!r}")
+    return data
+
+
+def run_startup_probes(binding, engine, samples, env, flavor):
+    cmd, cwd = probe_command(binding, engine)
+    print(f"=== {binding} startup probe (engine={engine}, samples={samples}) ===", file=sys.stderr)
+    collected = []
+    for index in range(samples):
+        proc, wall_ms, rss_bytes = run_with_time(cmd, cwd, env, flavor)
+        if proc.returncode != 0:
+            sys.exit(
+                f"startup probe failed for {binding}/{engine} "
+                f"(sample {index + 1}/{samples}, exit {proc.returncode}):\n{proc.stderr.strip()}"
+            )
+        if wall_ms is None or rss_bytes is None:
+            sys.exit(f"could not parse /usr/bin/time output for {binding}/{engine} startup probe")
+        data = _parse_probe_json(proc.stdout, binding, engine)
+        collected.append({"json": data, "wall_ms": wall_ms, "rss_bytes": rss_bytes})
+    return collected
+
+
+def run_corpus(binding, engine, iterations, template_dir, env, flavor):
+    cmd, cwd = corpus_command(binding, engine, iterations, template_dir)
+    print(f"=== {binding} corpus benchmark (engine={engine}) ===", file=sys.stderr)
+    print(f"  $ {' '.join(cmd)}", file=sys.stderr)
+    proc, wall_ms, rss_bytes = run_with_time(cmd, cwd, env, flavor)
+    if proc.stderr:
+        sys.stderr.write(proc.stderr)
+    if proc.returncode != 0:
+        sys.exit(f"{binding} corpus benchmark failed (engine={engine}, exit {proc.returncode})")
+    if rss_bytes is None:
+        sys.exit(f"could not parse /usr/bin/time RSS for {binding}/{engine} corpus run")
+    return wall_ms, rss_bytes
+
+
+def _median(values):
+    if not values:
+        return 0.0
+    ordered = sorted(values)
+    n = len(ordered)
+    if n % 2 == 0:
+        return (ordered[n // 2 - 1] + ordered[n // 2]) / 2.0
+    return ordered[n // 2]
+
+
+def _percentile(values, pct):
+    if not values:
+        return 0.0
+    ordered = sorted(values)
+    rank = (pct / 100.0) * (len(ordered) - 1)
+    lo = math.floor(rank)
+    hi = min(math.ceil(rank), len(ordered) - 1)
+    frac = rank - lo
+    return ordered[lo] + frac * (ordered[hi] - ordered[lo])
+
+
+def compute_stats(values):
+    nums = [float(v) for v in values if v is not None]
+    if not nums:
+        return {"count": 0, "min": 0.0, "avg": 0.0, "median": 0.0,
+                "p90": 0.0, "p95": 0.0, "p99": 0.0, "max": 0.0}
+    return {
+        "count": len(nums),
+        "min": round(min(nums), 4),
+        "avg": round(sum(nums) / len(nums), 4),
+        "median": round(_median(nums), 4),
+        "p90": round(_percentile(nums, 90), 4),
+        "p95": round(_percentile(nums, 95), 4),
+        "p99": round(_percentile(nums, 99), 4),
+        "max": round(max(nums), 4),
+    }
+
+
+def aggregate_process_startup(samples):
+    if len(samples) < MIN_STARTUP_SAMPLES:
+        sys.exit(f"startup aggregation requires >= {MIN_STARTUP_SAMPLES} samples")
+    cold = samples[0]
+    warm = samples[1:]
+    cold_json = cold["json"]
+    startup_name = cold_json.get("startup_template")
+    if not isinstance(startup_name, str) or not startup_name:
+        sys.exit("cold startup probe JSON missing string 'startup_template'")
+
+    cold_section = {
+        "consumer_init_ms": get(cold_json, "consumer_init", "duration_ms"),
+        "first_validation_host_ms": get(cold_json, "first_validation", "host_ms"),
+        "module_load_ms": cold_json.get("module_load_ms"),
+        "schema_init_ms": cold_json.get("schema_init_ms"),
+        "engine_init_ms": cold_json.get("engine_init_ms"),
+        "internal_time_to_first_result_ms": cold_json.get("internal_time_to_first_result_ms"),
+        "process_wall_ms": round(float(cold["wall_ms"]), 4),
+        "process_peak_rss_bytes": int(cold["rss_bytes"]),
+    }
+    warm_section = {
+        "count": len(warm),
+        "process_wall_ms": compute_stats([s["wall_ms"] for s in warm]),
+        "process_peak_rss_bytes": compute_stats([s["rss_bytes"] for s in warm]),
+        "consumer_init_ms": compute_stats([get(s["json"], "consumer_init", "duration_ms") for s in warm]),
+        "first_validation_host_ms": compute_stats([get(s["json"], "first_validation", "host_ms") for s in warm]),
+    }
+    return {
+        "startup_template": startup_name,
+        "samples": len(samples),
+        "cold": cold_section,
+        "warm": warm_section,
+    }
+
+
+def enrich_aggregate(path, process_startup, corpus_rss_bytes):
+    with open(path) as f:
+        data = json.load(f)
+    data["process_startup"] = process_startup
+    memory = data.get("memory")
+    if not isinstance(memory, dict):
+        memory = {}
+    memory["full_corpus_peak_rss_bytes"] = int(corpus_rss_bytes)
+    data["memory"] = memory
+    tmp_path = path.with_name(path.name + ".tmp")
+    with open(tmp_path, "w") as f:
+        json.dump(data, f, indent=2)
+        f.write("\n")
+    os.replace(str(tmp_path), str(path))
+
 
 def aggregate_path(engine, fmt, binding):
     if binding == "native":
@@ -272,16 +589,6 @@ def _is_finite_number(val):
 
 
 def _validate_aggregate_structure(data, path):
-    """Validate top-level structure of an aggregate JSON file.
-
-    Checks:
-    - Root must be a dict (not list, null, scalar).
-    - Must have nonempty string 'binding' in VALID_BINDINGS.
-    - Must have nonempty string 'engine' in VALID_ENGINES.
-    - Must have 'templates_total' as a finite non-bool integer >= 0.
-    - Must have 'templates_ok' as a finite non-bool integer >= 0.
-    - Must have 'corpus_fingerprint' as a nonempty string.
-    """
     if not isinstance(data, dict):
         sys.exit(f"aggregate {path}: root is not a JSON object (got {type(data).__name__})")
 
@@ -308,6 +615,41 @@ def _validate_aggregate_structure(data, path):
     fp = data.get("corpus_fingerprint")
     if not isinstance(fp, str) or not fp:
         sys.exit(f"aggregate {path}: missing or empty 'corpus_fingerprint'")
+
+    provenance = data.get("provenance")
+    if not isinstance(provenance, dict):
+        sys.exit(f"aggregate {path}: missing 'provenance' object")
+    for field in ("cloudformation_validate", "cargo", "rustc", "runtime"):
+        pv = provenance.get(field)
+        if not isinstance(pv, str) or not pv:
+            sys.exit(f"aggregate {path}: provenance.{field} must be a nonempty string")
+
+    startup = get(data, "performance", "startup")
+    if not isinstance(startup, dict):
+        sys.exit(f"aggregate {path}: missing 'performance.startup' object")
+    if not _is_finite_number(get(startup, "consumer_init", "duration_ms")):
+        sys.exit(f"aggregate {path}: performance.startup.consumer_init.duration_ms is not a finite number")
+    if not _is_finite_number(get(startup, "first_validation", "host_ms")):
+        sys.exit(f"aggregate {path}: performance.startup.first_validation.host_ms is not a finite number")
+
+    process_startup = data.get("process_startup")
+    if not isinstance(process_startup, dict):
+        sys.exit(f"aggregate {path}: missing 'process_startup' object (run benchmarks to enrich it)")
+    cold = process_startup.get("cold")
+    if not isinstance(cold, dict):
+        sys.exit(f"aggregate {path}: missing 'process_startup.cold' object")
+    for field in ("consumer_init_ms", "first_validation_host_ms", "process_wall_ms", "process_peak_rss_bytes"):
+        if not _is_finite_number(cold.get(field)):
+            sys.exit(f"aggregate {path}: process_startup.cold.{field} is not a finite number (got {cold.get(field)!r})")
+    warm = process_startup.get("warm")
+    if not isinstance(warm, dict):
+        sys.exit(f"aggregate {path}: missing 'process_startup.warm' object")
+    for field in ("process_wall_ms", "process_peak_rss_bytes"):
+        if not isinstance(warm.get(field), dict):
+            sys.exit(f"aggregate {path}: process_startup.warm.{field} must be a stats object")
+
+    if not _is_finite_number(get(data, "memory", "full_corpus_peak_rss_bytes")):
+        sys.exit(f"aggregate {path}: memory.full_corpus_peak_rss_bytes is not a finite number")
 
 
 def load_aggregate(path, run_start_epoch):
@@ -375,10 +717,6 @@ def enforce_run_metadata_parity(all_loaded, bindings):
                 )
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Per-template detailed report loading and validation
-# ──────────────────────────────────────────────────────────────────────────────
-
 def _per_template_dir(engine, binding):
     if binding == "native":
         return SRC_DIR / "cfn-validate" / "reports" / engine / "json_detailed"
@@ -392,8 +730,8 @@ def load_and_validate_detailed_reports(engines, bindings):
     1. Directory must exist and be nonempty.
     2. Root must be a JSON object with engine/binding labels matching the expected pair.
     3. filePath must be a nonempty string, unique within each engine×binding directory.
-    4. steadyState must contain all REQUIRED_STEADY_METRICS as finite numeric
-       (non-bool) values.
+    4. benchmarkMetrics.subsequent is canonical: sampleCount is a non-negative integer;
+       zero requires all REQUIRED_SUBSEQUENT_METRICS null, positive requires them finite.
     5. Template path sets must be identical across all engine×binding pairs.
 
     Returns: dict[engine][binding] -> dict[filePath -> report_data] or exits on error.
@@ -455,16 +793,33 @@ def load_and_validate_detailed_reports(engines, bindings):
                     continue
                 seen_paths.add(file_path)
 
-                # Rule 4: finite numeric (non-bool) required steady metrics
                 metrics = data.get("benchmarkMetrics", {})
-                steady = metrics.get("steadyState", {}) if isinstance(metrics, dict) else {}
-                for metric_name in REQUIRED_STEADY_METRICS:
-                    val = steady.get(metric_name)
-                    if not _is_finite_number(val):
+                subsequent = metrics.get("subsequent", {}) if isinstance(metrics, dict) else {}
+                if not isinstance(subsequent, dict):
+                    errors.append(
+                        f"{key}: {json_file.name} benchmarkMetrics.subsequent must be an object"
+                    )
+                else:
+                    sample_count = subsequent.get("sampleCount")
+                    if isinstance(sample_count, bool) or not isinstance(sample_count, int) or sample_count < 0:
                         errors.append(
-                            f"{key}: {json_file.name} steadyState.{metric_name} "
-                            f"is not a finite number (got {val!r})"
+                            f"{key}: {json_file.name} benchmarkMetrics.subsequent.sampleCount "
+                            f"must be a non-negative integer (got {sample_count!r})"
                         )
+                    else:
+                        for metric_name in REQUIRED_SUBSEQUENT_METRICS:
+                            val = subsequent.get(metric_name)
+                            if sample_count == 0:
+                                if val is not None:
+                                    errors.append(
+                                        f"{key}: {json_file.name} benchmarkMetrics.subsequent."
+                                        f"{metric_name} must be null when sampleCount is 0 (got {val!r})"
+                                    )
+                            elif not _is_finite_number(val):
+                                errors.append(
+                                    f"{key}: {json_file.name} benchmarkMetrics.subsequent."
+                                    f"{metric_name} is not a finite number (got {val!r})"
+                                )
 
                 diagnostics = data.get("diagnostics")
                 if not isinstance(diagnostics, list) or not all(
@@ -535,10 +890,6 @@ def validate_detailed_counts(all_detailed, all_loaded, engines, bindings):
         )
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Statistics helpers
-# ──────────────────────────────────────────────────────────────────────────────
-
 PCT_FLOOR_MS = 0.01
 
 
@@ -549,8 +900,36 @@ def stat(stats_dict, key):
     return 0.0, False
 
 
+def _present(value):
+    if not _is_finite_number(value):
+        return 0.0, False
+    return float(value), True
+
+
+def _stat_present(stats_dict, key):
+    if not isinstance(stats_dict, dict) or stats_dict.get("count", 0) == 0:
+        return 0.0, False
+    return _present(stats_dict.get(key))
+
+
+def _stat_value(stats_dict, key):
+    value, present = _stat_present(stats_dict, key)
+    return value if present else None
+
+
 def ms(val, present=True, digits=4):
     return f"{val:.{digits}f}" if present else "-"
+
+
+def fmt_bytes(n):
+    if not _is_finite_number(n):
+        return "-"
+    size = float(n)
+    for unit in ("B", "KiB", "MiB", "GiB"):
+        if size < 1024.0 or unit == "GiB":
+            return f"{int(size)} B" if unit == "B" else f"{size:.1f} {unit}"
+        size /= 1024.0
+    return f"{size:.1f} GiB"
 
 
 def pct(base, base_present, v, v_present):
@@ -593,10 +972,6 @@ def stat_cols(d, stats=STATS):
     return [ms(*stat(d, s)) for s in stats]
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Paired 5% classification helper
-# ──────────────────────────────────────────────────────────────────────────────
-
 def classify_paired(rego_wall, cel_wall):
     """Classify a paired Rego/CEL comparison for one template.
 
@@ -632,15 +1007,11 @@ def classify_paired(rego_wall, cel_wall):
     return "within_noise"
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Top-N slowest tables (per engine × binding)
-# ──────────────────────────────────────────────────────────────────────────────
-
 def top_slowest_section(all_detailed, engines, bindings, top_n):
     """Generate top-N slowest template tables for each engine × binding.
 
-    Each table shows wall, rule, schema, and model steady-state metrics,
-    sorted descending by steady-state wallClockMs.
+    Each table shows wall, rule, schema, and model subsequent metrics,
+    sorted descending by subsequent wallClockMs.
 
     This section is mandatory when detailed reports are available.  Missing or
     empty report data for any selected pair is a hard error.
@@ -659,11 +1030,12 @@ def top_slowest_section(all_detailed, engines, bindings, top_n):
         )
 
     lines = [
-        f"## Top-{top_n} Slowest Templates (steady-state wall clock)", "",
-        "Per engine × binding: templates with the highest steady-state "
-        "`wallClockMs` (median of iterations 2..N; N=1 uses the single sample). "
-        "Columns: wall (total validate), rule (rule evaluation), schema "
-        "(schema validation), model (model build) — all in milliseconds.", "",
+        f"## Top-{top_n} Slowest Templates (subsequent wall clock)", "",
+        "Per engine × binding: templates with the highest subsequent "
+        "`wallClockMs` (median of iterations 2..N). Templates with no subsequent "
+        "samples (single-iteration runs) are omitted. Columns: wall (total validate), "
+        "rule (rule evaluation), schema (schema validation), model (model build) — all "
+        "in milliseconds.", "",
     ]
 
     for engine in engines:
@@ -672,47 +1044,49 @@ def top_slowest_section(all_detailed, engines, bindings, top_n):
         for binding, label in bindings:
             reports = all_detailed[engine][binding]
 
-            # Extract steady-state metrics per template
             template_metrics = []
             for file_path, data in reports.items():
-                steady = get(data, "benchmarkMetrics", "steadyState", default={})
-                wall = steady.get("wallClockMs", 0.0)
-                rule = steady.get("ruleEvaluationMs", 0.0)
-                schema = steady.get("schemaValidateMs", 0.0)
-                model = steady.get("modelBuildMs", 0.0)
+                subsequent = get(data, "benchmarkMetrics", "subsequent", default={})
+                if not isinstance(subsequent, dict) or subsequent.get("sampleCount", 0) == 0:
+                    continue
+                wall = subsequent.get("wallClockMs")
+                rule = subsequent.get("ruleEvaluationMs")
+                schema = subsequent.get("schemaValidateMs")
+                model = subsequent.get("modelBuildMs")
+                if not all(_is_finite_number(v) for v in (wall, rule, schema, model)):
+                    continue
                 template_metrics.append((file_path, wall, rule, schema, model))
 
-            # Sort descending by wall clock, take top N
+            lines.append(f"**{label}**")
+            lines.append("")
+            if not template_metrics:
+                lines.append("_No subsequent samples (single-iteration run)._")
+                lines.append("")
+                continue
+
             template_metrics.sort(key=lambda x: x[1], reverse=True)
             top = template_metrics[:top_n]
 
             header = ["#", "Template", "Wall (ms)", "Rule (ms)", "Schema (ms)", "Model (ms)"]
             rows = []
             for i, (fp, wall, rule, schema, model) in enumerate(top, 1):
-                # Truncate long paths for display
                 display_path = fp if len(fp) <= 60 else "…" + fp[-57:]
                 rows.append([
                     str(i), display_path,
                     f"{wall:.4f}", f"{rule:.4f}", f"{schema:.4f}", f"{model:.4f}",
                 ])
 
-            lines.append(f"**{label}**")
-            lines.append("")
             lines += table(header, rows)
             lines.append("")
 
     return lines
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Paired Rego-vs-CEL comparison per binding
-# ──────────────────────────────────────────────────────────────────────────────
-
 def paired_engine_comparison(all_detailed, bindings):
     """Paired Rego-vs-CEL analysis per binding.
 
     For each binding, computes:
-    - Representative corpus-pass sums (sum of per-template steady-state wallClockMs
+    - Representative corpus-pass sums (sum of per-template subsequent wallClockMs
       medians — a representative total, not a measured elapsed time or throughput).
     - Clear direction ratios (Rego/CEL and CEL/Rego)
     - Ratio-based 5% practical threshold counts (templates where slower/faster ≥ 1.05)
@@ -731,17 +1105,17 @@ def paired_engine_comparison(all_detailed, bindings):
 
     lines = [
         "## Paired Engine Comparison (Rego vs CEL)", "",
-        "Per-binding paired analysis using steady-state per-template metrics. "
+        "Per-binding paired analysis using subsequent per-template metrics. "
         "Each template is compared across engines using the same binding, so "
         "differences reflect engine behavior rather than binding overhead.", "",
         "**Metric definitions:**", "",
-        "- **Corpus-pass sum**: representative sum of per-template steady-state "
-        "`wallClockMs` medians across all templates — the total typical validation "
-        "work for one full corpus pass. This is a sum of medians, not a measured "
-        "elapsed time or throughput. Tail outliers (high p99/max) can make "
-        "throughput figures close even when typical (median) per-template costs "
+        "- **Corpus-pass sum**: representative sum of per-template subsequent "
+        "`wallClockMs` medians across templates with subsequent samples — the total "
+        "typical validation work for one full corpus pass. This is a sum of medians, "
+        "not a measured elapsed time or throughput. Tail outliers (high p99/max) can "
+        "make throughput figures close even when typical (median) per-template costs "
         "differ noticeably between engines.",
-        "- **Direction ratio**: `sum(Rego steady wall) / sum(CEL steady wall)` — "
+        "- **Direction ratio**: `sum(Rego subsequent wall) / sum(CEL subsequent wall)` — "
         "values >1.0 mean Rego is slower overall.",
         f"- **{int((PAIRED_RATIO_THRESHOLD - 1) * 100)}% threshold**: count of templates where "
         f"`slower / faster ≥ {PAIRED_RATIO_THRESHOLD}` (ratio-based practical significance "
@@ -758,7 +1132,6 @@ def paired_engine_comparison(all_detailed, bindings):
         if not rego_reports or not cel_reports:
             continue
 
-        # Only compare templates present in both
         common_paths = set(rego_reports.keys()) & set(cel_reports.keys())
         if not common_paths:
             continue
@@ -770,23 +1143,29 @@ def paired_engine_comparison(all_detailed, bindings):
         rego_faster_5pct = 0
         cel_faster_5pct = 0
         within_noise = 0
-        deltas = []  # (path, rego_wall, cel_wall, abs_diff, direction)
+        compared = 0
+        deltas = []
 
         for fp in sorted(common_paths):
-            rego_steady = get(rego_reports[fp], "benchmarkMetrics", "steadyState", default={})
-            cel_steady = get(cel_reports[fp], "benchmarkMetrics", "steadyState", default={})
+            rego_sub = get(rego_reports[fp], "benchmarkMetrics", "subsequent", default={})
+            cel_sub = get(cel_reports[fp], "benchmarkMetrics", "subsequent", default={})
+            if (not isinstance(rego_sub, dict) or rego_sub.get("sampleCount", 0) == 0
+                    or not isinstance(cel_sub, dict) or cel_sub.get("sampleCount", 0) == 0):
+                continue
 
-            rw = rego_steady.get("wallClockMs", 0.0)
-            cw = cel_steady.get("wallClockMs", 0.0)
-            rr = rego_steady.get("ruleEvaluationMs", 0.0)
-            cr = cel_steady.get("ruleEvaluationMs", 0.0)
+            rw = rego_sub.get("wallClockMs")
+            cw = cel_sub.get("wallClockMs")
+            rr = rego_sub.get("ruleEvaluationMs")
+            cr = cel_sub.get("ruleEvaluationMs")
+            if not all(_is_finite_number(v) for v in (rw, cw, rr, cr)):
+                continue
 
+            compared += 1
             rego_wall_sum += rw
             cel_wall_sum += cw
             rego_rule_sum += rr
             cel_rule_sum += cr
 
-            # Ratio-based 5% threshold classification
             classification = classify_paired(rw, cw)
             if classification == "rego_faster":
                 rego_faster_5pct += 1
@@ -799,16 +1178,19 @@ def paired_engine_comparison(all_detailed, bindings):
             direction = "Rego faster" if rw < cw else "CEL faster" if cw < rw else "equal"
             deltas.append((fp, rw, cw, abs_diff, direction))
 
-        # Sort by absolute delta descending for largest paired deltas
+        lines.append(f"### {label}")
+        lines.append("")
+        if compared == 0:
+            lines.append("_No subsequent samples to compare (single-iteration run)._")
+            lines.append("")
+            continue
+
         deltas.sort(key=lambda x: x[3], reverse=True)
 
-        # Compute ratios
         direction_ratio = (rego_wall_sum / cel_wall_sum) if cel_wall_sum > 0 else float("inf")
         rule_ratio = (rego_rule_sum / cel_rule_sum) if cel_rule_sum > 0 else float("inf")
 
-        lines.append(f"### {label}")
-        lines.append("")
-        lines.append(f"**Templates compared:** {len(common_paths)}")
+        lines.append(f"**Templates compared:** {compared}")
         lines.append("")
 
         summary_header = ["Metric", "Value"]
@@ -845,40 +1227,26 @@ def paired_engine_comparison(all_detailed, bindings):
     return lines
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Report sections (aggregate-based, same as original)
-# ──────────────────────────────────────────────────────────────────────────────
-
 def _first_steady_tables(all_loaded, engine, key_prefix, bindings):
-    """First-measured/steady-state tables for a single engine (per-template phases)."""
-    def build(mode, mode_key):
+    def build(mode_key):
         header = ["Binding"] + [s for s in STATS]
         rows = []
         for b, lbl in bindings:
             d = get(all_loaded[engine][b], "performance", f"{mode_key}_{key_prefix}_ms", default={})
-            rows.append([lbl] + stat_cols(d))
+            rows.append([lbl] + [ms(*_stat_present(d, stat_name)) for stat_name in STATS])
         return table(header, rows)
 
     lines = [
-        "**First measured (after harness warmup)** - first per-template sample (ms)", "",
+        "**First corpus measurement** - first per-template sample (ms)", "",
     ]
-    lines += build("first", "cold")
+    lines += build("first_measured")
     lines += [
         "",
-        "**Steady state** - subsequent iterations per template (ms)", "",
+        "**Subsequent corpus measurements** - subsequent iterations per template (ms)", "",
     ]
-    lines += build("steady", "warm")
+    lines += build("subsequent")
     lines += [""]
     return lines
-
-
-def _cold_warm_tables_init(all_loaded, engine, bindings):
-    header = ["Binding"] + [s for s in STATS]
-    warm_rows = []
-    for b, lbl in bindings:
-        d = get(all_loaded[engine][b], "performance", "warm_init_ms", default={})
-        warm_rows.append([lbl] + stat_cols(d))
-    return table(header, warm_rows)
 
 
 def headline_section(all_loaded, engine, bindings):
@@ -895,33 +1263,77 @@ def headline_section(all_loaded, engine, bindings):
     return lines
 
 
-def executive_summary(all_loaded, engines, bindings):
-    """Top-of-report one-glance table per engine."""
-    lines = ["## Executive Summary - p99 per phase (ms)", "",
-            "One-glance view. **Init** shows the cold (first) construction cost - paid once "
-            "per process; includes WASM module instantiation / JNI library load / Python "
-            "cdylib FFI load for non-native bindings (Go is statically linked: "
-            "module_load_ms = 0). **Model** and **Validate** show steady-state "
-            "p99 - the consumer-visible latency after the global harness warmup. "
-            "Steady state is the median of iterations 2..N; when N=1 it falls "
-            "back to the sole first-measured sample. "
-            "Detailed breakdowns are in the per-engine sections below.", ""]
-    header = ["Binding", "Module Load (ms)", "Init cold (ms)", "Model steady p99 (ms)",
-              "Validate steady p99 (ms)", "Throughput"]
+def provenance_section(all_loaded, engines, bindings):
+    first_agg = all_loaded[engines[0]][bindings[0][0]]
+    core = get(first_agg, "provenance", "cloudformation_validate", default="unknown")
+    cargo = get(first_agg, "provenance", "cargo", default="unknown")
+    rustc = get(first_agg, "provenance", "rustc", default="unknown")
+
+    lines = ["## Provenance", "",
+             "Recorded from each binding's aggregate. The core `cloudformation-validate` "
+             "version, Cargo, and rustc are the exact tool versions used to build the native "
+             "core (injected into the harness environment so measurement is not contaminated "
+             "by version queries). Each binding additionally reports the artifact it ships as "
+             "and its runtime.", "",
+             f"- **cloudformation-validate**: {core}",
+             f"- **cargo**: {cargo}",
+             f"- **rustc**: {rustc}", ""]
+
+    header = ["Binding", "Artifact", "Artifact version", "Runtime"]
+    rows = []
+    for b, lbl in bindings:
+        agg = all_loaded[engines[0]][b]
+        kind = get(agg, "provenance", "binding_artifact", "kind", default="unknown")
+        version = get(agg, "provenance", "binding_artifact", "version", default="unknown")
+        runtime = get(agg, "provenance", "runtime", default="unknown")
+        rows.append([lbl, str(kind), str(version), str(runtime)])
+    lines += table(header, rows) + [""]
+    return lines
+
+
+def latency_memory_summary(all_loaded, engines, bindings):
+    lines = ["## Latency & Memory Summary", "",
+             "One row per binding. Latency columns are milliseconds; memory columns are "
+             "peak resident set size (RSS).", "",
+             "- **Module load**: module/binding initialization from the cold startup-probe "
+             "process, measured before consumer init (`process_startup.cold.module_load_ms`).",
+             "- **First init** / **First validation**: the cold startup-probe process — its "
+             "in-process consumer setup and first `validate()` call (`process_startup.cold`).",
+             "- **Subseq median/p99**: subsequent per-template validation latency from the "
+             "corpus run (iterations 2..N; `-` when a single iteration leaves no subsequent "
+             "window).",
+             "- **Cold wall/RSS**: the first (cold) startup-probe process, measured externally "
+             "by `/usr/bin/time`.",
+             "- **Warm wall median/p99 + RSS**: the remaining startup-probe processes.",
+             "- **Corpus RSS**: peak RSS of the full corpus benchmark process.",
+             "- **Throughput**: ok × iterations / measured validation wall time.", ""]
+
+    header = ["Binding", "Module load (ms)", "First init (ms)", "First val (ms)", "Subseq median (ms)",
+              "Subseq p99 (ms)", "Cold wall (ms)", "Cold RSS", "Warm wall median (ms)",
+              "Warm wall p99 (ms)", "Warm RSS", "Corpus RSS", "Throughput (val/s)"]
+
     for engine in engines:
         rows = []
         for b, lbl in bindings:
             agg = all_loaded[engine][b]
-            mod_load = get(agg, "performance", "module_load_ms", default=0.0)
-            init_cold = get(agg, "performance", "cold_init_ms")
-            model = get(agg, "performance", "warm_host_model_ms", default={})
-            validate = get(agg, "performance", "warm_wall_clock_ms", default={})
+            cold = get(agg, "process_startup", "cold", default={})
+            warm = get(agg, "process_startup", "warm", default={})
+            subseq = get(agg, "performance", "subsequent_wall_clock_ms", default={})
+            warm_wall = warm.get("process_wall_ms", {}) if isinstance(warm, dict) else {}
+            warm_rss = warm.get("process_peak_rss_bytes", {}) if isinstance(warm, dict) else {}
             rows.append([
                 lbl,
-                ms(mod_load or 0.0),
-                ms(init_cold or 0.0, init_cold is not None),
-                ms(*stat(model, "p99")),
-                ms(*stat(validate, "p99")),
+                ms(*_present(cold.get("module_load_ms"))),
+                ms(*_present(cold.get("consumer_init_ms"))),
+                ms(*_present(cold.get("first_validation_host_ms"))),
+                ms(*_stat_present(subseq, "median")),
+                ms(*_stat_present(subseq, "p99")),
+                ms(*_present(cold.get("process_wall_ms"))),
+                fmt_bytes(cold.get("process_peak_rss_bytes")),
+                ms(*_stat_present(warm_wall, "median")),
+                ms(*_stat_present(warm_wall, "p99")),
+                fmt_bytes(_stat_value(warm_rss, "median")),
+                fmt_bytes(get(agg, "memory", "full_corpus_peak_rss_bytes")),
                 ms(recomputed_throughput(agg), True, 2),
             ])
         lines += [f"### {engine.upper()}", ""] + table(header, rows) + [""]
@@ -929,7 +1341,6 @@ def executive_summary(all_loaded, engines, bindings):
 
 
 def model_section(all_loaded, engine, bindings):
-    """Template modeling for one engine."""
     lines = ["### Template Modeling - host-timed `SemanticModel::parse` (ms)", "",
              "Host timer around `SemanticModel::parse` (bytes → resolved model). "
              "Standalone measurement; does not include the re-parse inside `validate()`.", ""]
@@ -937,61 +1348,7 @@ def model_section(all_loaded, engine, bindings):
     return lines
 
 
-def init_section(all_loaded, engine, bindings):
-    """Initialization for one engine."""
-    cold_header = ["Binding", "Module Load (ms)", "Cold init_ms (ms)"]
-    component_header = ["Binding", "Schema median", "Schema p99", "Engine median", "Engine p99"]
-
-    lines = ["### Initialization - consumer-visible setup cost (ms)", "",
-             "**init_ms** is the actual validation setup a consumer constructs before "
-             "calling `validate()`. What it measures differs by binding:", "",
-             "- **Native:** standalone `SchemaValidator` construction + standalone engine "
-             "construction (two separate objects the consumer creates).",
-             "- **FFI bindings (WASM / JVM / Python / Go):** engine constructor only - "
-             "the FFI engine constructors already embed schema initialization internally, "
-             "so `init_ms` is the single engine constructor call the consumer makes.", "",
-             "**Module Load** is the one-time cost of loading the native library (JNI / "
-             "Python cdylib) or WASM module (V8 compile + `#[start]`). Native = 0; "
-             "Go = 0 (statically linked via cgo, no dynamic module load). "
-             "**Cold** = module load + first `init_ms` - the total first-use cost a "
-             "consumer pays. **Warm** = subsequent constructions.", "",
-             "**Component timing** below shows `schema_init_ms` and `engine_init_ms` as "
-             "standalone component measurements. For FFI bindings, `schema_init_ms` is "
-             "already embedded inside `engine_init_ms` - these are independent timers, "
-             "not additive components of `init_ms`.", ""]
-
-    cold_rows = []
-    warm_rows = []
-    component_rows = []
-    for b, lbl in bindings:
-        agg = all_loaded[engine][b]
-        mod_v = get(agg, "performance", "module_load_ms", default=0.0)
-        cold_v = get(agg, "performance", "cold_init_ms")
-        cold_rows.append([lbl, ms(mod_v or 0.0), ms(cold_v or 0.0, cold_v is not None)])
-        warm = get(agg, "performance", "warm_init_ms", default={})
-        warm_rows.append([lbl] + stat_cols(warm))
-        si = get(agg, "performance", "schema_init_ms", default={})
-        ei = get(agg, "performance", "engine_init_ms", default={})
-        component_rows.append([
-            lbl,
-            ms(*stat(si, "median")), ms(*stat(si, "p99")),
-            ms(*stat(ei, "median")), ms(*stat(ei, "p99")),
-        ])
-    lines += ["**Cold** - first construction (ms)", ""] + table(cold_header, cold_rows)
-    warm_header = ["Binding"] + [s for s in STATS]
-    lines += ["", "**Warm** - subsequent constructions (ms)", ""] + table(warm_header, warm_rows)
-    lines += ["", "**Component timing** - schema_init_ms / engine_init_ms (ms)", "",
-              "Standalone component measurements. For native, these are the two separate "
-              "objects the consumer constructs. For FFI bindings, schema is already embedded "
-              "in the engine constructor - `schema_init_ms` must not be added to "
-              "`engine_init_ms`.", ""]
-    lines += table(component_header, component_rows)
-    lines += [""]
-    return lines
-
-
 def phase_table(all_loaded, engine, bindings):
-    """Per-engine sub-phase breakdown."""
     lines = ["### Sub-phases (per-template medians across iterations, ms)", ""]
     header = ["Phase"]
     for _, lbl in bindings:
@@ -1259,28 +1616,148 @@ def data_sources_section(all_loaded, engines, bindings):
 
 
 def host_metadata():
-    def ver(cmd):
-        try:
-            r = subprocess.run(cmd, capture_output=True, text=True, timeout=10, check=True)
-            out = (r.stdout or r.stderr).strip().splitlines()
-            return out[0] if out else "unknown"
-        except Exception:
-            return "not installed"
-
     return {
         "os": f"{platform.system()} {platform.release()}",
         "arch": platform.machine(),
         "python": platform.python_version(),
-        "rustc": ver(["rustc", "--version"]),
-        "node": ver(["node", "--version"]),
-        "java": ver(["java", "-version"]),
-        "go": ver(["go", "version"]),
     }
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Main
-# ──────────────────────────────────────────────────────────────────────────────
+def run_all_benchmarks(engines, bindings, args, flavor):
+    env = benchmark_env()
+    plan = build_run_plan(engines, bindings)
+    for binding, engine in plan:
+        probes = run_startup_probes(
+            binding, engine, args.startup_samples, env, flavor
+        )
+        _corpus_wall_ms, corpus_rss_bytes = run_corpus(
+            binding, engine, args.iterations, args.template_dir, env, flavor
+        )
+        process_startup = aggregate_process_startup(probes)
+        enrich_aggregate(aggregate_path(engine, FORMATS[0], binding), process_startup, corpus_rss_bytes)
+
+
+def build_report(all_loaded, all_detailed, engines, bindings, args, corpus_fp, corpus_file_count):
+    host = host_metadata()
+    lines = [
+        "# Benchmark Comparison",
+        "",
+        f"Generated: {datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')}",
+        "",
+        "## Host", "",
+        *[f"- **{k}**: {v}" for k, v in host.items()],
+        f"- **iterations/template**: {args.iterations}",
+        f"- **startup samples/binding**: {args.startup_samples} (1 cold + "
+        f"{args.startup_samples - 1} warm)",
+        f"- **corpus fingerprint**: `{corpus_fp}` ({corpus_file_count} files)",
+        f"- **bindings**: {', '.join(lbl for _, lbl in bindings)} ({len(bindings)} total)",
+        f"- **engines**: {', '.join(e.upper() for e in engines)}",
+        "",
+    ]
+
+    lines += provenance_section(all_loaded, engines, bindings)
+
+    lines += [
+        "## Methodology Notes", "",
+        "### Process startup (cold vs warm) - externally measured", "",
+        "Startup is measured by launching independent OS processes of each binding's "
+        "benchmark harness in `--startup-probe` mode, each wrapped with `/usr/bin/time`. "
+        "A probe constructs the real consumer validation setup (schema validator + engine) "
+        "and performs the first `validate()` call on a single small template, printing a "
+        "JSON object with the in-process init and first-validation timings. `/usr/bin/time` "
+        "reports that process's external wall time and peak RSS (GNU `-v` reports RSS in "
+        "kbytes and is scaled to bytes; macOS `-l` reports bytes directly).", "",
+        "The **first** probe process is the **cold** sample: the first fresh benchmark "
+        "process observed for that engine × binding after the build. Its process-local "
+        "state (loaded modules, allocator arenas, and the freshly constructed schema "
+        "validator and engine) is new, but the OS page cache and filesystem caches are "
+        "not dropped and may already be warm from the build and preceding probes, so this "
+        "is not a genuine machine-cold start. The **remaining** probe processes form the "
+        "**warm** distribution: later independent fresh processes — each a new process "
+        "rather than reuse of one already-initialized process — so their spread reflects "
+        "typical process-launch cost rather than first-ever construction.", "",
+        "### Consumer-init boundaries differ by binding", "",
+        "Consumer-init boundaries differ by binding. The WASM binding prewarms embedded "
+        "data during module initialization, so some setup appears in module load rather "
+        "than First init. Because that split is not directly comparable across bindings, "
+        "the cold process wall is the comparable end-to-end startup metric.", "",
+        "### Aggregate cold_*/warm_* fields are corpus aliases", "",
+        "The raw per-binding aggregate `cold_*` and `warm_*` fields are compatibility "
+        "aliases for the `first_measured_*` and `subsequent_*` corpus metrics and are not "
+        "process cold/warm startup measurements. This report's canonical cold/warm startup "
+        "figures come from `process_startup`.", "",
+        "### Subsequent validation latency vs throughput", "",
+        "Normal mode performs one process-first startup validation, then times the corpus "
+        "`validate()` calls on that same already-initialized process. **Subsequent "
+        "distributions** are per-template medians of iterations 2..N from the corpus run; "
+        "the first timed corpus call is reported separately as the \"first corpus "
+        "measurement\". When N=1 there is no subsequent window and the subsequent columns "
+        "render `-`.", "",
+        "**Throughput** uses all timed `validate()` calls (iterations 1..N × templates_ok) "
+        "divided by the aggregate `measured_validation_wall_ms` - a sustained processing "
+        "rate, not a per-template latency percentile.", "",
+        "**Corpus-pass sums** (in the Paired Engine Comparison) are representative sums of "
+        "per-template subsequent medians - not a measured elapsed time or throughput.", "",
+        "### Memory", "",
+        "**Cold/warm RSS** are the peak RSS of the startup-probe processes. **Corpus RSS** "
+        "(`memory.full_corpus_peak_rss_bytes`) is the peak RSS of the full corpus benchmark "
+        "process. Each harness writes one template's detailed report before processing the "
+        "next, outside the per-call validation timers, so the peak includes the runtime, "
+        "engine, corpus bookkeeping, and at most one detailed report serialization rather "
+        "than a corpus-sized report queue.", "",
+        "### Shared-runner temporal noise", "",
+        "CI benchmarks run on shared GitHub Actions runners (`ubuntu-latest`) where "
+        "neighboring workloads, CPU frequency scaling, and memory pressure introduce "
+        "temporal noise. Intra-run relative comparisons (engine-vs-engine, binding-vs-binding) "
+        "are more useful than cross-run absolute numbers. The corpus run pairs engines per "
+        "binding and alternates run order (AB/BA) across bindings to distribute warm-up and "
+        "load drift; results should be read as directional indicators, not precise "
+        "measurements.", "",
+    ]
+
+    # Table of contents
+    engine_anchors = [f"- [{e.upper()} Engine](#{e}-engine)" for e in engines]
+    toc_items = [
+        "- [Provenance](#provenance)",
+        "- [Methodology Notes](#methodology-notes)",
+        "- [Latency & Memory Summary](#latency--memory-summary)",
+        *engine_anchors,
+    ]
+    toc_items.append(
+        f"- [Top-{args.top_slowest} Slowest Templates](#top-{args.top_slowest}-slowest-templates-subsequent-wall-clock)"
+    )
+    if len(engines) == 2 and "rego" in engines and "cel" in engines:
+        toc_items.append(
+            "- [Paired Engine Comparison](#paired-engine-comparison-rego-vs-cel)"
+        )
+    toc_items.append("- [Data Sources](#data-sources)")
+
+    lines += ["## Table of Contents", "", *toc_items, ""]
+    lines += latency_memory_summary(all_loaded, engines, bindings)
+
+    # Track parity results
+    parity_all_passed = True
+
+    for engine in engines:
+        lines += [f"## {engine.upper()} Engine", ""]
+        lines += model_section(all_loaded, engine, bindings)
+        lines += headline_section(all_loaded, engine, bindings)
+        lines += phase_table(all_loaded, engine, bindings)
+        lines += overhead_table(all_loaded, engine, bindings)
+        parity_lines, parity_passed = diagnostics_parity(
+            all_loaded, engine, bindings, all_detailed=all_detailed
+        )
+        lines += parity_lines
+        if not parity_passed:
+            parity_all_passed = False
+
+    lines += top_slowest_section(all_detailed, engines, bindings, args.top_slowest)
+    if len(engines) == 2 and "rego" in engines and "cel" in engines:
+        lines += paired_engine_comparison(all_detailed, bindings)
+
+    lines += data_sources_section(all_loaded, engines, bindings)
+    return lines, parity_all_passed
+
 
 def main(argv=None):
     args = parse_args(argv)
@@ -1291,26 +1768,27 @@ def main(argv=None):
         if args.bindings
         else ALL_BINDINGS
     )
-    iterations = args.iterations
-    template_dir = args.template_dir
-    top_slowest = args.top_slowest
 
     if args.report_only:
         print("Report-only mode - using existing aggregate files", file=sys.stderr)
-    elif not args.skip_build:
-        build_all(bindings)
+        run_start_epoch = 0
     else:
-        print("Skipping builds (--skip-build)", file=sys.stderr)
+        if not args.skip_build:
+            build_all(bindings)
+        else:
+            print("Skipping builds (--skip-build); validating prebuilt executables", file=sys.stderr)
+            validate_executables(bindings)
 
-    run_start_epoch = time.time() if not args.report_only else 0
+        flavor = detect_time_flavor()
+        if flavor is None:
+            sys.exit(
+                f"{TIME_BIN} (GNU '-v' or macOS '-l') is required to measure process startup and "
+                f"memory but is unavailable. Install it (Linux: 'time' package) or use "
+                f"--report-only against existing aggregates."
+            )
 
-    if not args.report_only:
-        # Execute benchmarks in deterministic AB/BA alternating order per binding.
-        # This distributes runner warm-up and load drift evenly so neither engine
-        # is systematically favored by position in the run.
-        plan = build_run_plan(engines, bindings)
-        for binding, engine in plan:
-            run_benchmark(binding, engine, iterations, template_dir)
+        run_start_epoch = time.time()
+        run_all_benchmarks(engines, bindings, args, flavor)
 
     all_loaded = {
         e: {b: load_aggregate(aggregate_path(e, FORMATS[0], b), run_start_epoch)
@@ -1323,129 +1801,12 @@ def main(argv=None):
     corpus_fp = all_loaded[engines[0]][bindings[0][0]].get("corpus_fingerprint")
     corpus_file_count = all_loaded[engines[0]][bindings[0][0]].get("corpus_file_count")
 
-    # Detailed reports are part of the comparison contract: load every selected
-    # engine × binding report exactly once, then share the in-memory data across
-    # parity, top-slowest, and paired-engine sections.
     all_detailed = load_and_validate_detailed_reports(engines, bindings)
     validate_detailed_counts(all_detailed, all_loaded, engines, bindings)
 
-    host = host_metadata()
-    lines = [
-        "# Benchmark Comparison",
-        "",
-        f"Generated: {datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')}",
-        "",
-        "## Host", "",
-        *[f"- **{k}**: {v}" for k, v in host.items()],
-        f"- **iterations/template**: {iterations}",
-        f"- **corpus fingerprint**: `{corpus_fp}` ({corpus_file_count} files)",
-        f"- **bindings**: {', '.join(lbl for _, lbl in bindings)} ({len(bindings)} total)",
-        f"- **engines**: {', '.join(e.upper() for e in engines)}",
-        "",
-        "## Methodology Notes", "",
-        "### Steady-state vs throughput", "",
-        "**Steady-state distributions** are per-template medians of iterations 2..N "
-        "(the \"warmup-excluded\" window). The first iteration (iteration 1) is reported "
-        "separately as \"first measured\" since it may include JIT compilation, cache "
-        "population, or branch-predictor training. When N=1 (single iteration), steady "
-        "state falls back to the first (and only) sample — there is no discard.", "",
-        "**Throughput** uses all timed `validate()` calls (iterations 1..N × templates_ok) "
-        "divided by the aggregate `measured_validation_wall_ms`. This includes the first "
-        "iteration because throughput measures sustained real-world processing rate, not "
-        "per-template latency percentiles.", "",
-        "**Corpus-pass sums** (in the Paired Engine Comparison) are representative sums "
-        "of per-template steady-state medians — not a measured elapsed time or measured "
-        "throughput. They represent the total typical per-template cost aggregated across "
-        "the corpus. Tail outliers (high p99/max values) can make measured throughput "
-        "figures close even when typical (median) per-template costs differ noticeably "
-        "between engines.", "",
-        "### Shared-runner temporal noise", "",
-        "CI benchmarks run on shared GitHub Actions runners (`ubuntu-latest`) where "
-        "neighboring workloads, CPU frequency scaling, NUMA topology, and memory "
-        "pressure introduce temporal noise. Intra-run relative comparisons "
-        "(engine-vs-engine, binding-vs-binding) are more useful than cross-run "
-        "absolute numbers, but are still noisy — they reflect a single snapshot of "
-        "runner conditions. The workflow mitigates "
-        "this by pairing engines per binding and alternating run order (AB/BA) across "
-        "bindings, distributing warm-up and load drift so neither engine is "
-        "systematically favored. AB/BA mitigates positional bias but does not "
-        "eliminate it; results should be interpreted as directional indicators, "
-        "not precise measurements.", "",
-        "### New in this version", "",
-        "- **Deterministic run plan**: `build_run_plan()` pairs engines per binding "
-        "and alternates AB/BA across bindings (native rego/cel, wasm cel/rego, "
-        "jvm rego/cel, python cel/rego, go rego/cel).",
-        "- **Single-load detailed reports**: per-template reports are loaded exactly "
-        "once and consumed by diagnostics parity, top-slowest, and paired comparison.",
-        "- **Ratio-based 5% classification**: paired comparison uses "
-        f"`slower/faster ≥ {PAIRED_RATIO_THRESHOLD}` (not percentage-of-max) with a "
-        f"{PAIRED_FLOOR_MS} ms floor for trivially-fast templates.",
-        "",
-        "Five bindings are measured with the host language's own clock so numbers are "
-        "directly comparable across native / wasm / jvm / python / go:",
-        "1. **Init** - load native module (WASM/JNI/cdylib; Go is statically linked, "
-        "no module load) + construct the validation setup a consumer creates. "
-        "Native: standalone `SchemaValidator` + standalone engine (two objects). "
-        "FFI bindings: engine constructor only (schema is already embedded inside "
-        "the FFI engine constructor).",
-        "2. **Template Modeling** - `SemanticModel::parse(bytes)` (standalone parse of "
-        "one template).",
-        "3. **Validate** - full `validate(bytes)` call (everything - re-parses + schema "
-        "+ rules + finalize).",
-        "",
-        "Each phase reports first measured (after one global harness warmup) and "
-        "steady state (subsequent iterations). Init retains cold/warm since cold "
-        "init is a true first-ever construction with no prior warmup. The "
-        "Rust-internal sub-phase breakdown inside validate (model_build / "
-        "schema_validate / rule_evaluation / diagnostic_finalize) is surfaced under "
-        "Per-Engine Detail. `engine_internal` is the Rust-internal total (identical "
-        "across bindings); `wall_clock` is the host-timed validate total; "
-        "`binding_overhead` is the median of per-call differences "
-        "(`wall_clock_i − engine_internal_i`).",
-        "",
-    ]
-
-    # Table of contents
-    engine_anchors = [f"- [{e.upper()} Engine](#{e}-engine)" for e in engines]
-    toc_items = [
-        "- [Executive Summary](#executive-summary--p99-per-phase-ms)",
-        "- [Methodology Notes](#methodology-notes)",
-        *engine_anchors,
-    ]
-    toc_items.append(
-        f"- [Top-{top_slowest} Slowest Templates](#top-{top_slowest}-slowest-templates-steady-state-wall-clock)"
+    lines, parity_all_passed = build_report(
+        all_loaded, all_detailed, engines, bindings, args, corpus_fp, corpus_file_count
     )
-    if len(engines) == 2 and "rego" in engines and "cel" in engines:
-        toc_items.append(
-            "- [Paired Engine Comparison](#paired-engine-comparison-rego-vs-cel)"
-        )
-    toc_items.append("- [Data Sources](#data-sources)")
-
-    lines += ["## Table of Contents", "", *toc_items, ""]
-    lines += executive_summary(all_loaded, engines, bindings)
-
-    # Track parity results
-    parity_all_passed = True
-
-    for engine in engines:
-        lines += [f"## {engine.upper()} Engine", ""]
-        lines += init_section(all_loaded, engine, bindings)
-        lines += model_section(all_loaded, engine, bindings)
-        lines += headline_section(all_loaded, engine, bindings)
-        lines += phase_table(all_loaded, engine, bindings)
-        lines += overhead_table(all_loaded, engine, bindings)
-        parity_lines, parity_passed = diagnostics_parity(
-            all_loaded, engine, bindings, all_detailed=all_detailed
-        )
-        lines += parity_lines
-        if not parity_passed:
-            parity_all_passed = False
-
-    lines += top_slowest_section(all_detailed, engines, bindings, top_slowest)
-    if len(engines) == 2 and "rego" in engines and "cel" in engines:
-        lines += paired_engine_comparison(all_detailed, bindings)
-
-    lines += data_sources_section(all_loaded, engines, bindings)
 
     out_dir = SCRIPT_DIR / "snapshots"
     out_dir.mkdir(parents=True, exist_ok=True)

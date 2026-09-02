@@ -13,6 +13,11 @@ on:
         required: false
         type: number
         default: 10
+      startup_samples:
+        description: 'Startup-probe processes per engine×binding (>= 2; first is cold, rest are warm)'
+        required: false
+        type: number
+        default: 5
 
   schedule:
     # Weekly: every Monday at 06:00 UTC
@@ -115,6 +120,7 @@ jobs:
       env:
         BENCHMARK_ITERATIONS: ${{ inputs.iterations }}
         TOP_SLOWEST: ${{ inputs.top_slowest }}
+        STARTUP_SAMPLES: ${{ inputs.startup_samples }}
       run: |
         set -euo pipefail
 
@@ -127,51 +133,83 @@ jobs:
           benchmark_command+=(--top-slowest "$TOP_SLOWEST")
         fi
 
+        if [[ -n "$STARTUP_SAMPLES" ]]; then
+          benchmark_command+=(--startup-samples "$STARTUP_SAMPLES")
+        fi
+
         "${benchmark_command[@]}"
 
     - name: Validate aggregates
       working-directory: ${{ env.WORKING_DIR }}
       shell: bash
       run: |
-        # Validate all 10 aggregate files (5 bindings × 2 engines) exist and
-        # contain valid JSON with expected binding/engine labels.
-        expected=(
-          "native rego cfn-validate/reports/rego/aggregate_detailed.json"
-          "native cel cfn-validate/reports/cel/aggregate_detailed.json"
-          "wasm rego bindings-wasm/reports/rego/aggregate_detailed.json"
-          "wasm cel bindings-wasm/reports/cel/aggregate_detailed.json"
-          "jvm rego bindings-jvm/reports/rego/aggregate_detailed.json"
-          "jvm cel bindings-jvm/reports/cel/aggregate_detailed.json"
-          "python rego bindings-python/reports/rego/aggregate_detailed.json"
-          "python cel bindings-python/reports/cel/aggregate_detailed.json"
-          "go rego bindings-go/reports/rego/aggregate_detailed.json"
-          "go cel bindings-go/reports/cel/aggregate_detailed.json"
-        )
-        errors=0
-        for entry in "${expected[@]}"; do
-          read -r exp_binding exp_engine fpath <<< "$entry"
-          if [ ! -f "$fpath" ]; then
-            echo "MISSING: $fpath"
-            errors=$((errors + 1))
-            continue
-          fi
-          # Parse JSON and verify binding + engine labels
-          actual_binding=$(python3 -c "import json; d=json.load(open('$fpath')); print(d.get('binding',''))")
-          actual_engine=$(python3 -c "import json; d=json.load(open('$fpath')); print(d.get('engine',''))")
-          if [ "$actual_binding" != "$exp_binding" ]; then
-            echo "INVALID $fpath: binding='$actual_binding', expected '$exp_binding'"
-            errors=$((errors + 1))
-          fi
-          if [ "$actual_engine" != "$exp_engine" ]; then
-            echo "INVALID $fpath: engine='$actual_engine', expected '$exp_engine'"
-            errors=$((errors + 1))
-          fi
-        done
-        if [ $errors -gt 0 ]; then
-          echo "::error::$errors error(s) validating aggregate files"
-          exit 1
-        fi
-        echo "All 10 aggregate files validated successfully (JSON parsed, labels verified)"
+        set -euo pipefail
+        # Validate all 10 aggregate files (5 bindings × 2 engines): JSON parses,
+        # binding/engine labels match, and the enriched provenance/startup/memory
+        # contract produced by compare_benchmarks.py is present.
+        python3 - <<'PY'
+        import json
+        import sys
+        from numbers import Real
+
+        EXPECTED = [
+            ("native", "rego", "cfn-validate/reports/rego/aggregate_detailed.json"),
+            ("native", "cel", "cfn-validate/reports/cel/aggregate_detailed.json"),
+            ("wasm", "rego", "bindings-wasm/reports/rego/aggregate_detailed.json"),
+            ("wasm", "cel", "bindings-wasm/reports/cel/aggregate_detailed.json"),
+            ("jvm", "rego", "bindings-jvm/reports/rego/aggregate_detailed.json"),
+            ("jvm", "cel", "bindings-jvm/reports/cel/aggregate_detailed.json"),
+            ("python", "rego", "bindings-python/reports/rego/aggregate_detailed.json"),
+            ("python", "cel", "bindings-python/reports/cel/aggregate_detailed.json"),
+            ("go", "rego", "bindings-go/reports/rego/aggregate_detailed.json"),
+            ("go", "cel", "bindings-go/reports/cel/aggregate_detailed.json"),
+        ]
+
+        def is_num(value):
+            return isinstance(value, Real) and not isinstance(value, bool)
+
+        def dig(data, *path):
+            cur = data
+            for key in path:
+                if not isinstance(cur, dict) or key not in cur:
+                    return None
+                cur = cur[key]
+            return cur
+
+        errors = []
+        for exp_binding, exp_engine, fpath in EXPECTED:
+            try:
+                with open(fpath) as handle:
+                    data = json.load(handle)
+            except (OSError, json.JSONDecodeError) as exc:
+                errors.append(f"{fpath}: cannot read/parse ({exc})")
+                continue
+            if data.get("binding") != exp_binding:
+                errors.append(f"{fpath}: binding={data.get('binding')!r} expected {exp_binding!r}")
+            if data.get("engine") != exp_engine:
+                errors.append(f"{fpath}: engine={data.get('engine')!r} expected {exp_engine!r}")
+            if not dig(data, "provenance", "cloudformation_validate"):
+                errors.append(f"{fpath}: missing provenance.cloudformation_validate")
+            if not is_num(dig(data, "performance", "startup", "consumer_init", "duration_ms")):
+                errors.append(f"{fpath}: missing performance.startup.consumer_init.duration_ms")
+            if not is_num(dig(data, "performance", "startup", "first_validation", "host_ms")):
+                errors.append(f"{fpath}: missing performance.startup.first_validation.host_ms")
+            for field in ("consumer_init_ms", "first_validation_host_ms", "process_wall_ms", "process_peak_rss_bytes"):
+                if not is_num(dig(data, "process_startup", "cold", field)):
+                    errors.append(f"{fpath}: missing process_startup.cold.{field}")
+            if not isinstance(dig(data, "process_startup", "warm"), dict):
+                errors.append(f"{fpath}: missing process_startup.warm")
+            if not is_num(dig(data, "memory", "full_corpus_peak_rss_bytes")):
+                errors.append(f"{fpath}: missing memory.full_corpus_peak_rss_bytes")
+
+        if errors:
+            print(f"::error::{len(errors)} error(s) validating aggregate files")
+            for err in errors:
+                print(f"  - {err}")
+            sys.exit(1)
+        print(f"All {len(EXPECTED)} aggregate files validated "
+              "(labels, provenance, startup, memory)")
+        PY
 
     - name: Upload comparison report
       if: always()

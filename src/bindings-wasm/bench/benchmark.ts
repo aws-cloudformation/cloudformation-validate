@@ -1,12 +1,13 @@
 #!/usr/bin/env npx ts-node
+import { execFileSync } from 'child_process';
+import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as crypto from 'crypto';
 import { performance } from 'perf_hooks';
 
 // Measure WASM module instantiation (V8 compiles + runs wasm_bindgen #[start]).
 const moduleLoadStart = performance.now();
-const wasmBindings = require('@aws/cloudformation-validate');
+require('@aws/cloudformation-validate');
 const moduleLoadMs = performance.now() - moduleLoadStart;
 
 import type { DetailedReport, EngineConfig, ValidateConfig } from '@aws/cloudformation-validate';
@@ -16,8 +17,6 @@ import type {
 } from '@aws/cloudformation-validate/bindings_wasm';
 type WasmEngine = WasmRegoEngineType | WasmCelEngineType;
 
-const { SchemaValidator } = wasmBindings;
-
 // Raw WASM bindings - accept Uint8Array directly, no file I/O.
 // The public package re-exports wrapper classes that read from File/TemplateFile;
 // the benchmark needs the inner classes to pass pre-read bytes.
@@ -26,7 +25,10 @@ const WasmSemanticModel: { parse(bytes: Uint8Array): { free(): void } } = wasmRa
 
 const args = process.argv.slice(2);
 if (args.includes('-h') || args.includes('--help')) {
-    console.error('Usage: npx ts-node benchmark.ts [TEMPLATE|DIR] [--engine rego|cel] [--iterations N]');
+    console.error(
+        'Usage: npx ts-node benchmark.ts [TEMPLATE|DIR] [--engine rego|cel] [--iterations N]\n' +
+            '       npx ts-node benchmark.ts --startup-probe [--engine rego|cel]',
+    );
     process.exit(2);
 }
 
@@ -35,9 +37,14 @@ function argValue(flag: string): string | undefined {
     return idx >= 0 ? args[idx + 1] : undefined;
 }
 
-const DEFAULT_TEMPLATE_DIR = path.resolve(__dirname, '../../resources/templates');
+// __dirname is <benchDir> under ts-node but <benchDir>/build when running the compiled JS, so
+// resolve the bench root by stepping out of the compiled output directory when present.
+const benchDir = path.basename(__dirname) === 'build' ? path.dirname(__dirname) : __dirname;
+const DEFAULT_STARTUP_TEMPLATE = path.join('good', 'minimal.yaml');
+const DEFAULT_TEMPLATE_DIR = path.resolve(benchDir, '../../resources/templates');
 const FLAGS_WITH_VALUES = new Set(['--engine', '--iterations']);
-const templateDirArg = (() => {
+const startupProbe = args.includes('--startup-probe');
+const positionalArg = (() => {
     for (let i = 0; i < args.length; i++) {
         if (FLAGS_WITH_VALUES.has(args[i])) {
             i++;
@@ -47,7 +54,7 @@ const templateDirArg = (() => {
     }
     return undefined;
 })();
-const templateDir = templateDirArg ?? DEFAULT_TEMPLATE_DIR;
+const templateDir = positionalArg ?? DEFAULT_TEMPLATE_DIR;
 
 const engineFlag: string = (() => {
     if (!args.includes('--engine')) return 'rego';
@@ -67,9 +74,7 @@ const formatDir = 'detailed';
 const iterationsRaw = argValue('--iterations');
 const iterations: number = (() => {
     if (iterationsRaw === undefined) {
-        // Flag absent - use default.
         if (args.includes('--iterations')) {
-            // Flag present but no value follows.
             console.error('Error: --iterations requires a value');
             process.exit(2);
         }
@@ -102,6 +107,9 @@ class Stats {
         this.total = values.reduce((a, b) => a + b, 0);
     }
 
+    get count(): number {
+        return this.sorted.length;
+    }
     get min(): number {
         return this.sorted.length === 0 ? 0 : this.sorted[0];
     }
@@ -141,6 +149,7 @@ class Stats {
 
     toJson(): Record<string, number> {
         return {
+            count: this.count,
             min: round4(this.min),
             avg: round4(this.avg),
             stddev: round4(this.stddev),
@@ -164,8 +173,7 @@ function collectFiles(dirOrFile: string): string[] {
         for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
             const full = path.join(dir, entry.name);
             if (entry.isDirectory()) walk(full);
-            else if (entry.isFile() && TEMPLATE_EXTENSIONS.has(path.extname(entry.name)))
-                results.push(full);
+            else if (entry.isFile() && TEMPLATE_EXTENSIONS.has(path.extname(entry.name))) results.push(full);
         }
     };
     walk(dirOrFile);
@@ -183,19 +191,18 @@ interface TemplateResult {
     readonly informational: number;
     readonly diagCount: number;
     readonly hostModelMs: number;
-    readonly coldHostModelMs: number;
-    readonly warmHostModelMs: number;
+    readonly firstMeasuredHostModelMs: number;
+    readonly subsequentHostModelMs: number | null;
     readonly modelBuildMs: number;
     readonly schemaValidateMs: number;
     readonly ruleEvalMs: number;
     readonly diagnosticFinalizeMs: number;
     readonly engineInternalMs: number;
-    readonly coldEngineInternalMs: number;
-    readonly warmEngineInternalMs: number;
+    readonly firstMeasuredEngineInternalMs: number;
+    readonly subsequentEngineInternalMs: number | null;
     readonly wallClockMs: number;
-    readonly coldWallClockMs: number;
-    readonly warmWallClockMs: number;
-    /** Sum of all host-timed validate calls (all iterations) for this template. */
+    readonly firstMeasuredWallClockMs: number;
+    readonly subsequentWallClockMs: number | null;
     readonly wallClockTotalMs: number;
     readonly bindingOverheadMs: number;
     readonly errorMsg?: string;
@@ -213,21 +220,101 @@ function errorResult(file: string, status: string, msg: string): TemplateResult 
         informational: 0,
         diagCount: 0,
         hostModelMs: 0,
-        coldHostModelMs: 0,
-        warmHostModelMs: 0,
+        firstMeasuredHostModelMs: 0,
+        subsequentHostModelMs: null,
         modelBuildMs: 0,
         schemaValidateMs: 0,
         ruleEvalMs: 0,
         diagnosticFinalizeMs: 0,
         engineInternalMs: 0,
-        coldEngineInternalMs: 0,
-        warmEngineInternalMs: 0,
+        firstMeasuredEngineInternalMs: 0,
+        subsequentEngineInternalMs: null,
         wallClockMs: 0,
-        coldWallClockMs: 0,
-        warmWallClockMs: 0,
+        firstMeasuredWallClockMs: 0,
+        subsequentWallClockMs: null,
         wallClockTotalMs: 0,
         bindingOverheadMs: 0,
         errorMsg: msg,
+    };
+}
+
+function subsequentMedianOrNull(values: number[]): number | null {
+    return values.length > 1 ? new Stats(values.slice(1)).median : null;
+}
+
+function iterationMetricsJson(
+    hostModel: number,
+    modelBuild: number,
+    schemaValidate: number,
+    ruleEval: number,
+    finalize: number,
+    engineInternal: number,
+    wallClock: number,
+): Record<string, number> {
+    return {
+        hostModelMs: round4(hostModel),
+        modelBuildMs: round4(modelBuild),
+        schemaValidateMs: round4(schemaValidate),
+        ruleEvaluationMs: round4(ruleEval),
+        diagnosticFinalizeMs: round4(finalize),
+        engineInternalMs: round4(engineInternal),
+        wallClockMs: round4(wallClock),
+    };
+}
+
+function subsequentMetricJson(values: number[]): number | null {
+    const median = subsequentMedianOrNull(values);
+    return median === null ? null : round4(median);
+}
+
+function perTemplateMetricsJson(
+    iterationCount: number,
+    hostModel: number[],
+    modelBuild: number[],
+    schemaValidate: number[],
+    ruleEval: number[],
+    finalize: number[],
+    engineInternal: number[],
+    wallClock: number[],
+    bindingOverheadMs: number,
+): Record<string, unknown> {
+    const firstMeasured = iterationMetricsJson(
+        hostModel[0],
+        modelBuild[0],
+        schemaValidate[0],
+        ruleEval[0],
+        finalize[0],
+        engineInternal[0],
+        wallClock[0],
+    );
+    const subsequent = {
+        sampleCount: Math.max(wallClock.length - 1, 0),
+        hostModelMs: subsequentMetricJson(hostModel),
+        modelBuildMs: subsequentMetricJson(modelBuild),
+        schemaValidateMs: subsequentMetricJson(schemaValidate),
+        ruleEvaluationMs: subsequentMetricJson(ruleEval),
+        diagnosticFinalizeMs: subsequentMetricJson(finalize),
+        engineInternalMs: subsequentMetricJson(engineInternal),
+        wallClockMs: subsequentMetricJson(wallClock),
+    };
+    const steadyOrFirst = (values: number[]): number =>
+        values.length > 1 ? new Stats(values.slice(1)).median : values[0];
+    const steadyState = iterationMetricsJson(
+        steadyOrFirst(hostModel),
+        steadyOrFirst(modelBuild),
+        steadyOrFirst(schemaValidate),
+        steadyOrFirst(ruleEval),
+        steadyOrFirst(finalize),
+        steadyOrFirst(engineInternal),
+        steadyOrFirst(wallClock),
+    );
+    return {
+        iterations: iterationCount,
+        firstMeasured,
+        subsequent,
+        firstIteration: firstMeasured,
+        steadyState,
+        bindingOverheadMs,
     };
 }
 
@@ -243,6 +330,17 @@ function zeroBenchmarkMetrics(): Record<string, unknown> {
     });
     return {
         iterations: 0,
+        firstMeasured: zeroIteration(),
+        subsequent: {
+            sampleCount: 0,
+            hostModelMs: null,
+            modelBuildMs: null,
+            schemaValidateMs: null,
+            ruleEvaluationMs: null,
+            diagnosticFinalizeMs: null,
+            engineInternalMs: null,
+            wallClockMs: null,
+        },
         firstIteration: zeroIteration(),
         steadyState: zeroIteration(),
         bindingOverheadMs: 0,
@@ -299,6 +397,182 @@ function newEngine(): WasmEngine {
     return engineFlag === 'cel' ? new wasmRaw.WasmCelEngine(engineConfig) : new wasmRaw.WasmRegoEngine(engineConfig);
 }
 
+const validateConfig: ValidateConfig = {
+    severityLevel: 'DEBUG',
+    strict: false,
+};
+
+interface Provenance {
+    cloudformation_validate: string;
+    binding_artifact: { kind: string; version: string; source: string };
+    cargo: string;
+    rustc: string;
+    runtime: string;
+}
+
+function queryToolVersion(tool: string): string {
+    try {
+        const out = execFileSync(tool, ['--version'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+        const firstLine = out.split('\n')[0]?.trim() ?? '';
+        return firstLine === '' ? 'unknown' : firstLine;
+    } catch {
+        return 'unknown';
+    }
+}
+
+function envOrQuery(varName: string, tool: string): string {
+    const value = process.env[varName];
+    if (value !== undefined && value.trim() !== '') return value.trim();
+    return queryToolVersion(tool);
+}
+
+function npmArtifactVersion(): string {
+    try {
+        const pkg = require('@aws/cloudformation-validate/package.json') as { version?: unknown };
+        return typeof pkg.version === 'string' && pkg.version.trim() !== '' ? pkg.version.trim() : 'unknown';
+    } catch {
+        return 'unknown';
+    }
+}
+
+function bridgeVersion(): string {
+    try {
+        const v = wasmRaw.version();
+        return typeof v === 'string' && v.trim() !== '' ? v.trim() : 'unknown';
+    } catch {
+        return 'unknown';
+    }
+}
+
+function provenanceJson(): Provenance {
+    return {
+        cloudformation_validate: bridgeVersion(),
+        binding_artifact: {
+            kind: 'npm',
+            version: npmArtifactVersion(),
+            source: '@aws/cloudformation-validate',
+        },
+        cargo: envOrQuery('BENCHMARK_CARGO_VERSION', 'cargo'),
+        rustc: envOrQuery('BENCHMARK_RUSTC_VERSION', 'rustc'),
+        runtime: `node ${process.version} ${process.platform}-${process.arch}`,
+    };
+}
+
+interface FirstValidation {
+    hostMs: number;
+    internalMs: number;
+    modelBuildMs: number;
+    schemaValidateMs: number;
+    ruleEvaluationMs: number;
+    diagnosticFinalizeMs: number;
+}
+
+interface StartupMeasurement {
+    startupTemplate: string;
+    moduleLoadMs: number;
+    consumerInitScope: string;
+    consumerInitMs: number;
+    schemaInitMs: number | null;
+    engineInitMs: number;
+    first: FirstValidation;
+    internalTimeToFirstResultMs: number;
+}
+
+function measureStartup(
+    startupBytes: Uint8Array,
+    startupLabel: string,
+): {
+    engine: WasmEngine;
+    startup: StartupMeasurement;
+} {
+    const engineStart = performance.now();
+    const engine = newEngine();
+    const engineInitMs = performance.now() - engineStart;
+    // The FFI engine constructor already embeds a SchemaValidator, so a consumer's
+    // setup cost is the engine construction alone - there is no standalone schema step.
+    const consumerInitMs = engineInitMs;
+
+    const validateStart = performance.now();
+    const report: DetailedReport = engine.validateDetailed(startupBytes, validateConfig, startupLabel);
+    const hostMs = performance.now() - validateStart;
+
+    const perf = report.performance;
+    const first: FirstValidation = {
+        hostMs,
+        internalMs: perf.validateTotal.durationMs,
+        modelBuildMs: perf.modelBuild.durationMs,
+        schemaValidateMs: perf.schemaValidate.durationMs,
+        ruleEvaluationMs: perf.ruleEvaluation.durationMs,
+        diagnosticFinalizeMs: perf.diagnosticFinalize.durationMs,
+    };
+    const startup: StartupMeasurement = {
+        startupTemplate: startupLabel,
+        moduleLoadMs,
+        consumerInitScope: 'engine',
+        consumerInitMs,
+        schemaInitMs: null,
+        engineInitMs,
+        first,
+        internalTimeToFirstResultMs: moduleLoadMs + consumerInitMs + hostMs,
+    };
+    return { engine, startup };
+}
+
+function firstValidationJson(first: FirstValidation): Record<string, number> {
+    return {
+        host_ms: round4(first.hostMs),
+        internal_ms: round4(first.internalMs),
+        model_build_ms: round4(first.modelBuildMs),
+        schema_validate_ms: round4(first.schemaValidateMs),
+        rule_evaluation_ms: round4(first.ruleEvaluationMs),
+        diagnostic_finalize_ms: round4(first.diagnosticFinalizeMs),
+    };
+}
+
+function startupSectionJson(startup: StartupMeasurement): Record<string, unknown> {
+    return {
+        startup_template: startup.startupTemplate,
+        module_load_ms: round4(startup.moduleLoadMs),
+        consumer_init: {
+            scope: startup.consumerInitScope,
+            duration_ms: round4(startup.consumerInitMs),
+        },
+        schema_init_ms: startup.schemaInitMs === null ? null : round4(startup.schemaInitMs),
+        engine_init_ms: round4(startup.engineInitMs),
+        first_validation: firstValidationJson(startup.first),
+        internal_time_to_first_result_ms: round4(startup.internalTimeToFirstResultMs),
+    };
+}
+
+function runStartupProbe(): void {
+    const startupPath = path.join(DEFAULT_TEMPLATE_DIR, DEFAULT_STARTUP_TEMPLATE);
+    let startupBytes: Uint8Array;
+    try {
+        startupBytes = fs.readFileSync(startupPath);
+    } catch (e: any) {
+        console.error(`Error: failed to read startup template '${startupPath}': ${e?.message ?? e}`);
+        process.exit(1);
+    }
+    const startupLabel = path.basename(startupPath);
+    const { engine, startup } = measureStartup(startupBytes, startupLabel);
+    const engineName = engine.engineName();
+    try {
+        engine.free();
+    } catch {}
+    const probe = {
+        ...startupSectionJson(startup),
+        binding: 'wasm',
+        engine: engineName,
+        versions: provenanceJson(),
+    };
+    process.stdout.write(`${JSON.stringify(probe)}\n`);
+}
+
+if (startupProbe) {
+    runStartupProbe();
+    process.exit(0);
+}
+
 const templates = collectFiles(templateDir);
 if (templates.length === 0) {
     console.error(`No templates found in ${templateDir}`);
@@ -308,34 +582,25 @@ console.error(
     `Benchmarking ${templates.length} templates, ${iterations} iterations, engine=${engineFlag}, format=${formatFlag}`,
 );
 
-// --- Initialization timing ---
-// Schema init is timed standalone for informational comparison, but is NOT additive for FFI
-// consumers: the engine constructor already embeds a SchemaValidator, so real-world init cost
-// is just engine construction.  init_ms/cold_init/warm_init reflect engine-only samples -
-// what an actual consumer pays to set up validation.
-const schemaInitSamples: number[] = [];
-const engineInitSamples: number[] = [];
-for (let i = 0; i < iterations; i++) {
-    const t0 = performance.now();
-    const sv = new SchemaValidator();
-    schemaInitSamples.push(performance.now() - t0);
-    sv.free();
-
-    const t1 = performance.now();
-    const eng = newEngine();
-    engineInitSamples.push(performance.now() - t1);
-    eng.free();
+const startupTemplate = templates[0];
+const startupLabel = (path.relative(templateDir, startupTemplate).replace(/\\/g, '/').replace(/^\//, '') ||
+    path.basename(startupTemplate)) as string;
+let startupBytes: Uint8Array;
+try {
+    startupBytes = fs.readFileSync(startupTemplate);
+} catch (e: any) {
+    console.error(`Error: failed to read startup template '${startupTemplate}': ${e?.message ?? e}`);
+    process.exit(1);
 }
-// init_ms = engine_init samples only (actual consumer validation setup cost).
+const { engine, startup } = measureStartup(startupBytes, startupLabel);
+
+const schemaInitSamples: number[] = [];
+const engineInitSamples: number[] = [startup.engineInitMs];
 const initSamples = engineInitSamples.slice();
-// cold_init_ms = WASM module instantiation + first engine construction.
 const coldInitMs = moduleLoadMs + initSamples[0];
-// warm_init_ms = subsequent engine constructions (module already loaded, JIT warm).
-const warmInitSamples = initSamples.length > 1 ? initSamples.slice(1) : initSamples.slice();
+const subsequentInitSamples: number[] = [];
 
-const engine = newEngine();
-
-const reportDir = path.resolve(__dirname, `../reports/${engineFlag}`);
+const reportDir = path.resolve(benchDir, `../reports/${engineFlag}`);
 const jsonDir = path.join(reportDir, `json_${formatDir}`);
 // Clean previous output so stale reports from dropped/renamed templates are not left behind.
 if (fs.existsSync(jsonDir)) {
@@ -343,25 +608,6 @@ if (fs.existsSync(jsonDir)) {
 }
 fs.mkdirSync(jsonDir, { recursive: true });
 
-const validateConfig: ValidateConfig = {
-    severityLevel: 'DEBUG',
-    strict: false,
-};
-
-if (templates.length > 0) {
-    const warmupBytes = fs.readFileSync(templates[0]);
-    try {
-        const warmupModel = WasmSemanticModel.parse(warmupBytes);
-        try {
-            warmupModel.free();
-        } catch {}
-    } catch {}
-    try {
-        engine.validateDetailed(warmupBytes, validateConfig, templates[0]);
-    } catch {}
-}
-
-const pendingWrites: Array<[string, Record<string, unknown>]> = [];
 const results: TemplateResult[] = [];
 const benchStart = performance.now();
 
@@ -391,27 +637,28 @@ for (const tpl of templates) {
     let failed = false;
 
     for (let i = 0; i < iterations; i++) {
-        // Standalone model parse - classify failures distinctly as parse_error.
         let parsedModel: { free(): void } | null = null;
         try {
             const tm0 = performance.now();
             parsedModel = WasmSemanticModel.parse(bytes);
             iterHostModel.push(performance.now() - tm0);
         } catch (e: any) {
-            const parseFailureReport = normalizeParseFailureReport(
-                engine.validateDetailed(bytes, validateConfig, rel),
-            );
-            pendingWrites.push([
+            const parseFailureReport = normalizeParseFailureReport(engine.validateDetailed(bytes, validateConfig, rel));
+            fs.writeFileSync(
                 jsonPath,
-                {
-                    ...parseFailureReport,
-                    filePath: rel,
-                    engine: engineFlag,
-                    binding: 'wasm',
-                    detailLevel: formatFlag,
-                    benchmarkMetrics: zeroBenchmarkMetrics(),
-                },
-            ]);
+                JSON.stringify(
+                    {
+                        ...parseFailureReport,
+                        filePath: rel,
+                        engine: engineFlag,
+                        binding: 'wasm',
+                        detailLevel: formatFlag,
+                        benchmarkMetrics: zeroBenchmarkMetrics(),
+                    },
+                    null,
+                    2,
+                ),
+            );
             results.push(errorResult(rel, 'parse_error', e.message ?? String(e)));
             failed = true;
             break;
@@ -423,7 +670,7 @@ for (const tpl of templates) {
 
         try {
             const t0 = performance.now();
-            const report = engine.validateDetailed(bytes, validateConfig, rel);
+            const report: DetailedReport = engine.validateDetailed(bytes, validateConfig, rel);
             const wallMs = performance.now() - t0;
             const perf = report.performance;
             iterModelBuild.push(perf.modelBuild.durationMs);
@@ -442,62 +689,43 @@ for (const tpl of templates) {
     if (failed) continue;
 
     const report = lastReport!;
-    const coldEngineInternalMs = iterEngineInternal[0];
-    const warmEngineInternalMs = iterations > 1 ? new Stats(iterEngineInternal.slice(1)).median : coldEngineInternalMs;
+    const firstMeasuredEngineInternalMs = iterEngineInternal[0];
+    const subsequentEngineInternalMs = subsequentMedianOrNull(iterEngineInternal);
     const medianEngineInternal = new Stats(iterEngineInternal).median;
-    const coldWallClockMs = iterWallClock[0];
-    const warmWallClockMs = iterations > 1 ? new Stats(iterWallClock.slice(1)).median : coldWallClockMs;
+    const firstMeasuredWallClockMs = iterWallClock[0];
+    const subsequentWallClockMs = subsequentMedianOrNull(iterWallClock);
     const medianWallClock = new Stats(iterWallClock).median;
-    const coldHostModelMs = iterHostModel[0];
-    const warmHostModelMs = iterations > 1 ? new Stats(iterHostModel.slice(1)).median : coldHostModelMs;
+    const firstMeasuredHostModelMs = iterHostModel[0];
+    const subsequentHostModelMs = subsequentMedianOrNull(iterHostModel);
     const medianHostModel = new Stats(iterHostModel).median;
-    // Binding overhead: median of per-iteration (wall_clock − engine_internal) differences.
-    // This captures JNI/WASM dispatch + marshalling cost for each individual call.
     const perIterOverhead = iterWallClock.map((w, idx) => w - iterEngineInternal[idx]);
     const bindingOverheadMs = round4(new Stats(perIterOverhead).median);
 
-    pendingWrites.push([
+    fs.writeFileSync(
         jsonPath,
-        {
-            ...report,
-            filePath: rel,
-            engine: engineFlag,
-            binding: 'wasm',
-            detailLevel: formatFlag,
-            benchmarkMetrics: {
-                iterations,
-                // "firstIteration" = first iteration for this template (after global JIT warmup).
-                firstIteration: {
-                    hostModelMs: round4(iterHostModel[0]),
-                    modelBuildMs: round4(iterModelBuild[0]),
-                    schemaValidateMs: round4(iterSchemaValidate[0]),
-                    ruleEvaluationMs: round4(iterRuleEval[0]),
-                    diagnosticFinalizeMs: round4(iterFinalize[0]),
-                    engineInternalMs: round4(coldEngineInternalMs),
-                    wallClockMs: round4(coldWallClockMs),
-                },
-                // "steadyState" = median of iterations 2..N (template-local steady state).
-                steadyState: {
-                    hostModelMs: round4(warmHostModelMs),
-                    modelBuildMs: round4(
-                        iterations > 1 ? new Stats(iterModelBuild.slice(1)).median : iterModelBuild[0],
-                    ),
-                    schemaValidateMs: round4(
-                        iterations > 1 ? new Stats(iterSchemaValidate.slice(1)).median : iterSchemaValidate[0],
-                    ),
-                    ruleEvaluationMs: round4(
-                        iterations > 1 ? new Stats(iterRuleEval.slice(1)).median : iterRuleEval[0],
-                    ),
-                    diagnosticFinalizeMs: round4(
-                        iterations > 1 ? new Stats(iterFinalize.slice(1)).median : iterFinalize[0],
-                    ),
-                    engineInternalMs: round4(warmEngineInternalMs),
-                    wallClockMs: round4(warmWallClockMs),
-                },
-                bindingOverheadMs,
+        JSON.stringify(
+            {
+                ...report,
+                filePath: rel,
+                engine: engineFlag,
+                binding: 'wasm',
+                detailLevel: formatFlag,
+                benchmarkMetrics: perTemplateMetricsJson(
+                    iterations,
+                    iterHostModel,
+                    iterModelBuild,
+                    iterSchemaValidate,
+                    iterRuleEval,
+                    iterFinalize,
+                    iterEngineInternal,
+                    iterWallClock,
+                    bindingOverheadMs,
+                ),
             },
-        },
-    ]);
+            null,
+            2,
+        ),
+    );
 
     const tr: TemplateResult = {
         file: rel,
@@ -510,18 +738,18 @@ for (const tpl of templates) {
         informational: report.metadata.counts.informational,
         diagCount: report.diagnostics.length,
         hostModelMs: medianHostModel,
-        coldHostModelMs,
-        warmHostModelMs,
+        firstMeasuredHostModelMs,
+        subsequentHostModelMs,
         modelBuildMs: new Stats(iterModelBuild).median,
         schemaValidateMs: new Stats(iterSchemaValidate).median,
         ruleEvalMs: new Stats(iterRuleEval).median,
         diagnosticFinalizeMs: new Stats(iterFinalize).median,
         engineInternalMs: medianEngineInternal,
-        coldEngineInternalMs,
-        warmEngineInternalMs,
+        firstMeasuredEngineInternalMs,
+        subsequentEngineInternalMs,
         wallClockMs: medianWallClock,
-        coldWallClockMs,
-        warmWallClockMs,
+        firstMeasuredWallClockMs,
+        subsequentWallClockMs,
         wallClockTotalMs: new Stats(iterWallClock).total,
         bindingOverheadMs,
     };
@@ -536,37 +764,36 @@ try {
     engine.free();
 } catch {}
 
-for (const [dest, payload] of pendingWrites) {
-    fs.writeFileSync(dest, JSON.stringify(payload, null, 2));
-}
-
 const ok = results.filter((r) => r.status === 'ok');
 const failures = results.filter((r) => r.status !== 'ok');
+
+const isNumber = (v: number | null): v is number => v !== null;
 
 const schemaInitStats = new Stats(schemaInitSamples);
 const engineInitStats = new Stats(engineInitSamples);
 const initStats = new Stats(initSamples);
-const warmInitStats = new Stats(warmInitSamples);
+const subsequentInitStats = new Stats(subsequentInitSamples);
 
 const modelBuildStats = new Stats(ok.map((r) => r.modelBuildMs));
 const schemaValidateStats = new Stats(ok.map((r) => r.schemaValidateMs));
 const ruleEvalStats = new Stats(ok.map((r) => r.ruleEvalMs));
 const finalizeStats = new Stats(ok.map((r) => r.diagnosticFinalizeMs));
 const engineInternalStats = new Stats(ok.map((r) => r.engineInternalMs));
-const coldEngineInternalStats = new Stats(ok.map((r) => r.coldEngineInternalMs));
-const warmEngineInternalStats = new Stats(ok.map((r) => r.warmEngineInternalMs));
+const firstMeasuredEngineInternalStats = new Stats(ok.map((r) => r.firstMeasuredEngineInternalMs));
+const subsequentEngineInternalStats = new Stats(ok.map((r) => r.subsequentEngineInternalMs).filter(isNumber));
 const wallClockStats = new Stats(ok.map((r) => r.wallClockMs));
-const coldWallClockStats = new Stats(ok.map((r) => r.coldWallClockMs));
-const warmWallClockStats = new Stats(ok.map((r) => r.warmWallClockMs));
+const firstMeasuredWallClockStats = new Stats(ok.map((r) => r.firstMeasuredWallClockMs));
+const subsequentWallClockStats = new Stats(ok.map((r) => r.subsequentWallClockMs).filter(isNumber));
 const hostModelStats = new Stats(ok.map((r) => r.hostModelMs));
-const coldHostModelStats = new Stats(ok.map((r) => r.coldHostModelMs));
-const warmHostModelStats = new Stats(ok.map((r) => r.warmHostModelMs));
+const firstMeasuredHostModelStats = new Stats(ok.map((r) => r.firstMeasuredHostModelMs));
+const subsequentHostModelStats = new Stats(ok.map((r) => r.subsequentHostModelMs).filter(isNumber));
 const overheadStats = new Stats(ok.map((r) => r.bindingOverheadMs));
 
 // Throughput denominator: sum of host-timed validate calls for successful templates only.
 // This excludes file I/O, standalone model benchmarks, logging overhead, and failures.
 const measuredValidationWallMs = ok.reduce((s, r) => s + r.wallClockTotalMs, 0);
-const throughputPerSec = measuredValidationWallMs > 0 ? (ok.length * iterations) / (measuredValidationWallMs / 1000) : 0;
+const throughputPerSec =
+    measuredValidationWallMs > 0 ? (ok.length * iterations) / (measuredValidationWallMs / 1000) : 0;
 
 const { fingerprint: corpusFingerprint, fileCount: corpusFileCount } = computeCorpusFingerprint(templateDir);
 const runFingerprint = crypto
@@ -574,12 +801,17 @@ const runFingerprint = crypto
     .update(`${corpusFingerprint}|${engineFlag}|${formatFlag}|${iterations}`)
     .digest('hex');
 
+// Provenance is queried only after every timed measurement above so the
+// cargo/rustc --version subprocess spawns cannot contaminate the numbers.
+const provenance = provenanceJson();
+
 const aggregate = {
     timestamp: new Date().toISOString().replace(/\.\d+Z$/, 'Z'),
     engine: engineFlag,
     binding: 'wasm',
     detail_level: formatFlag,
     template_dir: templateDir,
+    provenance,
     templates_total: results.length,
     templates_ok: ok.length,
     templates_failed: failures.length,
@@ -589,9 +821,11 @@ const aggregate = {
     run_fingerprint: runFingerprint,
     performance: {
         module_load_ms: round4(moduleLoadMs),
+        startup: startupSectionJson(startup),
         init_ms: initStats.toJson(),
         cold_init_ms: round4(coldInitMs),
-        warm_init_ms: warmInitStats.toJson(),
+        warm_init_ms: subsequentInitStats.toJson(),
+        subsequent_init_ms: subsequentInitStats.toJson(),
         schema_init_ms: schemaInitStats.toJson(),
         engine_init_ms: engineInitStats.toJson(),
         total_wall_ms: round4(totalWallMs),
@@ -602,14 +836,21 @@ const aggregate = {
         rule_evaluation_ms: ruleEvalStats.toJson(),
         diagnostic_finalize_ms: finalizeStats.toJson(),
         engine_internal_ms: engineInternalStats.toJson(),
-        cold_engine_internal_ms: coldEngineInternalStats.toJson(),
-        warm_engine_internal_ms: warmEngineInternalStats.toJson(),
+        first_measured_engine_internal_ms: firstMeasuredEngineInternalStats.toJson(),
+        subsequent_engine_internal_ms: subsequentEngineInternalStats.toJson(),
+        // Legacy aliases: cold == first measured, warm == subsequent.
+        cold_engine_internal_ms: firstMeasuredEngineInternalStats.toJson(),
+        warm_engine_internal_ms: subsequentEngineInternalStats.toJson(),
         wall_clock_ms: wallClockStats.toJson(),
-        cold_wall_clock_ms: coldWallClockStats.toJson(),
-        warm_wall_clock_ms: warmWallClockStats.toJson(),
+        first_measured_wall_clock_ms: firstMeasuredWallClockStats.toJson(),
+        subsequent_wall_clock_ms: subsequentWallClockStats.toJson(),
+        cold_wall_clock_ms: firstMeasuredWallClockStats.toJson(),
+        warm_wall_clock_ms: subsequentWallClockStats.toJson(),
         host_model_ms: hostModelStats.toJson(),
-        cold_host_model_ms: coldHostModelStats.toJson(),
-        warm_host_model_ms: warmHostModelStats.toJson(),
+        first_measured_host_model_ms: firstMeasuredHostModelStats.toJson(),
+        subsequent_host_model_ms: subsequentHostModelStats.toJson(),
+        cold_host_model_ms: firstMeasuredHostModelStats.toJson(),
+        warm_host_model_ms: subsequentHostModelStats.toJson(),
         binding_overhead_ms: overheadStats.toJson(),
     },
     diagnostics: {
@@ -625,6 +866,9 @@ fs.writeFileSync(path.join(reportDir, `aggregate_${formatDir}.json`), JSON.strin
 fs.writeFileSync(path.join(reportDir, `report_${formatDir}.md`), generateMarkdown(results, ok, failures));
 
 console.error(`\nBenchmark complete: ${ok.length} ok, ${failures.length} failed (${iterations} iterations/template)`);
+console.error(
+    `startup: module_load=${round4(startup.moduleLoadMs)}ms  engine_init=${round4(startup.engineInitMs)}ms  first_validate=${round4(startup.first.hostMs)}ms`,
+);
 console.error(
     `schema_init (median): ${schemaInitStats.median.toFixed(4)}ms  engine_init (median): ${engineInitStats.median.toFixed(4)}ms`,
 );
@@ -662,7 +906,15 @@ function generateMarkdown(
     push(`Generated: ${new Date().toISOString().replace(/\.\d+Z$/, 'Z')}\n`);
     push(`Corpus fingerprint: \`${corpusFingerprint}\` (${corpusFileCount} files)\n`);
 
-    push('## Summary\n');
+    push('## Provenance\n');
+    push('| Field | Value |\n|---|---|');
+    push(`| cloudformation-validate (bridge) | ${provenance.cloudformation_validate} |`);
+    push(`| Binding artifact (npm) | ${provenance.binding_artifact.version} |`);
+    push(`| Cargo | ${provenance.cargo} |`);
+    push(`| rustc | ${provenance.rustc} |`);
+    push(`| Runtime | ${provenance.runtime} |`);
+
+    push('\n## Summary\n');
     push('| Metric | Value |\n|---|---|');
     push(`| Templates | ${okResults.length} ok, ${failedResults.length} failed, ${allResults.length} total |`);
     push(`| Iterations per template | ${iterations} |`);
@@ -671,10 +923,20 @@ function generateMarkdown(
     push(`| Throughput | ${throughputPerSec.toFixed(2)} validations/sec |`);
     push(`| Detail level | ${formatFlag} |`);
 
-    push('\n## Initialization (ms)\n');
+    push('\n## Process Startup (single cold sequence)\n');
     push(
-        'Schema init is timed standalone for comparison but is **not additive** for FFI consumers:',
+        'The consumer engine constructed once, then the first validate call on that same engine - the process-cold path a consumer pays before any warmup. The engine is reused for the corpus below.\n',
     );
+    push('| Metric | Value (ms) |\n|---|---|');
+    push(`| Startup template | ${startup.startupTemplate} |`);
+    push(`| Module load | ${round4(startup.moduleLoadMs).toFixed(4)} |`);
+    push(`| Consumer init (${startup.consumerInitScope}) | ${round4(startup.consumerInitMs).toFixed(4)} |`);
+    push(`| First validation (host) | ${round4(startup.first.hostMs).toFixed(4)} |`);
+    push(`| First validation (internal) | ${round4(startup.first.internalMs).toFixed(4)} |`);
+    push(`| Internal time-to-first-result | ${round4(startup.internalTimeToFirstResultMs).toFixed(4)} |`);
+
+    push('\n## Initialization (ms)\n');
+    push('Schema init is timed standalone for comparison but is **not additive** for FFI consumers:');
     push(
         'the engine constructor already embeds a SchemaValidator. `init_ms` = engine construction only (actual consumer setup cost).\n',
     );
@@ -693,16 +955,19 @@ function generateMarkdown(
     push('host_model = JS-side timer around WasmSemanticModel.parse (includes WASM dispatch).');
     push('wall_clock = JS-side timer around validateDetailed() (includes WASM dispatch + marshalling).');
     push('engine_internal = Rust-internal `report.performance.validateTotal` (engine work only).');
-    push('binding_overhead = median of per-iteration (wall_clock − engine_internal) differences.\n');
+    push('binding_overhead = median of per-iteration (wall_clock − engine_internal) differences.');
+    push(
+        'First measured = iteration 1 per template (warm at process level). Subsequent = median of iterations 2..N (empty when N=1).\n',
+    );
     push('| Metric | Median | P99 | Max |\n|---|---|---|---|');
     const row = (label: string, s: Stats) =>
         `| ${label} | ${s.median.toFixed(4)} | ${s.p99.toFixed(4)} | ${s.max.toFixed(4)} |`;
-    push(row('host_model - first (after warmup)', coldHostModelStats));
-    push(row('host_model - steady', warmHostModelStats));
-    push(row('engine_internal - first (after warmup)', coldEngineInternalStats));
-    push(row('engine_internal - steady', warmEngineInternalStats));
-    push(row('wall_clock - first (after warmup)', coldWallClockStats));
-    push(row('wall_clock - steady', warmWallClockStats));
+    push(row('host_model - first measured', firstMeasuredHostModelStats));
+    push(row('host_model - subsequent', subsequentHostModelStats));
+    push(row('engine_internal - first measured', firstMeasuredEngineInternalStats));
+    push(row('engine_internal - subsequent', subsequentEngineInternalStats));
+    push(row('wall_clock - first measured', firstMeasuredWallClockStats));
+    push(row('wall_clock - subsequent', subsequentWallClockStats));
     push(row('host_model (per-template median)', hostModelStats));
     push(row('engine_internal (per-template median)', engineInternalStats));
     push(row('wall_clock (per-template median)', wallClockStats));
