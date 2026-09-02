@@ -7,6 +7,7 @@ Rego and CEL engines at DETAILED/DEBUG level.
 
 Usage:
     python -m bench.benchmark [TEMPLATE|DIR] --engine rego|cel --iterations N
+    python -m bench.benchmark --engine rego|cel --startup-probe
 """
 
 from __future__ import annotations
@@ -15,42 +16,78 @@ import argparse
 import datetime
 import enum
 import hashlib
+import importlib.metadata
 import json
 import math
 import os
+import platform
 import re
 import shutil
+import subprocess
 import sys
 import time
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
-# ---------------------------------------------------------------------------
-# Constants
-# ---------------------------------------------------------------------------
 _BENCH_DIR = Path(__file__).resolve().parent
 _BINDINGS_DIR = _BENCH_DIR.parent
 _WORKSPACE = _BINDINGS_DIR.parent
 _DEFAULT_TEMPLATE_DIR = _WORKSPACE / "resources" / "templates"
+
+_DEFAULT_STARTUP_TEMPLATE = "good/minimal.yaml"
+
+_CONSUMER_INIT_SCOPE = "engine_includes_schema_validator"
+
+_CARGO_VERSION_ENV = "BENCHMARK_CARGO_VERSION"
+_RUSTC_VERSION_ENV = "BENCHMARK_RUSTC_VERSION"
+
+_DISTRIBUTION_NAME = "cloudformation-validate"
 
 _TEMPLATE_EXTENSIONS = frozenset((".yaml", ".yml", ".json"))
 
 _CAMEL_RE = re.compile(r"_([a-z0-9])")
 
 
+@dataclass
+class FirstValidation:
+    host_ms: float
+    internal_ms: float
+    model_build_ms: float
+    schema_validate_ms: float
+    rule_evaluation_ms: float
+    diagnostic_finalize_ms: float
+
+
+@dataclass
+class StartupMeasurement:
+    startup_template: str
+    module_load_ms: float
+    consumer_init_scope: str
+    consumer_init_ms: float
+    schema_init_ms: Optional[float]
+    engine_init_ms: float
+    first: FirstValidation
+    internal_time_to_first_result_ms: float
+
+
+@dataclass
+class SampleSummary:
+    first_host_model_ms: float
+    subsequent_host_model_ms: Optional[float]
+    first_engine_internal_ms: float
+    subsequent_engine_internal_ms: Optional[float]
+    first_wall_clock_ms: float
+    subsequent_wall_clock_ms: Optional[float]
+
+
 def _camel_case(name: str) -> str:
-    """Convert snake_case field name to camelCase."""
     return _CAMEL_RE.sub(lambda m: m.group(1).upper(), name)
 
 
-# ---------------------------------------------------------------------------
-# Serde-compatible JSON serialization (mirrors tests/snapshot_test.py exactly)
-#
 # The cloudformation_validate types (JsonValue, EntityType) are imported lazily
 # inside main(). These functions reference them via module globals that are set
 # after import, so they remain usable without a top-level import.
-# ---------------------------------------------------------------------------
-# Populated in main() after the cloudformation_validate import.
 _JsonValue: Any = None
 _EntityType: Any = None
 
@@ -88,9 +125,6 @@ def to_jsonable(obj: Any) -> Any:
     }
 
 
-# ---------------------------------------------------------------------------
-# Statistics helpers (mirrors native round4, stats_json, etc.)
-# ---------------------------------------------------------------------------
 def _round4(v: float) -> float:
     return round(v * 10000.0) / 10000.0
 
@@ -136,8 +170,9 @@ def _stddev(vals: List[float]) -> float:
     return math.sqrt(variance)
 
 
-def _stats_json(vals: List[float]) -> Dict[str, float]:
+def _stats_json(vals: List[float]) -> Dict[str, Any]:
     return {
+        "count": len(vals),
         "min": _round4(_min(vals)),
         "avg": _round4(_avg(vals)),
         "stddev": _round4(_stddev(vals)),
@@ -150,10 +185,228 @@ def _stats_json(vals: List[float]) -> Dict[str, float]:
     }
 
 
-# ---------------------------------------------------------------------------
-# Relative-path helper (single source of truth for fingerprinting and
-# template loading, matching Rust/JVM/WASM/Go harnesses).
-# ---------------------------------------------------------------------------
+def _iteration_metrics(
+    host_model: float,
+    model_build: float,
+    schema_validate: float,
+    rule_eval: float,
+    finalize: float,
+    engine_internal: float,
+    wall_clock: float,
+) -> Dict[str, float]:
+    return {
+        "hostModelMs": _round4(host_model),
+        "modelBuildMs": _round4(model_build),
+        "schemaValidateMs": _round4(schema_validate),
+        "ruleEvaluationMs": _round4(rule_eval),
+        "diagnosticFinalizeMs": _round4(finalize),
+        "engineInternalMs": _round4(engine_internal),
+        "wallClockMs": _round4(wall_clock),
+    }
+
+
+def _subsequent_metric(vals: List[float]) -> Optional[float]:
+    if len(vals) > 1:
+        return _round4(_median(vals[1:]))
+    return None
+
+
+def _per_template_metrics(
+    iterations: int,
+    host_model: List[float],
+    model_build: List[float],
+    schema_validate: List[float],
+    rule_eval: List[float],
+    finalize: List[float],
+    engine_internal: List[float],
+    wall_clock: List[float],
+    binding_overhead_ms: float,
+) -> Dict[str, Any]:
+    first_measured = _iteration_metrics(
+        host_model[0],
+        model_build[0],
+        schema_validate[0],
+        rule_eval[0],
+        finalize[0],
+        engine_internal[0],
+        wall_clock[0],
+    )
+    subsequent = {
+        "sampleCount": max(len(wall_clock) - 1, 0),
+        "hostModelMs": _subsequent_metric(host_model),
+        "modelBuildMs": _subsequent_metric(model_build),
+        "schemaValidateMs": _subsequent_metric(schema_validate),
+        "ruleEvaluationMs": _subsequent_metric(rule_eval),
+        "diagnosticFinalizeMs": _subsequent_metric(finalize),
+        "engineInternalMs": _subsequent_metric(engine_internal),
+        "wallClockMs": _subsequent_metric(wall_clock),
+    }
+
+    def steady_or_first(vals: List[float]) -> float:
+        return _median(vals[1:]) if len(vals) > 1 else vals[0]
+
+    # Legacy steadyState mirrors the subsequent window but falls back to the first
+    # sample when there are no subsequent samples so older consumers keep a value.
+    steady_state = _iteration_metrics(
+        steady_or_first(host_model),
+        steady_or_first(model_build),
+        steady_or_first(schema_validate),
+        steady_or_first(rule_eval),
+        steady_or_first(finalize),
+        steady_or_first(engine_internal),
+        steady_or_first(wall_clock),
+    )
+    return {
+        "iterations": iterations,
+        "firstMeasured": dict(first_measured),
+        "subsequent": subsequent,
+        "firstIteration": dict(first_measured),
+        "steadyState": steady_state,
+        "bindingOverheadMs": binding_overhead_ms,
+    }
+
+
+def _sample_summary(
+    host_model: List[float],
+    engine_internal: List[float],
+    wall_clock: List[float],
+) -> SampleSummary:
+    def subsequent(vals: List[float]) -> Optional[float]:
+        return _median(vals[1:]) if len(vals) > 1 else None
+
+    return SampleSummary(
+        first_host_model_ms=host_model[0],
+        subsequent_host_model_ms=subsequent(host_model),
+        first_engine_internal_ms=engine_internal[0],
+        subsequent_engine_internal_ms=subsequent(engine_internal),
+        first_wall_clock_ms=wall_clock[0],
+        subsequent_wall_clock_ms=subsequent(wall_clock),
+    )
+
+
+def _first_validation_json(first: FirstValidation) -> Dict[str, float]:
+    return {
+        "host_ms": _round4(first.host_ms),
+        "internal_ms": _round4(first.internal_ms),
+        "model_build_ms": _round4(first.model_build_ms),
+        "schema_validate_ms": _round4(first.schema_validate_ms),
+        "rule_evaluation_ms": _round4(first.rule_evaluation_ms),
+        "diagnostic_finalize_ms": _round4(first.diagnostic_finalize_ms),
+    }
+
+
+def _startup_section(startup: StartupMeasurement) -> Dict[str, Any]:
+    return {
+        "startup_template": startup.startup_template,
+        "module_load_ms": _round4(startup.module_load_ms),
+        "consumer_init": {
+            "scope": startup.consumer_init_scope,
+            "duration_ms": _round4(startup.consumer_init_ms),
+        },
+        "schema_init_ms": (
+            _round4(startup.schema_init_ms) if startup.schema_init_ms is not None else None
+        ),
+        "engine_init_ms": _round4(startup.engine_init_ms),
+        "first_validation": _first_validation_json(startup.first),
+        "internal_time_to_first_result_ms": _round4(startup.internal_time_to_first_result_ms),
+    }
+
+
+def _measure_startup(
+    engine_class: Any,
+    startup_bytes: bytes,
+    startup_label: str,
+    benchmark_config: Any,
+    module_load_ms: float,
+) -> Tuple[Any, StartupMeasurement]:
+    engine_start = time.perf_counter()
+    engine = engine_class()
+    engine_init_ms = (time.perf_counter() - engine_start) * 1000.0
+
+    consumer_init_ms = engine_init_ms
+
+    validate_start = time.perf_counter()
+    report = engine._inner.validate_detailed(startup_bytes, benchmark_config, startup_label)
+    host_ms = (time.perf_counter() - validate_start) * 1000.0
+
+    perf = report.performance
+    first = FirstValidation(
+        host_ms=host_ms,
+        internal_ms=perf.validate_total.duration_ms,
+        model_build_ms=perf.model_build.duration_ms,
+        schema_validate_ms=perf.schema_validate.duration_ms,
+        rule_evaluation_ms=perf.rule_evaluation.duration_ms,
+        diagnostic_finalize_ms=perf.diagnostic_finalize.duration_ms,
+    )
+    startup = StartupMeasurement(
+        startup_template=startup_label,
+        module_load_ms=module_load_ms,
+        consumer_init_scope=_CONSUMER_INIT_SCOPE,
+        consumer_init_ms=consumer_init_ms,
+        schema_init_ms=None,
+        engine_init_ms=engine_init_ms,
+        first=first,
+        internal_time_to_first_result_ms=module_load_ms + consumer_init_ms + host_ms,
+    )
+    return engine, startup
+
+
+def _core_version(version_fn: Any) -> str:
+    try:
+        value = version_fn()
+    except Exception:
+        return "unknown"
+    return str(value) if value is not None else "unknown"
+
+
+def _installed_wheel_version() -> str:
+    try:
+        return importlib.metadata.version(_DISTRIBUTION_NAME)
+    except Exception:
+        return "unknown"
+
+
+def _query_tool_version(tool: str) -> str:
+    try:
+        result = subprocess.run(
+            [tool, "--version"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return "unknown"
+    if result.returncode != 0:
+        return "unknown"
+    lines = result.stdout.splitlines()
+    return lines[0].strip() if lines and lines[0].strip() else "unknown"
+
+
+def _env_or_query(var: str, tool: str) -> str:
+    value = os.environ.get(var, "")
+    if value.strip():
+        return value.strip()
+    return _query_tool_version(tool)
+
+
+def _python_runtime() -> str:
+    return f"python {platform.python_version()} {platform.system().lower()}-{platform.machine()}"
+
+
+def _provenance(version_fn: Any) -> Dict[str, Any]:
+    return {
+        "cloudformation_validate": _core_version(version_fn),
+        "binding_artifact": {
+            "kind": "wheel",
+            "version": _installed_wheel_version(),
+            "source": "cloudformation-validate (Python wheel)",
+        },
+        "cargo": _env_or_query(_CARGO_VERSION_ENV, "cargo"),
+        "rustc": _env_or_query(_RUSTC_VERSION_ENV, "rustc"),
+        "runtime": _python_runtime(),
+    }
+
+
 def _relative_key(root: Path, filepath: Path) -> str:
     """Return a normalized relative path key for a template file.
 
@@ -175,9 +428,6 @@ def _relative_key(root: Path, filepath: Path) -> str:
     return rel_str
 
 
-# ---------------------------------------------------------------------------
-# SHA-256 fingerprinting (matches native to_hex / compute_corpus_fingerprint)
-# ---------------------------------------------------------------------------
 def _sha256_hex(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
@@ -204,11 +454,7 @@ def _run_fingerprint(corpus_fp: str, engine: str, fmt: str, iterations: int) -> 
     return _sha256_hex(data.encode())
 
 
-# ---------------------------------------------------------------------------
-# Error-result helper - single source of truth for failed-template entries.
-# ---------------------------------------------------------------------------
 def _error_result(rel_path: str, size_bytes: int, status: str, error_msg: str) -> Dict[str, Any]:
-    """Construct a result entry for a template that could not be benchmarked."""
     return {
         "file": rel_path,
         "status": status,
@@ -222,12 +468,18 @@ def _error_result(rel_path: str, size_bytes: int, status: str, error_msg: str) -
         "host_model_ms": 0.0,
         "cold_host_model_ms": 0.0,
         "warm_host_model_ms": 0.0,
+        "first_measured_host_model_ms": 0.0,
+        "subsequent_host_model_ms": None,
         "engine_internal_ms": 0.0,
         "cold_engine_internal_ms": 0.0,
         "warm_engine_internal_ms": 0.0,
+        "first_measured_engine_internal_ms": 0.0,
+        "subsequent_engine_internal_ms": None,
         "wall_clock_ms": 0.0,
         "cold_wall_clock_ms": 0.0,
         "warm_wall_clock_ms": 0.0,
+        "first_measured_wall_clock_ms": 0.0,
+        "subsequent_wall_clock_ms": None,
         "binding_overhead_ms": 0.0,
         "model_build_ms": 0.0,
         "schema_validate_ms": 0.0,
@@ -251,6 +503,17 @@ def _zero_benchmark_metrics() -> Dict[str, Any]:
 
     return {
         "iterations": 0,
+        "firstMeasured": zero_iteration(),
+        "subsequent": {
+            "sampleCount": 0,
+            "hostModelMs": None,
+            "modelBuildMs": None,
+            "schemaValidateMs": None,
+            "ruleEvaluationMs": None,
+            "diagnosticFinalizeMs": None,
+            "engineInternalMs": None,
+            "wallClockMs": None,
+        },
         "firstIteration": zero_iteration(),
         "steadyState": zero_iteration(),
         "bindingOverheadMs": 0.0,
@@ -292,11 +555,32 @@ def _report_path(json_dir: Path, rel_path: str) -> Path:
     return json_dir / f"{stem}.json"
 
 
-# ---------------------------------------------------------------------------
-# File discovery (sorted .yaml/.yml/.json, recursive)
-# ---------------------------------------------------------------------------
+def _write_template_report(
+    json_path: Path,
+    rel_path: str,
+    report: Any,
+    benchmark_metrics: Dict[str, Any],
+    engine_name: str,
+) -> None:
+    try:
+        template_json = to_jsonable(report)
+        template_json["engine"] = engine_name
+        template_json["binding"] = "python"
+        template_json["detailLevel"] = "DETAILED"
+        template_json["benchmarkMetrics"] = benchmark_metrics
+        serialized = json.dumps(template_json, indent=2)
+        with open(json_path, "w", encoding="utf-8") as f:
+            f.write(serialized)
+    except (OSError, TypeError, ValueError) as exc:
+        print(
+            f"ERROR: failed to write per-template report {json_path} "
+            f"(template: {rel_path}): {exc}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+
 def _collect_files(root: Path) -> List[Path]:
-    """Recursively collects template files, sorted by normalized forward-slash path."""
     if root.is_file():
         return [root]
     results: List[Path] = []
@@ -310,9 +594,6 @@ def _collect_files(root: Path) -> List[Path]:
     return results
 
 
-# ---------------------------------------------------------------------------
-# CLI argument parsing
-# ---------------------------------------------------------------------------
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="benchmark",
@@ -321,9 +602,9 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "template_dir",
         nargs="?",
-        default=str(_DEFAULT_TEMPLATE_DIR),
+        default=None,
         metavar="TEMPLATE|DIR",
-        help="Template file or directory to benchmark (default: src/resources/templates)",
+        help="Template file or directory to benchmark (default: src/resources/templates).",
     )
     parser.add_argument(
         "--engine",
@@ -334,28 +615,63 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--iterations",
         type=int,
-        required=True,
-        help="Number of iterations per template (must be positive)",
+        default=None,
+        help=(
+            "Number of iterations per template (must be positive). "
+            "Required unless --startup-probe is set, which ignores it."
+        ),
+    )
+    parser.add_argument(
+        "--startup-probe",
+        action="store_true",
+        dest="startup_probe",
+        help=(
+            "Measure a single uncontaminated cold-start sequence (engine "
+            "construction that embeds the schema validator, then the first "
+            "raw-byte validation), print one JSON object, and exit."
+        ),
     )
     args = parser.parse_args()
-    if args.iterations < 1:
+    if args.iterations is not None and args.iterations < 1:
         parser.error("--iterations must be a positive integer")
+    if not args.startup_probe and args.iterations is None:
+        parser.error("--iterations is required")
     return args
 
 
-# ---------------------------------------------------------------------------
-# Main benchmark
-# ---------------------------------------------------------------------------
+def _run_startup_probe(
+    engine_name: str,
+    engine_class: Any,
+    version_fn: Any,
+    benchmark_config: Any,
+    module_load_ms: float,
+) -> None:
+    startup_path = _DEFAULT_TEMPLATE_DIR / _DEFAULT_STARTUP_TEMPLATE
+    try:
+        startup_bytes = startup_path.read_bytes()
+    except OSError as exc:
+        print(f"failed to read startup template '{startup_path}': {exc}", file=sys.stderr)
+        sys.exit(1)
+    startup_label = startup_path.name
+
+    _engine, startup = _measure_startup(
+        engine_class, startup_bytes, startup_label, benchmark_config, module_load_ms
+    )
+
+    probe = _startup_section(startup)
+    probe["binding"] = "python"
+    probe["engine"] = engine_name
+    probe["versions"] = _provenance(version_fn)
+    print(json.dumps(probe))
+
+
 def main() -> None:
     args = _parse_args()
 
     engine_name: str = args.engine
-    iterations: int = args.iterations
-    template_dir = Path(args.template_dir).resolve()
+    startup_probe: bool = args.startup_probe
 
-    # -----------------------------------------------------------------------
     # Module load timing - measure import + native library load.
-    # -----------------------------------------------------------------------
     import_start = time.perf_counter()
 
     from cloudformation_validate import (  # noqa: E402
@@ -363,30 +679,45 @@ def main() -> None:
         EntityType,
         JsonValue,
         RegoEngine,
-        SchemaValidator,
         Severity,
         TemplateModel,
         ValidateConfig,
+        version,
     )
 
     import_elapsed_ms = (time.perf_counter() - import_start) * 1000.0
 
-    # Set module-level type references for to_jsonable serialization.
     global _JsonValue, _EntityType
     _JsonValue = JsonValue
     _EntityType = EntityType
 
-    # Output directory: src/bindings-python/reports/{engine}
+    engine_class = RegoEngine if engine_name == "rego" else CelEngine
+
+    benchmark_config = ValidateConfig(severity_level=Severity.DEBUG)
+
+    if startup_probe:
+        _run_startup_probe(
+            engine_name,
+            engine_class,
+            version,
+            benchmark_config,
+            import_elapsed_ms,
+        )
+        return
+
+    iterations: int = args.iterations
+    template_dir = (
+        Path(args.template_dir).resolve() if args.template_dir is not None else _DEFAULT_TEMPLATE_DIR.resolve()
+    )
+
     output_dir = _BINDINGS_DIR / "reports" / engine_name
     output_dir.mkdir(parents=True, exist_ok=True)
 
     json_dir = output_dir / "json_detailed"
-    # Clean json_detailed before run.
     if json_dir.exists():
         shutil.rmtree(json_dir)
     json_dir.mkdir(parents=True, exist_ok=True)
 
-    # Discover templates.
     templates = _collect_files(template_dir)
     if not templates:
         print(f"No templates found in {template_dir}", file=sys.stderr)
@@ -394,54 +725,7 @@ def main() -> None:
 
     print(f"Found {len(templates)} templates in {template_dir}", file=sys.stderr)
 
-    # -----------------------------------------------------------------------
-    # Init timing.
-    #
-    # The Python engine constructor (RegoEngine/CelEngine) already embeds a
-    # SchemaValidator internally, so the actual consumer setup cost is just the
-    # engine constructor - that is what init_samples measures.
-    #
-    # schema_init_samples is measured separately as a standalone SchemaValidator
-    # construction to give visibility into schema decompression cost in
-    # isolation. It is NOT additive with engine_init_samples: the schema work
-    # is already included inside the engine constructor. Summing them would
-    # double-count schema initialization.
-    #
-    # cold_init = module load (import_elapsed_ms) + first engine constructor.
-    # warm_init = subsequent engine constructors (excluding the first).
-    # -----------------------------------------------------------------------
-    EngineClass = RegoEngine if engine_name == "rego" else CelEngine
-
-    schema_init_samples_ms: List[float] = []
-    engine_init_samples_ms: List[float] = []
-    for _ in range(iterations):
-        t0 = time.perf_counter()
-        sv = SchemaValidator()
-        schema_init_samples_ms.append((time.perf_counter() - t0) * 1000.0)
-        del sv
-
-        t1 = time.perf_counter()
-        eng = EngineClass()
-        engine_init_samples_ms.append((time.perf_counter() - t1) * 1000.0)
-        del eng
-
-    # init_samples equals engine_init_samples - the engine constructor IS the
-    # consumer validation setup (it embeds schema validation internally).
-    init_samples_ms = list(engine_init_samples_ms)
-    cold_init_ms = import_elapsed_ms + init_samples_ms[0]
-    warm_init_samples_ms = init_samples_ms[1:] if len(init_samples_ms) > 1 else list(init_samples_ms)
-
-    # Construct the engine for validation runs.
-    engine = EngineClass()
-
-    # Benchmark config: DETAILED + DEBUG severity to capture all diagnostics.
-    benchmark_config = ValidateConfig(severity_level=Severity.DEBUG)
-
-    # -----------------------------------------------------------------------
     # Pre-read all template bytes (excluded from timing).
-    # Templates that fail to read are recorded as read_error rather than
-    # aborting the entire benchmark.
-    # -----------------------------------------------------------------------
     template_data: List[Tuple[str, bytes]] = []
     read_errors: List[Dict[str, Any]] = []
     for tpath in templates:
@@ -454,31 +738,35 @@ def main() -> None:
             continue
         template_data.append((rel_str, content))
 
-    # -----------------------------------------------------------------------
-    # Warmup: amortize first-call costs for both TemplateModel and validate.
-    # Warmup exceptions are intentionally ignored - they do not affect the
-    # benchmark results; some templates may legitimately fail to parse.
-    # -----------------------------------------------------------------------
     if template_data:
-        first_rel, first_bytes = template_data[0]
-        try:
-            model = TemplateModel(first_bytes)
-            del model
-        except Exception:
-            pass
-        try:
-            warmup_report = engine._inner.validate_detailed(
-                first_bytes, benchmark_config, first_rel
-            )
-            del warmup_report
-        except Exception:
-            pass
+        startup_label, startup_bytes = template_data[0]
+        engine, startup = _measure_startup(
+            engine_class, startup_bytes, startup_label, benchmark_config, import_elapsed_ms
+        )
+    else:
+        engine_start = time.perf_counter()
+        engine = engine_class()
+        engine_init_ms = (time.perf_counter() - engine_start) * 1000.0
+        startup = StartupMeasurement(
+            startup_template="",
+            module_load_ms=import_elapsed_ms,
+            consumer_init_scope=_CONSUMER_INIT_SCOPE,
+            consumer_init_ms=engine_init_ms,
+            schema_init_ms=None,
+            engine_init_ms=engine_init_ms,
+            first=FirstValidation(0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+            internal_time_to_first_result_ms=import_elapsed_ms + engine_init_ms,
+        )
 
-    # -----------------------------------------------------------------------
-    # Main benchmark loop.
-    # -----------------------------------------------------------------------
+    schema_init_samples_ms: List[float] = []
+    engine_init_samples_ms: List[float] = [startup.engine_init_ms]
+
+    init_samples_ms = list(engine_init_samples_ms)
+    cold_init_ms = import_elapsed_ms + init_samples_ms[0]
+    subsequent_init_samples_ms: List[float] = []
+    warm_init_samples_ms: List[float] = []
+
     results: List[Dict[str, Any]] = list(read_errors)
-    deferred_writes: List[Tuple[Path, str, Any, Dict[str, Any]]] = []
 
     bench_start = time.perf_counter()
 
@@ -498,8 +786,6 @@ def main() -> None:
         failed = False
 
         for i in range(iterations):
-            # Standalone model parse - classify failures as parse_error,
-            # record one result, and skip validation for this template.
             tm0 = time.perf_counter()
             try:
                 model = TemplateModel(template_bytes)
@@ -507,14 +793,14 @@ def main() -> None:
                 parse_failure_report = engine._inner.validate_detailed(
                     template_bytes, benchmark_config, rel_path
                 )
-                deferred_writes.append(
-                    (
-                        json_path,
-                        rel_path,
-                        _normalize_parse_failure_report(parse_failure_report),
-                        _zero_benchmark_metrics(),
-                    )
+                _write_template_report(
+                    json_path,
+                    rel_path,
+                    _normalize_parse_failure_report(parse_failure_report),
+                    _zero_benchmark_metrics(),
+                    engine_name,
                 )
+                del parse_failure_report
                 results.append(_error_result(rel_path, 0, "parse_error", str(exc)))
                 print(f" PARSE_ERROR: {exc}", file=sys.stderr)
                 failed = True
@@ -523,7 +809,6 @@ def main() -> None:
             del model
             iter_host_model_ms.append(host_model_ms)
 
-            # Host validate timing: full validation including schema + rules.
             t0 = time.perf_counter()
             try:
                 report = engine._inner.validate_detailed(
@@ -537,7 +822,6 @@ def main() -> None:
             host_validate_ms = (time.perf_counter() - t0) * 1000.0
             iter_host_validate_ms.append(host_validate_ms)
 
-            # Collect engine-internal phase timings from this iteration.
             perf = report.performance
             iter_model_build_ms.append(perf.model_build.duration_ms)
             iter_schema_validate_ms.append(perf.schema_validate.duration_ms)
@@ -545,7 +829,6 @@ def main() -> None:
             iter_finalize_ms.append(perf.diagnostic_finalize.duration_ms)
             iter_engine_internal_ms.append(perf.validate_total.duration_ms)
 
-            # Release the report reference for all but the final iteration.
             if i < iterations - 1:
                 del report
             else:
@@ -556,7 +839,6 @@ def main() -> None:
 
         report = last_report
 
-        # Compute per-template stats.
         cold_host_model_ms = iter_host_model_ms[0]
         warm_host_model_ms = _median(iter_host_model_ms[1:]) if iterations > 1 else cold_host_model_ms
         median_host_model_ms = _median(iter_host_model_ms)
@@ -580,7 +862,8 @@ def main() -> None:
         ]
         binding_overhead_ms = _round4(_median(per_iter_overhead))
 
-        # Report metadata.
+        summary = _sample_summary(iter_host_model_ms, iter_engine_internal_ms, iter_host_validate_ms)
+
         metadata = report.metadata
         report_resources = metadata.resources_scanned
         counts = metadata.counts
@@ -590,39 +873,19 @@ def main() -> None:
         report_informational = counts.informational
         report_diag_count = len(report.diagnostics)
 
-        # Benchmark metrics for the per-template JSON.
-        benchmark_metrics = {
-            "iterations": iterations,
-            "firstIteration": {
-                "hostModelMs": _round4(iter_host_model_ms[0]),
-                "modelBuildMs": _round4(iter_model_build_ms[0]),
-                "schemaValidateMs": _round4(iter_schema_validate_ms[0]),
-                "ruleEvaluationMs": _round4(iter_rule_eval_ms[0]),
-                "diagnosticFinalizeMs": _round4(iter_finalize_ms[0]),
-                "engineInternalMs": _round4(cold_engine_internal_ms),
-                "wallClockMs": _round4(cold_wall_clock_ms),
-            },
-            "steadyState": {
-                "hostModelMs": _round4(warm_host_model_ms),
-                "modelBuildMs": _round4(
-                    _median(iter_model_build_ms[1:]) if iterations > 1 else iter_model_build_ms[0]
-                ),
-                "schemaValidateMs": _round4(
-                    _median(iter_schema_validate_ms[1:]) if iterations > 1 else iter_schema_validate_ms[0]
-                ),
-                "ruleEvaluationMs": _round4(
-                    _median(iter_rule_eval_ms[1:]) if iterations > 1 else iter_rule_eval_ms[0]
-                ),
-                "diagnosticFinalizeMs": _round4(
-                    _median(iter_finalize_ms[1:]) if iterations > 1 else iter_finalize_ms[0]
-                ),
-                "engineInternalMs": _round4(warm_engine_internal_ms),
-                "wallClockMs": _round4(warm_wall_clock_ms),
-            },
-            "bindingOverheadMs": binding_overhead_ms,
-        }
+        benchmark_metrics = _per_template_metrics(
+            iterations,
+            iter_host_model_ms,
+            iter_model_build_ms,
+            iter_schema_validate_ms,
+            iter_rule_eval_ms,
+            iter_finalize_ms,
+            iter_engine_internal_ms,
+            iter_host_validate_ms,
+            binding_overhead_ms,
+        )
 
-        deferred_writes.append((json_path, rel_path, report, benchmark_metrics))
+        _write_template_report(json_path, rel_path, report, benchmark_metrics, engine_name)
 
         template_result = {
             "file": rel_path,
@@ -637,6 +900,12 @@ def main() -> None:
             "host_model_ms": _round4(median_host_model_ms),
             "cold_host_model_ms": _round4(cold_host_model_ms),
             "warm_host_model_ms": _round4(warm_host_model_ms),
+            "first_measured_host_model_ms": _round4(summary.first_host_model_ms),
+            "subsequent_host_model_ms": (
+                _round4(summary.subsequent_host_model_ms)
+                if summary.subsequent_host_model_ms is not None
+                else None
+            ),
             "model_build_ms": _round4(_median(iter_model_build_ms)),
             "schema_validate_ms": _round4(_median(iter_schema_validate_ms)),
             "rule_eval_ms": _round4(_median(iter_rule_eval_ms)),
@@ -644,9 +913,21 @@ def main() -> None:
             "engine_internal_ms": _round4(median_engine_internal_ms),
             "cold_engine_internal_ms": _round4(cold_engine_internal_ms),
             "warm_engine_internal_ms": _round4(warm_engine_internal_ms),
+            "first_measured_engine_internal_ms": _round4(summary.first_engine_internal_ms),
+            "subsequent_engine_internal_ms": (
+                _round4(summary.subsequent_engine_internal_ms)
+                if summary.subsequent_engine_internal_ms is not None
+                else None
+            ),
             "wall_clock_ms": _round4(median_wall_clock_ms),
             "cold_wall_clock_ms": _round4(cold_wall_clock_ms),
             "warm_wall_clock_ms": _round4(warm_wall_clock_ms),
+            "first_measured_wall_clock_ms": _round4(summary.first_wall_clock_ms),
+            "subsequent_wall_clock_ms": (
+                _round4(summary.subsequent_wall_clock_ms)
+                if summary.subsequent_wall_clock_ms is not None
+                else None
+            ),
             "binding_overhead_ms": binding_overhead_ms,
             "error_msg": None,
             # Internal: total wall-clock time across all iterations for this
@@ -666,31 +947,6 @@ def main() -> None:
 
     total_wall_ms = (time.perf_counter() - bench_start) * 1000.0
 
-    # -----------------------------------------------------------------------
-    # Deferred writes: per-template JSON (after timed loop).
-    # All write failures are reported explicitly and exit nonzero.
-    # -----------------------------------------------------------------------
-    for json_path, rel_path, report, benchmark_metrics in deferred_writes:
-        try:
-            template_json = to_jsonable(report)
-            template_json["engine"] = engine_name
-            template_json["binding"] = "python"
-            template_json["detailLevel"] = "DETAILED"
-            template_json["benchmarkMetrics"] = benchmark_metrics
-            serialized = json.dumps(template_json, indent=2)
-            with open(json_path, "w", encoding="utf-8") as f:
-                f.write(serialized)
-        except (OSError, TypeError, ValueError) as exc:
-            print(
-                f"ERROR: failed to write per-template report {json_path} "
-                f"(template: {rel_path}): {exc}",
-                file=sys.stderr,
-            )
-            sys.exit(1)
-
-    # -----------------------------------------------------------------------
-    # Aggregate report.
-    # -----------------------------------------------------------------------
     successful_results = [r for r in results if r["status"] == "ok"]
     failed_results = [r for r in results if r["status"] != "ok"]
 
@@ -706,7 +962,6 @@ def main() -> None:
         else 0.0
     )
 
-    # Collect per-template vectors for aggregate stats.
     model_build_vec = [r["model_build_ms"] for r in successful_results]
     schema_validate_vec = [r["schema_validate_ms"] for r in successful_results]
     rule_eval_vec = [r["rule_eval_ms"] for r in successful_results]
@@ -714,16 +969,40 @@ def main() -> None:
     engine_internal_vec = [r["engine_internal_ms"] for r in successful_results]
     cold_engine_internal_vec = [r["cold_engine_internal_ms"] for r in successful_results]
     warm_engine_internal_vec = [r["warm_engine_internal_ms"] for r in successful_results]
+    first_measured_engine_internal_vec = [
+        r["first_measured_engine_internal_ms"] for r in successful_results
+    ]
+    subsequent_engine_internal_vec = [
+        r["subsequent_engine_internal_ms"]
+        for r in successful_results
+        if r["subsequent_engine_internal_ms"] is not None
+    ]
     wall_clock_vec = [r["wall_clock_ms"] for r in successful_results]
     cold_wall_clock_vec = [r["cold_wall_clock_ms"] for r in successful_results]
     warm_wall_clock_vec = [r["warm_wall_clock_ms"] for r in successful_results]
+    first_measured_wall_clock_vec = [r["first_measured_wall_clock_ms"] for r in successful_results]
+    subsequent_wall_clock_vec = [
+        r["subsequent_wall_clock_ms"]
+        for r in successful_results
+        if r["subsequent_wall_clock_ms"] is not None
+    ]
     host_model_vec = [r["host_model_ms"] for r in successful_results]
     cold_host_model_vec = [r["cold_host_model_ms"] for r in successful_results]
     warm_host_model_vec = [r["warm_host_model_ms"] for r in successful_results]
+    first_measured_host_model_vec = [r["first_measured_host_model_ms"] for r in successful_results]
+    subsequent_host_model_vec = [
+        r["subsequent_host_model_ms"]
+        for r in successful_results
+        if r["subsequent_host_model_ms"] is not None
+    ]
     binding_overhead_vec = [r["binding_overhead_ms"] for r in successful_results]
 
     corpus_fingerprint, corpus_file_count = _compute_corpus_fingerprint(template_dir, templates)
     run_fp = _run_fingerprint(corpus_fingerprint, engine_name, "DETAILED", iterations)
+
+    # Provenance is built after all timed work so the cargo/rustc spawns never
+    # contaminate a measurement.
+    provenance = _provenance(version)
 
     timestamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -733,6 +1012,7 @@ def main() -> None:
         "binding": "python",
         "detail_level": "DETAILED",
         "template_dir": str(template_dir),
+        "provenance": provenance,
         "templates_total": len(results),
         "templates_ok": len(successful_results),
         "templates_failed": len(failed_results),
@@ -742,9 +1022,11 @@ def main() -> None:
         "run_fingerprint": run_fp,
         "performance": {
             "module_load_ms": _round4(import_elapsed_ms),
+            "startup": _startup_section(startup),
             "init_ms": _stats_json(init_samples_ms),
             "cold_init_ms": _round4(cold_init_ms),
             "warm_init_ms": _stats_json(warm_init_samples_ms),
+            "subsequent_init_ms": _stats_json(subsequent_init_samples_ms),
             "schema_init_ms": _stats_json(schema_init_samples_ms),
             "engine_init_ms": _stats_json(engine_init_samples_ms),
             "total_wall_ms": _round4(total_wall_ms),
@@ -755,12 +1037,18 @@ def main() -> None:
             "rule_evaluation_ms": _stats_json(rule_eval_vec),
             "diagnostic_finalize_ms": _stats_json(finalize_vec),
             "engine_internal_ms": _stats_json(engine_internal_vec),
+            "first_measured_engine_internal_ms": _stats_json(first_measured_engine_internal_vec),
+            "subsequent_engine_internal_ms": _stats_json(subsequent_engine_internal_vec),
             "cold_engine_internal_ms": _stats_json(cold_engine_internal_vec),
             "warm_engine_internal_ms": _stats_json(warm_engine_internal_vec),
             "wall_clock_ms": _stats_json(wall_clock_vec),
+            "first_measured_wall_clock_ms": _stats_json(first_measured_wall_clock_vec),
+            "subsequent_wall_clock_ms": _stats_json(subsequent_wall_clock_vec),
             "cold_wall_clock_ms": _stats_json(cold_wall_clock_vec),
             "warm_wall_clock_ms": _stats_json(warm_wall_clock_vec),
             "host_model_ms": _stats_json(host_model_vec),
+            "first_measured_host_model_ms": _stats_json(first_measured_host_model_vec),
+            "subsequent_host_model_ms": _stats_json(subsequent_host_model_vec),
             "cold_host_model_ms": _stats_json(cold_host_model_vec),
             "warm_host_model_ms": _stats_json(warm_host_model_vec),
             "binding_overhead_ms": _stats_json(binding_overhead_vec),
@@ -785,9 +1073,7 @@ def main() -> None:
         print(f"ERROR: failed to write aggregate report {aggregate_path}: {exc}", file=sys.stderr)
         sys.exit(1)
 
-    # -----------------------------------------------------------------------
     # Fingerprint file for cache invalidation.
-    # -----------------------------------------------------------------------
     fingerprint_path = output_dir / "run_fingerprint.txt"
     try:
         fingerprint_path.write_text(run_fp, encoding="utf-8")
@@ -795,9 +1081,6 @@ def main() -> None:
         print(f"ERROR: failed to write fingerprint {fingerprint_path}: {exc}", file=sys.stderr)
         sys.exit(1)
 
-    # -----------------------------------------------------------------------
-    # Summary to stderr.
-    # -----------------------------------------------------------------------
     print(file=sys.stderr)
     print(
         f"Benchmark complete: {len(successful_results)} ok, "
