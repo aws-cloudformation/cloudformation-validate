@@ -441,7 +441,9 @@
         "ra3.4xlarge",
         "ra3.large",
         "ra3.xlplus",
+        "rg.12xlarge",
         "rg.4xlarge",
+        "rg.large",
         "rg.xlarge"
       ]
     },
@@ -453,7 +455,9 @@
         "ra3.4xlarge",
         "ra3.large",
         "ra3.xlplus",
+        "rg.12xlarge",
         "rg.4xlarge",
+        "rg.large",
         "rg.xlarge"
       ]
     },

@@ -1399,6 +1399,12 @@
       "HostedZoneId",
       "Name"
     ],
+    "AWS::Route53::RecordSet": [
+      "Name",
+      "HostedZoneId",
+      "Type",
+      "SetIdentifier"
+    ],
     "AWS::Route53RecoveryReadiness::Cell": [
       "CellName"
     ],

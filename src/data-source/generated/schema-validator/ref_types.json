@@ -74,6 +74,7 @@
     "AWS::AppConfig::DeploymentStrategy": "string",
     "AWS::AppConfig::Environment": "string",
     "AWS::AppConfig::ExperimentDefinition": "string",
+    "AWS::AppConfig::ExperimentRun": "string",
     "AWS::AppConfig::Extension": "string",
     "AWS::AppConfig::ExtensionAssociation": "string",
     "AWS::AppConfig::HostedConfigurationVersion": "string",
@@ -251,6 +252,7 @@
     "AWS::Chime::AppInstanceBot": "string",
     "AWS::Chime::AppInstanceUser": "string",
     "AWS::Chime::ChannelFlow": "string",
+    "AWS::Chime::MediaPipelineKinesisVideoStreamPool": "string",
     "AWS::CleanRooms::AnalysisTemplate": "string",
     "AWS::CleanRooms::Collaboration": "string",
     "AWS::CleanRooms::ConfiguredTable": "string",
@@ -532,6 +534,7 @@
     "AWS::DynamoDB::Backup": "string",
     "AWS::DynamoDB::GlobalTable": "string",
     "AWS::DynamoDB::Table": "string",
+    "AWS::EC2::ApplicationStatusCheck": "string",
     "AWS::EC2::CapacityManagerDataExport": "string",
     "AWS::EC2::CapacityReservation": "string",
     "AWS::EC2::CapacityReservationFleet": "string",
@@ -564,6 +567,7 @@
     "AWS::EC2::InstanceConnectEndpoint": "string",
     "AWS::EC2::InternetGateway": "string",
     "AWS::EC2::IpPoolRouteTableAssociation": "string",
+    "AWS::EC2::IpamExternalResourceVerificationToken": "string",
     "AWS::EC2::KeyPair": "string",
     "AWS::EC2::LaunchTemplate": "string",
     "AWS::EC2::LocalGatewayRoute": "string",
@@ -895,6 +899,7 @@
     "AWS::Interconnect::Connection": "string",
     "AWS::InternetMonitor::Monitor": "string",
     "AWS::Invoicing::InvoiceUnit": "string",
+    "AWS::Invoicing::ProcurementPortalPreference": "string",
     "AWS::IoT::AccountAuditConfiguration": "string",
     "AWS::IoT::Authorizer": "string",
     "AWS::IoT::BillingGroup": "string",
@@ -1282,6 +1287,7 @@
     "AWS::PinpointEmail::DedicatedIpPool": "string",
     "AWS::PinpointEmail::Identity": "string",
     "AWS::Pipes::Pipe": "string",
+    "AWS::PricingPlanManager::Subscription": "string",
     "AWS::Proton::EnvironmentAccountConnection": "string",
     "AWS::Proton::EnvironmentTemplate": "string",
     "AWS::Proton::ServiceTemplate": "string",
@@ -2189,7 +2195,8 @@
       "RestApiId": "string",
       "RootResourceId": "string",
       "SecurityPolicy": "string",
-      "Tags": "array"
+      "Tags": "array",
+      "Version": "string"
     },
     "AWS::ApiGateway::Stage": {
       "CacheClusterEnabled": "boolean",
@@ -2441,6 +2448,19 @@
       "Status": "string",
       "Tags": "array",
       "Treatments": "array",
+      "UpdatedAt": "string"
+    },
+    "AWS::AppConfig::ExperimentRun": {
+      "ApplicationId": "string",
+      "ApplicationIdentifier": "string",
+      "Description": "string",
+      "ExperimentDefinitionId": "string",
+      "ExperimentDefinitionIdentifier": "string",
+      "ExposurePercentage": "number",
+      "Run": "string",
+      "StartedAt": "string",
+      "Status": "string",
+      "Tags": "array",
       "UpdatedAt": "string"
     },
     "AWS::AppConfig::Extension": {
@@ -4118,6 +4138,16 @@
       "Processors": "array",
       "Tags": "array"
     },
+    "AWS::Chime::MediaPipelineKinesisVideoStreamPool": {
+      "Arn": "string",
+      "CreatedTimestamp": "string",
+      "PoolId": "string",
+      "PoolName": "string",
+      "PoolStatus": "string",
+      "StreamConfiguration": "object",
+      "Tags": "array",
+      "UpdatedTimestamp": "string"
+    },
     "AWS::CleanRooms::AnalysisTemplate": {
       "AnalysisParameters": "array",
       "AnalysisTemplateIdentifier": "string",
@@ -4813,7 +4843,6 @@
     "AWS::CodeBuild::ReportGroup": {
       "Arn": "string",
       "DeleteReports": "boolean",
-      "Id": "string",
       "Name": "string",
       "Tags": "array",
       "Type": "string"
@@ -6869,6 +6898,26 @@
       "TableName": "string",
       "Tags": "array"
     },
+    "AWS::EC2::ApplicationStatusCheck": {
+      "Aggregation": "string",
+      "ApplicationStatusCheckId": "string",
+      "Arn": "string",
+      "CreationTime": "string",
+      "DeviceIndex": "integer",
+      "FailureThreshold": "integer",
+      "HealthCheckPaths": "array",
+      "InitializationGracePeriodSeconds": "integer",
+      "Interval": "integer",
+      "IpScope": "string",
+      "IpVersion": "string",
+      "Path": "string",
+      "Port": "integer",
+      "Protocol": "string",
+      "StatusCodeMatcher": "string",
+      "SuccessThreshold": "integer",
+      "Tags": "array",
+      "Timeout": "integer"
+    },
     "AWS::EC2::CapacityManagerDataExport": {
       "CapacityManagerDataExportId": "string",
       "OutputFormat": "string",
@@ -7264,6 +7313,19 @@
       "AssociationId": "string",
       "PublicIpv4Pool": "string",
       "RouteTableId": "string"
+    },
+    "AWS::EC2::IpamExternalResourceVerificationToken": {
+      "IpamArn": "string",
+      "IpamExternalResourceVerificationTokenArn": "string",
+      "IpamExternalResourceVerificationTokenId": "string",
+      "IpamId": "string",
+      "IpamRegion": "string",
+      "NotAfter": "string",
+      "State": "string",
+      "Status": "string",
+      "Tags": "array",
+      "TokenName": "string",
+      "TokenValue": "string"
     },
     "AWS::EC2::KeyPair": {
       "KeyFingerprint": "string",
@@ -10357,6 +10419,27 @@
       "ResourcesToRemove": "array",
       "Tags": "array",
       "TrafficPercentageToMonitor": "integer"
+    },
+    "AWS::Invoicing::ProcurementPortalPreference": {
+      "AwsAccountId": "string",
+      "BuyerDomain": "string",
+      "BuyerIdentifier": "string",
+      "Contacts": "array",
+      "CreateDate": "string",
+      "EinvoiceDeliveryEnabled": "boolean",
+      "EinvoiceDeliveryPreferenceStatus": "string",
+      "LastUpdateDate": "string",
+      "ProcurementPortalInstanceEndpoint": "string",
+      "ProcurementPortalName": "string",
+      "ProcurementPortalPreferenceArn": "string",
+      "ProcurementPortalSharedSecret": "string",
+      "PurchaseOrderRetrievalEnabled": "boolean",
+      "PurchaseOrderRetrievalEndpoint": "string",
+      "PurchaseOrderRetrievalPreferenceStatus": "string",
+      "SupplierDomain": "string",
+      "SupplierIdentifier": "string",
+      "Tags": "array",
+      "Version": "integer"
     },
     "AWS::IoT::AccountAuditConfiguration": {
       "AccountId": "string",
@@ -13891,6 +13974,17 @@
       "StateReason": "string",
       "Target": "string"
     },
+    "AWS::PricingPlanManager::Subscription": {
+      "Arn": "string",
+      "CreatedAt": "string",
+      "CurrentPlanTier": "string",
+      "PlanFamily": "string",
+      "PlanTier": "string",
+      "ResourceArns": "array",
+      "Status": "string",
+      "StatusReason": "string",
+      "UpdatedAt": "string"
+    },
     "AWS::Proton::EnvironmentAccountConnection": {
       "Arn": "string",
       "CodebuildRoleArn": "string",
@@ -14505,6 +14599,8 @@
       "SourceRegion": "string",
       "StatusInfos": "array",
       "StorageEncrypted": "boolean",
+      "StorageOperationPercentProgress": "integer",
+      "StorageOperationStatus": "string",
       "StorageThroughput": "integer",
       "StorageType": "string",
       "Tags": "array",
@@ -15117,22 +15213,6 @@
       "KeyManagementServiceArn": "string",
       "Name": "string",
       "Status": "string"
-    },
-    "AWS::Route53::RecordSet": {
-      "Comment": "string",
-      "Failover": "string",
-      "HealthCheckId": "string",
-      "HostedZoneId": "string",
-      "HostedZoneName": "string",
-      "Id": "string",
-      "MultiValueAnswer": "boolean",
-      "Name": "string",
-      "Region": "string",
-      "ResourceRecords": "array",
-      "SetIdentifier": "string",
-      "TTL": "string",
-      "Type": "string",
-      "Weight": "integer"
     },
     "AWS::Route53::RecordSetGroup": {
       "Comment": "string",
@@ -16238,9 +16318,9 @@
     },
     "AWS::SageMaker::EndpointConfig": {
       "EnableNetworkIsolation": "boolean",
+      "EndpointConfigArn": "string",
       "EndpointConfigName": "string",
       "ExecutionRoleArn": "string",
-      "Id": "string",
       "KmsKeyId": "string",
       "ProductionVariants": "array",
       "ShadowProductionVariants": "array",

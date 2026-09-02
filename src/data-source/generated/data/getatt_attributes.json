@@ -308,6 +308,14 @@
       "Treatments.*.Key",
       "UpdatedAt"
     ],
+    "AWS::AppConfig::ExperimentRun": [
+      "ApplicationId",
+      "ExperimentDefinitionId",
+      "Run",
+      "StartedAt",
+      "Status",
+      "UpdatedAt"
+    ],
     "AWS::AppConfig::Extension": [
       "Arn",
       "Id",
@@ -1097,6 +1105,7 @@
       "GatewayArn",
       "RuleId",
       "Status",
+      "System",
       "UpdatedAt"
     ],
     "AWS::BedrockAgentCore::GatewayTarget": [
@@ -1405,6 +1414,13 @@
       "ChannelFlowId",
       "CreatedTimestamp",
       "LastUpdatedTimestamp"
+    ],
+    "AWS::Chime::MediaPipelineKinesisVideoStreamPool": [
+      "Arn",
+      "CreatedTimestamp",
+      "PoolId",
+      "PoolStatus",
+      "UpdatedTimestamp"
     ],
     "AWS::CleanRooms::AnalysisTemplate": [
       "AnalysisTemplateIdentifier",
@@ -1757,8 +1773,7 @@
       "Id"
     ],
     "AWS::CodeBuild::ReportGroup": [
-      "Arn",
-      "Id"
+      "Arn"
     ],
     "AWS::CodeBuild::SourceCredential": [
       "Arn"
@@ -2622,6 +2637,11 @@
       "Arn",
       "StreamArn"
     ],
+    "AWS::EC2::ApplicationStatusCheck": [
+      "ApplicationStatusCheckId",
+      "Arn",
+      "CreationTime"
+    ],
     "AWS::EC2::CapacityManagerDataExport": [
       "CapacityManagerDataExportId"
     ],
@@ -2849,6 +2869,17 @@
     ],
     "AWS::EC2::IpPoolRouteTableAssociation": [
       "AssociationId"
+    ],
+    "AWS::EC2::IpamExternalResourceVerificationToken": [
+      "IpamArn",
+      "IpamExternalResourceVerificationTokenArn",
+      "IpamExternalResourceVerificationTokenId",
+      "IpamRegion",
+      "NotAfter",
+      "State",
+      "Status",
+      "TokenName",
+      "TokenValue"
     ],
     "AWS::EC2::KeyPair": [
       "KeyFingerprint",
@@ -4654,6 +4685,16 @@
     "AWS::Invoicing::InvoiceUnit": [
       "InvoiceUnitArn",
       "LastModified"
+    ],
+    "AWS::Invoicing::ProcurementPortalPreference": [
+      "AwsAccountId",
+      "CreateDate",
+      "EinvoiceDeliveryPreferenceStatus",
+      "LastUpdateDate",
+      "ProcurementPortalPreferenceArn",
+      "PurchaseOrderRetrievalEndpoint",
+      "PurchaseOrderRetrievalPreferenceStatus",
+      "Version"
     ],
     "AWS::IoT::Authorizer": [
       "Arn"
@@ -6564,6 +6605,14 @@
       "LastModifiedTime",
       "StateReason"
     ],
+    "AWS::PricingPlanManager::Subscription": [
+      "Arn",
+      "CreatedAt",
+      "CurrentPlanTier",
+      "Status",
+      "StatusReason",
+      "UpdatedAt"
+    ],
     "AWS::Proton::EnvironmentAccountConnection": [
       "Arn",
       "Id",
@@ -6812,6 +6861,8 @@
     ],
     "AWS::RDS::DBInstance": [
       "AdditionalStorageVolumes",
+      "AdditionalStorageVolumes.*.StorageOperationPercentProgress",
+      "AdditionalStorageVolumes.*.StorageOperationStatus",
       "AllocatedStorage",
       "AllowMajorVersionUpgrade",
       "ApplyImmediately",
@@ -6910,6 +6961,8 @@
       "SourceRegion",
       "StatusInfos",
       "StorageEncrypted",
+      "StorageOperationPercentProgress",
+      "StorageOperationStatus",
       "StorageThroughput",
       "StorageType",
       "Tags",
@@ -7326,9 +7379,6 @@
     "AWS::Route53::HostedZone": [
       "Id",
       "NameServers"
-    ],
-    "AWS::Route53::RecordSet": [
-      "Id"
     ],
     "AWS::Route53::RecordSetGroup": [
       "Id"
@@ -8002,8 +8052,8 @@
       "EndpointName"
     ],
     "AWS::SageMaker::EndpointConfig": [
-      "EndpointConfigName",
-      "Id"
+      "EndpointConfigArn",
+      "EndpointConfigName"
     ],
     "AWS::SageMaker::Experiment": [
       "Arn",
@@ -8048,7 +8098,10 @@
       "LastModifiedTime",
       "RuntimeConfig.CurrentCopyCount",
       "RuntimeConfig.DesiredCopyCount",
-      "Specification.Container.DeployedImage"
+      "RuntimeConfig.PlacementStatus",
+      "Specification.Container.DeployedImage",
+      "Specification.CurrentDataCacheConfig",
+      "Specifications.*.CurrentDataCacheConfig"
     ],
     "AWS::SageMaker::InferenceExperiment": [
       "Arn",
@@ -9575,7 +9628,8 @@
       "RestApiId": "string",
       "RootResourceId": "string",
       "SecurityPolicy": "string",
-      "Tags": "array"
+      "Tags": "array",
+      "Version": "string"
     },
     "AWS::ApiGateway::Stage": {
       "CacheClusterEnabled": "boolean",
@@ -9827,6 +9881,19 @@
       "Status": "string",
       "Tags": "array",
       "Treatments": "array",
+      "UpdatedAt": "string"
+    },
+    "AWS::AppConfig::ExperimentRun": {
+      "ApplicationId": "string",
+      "ApplicationIdentifier": "string",
+      "Description": "string",
+      "ExperimentDefinitionId": "string",
+      "ExperimentDefinitionIdentifier": "string",
+      "ExposurePercentage": "number",
+      "Run": "string",
+      "StartedAt": "string",
+      "Status": "string",
+      "Tags": "array",
       "UpdatedAt": "string"
     },
     "AWS::AppConfig::Extension": {
@@ -11504,6 +11571,16 @@
       "Processors": "array",
       "Tags": "array"
     },
+    "AWS::Chime::MediaPipelineKinesisVideoStreamPool": {
+      "Arn": "string",
+      "CreatedTimestamp": "string",
+      "PoolId": "string",
+      "PoolName": "string",
+      "PoolStatus": "string",
+      "StreamConfiguration": "object",
+      "Tags": "array",
+      "UpdatedTimestamp": "string"
+    },
     "AWS::CleanRooms::AnalysisTemplate": {
       "AnalysisParameters": "array",
       "AnalysisTemplateIdentifier": "string",
@@ -12199,7 +12276,6 @@
     "AWS::CodeBuild::ReportGroup": {
       "Arn": "string",
       "DeleteReports": "boolean",
-      "Id": "string",
       "Name": "string",
       "Tags": "array",
       "Type": "string"
@@ -14255,6 +14331,26 @@
       "TableName": "string",
       "Tags": "array"
     },
+    "AWS::EC2::ApplicationStatusCheck": {
+      "Aggregation": "string",
+      "ApplicationStatusCheckId": "string",
+      "Arn": "string",
+      "CreationTime": "string",
+      "DeviceIndex": "integer",
+      "FailureThreshold": "integer",
+      "HealthCheckPaths": "array",
+      "InitializationGracePeriodSeconds": "integer",
+      "Interval": "integer",
+      "IpScope": "string",
+      "IpVersion": "string",
+      "Path": "string",
+      "Port": "integer",
+      "Protocol": "string",
+      "StatusCodeMatcher": "string",
+      "SuccessThreshold": "integer",
+      "Tags": "array",
+      "Timeout": "integer"
+    },
     "AWS::EC2::CapacityManagerDataExport": {
       "CapacityManagerDataExportId": "string",
       "OutputFormat": "string",
@@ -14650,6 +14746,19 @@
       "AssociationId": "string",
       "PublicIpv4Pool": "string",
       "RouteTableId": "string"
+    },
+    "AWS::EC2::IpamExternalResourceVerificationToken": {
+      "IpamArn": "string",
+      "IpamExternalResourceVerificationTokenArn": "string",
+      "IpamExternalResourceVerificationTokenId": "string",
+      "IpamId": "string",
+      "IpamRegion": "string",
+      "NotAfter": "string",
+      "State": "string",
+      "Status": "string",
+      "Tags": "array",
+      "TokenName": "string",
+      "TokenValue": "string"
     },
     "AWS::EC2::KeyPair": {
       "KeyFingerprint": "string",
@@ -17743,6 +17852,27 @@
       "ResourcesToRemove": "array",
       "Tags": "array",
       "TrafficPercentageToMonitor": "integer"
+    },
+    "AWS::Invoicing::ProcurementPortalPreference": {
+      "AwsAccountId": "string",
+      "BuyerDomain": "string",
+      "BuyerIdentifier": "string",
+      "Contacts": "array",
+      "CreateDate": "string",
+      "EinvoiceDeliveryEnabled": "boolean",
+      "EinvoiceDeliveryPreferenceStatus": "string",
+      "LastUpdateDate": "string",
+      "ProcurementPortalInstanceEndpoint": "string",
+      "ProcurementPortalName": "string",
+      "ProcurementPortalPreferenceArn": "string",
+      "ProcurementPortalSharedSecret": "string",
+      "PurchaseOrderRetrievalEnabled": "boolean",
+      "PurchaseOrderRetrievalEndpoint": "string",
+      "PurchaseOrderRetrievalPreferenceStatus": "string",
+      "SupplierDomain": "string",
+      "SupplierIdentifier": "string",
+      "Tags": "array",
+      "Version": "integer"
     },
     "AWS::IoT::AccountAuditConfiguration": {
       "AccountId": "string",
@@ -21277,6 +21407,17 @@
       "StateReason": "string",
       "Target": "string"
     },
+    "AWS::PricingPlanManager::Subscription": {
+      "Arn": "string",
+      "CreatedAt": "string",
+      "CurrentPlanTier": "string",
+      "PlanFamily": "string",
+      "PlanTier": "string",
+      "ResourceArns": "array",
+      "Status": "string",
+      "StatusReason": "string",
+      "UpdatedAt": "string"
+    },
     "AWS::Proton::EnvironmentAccountConnection": {
       "Arn": "string",
       "CodebuildRoleArn": "string",
@@ -21891,6 +22032,8 @@
       "SourceRegion": "string",
       "StatusInfos": "array",
       "StorageEncrypted": "boolean",
+      "StorageOperationPercentProgress": "integer",
+      "StorageOperationStatus": "string",
       "StorageThroughput": "integer",
       "StorageType": "string",
       "Tags": "array",
@@ -22503,22 +22646,6 @@
       "KeyManagementServiceArn": "string",
       "Name": "string",
       "Status": "string"
-    },
-    "AWS::Route53::RecordSet": {
-      "Comment": "string",
-      "Failover": "string",
-      "HealthCheckId": "string",
-      "HostedZoneId": "string",
-      "HostedZoneName": "string",
-      "Id": "string",
-      "MultiValueAnswer": "boolean",
-      "Name": "string",
-      "Region": "string",
-      "ResourceRecords": "array",
-      "SetIdentifier": "string",
-      "TTL": "string",
-      "Type": "string",
-      "Weight": "integer"
     },
     "AWS::Route53::RecordSetGroup": {
       "Comment": "string",
@@ -23624,9 +23751,9 @@
     },
     "AWS::SageMaker::EndpointConfig": {
       "EnableNetworkIsolation": "boolean",
+      "EndpointConfigArn": "string",
       "EndpointConfigName": "string",
       "ExecutionRoleArn": "string",
-      "Id": "string",
       "KmsKeyId": "string",
       "ProductionVariants": "array",
       "ShadowProductionVariants": "array",
