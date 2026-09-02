@@ -11523,7 +11523,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 2,
-        "informational": 9,
+        "informational": 6,
         "debug": 0
       },
       "suppressed": 0,
@@ -11585,28 +11585,7 @@
         "startColumn": 7,
         "endLine": 13,
         "endColumn": 21,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Name' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "StandaloneBothBranchesValid",
-          "entityType": "Resource",
-          "resourceType": "AWS::Route53::RecordSet"
-        },
-        "propertyPath": "Properties.Name",
-        "category": "Best Practice",
-        "startLine": 14,
-        "startColumn": 7,
-        "endLine": 14,
-        "endColumn": 11,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-route53-recordset",
         "ruleDescription": "Create-only property updated triggers resource replacement",
         "phase": "SCHEMA",
         "context": {
@@ -11629,28 +11608,7 @@
         "startColumn": 7,
         "endLine": 25,
         "endColumn": 21,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Name' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "StandaloneUnreachableInvalid",
-          "entityType": "Resource",
-          "resourceType": "AWS::Route53::RecordSet"
-        },
-        "propertyPath": "Properties.Name",
-        "category": "Best Practice",
-        "startLine": 26,
-        "startColumn": 7,
-        "endLine": 26,
-        "endColumn": 11,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-route53-recordset",
         "ruleDescription": "Create-only property updated triggers resource replacement",
         "phase": "SCHEMA",
         "context": {
@@ -11717,28 +11675,7 @@
         "startColumn": 7,
         "endLine": 65,
         "endColumn": 21,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Name' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "StandaloneMutuallyExclusiveCnameItems",
-          "entityType": "Resource",
-          "resourceType": "AWS::Route53::RecordSet"
-        },
-        "propertyPath": "Properties.Name",
-        "category": "Best Practice",
-        "startLine": 66,
-        "startColumn": 7,
-        "endLine": 66,
-        "endColumn": 11,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-route53-recordset",
         "ruleDescription": "Create-only property updated triggers resource replacement",
         "phase": "SCHEMA",
         "context": {
@@ -11778,7 +11715,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 0,
-        "informational": 3,
+        "informational": 2,
         "debug": 0
       },
       "suppressed": 0,
@@ -11802,28 +11739,7 @@
         "startColumn": 7,
         "endLine": 12,
         "endColumn": 21,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Name' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Standalone",
-          "entityType": "Resource",
-          "resourceType": "AWS::Route53::RecordSet"
-        },
-        "propertyPath": "Properties.Name",
-        "category": "Best Practice",
-        "startLine": 13,
-        "startColumn": 7,
-        "endLine": 13,
-        "endColumn": 11,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-route53-recordset",
         "ruleDescription": "Create-only property updated triggers resource replacement",
         "phase": "SCHEMA",
         "context": {
@@ -11863,7 +11779,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 0,
-        "informational": 9,
+        "informational": 6,
         "debug": 0
       },
       "suppressed": 0,
@@ -11887,28 +11803,7 @@
         "startColumn": 7,
         "endLine": 14,
         "endColumn": 21,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Name' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "ConditionalProperties",
-          "entityType": "Resource",
-          "resourceType": "AWS::Route53::RecordSet"
-        },
-        "propertyPath": "Properties.Name",
-        "category": "Best Practice",
-        "startLine": 15,
-        "startColumn": 7,
-        "endLine": 15,
-        "endColumn": 11,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-route53-recordset",
         "ruleDescription": "Create-only property updated triggers resource replacement",
         "phase": "SCHEMA",
         "context": {
@@ -11931,28 +11826,7 @@
         "startColumn": 7,
         "endLine": 30,
         "endColumn": 21,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Name' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "MutuallyExclusiveConditions",
-          "entityType": "Resource",
-          "resourceType": "AWS::Route53::RecordSet"
-        },
-        "propertyPath": "Properties.Name",
-        "category": "Best Practice",
-        "startLine": 31,
-        "startColumn": 7,
-        "endLine": 31,
-        "endColumn": 11,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-route53-recordset",
         "ruleDescription": "Create-only property updated triggers resource replacement",
         "phase": "SCHEMA",
         "context": {
@@ -11975,28 +11849,7 @@
         "startColumn": 7,
         "endLine": 61,
         "endColumn": 21,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Name' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "LiteralNoValueAlias",
-          "entityType": "Resource",
-          "resourceType": "AWS::Route53::RecordSet"
-        },
-        "propertyPath": "Properties.Name",
-        "category": "Best Practice",
-        "startLine": 62,
-        "startColumn": 7,
-        "endLine": 62,
-        "endColumn": 11,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-route53-recordset",
         "ruleDescription": "Create-only property updated triggers resource replacement",
         "phase": "SCHEMA",
         "context": {
@@ -12019,6 +11872,7 @@
         "startColumn": 7,
         "endLine": 22,
         "endColumn": 10,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-route53-recordset",
         "ruleDescription": "Property is ignored in this configuration (from extension)",
         "phase": "SCHEMA",
         "context": {
@@ -12041,6 +11895,7 @@
         "startColumn": 7,
         "endLine": 38,
         "endColumn": 10,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-route53-recordset",
         "ruleDescription": "Property is ignored in this configuration (from extension)",
         "phase": "SCHEMA",
         "context": {
@@ -12063,6 +11918,7 @@
         "startColumn": 7,
         "endLine": 65,
         "endColumn": 10,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-route53-recordset",
         "ruleDescription": "Property is ignored in this configuration (from extension)",
         "phase": "SCHEMA"
       }
