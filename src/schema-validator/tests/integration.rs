@@ -620,15 +620,15 @@ fn every_valid_kms_key_identifier_form_passes_format_composition() {
 }
 
 #[test]
-fn malformed_literal_kms_key_arn_is_rejected_by_format_composition() {
+fn sns_kms_identifier_format_is_runtime_validated() {
     let diagnostics = validate_fixture("bad/hardcoded_partition.yaml");
     assert!(
-        diagnostics.iter().any(|diagnostic| {
-            diagnostic.rule_id == "F3017"
-                && diagnostic.resource_logical_id() == Some("Topic")
-                && diagnostic.property_path.as_deref() == Some("Properties.KmsMasterKeyId")
+        diagnostics.iter().all(|diagnostic| {
+            diagnostic.rule_id != "F3017"
+                || diagnostic.resource_logical_id() != Some("Topic")
+                || diagnostic.property_path.as_deref() != Some("Properties.KmsMasterKeyId")
         }),
-        "the malformed literal KMS key ARN must remain rejected: {diagnostics:?}"
+        "SNS accepts the KMS identifier as an opaque runtime value, so its format cannot prove a fatal template failure: {diagnostics:?}"
     );
 }
 

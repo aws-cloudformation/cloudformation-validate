@@ -4109,6 +4109,11 @@ fn format_value_matches(value: &str, format: &str) -> bool {
     }
 }
 
+fn sns_kms_identifier_is_runtime_validated(model: &SemanticModel, resource_id: &str, property_path: &str) -> bool {
+    property_path == "Properties.KmsMasterKeyId"
+        && model.resource(resource_id).is_some_and(|resource| resource.resource_type == "AWS::SNS::Topic")
+}
+
 /// Validates property-level composition (anyOf/oneOf/allOf/if_then_else) when
 /// the property value is a scalar (no nested object keys). Uses
 /// `schema_value_matches` to test each concrete satisfiable scenario against
@@ -4146,7 +4151,7 @@ fn validate_prop_composition(
     }
 
     // anyOf: at least one branch must match for each satisfiable scenario
-    if !schema.any_of.is_empty() {
+    if !schema.any_of.is_empty() && !sns_kms_identifier_is_runtime_validated(m, rid, prop_path) {
         for (val, conds) in scenarios {
             if !is_satisfiable(m, conds) || val.is_null() || defer_value_constraints(m, rid, prop_path, val, conds) {
                 continue;

@@ -190,7 +190,7 @@
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
-        "fatal": 1,
+        "fatal": 0,
         "errors": 0,
         "warnings": 1,
         "informational": 4,
@@ -201,65 +201,6 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
-      {
-        "ruleId": "F3017",
-        "severity": "FATAL",
-        "message": "Value is not valid under any of the 3 anyOf schemas (0 branches matched; at least one is required). Branch failures: branch 1: 'arn:aws:kms:us-east-1:123456789012:key/12345' does not match format 'AWS::KMS::Key.Arn'; branch 2: 'arn:aws:kms:us-east-1:123456789012:key/12345' does not match format 'AWS::KMS::Key.Id'; branch 3: 'arn:aws:kms:us-east-1:123456789012:key/12345' does not match format 'AWS::KMS::Alias.AliasName'.",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "Topic",
-          "entityType": "Resource",
-          "resourceType": "AWS::SNS::Topic"
-        },
-        "propertyPath": "Properties.KmsMasterKeyId",
-        "category": "Schema",
-        "startLine": 11,
-        "startColumn": 7,
-        "endLine": 11,
-        "endColumn": 21,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-sns",
-        "ruleDescription": "Value not valid under anyOf",
-        "phase": "SCHEMA",
-        "context": {
-          "actualValue": "arn:aws:kms:us-east-1:123456789012:key/12345",
-          "expectedConstraint": "at least one anyOf branch",
-          "extra": {
-            "branchCount": 3,
-            "branchFailures": [
-              {
-                "branch": 1,
-                "reasons": [
-                  {
-                    "message": "'arn:aws:kms:us-east-1:123456789012:key/12345' does not match format 'AWS::KMS::Key.Arn'",
-                    "propertyPath": "Properties.KmsMasterKeyId"
-                  }
-                ]
-              },
-              {
-                "branch": 2,
-                "reasons": [
-                  {
-                    "message": "'arn:aws:kms:us-east-1:123456789012:key/12345' does not match format 'AWS::KMS::Key.Id'",
-                    "propertyPath": "Properties.KmsMasterKeyId"
-                  }
-                ]
-              },
-              {
-                "branch": 3,
-                "reasons": [
-                  {
-                    "message": "'arn:aws:kms:us-east-1:123456789012:key/12345' does not match format 'AWS::KMS::Alias.AliasName'",
-                    "propertyPath": "Properties.KmsMasterKeyId"
-                  }
-                ]
-              }
-            ],
-            "compositionKind": "anyOf",
-            "matchCount": 0,
-            "matchOutcome": "zeroMatches"
-          }
-        }
-      },
       {
         "ruleId": "W9013",
         "severity": "WARN",
@@ -81403,7 +81344,7 @@
       "resourcesScanned": 4,
       "counts": {
         "fatal": 4,
-        "errors": 18,
+        "errors": 17,
         "warnings": 1,
         "informational": 2,
         "debug": 0
@@ -81746,25 +81687,6 @@
         "startColumn": 19,
         "endLine": 31,
         "endColumn": 20,
-        "ruleDescription": "Validate identity based IAM policies",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "E3510",
-        "severity": "ERROR",
-        "message": "[{\"Statement\":[]}] is not of type 'object'",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "rIamPolicy",
-          "entityType": "Resource",
-          "resourceType": "AWS::IAM::Policy"
-        },
-        "propertyPath": "Properties.PolicyDocument",
-        "category": "Resource",
-        "startLine": 38,
-        "startColumn": 7,
-        "endLine": 38,
-        "endColumn": 21,
         "ruleDescription": "Validate identity based IAM policies",
         "phase": "LINT"
       },

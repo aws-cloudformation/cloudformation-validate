@@ -664,9 +664,8 @@ pub fn validate_identity_policy_scenarios(
             if should_suppress_intrinsic_finding(model, resource_id, &source_path) {
                 continue;
             }
-            // The authored path is part of identity so identical invalid values
-            // in separate conditional branches remain separate diagnostics.
-            if seen.insert((source_path.clone(), finding.message.clone())) {
+            let deduplication_message = scenario_finding_deduplication_message(&finding);
+            if seen.insert((source_path.clone(), deduplication_message)) {
                 let public_path = public_policy_path(document_path, &source_path, &finding.path);
                 findings.push(ScenarioPolicyFinding { path: public_path, message: finding.message, source_path });
             }
@@ -685,6 +684,13 @@ pub fn validate_identity_policy_scenarios(
     findings
 }
 
+fn scenario_finding_deduplication_message(finding: &PolicyFinding) -> String {
+    if finding.path.is_empty() && finding.message.ends_with(" is not of type 'object'") {
+        "policy document is not an object".to_string()
+    } else {
+        finding.message.clone()
+    }
+}
 /// Scans Resource/NotResource string values in the resolved document for raw
 /// CloudFormation-style `${...}` placeholders that are not IAM policy
 /// variables. When found and the value is NOT from Fn::Sub (checked via
@@ -2130,6 +2136,32 @@ Resources:
             }]
         });
         assert!(findings(doc).is_empty());
+    }
+
+    #[test]
+    fn same_authored_root_type_violation_is_reported_once_across_scenarios() {
+        let template = r#"
+Conditions:
+  UseObjectStatement: !Equals [!Ref AWS::Region, us-east-1]
+Resources:
+  Policy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: test
+      Roles: [test-role]
+      PolicyDocument:
+        - !If
+          - UseObjectStatement
+          - Statement: {}
+          - Statement: []
+"#;
+        let model = SemanticModel::from_bytes(template.as_bytes()).unwrap();
+        let found = validate_identity_policy_scenarios(&model, "Policy", "Properties.PolicyDocument");
+
+        assert_eq!(found.len(), 1, "one authored outer-list defect must produce one finding: {found:?}");
+        assert_eq!(found[0].path, "");
+        assert_eq!(found[0].source_path, "Properties.PolicyDocument");
+        assert!(found[0].message.ends_with(" is not of type 'object'"));
     }
 
     // ===== E3510 Scenario Gap Tests =====
