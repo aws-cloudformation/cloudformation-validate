@@ -1,6 +1,6 @@
 # cloudformation-validate vs cfn-lint - Parity Report
 
-> Generated: 2026-09-02 18:43:01  
+> Generated: 2026-09-03 11:08:29  
 > Engine: **rego**  
 > Detail level: **detailed**  
 > Matching: `(rule_id, resource_id, path)` two-pass with `(rule_id, resource_id)` fallback + aliases  
@@ -23,22 +23,22 @@
 | Metric | Value |
 |--------|------:|
 | True Positives | 4053 |
-| False Positives (engine bugs) | 89 |
+| False Positives (engine bugs) | 87 |
 | Engine Extra (correct, cfn-lint gap) | 8257 |
 | False Negatives (engine misses) | 356 |
-| Precision | 97.85% |
+| Precision | 97.90% |
 | Recall | 91.93% |
-| F1 | 94.80% |
+| F1 | 94.82% |
 | Unique rules detected | 238 |
-| Perfect templates | 494/665 |
+| Perfect templates | 495/665 |
 | Location mismatches (matched pairs) | 9 |
 
 ### By Severity
 
 | Severity | TP | FP | EE | FN | Precision | Recall |
 |----------|---:|---:|---:|---:|----------:|-------:|
-| Fatal | 447 | 14 | 81 | 145 | 96.96% | 75.51% |
-| Error | 856 | 63 | 12 | 140 | 93.14% | 85.94% |
+| Fatal | 447 | 13 | 81 | 145 | 97.17% | 75.51% |
+| Error | 856 | 62 | 12 | 140 | 93.25% | 85.94% |
 | Warning | 2080 | 0 | 371 | 61 | 100.00% | 97.15% |
 | Info | 670 | 12 | 7793 | 10 | 98.24% | 98.53% |
 
@@ -1040,7 +1040,7 @@ but found another document
 - **W6001** → `Outputs.ImportedValue.Value.Fn::ImportValue` L39 in `good_output_value_string_yaml`
   > The output value {'Fn::ImportValue': 'SomeExportedName'} is an import from another output
 
-## False Positives - 89 extra findings across 15 rules
+## False Positives - 87 extra findings across 15 rules
 
 These are diagnostics the engine reports but cfn-lint does not expect (potential bugs).
 
@@ -1220,30 +1220,26 @@ These are diagnostics the engine reports but cfn-lint does not expect (potential
 - **F3016** `NoValuePoliciesWithoutTransform` (AWS::SQS::Queue) → `DeletionPolicy` L64 in `bad_lifecycle_policy_shapes_yaml`
   > DeletionPolicy must be one of Delete, Retain, RetainExceptOnCreate, got null
 
-### E3510 - 3 extra - Validate identity based IAM polices
-
-- **E3510** `rIamPolicy` (AWS::IAM::Policy) → `Properties.PolicyDocument` L38 in `bad_resources_iam_iam_policy_yaml`
-  > [{"Statement":{}}] is not of type 'object'
-- **E3510** `PolicyBadIdAndCondition` (AWS::IAM::RolePolicy) → `Properties.PolicyDocument.Id` L47 in `bad_resources_iam_identity_policy_e3510_yaml`
-  > Additional properties are not allowed ('Id' was unexpected)
-- **E3510** `WildcardServicePolicy` (AWS::IAM::ManagedPolicy) → `Properties.PolicyDocument.Statement.0.Resource` L13 in `bad_resources_iam_identity_policy_wildcard_service_yaml`
-  > 'arn:aws:*:::example-bucket/*' does not match '^(arn:(aws[A-Za-z\-]*?|[A-Za-z?*\-]*[?*][A-Za-z?*\-]*):[^:*?]+:[^:]*(:(?:\d{12}|\*|aws)?:.+|)|\*)$'
-
-### F3017 - 3 extra - Check Properties that need at least one of a list of properties
-
-- **F3017** `Topic` (AWS::SNS::Topic) → `Properties.KmsMasterKeyId` L11 in `bad_hardcoded_partition_yaml`
-  > Value is not valid under any of the 3 anyOf schemas (0 branches matched; at least one is required). Branch failures: branch 1: 'arn:aws:kms:us-east-1:123456789012:key/12345' does not match format 'AWS
-- **F3017** `JoinedUsername` (AWS::RDS::DBCluster) → `Properties.MasterUsername` L9 in `bad_resources_rds_not_enum_master_username_join_yaml`
-  > 'rdsadmin' at 'MasterUsername' does not satisfy the composition branch constraint (none of ['rdsadmin']): 'rdsadmin' must not be one of ['rdsadmin']
-- **F3017** `MyDB` (AWS::RDS::DBCluster) → `Properties.MasterUsername` L7 in `bad_resources_rds_not_enum_master_username_yaml`
-  > 'rdsadmin' at 'MasterUsername' does not satisfy the composition branch constraint (none of ['rdsadmin']): 'rdsadmin' must not be one of ['rdsadmin']
-
 ### E3029 - 2 extra - Validate Route53 record set aliases
 
 - **E3029** `ConditionalInvalidAliasTypes` (AWS::Route53::RecordSet) → `Properties.AliasTarget` L48 in `bad_route53_conditional_scenarios_yaml`
   > AliasTarget cannot be used with record type 'NS'
 - **E3029** `ConditionalInvalidAliasTypes` (AWS::Route53::RecordSet) → `Properties.AliasTarget` L48 in `bad_route53_conditional_scenarios_yaml`
   > AliasTarget cannot be used with record type 'SOA'
+
+### E3510 - 2 extra - Validate identity based IAM polices
+
+- **E3510** `PolicyBadIdAndCondition` (AWS::IAM::RolePolicy) → `Properties.PolicyDocument.Id` L47 in `bad_resources_iam_identity_policy_e3510_yaml`
+  > Additional properties are not allowed ('Id' was unexpected)
+- **E3510** `WildcardServicePolicy` (AWS::IAM::ManagedPolicy) → `Properties.PolicyDocument.Statement.0.Resource` L13 in `bad_resources_iam_identity_policy_wildcard_service_yaml`
+  > 'arn:aws:*:::example-bucket/*' does not match '^(arn:(aws[A-Za-z\-]*?|[A-Za-z?*\-]*[?*][A-Za-z?*\-]*):[^:*?]+:[^:]*(:(?:\d{12}|\*|aws)?:.+|)|\*)$'
+
+### F3017 - 2 extra - Check Properties that need at least one of a list of properties
+
+- **F3017** `JoinedUsername` (AWS::RDS::DBCluster) → `Properties.MasterUsername` L9 in `bad_resources_rds_not_enum_master_username_join_yaml`
+  > 'rdsadmin' at 'MasterUsername' does not satisfy the composition branch constraint (none of ['rdsadmin']): 'rdsadmin' must not be one of ['rdsadmin']
+- **F3017** `MyDB` (AWS::RDS::DBCluster) → `Properties.MasterUsername` L7 in `bad_resources_rds_not_enum_master_username_yaml`
+  > 'rdsadmin' at 'MasterUsername' does not satisfy the composition branch constraint (none of ['rdsadmin']): 'rdsadmin' must not be one of ['rdsadmin']
 
 ### F3033 - 2 extra - Check if a string has between min and max number of values specified
 
@@ -17914,7 +17910,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **W9054** `CertAuth` (AWS::ACMPCA::CertificateAuthorityActivation) → `Properties.Certificate` L8 in `bad_schema_write_only_yaml`
   > Write-only property 'Certificate' of 'CertAuth' is referenced in output 'WriteOnlyOutput'
 
-## Per-Template Breakdown - 171 templates with mismatches
+## Per-Template Breakdown - 170 templates with mismatches
 
 ### `good_lifecycle_intrinsic_scenarios_yaml` - 16 mismatches (0 TP, 0 FP, 0 EE, 16 FN)
 
@@ -18054,12 +18050,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `F2015` ×4
 - EE: `F2012` ×8
 
-### `bad_resources_iam_iam_policy_yaml` - 4 mismatches (20 TP, 1 FP, 4 EE, 3 FN)
-
-- FN: `F3003` ×3
-- FP: `E3510`
-- EE: `E1028`, `I9001`, `I9040`, `W2512`
-
 ### `bad_resources_iam_resource_policy_yaml` - 4 mismatches (0 TP, 0 FP, 2 EE, 4 FN)
 
 - FN: `E3513` ×4
@@ -18134,6 +18124,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 - FP: `E3639` ×3
 - EE: `I9001` ×10, `I9040` ×7, `F3003`
+
+### `bad_resources_iam_iam_policy_yaml` - 3 mismatches (20 TP, 0 FP, 4 EE, 3 FN)
+
+- FN: `F3003` ×3
+- EE: `E1028`, `I9001`, `I9040`, `W2512`
 
 ### `bad_resources_properties_string_size_yaml` - 3 mismatches (3 TP, 2 FP, 3 EE, 1 FN)
 
@@ -18473,11 +18468,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `E1017`
 - EE: `I9001` ×8, `I9040` ×4
 
-### `bad_hardcoded_partition_yaml` - 1 mismatches (0 TP, 1 FP, 5 EE, 0 FN)
-
-- FP: `F3017`
-- EE: `I9001` ×2, `I9040` ×2, `W9013`
-
 ### `bad_invalid_mapping_structure_yaml` - 1 mismatches (1 TP, 0 FP, 2 EE, 1 FN)
 
 - FN: `E7001`
@@ -18797,9 +18787,9 @@ other tool's output. They are excluded from precision/recall scoring.
 
 | Cause | Count | % of FP | Rules |
 |-------|------:|--------:|-------|
-| Other | 48 | 53.93% | E0001, F0018, F2002, F3016, F3017, F3033 |
-| Over-reporting property/intrinsic errors | 29 | 32.58% | E1155, E3001, E3019, E3022, E3029, E3055, E3510, E3639 |
-| Stricter than cfn-lint (informational) | 12 | 13.48% | I3011 |
+| Other | 47 | 54.02% | E0001, F0018, F2002, F3016, F3017, F3033 |
+| Over-reporting property/intrinsic errors | 28 | 32.18% | E1155, E3001, E3019, E3022, E3029, E3055, E3510, E3639 |
+| Stricter than cfn-lint (informational) | 12 | 13.79% | I3011 |
 
 ## Location Mismatches - 9 matched pairs disagree on line
 
