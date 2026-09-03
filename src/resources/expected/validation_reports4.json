@@ -6017,7 +6017,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'nodejs18.x' was deprecated on '2025-09-01'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs18.x' was deprecated on '2025-09-01'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "BuildLambda72E2A667",
@@ -8622,7 +8622,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'nodejs18.x' was deprecated on '2025-09-01'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs18.x' was deprecated on '2025-09-01'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "helloWorldFunction00C940B5",
@@ -9260,7 +9260,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'python3.9' was deprecated on '2025-12-15'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'python3.14'",
+        "message": "Runtime 'python3.9' was deprecated on '2025-12-15'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'python3.14'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "SingletonLambdaf7d4f7304ee111e89c2dfa7ae01bbebc492C6E5C",
@@ -9445,7 +9445,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'python3.6' was deprecated on '2022-07-18'. Creation was disabled on '2022-07-18' and update on '2022-08-29'. Please consider updating to 'python3.14'",
+        "message": "Runtime 'python3.6' was deprecated on '2022-07-18'. Creation was disabled on '2022-07-18', and updates were disabled on '2022-08-29'. Please consider updating to 'python3.14'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "SingletonLambdaf7d4f7304ee111e89c2dfa7ae01bbebc492C6E5C",
@@ -9690,7 +9690,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'nodejs20.x' was deprecated on '2026-04-30'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs20.x' was deprecated on '2026-04-30'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "itemL2TableLambdaFunction1987B4C5",
@@ -9713,7 +9713,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'nodejs20.x' was deprecated on '2026-04-30'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs20.x' was deprecated on '2026-04-30'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "itemL3TableLambdaFunction7B818C58",
@@ -11236,7 +11236,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'python3.9' was deprecated on '2025-12-15'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'python3.14'",
+        "message": "Runtime 'python3.9' was deprecated on '2025-12-15'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'python3.14'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "EICEndpointonEventHandlerC2E1F5F2",
@@ -11259,7 +11259,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'python3.9' was deprecated on '2025-12-15'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'python3.14'",
+        "message": "Runtime 'python3.9' was deprecated on '2025-12-15'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'python3.14'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "EICEndpointisCompleteHandler0273707A",
@@ -26309,7 +26309,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'python3.9' was deprecated on '2025-12-15'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'python3.14'",
+        "message": "Runtime 'python3.9' was deprecated on '2025-12-15'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'python3.14'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "Singleton8C7B99F3",
@@ -27918,7 +27918,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'nodejs18.x' was deprecated on '2025-09-01'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs18.x' was deprecated on '2025-09-01'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "Inspector2InitialScanHandler460C9991",
@@ -27941,7 +27941,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'nodejs18.x' was deprecated on '2025-09-01'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs18.x' was deprecated on '2025-09-01'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "Inspector2FindingHandler1F85FFBC",
@@ -28383,7 +28383,7 @@
       {
         "ruleId": "E2531",
         "severity": "ERROR",
-        "message": "Runtime 'python3.7' was deprecated on '2023-12-04'. Creation was disabled on '2024-01-09' and update on '2027-03-03'. Please consider updating to 'python3.14'",
+        "message": "Runtime 'python3.7' was deprecated on '2023-12-04'. Creation was disabled on '2024-01-09', and updates will be disabled on '2027-03-03'. Please consider updating to 'python3.14'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "SampleLambdaB2FF4FA1",
@@ -28588,7 +28588,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'python3.9' was deprecated on '2025-12-15'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'python3.14'",
+        "message": "Runtime 'python3.9' was deprecated on '2025-12-15'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'python3.14'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "Singleton8C7B99F3",
@@ -29089,7 +29089,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'nodejs18.x' was deprecated on '2025-09-01'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs18.x' was deprecated on '2025-09-01'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "S3EventNotificationsLambda20F17D80",
@@ -29233,7 +29233,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'nodejs20.x' was deprecated on '2026-04-30'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs20.x' was deprecated on '2026-04-30'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "WidgetsWidgetHandler1BC9DB34",
@@ -30561,7 +30561,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31' and update on '2023-04-30'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31', and updates were disabled on '2023-04-30'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "SQSCreatedStatusSubscribeLambdaHandler0467DB95",
@@ -30584,7 +30584,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31' and update on '2023-04-30'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31', and updates were disabled on '2023-04-30'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "SQSAnyOtherStatusSubscribeLambdaHandler4037E293",
@@ -31641,7 +31641,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31' and update on '2023-04-30'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31', and updates were disabled on '2023-04-30'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "DynamoLambdaHandlerFB6EB814",
@@ -32250,7 +32250,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31' and update on '2023-04-30'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31', and updates were disabled on '2023-04-30'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "destinedLambda8DF776BB",
@@ -32273,7 +32273,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31' and update on '2023-04-30'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31', and updates were disabled on '2023-04-30'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "SuccessLambdaHandler0E2CD797",
@@ -32296,7 +32296,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31' and update on '2023-04-30'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31', and updates were disabled on '2023-04-30'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "FailureLambdaHandlerBB58C051",
@@ -33506,7 +33506,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31' and update on '2023-04-30'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31', and updates were disabled on '2023-04-30'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "dynamoStreamSubscriberLambdaHandlerD2AAE139",
@@ -34166,7 +34166,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31' and update on '2023-04-30'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31', and updates were disabled on '2023-04-30'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "atmProducerLambda71029F8F",
@@ -34189,7 +34189,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31' and update on '2023-04-30'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31', and updates were disabled on '2023-04-30'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "atmConsumer1LambdaC3C4DA46",
@@ -34212,7 +34212,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31' and update on '2023-04-30'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31', and updates were disabled on '2023-04-30'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "atmConsumer2LambdaB7E263A7",
@@ -34235,7 +34235,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31' and update on '2023-04-30'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31', and updates were disabled on '2023-04-30'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "atmConsumer3Lambda880BEEDF",
@@ -35587,7 +35587,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31' and update on '2023-04-30'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31', and updates were disabled on '2023-04-30'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "WebserviceIntegrationLambdaHandler5E349AB7",
@@ -35610,7 +35610,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31' and update on '2023-04-30'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31', and updates were disabled on '2023-04-30'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "ErrorLambdaHandler4224322A",
@@ -36664,7 +36664,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs10.x' was deprecated on '2021-07-30'. Creation was disabled on '2021-07-30' and update on '2022-02-14'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs10.x' was deprecated on '2021-07-30'. Creation was disabled on '2021-07-30', and updates were disabled on '2022-02-14'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "BucketNotificationsHandler050a0587b7544547bf325f094a3db8347ECC3691",
@@ -36687,7 +36687,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31' and update on '2023-04-30'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31', and updates were disabled on '2023-04-30'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "extractLambdaHandlerD06B8F09",
@@ -36710,7 +36710,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31' and update on '2023-04-30'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31', and updates were disabled on '2023-04-30'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "TransformLambdaHandler60ABE8EE",
@@ -36733,7 +36733,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31' and update on '2023-04-30'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31', and updates were disabled on '2023-04-30'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "LoadLambdaHandlerFDA03D53",
@@ -36756,7 +36756,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31' and update on '2023-04-30'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31', and updates were disabled on '2023-04-30'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "ObserveLambdaHandler685FFDBB",
@@ -38917,7 +38917,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31' and update on '2023-04-30'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31', and updates were disabled on '2023-04-30'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "UnreliableLambdaHandlerD4A4DED9",
@@ -39326,7 +39326,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31' and update on '2023-04-30'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31', and updates were disabled on '2023-04-30'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "reserveFlightLambdaHandler3C75473D",
@@ -39349,7 +39349,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31' and update on '2023-04-30'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31', and updates were disabled on '2023-04-30'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "confirmFlightLambdaHandler96C3663F",
@@ -39372,7 +39372,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31' and update on '2023-04-30'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31', and updates were disabled on '2023-04-30'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "cancelFlightLambdaHandler437EEC76",
@@ -39395,7 +39395,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31' and update on '2023-04-30'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31', and updates were disabled on '2023-04-30'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "reserveHotelLambdaHandler020AE24A",
@@ -39418,7 +39418,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31' and update on '2023-04-30'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31', and updates were disabled on '2023-04-30'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "confirmHotelLambdaHandler882ACF2D",
@@ -39441,7 +39441,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31' and update on '2023-04-30'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31', and updates were disabled on '2023-04-30'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "cancelHotelLambdaHandler09F13EF6",
@@ -39464,7 +39464,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31' and update on '2023-04-30'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31', and updates were disabled on '2023-04-30'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "takePaymentLambdaHandlerB96529D4",
@@ -39487,7 +39487,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31' and update on '2023-04-30'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31', and updates were disabled on '2023-04-30'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "refundPaymentLambdaHandler932D11D5",
@@ -39510,7 +39510,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31' and update on '2023-04-30'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31', and updates were disabled on '2023-04-30'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "sagaLambdaHandlerFC24742F",
@@ -40916,7 +40916,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31' and update on '2023-04-30'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31', and updates were disabled on '2023-04-30'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "SQSPublishLambdaHandler51EE31BE",
@@ -40939,7 +40939,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31' and update on '2023-04-30'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31', and updates were disabled on '2023-04-30'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "SQSSubscribeLambdaHandlerBBB58615",
@@ -42001,7 +42001,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31' and update on '2023-04-30'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31', and updates were disabled on '2023-04-30'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "scheduledLambda8A84450D",
@@ -42273,7 +42273,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31' and update on '2023-04-30'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31', and updates were disabled on '2023-04-30'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "LoyaltyLambdaHandler5918F0DA",
@@ -43168,7 +43168,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31' and update on '2023-04-30'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31', and updates were disabled on '2023-04-30'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "DynamoLambdaHandlerFB6EB814",
@@ -43577,7 +43577,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31' and update on '2023-04-30'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31', and updates were disabled on '2023-04-30'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "pineappleCheckLambdaHandlerFDB742D5",
@@ -43957,7 +43957,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31' and update on '2023-04-30'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31', and updates were disabled on '2023-04-30'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "HelloWorldHandler30C22324",
@@ -44640,7 +44640,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31' and update on '2023-04-30'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31', and updates were disabled on '2023-04-30'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "DynamoLambdaHandlerFB6EB814",
@@ -44987,7 +44987,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31' and update on '2023-04-30'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31', and updates were disabled on '2023-04-30'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "httpLambdaHandler66D9C9A8",
@@ -45292,7 +45292,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31' and update on '2023-04-30'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31', and updates were disabled on '2023-04-30'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "sqsLambdaHandler0DD5DF9B",
@@ -45315,7 +45315,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31' and update on '2023-04-30'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31', and updates were disabled on '2023-04-30'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "sqsSubscribeLambdaHandlerD66392B8",
@@ -45798,7 +45798,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31' and update on '2023-04-30'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31', and updates were disabled on '2023-04-30'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "snsLambdaHandlerE7B0ABE3",
@@ -45821,7 +45821,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31' and update on '2023-04-30'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs12.x' was deprecated on '2023-03-31'. Creation was disabled on '2023-03-31', and updates were disabled on '2023-04-30'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "snsSubscriptionLambdaHandler68619CD8",
@@ -46910,7 +46910,7 @@
       {
         "ruleId": "E2531",
         "severity": "ERROR",
-        "message": "Runtime 'python3.7' was deprecated on '2023-12-04'. Creation was disabled on '2024-01-09' and update on '2027-03-03'. Please consider updating to 'python3.14'",
+        "message": "Runtime 'python3.7' was deprecated on '2023-12-04'. Creation was disabled on '2024-01-09', and updates will be disabled on '2027-03-03'. Please consider updating to 'python3.14'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "ApiCorsLambda5083F55F",
@@ -47536,7 +47536,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'python3.8' was deprecated on '2024-10-14'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'python3.14'",
+        "message": "Runtime 'python3.8' was deprecated on '2024-10-14'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'python3.14'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "eventProducerLambda100D549C",
@@ -47559,7 +47559,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'python3.8' was deprecated on '2024-10-14'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'python3.14'",
+        "message": "Runtime 'python3.8' was deprecated on '2024-10-14'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'python3.14'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "eventConsumer1Lambda4AF2292E",
@@ -47582,7 +47582,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'python3.8' was deprecated on '2024-10-14'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'python3.14'",
+        "message": "Runtime 'python3.8' was deprecated on '2024-10-14'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'python3.14'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "eventConsumer2Lambda1631C47A",
@@ -49102,7 +49102,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'nodejs18.x' was deprecated on '2025-09-01'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs18.x' was deprecated on '2025-09-01'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "CustomS3AutoDeleteObjectsCustomResourceProviderHandler9D90184F",
@@ -49125,7 +49125,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'python3.9' was deprecated on '2025-12-15'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'python3.14'",
+        "message": "Runtime 'python3.9' was deprecated on '2025-12-15'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'python3.14'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C81C01536",
@@ -52426,7 +52426,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'python3.6' was deprecated on '2022-07-18'. Creation was disabled on '2022-07-18' and update on '2022-08-29'. Please consider updating to 'python3.14'",
+        "message": "Runtime 'python3.6' was deprecated on '2022-07-18'. Creation was disabled on '2022-07-18', and updates were disabled on '2022-08-29'. Please consider updating to 'python3.14'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "producerlambdafunctionCE724CE7",
@@ -52449,7 +52449,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'python3.6' was deprecated on '2022-07-18'. Creation was disabled on '2022-07-18' and update on '2022-08-29'. Please consider updating to 'python3.14'",
+        "message": "Runtime 'python3.6' was deprecated on '2022-07-18'. Creation was disabled on '2022-07-18', and updates were disabled on '2022-08-29'. Please consider updating to 'python3.14'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "consumerlambdafunction40710347",
@@ -58006,7 +58006,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'nodejs18.x' was deprecated on '2025-09-01'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs18.x' was deprecated on '2025-09-01'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A",
@@ -58029,7 +58029,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'nodejs18.x' was deprecated on '2025-09-01'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs18.x' was deprecated on '2025-09-01'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "IoTCertProviderframeworkonEvent8FF1476F",
@@ -58904,7 +58904,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'python3.8' was deprecated on '2024-10-14'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'python3.14'",
+        "message": "Runtime 'python3.8' was deprecated on '2024-10-14'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'python3.14'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "lambdafunction45C982D3",
@@ -59075,7 +59075,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'python3.9' was deprecated on '2025-12-15'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'python3.14'",
+        "message": "Runtime 'python3.9' was deprecated on '2025-12-15'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'python3.14'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "submitLambda3C32AFD4",
@@ -59098,7 +59098,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'python3.9' was deprecated on '2025-12-15'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'python3.14'",
+        "message": "Runtime 'python3.9' was deprecated on '2025-12-15'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'python3.14'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "statusLambdaCF47B86D",
@@ -59320,7 +59320,7 @@
       {
         "ruleId": "E2531",
         "severity": "ERROR",
-        "message": "Runtime 'python3.7' was deprecated on '2023-12-04'. Creation was disabled on '2024-01-09' and update on '2027-03-03'. Please consider updating to 'python3.14'",
+        "message": "Runtime 'python3.7' was deprecated on '2023-12-04'. Creation was disabled on '2024-01-09', and updates will be disabled on '2027-03-03'. Please consider updating to 'python3.14'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "UrlShortenerFunctionB5E87AC1",
@@ -61490,7 +61490,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'nodejs20.x' was deprecated on '2026-04-30'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs20.x' was deprecated on '2026-04-30'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "RekFunction9837D13D",
@@ -64114,7 +64114,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'nodejs20.x' was deprecated on '2026-04-30'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs20.x' was deprecated on '2026-04-30'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "retrieveTransformedObjectLambdaD5D6532C",
@@ -65751,7 +65751,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'python3.9' was deprecated on '2025-12-15'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'python3.14'",
+        "message": "Runtime 'python3.9' was deprecated on '2025-12-15'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'python3.14'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "CheckLambda9CBBF9BA",
@@ -65774,7 +65774,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'python3.9' was deprecated on '2025-12-15'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'python3.14'",
+        "message": "Runtime 'python3.9' was deprecated on '2025-12-15'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'python3.14'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "SubmitLambda8054545E",

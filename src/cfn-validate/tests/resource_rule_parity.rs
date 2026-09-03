@@ -94,6 +94,44 @@ Resources:
 }
 
 #[test]
+fn parameter_type_support_classification_matches_service_behavior() {
+    let template = r#"
+Parameters:
+  Documented:
+    Type: AWS::SSM::Parameter::Value<String>
+  AcceptedSsm:
+    Type: AWS::SSM::Parameter::Value<AWS::FakeService::FakeResource>
+  AcceptedSsmList:
+    Type: AWS::SSM::Parameter::Value<List<AWS::FakeService::FakeResource>>
+  AcceptedList:
+    Type: List<AWS::FakeService::FakeResource>
+  RejectedTest:
+    Type: AWS::SSM::Parameter::Value<Test>
+  RejectedBoolean:
+    Type: AWS::SSM::Parameter::Value<Boolean>
+  RejectedList:
+    Type: List<Test>
+  Invalid:
+    Type: NotAType
+Resources: {}
+"#;
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["F2002", "W2002"]);
+    let cel_findings = selected_findings(&cel, template, &["F2002", "W2002"]);
+
+    assert_eq!(rego_findings, cel_findings, "parameter type diagnostics must match across engines");
+    assert_eq!(rego_findings.iter().filter(|finding| finding.starts_with("W2002|")).count(), 3);
+    assert_eq!(rego_findings.iter().filter(|finding| finding.starts_with("F2002|")).count(), 4);
+    for parameter in ["AcceptedSsm", "AcceptedSsmList", "AcceptedList"] {
+        assert!(rego_findings.iter().any(|finding| finding.starts_with("W2002|") && finding.contains(parameter)));
+    }
+    for parameter in ["RejectedTest", "RejectedBoolean", "RejectedList", "Invalid"] {
+        assert!(rego_findings.iter().any(|finding| finding.starts_with("F2002|") && finding.contains(parameter)));
+    }
+    assert!(rego_findings.iter().all(|finding| !finding.contains("Parameter 'Documented'")));
+}
+
+#[test]
 fn unsupported_lifecycle_attributes_have_identical_authored_paths() {
     let template = r#"
 Resources:

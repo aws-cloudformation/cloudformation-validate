@@ -2,8 +2,46 @@ package structure
 
 import rego.v1
 
-# F2002: Parameter Type must be valid
 _valid_param_types := {t | some t in data.rule_tables.valid_parameter_types}
+
+_parameter_type_inner(ptype) := inner if {
+    startswith(ptype, "AWS::SSM::Parameter::Value<")
+    endswith(ptype, ">")
+    inner := trim_suffix(trim_prefix(ptype, "AWS::SSM::Parameter::Value<"), ">")
+    inner != ""
+}
+
+_parameter_type_inner(ptype) := inner if {
+    startswith(ptype, "List<")
+    endswith(ptype, ">")
+    inner := trim_suffix(trim_prefix(ptype, "List<"), ">")
+    inner != ""
+}
+
+_list_type_inner(ptype) := inner if {
+    startswith(ptype, "List<")
+    endswith(ptype, ">")
+    inner := trim_suffix(trim_prefix(ptype, "List<"), ">")
+    inner != ""
+}
+
+_aws_specific_parameter_type(ptype) if {
+    segments := split(ptype, "::")
+    count(segments) >= 3
+    segments[0] == "AWS"
+    every segment in segments { segment != "" }
+}
+
+_accepted_undocumented_param_type(ptype) if {
+    inner := _parameter_type_inner(ptype)
+    _aws_specific_parameter_type(inner)
+}
+
+_accepted_undocumented_param_type(ptype) if {
+    inner := _parameter_type_inner(ptype)
+    base_type := _list_type_inner(inner)
+    _aws_specific_parameter_type(base_type)
+}
 
 violation contains make_diag_at("F2002", "FATAL", "",
     sprintf("Parameters/%s/Type", [name]),
@@ -12,6 +50,17 @@ violation contains make_diag_at("F2002", "FATAL", "",
     ptype := param.type
     ptype != null
     not ptype in _valid_param_types
+    not _accepted_undocumented_param_type(ptype)
+}
+
+violation contains make_diag_at("W2002", "WARN", "",
+    sprintf("Parameters/%s/Type", [name]),
+    sprintf("Parameter '%s' Type '%s' is accepted by CloudFormation but is not officially documented; CloudFormation will not validate its values", [name, ptype])) if {
+    some name, param in input.parameters
+    ptype := param.type
+    ptype != null
+    not ptype in _valid_param_types
+    _accepted_undocumented_param_type(ptype)
 }
 
 # F0015: Default value must be numeric when parameter Type is Number

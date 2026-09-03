@@ -213,7 +213,21 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
             ));
         }
 
-        if !is_valid_parameter_type(&param.param_type, &ctx.cached_data.rule_tables.valid_parameter_types) {
+        let is_documented =
+            is_valid_parameter_type(&param.param_type, &ctx.cached_data.rule_tables.valid_parameter_types);
+        if !is_documented && is_accepted_undocumented_parameter_type(&param.param_type) {
+            out.push(make_resource_diagnostic(
+                "W2002",
+                &format!(
+                    "Parameter '{}' Type '{}' is accepted by CloudFormation but is not officially documented; CloudFormation will not validate its values",
+                    pname, param.param_type
+                ),
+                m,
+                "",
+                &format!("{}/Type", param_path),
+                None,
+            ));
+        } else if !is_documented {
             out.push(make_resource_diagnostic(
                 "F2002",
                 &format!("Parameter '{}' has invalid Type '{}'", pname, param.param_type),
@@ -1121,8 +1135,33 @@ fn non_string_policy_shape(value: &serde_json::Value) -> Option<&'static str> {
     }
 }
 
+const SSM_PARAMETER_VALUE_TYPE_PREFIX: &str = "AWS::SSM::Parameter::Value<";
+const LIST_PARAMETER_TYPE_PREFIX: &str = "List<";
+
 fn is_valid_parameter_type(ptype: &str, valid_types: &[String]) -> bool {
     valid_types.iter().any(|t| t == ptype)
+}
+
+fn wrapped_type<'a>(parameter_type: &'a str, prefix: &str) -> Option<&'a str> {
+    parameter_type.strip_prefix(prefix)?.strip_suffix('>').filter(|inner| !inner.is_empty())
+}
+
+fn is_aws_specific_parameter_type(parameter_type: &str) -> bool {
+    let mut segments = parameter_type.split("::");
+    segments.next() == Some("AWS")
+        && segments.next().is_some_and(|segment| !segment.is_empty())
+        && segments.next().is_some_and(|segment| !segment.is_empty())
+        && segments.all(|segment| !segment.is_empty())
+}
+
+fn is_accepted_undocumented_parameter_type(parameter_type: &str) -> bool {
+    let Some(inner) = wrapped_type(parameter_type, SSM_PARAMETER_VALUE_TYPE_PREFIX)
+        .or_else(|| wrapped_type(parameter_type, LIST_PARAMETER_TYPE_PREFIX))
+    else {
+        return false;
+    };
+    let base_type = wrapped_type(inner, LIST_PARAMETER_TYPE_PREFIX).unwrap_or(inner);
+    is_aws_specific_parameter_type(base_type)
 }
 
 /// Checks whether a given `(resource type, source path)` pair matches one of
@@ -1263,10 +1302,26 @@ mod tests {
     }
 
     #[test]
-    fn ssm_prefix_no_longer_a_blanket_pass() {
-        let types = test_valid_types();
-        // Only explicitly listed SSM types are valid; arbitrary SSM types are rejected.
-        assert!(!is_valid_parameter_type("AWS::SSM::Parameter::Value<FakeType>", &types));
+    fn undocumented_aws_shaped_wrappers_are_accepted() {
+        for parameter_type in [
+            "AWS::SSM::Parameter::Value<AWS::FakeService::FakeResource>",
+            "AWS::SSM::Parameter::Value<List<AWS::FakeService::FakeResource>>",
+            "List<AWS::FakeService::FakeResource>",
+        ] {
+            assert!(is_accepted_undocumented_parameter_type(parameter_type));
+        }
+    }
+
+    #[test]
+    fn simple_unknown_wrapped_types_are_rejected() {
+        for parameter_type in [
+            "AWS::SSM::Parameter::Value<Test>",
+            "AWS::SSM::Parameter::Value<Boolean>",
+            "AWS::SSM::Parameter::Value<List<Test>>",
+            "List<Test>",
+        ] {
+            assert!(!is_accepted_undocumented_parameter_type(parameter_type));
+        }
     }
 
     #[test]

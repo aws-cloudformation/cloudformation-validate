@@ -190,7 +190,7 @@
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
-        "fatal": 1,
+        "fatal": 0,
         "errors": 0,
         "warnings": 1,
         "informational": 4,
@@ -201,65 +201,6 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
-      {
-        "ruleId": "F3017",
-        "severity": "FATAL",
-        "message": "Value is not valid under any of the 3 anyOf schemas (0 branches matched; at least one is required). Branch failures: branch 1: 'arn:aws:kms:us-east-1:123456789012:key/12345' does not match format 'AWS::KMS::Key.Arn'; branch 2: 'arn:aws:kms:us-east-1:123456789012:key/12345' does not match format 'AWS::KMS::Key.Id'; branch 3: 'arn:aws:kms:us-east-1:123456789012:key/12345' does not match format 'AWS::KMS::Alias.AliasName'.",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "Topic",
-          "entityType": "Resource",
-          "resourceType": "AWS::SNS::Topic"
-        },
-        "propertyPath": "Properties.KmsMasterKeyId",
-        "category": "Schema",
-        "startLine": 11,
-        "startColumn": 7,
-        "endLine": 11,
-        "endColumn": 21,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-sns",
-        "ruleDescription": "Value not valid under anyOf",
-        "phase": "SCHEMA",
-        "context": {
-          "actualValue": "arn:aws:kms:us-east-1:123456789012:key/12345",
-          "expectedConstraint": "at least one anyOf branch",
-          "extra": {
-            "branchCount": 3,
-            "branchFailures": [
-              {
-                "branch": 1,
-                "reasons": [
-                  {
-                    "message": "'arn:aws:kms:us-east-1:123456789012:key/12345' does not match format 'AWS::KMS::Key.Arn'",
-                    "propertyPath": "Properties.KmsMasterKeyId"
-                  }
-                ]
-              },
-              {
-                "branch": 2,
-                "reasons": [
-                  {
-                    "message": "'arn:aws:kms:us-east-1:123456789012:key/12345' does not match format 'AWS::KMS::Key.Id'",
-                    "propertyPath": "Properties.KmsMasterKeyId"
-                  }
-                ]
-              },
-              {
-                "branch": 3,
-                "reasons": [
-                  {
-                    "message": "'arn:aws:kms:us-east-1:123456789012:key/12345' does not match format 'AWS::KMS::Alias.AliasName'",
-                    "propertyPath": "Properties.KmsMasterKeyId"
-                  }
-                ]
-              }
-            ],
-            "compositionKind": "anyOf",
-            "matchCount": 0,
-            "matchOutcome": "zeroMatches"
-          }
-        }
-      },
       {
         "ruleId": "W9013",
         "severity": "WARN",
@@ -81403,7 +81344,7 @@
       "resourcesScanned": 4,
       "counts": {
         "fatal": 4,
-        "errors": 18,
+        "errors": 17,
         "warnings": 1,
         "informational": 2,
         "debug": 0
@@ -81746,25 +81687,6 @@
         "startColumn": 19,
         "endLine": 31,
         "endColumn": 20,
-        "ruleDescription": "Validate identity based IAM policies",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "E3510",
-        "severity": "ERROR",
-        "message": "[{\"Statement\":[]}] is not of type 'object'",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "rIamPolicy",
-          "entityType": "Resource",
-          "resourceType": "AWS::IAM::Policy"
-        },
-        "propertyPath": "Properties.PolicyDocument",
-        "category": "Resource",
-        "startLine": 38,
-        "startColumn": 7,
-        "endLine": 38,
-        "endColumn": 21,
         "ruleDescription": "Validate identity based IAM policies",
         "phase": "LINT"
       },
@@ -83295,7 +83217,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs10.x' was deprecated on '2021-07-30'. Creation was disabled on '2021-07-30' and update on '2022-02-14'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs10.x' was deprecated on '2021-07-30'. Creation was disabled on '2021-07-30', and updates were disabled on '2022-02-14'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "myLambdaFunction",
@@ -83318,7 +83240,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs10.x' was deprecated on '2021-07-30'. Creation was disabled on '2021-07-30' and update on '2022-02-14'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs10.x' was deprecated on '2021-07-30'. Creation was disabled on '2021-07-30', and updates were disabled on '2022-02-14'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "myLambdaFunction2",
@@ -83341,7 +83263,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs10.x' was deprecated on '2021-07-30'. Creation was disabled on '2021-07-30' and update on '2022-02-14'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs10.x' was deprecated on '2021-07-30'. Creation was disabled on '2021-07-30', and updates were disabled on '2022-02-14'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "myLambdaFunction3",
@@ -83567,7 +83489,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'python3.9' was deprecated on '2025-12-15'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'python3.14'",
+        "message": "Runtime 'python3.9' was deprecated on '2025-12-15'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'python3.14'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "Function2",
@@ -84919,7 +84841,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'nodejs18.x' was deprecated on '2025-09-01'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs18.x' was deprecated on '2025-09-01'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "ExampleLambda",
@@ -84942,7 +84864,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'nodejs18.x' was deprecated on '2025-09-01'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs18.x' was deprecated on '2025-09-01'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "ExampleLambda1",
@@ -85308,7 +85230,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'python2.7' was deprecated on '2021-07-15'. Creation was disabled on '2021-07-15' and update on '2022-05-30'. Please consider updating to 'python3.14'",
+        "message": "Runtime 'python2.7' was deprecated on '2021-07-15'. Creation was disabled on '2021-07-15', and updates were disabled on '2022-05-30'. Please consider updating to 'python3.14'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "SampleLambda",
