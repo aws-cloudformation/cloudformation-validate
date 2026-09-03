@@ -6199,7 +6199,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'nodejs20.x' was deprecated on '2026-04-30'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs20.x' was deprecated on '2026-04-30'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "MyFunction",
@@ -10377,7 +10377,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'nodejs18.x' was deprecated on '2025-09-01'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs18.x' was deprecated on '2025-09-01'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "MyLambda",
@@ -12775,7 +12775,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'nodejs18.x' was deprecated on '2025-09-01'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs18.x' was deprecated on '2025-09-01'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "AMIIDLookup",
@@ -13929,7 +13929,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'nodejs18.x' was deprecated on '2025-09-01'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs18.x' was deprecated on '2025-09-01'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "LambdaFunctionTestDefinedArray",
@@ -13952,7 +13952,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'nodejs18.x' was deprecated on '2025-09-01'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs18.x' was deprecated on '2025-09-01'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "LambdaFunctionTestDefinedEmpty",
@@ -13975,7 +13975,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'nodejs18.x' was deprecated on '2025-09-01'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs18.x' was deprecated on '2025-09-01'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "LambdaFunctionTestDefinedGetAttr",
@@ -13998,7 +13998,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'nodejs18.x' was deprecated on '2025-09-01'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs18.x' was deprecated on '2025-09-01'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "LambdaFunctionTestDefinedObject",
@@ -14021,7 +14021,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'nodejs18.x' was deprecated on '2025-09-01'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs18.x' was deprecated on '2025-09-01'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "LambdaFunctionTestDefinedRef",
@@ -14044,7 +14044,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'nodejs18.x' was deprecated on '2025-09-01'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs18.x' was deprecated on '2025-09-01'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "LambdaFunctionTestDefinedValue",
@@ -14363,7 +14363,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'nodejs18.x' was deprecated on '2025-09-01'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs18.x' was deprecated on '2025-09-01'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "LambdaFunctionTestNotDefinedFromParent",
@@ -14386,7 +14386,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'nodejs18.x' was deprecated on '2025-09-01'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs18.x' was deprecated on '2025-09-01'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "LambdaFunctionTestNotDefinedFromProperties",
@@ -14409,7 +14409,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'nodejs18.x' was deprecated on '2025-09-01'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs18.x' was deprecated on '2025-09-01'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "LambdaFunctionTestNotDefinedRefAWSNoValue",
@@ -14432,7 +14432,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'nodejs18.x' was deprecated on '2025-09-01'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs18.x' was deprecated on '2025-09-01'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "LambdaFunctionTestNotDefinedWithSiblings",
@@ -14673,7 +14673,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs4.3' was deprecated on '2020-03-05'. Creation was disabled on '2020-02-03' and update on '2020-03-05'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs4.3' was deprecated on '2020-03-05'. Creation was disabled on '2020-02-03', and updates were disabled on '2020-03-05'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "TimeoutInNumericsFunction",
@@ -14696,7 +14696,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs4.3' was deprecated on '2020-03-05'. Creation was disabled on '2020-02-03' and update on '2020-03-05'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs4.3' was deprecated on '2020-03-05'. Creation was disabled on '2020-02-03', and updates were disabled on '2020-03-05'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "TimeoutInStringFunction",
@@ -14878,7 +14878,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs4.3' was deprecated on '2020-03-05'. Creation was disabled on '2020-02-03' and update on '2020-03-05'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs4.3' was deprecated on '2020-03-05'. Creation was disabled on '2020-02-03', and updates were disabled on '2020-03-05'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "TimeoutInNumericsFunction",
@@ -14901,7 +14901,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs4.3' was deprecated on '2020-03-05'. Creation was disabled on '2020-02-03' and update on '2020-03-05'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs4.3' was deprecated on '2020-03-05'. Creation was disabled on '2020-02-03', and updates were disabled on '2020-03-05'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "TimeoutInStringFunction",
@@ -20581,7 +20581,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs4.3' was deprecated on '2020-03-05'. Creation was disabled on '2020-02-03' and update on '2020-03-05'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs4.3' was deprecated on '2020-03-05'. Creation was disabled on '2020-02-03', and updates were disabled on '2020-03-05'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "AMIIDLookup",
@@ -20708,7 +20708,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'provided.al2' was deprecated on '2026-07-31'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'provided.al2023'",
+        "message": "Runtime 'provided.al2' was deprecated on '2026-07-31'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'provided.al2023'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "FunctionC",

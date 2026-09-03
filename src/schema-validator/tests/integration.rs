@@ -323,16 +323,44 @@ fn lifecycle_w3697_maintenance_service() {
 fn lifecycle_e2533_eol_runtime() {
     let diags = validate_fixture("bad/schema_lifecycle.yaml");
     let e2533 = diags_for(&diags, "E2533");
-    assert!(!e2533.is_empty(), "expected E2533 for EOL runtime dotnetcore2.1");
-    assert!(e2533.iter().any(|d| d.message.contains("dotnetcore2.1")));
+    assert!(e2533.iter().any(|diagnostic| {
+        diagnostic.message
+            == "Runtime 'dotnetcore2.1' was deprecated on '2022-01-05'. Creation was disabled on '2022-01-05', and updates were disabled on '2022-04-13'. Please consider updating to 'dotnet10'"
+    }));
 }
 
 #[test]
 fn lifecycle_w2531_deprecated_runtime() {
     let diags = validate_fixture("bad/schema_lifecycle.yaml");
     let w2531 = diags_for(&diags, "W2531");
-    assert!(!w2531.is_empty(), "expected W2531 for deprecated runtime nodejs16.x");
-    assert!(w2531.iter().any(|d| d.message.contains("nodejs16.x")));
+    assert!(w2531.iter().any(|diagnostic| {
+        diagnostic.message
+            == "Runtime 'nodejs16.x' was deprecated on '2024-06-12'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'nodejs24.x'"
+    }));
+}
+
+#[test]
+fn lifecycle_e2531_create_blocked_runtime() {
+    const TEMPLATE: &[u8] = br#"
+Resources:
+  Function:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: nodejs14.x
+      Handler: index.handler
+      Code:
+        ZipFile: test
+      Role: arn:aws:iam::123456789012:role/role
+"#;
+    let model = Arc::new(SemanticModel::from_bytes(TEMPLATE).expect("template must parse"));
+    let diagnostics = SV.validate(&model, Some("us-east-1")).diagnostics;
+    let finding =
+        diagnostics.iter().find(|diagnostic| diagnostic.rule_id == "E2531").expect("create-blocked runtime finding");
+
+    assert_eq!(
+        finding.message,
+        "Runtime 'nodejs14.x' was deprecated on '2023-12-04'. Creation was disabled on '2024-01-09', and updates will be disabled on '2027-03-03'. Please consider updating to 'nodejs24.x'"
+    );
 }
 
 #[test]

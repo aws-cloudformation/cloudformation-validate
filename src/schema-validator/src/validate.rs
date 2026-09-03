@@ -4331,18 +4331,18 @@ fn validate_lifecycle(out: &mut Vec<Diagnostic>, store: &CompiledSchemaStore, mo
                 // rule id and severity differ by how far the runtime is through
                 // its lifecycle. The band is a snapshot taken at data-sync time.
                 let (rule_id, band) = if lifecycle.is_runtime_eol(runtime) {
-                    ("E2533", true)
+                    ("E2533", Some(RuntimeLifecycleBand::EndOfLife))
                 } else if lifecycle.is_runtime_create_blocked(runtime) {
-                    ("E2531", true)
+                    ("E2531", Some(RuntimeLifecycleBand::CreateBlocked))
                 } else if lifecycle.is_runtime_deprecated(runtime) {
-                    ("W2531", true)
+                    ("W2531", Some(RuntimeLifecycleBand::Deprecated))
                 } else {
-                    ("", false)
+                    ("", None)
                 };
-                if band {
+                if let Some(band) = band {
                     out.push(build_diagnostic(
                         rule_id,
-                        &runtime_deprecation_message(lifecycle, runtime),
+                        &runtime_deprecation_message(lifecycle, runtime, band),
                         model,
                         rid,
                         "Properties.Runtime",
@@ -4354,11 +4354,21 @@ fn validate_lifecycle(out: &mut Vec<Diagnostic>, store: &CompiledSchemaStore, mo
     }
 }
 
-/// Builds the dated runtime-deprecation message CloudFormation reports for all
-/// three bands: "Runtime 'X' was deprecated on 'D'. Creation was disabled on 'C'
-/// and update on 'U'. Please consider updating to 'S'". A string value renders
-/// single-quoted; a missing successor renders as bare `None` (Python `repr`).
-fn runtime_deprecation_message(lifecycle: &crate::store::LifecycleStore, runtime: &str) -> String {
+#[derive(Clone, Copy)]
+enum RuntimeLifecycleBand {
+    Deprecated,
+    CreateBlocked,
+    EndOfLife,
+}
+
+/// Builds the dated runtime-deprecation message using the lifecycle band from
+/// the embedded data snapshot. A string successor renders single-quoted; a
+/// missing successor renders as bare `None` (Python `repr`).
+fn runtime_deprecation_message(
+    lifecycle: &crate::store::LifecycleStore,
+    runtime: &str,
+    band: RuntimeLifecycleBand,
+) -> String {
     let Some(dates) = lifecycle.runtime_lifecycle(runtime) else {
         return format!("Runtime '{}' is deprecated", runtime);
     };
@@ -4366,9 +4376,14 @@ fn runtime_deprecation_message(lifecycle: &crate::store::LifecycleStore, runtime
         Some(s) => format!("'{}'", s),
         None => "None".to_string(),
     };
+    let (creation_status, update_status) = match band {
+        RuntimeLifecycleBand::Deprecated => ("will be disabled", "will be disabled"),
+        RuntimeLifecycleBand::CreateBlocked => ("was disabled", "will be disabled"),
+        RuntimeLifecycleBand::EndOfLife => ("was disabled", "were disabled"),
+    };
     format!(
-        "Runtime '{}' was deprecated on '{}'. Creation was disabled on '{}' and update on '{}'. Please consider updating to {}",
-        runtime, dates.deprecated, dates.create_block, dates.update_block, successor
+        "Runtime '{}' was deprecated on '{}'. Creation {} on '{}', and updates {} on '{}'. Please consider updating to {}",
+        runtime, dates.deprecated, creation_status, dates.create_block, update_status, dates.update_block, successor
     )
 }
 

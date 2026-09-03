@@ -83217,7 +83217,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs10.x' was deprecated on '2021-07-30'. Creation was disabled on '2021-07-30' and update on '2022-02-14'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs10.x' was deprecated on '2021-07-30'. Creation was disabled on '2021-07-30', and updates were disabled on '2022-02-14'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "myLambdaFunction",
@@ -83240,7 +83240,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs10.x' was deprecated on '2021-07-30'. Creation was disabled on '2021-07-30' and update on '2022-02-14'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs10.x' was deprecated on '2021-07-30'. Creation was disabled on '2021-07-30', and updates were disabled on '2022-02-14'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "myLambdaFunction2",
@@ -83263,7 +83263,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs10.x' was deprecated on '2021-07-30'. Creation was disabled on '2021-07-30' and update on '2022-02-14'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs10.x' was deprecated on '2021-07-30'. Creation was disabled on '2021-07-30', and updates were disabled on '2022-02-14'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "myLambdaFunction3",
@@ -83489,7 +83489,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'python3.9' was deprecated on '2025-12-15'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'python3.14'",
+        "message": "Runtime 'python3.9' was deprecated on '2025-12-15'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'python3.14'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "Function2",
@@ -84841,7 +84841,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'nodejs18.x' was deprecated on '2025-09-01'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs18.x' was deprecated on '2025-09-01'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "ExampleLambda",
@@ -84864,7 +84864,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'nodejs18.x' was deprecated on '2025-09-01'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs18.x' was deprecated on '2025-09-01'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "ExampleLambda1",
@@ -85230,7 +85230,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'python2.7' was deprecated on '2021-07-15'. Creation was disabled on '2021-07-15' and update on '2022-05-30'. Please consider updating to 'python3.14'",
+        "message": "Runtime 'python2.7' was deprecated on '2021-07-15'. Creation was disabled on '2021-07-15', and updates were disabled on '2022-05-30'. Please consider updating to 'python3.14'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "SampleLambda",

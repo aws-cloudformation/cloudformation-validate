@@ -301,7 +301,7 @@
       {
         "ruleId": "E2531",
         "severity": "ERROR",
-        "message": "Runtime 'java8' was deprecated on '2024-01-08'. Creation was disabled on '2024-02-08' and update on '2027-03-03'. Please consider updating to 'java25'",
+        "message": "Runtime 'java8' was deprecated on '2024-01-08'. Creation was disabled on '2024-02-08', and updates will be disabled on '2027-03-03'. Please consider updating to 'java25'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "ExcludedJava8",
@@ -364,7 +364,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'python3.8' was deprecated on '2024-10-14'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'python3.14'",
+        "message": "Runtime 'python3.8' was deprecated on '2024-10-14'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'python3.14'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "UnsupportedPython",
@@ -9060,7 +9060,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs4.3' was deprecated on '2020-03-05'. Creation was disabled on '2020-02-03' and update on '2020-03-05'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs4.3' was deprecated on '2020-03-05'. Creation was disabled on '2020-02-03', and updates were disabled on '2020-03-05'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "AMIIDLookup",
@@ -15630,7 +15630,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs4.3' was deprecated on '2020-03-05'. Creation was disabled on '2020-02-03' and update on '2020-03-05'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs4.3' was deprecated on '2020-03-05'. Creation was disabled on '2020-02-03', and updates were disabled on '2020-03-05'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "AMIIDLookup",

@@ -982,7 +982,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'python3.9' was deprecated on '2025-12-15'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'python3.14'",
+        "message": "Runtime 'python3.9' was deprecated on '2025-12-15'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'python3.14'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "TestLambdaFunction",
@@ -1697,7 +1697,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs6.10' was deprecated on '2019-08-12'. Creation was disabled on '2019-07-12' and update on '2019-08-12'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs6.10' was deprecated on '2019-08-12'. Creation was disabled on '2019-07-12', and updates were disabled on '2019-08-12'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "myFunction",
@@ -1759,7 +1759,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs6.10' was deprecated on '2019-08-12'. Creation was disabled on '2019-07-12' and update on '2019-08-12'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs6.10' was deprecated on '2019-08-12'. Creation was disabled on '2019-07-12', and updates were disabled on '2019-08-12'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "InheritsGlobalsFunction",
@@ -9250,7 +9250,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'python3.9' was deprecated on '2025-12-15'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'python3.14'",
+        "message": "Runtime 'python3.9' was deprecated on '2025-12-15'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'python3.14'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "LambdaFunction",
@@ -10177,7 +10177,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'python3.9' was deprecated on '2025-12-15'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'python3.14'",
+        "message": "Runtime 'python3.9' was deprecated on '2025-12-15'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'python3.14'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "LambdaFunction",
@@ -13345,7 +13345,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs6.10' was deprecated on '2019-08-12'. Creation was disabled on '2019-07-12' and update on '2019-08-12'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs6.10' was deprecated on '2019-08-12'. Creation was disabled on '2019-07-12', and updates were disabled on '2019-08-12'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "PollerFunction",
@@ -13583,7 +13583,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs6.10' was deprecated on '2019-08-12'. Creation was disabled on '2019-07-12' and update on '2019-08-12'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs6.10' was deprecated on '2019-08-12'. Creation was disabled on '2019-07-12', and updates were disabled on '2019-08-12'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "PollerFunction",
@@ -14847,7 +14847,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'python3.8' was deprecated on '2024-10-14'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'python3.14'",
+        "message": "Runtime 'python3.8' was deprecated on '2024-10-14'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'python3.14'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "FunctiontForEvaluateCisBenchmarkingPreconditions",
@@ -14870,7 +14870,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'python3.8' was deprecated on '2024-10-14'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'python3.14'",
+        "message": "Runtime 'python3.8' was deprecated on '2024-10-14'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'python3.14'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "FunctionForEvaluateRootAccountRule",
@@ -14893,7 +14893,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'python3.8' was deprecated on '2024-10-14'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'python3.14'",
+        "message": "Runtime 'python3.8' was deprecated on '2024-10-14'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'python3.14'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "FunctionForVpcFlowLogRule",
@@ -14916,7 +14916,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'python3.8' was deprecated on '2024-10-14'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'python3.14'",
+        "message": "Runtime 'python3.8' was deprecated on '2024-10-14'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'python3.14'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "FunctionForVpcDefaultSecurityGroupsRule",
@@ -14939,7 +14939,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'python3.8' was deprecated on '2024-10-14'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'python3.14'",
+        "message": "Runtime 'python3.8' was deprecated on '2024-10-14'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'python3.14'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "FunctionForRoleForMfaOnUsersRule",
@@ -14962,7 +14962,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'python3.8' was deprecated on '2024-10-14'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'python3.14'",
+        "message": "Runtime 'python3.8' was deprecated on '2024-10-14'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'python3.14'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "FunctionForEvaluatePolicyPermissionsRule",
@@ -14985,7 +14985,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'python3.8' was deprecated on '2024-10-14'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'python3.14'",
+        "message": "Runtime 'python3.8' was deprecated on '2024-10-14'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'python3.14'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "FunctionForEvaluateUserPolicyAssociationRule",
@@ -15008,7 +15008,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'python3.8' was deprecated on '2024-10-14'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'python3.14'",
+        "message": "Runtime 'python3.8' was deprecated on '2024-10-14'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'python3.14'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "FunctionForEvaluateCloudTrailRule",
@@ -15031,7 +15031,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'python3.8' was deprecated on '2024-10-14'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'python3.14'",
+        "message": "Runtime 'python3.8' was deprecated on '2024-10-14'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'python3.14'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "FunctionForEvaluateCloudTrailBucketRule",
@@ -15054,7 +15054,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'python3.8' was deprecated on '2024-10-14'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'python3.14'",
+        "message": "Runtime 'python3.8' was deprecated on '2024-10-14'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'python3.14'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "FunctionForEvaluateCloudTrailLogIntegrityRule",
@@ -15077,7 +15077,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'python3.8' was deprecated on '2024-10-14'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'python3.14'",
+        "message": "Runtime 'python3.8' was deprecated on '2024-10-14'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'python3.14'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "FunctionForInstanceRoleUseRule",
@@ -15100,7 +15100,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'python3.8' was deprecated on '2024-10-14'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'python3.14'",
+        "message": "Runtime 'python3.8' was deprecated on '2024-10-14'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'python3.14'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "FunctionForEvaluateKeyRotationRule",
@@ -15123,7 +15123,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'python3.8' was deprecated on '2024-10-14'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'python3.14'",
+        "message": "Runtime 'python3.8' was deprecated on '2024-10-14'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'python3.14'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "FunctionForEvaluateConfigInAllRegionsRule",
@@ -15146,7 +15146,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'python3.8' was deprecated on '2024-10-14'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'python3.14'",
+        "message": "Runtime 'python3.8' was deprecated on '2024-10-14'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'python3.14'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "FunctionForVpcPeeringRouteTablesRule",
@@ -15169,7 +15169,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'python3.8' was deprecated on '2024-10-14'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'python3.14'",
+        "message": "Runtime 'python3.8' was deprecated on '2024-10-14'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'python3.14'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "GetCloudTrailCloudWatchLog",
@@ -15192,7 +15192,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'python3.8' was deprecated on '2024-10-14'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'python3.14'",
+        "message": "Runtime 'python3.8' was deprecated on '2024-10-14'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'python3.14'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "FunctionToFormatCloudWatchEvent",
@@ -15215,7 +15215,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'python3.8' was deprecated on '2024-10-14'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'python3.14'",
+        "message": "Runtime 'python3.8' was deprecated on '2024-10-14'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'python3.14'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "FunctionToDisableUnusedCredentials",
@@ -19535,7 +19535,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs' was deprecated on '2016-08-30'. Creation was disabled on '2016-09-30' and update on '2016-10-31'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs' was deprecated on '2016-08-30'. Creation was disabled on '2016-09-30', and updates were disabled on '2016-10-31'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "rAMIComplianceFunction",
@@ -19558,7 +19558,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs' was deprecated on '2016-08-30'. Creation was disabled on '2016-09-30' and update on '2016-10-31'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs' was deprecated on '2016-08-30'. Creation was disabled on '2016-09-30', and updates were disabled on '2016-10-31'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "rCloudTrailValidationFunction",
@@ -23953,7 +23953,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs' was deprecated on '2016-08-30'. Creation was disabled on '2016-09-30' and update on '2016-10-31'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs' was deprecated on '2016-08-30'. Creation was disabled on '2016-09-30', and updates were disabled on '2016-10-31'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "rAMIComplianceFunction",
@@ -23976,7 +23976,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'nodejs' was deprecated on '2016-08-30'. Creation was disabled on '2016-09-30' and update on '2016-10-31'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs' was deprecated on '2016-08-30'. Creation was disabled on '2016-09-30', and updates were disabled on '2016-10-31'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "rCloudTrailValidationFunction",
@@ -33493,7 +33493,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'python3.8' was deprecated on '2024-10-14'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'python3.14'",
+        "message": "Runtime 'python3.8' was deprecated on '2024-10-14'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'python3.14'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "KeyGen",

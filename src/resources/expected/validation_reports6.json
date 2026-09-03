@@ -2698,7 +2698,7 @@
       {
         "ruleId": "E2531",
         "severity": "ERROR",
-        "message": "Runtime 'java8' was deprecated on '2024-01-08'. Creation was disabled on '2024-02-08' and update on '2027-03-03'. Please consider updating to 'java25'",
+        "message": "Runtime 'java8' was deprecated on '2024-01-08'. Creation was disabled on '2024-02-08', and updates will be disabled on '2027-03-03'. Please consider updating to 'java25'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "SomeLambda",
@@ -3002,7 +3002,7 @@
       {
         "ruleId": "E2531",
         "severity": "ERROR",
-        "message": "Runtime 'java8' was deprecated on '2024-01-08'. Creation was disabled on '2024-02-08' and update on '2027-03-03'. Please consider updating to 'java25'",
+        "message": "Runtime 'java8' was deprecated on '2024-01-08'. Creation was disabled on '2024-02-08', and updates will be disabled on '2027-03-03'. Please consider updating to 'java25'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "SomeLambda",
@@ -7627,7 +7627,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'python3.9' was deprecated on '2025-12-15'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'python3.14'",
+        "message": "Runtime 'python3.9' was deprecated on '2025-12-15'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'python3.14'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "Function1",
@@ -10879,7 +10879,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'python3.9' was deprecated on '2025-12-15'. Creation was disabled on '2027-02-01' and update on '2027-03-03'. Please consider updating to 'python3.14'",
+        "message": "Runtime 'python3.9' was deprecated on '2025-12-15'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'python3.14'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "MyFunction",
@@ -13210,7 +13210,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'python3.6' was deprecated on '2022-07-18'. Creation was disabled on '2022-07-18' and update on '2022-08-29'. Please consider updating to 'python3.14'",
+        "message": "Runtime 'python3.6' was deprecated on '2022-07-18'. Creation was disabled on '2022-07-18', and updates were disabled on '2022-08-29'. Please consider updating to 'python3.14'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "FunctionA",
@@ -13233,7 +13233,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'python3.6' was deprecated on '2022-07-18'. Creation was disabled on '2022-07-18' and update on '2022-08-29'. Please consider updating to 'python3.14'",
+        "message": "Runtime 'python3.6' was deprecated on '2022-07-18'. Creation was disabled on '2022-07-18', and updates were disabled on '2022-08-29'. Please consider updating to 'python3.14'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "FunctionB",
@@ -13256,7 +13256,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'python3.6' was deprecated on '2022-07-18'. Creation was disabled on '2022-07-18' and update on '2022-08-29'. Please consider updating to 'python3.14'",
+        "message": "Runtime 'python3.6' was deprecated on '2022-07-18'. Creation was disabled on '2022-07-18', and updates were disabled on '2022-08-29'. Please consider updating to 'python3.14'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "FunctionC",
@@ -13279,7 +13279,7 @@
       {
         "ruleId": "E2533",
         "severity": "ERROR",
-        "message": "Runtime 'python3.6' was deprecated on '2022-07-18'. Creation was disabled on '2022-07-18' and update on '2022-08-29'. Please consider updating to 'python3.14'",
+        "message": "Runtime 'python3.6' was deprecated on '2022-07-18'. Creation was disabled on '2022-07-18', and updates were disabled on '2022-08-29'. Please consider updating to 'python3.14'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "LogSubscriptionFunction",
