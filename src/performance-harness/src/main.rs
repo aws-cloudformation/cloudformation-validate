@@ -55,11 +55,11 @@ fn run(arguments: &[String]) -> Result<i32, String> {
                 return Err("--profile is valid only with update".into());
             }
             let environment = baseline::detect_environment();
-            let expected = match expected {
-                Some(path) => path,
-                None => baseline::default_expected_file(&environment)?,
+            let passed = match expected {
+                Some(path) => baseline::run_check(&path, &output_dir)?,
+                None => baseline::run_default_check(&environment, &output_dir)?,
             };
-            Ok(if baseline::run_check(&expected, &output_dir)? { 0 } else { 1 })
+            Ok(if passed { 0 } else { 1 })
         }
         "update" => {
             let (expected, profile, output_dir) = parse_options(&arguments[1..])?;
