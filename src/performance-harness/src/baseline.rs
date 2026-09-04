@@ -287,21 +287,27 @@ pub fn detect_environment() -> Environment {
     }
 }
 
-fn github_expected_file(cpu_model: Option<&str>) -> Result<PathBuf, String> {
-    let cpu_model = cpu_model.ok_or_else(|| "GitHub runner CPU model could not be detected".to_string())?;
-    let file_name = if cpu_model.contains("AMD EPYC 7763") {
-        "github-ubuntu-x64-amd-epyc-7763.json"
-    } else if cpu_model.contains("AMD EPYC 9V74") {
-        "github-ubuntu-x64-amd-epyc-9v74.json"
-    } else {
-        return Err(format!(
-            "no checked-in GitHub performance profile for CPU model {cpu_model:?}; add a calibrated CPU-specific baseline"
-        ));
-    };
-    Ok(expected_directory().join(file_name))
+fn github_profile_name(cpu_model: &str) -> Result<String, String> {
+    let normalized = cpu_model.to_ascii_lowercase().replace("(r)", "");
+    let profile_identifiers: Vec<String> = normalized
+        .split_whitespace()
+        .take_while(|part| !matches!(*part, "cpu" | "processor" | "@"))
+        .filter(|part| !part.ends_with("-core"))
+        .map(|part| part.chars().filter(|character| character.is_ascii_alphanumeric()).collect())
+        .filter(|part: &String| !part.is_empty())
+        .collect();
+    if profile_identifiers.is_empty() {
+        return Err(format!("GitHub runner CPU model {cpu_model:?} has no usable profile identifier"));
+    }
+    Ok(format!("github-ubuntu-x64-{}", profile_identifiers.join("-")))
 }
 
-pub fn default_expected_file(environment: &Environment) -> Result<PathBuf, String> {
+fn github_expected_file(cpu_model: Option<&str>) -> Result<PathBuf, String> {
+    let cpu_model = cpu_model.ok_or_else(|| "GitHub runner CPU model could not be detected".to_string())?;
+    Ok(expected_directory().join(format!("{}.json", github_profile_name(cpu_model)?)))
+}
+
+fn default_expected_path(environment: &Environment) -> Result<PathBuf, String> {
     if environment.context == "github-actions" {
         if environment.system != "Linux" || environment.architecture != "x86_64" {
             return Err("the checked-in GitHub baseline supports only Linux x86_64".into());
@@ -312,6 +318,21 @@ pub fn default_expected_file(environment: &Environment) -> Result<PathBuf, Strin
         return Ok(expected_directory().join("local-macos-arm64.json"));
     }
     Err("no default performance profile for this environment; pass --expected explicitly".into())
+}
+
+pub fn default_expected_file(environment: &Environment) -> Result<PathBuf, String> {
+    let expected_file = default_expected_path(environment)?;
+    if environment.context == "github-actions" && !expected_file.is_file() {
+        let cpu_model = environment
+            .cpu_model
+            .as_deref()
+            .ok_or_else(|| "GitHub runner CPU model could not be detected".to_string())?;
+        return Err(format!(
+            "no checked-in GitHub performance profile for CPU model {cpu_model:?}; add the calibrated profile {}",
+            expected_file.display()
+        ));
+    }
+    Ok(expected_file)
 }
 
 fn validate_environment(expected: &Environment, actual: &Environment) -> Result<(), String> {
@@ -446,7 +467,7 @@ fn default_profile(profile: &str) -> Result<(MeasurementConfig, Thresholds), Str
         warmup_iterations: 2,
     };
     let thresholds = match profile {
-        "github-ubuntu-x64-amd-epyc-7763" | "github-ubuntu-x64-amd-epyc-9v74" => Thresholds {
+        profile if profile.starts_with("github-ubuntu-x64-") => Thresholds {
             init_and_first_ms: MetricThreshold {
                 minimum_expected: 5.0,
                 regression_factor: 1.15,
@@ -1150,6 +1171,110 @@ fn prepare_run(output_dir: &Path) -> Result<(PathBuf, Vec<Workload>), String> {
     Ok((executable, workloads))
 }
 
+fn render_missing_profile_markdown(
+    profile: &str,
+    cpu_model: &str,
+    sample_total: usize,
+    expected_file: &Path,
+    diagnostic_errors: &[String],
+) -> String {
+    let mut lines = vec![
+        "# Expected performance check".to_string(),
+        String::new(),
+        format!("Profile: `{profile}`  "),
+        format!("CPU model: `{cpu_model}`  "),
+        format!("Calibration samples per case: `{sample_total}`"),
+        String::new(),
+        "## Result".into(),
+        String::new(),
+        format!("* ❌ No checked-in hard baseline exists for CPU model `{cpu_model}`."),
+    ];
+    lines.extend(diagnostic_errors.iter().map(|failure| format!("* ❌ {failure}")));
+    lines.extend([
+        String::new(),
+        "The check remains failed. A CPU-enforced `performance-candidate-baseline.json` is included in the artifact."
+            .into(),
+        format!("Validate repeated hosted-runner measurements before adding it as `{}`.", expected_file.display()),
+    ]);
+    lines.join("\n") + "\n"
+}
+
+fn run_missing_github_profile(
+    expected_file: &Path,
+    environment: &Environment,
+    output_dir: &Path,
+) -> Result<bool, String> {
+    let profile = expected_file
+        .file_stem()
+        .and_then(|value| value.to_str())
+        .ok_or_else(|| format!("invalid GitHub performance profile path {}", expected_file.display()))?;
+    let cpu_model =
+        environment.cpu_model.as_deref().ok_or_else(|| "GitHub runner CPU model could not be detected".to_string())?;
+    let (measurement, thresholds) = default_profile(profile)?;
+    let calibration_sample_count = measurement.sample_count + measurement.confirmation_sample_count;
+    let (executable, workloads) = prepare_run(output_dir)?;
+    let mut measurements = BTreeMap::new();
+    collect_measurements(&executable, &workloads, calibration_sample_count, &measurement, &mut measurements, None)?;
+    let summaries = summarize_measurements(&measurements)?;
+    let diagnostic_errors = diagnostic_failures(&measurements)?;
+    let mut candidate = build_candidate(profile, environment, &measurement, &thresholds, &summaries, &workloads)?;
+    let provenance = candidate
+        .provenance
+        .as_object_mut()
+        .ok_or_else(|| "candidate baseline provenance must be an object".to_string())?;
+    provenance.insert(
+        "calibration".into(),
+        json!({
+            "purpose": "missingGitHubCpuProfile",
+            "samplesPerCase": calibration_sample_count,
+        }),
+    );
+    write_json(&output_dir.join("performance-candidate-baseline.json"), &candidate)?;
+
+    let mut failures = vec![format!("no checked-in hard performance baseline exists for CPU model {cpu_model:?}")];
+    failures.extend(diagnostic_errors.clone());
+    let revision = command_output("git", &["rev-parse", "HEAD"], &project_root())?;
+    let sample_counts = measurements.iter().map(|(case, samples)| (case.clone(), samples.len())).collect();
+    let evaluations: Vec<MetricEvaluation> = Vec::new();
+    let aggregate_evaluations: Vec<AggregateEvaluation> = Vec::new();
+    let results = Results {
+        schema_version: SCHEMA_VERSION,
+        profile,
+        revision,
+        expected_file: expected_file.display().to_string(),
+        environment,
+        sample_counts,
+        summaries: &summaries,
+        evaluations: &evaluations,
+        aggregate_evaluations: &aggregate_evaluations,
+        failures: &failures,
+        measurements: &measurements,
+    };
+    write_json(&output_dir.join("performance-results.json"), &results)?;
+    let markdown = render_missing_profile_markdown(
+        profile,
+        cpu_model,
+        calibration_sample_count,
+        expected_file,
+        &diagnostic_errors,
+    );
+    fs::write(output_dir.join("performance-results.md"), &markdown)
+        .map_err(|error| format!("could not write performance markdown: {error}"))?;
+    print!("{markdown}");
+    for failure in &failures {
+        println!("::error::{failure}");
+    }
+    Ok(false)
+}
+
+pub fn run_default_check(environment: &Environment, output_dir: &Path) -> Result<bool, String> {
+    let expected_file = default_expected_path(environment)?;
+    if environment.context == "github-actions" && !expected_file.is_file() {
+        return run_missing_github_profile(&expected_file, environment, output_dir);
+    }
+    run_check(&expected_file, output_dir)
+}
+
 pub fn run_check(expected_file: &Path, output_dir: &Path) -> Result<bool, String> {
     let baseline = load_baseline(expected_file)?;
     let environment = detect_environment();
@@ -1475,23 +1600,23 @@ mod tests {
 
     #[test]
     fn checked_in_baselines_are_valid_and_cover_the_same_cases() {
-        let github_7763 = load_baseline(&expected_directory().join("github-ubuntu-x64-amd-epyc-7763.json"))
-            .expect("GitHub 7763 baseline");
-        let github_9v74 = load_baseline(&expected_directory().join("github-ubuntu-x64-amd-epyc-9v74.json"))
-            .expect("GitHub 9V74 baseline");
+        let mut github_files: Vec<PathBuf> = fs::read_dir(expected_directory())
+            .expect("expected directory")
+            .map(|entry| entry.expect("expected entry").path())
+            .filter(|path| {
+                path.file_name()
+                    .and_then(|name| name.to_str())
+                    .is_some_and(|name| name.starts_with("github-ubuntu-x64-") && name.ends_with(".json"))
+            })
+            .collect();
+        github_files.sort();
+        let github_baselines: Vec<Baseline> =
+            github_files.iter().map(|path| load_baseline(path).expect("GitHub baseline")).collect();
+        assert!(github_baselines.len() >= 3);
+        let reference = github_baselines.first().expect("GitHub reference baseline");
         let macos = load_baseline(&expected_directory().join("local-macos-arm64.json")).expect("macOS baseline");
-        assert_eq!(github_7763.cases.keys().collect::<Vec<_>>(), github_9v74.cases.keys().collect::<Vec<_>>());
-        assert_eq!(github_7763.cases.keys().collect::<Vec<_>>(), macos.cases.keys().collect::<Vec<_>>());
-        assert_eq!(github_7763.cases.len(), 38);
-        assert!(github_7763.environment.enforce_cpu_model);
-        assert!(github_9v74.environment.enforce_cpu_model);
-        assert_eq!(github_7763.environment.cpu_model.as_deref(), Some("AMD EPYC 7763 64-Core Processor"));
-        assert_eq!(github_9v74.environment.cpu_model.as_deref(), Some("AMD EPYC 9V74 80-Core Processor"));
-        for (case, expected_7763) in &github_7763.cases {
-            let expected_9v74 = &github_9v74.cases[case];
-            assert_eq!(expected_7763.gated_metrics, expected_9v74.gated_metrics, "{case} gated metrics");
-            assert_eq!(expected_7763.aggregate_metrics, expected_9v74.aggregate_metrics, "{case} aggregate metrics");
-        }
+        assert_eq!(reference.cases.keys().collect::<Vec<_>>(), macos.cases.keys().collect::<Vec<_>>());
+        assert_eq!(reference.cases.len(), 38);
         fn assert_threshold(
             threshold: &MetricThreshold,
             regression: f64,
@@ -1504,7 +1629,18 @@ mod tests {
             assert_eq!(threshold.aggregate_regression_factor, aggregate_regression);
             assert_eq!(threshold.aggregate_improvement_factor, aggregate_improvement);
         }
-        for github in [&github_7763, &github_9v74] {
+        for github in &github_baselines {
+            assert!(github.environment.enforce_cpu_model);
+            assert!(github.environment.cpu_model.is_some());
+            assert_eq!(reference.cases.keys().collect::<Vec<_>>(), github.cases.keys().collect::<Vec<_>>());
+            for (case, expected_reference) in &reference.cases {
+                let expected = &github.cases[case];
+                assert_eq!(expected_reference.gated_metrics, expected.gated_metrics, "{case} gated metrics");
+                assert_eq!(
+                    expected_reference.aggregate_metrics, expected.aggregate_metrics,
+                    "{case} aggregate metrics"
+                );
+            }
             assert_threshold(&github.thresholds.init_and_first_ms, 1.15, 0.85, 1.10, 0.90);
             assert_threshold(&github.thresholds.warm_per_call_ms, 1.15, 0.85, 1.10, 0.90);
             assert_threshold(&github.thresholds.peak_rss_bytes, 1.03, 0.97, 1.01, 0.99);
@@ -1512,7 +1648,7 @@ mod tests {
         assert_threshold(&macos.thresholds.init_and_first_ms, 1.08, 0.92, 1.07, 0.93);
         assert_threshold(&macos.thresholds.warm_per_call_ms, 1.08, 0.92, 1.06, 0.94);
         assert_threshold(&macos.thresholds.peak_rss_bytes, 1.02, 0.98, 1.01, 0.99);
-        let fanout = &github_7763.cases["cel/security-cross-reference-fanout"];
+        let fanout = &reference.cases["cel/security-cross-reference-fanout"];
         assert_eq!(fanout.gated_metrics, vec![Metric::PeakRss.key()]);
         assert!(fanout.aggregate_metrics.contains(&Metric::InitAndFirst.key().to_string()));
         assert!(fanout.aggregate_metrics.contains(&Metric::WarmPerCall.key().to_string()));
@@ -1541,7 +1677,28 @@ mod tests {
         );
         assert!(validate_environment(&baseline.environment, &environment).is_err());
 
-        environment.cpu_model = Some("Unexpected CPU".into());
+        environment.cpu_model = Some("INTEL(R) XEON(R) PLATINUM 8573C".into());
+        let intel_file = default_expected_file(&environment).expect("8573C profile");
+        assert!(intel_file.ends_with("github-ubuntu-x64-intel-xeon-platinum-8573c.json"));
+        let intel_baseline = load_baseline(&intel_file).expect("8573C baseline");
+        validate_environment(&intel_baseline.environment, &environment).expect("matching Intel CPU");
+
+        assert_eq!(
+            github_profile_name("Intel(R) Xeon(R) Platinum 8370C CPU @ 2.80GHz").expect("8370C profile"),
+            "github-ubuntu-x64-intel-xeon-platinum-8370c"
+        );
+        assert_eq!(
+            github_profile_name("AMD EPYC 9V45 96-Core Processor").expect("9V45 profile"),
+            "github-ubuntu-x64-amd-epyc-9v45"
+        );
+        assert!(default_profile("github-ubuntu-x64-amd-epyc-9v45").is_ok());
+
+        environment.cpu_model = Some("Future Cloud 1234 Processor".into());
+        assert!(
+            default_expected_path(&environment)
+                .expect("future profile path")
+                .ends_with("github-ubuntu-x64-future-cloud-1234.json")
+        );
         assert!(default_expected_file(&environment).is_err());
     }
 }
