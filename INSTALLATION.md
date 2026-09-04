@@ -13,8 +13,11 @@ shown first. Open that release and download the asset for your platform:
 | Platform | Release asset |
 |----------|---------------|
 | Linux x86-64 | `cfn-validate-<version>-linux-x64` |
+| Linux ARM64 | `cfn-validate-<version>-linux-aarch64` |
 | macOS Apple silicon | `cfn-validate-<version>-darwin-aarch64` |
+| macOS Intel | `cfn-validate-<version>-darwin-x64` |
 | Windows x86-64 | `cfn-validate-<version>-win32-x64.exe` |
+| Windows ARM64 | `cfn-validate-<version>-win32-aarch64.exe` |
 
 On Linux or macOS, make the downloaded file executable, rename it to `cfn-validate`, and move it to a directory on
 `PATH`. On Windows, rename it to `cfn-validate.exe` and move it to a directory on `PATH`.
@@ -68,7 +71,7 @@ See the [Node.js API and examples](src/bindings-wasm/README.md).
 ### Python
 
 Production versions are published to [PyPI](https://pypi.org/project/cloudformation-validate/); prereleases are
-published to [TestPyPI](https://test.pypi.org/project/cloudformation-validate/). The package requires Python 3.12 or
+published to [TestPyPI](https://test.pypi.org/project/cloudformation-validate/). The package requires Python 3.10 or
 later, and its platform-specific wheels have no runtime package dependencies.
 
 ```bash
@@ -200,7 +203,7 @@ testing the project from source need the tools below. Pinned versions live in
 | Kotlin (`kotlinc`)              | 2.4.0   | JVM binding build                                         |                                                                                                                 |
 | `ktlint`                        | 1.8.0   | JVM binding formatting                                    |                                                                                                                 |
 | Gradle                          | 9.6.1   | JVM binding build/test                                    | Must be on `PATH` - `bindings-jvm/build.sh` and the JVM test runner invoke `gradle`                             |
-| Python                          | 3.12+   | Python binding build/test, license generation, `scripts/` | `setuptools` for the wheel build; no other packages required                                                    |
+| Python                          | 3.10+   | Python binding build/test, license generation, `scripts/` | `setuptools` for the wheel build; no other packages required                                                    |
 | Go                              | 1.26+   | Go binding build/test                                     | cgo must be enabled (default); Windows also needs `rustup target add x86_64-pc-windows-gnu` and MinGW-w64 `gcc` |
 | `uniffi-bindgen-go`             | 0.7.1   | Go binding generation                                     | `cargo install --git https://github.com/NordSecurity/uniffi-bindgen-go --tag v0.7.1+v0.31.0`                    |
 | `git`, `curl`, `openssl`        | -       | source control, fetching JVM deps, verifying releases     | Usually preinstalled                                                                                            |

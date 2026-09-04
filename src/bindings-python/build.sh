@@ -67,8 +67,8 @@ EOF
 # ── Prerequisites ─────────────────────────────────────────────────────────────
 command -v python3 &>/dev/null || { echo "Error: python3 not found on PATH" >&2; exit 1; }
 command -v unzip &>/dev/null || { echo "Error: unzip not found on PATH" >&2; exit 1; }
-python3 -c 'import sys; sys.exit(0 if sys.version_info >= (3, 12) else 1)' \
-    || { echo "Error: Python 3.12+ required, found $(python3 --version)" >&2; exit 1; }
+python3 -c 'import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)' \
+    || { echo "Error: Python 3.10+ required, found $(python3 --version)" >&2; exit 1; }
 python3 -m pip --version &>/dev/null \
     || { echo "Error: pip not available (python3 -m pip failed)" >&2; exit 1; }
 

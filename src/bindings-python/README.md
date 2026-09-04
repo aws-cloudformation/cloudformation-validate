@@ -17,7 +17,7 @@ Available on [PyPI](https://pypi.org/project/cloudformation-validate/) as `cloud
 pip install cloudformation-validate
 ```
 
-Requires Python 3.12+ and has no runtime dependencies. PyPI publishes a separate wheel for every supported native
+Requires Python 3.10+ and has no runtime dependencies. PyPI publishes a separate wheel for every supported native
 target. Each wheel carries exactly one native library and an accurate platform tag, so pip downloads only the
 artifact compatible with the installer host.
 
