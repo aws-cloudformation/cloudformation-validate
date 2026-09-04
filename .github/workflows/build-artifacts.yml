@@ -284,7 +284,6 @@ jobs:
         - { os: macos-latest, platform: darwin, arch: aarch64 }
         - { os: macos-15-intel, platform: darwin, arch: x64 }
         - { os: windows-latest, platform: win32, arch: x64 }
-        - { os: windows-11-arm, platform: win32, arch: aarch64 }
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -440,7 +439,6 @@ jobs:
           python-darwin-x64
           python-darwin-aarch64
           python-win32-x64
-          python-win32-aarch64
         )
         for artifact in "${python_artifacts[@]}"; do
           host_wheels=("$GITHUB_WORKSPACE/incoming/$artifact"/*.whl)
@@ -456,8 +454,8 @@ jobs:
           cp "${host_wheels[0]}" bindings-python/generated/dist/
         done
         staged_wheels=(bindings-python/generated/dist/*.whl)
-        if [ ${#staged_wheels[@]} -ne 6 ]; then
-          echo "::error::Expected six staged Python wheels, found ${#staged_wheels[@]}"
+        if [ ${#staged_wheels[@]} -ne 5 ]; then
+          echo "::error::Expected five staged Python wheels, found ${#staged_wheels[@]}"
           exit 1
         fi
         echo "Staged platform-specific Python wheels:"; printf '  %s\n' "${staged_wheels[@]}"
