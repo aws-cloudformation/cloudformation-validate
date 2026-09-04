@@ -237,8 +237,11 @@ jobs:
       matrix:
         include:
         - { os: ubuntu-latest, platform: linux, arch: x64 }
+        - { os: ubuntu-24.04-arm, platform: linux, arch: aarch64 }
         - { os: macos-latest, platform: darwin, arch: aarch64 }
+        - { os: macos-15-intel, platform: darwin, arch: x64 }
         - { os: windows-latest, platform: win32, arch: x64 }
+        - { os: windows-11-arm, platform: win32, arch: aarch64 }
     runs-on: ${{ matrix.os }}
     defaults:
       run:
