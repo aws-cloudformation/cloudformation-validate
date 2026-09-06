@@ -6,6 +6,7 @@ import rego.v1
 violation contains make_diag_at("W1020", "WARN", name,
     path,
     "Fn::Sub isn't needed because there are no variables") if {
+    cfn_rule_active("W1020")
     not has_transform("AWS::Serverless-2016-10-31")
     some name, res in input.resources
     some path in res.redundantSubs

@@ -9,6 +9,7 @@ _bdm_iops_ignored_types := {t | some t in data.rule_tables.ebs_iops_ignored_volu
 violation contains make_diag_at("W3671", "WARN", name,
     sprintf("%s.%d.Ebs.Iops", [base_path, i]),
     sprintf("Iops is ignored when VolumeType is '%s'", [vtype])) if {
+    cfn_rule_active("W3671")
     some rtype, base_path in _ebs_bdm_paths
     some name in resources_of_type(rtype)
     bdms := resolve(name, base_path)
@@ -26,6 +27,7 @@ violation contains make_diag_at("W3671", "WARN", name,
 violation contains make_diag_at("W3671", "WARN", name,
     sprintf("%s.%d.%s.%d.Ebs.Iops", [info.outer_prefix, s, info.middle_segments, i]),
     sprintf("Iops is ignored when VolumeType is '%s'", [vtype])) if {
+    cfn_rule_active("W3671")
     some rtype, info in _ebs_double_wildcard
     some name in resources_of_type(rtype)
     specs := resolve(name, info.outer_prefix)

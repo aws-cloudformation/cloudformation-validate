@@ -295,6 +295,12 @@ pub struct SemanticModel {
     /// specific mapping.
     pub has_dynamic_findinmap_name: bool,
     pub resolution_sources: HashMap<(String, String), String>,
+    /// Per-resource set of property paths whose value is produced by an intrinsic
+    /// function - either recorded with an `Intrinsic/*` resolution source or
+    /// anchoring a reference edge. Built once at construction so `is_from_intrinsic`
+    /// answers ancestor queries with borrowed lookups instead of rescanning the
+    /// resolution sources and outgoing edges on every call.
+    intrinsic_source_paths: HashMap<String, HashSet<String>>,
     /// (resource_id, property_path) → authored expression retained for opaque
     /// value identity or concrete intrinsic structure inspection.
     value_nodes: HashMap<(String, String), NodeRef>,
@@ -675,6 +681,8 @@ impl SemanticModel {
             }
         }
         let graph = ReferenceGraph::build(all_edges, &resource_ids);
+
+        let intrinsic_source_paths = build_intrinsic_source_paths(&resolution_sources, &graph);
 
         let mut resources_by_type: HashMap<String, Vec<String>> = HashMap::new();
         for (id, res) in &resources {
@@ -1107,6 +1115,7 @@ impl SemanticModel {
                 params_referenced_in_definitions,
                 has_dynamic_findinmap_name,
                 resolution_sources,
+                intrinsic_source_paths,
                 value_nodes,
                 lifecycle_attribute_nodes,
                 lifecycle_attribute_status_cache: Mutex::new(HashMap::new()),
@@ -1546,8 +1555,7 @@ impl SemanticModel {
         let reference_prefix = format!("{path}.");
         let depends_on_reference = self
             .graph
-            .outgoing(resource_id)
-            .iter()
+            .outgoing_edges(resource_id)
             .any(|edge| edge.source_path == path || edge.source_path.starts_with(&reference_prefix));
         let as_json = crate::serialization::resolved_value_to_json(resolved);
         if !depends_on_reference && !json_contains_markers(&as_json) {
@@ -1594,7 +1602,7 @@ impl SemanticModel {
             if path == base_path { Some(String::new()) } else { path.strip_prefix(&prefix).map(String::from) }
         };
         let mut paths: HashSet<String> =
-            self.graph.outgoing(resource_id).into_iter().filter_map(|edge| relative_path(&edge.source_path)).collect();
+            self.graph.outgoing_edges(resource_id).filter_map(|edge| relative_path(&edge.source_path)).collect();
         paths.extend(self.resolution_sources.iter().filter_map(|((source_resource, source_path), _)| {
             (source_resource == resource_id).then(|| relative_path(source_path)).flatten()
         }));
@@ -1602,21 +1610,21 @@ impl SemanticModel {
     }
 
     fn path_from_intrinsic(&self, resource_id: &str, path: &str) -> bool {
-        let edges = self.graph.outgoing(resource_id);
-        let mut p = path.to_string();
+        let Some(intrinsic_paths) = self.intrinsic_source_paths.get(resource_id) else {
+            return false;
+        };
+        // Walk the property path and each of its ancestors: an intrinsic value at
+        // any level makes this path intrinsic-sourced. The index already holds
+        // every such path (from an `Intrinsic/*` resolution source or a reference
+        // edge), so ancestors are tested as borrowed slices with no per-level
+        // key or tuple allocation and no edge scan.
+        let mut ancestor = path;
         loop {
-            if let Some(src) = self.resolution_sources.get(&(resource_id.to_string(), p.clone()))
-                && src.starts_with("Intrinsic/")
-            {
+            if intrinsic_paths.contains(ancestor) {
                 return true;
             }
-            // A reference edge (Ref, GetAtt, Sub) anchored at this path means the
-            // value is produced by an intrinsic rather than written as a literal.
-            if edges.iter().any(|e| e.source_path == p) {
-                return true;
-            }
-            match p.rfind('.') {
-                Some(i) => p.truncate(i),
+            match ancestor.rfind('.') {
+                Some(dot) => ancestor = &ancestor[..dot],
                 None => return false,
             }
         }
@@ -1897,7 +1905,7 @@ impl SemanticModel {
             return Some(target.as_str());
         }
         if let Some(ResolvedValue::Reference { target, kind: _ }) = self.resolve_deep(resource_id, path).as_ref() {
-            for edge in self.graph.outgoing(resource_id) {
+            for edge in self.graph.outgoing_edges(resource_id) {
                 if edge.target == *target {
                     return Some(&edge.target);
                 }
@@ -2147,6 +2155,32 @@ fn parameter_name_from_source(source: &str) -> Option<&str> {
     let rest = source.strip_prefix(SECTION_PARAMETERS)?.strip_prefix('/')?;
     let name = rest.split('/').next()?;
     if name.is_empty() { None } else { Some(name) }
+}
+
+/// Resolution-source marker for a value produced by an intrinsic function.
+const INTRINSIC_SOURCE_PREFIX: &str = "Intrinsic/";
+
+/// Builds the per-resource intrinsic-source path index consulted by
+/// `is_from_intrinsic`. A path counts as intrinsic-sourced when its resolution
+/// source is an `Intrinsic/*` entry or when it anchors a reference edge (Ref,
+/// GetAtt, Sub) - the two conditions the ancestor walk previously re-derived by
+/// probing the resolution sources and rescanning the outgoing edges on every
+/// query. Materializing them once trades a small, bounded amount of memory for
+/// allocation-free borrowed lookups on the hot path.
+fn build_intrinsic_source_paths(
+    resolution_sources: &HashMap<(String, String), String>,
+    graph: &ReferenceGraph,
+) -> HashMap<String, HashSet<String>> {
+    let mut paths_by_resource: HashMap<String, HashSet<String>> = HashMap::new();
+    for ((resource_id, path), source) in resolution_sources {
+        if source.starts_with(INTRINSIC_SOURCE_PREFIX) {
+            paths_by_resource.entry(resource_id.clone()).or_default().insert(path.clone());
+        }
+    }
+    for edge in &graph.edges {
+        paths_by_resource.entry(edge.source_resource.clone()).or_default().insert(edge.source_path.clone());
+    }
+    paths_by_resource
 }
 
 /// Some intrinsic nodes stand in for a whole object - most notably
@@ -2818,6 +2852,82 @@ Resources:
         assert_eq!(model.resources.len(), 2);
         assert_eq!(model.resources_of_type("AWS::S3::Bucket").len(), 2);
         assert_eq!(model.resources_of_type("AWS::Fake::Thing").len(), 0);
+    }
+
+    /// Resource `R` mixes literal and intrinsic-sourced properties; `IfR` wraps
+    /// its whole `Properties` block in an `Fn::If` whose first branch sets
+    /// `TopicName` via `Ref` and `DisplayName` to a literal. Exercises every
+    /// `is_from_intrinsic` path: reference edges, concretely-resolved intrinsics,
+    /// ancestor inheritance, `Fn::If` branch attribution, and plain literals.
+    fn intrinsic_source_probe_model() -> SemanticModel {
+        let input = r#"
+Resources:
+  Other:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: other-bucket
+  R:
+    Type: AWS::SNS::Topic
+    Properties:
+      LiteralProp: plain-literal
+      RefProp: !Ref Other
+      GetAttProp: !GetAtt Other.Arn
+      JoinProp: !Join ["-", ["a", "b"]]
+      NestedRef:
+        Inner: !Ref Other
+  IfR:
+    Type: AWS::SNS::Topic
+    Condition: MakeIt
+    Properties:
+      Fn::If:
+        - MakeIt
+        - TopicName: !Ref Other
+          DisplayName: literal-in-true-branch
+          BranchLiteral: literal-one
+        - TopicName: plain-literal-two
+          DisplayName: !Ref Other
+          BranchLiteral: literal-two
+Conditions:
+  MakeIt: !Equals ["a", "a"]
+"#;
+        SemanticModel::from_bytes(input.as_bytes()).unwrap()
+    }
+
+    #[test]
+    fn is_from_intrinsic_separates_intrinsic_values_from_literals() {
+        let model = intrinsic_source_probe_model();
+        assert!(model.is_from_intrinsic("R", "Properties.RefProp"), "a Ref value is intrinsic-sourced");
+        assert!(model.is_from_intrinsic("R", "Properties.GetAttProp"), "a GetAtt value is intrinsic-sourced");
+        assert!(
+            model.is_from_intrinsic("R", "Properties.JoinProp"),
+            "an Fn::Join value keeps its Intrinsic/* source even when it resolves concretely"
+        );
+        assert!(!model.is_from_intrinsic("R", "Properties.LiteralProp"), "a plain literal is not intrinsic-sourced");
+    }
+
+    #[test]
+    fn is_from_intrinsic_inherits_from_intrinsic_ancestors() {
+        let model = intrinsic_source_probe_model();
+        // The Ref lives at Properties.NestedRef.Inner; that exact path and any
+        // descendant of it are intrinsic-sourced through ancestor inheritance.
+        assert!(model.is_from_intrinsic("R", "Properties.NestedRef.Inner"));
+        assert!(model.is_from_intrinsic("R", "Properties.NestedRef.Inner.Deeper"));
+        // The enclosing map itself holds no intrinsic; only its Inner value does.
+        assert!(!model.is_from_intrinsic("R", "Properties.NestedRef"));
+        // A resource that anchors no intrinsic paths is never intrinsic-sourced.
+        assert!(!model.is_from_intrinsic("Missing", "Properties.Anything"));
+    }
+
+    #[test]
+    fn is_from_intrinsic_attributes_fn_if_branch_sources_to_the_bare_path() {
+        let model = intrinsic_source_probe_model();
+        // The true branch sets TopicName via Ref, so the bare property path is
+        // intrinsic-sourced through the branch-qualified index entry.
+        assert!(model.is_from_intrinsic("IfR", "Properties.TopicName"));
+        // The false branch independently sets DisplayName via Ref.
+        assert!(model.is_from_intrinsic("IfR", "Properties.DisplayName"));
+        // A property that is literal in both branches remains non-intrinsic.
+        assert!(!model.is_from_intrinsic("IfR", "Properties.BranchLiteral"));
     }
 
     #[test]

@@ -8,6 +8,7 @@ violation contains make_diag_full("E3703", "ERROR", name,
     sprintf("TemplatePath artifact '%s' is not one of the InputArtifacts", [artifact_name]),
     "Use an artifact name from InputArtifacts as the prefix of TemplatePath",
     "") if {
+    cfn_rule_active("E3703")
     some name in resources_of_type("AWS::CodePipeline::Pipeline")
     stages := resolve(name, "Properties.Stages")
     is_array(stages)

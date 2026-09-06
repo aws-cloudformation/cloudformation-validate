@@ -8,6 +8,7 @@ violation contains make_diag_full("W3005", "WARN", name,
     sprintf("'%s' dependency already enforced by a '%s' at '%s'", [dep, edge.kind, edge.sourcePath]),
     "Remove the DependsOn entry",
     "") if {
+    cfn_rule_active("W3005")
     some name, res in input.resources
     deps := res.dependsOn
     is_array(deps)

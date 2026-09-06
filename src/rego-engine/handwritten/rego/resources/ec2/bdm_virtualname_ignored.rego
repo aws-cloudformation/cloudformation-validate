@@ -7,6 +7,7 @@ import rego.v1
 violation contains make_diag_at("E3715", "ERROR", name,
     sprintf("%s.%d.VirtualName", [base_path, i]),
     sprintf("'%s' is not a valid ephemeral device name. Expected format is 'ephemeralN' where N is 0-23", [vname])) if {
+    cfn_rule_active("E3715")
     some rtype, base_path in _ebs_bdm_paths
     some name in resources_of_type(rtype)
     bdms := resolve(name, base_path)
@@ -23,6 +24,7 @@ violation contains make_diag_at("E3715", "ERROR", name,
 violation contains make_diag_at("E3715", "ERROR", name,
     sprintf("%s.%d.%s.%d.VirtualName", [info.outer_prefix, s, info.middle_segments, i]),
     sprintf("'%s' is not a valid ephemeral device name. Expected format is 'ephemeralN' where N is 0-23", [vname])) if {
+    cfn_rule_active("E3715")
     some rtype, info in _ebs_double_wildcard
     some name in resources_of_type(rtype)
     specs := resolve(name, info.outer_prefix)
@@ -43,6 +45,7 @@ violation contains make_diag_at("E3715", "ERROR", name,
 violation contains make_diag_at("W3698", "WARN", name,
     sprintf("%s.%d.VirtualName", [base_path, i]),
     "VirtualName is ignored when Ebs is specified") if {
+    cfn_rule_active("W3698")
     some rtype, base_path in _ebs_bdm_paths
     some name in resources_of_type(rtype)
     bdms := resolve(name, base_path)
@@ -56,6 +59,7 @@ violation contains make_diag_at("W3698", "WARN", name,
 violation contains make_diag_at("W3698", "WARN", name,
     sprintf("%s.%d.%s.%d.VirtualName", [info.outer_prefix, s, info.middle_segments, i]),
     "VirtualName is ignored when Ebs is specified") if {
+    cfn_rule_active("W3698")
     some rtype, info in _ebs_double_wildcard
     some name in resources_of_type(rtype)
     specs := resolve(name, info.outer_prefix)

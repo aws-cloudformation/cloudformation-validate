@@ -6,6 +6,7 @@ import rego.v1
 violation contains make_diag_at("E3029", "ERROR", name,
     "Properties.TTL",
     "TTL must not be set when AliasTarget is specified") if {
+    cfn_rule_active("E3029")
     some name in resources_of_type("AWS::Route53::RecordSet")
     some scenario in properties_scenarios(name, ["AliasTarget", "TTL"])
     _route53_scenario_reachable(name, scenario.conditions)
@@ -17,6 +18,7 @@ violation contains make_diag_at("E3029", "ERROR", name,
 violation contains make_diag_at("E3029", "ERROR", name,
     "Properties.AliasTarget",
     sprintf("AliasTarget cannot be used with record type '%s'", [record_type])) if {
+    cfn_rule_active("E3029")
     some name in resources_of_type("AWS::Route53::RecordSet")
     some scenario in properties_scenarios(name, ["AliasTarget", "Type"])
     _route53_scenario_reachable(name, scenario.conditions)

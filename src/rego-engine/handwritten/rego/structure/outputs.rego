@@ -6,6 +6,7 @@ import rego.v1
 violation contains make_diag_at("F0040", "FATAL", "",
     sprintf("Outputs/%s", [name]),
     sprintf("Output '%s' is missing required 'Value' property", [name])) if {
+    cfn_rule_active("F0040")
     some name in object.keys(input.outputs)
     val := input.outputs[name].value
     is_null(val)
@@ -21,6 +22,7 @@ _output_skip_getatt_types := {
 violation contains make_diag_at("F6101", "FATAL", "",
     sprintf("%s.1", [edge.sourcePath]),
     sprintf("'%s' is not one of %s", [edge.attr, render_list(valid_attrs)])) if {
+    cfn_rule_active("F6101")
     some edge in input.edges
     edge.kind == "GetAtt"
     startswith(edge.source, "__output__")
@@ -48,6 +50,7 @@ _output_pseudo_parameters := {
 violation contains make_diag_at("F6101", "FATAL", "",
     edge.sourcePath,
     sprintf("Fn::Sub variable '${%s}' does not reference a valid resource, parameter, or pseudo-parameter", [edge.target])) if {
+    cfn_rule_active("F6101")
     some edge in input.edges
     edge.kind == "Sub"
     startswith(edge.source, "__output__")
@@ -61,6 +64,7 @@ violation contains make_diag_at("F6101", "FATAL", "",
 violation contains make_diag_at("F6101", "FATAL", "",
     sprintf("%s.0", [edge.sourcePath]),
     sprintf("GetAtt '%s.%s' references a resource that does not exist", [edge.target, edge.attr])) if {
+    cfn_rule_active("F6101")
     some edge in input.edges
     edge.kind == "GetAtt"
     startswith(edge.source, "__output__")
@@ -89,6 +93,7 @@ _has_unexpanded_foreach_output if {
 violation contains make_diag_at("F6101", "FATAL", "",
     edge.sourcePath,
     sprintf("Output '%s': GetAtt '%s.%s' returns type '%s', not 'string'", [output_name, edge.target, edge.attr, ret_type])) if {
+    cfn_rule_active("F6101")
     some edge in input.edges
     edge.kind == "GetAtt"
     startswith(edge.source, "__output__")

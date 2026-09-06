@@ -17,6 +17,7 @@ violation contains make_diag_full("E9002", "ERROR", name,
     sprintf("FromPort %v is greater than ToPort %v", [from_port, to_port]),
     "Set FromPort to a value less than or equal to ToPort",
     "") if {
+    cfn_rule_active("E9002")
     some name in resources_of_type("AWS::EC2::SecurityGroup")
     some key, rule in input.resources[name].properties.SecurityGroupIngress
     is_object(rule)

@@ -7,6 +7,7 @@ import rego.v1
 violation contains make_diag_full("E3022", "ERROR", finding.resourceId,
     "Properties.SubnetId", finding.message,
     "Associate each subnet with exactly one route table", "") if {
+    cfn_rule_active("E3022")
     some finding in duplicate_subnet_route_table_associations()
 }
 
@@ -14,6 +15,7 @@ violation contains make_diag_full("E3022", "ERROR", finding.resourceId,
 violation contains make_diag_at("E3041", "ERROR", name,
     "Properties.Name",
     sprintf("RecordSet Name '%s' is not a subdomain of HostedZoneName '%s'", [rec_name, hz_name])) if {
+    cfn_rule_active("E3041")
     some name in resources_of_type("AWS::Route53::RecordSet")
     rec_name := resolve(name, "Properties.Name")
     hz_name := resolve(name, "Properties.HostedZoneName")

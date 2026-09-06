@@ -68,6 +68,7 @@ violation contains make_diag_full("W9008", "WARN", name,
     "Properties.StorageEncrypted",
     "RDS instance should have StorageEncrypted set to true",
     "Set StorageEncrypted to true", "") if {
+    cfn_rule_active("W9008")
     some name in resources_of_type("AWS::RDS::DBInstance")
     some scenario in properties_scenarios(name, _rds_storage_encryption_fields)
     is_satisfiable(scenario.conditions)
@@ -85,6 +86,7 @@ violation contains make_diag_full("W9011", "WARN", name, "Properties.PubliclyAcc
     "RDS instance has PubliclyAccessible set to true - consider restricting access",
     "Set PubliclyAccessible to false",
     "") if {
+    cfn_rule_active("W9011")
     some name in resources_of_type("AWS::RDS::DBInstance")
     coerce_to_bool(resolve(name, "Properties.PubliclyAccessible")) == true
 }

@@ -8,6 +8,7 @@ violation contains make_diag_full("W1001", "WARN", source, edge.sourcePath,
         [target, target_cond]),
     "Add a Condition to the referencing resource that implies the target's condition",
     "") if {
+    cfn_rule_active("W1001")
     some source in object.keys(input.resources)
     some edge in input.resources[source].outgoingRefs
     edge.kind in {"Ref", "GetAtt"}
@@ -52,6 +53,7 @@ violation contains make_diag_full("W1001", "WARN", "", edge.sourcePath,
         [target, target_cond]),
     "Add a Condition to the output that implies the target's condition",
     "") if {
+    cfn_rule_active("W1001")
     some edge in input.edges
     edge.kind in {"Ref", "GetAtt"}
     startswith(edge.source, "__output__")

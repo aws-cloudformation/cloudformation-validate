@@ -7,6 +7,7 @@ violation contains make_diag_full("E3047", "ERROR", name,
     sprintf("Cpu %s is not compatible with Memory %s for Fargate", [render_value(cpu), render_value(memory)]),
     "Use a valid Fargate CPU/memory combination (e.g., Cpu: 256 with Memory: 512, 1024, or 2048)",
     "") if {
+    cfn_rule_active("E3047")
     some name in resources_of_type("AWS::ECS::TaskDefinition")
     some compatibility_scenario in _fargate_compatibility_scenarios(name)
     some cpu_scenario in resolve_scenarios(name, "Properties.Cpu")

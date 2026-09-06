@@ -6,6 +6,7 @@ import rego.v1
 violation contains make_diag_at("E3679", "ERROR", name,
     sprintf("Properties.Listeners.%d", [item.index]),
     sprintf("%s listener requires SSLCertificateId", [proto])) if {
+    cfn_rule_active("E3679")
     some name in resources_of_type("AWS::ElasticLoadBalancing::LoadBalancer")
     some item in flatten_list(name, "Properties.Listeners")
     listener := item.value

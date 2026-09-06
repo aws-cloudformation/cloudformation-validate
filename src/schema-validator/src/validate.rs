@@ -99,7 +99,7 @@ fn value_depends_on_parameter_in_scenario(
     scenario: &HashMap<String, bool>,
 ) -> bool {
     let descendant_prefix = format!("{prop_path}.");
-    m.graph.outgoing(rid).into_iter().any(|edge| {
+    m.graph.outgoing_edges(rid).any(|edge| {
         (edge.source_path == prop_path || edge.source_path.starts_with(&descendant_prefix))
             && m.parameters.contains_key(&edge.target)
             && condition_context_matches_scenario(m, edge.condition_context.as_deref(), scenario)

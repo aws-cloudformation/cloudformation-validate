@@ -8,6 +8,7 @@ violation contains make_diag_full("E3501", "ERROR", name,
     sprintf("FIFO queue name '%s' must end with '.fifo'", [qname]),
     "Append .fifo to the queue name",
     "") if {
+    cfn_rule_active("E3501")
     some name in resources_of_type("AWS::SQS::Queue")
     fifo := resolve(name, "Properties.FifoQueue")
     fifo == true
@@ -22,6 +23,7 @@ violation contains make_diag_full("E3501", "ERROR", name,
     sprintf("Non-FIFO queue name '%s' must not end with '.fifo'", [qname]),
     "Remove .fifo suffix or set FifoQueue to true",
     "") if {
+    cfn_rule_active("E3501")
     some name in resources_of_type("AWS::SQS::Queue")
     qname := resolve(name, "Properties.QueueName")
     is_string(qname)

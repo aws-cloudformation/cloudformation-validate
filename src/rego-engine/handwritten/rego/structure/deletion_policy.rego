@@ -9,6 +9,7 @@ _snapshot_capable_update_types := {t | some t in data.rule_tables.snapshot_capab
 violation contains make_diag_full("F0018", "FATAL", name, "UpdateReplacePolicy",
     sprintf("UpdateReplacePolicy must be one of Delete, Retain, Snapshot, got '%s'", [policy]),
     "", "") if {
+    cfn_rule_active("F0018")
     some name, res in input.resources
     res.resourceType in _snapshot_capable_update_types
     scenarios := lifecycle_policy_scenarios(name, "UpdateReplacePolicy")
@@ -20,6 +21,7 @@ violation contains make_diag_full("F0018", "FATAL", name, "UpdateReplacePolicy",
 violation contains make_diag_full("F0018", "FATAL", name, "UpdateReplacePolicy",
     sprintf("UpdateReplacePolicy must be one of Delete, Retain, got '%s'", [policy]),
     "", "") if {
+    cfn_rule_active("F0018")
     some name, res in input.resources
     not res.resourceType in _snapshot_capable_update_types
     scenarios := lifecycle_policy_scenarios(name, "UpdateReplacePolicy")
@@ -59,6 +61,7 @@ _is_resolved_intrinsic_marker(value) if {
 violation contains make_diag_full("F0018", "FATAL", name, "UpdateReplacePolicy",
     sprintf("UpdateReplacePolicy must be one of Delete, Retain, Snapshot, got %s", [shape]),
     "", "") if {
+    cfn_rule_active("F0018")
     some name, res in input.resources
     res.resourceType in _snapshot_capable_update_types
     scenarios := lifecycle_policy_scenarios(name, "UpdateReplacePolicy")
@@ -70,6 +73,7 @@ violation contains make_diag_full("F0018", "FATAL", name, "UpdateReplacePolicy",
 violation contains make_diag_full("F0018", "FATAL", name, "UpdateReplacePolicy",
     sprintf("UpdateReplacePolicy must be one of Delete, Retain, got %s", [shape]),
     "", "") if {
+    cfn_rule_active("F0018")
     some name, res in input.resources
     not res.resourceType in _snapshot_capable_update_types
     scenarios := lifecycle_policy_scenarios(name, "UpdateReplacePolicy")

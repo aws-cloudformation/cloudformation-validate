@@ -6,6 +6,7 @@ import rego.v1
 violation contains make_diag_at("W3664", "WARN", name,
     "Properties.SourceArn",
     sprintf("SourceArn references '%s' (type '%s') but Principal 'sns.amazonaws.com' expects an SNS Topic", [target, target_type])) if {
+    cfn_rule_active("W3664")
     some name in resources_of_type("AWS::Lambda::Permission")
     principal := resolve(name, "Properties.Principal")
     principal == "sns.amazonaws.com"
@@ -20,6 +21,7 @@ violation contains make_diag_at("W3664", "WARN", name,
 violation contains make_diag_at("W3664", "WARN", name,
     "Properties.SourceArn",
     sprintf("SourceArn references '%s' (type '%s') but Principal 's3.amazonaws.com' expects an S3 Bucket", [target, target_type])) if {
+    cfn_rule_active("W3664")
     some name in resources_of_type("AWS::Lambda::Permission")
     principal := resolve(name, "Properties.Principal")
     principal == "s3.amazonaws.com"

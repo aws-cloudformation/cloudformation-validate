@@ -12,6 +12,7 @@ violation contains make_diag_related("W2503", "WARN", source, edge.sourcePath,
         "path": "",
         "message": sprintf("Conditional resource '%s' (condition '%s')", [target, target_cond]),
     }]) if {
+    cfn_rule_active("W2503")
     some source in object.keys(input.resources)
     some edge in input.resources[source].outgoingRefs
     edge.kind in {"Ref", "GetAtt"}
@@ -33,6 +34,7 @@ violation contains make_diag_full("W2502", "WARN", source, "DependsOn",
         [source, dep, target_cond, source]),
     sprintf("Add Condition: %s to resource '%s'", [target_cond, source]),
     "") if {
+    cfn_rule_active("W2502")
     some source in object.keys(input.resources)
     some dep in input.resources[source].dependsOn
     dep in object.keys(input.resources)

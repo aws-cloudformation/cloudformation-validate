@@ -673,6 +673,7 @@ dependencies = [
  "cloudformation-validate-validation-engine",
  "ipnetwork",
  "log",
+ "regex",
  "regorus",
  "serde",
  "serde_json",

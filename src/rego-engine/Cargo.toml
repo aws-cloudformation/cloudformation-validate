@@ -23,6 +23,8 @@ guard-translator = { workspace = true }
 data-source = { workspace = true }
 schema-validator = { workspace = true }
 regorus = { version = "0.9", default-features = false, features = ["arc", "regex", "semver", "std"] }
+# The override must use Regorus's exact regex version to preserve builtin matching semantics.
+regex = "=1.13.1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 ipnetwork = "0.21.1"

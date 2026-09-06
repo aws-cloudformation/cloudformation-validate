@@ -6,6 +6,7 @@ violation contains make_diag_at("I3510", "INFO", name,
     sprintf("Properties.PolicyDocument.Statement.%d.%s", [stmt_idx, resource_field]),
     sprintf("action '%s' requires a resource of [%s]",
         [action, _format_list(candidate_formats)])) if {
+    cfn_rule_active("I3510")
     some name in resources_of_type("AWS::IAM::Policy")
     # Keep Fn::If as `{"Fn::If": [cond, then, else]}` so every branch is visible;
     # a resource is acceptable if any reachable branch matches the action.

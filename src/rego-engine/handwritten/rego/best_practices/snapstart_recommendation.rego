@@ -29,6 +29,7 @@ violation contains make_diag_full("I2530", "INFO", name,
     sprintf("Runtime '%s' should consider using SnapStart for improved performance", [runtime]),
     "Add SnapStart with ApplyOn set to 'PublishedVersions'",
     "https://docs.aws.amazon.com/lambda/latest/dg/snapstart.html") if {
+    cfn_rule_active("I2530")
     _region_supports_snapstart
     some name in resources_of_type("AWS::Lambda::Function")
     some runtime in resolve_all(name, "Properties.Runtime")
