@@ -6,6 +6,7 @@ import rego.v1
 violation contains make_diag_at("W3037", "WARN", name,
     "Properties.PolicyDocument",
     "IAM policy statement has Action but no Resource") if {
+    cfn_rule_active("W3037")
     some name in resources_of_type("AWS::IAM::ManagedPolicy")
     doc := resolve(name, "Properties.PolicyDocument")
     is_object(doc)

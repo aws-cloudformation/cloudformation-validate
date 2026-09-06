@@ -9,6 +9,7 @@ violation contains make_diag_full("E3061", "ERROR", name,
     sprintf("Days %v for %s must be between %d and %d", [days, tier, min_days, 730]),
     sprintf("Set Days between %d and 730", [min_days]),
     "") if {
+    cfn_rule_active("E3061")
     some name in resources_of_type("AWS::S3::Bucket")
     configs := resolve(name, "Properties.IntelligentTieringConfigurations")
     is_array(configs)

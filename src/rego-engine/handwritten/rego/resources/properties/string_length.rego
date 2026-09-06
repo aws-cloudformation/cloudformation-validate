@@ -14,6 +14,7 @@ import rego.v1
 violation contains make_diag_at("W9006", "WARN", name,
     path,
     sprintf("String length %d exceeds maximum %d for property '%s'", [bounds.shortest, max_len, prop])) if {
+    cfn_rule_active("W9006")
     some name, res in input.resources
     rtype := res.resourceType
     some prop in schema_properties(rtype)
@@ -27,6 +28,7 @@ violation contains make_diag_at("W9006", "WARN", name,
 violation contains make_diag_at("W9006", "WARN", name,
     path,
     sprintf("String length %d is below minimum %d for property '%s'", [bounds.longest, min_len, prop])) if {
+    cfn_rule_active("W9006")
     some name, res in input.resources
     rtype := res.resourceType
     some prop in schema_properties(rtype)

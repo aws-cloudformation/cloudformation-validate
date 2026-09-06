@@ -6,7 +6,7 @@ use guard_translator::{ensure_translatable, pack_name_from_path, parse_guard};
 use log::{debug, info, warn};
 use rules::{Category, RuleInfo, RuleMetadataEntry, RuleOrigin, Severity, build_rule_metadata_map};
 use schema_validator::{OverlayCatalog, SchemaMetadataCatalog, SchemaValidator, schema_metadata_catalog_with_overlays};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::str::from_utf8;
 use std::sync::{Arc, LazyLock, Mutex};
 use template_model::SemanticModel;
@@ -83,21 +83,6 @@ const CORE_PACKAGES: &[(Category, &str)] = &[
     (Category::BestPractice, "data.best_practices.violation"),
     (Category::Resource, "data.resources.violation"),
 ];
-
-pub(crate) type SharedModel = Arc<Mutex<Option<Arc<SemanticModel>>>>;
-pub(crate) type SharedRegion = Arc<Mutex<Option<String>>>;
-
-struct HolderGuard {
-    model: SharedModel,
-    region: SharedRegion,
-}
-
-impl Drop for HolderGuard {
-    fn drop(&mut self) {
-        *self.model.lock().unwrap_or_else(|e| e.into_inner()) = None;
-        *self.region.lock().unwrap_or_else(|e| e.into_inner()) = None;
-    }
-}
 
 /// Pre-allocated capacity for merging all embedded JSON data files into one string.
 const MERGED_DATA_INITIAL_CAPACITY: usize = 8 * 1024 * 1024;
@@ -192,9 +177,6 @@ fn extend_primary_identifiers_data(catalog: &OverlayCatalog) -> anyhow::Result<O
 
 pub struct RegoEngine {
     base_rego: regorus::Engine,
-    model_holder: SharedModel,
-    region_holder: SharedRegion,
-    validate_lock: Mutex<()>,
     /// Built-in rule metadata from the rules registry only.
     registry_metadata: HashMap<String, RuleMetadataEntry>,
     /// Metadata for custom user rules and translated guard rules.
@@ -349,15 +331,7 @@ impl RegoEngine {
             }
         }
 
-        let model_holder: SharedModel = Arc::new(Mutex::new(None));
-        let region_holder: SharedRegion = Arc::new(Mutex::new(None));
-        crate::builtins::register_all(
-            &mut rego,
-            model_holder.clone(),
-            region_holder.clone(),
-            overlay_catalog,
-            schema_metadata,
-        )?;
+        crate::builtins::register_all(&mut rego, overlay_catalog, schema_metadata)?;
 
         let registry_metadata = build_rule_metadata_map();
         let mut external_rule_metadata: HashMap<String, RuleMetadataEntry> = HashMap::new();
@@ -383,9 +357,6 @@ impl RegoEngine {
         let init_metric = phase_metric(start);
         Ok(RegoEngine {
             base_rego: rego,
-            model_holder,
-            region_holder,
-            validate_lock: Mutex::new(()),
             registry_metadata,
             external_rule_metadata,
             discovered_custom_metadata: Mutex::new(HashMap::new()),
@@ -421,6 +392,28 @@ impl RegoEngine {
         })?;
         extract_diagnostics(&json_str, model, out, origin).map_err(ValidationError::from)
     }
+
+    /// The built-in rule IDs that global filtering proves cannot survive under
+    /// `config`, so their handwritten clauses can stop at the `cfn_rule_active`
+    /// guard before doing any work. Only rules the registry defines are eligible;
+    /// custom and guard rules are never globally suppressed here.
+    fn globally_suppressed_builtin_rules(&self, config: &ValidateConfig) -> Arc<HashSet<String>> {
+        let suppressed: HashSet<String> = self
+            .registry_metadata
+            .iter()
+            .filter(|(rule_id, entry)| {
+                config.filters.globally_suppresses_builtin_rule(
+                    rule_id,
+                    entry.category.as_deref(),
+                    entry.severity,
+                    config.strict,
+                    config.severity_level,
+                )
+            })
+            .map(|(rule_id, _)| rule_id.clone())
+            .collect();
+        Arc::new(suppressed)
+    }
 }
 
 impl ValidationEngine for RegoEngine {
@@ -433,13 +426,12 @@ impl ValidationEngine for RegoEngine {
         model: &Arc<SemanticModel>,
         config: &ValidateConfig,
     ) -> Result<Vec<Diagnostic>, ValidationError> {
-        let _validate_guard = self.validate_lock.lock().unwrap_or_else(|e| e.into_inner());
-
-        *self.model_holder.lock().unwrap_or_else(|e| e.into_inner()) = Some(model.clone());
-        *self.region_holder.lock().unwrap_or_else(|e| e.into_inner()) =
-            config.pseudo_parameter_overrides.region.clone();
-
-        let _cleanup = HolderGuard { model: self.model_holder.clone(), region: self.region_holder.clone() };
+        let context = crate::eval_context::EvaluationContext::new(
+            model.clone(),
+            config.pseudo_parameter_overrides.region.clone(),
+            self.globally_suppressed_builtin_rules(config),
+        );
+        let _scope = crate::eval_context::EvaluationScope::enter(context);
 
         let mut rego = self.base_rego.clone();
 
@@ -542,6 +534,8 @@ impl ValidationEngine for RegoEngine {
 mod tests {
     use super::*;
     use rules::{FilterConfig, RuleFilterConfig};
+    use std::sync::Barrier;
+    use std::thread;
     use template_model::SemanticModel;
     use validation_engine::{EngineConfig, ExternalRuleSource, ValidateConfig, ValidationEngine};
 
@@ -745,7 +739,7 @@ Resources:
     }
 
     #[test]
-    fn evaluate_rules_is_serialized() {
+    fn evaluate_rules_can_be_called_repeatedly() {
         let engine = make_engine();
         let model = make_model_from_yaml(
             r#"
@@ -755,27 +749,14 @@ Resources:
     Type: AWS::S3::Bucket
 "#,
         );
-        // Call twice to verify the mutex + HolderGuard cleanup works without deadlock.
+        // The per-thread evaluation context is installed and torn down each call,
+        // so repeated evaluations on one thread neither deadlock nor leak state.
         let _ = engine.evaluate_rules(&model, &ValidateConfig::default()).unwrap();
         let diags = engine.evaluate_rules(&model, &ValidateConfig::default()).unwrap();
         assert!(
             diags.iter().all(|d| d.severity != Severity::Fatal),
             "rego engine should not produce Fatal diagnostics"
         );
-    }
-
-    #[test]
-    fn holder_guard_clears_model_on_drop() {
-        let holder: SharedModel = Arc::new(Mutex::new(Some(Arc::new(
-            SemanticModel::from_bytes(b"AWSTemplateFormatVersion: '2010-09-09'\nResources: {}").unwrap(),
-        ))));
-        let region: SharedRegion = Arc::new(Mutex::new(Some("us-east-1".to_string())));
-        {
-            let _guard = HolderGuard { model: holder.clone(), region: region.clone() };
-            assert!(holder.lock().unwrap().is_some(), "holder should be Some while guard is alive");
-        }
-        assert!(holder.lock().unwrap().is_none(), "holder should be None after guard dropped");
-        assert!(region.lock().unwrap().is_none(), "region should be None after guard dropped");
     }
 
     #[test]
@@ -1477,5 +1458,191 @@ violation contains v if {
             "B_ESL_LITERAL",
         );
         assert!(diags.is_empty(), "a literal string must yield no bounds, got {diags:?}");
+    }
+
+    #[test]
+    fn regoengine_is_send_and_sync() {
+        fn assert_send_sync<T: Send + Sync>() {}
+        assert_send_sync::<RegoEngine>();
+    }
+
+    #[test]
+    fn evaluate_rules_isolates_model_and_region_across_threads() {
+        // One engine, many threads, each with a distinct model and region. The
+        // probes echo the region and the resource names the thread should see, so
+        // any leakage between threads' evaluation contexts surfaces as a mismatch.
+        let probe = r#"
+package concurrency_probe
+import rego.v1
+violation contains v if {
+    r := input_region()
+    v := {"rule_id": "REGIONPROBE", "severity": "info", "message": r, "resource_id": ""}
+}
+violation contains v if {
+    some name in resources_of_type("AWS::S3::Bucket")
+    v := {"rule_id": "MODELPROBE", "severity": "info", "message": name, "resource_id": name}
+}
+"#;
+        let config = EngineConfig {
+            custom_rules: vec![ExternalRuleSource { name: "concurrency_probe.rego".into(), content: probe.into() }],
+            guard_rules: vec![],
+            ..Default::default()
+        };
+        let engine = Arc::new(RegoEngine::new(config).unwrap());
+
+        const THREAD_COUNT: usize = 8;
+        let barrier = Arc::new(Barrier::new(THREAD_COUNT));
+        let handles: Vec<_> = (0..THREAD_COUNT)
+            .map(|i| {
+                let engine = Arc::clone(&engine);
+                let barrier = Arc::clone(&barrier);
+                thread::spawn(move || {
+                    let region = format!("region-{i}");
+                    let bucket = format!("Bucket{i}");
+                    let model = make_model_from_yaml(&format!(
+                        "AWSTemplateFormatVersion: \"2010-09-09\"\nResources:\n  {bucket}:\n    Type: AWS::S3::Bucket\n"
+                    ));
+                    let mut config = ValidateConfig::default();
+                    config.pseudo_parameter_overrides.region = Some(region.clone());
+                    // Release every thread at once so their evaluations overlap.
+                    barrier.wait();
+                    let diags = engine.evaluate_rules(&model, &config).unwrap();
+                    (region, bucket, diags)
+                })
+            })
+            .collect();
+
+        for handle in handles {
+            let (region, bucket, diags) = handle.join().unwrap();
+            let regions: Vec<&str> =
+                diags.iter().filter(|d| d.rule_id == "REGIONPROBE").map(|d| d.message.as_str()).collect();
+            assert_eq!(regions, vec![region.as_str()], "a thread must observe only its own region");
+            let resources: Vec<&str> =
+                diags.iter().filter(|d| d.rule_id == "MODELPROBE").map(|d| d.message.as_str()).collect();
+            assert_eq!(resources, vec![bucket.as_str()], "a thread must observe only its own model");
+        }
+    }
+
+    const SUPPRESSION_TEMPLATE: &str = r#"
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  MyInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-12345678
+      InstanceType: !Sub "t3.micro"
+"#;
+
+    fn exclude_ids(ids: &[&str]) -> ValidateConfig {
+        ValidateConfig {
+            filters: FilterConfig::new(
+                RuleFilterConfig::default(),
+                RuleFilterConfig { ids: ids.iter().map(|s| s.to_string()).collect(), ..Default::default() },
+            ),
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn exclude_id_suppresses_matching_builtin_and_preserves_other_findings() {
+        let engine = make_engine();
+        let model = make_model_from_yaml(SUPPRESSION_TEMPLATE);
+
+        let unfiltered = engine.evaluate_rules(&model, &ValidateConfig::default()).unwrap();
+        assert!(unfiltered.iter().any(|d| d.rule_id == "W9010"), "hardcoded AMI should trigger W9010");
+        let mut other_findings: Vec<(String, String)> = unfiltered
+            .iter()
+            .filter(|d| d.rule_id != "W9010")
+            .map(|d| (d.rule_id.clone(), d.message.clone()))
+            .collect();
+        assert!(!other_findings.is_empty(), "template must also produce a non-W9010 finding worth preserving");
+        other_findings.sort();
+
+        let filtered = engine.evaluate_rules(&model, &exclude_ids(&["W9010"])).unwrap();
+        assert!(filtered.iter().all(|d| d.rule_id != "W9010"), "the excluded rule must not be emitted");
+        let mut remaining: Vec<(String, String)> =
+            filtered.iter().map(|d| (d.rule_id.clone(), d.message.clone())).collect();
+        remaining.sort();
+        assert_eq!(remaining, other_findings, "excluding one rule must not alter any other diagnostic");
+    }
+
+    #[test]
+    fn include_id_globally_suppresses_every_other_builtin() {
+        let engine = make_engine();
+        let model = make_model_from_yaml(SUPPRESSION_TEMPLATE);
+
+        let config = ValidateConfig {
+            filters: FilterConfig::new(
+                RuleFilterConfig { ids: vec!["W9010".to_string()], ..Default::default() },
+                RuleFilterConfig::default(),
+            ),
+            ..Default::default()
+        };
+        let filtered = engine.evaluate_rules(&model, &config).unwrap();
+        assert!(filtered.iter().any(|d| d.rule_id == "W9010"), "the included rule must still fire");
+        assert!(
+            filtered.iter().all(|d| d.rule_id == "W9010"),
+            "a non-empty include filter must globally suppress every rule it can never admit"
+        );
+    }
+
+    #[test]
+    fn severity_level_prunes_lower_severity_builtins() {
+        let engine = make_engine();
+        let model = make_model_from_yaml(SUPPRESSION_TEMPLATE);
+
+        let default_run = engine.evaluate_rules(&model, &ValidateConfig::default()).unwrap();
+        assert!(default_run.iter().any(|d| d.rule_id == "W9010"), "W9010 fires at the default Info level");
+
+        let config = ValidateConfig { severity_level: Severity::Error, ..Default::default() };
+        let error_only = engine.evaluate_rules(&model, &config).unwrap();
+        assert!(
+            error_only.iter().all(|d| d.severity >= Severity::Error),
+            "no sub-Error diagnostics should be produced when the level is Error"
+        );
+        assert!(
+            error_only.iter().all(|d| d.rule_id != "W9010"),
+            "the Warn rule W9010 must be pruned at the Error level"
+        );
+    }
+
+    #[test]
+    fn cfn_rule_active_guard_short_circuits_a_suppressed_rule_body() {
+        // Every built-in clause is shaped like this probe: cfn_rule_active guards
+        // the body, so a globally suppressed rule stops before its body runs. The
+        // body here would evaluate regex.match on an invalid pattern if reached;
+        // the probe diagnostic is the observable signal that the body executed.
+        let probe = r#"
+package guard_probe
+import rego.v1
+violation contains v if {
+    cfn_rule_active("W9010")
+    not regex.match("(unterminated", "anything")
+    v := {"rule_id": "GUARDPROBE", "severity": "error", "message": "guarded body ran", "resource_id": ""}
+}
+"#;
+        let config = EngineConfig {
+            custom_rules: vec![ExternalRuleSource { name: "guard_probe.rego".into(), content: probe.into() }],
+            guard_rules: vec![],
+            ..Default::default()
+        };
+        let engine = RegoEngine::new(config).unwrap();
+        let model = make_model_from_yaml(
+            r#"
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  MyBucket:
+    Type: AWS::S3::Bucket
+"#,
+        );
+
+        let active = engine.evaluate_rules(&model, &ValidateConfig::default()).unwrap();
+        assert!(active.iter().any(|d| d.rule_id == "GUARDPROBE"), "an active rule's guarded body must run");
+
+        let suppressed = engine.evaluate_rules(&model, &exclude_ids(&["W9010"])).unwrap();
+        assert!(
+            suppressed.iter().all(|d| d.rule_id != "GUARDPROBE"),
+            "a suppressed rule's guarded body - including its invalid regex - must not run"
+        );
     }
 }

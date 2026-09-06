@@ -8,6 +8,7 @@ violation contains make_diag_full("E2529", "ERROR", name,
     sprintf("CloudWatch Log Group has more than 2 subscription filters (found %d)", [count(filters)]),
     "Reduce the number of subscription filters to 2 or fewer per log group",
     "") if {
+    cfn_rule_active("E2529")
     some name in resources_of_type("AWS::Logs::SubscriptionFilter")
     lgn := resolve(name, "Properties.LogGroupName")
     is_string(lgn)
@@ -26,6 +27,7 @@ violation contains make_diag_full("E2529", "ERROR", name,
     sprintf("CloudWatch Log Group has more than 2 subscription filters (found %d)", [count(filters)]),
     "Reduce the number of subscription filters to 2 or fewer per log group",
     "") if {
+    cfn_rule_active("E2529")
     some name in resources_of_type("AWS::Logs::SubscriptionFilter")
     ref_target := follow_ref(name, "Properties.LogGroupName")
     ref_target != null

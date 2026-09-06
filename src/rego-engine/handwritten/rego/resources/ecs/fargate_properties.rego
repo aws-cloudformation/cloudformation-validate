@@ -7,6 +7,7 @@ violation contains make_diag_full("E3048", "ERROR", name,
     sprintf("Fargate requires NetworkMode 'awsvpc', got '%s'", [network_mode]),
     "Set NetworkMode to 'awsvpc'",
     "") if {
+    cfn_rule_active("E3048")
     some name in resources_of_type("AWS::ECS::TaskDefinition")
     some network_scenario in _fargate_property_scenarios(name, "Properties.NetworkMode")
     network_mode := network_scenario.value
@@ -20,6 +21,7 @@ violation contains make_diag_full("E3048", "ERROR", name,
     "Fargate requires NetworkMode to be specified as 'awsvpc'",
     "Set NetworkMode to 'awsvpc'",
     "") if {
+    cfn_rule_active("E3048")
     some name in resources_of_type("AWS::ECS::TaskDefinition")
     _fargate_property_missing(name, "NetworkMode")
 }
@@ -29,6 +31,7 @@ violation contains make_diag_full("E3048", "ERROR", name,
     "Fargate requires Cpu to be specified",
     "Set Cpu to a valid Fargate value (256, 512, 1024, 2048, 4096, 8192, 16384, or 32768)",
     "") if {
+    cfn_rule_active("E3048")
     some name in resources_of_type("AWS::ECS::TaskDefinition")
     _fargate_property_missing(name, "Cpu")
 }
@@ -42,6 +45,7 @@ violation contains make_diag_full("E3048", "ERROR", name,
     ]),
     "Use a valid Fargate Cpu size in CPU units or vCPU",
     "") if {
+    cfn_rule_active("E3048")
     some name in resources_of_type("AWS::ECS::TaskDefinition")
     some cpu_scenario in _fargate_property_scenarios(name, "Properties.Cpu")
     cpu := cpu_scenario.value
@@ -54,6 +58,7 @@ violation contains make_diag_full("E3048", "ERROR", name,
     "Fargate requires Memory to be specified",
     "Set Memory to a valid Fargate value",
     "") if {
+    cfn_rule_active("E3048")
     some name in resources_of_type("AWS::ECS::TaskDefinition")
     _fargate_property_missing(name, "Memory")
 }
@@ -63,6 +68,7 @@ violation contains make_diag_full("E3048", "ERROR", name,
     "Fargate does not support PlacementConstraints",
     "Remove PlacementConstraints for Fargate tasks",
     "") if {
+    cfn_rule_active("E3048")
     some name in resources_of_type("AWS::ECS::TaskDefinition")
     _fargate_placement_declared(name)
 }
@@ -72,6 +78,7 @@ violation contains make_diag_full("E3048", "ERROR", name,
     sprintf("Fargate does not support log driver '%s'. Supported drivers: %s", [driver_scenario.value, _fargate_log_drivers_str]),
     _fargate_log_driver_fix,
     "") if {
+    cfn_rule_active("E3048")
     some name in resources_of_type("AWS::ECS::TaskDefinition")
     some driver_scenario in _fargate_invalid_log_drivers(name)
 }

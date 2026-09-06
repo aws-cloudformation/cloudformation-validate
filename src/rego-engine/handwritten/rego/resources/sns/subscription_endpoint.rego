@@ -6,6 +6,7 @@ import rego.v1
 violation contains make_diag_at("W3694", "WARN", name,
     "Properties.Endpoint",
     sprintf("Endpoint references '%s' (type '%s') but Protocol 'sqs' expects an SQS Queue", [target, target_type])) if {
+    cfn_rule_active("W3694")
     some name in resources_of_type("AWS::SNS::Subscription")
     protocol := resolve(name, "Properties.Protocol")
     protocol == "sqs"
@@ -20,6 +21,7 @@ violation contains make_diag_at("W3694", "WARN", name,
 violation contains make_diag_at("W3694", "WARN", name,
     "Properties.Endpoint",
     sprintf("Endpoint references '%s' (type '%s') but Protocol 'lambda' expects a Lambda Function", [target, target_type])) if {
+    cfn_rule_active("W3694")
     some name in resources_of_type("AWS::SNS::Subscription")
     protocol := resolve(name, "Properties.Protocol")
     protocol == "lambda"

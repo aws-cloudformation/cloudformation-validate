@@ -8,6 +8,7 @@ violation contains make_diag_full("E1029", "ERROR", name,
     sprintf("Found an embedded parameter '%s' outside of an 'Fn::Sub' at %s", [entry.variable, entry.path]),
     "Wrap the string with Fn::Sub",
     "") if {
+    cfn_rule_active("E1029")
     some name, res in input.resources
     some entry in res.unsubstitutedVariables
 }

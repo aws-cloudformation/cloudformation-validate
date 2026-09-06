@@ -24,6 +24,7 @@ violation contains make_diag_full("E2530", "ERROR", name,
     sprintf("SnapStart is not supported with runtime '%s'", [runtime]),
     "Use a supported Python, Java, or .NET runtime",
     "") if {
+    cfn_rule_active("E2530")
     some name in resources_of_type("AWS::Lambda::Function")
     snap := resolve(name, "Properties.SnapStart")
     is_object(snap)
@@ -43,6 +44,7 @@ violation contains make_diag_full("E2530", "ERROR", name,
     sprintf("SnapStart is not supported in region '%s'", [region]),
     "Deploy to a region that supports SnapStart or disable SnapStart",
     "") if {
+    cfn_rule_active("E2530")
     region := input_region()
     region != null
     not region in _snapstart_supported_regions

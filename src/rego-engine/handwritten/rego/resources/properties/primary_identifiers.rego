@@ -9,6 +9,7 @@ violation contains make_diag_at("E3019", "ERROR", resource_id,
     _e3019_path(identifier_properties),
     sprintf("Primary identifiers %s should have unique values across the resources %s",
         [_fmt_dict(identifier_properties, conflict.tuple), _fmt_set(conflict.resources)])) if {
+    cfn_rule_active("E3019")
     resource_types := {resource.resourceType | some _, resource in input.resources}
     some resource_type in resource_types
     identifier_properties := data.primary_identifiers[resource_type]

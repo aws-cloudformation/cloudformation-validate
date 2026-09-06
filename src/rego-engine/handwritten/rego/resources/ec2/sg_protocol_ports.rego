@@ -21,6 +21,7 @@ violation contains make_diag_full("E3687", "ERROR", name,
     sprintf("Properties.SecurityGroupIngress.%d", [idx]),
     sprintf("['FromPort', 'ToPort'] are required properties when using 'IpProtocol' value %s", [proto]),
     "", "") if {
+    cfn_rule_active("E3687")
     some name, res in input.resources
     res.resourceType == "AWS::EC2::SecurityGroup"
     some idx, rule in res.properties.SecurityGroupIngress
@@ -34,6 +35,7 @@ violation contains make_diag_full("E3687", "ERROR", name,
     sprintf("Properties.SecurityGroupEgress.%d", [idx]),
     sprintf("['FromPort', 'ToPort'] are required properties when using 'IpProtocol' value %s", [proto]),
     "", "") if {
+    cfn_rule_active("E3687")
     some name, res in input.resources
     res.resourceType == "AWS::EC2::SecurityGroup"
     some idx, rule in res.properties.SecurityGroupEgress
@@ -47,6 +49,7 @@ violation contains make_diag_full("E3687", "ERROR", name,
     "Properties",
     sprintf("['FromPort', 'ToPort'] are required properties when using 'IpProtocol' value %s", [proto]),
     "", "") if {
+    cfn_rule_active("E3687")
     some name, res in input.resources
     res.resourceType == "AWS::EC2::SecurityGroupIngress"
     proto := resolve(name, "Properties.IpProtocol")
@@ -58,6 +61,7 @@ violation contains make_diag_full("E3687", "ERROR", name,
     "Properties",
     sprintf("['FromPort', 'ToPort'] are required properties when using 'IpProtocol' value %s", [proto]),
     "", "") if {
+    cfn_rule_active("E3687")
     some name, res in input.resources
     res.resourceType == "AWS::EC2::SecurityGroupEgress"
     proto := resolve(name, "Properties.IpProtocol")
@@ -70,6 +74,7 @@ violation contains make_diag_full("W3687", "WARN", name,
     sprintf("Properties.SecurityGroupIngress.%d.FromPort", [idx]),
     sprintf("['FromPort', 'ToPort'] are ignored when using 'IpProtocol' value '%s'", [proto]),
     "", "") if {
+    cfn_rule_active("W3687")
     some name, res in input.resources
     res.resourceType == "AWS::EC2::SecurityGroup"
     some idx, rule in res.properties.SecurityGroupIngress
@@ -83,6 +88,7 @@ violation contains make_diag_full("W3687", "WARN", name,
     sprintf("Properties.SecurityGroupEgress.%d.FromPort", [idx]),
     sprintf("['FromPort', 'ToPort'] are ignored when using 'IpProtocol' value '%s'", [proto]),
     "", "") if {
+    cfn_rule_active("W3687")
     some name, res in input.resources
     res.resourceType == "AWS::EC2::SecurityGroup"
     some idx, rule in res.properties.SecurityGroupEgress
@@ -96,6 +102,7 @@ violation contains make_diag_full("W3687", "WARN", name,
     "Properties.FromPort",
     sprintf("['FromPort', 'ToPort'] are ignored when using 'IpProtocol' value '%s'", [proto]),
     "", "") if {
+    cfn_rule_active("W3687")
     some name, res in input.resources
     res.resourceType == "AWS::EC2::SecurityGroupIngress"
     proto := resolve(name, "Properties.IpProtocol")
@@ -107,6 +114,7 @@ violation contains make_diag_full("W3687", "WARN", name,
     "Properties.FromPort",
     sprintf("['FromPort', 'ToPort'] are ignored when using 'IpProtocol' value '%s'", [proto]),
     "", "") if {
+    cfn_rule_active("W3687")
     some name, res in input.resources
     res.resourceType == "AWS::EC2::SecurityGroupEgress"
     proto := resolve(name, "Properties.IpProtocol")

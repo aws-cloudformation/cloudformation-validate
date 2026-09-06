@@ -66,6 +66,7 @@ _ebs_iops_bounds := {
 violation contains make_diag_at("E3671", "ERROR", name,
     sprintf("%s.%d.Ebs.Iops", [base_path, i]),
     sprintf("'Iops' is a required property when 'VolumeType' has a value of '%s'", [vtype])) if {
+    cfn_rule_active("E3671")
     some rtype, base_path in _ebs_bdm_paths
     some name in resources_of_type(rtype)
     bdms := resolve(name, base_path)
@@ -82,6 +83,7 @@ violation contains make_diag_at("E3671", "ERROR", name,
 violation contains make_diag_at("E3671", "ERROR", name,
     sprintf("%s.%d.Ebs.Iops", [base_path, i]),
     sprintf("%d is less than the minimum of %d", [iops, bounds.min])) if {
+    cfn_rule_active("E3671")
     some rtype, base_path in _ebs_bdm_paths
     some name in resources_of_type(rtype)
     bdms := resolve(name, base_path)
@@ -101,6 +103,7 @@ violation contains make_diag_at("E3671", "ERROR", name,
 violation contains make_diag_at("E3671", "ERROR", name,
     sprintf("%s.%d.Ebs.Iops", [base_path, i]),
     sprintf("%d is greater than the maximum of %d", [iops, bounds.max])) if {
+    cfn_rule_active("E3671")
     some rtype, base_path in _ebs_bdm_paths
     some name in resources_of_type(rtype)
     bdms := resolve(name, base_path)
@@ -122,6 +125,7 @@ violation contains make_diag_at("E3671", "ERROR", name,
 violation contains make_diag_at("E3671", "ERROR", name,
     sprintf("%s.%d.%s.%d.Ebs.Iops", [info.outer_prefix, s, info.middle_segments, i]),
     sprintf("'Iops' is a required property when 'VolumeType' has a value of '%s'", [vtype])) if {
+    cfn_rule_active("E3671")
     some rtype, info in _ebs_double_wildcard
     some name in resources_of_type(rtype)
     specs := resolve(name, info.outer_prefix)
@@ -140,6 +144,7 @@ violation contains make_diag_at("E3671", "ERROR", name,
 violation contains make_diag_at("E3671", "ERROR", name,
     sprintf("%s.%d.%s.%d.Ebs.Iops", [info.outer_prefix, s, info.middle_segments, i]),
     sprintf("%d is less than the minimum of %d", [iops, bounds.min])) if {
+    cfn_rule_active("E3671")
     some rtype, info in _ebs_double_wildcard
     some name in resources_of_type(rtype)
     specs := resolve(name, info.outer_prefix)
@@ -161,6 +166,7 @@ violation contains make_diag_at("E3671", "ERROR", name,
 violation contains make_diag_at("E3671", "ERROR", name,
     sprintf("%s.%d.%s.%d.Ebs.Iops", [info.outer_prefix, s, info.middle_segments, i]),
     sprintf("%d is greater than the maximum of %d", [iops, bounds.max])) if {
+    cfn_rule_active("E3671")
     some rtype, info in _ebs_double_wildcard
     some name in resources_of_type(rtype)
     specs := resolve(name, info.outer_prefix)

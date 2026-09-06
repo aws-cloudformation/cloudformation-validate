@@ -8,6 +8,7 @@ violation contains make_diag_full("E3530", "ERROR", name,
     "'Statement' is a required property",
     "Add a Statement array to the AssumeRolePolicyDocument",
     "") if {
+    cfn_rule_active("E3530")
     some name in resources_of_type("AWS::IAM::Role")
     doc := resolve(name, "Properties.AssumeRolePolicyDocument")
     is_object(doc)
@@ -20,6 +21,7 @@ violation contains make_diag_full("E3530", "ERROR", name,
     "'Effect' is a required property in trust policy statement",
     "Add Effect (Allow or Deny) to the statement",
     "") if {
+    cfn_rule_active("E3530")
     some name in resources_of_type("AWS::IAM::Role")
     doc := resolve(name, "Properties.AssumeRolePolicyDocument")
     is_object(doc)
@@ -35,6 +37,7 @@ violation contains make_diag_full("E3530", "ERROR", name,
     "'Principal' is a required property in trust policy statement",
     "Add Principal to the statement",
     "") if {
+    cfn_rule_active("E3530")
     some name in resources_of_type("AWS::IAM::Role")
     doc := resolve(name, "Properties.AssumeRolePolicyDocument")
     is_object(doc)
@@ -50,6 +53,7 @@ violation contains make_diag_full("E3530", "ERROR", name,
     "'Action' or 'NotAction' is a required property in trust policy statement",
     "Add Action or NotAction to the statement",
     "") if {
+    cfn_rule_active("E3530")
     some name in resources_of_type("AWS::IAM::Role")
     doc := resolve(name, "Properties.AssumeRolePolicyDocument")
     is_object(doc)

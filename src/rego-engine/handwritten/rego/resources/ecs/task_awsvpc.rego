@@ -8,6 +8,7 @@ violation contains make_diag_full("E3053", "ERROR", name,
     sprintf("HostPort %v must equal ContainerPort %v when NetworkMode is awsvpc", [hp, cp]),
     "Set HostPort equal to ContainerPort or remove HostPort",
     "") if {
+    cfn_rule_active("E3053")
     some name in resources_of_type("AWS::ECS::TaskDefinition")
     nm := resolve(name, "Properties.NetworkMode")
     nm == "awsvpc"

@@ -151,8 +151,7 @@ fn build_resources(
                 res.properties.iter().map(|(k, v)| (k.clone(), JsonValue(resolved_value_to_json(v)))).collect();
 
             let outgoing = graph
-                .outgoing(id)
-                .iter()
+                .outgoing_edges(id)
                 .map(|e| {
                     let (kind, attr) = ref_kind_to_str(&e.kind);
                     OutgoingRef {

@@ -12,6 +12,7 @@ violation contains make_diag_full("W2533", "WARN", name,
     sprintf("Properties [%s] missing for zip file deployment at Resources/%s/Properties", [formatted, name]),
     "Add the missing properties for zip file deployment",
     "") if {
+    cfn_rule_active("W2533")
     some name in resources_of_type("AWS::Lambda::Function")
     _is_zip(name)
     missing := [prop |

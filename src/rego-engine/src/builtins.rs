@@ -1,9 +1,11 @@
-use crate::engine::{SharedModel, SharedRegion};
+use crate::eval_context::{current_model, current_region, is_builtin_rule_suppressed};
 use data_source::embedded::GETATT_ATTRIBUTES_BYTES;
 use data_source::types::{ArtifactCountEntry, CodepipelineArtifactCounts, GetattData, SchemaMetadataCatalog};
+use regex::Regex;
 use regorus::Value;
 use schema_validator::OverlayCatalog;
-use std::collections::{BTreeSet, HashMap, HashSet};
+use std::cell::RefCell;
+use std::collections::{BTreeSet, HashMap, HashSet, VecDeque};
 use std::sync::{Arc, OnceLock};
 use template_model::SemanticModel;
 use template_model::coercion::{
@@ -29,65 +31,61 @@ pub(crate) fn serde_json_to_rego_value(v: &serde_json::Value) -> Value {
     json_to_value(v)
 }
 
-fn get_model(holder: &SharedModel) -> Option<Arc<SemanticModel>> {
-    holder.lock().unwrap_or_else(|e| e.into_inner()).clone()
-}
-
 pub(crate) fn register_all(
     rego: &mut regorus::Engine,
-    holder: SharedModel,
-    region_holder: SharedRegion,
     overlay_catalog: &OverlayCatalog,
     schema_metadata: Arc<SchemaMetadataCatalog>,
 ) -> anyhow::Result<()> {
-    register_resolve(rego, holder.clone());
-    register_resolve_preserving_conditionals(rego, holder.clone());
-    register_resolve_all(rego, holder.clone());
-    register_is_dynamic(rego, holder.clone());
-    register_is_from_parameter(rego, holder.clone());
-    register_is_from_intrinsic(rego, holder.clone());
-    register_lifecycle_attribute_status(rego, holder.clone());
-    register_lifecycle_policy_scenarios(rego, holder.clone());
-    register_value_identity(rego, holder.clone());
-    register_follow_ref(rego, holder.clone());
-    register_authored_form(rego, holder.clone());
-    register_resources_of_type(rego, holder.clone());
+    register_cfn_rule_active(rego)?;
+    register_regex_match(rego)?;
+    register_resolve(rego);
+    register_resolve_preserving_conditionals(rego);
+    register_resolve_all(rego);
+    register_is_dynamic(rego);
+    register_is_from_parameter(rego);
+    register_is_from_intrinsic(rego);
+    register_lifecycle_attribute_status(rego);
+    register_lifecycle_policy_scenarios(rego);
+    register_value_identity(rego);
+    register_follow_ref(rego);
+    register_authored_form(rego);
+    register_resources_of_type(rego);
     register_effective_resource_type(rego);
-    register_duplicate_subnet_associations(rego, holder.clone());
-    register_hardcoded_azs(rego, holder.clone());
-    register_ref_targets(rego, holder.clone());
-    register_ref_sources(rego, holder.clone());
-    register_depends_on(rego, holder.clone());
-    register_conditions_compatible(rego, holder.clone());
-    register_condition_implies(rego, holder.clone());
-    register_conjunction_implies(rego, holder.clone());
-    register_resource_condition(rego, holder.clone());
-    register_primary_identifier_conflicts(rego, holder.clone());
-    register_has_property(rego, holder.clone());
-    register_property_can_be_absent(rego, holder.clone());
-    register_param_allowed_values(rego, holder.clone());
-    register_param_type(rego, holder.clone());
-    register_mapping_value(rego, holder.clone());
-    register_has_transform(rego, holder.clone());
-    register_make_diag(rego, holder.clone());
-    register_make_diag_at(rego, holder.clone());
-    register_make_diag_at_source(rego, holder.clone());
-    register_make_diag_full(rego, holder.clone());
-    register_make_diag_related(rego, holder.clone());
-    register_make_diag_conditional(rego, holder.clone());
-    register_resolve_scenarios(rego, holder.clone());
-    register_has_unresolved_scenario(rego, holder.clone());
-    register_scenario_source_path(rego, holder.clone());
-    register_properties_scenarios(rego, holder.clone());
-    register_dynamodb_scenario_analysis(rego, holder.clone());
-    register_is_satisfiable(rego, holder.clone());
-    register_get_resource(rego, holder.clone());
-    register_resolve_ref_target(rego, holder.clone());
+    register_duplicate_subnet_associations(rego);
+    register_hardcoded_azs(rego);
+    register_ref_targets(rego);
+    register_ref_sources(rego);
+    register_depends_on(rego);
+    register_conditions_compatible(rego);
+    register_condition_implies(rego);
+    register_conjunction_implies(rego);
+    register_resource_condition(rego);
+    register_primary_identifier_conflicts(rego);
+    register_has_property(rego);
+    register_property_can_be_absent(rego);
+    register_param_allowed_values(rego);
+    register_param_type(rego);
+    register_mapping_value(rego);
+    register_has_transform(rego);
+    register_make_diag(rego);
+    register_make_diag_at(rego);
+    register_make_diag_at_source(rego);
+    register_make_diag_full(rego);
+    register_make_diag_related(rego);
+    register_make_diag_conditional(rego);
+    register_resolve_scenarios(rego);
+    register_has_unresolved_scenario(rego);
+    register_scenario_source_path(rego);
+    register_properties_scenarios(rego);
+    register_dynamodb_scenario_analysis(rego);
+    register_is_satisfiable(rego);
+    register_get_resource(rego);
+    register_resolve_ref_target(rego);
     register_matching_property_paths(rego);
-    register_flatten_list(rego, holder.clone());
-    register_pipeline_artifacts(rego, holder.clone());
-    register_pipeline_artifact_count_issues(rego, holder.clone())?;
-    register_resolve_type(rego, holder.clone());
+    register_flatten_list(rego);
+    register_pipeline_artifacts(rego);
+    register_pipeline_artifact_count_issues(rego)?;
+    register_resolve_type(rego);
     let getatt_registry: LazyGetattRegistry = build_getatt_registry(overlay_catalog);
     register_schema_properties(rego, schema_metadata.clone());
     register_schema_required(rego, schema_metadata.clone());
@@ -95,18 +93,18 @@ pub(crate) fn register_all(
     register_schema_enum(rego, schema_metadata.clone());
     register_attribute_type(rego, schema_metadata.clone());
     register_getatt_return_type(rego, getatt_registry);
-    register_edges_from(rego, holder.clone());
-    register_edges_to(rego, holder.clone());
+    register_edges_from(rego);
+    register_edges_to(rego);
     register_arn_matches(rego);
     register_arn_matches_format(rego);
     register_ip_overlaps(rego);
     register_ip_subnet_of(rego);
     register_is_valid_cidr_strict(rego);
     register_ensure_list(rego);
-    register_input_region(rego, region_holder.clone());
+    register_input_region(rego);
     register_is_valid_region(rego);
-    register_region_flat_invalid(rego, region_holder.clone());
-    register_region_conditional_invalid(rego, region_holder);
+    register_region_flat_invalid(rego);
+    register_region_conditional_invalid(rego);
     register_render_list(rego);
     register_render_value(rego);
     register_coerce_to_number(rego);
@@ -117,14 +115,100 @@ pub(crate) fn register_all(
     register_fargate_cpu_is_offered(rego);
     register_fargate_task_size_is_offered(rego);
     register_cfn_type_compatible(rego);
-    register_estimated_string_length_bounds(rego, holder.clone());
+    register_estimated_string_length_bounds(rego);
     register_schema_string_length(rego, schema_metadata.clone());
     register_schema_requires_unique_items(rego, schema_metadata);
-    register_unreachable_if_branches(rego, holder.clone());
-    register_iam_identity_policy_findings(rego, holder.clone());
-    register_iam_inline_policy_document_paths(rego, holder.clone());
-    register_iam_policy_has_allow_not_action(rego, holder);
+    register_unreachable_if_branches(rego);
+    register_iam_identity_policy_findings(rego);
+    register_iam_inline_policy_document_paths(rego);
+    register_iam_policy_has_allow_not_action(rego);
     Ok(())
+}
+
+/// The most compiled patterns retained per thread. Overriding `regex.match`
+/// trades bounded memory for skipping recompilation of the fixed patterns the
+/// rules reuse across every resource on every template.
+const REGEX_CACHE_CAPACITY: usize = 256;
+
+thread_local! {
+    static REGEX_CACHE: RefCell<RegexCache> = RefCell::new(RegexCache::new());
+}
+
+/// A bounded per-thread cache of compiled regexes keyed by pattern text. A cached
+/// `None` records a pattern the `regex` crate rejected so an invalid pattern is
+/// compiled at most once; entries are evicted first-in-first-out once full.
+struct RegexCache {
+    compiled: HashMap<Box<str>, Option<Regex>>,
+    insertion_order: VecDeque<Box<str>>,
+}
+
+impl RegexCache {
+    fn new() -> Self {
+        Self { compiled: HashMap::new(), insertion_order: VecDeque::new() }
+    }
+
+    /// Whether `pattern` matches anywhere in `haystack`, or `None` when `pattern`
+    /// is not a valid regular expression.
+    fn is_match(&mut self, pattern: &str, haystack: &str) -> Option<bool> {
+        if let Some(cached) = self.compiled.get(pattern) {
+            return cached.as_ref().map(|regex| regex.is_match(haystack));
+        }
+        let compiled = Regex::new(pattern).ok();
+        let outcome = compiled.as_ref().map(|regex| regex.is_match(haystack));
+        self.remember(pattern, compiled);
+        outcome
+    }
+
+    fn remember(&mut self, pattern: &str, compiled: Option<Regex>) {
+        if self.insertion_order.len() >= REGEX_CACHE_CAPACITY
+            && let Some(evicted) = self.insertion_order.pop_front()
+        {
+            self.compiled.remove(&evicted);
+        }
+        let key: Box<str> = Box::from(pattern);
+        self.insertion_order.push_back(key.clone());
+        self.compiled.insert(key, compiled);
+    }
+}
+
+/// Transparently overrides Regorus's built-in `regex.match(pattern, value)` with
+/// an implementation backed by the `regex` crate and a bounded per-thread cache
+/// of compiled patterns. Regorus resolves extensions before built-ins, so this
+/// takes over every `regex.match` call. Behaviour matches the built-in under this
+/// engine's non-strict builtin-error mode: a valid pattern yields the boolean
+/// result of an unanchored search, while a non-string argument or a pattern the
+/// `regex` crate rejects yields `undefined` rather than aborting the evaluation.
+fn register_regex_match(rego: &mut regorus::Engine) -> anyhow::Result<()> {
+    rego.add_extension(
+        "regex.match".into(),
+        2,
+        Box::new(|params: Vec<Value>| {
+            let (Ok(pattern), Ok(value)) = (params[0].as_string(), params[1].as_string()) else {
+                return Ok(Value::Undefined);
+            };
+            let matched = REGEX_CACHE.with(|cache| cache.borrow_mut().is_match(pattern.as_ref(), value.as_ref()));
+            Ok(matched.map_or(Value::Undefined, Value::from))
+        }),
+    )
+}
+
+/// Registers `cfn_rule_active(rule_id)`, which returns `true` unless global
+/// filtering has already proven that no diagnostic from `rule_id` can survive.
+/// Placed first in every built-in violation clause so a globally suppressed rule
+/// stops before doing any work.
+fn register_cfn_rule_active(rego: &mut regorus::Engine) -> anyhow::Result<()> {
+    rego.add_extension(
+        "cfn_rule_active".into(),
+        1,
+        Box::new(|params: Vec<Value>| {
+            let Ok(rule_id) = params[0].as_string() else {
+                // A non-string argument cannot name a suppressed rule, so treat it
+                // as active rather than aborting the evaluation.
+                return Ok(Value::Bool(true));
+            };
+            Ok(Value::Bool(!is_builtin_rule_suppressed(rule_id.as_ref())))
+        }),
+    )
 }
 
 fn resolved_to_rego(rv: &ResolvedValue) -> Value {
@@ -279,12 +363,12 @@ fn contains_dynamic(rv: &ResolvedValue) -> bool {
         ResolvedValue::Concrete { value: v } => json_contains_markers(v),
     }
 }
-fn register_resolve(rego: &mut regorus::Engine, holder: SharedModel) {
+fn register_resolve(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "resolve".into(),
         2,
         Box::new(move |params: Vec<Value>| {
-            let Some(model) = get_model(&holder) else {
+            let Some(model) = current_model() else {
                 return Ok(Value::Undefined);
             };
             let rid = params[0].as_string()?;
@@ -310,12 +394,12 @@ fn register_resolve(rego: &mut regorus::Engine, holder: SharedModel) {
 /// `resolve_preserving_conditionals(rid, path)`: like `resolve`, but keeps every
 /// `Fn::If` as `{"Fn::If": [condition, then, else]}` rather than collapsing to the
 /// true branch, so a rule can consider every branch of a conditional value.
-fn register_resolve_preserving_conditionals(rego: &mut regorus::Engine, holder: SharedModel) {
+fn register_resolve_preserving_conditionals(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "resolve_preserving_conditionals".into(),
         2,
         Box::new(move |params: Vec<Value>| {
-            let Some(model) = get_model(&holder) else {
+            let Some(model) = current_model() else {
                 return Ok(Value::Undefined);
             };
             let rid = params[0].as_string()?;
@@ -334,12 +418,12 @@ fn register_resolve_preserving_conditionals(rego: &mut regorus::Engine, holder: 
     );
 }
 
-fn register_resolve_all(rego: &mut regorus::Engine, holder: SharedModel) {
+fn register_resolve_all(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "resolve_all".into(),
         2,
         Box::new(move |params: Vec<Value>| {
-            let Some(model) = get_model(&holder) else {
+            let Some(model) = current_model() else {
                 return Ok(Value::Undefined);
             };
             let rid = params[0].as_string()?;
@@ -363,12 +447,12 @@ fn register_resolve_all(rego: &mut regorus::Engine, holder: SharedModel) {
     );
 }
 
-fn register_is_dynamic(rego: &mut regorus::Engine, holder: SharedModel) {
+fn register_is_dynamic(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "is_dynamic".into(),
         2,
         Box::new(move |params: Vec<Value>| {
-            let Some(model) = get_model(&holder) else {
+            let Some(model) = current_model() else {
                 return Ok(Value::Undefined);
             };
             let rid = params[0].as_string()?;
@@ -384,12 +468,12 @@ fn register_is_dynamic(rego: &mut regorus::Engine, holder: SharedModel) {
     );
 }
 
-fn register_is_from_parameter(rego: &mut regorus::Engine, holder: SharedModel) {
+fn register_is_from_parameter(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "is_from_parameter".into(),
         2,
         Box::new(move |params: Vec<Value>| {
-            let Some(model) = get_model(&holder) else {
+            let Some(model) = current_model() else {
                 return Ok(Value::Undefined);
             };
             let rid = params[0].as_string()?;
@@ -399,12 +483,12 @@ fn register_is_from_parameter(rego: &mut regorus::Engine, holder: SharedModel) {
     );
 }
 
-fn register_is_from_intrinsic(rego: &mut regorus::Engine, holder: SharedModel) {
+fn register_is_from_intrinsic(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "is_from_intrinsic".into(),
         2,
         Box::new(move |params: Vec<Value>| {
-            let Some(model) = get_model(&holder) else {
+            let Some(model) = current_model() else {
                 return Ok(Value::Undefined);
             };
             let rid = params[0].as_string()?;
@@ -414,12 +498,12 @@ fn register_is_from_intrinsic(rego: &mut regorus::Engine, holder: SharedModel) {
     );
 }
 
-fn register_lifecycle_attribute_status(rego: &mut regorus::Engine, holder: SharedModel) {
+fn register_lifecycle_attribute_status(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "lifecycle_attribute_status".into(),
         2,
         Box::new(move |params: Vec<Value>| {
-            let Some(model) = get_model(&holder) else {
+            let Some(model) = current_model() else {
                 return Ok(Value::Undefined);
             };
             let resource_id = params[0].as_string()?;
@@ -433,12 +517,12 @@ fn register_lifecycle_attribute_status(rego: &mut regorus::Engine, holder: Share
     );
 }
 
-fn register_lifecycle_policy_scenarios(rego: &mut regorus::Engine, holder: SharedModel) {
+fn register_lifecycle_policy_scenarios(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "lifecycle_policy_scenarios".into(),
         2,
         Box::new(move |params: Vec<Value>| {
-            let Some(model) = get_model(&holder) else {
+            let Some(model) = current_model() else {
                 return Ok(Value::Undefined);
             };
             let resource_id = params[0].as_string()?;
@@ -453,12 +537,12 @@ fn register_lifecycle_policy_scenarios(rego: &mut regorus::Engine, holder: Share
 /// Undefined when nothing about the value at `path` settles whether it is the
 /// same value as another, so a caller comparing keys cannot conclude anything
 /// from a missing one.
-fn register_value_identity(rego: &mut regorus::Engine, holder: SharedModel) {
+fn register_value_identity(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "value_identity".into(),
         2,
         Box::new(move |params: Vec<Value>| {
-            let Some(model) = get_model(&holder) else {
+            let Some(model) = current_model() else {
                 return Ok(Value::Undefined);
             };
             let rid = params[0].as_string()?;
@@ -471,12 +555,12 @@ fn register_value_identity(rego: &mut regorus::Engine, holder: SharedModel) {
     );
 }
 
-fn register_resolve_scenarios(rego: &mut regorus::Engine, holder: SharedModel) {
+fn register_resolve_scenarios(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "resolve_scenarios".into(),
         2,
         Box::new(move |params: Vec<Value>| {
-            let Some(model) = get_model(&holder) else {
+            let Some(model) = current_model() else {
                 return Ok(Value::Undefined);
             };
             let rid = params[0].as_string()?;
@@ -529,12 +613,12 @@ fn register_resolve_scenarios(rego: &mut regorus::Engine, holder: SharedModel) {
     );
 }
 
-fn register_has_unresolved_scenario(rego: &mut regorus::Engine, holder: SharedModel) {
+fn register_has_unresolved_scenario(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "has_unresolved_scenario".into(),
         2,
         Box::new(move |params: Vec<Value>| {
-            let Some(model) = get_model(&holder) else {
+            let Some(model) = current_model() else {
                 return Ok(Value::from(true));
             };
             let resource_id = params[0].as_string()?;
@@ -545,12 +629,12 @@ fn register_has_unresolved_scenario(rego: &mut regorus::Engine, holder: SharedMo
     );
 }
 
-fn register_scenario_source_path(rego: &mut regorus::Engine, holder: SharedModel) {
+fn register_scenario_source_path(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "scenario_source_path".into(),
         3,
         Box::new(move |params: Vec<Value>| {
-            let Some(model) = get_model(&holder) else {
+            let Some(model) = current_model() else {
                 return Ok(Value::Undefined);
             };
             let resource_id = params[0].as_string()?;
@@ -605,12 +689,12 @@ fn project_selected_properties(
     projected
 }
 
-fn register_properties_scenarios(rego: &mut regorus::Engine, holder: SharedModel) {
+fn register_properties_scenarios(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "properties_scenarios".into(),
         2,
         Box::new(move |params: Vec<Value>| {
-            let Some(model) = get_model(&holder) else {
+            let Some(model) = current_model() else {
                 return Ok(Value::Undefined);
             };
             let rid = params[0].as_string()?;
@@ -636,12 +720,12 @@ fn register_properties_scenarios(rego: &mut regorus::Engine, holder: SharedModel
     );
 }
 
-fn register_dynamodb_scenario_analysis(rego: &mut regorus::Engine, holder: SharedModel) {
+fn register_dynamodb_scenario_analysis(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "dynamodb_scenario_analysis".into(),
         1,
         Box::new(move |params: Vec<Value>| {
-            let Some(model) = get_model(&holder) else {
+            let Some(model) = current_model() else {
                 return Ok(Value::Undefined);
             };
             let resource_id = params[0].as_string()?;
@@ -665,12 +749,12 @@ fn register_dynamodb_scenario_analysis(rego: &mut regorus::Engine, holder: Share
     );
 }
 
-fn register_is_satisfiable(rego: &mut regorus::Engine, holder: SharedModel) {
+fn register_is_satisfiable(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "is_satisfiable".into(),
         1,
         Box::new(move |params: Vec<Value>| {
-            let Some(model) = get_model(&holder) else {
+            let Some(model) = current_model() else {
                 return Ok(Value::Undefined);
             };
             let conds_str = params[0].to_json_str()?;
@@ -686,12 +770,12 @@ fn register_is_satisfiable(rego: &mut regorus::Engine, holder: SharedModel) {
         }),
     );
 }
-fn register_follow_ref(rego: &mut regorus::Engine, holder: SharedModel) {
+fn register_follow_ref(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "follow_ref".into(),
         2,
         Box::new(move |params: Vec<Value>| {
-            let Some(model) = get_model(&holder) else {
+            let Some(model) = current_model() else {
                 return Ok(Value::Undefined);
             };
             let rid = params[0].as_string()?;
@@ -707,12 +791,12 @@ fn register_follow_ref(rego: &mut regorus::Engine, holder: SharedModel) {
 /// value. A `Ref`/`GetAtt` to a parameter resolves to a dynamic value rather than
 /// a reference, so the reference graph is consulted to recover the authored form.
 /// Returns undefined when the property is absent or is an opaque function.
-fn register_authored_form(rego: &mut regorus::Engine, holder: SharedModel) {
+fn register_authored_form(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "authored_form".into(),
         2,
         Box::new(move |params: Vec<Value>| {
-            let Some(model) = get_model(&holder) else {
+            let Some(model) = current_model() else {
                 return Ok(Value::Undefined);
             };
             let rid = params[0].as_string()?;
@@ -760,12 +844,12 @@ fn register_effective_resource_type(rego: &mut regorus::Engine) {
     );
 }
 
-fn register_duplicate_subnet_associations(rego: &mut regorus::Engine, holder: SharedModel) {
+fn register_duplicate_subnet_associations(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "duplicate_subnet_route_table_associations".into(),
         0,
         Box::new(move |_params: Vec<Value>| {
-            let Some(model) = get_model(&holder) else {
+            let Some(model) = current_model() else {
                 return Ok(Value::from(Vec::<Value>::new()));
             };
             let findings: Vec<Value> = template_model::route_table::duplicate_subnet_associations(&model)
@@ -782,12 +866,12 @@ fn register_duplicate_subnet_associations(rego: &mut regorus::Engine, holder: Sh
     );
 }
 
-fn register_resources_of_type(rego: &mut regorus::Engine, holder: SharedModel) {
+fn register_resources_of_type(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "resources_of_type".into(),
         1,
         Box::new(move |params: Vec<Value>| {
-            let Some(model) = get_model(&holder) else {
+            let Some(model) = current_model() else {
                 return Ok(Value::Undefined);
             };
             let type_name = params[0].as_string()?;
@@ -802,12 +886,12 @@ fn register_resources_of_type(rego: &mut regorus::Engine, holder: SharedModel) {
 /// availability zones found on a resource, as an array of `{"path": ...,
 /// "zone": ...}` objects. The paths inspected, the AZ pattern, and the traversal
 /// all come from the shared `template_model::hardcoded_az` module.
-fn register_hardcoded_azs(rego: &mut regorus::Engine, holder: SharedModel) {
+fn register_hardcoded_azs(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "hardcoded_azs".into(),
         2,
         Box::new(move |params: Vec<Value>| {
-            let Some(model) = get_model(&holder) else {
+            let Some(model) = current_model() else {
                 return Ok(Value::Undefined);
             };
             let resource_id = params[0].as_string()?;
@@ -827,12 +911,12 @@ fn register_hardcoded_azs(rego: &mut regorus::Engine, holder: SharedModel) {
     );
 }
 
-fn register_ref_targets(rego: &mut regorus::Engine, holder: SharedModel) {
+fn register_ref_targets(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "ref_targets".into(),
         1,
         Box::new(move |params: Vec<Value>| {
-            let Some(model) = get_model(&holder) else {
+            let Some(model) = current_model() else {
                 return Ok(Value::Undefined);
             };
             let rid = params[0].as_string()?;
@@ -842,12 +926,12 @@ fn register_ref_targets(rego: &mut regorus::Engine, holder: SharedModel) {
     );
 }
 
-fn register_ref_sources(rego: &mut regorus::Engine, holder: SharedModel) {
+fn register_ref_sources(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "ref_sources".into(),
         1,
         Box::new(move |params: Vec<Value>| {
-            let Some(model) = get_model(&holder) else {
+            let Some(model) = current_model() else {
                 return Ok(Value::Undefined);
             };
             let rid = params[0].as_string()?;
@@ -857,12 +941,12 @@ fn register_ref_sources(rego: &mut regorus::Engine, holder: SharedModel) {
     );
 }
 
-fn register_depends_on(rego: &mut regorus::Engine, holder: SharedModel) {
+fn register_depends_on(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "depends_on".into(),
         2,
         Box::new(move |params: Vec<Value>| {
-            let Some(model) = get_model(&holder) else {
+            let Some(model) = current_model() else {
                 return Ok(Value::Undefined);
             };
             let source_id = params[0].as_string()?;
@@ -871,12 +955,12 @@ fn register_depends_on(rego: &mut regorus::Engine, holder: SharedModel) {
         }),
     );
 }
-fn register_conditions_compatible(rego: &mut regorus::Engine, holder: SharedModel) {
+fn register_conditions_compatible(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "conditions_compatible".into(),
         2,
         Box::new(move |params: Vec<Value>| {
-            let Some(model) = get_model(&holder) else {
+            let Some(model) = current_model() else {
                 return Ok(Value::Undefined);
             };
             let resource_a = params[0].as_string()?;
@@ -888,12 +972,12 @@ fn register_conditions_compatible(rego: &mut regorus::Engine, holder: SharedMode
     );
 }
 
-fn register_condition_implies(rego: &mut regorus::Engine, holder: SharedModel) {
+fn register_condition_implies(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "condition_implies".into(),
         2,
         Box::new(move |params: Vec<Value>| {
-            let Some(model) = get_model(&holder) else {
+            let Some(model) = current_model() else {
                 return Ok(Value::Undefined);
             };
             if params[0] == Value::Null {
@@ -911,12 +995,12 @@ fn register_condition_implies(rego: &mut regorus::Engine, holder: SharedModel) {
 
 /// Returns true iff `[guard1=T, guard2=T, target=F]` is unsatisfiable.
 /// A Null guard is treated as "no constraint" (equivalent to `true`).
-fn register_conjunction_implies(rego: &mut regorus::Engine, holder: SharedModel) {
+fn register_conjunction_implies(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "conjunction_implies".into(),
         3,
         Box::new(move |params: Vec<Value>| {
-            let Some(model) = get_model(&holder) else {
+            let Some(model) = current_model() else {
                 return Ok(Value::Undefined);
             };
             if params[2] == Value::Null {
@@ -937,12 +1021,12 @@ fn register_conjunction_implies(rego: &mut regorus::Engine, holder: SharedModel)
     );
 }
 
-fn register_resource_condition(rego: &mut regorus::Engine, holder: SharedModel) {
+fn register_resource_condition(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "resource_condition".into(),
         1,
         Box::new(move |params: Vec<Value>| {
-            let Some(model) = get_model(&holder) else {
+            let Some(model) = current_model() else {
                 return Ok(Value::Undefined);
             };
             let rid = params[0].as_string()?;
@@ -955,12 +1039,12 @@ fn register_resource_condition(rego: &mut regorus::Engine, holder: SharedModel) 
         }),
     );
 }
-fn register_primary_identifier_conflicts(rego: &mut regorus::Engine, holder: SharedModel) {
+fn register_primary_identifier_conflicts(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "primary_identifier_conflicts".into(),
         2,
         Box::new(move |params: Vec<Value>| {
-            let Some(model) = get_model(&holder) else {
+            let Some(model) = current_model() else {
                 return Ok(Value::from(Vec::<Value>::new()));
             };
             let resource_type = params[0].as_string()?;
@@ -984,12 +1068,12 @@ fn register_primary_identifier_conflicts(rego: &mut regorus::Engine, holder: Sha
     );
 }
 
-fn register_has_property(rego: &mut regorus::Engine, holder: SharedModel) {
+fn register_has_property(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "has_property".into(),
         2,
         Box::new(move |params: Vec<Value>| {
-            let Some(model) = get_model(&holder) else {
+            let Some(model) = current_model() else {
                 return Ok(Value::Undefined);
             };
             let rid = params[0].as_string()?;
@@ -1001,12 +1085,12 @@ fn register_has_property(rego: &mut regorus::Engine, holder: SharedModel) {
     );
 }
 
-fn register_param_allowed_values(rego: &mut regorus::Engine, holder: SharedModel) {
+fn register_param_allowed_values(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "param_allowed_values".into(),
         1,
         Box::new(move |params: Vec<Value>| {
-            let Some(model) = get_model(&holder) else {
+            let Some(model) = current_model() else {
                 return Ok(Value::Undefined);
             };
             let name = params[0].as_string()?;
@@ -1021,12 +1105,12 @@ fn register_param_allowed_values(rego: &mut regorus::Engine, holder: SharedModel
     );
 }
 
-fn register_param_type(rego: &mut regorus::Engine, holder: SharedModel) {
+fn register_param_type(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "param_type".into(),
         1,
         Box::new(move |params: Vec<Value>| {
-            let Some(model) = get_model(&holder) else {
+            let Some(model) = current_model() else {
                 return Ok(Value::Undefined);
             };
             let name = params[0].as_string()?;
@@ -1039,12 +1123,12 @@ fn register_param_type(rego: &mut regorus::Engine, holder: SharedModel) {
     );
 }
 
-fn register_mapping_value(rego: &mut regorus::Engine, holder: SharedModel) {
+fn register_mapping_value(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "mapping_value".into(),
         3,
         Box::new(move |params: Vec<Value>| {
-            let Some(model) = get_model(&holder) else {
+            let Some(model) = current_model() else {
                 return Ok(Value::Undefined);
             };
             let map_name = params[0].as_string()?;
@@ -1060,12 +1144,12 @@ fn register_mapping_value(rego: &mut regorus::Engine, holder: SharedModel) {
     );
 }
 
-fn register_has_transform(rego: &mut regorus::Engine, holder: SharedModel) {
+fn register_has_transform(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "has_transform".into(),
         1,
         Box::new(move |params: Vec<Value>| {
-            let Some(model) = get_model(&holder) else {
+            let Some(model) = current_model() else {
                 return Ok(Value::Undefined);
             };
             let name = params[0].as_string()?;
@@ -1073,12 +1157,12 @@ fn register_has_transform(rego: &mut regorus::Engine, holder: SharedModel) {
         }),
     );
 }
-fn register_get_resource(rego: &mut regorus::Engine, holder: SharedModel) {
+fn register_get_resource(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "get_resource".into(),
         1,
         Box::new(move |params: Vec<Value>| {
-            let Some(model) = get_model(&holder) else {
+            let Some(model) = current_model() else {
                 return Ok(Value::Undefined);
             };
             let rid = params[0].as_string()?;
@@ -1101,12 +1185,12 @@ fn register_get_resource(rego: &mut regorus::Engine, holder: SharedModel) {
     );
 }
 
-fn register_resolve_ref_target(rego: &mut regorus::Engine, holder: SharedModel) {
+fn register_resolve_ref_target(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "resolve_ref_target".into(),
         2,
         Box::new(move |params: Vec<Value>| {
-            let Some(model) = get_model(&holder) else {
+            let Some(model) = current_model() else {
                 return Ok(Value::Undefined);
             };
             let rid = params[0].as_string()?;
@@ -1187,12 +1271,12 @@ fn register_matching_property_paths(rego: &mut regorus::Engine) {
     );
 }
 
-fn register_flatten_list(rego: &mut regorus::Engine, holder: SharedModel) {
+fn register_flatten_list(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "flatten_list".into(),
         2,
         Box::new(move |params: Vec<Value>| {
-            let Some(model) = get_model(&holder) else {
+            let Some(model) = current_model() else {
                 return Ok(Value::Undefined);
             };
             let rid = params[0].as_string()?;
@@ -1421,12 +1505,12 @@ fn register_render_value(rego: &mut regorus::Engine) {
 /// to `AWS::NoValue`/null in at least one satisfiable `Fn::If` branch. Rules that
 /// require a property to always be present (e.g. retention periods) use this so
 /// an `Fn::If [cond, X, AWS::NoValue]` is correctly treated as possibly-absent.
-fn register_property_can_be_absent(rego: &mut regorus::Engine, holder: SharedModel) {
+fn register_property_can_be_absent(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "property_can_be_absent".into(),
         2,
         Box::new(move |params: Vec<Value>| {
-            let Some(model) = get_model(&holder) else {
+            let Some(model) = current_model() else {
                 return Ok(Value::from(false));
             };
             let rid = params[0].as_string()?;
@@ -1466,12 +1550,12 @@ fn register_is_valid_region(rego: &mut regorus::Engine) {
 /// none is configured (`input_region()` is null) - a value is flagged only when it
 /// is invalid in every region. The message text is produced by the shared
 /// `region_enums` helper.
-fn register_region_flat_invalid(rego: &mut regorus::Engine, holder: SharedRegion) {
+fn register_region_flat_invalid(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "region_flat_invalid".into(),
         2,
         Box::new(move |params: Vec<Value>| {
-            let region = holder.lock().unwrap_or_else(|e| e.into_inner()).clone();
+            let region = current_region();
             let region_map = rego_to_json(&params[0]);
             let value = params[1].as_string()?;
             let Some(map) = region_map.as_object() else {
@@ -1494,12 +1578,12 @@ fn register_region_flat_invalid(rego: &mut regorus::Engine, holder: SharedRegion
 /// is the resource's resolved scalar properties (Engine, LicenseModel) the branch
 /// consts key on. Region scoping and message text come from the shared
 /// `region_enums` helper.
-fn register_region_conditional_invalid(rego: &mut regorus::Engine, holder: SharedRegion) {
+fn register_region_conditional_invalid(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "region_conditional_invalid".into(),
         5,
         Box::new(move |params: Vec<Value>| {
-            let region = holder.lock().unwrap_or_else(|e| e.into_inner()).clone();
+            let region = current_region();
             let region_map = rego_to_json(&params[0]);
             let target_prop = params[1].as_string()?;
             let normalize_engine_case = matches!(&params[2], Value::Bool(b) if *b);
@@ -1646,20 +1730,20 @@ fn register_cfn_type_compatible(rego: &mut regorus::Engine) {
     );
 }
 
-fn register_input_region(rego: &mut regorus::Engine, holder: SharedRegion) {
+fn register_input_region(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "input_region".into(),
         0,
-        Box::new(move |_: Vec<Value>| match holder.lock().unwrap_or_else(|e| e.into_inner()).as_ref() {
+        Box::new(|_: Vec<Value>| match current_region() {
             Some(r) => Ok(Value::from(r.as_str())),
             None => Ok(Value::Null),
         }),
     );
 }
 
-fn register_pipeline_artifacts(rego: &mut regorus::Engine, holder: SharedModel) {
+fn register_pipeline_artifacts(rego: &mut regorus::Engine) {
     let _ = rego.add_extension("pipeline_artifacts".into(), 1, Box::new(move |params: Vec<Value>| {
-        let Some(model) = get_model(&holder) else { return Ok(Value::Undefined); };
+        let Some(model) = current_model() else { return Ok(Value::Undefined); };
         let rid = params[0].as_string()?;
         let resource = match model.resources.get(rid.as_ref()) {
             Some(r) => r,
@@ -1735,7 +1819,7 @@ fn rego_artifact_count_scenarios(value: Option<&serde_json::Value>) -> Vec<usize
 /// Returns the E3702 artifact-count violation messages for a pipeline, keyed by
 /// the Owner/Category/Provider tuple. Resolves Stages preserving `Fn::If` so an
 /// artifact list authored behind a condition has EVERY branch's count checked
-fn register_pipeline_artifact_count_issues(rego: &mut regorus::Engine, holder: SharedModel) -> anyhow::Result<()> {
+fn register_pipeline_artifact_count_issues(rego: &mut regorus::Engine) -> anyhow::Result<()> {
     let document: CodepipelineArtifactCounts =
         serde_json::from_slice(&data_source::embedded::CODEPIPELINE_ACTION_ARTIFACT_COUNTS_BYTES).map_err(|error| {
             anyhow::anyhow!("Failed to parse embedded codepipeline_action_artifact_counts data: {}", error)
@@ -1746,7 +1830,7 @@ fn register_pipeline_artifact_count_issues(rego: &mut regorus::Engine, holder: S
         "pipeline_artifact_count_issues".into(),
         1,
         Box::new(move |params: Vec<Value>| {
-            let Some(model) = get_model(&holder) else {
+            let Some(model) = current_model() else {
                 return Ok(Value::Undefined);
             };
             let rid = params[0].as_string()?;
@@ -1819,12 +1903,12 @@ fn pipeline_artifact_count_issues(
     issues
 }
 
-fn register_resolve_type(rego: &mut regorus::Engine, holder: SharedModel) {
+fn register_resolve_type(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "resolve_type".into(),
         2,
         Box::new(move |params: Vec<Value>| {
-            let Some(model) = get_model(&holder) else {
+            let Some(model) = current_model() else {
                 return Ok(Value::Undefined);
             };
             let rid = params[0].as_string()?;
@@ -1977,12 +2061,12 @@ fn register_getatt_return_type(rego: &mut regorus::Engine, registry: LazyGetattR
         }),
     );
 }
-fn register_edges_from(rego: &mut regorus::Engine, holder: SharedModel) {
+fn register_edges_from(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "edges_from".into(),
         1,
         Box::new(move |params: Vec<Value>| {
-            let Some(model) = get_model(&holder) else {
+            let Some(model) = current_model() else {
                 return Ok(Value::Undefined);
             };
             let rid = params[0].as_string()?;
@@ -2006,12 +2090,12 @@ fn register_edges_from(rego: &mut regorus::Engine, holder: SharedModel) {
     );
 }
 
-fn register_edges_to(rego: &mut regorus::Engine, holder: SharedModel) {
+fn register_edges_to(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "edges_to".into(),
         1,
         Box::new(move |params: Vec<Value>| {
-            let Some(model) = get_model(&holder) else {
+            let Some(model) = current_model() else {
                 return Ok(Value::Undefined);
             };
             let rid = params[0].as_string()?;
@@ -2034,12 +2118,12 @@ fn register_edges_to(rego: &mut regorus::Engine, holder: SharedModel) {
         }),
     );
 }
-fn register_make_diag(rego: &mut regorus::Engine, holder: SharedModel) {
+fn register_make_diag(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "make_diag".into(),
         4,
         Box::new(move |params: Vec<Value>| {
-            let Some(model) = get_model(&holder) else {
+            let Some(model) = current_model() else {
                 return Ok(Value::Undefined);
             };
             let rule_id = params[0].as_string()?;
@@ -2064,12 +2148,12 @@ fn register_make_diag(rego: &mut regorus::Engine, holder: SharedModel) {
     );
 }
 
-fn register_make_diag_at(rego: &mut regorus::Engine, holder: SharedModel) {
+fn register_make_diag_at(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "make_diag_at".into(),
         5,
         Box::new(move |params: Vec<Value>| {
-            let Some(model) = get_model(&holder) else {
+            let Some(model) = current_model() else {
                 return Ok(Value::Undefined);
             };
             let rule_id = params[0].as_string()?;
@@ -2099,12 +2183,12 @@ fn resolve_span(model: &SemanticModel, resource_id: &str, prop_path: &str) -> So
     model.resource_span(resource_id, prop_path)
 }
 
-fn register_make_diag_at_source(rego: &mut regorus::Engine, holder: SharedModel) {
+fn register_make_diag_at_source(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "make_diag_at_source".into(),
         6,
         Box::new(move |params: Vec<Value>| {
-            let Some(model) = get_model(&holder) else {
+            let Some(model) = current_model() else {
                 return Ok(Value::Undefined);
             };
             let rule_id = params[0].as_string()?;
@@ -2132,12 +2216,12 @@ fn register_make_diag_at_source(rego: &mut regorus::Engine, holder: SharedModel)
     );
 }
 
-fn register_make_diag_full(rego: &mut regorus::Engine, holder: SharedModel) {
+fn register_make_diag_full(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "make_diag_full".into(),
         7,
         Box::new(move |params: Vec<Value>| {
-            let Some(model) = get_model(&holder) else {
+            let Some(model) = current_model() else {
                 return Ok(Value::Undefined);
             };
             let rule_id = params[0].as_string()?;
@@ -2173,9 +2257,9 @@ fn register_make_diag_full(rego: &mut regorus::Engine, holder: SharedModel) {
     );
 }
 
-fn register_make_diag_related(rego: &mut regorus::Engine, holder: SharedModel) {
+fn register_make_diag_related(rego: &mut regorus::Engine) {
     let _ = rego.add_extension("make_diag_related".into(), 6, Box::new(move |params: Vec<Value>| {
-        let Some(model) = get_model(&holder) else { return Ok(Value::Undefined); };
+        let Some(model) = current_model() else { return Ok(Value::Undefined); };
         let rule_id = params[0].as_string()?;
         let severity = params[1].as_string()?;
         let resource_id = params[2].as_string()?;
@@ -2211,12 +2295,12 @@ fn register_make_diag_related(rego: &mut regorus::Engine, holder: SharedModel) {
     }));
 }
 
-fn register_make_diag_conditional(rego: &mut regorus::Engine, holder: SharedModel) {
+fn register_make_diag_conditional(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "make_diag_conditional".into(),
         6,
         Box::new(move |params: Vec<Value>| {
-            let Some(model) = get_model(&holder) else {
+            let Some(model) = current_model() else {
                 return Ok(Value::Undefined);
             };
             let rule_id = params[0].as_string()?;
@@ -2249,12 +2333,12 @@ fn register_make_diag_conditional(rego: &mut regorus::Engine, holder: SharedMode
 /// `estimated_string_length_bounds(resource, path) -> {"shortest": n, "longest": n}`
 /// Returns undefined when the length cannot be pinned for every possibility, or when the
 /// template states the value literally.
-fn register_estimated_string_length_bounds(rego: &mut regorus::Engine, holder: SharedModel) {
+fn register_estimated_string_length_bounds(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "estimated_string_length_bounds".into(),
         2,
         Box::new(move |params: Vec<Value>| {
-            let Some(model) = get_model(&holder) else {
+            let Some(model) = current_model() else {
                 return Ok(Value::Undefined);
             };
             let rid = params[0].as_string()?;
@@ -2323,12 +2407,12 @@ fn register_schema_requires_unique_items(rego: &mut regorus::Engine, catalog: Ar
     );
 }
 
-fn register_unreachable_if_branches(rego: &mut regorus::Engine, holder: SharedModel) {
+fn register_unreachable_if_branches(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "unreachable_if_branches".into(),
         1,
         Box::new(move |params: Vec<Value>| {
-            let Some(model) = get_model(&holder) else {
+            let Some(model) = current_model() else {
                 return Ok(Value::from(Vec::<Value>::new()));
             };
             let rid = params[0].as_string()?;
@@ -2511,12 +2595,12 @@ fn collect_unreachable_branches(
 /// identity-policy structural validator and returns an array of finding objects,
 /// each with `path` (effective/public path), `sourcePath` (authored
 /// branch-qualified path for diagnostic construction), and `message`.
-fn register_iam_identity_policy_findings(rego: &mut regorus::Engine, holder: SharedModel) {
+fn register_iam_identity_policy_findings(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "iam_identity_policy_findings".into(),
         2,
         Box::new(move |params: Vec<Value>| {
-            let Some(model) = get_model(&holder) else {
+            let Some(model) = current_model() else {
                 return Ok(Value::from(Vec::<Value>::new()));
             };
             let resource_id = params[0].as_string()?;
@@ -2546,12 +2630,12 @@ fn register_iam_identity_policy_findings(rego: &mut regorus::Engine, holder: Sha
 /// `iam_inline_policy_document_paths(resource_id, policies_path)` returns the
 /// sorted list of reachable `PolicyDocument` paths for inline policies under a
 /// potentially conditional `Properties.Policies` list.
-fn register_iam_inline_policy_document_paths(rego: &mut regorus::Engine, holder: SharedModel) {
+fn register_iam_inline_policy_document_paths(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "iam_inline_policy_document_paths".into(),
         2,
         Box::new(move |params: Vec<Value>| {
-            let Some(model) = get_model(&holder) else {
+            let Some(model) = current_model() else {
                 return Ok(Value::from(Vec::<Value>::new()));
             };
             let resource_id = params[0].as_string()?;
@@ -2565,12 +2649,12 @@ fn register_iam_inline_policy_document_paths(rego: &mut regorus::Engine, holder:
 /// `iam_policy_has_allow_not_action(resource_id, document_path)` returns true
 /// when any reachable scenario of the document contains an Allow statement
 /// with a non-null NotAction. Handles single-object and array Statement forms.
-fn register_iam_policy_has_allow_not_action(rego: &mut regorus::Engine, holder: SharedModel) {
+fn register_iam_policy_has_allow_not_action(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "iam_policy_has_allow_not_action".into(),
         2,
         Box::new(move |params: Vec<Value>| {
-            let Some(model) = get_model(&holder) else {
+            let Some(model) = current_model() else {
                 return Ok(Value::from(false));
             };
             let resource_id = params[0].as_string()?;
@@ -2584,7 +2668,6 @@ fn register_iam_policy_has_allow_not_action(rego: &mut regorus::Engine, holder: 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::Mutex;
     use template_model::resolver::{MapEntry, RefKind, ResolvedValue};
     use template_model::{MARKER_DYNAMIC, MARKER_PARAM_TYPE, MARKER_REF};
 
@@ -2929,11 +3012,9 @@ mod tests {
     }
 
     fn eval_builtin(expr: &str) -> Value {
-        let holder: SharedModel = Arc::new(Mutex::new(None));
-        let region: SharedRegion = Arc::new(Mutex::new(None));
         let mut rego = regorus::Engine::new();
         rego.set_strict_builtin_errors(false);
-        register_all(&mut rego, holder, region, &OverlayCatalog::default(), Arc::new(SchemaMetadataCatalog::new()))
+        register_all(&mut rego, &OverlayCatalog::default(), Arc::new(SchemaMetadataCatalog::new()))
             .expect("register builtins");
         let policy = format!("package test\nimport rego.v1\nresult := {}", expr);
         rego.add_policy("test.rego".into(), policy).unwrap();
@@ -3134,16 +3215,66 @@ mod tests {
 
     #[test]
     fn input_region_returns_value_when_set() {
-        let holder: SharedModel = Arc::new(Mutex::new(None));
-        let region: SharedRegion = Arc::new(Mutex::new(Some("us-west-2".to_string())));
         let mut rego = regorus::Engine::new();
         rego.set_strict_builtin_errors(false);
-        register_all(&mut rego, holder, region, &OverlayCatalog::default(), Arc::new(SchemaMetadataCatalog::new()))
+        register_all(&mut rego, &OverlayCatalog::default(), Arc::new(SchemaMetadataCatalog::new()))
             .expect("register builtins");
         rego.add_policy("test.rego".into(), "package test\nimport rego.v1\nresult := input_region()".into()).unwrap();
         rego.set_input(Value::new_object());
+        let model =
+            Arc::new(SemanticModel::from_bytes(b"AWSTemplateFormatVersion: '2010-09-09'\nResources: {}").unwrap());
+        let _scope = crate::eval_context::EvaluationScope::enter(crate::eval_context::EvaluationContext::new(
+            model,
+            Some("us-west-2".to_string()),
+            Arc::default(),
+        ));
         let v = rego.eval_rule("data.test.result".into()).unwrap();
         assert_eq!(v, Value::from("us-west-2"));
+    }
+
+    #[test]
+    fn regex_match_override_matches_and_rejects_like_the_builtin() {
+        assert_eq!(eval_builtin(r#"regex.match("^abcde$", "abcde")"#), Value::from(true));
+        assert_eq!(eval_builtin(r#"regex.match("^abc$", "abcde")"#), Value::from(false));
+    }
+
+    #[test]
+    fn regex_match_override_is_unanchored() {
+        // The regex crate's `is_match` searches anywhere in the string, matching
+        // the semantics of the builtin this override replaces.
+        assert_eq!(eval_builtin(r#"regex.match("cd", "abcde")"#), Value::from(true));
+        assert_eq!(eval_builtin(r#"regex.match("^cd", "abcde")"#), Value::from(false));
+    }
+
+    #[test]
+    fn regex_match_override_returns_undefined_for_an_invalid_pattern() {
+        // A pattern the regex crate rejects yields undefined - the same
+        // observable outcome as the builtin under non-strict builtin errors -
+        // rather than aborting the evaluation.
+        assert_eq!(eval_builtin(r#"regex.match("(unterminated", "anything")"#), Value::Undefined);
+    }
+
+    #[test]
+    fn regex_cache_reports_match_nonmatch_and_invalid() {
+        let mut cache = RegexCache::new();
+        assert_eq!(cache.is_match("^a.*z$", "abcz"), Some(true));
+        assert_eq!(cache.is_match("^a.*z$", "nope"), Some(false));
+        assert_eq!(cache.is_match("(unterminated", "x"), None);
+        // A second lookup of the same invalid pattern is served from the cache.
+        assert_eq!(cache.is_match("(unterminated", "y"), None);
+        // A cached valid pattern keeps matching against fresh input.
+        assert_eq!(cache.is_match("^a.*z$", "az"), Some(true));
+    }
+
+    #[test]
+    fn regex_cache_stays_bounded_under_many_distinct_patterns() {
+        let mut cache = RegexCache::new();
+        for i in 0..(REGEX_CACHE_CAPACITY + 50) {
+            let pattern = format!("^pattern{i}$");
+            assert_eq!(cache.is_match(&pattern, &format!("pattern{i}")), Some(true));
+        }
+        assert!(cache.compiled.len() <= REGEX_CACHE_CAPACITY, "compiled map must stay within capacity");
+        assert_eq!(cache.compiled.len(), cache.insertion_order.len(), "cache maps must stay in step");
     }
 
     #[test]

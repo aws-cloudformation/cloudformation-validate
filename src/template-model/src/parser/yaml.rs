@@ -1454,6 +1454,35 @@ mod tests {
         assert!(w1103.is_empty(), "got: {:?}", w1103);
     }
 
+    /// Repeated long-form `Fn::AccountIdFromAlias` keys funnel through the same
+    /// per-thread suggestion cache as JSON. A key far from every function stays
+    /// data on every repeat, and a genuine typo still warns once - matching the
+    /// JSON front-end result exactly.
+    #[test]
+    fn repeated_unknown_fn_keys_are_consistent_with_a_single_typo() {
+        let input = r#"Resources:
+  A:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName:
+        Fn::AccountIdFromAlias: one
+  B:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName:
+        Fn::AccountIdFromAlias: two
+  C:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName:
+        Fn::GetAttt: [A, Arn]
+"#;
+        let ir = parse_yaml(input.as_bytes()).unwrap();
+        let w1103: Vec<&str> =
+            ir.diagnostics.iter().filter(|d| d.rule_id == "W1103").map(|d| d.message.as_str()).collect();
+        assert_eq!(w1103, ["'Fn::GetAttt' is not a supported function - did you mean 'Fn::GetAtt'?"]);
+    }
+
     /// A misspelled or unknown `!`-shorthand tag (`!Bogus`) is wrapped into
     /// `{ Fn::Bogus: ... }` exactly like the long form and JSON, so the shared
     /// unsupported-function check fires. Silently dropping the tag (the previous

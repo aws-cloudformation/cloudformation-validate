@@ -7,6 +7,7 @@ violation contains make_diag_full("E3639", "ERROR", name,
     "ProvisionedThroughput is required when BillingMode is 'PROVISIONED'",
     "Add ProvisionedThroughput or set BillingMode to 'PAY_PER_REQUEST'",
     "") if {
+    cfn_rule_active("E3639")
     some name in resources_of_type("AWS::DynamoDB::Table")
     dynamodb_scenario_analysis(name).explicit_provisioned_missing_throughput
 }
@@ -16,6 +17,7 @@ violation contains make_diag_full("E3639", "ERROR", name,
     "ProvisionedThroughput is required when BillingMode defaults to 'PROVISIONED'",
     "Add ProvisionedThroughput or set BillingMode to 'PAY_PER_REQUEST'",
     "") if {
+    cfn_rule_active("E3639")
     some name in resources_of_type("AWS::DynamoDB::Table")
     dynamodb_scenario_analysis(name).default_provisioned_missing_throughput
 }

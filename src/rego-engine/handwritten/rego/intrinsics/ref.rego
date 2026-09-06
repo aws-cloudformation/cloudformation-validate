@@ -12,6 +12,7 @@ violation contains make_diag_full("F1010", "FATAL", name, "",
     sprintf("Ref '%s' does not reference a valid resource, parameter, or pseudo-parameter", [target]),
     "Check that the Ref target exists as a resource, parameter, or pseudo-parameter",
     "") if {
+    cfn_rule_active("F1010")
     some name, res in input.resources
     some edge in res.outgoingRefs
     edge.kind == "Ref"
@@ -34,6 +35,7 @@ violation contains make_diag_full("F1020", "FATAL", name, entry.path,
     sprintf("'%s' is not one of %s", [entry.target, render_list(_all_valid_targets)]),
     "Check that the Ref target exists as a resource, parameter, or pseudo-parameter",
     "") if {
+    cfn_rule_active("F1020")
     some name, res in input.resources
     not input.hasParseErrors
     not _has_unexpanded_foreach
@@ -61,6 +63,7 @@ violation contains make_diag_full("E1041", "ERROR", name, edge.sourcePath,
         [target, dest_fmt]),
     "Use a Ref to a resource whose type matches the expected format",
     "") if {
+    cfn_rule_active("E1041")
     some name, res in input.resources
     some edge in res.outgoingRefs
     edge.kind == "Ref"
@@ -79,6 +82,7 @@ violation contains make_diag_full("E1041", "ERROR", name, edge.sourcePath,
         [target]),
     "Use a Ref to a resource whose type matches the expected format",
     "") if {
+    cfn_rule_active("E1041")
     some name, res in input.resources
     some edge in res.outgoingRefs
     edge.kind == "Ref"

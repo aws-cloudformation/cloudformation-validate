@@ -7,6 +7,7 @@ violation contains make_diag_full("E9004", "ERROR", name, edge.sourcePath,
     sprintf("'%s' is not one of %s", [attr, render_list(valid_attrs)]),
     "Check the resource type documentation for valid GetAtt attributes",
     "") if {
+    cfn_rule_active("E9004")
     some name, res in input.resources
     some edge in res.outgoingRefs
     edge.kind == "GetAtt"
@@ -43,6 +44,7 @@ violation contains make_diag_full("F1020", "FATAL", name, "",
     sprintf("Fn::GetAtt references non-existent resource '%s'", [target]),
     "Check that the GetAtt target resource exists in the template",
     "") if {
+    cfn_rule_active("F1020")
     not object.get(input, "hasParseErrors", false)
     some name, res in input.resources
     some edge in res.outgoingRefs
@@ -58,6 +60,7 @@ violation contains make_diag_full("E1040", "ERROR", name, edge.sourcePath,
         [target_name, attr, dest_fmt]),
     "Use the correct GetAtt attribute",
     "") if {
+    cfn_rule_active("E1040")
     some name, res in input.resources
     some edge in res.outgoingRefs
     edge.kind == "GetAtt"

@@ -7,6 +7,7 @@ import rego.v1
 # the template-model region table).
 violation contains make_diag("E1015", "ERROR", name,
     sprintf("Fn::GetAZs parameter '%s' is not a valid region", [region])) if {
+    cfn_rule_active("E1015")
     some name, res in input.resources
     some _, prop in res.properties
     region := _find_invalid_getazs_region(prop)
@@ -36,6 +37,7 @@ _find_invalid_getazs_region(val) := region if {
 # E1016: ImportValue cannot use Ref to AWS::StackName
 violation contains make_diag_at("E1016", "ERROR", name, edge.sourcePath,
     "Fn::ImportValue cannot use Ref to 'AWS::StackName'") if {
+    cfn_rule_active("E1016")
     some name, res in input.resources
     some edge in res.outgoingRefs
     edge.kind == "Ref"
