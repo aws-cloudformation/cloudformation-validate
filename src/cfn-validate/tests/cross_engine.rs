@@ -2,6 +2,7 @@ mod common;
 
 use cel_engine::CelEngine;
 use common::{load_rule, load_template};
+use composite_engine::CompositeEngine;
 use diagnostics::Diagnostic;
 use rego_engine::RegoEngine;
 use rules::registry::RULE_REGISTRY;
@@ -9,10 +10,14 @@ use rules::{FilterConfig, RuleFilterConfig};
 use rules::{RuleInfo, RuleMetadataEntry, RuleOrigin, Severity};
 use schema_validator::SchemaValidator;
 use std::sync::LazyLock;
-use validation_engine::{EngineConfig, ExternalRuleSource, ValidateConfig, ValidationEngine, validate_bytes};
+use validation_engine::{
+    CompositeEngineConfig, EngineConfig, ExternalRuleSource, ValidateConfig, ValidationEngine, validate_bytes,
+};
 
 static REGO: LazyLock<RegoEngine> = LazyLock::new(|| RegoEngine::new(EngineConfig::default()).unwrap());
 static CEL: LazyLock<CelEngine> = LazyLock::new(|| CelEngine::new(EngineConfig::default()).unwrap());
+static COMPOSITE: LazyLock<CompositeEngine> =
+    LazyLock::new(|| CompositeEngine::new(CompositeEngineConfig::default()).unwrap());
 
 fn assert_list_rules_identical(cel_rules: &[RuleInfo], rego_rules: &[RuleInfo], label: &str) {
     let cel_json = serde_json::to_value(cel_rules).expect("serialize cel rules");
@@ -50,6 +55,7 @@ fn string_length_findings_are_identical_between_engines() {
     for template in ["bad/W9006_every_allowed_value_too_long.json", "good/string_length_unknowable_values.json"] {
         let rego = validate_template(&*REGO, template);
         let cel = validate_template(&*CEL, template);
+        let composite = validate_template(&*COMPOSITE, template);
         let findings = |diags: &[Diagnostic]| -> Vec<String> {
             let mut messages: Vec<String> =
                 diags.iter().filter(|d| d.rule_id == "W9006").map(|d| d.message.clone()).collect();
@@ -57,6 +63,7 @@ fn string_length_findings_are_identical_between_engines() {
             messages
         };
         assert_eq!(findings(&rego), findings(&cel), "{template}: engines disagree on W9006");
+        assert_eq!(findings(&rego), findings(&composite), "{template}: engines disagree on W9006");
     }
 }
 
@@ -67,6 +74,7 @@ fn string_length_is_reported_only_when_every_possible_value_breaks_it() {
     for (engine_name, diags) in [
         ("rego", validate_template(&*REGO, "bad/W9006_every_allowed_value_too_long.json")),
         ("cel", validate_template(&*CEL, "bad/W9006_every_allowed_value_too_long.json")),
+        ("composite", validate_template(&*COMPOSITE, "bad/W9006_every_allowed_value_too_long.json")),
     ] {
         let messages: Vec<&str> = diags.iter().filter(|d| d.rule_id == "W9006").map(|d| d.message.as_str()).collect();
         assert_eq!(messages, vec![expected], "[{engine_name}] every allowed value is too long, so W9006 stands");
@@ -75,6 +83,7 @@ fn string_length_is_reported_only_when_every_possible_value_breaks_it() {
     for (engine_name, diags) in [
         ("rego", validate_template(&*REGO, "good/string_length_unknowable_values.json")),
         ("cel", validate_template(&*CEL, "good/string_length_unknowable_values.json")),
+        ("composite", validate_template(&*COMPOSITE, "good/string_length_unknowable_values.json")),
     ] {
         let messages: Vec<&str> = diags.iter().filter(|d| d.rule_id == "W9006").map(|d| d.message.as_str()).collect();
         assert!(
@@ -85,11 +94,13 @@ fn string_length_is_reported_only_when_every_possible_value_breaks_it() {
 }
 
 #[test]
-fn duplicate_objects_are_compared_by_contents_in_both_engines() {
+fn duplicate_objects_are_compared_by_contents_in_all_engines() {
     let template = "bad/W9007_duplicate_objects_different_key_order.yaml";
-    for (engine_name, diags) in
-        [("rego", validate_template(&*REGO, template)), ("cel", validate_template(&*CEL, template))]
-    {
+    for (engine_name, diags) in [
+        ("rego", validate_template(&*REGO, template)),
+        ("cel", validate_template(&*CEL, template)),
+        ("composite", validate_template(&*COMPOSITE, template)),
+    ] {
         let findings: Vec<&Diagnostic> = diags.iter().filter(|d| d.rule_id == "W9007").collect();
         assert_eq!(findings.len(), 1, "[{engine_name}] equal object items must remain a duplicate");
         assert_eq!(findings[0].property_path.as_deref(), Some("Properties.PlacementConstraints"));
@@ -169,6 +180,7 @@ fn multi_combined_config(engine: &str) -> EngineConfig {
 fn default_list_rules_identical_between_engines() {
     let rules = CEL.list_rules();
     assert_list_rules_identical(&rules, &REGO.list_rules(), "default");
+    assert_list_rules_identical(&rules, &COMPOSITE.list_rules(), "default composite");
 
     let builtin_count = rules.len();
     assert!(builtin_count > 0, "must have built-in rules");
@@ -266,9 +278,15 @@ fn custom_rule_with_arbitrary_id_is_suppressed_by_exclude_ids_in_both_engines() 
 fn guard_rule_list_rules_and_validate_match_between_engines() {
     let cel = CelEngine::new(guard_config()).unwrap();
     let rego = RegoEngine::new(guard_config()).unwrap();
+    let composite = CompositeEngine::new(CompositeEngineConfig::new().with_guard_rules([ExternalRuleSource {
+        name: "guard_encryption.guard".into(),
+        content: load_rule("guard_encryption.guard"),
+    }]))
+    .unwrap();
 
     let baseline_count = CEL.list_rules().len();
-    for (name, rules) in [("cel", cel.list_rules()), ("rego", rego.list_rules())] {
+    for (name, rules) in [("cel", cel.list_rules()), ("rego", rego.list_rules()), ("composite", composite.list_rules())]
+    {
         let g = find_rule(&rules, "check_bucket_encryption");
         assert_eq!(g.severity, Severity::Error, "{name}: check_bucket_encryption severity");
         assert_eq!(g.origin, RuleOrigin::Guard, "{name}: check_bucket_encryption origin");
@@ -282,10 +300,12 @@ fn guard_rule_list_rules_and_validate_match_between_engines() {
     }
 
     assert_list_rules_identical(&cel.list_rules(), &rego.list_rules(), "guard");
+    assert_list_rules_identical(&cel.list_rules(), &composite.list_rules(), "guard composite");
 
     for (name, diags) in [
         ("cel", validate_template(&cel, "bad/invalid_deletion_policy.yaml")),
         ("rego", validate_template(&rego, "bad/invalid_deletion_policy.yaml")),
+        ("composite", validate_template(&composite, "bad/invalid_deletion_policy.yaml")),
     ] {
         let d = diags
             .iter()
@@ -402,13 +422,16 @@ fn default_rule_metadata_identical_between_engines() {
     }
 
     assert_metadata_maps_identical(cel_meta, rego_meta, "default rule_metadata");
+    assert_metadata_maps_identical(cel_meta, COMPOSITE.rule_metadata(), "default rule_metadata composite");
 }
 
 #[test]
 fn default_external_rule_metadata_identical_between_engines() {
     let cel_ext = CEL.external_rule_metadata();
     let rego_ext = REGO.external_rule_metadata();
+    let composite_ext = COMPOSITE.external_rule_metadata();
     assert_metadata_maps_identical(&cel_ext, &rego_ext, "default external_rule_metadata");
+    assert_metadata_maps_identical(&cel_ext, &composite_ext, "default external_rule_metadata composite");
 }
 
 #[test]
@@ -456,11 +479,13 @@ fn multi_combined_external_rule_metadata_identical_between_engines() {
 }
 
 #[test]
-fn iam_action_resource_findings_target_authored_fields_in_both_engines() {
+fn iam_action_resource_findings_target_authored_fields_in_all_engines() {
     let template = "bad/functions/sub_needed.yaml";
-    for (engine_name, diagnostics) in
-        [("rego", validate_template(&*REGO, template)), ("cel", validate_template(&*CEL, template))]
-    {
+    for (engine_name, diagnostics) in [
+        ("rego", validate_template(&*REGO, template)),
+        ("cel", validate_template(&*CEL, template)),
+        ("composite", validate_template(&*COMPOSITE, template)),
+    ] {
         let findings: Vec<&Diagnostic> = diagnostics.iter().filter(|d| d.rule_id == "I3510").collect();
         assert_eq!(findings.len(), 2, "[{engine_name}] expected both incompatible IAM statements");
         assert!(
@@ -522,7 +547,11 @@ fn good_templates_without_expected_errors_are_clean() {
     let sv = SchemaValidator::default();
     let root = common::templates_dir().join("good");
     let mut failures = Vec::new();
-    for (engine_name, engine) in [("cel", &*CEL as &dyn ValidationEngine), ("rego", &*REGO as &dyn ValidationEngine)] {
+    for (engine_name, engine) in [
+        ("cel", &*CEL as &dyn ValidationEngine),
+        ("rego", &*REGO as &dyn ValidationEngine),
+        ("composite", &*COMPOSITE as &dyn ValidationEngine),
+    ] {
         for entry in walkdir(&root) {
             let bytes = std::fs::read(&entry).unwrap();
             let name = entry.strip_prefix(&root).unwrap_or(&entry);
@@ -551,15 +580,19 @@ fn good_templates_without_expected_errors_are_clean() {
     assert!(failures.is_empty(), "Good templates produced Fatal/Error diagnostics:\n{}", failures.join("\n\n"));
 }
 
-/// Every `good/sam` template must be clean of Fatal/Error diagnostics on both
-/// engines: these are the counter-examples proving the SAM transform-error and
+/// Every `good/sam` template must be clean of Fatal/Error diagnostics on every
+/// engine: these are the counter-examples proving the SAM transform-error and
 /// implicit-resource handling does not false-positive on valid templates.
 #[test]
-fn good_sam_templates_are_clean_on_both_engines() {
+fn good_sam_templates_are_clean_on_all_engines() {
     let sv = SchemaValidator::default();
     let root = common::templates_dir().join("good").join("sam");
     let mut failures = Vec::new();
-    for (engine_name, engine) in [("cel", &*CEL as &dyn ValidationEngine), ("rego", &*REGO as &dyn ValidationEngine)] {
+    for (engine_name, engine) in [
+        ("cel", &*CEL as &dyn ValidationEngine),
+        ("rego", &*REGO as &dyn ValidationEngine),
+        ("composite", &*COMPOSITE as &dyn ValidationEngine),
+    ] {
         for entry in walkdir(&root) {
             let bytes = std::fs::read(&entry).unwrap();
             let report = validate_bytes(engine, &sv, &bytes, Default::default()).unwrap();
@@ -578,11 +611,11 @@ fn good_sam_templates_are_clean_on_both_engines() {
     assert!(failures.is_empty(), "good/sam templates produced Fatal/Error diagnostics:\n{}", failures.join("\n\n"));
 }
 
-/// Every `bad/sam` template must produce identical diagnostics on both engines,
+/// Every `bad/sam` template must produce identical diagnostics on every engine,
 /// and each must fire the SAM transform-error rule (E0001) or the
 /// missing-transform rule (E3038) - the engines stay at parity on SAM handling.
 #[test]
-fn bad_sam_templates_fire_identically_on_both_engines() {
+fn bad_sam_templates_fire_identically_on_all_engines() {
     let sv = SchemaValidator::default();
     let root = common::templates_dir().join("bad").join("sam");
     for entry in walkdir(&root) {
@@ -601,7 +634,9 @@ fn bad_sam_templates_fire_identically_on_both_engines() {
         };
         let cel_ids = ids(&*CEL);
         let rego_ids = ids(&*REGO);
+        let composite_ids = ids(&*COMPOSITE);
         assert_eq!(cel_ids, rego_ids, "{name}: engines diverge");
+        assert_eq!(cel_ids, composite_ids, "{name}: engines diverge");
         assert!(
             cel_ids.iter().any(|d| d.starts_with("E0001|") || d.starts_with("E3038|")),
             "{name}: expected a SAM transform error (E0001/E3038), got {cel_ids:?}"
@@ -610,9 +645,9 @@ fn bad_sam_templates_fire_identically_on_both_engines() {
 }
 
 #[test]
-fn intrinsic_and_condition_fixtures_fire_identically_on_both_engines() {
+fn intrinsic_and_condition_fixtures_fire_identically_on_all_engines() {
     // The intrinsic/condition rules reworked to emit from the shared model must
-    // produce byte-identical diagnostics on both engines. Assert full parity
+    // produce byte-identical diagnostics on every engine. Assert full parity
     // (all severities) on the fixtures that exercise them.
     let sv = SchemaValidator::default();
     let fixtures = [
@@ -636,6 +671,7 @@ fn intrinsic_and_condition_fixtures_fire_identically_on_both_engines() {
             out
         };
         assert_eq!(ids(&*CEL), ids(&*REGO), "{name}: engines diverge");
+        assert_eq!(ids(&*CEL), ids(&*COMPOSITE), "{name}: engines diverge");
     }
 }
 

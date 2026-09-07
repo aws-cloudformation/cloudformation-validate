@@ -24,6 +24,9 @@ src/
 ├── cel-engine/                 # Native Rust rules + CEL interpreter + Guard→CEL translation
 │   └── src/rules/              # Native rules: structure, intrinsics, references, conditions,
 │                               # resources, resources_extra, best_practices, patterns
+├── composite-engine/           # CompositeEngine (default --engine selector) — CEL evaluates the built-in rules;
+│                               # an external-only Rego engine (custom Rego + translated Guard) layers on top,
+│                               # built only when external rules are supplied
 ├── data-source/                # BUILD-TIME — downloads schemas, syncs cfn-lint data, generates
 │   ├── src/                    # schema-validator artifacts and CEL rules; build.rs embeds generated
 │   │                           # and hand-maintained shared data into the binary (zstd)
@@ -64,7 +67,7 @@ src/
     │   ├── quickstart/         # AWS QuickStart templates (performance corpus)
     │   ├── public/             # Public example templates
     │   └── cdk/                # CDK-synthesized templates
-    ├── expected/               # validation_reports*.json — numbered snapshot chunks (both engines must agree)
+    ├── expected/               # validation_reports*.json — numbered snapshot chunks (rego/cel/composite must agree)
     ├── rules/                  # Custom rule fixtures for testing (Rego, CEL, Guard)
     └── security/               # Security/stress fixtures (pathological conditions, deep nesting)
 ```
@@ -122,6 +125,10 @@ src/
 - Never regress an engine that already has the correct behavior, and never remove or suppress a valid finding solely
   because the other engine misses it. A finding may be removed only when first-principles evidence proves that it is a
   false positive, with focused regression coverage for the corrected behavior.
+- `rego-engine` and `cel-engine` are the two independent built-in implementations; `composite-engine` is not a third.
+  The default `--engine composite` selector evaluates the built-in rules with CEL and layers an optional external-only
+  Rego engine (custom Rego + translated Guard) on top, so `rego`, `cel`, and `composite` all agree when no custom rules
+  are supplied. Diagnose and fix a built-in-rule mismatch in the Rego or CEL implementation, never by editing composite.
 
 ### Diagnostics
 

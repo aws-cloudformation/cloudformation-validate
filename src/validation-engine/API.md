@@ -69,6 +69,56 @@ let config = EngineConfig::new()
 
 Both engines parse and translate `guard_rules` from raw Guard DSL source text - no pre-parsing needed.
 
+## Composite Engine
+
+`CompositeEngine` (in the [composite-engine](../composite-engine/README.md) crate) is an additive engine that
+composes two inner engines: CEL evaluates every built-in rule, and a separate external-only Rego engine evaluates the
+caller-supplied custom Rego and translated Guard rules. The external engine is constructed only when the configuration
+supplies such rules, and it still runs when built-in rules are disabled. Findings from both are concatenated; this
+pipeline performs the single finalize pass.
+
+It is constructed from a `CompositeEngineConfig`, a type distinct from `EngineConfig`. The composite fixes which engine
+owns the built-ins, so the config has no field for engine-native built-in custom rules: custom CEL rules are not
+accepted by the composite and remain a `CelEngine` feature. `RegoEngine`, `CelEngine`, and `EngineConfig` are
+unchanged. `EngineType` now selects `Rego`, `Cel`, or `Composite`, with `Composite` as its default. `EngineType` is
+only a selector, so construct `CompositeEngine` directly when embedding, or select it in the CLI with
+`--engine composite` (the default).
+
+| Field (Rust / serialized)                            | Type                            | Description                                                             |
+|------------------------------------------------------|---------------------------------|-------------------------------------------------------------------------|
+| `rego_rules` / `regoRules`                           | `Vec<ExternalRuleSource>`       | Custom Rego rules layered on the built-ins, run by the external engine. |
+| `guard_rules` / `guardRules`                         | `Vec<ExternalRuleSource>`       | Guard DSL rules, translated and run by the external engine.             |
+| `schema_validator_config` / `schemaValidatorConfig`  | `Option<SchemaValidatorConfig>` | Additional schemas observed by both inner engines.                      |
+
+Only the documented subset of the Guard language is translated; unsupported constructs are rejected at load time rather
+than silently ignored. `CompositeEngineConfig::new()` and its `with_*` methods set only the options you name:
+
+```rust
+use composite_engine::CompositeEngine;
+use schema_validator::SchemaValidator;
+use validation_engine::{
+    CompositeEngineConfig, ExternalRuleSource, ValidateConfig, validate_bytes_with_path,
+};
+
+// CEL owns the built-ins; the external-only Rego engine is built only because
+// external rules are supplied here.
+let engine = CompositeEngine::new(
+    CompositeEngineConfig::new()
+        .with_rego_rules([ExternalRuleSource { name: "extra.rego".into(), content: rego_source }])
+        .with_guard_rules([ExternalRuleSource { name: "policy.guard".into(), content: guard_source }]),
+)?;
+
+let schema_validator = SchemaValidator::default();
+let bytes = std::fs::read("template.yaml")?;
+let report = validate_bytes_with_path(
+    &engine,
+    &schema_validator,
+    &bytes,
+    ValidateConfig::default(),
+    "template.yaml".to_string(),
+)?;
+```
+
 ## Additional Resource Provider Schemas
 
 Additional schemas extend the bundled CloudFormation resource schemas, so templates using properties or types
@@ -239,8 +289,9 @@ For engines that produce JSON diagnostics:
 | Type                 | Description                                                                 |
 |--------------------|-----------------------------------------------------------------------------|
 | `ValidationEngine` | Trait that engines implement - provides `evaluate_rules` and rule metadata  |
-| `EngineType`       | `Rego` (default) or `Cel` - selects which validation engine evaluates rules |
+| `EngineType`       | `Composite` (default), `Rego`, or `Cel` - selects which validation engine evaluates rules |
 | `EngineConfig`     | Engine construction config: `custom_rules` and `guard_rules` as `ExternalRuleSource` |
+| `CompositeEngineConfig` | Composite engine construction config: `rego_rules` and `guard_rules` as `ExternalRuleSource`, plus optional `schema_validator_config`; no custom-CEL field |
 | `ValidateConfig`   | Per-call config: filters, detail level, severity level, parameter overrides, strict, disable_builtin_rules |
 | `ExternalRuleSource` | `{ name: String, content: String }` - a pre-read rule file's identifier and raw content |
 | `ValidationError`  | `Parse(ParseError)` or `Engine(String)`                                     |

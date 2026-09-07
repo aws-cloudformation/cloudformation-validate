@@ -220,6 +220,24 @@ type EngineConfig struct {
 	SchemaValidatorConfig *SchemaValidatorConfig `json:"schemaValidatorConfig,omitempty"`
 }
 
+// CompositeEngineConfig holds composite engine construction options. The
+// composite engine evaluates the built-in rules with one engine and the
+// caller-supplied external rules with another, so it carries only the external
+// rules layered on top plus the shared schema config - it has no field for
+// engine-native built-in custom rules because the composite fixes which engine
+// owns the built-ins. The zero value uses only the built-in rules.
+type CompositeEngineConfig struct {
+	// RegoRules are custom Rego rules evaluated by the external engine, layered
+	// on top of the built-in rules.
+	RegoRules []ExternalRuleSource `json:"regoRules,omitempty"`
+	// GuardRules are Guard DSL rules, translated and evaluated by the external
+	// engine, layered on top of the built-in rules.
+	GuardRules []ExternalRuleSource `json:"guardRules,omitempty"`
+	// SchemaValidatorConfig optionally configures the validator shared by both the
+	// built-in and external evaluation, so both observe the same additional schemas.
+	SchemaValidatorConfig *SchemaValidatorConfig `json:"schemaValidatorConfig,omitempty"`
+}
+
 // SchemaValidatorConfig holds schema validator construction options. The zero
 // value builds a validator over only the bundled schemas.
 type SchemaValidatorConfig struct {

@@ -10,8 +10,8 @@ diagnostics so they are not needed for cfn-lint parity comparison.
 Use compare_benchmarks.py for cross-binding performance comparison.
 
 Usage:
-    python3 scripts/compare_cfnlint.py --cfn-lint-root /path/to/cfn-lint [--engine rego|cel] [--skip-build]
-    CFN_LINT_ROOT=/path/to/cfn-lint python3 scripts/compare_cfnlint.py [--engine rego|cel] [--skip-build]
+    python3 scripts/compare_cfnlint.py --cfn-lint-root /path/to/cfn-lint [--engine rego|cel|composite] [--skip-build]
+    CFN_LINT_ROOT=/path/to/cfn-lint python3 scripts/compare_cfnlint.py [--engine rego|cel|composite] [--skip-build]
 
 When no flags are provided, runs all engines × all formats (standard, full).
 Reports are written to scripts/<engine>/report_<engine>_<format>.md.
@@ -40,7 +40,7 @@ OUTPUT_PATH = None
 SKIP_BUILD = False
 
 
-ALL_ENGINES = ["rego", "cel"]
+ALL_ENGINES = ["rego", "cel", "composite"]
 OUTPUT_FORMAT = "detailed"
 ITERATIONS = 1
 # Rules that are correct engine-only findings - cfn-lint does not implement them.

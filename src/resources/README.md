@@ -15,11 +15,12 @@ and snapshot tests, and exposes fixture paths plus discovery used by snapshot ge
 ## Snapshot generation
 
 `expected/validation_reports*.json` are the recorded `cfn-validate --format detailed` output for the regular template
-corpus and every JSON/YAML fixture under `security/`, using both the rego and cel engines. Reports are
+corpus and every JSON/YAML fixture under `security/`, using the rego, cel, and composite engines. Reports are
 deterministically partitioned by sorted template key into numbered chunk files with at most 100 templates each.
 Regenerate them with the `generate_validation_reports` example, which builds the release `cfn-validate` binary, runs
-both engines on every fixture in parallel across CPU cores, verifies the engines agree, prints the elapsed validation
-time in milliseconds, removes any legacy single file and stale extra chunks, and writes fresh numbered chunks:
+all three engines on every fixture in parallel across CPU cores, verifies the engines agree, prints the elapsed
+validation time in milliseconds, removes any legacy single file and stale extra chunks, and writes fresh numbered
+chunks. The composite report is the one persisted; with no custom rules it matches the standalone rego and cel engines:
 
 ```bash
 cargo run --release -p resources --example generate_validation_reports

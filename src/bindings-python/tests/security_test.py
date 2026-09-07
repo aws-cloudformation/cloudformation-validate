@@ -7,6 +7,7 @@ import unittest
 
 from cloudformation_validate import (
     CelEngine,
+    CompositeEngine,
     RegoEngine,
     ReportStatus,
     Severity,
@@ -18,6 +19,8 @@ TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
 WORKSPACE = os.path.dirname(os.path.dirname(TESTS_DIR))
 SECURITY_ROOT = os.path.join(WORKSPACE, "resources", "security")
 SECURITY_TIMEOUT_SECONDS = 60
+
+ENGINE_FACTORIES = {"rego": RegoEngine, "cel": CelEngine, "composite": CompositeEngine}
 
 
 def discover_security_templates():
@@ -31,7 +34,7 @@ def discover_security_templates():
 
 def validate_security_template(engine_name, template_path, outcome_queue):
     try:
-        engine = RegoEngine() if engine_name == "rego" else CelEngine()
+        engine = ENGINE_FACTORIES[engine_name]()
         config = ValidateConfig(severity_level=Severity.DEBUG)
         report = engine.validate_detailed(template_path, config)
         if report.status is None or not isinstance(report.diagnostics, list):
@@ -66,8 +69,8 @@ class SecurityTemplateTest(unittest.TestCase):
             raise AssertionError(f"no security templates found under {SECURITY_ROOT}")
         cls.process_context = multiprocessing.get_context("spawn")
 
-    def test_every_security_template_with_both_engines(self):
-        for engine_name in ("rego", "cel"):
+    def test_every_security_template_with_all_engines(self):
+        for engine_name in ("rego", "cel", "composite"):
             for template_path in self.templates:
                 relative_path = os.path.relpath(template_path, SECURITY_ROOT).replace(os.sep, "/")
                 with self.subTest(engine=engine_name, template=relative_path):

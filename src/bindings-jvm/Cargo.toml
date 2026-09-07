@@ -25,6 +25,7 @@ rules = { workspace = true, features = ["uniffi-bindings"] }
 template-model = { workspace = true, features = ["uniffi-bindings"] }
 rego-engine = { workspace = true }
 cel-engine = { workspace = true }
+composite-engine = { workspace = true }
 schema-validator = { workspace = true, features = ["uniffi-bindings"] }
 uniffi = { workspace = true, features = ["cli"] }
 thiserror = "2"

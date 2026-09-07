@@ -19,6 +19,7 @@ rules = { workspace = true, features = ["wasm-bindings"] }
 template-model = { workspace = true, features = ["wasm-bindings"] }
 rego-engine = { workspace = true }
 cel-engine = { workspace = true }
+composite-engine = { workspace = true }
 schema-validator = { workspace = true, features = ["wasm-bindings"] }
 wasm-bindgen = "0.2"
 serde = { version = "1", features = ["derive"] }

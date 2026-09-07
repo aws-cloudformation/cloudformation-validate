@@ -241,6 +241,7 @@ name = "bindings-go"
 version = "1.9.0"
 dependencies = [
  "cloudformation-validate-cel-engine",
+ "cloudformation-validate-composite-engine",
  "cloudformation-validate-data-source",
  "cloudformation-validate-diagnostics",
  "cloudformation-validate-rego-engine",
@@ -259,6 +260,7 @@ name = "bindings-jvm"
 version = "1.9.0"
 dependencies = [
  "cloudformation-validate-cel-engine",
+ "cloudformation-validate-composite-engine",
  "cloudformation-validate-data-source",
  "cloudformation-validate-diagnostics",
  "cloudformation-validate-rego-engine",
@@ -275,6 +277,7 @@ name = "bindings-python"
 version = "1.9.0"
 dependencies = [
  "cloudformation-validate-cel-engine",
+ "cloudformation-validate-composite-engine",
  "cloudformation-validate-data-source",
  "cloudformation-validate-diagnostics",
  "cloudformation-validate-rego-engine",
@@ -291,6 +294,7 @@ name = "bindings-wasm"
 version = "1.9.0"
 dependencies = [
  "cloudformation-validate-cel-engine",
+ "cloudformation-validate-composite-engine",
  "cloudformation-validate-diagnostics",
  "cloudformation-validate-rego-engine",
  "cloudformation-validate-rules",
@@ -487,6 +491,7 @@ version = "1.9.0"
 dependencies = [
  "chrono",
  "cloudformation-validate-cel-engine",
+ "cloudformation-validate-composite-engine",
  "cloudformation-validate-data-source",
  "cloudformation-validate-diagnostics",
  "cloudformation-validate-rego-engine",
@@ -583,6 +588,7 @@ name = "cloudformation-validate"
 version = "1.9.0"
 dependencies = [
  "cloudformation-validate-cel-engine",
+ "cloudformation-validate-composite-engine",
  "cloudformation-validate-data-source",
  "cloudformation-validate-diagnostics",
  "cloudformation-validate-rego-engine",
@@ -610,6 +616,21 @@ dependencies = [
  "regex",
  "serde",
  "serde_json",
+ "web-time",
+]
+
+[[package]]
+name = "cloudformation-validate-composite-engine"
+version = "1.9.0"
+dependencies = [
+ "anyhow",
+ "cloudformation-validate-cel-engine",
+ "cloudformation-validate-diagnostics",
+ "cloudformation-validate-rego-engine",
+ "cloudformation-validate-rules",
+ "cloudformation-validate-schema-validator",
+ "cloudformation-validate-template-model",
+ "cloudformation-validate-validation-engine",
  "web-time",
 ]
 
@@ -1485,6 +1506,7 @@ name = "performance-harness"
 version = "1.9.0"
 dependencies = [
  "cloudformation-validate-cel-engine",
+ "cloudformation-validate-composite-engine",
  "cloudformation-validate-diagnostics",
  "cloudformation-validate-rego-engine",
  "cloudformation-validate-rules",

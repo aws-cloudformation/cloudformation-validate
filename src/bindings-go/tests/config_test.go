@@ -63,6 +63,17 @@ const fullEngineConfigJSON = `{
     }
 }`
 
+// Kept in sync with FULL_COMPOSITE_OPTIONS_JSON in ../src/lib.rs.
+const fullCompositeEngineConfigJSON = `{
+    "regoRules": [{"name": "custom.rego", "content": "package x"}],
+    "guardRules": [{"name": "compliance.guard", "content": "let x = 1"}],
+    "schemaValidatorConfig": {
+        "additionalSchemas": [{
+            "schema": "{\"typeName\":\"AWS::Test::OverlayOnly\",\"properties\":{\"Name\":{\"type\":\"string\"}}}"
+        }]
+    }
+}`
+
 func stringPtr(value string) *string { return &value }
 
 func boolPtr(value bool) *bool { return &value }
@@ -141,6 +152,19 @@ func TestFullEngineConfigMarshalsToTheContractShape(t *testing.T) {
 		},
 	}
 	assertMarshalsTo(t, config, fullEngineConfigJSON)
+}
+
+func TestFullCompositeEngineConfigMarshalsToTheContractShape(t *testing.T) {
+	config := &cfnvalidate.CompositeEngineConfig{
+		RegoRules:  []cfnvalidate.ExternalRuleSource{{Name: "custom.rego", Content: "package x"}},
+		GuardRules: []cfnvalidate.ExternalRuleSource{{Name: "compliance.guard", Content: "let x = 1"}},
+		SchemaValidatorConfig: &cfnvalidate.SchemaValidatorConfig{
+			AdditionalSchemas: []cfnvalidate.AdditionalSchemaSource{{
+				Schema: `{"typeName":"AWS::Test::OverlayOnly","properties":{"Name":{"type":"string"}}}`,
+			}},
+		},
+	}
+	assertMarshalsTo(t, config, fullCompositeEngineConfigJSON)
 }
 
 func TestFullValidateConfigIsAcceptedByTheNativeLayer(t *testing.T) {

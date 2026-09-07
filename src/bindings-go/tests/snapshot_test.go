@@ -1,5 +1,5 @@
 // Snapshot validation, mirroring the wasm and JVM suites: every template in
-// the corpus is validated through both engines at both detail levels, and the
+// the corpus is validated through every engine at both detail levels, and the
 // result must match resources/expected/validation_reports*.json chunks exactly
 // (up to the fields the snapshot file intentionally excludes). Reports round-trip
 // through the typed Go structs before comparison, so this also proves the Go
@@ -138,6 +138,7 @@ func stripSnapshotExcludedFields(report map[string]any, filePath string) map[str
 		delete(metadata, "rulesEvaluated")
 		delete(metadata, "cfnLintVersion")
 		delete(metadata, "resourceSchemaVersion")
+		delete(metadata, "suppressed")
 	}
 	return report
 }
@@ -203,7 +204,7 @@ func TestSnapshotValidation(t *testing.T) {
 	snapshots := loadSnapshots(t)
 	debugLevel := &cfnvalidate.ValidateConfig{SeverityLevel: cfnvalidate.SeverityDebug}
 
-	for engineName, engine := range bothEngines(t) {
+	for engineName, engine := range allEngines(t) {
 		t.Run(engineName+" detailed matches snapshot", func(t *testing.T) {
 			for _, rel := range templates {
 				expected, ok := snapshots[rel]
@@ -268,7 +269,7 @@ func TestPerformanceMetricsPresent(t *testing.T) {
 }
 
 func TestEmptyTemplateReportsFatalParseRule(t *testing.T) {
-	for name, engine := range bothEngines(t) {
+	for name, engine := range allEngines(t) {
 		report, err := engine.ValidateStandardFile(filepath.Join(templatesRoot, "empty.yaml"), nil)
 		if err != nil {
 			t.Fatalf("%s: validation failed: %v", name, err)

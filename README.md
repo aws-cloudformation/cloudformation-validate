@@ -34,8 +34,12 @@ JVM library (Kotlin/Java) - all backed by the same validation core.
 - **Offline-first.** Rules and AWS resource schemas are baked into the binary. Nothing is fetched at runtime.
 - **Structured diagnostics.** Every finding carries a stable rule ID, severity, precise source span (line/column),
   resource path, and an optional suggested fix - designed for IDEs, CI, and agents, not just humans.
-- **Two interchangeable engines.** A [Rego](https://www.openpolicyagent.org/docs/latest/policy-language/) engine and a
-  [CEL](https://cel.dev/) engine evaluate the same rule set and produce identical results.
+- **Standalone engines.** The [Rego](https://www.openpolicyagent.org/docs/latest/policy-language/) and
+  [CEL](https://cel.dev/) engines independently evaluate the same built-in rule set and produce identical results.
+- **Composite engine (default).** CEL evaluates every built-in rule while a separate external-only Rego engine
+  evaluates your custom Rego and translated Guard rules, layered on top. It is additive - with no custom rules it
+  produces the same diagnostics as the standalone Rego and CEL engines - and it is the default engine. Select a
+  standalone engine with `--engine rego`/`--engine cel`, or build `RegoEngine`/`CelEngine` directly when embedding.
 - **Additional schemas.** Merge your own CloudFormation resource provider schemas on top of the bundled ones, so
   templates using properties or values CloudFormation has not published yet validate cleanly
   (`--additional-schema`, or `EngineConfig.schema_validator_config.additional_schemas` when embedding).
@@ -53,8 +57,9 @@ When a template is submitted, `cloudformation-validate` runs a fixed pipeline:
 2. **Schema validate** - check each resource against the compiled CloudFormation provider schemas, producing
    Fatal-severity diagnostics for structural violations (type mismatches, missing required properties, invalid enums,
    pattern and constraint failures).
-3. **Evaluate rules** - the selected engine (Rego or CEL) evaluates lint rules against the semantic model, producing
-   Error/Warning/Info diagnostics for semantic issues, cross-resource references, security risks, and best practices.
+3. **Evaluate rules** - the selected engine (Rego, CEL, or Composite) evaluates lint rules against the semantic model,
+   producing Error/Warning/Info diagnostics for semantic issues, cross-resource references, security risks, and best
+   practices.
 4. **Validate Step Functions** - check `AWS::StepFunctions::StateMachine` definitions (state types, `StartAt`/`Next`
    references, required fields).
 5. **Enrich, filter, report** - attach rule descriptions and context, apply include/exclude filters and severity
@@ -86,7 +91,7 @@ cargo run -p cfn-validate -- template.yaml
 # Validate every template in a directory (recurses, picks up .yaml/.yml/.json)
 cargo run -p cfn-validate -- ./templates/
 
-# Use the CEL engine instead of the default Rego engine
+# Use the CEL engine instead of the default composite engine
 cargo run -p cfn-validate -- template.yaml --engine cel
 
 # Compact output for IDEs/CI
@@ -135,6 +140,20 @@ let report = validate_bytes_with_path(
 for d in &report.diagnostics {
     println!("[{}] {} - {}", d.severity, d.rule_id, d.message);
 }
+```
+
+The `RegoEngine` and `CelEngine` are interchangeable. For an additive setup, `CompositeEngine` evaluates the built-in
+rules with CEL and layers your own Rego and translated Guard rules on top through its own `CompositeEngineConfig`. The
+external-only Rego engine is built only when external rules are supplied, and custom CEL rules remain a `CelEngine`
+feature:
+
+```rust
+use cloudformation_validate::{CompositeEngine, CompositeEngineConfig, ExternalRuleSource};
+
+let engine = CompositeEngine::new(
+    CompositeEngineConfig::new()
+        .with_guard_rules([ExternalRuleSource { name: "policy.guard".into(), content: guard_source }]),
+)?;
 ```
 
 See [validation-engine/API.md](src/validation-engine/API.md) for the full embedding API.
@@ -199,7 +218,9 @@ Bring your own rules in any of three formats - all loadable from the CLI and the
 
 - **CEL** (`.json`) - property and data-driven checks, evaluated by the CEL engine.
 - **Rego** (`.rego`) - complex cross-resource logic, evaluated by the Rego engine.
-- **Guard DSL** (`.guard`) - declarative compliance rules, translated automatically and usable with either engine.
+- **Guard DSL** (`.guard`) - declarative compliance rules. A supported subset of the Guard language is translated
+  automatically and runs with either engine or the composite engine; unsupported constructs are rejected at load time
+  rather than silently ignored.
 
 See [RULES](src/rules/README.md) and [CUSTOM_RULES.md](src/CUSTOM_RULES.md) for the formats, available context, and
 examples.
@@ -218,6 +239,7 @@ This is a Cargo workspace. The main crates:
 | [schema-validator](src/schema-validator/README.md)   | JSON Schema validation against compiled CloudFormation provider schemas                                                       |
 | [rego-engine](src/rego-engine/README.md)             | Rego-based rule evaluation with custom builtins                                                                               |
 | [cel-engine](src/cel-engine/README.md)               | Native Rust rules plus a CEL interpreter for custom rules                                                                     |
+| [composite-engine](src/composite-engine/README.md)   | `CompositeEngine` - CEL evaluates the built-in rules; an optional external-only Rego engine evaluates custom Rego and Guard   |
 | [guard-translator](src/guard-translator/README.md)   | Parses Guard DSL into an engine-agnostic intermediate representation                                                          |
 | [data-source](src/data-source/README.md)             | Build-time pipeline: downloads and processes CloudFormation schemas, generates the validation artifacts baked into the binary |
 

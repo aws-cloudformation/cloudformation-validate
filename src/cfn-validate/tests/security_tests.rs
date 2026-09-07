@@ -15,14 +15,15 @@ mod common;
 use std::time::Duration;
 
 use cel_engine::CelEngine;
+use composite_engine::CompositeEngine;
 use diagnostics::{DetailLevel, ReportStatus, ValidationReport};
 use rego_engine::RegoEngine;
 use rules::Severity;
 use schema_validator::SchemaValidator;
 use template_model::SemanticModel;
 use validation_engine::{
-    EngineConfig, ExternalRuleSource, ValidateConfig, ValidationEngine, validate_bytes_with_path,
-    validate_catching_panics,
+    CompositeEngineConfig, EngineConfig, ExternalRuleSource, ValidateConfig, ValidationEngine,
+    validate_bytes_with_path, validate_catching_panics,
 };
 
 /// Generous wall-clock ceiling. These tests guard against unbounded/exponential
@@ -42,6 +43,9 @@ fn build_engine(engine_name: &str) -> Result<Box<dyn ValidationEngine>, String> 
             .map(|e| Box::new(e) as Box<dyn ValidationEngine>)
             .map_err(|e| e.to_string()),
         "cel" => CelEngine::new(EngineConfig::default())
+            .map(|e| Box::new(e) as Box<dyn ValidationEngine>)
+            .map_err(|e| e.to_string()),
+        "composite" => CompositeEngine::new(CompositeEngineConfig::default())
             .map(|e| Box::new(e) as Box<dyn ValidationEngine>)
             .map_err(|e| e.to_string()),
         other => Err(format!("unknown engine '{other}'")),
@@ -144,13 +148,13 @@ fn deeply_nested_template_does_not_overflow_the_stack() {
 }
 
 #[test]
-fn every_security_template_is_exercised_by_both_engines() {
+fn every_security_template_is_exercised_by_all_engines() {
     let mut templates = Vec::new();
     collect_security_templates(&common::security_dir(), &mut templates);
     templates.sort();
     assert!(!templates.is_empty(), "security fixture directory must contain templates");
 
-    for engine_name in ["rego", "cel"] {
+    for engine_name in ["rego", "cel", "composite"] {
         for template in &templates {
             let bytes = std::fs::read(template)
                 .unwrap_or_else(|error| panic!("failed to read security fixture {}: {error}", template.display()));
@@ -176,7 +180,7 @@ fn every_security_template_is_exercised_by_both_engines() {
 fn schema_scenario_assignment_boundary_is_explicit_and_bounded() {
     const CURTAILED_ANALYSIS_ADVISORY: &str = "W9052";
     let mut engine_reports = Vec::new();
-    for engine_name in ["rego", "cel"] {
+    for engine_name in ["rego", "cel", "composite"] {
         let report = validate_report_within(
             COMPLETION_BUDGET,
             engine_name,
@@ -204,7 +208,7 @@ fn schema_scenario_assignment_boundary_is_explicit_and_bounded() {
 
 #[test]
 fn pathological_conditions_resolve_within_budget() {
-    for engine_name in ["rego", "cel"] {
+    for engine_name in ["rego", "cel", "composite"] {
         let bytes = common::load_security("many_conditions.yaml");
         let finished = validate_within(COMPLETION_BUDGET, engine_name, bytes);
         assert!(
@@ -225,8 +229,8 @@ fn pathological_condition_closures_resolve_within_budget() {
     // per-query parameter cap and cumulative iteration budget in template-model
     // make the solver fall back to its conservative "assume satisfiable" answer
     // and stay bounded. This guards that such a template still validates to a
-    // structured report - on both engines - instead of hanging.
-    for engine_name in ["rego", "cel"] {
+    // structured report - on all three engines - instead of hanging.
+    for engine_name in ["rego", "cel", "composite"] {
         let bytes = common::load_security("pathological_conditions.yaml");
         let finished = validate_within(COMPLETION_BUDGET, engine_name, bytes);
         assert!(
@@ -242,7 +246,7 @@ fn pathological_condition_closures_resolve_within_budget() {
 fn conditions_layered_over_shared_inputs_are_analyzed_without_curtailing() {
     const CURTAILED_ANALYSIS_ADVISORY: &str = "W9052";
     let mut engine_reports = Vec::new();
-    for engine_name in ["rego", "cel"] {
+    for engine_name in ["rego", "cel", "composite"] {
         let report =
             validate_report_within(COMPLETION_BUDGET, engine_name, common::load_security("condition_fusion.yaml"))
                 .unwrap_or_else(|| {
@@ -447,11 +451,11 @@ fn benign_custom_cel_rule_runs_and_fires() {
 }
 
 #[test]
-fn large_resource_count_validates_to_a_bounded_result_on_both_engines() {
+fn large_resource_count_validates_to_a_bounded_result_on_all_engines() {
     // The bound under test is the resource count itself - a fixed,
     // machine-independent quantity - not wall-clock time. A template at the
     // 500-resource scale must parse to exactly that many resources and validate
-    // to a structured report (never hang, panic, or error) on both engines.
+    // to a structured report (never hang, panic, or error) on all three engines.
     const SCALE_RESOURCES: usize = 500;
     let bytes = common::load_security("many_resources.yaml");
 
@@ -462,7 +466,7 @@ fn large_resource_count_validates_to_a_bounded_result_on_both_engines() {
         "the fixture must hold exactly {SCALE_RESOURCES} resources so the scale under test is fixed"
     );
 
-    for engine_name in ["rego", "cel"] {
+    for engine_name in ["rego", "cel", "composite"] {
         let engine = build_engine(engine_name).expect("engine must build");
         let schema_validator = SchemaValidator::default();
         let _ = validate_bytes_with_path(
@@ -499,7 +503,7 @@ fn dense_cross_resource_fanout_validates_to_a_bounded_result() {
         .count();
     assert_eq!(resource_edges, RESOURCE_REFERENCE_EDGES);
 
-    for engine_name in ["rego", "cel"] {
+    for engine_name in ["rego", "cel", "composite"] {
         let finished = validate_report_within(COMPLETION_BUDGET, engine_name, bytes.clone()).unwrap_or_else(|| {
             panic!(
                 "{engine_name}: {RESOURCE_REFERENCE_EDGES} resource references must validate within \
@@ -518,7 +522,7 @@ fn condition_chain_boundary_resolves_within_budget() {
     // shape, 10 gated resources, and nested Fn::If depth 2 in properties. This
     // exercises the condition-resolution hot path on a real-world shape without
     // triggering pathological exponential blowup.
-    for engine_name in ["rego", "cel"] {
+    for engine_name in ["rego", "cel", "composite"] {
         let bytes = common::load_security("condition_chain_boundary.yaml");
         let finished = validate_within(COMPLETION_BUDGET, engine_name, bytes);
         assert!(
@@ -535,7 +539,7 @@ fn condition_chain_wide_resolves_within_budget() {
     // 73 parameters with 40 chained conditions - the reported 73-parameter case.
     // The parameter space (>2^20 paths) exercises the per-query parameter cap and
     // cumulative iteration budget.
-    for engine_name in ["rego", "cel"] {
+    for engine_name in ["rego", "cel", "composite"] {
         let bytes = common::load_security("condition_chain_wide.yaml");
         let finished = validate_within(COMPLETION_BUDGET, engine_name, bytes);
         assert!(
@@ -554,11 +558,11 @@ fn cross_resource_pair_comparison_produces_a_deterministic_bounded_count() {
     // rule. The deterministic, machine-independent signature that the quadratic
     // pair comparison ran to completion and stayed bounded is the exact
     // diagnostic count: exactly one uniqueness diagnostic per resource in the
-    // duplicate group, and identical on both engines. This replaces the former
+    // duplicate group, and identical on all three engines. This replaces the former
     // wall-clock ceiling.
     const PRIMARY_IDENTIFIER_UNIQUENESS_RULE: &str = "E3019";
     const SHARED_IDENTIFIER_RESOURCES: usize = 500;
-    for engine_name in ["rego", "cel"] {
+    for engine_name in ["rego", "cel", "composite"] {
         let bytes = common::load_security("cross_resource_scale.yaml");
         let engine = build_engine(engine_name).expect("engine must build");
         let schema_validator = SchemaValidator::default();
@@ -610,7 +614,7 @@ fn foreach_branch_explosion_is_bounded_within_budget() {
         "a failed transform must not apply a partial generated section; got {} modeled resources",
         model.resources.len()
     );
-    // The universal sweep above validates that both engines return within the
+    // The universal sweep above validates that all three engines return within the
     // test-only wall-clock deadline on this same fixture.
 }
 
@@ -630,7 +634,7 @@ fn deep_yaml_nesting_is_rejected_with_structured_error() {
 fn deep_intrinsic_resolution_completes_within_budget() {
     // A valid template with deeply nested block-style Fn::If chains (64 levels,
     // one condition) must parse to a SemanticModel, produce the expected resource,
-    // and resolve within the timeout on both engines without error.
+    // and resolve within the timeout on all three engines without error.
     let bytes = common::load_security("deep_intrinsic_resolution.yaml");
 
     // Phase 1: Assert the SemanticModel builds and has the expected shape.
@@ -640,8 +644,8 @@ fn deep_intrinsic_resolution_completes_within_budget() {
     assert!(model.resources.contains_key("DeepIfResource"), "resource logical ID must be DeepIfResource");
     assert!(model.conditions.conditions.contains_key("IsUsEast1"), "fixture declares a single condition IsUsEast1");
 
-    // Phase 2: Both engines complete validation without error.
-    for engine_name in ["rego", "cel"] {
+    // Phase 2: All three engines complete validation without error.
+    for engine_name in ["rego", "cel", "composite"] {
         let engine_bytes = common::load_security("deep_intrinsic_resolution.yaml");
         let finished = validate_within(COMPLETION_BUDGET, engine_name, engine_bytes);
         assert!(

@@ -77,9 +77,14 @@ impl From<&str> for ValidationError {
 #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Enum))]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum EngineType {
-    #[default]
     Rego,
     Cel,
+    /// Evaluates the built-in rules with one engine and layers caller-supplied
+    /// external Rego and Guard rules on top. With no external rules it produces
+    /// the same diagnostics as the standalone engines, which is why it is the
+    /// default selector.
+    #[default]
+    Composite,
 }
 
 impl EngineType {
@@ -87,17 +92,20 @@ impl EngineType {
         match self {
             EngineType::Rego => "Rego",
             EngineType::Cel => "CEL",
+            EngineType::Composite => "Composite",
         }
     }
 
-    /// Parses an engine selector, accepting `rego`/`cel` case-insensitively.
-    /// Returns an error describing the valid options rather than panicking, so a
-    /// bad selector becomes a handleable failure instead of a process abort.
+    /// Parses an engine selector, accepting `rego`/`cel`/`composite`
+    /// case-insensitively. Returns an error describing the valid options rather
+    /// than panicking, so a bad selector becomes a handleable failure instead of
+    /// a process abort.
     pub fn parse(raw: &str) -> Result<Self, String> {
         match raw.to_lowercase().as_str() {
             "rego" => Ok(EngineType::Rego),
             "cel" => Ok(EngineType::Cel),
-            other => Err(format!("Unknown engine type '{other}'; expected 'rego' or 'cel'")),
+            "composite" => Ok(EngineType::Composite),
+            other => Err(format!("Unknown engine type '{other}'; expected 'rego', 'cel', or 'composite'")),
         }
     }
 }
@@ -191,6 +199,63 @@ impl EngineConfig {
             .collect::<Result<Vec<_>, _>>()?;
         build_overlay_catalog(overlays)
             .map_err(|e| ValidationError::Engine(format!("Failed to apply an additional schema: {e}")))
+    }
+}
+
+/// Configuration for a composite engine that evaluates the built-in rules with
+/// one engine and caller-supplied external rules with another.
+///
+/// The built-in rules are always evaluated, so this config only carries the
+/// external rules layered on top plus the shared schema configuration. It has
+/// no field for engine-native built-in custom rules because the composite fixes
+/// which engine owns the built-ins.
+#[derive(Default, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
+#[cfg_attr(feature = "wasm-bindings", tsify(from_wasm_abi))]
+#[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Record))]
+#[serde(rename_all = "camelCase")]
+pub struct CompositeEngineConfig {
+    /// Custom Rego rules layered on top of the built-in rules.
+    #[serde(default)]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
+    pub rego_rules: Vec<ExternalRuleSource>,
+    /// Guard DSL rules as raw source text, layered on top of the built-in rules.
+    #[serde(default)]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
+    pub guard_rules: Vec<ExternalRuleSource>,
+    /// Optional schema validator configuration. A standalone engine derives its
+    /// schema-aware rule metadata from this config. Language APIs also use it to
+    /// construct the schema validator bundled with the engine, so both components
+    /// observe the same additional schemas.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "wasm-bindings", tsify(optional))]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
+    pub schema_validator_config: Option<SchemaValidatorConfig>,
+}
+
+impl CompositeEngineConfig {
+    /// Starts from the default configuration.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Adds custom Rego rules layered on top of the built-in rules.
+    pub fn with_rego_rules(mut self, rules: impl IntoIterator<Item = ExternalRuleSource>) -> Self {
+        self.rego_rules.extend(rules);
+        self
+    }
+
+    /// Adds Guard DSL rules layered on top of the built-in rules.
+    pub fn with_guard_rules(mut self, rules: impl IntoIterator<Item = ExternalRuleSource>) -> Self {
+        self.guard_rules.extend(rules);
+        self
+    }
+
+    /// Sets the nested schema validator configuration so both the built-in and
+    /// external evaluation observe the same additional schemas.
+    pub fn with_schema_validator_config(mut self, config: SchemaValidatorConfig) -> Self {
+        self.schema_validator_config = Some(config);
+        self
     }
 }
 
@@ -758,6 +823,10 @@ pub(crate) fn parse_diagnostic(
     Ok(diagnostic)
 }
 
+/// Parses a JSON array of rule outputs, appending a [`Diagnostic`] for each
+/// element. The array iteration and per-element parsing live in
+/// [`extract_diagnostics_from_value`]; this entry point only turns the string
+/// into a value first.
 pub fn extract_diagnostics(
     json_str: &str,
     model: &SemanticModel,
@@ -766,6 +835,19 @@ pub fn extract_diagnostics(
 ) -> Result<(), String> {
     let json_val: serde_json::Value =
         serde_json::from_str(json_str).map_err(|e| format!("Failed to parse diagnostic JSON: {}", e))?;
+    extract_diagnostics_from_value(&json_val, model, out, source_override)
+}
+
+/// Appends a [`Diagnostic`] for each element of an already-parsed JSON array of
+/// rule outputs. A caller that already holds the structured value skips the JSON
+/// string round-trip [`extract_diagnostics`] performs.
+#[doc(hidden)]
+pub fn extract_diagnostics_from_value(
+    json_val: &serde_json::Value,
+    model: &SemanticModel,
+    out: &mut Vec<Diagnostic>,
+    source_override: Option<&RuleOrigin>,
+) -> Result<(), String> {
     let items = json_val.as_array().ok_or("Diagnostic output must be a JSON array")?;
     for item in items {
         out.push(parse_diagnostic(item, model, source_override)?);
@@ -877,7 +959,12 @@ pub(crate) fn finalize_diagnostics(diagnostics: &mut Vec<Diagnostic>, config: &V
     // are distinct even when they share a span, message, and path. This happens
     // with `Fn::ForEach`-expanded resources, which are separate resources built
     // from one template body and therefore carry the same source span.
-    let resource_id = |d: &Diagnostic| d.entity.as_ref().map(|e| e.logical_id.clone()).unwrap_or_default();
+    //
+    // An item fn (not a closure) is required to borrow the id: a closure cannot
+    // express that its returned `&str` is tied to the borrowed argument.
+    fn resource_id(d: &Diagnostic) -> &str {
+        d.entity.as_ref().map(|e| e.logical_id.as_str()).unwrap_or_default()
+    }
     diagnostics.sort_by(|a, b| {
         b.severity
             .cmp(&a.severity)
@@ -885,7 +972,7 @@ pub(crate) fn finalize_diagnostics(diagnostics: &mut Vec<Diagnostic>, config: &V
             .then_with(|| a.rule_id.cmp(&b.rule_id))
             .then_with(|| line(a).cmp(&line(b)))
             .then_with(|| column(a).cmp(&column(b)))
-            .then_with(|| resource_id(a).cmp(&resource_id(b)))
+            .then_with(|| resource_id(a).cmp(resource_id(b)))
             .then_with(|| a.property_path.cmp(&b.property_path))
             .then_with(|| a.message.cmp(&b.message))
     });
@@ -1832,6 +1919,36 @@ Resources:
     }
 
     #[test]
+    fn extract_diagnostics_from_value_matches_string_extraction() {
+        let model = minimal_model();
+        let json = serde_json::json!([
+            {"rule_id": "E3012", "severity": Severity::Error.as_str(), "message": "a", "resource_id": "Bucket",
+             "resource_path": "Properties.BucketName"},
+            {"rule_id": "W3045", "severity": Severity::Warn.as_str(), "message": "b"}
+        ]);
+
+        let mut from_string = Vec::new();
+        extract_diagnostics(&json.to_string(), &model, &mut from_string, None)
+            .expect("string extraction should succeed");
+        let mut from_value = Vec::new();
+        extract_diagnostics_from_value(&json, &model, &mut from_value, None).expect("value extraction should succeed");
+
+        assert_eq!(
+            serde_json::to_value(&from_string).expect("serialize string-extracted diagnostics"),
+            serde_json::to_value(&from_value).expect("serialize value-extracted diagnostics"),
+            "value input and its serialized string form must yield identical diagnostics"
+        );
+    }
+
+    #[test]
+    fn extract_diagnostics_from_value_rejects_non_array() {
+        let model = minimal_model();
+        let mut out = Vec::new();
+        extract_diagnostics_from_value(&serde_json::json!({"key": "value"}), &model, &mut out, None)
+            .expect_err("a non-array value must be rejected the same as the string form");
+    }
+
+    #[test]
     fn build_report_counts_severities() {
         let model = minimal_model();
         let diags = vec![
@@ -2709,14 +2826,18 @@ Resources:
     }
 
     #[test]
-    fn engine_type_default_is_rego() {
-        assert_eq!(EngineType::default(), EngineType::Rego);
+    fn engine_type_default_is_composite() {
+        assert_eq!(EngineType::default(), EngineType::Composite);
     }
 
     #[test]
-    fn engine_type_as_str_returns_lowercase() {
-        assert_eq!(EngineType::Rego.as_str(), "Rego");
-        assert_eq!(EngineType::Cel.as_str(), "CEL");
+    fn engine_type_as_str_and_display_name_every_variant() {
+        for (engine, expected) in
+            [(EngineType::Rego, "Rego"), (EngineType::Cel, "CEL"), (EngineType::Composite, "Composite")]
+        {
+            assert_eq!(engine.as_str(), expected);
+            assert_eq!(engine.to_string(), expected, "Display must match as_str");
+        }
     }
 
     #[test]
@@ -2725,6 +2846,8 @@ Resources:
         assert_eq!(EngineType::parse("REGO"), Ok(EngineType::Rego));
         assert_eq!(EngineType::parse("Cel"), Ok(EngineType::Cel));
         assert_eq!(EngineType::parse("CEL"), Ok(EngineType::Cel));
+        assert_eq!(EngineType::parse("composite"), Ok(EngineType::Composite));
+        assert_eq!(EngineType::parse("COMPOSITE"), Ok(EngineType::Composite));
     }
 
     #[test]
@@ -2732,8 +2855,11 @@ Resources:
         let error =
             EngineType::parse("unknown").expect_err("an unknown engine selector must return an error, not a default");
         assert!(
-            error.contains("Unknown engine type 'unknown'") && error.contains("rego"),
-            "the error must name the bad selector and the valid options, got: {error}"
+            error.contains("Unknown engine type 'unknown'")
+                && error.contains("rego")
+                && error.contains("cel")
+                && error.contains("composite"),
+            "the error must name the bad selector and all three valid options, got: {error}"
         );
     }
 

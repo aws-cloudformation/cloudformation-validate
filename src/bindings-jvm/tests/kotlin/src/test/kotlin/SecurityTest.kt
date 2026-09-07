@@ -5,9 +5,11 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.DynamicTest
 import org.junit.jupiter.api.TestFactory
 import software.amazon.cloudformation.validate.CelEngine
+import software.amazon.cloudformation.validate.CompositeEngine
 import software.amazon.cloudformation.validate.RegoEngine
 import software.amazon.cloudformation.validate.ValidateConfig
 import software.amazon.cloudformation.validate.ValidationException
+import software.amazon.cloudformation.validate.engine.CompositeEngineConfig
 import software.amazon.cloudformation.validate.engine.EngineConfig
 import software.amazon.cloudformation.validate.rules.Severity
 import java.io.File
@@ -15,7 +17,7 @@ import java.time.Duration
 
 class SecurityTest {
     @TestFactory
-    fun everySecurityTemplateWithBothEngines(): List<DynamicTest> {
+    fun everySecurityTemplateWithAllEngines(): List<DynamicTest> {
         val templates =
             securityRoot
                 .walkTopDown()
@@ -25,22 +27,23 @@ class SecurityTest {
         check(templates.isNotEmpty()) { "no security templates found under ${securityRoot.path}" }
 
         val config = ValidateConfig(severityLevel = Severity.DEBUG)
-        return listOf("rego", "cel").flatMap { engineName ->
+        return listOf("rego", "cel", "composite").flatMap { engineName ->
             templates.map { template ->
                 val relativePath = template.relativeTo(securityRoot).path.replace('\\', '/')
                 DynamicTest.dynamicTest("$engineName/$relativePath") {
                     assertTimeoutPreemptively(Duration.ofSeconds(60)) {
                         val engine: Any =
-                            if (engineName == "rego") {
-                                RegoEngine(EngineConfig())
-                            } else {
-                                CelEngine(EngineConfig())
+                            when (engineName) {
+                                "rego" -> RegoEngine(EngineConfig())
+                                "cel" -> CelEngine(EngineConfig())
+                                else -> CompositeEngine(CompositeEngineConfig())
                             }
                         try {
                             val report =
                                 when (engine) {
                                     is RegoEngine -> engine.validateDetailed(template, config)
                                     is CelEngine -> engine.validateDetailed(template, config)
+                                    is CompositeEngine -> engine.validateDetailed(template, config)
                                     else -> error("unsupported engine type")
                                 }
                             assertNotNull(report.status)

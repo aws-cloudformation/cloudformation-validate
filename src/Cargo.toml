@@ -7,6 +7,7 @@ members = [
     "bindings-wasm",
     "cel-engine",
     "cfn-validate",
+    "composite-engine",
     "data-source",
     "diagnostics",
     "guard-translator",
@@ -46,6 +47,7 @@ categories = [
 
 [workspace.dependencies]
 cel-engine = { package = "cloudformation-validate-cel-engine", path = "cel-engine", version = "=1.9.0" }
+composite-engine = { package = "cloudformation-validate-composite-engine", path = "composite-engine", version = "=1.9.0" }
 data-source = { package = "cloudformation-validate-data-source", path = "data-source", version = "=1.9.0", default-features = false }
 diagnostics = { package = "cloudformation-validate-diagnostics", path = "diagnostics", version = "=1.9.0" }
 guard-translator = { package = "cloudformation-validate-guard-translator", path = "guard-translator", version = "=1.9.0" }

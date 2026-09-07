@@ -6,6 +6,7 @@ use std::path::{Path, PathBuf};
 use std::{env, fs, panic, process, time::Instant};
 
 use cel_engine::CelEngine;
+use composite_engine::CompositeEngine;
 use diagnostics::{DetailLevel, ValidationReport};
 use log::{error, info};
 use rego_engine::RegoEngine;
@@ -13,7 +14,9 @@ use rules::Severity;
 use schema_validator::SchemaValidator;
 use sha2::{Digest, Sha256};
 use template_model::SemanticModel;
-use validation_engine::{EngineConfig, EngineType, ValidateConfig, ValidationEngine, validate_bytes_with_path};
+use validation_engine::{
+    CompositeEngineConfig, EngineConfig, EngineType, ValidateConfig, ValidationEngine, validate_bytes_with_path,
+};
 
 const DEFAULT_STARTUP_TEMPLATE: &str = "good/minimal.yaml";
 
@@ -42,6 +45,10 @@ fn build_engine(engine_type: EngineType, config: &EngineConfig) -> Result<Box<dy
         }
         EngineType::Rego => Ok(Box::new(
             RegoEngine::new(config.clone()).map_err(|e| format!("Rego engine initialization failed: {e}"))?,
+        )),
+        EngineType::Composite => Ok(Box::new(
+            CompositeEngine::new(CompositeEngineConfig::default())
+                .map_err(|e| format!("Composite engine initialization failed: {e}"))?,
         )),
     }
 }
@@ -188,7 +195,9 @@ fn resolve_default_template_dir() -> Result<PathBuf, String> {
 fn run() -> Result<(), String> {
     let args: Vec<String> = env::args().collect();
     if args.iter().any(|a| a == "-h" || a == "--help") {
-        eprintln!("Usage: cfn-benchmark [TEMPLATE|DIR] [--engine rego|cel] [--iterations N] [--startup-probe]");
+        eprintln!(
+            "Usage: cfn-benchmark [TEMPLATE|DIR] [--engine rego|cel|composite] [--iterations N] [--startup-probe]"
+        );
         process::exit(2);
     }
 
@@ -202,7 +211,7 @@ fn run() -> Result<(), String> {
             Some(s) => match EngineType::parse(s) {
                 Ok(e) => e,
                 Err(_) => {
-                    eprintln!("Error: --engine must be 'rego' or 'cel', got '{}'", s);
+                    eprintln!("Error: --engine must be 'rego', 'cel', or 'composite', got '{}'", s);
                     process::exit(2);
                 }
             },

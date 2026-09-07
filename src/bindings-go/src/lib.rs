@@ -17,7 +17,9 @@ use diagnostics::DetailLevel;
 use rules::{FilterConfig, RuleFilterConfig, Severity};
 use schema_validator::SchemaValidatorConfig;
 use template_model::PseudoParameterOverrides;
-use validation_engine::{EngineConfig, ExternalRuleSource, ValidationEngine, catch_panics, validate_bytes_with_path};
+use validation_engine::{
+    CompositeEngineConfig, EngineConfig, ExternalRuleSource, ValidationEngine, catch_panics, validate_bytes_with_path,
+};
 
 #[derive(Debug, thiserror::Error, uniffi::Error)]
 pub enum ValidationError {
@@ -78,7 +80,7 @@ impl ValidateOptions {
 
 #[cfg(test)]
 fn parse_engine_config(config_json: &str) -> Result<EngineConfig, ValidationError> {
-    EngineOptions::parse(config_json).map(EngineOptions::into_core)
+    EngineOptions::parse(config_json).map(|options| options.into_engine_build().1)
 }
 
 /// Engine construction options, deserialized from the JSON produced by the Go
@@ -117,20 +119,69 @@ struct SchemaValidatorOptionsInline {
     additional_schemas: Vec<SchemaSourceOptions>,
 }
 
+impl SchemaValidatorOptionsInline {
+    fn into_core(self) -> SchemaValidatorConfig {
+        SchemaValidatorConfig {
+            additional_schemas: self.additional_schemas.into_iter().map(AdditionalSchemaSource::from).collect(),
+        }
+    }
+}
+
 impl EngineOptions {
     fn parse(config_json: &str) -> Result<Self, ValidationError> {
         serde_json::from_str(config_json).map_err(|e| ValidationError::new(format!("invalid engine config JSON: {e}")))
     }
 
-    #[cfg(test)]
-    fn into_core(self) -> EngineConfig {
-        EngineConfig {
+    /// Splits parsed options into the schema validator config used to build the
+    /// shared validator, and the engine config. The engine config's own schema
+    /// config is left unset because the validator is constructed once and shared
+    /// with the engine rather than rebuilt from this field.
+    fn into_engine_build(self) -> (SchemaValidatorConfig, EngineConfig) {
+        let schema_config =
+            self.schema_validator_config.map(SchemaValidatorOptionsInline::into_core).unwrap_or_default();
+        let engine_config = EngineConfig {
             custom_rules: self.custom_rules.into_iter().map(ExternalRuleSource::from).collect(),
             guard_rules: self.guard_rules.into_iter().map(ExternalRuleSource::from).collect(),
-            schema_validator_config: self.schema_validator_config.map(|sv| SchemaValidatorConfig {
-                additional_schemas: sv.additional_schemas.into_iter().map(AdditionalSchemaSource::from).collect(),
-            }),
-        }
+            schema_validator_config: None,
+        };
+        (schema_config, engine_config)
+    }
+}
+
+/// Composite engine construction options, deserialized from the JSON produced by
+/// the Go wrapper. A strict mirror of the core `CompositeEngineConfig`: the
+/// composite fixes which engine owns the built-in rules, so it carries only the
+/// external Rego rules, Guard rules, and shared schema config layered on top -
+/// there is no field for engine-native built-in custom rules. Rejecting unknown
+/// keys turns a drifted field name into an error rather than an engine that
+/// silently loads none of the caller's rules.
+#[derive(serde::Deserialize, Default)]
+#[serde(rename_all = "camelCase", default, deny_unknown_fields)]
+struct CompositeEngineOptions {
+    rego_rules: Vec<RuleSourceOptions>,
+    guard_rules: Vec<RuleSourceOptions>,
+    schema_validator_config: Option<SchemaValidatorOptionsInline>,
+}
+
+impl CompositeEngineOptions {
+    fn parse(config_json: &str) -> Result<Self, ValidationError> {
+        serde_json::from_str(config_json)
+            .map_err(|e| ValidationError::new(format!("invalid composite engine config JSON: {e}")))
+    }
+
+    /// Splits parsed options into the schema validator config used to build the
+    /// shared validator, and the composite config. The composite config's own
+    /// schema config is left unset because the validator is constructed once and
+    /// shared with both inner engines rather than rebuilt from this field.
+    fn into_engine_build(self) -> (SchemaValidatorConfig, CompositeEngineConfig) {
+        let schema_config =
+            self.schema_validator_config.map(SchemaValidatorOptionsInline::into_core).unwrap_or_default();
+        let composite_config = CompositeEngineConfig {
+            rego_rules: self.rego_rules.into_iter().map(ExternalRuleSource::from).collect(),
+            guard_rules: self.guard_rules.into_iter().map(ExternalRuleSource::from).collect(),
+            schema_validator_config: None,
+        };
+        (schema_config, composite_config)
     }
 }
 
@@ -220,7 +271,7 @@ impl GoSchemaValidator {
 }
 
 macro_rules! impl_go_engine {
-    ($GoType:ident, $InnerEngine:ty, $constructor:path) => {
+    ($GoType:ident, $InnerEngine:ty, $Options:ty, $constructor:path) => {
         #[derive(uniffi::Object)]
         pub struct $GoType {
             engine: $InnerEngine,
@@ -229,32 +280,15 @@ macro_rules! impl_go_engine {
 
         #[uniffi::export]
         impl $GoType {
-            /// Builds an engine from a JSON engine config (`{}` for defaults;
-            /// `customRules` / `guardRules` load external rule sources).
+            /// Builds an engine from a JSON config string. `{}` selects the
+            /// built-in defaults; the JSON may carry external rule sources and an
+            /// optional nested schema validator config, following this engine's
+            /// option schema.
             #[uniffi::constructor]
             pub fn new(config_json: String) -> Result<Arc<Self>, ValidationError> {
                 catch_panics(
                     || {
-                        let engine_options = EngineOptions::parse(&config_json)?;
-                        let schema_config = engine_options
-                            .schema_validator_config
-                            .map(|sv| SchemaValidatorConfig {
-                                additional_schemas: sv
-                                    .additional_schemas
-                                    .into_iter()
-                                    .map(AdditionalSchemaSource::from)
-                                    .collect(),
-                            })
-                            .unwrap_or_default();
-                        let config = EngineConfig {
-                            custom_rules: engine_options
-                                .custom_rules
-                                .into_iter()
-                                .map(ExternalRuleSource::from)
-                                .collect(),
-                            guard_rules: engine_options.guard_rules.into_iter().map(ExternalRuleSource::from).collect(),
-                            schema_validator_config: None,
-                        };
+                        let (schema_config, config) = <$Options>::parse(&config_json)?.into_engine_build();
                         let schema_validator =
                             schema_validator::SchemaValidator::new(schema_config).map_err(ValidationError::new)?;
                         let engine = $constructor(config, &schema_validator).map_err(ValidationError::new)?;
@@ -324,8 +358,19 @@ macro_rules! impl_go_engine {
     };
 }
 
-impl_go_engine!(GoRegoEngine, rego_engine::RegoEngine, rego_engine::RegoEngine::new_with_schema_validator);
-impl_go_engine!(GoCelEngine, cel_engine::CelEngine, cel_engine::CelEngine::new_with_schema_validator);
+impl_go_engine!(
+    GoRegoEngine,
+    rego_engine::RegoEngine,
+    EngineOptions,
+    rego_engine::RegoEngine::new_with_schema_validator
+);
+impl_go_engine!(GoCelEngine, cel_engine::CelEngine, EngineOptions, cel_engine::CelEngine::new_with_schema_validator);
+impl_go_engine!(
+    GoCompositeEngine,
+    composite_engine::CompositeEngine,
+    CompositeEngineOptions,
+    composite_engine::CompositeEngine::new_with_schema_validator
+);
 
 #[derive(uniffi::Object)]
 pub struct GoSemanticModel {
@@ -416,6 +461,13 @@ mod tests {
 
     fn expect_engine_config_error(config_json: &str) -> ValidationError {
         match parse_engine_config(config_json) {
+            Err(error) => error,
+            Ok(_) => panic!("expected {config_json} to be rejected"),
+        }
+    }
+
+    fn expect_composite_config_error(config_json: &str) -> ValidationError {
+        match CompositeEngineOptions::parse(config_json) {
             Err(error) => error,
             Ok(_) => panic!("expected {config_json} to be rejected"),
         }
@@ -556,6 +608,69 @@ mod tests {
 
         assert!(
             error.to_string().contains("invalid engine config JSON"),
+            "error must identify the failing input: {error}"
+        );
+    }
+
+    /// The JSON a fully populated Go `CompositeEngineConfig` marshals to. Kept in
+    /// sync with `fullCompositeEngineConfigJSON` in `tests/config_test.go`, which
+    /// asserts the Go struct produces exactly this document - together the two
+    /// tests pin the composite wire contract from both sides.
+    const FULL_COMPOSITE_OPTIONS_JSON: &str = r#"{
+        "regoRules": [{"name": "custom.rego", "content": "package x"}],
+        "guardRules": [{"name": "compliance.guard", "content": "let x = 1"}],
+        "schemaValidatorConfig": {
+            "additionalSchemas": [{
+                "schema": "{\"typeName\":\"AWS::Test::OverlayOnly\",\"properties\":{\"Name\":{\"type\":\"string\"}}}"
+            }]
+        }
+    }"#;
+
+    #[test]
+    fn composite_options_parse_every_field_the_go_wrapper_sends() {
+        let options =
+            CompositeEngineOptions::parse(FULL_COMPOSITE_OPTIONS_JSON).expect("full composite config must parse");
+
+        assert_eq!(1, options.rego_rules.len());
+        assert_eq!("custom.rego", options.rego_rules[0].name);
+        assert_eq!("package x", options.rego_rules[0].content);
+        assert_eq!(1, options.guard_rules.len());
+        assert_eq!("compliance.guard", options.guard_rules[0].name);
+        assert_eq!("let x = 1", options.guard_rules[0].content);
+
+        let schema = options.schema_validator_config.expect("schemaValidatorConfig must parse");
+        assert_eq!(1, schema.additional_schemas.len());
+    }
+
+    #[test]
+    fn empty_composite_config_loads_no_external_rules() {
+        let (schema_config, composite_config) =
+            CompositeEngineOptions::parse("{}").expect("an empty object must parse").into_engine_build();
+
+        assert!(composite_config.rego_rules.is_empty());
+        assert!(composite_config.guard_rules.is_empty());
+        assert!(schema_config.additional_schemas.is_empty());
+        assert!(
+            composite_config.schema_validator_config.is_none(),
+            "the shared validator is built separately, so the composite config's own schema field stays unset"
+        );
+    }
+
+    #[test]
+    fn unknown_composite_option_is_rejected() {
+        // The composite carries `regoRules`, not the engine config's `customRules`,
+        // so an engine-config field name must be rejected rather than dropped.
+        let error = expect_composite_config_error(r#"{"customRules": []}"#);
+
+        assert!(error.to_string().contains("customRules"), "error must name the offending key: {error}");
+    }
+
+    #[test]
+    fn malformed_composite_config_json_reports_an_engine_error() {
+        let error = expect_composite_config_error("not json");
+
+        assert!(
+            error.to_string().contains("invalid composite engine config JSON"),
             "error must identify the failing input: {error}"
         );
     }

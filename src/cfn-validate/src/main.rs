@@ -1,6 +1,7 @@
 use std::{collections::HashMap, env, fs, path::Path, process};
 
 use cel_engine::CelEngine;
+use composite_engine::CompositeEngine;
 use diagnostics::{DetailLevel, ValidationReport};
 use log::{error, info};
 use rego_engine::RegoEngine;
@@ -11,8 +12,8 @@ use rules::{
 use schema_validator::{SchemaValidator, SchemaValidatorConfig};
 use template_model::{EntityType, PseudoParameterOverrides};
 use validation_engine::{
-    EngineConfig, EngineType, ExternalRuleSource, ValidateConfig, ValidationEngine, ValidationError, catch_panics,
-    guard, validate_bytes_with_path, validate_catching_panics,
+    CompositeEngineConfig, EngineConfig, EngineType, ExternalRuleSource, ValidateConfig, ValidationEngine,
+    ValidationError, catch_panics, guard, validate_bytes_with_path, validate_catching_panics,
 };
 
 fn main() {
@@ -42,7 +43,7 @@ fn main() {
     let mut guard_rule_source_paths: Vec<String> = Vec::new();
     let mut additional_schema_paths: Vec<String> = Vec::new();
     let mut list_rules = false;
-    let mut engine_type = EngineType::default();
+    let mut engine_selection = EngineType::default();
     let mut validate_config = ValidateConfig::default();
     let mut parameter_overrides = HashMap::new();
     let mut pseudo_parameter_overrides = PseudoParameterOverrides::default();
@@ -176,7 +177,7 @@ fn main() {
             "--engine" => {
                 i += 1;
                 if let Some(val) = args.get(i) {
-                    engine_type = EngineType::parse(val).unwrap_or_else(|e| {
+                    engine_selection = EngineType::parse(val).unwrap_or_else(|e| {
                         error!("{}", e);
                         process::exit(2);
                     });
@@ -249,8 +250,6 @@ fn main() {
         }
     };
 
-    let engine_config = EngineConfig { custom_rules, guard_rules, schema_validator_config: None };
-
     // The schema validator is built from its own config with the host-loaded
     // overlay schemas. The engine reuses the validator's already-built metadata.
     let schema_validator_config = SchemaValidatorConfig { additional_schemas };
@@ -266,26 +265,45 @@ fn main() {
     // internal invariant violation on adversarial rule input could panic. Catch it
     // here so it surfaces as a structured error and a clean exit code rather than an
     // uncaught abort - matching how the library bindings guard the same entry point.
+    //
+    // The composite engine layers the same external rules over the built-ins: the
+    // --rule-source inputs become its Rego rules and the resolved --guard-rule-source
+    // inputs its Guard rules.
     let engine_init: Result<Box<dyn ValidationEngine>, ValidationError> = catch_panics(
         || {
-            let engine: Box<dyn ValidationEngine> = match engine_type {
+            let engine: Box<dyn ValidationEngine> = match engine_selection {
                 EngineType::Cel => Box::new(
-                    CelEngine::new_with_schema_validator(engine_config, &schema_validator)
-                        .map_err(|e| e.to_string())?,
+                    CelEngine::new_with_schema_validator(
+                        EngineConfig { custom_rules, guard_rules, schema_validator_config: None },
+                        &schema_validator,
+                    )
+                    .map_err(|e| e.to_string())?,
                 ),
                 EngineType::Rego => Box::new(
-                    RegoEngine::new_with_schema_validator(engine_config, &schema_validator)
-                        .map_err(|e| e.to_string())?,
+                    RegoEngine::new_with_schema_validator(
+                        EngineConfig { custom_rules, guard_rules, schema_validator_config: None },
+                        &schema_validator,
+                    )
+                    .map_err(|e| e.to_string())?,
+                ),
+                EngineType::Composite => Box::new(
+                    CompositeEngine::new_with_schema_validator(
+                        CompositeEngineConfig { rego_rules: custom_rules, guard_rules, schema_validator_config: None },
+                        &schema_validator,
+                    )
+                    .map_err(|e| e.to_string())?,
                 ),
             };
             Ok(engine)
         },
         |message| {
-            ValidationError::Engine(format!("Internal error while initializing the {engine_type} engine: {message}"))
+            ValidationError::Engine(format!(
+                "Internal error while initializing the {engine_selection} engine: {message}"
+            ))
         },
     );
     let engine: Box<dyn ValidationEngine> = engine_init.unwrap_or_else(|e| {
-        error!("{} engine init failed: {}", engine_type, e);
+        error!("{} engine init failed: {}", engine_selection, e);
         process::exit(2);
     });
 
@@ -465,7 +483,8 @@ fn print_help() {
     eprintln!("  --level fatal|error|warn|info|debug  Minimum severity (default: info)");
     eprintln!();
     eprintln!("Other options:");
-    eprintln!("  --engine rego|cel             Validation engine (default: rego)");
+    eprintln!("  --engine rego|cel|composite   Validation engine (default: composite). composite layers");
+    eprintln!("                                --rule-source and --guard-rule-source over the built-in rules");
     eprintln!("  --rule-source <PATH>          Load custom rule from file");
     eprintln!("  --guard-rule-source <PATH>    Load Guard (.guard) rule file or directory");
     eprintln!("  --additional-schema <PATH>    Merge a resource provider schema (.json) file or directory on top");

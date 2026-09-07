@@ -3,6 +3,7 @@ import type {
     DiagnosticModel,
     AdditionalSchemaSource,
     EngineConfig as WasmEngineConfig,
+    CompositeEngineConfig as WasmCompositeEngineConfig,
     SchemaValidatorConfig as WasmSchemaValidatorConfig,
     ExternalRuleSource,
     ParameterInfo,
@@ -134,6 +135,23 @@ export interface EngineConfig {
 }
 
 /**
+ * Configuration for the {@link CompositeEngine}. The built-in rules are always
+ * evaluated by the engine's fixed built-in evaluator, so these fields only layer
+ * external rules on top - there is no engine-native custom-rule field.
+ */
+export interface CompositeEngineConfig {
+    /** Custom Rego rules layered on top of the built-in rules. */
+    regoRules?: RuleSource[];
+    /** CloudFormation Guard DSL rules layered on top of the built-in rules. */
+    guardRules?: RuleSource[];
+    /**
+     * Optional schema validator configuration, observed by both the built-in and
+     * external rule evaluation.
+     */
+    schemaValidatorConfig?: SchemaValidatorConfig;
+}
+
+/**
  * Configuration for the schema validator. Additional schemas are merged on top
  * of the bundled CloudFormation provider schemas before schema validation.
  */
@@ -161,6 +179,16 @@ function toAdditionalSchemas(sources?: SchemaSource[]): AdditionalSchemaSource[]
 function toWasmEngineConfig(config?: EngineConfig): WasmEngineConfig {
     return {
         customRules: toExternalRuleSources(config?.customRules),
+        guardRules: toExternalRuleSources(config?.guardRules),
+        schemaValidatorConfig: config?.schemaValidatorConfig
+            ? toWasmSchemaValidatorConfig(config.schemaValidatorConfig)
+            : undefined,
+    };
+}
+
+function toWasmCompositeEngineConfig(config?: CompositeEngineConfig): WasmCompositeEngineConfig {
+    return {
+        regoRules: toExternalRuleSources(config?.regoRules),
         guardRules: toExternalRuleSources(config?.guardRules),
         schemaValidatorConfig: config?.schemaValidatorConfig
             ? toWasmSchemaValidatorConfig(config.schemaValidatorConfig)
@@ -251,14 +279,15 @@ interface WasmEngineInstance {
     free(): void;
 }
 
-function createEngineClass(
-    WasmClass: new (config: WasmEngineConfig) => WasmEngineInstance,
-): new (config?: EngineConfig) => Engine {
+function createEngineClass<TConfig, TWasmConfig>(
+    WasmClass: new (config: TWasmConfig) => WasmEngineInstance,
+    toWasmConfig: (config?: TConfig) => TWasmConfig,
+): new (config?: TConfig) => Engine {
     return class implements Engine {
         private readonly inner: WasmEngineInstance;
 
-        constructor(config?: EngineConfig) {
-            this.inner = new WasmClass(toWasmEngineConfig(config));
+        constructor(config?: TConfig) {
+            this.inner = new WasmClass(toWasmConfig(config));
         }
 
         validateStandard(template: TemplateFile, config?: ValidateConfig): StandardReport {
@@ -280,11 +309,21 @@ function createEngineClass(
         free(): void {
             this.inner.free();
         }
-    } as new (config?: EngineConfig) => Engine;
+    } as new (config?: TConfig) => Engine;
 }
 
-export const RegoEngine: new (config?: EngineConfig) => Engine = createEngineClass(bridge.WasmRegoEngine);
-export const CelEngine: new (config?: EngineConfig) => Engine = createEngineClass(bridge.WasmCelEngine);
+export const RegoEngine: new (config?: EngineConfig) => Engine = createEngineClass(
+    bridge.WasmRegoEngine,
+    toWasmEngineConfig,
+);
+export const CelEngine: new (config?: EngineConfig) => Engine = createEngineClass(
+    bridge.WasmCelEngine,
+    toWasmEngineConfig,
+);
+export const CompositeEngine: new (config?: CompositeEngineConfig) => Engine = createEngineClass(
+    bridge.WasmCompositeEngine,
+    toWasmCompositeEngineConfig,
+);
 
 export function version(): string {
     return bridge.version();

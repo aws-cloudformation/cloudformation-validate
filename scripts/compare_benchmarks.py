@@ -21,7 +21,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR.parent
 SRC_DIR = PROJECT_ROOT / "src"
 
-ENGINES = ["rego", "cel"]
+ENGINES = ["rego", "cel", "composite"]
 FORMATS = ["detailed"]
 ALL_BINDINGS = [
     ("native", "Native Rust"),
@@ -66,7 +66,7 @@ PAIRED_FLOOR_MS = 0.01
 VALID_BINDINGS = {"native", "wasm", "jvm", "python", "go"}
 
 # Valid engine labels.
-VALID_ENGINES = {"rego", "cel"}
+VALID_ENGINES = {"rego", "cel", "composite"}
 
 # External process timer used to measure startup and full-corpus memory. The
 # GNU coreutils build ("-v") and the macOS build ("-l") report different
@@ -1726,7 +1726,7 @@ def build_report(all_loaded, all_detailed, engines, bindings, args, corpus_fp, c
     toc_items.append(
         f"- [Top-{args.top_slowest} Slowest Templates](#top-{args.top_slowest}-slowest-templates-subsequent-wall-clock)"
     )
-    if len(engines) == 2 and "rego" in engines and "cel" in engines:
+    if "rego" in engines and "cel" in engines:
         toc_items.append(
             "- [Paired Engine Comparison](#paired-engine-comparison-rego-vs-cel)"
         )
@@ -1752,7 +1752,7 @@ def build_report(all_loaded, all_detailed, engines, bindings, args, corpus_fp, c
             parity_all_passed = False
 
     lines += top_slowest_section(all_detailed, engines, bindings, args.top_slowest)
-    if len(engines) == 2 and "rego" in engines and "cel" in engines:
+    if "rego" in engines and "cel" in engines:
         lines += paired_engine_comparison(all_detailed, bindings)
 
     lines += data_sources_section(all_loaded, engines, bindings)

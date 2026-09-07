@@ -22,7 +22,7 @@ pub use template_model::model::{
 };
 pub use template_model::resolver::{MapEntry, ParameterInfo, RefKind, ResolvedValue};
 pub use template_model::{JsonValue, PseudoParameterOverrides, SourceSpan};
-pub use validation_engine::{EngineConfig, EngineType, ExternalRuleSource};
+pub use validation_engine::{CompositeEngineConfig, EngineConfig, EngineType, ExternalRuleSource};
 
 pub use schema_validator::SchemaValidatorConfig;
 
@@ -127,7 +127,7 @@ impl JvmSchemaValidator {
 }
 
 macro_rules! impl_jvm_engine {
-    ($JvmType:ident, $InnerEngine:ty, $constructor:path) => {
+    ($JvmType:ident, $InnerEngine:ty, $Config:ty, $constructor:path) => {
         #[derive(uniffi::Object)]
         pub struct $JvmType {
             engine: $InnerEngine,
@@ -137,7 +137,7 @@ macro_rules! impl_jvm_engine {
         #[uniffi::export]
         impl $JvmType {
             #[uniffi::constructor]
-            pub fn new(config: EngineConfig) -> Result<Arc<Self>, ValidationError> {
+            pub fn new(config: $Config) -> Result<Arc<Self>, ValidationError> {
                 validation_engine::catch_panics(
                     || {
                         let schema_config = config.schema_validator_config.clone().unwrap_or_default();
@@ -208,8 +208,19 @@ macro_rules! impl_jvm_engine {
     };
 }
 
-impl_jvm_engine!(JvmRegoEngine, rego_engine::RegoEngine, rego_engine::RegoEngine::new_with_schema_validator);
-impl_jvm_engine!(JvmCelEngine, cel_engine::CelEngine, cel_engine::CelEngine::new_with_schema_validator);
+impl_jvm_engine!(
+    JvmRegoEngine,
+    rego_engine::RegoEngine,
+    EngineConfig,
+    rego_engine::RegoEngine::new_with_schema_validator
+);
+impl_jvm_engine!(JvmCelEngine, cel_engine::CelEngine, EngineConfig, cel_engine::CelEngine::new_with_schema_validator);
+impl_jvm_engine!(
+    JvmCompositeEngine,
+    composite_engine::CompositeEngine,
+    CompositeEngineConfig,
+    composite_engine::CompositeEngine::new_with_schema_validator
+);
 
 #[derive(uniffi::Object)]
 pub struct JvmSemanticModel {

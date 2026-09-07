@@ -60,11 +60,22 @@ func mustEngine(t *testing.T, build func(*cfnvalidate.EngineConfig) (*cfnvalidat
 	return engine
 }
 
-func bothEngines(t *testing.T) map[string]*cfnvalidate.Engine {
+func mustCompositeEngine(t *testing.T, config *cfnvalidate.CompositeEngineConfig) *cfnvalidate.Engine {
+	t.Helper()
+	engine, err := cfnvalidate.NewCompositeEngine(config)
+	if err != nil {
+		t.Fatalf("composite engine construction failed: %v", err)
+	}
+	t.Cleanup(engine.Destroy)
+	return engine
+}
+
+func allEngines(t *testing.T) map[string]*cfnvalidate.Engine {
 	t.Helper()
 	return map[string]*cfnvalidate.Engine{
-		"rego": mustEngine(t, cfnvalidate.NewRegoEngine, nil),
-		"cel":  mustEngine(t, cfnvalidate.NewCelEngine, nil),
+		"rego":      mustEngine(t, cfnvalidate.NewRegoEngine, nil),
+		"cel":       mustEngine(t, cfnvalidate.NewCelEngine, nil),
+		"composite": mustCompositeEngine(t, nil),
 	}
 }
 
@@ -115,7 +126,7 @@ func TestPackageVersionReportsLocalReplacementAsDevelopment(t *testing.T) {
 }
 
 func TestEngineNames(t *testing.T) {
-	for want, engine := range bothEngines(t) {
+	for want, engine := range allEngines(t) {
 		if got := engine.EngineName(); got != want {
 			t.Errorf("EngineName() = %q, want %q", got, want)
 		}
@@ -123,9 +134,8 @@ func TestEngineNames(t *testing.T) {
 }
 
 func TestListRulesSortedAndIdenticalAcrossEngines(t *testing.T) {
-	engines := bothEngines(t)
-	lists := map[string][]cfnvalidate.RuleInfo{}
-	for name, engine := range engines {
+	encoded := map[string]string{}
+	for name, engine := range allEngines(t) {
 		rules, err := engine.ListRules()
 		if err != nil {
 			t.Fatalf("%s: ListRules failed: %v", name, err)
@@ -136,19 +146,17 @@ func TestListRulesSortedAndIdenticalAcrossEngines(t *testing.T) {
 		if !sort.SliceIsSorted(rules, func(i, j int) bool { return rules[i].ID < rules[j].ID }) {
 			t.Errorf("%s: rules must be sorted by id", name)
 		}
-		lists[name] = rules
+		rulesJSON, err := json.Marshal(rules)
+		if err != nil {
+			t.Fatalf("%s: marshaling rules: %v", name, err)
+		}
+		encoded[name] = string(rulesJSON)
 	}
-	rego, cel := lists["rego"], lists["cel"]
-	regoJSON, err := json.Marshal(rego)
-	if err != nil {
-		t.Fatalf("marshaling rego rules: %v", err)
-	}
-	celJSON, err := json.Marshal(cel)
-	if err != nil {
-		t.Fatalf("marshaling cel rules: %v", err)
-	}
-	if string(regoJSON) != string(celJSON) {
-		t.Error("CEL and Rego must list identical rules")
+	reference := encoded["rego"]
+	for name, rulesJSON := range encoded {
+		if rulesJSON != reference {
+			t.Errorf("%s must list rules identical to rego", name)
+		}
 	}
 }
 
@@ -178,8 +186,8 @@ func TestSchemaValidator(t *testing.T) {
 	}
 }
 
-func TestGoodTemplatePassesBothEngines(t *testing.T) {
-	for name, engine := range bothEngines(t) {
+func TestGoodTemplatePassesAllEngines(t *testing.T) {
+	for name, engine := range allEngines(t) {
 		report, err := engine.ValidateStandardFile(goodTemplate, nil)
 		if err != nil {
 			t.Fatalf("%s: validation failed: %v", name, err)
@@ -198,16 +206,29 @@ func TestGoodTemplatePassesBothEngines(t *testing.T) {
 	}
 }
 
-func TestAdditionalSchemasApplyThroughTheTypedConfigOnBothEngines(t *testing.T) {
+func TestAdditionalSchemasApplyThroughTheTypedConfigOnAllEngines(t *testing.T) {
 	schemaConfig := &cfnvalidate.SchemaValidatorConfig{
 		AdditionalSchemas: []cfnvalidate.AdditionalSchemaSource{{Schema: lambdaOverlaySchema}},
 	}
-	builders := map[string]func(*cfnvalidate.EngineConfig) (*cfnvalidate.Engine, error){
-		"rego": cfnvalidate.NewRegoEngine,
-		"cel":  cfnvalidate.NewCelEngine,
+	// The composite engine takes a CompositeEngineConfig rather than an
+	// EngineConfig, so each engine supplies its own baseline (no overlay) and
+	// overlay (schema config applied) builders.
+	builders := map[string]func() (baseline, overlay *cfnvalidate.Engine){
+		"rego": func() (*cfnvalidate.Engine, *cfnvalidate.Engine) {
+			return mustEngine(t, cfnvalidate.NewRegoEngine, nil),
+				mustEngine(t, cfnvalidate.NewRegoEngine, &cfnvalidate.EngineConfig{SchemaValidatorConfig: schemaConfig})
+		},
+		"cel": func() (*cfnvalidate.Engine, *cfnvalidate.Engine) {
+			return mustEngine(t, cfnvalidate.NewCelEngine, nil),
+				mustEngine(t, cfnvalidate.NewCelEngine, &cfnvalidate.EngineConfig{SchemaValidatorConfig: schemaConfig})
+		},
+		"composite": func() (*cfnvalidate.Engine, *cfnvalidate.Engine) {
+			return mustCompositeEngine(t, nil),
+				mustCompositeEngine(t, &cfnvalidate.CompositeEngineConfig{SchemaValidatorConfig: schemaConfig})
+		},
 	}
 	for name, build := range builders {
-		baseline := mustEngine(t, build, nil)
+		baseline, overlay := build()
 		baselineReport, err := baseline.ValidateStandard([]byte(templateWithOverlayProperty), nil, "overlay.yaml")
 		if err != nil {
 			t.Fatalf("%s baseline validation failed: %v", name, err)
@@ -222,12 +243,7 @@ func TestAdditionalSchemasApplyThroughTheTypedConfigOnBothEngines(t *testing.T) 
 			t.Fatalf("%s baseline must report the unpublished property", name)
 		}
 
-		engine, err := build(&cfnvalidate.EngineConfig{SchemaValidatorConfig: schemaConfig})
-		if err != nil {
-			t.Fatalf("%s engine construction with overlay failed: %v", name, err)
-		}
-		defer engine.Destroy()
-		report, err := engine.ValidateStandard([]byte(templateWithOverlayProperty), nil, "overlay.yaml")
+		report, err := overlay.ValidateStandard([]byte(templateWithOverlayProperty), nil, "overlay.yaml")
 		if err != nil {
 			t.Fatalf("%s overlay validation failed: %v", name, err)
 		}
@@ -266,7 +282,12 @@ func TestDiagnosticsFireWithEntities(t *testing.T) {
 }
 
 func TestEnginesAgreeOnDiagnostics(t *testing.T) {
-	engines := bothEngines(t)
+	// The rego/cel pair is the dedicated parity check; the composite engine's
+	// agreement with the built-ins is covered by TestCompositeDefaultMatchesCelBuiltins.
+	engines := map[string]*cfnvalidate.Engine{
+		"rego": mustEngine(t, cfnvalidate.NewRegoEngine, nil),
+		"cel":  mustEngine(t, cfnvalidate.NewCelEngine, nil),
+	}
 	reports := map[string][]string{}
 	for name, engine := range engines {
 		report, err := engine.ValidateStandard([]byte(unencryptedBucket), nil, "")
@@ -379,17 +400,14 @@ func TestCustomRulesFire(t *testing.T) {
 	}
 }
 
-func TestGuardRulesFireOnBothEngines(t *testing.T) {
-	config := &cfnvalidate.EngineConfig{
-		GuardRules: []cfnvalidate.ExternalRuleSource{
-			{Name: "guard_encryption.guard", Content: loadRule(t, "guard_encryption.guard")},
-		},
+func TestGuardRulesFireOnAllEngines(t *testing.T) {
+	guard := cfnvalidate.ExternalRuleSource{Name: "guard_encryption.guard", Content: loadRule(t, "guard_encryption.guard")}
+	engines := map[string]*cfnvalidate.Engine{
+		"rego":      mustEngine(t, cfnvalidate.NewRegoEngine, &cfnvalidate.EngineConfig{GuardRules: []cfnvalidate.ExternalRuleSource{guard}}),
+		"cel":       mustEngine(t, cfnvalidate.NewCelEngine, &cfnvalidate.EngineConfig{GuardRules: []cfnvalidate.ExternalRuleSource{guard}}),
+		"composite": mustCompositeEngine(t, &cfnvalidate.CompositeEngineConfig{GuardRules: []cfnvalidate.ExternalRuleSource{guard}}),
 	}
-	for name, build := range map[string]func(*cfnvalidate.EngineConfig) (*cfnvalidate.Engine, error){
-		"rego": cfnvalidate.NewRegoEngine,
-		"cel":  cfnvalidate.NewCelEngine,
-	} {
-		engine := mustEngine(t, build, config)
+	for name, engine := range engines {
 		report, err := engine.ValidateStandard([]byte(unencryptedBucket), nil, "")
 		if err != nil {
 			t.Fatalf("%s: validation failed: %v", name, err)
@@ -402,6 +420,81 @@ func TestGuardRulesFireOnBothEngines(t *testing.T) {
 		}
 		if hits == 0 {
 			t.Errorf("%s: guard rule must fire", name)
+		}
+	}
+}
+
+func TestCompositeDefaultMatchesCelBuiltins(t *testing.T) {
+	composite, err := cfnvalidate.NewCompositeEngine(nil)
+	if err != nil {
+		t.Fatalf("composite engine construction failed: %v", err)
+	}
+	t.Cleanup(composite.Destroy)
+
+	if got, want := composite.EngineName(), "composite"; got != want {
+		t.Errorf("EngineName() = %q, want %q", got, want)
+	}
+
+	compositeReport, err := composite.ValidateStandard([]byte(unencryptedBucket), nil, "")
+	if err != nil {
+		t.Fatalf("composite validation failed: %v", err)
+	}
+
+	cel := mustEngine(t, cfnvalidate.NewCelEngine, nil)
+	celReport, err := cel.ValidateStandard([]byte(unencryptedBucket), nil, "")
+	if err != nil {
+		t.Fatalf("cel validation failed: %v", err)
+	}
+	if len(celReport.Diagnostics) == 0 {
+		t.Fatal("the unencrypted bucket must produce built-in diagnostics")
+	}
+
+	if got, want := diagnosticKeys(compositeReport), diagnosticKeys(celReport); !equalStrings(got, want) {
+		t.Errorf("composite default diagnostics must match the CEL engine's built-ins\ncomposite: %v\ncel:       %v", got, want)
+	}
+}
+
+func TestCompositeWithCustomRegoAddsFindingToBuiltins(t *testing.T) {
+	config := &cfnvalidate.CompositeEngineConfig{
+		RegoRules: []cfnvalidate.ExternalRuleSource{
+			{Name: "rego_custom.rego", Content: loadRule(t, "rego_custom.rego")},
+		},
+	}
+	composite, err := cfnvalidate.NewCompositeEngine(config)
+	if err != nil {
+		t.Fatalf("composite engine construction with a custom Rego rule failed: %v", err)
+	}
+	t.Cleanup(composite.Destroy)
+
+	report, err := composite.ValidateStandard([]byte(unencryptedBucket), nil, "")
+	if err != nil {
+		t.Fatalf("composite validation failed: %v", err)
+	}
+
+	hits := 0
+	for _, d := range report.Diagnostics {
+		if d.RuleID == "CUSTOM001" {
+			hits++
+			if d.Message != "S3 bucket must have encryption configured" {
+				t.Errorf("unexpected message: %q", d.Message)
+			}
+		}
+	}
+	if hits != 1 {
+		t.Errorf("CUSTOM001 fired %d times, want 1", hits)
+	}
+
+	// The custom finding layers on top of the built-ins: every built-in
+	// diagnostic from a standalone CEL run must still be present.
+	cel := mustEngine(t, cfnvalidate.NewCelEngine, nil)
+	celReport, err := cel.ValidateStandard([]byte(unencryptedBucket), nil, "")
+	if err != nil {
+		t.Fatalf("cel validation failed: %v", err)
+	}
+	compositeKeys := diagnosticKeys(report)
+	for _, builtin := range diagnosticKeys(celReport) {
+		if !containsString(compositeKeys, builtin) {
+			t.Errorf("composite must retain built-in diagnostic %q", builtin)
 		}
 	}
 }

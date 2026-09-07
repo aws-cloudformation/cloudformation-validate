@@ -15,6 +15,8 @@ import cloudformation_validate._native as native_loader
 from cloudformation_validate import (
     AdditionalSchemaSource,
     CelEngine,
+    CompositeEngine,
+    CompositeEngineConfig,
     EngineConfig,
     EntityType,
     ExternalRuleSource,
@@ -88,6 +90,7 @@ def diagnostic_keys(report):
 # Engines compile their rule sets at construction; build each once for the module.
 REGO = RegoEngine()
 CEL = CelEngine()
+COMPOSITE = CompositeEngine()
 
 
 class VersionTest(unittest.TestCase):
@@ -105,15 +108,17 @@ class EngineConstructionTest(unittest.TestCase):
 
 class ListRulesTest(unittest.TestCase):
     def test_rules_non_empty_and_sorted_by_id(self):
-        for engine in (REGO, CEL):
+        for engine in (REGO, CEL, COMPOSITE):
             ids = [r.id for r in engine.list_rules()]
             self.assertTrue(ids, "rule list must not be empty")
             self.assertEqual(ids, sorted(ids), "rules must be sorted by id")
 
-    def test_cel_and_rego_list_identical_rules(self):
+    def test_all_engines_list_identical_rules(self):
         rego_rules = [(r.id, r.severity.name, r.description) for r in REGO.list_rules()]
         cel_rules = [(r.id, r.severity.name, r.description) for r in CEL.list_rules()]
+        composite_rules = [(r.id, r.severity.name, r.description) for r in COMPOSITE.list_rules()]
         self.assertEqual(rego_rules, cel_rules)
+        self.assertEqual(rego_rules, composite_rules)
 
 
 class SchemaValidatorTest(unittest.TestCase):
@@ -130,8 +135,8 @@ class SchemaValidatorTest(unittest.TestCase):
 
 
 class ValidateTest(unittest.TestCase):
-    def test_good_template_passes_both_engines(self):
-        for engine in (REGO, CEL):
+    def test_good_template_passes_all_engines(self):
+        for engine in (REGO, CEL, COMPOSITE):
             report = engine.validate_standard(GOOD_TEMPLATE)
             self.assertEqual(ReportStatus.OK, report.status)
             errors = [d for d in report.diagnostics if d.severity in (Severity.ERROR, Severity.FATAL)]
@@ -171,24 +176,25 @@ class ValidateTest(unittest.TestCase):
 
 
 class AdditionalSchemasTest(unittest.TestCase):
-    def test_additional_schemas_apply_through_the_public_config_on_both_engines(self):
+    def test_additional_schemas_apply_through_the_public_config_on_all_engines(self):
         from cloudformation_validate import SchemaValidatorConfig
 
-        config = EngineConfig(
-            schema_validator_config=SchemaValidatorConfig(
-                additional_schemas=[AdditionalSchemaSource(type_name=None, schema=LAMBDA_OVERLAY_SCHEMA)]
-            )
+        schema_config = SchemaValidatorConfig(
+            additional_schemas=[AdditionalSchemaSource(type_name=None, schema=LAMBDA_OVERLAY_SCHEMA)]
         )
-        for name, baseline, engine_type in (
-            ("rego", REGO, RegoEngine),
-            ("cel", CEL, CelEngine),
+        engine_config = EngineConfig(schema_validator_config=schema_config)
+        composite_config = CompositeEngineConfig(schema_validator_config=schema_config)
+        for name, baseline, configured in (
+            ("rego", REGO, RegoEngine(engine_config)),
+            ("cel", CEL, CelEngine(engine_config)),
+            ("composite", COMPOSITE, CompositeEngine(composite_config)),
         ):
             baseline_report = baseline.validate_standard(TEMPLATE_WITH_OVERLAY_PROPERTY)
             self.assertTrue(
                 any(d.rule_id == "F3002" for d in baseline_report.diagnostics),
                 f"{name} baseline must report the unpublished property",
             )
-            report = engine_type(config).validate_standard(TEMPLATE_WITH_OVERLAY_PROPERTY)
+            report = configured.validate_standard(TEMPLATE_WITH_OVERLAY_PROPERTY)
             self.assertFalse(
                 any(d.rule_id == "F3002" for d in report.diagnostics),
                 f"{name} public config must apply the overlay",
@@ -225,16 +231,57 @@ class CustomRulesTest(unittest.TestCase):
         )
         self.assert_custom_rule_fires(RegoEngine(config))
 
-    def test_guard_rule_fires_on_both_engines(self):
-        config = EngineConfig(
-            guard_rules=[
-                ExternalRuleSource(name="guard_encryption.guard", content=load_rule("guard_encryption.guard"))
-            ]
+    def test_guard_rule_fires_on_all_engines(self):
+        guard_rule = ExternalRuleSource(name="guard_encryption.guard", content=load_rule("guard_encryption.guard"))
+        engine_config = EngineConfig(guard_rules=[guard_rule])
+        engines = (
+            RegoEngine(engine_config),
+            CelEngine(engine_config),
+            CompositeEngine(CompositeEngineConfig(guard_rules=[guard_rule])),
         )
-        for engine in (RegoEngine(config), CelEngine(config)):
+        for engine in engines:
             report = engine.validate_standard(UNENCRYPTED_BUCKET)
             guard_hits = [d for d in report.diagnostics if "encryption" in d.message.lower()]
             self.assertTrue(guard_hits, f"guard rule must fire via {engine.engine_name()}")
+
+
+class CompositeEngineTest(unittest.TestCase):
+    def test_composite_engine_reports_name_composite(self):
+        self.assertEqual("composite", COMPOSITE.engine_name())
+
+    def test_default_composite_matches_builtin_engine_diagnostics(self):
+        composite_keys = diagnostic_keys(COMPOSITE.validate_standard(UNENCRYPTED_BUCKET))
+        self.assertEqual(
+            diagnostic_keys(CEL.validate_standard(UNENCRYPTED_BUCKET)),
+            composite_keys,
+            "composite with no custom rules must produce exactly the built-in diagnostics",
+        )
+        self.assertEqual(
+            diagnostic_keys(REGO.validate_standard(UNENCRYPTED_BUCKET)),
+            composite_keys,
+            "composite defaults must match the parity engines",
+        )
+
+    def test_rego_custom_rule_fires_alongside_builtins(self):
+        config = CompositeEngineConfig(
+            rego_rules=[ExternalRuleSource(name="rego_custom.rego", content=load_rule("rego_custom.rego"))]
+        )
+        report = CompositeEngine(config).validate_standard(UNENCRYPTED_BUCKET)
+
+        custom = [d for d in report.diagnostics if d.rule_id == "CUSTOM001"]
+        self.assertEqual(1, len(custom), "custom rego rule must fire exactly once")
+        self.assertEqual("S3 bucket must have encryption configured", custom[0].message)
+
+        builtin_keys = sorted(
+            (d.rule_id, d.severity.name, d.start_line, d.start_column)
+            for d in report.diagnostics
+            if d.rule_id != "CUSTOM001"
+        )
+        self.assertEqual(
+            diagnostic_keys(CEL.validate_standard(UNENCRYPTED_BUCKET)),
+            builtin_keys,
+            "built-in diagnostics must appear exactly once alongside the custom finding",
+        )
 
 
 class TemplateModelTest(unittest.TestCase):
@@ -303,7 +350,7 @@ class NativeLoaderTest(unittest.TestCase):
 
 class InvalidInputTest(unittest.TestCase):
     def test_empty_template_reports_fatal_parse_rule(self):
-        for engine in (REGO, CEL):
+        for engine in (REGO, CEL, COMPOSITE):
             report = engine.validate_standard(os.path.join(TEMPLATES, "empty.yaml"))
             self.assertEqual(ReportStatus.ERROR, report.status)
             self.assertEqual("F1101", report.diagnostics[0].rule_id)

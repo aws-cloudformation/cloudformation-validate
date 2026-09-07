@@ -55,6 +55,10 @@ internal panics are caught at the FFI boundary and surface the same way, never a
 `NewRegoEngine` and `NewCelEngine` both return an `*Engine` and are interchangeable - they produce identical
 diagnostics for the same template and config. A `nil` config uses only the built-in rules.
 
+`NewCompositeEngine` also returns an `*Engine`: it evaluates the built-in rules with one engine and caller-supplied
+external Rego and Guard rules with another, producing the same built-in diagnostics plus any external findings. See
+[CompositeEngineConfig](#compositeengineconfig).
+
 | Method                                                                       | Returns                    | Description                                                                                     |
 |------------------------------------------------------------------------------|----------------------------|-------------------------------------------------------------------------------------------------|
 | `ValidateStandard(template []byte, config *ValidateConfig, filePath string)` | `(*StandardReport, error)` | Validates bytes without extended context. `filePath` labels the report; `""` uses `"template"`. |
@@ -62,7 +66,7 @@ diagnostics for the same template and config. A `nil` config uses only the built
 | `ValidateDetailed(template []byte, config *ValidateConfig, filePath string)` | `(*DetailedReport, error)` | Validates bytes with documentation URLs, rule descriptions, phase tags, and `ViolationContext`  |
 | `ValidateDetailedFile(path string, config *ValidateConfig)`                  | `(*DetailedReport, error)` | Reads a template from disk, then validates it (detailed)                                        |
 | `ListRules()`                                                                | `([]RuleInfo, error)`      | Returns metadata for every built-in and loaded custom rule                                      |
-| `EngineName()`                                                               | `string`                   | `"rego"` or `"cel"`                                                                             |
+| `EngineName()`                                                               | `string`                   | `"rego"`, `"cel"`, or `"composite"`                                                             |
 | `Destroy()`                                                                  | -                          | Releases the native engine; the engine must not be used afterwards                              |
 
 ### EngineConfig
@@ -108,6 +112,27 @@ engine, err := cfnvalidate.NewCelEngine(&cfnvalidate.EngineConfig{
     SchemaValidatorConfig: &cfnvalidate.SchemaValidatorConfig{
         AdditionalSchemas: []cfnvalidate.AdditionalSchemaSource{{Schema: string(schema)}},
     },
+})
+```
+
+### CompositeEngineConfig
+
+Passed to `NewCompositeEngine`. The zero value (or `nil`) uses only the built-in rules. Unlike `EngineConfig` it has no
+field for engine-native built-in custom rules, because the composite fixes which engine owns the built-ins - it carries
+only the external Rego and Guard rules layered on top, plus a schema config observed by both.
+
+```go
+type CompositeEngineConfig struct {
+    RegoRules             []ExternalRuleSource   // custom Rego rules for the external engine
+    GuardRules            []ExternalRuleSource   // CloudFormation Guard DSL rules - translated internally
+    SchemaValidatorConfig *SchemaValidatorConfig // optional schema validator configuration, observed by both engines
+}
+```
+
+```go
+guard, _ := os.ReadFile("rules/compliance.guard")
+engine, err := cfnvalidate.NewCompositeEngine(&cfnvalidate.CompositeEngineConfig{
+    GuardRules: []cfnvalidate.ExternalRuleSource{{Name: "compliance.guard", Content: string(guard)}},
 })
 ```
 

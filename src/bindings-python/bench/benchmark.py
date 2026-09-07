@@ -2,12 +2,12 @@
 
 Mirrors the aggregate/per-template JSON contract of the native
 cfn-validate benchmark (src/cfn-validate/src/benchmark.rs) with
-binding='python'. Exercises the wheel-installed package through both
-Rego and CEL engines at DETAILED/DEBUG level.
+binding='python'. Exercises the wheel-installed package through the
+Rego, CEL, and composite engines at DETAILED/DEBUG level.
 
 Usage:
-    python -m bench.benchmark [TEMPLATE|DIR] --engine rego|cel --iterations N
-    python -m bench.benchmark --engine rego|cel --startup-probe
+    python -m bench.benchmark [TEMPLATE|DIR] --engine rego|cel|composite --iterations N
+    python -m bench.benchmark --engine rego|cel|composite --startup-probe
 """
 
 from __future__ import annotations
@@ -609,7 +609,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--engine",
         required=True,
-        choices=["rego", "cel"],
+        choices=["rego", "cel", "composite"],
         help="Validation engine to use",
     )
     parser.add_argument(
@@ -676,6 +676,7 @@ def main() -> None:
 
     from cloudformation_validate import (  # noqa: E402
         CelEngine,
+        CompositeEngine,
         EntityType,
         JsonValue,
         RegoEngine,
@@ -691,7 +692,7 @@ def main() -> None:
     _JsonValue = JsonValue
     _EntityType = EntityType
 
-    engine_class = RegoEngine if engine_name == "rego" else CelEngine
+    engine_class = {"rego": RegoEngine, "cel": CelEngine, "composite": CompositeEngine}[engine_name]
 
     benchmark_config = ValidateConfig(severity_level=Severity.DEBUG)
 

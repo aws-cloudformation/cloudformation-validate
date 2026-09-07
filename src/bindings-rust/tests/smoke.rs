@@ -1,7 +1,7 @@
 use cloudformation_validate::{
-    AdditionalSchemaSource, CelEngine, EngineConfig, ExternalRuleSource, RegoEngine, ReportStatus, SchemaValidator,
-    SchemaValidatorConfig, SemanticModel, Severity, ValidateConfig, ValidationEngine, ValidationReport,
-    validate_bytes_with_path, version,
+    AdditionalSchemaSource, CelEngine, CompositeEngine, CompositeEngineConfig, EngineConfig, ExternalRuleSource,
+    RegoEngine, ReportStatus, SchemaValidator, SchemaValidatorConfig, SemanticModel, Severity, ValidateConfig,
+    ValidationEngine, ValidationReport, validate_bytes_with_path, version,
 };
 
 const GOOD_TEMPLATE: &[u8] = br#"
@@ -90,10 +90,20 @@ fn diagnostic_signatures(report: &ValidationReport) -> Vec<(String, Severity, St
         .collect()
 }
 
-fn both_engines(config: EngineConfig) -> Vec<Box<dyn ValidationEngine>> {
+fn all_engines(config: EngineConfig) -> Vec<Box<dyn ValidationEngine>> {
+    // The composite engine takes its own config type. The built-in, default,
+    // good, additional-schema, and Guard matrices that use this helper never
+    // supply engine-native custom rules, so the composite mirror carries only the
+    // shared Guard rules and schema configuration; engine-native custom rules are
+    // exercised by dedicated engine-specific tests.
+    let mut composite_config = CompositeEngineConfig::new().with_guard_rules(config.guard_rules.clone());
+    if let Some(schema_validator_config) = config.schema_validator_config.clone() {
+        composite_config = composite_config.with_schema_validator_config(schema_validator_config);
+    }
     vec![
         Box::new(RegoEngine::new(config.clone()).expect("Rego engine must initialize")),
         Box::new(CelEngine::new(config).expect("CEL engine must initialize")),
+        Box::new(CompositeEngine::new(composite_config).expect("composite engine must initialize")),
     ]
 }
 
@@ -104,9 +114,10 @@ fn facade_version_matches_cargo_package_version() {
 
 #[test]
 fn engine_names_and_rule_lists_match() {
-    let engines = both_engines(EngineConfig::default());
+    let engines = all_engines(EngineConfig::default());
     assert_eq!(engines[0].engine_name(), "rego");
     assert_eq!(engines[1].engine_name(), "cel");
+    assert_eq!(engines[2].engine_name(), "composite");
 
     let listings: Vec<Vec<_>> = engines
         .iter()
@@ -120,13 +131,15 @@ fn engine_names_and_rule_lists_match() {
                 .collect()
         })
         .collect();
-    assert_eq!(listings[0], listings[1]);
+    for other in &listings[1..] {
+        assert_eq!(&listings[0], other, "every engine must advertise the same built-in rules");
+    }
 }
 
 #[test]
-fn good_template_passes_both_engines_with_the_file_label() {
+fn good_template_passes_all_engines_with_the_file_label() {
     let schema_validator = SchemaValidator::default();
-    for engine in both_engines(EngineConfig::default()) {
+    for engine in all_engines(EngineConfig::default()) {
         let report = validate(engine.as_ref(), &schema_validator, GOOD_TEMPLATE, ValidateConfig::default());
         assert_eq!(report.status, ReportStatus::Ok);
         assert_eq!(report.file_path, "template.yaml");
@@ -142,16 +155,19 @@ fn good_template_passes_both_engines_with_the_file_label() {
 }
 
 #[test]
-fn both_engines_return_identical_diagnostics() {
+fn all_engines_return_identical_diagnostics() {
     let schema_validator = SchemaValidator::default();
-    let engines = both_engines(EngineConfig::default());
+    let engines = all_engines(EngineConfig::default());
     let reports: Vec<_> = engines
         .iter()
         .map(|engine| validate(engine.as_ref(), &schema_validator, UNENCRYPTED_BUCKET, ValidateConfig::default()))
         .collect();
 
     assert!(!reports[0].diagnostics.is_empty(), "unencrypted bucket must produce diagnostics");
-    assert_eq!(diagnostic_signatures(&reports[0]), diagnostic_signatures(&reports[1]));
+    let baseline = diagnostic_signatures(&reports[0]);
+    for report in &reports[1..] {
+        assert_eq!(baseline, diagnostic_signatures(report));
+    }
     assert!(
         reports[0]
             .diagnostics
@@ -196,9 +212,9 @@ fn detailed_metadata_counts_and_performance_are_populated() {
 }
 
 #[test]
-fn additional_schema_config_applies_to_both_engines() {
+fn additional_schema_config_applies_to_all_engines() {
     let baseline_validator = SchemaValidator::default();
-    for baseline_engine in both_engines(EngineConfig::default()) {
+    for baseline_engine in all_engines(EngineConfig::default()) {
         let baseline = validate(
             baseline_engine.as_ref(),
             &baseline_validator,
@@ -212,7 +228,7 @@ fn additional_schema_config_applies_to_both_engines() {
     let schema_config = SchemaValidatorConfig::new().with_additional_schemas([source]);
     let schema_validator = SchemaValidator::new(schema_config.clone()).expect("overlay schema must apply");
     let engine_config = EngineConfig::new().with_schema_validator_config(schema_config);
-    for engine in both_engines(engine_config) {
+    for engine in all_engines(engine_config) {
         let report =
             validate(engine.as_ref(), &schema_validator, TEMPLATE_WITH_OVERLAY_PROPERTY, ValidateConfig::default());
         assert!(!report.diagnostics.iter().any(|diagnostic| diagnostic.rule_id == "F3002"));
@@ -248,14 +264,14 @@ fn engine_native_custom_rules_fire() {
 }
 
 #[test]
-fn guard_rule_fires_on_both_engines() {
+fn guard_rule_fires_on_all_engines() {
     let schema_validator = SchemaValidator::default();
     let config = EngineConfig::new().with_guard_rules([ExternalRuleSource {
         name: "encryption.guard".to_string(),
         content: GUARD_RULE.to_string(),
     }]);
 
-    for engine in both_engines(config) {
+    for engine in all_engines(config) {
         let report = validate(engine.as_ref(), &schema_validator, UNENCRYPTED_BUCKET, ValidateConfig::default());
         assert!(
             report
@@ -275,4 +291,49 @@ fn semantic_model_is_available_through_the_facade() {
     assert!(model.outputs.is_empty());
     assert!(model.conditions.names().next().is_none());
     assert!(model.transforms.is_empty());
+}
+
+#[test]
+fn composite_default_produces_the_same_builtin_diagnostics_as_the_cel_engine() {
+    let schema_validator = SchemaValidator::default();
+    let cel = CelEngine::new(EngineConfig::default()).expect("CEL engine must initialize");
+    let composite = CompositeEngine::new(CompositeEngineConfig::default()).expect("composite engine must initialize");
+
+    let cel_report = validate(&cel, &schema_validator, UNENCRYPTED_BUCKET, ValidateConfig::default());
+    let composite_report = validate(&composite, &schema_validator, UNENCRYPTED_BUCKET, ValidateConfig::default());
+
+    assert!(!cel_report.diagnostics.is_empty(), "the unencrypted bucket must produce built-in diagnostics");
+    assert_eq!(
+        diagnostic_signatures(&composite_report),
+        diagnostic_signatures(&cel_report),
+        "with no external rules the composite engine must produce exactly the CEL engine's built-in diagnostics"
+    );
+}
+
+#[test]
+fn composite_with_inline_custom_rego_adds_the_custom_finding_to_the_builtins() {
+    let schema_validator = SchemaValidator::default();
+    let composite = CompositeEngine::new(CompositeEngineConfig::new().with_rego_rules([ExternalRuleSource {
+        name: "custom.rego".to_string(),
+        content: REGO_CUSTOM_RULE.to_string(),
+    }]))
+    .expect("composite engine with a custom Rego rule must initialize");
+
+    let report = validate(&composite, &schema_validator, UNENCRYPTED_BUCKET, ValidateConfig::default());
+
+    let custom: Vec<_> = report.diagnostics.iter().filter(|diagnostic| diagnostic.rule_id == "CUSTOM001").collect();
+    assert_eq!(custom.len(), 1, "the inline custom Rego rule must contribute exactly one finding");
+    assert_eq!(custom[0].message, "S3 bucket must have encryption configured");
+
+    // The custom finding is layered on top of the built-ins, not a replacement:
+    // every built-in diagnostic from a standalone CEL run must still be present.
+    let cel = CelEngine::new(EngineConfig::default()).expect("CEL engine must initialize");
+    let builtin_report = validate(&cel, &schema_validator, UNENCRYPTED_BUCKET, ValidateConfig::default());
+    let composite_signatures = diagnostic_signatures(&report);
+    for builtin_signature in &diagnostic_signatures(&builtin_report) {
+        assert!(
+            composite_signatures.contains(builtin_signature),
+            "the composite engine must retain the built-in diagnostic {builtin_signature:?}"
+        );
+    }
 }
