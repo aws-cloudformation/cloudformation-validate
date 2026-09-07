@@ -6,6 +6,7 @@ import rego.v1
 violation contains make_diag_at("E3013", "ERROR", name,
     sprintf("Properties.DistributionConfig.Aliases.%d", [i]),
     sprintf("CloudFront alias '%s' is not a valid domain name", [alias])) if {
+    cfn_rule_active("E3013")
     some name in resources_of_type("AWS::CloudFront::Distribution")
     val := resolve(name, "Properties.DistributionConfig.Aliases")
     is_array(val)
@@ -18,6 +19,7 @@ violation contains make_diag_at("E3013", "ERROR", name,
 violation contains make_diag_at("E3013", "ERROR", name,
     sprintf("Properties.DistributionConfig.Aliases.%d", [i]),
     sprintf("CloudFront alias '%s' has wildcard in invalid position", [alias])) if {
+    cfn_rule_active("E3013")
     some name in resources_of_type("AWS::CloudFront::Distribution")
     val := resolve(name, "Properties.DistributionConfig.Aliases")
     is_array(val)

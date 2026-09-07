@@ -6,6 +6,7 @@ import rego.v1
 # I2010: Parameter count approaching limit
 violation contains make_diag("I2010", "INFO", "",
     sprintf("Template has %d parameters, approaching limit of 200", [cnt])) if {
+    cfn_rule_active("I2010")
     cnt := count(input.parameters)
     cnt > 180
     cnt <= 200
@@ -14,6 +15,7 @@ violation contains make_diag("I2010", "INFO", "",
 # I6010: Output count approaching limit
 violation contains make_diag("I6010", "INFO", "",
     sprintf("Template has %d outputs, approaching limit of 200", [cnt])) if {
+    cfn_rule_active("I6010")
     cnt := count(input.outputs)
     cnt > 180
     cnt <= 200
@@ -22,6 +24,7 @@ violation contains make_diag("I6010", "INFO", "",
 # I7010: Mapping count approaching limit
 violation contains make_diag("I7010", "INFO", "",
     sprintf("Template has %d mappings, approaching limit of 200", [cnt])) if {
+    cfn_rule_active("I7010")
     cnt := count(input.mappings)
     cnt > 180
     cnt <= 200
@@ -31,6 +34,7 @@ violation contains make_diag("I7010", "INFO", "",
 violation contains make_diag_at("F2003", "FATAL", "",
     sprintf("Parameters/%s", [pname]),
     sprintf("Parameter name '%s' must be alphanumeric", [pname])) if {
+    cfn_rule_active("F2003")
     some pname in object.keys(input.parameters)
     not regex.match(`^[a-zA-Z0-9]+$`, pname)
 }
@@ -39,6 +43,7 @@ violation contains make_diag_at("F2003", "FATAL", "",
 violation contains make_diag_at("F2011", "FATAL", "",
     sprintf("Parameters/%s", [pname]),
     sprintf("Parameter name '%s' exceeds maximum length of 255", [pname])) if {
+    cfn_rule_active("F2011")
     some pname in object.keys(input.parameters)
     count(pname) > 255
 }
@@ -46,6 +51,7 @@ violation contains make_diag_at("F2011", "FATAL", "",
 violation contains make_diag_at("I2011", "INFO", "",
     sprintf("Parameters/%s", [pname]),
     sprintf("Parameter name '%s' is approaching maximum length of 255", [pname])) if {
+    cfn_rule_active("I2011")
     some pname in object.keys(input.parameters)
     count(pname) > 229
     count(pname) <= 255
@@ -56,6 +62,7 @@ violation contains make_diag_at("I2011", "INFO", "",
 violation contains make_diag_at("F6004", "FATAL", "",
     sprintf("Outputs/%s", [oname]),
     sprintf("Output name '%s' must be alphanumeric", [oname])) if {
+    cfn_rule_active("F6004")
     some oname in object.keys(input.outputs)
     not regex.match(`^[a-zA-Z0-9]+$`, oname)
     not startswith(oname, "Fn::ForEach::")
@@ -65,6 +72,7 @@ violation contains make_diag_at("F6004", "FATAL", "",
 violation contains make_diag_at("F6011", "FATAL", "",
     sprintf("Outputs/%s", [oname]),
     sprintf("Output name '%s' exceeds maximum length of 255", [oname])) if {
+    cfn_rule_active("F6011")
     some oname in object.keys(input.outputs)
     count(oname) > 255
 }
@@ -72,6 +80,7 @@ violation contains make_diag_at("F6011", "FATAL", "",
 violation contains make_diag_at("I6011", "INFO", "",
     sprintf("Outputs/%s", [oname]),
     sprintf("Output name '%s' is approaching maximum length of 255", [oname])) if {
+    cfn_rule_active("I6011")
     some oname in object.keys(input.outputs)
     count(oname) > 229
     count(oname) <= 255
@@ -81,6 +90,7 @@ violation contains make_diag_at("I6011", "INFO", "",
 violation contains make_diag_at("F7002", "FATAL", "",
     sprintf("Mappings/%s", [mname]),
     sprintf("Mapping name '%s' exceeds maximum length of 255", [mname])) if {
+    cfn_rule_active("F7002")
     some mname in object.keys(input.mappings)
     count(mname) > 255
 }
@@ -88,6 +98,7 @@ violation contains make_diag_at("F7002", "FATAL", "",
 violation contains make_diag_at("I7002", "INFO", "",
     sprintf("Mappings/%s", [mname]),
     sprintf("Mapping name '%s' is approaching maximum length of 255", [mname])) if {
+    cfn_rule_active("I7002")
     some mname in object.keys(input.mappings)
     count(mname) > 229
     count(mname) <= 255
@@ -96,6 +107,7 @@ violation contains make_diag_at("I7002", "INFO", "",
 # F3007: Duplicate resource/parameter names
 violation contains make_diag("F3007", "FATAL", pname,
     sprintf("'%s' is used as both a parameter and resource logical ID", [pname])) if {
+    cfn_rule_active("F3007")
     some pname in object.keys(input.parameters)
     pname in object.keys(input.resources)
 }

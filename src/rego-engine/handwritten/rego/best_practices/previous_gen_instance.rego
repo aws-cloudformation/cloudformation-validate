@@ -24,6 +24,7 @@ violation contains make_diag_full("I3100", "INFO", name,
     sprintf("Previous generation instance type '%s' - consider upgrading", [val]),
     "Upgrade to a current generation instance type",
     "") if {
+    cfn_rule_active("I3100")
     some check in _previous_gen_checks
     some name in resources_of_type(check.type)
     # Only literal string instance types are checked; values from a parameter

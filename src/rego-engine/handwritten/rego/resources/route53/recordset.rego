@@ -27,6 +27,7 @@ violation contains make_diag_at_source("E3023", "ERROR", name,
     property_path,
     source_path,
     sprintf("'%s' is not a valid IPv4 address for record type 'A'", [rec])) if {
+    cfn_rule_active("E3023")
     some name in resources_of_type("AWS::Route53::RecordSet")
     some scenario in _route53_record_set_scenarios(name)
     properties := scenario.properties
@@ -48,6 +49,7 @@ violation contains make_diag_at_source("E3023", "ERROR", name,
     property_path,
     source_path,
     sprintf("'%s' is not a valid IPv6 address for record type 'AAAA'", [rec])) if {
+    cfn_rule_active("E3023")
     some name in resources_of_type("AWS::Route53::RecordSet")
     some scenario in _route53_record_set_scenarios(name)
     properties := scenario.properties
@@ -143,6 +145,7 @@ violation contains make_diag_at_source("E3023", "ERROR", name,
     "Properties.Name",
     source_path,
     sprintf("CNAME record Name '%s' must not match HostedZoneName '%s' exactly", [rec_name, hz_name])) if {
+    cfn_rule_active("E3023")
     some name in resources_of_type("AWS::Route53::RecordSet")
     some scenario in _route53_record_set_scenarios(name)
     properties := scenario.properties
@@ -161,6 +164,7 @@ violation contains make_diag_at_source("E3023", "ERROR", name,
     "Properties.ResourceRecords",
     source_path,
     "CNAME records must have at most 1 ResourceRecord") if {
+    cfn_rule_active("E3023")
     some name in resources_of_type("AWS::Route53::RecordSet")
     some scenario in _route53_record_set_scenarios(name)
     properties := scenario.properties
@@ -178,6 +182,7 @@ violation contains make_diag_at_source("E3023", "ERROR", name,
     property_path,
     source_path,
     sprintf("TXT record value '%s' must be enclosed in double quotes", [rec])) if {
+    cfn_rule_active("E3023")
     some name in resources_of_type("AWS::Route53::RecordSet")
     some scenario in _route53_record_set_scenarios(name)
     properties := scenario.properties
@@ -197,6 +202,7 @@ violation contains make_diag_at_source("E3023", "ERROR", name,
     property_path,
     source_path,
     sprintf("CAA record value '%s' must match format: flag tag 'value'", [rec])) if {
+    cfn_rule_active("E3023")
     some name in resources_of_type("AWS::Route53::RecordSet")
     some scenario in _route53_record_set_scenarios(name)
     properties := scenario.properties
@@ -216,6 +222,7 @@ violation contains make_diag_at_source("E3023", "ERROR", name,
     property_path,
     source_path,
     sprintf("MX record value '%s' must match format: priority domain", [rec])) if {
+    cfn_rule_active("E3023")
     some name in resources_of_type("AWS::Route53::RecordSet")
     some scenario in _route53_record_set_scenarios(name)
     properties := scenario.properties
@@ -236,6 +243,7 @@ violation contains make_diag_at_source("E3023", "ERROR", name,
     property_path,
     source_path,
     sprintf("'%s' is not a valid IPv4 address for record type 'A'", [rec])) if {
+    cfn_rule_active("E3023")
     some name in resources_of_type("AWS::Route53::RecordSetGroup")
     some scenario in properties_scenarios(name, ["RecordSets"])
     _route53_scenario_reachable(name, scenario.conditions)
@@ -257,6 +265,7 @@ violation contains make_diag_at_source("E3023", "ERROR", name,
     property_path,
     source_path,
     sprintf("'%s' is not a valid IPv6 address for record type 'AAAA'", [rec])) if {
+    cfn_rule_active("E3023")
     some name in resources_of_type("AWS::Route53::RecordSetGroup")
     some scenario in properties_scenarios(name, ["RecordSets"])
     _route53_scenario_reachable(name, scenario.conditions)
@@ -278,6 +287,7 @@ violation contains make_diag_at_source("E3023", "ERROR", name,
     property_path,
     source_path,
     sprintf("TXT record value '%s' must be enclosed in double quotes", [rec])) if {
+    cfn_rule_active("E3023")
     some name in resources_of_type("AWS::Route53::RecordSetGroup")
     some scenario in properties_scenarios(name, ["RecordSets"])
     _route53_scenario_reachable(name, scenario.conditions)
@@ -299,6 +309,7 @@ violation contains make_diag_at_source("E3023", "ERROR", name,
     property_path,
     source_path,
     sprintf("CAA record value '%s' must match format: flag tag 'value'", [rec])) if {
+    cfn_rule_active("E3023")
     some name in resources_of_type("AWS::Route53::RecordSetGroup")
     some scenario in properties_scenarios(name, ["RecordSets"])
     _route53_scenario_reachable(name, scenario.conditions)
@@ -320,6 +331,7 @@ violation contains make_diag_at_source("E3023", "ERROR", name,
     property_path,
     source_path,
     sprintf("MX record value '%s' must match format: priority domain", [rec])) if {
+    cfn_rule_active("E3023")
     some name in resources_of_type("AWS::Route53::RecordSetGroup")
     some scenario in properties_scenarios(name, ["RecordSets"])
     _route53_scenario_reachable(name, scenario.conditions)
@@ -341,6 +353,7 @@ violation contains make_diag_at_source("E3023", "ERROR", name,
     property_path,
     source_path,
     "CNAME records must have at most 1 ResourceRecord") if {
+    cfn_rule_active("E3023")
     some name in resources_of_type("AWS::Route53::RecordSetGroup")
     some scenario in properties_scenarios(name, ["RecordSets"])
     _route53_scenario_reachable(name, scenario.conditions)

@@ -5,6 +5,7 @@ import rego.v1
 # E3038: Serverless resource types require AWS::Serverless-2016-10-31 transform
 violation contains make_diag("E3038", "ERROR", name,
     sprintf("Resource type '%s' requires the AWS::Serverless-2016-10-31 transform", [rtype])) if {
+    cfn_rule_active("E3038")
     some name, res in input.resources
     rtype := res.resourceType
     startswith(rtype, "AWS::Serverless::")

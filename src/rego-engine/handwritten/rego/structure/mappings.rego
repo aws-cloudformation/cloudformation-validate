@@ -6,6 +6,7 @@ import rego.v1
 violation contains make_diag_at("F0050", "FATAL", "",
     sprintf("Mappings/%s", [map_name]),
     sprintf("Mapping '%s' must be a map, not %s", [map_name, type_name(input.mappings[map_name])])) if {
+    cfn_rule_active("F0050")
     some map_name in object.keys(input.mappings)
     not is_object(input.mappings[map_name])
 }
@@ -13,6 +14,7 @@ violation contains make_diag_at("F0050", "FATAL", "",
 violation contains make_diag_at("F0050", "FATAL", "",
     sprintf("Mappings/%s/%s", [map_name, k1]),
     sprintf("Mapping '%s' has invalid structure - second level key '%s' must be a map", [map_name, k1])) if {
+    cfn_rule_active("F0050")
     some map_name in object.keys(input.mappings)
     level1 := input.mappings[map_name]
     is_object(level1)
@@ -24,6 +26,7 @@ violation contains make_diag_at("F0050", "FATAL", "",
 violation contains make_diag_at("F0050", "FATAL", "",
     sprintf("Mappings/%s", [map_name]),
     sprintf("Mapping '%s' has %d top-level keys, maximum is 200", [map_name, cnt])) if {
+    cfn_rule_active("F0050")
     some map_name in object.keys(input.mappings)
     level1 := input.mappings[map_name]
     is_object(level1)
@@ -35,6 +38,7 @@ violation contains make_diag_at("F0050", "FATAL", "",
 violation contains make_diag_at("F0050", "FATAL", "",
     sprintf("Mappings/%s/%s", [map_name, k1]),
     sprintf("Mapping '%s'.'%s' has %d attributes, maximum is 200", [map_name, k1, cnt])) if {
+    cfn_rule_active("F0050")
     some map_name in object.keys(input.mappings)
     level1 := input.mappings[map_name]
     is_object(level1)
@@ -49,6 +53,7 @@ violation contains make_diag_at("F0050", "FATAL", "",
 violation contains make_diag_at("E7001", "ERROR", "",
     sprintf("Mappings/%s", [map_name]),
     sprintf("Mapping name '%s' does not match format '^[a-zA-Z0-9]+$'", [map_name])) if {
+    cfn_rule_active("E7001")
     some map_name in object.keys(input.mappings)
     not regex.match(`^[a-zA-Z0-9]+$`, map_name)
 }
@@ -57,6 +62,7 @@ violation contains make_diag_at("E7001", "ERROR", "",
 violation contains make_diag_at("E7001", "ERROR", "",
     sprintf("Mappings/%s/%s", [map_name, k1]),
     sprintf("Mapping '%s' key '%s' does not match format '^[a-zA-Z0-9.-]+$'", [map_name, k1])) if {
+    cfn_rule_active("E7001")
     some map_name in object.keys(input.mappings)
     level1 := input.mappings[map_name]
     is_object(level1)
@@ -68,6 +74,7 @@ violation contains make_diag_at("E7001", "ERROR", "",
 violation contains make_diag_at("E7001", "ERROR", "",
     sprintf("Mappings/%s/%s/%s", [map_name, k1, k2]),
     sprintf("Mapping '%s'.'%s' key '%s' does not match format '^[a-zA-Z0-9]+$'", [map_name, k1, k2])) if {
+    cfn_rule_active("E7001")
     some map_name in object.keys(input.mappings)
     level1 := input.mappings[map_name]
     is_object(level1)

@@ -12,6 +12,7 @@ violation contains make_diag_full("E3505", "ERROR", queue_name,
     sprintf("Queue visibility timeout (%v) is less than Function timeout (%v) seconds", [vis_timeout, func_timeout]),
     "Set the SQS VisibilityTimeout to at least the Lambda function Timeout",
     "") if {
+    cfn_rule_active("E3505")
     some esm_name in resources_of_type("AWS::Lambda::EventSourceMapping")
     # Find the function this ESM points to
     func_name := follow_ref(esm_name, "Properties.FunctionName")

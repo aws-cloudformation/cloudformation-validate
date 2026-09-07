@@ -8,6 +8,7 @@ violation contains make_diag_full("W2530", "WARN", name,
     "SnapStart is enabled but no AWS::Lambda::Version resource is attached",
     "Add an AWS::Lambda::Version resource that references this function",
     "") if {
+    cfn_rule_active("W2530")
     some name in resources_of_type("AWS::Lambda::Function")
     snap := resolve(name, "Properties.SnapStart")
     is_object(snap)

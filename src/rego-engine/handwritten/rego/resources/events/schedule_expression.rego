@@ -8,6 +8,7 @@ import rego.v1
 violation contains make_diag_at("E3027", "ERROR", name,
     "Properties.ScheduleExpression",
     sprintf("'%s' has to be either 'cron()' or 'rate()'", [val])) if {
+    cfn_rule_active("E3027")
     some name in resources_of_type("AWS::Events::Rule")
     val := resolve(name, "Properties.ScheduleExpression")
     is_string(val)
@@ -21,6 +22,7 @@ violation contains make_diag_at("E3027", "ERROR", name,
 violation contains make_diag_at("E3027", "ERROR", name,
     "Properties.ScheduleExpression",
     "'' is not of type 'string'") if {
+    cfn_rule_active("E3027")
     some name in resources_of_type("AWS::Events::Rule")
     val := resolve(name, "Properties.ScheduleExpression")
     is_string(val)
@@ -34,6 +36,7 @@ violation contains make_diag_at("E3027", "ERROR", name,
 violation contains make_diag_at("E3027", "ERROR", name,
     "Properties.ScheduleExpression",
     sprintf("'%s' has to be of format rate(Value Unit)", [body])) if {
+    cfn_rule_active("E3027")
     some name in resources_of_type("AWS::Events::Rule")
     val := resolve(name, "Properties.ScheduleExpression")
     is_string(val)
@@ -49,6 +52,7 @@ violation contains make_diag_at("E3027", "ERROR", name,
 violation contains make_diag_at("E3027", "ERROR", name,
     "Properties.ScheduleExpression",
     sprintf("'%s' is not of type 'integer'", [value])) if {
+    cfn_rule_active("E3027")
     some name in resources_of_type("AWS::Events::Rule")
     val := resolve(name, "Properties.ScheduleExpression")
     is_string(val)
@@ -65,6 +69,7 @@ violation contains make_diag_at("E3027", "ERROR", name,
 violation contains make_diag_at("E3027", "ERROR", name,
     "Properties.ScheduleExpression",
     sprintf("'%s' is less than the minimum of 0", [value])) if {
+    cfn_rule_active("E3027")
     some name in resources_of_type("AWS::Events::Rule")
     val := resolve(name, "Properties.ScheduleExpression")
     is_string(val)
@@ -82,6 +87,7 @@ violation contains make_diag_at("E3027", "ERROR", name,
 violation contains make_diag_at("E3027", "ERROR", name,
     "Properties.ScheduleExpression",
     sprintf("'%s' is not one of %s", [unit, _units_display(_amount(value))])) if {
+    cfn_rule_active("E3027")
     some name in resources_of_type("AWS::Events::Rule")
     val := resolve(name, "Properties.ScheduleExpression")
     is_string(val)
@@ -100,6 +106,7 @@ violation contains make_diag_at("E3027", "ERROR", name,
 violation contains make_diag_at("E3027", "ERROR", name,
     "Properties.ScheduleExpression",
     "'' is not of type 'string'") if {
+    cfn_rule_active("E3027")
     some name in resources_of_type("AWS::Events::Rule")
     val := resolve(name, "Properties.ScheduleExpression")
     is_string(val)
@@ -113,6 +120,7 @@ violation contains make_diag_at("E3027", "ERROR", name,
 violation contains make_diag_at("E3027", "ERROR", name,
     "Properties.ScheduleExpression",
     sprintf("'%s' is not of length 6. (Minutes Hours Day-of-month Month Day-of-week Year)", [fields[0]])) if {
+    cfn_rule_active("E3027")
     some name in resources_of_type("AWS::Events::Rule")
     val := resolve(name, "Properties.ScheduleExpression")
     is_string(val)
@@ -129,6 +137,7 @@ violation contains make_diag_at("E3027", "ERROR", name,
 violation contains make_diag_at("E3027", "ERROR", name,
     "Properties.ScheduleExpression",
     sprintf("'%s' specifies both Day-of-month and Day-of-week. (Minutes Hours Day-of-month Month Day-of-week Year)", [substring(body, 0, 1)])) if {
+    cfn_rule_active("E3027")
     some name in resources_of_type("AWS::Events::Rule")
     val := resolve(name, "Properties.ScheduleExpression")
     is_string(val)

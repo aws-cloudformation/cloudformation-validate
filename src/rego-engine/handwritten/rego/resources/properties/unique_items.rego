@@ -13,6 +13,7 @@ import rego.v1
 violation contains make_diag_at("W9007", "WARN", name,
     sprintf("Properties.%s", [prop_key]),
     sprintf("Array property '%s' contains duplicate values", [prop_key])) if {
+    cfn_rule_active("W9007")
     some name, res in input.resources
     some prop_key, prop_val in res.properties
     is_array(prop_val)

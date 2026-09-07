@@ -43,6 +43,7 @@ _is_ref_to_param_path(name, property_path) if {
 violation contains make_diag_at("W2501", "WARN", candidate.name,
     candidate.path,
     sprintf("Password should use a secure dynamic reference for Resources/%s/%s", [candidate.name, replace(candidate.path, ".", "/")])) if {
+    cfn_rule_active("W2501")
     some candidate in _password_candidate
     reason := candidate.value.__dynamic
     _is_any_dynamic_ref(reason)
@@ -53,6 +54,7 @@ violation contains make_diag_at("W2501", "WARN", candidate.name,
 violation contains make_diag_at("W2501", "WARN", candidate.name,
     candidate.path,
     sprintf("Property '%s' should not be a hardcoded string - use a parameter with NoEcho or a dynamic reference", [candidate.property])) if {
+    cfn_rule_active("W2501")
     some candidate in _password_candidate
     is_string(candidate.value)
     not is_dynamic(candidate.name, candidate.path)
@@ -66,6 +68,7 @@ violation contains make_diag_at("W2501", "WARN", candidate.name,
 violation contains make_diag_at("W2501", "WARN", "",
     sprintf("Parameters/%s", [pname]),
     sprintf("Parameter %s used as %s, therefore NoEcho should be True", [pname, last_key])) if {
+    cfn_rule_active("W2501")
     some name, res in input.resources
     some edge in res.outgoingRefs
     edge.kind == "Ref"
@@ -106,6 +109,7 @@ _secret_segment(seg) := seg if { seg != "*" }
 violation contains make_diag_at("W1011", "WARN", name,
     edge.sourcePath,
     sprintf("Use dynamic references (e.g., SSM SecureString) instead of parameter '%s' for secrets", [pname])) if {
+    cfn_rule_active("W1011")
     some check in _secret_ref_checks
     some name in resources_of_type(check.type)
     some edge in input.resources[name].outgoingRefs

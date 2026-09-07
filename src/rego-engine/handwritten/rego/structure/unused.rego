@@ -11,6 +11,7 @@ import rego.v1
 violation contains make_diag_at("W2001", "WARN", "",
     sprintf("Parameters/%s", [pname]),
     sprintf("Parameter '%s' is not referenced anywhere in the template", [pname])) if {
+    cfn_rule_active("W2001")
     count(object.get(input.template, "transforms", [])) == 0
     not _unreadable_reference_section
     some pname in object.keys(input.parameters)
@@ -81,6 +82,7 @@ _param_referenced(pname) if {
 violation contains make_diag_at("W8001", "WARN", "",
     sprintf("Conditions/%s", [cname]),
     sprintf("Condition '%s' is not used by any resource or Fn::If", [cname])) if {
+    cfn_rule_active("W8001")
     some cname in object.keys(input.conditions)
     not _condition_used(cname)
 }
@@ -134,6 +136,7 @@ _condition_used(cname) if {
 violation contains make_diag_at("W7001", "WARN", "",
     sprintf("Mappings/%s", [mname]),
     sprintf("Mapping '%s' is not referenced by any Fn::FindInMap", [mname])) if {
+    cfn_rule_active("W7001")
     not object.get(input, "hasDynamicFindinmapName", false)
     some mname in object.keys(input.mappings)
     not _mapping_used(mname)

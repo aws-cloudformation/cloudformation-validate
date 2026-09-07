@@ -8,6 +8,7 @@ violation contains make_diag_full("W1030", "WARN", name, edge.sourcePath,
     sprintf("{'Ref': '%s'} is not a 'AWS::EC2::Image.Id' when 'Ref' is resolved", [target]),
     "Use parameter type AWS::EC2::Image::Id",
     "") if {
+    cfn_rule_active("W1030")
     some name, res in input.resources
     some edge in res.outgoingRefs
     edge.kind == "Ref"
@@ -28,6 +29,7 @@ violation contains make_diag_full("W1030", "WARN", name, edge.sourcePath,
     sprintf("{'Ref': '%s'} is not a 'ipv4-network' when 'Ref' is resolved", [target]),
     "Validate the parameter value matches CIDR format",
     "") if {
+    cfn_rule_active("W1030")
     some name, res in input.resources
     some edge in res.outgoingRefs
     edge.kind == "Ref"
@@ -49,6 +51,7 @@ _is_cidr_prop(path) if { endswith(path, "DestinationCidrBlock") }
 violation contains make_diag_full("W1030", "WARN", name, edge.sourcePath,
     sprintf("{'Ref': '%s'} is not a 'AWS::EC2::VPC.Id' with pattern '^vpc-(([0-9A-Fa-f]{8})|([0-9A-Fa-f]{17}))$' when 'Ref' is resolved", [target]),
     "", "") if {
+    cfn_rule_active("W1030")
     some name, res in input.resources
     some edge in res.outgoingRefs
     edge.kind == "Ref"
