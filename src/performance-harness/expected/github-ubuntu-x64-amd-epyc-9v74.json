@@ -42,7 +42,7 @@
     }
   },
   "provenance": {
-    "gitSha": "ac4e0b488513cb426029f99af6b1fcd74e7add19",
+    "gitSha": "8348f0442fcbbc5770d892c05e243fc8b846f8cc",
     "rustVersion": "rustc 1.96.0 (ac68faa20 2026-05-25)",
     "workingTreeDirty": false,
     "calibration": {
@@ -340,8 +340,8 @@
       ]
     },
     "rego/conditional-100": {
-      "initAndFirstMs": 540.653,
-      "warmPerCallMs": 86.876,
+      "initAndFirstMs": 511.518,
+      "warmPerCallMs": 52.069,
       "peakRssBytes": 392540160,
       "gatedMetrics": [
         "initAndFirstMs",
@@ -355,8 +355,8 @@
       ]
     },
     "rego/duplicate-500": {
-      "initAndFirstMs": 1081.985,
-      "warmPerCallMs": 623.707,
+      "initAndFirstMs": 926.768,
+      "warmPerCallMs": 456.685,
       "peakRssBytes": 421892096,
       "gatedMetrics": [
         "initAndFirstMs",
@@ -370,8 +370,8 @@
       ]
     },
     "rego/mixed-real": {
-      "initAndFirstMs": 557.294,
-      "warmPerCallMs": 94.926,
+      "initAndFirstMs": 531.342,
+      "warmPerCallMs": 67.221,
       "peakRssBytes": 402219008,
       "gatedMetrics": [
         "initAndFirstMs",
@@ -458,8 +458,8 @@
       ]
     },
     "rego/security-cross-resource-scale": {
-      "initAndFirstMs": 1052.667,
-      "warmPerCallMs": 593.073,
+      "initAndFirstMs": 893.77,
+      "warmPerCallMs": 425.407,
       "peakRssBytes": 416485376,
       "gatedMetrics": [
         "initAndFirstMs",
@@ -540,8 +540,8 @@
       ]
     },
     "rego/security-many-resources": {
-      "initAndFirstMs": 575.68,
-      "warmPerCallMs": 117.658,
+      "initAndFirstMs": 563.036,
+      "warmPerCallMs": 103.933,
       "peakRssBytes": 397377536,
       "gatedMetrics": [
         "initAndFirstMs",
@@ -586,7 +586,7 @@
     },
     "rego/tiny": {
       "initAndFirstMs": 455.533,
-      "warmPerCallMs": 2.693,
+      "warmPerCallMs": 2.474,
       "peakRssBytes": 389644288,
       "gatedMetrics": [
         "initAndFirstMs",
@@ -600,8 +600,8 @@
       ]
     },
     "rego/unique-500": {
-      "initAndFirstMs": 768.986,
-      "warmPerCallMs": 312.21,
+      "initAndFirstMs": 607.522,
+      "warmPerCallMs": 144.058,
       "peakRssBytes": 401330176,
       "gatedMetrics": [
         "initAndFirstMs",

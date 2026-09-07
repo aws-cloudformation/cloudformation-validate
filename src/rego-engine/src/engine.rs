@@ -515,7 +515,9 @@ impl ValidationEngine for RegoEngine {
     }
 
     /// Returns guard metadata merged with any custom Rego rule metadata
-    /// discovered from prior evaluations.
+    /// discovered from prior evaluations. Custom diagnostics already carry their
+    /// current evaluation's rule description, so this accumulated metadata cannot
+    /// overwrite a later report.
     fn external_rule_metadata(&self) -> HashMap<String, RuleMetadataEntry> {
         let mut merged = self.external_rule_metadata.clone();
         if !self.custom_packages.is_empty() {
@@ -533,11 +535,12 @@ impl ValidationEngine for RegoEngine {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use diagnostics::DetailLevel;
     use rules::{FilterConfig, RuleFilterConfig};
     use std::sync::Barrier;
     use std::thread;
     use template_model::SemanticModel;
-    use validation_engine::{EngineConfig, ExternalRuleSource, ValidateConfig, ValidationEngine};
+    use validation_engine::{EngineConfig, ExternalRuleSource, ValidateConfig, ValidationEngine, validate_bytes};
 
     fn make_engine() -> RegoEngine {
         RegoEngine::new(EngineConfig::default()).unwrap()
@@ -1482,6 +1485,10 @@ violation contains v if {
     some name in resources_of_type("AWS::S3::Bucket")
     v := {"rule_id": "MODELPROBE", "severity": "info", "message": name, "resource_id": name}
 }
+violation contains v if {
+    some name, _ in input.resources
+    v := {"rule_id": "INPUTPROBE", "severity": "info", "message": name, "resource_id": name}
+}
 "#;
         let config = EngineConfig {
             custom_rules: vec![ExternalRuleSource { name: "concurrency_probe.rego".into(), content: probe.into() }],
@@ -1491,6 +1498,7 @@ violation contains v if {
         let engine = Arc::new(RegoEngine::new(config).unwrap());
 
         const THREAD_COUNT: usize = 8;
+        const ITERATIONS_PER_THREAD: usize = 128;
         let barrier = Arc::new(Barrier::new(THREAD_COUNT));
         let handles: Vec<_> = (0..THREAD_COUNT)
             .map(|i| {
@@ -1506,8 +1514,29 @@ violation contains v if {
                     config.pseudo_parameter_overrides.region = Some(region.clone());
                     // Release every thread at once so their evaluations overlap.
                     barrier.wait();
-                    let diags = engine.evaluate_rules(&model, &config).unwrap();
-                    (region, bucket, diags)
+                    let mut diagnostics = Vec::new();
+                    for _ in 0..ITERATIONS_PER_THREAD {
+                        diagnostics = engine.evaluate_rules(&model, &config).unwrap();
+                        let observed_regions: Vec<&str> = diagnostics
+                            .iter()
+                            .filter(|diagnostic| diagnostic.rule_id == "REGIONPROBE")
+                            .map(|diagnostic| diagnostic.message.as_str())
+                            .collect();
+                        assert_eq!(observed_regions, vec![region.as_str()]);
+                        let observed_resources: Vec<&str> = diagnostics
+                            .iter()
+                            .filter(|diagnostic| diagnostic.rule_id == "MODELPROBE")
+                            .map(|diagnostic| diagnostic.message.as_str())
+                            .collect();
+                        assert_eq!(observed_resources, vec![bucket.as_str()]);
+                        let observed_input_resources: Vec<&str> = diagnostics
+                            .iter()
+                            .filter(|diagnostic| diagnostic.rule_id == "INPUTPROBE")
+                            .map(|diagnostic| diagnostic.message.as_str())
+                            .collect();
+                        assert_eq!(observed_input_resources, vec![bucket.as_str()]);
+                    }
+                    (region, bucket, diagnostics)
                 })
             })
             .collect();
@@ -1520,7 +1549,128 @@ violation contains v if {
             let resources: Vec<&str> =
                 diags.iter().filter(|d| d.rule_id == "MODELPROBE").map(|d| d.message.as_str()).collect();
             assert_eq!(resources, vec![bucket.as_str()], "a thread must observe only its own model");
+            let input_resources: Vec<&str> =
+                diags.iter().filter(|d| d.rule_id == "INPUTPROBE").map(|d| d.message.as_str()).collect();
+            assert_eq!(input_resources, vec![bucket.as_str()], "a thread must observe only its own Rego input");
         }
+    }
+
+    #[test]
+    fn shared_engine_keeps_thousand_sequential_reports_template_local() {
+        const CUSTOM_RULE: &str = r#"
+package sequential_isolation
+import rego.v1
+
+violation contains v if {
+    pattern := input.template.description
+    some name, resource in input.resources
+    regex.match(pattern, resource.properties.Value)
+    region := input_region()
+    message := sprintf("%s/%s", [name, region])
+    v := {
+        "rule_id": "SEQUENTIALPROBE",
+        "severity": "info",
+        "category": "isolation",
+        "message": message,
+        "resource_id": name,
+    }
+}
+"#;
+        let engine = RegoEngine::new(EngineConfig {
+            custom_rules: vec![ExternalRuleSource {
+                name: "sequential_isolation.rego".into(),
+                content: CUSTOM_RULE.into(),
+            }],
+            ..Default::default()
+        })
+        .unwrap();
+        let schema_validator = SchemaValidator::default();
+
+        for iteration in 0..1_000 {
+            let (resource_name, region, pattern, value) = if iteration % 2 == 0 {
+                ("AlphaResource", "alpha-region", "^alpha+$", "alpha")
+            } else {
+                ("BetaResource", "beta-region", "^beta+$", "beta")
+            };
+            let template = format!(
+                r#"{{
+                    "AWSTemplateFormatVersion": "2010-09-09",
+                    "Description": "{pattern}",
+                    "Resources": {{
+                        "{resource_name}": {{
+                            "Type": "Custom::Probe",
+                            "Properties": {{"Value": "{value}"}}
+                        }}
+                    }}
+                }}"#
+            );
+            let mut config = ValidateConfig {
+                detail_level: DetailLevel::Detailed,
+                severity_level: Severity::Debug,
+                disable_builtin_rules: true,
+                ..Default::default()
+            };
+            config.pseudo_parameter_overrides.region = Some(region.to_string());
+
+            let report = validate_bytes(&engine, &schema_validator, template.as_bytes(), config).unwrap();
+            let probes: Vec<&Diagnostic> =
+                report.diagnostics.iter().filter(|diagnostic| diagnostic.rule_id == "SEQUENTIALPROBE").collect();
+            assert_eq!(probes.len(), 1, "iteration {iteration} must emit exactly one probe diagnostic");
+            let expected_message = format!("{resource_name}/{region}");
+            assert_eq!(probes[0].message, expected_message, "the current template supplies the diagnostic message");
+            assert_eq!(
+                probes[0].rule_description.as_deref(),
+                Some(expected_message.as_str()),
+                "the current template supplies its own detailed rule description"
+            );
+            assert_eq!(probes[0].category.as_deref(), Some("isolation"));
+        }
+    }
+
+    #[test]
+    fn failed_evaluation_does_not_contaminate_the_next_call() {
+        const CUSTOM_RULE: &str = r#"
+package error_cleanup
+import rego.v1
+
+violation contains v if {
+    input.template.description == "error"
+    ip_overlaps("not-a-cidr", "10.0.0.0/8")
+    v := {"rule_id": "UNREACHABLE", "severity": "error", "message": "unreachable"}
+}
+
+violation contains v if {
+    input.template.description == "ok"
+    some name in resources_of_type("Custom::Probe")
+    region := input_region()
+    v := {
+        "rule_id": "RECOVERYPROBE",
+        "severity": "info",
+        "message": sprintf("%s/%s", [name, region]),
+        "resource_id": name,
+    }
+}
+"#;
+        let engine = RegoEngine::new(EngineConfig {
+            custom_rules: vec![ExternalRuleSource { name: "error_cleanup.rego".into(), content: CUSTOM_RULE.into() }],
+            ..Default::default()
+        })
+        .unwrap();
+        let error_model =
+            make_model_from_yaml("Description: error\nResources:\n  ErrorResource:\n    Type: Custom::Probe\n");
+        let valid_model =
+            make_model_from_yaml("Description: ok\nResources:\n  ValidResource:\n    Type: Custom::Probe\n");
+        let mut error_config = ValidateConfig { disable_builtin_rules: true, ..Default::default() };
+        error_config.pseudo_parameter_overrides.region = Some("error-region".to_string());
+        assert!(engine.evaluate_rules(&error_model, &error_config).is_err(), "the first evaluation must fail");
+
+        let mut valid_config = ValidateConfig { disable_builtin_rules: true, ..Default::default() };
+        valid_config.pseudo_parameter_overrides.region = Some("valid-region".to_string());
+        let diagnostics = engine.evaluate_rules(&valid_model, &valid_config).unwrap();
+        let recovery: Vec<&Diagnostic> =
+            diagnostics.iter().filter(|diagnostic| diagnostic.rule_id == "RECOVERYPROBE").collect();
+        assert_eq!(recovery.len(), 1, "the next evaluation must recover after the prior error");
+        assert_eq!(recovery[0].message, "ValidResource/valid-region");
     }
 
     const SUPPRESSION_TEMPLATE: &str = r#"
@@ -1564,6 +1714,12 @@ Resources:
             filtered.iter().map(|d| (d.rule_id.clone(), d.message.clone())).collect();
         remaining.sort();
         assert_eq!(remaining, other_findings, "excluding one rule must not alter any other diagnostic");
+
+        let unfiltered_again = engine.evaluate_rules(&model, &ValidateConfig::default()).unwrap();
+        assert!(
+            unfiltered_again.iter().any(|diagnostic| diagnostic.rule_id == "W9010"),
+            "a later unfiltered call must not inherit the previous call's suppressed-rule set"
+        );
     }
 
     #[test]

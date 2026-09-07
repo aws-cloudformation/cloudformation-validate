@@ -64,11 +64,14 @@ impl CompiledPattern {
 /// silently accept the value.
 #[must_use]
 pub fn compile(pattern: &str) -> Option<Arc<CompiledPattern>> {
-    if let Some(cached) = PATTERN_CACHE.read().expect("PATTERN_CACHE not poisoned").get(pattern) {
+    if let Some(cached) = PATTERN_CACHE.read().unwrap_or_else(|poisoned| poisoned.into_inner()).get(pattern) {
         return cached.clone();
     }
     let compiled = compile_uncached(pattern).map(Arc::new);
-    PATTERN_CACHE.write().expect("PATTERN_CACHE not poisoned").insert(pattern.to_string(), compiled.clone());
+    PATTERN_CACHE
+        .write()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+        .insert(pattern.to_string(), compiled.clone());
     compiled
 }
 

@@ -150,6 +150,7 @@ pub fn validate_all_resources(
     model: &Arc<SemanticModel>,
     region: Option<&str>,
 ) -> Vec<Diagnostic> {
+    reset_scenario_filter();
     reset_schema_budget_exhaustions();
     let mut out = Vec::new();
     let relevant: HashSet<&str> = model.resources_by_type.keys().map(String::as_str).collect();
@@ -246,6 +247,7 @@ fn is_valid_logical_id(rid: &str) -> bool {
 }
 
 pub fn enrich_schema_context(diagnostics: &mut [Diagnostic], store: &CompiledSchemaStore, model: &Arc<SemanticModel>) {
+    reset_scenario_filter();
     for d in diagnostics.iter_mut() {
         if d.phase != Some(Phase::Schema) {
             continue;
@@ -1203,33 +1205,18 @@ fn validate_object_keys_inner(
     base_path: &str,
     scenario: Option<&HashMap<String, bool>>,
 ) {
-    // When an outer key scenario is provided, install it as the SCENARIO_FILTER
-    // for the duration of this call. This ensures requiredOr/requiredXor and
-    // anyOf/oneOf evaluation inside this branch are constrained to the
-    // condition world that produced this key set. Restore any previous filter
-    // on exit so nested composition preserves outer constraints.
-    let previous_filter = SCENARIO_FILTER.with(|f| f.borrow().clone());
-    if let Some(outer_conds) = scenario {
-        let merged = match &previous_filter {
-            Some(existing) => {
-                let mut combined = existing.clone();
-                for (k, v) in outer_conds {
-                    if let Some(prev) = combined.get(k) {
-                        if prev != v {
-                            // Contradictory condition: skip installing filter.
-                            SCENARIO_FILTER.with(|f| *f.borrow_mut() = previous_filter.clone());
-                            return;
-                        }
-                    } else {
-                        combined.insert(k.clone(), *v);
-                    }
-                }
-                combined
-            }
-            None => outer_conds.clone(),
-        };
-        SCENARIO_FILTER.with(|f| *f.borrow_mut() = Some(merged));
-    }
+    // When an outer key scenario is provided, constrain nested composition to
+    // the same condition world. The scope restores any prior nested assignment
+    // during normal return and panic unwinding.
+    let _scenario_filter_scope = match scenario {
+        Some(outer_conditions) => {
+            let Some(merged) = merged_scenario_filter(outer_conditions) else {
+                return;
+            };
+            Some(ScenarioFilterScope::enter(merged))
+        }
+        None => None,
+    };
 
     let before_len = out.len();
     for req in required {
@@ -1377,9 +1364,6 @@ fn validate_object_keys_inner(
             }
         }
     }
-
-    // Restore the previous SCENARIO_FILTER.
-    SCENARIO_FILTER.with(|f| *f.borrow_mut() = previous_filter);
 }
 
 /// Enumerate object key-sets visible at `prop_path`, one per condition
@@ -2601,32 +2585,51 @@ fn validate_sub_under_assignment(
     base_path: &str,
     assignment: &HashMap<String, bool>,
 ) {
+    let Some(merged) = merged_scenario_filter(assignment) else {
+        return;
+    };
+    let _scenario_filter_scope = ScenarioFilterScope::enter(merged.clone());
+    let effective_keys: Vec<String> =
+        actual_keys.iter().filter(|key| property_present_under(m, rid, base_path, key, &merged)).cloned().collect();
+    validate_sub(out, m, rid, rtype, &effective_keys, sub, defs, base_path, 0);
+}
+
+struct ScenarioFilterScope {
+    previous: Option<HashMap<String, bool>>,
+}
+
+impl ScenarioFilterScope {
+    fn enter(assignment: HashMap<String, bool>) -> Self {
+        let previous = SCENARIO_FILTER.with(|filter| filter.replace(Some(assignment)));
+        Self { previous }
+    }
+}
+
+impl Drop for ScenarioFilterScope {
+    fn drop(&mut self) {
+        let previous = self.previous.take();
+        SCENARIO_FILTER.with(|filter| {
+            filter.replace(previous);
+        });
+    }
+}
+
+fn merged_scenario_filter(assignment: &HashMap<String, bool>) -> Option<HashMap<String, bool>> {
     SCENARIO_FILTER.with(|filter| {
-        let previous = filter.borrow().clone();
-        // Merge the new assignment with any existing outer filter using
-        // conflict-safe merge: never overwrite a contradictory prior condition.
-        let merged = match &previous {
-            Some(outer) => {
-                let mut combined = outer.clone();
-                for (k, v) in assignment {
-                    if let Some(prev) = combined.get(k) {
-                        if prev != v {
-                            // Contradictory: skip this assignment entirely.
-                            return;
-                        }
-                    } else {
-                        combined.insert(k.clone(), *v);
-                    }
-                }
-                combined
+        let mut merged = filter.borrow().clone().unwrap_or_default();
+        for (name, value) in assignment {
+            if merged.get(name).is_some_and(|previous| previous != value) {
+                return None;
             }
-            None => assignment.clone(),
-        };
-        *filter.borrow_mut() = Some(merged.clone());
-        let effective_keys: Vec<String> =
-            actual_keys.iter().filter(|key| property_present_under(m, rid, base_path, key, &merged)).cloned().collect();
-        validate_sub(out, m, rid, rtype, &effective_keys, sub, defs, base_path, 0);
-        *filter.borrow_mut() = previous;
+            merged.insert(name.clone(), *value);
+        }
+        Some(merged)
+    })
+}
+
+fn reset_scenario_filter() {
+    SCENARIO_FILTER.with(|filter| {
+        filter.replace(None);
     });
 }
 
@@ -4998,6 +5001,33 @@ fn build_diagnostic_conditional(
 mod tests {
     use super::*;
     use serde_json::json;
+
+    fn current_scenario_filter() -> Option<HashMap<String, bool>> {
+        SCENARIO_FILTER.with(|filter| filter.borrow().clone())
+    }
+
+    #[test]
+    fn scenario_filter_scope_restores_outer_assignment_after_unwind() {
+        reset_scenario_filter();
+        let _outer_scope = ScenarioFilterScope::enter(HashMap::from([("Outer".to_string(), true)]));
+        let unwind = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let _inner_scope = ScenarioFilterScope::enter(HashMap::from([("Inner".to_string(), false)]));
+            assert_eq!(current_scenario_filter(), Some(HashMap::from([("Inner".to_string(), false)])));
+            panic!("exercise unwind cleanup");
+        }));
+        assert!(unwind.is_err());
+        assert_eq!(current_scenario_filter(), Some(HashMap::from([("Outer".to_string(), true)])));
+    }
+
+    #[test]
+    fn validation_entry_clears_a_stale_scenario_filter() {
+        SCENARIO_FILTER.with(|filter| {
+            filter.replace(Some(HashMap::from([("PreviousTemplate".to_string(), true)])));
+        });
+        let diagnostics = diagnostics_for_mode_value("managed");
+        assert!(diagnostics.is_empty(), "the new validation must not inherit a prior scenario assignment");
+        assert!(current_scenario_filter().is_none(), "validation leaves no scenario filter behind");
+    }
 
     #[test]
     fn levenshtein_distance_identical_strings() {

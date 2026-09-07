@@ -363,6 +363,7 @@ fn load_custom_rules(source: &str, origin: RuleOrigin) -> anyhow::Result<Vec<Cus
 #[cfg(test)]
 mod tests {
     use super::*;
+    use validation_engine::ExternalRuleSource;
 
     #[test]
     fn load_custom_rules_valid_json() {
@@ -642,5 +643,54 @@ mod tests {
         );
         let ctx = crate::functions::build_custom_context(&serde_json::json!({"resources": {}}), Some("Bucket"), None);
         assert!(!execute_custom_rule(&rule, &ctx).expect("guard evaluation error is tolerated as non-firing"));
+    }
+
+    #[test]
+    fn shared_engine_keeps_concurrent_cel_evaluations_template_local() {
+        const THREAD_COUNT: usize = 8;
+        const ITERATIONS_PER_THREAD: usize = 128;
+        let custom_rule = r#"{"rules": [{
+            "rule_id": "CELISOLATIONPROBE",
+            "severity": "INFO",
+            "resource_type": "Custom::Probe",
+            "expression": "properties.Value == \"match\"",
+            "message": "{name}"
+        }]}"#;
+        let engine = Arc::new(
+            CelEngine::new(EngineConfig {
+                custom_rules: vec![ExternalRuleSource {
+                    name: "cel_isolation.json".into(),
+                    content: custom_rule.into(),
+                }],
+                ..Default::default()
+            })
+            .unwrap(),
+        );
+        let barrier = Arc::new(std::sync::Barrier::new(THREAD_COUNT));
+        let handles: Vec<_> = (0..THREAD_COUNT)
+            .map(|index| {
+                let engine = Arc::clone(&engine);
+                let barrier = Arc::clone(&barrier);
+                std::thread::spawn(move || {
+                    let resource_name = format!("Probe{index}");
+                    let template = format!(
+                        "Resources:\n  {resource_name}:\n    Type: Custom::Probe\n    Properties:\n      Value: match\n"
+                    );
+                    let model = Arc::new(SemanticModel::from_bytes(template.as_bytes()).unwrap());
+                    barrier.wait();
+                    for _ in 0..ITERATIONS_PER_THREAD {
+                        let diagnostics = engine.evaluate_rules(&model, &ValidateConfig::default()).unwrap();
+                        let probes: Vec<&Diagnostic> =
+                            diagnostics.iter().filter(|diagnostic| diagnostic.rule_id == "CELISOLATIONPROBE").collect();
+                        assert_eq!(probes.len(), 1);
+                        assert_eq!(probes[0].message, resource_name);
+                        assert_eq!(probes[0].resource_logical_id(), Some(resource_name.as_str()));
+                    }
+                })
+            })
+            .collect();
+        for handle in handles {
+            handle.join().unwrap();
+        }
     }
 }

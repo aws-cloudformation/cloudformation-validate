@@ -724,6 +724,7 @@ pub(crate) fn parse_diagnostic(
         let severity = severity_str.parse::<Severity>()?;
         let category = val.get("category").and_then(|v| v.as_str()).map(|c| c.to_string());
         let source = *source_override.expect("custom/guard branch is only reached with a source override");
+        let rule_description = (source == RuleOrigin::Custom).then(|| message.clone());
         return Ok(Diagnostic {
             rule_id,
             severity,
@@ -736,7 +737,7 @@ pub(crate) fn parse_diagnostic(
             location: span_to_option(span),
             related_resources,
             condition_scenario,
-            rule_description: None,
+            rule_description,
             phase: None,
             context: None,
             source,
