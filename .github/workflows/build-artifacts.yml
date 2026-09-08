@@ -333,7 +333,9 @@ jobs:
       matrix:
         include:
         - { os: ubuntu-latest, platform: linux, arch: x64 }
+        - { os: ubuntu-24.04-arm, platform: linux, arch: aarch64 }
         - { os: macos-latest, platform: darwin, arch: aarch64 }
+        - { os: macos-15-intel, platform: darwin, arch: x64 }
         - { os: windows-latest, platform: win32, arch: x64, target: x86_64-pc-windows-gnu }
     runs-on: ${{ matrix.os }}
     defaults:
@@ -463,15 +465,28 @@ jobs:
         bindings-go/merge-modules.sh \
           bindings-go/go \
           "$GITHUB_WORKSPACE/incoming/go-linux-x64" \
+          "$GITHUB_WORKSPACE/incoming/go-linux-aarch64" \
+          "$GITHUB_WORKSPACE/incoming/go-darwin-x64" \
           "$GITHUB_WORKSPACE/incoming/go-darwin-aarch64" \
           "$GITHUB_WORKSPACE/incoming/go-win32-x64"
+        go_libraries=(bindings-go/go/libs/*/libbindings_go.a)
+        if [ ${#go_libraries[@]} -ne 5 ]; then
+          echo "::error::Expected five merged Go libraries, found ${#go_libraries[@]}"
+          exit 1
+        fi
         echo "Merged all-platform Go module:"
-        find bindings-go/go/libs -mindepth 2 -maxdepth 2 -type f -name 'libbindings_go.a' -print | sort
+        printf '  %s\n' "${go_libraries[@]}"
 
         for d in "$GITHUB_WORKSPACE"/incoming/cfn-validate-*/; do
           cp -R "$d." "$GITHUB_WORKSPACE/release-bin/"
         done
-        echo "Staged cfn-validate binaries:"; ls -1 "$GITHUB_WORKSPACE/release-bin" || true
+        cli_binaries=("$GITHUB_WORKSPACE"/release-bin/cfn-validate-*)
+        if [ ${#cli_binaries[@]} -ne 6 ]; then
+          echo "::error::Expected six staged cfn-validate binaries, found ${#cli_binaries[@]}"
+          exit 1
+        fi
+        echo "Staged cfn-validate binaries:"
+        printf '  %s\n' "${cli_binaries[@]}"
 
         cp "$GITHUB_WORKSPACE/incoming/third-party-licenses/THIRD-PARTY-LICENSES.txt" THIRD-PARTY-LICENSES.txt
         cp "$GITHUB_WORKSPACE/incoming/third-party-licenses/bindings-jvm/THIRD-PARTY-LICENSES.txt" bindings-jvm/THIRD-PARTY-LICENSES.txt

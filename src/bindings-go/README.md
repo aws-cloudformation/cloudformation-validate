@@ -20,10 +20,10 @@ go get github.com/aws-cloudformation/cloudformation-validate/src/bindings-go/go
 import cfnvalidate "github.com/aws-cloudformation/cloudformation-validate/src/bindings-go/go"
 ```
 
-Requires Go 1.26+ with cgo enabled (the default) and a C toolchain for linking. The module bundles a prebuilt static
-library for each supported platform (Linux x86-64, macOS aarch64, Windows x86-64) and selects the right one per
-`GOOS`/`GOARCH`. On Windows, link with the MinGW-w64 toolchain - the bundled Windows library is built for the GNU ABI
-and cannot be consumed by MSVC.
+Requires Go 1.26+ with cgo enabled (the default) and a C toolchain for linking. The module bundles prebuilt static
+libraries for Linux and macOS on x86-64 and ARM64, plus Windows on x86-64, and selects the matching library for
+`GOOS`/`GOARCH`. On Windows, link with MinGW-w64. The bundled Windows library uses the GNU ABI and cannot be consumed
+by MSVC.
 
 ## Quick start
 
