@@ -958,8 +958,11 @@
     "AWS::IoTSiteWise::Dashboard": "string",
     "AWS::IoTSiteWise::Dataset": "string",
     "AWS::IoTSiteWise::Gateway": "string",
+    "AWS::IoTSiteWise::Pipeline": "string",
     "AWS::IoTSiteWise::Portal": "string",
     "AWS::IoTSiteWise::Project": "string",
+    "AWS::IoTSiteWise::Task": "string",
+    "AWS::IoTSiteWise::Workspace": "string",
     "AWS::IoTThingsGraph::FlowTemplate": "string",
     "AWS::IoTTwinMaker::ComponentType": "string",
     "AWS::IoTTwinMaker::Entity": "string",
@@ -1899,6 +1902,7 @@
     },
     "AWS::AgentRegistry::RegistryRecord": {
       "CreatedAt": "string",
+      "CreatedBy": "string",
       "Description": "string",
       "DisplayName": "string",
       "Name": "string",
@@ -5907,9 +5911,9 @@
       "CdcStartPosition": "string",
       "CdcStartTime": "number",
       "CdcStopPosition": "string",
-      "Id": "string",
       "MigrationType": "string",
       "ReplicationInstanceArn": "string",
+      "ReplicationTaskArn": "string",
       "ReplicationTaskIdentifier": "string",
       "ReplicationTaskSettings": "string",
       "ResourceIdentifier": "string",
@@ -10953,6 +10957,15 @@
       "GatewayVersion": "string",
       "Tags": "array"
     },
+    "AWS::IoTSiteWise::Pipeline": {
+      "Computations": "array",
+      "Description": "string",
+      "PipelineArn": "string",
+      "PipelineName": "string",
+      "Status": "string",
+      "Tags": "array",
+      "WorkspaceName": "string"
+    },
     "AWS::IoTSiteWise::Portal": {
       "Alarms": "object",
       "NotificationSenderEmail": "string",
@@ -10976,6 +10989,24 @@
       "ProjectId": "string",
       "ProjectName": "string",
       "Tags": "array"
+    },
+    "AWS::IoTSiteWise::Task": {
+      "Description": "string",
+      "Status": "string",
+      "Tags": "array",
+      "TaskArn": "string",
+      "TaskName": "string",
+      "WorkspaceName": "string"
+    },
+    "AWS::IoTSiteWise::Workspace": {
+      "CreatedAt": "string",
+      "KmsKeyId": "string",
+      "Status": "string",
+      "Tags": "array",
+      "UpdatedAt": "string",
+      "WorkspaceArn": "string",
+      "WorkspaceDescription": "string",
+      "WorkspaceName": "string"
     },
     "AWS::IoTThingsGraph::FlowTemplate": {
       "CompatibleNamespaceVersion": "number",
