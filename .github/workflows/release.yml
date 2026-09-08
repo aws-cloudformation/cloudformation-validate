@@ -223,8 +223,8 @@ jobs:
           ( cd "$WORKING_DIR/bindings-wasm" && zip -r "$GITHUB_WORKSPACE/release/cloudformation-validate-wasm-$RELEASE_TAG.zip" dist )
 
           wheels=("$WORKING_DIR"/bindings-python/generated/dist/*.whl)
-          if [ ${#wheels[@]} -ne 6 ]; then
-            echo "::error::Expected six wheels in $WORKING_DIR/bindings-python/generated/dist/, found ${#wheels[@]}. Run the Build Artifacts workflow and merge its PR first."
+          if [ ${#wheels[@]} -ne 5 ]; then
+            echo "::error::Expected five wheels in $WORKING_DIR/bindings-python/generated/dist/, found ${#wheels[@]}. Run the Build Artifacts workflow and merge its PR first."
             exit 1
           fi
           for wheel in "${wheels[@]}"; do
@@ -238,8 +238,8 @@ jobs:
             "$WORKING_DIR/bindings-python/stamp-wheel.py" release "$wheel" "$PYTHON_VERSION"
           done
           release_wheels=(release/cloudformation_validate-"$PYTHON_VERSION"-*.whl)
-          if [ ${#release_wheels[@]} -ne 6 ]; then
-            echo "::error::Expected six stamped release wheels, found ${#release_wheels[@]}."
+          if [ ${#release_wheels[@]} -ne 5 ]; then
+            echo "::error::Expected five stamped release wheels, found ${#release_wheels[@]}."
             exit 1
           fi
 
@@ -248,15 +248,15 @@ jobs:
             exit 1
           fi
           go_libraries=("$WORKING_DIR"/bindings-go/go/libs/*/libbindings_go.a)
-          if [ ${#go_libraries[@]} -eq 0 ]; then
-            echo "::error::No static libraries in $WORKING_DIR/bindings-go/go/libs/. Run the Build Artifacts workflow and merge its PR first."
+          if [ ${#go_libraries[@]} -ne 5 ]; then
+            echo "::error::Expected five Go static libraries in $WORKING_DIR/bindings-go/go/libs/, found ${#go_libraries[@]}. Run the Build Artifacts workflow and merge its PR first."
             exit 1
           fi
           ( cd "$WORKING_DIR/bindings-go" && zip -r "$GITHUB_WORKSPACE/release/cloudformation-validate-go-$RELEASE_TAG.zip" go )
 
           binaries=("$GITHUB_WORKSPACE"/release-bin/cfn-validate-*)
-          if [ ${#binaries[@]} -eq 0 ]; then
-            echo "::error::No cfn-validate binaries found in $GITHUB_WORKSPACE/release-bin/. Run the Build Artifacts workflow and merge its PR first."
+          if [ ${#binaries[@]} -ne 6 ]; then
+            echo "::error::Expected six cfn-validate binaries in $GITHUB_WORKSPACE/release-bin/, found ${#binaries[@]}. Run the Build Artifacts workflow and merge its PR first."
             exit 1
           fi
           for bin in "${binaries[@]}"; do
@@ -436,8 +436,8 @@ jobs:
           )
 
           committed_wheels=("$WORKING_DIR"/bindings-python/generated/dist/*.whl)
-          if [ ${#committed_wheels[@]} -ne 6 ]; then
-            echo "::error::Expected six committed Python wheels, found ${#committed_wheels[@]}."
+          if [ ${#committed_wheels[@]} -ne 5 ]; then
+            echo "::error::Expected five committed Python wheels, found ${#committed_wheels[@]}."
             exit 1
           fi
           for wheel in "${committed_wheels[@]}"; do
@@ -454,8 +454,8 @@ jobs:
           done
 
           committed_binaries=("$GITHUB_WORKSPACE"/release-bin/cfn-validate-*)
-          if [ ${#committed_binaries[@]} -eq 0 ]; then
-            echo "::error::No committed cfn-validate binaries found."
+          if [ ${#committed_binaries[@]} -ne 6 ]; then
+            echo "::error::Expected six committed cfn-validate binaries, found ${#committed_binaries[@]}."
             exit 1
           fi
           for binary in "${committed_binaries[@]}"; do
@@ -814,8 +814,11 @@ jobs:
               cfnvalidate.go
               version.go
               internal/bindings_go/bindings_go.go
-              libs/darwin-aarch64/libbindings_go.a
+              internal/bindings_go/link.go
               libs/linux-x86-64/libbindings_go.a
+              libs/linux-aarch64/libbindings_go.a
+              libs/darwin-x86-64/libbindings_go.a
+              libs/darwin-aarch64/libbindings_go.a
               libs/win32-x86-64/libbindings_go.a
             )
             for file in "${expected_files[@]}"; do
@@ -1100,8 +1103,8 @@ jobs:
             --dir dist
           shopt -s nullglob
           wheels=(dist/*.whl)
-          if [ ${#wheels[@]} -ne 6 ]; then
-            echo "::error::Expected six Python wheels for $PYTHON_VERSION, found ${#wheels[@]}."
+          if [ ${#wheels[@]} -ne 5 ]; then
+            echo "::error::Expected five Python wheels for $PYTHON_VERSION, found ${#wheels[@]}."
             exit 1
           fi
 
@@ -1177,8 +1180,8 @@ jobs:
             --dir "$expected_directory"
           shopt -s nullglob
           expected_wheels=("$expected_directory"/*.whl)
-          if [ ${#expected_wheels[@]} -ne 6 ]; then
-            echo "::error::Expected six GitHub release wheels, found ${#expected_wheels[@]}."
+          if [ ${#expected_wheels[@]} -ne 5 ]; then
+            echo "::error::Expected five GitHub release wheels, found ${#expected_wheels[@]}."
             exit 1
           fi
 
@@ -1237,8 +1240,8 @@ jobs:
             --dir dist
           shopt -s nullglob
           wheels=(dist/*.whl)
-          if [ ${#wheels[@]} -ne 6 ]; then
-            echo "::error::Expected six Python wheels for $PYTHON_VERSION, found ${#wheels[@]}."
+          if [ ${#wheels[@]} -ne 5 ]; then
+            echo "::error::Expected five Python wheels for $PYTHON_VERSION, found ${#wheels[@]}."
             exit 1
           fi
 
@@ -1313,8 +1316,8 @@ jobs:
             --dir "$expected_directory"
           shopt -s nullglob
           expected_wheels=("$expected_directory"/*.whl)
-          if [ ${#expected_wheels[@]} -ne 6 ]; then
-            echo "::error::Expected six GitHub release wheels, found ${#expected_wheels[@]}."
+          if [ ${#expected_wheels[@]} -ne 5 ]; then
+            echo "::error::Expected five GitHub release wheels, found ${#expected_wheels[@]}."
             exit 1
           fi
 
