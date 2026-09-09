@@ -10,7 +10,7 @@ const moduleLoadStart = performance.now();
 require('@aws/cloudformation-validate');
 const moduleLoadMs = performance.now() - moduleLoadStart;
 
-import type { DetailedReport, EngineConfig, ValidateConfig } from '@aws/cloudformation-validate';
+import type { ValidationReport, EngineConfig, ValidateConfig } from '@aws/cloudformation-validate';
 import type {
     WasmCelEngine as WasmCelEngineType,
     WasmRegoEngine as WasmRegoEngineType,
@@ -347,7 +347,7 @@ function zeroBenchmarkMetrics(): Record<string, unknown> {
     };
 }
 
-function normalizeParseFailureReport(report: DetailedReport): DetailedReport {
+function normalizeParseFailureReport(report: ValidationReport): ValidationReport {
     const zeroPhase = () => ({ durationMs: 0 });
     return {
         ...report,
@@ -493,7 +493,7 @@ function measureStartup(
     const consumerInitMs = engineInitMs;
 
     const validateStart = performance.now();
-    const report: DetailedReport = engine.validateDetailed(startupBytes, validateConfig, startupLabel);
+    const report: ValidationReport = engine.validateTemplate(startupBytes, validateConfig, startupLabel);
     const hostMs = performance.now() - validateStart;
 
     const perf = report.performance;
@@ -633,7 +633,7 @@ for (const tpl of templates) {
     const iterHostModel: number[] = [];
     const iterEngineInternal: number[] = [];
     const iterWallClock: number[] = [];
-    let lastReport: DetailedReport | null = null;
+    let lastReport: ValidationReport | null = null;
     let failed = false;
 
     for (let i = 0; i < iterations; i++) {
@@ -643,7 +643,7 @@ for (const tpl of templates) {
             parsedModel = WasmSemanticModel.parse(bytes);
             iterHostModel.push(performance.now() - tm0);
         } catch (e: any) {
-            const parseFailureReport = normalizeParseFailureReport(engine.validateDetailed(bytes, validateConfig, rel));
+            const parseFailureReport = normalizeParseFailureReport(engine.validateTemplate(bytes, validateConfig, rel));
             fs.writeFileSync(
                 jsonPath,
                 JSON.stringify(
@@ -670,7 +670,7 @@ for (const tpl of templates) {
 
         try {
             const t0 = performance.now();
-            const report: DetailedReport = engine.validateDetailed(bytes, validateConfig, rel);
+            const report: ValidationReport = engine.validateTemplate(bytes, validateConfig, rel);
             const wallMs = performance.now() - t0;
             const perf = report.performance;
             iterModelBuild.push(perf.modelBuild.durationMs);
@@ -953,7 +953,7 @@ function generateMarkdown(
 
     push('\n## Validation Latency (ms, median / p99 / max per template)\n');
     push('host_model = JS-side timer around WasmSemanticModel.parse (includes WASM dispatch).');
-    push('wall_clock = JS-side timer around validateDetailed() (includes WASM dispatch + marshalling).');
+    push('wall_clock = JS-side timer around validateTemplate() (includes WASM dispatch + marshalling).');
     push('engine_internal = Rust-internal `report.performance.validateTotal` (engine work only).');
     push('binding_overhead = median of per-iteration (wall_clock − engine_internal) differences.');
     push(
