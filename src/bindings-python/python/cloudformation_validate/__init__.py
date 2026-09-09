@@ -223,7 +223,7 @@ class Engine:
 
         The amount of detail is controlled by ``config.detail_level`` (a
         :class:`DetailLevel`), which defaults to :attr:`DetailLevel.DETAILED`. At
-        :attr:`DetailLevel.STANDARD` the detailed-only diagnostic fields -
+        :attr:`DetailLevel.STANDARD` the enrichment fields -
         violation context, rule description, and documentation URL - are left
         unset; the report is otherwise identical.
         """

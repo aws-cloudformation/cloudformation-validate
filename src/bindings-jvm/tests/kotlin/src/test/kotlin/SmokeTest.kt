@@ -368,11 +368,11 @@ class SmokeTest {
 
         assertTrue(
             default.diagnostics.any { it.ruleDescription != null },
-            "the default report must carry detailed-only enrichment",
+            "the default report must carry enrichment fields",
         )
         assertTrue(
             explicitStandard.diagnostics.all { it.ruleDescription == null },
-            "the STANDARD detail level must leave detailed-only fields absent",
+            "the STANDARD detail level must leave enrichment fields absent",
         )
         assertEquals(
             stripSnapshotExcludedFields(parseJson(gson.toJson(explicitDetailed))),
@@ -401,7 +401,7 @@ class SmokeTest {
             DynamicTest.dynamicTest("$engineName standard:$rel") {
                 val actual = parseJson(gson.toJson(validateWithDetailLevel(engine, rel, standardConfig())))
                 @Suppress("UNCHECKED_CAST")
-                val expected = stripDetailedOnlyFields(COMBINED_SNAPSHOTS[rel] as Map<String, Any?>)
+                val expected = stripEnrichmentFields(COMBINED_SNAPSHOTS[rel] as Map<String, Any?>)
                 assertEquals(
                     stripSnapshotExcludedFields(expected),
                     stripSnapshotExcludedFields(actual, rel),
@@ -412,12 +412,12 @@ class SmokeTest {
     }
 
     @Suppress("UNCHECKED_CAST")
-    private fun stripDetailedOnlyFields(report: Map<String, Any?>): Map<String, Any?> {
+    private fun stripEnrichmentFields(report: Map<String, Any?>): Map<String, Any?> {
         val out = LinkedHashMap(report)
         val diags = (out["diagnostics"] as? List<Map<String, Any?>>) ?: return out
         out["diagnostics"] = diags.map { d ->
             val stripped = LinkedHashMap(d)
-            for (field in FULL_ONLY_FIELDS) stripped.remove(field)
+            for (field in ENRICHMENT_FIELDS) stripped.remove(field)
             stripped
         }
         return out
@@ -552,7 +552,7 @@ class SmokeTest {
             return templates.sorted()
         }
 
-        private val FULL_ONLY_FIELDS = listOf("documentationUrl", "context", "ruleDescription", "phase", "section")
+        private val ENRICHMENT_FIELDS = listOf("documentationUrl", "context", "ruleDescription", "phase", "section")
 
         private val CEL = CelEngine(EngineConfig())
         private val REGO = RegoEngine(EngineConfig())

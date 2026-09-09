@@ -51,7 +51,9 @@ function loadCombinedSnapshots(): Record<string, unknown> {
 
     for (let i = 0; i < chunks.length; i++) {
         if (chunks[i].index !== i + 1) {
-            throw new Error(`non-contiguous snapshot chunk sequence: expected index ${i + 1} but found ${chunks[i].index}`);
+            throw new Error(
+                `non-contiguous snapshot chunk sequence: expected index ${i + 1} but found ${chunks[i].index}`,
+            );
         }
     }
 
@@ -290,7 +292,9 @@ describe('additional schemas', () => {
                     `${name} baseline must report the unpublished property`,
                 ).toBe(true);
 
-                const engine = new EngineType({ schemaValidatorConfig: { additionalSchemas: [new SchemaFile(schemaPath)] } });
+                const engine = new EngineType({
+                    schemaValidatorConfig: { additionalSchemas: [new SchemaFile(schemaPath)] },
+                });
                 const report = engine.validateTemplate(template);
                 expect(
                     report.diagnostics.some((diagnostic: any) => diagnostic.ruleId === 'F3002'),
@@ -504,7 +508,9 @@ describe('snapshot validation', () => {
                         severityLevel: 'DEBUG',
                         detailLevel: 'DETAILED',
                     });
-                    expect(stripSnapshotExcludedFields(actual, rel)).toEqual(stripSnapshotExcludedFields(loadSnapshot(rel)));
+                    expect(stripSnapshotExcludedFields(actual, rel)).toEqual(
+                        stripSnapshotExcludedFields(loadSnapshot(rel)),
+                    );
                 });
             }
         });
@@ -564,7 +570,9 @@ describe('validateTemplate detail level', () => {
         ['cel', CEL],
     ] as const) {
         it(`${engineName} defaults to DETAILED when detailLevel is omitted`, () => {
-            const withDefault = engine.validateTemplate(loadTemplate(DETAIL_LEVEL_TEMPLATE), { severityLevel: 'DEBUG' });
+            const withDefault = engine.validateTemplate(loadTemplate(DETAIL_LEVEL_TEMPLATE), {
+                severityLevel: 'DEBUG',
+            });
             const explicitDetailed = engine.validateTemplate(loadTemplate(DETAIL_LEVEL_TEMPLATE), {
                 severityLevel: 'DEBUG',
                 detailLevel: 'DETAILED',

@@ -35,7 +35,7 @@ CHUNK_EXTENSION = ".json"
 
 # Enrichment fields present only at the DETAILED detail level; stripped from the
 # snapshot entry when comparing at STANDARD.
-DETAILED_ONLY_DIAGNOSTIC_FIELDS = ["documentationUrl", "context", "ruleDescription", "phase", "section"]
+ENRICHMENT_DIAGNOSTIC_FIELDS = ["documentationUrl", "context", "ruleDescription", "phase", "section"]
 
 _CAMEL = re.compile(r"_([a-z0-9])")
 
@@ -102,9 +102,9 @@ def strip_snapshot_excluded_fields(report, file_path=None):
     return report
 
 
-def strip_detailed_only_fields(report):
+def strip_enrichment_fields(report):
     for diagnostic in report.get("diagnostics", []):
-        for field in DETAILED_ONLY_DIAGNOSTIC_FIELDS:
+        for field in ENRICHMENT_DIAGNOSTIC_FIELDS:
             diagnostic.pop(field, None)
     return report
 
@@ -172,13 +172,13 @@ class SnapshotValidationTest(unittest.TestCase):
                 expected = strip_snapshot_excluded_fields(copy.deepcopy(SNAPSHOTS[rel]))
                 actual = strip_snapshot_excluded_fields(to_jsonable(report), rel)
                 if not detailed:
-                    # validate_template always yields a detailed report shape; at STANDARD
-                    # the shared projection leaves the detailed-only fields unset on every
+                    # validate_template always yields a ValidationReport shape; at STANDARD
+                    # the shared projection leaves the enrichment fields unset on every
                     # diagnostic, so they are absent from the actual report. The snapshot
-                    # stores the detailed projection, so drop those fields from both sides
+                    # stores the `DETAILED` projection, so drop those fields from both sides
                     # before comparing.
-                    expected = strip_detailed_only_fields(expected)
-                    actual = strip_detailed_only_fields(actual)
+                    expected = strip_enrichment_fields(expected)
+                    actual = strip_enrichment_fields(actual)
                 self.assertEqual(expected, actual, f"{rel}: report does not match snapshot")
 
     def test_rego_detailed_matches_snapshot(self):
