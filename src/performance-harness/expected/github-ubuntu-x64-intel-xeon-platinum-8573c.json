@@ -42,29 +42,64 @@
     }
   },
   "provenance": {
-    "gitSha": "ac4e0b488513cb426029f99af6b1fcd74e7add19",
+    "gitSha": "3847d9f6ecec826457aec9ea3d12de3ca3342ae2",
     "rustVersion": "rustc 1.96.0 (ac68faa20 2026-05-25)",
     "workingTreeDirty": false,
     "calibration": {
-      "workflowRun": 33518429690,
-      "runAttempt": 2,
-      "job": 100845494196,
-      "artifact": "performance-358",
-      "sourceProfile": "github-ubuntu-x64",
-      "samplesPerCase": {
-        "minimum": 5,
-        "maximum": 9
+      "method": "geometricMeanOfRunSummaries",
+      "updatedMetrics": {
+        "rego/conditional-100": [
+          "warmPerCallMs"
+        ],
+        "rego/duplicate-500": [
+          "initAndFirstMs",
+          "warmPerCallMs"
+        ],
+        "rego/mixed-real": [
+          "warmPerCallMs"
+        ],
+        "rego/security-cross-resource-scale": [
+          "initAndFirstMs",
+          "warmPerCallMs"
+        ],
+        "rego/security-many-resources": [
+          "warmPerCallMs"
+        ],
+        "rego/tiny": [
+          "warmPerCallMs"
+        ],
+        "rego/unique-500": [
+          "initAndFirstMs",
+          "warmPerCallMs"
+        ]
       },
-      "heldOutValidation": {
-        "calibrationSamplesPerCase": 3,
-        "heldOutSamplesPerCase": 2,
-        "aggregateRatios": {
-          "initAndFirstMs": 1.0000868886166447,
-          "warmPerCallMs": 1.0058656751133261,
-          "peakRssBytes": 0.999922536667879
+      "validationRuns": [
+        {
+          "workflowRun": 34177917195,
+          "artifact": "performance-377",
+          "mergeRevision": "335942ff259d1f4e6953f35c92c4fb4ca9e23d4b",
+          "aggregateRatios": {
+            "initAndFirstMs": 0.9403361100568111,
+            "warmPerCallMs": 0.9106836217730684,
+            "peakRssBytes": 1.0078262948632155
+          },
+          "twoSidedFailureCount": 0,
+          "job": 101910939061
         },
-        "twoSidedFailureCount": 0
-      }
+        {
+          "workflowRun": 34278617157,
+          "artifact": "performance-381",
+          "mergeRevision": "3847d9f6ecec826457aec9ea3d12de3ca3342ae2",
+          "aggregateRatios": {
+            "initAndFirstMs": 1.0363987003613402,
+            "warmPerCallMs": 1.037008273492083,
+            "peakRssBytes": 1.0078408955303833
+          },
+          "twoSidedFailureCount": 0,
+          "job": 102240076608
+        }
+      ],
+      "selectionCriterion": "same intentionally optimized Rego metrics recalibrated for the other GitHub CPU profiles"
     }
   },
   "cases": {
@@ -339,7 +374,7 @@
     },
     "rego/conditional-100": {
       "initAndFirstMs": 450.527,
-      "warmPerCallMs": 75.768,
+      "warmPerCallMs": 45.481,
       "peakRssBytes": 392622080.0,
       "gatedMetrics": [
         "initAndFirstMs",
@@ -353,8 +388,8 @@
       ]
     },
     "rego/duplicate-500": {
-      "initAndFirstMs": 935.07,
-      "warmPerCallMs": 556.909,
+      "initAndFirstMs": 777.099,
+      "warmPerCallMs": 395.714,
       "peakRssBytes": 422187008.0,
       "gatedMetrics": [
         "initAndFirstMs",
@@ -369,7 +404,7 @@
     },
     "rego/mixed-real": {
       "initAndFirstMs": 458.728,
-      "warmPerCallMs": 81.808,
+      "warmPerCallMs": 60.433,
       "peakRssBytes": 402219008.0,
       "gatedMetrics": [
         "initAndFirstMs",
@@ -456,8 +491,8 @@
       ]
     },
     "rego/security-cross-resource-scale": {
-      "initAndFirstMs": 907.11,
-      "warmPerCallMs": 528.472,
+      "initAndFirstMs": 753.227,
+      "warmPerCallMs": 369.342,
       "peakRssBytes": 416538624.0,
       "gatedMetrics": [
         "initAndFirstMs",
@@ -535,7 +570,7 @@
     },
     "rego/security-many-resources": {
       "initAndFirstMs": 479.356,
-      "warmPerCallMs": 101.547,
+      "warmPerCallMs": 90.711,
       "peakRssBytes": 397488128.0,
       "gatedMetrics": [
         "initAndFirstMs",
@@ -580,7 +615,7 @@
     },
     "rego/tiny": {
       "initAndFirstMs": 377.744,
-      "warmPerCallMs": 2.547,
+      "warmPerCallMs": 2.277,
       "peakRssBytes": 389783552.0,
       "gatedMetrics": [
         "initAndFirstMs",
@@ -594,8 +629,8 @@
       ]
     },
     "rego/unique-500": {
-      "initAndFirstMs": 651.826,
-      "warmPerCallMs": 278.637,
+      "initAndFirstMs": 507.492,
+      "warmPerCallMs": 128.342,
       "peakRssBytes": 401428480.0,
       "gatedMetrics": [
         "initAndFirstMs",

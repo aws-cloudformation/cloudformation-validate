@@ -28,6 +28,7 @@ jobs:
         id: filter
         uses: dorny/paths-filter@v4.0.3
         with:
+          predicate-quantifier: some-with-excludes
           filters: |
             relevant:
               - '**'
@@ -45,12 +46,14 @@ jobs:
               - '!src/bindings-*/**/bench/**'
               - '!src/bindings-*/examples/**'
               - '!src/bindings-*/tests/**'
+              - '!src/bindings-jvm/generated/**'
               - '!src/bindings-jvm/version.properties'
-              - '!src/bindings-wasm/dist/*'
+              - '!src/bindings-wasm/dist/**'
               - '!src/bindings-python/generated/**'
               - '!src/bindings-go/go/internal/**'
               - '!src/bindings-go/go/libs/**'
-              - '!release-bin/*'
+              - '!src/bindings-go/go/LICENSE'
+              - '!release-bin/**'
 
       - name: Export decision
         id: decision

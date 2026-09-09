@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "profile": "github-ubuntu-x64-amd-epyc-9v74",
+  "profile": "github-ubuntu-x64-intel-xeon-6973pc",
   "environment": {
     "context": "github-actions",
     "system": "Linux",
     "architecture": "x86_64",
     "machineModel": null,
-    "cpuModel": "AMD EPYC 9V74 80-Core Processor",
+    "cpuModel": "Intel(R) Xeon(R) 6973P-C",
     "logicalCpuCount": 4,
     "pageSizeBytes": 4096,
     "enforceMachineModel": false,
@@ -42,44 +42,58 @@
     }
   },
   "provenance": {
-    "gitSha": "583427afc3b632cc8f39c87c75a77c346087786f",
+    "gitSha": "99d8bf3662047a64a9872da506a5e8b5f8e4bbee",
     "rustVersion": "rustc 1.96.0 (ac68faa20 2026-05-25)",
     "workingTreeDirty": false,
     "calibration": {
-      "method": "hostedCandidateWithIndependentValidation",
+      "purpose": "missingGitHubCpuProfile",
+      "samplesPerCase": 9,
       "validationRuns": [
         {
-          "workflowRun": 34261796050,
-          "artifact": "performance-380",
-          "mergeRevision": "583427afc3b632cc8f39c87c75a77c346087786f",
+          "workflowRun": 34247414841,
+          "artifact": "performance-34247414841",
+          "mergeRevision": "99d8bf3662047a64a9872da506a5e8b5f8e4bbee",
           "aggregateRatios": {
-            "initAndFirstMs": 1.000000065007784,
-            "warmPerCallMs": 0.99999101549066,
+            "initAndFirstMs": 0.9999999685209348,
+            "warmPerCallMs": 0.9999859310970026,
             "peakRssBytes": 1.0
           },
           "twoSidedFailureCount": 0,
-          "job": 102194162554
+          "job": 102135342079
         },
         {
-          "workflowRun": 34178227218,
-          "artifact": "performance-34178227218",
-          "mergeRevision": "68eeeee025c09ecfd0b190fdbf0f4c18e25a64b5",
+          "workflowRun": 34074460724,
+          "artifact": "performance-374",
+          "mergeRevision": "d30bb90f59c1048ea04590b59c85656b362f5b6e",
           "aggregateRatios": {
-            "initAndFirstMs": 1.0005167616587447,
-            "warmPerCallMs": 0.9964143543516543,
-            "peakRssBytes": 1.000159641689562
+            "initAndFirstMs": 0.9878564655583401,
+            "warmPerCallMs": 0.9992993226902047,
+            "peakRssBytes": 0.9991316043995682
           },
           "twoSidedFailureCount": 0,
-          "job": 101911817541
+          "job": 101597800392
+        },
+        {
+          "workflowRun": 34068618008,
+          "artifact": "performance-374",
+          "mergeRevision": "40da90156a777a0f00c9805d5f707724823a2897",
+          "aggregateRatios": {
+            "initAndFirstMs": 0.9989228308765891,
+            "warmPerCallMs": 1.0092432268677496,
+            "peakRssBytes": 0.9992135728128982
+          },
+          "twoSidedFailureCount": 0,
+          "job": 101581771933,
+          "runAttempt": 1
         }
       ]
     }
   },
   "cases": {
     "cel/conditional-100": {
-      "initAndFirstMs": 363.389,
-      "warmPerCallMs": 8.635,
-      "peakRssBytes": 392900608.0,
+      "initAndFirstMs": 298.566,
+      "warmPerCallMs": 6.958,
+      "peakRssBytes": 392982528.0,
       "gatedMetrics": [
         "initAndFirstMs",
         "warmPerCallMs",
@@ -92,9 +106,9 @@
       ]
     },
     "cel/duplicate-500": {
-      "initAndFirstMs": 398.379,
-      "warmPerCallMs": 44.325,
-      "peakRssBytes": 409554944.0,
+      "initAndFirstMs": 330.746,
+      "warmPerCallMs": 33.726,
+      "peakRssBytes": 409452544.0,
       "gatedMetrics": [
         "initAndFirstMs",
         "warmPerCallMs",
@@ -107,9 +121,9 @@
       ]
     },
     "cel/mixed-real": {
-      "initAndFirstMs": 368.996,
-      "warmPerCallMs": 12.484,
-      "peakRssBytes": 397262848.0,
+      "initAndFirstMs": 310.099,
+      "warmPerCallMs": 10.793,
+      "peakRssBytes": 397058048.0,
       "gatedMetrics": [
         "initAndFirstMs",
         "warmPerCallMs",
@@ -122,9 +136,9 @@
       ]
     },
     "cel/security-combined-conditions": {
-      "initAndFirstMs": 1134.954,
-      "warmPerCallMs": 800.855,
-      "peakRssBytes": 392372224.0,
+      "initAndFirstMs": 953.196,
+      "warmPerCallMs": 659.914,
+      "peakRssBytes": 392368128.0,
       "gatedMetrics": [
         "initAndFirstMs",
         "warmPerCallMs",
@@ -137,9 +151,9 @@
       ]
     },
     "cel/security-condition-chain-boundary": {
-      "initAndFirstMs": 438.962,
-      "warmPerCallMs": 91.299,
-      "peakRssBytes": 391061504.0,
+      "initAndFirstMs": 376.795,
+      "warmPerCallMs": 70.202,
+      "peakRssBytes": 391118848.0,
       "gatedMetrics": [
         "initAndFirstMs",
         "warmPerCallMs",
@@ -152,9 +166,9 @@
       ]
     },
     "cel/security-condition-chain-wide": {
-      "initAndFirstMs": 374.039,
-      "warmPerCallMs": 23.59,
-      "peakRssBytes": 391471104.0,
+      "initAndFirstMs": 312.848,
+      "warmPerCallMs": 19.447,
+      "peakRssBytes": 391352320.0,
       "gatedMetrics": [
         "initAndFirstMs",
         "warmPerCallMs",
@@ -167,9 +181,9 @@
       ]
     },
     "cel/security-condition-fusion": {
-      "initAndFirstMs": 947.33,
-      "warmPerCallMs": 606.635,
-      "peakRssBytes": 397938688.0,
+      "initAndFirstMs": 789.039,
+      "warmPerCallMs": 511.448,
+      "peakRssBytes": 397946880.0,
       "gatedMetrics": [
         "initAndFirstMs",
         "warmPerCallMs",
@@ -182,9 +196,9 @@
       ]
     },
     "cel/security-cross-reference-fanout": {
-      "initAndFirstMs": 1591.86,
-      "warmPerCallMs": 1210.975,
-      "peakRssBytes": 463994880.0,
+      "initAndFirstMs": 1995.473,
+      "warmPerCallMs": 1712.758,
+      "peakRssBytes": 464097280.0,
       "gatedMetrics": [
         "peakRssBytes"
       ],
@@ -195,9 +209,9 @@
       ]
     },
     "cel/security-cross-resource-scale": {
-      "initAndFirstMs": 393.138,
-      "warmPerCallMs": 42.103,
-      "peakRssBytes": 410079232.0,
+      "initAndFirstMs": 324.762,
+      "warmPerCallMs": 32.087,
+      "peakRssBytes": 409722880.0,
       "gatedMetrics": [
         "initAndFirstMs",
         "warmPerCallMs",
@@ -210,9 +224,9 @@
       ]
     },
     "cel/security-deep-intrinsic-resolution": {
-      "initAndFirstMs": 352.504,
-      "warmPerCallMs": 2.256,
-      "peakRssBytes": 390365184.0,
+      "initAndFirstMs": 292.789,
+      "warmPerCallMs": 1.786,
+      "peakRssBytes": 390344704.0,
       "gatedMetrics": [
         "initAndFirstMs",
         "warmPerCallMs",
@@ -225,16 +239,16 @@
       ]
     },
     "cel/security-deep-nesting": {
-      "initAndFirstMs": 351.471,
-      "warmPerCallMs": 0.021,
-      "peakRssBytes": 388882432.0,
+      "initAndFirstMs": 288.243,
+      "warmPerCallMs": 0.019,
+      "peakRssBytes": 389046272.0,
       "gatedMetrics": [],
       "aggregateMetrics": []
     },
     "cel/security-deep-yaml-nesting": {
-      "initAndFirstMs": 354.151,
-      "warmPerCallMs": 3.099,
-      "peakRssBytes": 390668288.0,
+      "initAndFirstMs": 291.147,
+      "warmPerCallMs": 2.531,
+      "peakRssBytes": 390602752.0,
       "gatedMetrics": [
         "warmPerCallMs"
       ],
@@ -243,9 +257,9 @@
       ]
     },
     "cel/security-foreach-branch-explosion": {
-      "initAndFirstMs": 487.246,
-      "warmPerCallMs": 129.245,
-      "peakRssBytes": 423981056.0,
+      "initAndFirstMs": 400.684,
+      "warmPerCallMs": 103.167,
+      "peakRssBytes": 423931904.0,
       "gatedMetrics": [
         "initAndFirstMs",
         "warmPerCallMs",
@@ -258,9 +272,9 @@
       ]
     },
     "cel/security-many-conditions": {
-      "initAndFirstMs": 429.971,
-      "warmPerCallMs": 80.374,
-      "peakRssBytes": 391426048.0,
+      "initAndFirstMs": 358.245,
+      "warmPerCallMs": 66.675,
+      "peakRssBytes": 391475200.0,
       "gatedMetrics": [
         "initAndFirstMs",
         "warmPerCallMs",
@@ -273,9 +287,9 @@
       ]
     },
     "cel/security-many-resources": {
-      "initAndFirstMs": 368.228,
-      "warmPerCallMs": 16.764,
-      "peakRssBytes": 395005952.0,
+      "initAndFirstMs": 303.628,
+      "warmPerCallMs": 13.131,
+      "peakRssBytes": 395001856.0,
       "gatedMetrics": [
         "initAndFirstMs",
         "warmPerCallMs",
@@ -288,9 +302,9 @@
       ]
     },
     "cel/security-pathological-conditions": {
-      "initAndFirstMs": 406.812,
-      "warmPerCallMs": 59.199,
-      "peakRssBytes": 390868992.0,
+      "initAndFirstMs": 338.156,
+      "warmPerCallMs": 47.787,
+      "peakRssBytes": 390967296.0,
       "gatedMetrics": [
         "initAndFirstMs",
         "warmPerCallMs",
@@ -303,9 +317,9 @@
       ]
     },
     "cel/security-scenario-assignment-budget": {
-      "initAndFirstMs": 906.442,
-      "warmPerCallMs": 556.518,
-      "peakRssBytes": 413278208.0,
+      "initAndFirstMs": 745.976,
+      "warmPerCallMs": 454.316,
+      "peakRssBytes": 415072256.0,
       "gatedMetrics": [
         "initAndFirstMs",
         "warmPerCallMs",
@@ -318,9 +332,9 @@
       ]
     },
     "cel/tiny": {
-      "initAndFirstMs": 351.428,
-      "warmPerCallMs": 0.05,
-      "peakRssBytes": 391204864.0,
+      "initAndFirstMs": 291.347,
+      "warmPerCallMs": 0.04,
+      "peakRssBytes": 391159808.0,
       "gatedMetrics": [
         "initAndFirstMs",
         "peakRssBytes"
@@ -331,9 +345,9 @@
       ]
     },
     "cel/unique-500": {
-      "initAndFirstMs": 378.139,
-      "warmPerCallMs": 25.357,
-      "peakRssBytes": 398966784.0,
+      "initAndFirstMs": 313.521,
+      "warmPerCallMs": 19.421,
+      "peakRssBytes": 399106048.0,
       "gatedMetrics": [
         "initAndFirstMs",
         "warmPerCallMs",
@@ -346,9 +360,9 @@
       ]
     },
     "rego/conditional-100": {
-      "initAndFirstMs": 414.57,
-      "warmPerCallMs": 42.057,
-      "peakRssBytes": 395984896.0,
+      "initAndFirstMs": 341.117,
+      "warmPerCallMs": 33.402,
+      "peakRssBytes": 396062720.0,
       "gatedMetrics": [
         "initAndFirstMs",
         "warmPerCallMs",
@@ -361,9 +375,9 @@
       ]
     },
     "rego/duplicate-500": {
-      "initAndFirstMs": 741.508,
-      "warmPerCallMs": 363.45,
-      "peakRssBytes": 425185280.0,
+      "initAndFirstMs": 605.826,
+      "warmPerCallMs": 298.374,
+      "peakRssBytes": 425238528.0,
       "gatedMetrics": [
         "initAndFirstMs",
         "warmPerCallMs",
@@ -376,9 +390,9 @@
       ]
     },
     "rego/mixed-real": {
-      "initAndFirstMs": 431.252,
-      "warmPerCallMs": 55.336,
-      "peakRssBytes": 405594112.0,
+      "initAndFirstMs": 355.519,
+      "warmPerCallMs": 45.117,
+      "peakRssBytes": 405737472.0,
       "gatedMetrics": [
         "initAndFirstMs",
         "warmPerCallMs",
@@ -391,9 +405,9 @@
       ]
     },
     "rego/security-combined-conditions": {
-      "initAndFirstMs": 1248.332,
-      "warmPerCallMs": 890.958,
-      "peakRssBytes": 395460608.0,
+      "initAndFirstMs": 1034.612,
+      "warmPerCallMs": 733.837,
+      "peakRssBytes": 395317248.0,
       "gatedMetrics": [
         "initAndFirstMs",
         "warmPerCallMs",
@@ -406,9 +420,9 @@
       ]
     },
     "rego/security-condition-chain-boundary": {
-      "initAndFirstMs": 476.113,
-      "warmPerCallMs": 110.068,
-      "peakRssBytes": 393580544.0,
+      "initAndFirstMs": 385.147,
+      "warmPerCallMs": 83.503,
+      "peakRssBytes": 393641984.0,
       "gatedMetrics": [
         "initAndFirstMs",
         "warmPerCallMs",
@@ -421,9 +435,9 @@
       ]
     },
     "rego/security-condition-chain-wide": {
-      "initAndFirstMs": 418.696,
-      "warmPerCallMs": 46.743,
-      "peakRssBytes": 393711616.0,
+      "initAndFirstMs": 340.825,
+      "warmPerCallMs": 38.106,
+      "peakRssBytes": 393867264.0,
       "gatedMetrics": [
         "initAndFirstMs",
         "warmPerCallMs",
@@ -436,9 +450,9 @@
       ]
     },
     "rego/security-condition-fusion": {
-      "initAndFirstMs": 1059.761,
-      "warmPerCallMs": 697.458,
-      "peakRssBytes": 402026496.0,
+      "initAndFirstMs": 877.069,
+      "warmPerCallMs": 578.301,
+      "peakRssBytes": 402042880.0,
       "gatedMetrics": [
         "initAndFirstMs",
         "warmPerCallMs",
@@ -451,9 +465,9 @@
       ]
     },
     "rego/security-cross-reference-fanout": {
-      "initAndFirstMs": 3617.806,
-      "warmPerCallMs": 3229.708,
-      "peakRssBytes": 495239168.0,
+      "initAndFirstMs": 3947.65,
+      "warmPerCallMs": 3640.547,
+      "peakRssBytes": 495251456.0,
       "gatedMetrics": [
         "peakRssBytes"
       ],
@@ -464,9 +478,9 @@
       ]
     },
     "rego/security-cross-resource-scale": {
-      "initAndFirstMs": 710.616,
-      "warmPerCallMs": 334.526,
-      "peakRssBytes": 419880960.0,
+      "initAndFirstMs": 587.484,
+      "warmPerCallMs": 275.139,
+      "peakRssBytes": 419950592.0,
       "gatedMetrics": [
         "initAndFirstMs",
         "warmPerCallMs",
@@ -479,9 +493,9 @@
       ]
     },
     "rego/security-deep-intrinsic-resolution": {
-      "initAndFirstMs": 371.449,
-      "warmPerCallMs": 6.413,
-      "peakRssBytes": 392626176.0,
+      "initAndFirstMs": 309.521,
+      "warmPerCallMs": 4.78,
+      "peakRssBytes": 392593408.0,
       "gatedMetrics": [
         "initAndFirstMs",
         "warmPerCallMs",
@@ -494,16 +508,16 @@
       ]
     },
     "rego/security-deep-nesting": {
-      "initAndFirstMs": 367.566,
-      "warmPerCallMs": 0.02,
-      "peakRssBytes": 389935104.0,
+      "initAndFirstMs": 302.347,
+      "warmPerCallMs": 0.018,
+      "peakRssBytes": 389963776.0,
       "gatedMetrics": [],
       "aggregateMetrics": []
     },
     "rego/security-deep-yaml-nesting": {
-      "initAndFirstMs": 373.387,
-      "warmPerCallMs": 3.091,
-      "peakRssBytes": 392134656.0,
+      "initAndFirstMs": 307.411,
+      "warmPerCallMs": 2.465,
+      "peakRssBytes": 391933952.0,
       "gatedMetrics": [
         "warmPerCallMs"
       ],
@@ -512,9 +526,9 @@
       ]
     },
     "rego/security-foreach-branch-explosion": {
-      "initAndFirstMs": 507.609,
-      "warmPerCallMs": 131.99,
-      "peakRssBytes": 427405312.0,
+      "initAndFirstMs": 419.201,
+      "warmPerCallMs": 106.886,
+      "peakRssBytes": 427536384.0,
       "gatedMetrics": [
         "initAndFirstMs",
         "warmPerCallMs",
@@ -527,9 +541,9 @@
       ]
     },
     "rego/security-many-conditions": {
-      "initAndFirstMs": 517.26,
-      "warmPerCallMs": 151.776,
-      "peakRssBytes": 394240000.0,
+      "initAndFirstMs": 431.647,
+      "warmPerCallMs": 127.366,
+      "peakRssBytes": 394260480.0,
       "gatedMetrics": [
         "initAndFirstMs",
         "warmPerCallMs",
@@ -542,9 +556,9 @@
       ]
     },
     "rego/security-many-resources": {
-      "initAndFirstMs": 452.25,
-      "warmPerCallMs": 82.442,
-      "peakRssBytes": 400617472.0,
+      "initAndFirstMs": 384.014,
+      "warmPerCallMs": 69.489,
+      "peakRssBytes": 400633856.0,
       "gatedMetrics": [
         "initAndFirstMs",
         "warmPerCallMs",
@@ -557,9 +571,9 @@
       ]
     },
     "rego/security-pathological-conditions": {
-      "initAndFirstMs": 451.652,
-      "warmPerCallMs": 84.834,
-      "peakRssBytes": 393318400.0,
+      "initAndFirstMs": 386.806,
+      "warmPerCallMs": 71.806,
+      "peakRssBytes": 393326592.0,
       "gatedMetrics": [
         "initAndFirstMs",
         "warmPerCallMs",
@@ -572,9 +586,9 @@
       ]
     },
     "rego/security-scenario-assignment-budget": {
-      "initAndFirstMs": 942.162,
-      "warmPerCallMs": 573.959,
-      "peakRssBytes": 416628736.0,
+      "initAndFirstMs": 788.301,
+      "warmPerCallMs": 474.541,
+      "peakRssBytes": 416694272.0,
       "gatedMetrics": [
         "initAndFirstMs",
         "warmPerCallMs",
@@ -587,9 +601,9 @@
       ]
     },
     "rego/tiny": {
-      "initAndFirstMs": 372.313,
-      "warmPerCallMs": 1.988,
-      "peakRssBytes": 392585216.0,
+      "initAndFirstMs": 307.905,
+      "warmPerCallMs": 1.797,
+      "peakRssBytes": 392663040.0,
       "gatedMetrics": [
         "initAndFirstMs",
         "warmPerCallMs",
@@ -602,9 +616,9 @@
       ]
     },
     "rego/unique-500": {
-      "initAndFirstMs": 490.671,
-      "warmPerCallMs": 119.752,
-      "peakRssBytes": 404725760.0,
+      "initAndFirstMs": 405.702,
+      "warmPerCallMs": 96.067,
+      "peakRssBytes": 404733952.0,
       "gatedMetrics": [
         "initAndFirstMs",
         "warmPerCallMs",
