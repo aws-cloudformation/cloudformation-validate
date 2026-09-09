@@ -762,7 +762,7 @@ fn write_template_report(
     benchmark_metrics: serde_json::Value,
     engine_name: &str,
 ) -> Result<(), String> {
-    let detailed = report.to_detailed();
+    let detailed = report.to_report(DetailLevel::Detailed);
     let mut template_json = serde_json::to_value(&detailed)
         .map_err(|e| format!("failed to serialize report for '{}': {e}", relative_path))?;
     template_json["engine"] = serde_json::json!(engine_name);

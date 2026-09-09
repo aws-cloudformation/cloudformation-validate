@@ -1,5 +1,5 @@
 use cel_engine::CelEngine;
-use diagnostics::Diagnostic;
+use diagnostics::{DetailLevel, Diagnostic};
 use rego_engine::RegoEngine;
 use schema_validator::SchemaValidator;
 use std::sync::LazyLock;
@@ -19,7 +19,8 @@ fn signatures(diagnostics: &[Diagnostic]) -> Vec<String> {
     let mut signatures = diagnostics
         .iter()
         .map(|diagnostic| {
-            serde_json::to_string(&diagnostic.to_detailed()).expect("diagnostic serialization should succeed")
+            serde_json::to_string(&diagnostic.to_report(DetailLevel::Detailed))
+                .expect("diagnostic serialization should succeed")
         })
         .collect::<Vec<_>>();
     signatures.sort();

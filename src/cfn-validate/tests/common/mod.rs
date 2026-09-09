@@ -105,7 +105,7 @@ pub fn deep_diff(expected: &Value, actual: &Value, path: &str) -> Vec<String> {
     diffs
 }
 
-pub const DETAILED_ONLY_DIAGNOSTIC_FIELDS: &[&str] = &["documentationUrl", "context", "ruleDescription", "phase"];
+pub const ENRICHMENT_DIAGNOSTIC_FIELDS: &[&str] = &["documentationUrl", "context", "ruleDescription", "phase"];
 
 pub const SNAPSHOT_EXCLUDED_FIELDS: &[&str] =
     &["performance", "version", "rulesEvaluated", "cfnLintVersion", "resourceSchemaVersion"];
