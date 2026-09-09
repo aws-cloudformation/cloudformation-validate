@@ -4024,12 +4024,17 @@ fn single_type_compatible(source: &str, expected: &str) -> bool {
     }
 }
 
+const EC2_IMAGE_ID_FORMAT: &str = "AWS::EC2::Image.Id";
+const EC2_LAUNCH_TEMPLATE_RESOURCE_TYPE: &str = "AWS::EC2::LaunchTemplate";
+const EC2_LAUNCH_TEMPLATE_IMAGE_ID_PATH: &str = "Properties.LaunchTemplateData.ImageId";
+const EC2_SSM_IMAGE_ALIAS_PREFIX: &str = "resolve:ssm:";
+
 static FORMAT_PATTERNS: LazyLock<HashMap<&'static str, Arc<CompiledPattern>>> = LazyLock::new(|| {
     let sources: [(&str, &str); 13] = [
         ("AWS::EC2::VPC.Id", r"^vpc-[a-f0-9]{8,17}$"),
         ("AWS::EC2::Subnet.Id", r"^subnet-[a-f0-9]{8,17}$"),
         ("AWS::EC2::SecurityGroup.Id", r"^sg-[a-f0-9]{8,17}$"),
-        ("AWS::EC2::Image.Id", r"^ami-([0-9a-z]{8}|[0-9a-z]{17})$"),
+        (EC2_IMAGE_ID_FORMAT, r"^ami-([0-9a-z]{8}|[0-9a-z]{17})$"),
         ("AWS::IAM::Role.Arn", IAM_ROLE_ARN_PATTERN),
         ("AWS::Logs::LogGroup.Name", r"^[\.\-_/#A-Za-z0-9]{1,512}$"),
         ("AWS::EC2::SecurityGroup.Name", SECURITY_GROUP_NAME_PATTERN),
@@ -4115,6 +4120,21 @@ fn format_value_matches(value: &str, format: &str) -> bool {
 fn sns_kms_identifier_is_runtime_validated(model: &SemanticModel, resource_id: &str, property_path: &str) -> bool {
     property_path == "Properties.KmsMasterKeyId"
         && model.resource(resource_id).is_some_and(|resource| resource.resource_type == "AWS::SNS::Topic")
+}
+
+fn ec2_resolves_ssm_image_alias(
+    model: &SemanticModel,
+    resource_id: &str,
+    property_path: &str,
+    format: &str,
+    value: &str,
+) -> bool {
+    format == EC2_IMAGE_ID_FORMAT
+        && property_path == EC2_LAUNCH_TEMPLATE_IMAGE_ID_PATH
+        && value.starts_with(EC2_SSM_IMAGE_ALIAS_PREFIX)
+        && model
+            .resource(resource_id)
+            .is_some_and(|resource| resource.resource_type == EC2_LAUNCH_TEMPLATE_RESOURCE_TYPE)
 }
 
 /// Validates property-level composition (anyOf/oneOf/allOf/if_then_else) when
@@ -4263,6 +4283,9 @@ fn validate_format(
                 continue;
             }
             if m.is_from_parameter(rid, prop_path) {
+                continue;
+            }
+            if ec2_resolves_ssm_image_alias(m, rid, prop_path, format, &s) {
                 continue;
             }
             if !re.is_match(&s) {

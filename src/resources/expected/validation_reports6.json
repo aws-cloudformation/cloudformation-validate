@@ -1,4 +1,118 @@
 {
+  "good/good_conditions_valid_refs.yaml": {
+    "filePath": "good/good_conditions_valid_refs.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 1,
+        "informational": 1,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "W8001",
+        "severity": "WARN",
+        "message": "Condition 'IsDev' is not used by any resource or Fn::If",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "IsDev",
+          "entityType": "Condition"
+        },
+        "propertyPath": "Conditions/IsDev",
+        "category": "Best Practice",
+        "startLine": 13,
+        "startColumn": 3,
+        "endLine": 13,
+        "endColumn": 8,
+        "ruleDescription": "Check if Conditions are Used",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'ProdBucket' of type 'AWS::S3::Bucket' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ProdBucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 22,
+        "startColumn": 3,
+        "endLine": 22,
+        "endColumn": 13,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
+  "good/iam_conditional_resource_arns.yaml": {
+    "filePath": "good/iam_conditional_resource_arns.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 2,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": []
+  },
+  "good/iam_intrinsic_resource_arns.yaml": {
+    "filePath": "good/iam_intrinsic_resource_arns.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 3,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 1,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'SomeBucket' of type 'AWS::S3::Bucket' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "SomeBucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 10,
+        "startColumn": 3,
+        "endLine": 10,
+        "endColumn": 13,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
   "good/iam_intrinsic_resource_arns_schema_valid.yaml": {
     "filePath": "good/iam_intrinsic_resource_arns_schema_valid.yaml",
     "status": "OK",
@@ -13122,719 +13236,6 @@
         "startLine": 9,
         "startColumn": 5,
         "endLine": 9,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      }
-    ]
-  },
-  "good/simple_sub_prefix.yaml": {
-    "filePath": "good/simple_sub_prefix.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 1,
-      "counts": {
-        "fatal": 0,
-        "errors": 0,
-        "warnings": 0,
-        "informational": 2,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'BucketName' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Bucket",
-          "entityType": "Resource",
-          "resourceType": "AWS::S3::Bucket"
-        },
-        "propertyPath": "Properties.BucketName",
-        "category": "Best Practice",
-        "startLine": 9,
-        "startColumn": 7,
-        "endLine": 9,
-        "endColumn": 17,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only",
-          "resolutionSource": "dynamic (Sub:prefix-${Env})"
-        }
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'Bucket' of type 'AWS::S3::Bucket' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Bucket",
-          "entityType": "Resource",
-          "resourceType": "AWS::S3::Bucket"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 8,
-        "startColumn": 5,
-        "endLine": 8,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      }
-    ]
-  },
-  "good/some_logs_stream_lambda.yaml": {
-    "filePath": "good/some_logs_stream_lambda.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 8,
-      "counts": {
-        "fatal": 0,
-        "errors": 4,
-        "warnings": 0,
-        "informational": 20,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "E2533",
-        "severity": "ERROR",
-        "message": "Runtime 'python3.6' was deprecated on '2022-07-18'. Creation was disabled on '2022-07-18', and updates were disabled on '2022-08-29'. Please consider updating to 'python3.14'",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "FunctionA",
-          "entityType": "Resource",
-          "resourceType": "AWS::Serverless::Function"
-        },
-        "propertyPath": "Properties.Runtime",
-        "category": "Deprecation",
-        "startLine": 21,
-        "startColumn": 7,
-        "endLine": 21,
-        "endColumn": 14,
-        "ruleDescription": "Check if Lambda Function Runtimes are updatable",
-        "phase": "SCHEMA",
-        "context": {
-          "actualValue": "python3.6",
-          "lifecycle": "end-of-life"
-        }
-      },
-      {
-        "ruleId": "E2533",
-        "severity": "ERROR",
-        "message": "Runtime 'python3.6' was deprecated on '2022-07-18'. Creation was disabled on '2022-07-18', and updates were disabled on '2022-08-29'. Please consider updating to 'python3.14'",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "FunctionB",
-          "entityType": "Resource",
-          "resourceType": "AWS::Serverless::Function"
-        },
-        "propertyPath": "Properties.Runtime",
-        "category": "Deprecation",
-        "startLine": 33,
-        "startColumn": 7,
-        "endLine": 33,
-        "endColumn": 14,
-        "ruleDescription": "Check if Lambda Function Runtimes are updatable",
-        "phase": "SCHEMA",
-        "context": {
-          "actualValue": "python3.6",
-          "lifecycle": "end-of-life"
-        }
-      },
-      {
-        "ruleId": "E2533",
-        "severity": "ERROR",
-        "message": "Runtime 'python3.6' was deprecated on '2022-07-18'. Creation was disabled on '2022-07-18', and updates were disabled on '2022-08-29'. Please consider updating to 'python3.14'",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "FunctionC",
-          "entityType": "Resource",
-          "resourceType": "AWS::Serverless::Function"
-        },
-        "propertyPath": "Properties.Runtime",
-        "category": "Deprecation",
-        "startLine": 44,
-        "startColumn": 7,
-        "endLine": 44,
-        "endColumn": 14,
-        "ruleDescription": "Check if Lambda Function Runtimes are updatable",
-        "phase": "SCHEMA",
-        "context": {
-          "actualValue": "python3.6",
-          "lifecycle": "end-of-life"
-        }
-      },
-      {
-        "ruleId": "E2533",
-        "severity": "ERROR",
-        "message": "Runtime 'python3.6' was deprecated on '2022-07-18'. Creation was disabled on '2022-07-18', and updates were disabled on '2022-08-29'. Please consider updating to 'python3.14'",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "LogSubscriptionFunction",
-          "entityType": "Resource",
-          "resourceType": "AWS::Serverless::Function"
-        },
-        "propertyPath": "Properties.Runtime",
-        "category": "Deprecation",
-        "startLine": 56,
-        "startColumn": 7,
-        "endLine": 56,
-        "endColumn": 14,
-        "ruleDescription": "Check if Lambda Function Runtimes are updatable",
-        "phase": "SCHEMA",
-        "context": {
-          "actualValue": "python3.6",
-          "lifecycle": "end-of-life"
-        }
-      },
-      {
-        "ruleId": "I3011",
-        "severity": "INFO",
-        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "FunctionALogGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::Logs::LogGroup"
-        },
-        "category": "Best Practice",
-        "startLine": 22,
-        "startColumn": 3,
-        "endLine": 22,
-        "endColumn": 20,
-        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3011",
-        "severity": "INFO",
-        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "FunctionALogGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::Logs::LogGroup"
-        },
-        "category": "Best Practice",
-        "startLine": 22,
-        "startColumn": 3,
-        "endLine": 22,
-        "endColumn": 20,
-        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3011",
-        "severity": "INFO",
-        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "FunctionBLogGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::Logs::LogGroup"
-        },
-        "category": "Best Practice",
-        "startLine": 34,
-        "startColumn": 3,
-        "endLine": 34,
-        "endColumn": 20,
-        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3011",
-        "severity": "INFO",
-        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "FunctionBLogGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::Logs::LogGroup"
-        },
-        "category": "Best Practice",
-        "startLine": 34,
-        "startColumn": 3,
-        "endLine": 34,
-        "endColumn": 20,
-        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3011",
-        "severity": "INFO",
-        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "FunctionCLogGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::Logs::LogGroup"
-        },
-        "category": "Best Practice",
-        "startLine": 45,
-        "startColumn": 3,
-        "endLine": 45,
-        "endColumn": 20,
-        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3011",
-        "severity": "INFO",
-        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "FunctionCLogGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::Logs::LogGroup"
-        },
-        "category": "Best Practice",
-        "startLine": 45,
-        "startColumn": 3,
-        "endLine": 45,
-        "endColumn": 20,
-        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3011",
-        "severity": "INFO",
-        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "LogSubscriptionFunctionLogGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::Logs::LogGroup"
-        },
-        "category": "Best Practice",
-        "startLine": 73,
-        "startColumn": 3,
-        "endLine": 73,
-        "endColumn": 34,
-        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3011",
-        "severity": "INFO",
-        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "LogSubscriptionFunctionLogGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::Logs::LogGroup"
-        },
-        "category": "Best Practice",
-        "startLine": 73,
-        "startColumn": 3,
-        "endLine": 73,
-        "endColumn": 34,
-        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'LogGroupName' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "FunctionALogGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::Logs::LogGroup"
-        },
-        "propertyPath": "Properties.LogGroupName",
-        "category": "Best Practice",
-        "startLine": 25,
-        "startColumn": 7,
-        "endLine": 25,
-        "endColumn": 19,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs.git",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only",
-          "resolutionSource": "dynamic (Sub:/aws/lambda/${FunctionA})"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'LogGroupName' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "FunctionBLogGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::Logs::LogGroup"
-        },
-        "propertyPath": "Properties.LogGroupName",
-        "category": "Best Practice",
-        "startLine": 37,
-        "startColumn": 7,
-        "endLine": 37,
-        "endColumn": 19,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs.git",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only",
-          "resolutionSource": "dynamic (Sub:/aws/lambda/${FunctionB})"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'LogGroupName' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "FunctionCLogGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::Logs::LogGroup"
-        },
-        "propertyPath": "Properties.LogGroupName",
-        "category": "Best Practice",
-        "startLine": 48,
-        "startColumn": 7,
-        "endLine": 48,
-        "endColumn": 19,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs.git",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only",
-          "resolutionSource": "dynamic (Sub:/aws/lambda/${FunctionC})"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'LogGroupName' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "LogSubscriptionFunctionLogGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::Logs::LogGroup"
-        },
-        "propertyPath": "Properties.LogGroupName",
-        "category": "Best Practice",
-        "startLine": 76,
-        "startColumn": 7,
-        "endLine": 76,
-        "endColumn": 19,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs.git",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only",
-          "resolutionSource": "dynamic (Sub:/aws/lambda/${LogSubscriptionFunction})"
-        }
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'FunctionA' of type 'AWS::Serverless::Function' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "FunctionA",
-          "entityType": "Resource",
-          "resourceType": "AWS::Serverless::Function"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 18,
-        "startColumn": 5,
-        "endLine": 18,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'FunctionALogGroup' of type 'AWS::Logs::LogGroup' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "FunctionALogGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::Logs::LogGroup"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 24,
-        "startColumn": 5,
-        "endLine": 24,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'FunctionB' of type 'AWS::Serverless::Function' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "FunctionB",
-          "entityType": "Resource",
-          "resourceType": "AWS::Serverless::Function"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 30,
-        "startColumn": 5,
-        "endLine": 30,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'FunctionBLogGroup' of type 'AWS::Logs::LogGroup' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "FunctionBLogGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::Logs::LogGroup"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 36,
-        "startColumn": 5,
-        "endLine": 36,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'FunctionC' of type 'AWS::Serverless::Function' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "FunctionC",
-          "entityType": "Resource",
-          "resourceType": "AWS::Serverless::Function"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 41,
-        "startColumn": 5,
-        "endLine": 41,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'FunctionCLogGroup' of type 'AWS::Logs::LogGroup' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "FunctionCLogGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::Logs::LogGroup"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 47,
-        "startColumn": 5,
-        "endLine": 47,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'LogSubscriptionFunction' of type 'AWS::Serverless::Function' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "LogSubscriptionFunction",
-          "entityType": "Resource",
-          "resourceType": "AWS::Serverless::Function"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 53,
-        "startColumn": 5,
-        "endLine": 53,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'LogSubscriptionFunctionLogGroup' of type 'AWS::Logs::LogGroup' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "LogSubscriptionFunctionLogGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::Logs::LogGroup"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 75,
-        "startColumn": 5,
-        "endLine": 75,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      }
-    ]
-  },
-  "good/sqs_fifo_valid.yaml": {
-    "filePath": "good/sqs_fifo_valid.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 1,
-      "counts": {
-        "fatal": 0,
-        "errors": 0,
-        "warnings": 0,
-        "informational": 6,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "I3011",
-        "severity": "INFO",
-        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "FifoQueue",
-          "entityType": "Resource",
-          "resourceType": "AWS::SQS::Queue"
-        },
-        "category": "Best Practice",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 12,
-        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3011",
-        "severity": "INFO",
-        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "FifoQueue",
-          "entityType": "Resource",
-          "resourceType": "AWS::SQS::Queue"
-        },
-        "category": "Best Practice",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 12,
-        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3013",
-        "severity": "INFO",
-        "message": "'MessageRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "FifoQueue",
-          "entityType": "Resource",
-          "resourceType": "AWS::SQS::Queue"
-        },
-        "propertyPath": "Properties",
-        "category": "Best Practice",
-        "startLine": 5,
-        "startColumn": 5,
-        "endLine": 5,
-        "endColumn": 15,
-        "ruleDescription": "Check resources with auto expiring content have explicit retention period",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'QueueName' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "FifoQueue",
-          "entityType": "Resource",
-          "resourceType": "AWS::SQS::Queue"
-        },
-        "propertyPath": "Properties.QueueName",
-        "category": "Best Practice",
-        "startLine": 6,
-        "startColumn": 7,
-        "endLine": 6,
-        "endColumn": 16,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-sqs.git",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'FifoQueue' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "FifoQueue",
-          "entityType": "Resource",
-          "resourceType": "AWS::SQS::Queue"
-        },
-        "propertyPath": "Properties.FifoQueue",
-        "category": "Best Practice",
-        "startLine": 7,
-        "startColumn": 7,
-        "endLine": 7,
-        "endColumn": 16,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-sqs.git",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'FifoQueue' of type 'AWS::SQS::Queue' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "FifoQueue",
-          "entityType": "Resource",
-          "resourceType": "AWS::SQS::Queue"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 5,
-        "startColumn": 5,
-        "endLine": 5,
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"

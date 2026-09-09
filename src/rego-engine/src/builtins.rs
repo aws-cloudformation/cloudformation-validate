@@ -24,7 +24,7 @@ use template_model::region_enums;
 use template_model::resolved_value::{contains_dynamic_resolved, json_contains_markers};
 use template_model::resolver::{MapEntry, RefKind, ResolvedValue};
 use template_model::{MARKER_DYNAMIC, MARKER_PARAM_TYPE, MARKER_REF};
-use template_model::{SourceSpan, UNKNOWN_SPAN, render_value, render_value_list};
+use template_model::{SourceSpan, UNKNOWN_SPAN, primary_identifier_conflict_message, render_value, render_value_list};
 use validation_engine::DIAGNOSTIC_SOURCE_PATH_FIELD;
 
 pub(crate) fn serde_json_to_rego_value(v: &serde_json::Value) -> Value {
@@ -1057,9 +1057,16 @@ fn register_primary_identifier_conflicts(rego: &mut regorus::Engine) {
                 .primary_identifier_conflicts(resource_type.as_ref(), &identifier_properties)
                 .into_iter()
                 .map(|(tuple, resources)| {
+                    let message = primary_identifier_conflict_message(
+                        resource_type.as_ref(),
+                        &identifier_properties,
+                        &tuple,
+                        &resources,
+                    );
                     json_to_value(&serde_json::json!({
                         "tuple": tuple,
                         "resources": resources,
+                        "message": message,
                     }))
                 })
                 .collect::<Vec<_>>();
@@ -1573,8 +1580,8 @@ fn register_region_flat_invalid(rego: &mut regorus::Engine) {
 
 /// Registers `region_conditional_invalid(region_map, target_prop, normalize_engine_case, value, props)`:
 /// for a conditional RDS region document (`{ "<region>": { "allOf": [...] } }`),
-/// returns the E3025/E3694 diagnostic message when `value` is invalid for the
-/// effective scope, or `undefined` when it is valid or no branch matches. `props`
+/// returns the conditional instance-class diagnostic message when `value` is
+/// invalid for the effective scope, or `undefined` when it is valid or no branch matches. `props`
 /// is the resource's resolved scalar properties (Engine, LicenseModel) the branch
 /// consts key on. Region scoping and message text come from the shared
 /// `region_enums` helper.
@@ -1592,7 +1599,7 @@ fn register_region_conditional_invalid(rego: &mut regorus::Engine) {
             let Some(map) = region_map.as_object() else {
                 return Ok(Value::Undefined);
             };
-            match region_enums::conditional_invalid_enum(
+            match region_enums::conditional_enum_mismatch(
                 map,
                 region.as_deref(),
                 target_prop.as_ref(),
@@ -1600,9 +1607,9 @@ fn register_region_conditional_invalid(rego: &mut regorus::Engine) {
                 value.as_ref(),
                 |prop| props.get(prop).and_then(|v| v.as_str()).map(String::from),
             ) {
-                Some(sorted) => Ok(Value::from(region_enums::conditional_invalid_message(
+                Some(mismatch) => Ok(Value::from(region_enums::conditional_mismatch_message(
                     value.as_ref(),
-                    &sorted,
+                    &mismatch,
                     region.as_deref(),
                 ))),
                 None => Ok(Value::Undefined),

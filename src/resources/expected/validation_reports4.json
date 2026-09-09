@@ -66449,6 +66449,132 @@
       }
     ]
   },
+  "gh-issues/issue-184.yaml": {
+    "filePath": "gh-issues/issue-184.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 1,
+        "warnings": 0,
+        "informational": 5,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E3025",
+        "severity": "ERROR",
+        "message": "'db.m5.large' is not one of ['db.r3.2xlarge', 'db.r3.4xlarge', 'db.r3.8xlarge', 'db.r3.large', 'db.r3.xlarge', 'db.r4.16xlarge', 'db.r4.2xlarge', 'db.r4.4xlarge', 'db.r4.8xlarge', 'db.r4.large', 'db.r4.xlarge', 'db.r5.12xlarge', 'db.r5.16xlarge', 'db.r5.24xlarge', 'db.r5.2xlarge', 'db.r5.4xlarge', 'db.r5.8xlarge', 'db.r5.large', 'db.r5.xlarge', 'db.r6g.12xlarge', 'db.r6g.16xlarge', 'db.r6g.2xlarge', 'db.r6g.4xlarge', 'db.r6g.8xlarge', 'db.r6g.large', 'db.r6g.xlarge', 'db.r6i.12xlarge', 'db.r6i.16xlarge', 'db.r6i.24xlarge', 'db.r6i.2xlarge', 'db.r6i.32xlarge', 'db.r6i.4xlarge', 'db.r6i.8xlarge', 'db.r6i.large', 'db.r6i.xlarge', 'db.r7g.12xlarge', 'db.r7g.16xlarge', 'db.r7g.2xlarge', 'db.r7g.4xlarge', 'db.r7g.8xlarge', 'db.r7g.large', 'db.r7g.xlarge', 'db.r7i.12xlarge', 'db.r7i.16xlarge', 'db.r7i.24xlarge', 'db.r7i.2xlarge', 'db.r7i.48xlarge', 'db.r7i.4xlarge', 'db.r7i.8xlarge', 'db.r7i.large', 'db.r7i.xlarge', 'db.r8g.12xlarge', 'db.r8g.16xlarge', 'db.r8g.24xlarge', 'db.r8g.2xlarge', 'db.r8g.48xlarge', 'db.r8g.4xlarge', 'db.r8g.8xlarge', 'db.r8g.large', 'db.r8g.xlarge', 'db.serverless', 'db.t2.medium', 'db.t2.small', 'db.t3.large', 'db.t3.medium', 'db.t3.small', 'db.t4g.large', 'db.t4g.medium', 'db.x2g.12xlarge', 'db.x2g.16xlarge', 'db.x2g.2xlarge', 'db.x2g.4xlarge', 'db.x2g.8xlarge', 'db.x2g.large', 'db.x2g.xlarge'] when Engine is 'aurora-mysql' in any region",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "AuroraInstance",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.DBInstanceClass",
+        "category": "Resource",
+        "startLine": 5,
+        "startColumn": 7,
+        "endLine": 5,
+        "endColumn": 22,
+        "ruleDescription": "Validates RDS DB Instance Class",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "AuroraInstance",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 2,
+        "startColumn": 3,
+        "endLine": 2,
+        "endColumn": 17,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "AuroraInstance",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 2,
+        "startColumn": 3,
+        "endLine": 2,
+        "endColumn": 17,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Engine' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "AuroraInstance",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.Engine",
+        "category": "Best Practice",
+        "startLine": 6,
+        "startColumn": 7,
+        "endLine": 6,
+        "endColumn": 13,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'AuroraInstance' of type 'AWS::RDS::DBInstance' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "AuroraInstance",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 4,
+        "startColumn": 5,
+        "endLine": 4,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
   "gh-issues/issue-185.yaml": {
     "filePath": "gh-issues/issue-185.yaml",
     "status": "OK",
@@ -66631,70 +66757,6 @@
         "endColumn": 12,
         "ruleDescription": "Parameters have appropriate properties",
         "phase": "PARSE"
-      }
-    ]
-  },
-  "gh-issues/issue-201.json": {
-    "filePath": "gh-issues/issue-201.json",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 0,
-      "counts": {
-        "fatal": 2,
-        "errors": 0,
-        "warnings": 1,
-        "informational": 0,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "F0001",
-        "severity": "FATAL",
-        "message": "Resources section must exist and be non-empty",
-        "source": "SCHEMA",
-        "category": "Structure",
-        "ruleDescription": "Resources section must exist and be non-empty",
-        "phase": "SCHEMA"
-      },
-      {
-        "ruleId": "F2002",
-        "severity": "FATAL",
-        "message": "Parameter 'MyParam' has invalid Type 'Blimp'",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "MyParam",
-          "entityType": "Parameter"
-        },
-        "propertyPath": "Parameters/MyParam/Type",
-        "category": "Parameter",
-        "startLine": 4,
-        "startColumn": 7,
-        "endLine": 4,
-        "endColumn": 12,
-        "ruleDescription": "Parameter Type must be valid",
-        "phase": "SCHEMA"
-      },
-      {
-        "ruleId": "W2001",
-        "severity": "WARN",
-        "message": "Parameter 'MyParam' is not referenced anywhere in the template",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "MyParam",
-          "entityType": "Parameter"
-        },
-        "propertyPath": "Parameters/MyParam",
-        "category": "Best Practice",
-        "startLine": 3,
-        "startColumn": 5,
-        "endLine": 3,
-        "endColumn": 13,
-        "ruleDescription": "Check if Parameters are Used",
-        "phase": "LINT"
       }
     ]
   }
