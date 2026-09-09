@@ -1,12 +1,12 @@
 # cloudformation-validate
 
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+[![Latest release](https://img.shields.io/github/v/release/aws-cloudformation/cloudformation-validate?include_prereleases)](https://github.com/aws-cloudformation/cloudformation-validate/releases)
 [![Main CI](https://github.com/aws-cloudformation/cloudformation-validate/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/aws-cloudformation/cloudformation-validate/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/aws-cloudformation/cloudformation-validate/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/aws-cloudformation/cloudformation-validate/actions/workflows/codeql.yml)
 [![inspect.software](https://raw.githubusercontent.com/inspect-software/badges/main/v1/a/aws-cloudformation/cloudformation-validate.svg)](https://inspect.software/software/aws-cloudformation/cloudformation-validate)
 [![Offline](https://img.shields.io/badge/runtime-fully%20offline-success)](#features)
 
-[![Latest release](https://img.shields.io/github/v/release/aws-cloudformation/cloudformation-validate?include_prereleases)](https://github.com/aws-cloudformation/cloudformation-validate/releases)
 [![crates.io version](https://img.shields.io/crates/v/cloudformation-validate?logo=rust)](https://crates.io/crates/cloudformation-validate)
 [![npm version](https://img.shields.io/npm/v/%40aws%2Fcloudformation-validate?logo=npm)](https://www.npmjs.com/package/@aws/cloudformation-validate)
 [![Maven Central](https://img.shields.io/maven-central/v/software.amazon.cloudformation/cloudformation-validate?logo=apachemaven)](https://central.sonatype.com/artifact/software.amazon.cloudformation/cloudformation-validate)

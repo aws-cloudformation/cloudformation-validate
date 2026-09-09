@@ -2,7 +2,10 @@
 
 Performance is checked against a versioned environment profile, never against another Git revision.
 
-* `expected/github-ubuntu-x64-amd-epyc-7763.json`, `expected/github-ubuntu-x64-amd-epyc-9v74.json`, and `expected/github-ubuntu-x64-intel-xeon-platinum-8573c.json` are separate tight contracts for CPU models used by GitHub-hosted `ubuntu-latest` x64 runners. The harness derives and enforces the matching model automatically.
+* `expected/github-ubuntu-x64-amd-epyc-7763.json`, `expected/github-ubuntu-x64-amd-epyc-9v74.json`,
+  `expected/github-ubuntu-x64-intel-xeon-6973pc.json`, and
+  `expected/github-ubuntu-x64-intel-xeon-platinum-8573c.json` are separate tight contracts for CPU models used by
+  GitHub-hosted `ubuntu-latest` x64 runners. The harness derives and enforces the matching model automatically.
 * `expected/local-macos-arm64.json` is the contract for the recorded reference Apple Silicon Mac. The harness rejects a different Mac model instead of comparing unlike hardware.
 
 The `check` command spawns the current release executable for both engines across synthetic, real-template, and security workloads. Each case discards its first process launch, then uses the median of five independent launches. An apparent failure receives four additional samples and is evaluated again over the combined set.
