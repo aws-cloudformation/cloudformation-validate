@@ -70,7 +70,7 @@ impl Entity {
     }
 }
 
-/// Extra detail about a specific violation, present only in the detailed report.
+/// Extra detail about a specific violation, present only at the `DETAILED` detail level.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
 #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Record))]
@@ -183,8 +183,8 @@ impl Filterable for Diagnostic {
 impl Diagnostic {
     /// Projects this diagnostic into the public flattened shape. The enrichment
     /// fields (`documentation_url`, `rule_description`, `phase`, `context`) are
-    /// carried through only at the detailed level; the standard level leaves them
-    /// `None` so serialization omits them.
+    /// carried through only at the `DETAILED` detail level; the `STANDARD` detail
+    /// level leaves them `None` so serialization omits them.
     pub fn to_report(&self, detail_level: DetailLevel) -> output::Diagnostic {
         let (start_line, start_column, end_line, end_column) = self
             .location
@@ -432,7 +432,7 @@ mod tests {
         assert_eq!(f.documentation_url.as_deref(), Some("https://example.com/E3012"));
         assert_eq!(f.rule_description.as_deref(), Some("Disallows extra properties"));
         assert_eq!(f.phase, Some(Phase::Schema));
-        let ctx = f.context.as_ref().expect("detailed diagnostic should include context");
+        let ctx = f.context.as_ref().expect("detailed projection should include context");
         assert_eq!(ctx.property.as_deref(), Some("Foo"));
         assert_eq!(ctx.expected_constraint.as_deref(), Some("Must not exist"));
     }

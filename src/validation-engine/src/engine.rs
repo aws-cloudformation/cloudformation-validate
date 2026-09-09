@@ -1092,8 +1092,8 @@ fn gate_cdk_suppressed_rules(diagnostics: &mut Vec<Diagnostic>, model: &Semantic
 }
 
 /// Attaches a source span to any diagnostic still missing one. Location is part of
-/// both the standard and detailed reports, so this runs regardless of detail level
-/// and independently of the engine.
+/// the report at every detail level, so this runs regardless of the configured
+/// detail level and independently of the engine.
 ///
 /// Most diagnostics are located at construction (via `resource_span` /
 /// `resolve_section_span`), but some emission paths cannot reach a span there:

@@ -11,8 +11,8 @@ use std::collections::HashMap;
 /// carried as a nested `entity` struct and the source location is flattened into
 /// individual line/column fields. The enrichment fields - `documentation_url`,
 /// `rule_description`, `phase`, and `context` - are carried only when a report is
-/// projected at the detailed level; the standard level leaves them `None`, so they
-/// are omitted from serialization.
+/// projected at the `DETAILED` detail level; the `STANDARD` detail level leaves them
+/// `None`, so they are omitted from serialization.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
 #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Record))]
@@ -74,8 +74,8 @@ pub struct Diagnostic {
 }
 
 /// The serializable validation result: report metadata, performance metrics, and
-/// the flattened diagnostics. Detailed-only per-diagnostic context and enrichment
-/// are present only when the report was projected at the detailed level.
+/// the flattened diagnostics. The per-diagnostic enrichment fields are present only
+/// when the report is projected at the `DETAILED` detail level.
 #[derive(Debug, Clone, Serialize)]
 #[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
 #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Record))]
