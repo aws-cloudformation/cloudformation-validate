@@ -36,6 +36,8 @@ class SmokeTest {
     }""".trimIndent()
 
     private fun defaultConfig() = ValidateConfig(severityLevel = Severity.DEBUG)
+    private fun detailedConfig() = ValidateConfig(severityLevel = Severity.DEBUG, detailLevel = DetailLevel.DETAILED)
+    private fun standardConfig() = ValidateConfig(severityLevel = Severity.DEBUG, detailLevel = DetailLevel.STANDARD)
 
     private fun celCustomConfig() = EngineConfig(
         customRules = listOf(ExternalRuleSource(name = "cel_custom.json", content = loadRule("cel_custom.json"))),
@@ -92,12 +94,12 @@ class SmokeTest {
                 additionalSchemas = listOf(AdditionalSchemaSource(typeName = null, schema = lambdaOverlaySchema)),
             ),
         )
-        val celBaseline = JvmCelEngine(EngineConfig()).validateStandard(
+        val celBaseline = JvmCelEngine(EngineConfig()).validateTemplate(
             templateWithOverlayProperty,
             defaultConfig(),
             "overlay.yaml",
         )
-        val regoBaseline = JvmRegoEngine(EngineConfig()).validateStandard(
+        val regoBaseline = JvmRegoEngine(EngineConfig()).validateTemplate(
             templateWithOverlayProperty,
             defaultConfig(),
             "overlay.yaml",
@@ -105,8 +107,8 @@ class SmokeTest {
         assertTrue(celBaseline.diagnostics.any { it.ruleId == "F3002" }, "CEL baseline must report the property")
         assertTrue(regoBaseline.diagnostics.any { it.ruleId == "F3002" }, "Rego baseline must report the property")
 
-        val cel = JvmCelEngine(config).validateStandard(templateWithOverlayProperty, defaultConfig(), "overlay.yaml")
-        val rego = JvmRegoEngine(config).validateStandard(templateWithOverlayProperty, defaultConfig(), "overlay.yaml")
+        val cel = JvmCelEngine(config).validateTemplate(templateWithOverlayProperty, defaultConfig(), "overlay.yaml")
+        val rego = JvmRegoEngine(config).validateTemplate(templateWithOverlayProperty, defaultConfig(), "overlay.yaml")
         assertFalse(cel.diagnostics.any { it.ruleId == "F3002" }, "CEL config must apply the overlay")
         assertFalse(rego.diagnostics.any { it.ruleId == "F3002" }, "Rego config must apply the overlay")
     }
@@ -193,7 +195,7 @@ class SmokeTest {
 
     @Test
     fun celReturnsF1101ForEmptyTemplate() {
-        val report = CEL.validateStandard(templateFile("empty.yaml"), defaultConfig())
+        val report = CEL.validateTemplate(templateFile("empty.yaml"), defaultConfig())
         assertEquals("ERROR", report.status.name)
         assertEquals("F1101", report.diagnostics[0].ruleId)
         assertEquals(Severity.FATAL, report.diagnostics[0].severity)
@@ -201,7 +203,7 @@ class SmokeTest {
 
     @Test
     fun regoReturnsF1101ForEmptyTemplate() {
-        val report = REGO.validateStandard(templateFile("empty.yaml"), defaultConfig())
+        val report = REGO.validateTemplate(templateFile("empty.yaml"), defaultConfig())
         assertEquals("ERROR", report.status.name)
         assertEquals("F1101", report.diagnostics[0].ruleId)
         assertEquals(Severity.FATAL, report.diagnostics[0].severity)
@@ -217,8 +219,8 @@ class SmokeTest {
 
         for ((name, engine) in listOf("cel" to cel as Any, "rego" to rego as Any)) {
             val report = when (engine) {
-                is JvmCelEngine -> engine.validateStandard(templateBytes(badTemplate), defaultConfig(), badTemplate)
-                is JvmRegoEngine -> engine.validateStandard(templateBytes(badTemplate), defaultConfig(), badTemplate)
+                is JvmCelEngine -> engine.validateTemplate(templateBytes(badTemplate), defaultConfig(), badTemplate)
+                is JvmRegoEngine -> engine.validateTemplate(templateBytes(badTemplate), defaultConfig(), badTemplate)
                 else -> error("")
             }
             val d = report.diagnostics.find { it.ruleId == "CUSTOM001" } ?: fail("$name: CUSTOM001 diagnostic must fire")
@@ -258,8 +260,8 @@ class SmokeTest {
             assertEquals(baselineCount, rules.count { it.origin != RuleOrigin.GUARD }, "$name: must not pollute builtins")
 
             val report = when (engine) {
-                is JvmCelEngine -> engine.validateStandard(templateBytes(badTemplate), defaultConfig(), badTemplate)
-                is JvmRegoEngine -> engine.validateStandard(templateBytes(badTemplate), defaultConfig(), badTemplate)
+                is JvmCelEngine -> engine.validateTemplate(templateBytes(badTemplate), defaultConfig(), badTemplate)
+                is JvmRegoEngine -> engine.validateTemplate(templateBytes(badTemplate), defaultConfig(), badTemplate)
                 else -> error("")
             }
             val d = report.diagnostics.find { it.ruleId == "check_bucket_encryption" } ?: fail("$name: diagnostic must fire")
@@ -279,7 +281,7 @@ class SmokeTest {
         val rego = JvmRegoEngine(regoCombinedConfig())
 
         // Rego discovers custom rule metadata during evaluation.
-        rego.validateStandard(templateBytes("bad/invalid_deletion_policy.yaml"), defaultConfig(), "bad/invalid_deletion_policy.yaml")
+        rego.validateTemplate(templateBytes("bad/invalid_deletion_policy.yaml"), defaultConfig(), "bad/invalid_deletion_policy.yaml")
 
         for ((name, rules) in listOf("cel" to cel.listRules(), "rego" to rego.listRules())) {
             assertEquals(RuleOrigin.CUSTOM, rules.find { it.id == "CUSTOM001" }?.origin, "$name: CUSTOM001 origin")
@@ -313,7 +315,7 @@ class SmokeTest {
         val rego = JvmRegoEngine(multiCombinedConfig("rego"))
 
         // Rego discovers custom rule metadata during evaluation.
-        rego.validateStandard(templateBytes("bad/invalid_deletion_policy.yaml"), defaultConfig(), "bad/invalid_deletion_policy.yaml")
+        rego.validateTemplate(templateBytes("bad/invalid_deletion_policy.yaml"), defaultConfig(), "bad/invalid_deletion_policy.yaml")
 
         for ((name, rules) in listOf("cel" to cel.listRules(), "rego" to rego.listRules())) {
             val c1 = rules.find { it.id == "CUSTOM010" } ?: fail("$name: CUSTOM010 must exist")
@@ -357,10 +359,32 @@ class SmokeTest {
     @TestFactory
     fun celStandardMatchesSnapshot(): List<DynamicTest> = snapshotStandardTests("cel", CEL)
 
+    @Test
+    fun omittingDetailLevelDefaultsToDetailed() {
+        val template = templateFile("good/generic.yaml")
+        val default = REGO.validateTemplate(template, ValidateConfig(severityLevel = Severity.DEBUG))
+        val explicitDetailed = REGO.validateTemplate(template, detailedConfig())
+        val explicitStandard = REGO.validateTemplate(template, standardConfig())
+
+        assertTrue(
+            default.diagnostics.any { it.ruleDescription != null },
+            "the default report must carry detailed-only enrichment",
+        )
+        assertTrue(
+            explicitStandard.diagnostics.all { it.ruleDescription == null },
+            "the STANDARD detail level must leave detailed-only fields absent",
+        )
+        assertEquals(
+            stripSnapshotExcludedFields(parseJson(gson.toJson(explicitDetailed))),
+            stripSnapshotExcludedFields(parseJson(gson.toJson(default))),
+            "omitting detailLevel must produce the same report as an explicit DETAILED detail level",
+        )
+    }
+
     private fun snapshotDetailedTests(engineName: String, engine: Any): List<DynamicTest> {
         return EXPECTED_TEMPLATES.map { rel ->
             DynamicTest.dynamicTest("$engineName detailed:$rel") {
-                val actual = parseJson(gson.toJson(validateDetailed(engine, rel)))
+                val actual = parseJson(gson.toJson(validateWithDetailLevel(engine, rel, detailedConfig())))
                 @Suppress("UNCHECKED_CAST")
                 val expected = COMBINED_SNAPSHOTS[rel] as Map<String, Any?>
                 assertEquals(
@@ -375,7 +399,7 @@ class SmokeTest {
     private fun snapshotStandardTests(engineName: String, engine: Any): List<DynamicTest> {
         return EXPECTED_TEMPLATES.map { rel ->
             DynamicTest.dynamicTest("$engineName standard:$rel") {
-                val actual = parseJson(gson.toJson(validateStandard(engine, rel)))
+                val actual = parseJson(gson.toJson(validateWithDetailLevel(engine, rel, standardConfig())))
                 @Suppress("UNCHECKED_CAST")
                 val expected = stripDetailedOnlyFields(COMBINED_SNAPSHOTS[rel] as Map<String, Any?>)
                 assertEquals(
@@ -399,17 +423,10 @@ class SmokeTest {
         return out
     }
 
-    private fun validateDetailed(engine: Any, rel: String): DetailedReport =
+    private fun validateWithDetailLevel(engine: Any, rel: String, config: ValidateConfig): ValidationReport =
         when (engine) {
-            is CelEngine -> engine.validateDetailed(templateFile(rel), defaultConfig())
-            is RegoEngine -> engine.validateDetailed(templateFile(rel), defaultConfig())
-            else -> throw IllegalArgumentException("Unknown engine type: ${engine::class}")
-        }
-
-    private fun validateStandard(engine: Any, rel: String): StandardReport =
-        when (engine) {
-            is CelEngine -> engine.validateStandard(templateFile(rel), defaultConfig())
-            is RegoEngine -> engine.validateStandard(templateFile(rel), defaultConfig())
+            is CelEngine -> engine.validateTemplate(templateFile(rel), config)
+            is RegoEngine -> engine.validateTemplate(templateFile(rel), config)
             else -> throw IllegalArgumentException("Unknown engine type: ${engine::class}")
         }
 
@@ -437,7 +454,7 @@ class SmokeTest {
 
     @Test
     fun performanceIsPresentWithTimingPerPhase() {
-        val performance = REGO.validateDetailed(templateFile("good/generic.yaml"), defaultConfig()).performance
+        val performance = REGO.validateTemplate(templateFile("good/generic.yaml"), defaultConfig()).performance
         val phases = listOf(
             performance.schemaInit,
             performance.engineInit,
