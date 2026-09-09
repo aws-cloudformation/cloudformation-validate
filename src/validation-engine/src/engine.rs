@@ -295,8 +295,10 @@ pub(crate) fn validate(
     backfill_entities(&mut all_diagnostics, &model);
 
     let registry_metadata = engine.rule_metadata();
-    let external_metadata = engine.external_rule_metadata();
-    enrich_diagnostics(&mut all_diagnostics, &model, registry_metadata, &external_metadata, &config.detail_level);
+    let external_metadata = config.detail_level.needs_enrichment().then(|| engine.external_rule_metadata());
+    if let Some(external_metadata) = external_metadata.as_ref() {
+        enrich_diagnostics(&mut all_diagnostics, &model, registry_metadata, external_metadata, &config.detail_level);
+    }
 
     if config.detail_level.needs_context() {
         schema_validator.enrich_context(&mut all_diagnostics, &model);
@@ -332,35 +334,39 @@ pub(crate) fn validate(
         } else {
             "Deterministic validation budgets were exhausted; analysis completed but some detail was omitted"
         };
-        let budget_context = budget_exhaustion_records
-            .iter()
-            .map(|record| {
-                serde_json::json!({
-                    "kind": record.kind.as_str(),
-                    "description": record.description.as_str(),
-                    "limit": record.limit,
-                    "analysisIncomplete": record.analysis_incomplete,
-                })
-            })
-            .collect();
-        let mut context_extra = HashMap::new();
-        context_extra.insert("budgetExhaustions".to_string(), serde_json::Value::Array(budget_context).into());
         let mut budget_warning = RegisteredDiagnostic::new("W9052", message).build();
-        budget_warning.context = Some(ViolationContext {
-            actual_value: None,
-            expected_constraint: None,
-            property: None,
-            lifecycle: None,
-            resolution_source: None,
-            extra: Some(context_extra),
-        });
+        if config.detail_level.needs_context() {
+            let budget_context = budget_exhaustion_records
+                .iter()
+                .map(|record| {
+                    serde_json::json!({
+                        "kind": record.kind.as_str(),
+                        "description": record.description.as_str(),
+                        "limit": record.limit,
+                        "analysisIncomplete": record.analysis_incomplete,
+                    })
+                })
+                .collect();
+            let mut context_extra = HashMap::new();
+            context_extra.insert("budgetExhaustions".to_string(), serde_json::Value::Array(budget_context).into());
+            budget_warning.context = Some(ViolationContext {
+                actual_value: None,
+                expected_constraint: None,
+                property: None,
+                lifecycle: None,
+                resolution_source: None,
+                extra: Some(context_extra),
+            });
+        }
 
         let warning_index = all_diagnostics.len();
         all_diagnostics.push(budget_warning);
         let warning_slice = &mut all_diagnostics[warning_index..];
         backfill_locations(warning_slice, &model);
         backfill_entities(warning_slice, &model);
-        enrich_diagnostics(warning_slice, &model, registry_metadata, &external_metadata, &config.detail_level);
+        if let Some(external_metadata) = external_metadata.as_ref() {
+            enrich_diagnostics(warning_slice, &model, registry_metadata, external_metadata, &config.detail_level);
+        }
     }
 
     let (total_before, suppressed) = finalize_diagnostics(&mut all_diagnostics, &config);
@@ -1240,6 +1246,7 @@ mod tests {
     use super::*;
     use diagnostics::Phase;
     use rules::{Category, RuleFilterConfig, build_rule_metadata_map, lookup_rule};
+    use std::sync::atomic::{AtomicUsize, Ordering};
     use template_model::{SAM_TRANSFORM_ERROR_PREFIX, SAM_TRANSFORM_ERROR_RULE_ID};
 
     const TEST_CFN_LINT_VERSION: &str = "https://github.com/aws-cloudformation/cfn-lint@1.54.0";
@@ -2844,6 +2851,107 @@ Resources:
 
     const WELL_FORMED_TEMPLATE: &[u8] = b"Resources:\n  Bucket:\n    Type: AWS::S3::Bucket\n";
 
+    struct EnrichmentTrackingEngine {
+        external_metadata_requests: AtomicUsize,
+        metadata: HashMap<String, RuleMetadataEntry>,
+        metric: PhaseMetric,
+    }
+
+    impl EnrichmentTrackingEngine {
+        fn new() -> Self {
+            Self {
+                external_metadata_requests: AtomicUsize::new(0),
+                metadata: build_rule_metadata_map(),
+                metric: PhaseMetric { duration_ms: 0.0 },
+            }
+        }
+    }
+
+    impl ValidationEngine for EnrichmentTrackingEngine {
+        fn engine_name(&self) -> &str {
+            "enrichment-tracking-engine"
+        }
+
+        fn evaluate_rules(
+            &self,
+            _model: &Arc<SemanticModel>,
+            _config: &ValidateConfig,
+        ) -> Result<Vec<Diagnostic>, ValidationError> {
+            Ok(vec![Diagnostic {
+                rule_id: "E3012".into(),
+                severity: Severity::Error,
+                message: "tracking diagnostic".into(),
+                ..default_diag()
+            }])
+        }
+
+        fn list_rules(&self) -> Vec<RuleInfo> {
+            Vec::new()
+        }
+
+        fn rule_metadata(&self) -> &HashMap<String, RuleMetadataEntry> {
+            &self.metadata
+        }
+
+        fn external_rule_metadata(&self) -> HashMap<String, RuleMetadataEntry> {
+            self.external_metadata_requests.fetch_add(1, Ordering::SeqCst);
+            HashMap::new()
+        }
+
+        fn init_metric(&self) -> &PhaseMetric {
+            &self.metric
+        }
+    }
+
+    #[test]
+    fn standard_detail_level_bypasses_enrichment_metadata_lookup() {
+        let schema_validator = SchemaValidator::default();
+        let standard_engine = EnrichmentTrackingEngine::new();
+        let standard_report = validate_bytes(
+            &standard_engine,
+            &schema_validator,
+            WELL_FORMED_TEMPLATE,
+            ValidateConfig { detail_level: DetailLevel::Standard, ..Default::default() },
+        )
+        .expect("STANDARD validation must succeed");
+
+        assert_eq!(
+            standard_engine.external_metadata_requests.load(Ordering::SeqCst),
+            0,
+            "STANDARD must not request metadata used only by diagnostic enrichment"
+        );
+        let standard_diagnostic = standard_report
+            .diagnostics
+            .iter()
+            .find(|diagnostic| diagnostic.message == "tracking diagnostic")
+            .expect("the tracking diagnostic must be present");
+        assert!(standard_diagnostic.phase.is_none());
+        assert!(standard_diagnostic.rule_description.is_none());
+        assert!(standard_diagnostic.context.is_none());
+
+        let detailed_engine = EnrichmentTrackingEngine::new();
+        let detailed_report = validate_bytes(
+            &detailed_engine,
+            &schema_validator,
+            WELL_FORMED_TEMPLATE,
+            ValidateConfig { detail_level: DetailLevel::Detailed, ..Default::default() },
+        )
+        .expect("DETAILED validation must succeed");
+
+        assert_eq!(
+            detailed_engine.external_metadata_requests.load(Ordering::SeqCst),
+            1,
+            "DETAILED must request external metadata for diagnostic enrichment"
+        );
+        let detailed_diagnostic = detailed_report
+            .diagnostics
+            .iter()
+            .find(|diagnostic| diagnostic.message == "tracking diagnostic")
+            .expect("the tracking diagnostic must be present");
+        assert_eq!(detailed_diagnostic.phase, Some(Phase::Lint));
+        assert!(detailed_diagnostic.rule_description.is_some());
+    }
+
     /// A test engine that records specified budget kinds during evaluation.
     struct BudgetExhaustingEngine {
         kinds: Vec<template_model::BudgetKind>,
@@ -2930,11 +3038,42 @@ Resources:
         assert_eq!(budget_exhaustions[1].kind, "enumExpansion");
         assert_eq!(budget_exhaustions[1].description, BudgetKind::EnumExpansion.description());
 
-        // Context must be present in detailed format
-        assert!(w.context.is_some(), "budget warning context must be attached in detailed format");
+        // Context must be present at the DETAILED detail level.
+        assert!(w.context.is_some(), "budget warning context must be attached at the DETAILED detail level");
         let ctx = w.context.as_ref().unwrap();
         let extra = ctx.extra.as_ref().expect("context.extra must be populated");
         assert!(extra.contains_key("budgetExhaustions"));
+    }
+
+    #[test]
+    fn standard_detail_level_skips_budget_warning_enrichment() {
+        use template_model::BudgetKind;
+
+        let engine = BudgetExhaustingEngine::new(vec![BudgetKind::ResolverDepth]);
+        let schema_validator = SchemaValidator::default();
+        let report = validate_bytes(
+            &engine,
+            &schema_validator,
+            WELL_FORMED_TEMPLATE,
+            ValidateConfig { detail_level: DetailLevel::Standard, ..Default::default() },
+        )
+        .expect("STANDARD validation must succeed");
+
+        let warning = report
+            .diagnostics
+            .iter()
+            .find(|diagnostic| diagnostic.rule_id == "W9052")
+            .expect("budget exhaustion must still emit its aggregate warning");
+        assert!(warning.phase.is_none());
+        assert!(warning.context.is_none());
+
+        let budget_exhaustions = report
+            .metadata
+            .budget_exhaustions
+            .as_deref()
+            .expect("budget metadata must remain available without diagnostic enrichment");
+        assert_eq!(budget_exhaustions.len(), 1);
+        assert_eq!(budget_exhaustions[0].kind, "resolverDepth");
     }
 
     #[test]
