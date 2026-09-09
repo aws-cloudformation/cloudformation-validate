@@ -1,12 +1,17 @@
+use crate::detail_level::DetailLevel;
 use crate::filter::Filterable;
 use crate::metrics::PhaseMetric;
+use crate::output;
 use crate::phase::Phase;
 use rules::{RuleOrigin, Severity};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap};
 use template_model::{EntityType, JsonValue, SourceSpan};
 
-fn serialize_sorted_optional_map<S, V>(map: &Option<HashMap<String, V>>, serializer: S) -> Result<S::Ok, S::Error>
+pub(crate) fn serialize_sorted_optional_map<S, V>(
+    map: &Option<HashMap<String, V>>,
+    serializer: S,
+) -> Result<S::Ok, S::Error>
 where
     S: serde::Serializer,
     V: Serialize,
@@ -175,180 +180,37 @@ impl Filterable for Diagnostic {
     }
 }
 
-/// Generates a report diagnostic struct that carries the targeted entity as a
-/// nested `entity` struct and inlines `location` into individual line/column
-/// fields. Used by `StandardDiagnostic` and `DetailedDiagnostic`.
-macro_rules! define_flattened_diagnostic {
-    ($(#[$struct_meta:meta])* $name:ident $(, $(#[$extra_meta:meta])* $extra_field:ident : $extra_ty:ty)*) => {
-        $(#[$struct_meta])*
-        #[derive(Debug, Clone, Serialize, Deserialize)]
-        #[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
-        #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Record))]
-        #[serde(rename_all = "camelCase")]
-        pub struct $name {
-            /// Identifier of the rule that produced this finding; its leading letter encodes the severity.
-            pub rule_id: String,
-            pub severity: Severity,
-            pub message: String,
-            /// Where the rule came from, such as a provider schema, the built-in engine, or a user-supplied rule.
-            pub source: RuleOrigin,
-            /// The named template entity this finding targets - a resource, parameter, output, mapping, condition, or template rule - if any.
-            #[serde(default, skip_serializing_if = "Option::is_none")]
-            #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
-            pub entity: Option<Entity>,
-            /// Path to the offending property within the resource, such as 'Properties.Name'.
-            #[serde(default, skip_serializing_if = "Option::is_none")]
-            #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
-            pub property_path: Option<String>,
-            #[serde(default, skip_serializing_if = "Option::is_none")]
-            #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
-            pub suggested_fix: Option<String>,
-            #[serde(default, skip_serializing_if = "Option::is_none")]
-            #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
-            pub category: Option<String>,
-            /// Line in the source template where the finding begins (1-based).
-            #[serde(default, skip_serializing_if = "Option::is_none")]
-            #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
-            pub start_line: Option<u32>,
-            #[serde(default, skip_serializing_if = "Option::is_none")]
-            #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
-            pub start_column: Option<u32>,
-            #[serde(default, skip_serializing_if = "Option::is_none")]
-            #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
-            pub end_line: Option<u32>,
-            #[serde(default, skip_serializing_if = "Option::is_none")]
-            #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
-            pub end_column: Option<u32>,
-            #[serde(default, skip_serializing_if = "Option::is_none")]
-            #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
-            pub related_resources: Option<Vec<RelatedResource>>,
-            /// Condition name to boolean assignment under which this finding applies, when it depends on template conditions.
-            #[serde(default, skip_serializing_if = "Option::is_none", serialize_with = "serialize_sorted_optional_map")]
-            #[cfg_attr(feature = "wasm-bindings", tsify(type = "Record<string, boolean>"))]
-            #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
-            pub condition_scenario: Option<HashMap<String, bool>>,
-            $(
-                $(#[$extra_meta])*
-                #[serde(default, skip_serializing_if = "Option::is_none")]
-                #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
-                pub $extra_field: $extra_ty,
-            )*
-        }
-    };
-}
-
-define_flattened_diagnostic!(
-    /// A single validation finding with its source location flattened into individual fields.
-    StandardDiagnostic
-);
-define_flattened_diagnostic!(
-    /// A validation finding with additional context and enrichment beyond the standard finding.
-    DetailedDiagnostic,
-    documentation_url: Option<String>,
-    rule_description: Option<String>,
-    phase: Option<Phase>,
-    context: Option<ViolationContext>
-);
-
-/// Populates the shared fields of a report diagnostic from a `Diagnostic`.
-macro_rules! flatten_diagnostic {
-    ($self:expr $(, $extra_field:ident)* ) => {{
-        let (start_line, start_column, end_line, end_column) = $self
-            .location
-            .map(|l| (Some(l.start_line), Some(l.start_column), Some(l.end_line), Some(l.end_column)))
-            .unwrap_or((None, None, None, None));
-        (
-            $self.rule_id.clone(),
-            $self.severity,
-            $self.message.clone(),
-            $self.entity.clone(),
-            $self.property_path.clone(),
-            $self.suggested_fix.clone(),
-            $self.category.clone(),
-            start_line,
-            start_column,
-            end_line,
-            end_column,
-            $self.related_resources.clone(),
-            $self.condition_scenario.clone(),
-            $self.source,
-            $( $self.$extra_field.clone(), )*
-        )
-    }};
-}
-
 impl Diagnostic {
-    pub fn to_standard(&self) -> StandardDiagnostic {
-        let (
-            rule_id,
-            severity,
-            message,
-            entity,
-            property_path,
-            suggested_fix,
-            category,
+    /// Projects this diagnostic into the public flattened shape. The enrichment
+    /// fields (`documentation_url`, `rule_description`, `phase`, `context`) are
+    /// carried through only at the detailed level; the standard level leaves them
+    /// `None` so serialization omits them.
+    pub fn to_report(&self, detail_level: DetailLevel) -> output::Diagnostic {
+        let (start_line, start_column, end_line, end_column) = self
+            .location
+            .map(|span| (Some(span.start_line), Some(span.start_column), Some(span.end_line), Some(span.end_column)))
+            .unwrap_or((None, None, None, None));
+        let (documentation_url, rule_description, phase, context) = match detail_level {
+            DetailLevel::Detailed => {
+                (self.documentation_url.clone(), self.rule_description.clone(), self.phase, self.context.clone())
+            }
+            DetailLevel::Standard => (None, None, None, None),
+        };
+        output::Diagnostic {
+            rule_id: self.rule_id.clone(),
+            severity: self.severity,
+            message: self.message.clone(),
+            source: self.source,
+            entity: self.entity.clone(),
+            property_path: self.property_path.clone(),
+            suggested_fix: self.suggested_fix.clone(),
+            category: self.category.clone(),
             start_line,
             start_column,
             end_line,
             end_column,
-            related_resources,
-            condition_scenario,
-            source,
-        ) = flatten_diagnostic!(self);
-        StandardDiagnostic {
-            rule_id,
-            severity,
-            message,
-            entity,
-            property_path,
-            suggested_fix,
-            category,
-            start_line,
-            start_column,
-            end_line,
-            end_column,
-            related_resources,
-            condition_scenario,
-            source,
-        }
-    }
-
-    pub fn to_detailed(&self) -> DetailedDiagnostic {
-        let (
-            rule_id,
-            severity,
-            message,
-            entity,
-            property_path,
-            suggested_fix,
-            category,
-            start_line,
-            start_column,
-            end_line,
-            end_column,
-            related_resources,
-            condition_scenario,
-            source,
-            documentation_url,
-            rule_description,
-            phase,
-            context,
-        ) = flatten_diagnostic!(self, documentation_url, rule_description, phase, context);
-        DetailedDiagnostic {
-            rule_id,
-            severity,
-            message,
-            entity,
-            property_path,
-            suggested_fix,
-            category,
-            start_line,
-            start_column,
-            end_line,
-            end_column,
-            related_resources,
-            condition_scenario,
-            source,
+            related_resources: self.related_resources.clone(),
+            condition_scenario: self.condition_scenario.clone(),
             documentation_url,
             rule_description,
             phase,
@@ -462,55 +324,18 @@ pub struct ValidationReport {
 }
 
 impl ValidationReport {
-    pub fn to_standard(&self) -> StandardReport {
-        StandardReport {
+    /// Projects this report into its serializable shape, applying `detail_level`
+    /// to every diagnostic.
+    pub fn to_report(&self, detail_level: DetailLevel) -> output::ValidationReport {
+        output::ValidationReport {
             file_path: self.file_path.clone(),
             status: self.status,
             version: self.version.clone(),
-            diagnostics: self.diagnostics.iter().map(|d| d.to_standard()).collect(),
+            diagnostics: self.diagnostics.iter().map(|d| d.to_report(detail_level.clone())).collect(),
             metadata: self.metadata.clone(),
             performance: self.performance.clone(),
         }
     }
-
-    pub fn to_detailed(&self) -> DetailedReport {
-        DetailedReport {
-            file_path: self.file_path.clone(),
-            status: self.status,
-            version: self.version.clone(),
-            diagnostics: self.diagnostics.iter().map(|d| d.to_detailed()).collect(),
-            metadata: self.metadata.clone(),
-            performance: self.performance.clone(),
-        }
-    }
-}
-
-/// Standard validation result: the report plus flattened diagnostics.
-#[derive(Debug, Clone, Serialize)]
-#[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
-#[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Record))]
-#[serde(rename_all = "camelCase")]
-pub struct StandardReport {
-    pub file_path: String,
-    pub status: ReportStatus,
-    pub version: String,
-    pub metadata: ReportMetadata,
-    pub performance: PerformanceMetrics,
-    pub diagnostics: Vec<StandardDiagnostic>,
-}
-
-/// Detailed validation result: like the standard report but with per-diagnostic context and enrichment.
-#[derive(Debug, Clone, Serialize)]
-#[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
-#[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Record))]
-#[serde(rename_all = "camelCase")]
-pub struct DetailedReport {
-    pub file_path: String,
-    pub status: ReportStatus,
-    pub version: String,
-    pub metadata: ReportMetadata,
-    pub performance: PerformanceMetrics,
-    pub diagnostics: Vec<DetailedDiagnostic>,
 }
 
 #[cfg(test)]
@@ -572,9 +397,9 @@ mod tests {
     }
 
     #[test]
-    fn to_standard_carries_entity_and_flattens_location_fields() {
+    fn standard_projection_carries_entity_flattens_location_and_drops_enrichment() {
         let d = sample_diagnostic();
-        let s = d.to_standard();
+        let s = d.to_report(DetailLevel::Standard);
 
         assert_eq!(s.rule_id, "E3012");
         let entity = s.entity.as_ref().expect("entity should be present");
@@ -590,20 +415,26 @@ mod tests {
         assert_eq!(s.suggested_fix.as_deref(), Some("Remove the property"));
         assert_eq!(s.related_resources.as_ref().unwrap().len(), 1);
         assert_ne!(s.condition_scenario, None, "condition_scenario should be present");
+
+        assert_eq!(s.documentation_url, None, "standard projection must drop documentation_url");
+        assert_eq!(s.rule_description, None, "standard projection must drop rule_description");
+        assert_eq!(s.phase, None, "standard projection must drop phase");
+        assert!(s.context.is_none(), "standard projection must drop context");
     }
 
     #[test]
-    fn to_full_includes_context_and_enrichment_fields() {
+    fn detailed_projection_includes_context_and_enrichment_fields() {
         let d = sample_diagnostic();
-        let f = d.to_detailed();
+        let f = d.to_report(DetailLevel::Detailed);
 
         assert_eq!(f.rule_id, "E3012");
         assert_eq!(f.entity.as_ref().map(|e| e.logical_id.as_str()), Some("MyBucket"));
-        assert!(f.context.is_some(), "full diagnostic should include context");
-        let ctx = f.context.unwrap();
+        assert_eq!(f.documentation_url.as_deref(), Some("https://example.com/E3012"));
+        assert_eq!(f.rule_description.as_deref(), Some("Disallows extra properties"));
+        assert_eq!(f.phase, Some(Phase::Schema));
+        let ctx = f.context.as_ref().expect("detailed diagnostic should include context");
         assert_eq!(ctx.property.as_deref(), Some("Foo"));
         assert_eq!(ctx.expected_constraint.as_deref(), Some("Must not exist"));
-        assert_eq!(f.phase, Some(Phase::Schema));
     }
 
     #[test]
@@ -660,9 +491,9 @@ mod tests {
     }
 
     #[test]
-    fn standard_diagnostic_uses_camel_case_and_excludes_context() {
+    fn standard_projection_uses_camel_case_and_omits_enrichment_in_json() {
         let d = sample_diagnostic();
-        let s = d.to_standard();
+        let s = d.to_report(DetailLevel::Standard);
         let json = serde_json::to_string(&s).unwrap();
         assert!(json.contains("ruleId"), "expected camelCase 'ruleId' in JSON");
         assert!(json.contains("startLine"), "expected 'startLine' in JSON");
@@ -671,17 +502,37 @@ mod tests {
         assert!(json.contains("entityType"), "expected 'entityType' in JSON");
         assert!(json.contains("resourceType"), "expected 'resourceType' in JSON");
         assert!(json.contains("propertyPath"), "expected 'propertyPath' in JSON");
-        assert!(!json.contains("\"context\""), "standard format should not include 'context'");
+        assert!(!json.contains("\"context\""), "standard projection must omit 'context'");
+        assert!(!json.contains("documentationUrl"), "standard projection must omit 'documentationUrl'");
+        assert!(!json.contains("ruleDescription"), "standard projection must omit 'ruleDescription'");
+        assert!(!json.contains("\"phase\""), "standard projection must omit 'phase'");
     }
 
     #[test]
-    fn full_diagnostic_includes_context_in_serialization() {
+    fn detailed_projection_includes_enrichment_in_serialization() {
         let d = sample_diagnostic();
-        let f = d.to_detailed();
+        let f = d.to_report(DetailLevel::Detailed);
         let json = serde_json::to_string(&f).unwrap();
-        assert!(json.contains("\"context\""), "full format should include 'context'");
-        assert!(json.contains("actualValue"), "full format should include 'actualValue'");
-        assert!(json.contains("expectedConstraint"), "full format should include 'expectedConstraint'");
+        assert!(json.contains("\"context\""), "detailed projection should include 'context'");
+        assert!(json.contains("actualValue"), "detailed projection should include 'actualValue'");
+        assert!(json.contains("expectedConstraint"), "detailed projection should include 'expectedConstraint'");
+        assert!(json.contains("documentationUrl"), "detailed projection should include 'documentationUrl'");
+        assert!(json.contains("ruleDescription"), "detailed projection should include 'ruleDescription'");
+        assert!(json.contains("\"phase\""), "detailed projection should include 'phase'");
+    }
+
+    #[test]
+    fn standard_projection_is_detailed_projection_without_enrichment_fields() {
+        let d = sample_diagnostic();
+        let standard = serde_json::to_value(d.to_report(DetailLevel::Standard)).unwrap();
+        let mut detailed = serde_json::to_value(d.to_report(DetailLevel::Detailed)).unwrap();
+
+        let detailed_fields = detailed.as_object_mut().expect("diagnostic serializes as an object");
+        for enrichment_field in ["documentationUrl", "ruleDescription", "phase", "context"] {
+            detailed_fields.remove(enrichment_field);
+        }
+
+        assert_eq!(standard, detailed, "standard output must equal the detailed output minus the enrichment fields");
     }
 
     #[test]
