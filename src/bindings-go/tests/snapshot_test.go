@@ -22,9 +22,9 @@ import (
 const chunkPrefix = "validation_reports"
 const chunkExtension = ".json"
 
-// Fields present only in detailed reports; stripped from the snapshot entry when
-// comparing standard reports.
-var detailedOnlyDiagnosticFields = []string{"documentationUrl", "context", "ruleDescription", "phase", "section"}
+// Enrichment fields present only at the DETAILED detail level; stripped from the
+// snapshot entry when comparing at STANDARD.
+var enrichmentDiagnosticFields = []string{"documentationUrl", "context", "ruleDescription", "phase", "section"}
 
 var templatesRoot = filepath.Join(workspaceDir, "resources", "templates")
 
@@ -142,14 +142,14 @@ func stripSnapshotExcludedFields(report map[string]any, filePath string) map[str
 	return report
 }
 
-func stripDetailedOnlyFields(report map[string]any) map[string]any {
+func stripEnrichmentFields(report map[string]any) map[string]any {
 	diagnostics, ok := report["diagnostics"].([]any)
 	if !ok {
 		return report
 	}
 	for _, entry := range diagnostics {
 		if d, ok := entry.(map[string]any); ok {
-			for _, field := range detailedOnlyDiagnosticFields {
+			for _, field := range enrichmentDiagnosticFields {
 				delete(d, field)
 			}
 		}
@@ -201,7 +201,14 @@ func TestSnapshotValidation(t *testing.T) {
 		t.Fatal("no templates discovered")
 	}
 	snapshots := loadSnapshots(t)
-	debugLevel := &cfnvalidate.ValidateConfig{SeverityLevel: cfnvalidate.SeverityDebug}
+	debugDetailed := &cfnvalidate.ValidateConfig{
+		SeverityLevel: cfnvalidate.SeverityDebug,
+		DetailLevel:   cfnvalidate.DetailLevelDetailed,
+	}
+	debugStandard := &cfnvalidate.ValidateConfig{
+		SeverityLevel: cfnvalidate.SeverityDebug,
+		DetailLevel:   cfnvalidate.DetailLevelStandard,
+	}
 
 	for engineName, engine := range bothEngines(t) {
 		t.Run(engineName+" detailed matches snapshot", func(t *testing.T) {
@@ -211,7 +218,7 @@ func TestSnapshotValidation(t *testing.T) {
 					t.Errorf("%s: missing snapshot entry", rel)
 					continue
 				}
-				report, err := engine.ValidateDetailedFile(filepath.Join(templatesRoot, rel), debugLevel)
+				report, err := engine.ValidateTemplateFile(filepath.Join(templatesRoot, rel), debugDetailed)
 				if err != nil {
 					t.Errorf("%s: validation failed: %v", rel, err)
 					continue
@@ -229,13 +236,13 @@ func TestSnapshotValidation(t *testing.T) {
 					t.Errorf("%s: missing snapshot entry", rel)
 					continue
 				}
-				report, err := engine.ValidateStandardFile(filepath.Join(templatesRoot, rel), debugLevel)
+				report, err := engine.ValidateTemplateFile(filepath.Join(templatesRoot, rel), debugStandard)
 				if err != nil {
 					t.Errorf("%s: validation failed: %v", rel, err)
 					continue
 				}
 				actual := stripSnapshotExcludedFields(toComparable(t, report), rel)
-				want := stripDetailedOnlyFields(stripSnapshotExcludedFields(cloneSnapshotEntry(t, expected), ""))
+				want := stripEnrichmentFields(stripSnapshotExcludedFields(cloneSnapshotEntry(t, expected), ""))
 				diffJSON(t, rel, actual, want)
 			}
 		})
@@ -244,7 +251,7 @@ func TestSnapshotValidation(t *testing.T) {
 
 func TestPerformanceMetricsPresent(t *testing.T) {
 	engine := mustEngine(t, cfnvalidate.NewRegoEngine, nil)
-	report, err := engine.ValidateDetailedFile(filepath.Join(templatesRoot, "good", "generic.yaml"), nil)
+	report, err := engine.ValidateTemplateFile(filepath.Join(templatesRoot, "good", "generic.yaml"), nil)
 	if err != nil {
 		t.Fatalf("validation failed: %v", err)
 	}
@@ -269,7 +276,7 @@ func TestPerformanceMetricsPresent(t *testing.T) {
 
 func TestEmptyTemplateReportsFatalParseRule(t *testing.T) {
 	for name, engine := range bothEngines(t) {
-		report, err := engine.ValidateStandardFile(filepath.Join(templatesRoot, "empty.yaml"), nil)
+		report, err := engine.ValidateTemplateFile(filepath.Join(templatesRoot, "empty.yaml"), nil)
 		if err != nil {
 			t.Fatalf("%s: validation failed: %v", name, err)
 		}
@@ -392,7 +399,7 @@ func TestCombinedCustomAndGuardRuleListings(t *testing.T) {
 	rego := mustEngine(t, cfnvalidate.NewRegoEngine, regoConfig)
 
 	// Rego discovers custom rule metadata during evaluation.
-	if _, err := rego.ValidateStandardFile(filepath.Join(templatesRoot, "bad", "invalid_deletion_policy.yaml"), nil); err != nil {
+	if _, err := rego.ValidateTemplateFile(filepath.Join(templatesRoot, "bad", "invalid_deletion_policy.yaml"), nil); err != nil {
 		t.Fatalf("rego warm-up validation failed: %v", err)
 	}
 

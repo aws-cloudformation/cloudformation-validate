@@ -1,9 +1,8 @@
 package software.amazon.cloudformation.validate
 
 import software.amazon.cloudformation.validate.datasource.AdditionalSchemaSource
-import software.amazon.cloudformation.validate.diagnostics.DetailedReport
-import software.amazon.cloudformation.validate.diagnostics.StandardDiagnostic
-import software.amazon.cloudformation.validate.diagnostics.StandardReport
+import software.amazon.cloudformation.validate.diagnostics.Diagnostic
+import software.amazon.cloudformation.validate.diagnostics.ValidationReport
 import software.amazon.cloudformation.validate.engine.EngineConfig
 import software.amazon.cloudformation.validate.engine.ExternalRuleSource
 import software.amazon.cloudformation.validate.rules.RuleInfo
@@ -11,8 +10,7 @@ import software.amazon.cloudformation.validate.schemavalidator.SchemaValidatorCo
 import java.io.File
 
 interface Engine {
-    fun validateStandard(template: File, config: ValidateConfig = ValidateConfig()): StandardReport
-    fun validateDetailed(template: File, config: ValidateConfig = ValidateConfig()): DetailedReport
+    fun validateTemplate(template: File, config: ValidateConfig = ValidateConfig()): ValidationReport
     fun listRules(): List<RuleInfo>
     fun engineName(): String
 }
@@ -28,7 +26,7 @@ fun fileToAdditionalSchemaSource(file: File, typeName: String? = null): Addition
 /**
  * Reads a rule file into an [ExternalRuleSource] for [EngineConfig.customRules] or
  * [EngineConfig.guardRules]. The file path becomes the rule source name - the file-based
- * counterpart to passing a template [File] to [Engine.validateStandard].
+ * counterpart to passing a template [File] to [Engine.validateTemplate].
  */
 fun fileToExternalRuleSource(file: File): ExternalRuleSource =
     ExternalRuleSource(name = file.path, content = file.readText())
@@ -53,7 +51,7 @@ class SchemaValidator(config: SchemaValidatorConfig = SchemaValidatorConfig()) {
     fun listRules(): List<RuleInfo> = inner.listRules()
     fun schemaCount(): Int = inner.schemaCount().toInt()
 
-    fun validate(template: File, region: String?): List<StandardDiagnostic> {
+    fun validate(template: File, region: String?): List<Diagnostic> {
         val model = JvmSemanticModel.parse(template.readBytes())
         return inner.validate(model, region).diagnostics
     }
@@ -64,11 +62,8 @@ class RegoEngine(
 ) : Engine {
     private val inner = JvmRegoEngine(config)
 
-    override fun validateStandard(template: File, config: ValidateConfig): StandardReport =
-        inner.validateStandard(template.readBytes(), config, template.path)
-
-    override fun validateDetailed(template: File, config: ValidateConfig): DetailedReport =
-        inner.validateDetailed(template.readBytes(), config, template.path)
+    override fun validateTemplate(template: File, config: ValidateConfig): ValidationReport =
+        inner.validateTemplate(template.readBytes(), config, template.path)
 
     override fun listRules(): List<RuleInfo> = inner.listRules()
     override fun engineName(): String = inner.engineName()
@@ -79,11 +74,8 @@ class CelEngine(
 ) : Engine {
     private val inner = JvmCelEngine(config)
 
-    override fun validateStandard(template: File, config: ValidateConfig): StandardReport =
-        inner.validateStandard(template.readBytes(), config, template.path)
-
-    override fun validateDetailed(template: File, config: ValidateConfig): DetailedReport =
-        inner.validateDetailed(template.readBytes(), config, template.path)
+    override fun validateTemplate(template: File, config: ValidateConfig): ValidationReport =
+        inner.validateTemplate(template.readBytes(), config, template.path)
 
     override fun listRules(): List<RuleInfo> = inner.listRules()
     override fun engineName(): String = inner.engineName()

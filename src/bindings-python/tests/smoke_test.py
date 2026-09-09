@@ -15,6 +15,7 @@ import cloudformation_validate._native as native_loader
 from cloudformation_validate import (
     AdditionalSchemaSource,
     CelEngine,
+    DetailLevel,
     EngineConfig,
     EntityType,
     ExternalRuleSource,
@@ -132,42 +133,79 @@ class SchemaValidatorTest(unittest.TestCase):
 class ValidateTest(unittest.TestCase):
     def test_good_template_passes_both_engines(self):
         for engine in (REGO, CEL):
-            report = engine.validate_standard(GOOD_TEMPLATE)
+            report = engine.validate_template(GOOD_TEMPLATE)
             self.assertEqual(ReportStatus.OK, report.status)
             errors = [d for d in report.diagnostics if d.severity in (Severity.ERROR, Severity.FATAL)]
             self.assertEqual([], errors, f"good template must have no errors via {engine.engine_name()}")
 
     def test_template_path_recorded_in_report(self):
-        report = REGO.validate_standard(GOOD_TEMPLATE)
+        report = REGO.validate_template(GOOD_TEMPLATE)
         self.assertEqual(GOOD_TEMPLATE, report.file_path)
 
     def test_bytes_input_fires_diagnostics(self):
-        report = REGO.validate_standard(UNENCRYPTED_BUCKET)
+        report = REGO.validate_template(UNENCRYPTED_BUCKET)
         self.assertTrue(report.diagnostics, "unencrypted bucket template must produce diagnostics")
 
     def test_engines_agree_on_diagnostics(self):
         self.assertEqual(
-            diagnostic_keys(REGO.validate_standard(UNENCRYPTED_BUCKET)),
-            diagnostic_keys(CEL.validate_standard(UNENCRYPTED_BUCKET)),
+            diagnostic_keys(REGO.validate_template(UNENCRYPTED_BUCKET)),
+            diagnostic_keys(CEL.validate_template(UNENCRYPTED_BUCKET)),
             "Rego and CEL must produce identical diagnostics",
         )
 
     def test_severity_level_filters_below_threshold(self):
         config = ValidateConfig(severity_level=Severity.ERROR)
-        report = REGO.validate_standard(UNENCRYPTED_BUCKET, config)
+        report = REGO.validate_template(UNENCRYPTED_BUCKET, config)
         below = [d for d in report.diagnostics if d.severity in (Severity.WARN, Severity.INFO, Severity.DEBUG)]
         self.assertEqual([], below, "severity_level=ERROR must exclude WARN/INFO/DEBUG")
 
-    def test_validate_detailed_counts_match_diagnostics(self):
-        report = REGO.validate_detailed(UNENCRYPTED_BUCKET)
+    def test_report_counts_match_diagnostics(self):
+        report = REGO.validate_template(UNENCRYPTED_BUCKET)
         counts = report.metadata.counts
         total = counts.fatal + counts.errors + counts.warnings + counts.informational + counts.debug
         self.assertEqual(len(report.diagnostics), total)
 
     def test_unparseable_template_reports_error_status(self):
-        report = REGO.validate_standard(b"not: a: valid: yaml: [")
+        report = REGO.validate_template(b"not: a: valid: yaml: [")
         self.assertEqual(ReportStatus.ERROR, report.status)
         self.assertTrue(report.diagnostics, "parse failure must surface as a diagnostic")
+
+
+class DetailLevelTest(unittest.TestCase):
+    """validate_template returns a detailed-shaped report whose enrichment is
+    governed by config.detail_level, which defaults to DETAILED."""
+
+    def _enrichment_shape(self, report):
+        return [
+            (d.rule_id, d.phase is not None, d.context is not None, d.rule_description is not None)
+            for d in report.diagnostics
+        ]
+
+    def test_standard_detail_omits_enrichment(self):
+        report = REGO.validate_template(UNENCRYPTED_BUCKET, ValidateConfig(detail_level=DetailLevel.STANDARD))
+        self.assertTrue(report.diagnostics, "template must produce diagnostics")
+        self.assertTrue(
+            all(d.phase is None and d.context is None for d in report.diagnostics),
+            "STANDARD must leave the phase tag and violation context unset",
+        )
+
+    def test_detailed_detail_populates_enrichment(self):
+        report = REGO.validate_template(UNENCRYPTED_BUCKET, ValidateConfig(detail_level=DetailLevel.DETAILED))
+        self.assertTrue(
+            all(d.phase is not None for d in report.diagnostics),
+            "DETAILED must tag every diagnostic with its evaluation phase",
+        )
+
+    def test_omitting_detail_level_defaults_to_detailed(self):
+        default_shape = self._enrichment_shape(REGO.validate_template(UNENCRYPTED_BUCKET))
+        detailed_shape = self._enrichment_shape(
+            REGO.validate_template(UNENCRYPTED_BUCKET, ValidateConfig(detail_level=DetailLevel.DETAILED))
+        )
+        standard_shape = self._enrichment_shape(
+            REGO.validate_template(UNENCRYPTED_BUCKET, ValidateConfig(detail_level=DetailLevel.STANDARD))
+        )
+        self.assertEqual(detailed_shape, default_shape, "omitting detail_level must behave as DETAILED")
+        self.assertNotEqual(standard_shape, default_shape, "the default must not be STANDARD")
 
 
 class AdditionalSchemasTest(unittest.TestCase):
@@ -183,12 +221,12 @@ class AdditionalSchemasTest(unittest.TestCase):
             ("rego", REGO, RegoEngine),
             ("cel", CEL, CelEngine),
         ):
-            baseline_report = baseline.validate_standard(TEMPLATE_WITH_OVERLAY_PROPERTY)
+            baseline_report = baseline.validate_template(TEMPLATE_WITH_OVERLAY_PROPERTY)
             self.assertTrue(
                 any(d.rule_id == "F3002" for d in baseline_report.diagnostics),
                 f"{name} baseline must report the unpublished property",
             )
-            report = engine_type(config).validate_standard(TEMPLATE_WITH_OVERLAY_PROPERTY)
+            report = engine_type(config).validate_template(TEMPLATE_WITH_OVERLAY_PROPERTY)
             self.assertFalse(
                 any(d.rule_id == "F3002" for d in report.diagnostics),
                 f"{name} public config must apply the overlay",
@@ -208,7 +246,7 @@ class AdditionalSchemasTest(unittest.TestCase):
 
 class CustomRulesTest(unittest.TestCase):
     def assert_custom_rule_fires(self, engine):
-        report = engine.validate_standard(UNENCRYPTED_BUCKET)
+        report = engine.validate_template(UNENCRYPTED_BUCKET)
         custom = [d for d in report.diagnostics if d.rule_id == "CUSTOM001"]
         self.assertEqual(1, len(custom), f"custom rule must fire once via {engine.engine_name()}")
         self.assertEqual("S3 bucket must have encryption configured", custom[0].message)
@@ -232,7 +270,7 @@ class CustomRulesTest(unittest.TestCase):
             ]
         )
         for engine in (RegoEngine(config), CelEngine(config)):
-            report = engine.validate_standard(UNENCRYPTED_BUCKET)
+            report = engine.validate_template(UNENCRYPTED_BUCKET)
             guard_hits = [d for d in report.diagnostics if "encryption" in d.message.lower()]
             self.assertTrue(guard_hits, f"guard rule must fire via {engine.engine_name()}")
 
@@ -285,7 +323,7 @@ class LogicalIdFilterTest(unittest.TestCase):
                 ]
             )
         )
-        report = REGO.validate_standard(UNENCRYPTED_BUCKET, config)
+        report = REGO.validate_template(UNENCRYPTED_BUCKET, config)
         matching = [
             diagnostic
             for diagnostic in report.diagnostics
@@ -304,7 +342,7 @@ class NativeLoaderTest(unittest.TestCase):
 class InvalidInputTest(unittest.TestCase):
     def test_empty_template_reports_fatal_parse_rule(self):
         for engine in (REGO, CEL):
-            report = engine.validate_standard(os.path.join(TEMPLATES, "empty.yaml"))
+            report = engine.validate_template(os.path.join(TEMPLATES, "empty.yaml"))
             self.assertEqual(ReportStatus.ERROR, report.status)
             self.assertEqual("F1101", report.diagnostics[0].rule_id)
             self.assertEqual(Severity.FATAL, report.diagnostics[0].severity)
@@ -335,7 +373,7 @@ class TemplateModelFixtureTest(unittest.TestCase):
 class CombinedCustomGuardListingTest(unittest.TestCase):
     def assert_sorted_and_identical(self, cel, rego):
         # Rego discovers custom rule metadata during evaluation.
-        rego.validate_standard(os.path.join(TEMPLATES, "bad", "invalid_deletion_policy.yaml"))
+        rego.validate_template(os.path.join(TEMPLATES, "bad", "invalid_deletion_policy.yaml"))
         listings = {}
         for name, engine in (("cel", cel), ("rego", rego)):
             rules = engine.list_rules()

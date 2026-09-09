@@ -17,6 +17,7 @@ import unittest
 
 from cloudformation_validate import (
     CelEngine,
+    DetailLevel,
     EntityType,
     JsonValue,
     RegoEngine,
@@ -32,9 +33,9 @@ EXPECTED_DIR = os.path.join(WORKSPACE, "resources", "expected")
 CHUNK_PREFIX = "validation_reports"
 CHUNK_EXTENSION = ".json"
 
-# Fields present only in detailed reports; stripped from the snapshot entry when
-# comparing standard reports.
-DETAILED_ONLY_DIAGNOSTIC_FIELDS = ["documentationUrl", "context", "ruleDescription", "phase", "section"]
+# Enrichment fields present only at the DETAILED detail level; stripped from the
+# snapshot entry when comparing at STANDARD.
+ENRICHMENT_DIAGNOSTIC_FIELDS = ["documentationUrl", "context", "ruleDescription", "phase", "section"]
 
 _CAMEL = re.compile(r"_([a-z0-9])")
 
@@ -101,9 +102,9 @@ def strip_snapshot_excluded_fields(report, file_path=None):
     return report
 
 
-def strip_detailed_only_fields(report):
+def strip_enrichment_fields(report):
     for diagnostic in report.get("diagnostics", []):
-        for field in DETAILED_ONLY_DIAGNOSTIC_FIELDS:
+        for field in ENRICHMENT_DIAGNOSTIC_FIELDS:
             diagnostic.pop(field, None)
     return report
 
@@ -148,7 +149,8 @@ SNAPSHOTS = _load_combined_snapshots()
 
 EXPECTED_TEMPLATES = discover_snapshot_templates()
 
-DEBUG_LEVEL = ValidateConfig(severity_level=Severity.DEBUG)
+DETAILED_DEBUG = ValidateConfig(severity_level=Severity.DEBUG, detail_level=DetailLevel.DETAILED)
+STANDARD_DEBUG = ValidateConfig(severity_level=Severity.DEBUG, detail_level=DetailLevel.STANDARD)
 
 REGO = RegoEngine()
 CEL = CelEngine()
@@ -161,17 +163,22 @@ class SnapshotValidationTest(unittest.TestCase):
         self.assertTrue(EXPECTED_TEMPLATES, "no templates discovered")
 
     def assert_matches_snapshot(self, engine, detailed):
+        config = DETAILED_DEBUG if detailed else STANDARD_DEBUG
         for rel in EXPECTED_TEMPLATES:
             with self.subTest(template=rel):
                 self.assertIn(rel, SNAPSHOTS, f"{rel}: missing snapshot entry")
                 path = os.path.join(TEMPLATES_ROOT, rel)
-                if detailed:
-                    report = engine.validate_detailed(path, DEBUG_LEVEL)
-                    expected = strip_snapshot_excluded_fields(copy.deepcopy(SNAPSHOTS[rel]))
-                else:
-                    report = engine.validate_standard(path, DEBUG_LEVEL)
-                    expected = strip_detailed_only_fields(strip_snapshot_excluded_fields(copy.deepcopy(SNAPSHOTS[rel])))
+                report = engine.validate_template(path, config)
+                expected = strip_snapshot_excluded_fields(copy.deepcopy(SNAPSHOTS[rel]))
                 actual = strip_snapshot_excluded_fields(to_jsonable(report), rel)
+                if not detailed:
+                    # validate_template always yields a ValidationReport shape; at STANDARD
+                    # the shared projection leaves the enrichment fields unset on every
+                    # diagnostic, so they are absent from the actual report. The snapshot
+                    # stores the `DETAILED` projection, so drop those fields from both sides
+                    # before comparing.
+                    expected = strip_enrichment_fields(expected)
+                    actual = strip_enrichment_fields(actual)
                 self.assertEqual(expected, actual, f"{rel}: report does not match snapshot")
 
     def test_rego_detailed_matches_snapshot(self):
@@ -189,7 +196,7 @@ class SnapshotValidationTest(unittest.TestCase):
 
 class PerformanceMetricsTest(unittest.TestCase):
     def test_performance_present_with_timing_per_phase(self):
-        report = REGO.validate_detailed(os.path.join(TEMPLATES_ROOT, "good", "generic.yaml"), DEBUG_LEVEL)
+        report = REGO.validate_template(os.path.join(TEMPLATES_ROOT, "good", "generic.yaml"), DETAILED_DEBUG)
         performance = report.performance
         for phase in (
             "schema_init",
@@ -203,6 +210,23 @@ class PerformanceMetricsTest(unittest.TestCase):
             metric = getattr(performance, phase)
             self.assertIsInstance(metric.duration_ms, float, f"performance.{phase}.duration_ms")
             self.assertGreaterEqual(metric.duration_ms, 0.0)
+
+
+class DefaultDetailLevelTest(unittest.TestCase):
+    maxDiff = None
+
+    def test_default_config_matches_detailed_snapshot(self):
+        # Omitting detail_level must default to DETAILED: the report matches the
+        # detailed snapshot for every template.
+        default_config = ValidateConfig(severity_level=Severity.DEBUG)
+        for rel in EXPECTED_TEMPLATES:
+            with self.subTest(template=rel):
+                self.assertIn(rel, SNAPSHOTS, f"{rel}: missing snapshot entry")
+                path = os.path.join(TEMPLATES_ROOT, rel)
+                report = REGO.validate_template(path, default_config)
+                expected = strip_snapshot_excluded_fields(copy.deepcopy(SNAPSHOTS[rel]))
+                actual = strip_snapshot_excluded_fields(to_jsonable(report), rel)
+                self.assertEqual(expected, actual, f"{rel}: default detail level must match the DETAILED snapshot")
 
 
 if __name__ == "__main__":

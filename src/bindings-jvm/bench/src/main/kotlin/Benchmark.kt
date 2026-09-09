@@ -9,7 +9,7 @@ import software.amazon.cloudformation.validate.JvmCelEngine
 import software.amazon.cloudformation.validate.JvmRegoEngine
 import software.amazon.cloudformation.validate.JvmSemanticModel
 import software.amazon.cloudformation.validate.ValidateConfig
-import software.amazon.cloudformation.validate.diagnostics.DetailedReport
+import software.amazon.cloudformation.validate.diagnostics.ValidationReport
 import software.amazon.cloudformation.validate.engine.EngineConfig
 import software.amazon.cloudformation.validate.gson.buildBindingsGson
 import software.amazon.cloudformation.validate.rules.RuleFilterConfig
@@ -172,10 +172,10 @@ fun main(args: Array<String>) {
         // Includes JNI dispatch + UniFFI marshalling of the parse call.
         val iterHostModel = mutableListOf<Double>()
         val iterEngineInternal = mutableListOf<Double>()
-        // wall_clock = Kotlin-side nanoTime around validateDetailed() - includes JNI dispatch,
-        // ByteArray→Rust Vec<u8> copy, UniFFI DetailedReport decoding.
+        // wall_clock = Kotlin-side nanoTime around validateTemplate() - includes JNI dispatch,
+        // ByteArray→Rust Vec<u8> copy, UniFFI ValidationReport decoding.
         val iterWallClock = mutableListOf<Double>()
-        var lastReport: DetailedReport? = null
+        var lastReport: ValidationReport? = null
         var failed = false
 
         repeat(iterations) { i ->
@@ -190,7 +190,7 @@ fun main(args: Array<String>) {
                 } catch (_: Exception) {
                 }
             } catch (e: Exception) {
-                val parseFailureReport = validateDetailed(engine, bytes, benchValidateConfig, rel)
+                val parseFailureReport = validateTemplate(engine, bytes, benchValidateConfig, rel)
                 writeReportJson(
                     jsonPath,
                     treeGson,
@@ -207,7 +207,7 @@ fun main(args: Array<String>) {
 
             try {
                 val t0 = System.nanoTime()
-                val report = validateDetailed(engine, bytes, benchValidateConfig, rel)
+                val report = validateTemplate(engine, bytes, benchValidateConfig, rel)
                 val wallMs = (System.nanoTime() - t0) / 1_000_000.0
                 iterModelBuild.add(report.performance.modelBuild.durationMs)
                 iterSchemaValidate.add(report.performance.schemaValidate.durationMs)
@@ -512,7 +512,7 @@ private fun measureStartup(
     val consumerInitMs = engineInitMs
 
     val validateStart = System.nanoTime()
-    val report = validateDetailed(engine, startupBytes, benchmarkConfig, startupLabel)
+    val report = validateTemplate(engine, startupBytes, benchmarkConfig, startupLabel)
     val hostMs = (System.nanoTime() - validateStart) / 1_000_000.0
 
     val perf = report.performance
@@ -727,15 +727,15 @@ private fun sha256Hex(data: String): String = sha256Hex(data.toByteArray(Charset
 
 private fun sha256Hex(data: ByteArray): String = MessageDigest.getInstance("SHA-256").digest(data).joinToString("") { "%02x".format(it) }
 
-private fun validateDetailed(
+private fun validateTemplate(
     engine: Any,
     template: ByteArray,
     config: ValidateConfig,
     filePath: String,
-): DetailedReport =
+): ValidationReport =
     when (engine) {
-        is JvmCelEngine -> engine.validateDetailed(template, config, filePath)
-        is JvmRegoEngine -> engine.validateDetailed(template, config, filePath)
+        is JvmCelEngine -> engine.validateTemplate(template, config, filePath)
+        is JvmRegoEngine -> engine.validateTemplate(template, config, filePath)
         else -> throw IllegalArgumentException("Unknown engine type")
     }
 
@@ -910,7 +910,7 @@ private fun writeReportJson(
     dest: File,
     treeGson: Gson,
     outputGson: Gson,
-    report: DetailedReport,
+    report: ValidationReport,
     engineFlag: String,
     metrics: JsonObject,
     normalizeParseFailure: Boolean,
@@ -1148,7 +1148,7 @@ private fun generateMarkdown(input: MarkdownInput): String =
 
         appendLine("\n## Validation Latency (ms, median / p99 / max per template)\n")
         appendLine("host_model = Kotlin-side timer around JvmSemanticModel.parse (includes JNI/UniFFI marshalling).")
-        appendLine("wall_clock = Kotlin-side timer around validateDetailed() (includes JNI/UniFFI marshalling).")
+        appendLine("wall_clock = Kotlin-side timer around validateTemplate() (includes JNI/UniFFI marshalling).")
         appendLine("engine_internal = Rust-internal `report.performance.validateTotal` (engine work only).")
         appendLine("binding_overhead = median of per-iteration (wall_clock − engine_internal) differences.")
         appendLine("First measured = iteration 1 per template (warm at process level). Subsequent = median of iterations 2..N (empty when N=1).\n")

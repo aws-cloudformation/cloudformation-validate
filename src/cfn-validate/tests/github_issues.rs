@@ -16,7 +16,7 @@ mod common;
 
 use cel_engine::CelEngine;
 use common::load_template;
-use diagnostics::Diagnostic;
+use diagnostics::{DetailLevel, Diagnostic};
 use rego_engine::RegoEngine;
 use rules::Severity;
 use schema_validator::SchemaValidator;
@@ -118,7 +118,8 @@ fn rule_diagnostic_signatures(diags: &[Diagnostic], rule_id: &str) -> Vec<String
         .iter()
         .filter(|diagnostic| diagnostic.rule_id == rule_id)
         .map(|diagnostic| {
-            serde_json::to_string(&diagnostic.to_detailed()).expect("diagnostic serialization should succeed")
+            serde_json::to_string(&diagnostic.to_report(DetailLevel::Detailed))
+                .expect("diagnostic serialization should succeed")
         })
         .collect();
     signatures.sort();

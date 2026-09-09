@@ -724,7 +724,7 @@ def _per_template_dir(engine, binding):
 
 
 def load_and_validate_detailed_reports(engines, bindings):
-    """Load per-template detailed JSON reports for all engine×binding pairs.
+    """Load per-template detailed-level JSON reports for all engine×binding pairs.
 
     Each report is loaded exactly once and indexed by filePath.  Validation rules:
     1. Directory must exist and be nonempty.
@@ -836,7 +836,7 @@ def load_and_validate_detailed_reports(engines, bindings):
 
     if errors:
         sys.exit(
-            "Detailed report validation failed:\n" +
+            "Detailed-level report validation failed:\n" +
             "\n".join(f"  • {e}" for e in errors[:30]) +
             (f"\n  … and {len(errors) - 30} more" if len(errors) > 30 else "")
         )
@@ -866,7 +866,7 @@ def load_and_validate_detailed_reports(engines, bindings):
 
 
 def validate_detailed_counts(all_detailed, all_loaded, engines, bindings):
-    """Detailed file count must equal aggregate templates_total.
+    """Detailed-level file count must equal aggregate templates_total.
 
     templates_total includes all corpus reports (successful validations AND parse
     failures), not just templates_ok.  Every template that was attempted gets a
@@ -880,12 +880,12 @@ def validate_detailed_counts(all_detailed, all_loaded, engines, bindings):
             actual_count = len(all_detailed.get(engine, {}).get(binding, {}))
             if actual_count != expected_count:
                 errors.append(
-                    f"{engine}/{label}: detailed has {actual_count} reports, "
+                    f"{engine}/{label}: detailed-level dir has {actual_count} reports, "
                     f"aggregate says templates_total={expected_count}"
                 )
     if errors:
         sys.exit(
-            "Detailed count vs aggregate templates_total mismatch:\n" +
+            "Detailed-level count vs aggregate templates_total mismatch:\n" +
             "\n".join(f"  • {e}" for e in errors)
         )
 
@@ -1013,7 +1013,7 @@ def top_slowest_section(all_detailed, engines, bindings, top_n):
     Each table shows wall, rule, schema, and model subsequent metrics,
     sorted descending by subsequent wallClockMs.
 
-    This section is mandatory when detailed reports are available.  Missing or
+    This section is mandatory when detailed-level reports are available.  Missing or
     empty report data for any selected pair is a hard error.
     """
     # Validate that all selected pairs have data
@@ -1025,7 +1025,7 @@ def top_slowest_section(all_detailed, engines, bindings, top_n):
                 missing.append(f"{engine}/{label}")
     if missing:
         sys.exit(
-            f"top-slowest section requires valid detailed reports for all selected "
+            f"top-slowest section requires valid detailed-level reports for all selected "
             f"pairs, but these are missing/empty: {', '.join(missing)}"
         )
 
@@ -1423,7 +1423,7 @@ def diagnostics_parity(all_loaded, engine, bindings, all_detailed=None):
     field_freq = {}
     template_count = 0
 
-    # Use pre-loaded detailed reports if available
+    # Use pre-loaded detailed-level reports if available
     if all_detailed and engine in all_detailed:
         # Consume from all_detailed by filePath
         engine_detailed = all_detailed[engine]
@@ -1701,9 +1701,9 @@ def build_report(all_loaded, all_detailed, engines, bindings, args, corpus_fp, c
         "### Memory", "",
         "**Cold/warm RSS** are the peak RSS of the startup-probe processes. **Corpus RSS** "
         "(`memory.full_corpus_peak_rss_bytes`) is the peak RSS of the full corpus benchmark "
-        "process. Each harness writes one template's detailed report before processing the "
+        "process. Each harness writes one template's detailed-level report before processing the "
         "next, outside the per-call validation timers, so the peak includes the runtime, "
-        "engine, corpus bookkeeping, and at most one detailed report serialization rather "
+        "engine, corpus bookkeeping, and at most one detailed-level report serialization rather "
         "than a corpus-sized report queue.", "",
         "### Shared-runner temporal noise", "",
         "CI benchmarks run on shared GitHub Actions runners (`ubuntu-latest`) where "

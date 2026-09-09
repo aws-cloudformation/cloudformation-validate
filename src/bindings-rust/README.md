@@ -177,7 +177,9 @@ merge model and constraints.
 A template syntax failure is returned as a report with `ReportStatus::Error` and an `F1101` diagnostic, preserving the
 structured-report contract. Infrastructure or engine failures return `ValidationError`.
 
-Call `ValidationReport::to_standard()` for flattened diagnostics or `ValidationReport::to_detailed()` for extended
+Call `ValidationReport::to_report(DetailLevel)` to project the report into a serializable
+`diagnostics::output::ValidationReport` (whose diagnostics are `diagnostics::output::Diagnostic`). At
+`DetailLevel::Standard` the flattened diagnostics omit the enrichment fields; at `DetailLevel::Detailed` they also carry
 rule descriptions, phase data, documentation URLs, related resources, condition scenarios, and violation context.
 
 ## Error handling

@@ -1,4 +1,4 @@
-use diagnostics::{Diagnostic, ValidationReport};
+use diagnostics::{DetailLevel, Diagnostic, ValidationReport};
 use rego_engine::RegoEngine;
 use rules::{FilterConfig, IdRange, RuleFilterConfig, Severity, rule_number};
 use schema_validator::SchemaValidator;
@@ -957,7 +957,7 @@ fn e2e_i2530_lambda_no_snapstart() {
 #[test]
 fn e2e_standard_detail_level() {
     let report = validate_fixture("bad/generic.yaml");
-    let standard = report.to_standard();
+    let standard = report.to_report(DetailLevel::Standard);
     assert!(!standard.diagnostics.is_empty());
     assert_eq!(standard.metadata.counts.errors, report.metadata.counts.errors);
 }

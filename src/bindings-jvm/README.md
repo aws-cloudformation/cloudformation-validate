@@ -40,7 +40,7 @@ import software.amazon.cloudformation.validate.RegoEngine
 import java.io.File
 
 val engine = RegoEngine()
-val report = engine.validateStandard(File("template.yaml"))
+val report = engine.validateTemplate(File("template.yaml"))
 
 for (d in report.diagnostics) {
     println("[${d.severity}] ${d.ruleId}: ${d.message}")
@@ -48,7 +48,7 @@ for (d in report.diagnostics) {
 ```
 
 Each diagnostic identifies the rule, severity, affected resource and property, and source location - see
-[StandardDiagnostic](#standarddiagnostic). A complete, runnable project is in
+[Diagnostic](#diagnostic). A complete, runnable project is in
 [examples](https://github.com/aws-cloudformation/cloudformation-validate/tree/main/src/bindings-jvm/examples).
 
 ## Engine
@@ -60,8 +60,7 @@ diagnostics for the same template and config.
 
 ```kotlin
 interface Engine {
-    fun validateStandard(template: File, config: ValidateConfig = ValidateConfig()): StandardReport
-    fun validateDetailed(template: File, config: ValidateConfig = ValidateConfig()): DetailedReport
+    fun validateTemplate(template: File, config: ValidateConfig = ValidateConfig()): ValidationReport
     fun listRules(): List<RuleInfo>
     fun engineName(): String
 }
@@ -69,8 +68,7 @@ interface Engine {
 
 | Method                               | Returns          | Description                                                                                                      |
 |--------------------------------------|------------------|------------------------------------------------------------------------------------------------------------------|
-| `validateStandard(template, config)` | `StandardReport` | Validates and returns diagnostics without extended context                                                       |
-| `validateDetailed(template, config)` | `DetailedReport` | Validates and returns diagnostics with documentation URLs, rule descriptions, phase tags, and `ViolationContext` |
+| `validateTemplate(template, config)` | `ValidationReport` | Validates the template. `config.detailLevel` selects how much per-diagnostic context is populated: `DETAILED` (the default) adds documentation URLs, rule descriptions, phase tags, and `ViolationContext`; `STANDARD` leaves those fields absent. |
 | `listRules()`                        | `List<RuleInfo>` | Returns metadata for every built-in and loaded custom rule                                                       |
 | `engineName()`                       | `String`         | `"rego"` or `"cel"`                                                                                              |
 
@@ -105,7 +103,7 @@ val engine = RegoEngine(
 ```
 
 Each rule is an `ExternalRuleSource`, loaded from a `java.io.File` with `fileToExternalRuleSource(file)` - the same
-pattern as passing a template `File` to `validateStandard` - or constructed from explicit values with
+pattern as passing a template `File` to `validateTemplate` - or constructed from explicit values with
 `ExternalRuleSource(name, content)`, where `name` identifies the rule in diagnostics and `content` is the full source
 text. The two can be mixed freely:
 
@@ -128,13 +126,14 @@ val config = ValidateConfig(
     exclude = RuleFilterConfig(ids = listOf("I1002")),
     severityLevel = Severity.WARN,
 )
-val report = engine.validateStandard(File("template.yaml"), config)
+val report = engine.validateTemplate(File("template.yaml"), config)
 ```
 
 | Field                      | Default                  | Description                                                                                                                               |
 |----------------------------|--------------------------|-------------------------------------------------------------------------------------------------------------------------------------------|
 | `include`                  | empty (all rules)        | When set, only matching rules produce diagnostics. Empty means include everything.                                                        |
 | `exclude`                  | empty (nothing excluded) | Matching rules are suppressed. Applied after `include`.                                                                                   |
+| `detailLevel`              | `DETAILED`               | Selects per-diagnostic context. `DETAILED` populates documentation URLs, rule descriptions, phase tags, and `ViolationContext`; `STANDARD` leaves those enrichment fields absent.      |
 | `severityLevel`            | `INFO`                   | Minimum severity threshold. Diagnostics below this level are dropped. Values: `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`.                  |
 | `parameterOverrides`       | `emptyMap()`             | Override template parameter values during resolution. Keys are parameter logical IDs.                                                     |
 | `pseudoParameterOverrides` | all `null`               | Override CloudFormation pseudo-parameters (`AWS::AccountId`, `AWS::Region`, etc.).                                                        |
@@ -223,38 +222,46 @@ val diagnostics = validator.validate(File("template.yaml"))
 
 | Method                       | Returns                    | Description                                             |
 |------------------------------|----------------------------|---------------------------------------------------------|
-| `validate(template, region)` | `List<StandardDiagnostic>` | Schema diagnostics. `region` defaults to `"us-east-1"`. |
+| `validate(template, region)` | `List<Diagnostic>` | Schema diagnostics. `region` defaults to `"us-east-1"`. |
 | `listRules()`                | `List<RuleInfo>`           | Schema rule metadata                                    |
 | `schemaCount()`              | `Int`                      | Number of compiled provider schemas                     |
 
 ## Report Types
 
-### StandardReport / DetailedReport
+### ValidationReport
+
+`validateTemplate` returns a `ValidationReport`:
 
 ```kotlin
-data class StandardReport(
+data class ValidationReport(
     val filePath: String,
     val status: ReportStatus,            // OK, ANALYSIS_INCOMPLETE (findings may be omitted), or ERROR (pipeline failure)
     val version: String,
     val metadata: ReportMetadata,
     val performance: PerformanceMetrics,
-    val diagnostics: List<StandardDiagnostic>,
+    val diagnostics: List<Diagnostic>,
 )
 ```
 
-`DetailedReport` has the same structure but its diagnostics include additional fields: `documentationUrl`,
-`ruleDescription`, `phase` (`PARSE` | `SCHEMA` | `LINT`), and `context` (`ViolationContext` with
-`actualValue`, `expectedConstraint`, `resolutionSource`, etc.).
+`Diagnostic` is the single diagnostic type - see [Diagnostic](#diagnostic). Its base fields
+identify the rule, severity, affected resource and property, and source location; the four further fields
+`documentationUrl`, `ruleDescription`, `phase` (`PARSE` | `SCHEMA` | `LINT`), and `context` (`ViolationContext` with
+`actualValue`, `expectedConstraint`, `resolutionSource`, etc.) carry extra context. Those four are populated when
+`ValidateConfig.detailLevel` is `DETAILED` (the default) and left absent when it is `STANDARD`.
 
 Each optional budget-exhaustion record retains a stable machine-readable kind and also includes a
 human-readable description sentence, the numeric limit, and whether that specific exhaustion makes analysis
 incomplete. `requiredPropertyCombinations` is context-only, so its `analysisIncomplete` value is `false` and the
 report can remain `ReportStatus.OK`.
 
-### StandardDiagnostic
+### Diagnostic
+
+The single diagnostic type. `validateTemplate` populates the four enrichment fields according to
+`ValidateConfig.detailLevel`; `SchemaValidator.validate` returns diagnostics projected at `STANDARD`, so those four
+fields are absent.
 
 ```kotlin
-data class StandardDiagnostic(
+data class Diagnostic(
     val ruleId: String,                    // e.g. "E3012", "F1001", "W3010"
     val severity: Severity,                // FATAL, ERROR, WARN, INFO, DEBUG
     val message: String,
@@ -269,6 +276,10 @@ data class StandardDiagnostic(
     val endColumn: UInt?,
     val relatedResources: List<RelatedResource>?,
     val conditionScenario: Map<String, Boolean>?,  // condition truth assignment that triggers this
+    val documentationUrl: String?,         // populated at DETAILED; absent at STANDARD
+    val ruleDescription: String?,          // populated at DETAILED; absent at STANDARD
+    val phase: Phase?,                     // populated at DETAILED; PARSE | SCHEMA | LINT
+    val context: ViolationContext?,        // populated at DETAILED; actualValue, expectedConstraint, resolutionSource, etc.
 )
 
 // The named template entity a diagnostic is attributed to. The entity type is the

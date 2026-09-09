@@ -40,7 +40,10 @@ func discoverSecurityTemplates(t *testing.T) []string {
 
 func TestEverySecurityTemplateWithBothEngines(t *testing.T) {
 	templates := discoverSecurityTemplates(t)
-	debugConfig := &cfnvalidate.ValidateConfig{SeverityLevel: cfnvalidate.SeverityDebug}
+	debugConfig := &cfnvalidate.ValidateConfig{
+		SeverityLevel: cfnvalidate.SeverityDebug,
+		DetailLevel:   cfnvalidate.DetailLevelDetailed,
+	}
 	const securityTimeout = 60 * time.Second
 
 	for _, engineName := range []string{"rego", "cel"} {
@@ -48,7 +51,7 @@ func TestEverySecurityTemplateWithBothEngines(t *testing.T) {
 			relativePath := filepath.Base(templatePath)
 			t.Run(engineName+"/"+relativePath, func(t *testing.T) {
 				type outcome struct {
-					report *cfnvalidate.DetailedReport
+					report *cfnvalidate.ValidationReport
 					err    error
 				}
 				completed := make(chan outcome, 1)
@@ -65,7 +68,7 @@ func TestEverySecurityTemplateWithBothEngines(t *testing.T) {
 						return
 					}
 					defer engine.Destroy()
-					report, validationErr := engine.ValidateDetailedFile(templatePath, debugConfig)
+					report, validationErr := engine.ValidateTemplateFile(templatePath, debugConfig)
 					completed <- outcome{report: report, err: validationErr}
 				}()
 

@@ -11,8 +11,8 @@ All validation phases (parsing, schema validation, lint rules) surface as `Diagn
 and rule engines construct them directly; the parser emits plain `template_model::ParseDefect` findings that
 `diagnostic_from_parse_defect` converts, attaching severity, category, and origin from the rule registry. Each diagnostic carries a
 rule ID, severity, message, location, resource context, and optional metadata. The `ValidationReport` aggregates
-diagnostics with summary counts and performance metrics. Reports are converted to `StandardReport` or `DetailedReport`
-for serialization.
+diagnostics with summary counts and performance metrics. A report is projected to an `output::ValidationReport` for
+serialization; the requested `DetailLevel` controls whether per-diagnostic enrichment is populated.
 
 ```
 ┌─────────────┐     ┌──────────────┐     ┌──────────────────┐
@@ -22,9 +22,10 @@ for serialization.
 └─────────────┘     └──────────────┘     │   metadata)      │
                                           └──────────────────┘
                                                    │
-                                          ┌────────┴────────┐
-                                          ▼                 ▼
-                                    StandardReport     DetailedReport
+                                          to_report(DetailLevel)
+                                                   │
+                                                   ▼
+                                       output::ValidationReport
 ```
 
 ## Severity
@@ -59,18 +60,19 @@ Each `Diagnostic` contains:
 | `condition_scenario` | `Option<HashMap<String, bool>>` | Condition truth values that trigger this diagnostic           |
 | `context`            | `Option<ViolationContext>`      | Structured violation details (Detailed level only)            |
 
-## StandardDiagnostic vs DetailedDiagnostic
+## output::Diagnostic
 
-`StandardDiagnostic` keeps the nested `entity` struct and flattens `location` into individual line/column fields.
-Drops `documentation_url`, `rule_description`, `phase`, and `context`.
+`output::Diagnostic` is the single flattened public diagnostic model: it keeps the nested `entity` struct and flattens
+`location` into individual line/column fields. `Diagnostic::to_report(DetailLevel)` produces it at either detail level.
+At `Standard` the enrichment fields (`documentation_url`, `rule_description`, `phase`, and `context`) are left `None`,
+so serialization omits them; at `Detailed` they are populated. Detailed output is therefore a superset of standard
+output.
 
 `EntityType` (defined in `template-model` alongside `TopLevelSection`) has one variant per documented template
 section - `Resource`, `Parameter`, `Output`, `Mapping`, `Metadata`, `Rule`, `Condition`, `Transform`,
 `FormatVersion`, `Description` - the singular form of the section the entity is declared in. Built-in rules currently
 attribute findings to the sections whose children are addressable by a logical ID (resources, parameters, outputs,
 mappings, conditions, and template rules).
-
-`DetailedDiagnostic` is the same flattened shape but includes those additional fields.
 
 ## ViolationContext
 
@@ -85,8 +87,8 @@ mappings, conditions, and template rules).
 
 ## Report Types
 
-All report types share: `file_path`, `status` (`Ok`/`AnalysisIncomplete`/`Error`), `version`, `metadata`,
-`performance`, `diagnostics`.
+The serialized `output::ValidationReport` carries: `file_path`, `status` (`Ok`/`AnalysisIncomplete`/`Error`), `version`,
+`metadata`, `performance`, `diagnostics`.
 
 `ReportMetadata`: `rules_evaluated`, `cfn_lint_version`, `resource_schema_version`, `resources_scanned`, `counts`
 (Summary by severity), `suppressed`, `strict`, `severity_level`, and optional `budget_exhaustions`. The optional field
@@ -98,10 +100,10 @@ Source versions use canonical `https://github.com/aws-cloudformation/<source>@<v
 
 ## Detail Level
 
-| Variant    | Behavior                                                                | Use Case                             |
-|------------|-------------------------------------------------------------------------|--------------------------------------|
-| `Standard` | Flattens location, drops context and enrichment fields                  | IDE annotations, developer workflows |
-| `Detailed` | Same shape plus context, phase, and rule_description                    | AI agents, deep debugging            |
+| Variant    | Behavior                                                                                | Use Case                             |
+|------------|-----------------------------------------------------------------------------------------|--------------------------------------|
+| `Standard` | Leaves `documentation_url`, `rule_description`, `phase`, and `context` unset (omitted)   | IDE annotations, developer workflows |
+| `Detailed` | Populates the same model, including `context`, `phase`, and `rule_description`           | AI agents, deep debugging            |
 
 `Detailed` is the default.
 

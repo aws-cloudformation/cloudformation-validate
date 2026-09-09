@@ -77,7 +77,7 @@ func loadRule(t *testing.T, filename string) string {
 	return string(content)
 }
 
-func diagnosticKeys(report *cfnvalidate.StandardReport) []string {
+func diagnosticKeys(report *cfnvalidate.ValidationReport) []string {
 	keys := make([]string, 0, len(report.Diagnostics))
 	for _, d := range report.Diagnostics {
 		line, column := -1, -1
@@ -180,7 +180,7 @@ func TestSchemaValidator(t *testing.T) {
 
 func TestGoodTemplatePassesBothEngines(t *testing.T) {
 	for name, engine := range bothEngines(t) {
-		report, err := engine.ValidateStandardFile(goodTemplate, nil)
+		report, err := engine.ValidateTemplateFile(goodTemplate, nil)
 		if err != nil {
 			t.Fatalf("%s: validation failed: %v", name, err)
 		}
@@ -208,7 +208,7 @@ func TestAdditionalSchemasApplyThroughTheTypedConfigOnBothEngines(t *testing.T) 
 	}
 	for name, build := range builders {
 		baseline := mustEngine(t, build, nil)
-		baselineReport, err := baseline.ValidateStandard([]byte(templateWithOverlayProperty), nil, "overlay.yaml")
+		baselineReport, err := baseline.ValidateTemplate([]byte(templateWithOverlayProperty), nil, "overlay.yaml")
 		if err != nil {
 			t.Fatalf("%s baseline validation failed: %v", name, err)
 		}
@@ -227,7 +227,7 @@ func TestAdditionalSchemasApplyThroughTheTypedConfigOnBothEngines(t *testing.T) 
 			t.Fatalf("%s engine construction with overlay failed: %v", name, err)
 		}
 		defer engine.Destroy()
-		report, err := engine.ValidateStandard([]byte(templateWithOverlayProperty), nil, "overlay.yaml")
+		report, err := engine.ValidateTemplate([]byte(templateWithOverlayProperty), nil, "overlay.yaml")
 		if err != nil {
 			t.Fatalf("%s overlay validation failed: %v", name, err)
 		}
@@ -241,7 +241,7 @@ func TestAdditionalSchemasApplyThroughTheTypedConfigOnBothEngines(t *testing.T) 
 
 func TestDiagnosticsFireWithEntities(t *testing.T) {
 	engine := mustEngine(t, cfnvalidate.NewRegoEngine, nil)
-	report, err := engine.ValidateStandard([]byte(unencryptedBucket), nil, "")
+	report, err := engine.ValidateTemplate([]byte(unencryptedBucket), nil, "")
 	if err != nil {
 		t.Fatalf("validation failed: %v", err)
 	}
@@ -269,7 +269,7 @@ func TestEnginesAgreeOnDiagnostics(t *testing.T) {
 	engines := bothEngines(t)
 	reports := map[string][]string{}
 	for name, engine := range engines {
-		report, err := engine.ValidateStandard([]byte(unencryptedBucket), nil, "")
+		report, err := engine.ValidateTemplate([]byte(unencryptedBucket), nil, "")
 		if err != nil {
 			t.Fatalf("%s: validation failed: %v", name, err)
 		}
@@ -295,7 +295,7 @@ func equalStrings(a, b []string) bool {
 func TestSeverityLevelFiltersBelowThreshold(t *testing.T) {
 	engine := mustEngine(t, cfnvalidate.NewRegoEngine, nil)
 	config := &cfnvalidate.ValidateConfig{SeverityLevel: cfnvalidate.SeverityError}
-	report, err := engine.ValidateStandard([]byte(unencryptedBucket), config, "")
+	report, err := engine.ValidateTemplate([]byte(unencryptedBucket), config, "")
 	if err != nil {
 		t.Fatalf("validation failed: %v", err)
 	}
@@ -317,7 +317,7 @@ func TestLogicalIDFilterScopesByEntityType(t *testing.T) {
 			},
 		},
 	}
-	report, err := engine.ValidateStandard([]byte(unencryptedBucket), config, "")
+	report, err := engine.ValidateTemplate([]byte(unencryptedBucket), config, "")
 	if err != nil {
 		t.Fatalf("validation failed: %v", err)
 	}
@@ -330,7 +330,7 @@ func TestLogicalIDFilterScopesByEntityType(t *testing.T) {
 
 func TestDetailedCountsMatchDiagnostics(t *testing.T) {
 	engine := mustEngine(t, cfnvalidate.NewCelEngine, nil)
-	report, err := engine.ValidateDetailed([]byte(unencryptedBucket), nil, "")
+	report, err := engine.ValidateTemplate([]byte(unencryptedBucket), nil, "")
 	if err != nil {
 		t.Fatalf("validation failed: %v", err)
 	}
@@ -339,6 +339,42 @@ func TestDetailedCountsMatchDiagnostics(t *testing.T) {
 	if len(report.Diagnostics) != total {
 		t.Errorf("diagnostics = %d, counts total = %d", len(report.Diagnostics), total)
 	}
+}
+
+// TestDefaultDetailLevelIsDetailed proves that leaving DetailLevel unset yields
+// the DETAILED default: enrichment the native layer attaches only at DETAILED
+// is present with a nil config and absent when STANDARD is requested.
+func TestDefaultDetailLevelIsDetailed(t *testing.T) {
+	engine := mustEngine(t, cfnvalidate.NewRegoEngine, nil)
+
+	defaulted, err := engine.ValidateTemplate([]byte(unencryptedBucket), nil, "")
+	if err != nil {
+		t.Fatalf("default validation failed: %v", err)
+	}
+	standard, err := engine.ValidateTemplate(
+		[]byte(unencryptedBucket),
+		&cfnvalidate.ValidateConfig{DetailLevel: cfnvalidate.DetailLevelStandard},
+		"",
+	)
+	if err != nil {
+		t.Fatalf("standard validation failed: %v", err)
+	}
+
+	if !hasDetailedEnrichment(defaulted) {
+		t.Error("an omitted DetailLevel must default to DETAILED enrichment")
+	}
+	if hasDetailedEnrichment(standard) {
+		t.Error("STANDARD detail level must leave the enrichment fields nil")
+	}
+}
+
+func hasDetailedEnrichment(report *cfnvalidate.ValidationReport) bool {
+	for _, d := range report.Diagnostics {
+		if d.RuleDescription != nil || d.DocumentationURL != nil || d.Phase != nil || d.Context != nil {
+			return true
+		}
+	}
+	return false
 }
 
 func TestCustomRulesFire(t *testing.T) {
@@ -359,7 +395,7 @@ func TestCustomRulesFire(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			tc.config.CustomRules[0].Content = loadRule(t, tc.config.CustomRules[0].Name)
 			engine := mustEngine(t, tc.build, tc.config)
-			report, err := engine.ValidateStandard([]byte(unencryptedBucket), nil, "")
+			report, err := engine.ValidateTemplate([]byte(unencryptedBucket), nil, "")
 			if err != nil {
 				t.Fatalf("validation failed: %v", err)
 			}
@@ -390,7 +426,7 @@ func TestGuardRulesFireOnBothEngines(t *testing.T) {
 		"cel":  cfnvalidate.NewCelEngine,
 	} {
 		engine := mustEngine(t, build, config)
-		report, err := engine.ValidateStandard([]byte(unencryptedBucket), nil, "")
+		report, err := engine.ValidateTemplate([]byte(unencryptedBucket), nil, "")
 		if err != nil {
 			t.Fatalf("%s: validation failed: %v", name, err)
 		}
@@ -456,7 +492,7 @@ func TestTemplateModel(t *testing.T) {
 
 func TestUnparseableTemplateReportsErrorStatus(t *testing.T) {
 	engine := mustEngine(t, cfnvalidate.NewRegoEngine, nil)
-	report, err := engine.ValidateStandard([]byte("not: a: valid: yaml: ["), nil, "")
+	report, err := engine.ValidateTemplate([]byte("not: a: valid: yaml: ["), nil, "")
 	if err != nil {
 		t.Fatalf("validation failed: %v", err)
 	}
