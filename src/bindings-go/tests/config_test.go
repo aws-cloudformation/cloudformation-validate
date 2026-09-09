@@ -38,6 +38,7 @@ const fullValidateConfigJSON = `{
         "resourceTypes": [{"resourceType": "AWS::SQS::Queue"}],
         "services": [{"service": "AWS::SQS"}]
     },
+    "detailLevel": "STANDARD",
     "severityLevel": "WARN",
     "parameterOverrides": {"Environment": "prod"},
     "pseudoParameterOverrides": {
@@ -92,6 +93,7 @@ func fullValidateConfig() *cfnvalidate.ValidateConfig {
 			ResourceTypes: []cfnvalidate.ResourceTypeFilter{{ResourceType: "AWS::SQS::Queue"}},
 			Services:      []cfnvalidate.ServiceFilter{{Service: "AWS::SQS"}},
 		},
+		DetailLevel:        cfnvalidate.DetailLevelStandard,
 		SeverityLevel:      cfnvalidate.SeverityWarn,
 		ParameterOverrides: map[string]string{"Environment": "prod"},
 		PseudoParameterOverrides: &cfnvalidate.PseudoParameterOverrides{
@@ -146,7 +148,7 @@ func TestFullEngineConfigMarshalsToTheContractShape(t *testing.T) {
 func TestFullValidateConfigIsAcceptedByTheNativeLayer(t *testing.T) {
 	engine := mustEngine(t, cfnvalidate.NewRegoEngine, nil)
 
-	report, err := engine.ValidateStandard([]byte(unencryptedBucket), fullValidateConfig(), "contract.yaml")
+	report, err := engine.ValidateTemplate([]byte(unencryptedBucket), fullValidateConfig(), "contract.yaml")
 	if err != nil {
 		t.Fatalf("native layer rejected a fully populated config: %v", err)
 	}

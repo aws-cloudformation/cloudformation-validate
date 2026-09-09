@@ -78,6 +78,7 @@ func run() error {
 
 	validateConfig := &cfnvalidate.ValidateConfig{
 		SeverityLevel: cfnvalidate.SeverityDebug,
+		DetailLevel:   cfnvalidate.DetailLevelDetailed,
 	}
 
 	if hasFlag(args, "--startup-probe") {
@@ -191,7 +192,7 @@ func runBenchmark(engineFlag string, iterations int, validateConfig *cfnvalidate
 		iterHostModel := make([]float64, 0, iterations)
 		iterEngineInternal := make([]float64, 0, iterations)
 		iterHostValidate := make([]float64, 0, iterations)
-		var lastReport *cfnvalidate.DetailedReport
+		var lastReport *cfnvalidate.ValidationReport
 		failed := false
 
 		for i := 0; i < iterations; i++ {
@@ -199,7 +200,7 @@ func runBenchmark(engineFlag string, iterations int, validateConfig *cfnvalidate
 			parsed, parseErr := cfnvalidate.ParseTemplate(bytes)
 			hostModelMs := elapsed(tm0)
 			if parseErr != nil {
-				parseFailureReport, reportErr := engine.ValidateDetailed(bytes, validateConfig, rel)
+				parseFailureReport, reportErr := engine.ValidateTemplate(bytes, validateConfig, rel)
 				if reportErr != nil {
 					return fmt.Errorf("creating parse-failure report for %s: %w", rel, reportErr)
 				}
@@ -219,7 +220,7 @@ func runBenchmark(engineFlag string, iterations int, validateConfig *cfnvalidate
 			iterHostModel = append(iterHostModel, hostModelMs)
 
 			t0 := time.Now()
-			report, valErr := engine.ValidateDetailed(bytes, validateConfig, rel)
+			report, valErr := engine.ValidateTemplate(bytes, validateConfig, rel)
 			hostValidateMs := elapsed(t0)
 			if valErr != nil {
 				results = append(results, errorResult(rel, "error", valErr.Error()))
@@ -408,7 +409,7 @@ func measureStartup(engineFlag string, startupBytes []byte, startupLabel string,
 	consumerInitMs := engineInitMs
 
 	validateStart := time.Now()
-	report, err := engine.ValidateDetailed(startupBytes, validateConfig, startupLabel)
+	report, err := engine.ValidateTemplate(startupBytes, validateConfig, startupLabel)
 	if err != nil {
 		engine.Destroy()
 		return nil, startupMeasurement{}, fmt.Errorf("startup first validation failed on %q: %w", startupLabel, err)
@@ -819,13 +820,13 @@ func zeroBenchmarkMetrics() map[string]interface{} {
 	}
 }
 
-func normalizeParseFailureReport(report *cfnvalidate.DetailedReport) {
+func normalizeParseFailureReport(report *cfnvalidate.ValidationReport) {
 	report.Metadata.Counts = cfnvalidate.Summary{}
 	report.Performance = cfnvalidate.PerformanceMetrics{}
-	report.Diagnostics = []cfnvalidate.DetailedDiagnostic{}
+	report.Diagnostics = []cfnvalidate.Diagnostic{}
 }
 
-func buildPerTemplatePayload(report *cfnvalidate.DetailedReport, rel, engine string, benchmarkMetrics map[string]interface{}) (map[string]interface{}, error) {
+func buildPerTemplatePayload(report *cfnvalidate.ValidationReport, rel, engine string, benchmarkMetrics map[string]interface{}) (map[string]interface{}, error) {
 	data, err := json.Marshal(report)
 	if err != nil {
 		return nil, fmt.Errorf("marshaling report: %w", err)
