@@ -139,13 +139,17 @@ for d in &report.diagnostics {
 
 See [validation-engine/API.md](src/validation-engine/API.md) for the full embedding API.
 
+Every language binding exposes one template-validation method. Its optional per-call configuration accepts a
+`STANDARD` or `DETAILED` detail level; omitting it uses `DETAILED`. Both levels return the same report and diagnostic
+models, with enrichment fields absent at `STANDARD`.
+
 ### Node.js [(bindings-wasm)](src/bindings-wasm/README.md)
 
 ```typescript
 import {RegoEngine, TemplateFile} from "@aws/cloudformation-validate";
 
 const engine = new RegoEngine();
-const report = engine.validateStandard(new TemplateFile("template.yaml"));
+const report = engine.validateTemplate(new TemplateFile("template.yaml"));
 for (const d of report.diagnostics) {
     console.log(`[${d.severity}] ${d.ruleId}: ${d.message}`);
 }
@@ -158,7 +162,7 @@ engine.free();
 from cloudformation_validate import RegoEngine
 
 engine = RegoEngine()
-report = engine.validate_standard("template.yaml")
+report = engine.validate_template("template.yaml")
 for d in report.diagnostics:
     print(f"[{d.severity.name}] {d.rule_id}: {d.message}")
 ```
@@ -174,7 +178,7 @@ if err != nil {
 }
 defer engine.Destroy()
 
-report, err := engine.ValidateStandardFile("template.yaml", nil)
+report, err := engine.ValidateTemplateFile("template.yaml", nil)
 for _, d := range report.Diagnostics {
     fmt.Printf("[%s] %s: %s\n", d.Severity, d.RuleID, d.Message)
 }
@@ -187,7 +191,7 @@ import software.amazon.cloudformation.validate.*
 import java.io.File
 
 val engine = RegoEngine()
-val report = engine.validateStandard(File("template.yaml"))
+val report = engine.validateTemplate(File("template.yaml"))
 for (d in report.diagnostics) {
     println("[${d.severity}] ${d.ruleId}: ${d.message}")
 }
