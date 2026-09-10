@@ -33,9 +33,9 @@ for d in &report.diagnostics {
 On parse failure, `validate_bytes_with_path` returns `Ok(report)` with a synthetic `F1101` diagnostic and
 `status=Error` rather than returning `Err`. This ensures callers always get a structured report.
 
-## Validating an AWS API Request
+## Validating an AWS CLI Command
 
-`validate_aws_api_request` accepts raw service, operation, HTTP, trait, and request-parameter context. It owns operation
+`validate_aws_cli_command` accepts raw service, operation, HTTP, trait, and request-parameter context. It owns operation
 classification, deterministic CloudFormation resource-type selection, request-to-template modeling, schema-backed property
 mapping, and diagnostic scoping to explicitly modeled properties:
 
@@ -43,22 +43,22 @@ mapping, and diagnostic scoping to explicitly modeled properties:
 use rego_engine::RegoEngine;
 use schema_validator::SchemaValidator;
 use validation_engine::{
-    AwsApiRequest, AwsApiValue, EngineConfig, ValidateConfig, validate_aws_api_request,
+    AwsCliCommand, AwsCliValue, EngineConfig, ValidateConfig, validate_aws_cli_command,
 };
 
 let engine = RegoEngine::new(EngineConfig::default())?;
 let schema_validator = SchemaValidator::default();
-let request = AwsApiRequest::new(
+let request = AwsCliCommand::new(
     "s3",
     "CreateBucket",
     [
-        ("Bucket".into(), AwsApiValue::String { value: "example-bucket".into() }),
+        ("Bucket".into(), AwsCliValue::String { value: "example-bucket".into() }),
     ],
 )
 .with_service_prefix("s3")
 .with_http_method("PUT");
 
-let result = validate_aws_api_request(
+let result = validate_aws_cli_command(
     &engine,
     &schema_validator,
     &request,
@@ -73,21 +73,21 @@ if let Some(report) = &result.report {
 }
 ```
 
-`AwsApiValue` preserves bytes and 64-bit integer widths and explicitly marks unsupported values. Exact `TemplateBody`
+`AwsCliValue` preserves bytes and 64-bit integer widths and explicitly marks unsupported values. Exact `TemplateBody`
 bytes are validated without rewriting; `TemplateURL` is skipped because validation is offline. Every result includes
 an operation kind, validation status, optional template source, resource candidates, and reason. `Validated` means the
 modeled template reached the normal validation pipeline; `Skipped` has no report and explains why.
-`AwsApiRequestValidation` carries an `Option<diagnostics::output::ValidationReport>` projected at the `STANDARD` detail
+`AwsCliCommandValidation` carries an `Option<diagnostics::output::ValidationReport>` projected at the `STANDARD` detail
 level — detailed enrichment is not supported for synthesized API-request templates because there is no user-authored
 source to annotate with context.
 The `template` field carries the exact bytes that were validated — the caller's original `TemplateBody` without
 reserializing, or the synthesized JSON template for adapter-mapped requests — so consumers can display the modeled
 template that produced the diagnostics. It is `None` when the request was skipped.
-Use `validate_aws_api_request_with_path` when the embedding application needs a custom report path.
+Use `validate_aws_cli_command_with_path` when the embedding application needs a custom report path.
 
 **Deterministic closed-adapter contract.** Operation-to-resource mapping uses a generated adapter catalog keyed by
 case-normalized canonical `service_name` and exact operation name. The catalog is produced by
-`data-source/scripts/generate_aws_api_catalog.py` from each resource type's own provider handler metadata, resolved
+`data-source/scripts/generate_aws_cli_catalog.py` from each resource type's own provider handler metadata, resolved
 against botocore service models and structurally verified against the compiled CloudFormation schemas; it covers
 create and delete lifecycles for roughly seventy percent of all resource types plus curated update entries. Each
 adapter declares one CloudFormation resource type with explicit request-parameter-to-property pairs. Unregistered

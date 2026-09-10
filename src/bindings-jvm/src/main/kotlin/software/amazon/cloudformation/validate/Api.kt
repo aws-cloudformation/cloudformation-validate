@@ -3,9 +3,9 @@ package software.amazon.cloudformation.validate
 import software.amazon.cloudformation.validate.datasource.AdditionalSchemaSource
 import software.amazon.cloudformation.validate.diagnostics.Diagnostic
 import software.amazon.cloudformation.validate.diagnostics.ValidationReport
-import software.amazon.cloudformation.validate.engine.AwsApiRequestContext as NativeAwsApiRequest
-import software.amazon.cloudformation.validate.engine.AwsApiRequestValidation
-import software.amazon.cloudformation.validate.engine.AwsApiValue as NativeAwsApiValue
+import software.amazon.cloudformation.validate.engine.AwsCliCommandContext as NativeAwsCliCommand
+import software.amazon.cloudformation.validate.engine.AwsCliCommandValidation
+import software.amazon.cloudformation.validate.engine.AwsCliValue as NativeAwsCliValue
 import software.amazon.cloudformation.validate.engine.EngineConfig
 import software.amazon.cloudformation.validate.engine.ExternalRuleSource
 import software.amazon.cloudformation.validate.rules.RuleInfo
@@ -14,10 +14,10 @@ import java.io.File
 
 interface Engine {
     fun validateTemplate(template: File, config: ValidateConfig = ValidateConfig()): ValidationReport
-    fun validateAwsApiRequest(
-        request: AwsApiRequest,
+    fun validateAwsCliCommand(
+        request: AwsCliCommand,
         config: ValidateConfig = ValidateConfig(),
-    ): AwsApiRequestValidation
+    ): AwsCliCommandValidation
     fun listRules(): List<RuleInfo>
     fun engineName(): String
 }
@@ -36,7 +36,7 @@ interface Engine {
  * byte arrays, and Java time values. Unsupported values are marked explicitly
  * and conservatively omitted during request-to-template synthesis.
  */
-class AwsApiRequest @JvmOverloads constructor(
+class AwsCliCommand @JvmOverloads constructor(
     val serviceName: String,
     val operationName: String,
     parameters: Map<String, Any?>,
@@ -46,56 +46,56 @@ class AwsApiRequest @JvmOverloads constructor(
 ) {
     val parameters: Map<String, Any?> = LinkedHashMap(parameters)
 
-    internal fun toNative(): NativeAwsApiRequest =
-        NativeAwsApiRequest(
+    internal fun toNative(): NativeAwsCliCommand =
+        NativeAwsCliCommand(
             serviceName = serviceName,
             operationName = operationName,
-            parameters = parameters.mapValues { (_, value) -> value.toNativeAwsApiValue() },
+            parameters = parameters.mapValues { (_, value) -> value.toNativeAwsCliValue() },
             servicePrefix = servicePrefix,
             httpMethod = httpMethod,
             isReadOnly = isReadOnly,
         )
 }
 
-private fun Any?.toNativeAwsApiValue(): NativeAwsApiValue =
+private fun Any?.toNativeAwsCliValue(): NativeAwsCliValue =
     when (this) {
-        null -> NativeAwsApiValue.Null
-        is Boolean -> NativeAwsApiValue.Boolean(value = this)
-        is Byte -> NativeAwsApiValue.Integer(value = toLong())
-        is Short -> NativeAwsApiValue.Integer(value = toLong())
-        is Int -> NativeAwsApiValue.Integer(value = toLong())
-        is Long -> NativeAwsApiValue.Integer(value = this)
-        is UByte -> NativeAwsApiValue.UnsignedInteger(value = toULong())
-        is UShort -> NativeAwsApiValue.UnsignedInteger(value = toULong())
-        is UInt -> NativeAwsApiValue.UnsignedInteger(value = toULong())
-        is ULong -> NativeAwsApiValue.UnsignedInteger(value = this)
+        null -> NativeAwsCliValue.Null
+        is Boolean -> NativeAwsCliValue.Boolean(value = this)
+        is Byte -> NativeAwsCliValue.Integer(value = toLong())
+        is Short -> NativeAwsCliValue.Integer(value = toLong())
+        is Int -> NativeAwsCliValue.Integer(value = toLong())
+        is Long -> NativeAwsCliValue.Integer(value = this)
+        is UByte -> NativeAwsCliValue.UnsignedInteger(value = toULong())
+        is UShort -> NativeAwsCliValue.UnsignedInteger(value = toULong())
+        is UInt -> NativeAwsCliValue.UnsignedInteger(value = toULong())
+        is ULong -> NativeAwsCliValue.UnsignedInteger(value = this)
         is Float ->
             if (isFinite()) {
-                NativeAwsApiValue.Number(value = toDouble())
+                NativeAwsCliValue.Number(value = toDouble())
             } else {
-                NativeAwsApiValue.Unsupported(typeName = "non-finite floating-point number")
+                NativeAwsCliValue.Unsupported(typeName = "non-finite floating-point number")
             }
         is Double ->
             if (isFinite()) {
-                NativeAwsApiValue.Number(value = this)
+                NativeAwsCliValue.Number(value = this)
             } else {
-                NativeAwsApiValue.Unsupported(typeName = "non-finite floating-point number")
+                NativeAwsCliValue.Unsupported(typeName = "non-finite floating-point number")
             }
-        is String -> NativeAwsApiValue.String(value = this)
-        is ByteArray -> NativeAwsApiValue.Bytes(value = this)
-        is java.time.temporal.TemporalAccessor -> NativeAwsApiValue.String(value = toString())
+        is String -> NativeAwsCliValue.String(value = this)
+        is ByteArray -> NativeAwsCliValue.Bytes(value = this)
+        is java.time.temporal.TemporalAccessor -> NativeAwsCliValue.String(value = toString())
         is Map<*, *> -> {
             if (keys.any { it !is String }) {
-                NativeAwsApiValue.Unsupported(typeName = "mapping with non-string keys")
+                NativeAwsCliValue.Unsupported(typeName = "mapping with non-string keys")
             } else {
-                NativeAwsApiValue.Object(
-                    entries = entries.associate { (key, value) -> key as String to value.toNativeAwsApiValue() },
+                NativeAwsCliValue.Object(
+                    entries = entries.associate { (key, value) -> key as String to value.toNativeAwsCliValue() },
                 )
             }
         }
-        is Iterable<*> -> NativeAwsApiValue.Array(items = map { it.toNativeAwsApiValue() })
-        is Array<*> -> NativeAwsApiValue.Array(items = map { it.toNativeAwsApiValue() })
-        else -> NativeAwsApiValue.Unsupported(typeName = javaClass.name)
+        is Iterable<*> -> NativeAwsCliValue.Array(items = map { it.toNativeAwsCliValue() })
+        is Array<*> -> NativeAwsCliValue.Array(items = map { it.toNativeAwsCliValue() })
+        else -> NativeAwsCliValue.Unsupported(typeName = javaClass.name)
     }
 
 /**
@@ -148,10 +148,10 @@ class RegoEngine(
     override fun validateTemplate(template: File, config: ValidateConfig): ValidationReport =
         inner.validateTemplate(template.readBytes(), config, template.path)
 
-    override fun validateAwsApiRequest(
-        request: AwsApiRequest,
+    override fun validateAwsCliCommand(
+        request: AwsCliCommand,
         config: ValidateConfig,
-    ): AwsApiRequestValidation = inner.validateAwsApiRequest(request.toNative(), config)
+    ): AwsCliCommandValidation = inner.validateAwsCliCommand(request.toNative(), config)
 
     override fun listRules(): List<RuleInfo> = inner.listRules()
     override fun engineName(): String = inner.engineName()
@@ -165,10 +165,10 @@ class CelEngine(
     override fun validateTemplate(template: File, config: ValidateConfig): ValidationReport =
         inner.validateTemplate(template.readBytes(), config, template.path)
 
-    override fun validateAwsApiRequest(
-        request: AwsApiRequest,
+    override fun validateAwsCliCommand(
+        request: AwsCliCommand,
         config: ValidateConfig,
-    ): AwsApiRequestValidation = inner.validateAwsApiRequest(request.toNative(), config)
+    ): AwsCliCommandValidation = inner.validateAwsCliCommand(request.toNative(), config)
 
     override fun listRules(): List<RuleInfo> = inner.listRules()
     override fun engineName(): String = inner.engineName()

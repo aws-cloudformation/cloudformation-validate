@@ -1,14 +1,14 @@
 #[cfg(feature = "uniffi-bindings")]
 uniffi::setup_scaffolding!();
 
-pub mod aws_api;
+pub mod aws_cli;
 pub mod engine;
 pub mod guard;
 pub(crate) mod step_functions;
 
-pub use aws_api::{
-    AwsApiOperationKind, AwsApiRequest, AwsApiRequestContext, AwsApiRequestValidation, AwsApiRequestValidationStatus,
-    AwsApiTemplateSource, AwsApiValue, validate_aws_api_request, validate_aws_api_request_with_path,
+pub use aws_cli::{
+    AwsCliCommand, AwsCliCommandContext, AwsCliCommandValidation, AwsCliCommandValidationStatus, AwsCliOperationKind,
+    AwsCliTemplateSource, AwsCliValue, validate_aws_cli_command, validate_aws_cli_command_with_path,
 };
 pub use engine::{
     DIAGNOSTIC_SOURCE_PATH_FIELD, EngineConfig, EngineType, ExternalRuleSource, ValidateConfig, ValidationEngine,

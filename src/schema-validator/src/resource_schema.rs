@@ -13,7 +13,7 @@ pub enum PropertyValueType {
     String,
 }
 
-/// Schema information needed to map an AWS API request into one resource.
+/// Schema information needed to map an AWS CLI command into one resource.
 ///
 /// This is intentionally narrower than the validator's compiled schema model:
 /// callers can select and type-check resource properties without depending on

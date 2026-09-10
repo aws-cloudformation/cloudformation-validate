@@ -302,7 +302,7 @@ type ValidateConfig struct {
 	DisableBuiltinRules      *bool                     `json:"disableBuiltinRules,omitempty"`
 }
 
-// AWSAPIRequest holds an AWS API service call for offline CloudFormation
+// AWSCLICommand holds an AWS CLI command for offline CloudFormation
 // validation. ServiceName and OperationName identify the API; Parameters carry
 // the request values (maps, strings, numbers, booleans, byte slices, etc.).
 //
@@ -312,7 +312,7 @@ type ValidateConfig struct {
 // future AWS SDK adapter, in any language, must translate its native service
 // identity to the canonical botocore ServiceName before calling; the core does
 // not guess aliases.
-type AWSAPIRequest struct {
+type AWSCLICommand struct {
 	ServiceName   string         `json:"serviceName"`
 	OperationName string         `json:"operationName"`
 	Parameters    map[string]any `json:"parameters"`
@@ -321,43 +321,43 @@ type AWSAPIRequest struct {
 	IsReadOnly    *bool          `json:"isReadOnly,omitempty"`
 }
 
-// AWSAPIOperationKind classifies an AWS API operation.
-type AWSAPIOperationKind string
+// AWSCLIOperationKind classifies an AWS CLI operation.
+type AWSCLIOperationKind string
 
 const (
-	AWSAPIOperationKindReadOnly             AWSAPIOperationKind = "READ_ONLY"
-	AWSAPIOperationKindCloudFormationCreate AWSAPIOperationKind = "CLOUD_FORMATION_CREATE"
-	AWSAPIOperationKindCloudFormationUpdate AWSAPIOperationKind = "CLOUD_FORMATION_UPDATE"
-	AWSAPIOperationKindCloudFormationDelete AWSAPIOperationKind = "CLOUD_FORMATION_DELETE"
-	AWSAPIOperationKindDataPlaneMutation    AWSAPIOperationKind = "DATA_PLANE_MUTATION"
-	AWSAPIOperationKindUnmappedMutation     AWSAPIOperationKind = "UNMAPPED_MUTATION"
+	AWSCLIOperationKindReadOnly             AWSCLIOperationKind = "READ_ONLY"
+	AWSCLIOperationKindCloudFormationCreate AWSCLIOperationKind = "CLOUD_FORMATION_CREATE"
+	AWSCLIOperationKindCloudFormationUpdate AWSCLIOperationKind = "CLOUD_FORMATION_UPDATE"
+	AWSCLIOperationKindCloudFormationDelete AWSCLIOperationKind = "CLOUD_FORMATION_DELETE"
+	AWSCLIOperationKindDataPlaneMutation    AWSCLIOperationKind = "DATA_PLANE_MUTATION"
+	AWSCLIOperationKindUnmappedMutation     AWSCLIOperationKind = "UNMAPPED_MUTATION"
 )
 
-// AWSAPIRequestValidationStatus indicates whether validation ran or was skipped.
-type AWSAPIRequestValidationStatus string
+// AWSCLICommandValidationStatus indicates whether validation ran or was skipped.
+type AWSCLICommandValidationStatus string
 
 const (
-	AWSAPIRequestValidationStatusValidated AWSAPIRequestValidationStatus = "VALIDATED"
-	AWSAPIRequestValidationStatusSkipped   AWSAPIRequestValidationStatus = "SKIPPED"
+	AWSCLICommandValidationStatusValidated AWSCLICommandValidationStatus = "VALIDATED"
+	AWSCLICommandValidationStatusSkipped   AWSCLICommandValidationStatus = "SKIPPED"
 )
 
-// AWSAPITemplateSource identifies the provenance of the template validated for
-// an API request.
-type AWSAPITemplateSource string
+// AWSCLITemplateSource identifies the provenance of the template validated for
+// an AWS CLI command.
+type AWSCLITemplateSource string
 
 const (
-	AWSAPITemplateSourceTemplateBody             AWSAPITemplateSource = "TEMPLATE_BODY"
-	AWSAPITemplateSourceCloudControlDesiredState AWSAPITemplateSource = "CLOUD_CONTROL_DESIRED_STATE"
-	AWSAPITemplateSourceSynthesizedCreate        AWSAPITemplateSource = "SYNTHESIZED_CREATE"
-	AWSAPITemplateSourceSynthesizedUpdate        AWSAPITemplateSource = "SYNTHESIZED_UPDATE"
+	AWSCLITemplateSourceTemplateBody             AWSCLITemplateSource = "TEMPLATE_BODY"
+	AWSCLITemplateSourceCloudControlDesiredState AWSCLITemplateSource = "CLOUD_CONTROL_DESIRED_STATE"
+	AWSCLITemplateSourceSynthesizedCreate        AWSCLITemplateSource = "SYNTHESIZED_CREATE"
+	AWSCLITemplateSourceSynthesizedUpdate        AWSCLITemplateSource = "SYNTHESIZED_UPDATE"
 )
 
-// AWSAPIRequestValidation is the canonical result of validating an AWS API
-// request. Report is present only when Status is VALIDATED.
-type AWSAPIRequestValidation struct {
-	OperationKind  AWSAPIOperationKind           `json:"operationKind"`
-	Status         AWSAPIRequestValidationStatus `json:"status"`
-	TemplateSource *AWSAPITemplateSource         `json:"templateSource,omitempty"`
+// AWSCLICommandValidation is the canonical result of validating an AWS CLI
+// command. Report is present only when Status is VALIDATED.
+type AWSCLICommandValidation struct {
+	OperationKind  AWSCLIOperationKind           `json:"operationKind"`
+	Status         AWSCLICommandValidationStatus `json:"status"`
+	TemplateSource *AWSCLITemplateSource         `json:"templateSource,omitempty"`
 	ResourceTypes  []string                      `json:"resourceTypes"`
 	Reason         string                        `json:"reason"`
 	Report         *ValidationReport             `json:"report,omitempty"`

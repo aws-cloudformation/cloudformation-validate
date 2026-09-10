@@ -16867,6 +16867,10 @@
      "target": "NetworkLoadBalancerArns"
     },
     {
+     "source": "PrivateDnsName",
+     "target": "PrivateDnsName"
+    },
+    {
      "source": "SupportedIpAddressTypes",
      "target": "SupportedIpAddressTypes"
     },
@@ -19748,6 +19752,10 @@
   {
    "cfn_type": "AWS::ElementalInference::Feed",
    "mappings": [
+    {
+     "source": "accessRoleArn",
+     "target": "AccessRoleArn"
+    },
     {
      "source": "name",
      "target": "Name"
@@ -31101,6 +31109,10 @@
      "target": "StartoverWindowSeconds"
     },
     {
+     "source": "StreamNameOutputMode",
+     "target": "StreamNameOutputMode"
+    },
+    {
      "source": "Tags",
      "target": "Tags"
     },
@@ -34341,6 +34353,13 @@
    "operation": "DeleteVpcEndpoint",
    "phase": "delete",
    "service": "opensearchserverless"
+  },
+  {
+   "cfn_type": "AWS::OpenSearchService::Application",
+   "mappings": [],
+   "operation": "DeleteApplication",
+   "phase": "delete",
+   "service": "opensearch"
   },
   {
    "cfn_type": "AWS::OpenSearchService::Domain",
@@ -40221,6 +40240,37 @@
    "service": "s3control"
   },
   {
+   "cfn_type": "AWS::S3Outposts::Bucket",
+   "mappings": [],
+   "operation": "DeleteBucket",
+   "phase": "delete",
+   "service": "s3control"
+  },
+  {
+   "cfn_type": "AWS::S3Outposts::BucketPolicy",
+   "mappings": [
+    {
+     "source": "Bucket",
+     "target": "Bucket"
+    }
+   ],
+   "operation": "PutBucketPolicy",
+   "phase": "create",
+   "service": "s3control"
+  },
+  {
+   "cfn_type": "AWS::S3Outposts::BucketPolicy",
+   "mappings": [
+    {
+     "source": "Bucket",
+     "target": "Bucket"
+    }
+   ],
+   "operation": "DeleteBucketPolicy",
+   "phase": "delete",
+   "service": "s3control"
+  },
+  {
    "cfn_type": "AWS::S3Outposts::Endpoint",
    "mappings": [
     {
@@ -42484,6 +42534,10 @@
     {
      "source": "EndpointConfigName",
      "target": "EndpointConfigName"
+    },
+    {
+     "source": "EndpointName",
+     "target": "EndpointName"
     }
    ],
    "operation": "CreateEndpoint",
@@ -42492,7 +42546,12 @@
   },
   {
    "cfn_type": "AWS::SageMaker::Endpoint",
-   "mappings": [],
+   "mappings": [
+    {
+     "source": "EndpointName",
+     "target": "EndpointName"
+    }
+   ],
    "operation": "DeleteEndpoint",
    "phase": "delete",
    "service": "sagemaker"
@@ -47921,8 +47980,8 @@
  "source": {
   "botocore_service_count": 431,
   "botocore_version": "2.0.0dev155",
-  "compiled_schemas_sha256": "76bcee337b3f10bb9d72cbbe836d0c89afbb96a05c2d37c18eebf65685fbabb5",
-  "compiled_type_count": 1731,
+  "compiled_schemas_sha256": "9f33ce28894f17ac771051a55696e18e04596cfdf01014ec13edcafd75524299",
+  "compiled_type_count": 1766,
   "provider_schemas_sha256": "929767f603b6744fda6741ba5ca5ec42b54847a4f9a07402369ebecd8ce82248",
   "provider_type_count": 1729
  }

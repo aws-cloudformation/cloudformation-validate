@@ -74,15 +74,15 @@ interface Engine {
 
 `template` is a `java.io.File` - the engine reads the bytes and uses the file path for diagnostic source locations.
 
-### AWS API request validation
+### AWS CLI command validation
 
-Use `validateAwsApiRequest` for AWS SDK-style request values rather than a complete template. The validator classifies
+Use `validateAwsCliCommand` for an AWS CLI command rather than a complete template. The validator classifies
 the operation, selects a CloudFormation resource type, models representable create/update state, and validates the
 resulting template entirely offline:
 
 ```kotlin
-val result = RegoEngine().validateAwsApiRequest(
-    AwsApiRequest(
+val result = RegoEngine().validateAwsCliCommand(
+    AwsCliCommand(
         serviceName = "s3",
         servicePrefix = "s3",
         operationName = "CreateBucket",
@@ -98,10 +98,10 @@ result.report?.diagnostics?.forEach { diagnostic ->
 } ?: println("${result.status}: ${result.reason}")
 ```
 
-`AwsApiRequest.parameters` accepts nested maps, iterables and arrays, scalars, byte arrays, and Java temporal values
+`AwsCliCommand.parameters` accepts nested maps, iterables and arrays, scalars, byte arrays, and Java temporal values
 without mutating the supplied map. `TemplateBody` bytes are validated exactly; `TemplateURL` is skipped because the
 validator does not perform network requests. Every result reports `status`, `operationKind`, `templateSource`,
-`resourceTypes`, and `reason`; skipped requests have a null `report`.
+`resourceTypes`, and `reason`; skipped commands have a null `report`.
 The same classes and methods are callable from Java with conventional generated getters.
 
 Operation-to-resource mapping uses a deterministic closed adapter catalog generated from each resource type's own

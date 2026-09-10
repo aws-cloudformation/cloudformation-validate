@@ -15,10 +15,10 @@ from unittest import mock
 import cloudformation_validate._native as native_loader
 from cloudformation_validate import (
     AdditionalSchemaSource,
-    AwsApiOperationKind,
-    AwsApiRequest,
-    AwsApiRequestValidationStatus,
-    AwsApiTemplateSource,
+    AwsCliCommand,
+    AwsCliCommandValidationStatus,
+    AwsCliOperationKind,
+    AwsCliTemplateSource,
     CelEngine,
     DetailLevel,
     EngineConfig,
@@ -447,17 +447,17 @@ class CombinedCustomGuardListingTest(unittest.TestCase):
             self.assertEqual(description, actual_description, rule_id)
 
 
-class AwsApiRequestTest(unittest.TestCase):
+class AwsCliCommandTest(unittest.TestCase):
     def test_s3_create_bucket_synthesizes_on_both_engines(self):
-        request = AwsApiRequest("s3", "CreateBucket", {"Bucket": "synthetic-bucket"})
+        request = AwsCliCommand("s3", "CreateBucket", {"Bucket": "synthetic-bucket"})
         results = {}
         for engine in (REGO, CEL):
             name = engine.engine_name()
-            validation = engine.validate_aws_api_request(request)
-            self.assertEqual(AwsApiRequestValidationStatus.VALIDATED, validation.status, name)
-            self.assertEqual(AwsApiOperationKind.CLOUD_FORMATION_CREATE, validation.operation_kind, name)
+            validation = engine.validate_aws_cli_command(request)
+            self.assertEqual(AwsCliCommandValidationStatus.VALIDATED, validation.status, name)
+            self.assertEqual(AwsCliOperationKind.CLOUD_FORMATION_CREATE, validation.operation_kind, name)
             self.assertEqual(["AWS::S3::Bucket"], validation.resource_types, name)
-            self.assertEqual(AwsApiTemplateSource.SYNTHESIZED_CREATE, validation.template_source, name)
+            self.assertEqual(AwsCliTemplateSource.SYNTHESIZED_CREATE, validation.template_source, name)
             self.assertIsNotNone(validation.report, name)
             self.assertIsNotNone(validation.template, f"{name}: a validated request must carry template bytes")
             document = json.loads(validation.template)
@@ -471,16 +471,16 @@ class AwsApiRequestTest(unittest.TestCase):
     def test_validate_template_preserves_exact_template_body_bytes(self):
         # Distinctive whitespace and key order a reserialization would not reproduce.
         template_body = b'{\n    "Resources": {\n        "Bucket": { "Type": "AWS::S3::Bucket" }\n    }\n}'
-        request = AwsApiRequest("cloudformation", "ValidateTemplate", {"TemplateBody": template_body})
+        request = AwsCliCommand("cloudformation", "ValidateTemplate", {"TemplateBody": template_body})
         for engine in (REGO, CEL):
             name = engine.engine_name()
-            validation = engine.validate_aws_api_request(request)
-            self.assertEqual(AwsApiRequestValidationStatus.VALIDATED, validation.status, name)
-            self.assertEqual(AwsApiTemplateSource.TEMPLATE_BODY, validation.template_source, name)
+            validation = engine.validate_aws_cli_command(request)
+            self.assertEqual(AwsCliCommandValidationStatus.VALIDATED, validation.status, name)
+            self.assertEqual(AwsCliTemplateSource.TEMPLATE_BODY, validation.template_source, name)
             self.assertEqual(template_body, validation.template, f"{name}: TemplateBody must be preserved byte-for-byte")
 
     def test_conservatively_skips_nested_dynamodb_fields(self):
-        request = AwsApiRequest(
+        request = AwsCliCommand(
             "dynamodb",
             "CreateTable",
             {
@@ -492,8 +492,8 @@ class AwsApiRequestTest(unittest.TestCase):
         )
         for engine in (REGO, CEL):
             name = engine.engine_name()
-            validation = engine.validate_aws_api_request(request)
-            self.assertEqual(AwsApiRequestValidationStatus.SKIPPED, validation.status, name)
+            validation = engine.validate_aws_cli_command(request)
+            self.assertEqual(AwsCliCommandValidationStatus.SKIPPED, validation.status, name)
             self.assertIsNone(validation.report, name)
             self.assertIsNone(validation.template, name)
             self.assertEqual(["AWS::DynamoDB::Table"], validation.resource_types, name)
@@ -502,14 +502,14 @@ class AwsApiRequestTest(unittest.TestCase):
     def test_does_not_guess_noncanonical_service_alias(self):
         # CloudWatch's canonical botocore name is "cloudwatch"; "monitoring" is its
         # signing name. The core resolves the canonical name but never the alias.
-        canonical = AwsApiRequest("cloudwatch", "PutMetricAlarm", {"AlarmName": "synthetic"})
-        alias = AwsApiRequest("monitoring", "PutMetricAlarm", {"AlarmName": "synthetic"})
+        canonical = AwsCliCommand("cloudwatch", "PutMetricAlarm", {"AlarmName": "synthetic"})
+        alias = AwsCliCommand("monitoring", "PutMetricAlarm", {"AlarmName": "synthetic"})
         for engine in (REGO, CEL):
             name = engine.engine_name()
-            canonical_validation = engine.validate_aws_api_request(canonical)
+            canonical_validation = engine.validate_aws_cli_command(canonical)
             self.assertIn("AWS::CloudWatch::Alarm", canonical_validation.resource_types, name)
-            alias_validation = engine.validate_aws_api_request(alias)
-            self.assertEqual(AwsApiRequestValidationStatus.SKIPPED, alias_validation.status, name)
+            alias_validation = engine.validate_aws_cli_command(alias)
+            self.assertEqual(AwsCliCommandValidationStatus.SKIPPED, alias_validation.status, name)
             self.assertNotIn("AWS::CloudWatch::Alarm", alias_validation.resource_types, name)
             self.assertIsNone(alias_validation.template, name)
 

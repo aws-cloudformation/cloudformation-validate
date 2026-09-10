@@ -56,18 +56,18 @@ the same template and config.
 
 `template` is a file path (`str` / `os.PathLike`) or raw `bytes`; `config` is an optional `ValidateConfig`.
 
-### AWS API request validation
+### AWS CLI command validation
 
-Use `validate_aws_api_request` when the input is an AWS SDK-style request rather than a complete template. The
+Use `validate_aws_cli_command` when the input is an AWS SDK-style request rather than a complete template. The
 validator classifies the operation, selects a CloudFormation resource type, models representable create/update state,
 and validates the resulting template entirely offline:
 
 ```python
-from cloudformation_validate import AwsApiRequest, RegoEngine
+from cloudformation_validate import AwsCliCommand, RegoEngine
 
 engine = RegoEngine()
-result = engine.validate_aws_api_request(
-    AwsApiRequest(
+result = engine.validate_aws_cli_command(
+    AwsCliCommand(
         service_name="s3",
         service_prefix="s3",
         operation_name="CreateBucket",
@@ -83,7 +83,7 @@ else:
     print(result.status.name, result.reason)
 ```
 
-`AwsApiRequest.parameters` accepts nested mappings and sequences, scalars, `bytes`, and `datetime.datetime` values
+`AwsCliCommand.parameters` accepts nested mappings and sequences, scalars, `bytes`, and `datetime.datetime` values
 without mutating the supplied mapping. `TemplateBody` bytes are validated exactly; `TemplateURL` is skipped because the
 validator does not perform network requests. The result always reports `status`, `operation_kind`, `template_source`,
 `resource_types`, and `reason`; skipped requests have `report is None`. The `template` field carries the exact bytes
@@ -109,15 +109,15 @@ AWS CLI emits `provide-client-params.<service>.<operation>` before serializing o
 handler on the CLI's botocore session to validate the exact parameter dictionary without making another network call:
 
 ```python
-from cloudformation_validate import AwsApiRequest, RegoEngine
+from cloudformation_validate import AwsCliCommand, RegoEngine
 
 engine = RegoEngine()  # construct once and reuse
 
 
 def validate_create_stack(params, model, **_kwargs):
     service = model.service_model
-    result = engine.validate_aws_api_request(
-        AwsApiRequest(
+    result = engine.validate_aws_cli_command(
+        AwsCliCommand(
             service_name=service.service_name,
             service_prefix=service.signing_name,
             operation_name=model.name,

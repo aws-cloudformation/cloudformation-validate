@@ -74,32 +74,32 @@ export type {
 
 export type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
 
-export type AwsApiOperationKind =
+export type AwsCliOperationKind =
     | 'READ_ONLY'
     | 'CLOUD_FORMATION_CREATE'
     | 'CLOUD_FORMATION_UPDATE'
     | 'CLOUD_FORMATION_DELETE'
     | 'DATA_PLANE_MUTATION'
     | 'UNMAPPED_MUTATION';
-export type AwsApiRequestValidationStatus = 'VALIDATED' | 'SKIPPED';
-export type AwsApiTemplateSource =
+export type AwsCliCommandValidationStatus = 'VALIDATED' | 'SKIPPED';
+export type AwsCliTemplateSource =
     'TEMPLATE_BODY' | 'CLOUD_CONTROL_DESIRED_STATE' | 'SYNTHESIZED_CREATE' | 'SYNTHESIZED_UPDATE';
 
-export interface AwsApiRequestOptions {
+export interface AwsCliCommandOptions {
     servicePrefix?: string;
     httpMethod?: string;
     isReadOnly?: boolean;
 }
 
 /**
- * Service, operation, and input values for one AWS API request.
+ * Service, operation, and input values for one AWS CLI command.
  *
  * `serviceName` is the canonical botocore service name and is normalized only
  * for ASCII case. Callers adapting an SDK request must translate its native
  * service identity before constructing this request; endpoint and signing-name
  * aliases are never guessed by the validation core.
  */
-export class AwsApiRequest {
+export class AwsCliCommand {
     public readonly parameters: Record<string, unknown>;
     public readonly servicePrefix?: string;
     public readonly httpMethod?: string;
@@ -109,7 +109,7 @@ export class AwsApiRequest {
         public readonly serviceName: string,
         public readonly operationName: string,
         parameters: Record<string, unknown>,
-        options: AwsApiRequestOptions = {},
+        options: AwsCliCommandOptions = {},
     ) {
         if (!isPlainRecord(parameters)) {
             throw new TypeError('parameters must be a plain object with string keys');
@@ -132,17 +132,17 @@ export class AwsApiRequest {
     }
 }
 
-export interface AwsApiRequestValidation {
-    operationKind: AwsApiOperationKind;
-    status: AwsApiRequestValidationStatus;
-    templateSource: AwsApiTemplateSource | null;
+export interface AwsCliCommandValidation {
+    operationKind: AwsCliOperationKind;
+    status: AwsCliCommandValidationStatus;
+    templateSource: AwsCliTemplateSource | null;
     resourceTypes: string[];
     reason: string;
     report: ValidationReport | null;
     template: Uint8Array | null;
 }
 
-type WireAwsApiValue =
+type WireAwsCliValue =
     | { type: 'NULL' }
     | { type: 'BOOLEAN'; value: boolean }
     | { type: 'INTEGER'; value: number | bigint }
@@ -150,20 +150,20 @@ type WireAwsApiValue =
     | { type: 'NUMBER'; value: number }
     | { type: 'STRING'; value: string }
     | { type: 'BYTES'; value: number[] }
-    | { type: 'ARRAY'; items: WireAwsApiValue[] }
-    | { type: 'OBJECT'; entries: Record<string, WireAwsApiValue> }
+    | { type: 'ARRAY'; items: WireAwsCliValue[] }
+    | { type: 'OBJECT'; entries: Record<string, WireAwsCliValue> }
     | { type: 'UNSUPPORTED'; type_name: string };
 
-interface WireAwsApiRequest {
+interface WireAwsCliCommand {
     serviceName: string;
     operationName: string;
-    parameters: Record<string, WireAwsApiValue>;
+    parameters: Record<string, WireAwsCliValue>;
     servicePrefix?: string;
     httpMethod?: string;
     isReadOnly?: boolean;
 }
 
-interface WireAwsApiRequestValidation extends Omit<AwsApiRequestValidation, 'template'> {
+interface WireAwsCliCommandValidation extends Omit<AwsCliCommandValidation, 'template'> {
     template?: number[] | Uint8Array | null;
 }
 
@@ -183,11 +183,11 @@ function isPlainRecord(value: unknown): value is Record<string, unknown> {
     return prototype === Object.prototype || prototype === null;
 }
 
-function unsupportedValue(typeName: string): WireAwsApiValue {
+function unsupportedValue(typeName: string): WireAwsCliValue {
     return { type: 'UNSUPPORTED', type_name: typeName };
 }
 
-function encodeAwsApiValue(value: unknown, depth = 0, ancestors = new Set<object>()): WireAwsApiValue {
+function encodeAwsCliValue(value: unknown, depth = 0, ancestors = new Set<object>()): WireAwsCliValue {
     if (depth > MAX_REQUEST_VALUE_DEPTH) {
         return unsupportedValue('recursion depth exceeded');
     }
@@ -256,7 +256,7 @@ function encodeAwsApiValue(value: unknown, depth = 0, ancestors = new Set<object
             ) {
                 return unsupportedValue('array with invalid length');
             }
-            const items: WireAwsApiValue[] = [];
+            const items: WireAwsCliValue[] = [];
             for (let index = 0; index < lengthDescriptor.value; index += 1) {
                 const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
                 if (descriptor === undefined) {
@@ -265,7 +265,7 @@ function encodeAwsApiValue(value: unknown, depth = 0, ancestors = new Set<object
                 if (!('value' in descriptor)) {
                     return unsupportedValue('array with accessor elements');
                 }
-                items.push(encodeAwsApiValue(descriptor.value, depth + 1, ancestors));
+                items.push(encodeAwsCliValue(descriptor.value, depth + 1, ancestors));
             }
             return { type: 'ARRAY', items };
         } finally {
@@ -278,7 +278,7 @@ function encodeAwsApiValue(value: unknown, depth = 0, ancestors = new Set<object
         }
         ancestors.add(value);
         try {
-            const entries = Object.create(null) as Record<string, WireAwsApiValue>;
+            const entries = Object.create(null) as Record<string, WireAwsCliValue>;
             for (const key of Reflect.ownKeys(value)) {
                 if (typeof key !== 'string') {
                     return unsupportedValue('mapping with non-string keys');
@@ -287,7 +287,7 @@ function encodeAwsApiValue(value: unknown, depth = 0, ancestors = new Set<object
                 if (descriptor === undefined || !('value' in descriptor)) {
                     return unsupportedValue('mapping with accessor properties');
                 }
-                entries[key] = encodeAwsApiValue(descriptor.value, depth + 1, ancestors);
+                entries[key] = encodeAwsCliValue(descriptor.value, depth + 1, ancestors);
             }
             return { type: 'OBJECT', entries };
         } finally {
@@ -297,11 +297,11 @@ function encodeAwsApiValue(value: unknown, depth = 0, ancestors = new Set<object
     return unsupportedValue(typeof value);
 }
 
-function toWireAwsApiRequest(request: AwsApiRequest): WireAwsApiRequest {
-    const parameters = Object.create(null) as Record<string, WireAwsApiValue>;
+function toWireAwsCliCommand(request: AwsCliCommand): WireAwsCliCommand {
+    const parameters = Object.create(null) as Record<string, WireAwsCliValue>;
     for (const [name, value] of Object.entries(request.parameters)) {
         try {
-            parameters[name] = encodeAwsApiValue(value);
+            parameters[name] = encodeAwsCliValue(value);
         } catch {
             parameters[name] = unsupportedValue('request value inspection failed');
         }
@@ -316,7 +316,7 @@ function toWireAwsApiRequest(request: AwsApiRequest): WireAwsApiRequest {
     };
 }
 
-function fromWireAwsApiRequestValidation(validation: WireAwsApiRequestValidation): AwsApiRequestValidation {
+function fromWireAwsCliCommandValidation(validation: WireAwsCliCommandValidation): AwsCliCommandValidation {
     const template = validation.template;
     return {
         ...validation,
@@ -328,7 +328,7 @@ function fromWireAwsApiRequestValidation(validation: WireAwsApiRequestValidation
 
 export interface Engine {
     validateTemplate(template: TemplateFile, config?: ValidateConfig): ValidationReport;
-    validateAwsApiRequest(request: AwsApiRequest, config?: ValidateConfig): AwsApiRequestValidation;
+    validateAwsCliCommand(request: AwsCliCommand, config?: ValidateConfig): AwsCliCommandValidation;
     listRules(): RuleInfo[];
     engineName(): string;
     free(): void;
@@ -495,7 +495,7 @@ export class SchemaValidator {
 
 interface WasmEngineInstance {
     validateTemplate(template: Uint8Array, options: ValidateConfig, filePath: string): ValidationReport;
-    validateAwsApiRequest(request: WireAwsApiRequest, options: ValidateConfig): WireAwsApiRequestValidation;
+    validateAwsCliCommand(request: WireAwsCliCommand, options: ValidateConfig): WireAwsCliCommandValidation;
     listRules(): RuleInfo[];
     engineName(): string;
     free(): void;
@@ -515,12 +515,12 @@ function createEngineClass(
             return this.inner.validateTemplate(template.readBytes(), config ?? {}, template.path);
         }
 
-        validateAwsApiRequest(request: AwsApiRequest, config?: ValidateConfig): AwsApiRequestValidation {
-            if (!(request instanceof AwsApiRequest)) {
-                throw new TypeError('request must be an AwsApiRequest');
+        validateAwsCliCommand(request: AwsCliCommand, config?: ValidateConfig): AwsCliCommandValidation {
+            if (!(request instanceof AwsCliCommand)) {
+                throw new TypeError('request must be an AwsCliCommand');
             }
-            return fromWireAwsApiRequestValidation(
-                this.inner.validateAwsApiRequest(toWireAwsApiRequest(request), config ?? {}),
+            return fromWireAwsCliCommandValidation(
+                this.inner.validateAwsCliCommand(toWireAwsCliCommand(request), config ?? {}),
             );
         }
 

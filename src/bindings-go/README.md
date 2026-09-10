@@ -59,7 +59,7 @@ diagnostics for the same template and config. A `nil` config uses only the built
 |------------------------------------------------------------------------------|-------------------------------------|-------------------------------------------------------------------------------------------------|
 | `ValidateTemplate(template []byte, config *ValidateConfig, filePath string)` | `(*ValidationReport, error)`        | Validates bytes; `config.DetailLevel` selects the detail level; `filePath` labels the report.   |
 | `ValidateTemplateFile(path string, config *ValidateConfig)`                  | `(*ValidationReport, error)`        | Reads a template from disk, then validates it                                                   |
-| `ValidateAWSAPIRequest(request AWSAPIRequest, config *ValidateConfig)`       | `(*AWSAPIRequestValidation, error)` | Classifies and validates an AWS API request offline                                             |
+| `ValidateAWSCLICommand(request AWSCLICommand, config *ValidateConfig)`       | `(*AWSCLICommandValidation, error)` | Classifies and validates an AWS CLI command offline                                             |
 | `ListRules()`                                                                | `([]RuleInfo, error)`               | Returns metadata for every built-in and loaded custom rule                                      |
 | `EngineName()`                                                               | `string`                            | `"rego"` or `"cel"`                                                                             |
 | `Destroy()`                                                                  | -                                   | Releases the native engine; the engine must not be used afterwards                              |
@@ -199,9 +199,9 @@ type PseudoParameterOverrides struct {
 }
 ```
 
-## AWS API Request Validation
+## AWS CLI Command Validation
 
-Validates an AWS API request by classifying the operation, inferring the CloudFormation resource type, and running
+Validates an AWS CLI command by classifying the operation, inferring the CloudFormation resource type, and running
 schema and rule validation against a synthesized template - entirely offline. The method returns classification
 metadata and an optional `ValidationReport` when the request was validated (not skipped for read-only operations). The
 report is projected at the `STANDARD` detail level: enrichment fields are nil because a synthesized template has no
@@ -211,7 +211,7 @@ user-authored source to annotate.
 engine, _ := cfnvalidate.NewRegoEngine(nil)
 defer engine.Destroy()
 
-result, err := engine.ValidateAWSAPIRequest(cfnvalidate.AWSAPIRequest{
+result, err := engine.ValidateAWSCLICommand(cfnvalidate.AWSCLICommand{
     ServiceName:   "s3",
     OperationName: "CreateBucket",
     Parameters:    map[string]any{"Bucket": "my-bucket"},
@@ -229,10 +229,10 @@ if result.Report != nil {
 }
 ```
 
-### AWSAPIRequest
+### AWSCLICommand
 
 ```go
-type AWSAPIRequest struct {
+type AWSCLICommand struct {
     ServiceName   string         // canonical botocore service name (e.g. "s3") - ASCII case-insensitive
     OperationName string         // operation name (e.g. "CreateBucket") - case-sensitive
     Parameters    map[string]any // request parameters: strings, numbers, booleans, []byte, maps, slices, nil
@@ -258,13 +258,13 @@ SDK adapter in any language, must translate its native service identity to the c
 invoking this API. `TemplateBody` validation is restricted to CloudFormation operations that accept it, and
 `TypeName`+`DesiredState` wrapping applies only to exact Cloud Control `CreateResource`.
 
-### AWSAPIRequestValidation
+### AWSCLICommandValidation
 
 ```go
-type AWSAPIRequestValidation struct {
-    OperationKind  AWSAPIOperationKind           // READ_ONLY, CLOUD_FORMATION_CREATE, etc.
-    Status         AWSAPIRequestValidationStatus // VALIDATED or SKIPPED
-    TemplateSource *AWSAPITemplateSource         // TEMPLATE_BODY, SYNTHESIZED_CREATE, etc.
+type AWSCLICommandValidation struct {
+    OperationKind  AWSCLIOperationKind           // READ_ONLY, CLOUD_FORMATION_CREATE, etc.
+    Status         AWSCLICommandValidationStatus // VALIDATED or SKIPPED
+    TemplateSource *AWSCLITemplateSource         // TEMPLATE_BODY, SYNTHESIZED_CREATE, etc.
     ResourceTypes  []string                      // inferred CloudFormation resource types
     Reason         string                        // human-readable explanation
     Report         *ValidationReport             // present only when Status is VALIDATED

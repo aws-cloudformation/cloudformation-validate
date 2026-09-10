@@ -24,8 +24,8 @@ pub use template_model::model::{
 pub use template_model::resolver::{MapEntry, ParameterInfo, RefKind, ResolvedValue};
 pub use template_model::{JsonValue, PseudoParameterOverrides, SourceSpan};
 pub use validation_engine::{
-    AwsApiOperationKind, AwsApiRequestContext, AwsApiRequestValidation, AwsApiRequestValidationStatus,
-    AwsApiTemplateSource, AwsApiValue, EngineConfig, EngineType, ExternalRuleSource,
+    AwsCliCommand, AwsCliCommandValidation, AwsCliCommandValidationStatus, AwsCliOperationKind, AwsCliTemplateSource,
+    AwsCliValue, EngineConfig, EngineType, ExternalRuleSource,
 };
 
 pub use schema_validator::SchemaValidatorConfig;
@@ -181,15 +181,15 @@ macro_rules! impl_py_engine {
                 )
             }
 
-            pub fn validate_aws_api_request(
+            pub fn validate_aws_cli_command(
                 &self,
-                request: AwsApiRequestContext,
+                request: AwsCliCommand,
                 config: ValidateConfig,
-            ) -> Result<AwsApiRequestValidation, ValidationError> {
+            ) -> Result<AwsCliCommandValidation, ValidationError> {
                 validation_engine::catch_panics(
                     || {
                         let core_config = config.to_core();
-                        let validation = validation_engine::validate_aws_api_request(
+                        let validation = validation_engine::validate_aws_cli_command(
                             &self.engine,
                             &self.schema_validator,
                             &request,

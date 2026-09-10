@@ -542,30 +542,30 @@ func synthesizedBucketName(t *testing.T, template []byte) string {
 	return document.Resources.Resource.Properties.BucketName
 }
 
-func TestValidateAWSAPIRequestSynthesizesS3CreateBucketOnBothEngines(t *testing.T) {
+func TestValidateAWSCLICommandSynthesizesS3CreateBucketOnBothEngines(t *testing.T) {
 	const bucketName = "synthetic-bucket"
-	request := cfnvalidate.AWSAPIRequest{
+	request := cfnvalidate.AWSCLICommand{
 		ServiceName:   "s3",
 		OperationName: "CreateBucket",
 		Parameters:    map[string]any{"Bucket": bucketName},
 	}
 
-	perEngine := map[string]*cfnvalidate.AWSAPIRequestValidation{}
+	perEngine := map[string]*cfnvalidate.AWSCLICommandValidation{}
 	for name, engine := range bothEngines(t) {
-		validation, err := engine.ValidateAWSAPIRequest(request, nil)
+		validation, err := engine.ValidateAWSCLICommand(request, nil)
 		if err != nil {
-			t.Fatalf("%s: ValidateAWSAPIRequest failed: %v", name, err)
+			t.Fatalf("%s: ValidateAWSCLICommand failed: %v", name, err)
 		}
-		if validation.Status != cfnvalidate.AWSAPIRequestValidationStatusValidated {
+		if validation.Status != cfnvalidate.AWSCLICommandValidationStatusValidated {
 			t.Errorf("%s: status = %s, want VALIDATED", name, validation.Status)
 		}
-		if validation.OperationKind != cfnvalidate.AWSAPIOperationKindCloudFormationCreate {
+		if validation.OperationKind != cfnvalidate.AWSCLIOperationKindCloudFormationCreate {
 			t.Errorf("%s: operationKind = %s, want CLOUD_FORMATION_CREATE", name, validation.OperationKind)
 		}
 		if len(validation.ResourceTypes) != 1 || validation.ResourceTypes[0] != "AWS::S3::Bucket" {
 			t.Errorf("%s: resourceTypes = %v, want [AWS::S3::Bucket]", name, validation.ResourceTypes)
 		}
-		if validation.TemplateSource == nil || *validation.TemplateSource != cfnvalidate.AWSAPITemplateSourceSynthesizedCreate {
+		if validation.TemplateSource == nil || *validation.TemplateSource != cfnvalidate.AWSCLITemplateSourceSynthesizedCreate {
 			t.Errorf("%s: templateSource = %v, want SYNTHESIZED_CREATE", name, validation.TemplateSource)
 		}
 		if validation.Report == nil {
@@ -588,25 +588,25 @@ func TestValidateAWSAPIRequestSynthesizesS3CreateBucketOnBothEngines(t *testing.
 	}
 }
 
-func TestValidateAWSAPIRequestPreservesExactTemplateBodyBytes(t *testing.T) {
+func TestValidateAWSCLICommandPreservesExactTemplateBodyBytes(t *testing.T) {
 	// Distinctive whitespace and key order that a reserialization would not
 	// reproduce, so an exact match proves the original bytes are returned.
 	templateBody := []byte("{\n    \"Resources\": {\n        \"Bucket\": { \"Type\": \"AWS::S3::Bucket\" }\n    }\n}")
-	request := cfnvalidate.AWSAPIRequest{
+	request := cfnvalidate.AWSCLICommand{
 		ServiceName:   "cloudformation",
 		OperationName: "ValidateTemplate",
 		Parameters:    map[string]any{"TemplateBody": templateBody},
 	}
 
 	for name, engine := range bothEngines(t) {
-		validation, err := engine.ValidateAWSAPIRequest(request, nil)
+		validation, err := engine.ValidateAWSCLICommand(request, nil)
 		if err != nil {
-			t.Fatalf("%s: ValidateAWSAPIRequest failed: %v", name, err)
+			t.Fatalf("%s: ValidateAWSCLICommand failed: %v", name, err)
 		}
-		if validation.Status != cfnvalidate.AWSAPIRequestValidationStatusValidated {
+		if validation.Status != cfnvalidate.AWSCLICommandValidationStatusValidated {
 			t.Errorf("%s: status = %s, want VALIDATED", name, validation.Status)
 		}
-		if validation.TemplateSource == nil || *validation.TemplateSource != cfnvalidate.AWSAPITemplateSourceTemplateBody {
+		if validation.TemplateSource == nil || *validation.TemplateSource != cfnvalidate.AWSCLITemplateSourceTemplateBody {
 			t.Errorf("%s: templateSource = %v, want TEMPLATE_BODY", name, validation.TemplateSource)
 		}
 		if !bytes.Equal(validation.Template, templateBody) {
@@ -615,8 +615,8 @@ func TestValidateAWSAPIRequestPreservesExactTemplateBodyBytes(t *testing.T) {
 	}
 }
 
-func TestValidateAWSAPIRequestConservativelySkipsNestedDynamoDbFields(t *testing.T) {
-	request := cfnvalidate.AWSAPIRequest{
+func TestValidateAWSCLICommandConservativelySkipsNestedDynamoDbFields(t *testing.T) {
+	request := cfnvalidate.AWSCLICommand{
 		ServiceName:   "dynamodb",
 		OperationName: "CreateTable",
 		Parameters: map[string]any{
@@ -628,11 +628,11 @@ func TestValidateAWSAPIRequestConservativelySkipsNestedDynamoDbFields(t *testing
 	}
 
 	for name, engine := range bothEngines(t) {
-		validation, err := engine.ValidateAWSAPIRequest(request, nil)
+		validation, err := engine.ValidateAWSCLICommand(request, nil)
 		if err != nil {
-			t.Fatalf("%s: ValidateAWSAPIRequest failed: %v", name, err)
+			t.Fatalf("%s: ValidateAWSCLICommand failed: %v", name, err)
 		}
-		if validation.Status != cfnvalidate.AWSAPIRequestValidationStatusSkipped {
+		if validation.Status != cfnvalidate.AWSCLICommandValidationStatusSkipped {
 			t.Errorf("%s: status = %s, want SKIPPED for unrepresentable nested fields", name, validation.Status)
 		}
 		if validation.Report != nil {
@@ -650,36 +650,36 @@ func TestValidateAWSAPIRequestConservativelySkipsNestedDynamoDbFields(t *testing
 	}
 }
 
-func TestValidateAWSAPIRequestDoesNotGuessNoncanonicalServiceAlias(t *testing.T) {
+func TestValidateAWSCLICommandDoesNotGuessNoncanonicalServiceAlias(t *testing.T) {
 	// CloudWatch's canonical botocore service name is "cloudwatch"; "monitoring"
 	// is its signing name. The core must resolve the operation under the
 	// canonical name but never guess the signing alias.
-	canonical := cfnvalidate.AWSAPIRequest{
+	canonical := cfnvalidate.AWSCLICommand{
 		ServiceName:   "cloudwatch",
 		OperationName: "PutMetricAlarm",
 		Parameters:    map[string]any{"AlarmName": "synthetic"},
 	}
-	alias := cfnvalidate.AWSAPIRequest{
+	alias := cfnvalidate.AWSCLICommand{
 		ServiceName:   "monitoring",
 		OperationName: "PutMetricAlarm",
 		Parameters:    map[string]any{"AlarmName": "synthetic"},
 	}
 
 	for name, engine := range bothEngines(t) {
-		canonicalValidation, err := engine.ValidateAWSAPIRequest(canonical, nil)
+		canonicalValidation, err := engine.ValidateAWSCLICommand(canonical, nil)
 		if err != nil {
-			t.Fatalf("%s: canonical ValidateAWSAPIRequest failed: %v", name, err)
+			t.Fatalf("%s: canonical ValidateAWSCLICommand failed: %v", name, err)
 		}
 		if !containsString(canonicalValidation.ResourceTypes, "AWS::CloudWatch::Alarm") {
 			t.Errorf("%s: canonical cloudwatch:PutMetricAlarm must identify AWS::CloudWatch::Alarm, got %v",
 				name, canonicalValidation.ResourceTypes)
 		}
 
-		aliasValidation, err := engine.ValidateAWSAPIRequest(alias, nil)
+		aliasValidation, err := engine.ValidateAWSCLICommand(alias, nil)
 		if err != nil {
-			t.Fatalf("%s: alias ValidateAWSAPIRequest failed: %v", name, err)
+			t.Fatalf("%s: alias ValidateAWSCLICommand failed: %v", name, err)
 		}
-		if aliasValidation.Status != cfnvalidate.AWSAPIRequestValidationStatusSkipped {
+		if aliasValidation.Status != cfnvalidate.AWSCLICommandValidationStatusSkipped {
 			t.Errorf("%s: signing alias must not classify as a CloudFormation operation, status = %s", name, aliasValidation.Status)
 		}
 		if containsString(aliasValidation.ResourceTypes, "AWS::CloudWatch::Alarm") {

@@ -178,17 +178,17 @@ fn to_json<T: serde::Serialize>(value: &T) -> Result<String, ValidationError> {
     serde_json::to_string(value).map_err(|e| ValidationError::new(format!("failed to serialize result: {e}")))
 }
 
-/// Wire struct for an AWS API request received from Go as JSON.
+/// Wire struct for an AWS CLI command received from Go as JSON.
 ///
-/// Field names match the Go `AWSAPIRequest` struct's `json` tags exactly.
+/// Field names match the Go `AWSCLICommand` struct's `json` tags exactly.
 /// Unknown fields are rejected so a drifted field name surfaces as an error
 /// instead of silently ignoring the caller's intent.
 #[derive(Debug, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-struct AwsApiRequestWire {
+struct AwsCliCommandWire {
     service_name: String,
     operation_name: String,
-    parameters: HashMap<String, validation_engine::AwsApiValue>,
+    parameters: HashMap<String, validation_engine::AwsCliValue>,
     #[serde(default)]
     service_prefix: Option<String>,
     #[serde(default)]
@@ -197,13 +197,13 @@ struct AwsApiRequestWire {
     is_read_only: Option<bool>,
 }
 
-impl AwsApiRequestWire {
+impl AwsCliCommandWire {
     fn parse(json: &str) -> Result<Self, ValidationError> {
-        serde_json::from_str(json).map_err(|e| ValidationError::new(format!("invalid AWS API request JSON: {e}")))
+        serde_json::from_str(json).map_err(|e| ValidationError::new(format!("invalid AWS CLI command JSON: {e}")))
     }
 
-    fn into_context(self) -> validation_engine::AwsApiRequestContext {
-        validation_engine::AwsApiRequestContext {
+    fn into_context(self) -> validation_engine::AwsCliCommand {
+        validation_engine::AwsCliCommand {
             service_name: self.service_name,
             operation_name: self.operation_name,
             parameters: self.parameters,
@@ -332,17 +332,17 @@ macro_rules! impl_go_engine {
                 )
             }
 
-            /// Validates an AWS API request and returns the canonical result as JSON.
-            pub fn validate_aws_api_request_json(
+            /// Validates an AWS CLI command and returns the canonical result as JSON.
+            pub fn validate_aws_cli_command_json(
                 &self,
                 request_json: String,
                 options_json: String,
             ) -> Result<String, ValidationError> {
                 catch_panics(
                     || {
-                        let request = AwsApiRequestWire::parse(&request_json)?.into_context();
+                        let request = AwsCliCommandWire::parse(&request_json)?.into_context();
                         let config = ValidateOptions::parse(&options_json)?.to_core();
-                        let result = validation_engine::validate_aws_api_request(
+                        let result = validation_engine::validate_aws_cli_command(
                             &self.engine,
                             &self.schema_validator,
                             &request,
@@ -663,8 +663,8 @@ mod tests {
     }
 
     #[test]
-    fn aws_api_request_parses_valid_minimal_request() {
-        let wire = AwsApiRequestWire::parse(
+    fn aws_cli_command_parses_valid_minimal_request() {
+        let wire = AwsCliCommandWire::parse(
             r#"{"serviceName":"s3","operationName":"CreateBucket","parameters":{"Bucket":{"type":"STRING","value":"test"}}}"#,
         )
         .expect("valid minimal request must parse");
@@ -678,8 +678,8 @@ mod tests {
     }
 
     #[test]
-    fn aws_api_request_parses_nested_values_and_bytes() {
-        let wire = AwsApiRequestWire::parse(
+    fn aws_cli_command_parses_nested_values_and_bytes() {
+        let wire = AwsCliCommandWire::parse(
             r#"{
                 "serviceName": "cloudformation",
                 "operationName": "CreateStack",
@@ -704,27 +704,27 @@ mod tests {
 
         let context = wire.into_context();
         match context.parameters.get("TemplateBody") {
-            Some(validation_engine::AwsApiValue::Bytes { value }) => assert_eq!(value, &[123, 125]),
+            Some(validation_engine::AwsCliValue::Bytes { value }) => assert_eq!(value, &[123, 125]),
             other => panic!("expected Bytes, got {other:?}"),
         }
         match context.parameters.get("Count") {
-            Some(validation_engine::AwsApiValue::Integer { value }) => assert_eq!(*value, 42),
+            Some(validation_engine::AwsCliValue::Integer { value }) => assert_eq!(*value, 42),
             other => panic!("expected Integer, got {other:?}"),
         }
     }
 
     #[test]
-    fn aws_api_request_rejects_malformed_json() {
-        let error = AwsApiRequestWire::parse("not json").expect_err("malformed JSON must fail");
+    fn aws_cli_command_rejects_malformed_json() {
+        let error = AwsCliCommandWire::parse("not json").expect_err("malformed JSON must fail");
         assert!(
-            error.to_string().contains("invalid AWS API request JSON"),
+            error.to_string().contains("invalid AWS CLI command JSON"),
             "error must identify the failing input: {error}"
         );
     }
 
     #[test]
-    fn aws_api_request_rejects_unknown_fields() {
-        let error = AwsApiRequestWire::parse(
+    fn aws_cli_command_rejects_unknown_fields() {
+        let error = AwsCliCommandWire::parse(
             r#"{"serviceName":"s3","operationName":"CreateBucket","parameters":{},"unknownField":"x"}"#,
         )
         .expect_err("unknown field must fail");
@@ -732,19 +732,19 @@ mod tests {
     }
 
     #[test]
-    fn aws_api_request_rejects_missing_required_fields() {
+    fn aws_cli_command_rejects_missing_required_fields() {
         let error =
-            AwsApiRequestWire::parse(r#"{"serviceName":"s3"}"#).expect_err("missing required operationName must fail");
+            AwsCliCommandWire::parse(r#"{"serviceName":"s3"}"#).expect_err("missing required operationName must fail");
         assert!(error.to_string().contains("operationName"), "error must name the missing field: {error}");
     }
 
     #[test]
-    fn aws_api_value_unsupported_uses_type_name_field() {
+    fn aws_cli_value_unsupported_uses_type_name_field() {
         let json = r#"{"type":"UNSUPPORTED","type_name":"non-finite floating-point number"}"#;
-        let value: validation_engine::AwsApiValue =
+        let value: validation_engine::AwsCliValue =
             serde_json::from_str(json).expect("UNSUPPORTED with type_name must parse");
         match value {
-            validation_engine::AwsApiValue::Unsupported { type_name } => {
+            validation_engine::AwsCliValue::Unsupported { type_name } => {
                 assert_eq!(type_name, "non-finite floating-point number");
             }
             other => panic!("expected Unsupported, got {other:?}"),
@@ -752,12 +752,12 @@ mod tests {
     }
 
     #[test]
-    fn aws_api_value_bytes_parses_integer_array() {
+    fn aws_cli_value_bytes_parses_integer_array() {
         let json = r#"{"type":"BYTES","value":[72,101,108,108,111]}"#;
-        let value: validation_engine::AwsApiValue =
+        let value: validation_engine::AwsCliValue =
             serde_json::from_str(json).expect("BYTES with integer array must parse");
         match value {
-            validation_engine::AwsApiValue::Bytes { value } => {
+            validation_engine::AwsCliValue::Bytes { value } => {
                 assert_eq!(value, vec![72, 101, 108, 108, 111]);
             }
             other => panic!("expected Bytes, got {other:?}"),
@@ -765,12 +765,12 @@ mod tests {
     }
 
     #[test]
-    fn aws_api_value_empty_array_has_items_field() {
+    fn aws_cli_value_empty_array_has_items_field() {
         let json = r#"{"type":"ARRAY","items":[]}"#;
-        let value: validation_engine::AwsApiValue =
+        let value: validation_engine::AwsCliValue =
             serde_json::from_str(json).expect("ARRAY with empty items must parse");
         match value {
-            validation_engine::AwsApiValue::Array { items } => {
+            validation_engine::AwsCliValue::Array { items } => {
                 assert!(items.is_empty());
             }
             other => panic!("expected Array, got {other:?}"),
@@ -778,12 +778,12 @@ mod tests {
     }
 
     #[test]
-    fn aws_api_value_empty_object_has_entries_field() {
+    fn aws_cli_value_empty_object_has_entries_field() {
         let json = r#"{"type":"OBJECT","entries":{}}"#;
-        let value: validation_engine::AwsApiValue =
+        let value: validation_engine::AwsCliValue =
             serde_json::from_str(json).expect("OBJECT with empty entries must parse");
         match value {
-            validation_engine::AwsApiValue::Object { entries } => {
+            validation_engine::AwsCliValue::Object { entries } => {
                 assert!(entries.is_empty());
             }
             other => panic!("expected Object, got {other:?}"),

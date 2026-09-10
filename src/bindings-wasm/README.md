@@ -46,7 +46,7 @@ diagnostics for the same template and config.
 | Method                                    | Returns                   | Description                                                                                                      |
 |-------------------------------------------|---------------------------|------------------------------------------------------------------------------------------------------------------|
 | `validateTemplate(template, config?)`     | `ValidationReport`        | Validates and returns diagnostics. `config.detailLevel` (default `DETAILED`) sets how much per-diagnostic context is attached: `DETAILED` adds documentation URLs, rule descriptions, phase tags, and `ViolationContext`; `STANDARD` omits those enrichment fields |
-| `validateAwsApiRequest(request, config?)` | `AwsApiRequestValidation` | Classifies, models, and validates one AWS API request entirely offline                                           |
+| `validateAwsCliCommand(request, config?)` | `AwsCliCommandValidation` | Classifies, models, and validates one AWS CLI command entirely offline                                           |
 | `listRules()`                             | `RuleInfo[]`              | Returns metadata for every built-in and loaded custom rule                                                       |
 | `engineName()`                            | `string`                  | `"rego"` or `"cel"`                                                                                              |
 | `free()`                                  | `void`                    | Releases the engine's off-heap memory                                                                            |
@@ -107,20 +107,20 @@ const engine = new CelEngine({
 });
 ```
 
-## AWS API request validation
+## AWS CLI command validation
 
-`validateAwsApiRequest` classifies and validates an AWS API request against the same bundled CloudFormation schemas and
+`validateAwsCliCommand` classifies and validates an AWS CLI command against the same bundled CloudFormation schemas and
 rules, without credentials or network access:
 
 ```typescript
-import { AwsApiRequest, RegoEngine } from "@aws/cloudformation-validate";
+import { AwsCliCommand, RegoEngine } from "@aws/cloudformation-validate";
 
 const engine = new RegoEngine();
 try {
-    const request = new AwsApiRequest("s3", "CreateBucket", {
+    const request = new AwsCliCommand("s3", "CreateBucket", {
         Bucket: "my-bucket",
     });
-    const validation = engine.validateAwsApiRequest(request);
+    const validation = engine.validateAwsCliCommand(request);
     console.log(validation.status, validation.resourceTypes);
     if (validation.template !== null) {
         console.log(Buffer.from(validation.template).toString("utf8"));
@@ -141,7 +141,7 @@ arrays and plain objects, and `Uint8Array` (including Node.js `Buffer`) for byte
 explicitly rather than coerced. Synthesis is all-or-nothing: if any supplied resource-state field cannot be represented
 or has no proven mapping, the result is `SKIPPED` with no report or template.
 
-`AwsApiRequestValidation.template` is a `Uint8Array | null`. For CloudFormation `TemplateBody`, it contains the exact
+`AwsCliCommandValidation.template` is a `Uint8Array | null`. For CloudFormation `TemplateBody`, it contains the exact
 caller-provided bytes; synthesized requests contain the generated JSON template bytes. A `VALIDATED` result includes a
 standard report, while a `SKIPPED` result explains why validation was not attempted.
 

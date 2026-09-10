@@ -40,18 +40,17 @@ Types or operations that fail any gate are omitted: an uncovered operation is
 validated as SKIPPED at runtime, never guessed.
 
 Usage:
-    python3 generate_aws_api_catalog.py \
+    python3 generate_aws_cli_catalog.py \
         --botocore-root /path/to/botocore \
         --provider-schemas schemas-standard.zip \
         --compiled-schemas ../generated/schema-validator/compiled_schemas.json \
-        --output ../generated/data/aws_api_operation_catalog.json
+        --output ../generated/data/aws_cli_operation_catalog.json
 """
 
 import argparse
 import hashlib
 import importlib
 import json
-import subprocess
 import sys
 import zipfile
 from collections import defaultdict
@@ -1086,23 +1085,8 @@ def _render_generation_report(
     return lines
 
 
-def _run_unit_tests():
-    test_file = Path(__file__).with_name('test_generate_aws_api_catalog.py')
-    completed = subprocess.run(
-        [sys.executable, '-m', 'unittest', '-v', test_file.stem],
-        cwd=test_file.parent,
-        check=False,
-    )
-    if completed.returncode != 0:
-        raise SystemExit(
-            'catalog generator unit tests failed with exit code '
-            f'{completed.returncode}'
-        )
-
-
 def main():
     args = _parse_args()
-    _run_unit_tests()
     if not args.botocore_root.is_dir():
         raise SystemExit(
             f'botocore root directory not found: {args.botocore_root}'

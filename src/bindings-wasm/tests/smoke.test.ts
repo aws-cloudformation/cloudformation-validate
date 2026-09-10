@@ -6,7 +6,7 @@ import * as path from 'path';
 const {
     RegoEngine,
     CelEngine,
-    AwsApiRequest,
+    AwsCliCommand,
     SchemaValidator,
     SchemaFile,
     TemplateModel,
@@ -270,9 +270,9 @@ describe('invalid input', () => {
     });
 });
 
-// ── AWS API request validation ──────────────────────────────────────────────
+// ── AWS CLI command validation ──────────────────────────────────────────────
 
-describe('AWS API request validation', () => {
+describe('AWS CLI command validation', () => {
     const engines = [
         ['rego', REGO],
         ['cel', CEL],
@@ -286,11 +286,11 @@ describe('AWS API request validation', () => {
     }
 
     it('synthesizes canonical S3 CreateBucket state on both engines', () => {
-        const request = new AwsApiRequest('s3', 'CreateBucket', { Bucket: 'synthetic-bucket' });
+        const request = new AwsCliCommand('s3', 'CreateBucket', { Bucket: 'synthetic-bucket' });
         const validations: Record<string, any> = {};
 
         for (const [name, engine] of engines) {
-            const validation = engine.validateAwsApiRequest(request);
+            const validation = engine.validateAwsCliCommand(request);
             expect(validation.status, name).toBe('VALIDATED');
             expect(validation.operationKind, name).toBe('CLOUD_FORMATION_CREATE');
             expect(validation.resourceTypes, name).toEqual(['AWS::S3::Bucket']);
@@ -311,12 +311,12 @@ describe('AWS API request validation', () => {
         const templateBody = Buffer.from(
             '{\n    "Resources": {\n        "Bucket": { "Type": "AWS::S3::Bucket" }\n    }\n}',
         );
-        const request = new AwsApiRequest('cloudformation', 'ValidateTemplate', {
+        const request = new AwsCliCommand('cloudformation', 'ValidateTemplate', {
             TemplateBody: templateBody,
         });
 
         for (const [name, engine] of engines) {
-            const validation = engine.validateAwsApiRequest(request);
+            const validation = engine.validateAwsCliCommand(request);
             expect(validation.status, name).toBe('VALIDATED');
             expect(validation.templateSource, name).toBe('TEMPLATE_BODY');
             expect(validation.template, name).toBeInstanceOf(Uint8Array);
@@ -325,7 +325,7 @@ describe('AWS API request validation', () => {
     });
 
     it('conservatively skips unmapped nested DynamoDB state on both engines', () => {
-        const request = new AwsApiRequest('dynamodb', 'CreateTable', {
+        const request = new AwsCliCommand('dynamodb', 'CreateTable', {
             TableName: 'Synthetic',
             KeySchema: [{ AttributeName: 'id', KeyType: 'HASH' }],
             AttributeDefinitions: [{ AttributeName: 'id', AttributeType: 'S' }],
@@ -333,7 +333,7 @@ describe('AWS API request validation', () => {
         });
 
         for (const [name, engine] of engines) {
-            const validation = engine.validateAwsApiRequest(request);
+            const validation = engine.validateAwsCliCommand(request);
             expect(validation.status, name).toBe('SKIPPED');
             expect(validation.report, name).toBeNull();
             expect(validation.template, name).toBeNull();
@@ -343,17 +343,17 @@ describe('AWS API request validation', () => {
     });
 
     it('never guesses the noncanonical CloudWatch signing alias', () => {
-        const canonical = new AwsApiRequest('cloudwatch', 'PutMetricAlarm', {
+        const canonical = new AwsCliCommand('cloudwatch', 'PutMetricAlarm', {
             AlarmName: 'synthetic',
         });
-        const alias = new AwsApiRequest('monitoring', 'PutMetricAlarm', {
+        const alias = new AwsCliCommand('monitoring', 'PutMetricAlarm', {
             AlarmName: 'synthetic',
         });
 
         for (const [name, engine] of engines) {
-            const canonicalValidation = engine.validateAwsApiRequest(canonical);
+            const canonicalValidation = engine.validateAwsCliCommand(canonical);
             expect(canonicalValidation.resourceTypes, name).toContain('AWS::CloudWatch::Alarm');
-            const aliasValidation = engine.validateAwsApiRequest(alias);
+            const aliasValidation = engine.validateAwsCliCommand(alias);
             expect(aliasValidation.status, name).toBe('SKIPPED');
             expect(aliasValidation.resourceTypes, name).not.toContain('AWS::CloudWatch::Alarm');
             expect(aliasValidation.template, name).toBeNull();
@@ -361,13 +361,13 @@ describe('AWS API request validation', () => {
     });
 
     it('preserves signed and unsigned 64-bit bigint values across the WASM boundary', () => {
-        const request = new AwsApiRequest('lambda', 'CreateFunction', {
+        const request = new AwsCliCommand('lambda', 'CreateFunction', {
             MemorySize: 18446744073709551615n,
             Timeout: -9223372036854775808n,
         });
 
         for (const [name, engine] of engines) {
-            const validation = engine.validateAwsApiRequest(request);
+            const validation = engine.validateAwsCliCommand(request);
             expect(validation.status, name).toBe('VALIDATED');
             expect(validation.template, name).toBeInstanceOf(Uint8Array);
             const template = Buffer.from(validation.template).toString('utf8');
@@ -377,12 +377,12 @@ describe('AWS API request validation', () => {
     });
 
     it('marks unsupported request values conservatively instead of coercing them', () => {
-        const request = new AwsApiRequest('s3', 'CreateBucket', {
+        const request = new AwsCliCommand('s3', 'CreateBucket', {
             Bucket: Symbol('not-a-bucket-name'),
         });
 
         for (const [name, engine] of engines) {
-            const validation = engine.validateAwsApiRequest(request);
+            const validation = engine.validateAwsCliCommand(request);
             expect(validation.status, name).toBe('SKIPPED');
             expect(validation.report, name).toBeNull();
             expect(validation.template, name).toBeNull();
@@ -399,10 +399,10 @@ describe('AWS API request validation', () => {
                 throw new Error('request accessors must not run');
             },
         });
-        const request = new AwsApiRequest('s3', 'CreateBucket', { Bucket: state });
+        const request = new AwsCliCommand('s3', 'CreateBucket', { Bucket: state });
 
         for (const [name, engine] of engines) {
-            const validation = engine.validateAwsApiRequest(request);
+            const validation = engine.validateAwsCliCommand(request);
             expect(validation.status, name).toBe('SKIPPED');
             expect(validation.template, name).toBeNull();
         }
@@ -419,10 +419,10 @@ describe('AWS API request validation', () => {
                 throw new Error('request accessors must not run');
             },
         });
-        const request = new AwsApiRequest('s3', 'CreateBucket', { Bucket: state });
+        const request = new AwsCliCommand('s3', 'CreateBucket', { Bucket: state });
 
         for (const [name, engine] of engines) {
-            const validation = engine.validateAwsApiRequest(request);
+            const validation = engine.validateAwsCliCommand(request);
             expect(validation.status, name).toBe('SKIPPED');
             expect(validation.template, name).toBeNull();
         }
@@ -432,10 +432,10 @@ describe('AWS API request validation', () => {
     it('skips cyclic request state conservatively', () => {
         const state: Record<string, unknown> = Object.create(null);
         state.cycle = state;
-        const request = new AwsApiRequest('s3', 'CreateBucket', { Bucket: state });
+        const request = new AwsCliCommand('s3', 'CreateBucket', { Bucket: state });
 
         for (const [name, engine] of engines) {
-            const validation = engine.validateAwsApiRequest(request);
+            const validation = engine.validateAwsCliCommand(request);
             expect(validation.status, name).toBe('SKIPPED');
             expect(validation.template, name).toBeNull();
         }
@@ -472,16 +472,16 @@ describe('AWS API request validation', () => {
             },
         });
 
-        const dateRequest = new AwsApiRequest('s3', 'CreateBucket', { Bucket: date });
-        const bytesRequest = new AwsApiRequest('cloudformation', 'ValidateTemplate', {
+        const dateRequest = new AwsCliCommand('s3', 'CreateBucket', { Bucket: date });
+        const bytesRequest = new AwsCliCommand('cloudformation', 'ValidateTemplate', {
             TemplateBody: templateBody,
         });
         for (const [name, engine] of engines) {
-            const dateValidation = engine.validateAwsApiRequest(dateRequest);
+            const dateValidation = engine.validateAwsCliCommand(dateRequest);
             expect(dateValidation.status, name).toBe('VALIDATED');
             expect(Buffer.from(dateValidation.template).toString('utf8'), name).toContain('2024-01-02T03:04:05.000Z');
 
-            const bytesValidation = engine.validateAwsApiRequest(bytesRequest);
+            const bytesValidation = engine.validateAwsCliCommand(bytesRequest);
             expect(bytesValidation.status, name).toBe('VALIDATED');
             expect(Buffer.from(bytesValidation.template), name).toEqual(expectedTemplateBody);
         }
@@ -489,13 +489,13 @@ describe('AWS API request validation', () => {
     });
 
     it('rejects invalid top-level parameter dictionaries without dropping keys', () => {
-        expect(() => new AwsApiRequest('s3', 'CreateBucket', [] as unknown as Record<string, unknown>)).toThrow(
+        expect(() => new AwsCliCommand('s3', 'CreateBucket', [] as unknown as Record<string, unknown>)).toThrow(
             'parameters must be a plain object',
         );
 
         const symbolParameters: Record<PropertyKey, unknown> = Object.create(null);
         symbolParameters[Symbol('Bucket')] = 'synthetic-bucket';
-        expect(() => new AwsApiRequest('s3', 'CreateBucket', symbolParameters as Record<string, unknown>)).toThrow(
+        expect(() => new AwsCliCommand('s3', 'CreateBucket', symbolParameters as Record<string, unknown>)).toThrow(
             'request parameter names must be strings',
         );
     });

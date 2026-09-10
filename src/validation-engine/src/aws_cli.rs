@@ -7,7 +7,7 @@ use std::sync::LazyLock;
 
 use crate::{ValidateConfig, ValidationEngine, ValidationError, validate_bytes_with_path};
 
-/// A recursively typed value from an AWS API request.
+/// A recursively typed value from an AWS CLI command.
 ///
 /// Unlike JSON, this model preserves byte strings such as CloudFormation's
 /// `TemplateBody`. `Unsupported` lets language bindings carry an explicit marker
@@ -15,7 +15,7 @@ use crate::{ValidateConfig, ValidationEngine, ValidationError, validate_bytes_wi
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Enum))]
 #[serde(tag = "type", rename_all = "SCREAMING_SNAKE_CASE")]
-pub enum AwsApiValue {
+pub enum AwsCliValue {
     Null,
     Boolean { value: bool },
     Integer { value: i64 },
@@ -23,12 +23,12 @@ pub enum AwsApiValue {
     Number { value: f64 },
     String { value: String },
     Bytes { value: Vec<u8> },
-    Array { items: Vec<AwsApiValue> },
-    Object { entries: HashMap<String, AwsApiValue> },
+    Array { items: Vec<AwsCliValue> },
+    Object { entries: HashMap<String, AwsCliValue> },
     Unsupported { type_name: String },
 }
 
-impl AwsApiValue {
+impl AwsCliValue {
     /// Converts a JSON value without losing integer width.
     pub fn from_json(value: serde_json::Value) -> Self {
         match value {
@@ -84,21 +84,21 @@ impl AwsApiValue {
     }
 }
 
-impl From<serde_json::Value> for AwsApiValue {
+impl From<serde_json::Value> for AwsCliValue {
     fn from(value: serde_json::Value) -> Self {
         Self::from_json(value)
     }
 }
 
-/// AWS service, operation, and input values needed to model one API request as
-/// CloudFormation resource state.
+/// AWS service, operation, and input values needed to model one AWS CLI command
+/// as CloudFormation resource state.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Record))]
 #[serde(rename_all = "camelCase")]
-pub struct AwsApiRequestContext {
+pub struct AwsCliCommandContext {
     pub service_name: String,
     pub operation_name: String,
-    pub parameters: HashMap<String, AwsApiValue>,
+    pub parameters: HashMap<String, AwsCliValue>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub service_prefix: Option<String>,
@@ -110,14 +110,17 @@ pub struct AwsApiRequestContext {
     pub is_read_only: Option<bool>,
 }
 
-/// Idiomatic Rust name for the AWS API request context record.
-pub type AwsApiRequest = AwsApiRequestContext;
+/// Idiomatic Rust name for the AWS CLI command record. The `Context`-suffixed
+/// struct is the name UniFFI exports to the language bindings, which keeps the
+/// generated native record distinct from each binding's friendly `AwsCliCommand`
+/// wrapper so wildcard imports never collide.
+pub type AwsCliCommand = AwsCliCommandContext;
 
-impl AwsApiRequestContext {
+impl AwsCliCommandContext {
     pub fn new(
         service_name: impl Into<String>,
         operation_name: impl Into<String>,
-        parameters: impl IntoIterator<Item = (String, AwsApiValue)>,
+        parameters: impl IntoIterator<Item = (String, AwsCliValue)>,
     ) -> Self {
         Self {
             service_name: service_name.into(),
@@ -145,7 +148,7 @@ impl AwsApiRequestContext {
     }
 
     fn default_file_path(&self) -> String {
-        format!("aws-api://{}/{}", self.service_name, self.operation_name)
+        format!("aws-cli://{}/{}", self.service_name, self.operation_name)
     }
 }
 
@@ -153,7 +156,7 @@ impl AwsApiRequestContext {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Enum))]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-pub enum AwsApiOperationKind {
+pub enum AwsCliOperationKind {
     ReadOnly,
     CloudFormationCreate,
     CloudFormationUpdate,
@@ -166,35 +169,35 @@ pub enum AwsApiOperationKind {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Enum))]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-pub enum AwsApiRequestValidationStatus {
+pub enum AwsCliCommandValidationStatus {
     Validated,
     Skipped,
 }
 
-/// Provenance of the template validated for an AWS API request.
+/// Provenance of the template validated for an AWS CLI command.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Enum))]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-pub enum AwsApiTemplateSource {
+pub enum AwsCliTemplateSource {
     TemplateBody,
     CloudControlDesiredState,
     SynthesizedCreate,
     SynthesizedUpdate,
 }
 
-/// Canonical result for AWS API request validation.
+/// Canonical result for AWS CLI command validation.
 ///
 /// The report is projected at the `STANDARD` detail level — detailed enrichment
-/// is not meaningful for synthesized API-request templates because there is no
+/// is not meaningful for synthesized command templates because there is no
 /// user-authored source to annotate with context.
 #[derive(Debug, Clone, Serialize)]
 #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Record))]
 #[serde(rename_all = "camelCase")]
 #[must_use]
-pub struct AwsApiRequestValidation {
-    pub operation_kind: AwsApiOperationKind,
-    pub status: AwsApiRequestValidationStatus,
-    pub template_source: Option<AwsApiTemplateSource>,
+pub struct AwsCliCommandValidation {
+    pub operation_kind: AwsCliOperationKind,
+    pub status: AwsCliCommandValidationStatus,
+    pub template_source: Option<AwsCliTemplateSource>,
     pub resource_types: Vec<String>,
     pub reason: String,
     pub report: Option<output::ValidationReport>,
@@ -208,31 +211,31 @@ pub struct AwsApiRequestValidation {
     pub template: Option<Vec<u8>>,
 }
 
-/// Classifies, models, and validates one AWS API request entirely offline.
-pub fn validate_aws_api_request(
+/// Classifies, models, and validates one AWS CLI command entirely offline.
+pub fn validate_aws_cli_command(
     engine: &dyn ValidationEngine,
     schema_validator: &SchemaValidator,
-    request: &AwsApiRequest,
+    request: &AwsCliCommand,
     config: ValidateConfig,
-) -> Result<AwsApiRequestValidation, ValidationError> {
-    validate_aws_api_request_with_path(engine, schema_validator, request, config, request.default_file_path())
+) -> Result<AwsCliCommandValidation, ValidationError> {
+    validate_aws_cli_command_with_path(engine, schema_validator, request, config, request.default_file_path())
 }
 
-/// Same as [`validate_aws_api_request`], with an explicit report path supplied
+/// Same as [`validate_aws_cli_command`], with an explicit report path supplied
 /// by the embedding application.
-pub fn validate_aws_api_request_with_path(
+pub fn validate_aws_cli_command_with_path(
     engine: &dyn ValidationEngine,
     schema_validator: &SchemaValidator,
-    request: &AwsApiRequest,
+    request: &AwsCliCommand,
     config: ValidateConfig,
     file_path: String,
-) -> Result<AwsApiRequestValidation, ValidationError> {
+) -> Result<AwsCliCommandValidation, ValidationError> {
     let classification = classify_operation(request, schema_validator)?;
     let synthesis = synthesize_request(request, &classification, schema_validator)?;
     let Some(template) = synthesis.template else {
-        return Ok(AwsApiRequestValidation {
+        return Ok(AwsCliCommandValidation {
             operation_kind: classification.kind,
-            status: AwsApiRequestValidationStatus::Skipped,
+            status: AwsCliCommandValidationStatus::Skipped,
             template_source: None,
             resource_types: synthesis.resource_types,
             reason: synthesis.reason,
@@ -242,15 +245,15 @@ pub fn validate_aws_api_request_with_path(
     };
 
     // Force standard detail level — detailed enrichment is not meaningful for
-    // synthesized API-request templates (no user-authored source to annotate).
+    // synthesized command templates (no user-authored source to annotate).
     let standard_config = ValidateConfig { detail_level: DetailLevel::Standard, ..config };
     let mut report = validate_bytes_with_path(engine, schema_validator, &template, standard_config, file_path)?;
     if let Some(properties) = synthesis.diagnostic_properties.as_ref() {
         scope_synthesized_report(&mut report, properties);
     }
-    Ok(AwsApiRequestValidation {
+    Ok(AwsCliCommandValidation {
         operation_kind: classification.kind,
-        status: AwsApiRequestValidationStatus::Validated,
+        status: AwsCliCommandValidationStatus::Validated,
         template_source: synthesis.source,
         resource_types: synthesis.resource_types,
         reason: synthesis.reason,
@@ -293,33 +296,19 @@ struct OperationCatalog {
 // These entries exposed dependent or ambiguous provider permissions in an
 // older generated artifact. Filtering them here keeps shipped catalogs
 // conservative while the maintenance pipeline catches up.
-const REJECTED_CATALOG_OPERATIONS: &[(&str, &str)] = &[
-    ("acm", "RemoveTagsFromCertificate"),
-    ("logs", "StartQuery"),
-    ("quicksight", "CreateTopic"),
-    ("quicksight", "DeleteTopic"),
-    ("robomaker", "DeregisterRobot"),
-];
-
-fn is_rejected_catalog_operation(service: &str, operation: &str) -> bool {
-    REJECTED_CATALOG_OPERATIONS.iter().any(|(candidate_service, candidate_operation)| {
-        *candidate_service == service && *candidate_operation == operation
-    })
-}
-
-/// Generated by `data-source/scripts/generate_aws_api_catalog.py`: each entry is
+/// Generated by `data-source/scripts/generate_aws_cli_catalog.py`: each entry is
 /// derived from the resource type's own provider handler metadata, resolved
 /// against botocore service models, and structurally verified against the
 /// compiled CloudFormation schemas. Only exact service+operation keys resolve;
 /// unregistered operations stay unmapped.
 static ADAPTER_REGISTRY: LazyLock<Result<HashMap<(String, String), OperationAdapter>, String>> =
-    LazyLock::new(|| parse_adapter_registry(&data_source::embedded::AWS_API_OPERATION_CATALOG_BYTES));
+    LazyLock::new(|| parse_adapter_registry(&data_source::embedded::AWS_CLI_OPERATION_CATALOG_BYTES));
 
 fn parse_adapter_registry(bytes: &[u8]) -> Result<HashMap<(String, String), OperationAdapter>, String> {
     let catalog: OperationCatalog = serde_json::from_slice(bytes)
-        .map_err(|error| format!("embedded AWS API operation catalog is invalid: {error}"))?;
+        .map_err(|error| format!("embedded AWS CLI operation catalog is invalid: {error}"))?;
     if catalog.format_version != 1 {
-        return Err(format!("unsupported AWS API operation catalog format {}", catalog.format_version));
+        return Err(format!("unsupported AWS CLI operation catalog format {}", catalog.format_version));
     }
     let mut registry = HashMap::new();
     for adapter in catalog.adapters {
@@ -327,14 +316,11 @@ fn parse_adapter_registry(bytes: &[u8]) -> Result<HashMap<(String, String), Oper
             || adapter.operation.trim().is_empty()
             || adapter.cfn_type.trim().is_empty()
         {
-            return Err("AWS API operation catalog identities must not be blank".into());
+            return Err("AWS CLI operation catalog identities must not be blank".into());
         }
         let key = (normalize_service(&adapter.service), adapter.operation.clone());
-        if is_rejected_catalog_operation(&key.0, &key.1) {
-            continue;
-        }
         if let Some(previous) = registry.insert(key, adapter) {
-            return Err(format!("duplicate AWS API operation catalog key {}:{}", previous.service, previous.operation));
+            return Err(format!("duplicate AWS CLI operation catalog key {}:{}", previous.service, previous.operation));
         }
     }
     Ok(registry)
@@ -373,14 +359,14 @@ fn is_template_body_operation(service: &str, operation: &str) -> bool {
     TEMPLATE_BODY_OPERATIONS.iter().any(|(s, o)| normalize_service(s) == normalized && *o == operation)
 }
 
-fn template_body_operation_kind(service: &str, operation: &str) -> Option<AwsApiOperationKind> {
+fn template_body_operation_kind(service: &str, operation: &str) -> Option<AwsCliOperationKind> {
     if normalize_service(service) != "cloudformation" {
         return None;
     }
     match operation {
-        "CreateChangeSet" | "CreateStack" | "CreateStackSet" => Some(AwsApiOperationKind::CloudFormationCreate),
-        "UpdateStack" | "UpdateStackSet" => Some(AwsApiOperationKind::CloudFormationUpdate),
-        "EstimateTemplateCost" | "GetTemplateSummary" | "ValidateTemplate" => Some(AwsApiOperationKind::ReadOnly),
+        "CreateChangeSet" | "CreateStack" | "CreateStackSet" => Some(AwsCliOperationKind::CloudFormationCreate),
+        "UpdateStack" | "UpdateStackSet" => Some(AwsCliOperationKind::CloudFormationUpdate),
+        "EstimateTemplateCost" | "GetTemplateSummary" | "ValidateTemplate" => Some(AwsCliOperationKind::ReadOnly),
         _ => None,
     }
 }
@@ -400,7 +386,7 @@ enum OperationPhase {
 
 #[derive(Debug, Clone)]
 struct Classification {
-    kind: AwsApiOperationKind,
+    kind: AwsCliOperationKind,
     candidates: Vec<String>,
 }
 
@@ -472,7 +458,7 @@ const DATA_PLANE_VERBS: &[&str] = &[
 const MODIFIER_PREFIXES: &[&str] = &["Admin", "Batch", "Bulk", "Transact"];
 
 fn classify_operation(
-    request: &AwsApiRequest,
+    request: &AwsCliCommand,
     schema_validator: &SchemaValidator,
 ) -> Result<Classification, ValidationError> {
     if let Some(kind) = template_body_operation_kind(&request.service_name, &request.operation_name) {
@@ -481,14 +467,14 @@ fn classify_operation(
 
     // The modeled read-only trait is authoritative even over a registered adapter.
     if request.is_read_only == Some(true) {
-        return Ok(Classification { kind: AwsApiOperationKind::ReadOnly, candidates: Vec::new() });
+        return Ok(Classification { kind: AwsCliOperationKind::ReadOnly, candidates: Vec::new() });
     }
 
     if let Some(adapter) = lookup_adapter(&request.service_name, &request.operation_name)? {
         let kind = match adapter.phase {
-            AdapterPhase::Create => AwsApiOperationKind::CloudFormationCreate,
-            AdapterPhase::Update => AwsApiOperationKind::CloudFormationUpdate,
-            AdapterPhase::Delete => AwsApiOperationKind::CloudFormationDelete,
+            AdapterPhase::Create => AwsCliOperationKind::CloudFormationCreate,
+            AdapterPhase::Update => AwsCliOperationKind::CloudFormationUpdate,
+            AdapterPhase::Delete => AwsCliOperationKind::CloudFormationDelete,
         };
         return Ok(Classification { kind, candidates: vec![adapter.cfn_type.clone()] });
     }
@@ -498,10 +484,10 @@ fn classify_operation(
     let phase = operation_phase(request, verb);
 
     if phase == OperationPhase::Read {
-        return Ok(Classification { kind: AwsApiOperationKind::ReadOnly, candidates: Vec::new() });
+        return Ok(Classification { kind: AwsCliOperationKind::ReadOnly, candidates: Vec::new() });
     }
     if phase == OperationPhase::Data {
-        return Ok(Classification { kind: AwsApiOperationKind::DataPlaneMutation, candidates: Vec::new() });
+        return Ok(Classification { kind: AwsCliOperationKind::DataPlaneMutation, candidates: Vec::new() });
     }
 
     if is_cloud_control_service(&request.service_name) {
@@ -509,9 +495,9 @@ fn classify_operation(
             matches!(request.operation_name.as_str(), "CreateResource" | "UpdateResource" | "DeleteResource");
         if is_resource_op && let Some(type_name) = explicit_valid_type_name(request, schema_validator) {
             let kind = match request.operation_name.as_str() {
-                "CreateResource" => AwsApiOperationKind::CloudFormationCreate,
-                "DeleteResource" => AwsApiOperationKind::CloudFormationDelete,
-                _ => AwsApiOperationKind::UnmappedMutation,
+                "CreateResource" => AwsCliOperationKind::CloudFormationCreate,
+                "DeleteResource" => AwsCliOperationKind::CloudFormationDelete,
+                _ => AwsCliOperationKind::UnmappedMutation,
             };
             return Ok(Classification { kind, candidates: vec![type_name] });
         }
@@ -519,9 +505,9 @@ fn classify_operation(
 
     // Unknown mutation: classify by verb family but never assign resource types.
     let kind = if DATA_PLANE_IF_UNMAPPED_VERBS.contains(&verb) {
-        AwsApiOperationKind::DataPlaneMutation
+        AwsCliOperationKind::DataPlaneMutation
     } else {
-        AwsApiOperationKind::UnmappedMutation
+        AwsCliOperationKind::UnmappedMutation
     };
     Ok(Classification { kind, candidates: Vec::new() })
 }
@@ -529,7 +515,7 @@ fn classify_operation(
 const DATA_PLANE_IF_UNMAPPED_VERBS: &[&str] =
     &["Execute", "Invoke", "Post", "Publish", "Put", "Send", "Upload", "Write"];
 
-fn operation_phase(request: &AwsApiRequest, verb: &str) -> OperationPhase {
+fn operation_phase(request: &AwsCliCommand, verb: &str) -> OperationPhase {
     if request.is_read_only == Some(true) || READ_VERBS.contains(&verb) {
         return OperationPhase::Read;
     }
@@ -694,15 +680,15 @@ fn effective_verb(words: &[String]) -> &str {
     }
 }
 
-fn explicit_valid_type_name(request: &AwsApiRequest, schema_validator: &SchemaValidator) -> Option<String> {
+fn explicit_valid_type_name(request: &AwsCliCommand, schema_validator: &SchemaValidator) -> Option<String> {
     match request.parameters.get("TypeName") {
-        Some(AwsApiValue::String { value }) if schema_validator.has_resource_type(value) => Some(value.clone()),
+        Some(AwsCliValue::String { value }) if schema_validator.has_resource_type(value) => Some(value.clone()),
         _ => None,
     }
 }
 struct Synthesis {
     template: Option<Vec<u8>>,
-    source: Option<AwsApiTemplateSource>,
+    source: Option<AwsCliTemplateSource>,
     reason: String,
     resource_types: Vec<String>,
     diagnostic_properties: Option<BTreeSet<String>>,
@@ -715,7 +701,7 @@ impl Synthesis {
 }
 
 fn synthesize_request(
-    request: &AwsApiRequest,
+    request: &AwsCliCommand,
     classification: &Classification,
     schema_validator: &SchemaValidator,
 ) -> Result<Synthesis, ValidationError> {
@@ -725,7 +711,7 @@ fn synthesize_request(
         if let Some(template) = template_body_bytes(request.parameters.get("TemplateBody")) {
             return Ok(Synthesis {
                 template: Some(template),
-                source: Some(AwsApiTemplateSource::TemplateBody),
+                source: Some(AwsCliTemplateSource::TemplateBody),
                 reason: "using exact request TemplateBody".into(),
                 resource_types: Vec::new(),
                 diagnostic_properties: None,
@@ -736,7 +722,7 @@ fn synthesize_request(
         }
     }
 
-    if classification.kind == AwsApiOperationKind::ReadOnly {
+    if classification.kind == AwsCliOperationKind::ReadOnly {
         return Ok(Synthesis::skipped("read-only calls do not need validation", Vec::new()));
     }
 
@@ -760,19 +746,19 @@ fn synthesize_request(
     adapter_template(request, classification, schema_validator)
 }
 
-fn template_body_bytes(value: Option<&AwsApiValue>) -> Option<Vec<u8>> {
+fn template_body_bytes(value: Option<&AwsCliValue>) -> Option<Vec<u8>> {
     match value {
-        Some(AwsApiValue::Bytes { value }) if !value.is_empty() => Some(value.clone()),
-        Some(AwsApiValue::String { value }) if !value.is_empty() => Some(value.as_bytes().to_vec()),
+        Some(AwsCliValue::Bytes { value }) if !value.is_empty() => Some(value.clone()),
+        Some(AwsCliValue::String { value }) if !value.is_empty() => Some(value.as_bytes().to_vec()),
         _ => None,
     }
 }
 
 fn desired_state_template(
-    request: &AwsApiRequest,
+    request: &AwsCliCommand,
     schema_validator: &SchemaValidator,
 ) -> Result<Synthesis, ValidationError> {
-    let Some(AwsApiValue::String { value: type_name }) = request.parameters.get("TypeName") else {
+    let Some(AwsCliValue::String { value: type_name }) = request.parameters.get("TypeName") else {
         return Ok(Synthesis::skipped("DesiredState has no known CloudFormation TypeName", Vec::new()));
     };
     if !schema_validator.has_resource_type(type_name) {
@@ -782,8 +768,8 @@ fn desired_state_template(
         return Ok(Synthesis::skipped("DesiredState is missing", vec![type_name.clone()]));
     };
     let properties = match desired_state {
-        AwsApiValue::String { value } if !value.is_empty() => serde_json::from_str(value),
-        AwsApiValue::Bytes { value } if !value.is_empty() => serde_json::from_slice(value),
+        AwsCliValue::String { value } if !value.is_empty() => serde_json::from_str(value),
+        AwsCliValue::Bytes { value } if !value.is_empty() => serde_json::from_slice(value),
         _ => return Ok(Synthesis::skipped("DesiredState is missing", vec![type_name.clone()])),
     };
     let properties: serde_json::Value = match properties {
@@ -795,7 +781,7 @@ fn desired_state_template(
     };
     Ok(Synthesis {
         template: Some(resource_template(type_name, properties)?),
-        source: Some(AwsApiTemplateSource::CloudControlDesiredState),
+        source: Some(AwsCliTemplateSource::CloudControlDesiredState),
         reason: "wrapped exact Cloud Control desired state".into(),
         resource_types: vec![type_name.clone()],
         diagnostic_properties: None,
@@ -803,13 +789,13 @@ fn desired_state_template(
 }
 
 fn adapter_template(
-    request: &AwsApiRequest,
+    request: &AwsCliCommand,
     classification: &Classification,
     schema_validator: &SchemaValidator,
 ) -> Result<Synthesis, ValidationError> {
     if !matches!(
         classification.kind,
-        AwsApiOperationKind::CloudFormationCreate | AwsApiOperationKind::CloudFormationUpdate
+        AwsCliOperationKind::CloudFormationCreate | AwsCliOperationKind::CloudFormationUpdate
     ) {
         return Ok(Synthesis::skipped(
             "classification has no representable resource state",
@@ -849,9 +835,9 @@ fn adapter_template(
 
     let diagnostic_properties = Some(properties.keys().cloned().collect::<BTreeSet<_>>());
     let source = if adapter.phase == AdapterPhase::Update {
-        AwsApiTemplateSource::SynthesizedUpdate
+        AwsCliTemplateSource::SynthesizedUpdate
     } else {
-        AwsApiTemplateSource::SynthesizedCreate
+        AwsCliTemplateSource::SynthesizedCreate
     };
     let reason = if adapter.phase == AdapterPhase::Update {
         "synthesized explicitly updated CloudFormation properties"
@@ -875,7 +861,7 @@ enum AdapterMappingResult {
 }
 
 fn map_adapter_properties(
-    parameters: &HashMap<String, AwsApiValue>,
+    parameters: &HashMap<String, AwsCliValue>,
     schema: &ResourceSchemaMetadata,
     adapter: &OperationAdapter,
 ) -> Result<AdapterMappingResult, ValidationError> {
@@ -971,7 +957,7 @@ fn resource_template(
 }
 
 fn mapped_value(
-    value: &AwsApiValue,
+    value: &AwsCliValue,
     accepted_types: &BTreeSet<PropertyValueType>,
     property_name: &str,
 ) -> Option<serde_json::Value> {
@@ -979,15 +965,15 @@ fn mapped_value(
     // Key/Value object arrays for the same resource state.
     if property_name == "Tags"
         && accepts_type(accepted_types, PropertyValueType::Array)
-        && let AwsApiValue::Object { entries } = value
-        && entries.values().all(|value| matches!(value, AwsApiValue::String { .. }))
+        && let AwsCliValue::Object { entries } = value
+        && entries.values().all(|value| matches!(value, AwsCliValue::String { .. }))
     {
-        let mut tags: Vec<(&String, &AwsApiValue)> = entries.iter().collect();
+        let mut tags: Vec<(&String, &AwsCliValue)> = entries.iter().collect();
         tags.sort_by_key(|(key, _)| key.as_str());
         return Some(serde_json::Value::Array(
             tags.into_iter()
                 .filter_map(|(key, value)| match value {
-                    AwsApiValue::String { value } => Some(serde_json::json!({"Key": key, "Value": value})),
+                    AwsCliValue::String { value } => Some(serde_json::json!({"Key": key, "Value": value})),
                     _ => None,
                 })
                 .collect(),
@@ -1003,31 +989,31 @@ fn accepts_type(types: &BTreeSet<PropertyValueType>, expected: PropertyValueType
     types.contains(&PropertyValueType::Any) || types.contains(&expected)
 }
 
-fn value_matches_types(value: &AwsApiValue, types: &BTreeSet<PropertyValueType>) -> bool {
+fn value_matches_types(value: &AwsCliValue, types: &BTreeSet<PropertyValueType>) -> bool {
     let accepts_any = types.contains(&PropertyValueType::Any);
     match value {
-        AwsApiValue::Array { items } => {
+        AwsCliValue::Array { items } => {
             (accepts_any || types.contains(&PropertyValueType::Array)) && items.iter().all(is_scalar_api_value)
         }
-        AwsApiValue::Object { .. } => false,
-        AwsApiValue::Boolean { .. } => accepts_any || types.contains(&PropertyValueType::Boolean),
-        AwsApiValue::Integer { .. } | AwsApiValue::UnsignedInteger { .. } => {
+        AwsCliValue::Object { .. } => false,
+        AwsCliValue::Boolean { .. } => accepts_any || types.contains(&PropertyValueType::Boolean),
+        AwsCliValue::Integer { .. } | AwsCliValue::UnsignedInteger { .. } => {
             accepts_any || types.contains(&PropertyValueType::Integer) || types.contains(&PropertyValueType::Number)
         }
-        AwsApiValue::Number { .. } => accepts_any || types.contains(&PropertyValueType::Number),
-        AwsApiValue::String { .. } => accepts_any || types.contains(&PropertyValueType::String),
-        AwsApiValue::Null | AwsApiValue::Bytes { .. } | AwsApiValue::Unsupported { .. } => false,
+        AwsCliValue::Number { .. } => accepts_any || types.contains(&PropertyValueType::Number),
+        AwsCliValue::String { .. } => accepts_any || types.contains(&PropertyValueType::String),
+        AwsCliValue::Null | AwsCliValue::Bytes { .. } | AwsCliValue::Unsupported { .. } => false,
     }
 }
 
-fn is_scalar_api_value(value: &AwsApiValue) -> bool {
+fn is_scalar_api_value(value: &AwsCliValue) -> bool {
     matches!(
         value,
-        AwsApiValue::Boolean { .. }
-            | AwsApiValue::Integer { .. }
-            | AwsApiValue::UnsignedInteger { .. }
-            | AwsApiValue::Number { .. }
-            | AwsApiValue::String { .. }
+        AwsCliValue::Boolean { .. }
+            | AwsCliValue::Integer { .. }
+            | AwsCliValue::UnsignedInteger { .. }
+            | AwsCliValue::Number { .. }
+            | AwsCliValue::String { .. }
     )
 }
 fn scope_synthesized_report(report: &mut ValidationReport, properties: &BTreeSet<String>) {
@@ -1109,21 +1095,21 @@ mod tests {
         }
     }
 
-    fn value(value: serde_json::Value) -> AwsApiValue {
-        AwsApiValue::from_json(value)
+    fn value(value: serde_json::Value) -> AwsCliValue {
+        AwsCliValue::from_json(value)
     }
 
-    fn request(service: &str, operation: &str, parameters: serde_json::Value) -> AwsApiRequest {
-        let parameters: HashMap<String, AwsApiValue> = parameters
+    fn request(service: &str, operation: &str, parameters: serde_json::Value) -> AwsCliCommand {
+        let parameters: HashMap<String, AwsCliValue> = parameters
             .as_object()
             .expect("test parameters must be an object")
             .iter()
-            .map(|(name, value)| (name.clone(), AwsApiValue::from_json(value.clone())))
+            .map(|(name, value)| (name.clone(), AwsCliValue::from_json(value.clone())))
             .collect();
-        AwsApiRequest::new(service, operation, parameters).with_http_method("POST")
+        AwsCliCommand::new(service, operation, parameters).with_http_method("POST")
     }
 
-    fn synthesized_json(request: &AwsApiRequest) -> (Classification, Synthesis, serde_json::Value) {
+    fn synthesized_json(request: &AwsCliCommand) -> (Classification, Synthesis, serde_json::Value) {
         let schema_validator = SchemaValidator::default();
         let classification = classify_operation(request, &schema_validator).expect("classification succeeds");
         let synthesis = synthesize_request(request, &classification, &schema_validator).expect("synthesis succeeds");
@@ -1256,29 +1242,12 @@ mod tests {
     }
 
     #[test]
-    fn rejected_catalog_operations_never_report_resource_types() {
-        let schema_validator = SchemaValidator::default();
-        for (service, operation) in REJECTED_CATALOG_OPERATIONS {
-            let request = request(service, operation, serde_json::json!({}));
-            let classification = classify_operation(&request, &schema_validator).expect("classification succeeds");
-            assert!(
-                classification.candidates.is_empty(),
-                "{service}:{operation} must not report a CloudFormation type"
-            );
-            let synthesis =
-                synthesize_request(&request, &classification, &schema_validator).expect("synthesis succeeds");
-            assert!(synthesis.template.is_none(), "{service}:{operation} must not synthesize state");
-            assert!(synthesis.resource_types.is_empty(), "{service}:{operation} must not report resource types");
-        }
-    }
-
-    #[test]
     fn nested_values_are_rejected_without_recursive_shape_mappings() {
         let object_types = BTreeSet::from([PropertyValueType::Object]);
         let array_types = BTreeSet::from([PropertyValueType::Array]);
-        let object = AwsApiValue::from_json(serde_json::json!({"lowerCamel": "value"}));
-        let object_array = AwsApiValue::from_json(serde_json::json!([{"lowerCamel": "value"}]));
-        let scalar_array = AwsApiValue::from_json(serde_json::json!(["one", "two"]));
+        let object = AwsCliValue::from_json(serde_json::json!({"lowerCamel": "value"}));
+        let object_array = AwsCliValue::from_json(serde_json::json!([{"lowerCamel": "value"}]));
+        let scalar_array = AwsCliValue::from_json(serde_json::json!(["one", "two"]));
 
         assert!(mapped_value(&object, &object_types, "Configuration").is_none());
         assert!(mapped_value(&object_array, &array_types, "Configurations").is_none());
@@ -1413,9 +1382,9 @@ mod tests {
     fn s3_create_bucket_synthesizes_with_explicit_mappings() {
         let request = request("s3", "CreateBucket", serde_json::json!({"Bucket": "synthetic-bucket"}));
         let (classification, synthesis, document) = synthesized_json(&request);
-        assert_eq!(classification.kind, AwsApiOperationKind::CloudFormationCreate);
+        assert_eq!(classification.kind, AwsCliOperationKind::CloudFormationCreate);
         assert_eq!(classification.candidates, ["AWS::S3::Bucket"]);
-        assert_eq!(synthesis.source, Some(AwsApiTemplateSource::SynthesizedCreate));
+        assert_eq!(synthesis.source, Some(AwsCliTemplateSource::SynthesizedCreate));
         assert_eq!(document["Resources"]["Resource"]["Properties"]["BucketName"], "synthetic-bucket");
     }
 
@@ -1424,7 +1393,7 @@ mod tests {
         let schema_validator = SchemaValidator::default();
         let request = request("s3", "DeleteBucket", serde_json::json!({"Bucket": "synthetic-bucket"}));
         let classification = classify_operation(&request, &schema_validator).expect("classification succeeds");
-        assert_eq!(classification.kind, AwsApiOperationKind::CloudFormationDelete);
+        assert_eq!(classification.kind, AwsCliOperationKind::CloudFormationDelete);
         assert_eq!(classification.candidates, ["AWS::S3::Bucket"]);
         let synthesis = synthesize_request(&request, &classification, &schema_validator).expect("synthesis succeeds");
         assert!(synthesis.template.is_none());
@@ -1444,7 +1413,7 @@ mod tests {
             }),
         );
         let classification = classify_operation(&request, &schema_validator).expect("classification succeeds");
-        assert_eq!(classification.kind, AwsApiOperationKind::CloudFormationCreate);
+        assert_eq!(classification.kind, AwsCliOperationKind::CloudFormationCreate);
         assert_eq!(classification.candidates, ["AWS::DynamoDB::Table"]);
         let synthesis = synthesize_request(&request, &classification, &schema_validator).expect("synthesis succeeds");
         assert!(synthesis.template.is_none(), "unmapped nested parameters must skip synthesis");
@@ -1463,9 +1432,9 @@ mod tests {
             serde_json::json!({"TableName": "Synthetic", "BillingMode": "PAY_PER_REQUEST"}),
         );
         let (classification, synthesis, document) = synthesized_json(&request);
-        assert_eq!(classification.kind, AwsApiOperationKind::CloudFormationCreate);
+        assert_eq!(classification.kind, AwsCliOperationKind::CloudFormationCreate);
         assert_eq!(classification.candidates, ["AWS::DynamoDB::Table"]);
-        assert_eq!(synthesis.source, Some(AwsApiTemplateSource::SynthesizedCreate));
+        assert_eq!(synthesis.source, Some(AwsCliTemplateSource::SynthesizedCreate));
         assert_eq!(document["Resources"]["Resource"]["Properties"]["TableName"], "Synthetic");
         assert_eq!(document["Resources"]["Resource"]["Properties"]["BillingMode"], "PAY_PER_REQUEST");
     }
@@ -1475,7 +1444,7 @@ mod tests {
         let schema_validator = SchemaValidator::default();
         let request = request("dynamodb", "DeleteTable", serde_json::json!({"TableName": "Synthetic"}));
         let classification = classify_operation(&request, &schema_validator).expect("classification succeeds");
-        assert_eq!(classification.kind, AwsApiOperationKind::CloudFormationDelete);
+        assert_eq!(classification.kind, AwsCliOperationKind::CloudFormationDelete);
         assert_eq!(classification.candidates, ["AWS::DynamoDB::Table"]);
         let synthesis = synthesize_request(&request, &classification, &schema_validator).expect("synthesis succeeds");
         assert!(synthesis.template.is_none());
@@ -1492,9 +1461,9 @@ mod tests {
             }),
         );
         let (classification, synthesis, document) = synthesized_json(&request);
-        assert_eq!(classification.kind, AwsApiOperationKind::CloudFormationCreate);
+        assert_eq!(classification.kind, AwsCliOperationKind::CloudFormationCreate);
         assert_eq!(classification.candidates, ["AWS::IAM::Role"]);
-        assert_eq!(synthesis.source, Some(AwsApiTemplateSource::SynthesizedCreate));
+        assert_eq!(synthesis.source, Some(AwsCliTemplateSource::SynthesizedCreate));
         assert_eq!(document["Resources"]["Resource"]["Properties"]["RoleName"], "Synthetic");
     }
 
@@ -1503,7 +1472,7 @@ mod tests {
         let schema_validator = SchemaValidator::default();
         let request = request("iam", "DeleteRole", serde_json::json!({"RoleName": "Synthetic"}));
         let classification = classify_operation(&request, &schema_validator).expect("classification succeeds");
-        assert_eq!(classification.kind, AwsApiOperationKind::CloudFormationDelete);
+        assert_eq!(classification.kind, AwsCliOperationKind::CloudFormationDelete);
         assert_eq!(classification.candidates, ["AWS::IAM::Role"]);
         let synthesis = synthesize_request(&request, &classification, &schema_validator).expect("synthesis succeeds");
         assert!(synthesis.template.is_none());
@@ -1514,9 +1483,9 @@ mod tests {
         let request =
             request("lambda", "CreateFunction", serde_json::json!({"FunctionName": "Synthetic", "MemorySize": 128}));
         let (classification, synthesis, document) = synthesized_json(&request);
-        assert_eq!(classification.kind, AwsApiOperationKind::CloudFormationCreate);
+        assert_eq!(classification.kind, AwsCliOperationKind::CloudFormationCreate);
         assert_eq!(classification.candidates, ["AWS::Lambda::Function"]);
-        assert_eq!(synthesis.source, Some(AwsApiTemplateSource::SynthesizedCreate));
+        assert_eq!(synthesis.source, Some(AwsCliTemplateSource::SynthesizedCreate));
         assert_eq!(synthesis.diagnostic_properties, Some(BTreeSet::from(["FunctionName".into(), "MemorySize".into()])));
         assert_eq!(document["Resources"]["Resource"]["Properties"]["FunctionName"], "Synthetic");
         assert_eq!(document["Resources"]["Resource"]["Properties"]["MemorySize"], 128);
@@ -1530,9 +1499,9 @@ mod tests {
             serde_json::json!({"FunctionName": "Synthetic", "MemorySize": 128}),
         );
         let (classification, synthesis, document) = synthesized_json(&request);
-        assert_eq!(classification.kind, AwsApiOperationKind::CloudFormationUpdate);
+        assert_eq!(classification.kind, AwsCliOperationKind::CloudFormationUpdate);
         assert_eq!(classification.candidates, ["AWS::Lambda::Function"]);
-        assert_eq!(synthesis.source, Some(AwsApiTemplateSource::SynthesizedUpdate));
+        assert_eq!(synthesis.source, Some(AwsCliTemplateSource::SynthesizedUpdate));
         assert_eq!(document["Resources"]["Resource"]["Properties"], serde_json::json!({"MemorySize": 128}));
         assert_eq!(synthesis.diagnostic_properties, Some(BTreeSet::from(["MemorySize".into()])));
     }
@@ -1542,7 +1511,7 @@ mod tests {
         let schema_validator = SchemaValidator::default();
         let request = request("lambda", "DeleteFunction", serde_json::json!({"FunctionName": "Synthetic"}));
         let classification = classify_operation(&request, &schema_validator).expect("classification succeeds");
-        assert_eq!(classification.kind, AwsApiOperationKind::CloudFormationDelete);
+        assert_eq!(classification.kind, AwsCliOperationKind::CloudFormationDelete);
         assert_eq!(classification.candidates, ["AWS::Lambda::Function"]);
         let synthesis = synthesize_request(&request, &classification, &schema_validator).expect("synthesis succeeds");
         assert!(synthesis.template.is_none());
@@ -1552,9 +1521,9 @@ mod tests {
     fn sns_create_topic_synthesizes_with_explicit_mappings() {
         let request = request("sns", "CreateTopic", serde_json::json!({"Name": "Synthetic"}));
         let (classification, synthesis, document) = synthesized_json(&request);
-        assert_eq!(classification.kind, AwsApiOperationKind::CloudFormationCreate);
+        assert_eq!(classification.kind, AwsCliOperationKind::CloudFormationCreate);
         assert_eq!(classification.candidates, ["AWS::SNS::Topic"]);
-        assert_eq!(synthesis.source, Some(AwsApiTemplateSource::SynthesizedCreate));
+        assert_eq!(synthesis.source, Some(AwsCliTemplateSource::SynthesizedCreate));
         assert_eq!(document["Resources"]["Resource"]["Properties"]["TopicName"], "Synthetic");
     }
 
@@ -1563,7 +1532,7 @@ mod tests {
         let schema_validator = SchemaValidator::default();
         let request = request("sns", "DeleteTopic", serde_json::json!({"TopicArn": "arn:aws:sns:us-east-1:123:Topic"}));
         let classification = classify_operation(&request, &schema_validator).expect("classification succeeds");
-        assert_eq!(classification.kind, AwsApiOperationKind::CloudFormationDelete);
+        assert_eq!(classification.kind, AwsCliOperationKind::CloudFormationDelete);
         assert_eq!(classification.candidates, ["AWS::SNS::Topic"]);
         let synthesis = synthesize_request(&request, &classification, &schema_validator).expect("synthesis succeeds");
         assert!(synthesis.template.is_none());
@@ -1574,9 +1543,9 @@ mod tests {
         let request =
             request("sqs", "CreateQueue", serde_json::json!({"QueueName": "Synthetic", "tags": {"Team": "CLI"}}));
         let (classification, synthesis, document) = synthesized_json(&request);
-        assert_eq!(classification.kind, AwsApiOperationKind::CloudFormationCreate);
+        assert_eq!(classification.kind, AwsCliOperationKind::CloudFormationCreate);
         assert_eq!(classification.candidates, ["AWS::SQS::Queue"]);
-        assert_eq!(synthesis.source, Some(AwsApiTemplateSource::SynthesizedCreate));
+        assert_eq!(synthesis.source, Some(AwsCliTemplateSource::SynthesizedCreate));
         assert_eq!(document["Resources"]["Resource"]["Properties"]["QueueName"], "Synthetic");
     }
 
@@ -1586,7 +1555,7 @@ mod tests {
         let request =
             request("sqs", "DeleteQueue", serde_json::json!({"QueueUrl": "https://sqs.us-east-1.amazonaws.com/123/Q"}));
         let classification = classify_operation(&request, &schema_validator).expect("classification succeeds");
-        assert_eq!(classification.kind, AwsApiOperationKind::CloudFormationDelete);
+        assert_eq!(classification.kind, AwsCliOperationKind::CloudFormationDelete);
         assert_eq!(classification.candidates, ["AWS::SQS::Queue"]);
         let synthesis = synthesize_request(&request, &classification, &schema_validator).expect("synthesis succeeds");
         assert!(synthesis.template.is_none());
@@ -1619,19 +1588,19 @@ mod tests {
         let template = br#"{"Resources":{}}"#.to_vec();
 
         let mut cfn_request = request("cloudformation", "CreateChangeSet", serde_json::json!({}));
-        cfn_request.parameters.insert("TemplateBody".into(), AwsApiValue::Bytes { value: template.clone() });
+        cfn_request.parameters.insert("TemplateBody".into(), AwsCliValue::Bytes { value: template.clone() });
         let classification = classify_operation(&cfn_request, &schema_validator).expect("classification succeeds");
         let synthesis =
             synthesize_request(&cfn_request, &classification, &schema_validator).expect("synthesis succeeds");
-        assert_eq!(synthesis.source, Some(AwsApiTemplateSource::TemplateBody));
+        assert_eq!(synthesis.source, Some(AwsCliTemplateSource::TemplateBody));
         assert_eq!(synthesis.template, Some(template.clone()));
 
         let mut s3_request = request("s3", "PutObject", serde_json::json!({}));
-        s3_request.parameters.insert("TemplateBody".into(), AwsApiValue::Bytes { value: template.clone() });
+        s3_request.parameters.insert("TemplateBody".into(), AwsCliValue::Bytes { value: template.clone() });
         let classification = classify_operation(&s3_request, &schema_validator).expect("classification succeeds");
         let synthesis =
             synthesize_request(&s3_request, &classification, &schema_validator).expect("synthesis succeeds");
-        assert_ne!(synthesis.source, Some(AwsApiTemplateSource::TemplateBody));
+        assert_ne!(synthesis.source, Some(AwsCliTemplateSource::TemplateBody));
     }
 
     #[test]
@@ -1655,12 +1624,12 @@ mod tests {
         let template = br#"{"Resources":{}}"#.to_vec();
         for (service, operation) in TEMPLATE_BODY_OPERATIONS {
             let mut req = request(service, operation, serde_json::json!({}));
-            req.parameters.insert("TemplateBody".into(), AwsApiValue::Bytes { value: template.clone() });
+            req.parameters.insert("TemplateBody".into(), AwsCliValue::Bytes { value: template.clone() });
             let classification = classify_operation(&req, &schema_validator).expect("classification succeeds");
             let synthesis = synthesize_request(&req, &classification, &schema_validator).expect("synthesis succeeds");
             assert_eq!(
                 synthesis.source,
-                Some(AwsApiTemplateSource::TemplateBody),
+                Some(AwsCliTemplateSource::TemplateBody),
                 "{service}:{operation} should accept TemplateBody"
             );
         }
@@ -1673,29 +1642,29 @@ mod tests {
             serde_json::json!({"TypeName": "AWS::SNS::Topic", "DesiredState": "{\"TopicName\":\"Synthetic\"}"}),
         );
         let (classification, synthesis, document) = synthesized_json(&known);
-        assert_eq!(classification.kind, AwsApiOperationKind::CloudFormationCreate);
+        assert_eq!(classification.kind, AwsCliOperationKind::CloudFormationCreate);
         assert_eq!(classification.candidates, ["AWS::SNS::Topic"]);
-        assert_eq!(synthesis.source, Some(AwsApiTemplateSource::CloudControlDesiredState));
+        assert_eq!(synthesis.source, Some(AwsCliTemplateSource::CloudControlDesiredState));
         assert_eq!(document["Resources"]["Resource"]["Properties"]["TopicName"], "Synthetic");
     }
 
     #[test]
     fn cloud_control_with_signing_prefix_cloudcontrolapi() {
-        let parameters: HashMap<String, AwsApiValue> = serde_json::json!({
+        let parameters: HashMap<String, AwsCliValue> = serde_json::json!({
             "TypeName": "AWS::SNS::Topic",
             "DesiredState": "{\"TopicName\":\"Synthetic\"}"
         })
         .as_object()
         .unwrap()
         .iter()
-        .map(|(k, v)| (k.clone(), AwsApiValue::from_json(v.clone())))
+        .map(|(k, v)| (k.clone(), AwsCliValue::from_json(v.clone())))
         .collect();
         let req =
-            AwsApiRequest::new("cloudcontrol", "CreateResource", parameters).with_service_prefix("cloudcontrolapi");
+            AwsCliCommand::new("cloudcontrol", "CreateResource", parameters).with_service_prefix("cloudcontrolapi");
         let (classification, synthesis, document) = synthesized_json(&req);
-        assert_eq!(classification.kind, AwsApiOperationKind::CloudFormationCreate);
+        assert_eq!(classification.kind, AwsCliOperationKind::CloudFormationCreate);
         assert_eq!(classification.candidates, ["AWS::SNS::Topic"]);
-        assert_eq!(synthesis.source, Some(AwsApiTemplateSource::CloudControlDesiredState));
+        assert_eq!(synthesis.source, Some(AwsCliTemplateSource::CloudControlDesiredState));
         assert_eq!(document["Resources"]["Resource"]["Properties"]["TopicName"], "Synthetic");
     }
 
@@ -1722,7 +1691,7 @@ mod tests {
             serde_json::json!({"TypeName": "AWS::SNS::Topic", "PatchDocument": "[{\"op\":\"replace\"}]"}),
         );
         let classification = classify_operation(&update, &schema_validator).expect("classification succeeds");
-        assert_eq!(classification.kind, AwsApiOperationKind::UnmappedMutation);
+        assert_eq!(classification.kind, AwsCliOperationKind::UnmappedMutation);
         assert_eq!(classification.candidates, ["AWS::SNS::Topic"]);
         let synthesis = synthesize_request(&update, &classification, &schema_validator).expect("synthesis succeeds");
         assert!(synthesis.template.is_none());
@@ -1736,13 +1705,13 @@ mod tests {
         explicitly_readonly.is_read_only = Some(true);
         assert_eq!(
             classify_operation(&explicitly_readonly, &schema_validator).expect("classification succeeds").kind,
-            AwsApiOperationKind::ReadOnly
+            AwsCliOperationKind::ReadOnly
         );
         let mut get_request = request("test", "FrobnicateThing", serde_json::json!({}));
         get_request.http_method = Some("GET".into());
         assert_eq!(
             classify_operation(&get_request, &schema_validator).expect("classification succeeds").kind,
-            AwsApiOperationKind::ReadOnly
+            AwsCliOperationKind::ReadOnly
         );
     }
 
@@ -1752,7 +1721,7 @@ mod tests {
         let lambda_invoke = request("lambda", "Invoke", serde_json::json!({}));
         assert_eq!(
             classify_operation(&lambda_invoke, &schema_validator).expect("classification succeeds").kind,
-            AwsApiOperationKind::DataPlaneMutation
+            AwsCliOperationKind::DataPlaneMutation
         );
     }
     #[test]
@@ -1761,7 +1730,7 @@ mod tests {
         let req = request("ecs", "RunTask", serde_json::json!({"TaskDefinition": "my-task"}));
         let classification = classify_operation(&req, &schema_validator).expect("classification succeeds");
         assert!(classification.candidates.is_empty(), "ecs:RunTask must not map to any resource type");
-        assert_ne!(classification.kind, AwsApiOperationKind::CloudFormationCreate);
+        assert_ne!(classification.kind, AwsCliOperationKind::CloudFormationCreate);
         let synthesis = synthesize_request(&req, &classification, &schema_validator).expect("synthesis succeeds");
         assert!(synthesis.template.is_none());
     }
@@ -1772,7 +1741,7 @@ mod tests {
         let req = request("ec2", "StartInstances", serde_json::json!({"InstanceIds": ["i-12345"]}));
         let classification = classify_operation(&req, &schema_validator).expect("classification succeeds");
         assert!(classification.candidates.is_empty(), "ec2:StartInstances must not map to any resource type");
-        assert_ne!(classification.kind, AwsApiOperationKind::CloudFormationCreate);
+        assert_ne!(classification.kind, AwsCliOperationKind::CloudFormationCreate);
         let synthesis = synthesize_request(&req, &classification, &schema_validator).expect("synthesis succeeds");
         assert!(synthesis.template.is_none());
     }
@@ -1787,7 +1756,7 @@ mod tests {
             "iot:StartThingRegistrationTask must not map to any resource type"
         );
         let synthesis = synthesize_request(&req, &classification, &schema_validator).expect("synthesis succeeds");
-        assert_ne!(synthesis.source, Some(AwsApiTemplateSource::TemplateBody));
+        assert_ne!(synthesis.source, Some(AwsCliTemplateSource::TemplateBody));
     }
 
     #[test]
@@ -1796,12 +1765,12 @@ mod tests {
         let template = br#"{"Resources":{}}"#.to_vec();
         for service in ["s3", "lambda", "iot", "dynamodb"] {
             let mut req = request(service, "SomeOperation", serde_json::json!({}));
-            req.parameters.insert("TemplateBody".into(), AwsApiValue::Bytes { value: template.clone() });
+            req.parameters.insert("TemplateBody".into(), AwsCliValue::Bytes { value: template.clone() });
             let classification = classify_operation(&req, &schema_validator).expect("classification succeeds");
             let synthesis = synthesize_request(&req, &classification, &schema_validator).expect("synthesis succeeds");
             assert_ne!(
                 synthesis.source,
-                Some(AwsApiTemplateSource::TemplateBody),
+                Some(AwsCliTemplateSource::TemplateBody),
                 "{service}:SomeOperation should not treat TemplateBody as CFN template"
             );
         }
@@ -1817,7 +1786,7 @@ mod tests {
         );
         let classification = classify_operation(&req, &schema_validator).expect("classification succeeds");
         let synthesis = synthesize_request(&req, &classification, &schema_validator).expect("synthesis succeeds");
-        assert_ne!(synthesis.source, Some(AwsApiTemplateSource::CloudControlDesiredState));
+        assert_ne!(synthesis.source, Some(AwsCliTemplateSource::CloudControlDesiredState));
     }
 
     #[test]
@@ -1866,11 +1835,11 @@ mod tests {
         let engine = NoopEngine::default();
         let schema_validator = SchemaValidator::default();
         let mut exact = request("cloudformation", "CreateChangeSet", serde_json::json!({}));
-        exact.parameters.insert("TemplateBody".into(), AwsApiValue::Bytes { value: br#"{"Resources":{}}"#.to_vec() });
-        let validation = validate_aws_api_request(&engine, &schema_validator, &exact, ValidateConfig::default())
+        exact.parameters.insert("TemplateBody".into(), AwsCliValue::Bytes { value: br#"{"Resources":{}}"#.to_vec() });
+        let validation = validate_aws_cli_command(&engine, &schema_validator, &exact, ValidateConfig::default())
             .expect("validation succeeds");
-        assert_eq!(validation.status, AwsApiRequestValidationStatus::Validated);
-        assert_eq!(validation.template_source, Some(AwsApiTemplateSource::TemplateBody));
+        assert_eq!(validation.status, AwsCliCommandValidationStatus::Validated);
+        assert_eq!(validation.template_source, Some(AwsCliTemplateSource::TemplateBody));
         assert!(validation.report.is_some());
         assert_eq!(
             validation.template,
@@ -1879,10 +1848,10 @@ mod tests {
         );
 
         let read = request("iam", "GetRole", serde_json::json!({"RoleName": "Synthetic"}));
-        let validation = validate_aws_api_request(&engine, &schema_validator, &read, ValidateConfig::default())
+        let validation = validate_aws_cli_command(&engine, &schema_validator, &read, ValidateConfig::default())
             .expect("classification succeeds");
-        assert_eq!(validation.status, AwsApiRequestValidationStatus::Skipped);
-        assert_eq!(validation.operation_kind, AwsApiOperationKind::ReadOnly);
+        assert_eq!(validation.status, AwsCliCommandValidationStatus::Skipped);
+        assert_eq!(validation.operation_kind, AwsCliOperationKind::ReadOnly);
         assert!(validation.report.is_none());
         assert_eq!(validation.template, None, "skipped requests must have template=None");
     }
@@ -1896,7 +1865,7 @@ mod tests {
             "UpdateFunctionConfiguration",
             serde_json::json!({"FunctionName": "Synthetic", "MemorySize": 0}),
         );
-        let validation = validate_aws_api_request(&engine, &schema_validator, &update, ValidateConfig::default())
+        let validation = validate_aws_cli_command(&engine, &schema_validator, &update, ValidateConfig::default())
             .expect("validation succeeds");
         let report = validation.report.expect("update is validated");
         assert!(
@@ -1920,7 +1889,7 @@ mod tests {
             ("AttributeDefinitions".into(), value(serde_json::json!([{"AttributeName": "id", "AttributeType": "S"}]))),
         ]);
         let original = parameters.clone();
-        let request = AwsApiRequest::new("dynamodb", "CreateTable", parameters);
+        let request = AwsCliCommand::new("dynamodb", "CreateTable", parameters);
         let schema_validator = SchemaValidator::default();
         let classification = classify_operation(&request, &schema_validator).expect("classification succeeds");
         let _ = synthesize_request(&request, &classification, &schema_validator);
@@ -1929,9 +1898,9 @@ mod tests {
 
     #[test]
     fn json_conversion_rejects_non_json_values_without_coercion() {
-        assert!(AwsApiValue::Bytes { value: vec![1, 2] }.to_json().is_err());
-        assert!(AwsApiValue::Number { value: f64::NAN }.to_json().is_err());
-        assert!(AwsApiValue::Unsupported { type_name: "timestamp".into() }.to_json().is_err());
+        assert!(AwsCliValue::Bytes { value: vec![1, 2] }.to_json().is_err());
+        assert!(AwsCliValue::Number { value: f64::NAN }.to_json().is_err());
+        assert!(AwsCliValue::Unsupported { type_name: "timestamp".into() }.to_json().is_err());
     }
 
     #[test]
@@ -1954,13 +1923,13 @@ mod tests {
     #[test]
     fn conflicting_service_prefix_does_not_map_adapter() {
         let schema_validator = SchemaValidator::default();
-        let parameters: HashMap<String, AwsApiValue> = serde_json::json!({"Bucket": "test"})
+        let parameters: HashMap<String, AwsCliValue> = serde_json::json!({"Bucket": "test"})
             .as_object()
             .unwrap()
             .iter()
-            .map(|(k, v)| (k.clone(), AwsApiValue::from_json(v.clone())))
+            .map(|(k, v)| (k.clone(), AwsCliValue::from_json(v.clone())))
             .collect();
-        let req = AwsApiRequest::new("ecs", "CreateBucket", parameters).with_service_prefix("s3");
+        let req = AwsCliCommand::new("ecs", "CreateBucket", parameters).with_service_prefix("s3");
         let classification = classify_operation(&req, &schema_validator).expect("classification succeeds");
         assert!(
             classification.candidates.is_empty(),
@@ -1976,14 +1945,14 @@ mod tests {
     fn conflicting_service_prefix_does_not_validate_template_body() {
         let schema_validator = SchemaValidator::default();
         let template = br#"{"Resources":{}}"#.to_vec();
-        let parameters: HashMap<String, AwsApiValue> =
-            [("TemplateBody".to_string(), AwsApiValue::Bytes { value: template })].into_iter().collect();
-        let req = AwsApiRequest::new("iot", "CreateStack", parameters).with_service_prefix("cloudformation");
+        let parameters: HashMap<String, AwsCliValue> =
+            [("TemplateBody".to_string(), AwsCliValue::Bytes { value: template })].into_iter().collect();
+        let req = AwsCliCommand::new("iot", "CreateStack", parameters).with_service_prefix("cloudformation");
         let classification = classify_operation(&req, &schema_validator).expect("classification succeeds");
         let synthesis = synthesize_request(&req, &classification, &schema_validator).expect("synthesis succeeds");
         assert_ne!(
             synthesis.source,
-            Some(AwsApiTemplateSource::TemplateBody),
+            Some(AwsCliTemplateSource::TemplateBody),
             "service_name=iot with service_prefix=cloudformation must not validate TemplateBody"
         );
     }
@@ -2004,10 +1973,10 @@ mod tests {
         let engine = NoopEngine::default();
         let schema_validator = SchemaValidator::default();
         let req = request("lambda", "CreateFunction", serde_json::json!({"MemorySize": 0}));
-        let validation = validate_aws_api_request(&engine, &schema_validator, &req, ValidateConfig::default())
+        let validation = validate_aws_cli_command(&engine, &schema_validator, &req, ValidateConfig::default())
             .expect("validation succeeds");
-        assert_eq!(validation.status, AwsApiRequestValidationStatus::Validated);
-        assert_eq!(validation.template_source, Some(AwsApiTemplateSource::SynthesizedCreate));
+        assert_eq!(validation.status, AwsCliCommandValidationStatus::Validated);
+        assert_eq!(validation.template_source, Some(AwsCliTemplateSource::SynthesizedCreate));
         let report = validation.report.expect("create is validated");
         for diagnostic in &report.diagnostics {
             assert!(
@@ -2037,7 +2006,7 @@ mod tests {
             let classification = classify_operation(&req, &schema_validator).expect("classification succeeds");
             assert_eq!(
                 classification.kind,
-                AwsApiOperationKind::CloudFormationCreate,
+                AwsCliOperationKind::CloudFormationCreate,
                 "cloudformation:{operation} must be CloudFormationCreate"
             );
         }
@@ -2051,7 +2020,7 @@ mod tests {
             let classification = classify_operation(&req, &schema_validator).expect("classification succeeds");
             assert_eq!(
                 classification.kind,
-                AwsApiOperationKind::CloudFormationUpdate,
+                AwsCliOperationKind::CloudFormationUpdate,
                 "cloudformation:{operation} must be CloudFormationUpdate"
             );
         }
@@ -2065,7 +2034,7 @@ mod tests {
             let classification = classify_operation(&req, &schema_validator).expect("classification succeeds");
             assert_eq!(
                 classification.kind,
-                AwsApiOperationKind::ReadOnly,
+                AwsCliOperationKind::ReadOnly,
                 "cloudformation:{operation} must be ReadOnly"
             );
         }
@@ -2077,17 +2046,17 @@ mod tests {
         let schema_validator = SchemaValidator::default();
         let template = br#"{"Resources":{}}"#.to_vec();
         for operation in ["EstimateTemplateCost", "GetTemplateSummary", "ValidateTemplate"] {
-            let parameters: HashMap<String, AwsApiValue> =
-                [("TemplateBody".to_string(), AwsApiValue::Bytes { value: template.clone() })].into_iter().collect();
-            let req = AwsApiRequest::new("cloudformation", operation, parameters);
-            let validation = validate_aws_api_request(&engine, &schema_validator, &req, ValidateConfig::default())
+            let parameters: HashMap<String, AwsCliValue> =
+                [("TemplateBody".to_string(), AwsCliValue::Bytes { value: template.clone() })].into_iter().collect();
+            let req = AwsCliCommand::new("cloudformation", operation, parameters);
+            let validation = validate_aws_cli_command(&engine, &schema_validator, &req, ValidateConfig::default())
                 .expect("validation succeeds");
             assert_eq!(
                 validation.status,
-                AwsApiRequestValidationStatus::Validated,
+                AwsCliCommandValidationStatus::Validated,
                 "cloudformation:{operation} with TemplateBody must still validate"
             );
-            assert_eq!(validation.template_source, Some(AwsApiTemplateSource::TemplateBody));
+            assert_eq!(validation.template_source, Some(AwsCliTemplateSource::TemplateBody));
         }
     }
 
@@ -2096,7 +2065,7 @@ mod tests {
         let schema_validator = SchemaValidator::default();
         let req = request("cloudformation", "DeleteChangeSet", serde_json::json!({}));
         let classification = classify_operation(&req, &schema_validator).expect("classification succeeds");
-        assert_eq!(classification.kind, AwsApiOperationKind::UnmappedMutation);
+        assert_eq!(classification.kind, AwsCliOperationKind::UnmappedMutation);
         assert!(classification.candidates.is_empty());
     }
 
@@ -2126,9 +2095,9 @@ mod tests {
             mappings: vec![mapping("Bucket", "BucketName")],
             ignored_inputs: vec!["ClientToken".into()],
         };
-        let parameters: HashMap<String, AwsApiValue> = [
-            ("Bucket".into(), AwsApiValue::String { value: "test".into() }),
-            ("ClientToken".into(), AwsApiValue::String { value: "idempotent-token".into() }),
+        let parameters: HashMap<String, AwsCliValue> = [
+            ("Bucket".into(), AwsCliValue::String { value: "test".into() }),
+            ("ClientToken".into(), AwsCliValue::String { value: "idempotent-token".into() }),
         ]
         .into_iter()
         .collect();
@@ -2159,9 +2128,9 @@ mod tests {
             ignored_inputs: Vec::new(),
         };
         // FunctionName is a primary identifier for AWS::Lambda::Function
-        let parameters: HashMap<String, AwsApiValue> = [
-            ("MemorySize".into(), AwsApiValue::Integer { value: 256 }),
-            ("FunctionName".into(), AwsApiValue::String { value: "my-func".into() }),
+        let parameters: HashMap<String, AwsCliValue> = [
+            ("MemorySize".into(), AwsCliValue::Integer { value: 256 }),
+            ("FunctionName".into(), AwsCliValue::String { value: "my-func".into() }),
         ]
         .into_iter()
         .collect();

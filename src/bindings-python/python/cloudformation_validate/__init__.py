@@ -92,12 +92,12 @@ from .template_model import (
 from .data_source import AdditionalSchemaSource
 from .schema_validator import SchemaValidatorConfig
 from .validation_engine import (
-    AwsApiOperationKind,
-    AwsApiRequestContext as _NativeAwsApiRequest,
-    AwsApiRequestValidation,
-    AwsApiRequestValidationStatus,
-    AwsApiTemplateSource,
-    AwsApiValue as _NativeAwsApiValue,
+    AwsCliCommandContext as _NativeAwsCliCommand,
+    AwsCliCommandValidation,
+    AwsCliCommandValidationStatus,
+    AwsCliOperationKind,
+    AwsCliTemplateSource,
+    AwsCliValue as _NativeAwsCliValue,
     EngineConfig,
     EngineType,
     ExternalRuleSource,
@@ -105,11 +105,11 @@ from .validation_engine import (
 
 __all__ = [
     "AdditionalSchemaSource",
-    "AwsApiOperationKind",
-    "AwsApiRequest",
-    "AwsApiRequestValidation",
-    "AwsApiRequestValidationStatus",
-    "AwsApiTemplateSource",
+    "AwsCliCommand",
+    "AwsCliCommandValidation",
+    "AwsCliCommandValidationStatus",
+    "AwsCliOperationKind",
+    "AwsCliTemplateSource",
     "CelEngine",
     "ConditionalNull",
     "ConditionalNullEntry",
@@ -217,7 +217,7 @@ def file_to_external_rule_source(path: typing.Union[str, os.PathLike]) -> Extern
         return ExternalRuleSource(name=str(resolved), content=f.read())
 
 
-class AwsApiRequest:
+class AwsCliCommand:
     """Service, operation, and request values for CloudFormation validation.
 
     ``service_name`` is the canonical botocore service name (for example ``"s3"``
@@ -257,48 +257,48 @@ class AwsApiRequest:
         self.http_method = http_method
         self.is_read_only = is_read_only
 
-    def _to_native(self) -> _NativeAwsApiRequest:
-        return _NativeAwsApiRequest(
+    def _to_native(self) -> _NativeAwsCliCommand:
+        return _NativeAwsCliCommand(
             service_name=self.service_name,
             operation_name=self.operation_name,
-            parameters={name: _to_native_aws_api_value(value) for name, value in self.parameters.items()},
+            parameters={name: _to_native_aws_cli_value(value) for name, value in self.parameters.items()},
             service_prefix=self.service_prefix,
             http_method=self.http_method,
             is_read_only=self.is_read_only,
         )
 
 
-def _to_native_aws_api_value(value: object) -> _NativeAwsApiValue:
+def _to_native_aws_cli_value(value: object) -> _NativeAwsCliValue:
     if value is None:
-        return _NativeAwsApiValue.NULL()
+        return _NativeAwsCliValue.NULL()
     if isinstance(value, bool):
-        return _NativeAwsApiValue.BOOLEAN(value=value)
+        return _NativeAwsCliValue.BOOLEAN(value=value)
     if isinstance(value, int):
         if -(2**63) <= value < 2**63:
-            return _NativeAwsApiValue.INTEGER(value=value)
+            return _NativeAwsCliValue.INTEGER(value=value)
         if 0 <= value < 2**64:
-            return _NativeAwsApiValue.UNSIGNED_INTEGER(value=value)
-        return _NativeAwsApiValue.UNSUPPORTED(type_name="integer outside the 64-bit request range")
+            return _NativeAwsCliValue.UNSIGNED_INTEGER(value=value)
+        return _NativeAwsCliValue.UNSUPPORTED(type_name="integer outside the 64-bit request range")
     if isinstance(value, float):
         if math.isfinite(value):
-            return _NativeAwsApiValue.NUMBER(value=value)
-        return _NativeAwsApiValue.UNSUPPORTED(type_name="non-finite floating-point number")
+            return _NativeAwsCliValue.NUMBER(value=value)
+        return _NativeAwsCliValue.UNSUPPORTED(type_name="non-finite floating-point number")
     if isinstance(value, str):
-        return _NativeAwsApiValue.STRING(value=value)
+        return _NativeAwsCliValue.STRING(value=value)
     if isinstance(value, (bytes, bytearray, memoryview)):
-        return _NativeAwsApiValue.BYTES(value=bytes(value))
+        return _NativeAwsCliValue.BYTES(value=bytes(value))
     if isinstance(value, datetime.datetime):
-        return _NativeAwsApiValue.STRING(value=value.isoformat())
+        return _NativeAwsCliValue.STRING(value=value.isoformat())
     if isinstance(value, Mapping):
         if not all(isinstance(name, str) for name in value):
-            return _NativeAwsApiValue.UNSUPPORTED(type_name="mapping with non-string keys")
-        return _NativeAwsApiValue.OBJECT(
-            entries={name: _to_native_aws_api_value(item) for name, item in value.items()}
+            return _NativeAwsCliValue.UNSUPPORTED(type_name="mapping with non-string keys")
+        return _NativeAwsCliValue.OBJECT(
+            entries={name: _to_native_aws_cli_value(item) for name, item in value.items()}
         )
     if isinstance(value, (list, tuple)):
-        return _NativeAwsApiValue.ARRAY(items=[_to_native_aws_api_value(item) for item in value])
+        return _NativeAwsCliValue.ARRAY(items=[_to_native_aws_cli_value(item) for item in value])
     value_type = type(value)
-    return _NativeAwsApiValue.UNSUPPORTED(type_name=f"{value_type.__module__}.{value_type.__qualname__}")
+    return _NativeAwsCliValue.UNSUPPORTED(type_name=f"{value_type.__module__}.{value_type.__qualname__}")
 
 
 class Engine:
@@ -332,18 +332,18 @@ class Engine:
         content, path = _template_bytes(template)
         return self._inner.validate_template(content, config if config is not None else ValidateConfig(), path)
 
-    def validate_aws_api_request(
-        self, request: AwsApiRequest, config: typing.Optional[ValidateConfig] = None
-    ) -> AwsApiRequestValidation:
-        """Classifies, models, and validates an AWS API request.
+    def validate_aws_cli_command(
+        self, request: AwsCliCommand, config: typing.Optional[ValidateConfig] = None
+    ) -> AwsCliCommandValidation:
+        """Classifies, models, and validates an AWS CLI command.
 
-        A skipped request has ``report is None`` and an explicit status and reason.
+        A skipped command has ``report is None`` and an explicit status and reason.
         The ``template`` field carries the exact bytes validated (the caller's
         original ``TemplateBody`` or the synthesized JSON), or ``None`` when skipped.
         """
-        if not isinstance(request, AwsApiRequest):
-            raise TypeError("request must be an AwsApiRequest")
-        return self._inner.validate_aws_api_request(
+        if not isinstance(request, AwsCliCommand):
+            raise TypeError("request must be an AwsCliCommand")
+        return self._inner.validate_aws_cli_command(
             request._to_native(), config if config is not None else ValidateConfig()
         )
 

@@ -6,8 +6,7 @@ use schema_validator::{SchemaValidator, SchemaValidatorConfig};
 use serde::Deserialize;
 use template_model::{PseudoParameterOverrides, SemanticModel};
 use validation_engine::{
-    AwsApiRequestContext, EngineConfig, ValidationEngine, catch_panics, validate_aws_api_request,
-    validate_bytes_with_path,
+    AwsCliCommand, EngineConfig, ValidationEngine, catch_panics, validate_aws_cli_command, validate_bytes_with_path,
 };
 use wasm_bindgen::prelude::*;
 
@@ -167,19 +166,19 @@ macro_rules! wasm_engine {
                 )
             }
 
-            #[wasm_bindgen(js_name = "validateAwsApiRequest")]
-            pub fn validate_aws_api_request(
+            #[wasm_bindgen(js_name = "validateAwsCliCommand")]
+            pub fn validate_aws_cli_command(
                 &self,
                 request: JsValue,
                 options: ValidateConfig,
             ) -> Result<JsValue, JsValue> {
                 catch_panics(
                     || {
-                        let request: AwsApiRequestContext = serde_wasm_bindgen::from_value(request)
-                            .map_err(|error| JsValue::from_str(&format!("invalid AWS API request: {error}")))?;
+                        let request: AwsCliCommand = serde_wasm_bindgen::from_value(request)
+                            .map_err(|error| JsValue::from_str(&format!("invalid AWS CLI command: {error}")))?;
                         let config = build_core_config(options);
                         let validation =
-                            validate_aws_api_request(&self.engine, &self.schema_validator, &request, config)
+                            validate_aws_cli_command(&self.engine, &self.schema_validator, &request, config)
                                 .map_err(to_js_err)?;
                         to_js(&validation)
                     },

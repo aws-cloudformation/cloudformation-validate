@@ -82,7 +82,7 @@ func decodeInto[T any](data string, what string) (*T, error) {
 // nativeEngine is the method set shared by the generated engine objects.
 type nativeEngine interface {
 	ValidateTemplateJson(template []byte, optionsJson string, filePath string) (string, error)
-	ValidateAwsApiRequestJson(requestJson string, optionsJson string) (string, error)
+	ValidateAwsCliCommandJson(requestJson string, optionsJson string) (string, error)
 	ListRulesJson() (string, error)
 	EngineName() string
 	Destroy()
@@ -176,45 +176,45 @@ func (e *Engine) Destroy() {
 	e.inner.Destroy()
 }
 
-// ValidateAWSAPIRequest classifies and validates an AWS API request against
+// ValidateAWSCLICommand classifies and validates an AWS CLI command against
 // CloudFormation schemas and rules entirely offline. The result contains
 // operation classification, resource type inference, and an optional
 // ValidationReport when the request was validated (not skipped). The report
 // carries only the shared diagnostic fields; enrichment fields are left nil.
-func (e *Engine) ValidateAWSAPIRequest(request AWSAPIRequest, config *ValidateConfig) (*AWSAPIRequestValidation, error) {
+func (e *Engine) ValidateAWSCLICommand(request AWSCLICommand, config *ValidateConfig) (*AWSCLICommandValidation, error) {
 	optionsJSON, err := validateConfigJSON(config)
 	if err != nil {
 		return nil, err
 	}
-	requestJSON, err := marshalAWSAPIRequest(request)
+	requestJSON, err := marshalAWSCLICommand(request)
 	if err != nil {
 		return nil, err
 	}
-	data, err := e.inner.ValidateAwsApiRequestJson(requestJSON, optionsJSON)
+	data, err := e.inner.ValidateAwsCliCommandJson(requestJSON, optionsJSON)
 	if err != nil {
 		return nil, err
 	}
-	return decodeInto[AWSAPIRequestValidation](data, "AWS API request validation")
+	return decodeInto[AWSCLICommandValidation](data, "AWS CLI command validation")
 }
 
-// marshalAWSAPIRequest encodes an AWSAPIRequest into the wire JSON that the
-// Rust side expects, converting Go parameter values into tagged AwsApiValue
+// marshalAWSCLICommand encodes an AWSCLICommand into the wire JSON that the
+// Rust side expects, converting Go parameter values into tagged AwsCliValue
 // objects.
-func marshalAWSAPIRequest(request AWSAPIRequest) (string, error) {
-	wire := awsApiRequestWire{
+func marshalAWSCLICommand(request AWSCLICommand) (string, error) {
+	wire := awsCliCommandWire{
 		ServiceName:   request.ServiceName,
 		OperationName: request.OperationName,
-		Parameters:    make(map[string]awsApiValue, len(request.Parameters)),
+		Parameters:    make(map[string]awsCliValue, len(request.Parameters)),
 		ServicePrefix: nilIfEmpty(request.ServicePrefix),
 		HTTPMethod:    nilIfEmpty(request.HTTPMethod),
 		IsReadOnly:    request.IsReadOnly,
 	}
 	for key, value := range request.Parameters {
-		wire.Parameters[key] = encodeAwsApiValue(value, 0)
+		wire.Parameters[key] = encodeAwsCliValue(value, 0)
 	}
 	data, err := json.Marshal(wire)
 	if err != nil {
-		return "", fmt.Errorf("cfnvalidate: encoding AWS API request: %w", err)
+		return "", fmt.Errorf("cfnvalidate: encoding AWS CLI command: %w", err)
 	}
 	return string(data), nil
 }
@@ -226,44 +226,44 @@ func nilIfEmpty(s string) *string {
 	return &s
 }
 
-// awsApiRequestWire is the JSON structure consumed by the Rust wire parser.
-type awsApiRequestWire struct {
+// awsCliCommandWire is the JSON structure consumed by the Rust wire parser.
+type awsCliCommandWire struct {
 	ServiceName   string                 `json:"serviceName"`
 	OperationName string                 `json:"operationName"`
-	Parameters    map[string]awsApiValue `json:"parameters"`
+	Parameters    map[string]awsCliValue `json:"parameters"`
 	ServicePrefix *string                `json:"servicePrefix,omitempty"`
 	HTTPMethod    *string                `json:"httpMethod,omitempty"`
 	IsReadOnly    *bool                  `json:"isReadOnly,omitempty"`
 }
 
-// awsApiValue is the tagged union wire format matching the core AwsApiValue
+// awsCliValue is the tagged union wire format matching the core AwsCliValue
 // serde representation (tag = "type", rename_all = "SCREAMING_SNAKE_CASE").
 // Items and Entries use pointer fields so that empty slices/maps serialize as
 // their JSON zero ([] / {}) while remaining absent for unrelated variants.
-type awsApiValue struct {
+type awsCliValue struct {
 	Type     string                  `json:"type"`
 	Value    any                     `json:"value,omitempty"`
-	Items    *[]awsApiValue          `json:"items,omitempty"`
-	Entries  *map[string]awsApiValue `json:"entries,omitempty"`
+	Items    *[]awsCliValue          `json:"items,omitempty"`
+	Entries  *map[string]awsCliValue `json:"entries,omitempty"`
 	TypeName string                  `json:"type_name,omitempty"`
 }
 
 // maxEncodeDepth prevents stack overflow on cyclic or deeply nested structures.
 const maxEncodeDepth = 64
 
-// encodeAwsApiValue recursively converts a Go value into the tagged wire
+// encodeAwsCliValue recursively converts a Go value into the tagged wire
 // format. It is non-mutating: no pointer is followed through a write path.
 // Unsupported types are represented as UNSUPPORTED rather than coerced.
 //
 // SDK-defined type aliases (e.g. types.InstanceType is a named string) are
 // handled via reflect.Kind after concrete type checks, so any alias of a
 // scalar kind is encoded correctly without enumerating every SDK type.
-func encodeAwsApiValue(v any, depth int) awsApiValue {
+func encodeAwsCliValue(v any, depth int) awsCliValue {
 	if depth > maxEncodeDepth {
-		return awsApiValue{Type: "UNSUPPORTED", TypeName: "recursion depth exceeded"}
+		return awsCliValue{Type: "UNSUPPORTED", TypeName: "recursion depth exceeded"}
 	}
 	if v == nil {
-		return awsApiValue{Type: "NULL"}
+		return awsCliValue{Type: "NULL"}
 	}
 
 	// Unwrap interface and pointer layers. Count indirections separately because
@@ -273,10 +273,10 @@ func encodeAwsApiValue(v any, depth int) awsApiValue {
 	indirections := 0
 	for rv.Kind() == reflect.Ptr || rv.Kind() == reflect.Interface {
 		if depth+indirections > maxEncodeDepth {
-			return awsApiValue{Type: "UNSUPPORTED", TypeName: "recursion depth exceeded"}
+			return awsCliValue{Type: "UNSUPPORTED", TypeName: "recursion depth exceeded"}
 		}
 		if rv.IsNil() {
-			return awsApiValue{Type: "NULL"}
+			return awsCliValue{Type: "NULL"}
 		}
 		rv = rv.Elem()
 		indirections++
@@ -287,49 +287,49 @@ func encodeAwsApiValue(v any, depth int) awsApiValue {
 	// underlying kind (time.Time and json.Number).
 	switch val := v.(type) {
 	case time.Time:
-		return awsApiValue{Type: "STRING", Value: val.UTC().Format(time.RFC3339Nano)}
+		return awsCliValue{Type: "STRING", Value: val.UTC().Format(time.RFC3339Nano)}
 
 	case json.Number:
 		text := string(val)
 		if i, err := val.Int64(); err == nil {
-			return awsApiValue{Type: "INTEGER", Value: i}
+			return awsCliValue{Type: "INTEGER", Value: i}
 		}
 		if u, err := strconv.ParseUint(text, 10, 64); err == nil {
-			return awsApiValue{Type: "UNSIGNED_INTEGER", Value: u}
+			return awsCliValue{Type: "UNSIGNED_INTEGER", Value: u}
 		}
 		if !strings.ContainsAny(text, ".eE") && json.Valid([]byte(text)) {
-			return awsApiValue{Type: "UNSUPPORTED", TypeName: "integer outside 64-bit range"}
+			return awsCliValue{Type: "UNSUPPORTED", TypeName: "integer outside 64-bit range"}
 		}
 		if f, err := val.Float64(); err == nil {
 			if math.IsInf(f, 0) || math.IsNaN(f) {
-				return awsApiValue{Type: "UNSUPPORTED", TypeName: "non-finite floating-point number"}
+				return awsCliValue{Type: "UNSUPPORTED", TypeName: "non-finite floating-point number"}
 			}
-			return awsApiValue{Type: "NUMBER", Value: f}
+			return awsCliValue{Type: "NUMBER", Value: f}
 		}
-		return awsApiValue{Type: "UNSUPPORTED", TypeName: "unparseable json.Number"}
+		return awsCliValue{Type: "UNSUPPORTED", TypeName: "unparseable json.Number"}
 	}
 
 	// Kind-based handling covers both built-in types and SDK-defined aliases
 	// (e.g. types.InstanceType is `type InstanceType string`).
 	switch rv.Kind() {
 	case reflect.Bool:
-		return awsApiValue{Type: "BOOLEAN", Value: rv.Bool()}
+		return awsCliValue{Type: "BOOLEAN", Value: rv.Bool()}
 
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return awsApiValue{Type: "INTEGER", Value: rv.Int()}
+		return awsCliValue{Type: "INTEGER", Value: rv.Int()}
 
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-		return awsApiValue{Type: "UNSIGNED_INTEGER", Value: rv.Uint()}
+		return awsCliValue{Type: "UNSIGNED_INTEGER", Value: rv.Uint()}
 
 	case reflect.Float32, reflect.Float64:
 		f := rv.Float()
 		if math.IsInf(f, 0) || math.IsNaN(f) {
-			return awsApiValue{Type: "UNSUPPORTED", TypeName: "non-finite floating-point number"}
+			return awsCliValue{Type: "UNSUPPORTED", TypeName: "non-finite floating-point number"}
 		}
-		return awsApiValue{Type: "NUMBER", Value: f}
+		return awsCliValue{Type: "NUMBER", Value: f}
 
 	case reflect.String:
-		return awsApiValue{Type: "STRING", Value: rv.String()}
+		return awsCliValue{Type: "STRING", Value: rv.String()}
 
 	case reflect.Slice, reflect.Array:
 		// []byte / [N]byte → BYTES, encoded as a JSON integer array so the
@@ -340,34 +340,34 @@ func encodeAwsApiValue(v any, depth int) awsApiValue {
 			for i := range ints {
 				ints[i] = int(rv.Index(i).Uint())
 			}
-			return awsApiValue{Type: "BYTES", Value: ints}
+			return awsCliValue{Type: "BYTES", Value: ints}
 		}
-		items := make([]awsApiValue, rv.Len())
+		items := make([]awsCliValue, rv.Len())
 		for i := range items {
-			items[i] = encodeAwsApiValue(rv.Index(i).Interface(), depth+1)
+			items[i] = encodeAwsCliValue(rv.Index(i).Interface(), depth+1)
 		}
-		return awsApiValue{Type: "ARRAY", Items: &items}
+		return awsCliValue{Type: "ARRAY", Items: &items}
 
 	case reflect.Map:
 		if rv.Type().Key().Kind() != reflect.String {
-			return awsApiValue{Type: "UNSUPPORTED", TypeName: "mapping with non-string keys"}
+			return awsCliValue{Type: "UNSUPPORTED", TypeName: "mapping with non-string keys"}
 		}
-		entries := make(map[string]awsApiValue, rv.Len())
+		entries := make(map[string]awsCliValue, rv.Len())
 		iter := rv.MapRange()
 		for iter.Next() {
-			entries[iter.Key().String()] = encodeAwsApiValue(iter.Value().Interface(), depth+1)
+			entries[iter.Key().String()] = encodeAwsCliValue(iter.Value().Interface(), depth+1)
 		}
-		return awsApiValue{Type: "OBJECT", Entries: &entries}
+		return awsCliValue{Type: "OBJECT", Entries: &entries}
 
 	case reflect.Struct:
-		return awsApiValue{Type: "UNSUPPORTED", TypeName: rv.Type().String()}
+		return awsCliValue{Type: "UNSUPPORTED", TypeName: rv.Type().String()}
 
 	default:
-		return awsApiValue{Type: "UNSUPPORTED", TypeName: rv.Type().String()}
+		return awsCliValue{Type: "UNSUPPORTED", TypeName: rv.Type().String()}
 	}
 }
 
-// UnmarshalJSON decodes an AWSAPIRequestValidation, translating the core's
+// UnmarshalJSON decodes an AWSCLICommandValidation, translating the core's
 // integer-array encoding of the validated template into a byte slice.
 //
 // The core serializes the template as a JSON array of byte-valued integers
@@ -375,8 +375,8 @@ func encodeAwsApiValue(v any, depth int) awsApiValue {
 // into a []byte directly - it expects a base64 string. Every other field
 // decodes with the standard rules. On any failure the receiver is left
 // unchanged, so a decode error never leaves a partially populated result.
-func (v *AWSAPIRequestValidation) UnmarshalJSON(data []byte) error {
-	type withoutTemplate AWSAPIRequestValidation
+func (v *AWSCLICommandValidation) UnmarshalJSON(data []byte) error {
+	type withoutTemplate AWSCLICommandValidation
 	var wire struct {
 		withoutTemplate
 		Template json.RawMessage `json:"template"`
@@ -388,7 +388,7 @@ func (v *AWSAPIRequestValidation) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	decoded := AWSAPIRequestValidation(wire.withoutTemplate)
+	decoded := AWSCLICommandValidation(wire.withoutTemplate)
 	decoded.Template = template
 	*v = decoded
 	return nil

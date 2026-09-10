@@ -8,10 +8,10 @@ import (
 	"time"
 )
 
-func TestMarshalAWSAPIRequestFormatsTimeAsRFC3339UTC(t *testing.T) {
+func TestMarshalAWSCLICommandFormatsTimeAsRFC3339UTC(t *testing.T) {
 	timestamp := time.Date(2025, time.January, 2, 3, 4, 5, 123456789, time.FixedZone("UTC+2", 2*60*60))
 
-	encoded := encodedAWSAPIParameter(t, timestamp)
+	encoded := encodedAWSCLIParameter(t, timestamp)
 
 	if got := encoded["type"]; got != "STRING" {
 		t.Fatalf("type = %v, want STRING", got)
@@ -21,8 +21,8 @@ func TestMarshalAWSAPIRequestFormatsTimeAsRFC3339UTC(t *testing.T) {
 	}
 }
 
-func TestMarshalAWSAPIRequestPreservesUnsignedJSONNumber(t *testing.T) {
-	encoded := encodedAWSAPIParameter(t, json.Number("18446744073709551615"))
+func TestMarshalAWSCLICommandPreservesUnsignedJSONNumber(t *testing.T) {
+	encoded := encodedAWSCLIParameter(t, json.Number("18446744073709551615"))
 
 	if got := encoded["type"]; got != "UNSIGNED_INTEGER" {
 		t.Fatalf("type = %v, want UNSIGNED_INTEGER", got)
@@ -36,8 +36,8 @@ func TestMarshalAWSAPIRequestPreservesUnsignedJSONNumber(t *testing.T) {
 	}
 }
 
-func TestMarshalAWSAPIRequestMarksOutOfRangeIntegerUnsupported(t *testing.T) {
-	encoded := encodedAWSAPIParameter(t, json.Number("18446744073709551616"))
+func TestMarshalAWSCLICommandMarksOutOfRangeIntegerUnsupported(t *testing.T) {
+	encoded := encodedAWSCLIParameter(t, json.Number("18446744073709551616"))
 
 	if got := encoded["type"]; got != "UNSUPPORTED" {
 		t.Fatalf("type = %v, want UNSUPPORTED", got)
@@ -50,15 +50,15 @@ func TestMarshalAWSAPIRequestMarksOutOfRangeIntegerUnsupported(t *testing.T) {
 	}
 }
 
-func encodedAWSAPIParameter(t *testing.T, value any) map[string]any {
+func encodedAWSCLIParameter(t *testing.T, value any) map[string]any {
 	t.Helper()
-	requestJSON, err := marshalAWSAPIRequest(AWSAPIRequest{
+	requestJSON, err := marshalAWSCLICommand(AWSCLICommand{
 		ServiceName:   "test",
 		OperationName: "TestOperation",
 		Parameters:    map[string]any{"Value": value},
 	})
 	if err != nil {
-		t.Fatalf("marshalAWSAPIRequest failed: %v", err)
+		t.Fatalf("marshalAWSCLICommand failed: %v", err)
 	}
 
 	decoder := json.NewDecoder(strings.NewReader(requestJSON))
@@ -86,11 +86,11 @@ func templateIntegerArray(text string) string {
 	return "[" + strings.Join(elements, ",") + "]"
 }
 
-func unmarshalValidation(t *testing.T, blob string) AWSAPIRequestValidation {
+func unmarshalValidation(t *testing.T, blob string) AWSCLICommandValidation {
 	t.Helper()
-	var validation AWSAPIRequestValidation
+	var validation AWSCLICommandValidation
 	if err := json.Unmarshal([]byte(blob), &validation); err != nil {
-		t.Fatalf("unmarshalling AWSAPIRequestValidation failed: %v", err)
+		t.Fatalf("unmarshalling AWSCLICommandValidation failed: %v", err)
 	}
 	return validation
 }
@@ -145,7 +145,7 @@ func TestUnmarshalValidationRejectsMalformedTemplateBytes(t *testing.T) {
 	for name, template := range cases {
 		t.Run(name, func(t *testing.T) {
 			blob := `{"operationKind":"CLOUD_FORMATION_CREATE","status":"VALIDATED","resourceTypes":[],"reason":"synthesized","template":` + template + `}`
-			var validation AWSAPIRequestValidation
+			var validation AWSCLICommandValidation
 			if err := json.Unmarshal([]byte(blob), &validation); err == nil {
 				t.Fatalf("expected an error for template %s, got Template = %v", template, validation.Template)
 			}
@@ -156,7 +156,7 @@ func TestUnmarshalValidationRejectsMalformedTemplateBytes(t *testing.T) {
 func TestUnmarshalValidationReportsOffendingByteInError(t *testing.T) {
 	blob := `{"operationKind":"CLOUD_FORMATION_CREATE","status":"VALIDATED","resourceTypes":[],"reason":"synthesized","template":[10,256]}`
 
-	err := json.Unmarshal([]byte(blob), &AWSAPIRequestValidation{})
+	err := json.Unmarshal([]byte(blob), &AWSCLICommandValidation{})
 	if err == nil {
 		t.Fatal("expected an out-of-range error")
 	}
@@ -166,9 +166,9 @@ func TestUnmarshalValidationReportsOffendingByteInError(t *testing.T) {
 }
 
 func TestUnmarshalValidationLeavesReceiverUnchangedOnError(t *testing.T) {
-	existing := AWSAPIRequestValidation{
-		OperationKind: AWSAPIOperationKindReadOnly,
-		Status:        AWSAPIRequestValidationStatusSkipped,
+	existing := AWSCLICommandValidation{
+		OperationKind: AWSCLIOperationKindReadOnly,
+		Status:        AWSCLICommandValidationStatusSkipped,
 		Reason:        "unchanged",
 		Template:      []byte("original"),
 	}
@@ -192,19 +192,19 @@ func TestUnmarshalValidationDecodesEveryFieldAlongsideTemplate(t *testing.T) {
 		"templateSource":"SYNTHESIZED_CREATE",
 		"resourceTypes":["AWS::S3::Bucket"],
 		"reason":"synthesized one unambiguous CloudFormation resource",
-		"report":{"filePath":"aws-api://s3/CreateBucket","status":"OK","version":"0.0.0","diagnostics":[]},
+		"report":{"filePath":"aws-cli://s3/CreateBucket","status":"OK","version":"0.0.0","diagnostics":[]},
 		"template":` + templateIntegerArray(template) + `
 	}`
 
 	validation := unmarshalValidation(t, blob)
 
-	if validation.OperationKind != AWSAPIOperationKindCloudFormationCreate {
+	if validation.OperationKind != AWSCLIOperationKindCloudFormationCreate {
 		t.Errorf("OperationKind = %q, want CLOUD_FORMATION_CREATE", validation.OperationKind)
 	}
-	if validation.Status != AWSAPIRequestValidationStatusValidated {
+	if validation.Status != AWSCLICommandValidationStatusValidated {
 		t.Errorf("Status = %q, want VALIDATED", validation.Status)
 	}
-	if validation.TemplateSource == nil || *validation.TemplateSource != AWSAPITemplateSourceSynthesizedCreate {
+	if validation.TemplateSource == nil || *validation.TemplateSource != AWSCLITemplateSourceSynthesizedCreate {
 		t.Errorf("TemplateSource = %v, want SYNTHESIZED_CREATE", validation.TemplateSource)
 	}
 	if len(validation.ResourceTypes) != 1 || validation.ResourceTypes[0] != "AWS::S3::Bucket" {
@@ -216,8 +216,8 @@ func TestUnmarshalValidationDecodesEveryFieldAlongsideTemplate(t *testing.T) {
 	if validation.Report == nil {
 		t.Fatal("Report = nil, want the nested report to decode")
 	}
-	if validation.Report.FilePath != "aws-api://s3/CreateBucket" {
-		t.Errorf("Report.FilePath = %q, want aws-api://s3/CreateBucket", validation.Report.FilePath)
+	if validation.Report.FilePath != "aws-cli://s3/CreateBucket" {
+		t.Errorf("Report.FilePath = %q, want aws-cli://s3/CreateBucket", validation.Report.FilePath)
 	}
 	if got := string(validation.Template); got != template {
 		t.Errorf("Template = %q, want %q", got, template)
