@@ -9,7 +9,7 @@ fn main() -> anyhow::Result<()> {
         eprintln!(
             "Usage: cargo run -p cloudformation-validate-data-source --features maintenance --example generate\n\n\
              Generates all outputs from existing upstream data.\n\
-             To refresh upstream data first, run `cargo run -p cloudformation-validate-data-source --features maintenance --example sync -- --cfn-lint-root <DIR> --aws-cli-root <DIR>`."
+             To refresh upstream data first, run `cargo run -p cloudformation-validate-data-source --features maintenance --example sync -- --cfn-lint-root <DIR>`."
         );
         return Ok(());
     }

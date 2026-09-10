@@ -8,28 +8,37 @@ compile time. Everything compiles into the binary - no runtime fetching.
 ## Commands
 
 ```bash
-# Generate from existing upstream data
+# Generate schema and rule artifacts from existing upstream data
 cargo run -p cloudformation-validate-data-source --features maintenance --example generate
 
-# Refresh all upstream sources, then generate every output including the AWS API operation catalog
-# (cfn-lint root and AWS CLI root are required)
-cargo run -p cloudformation-validate-data-source --features maintenance --example sync -- \
-  --cfn-lint-root <DIR> \
-  --aws-cli-root <DIR>
+# Refresh all upstream sources, then generate every output (cfn-lint root is required)
+cargo run -p cloudformation-validate-data-source --features maintenance --example sync -- --cfn-lint-root <DIR>
+
+# Regenerate the AWS CLI operation catalog (standalone; independent of sync/generate).
+# --aws-cli-root points at a local aws-cli checkout. The resource data must already be
+# present (upstream/schemas from a prior sync, plus the committed compiled schemas).
+cargo run -p cloudformation-validate-data-source --features maintenance \
+  --example generate_aws_cli_catalog -- --aws-cli-root <DIR>
 ```
 
-The `generate` and `sync` examples require the `maintenance` feature, which enables dependencies used only by the
-data maintenance pipeline. `sync` is the complete workflow: it refreshes every upstream source, records source
-versions, generates the schema and rule outputs, then generates and verifies the AWS API operation catalog. Pass the
-AWS CLI checkout root through `--aws-cli-root`; sync derives its bundled botocore package path, and the catalog
-generator runs its unit tests before generating the catalog.
+The examples require the `maintenance` feature, which enables dependencies used only by the data maintenance
+pipeline. `sync` is the schema/rule workflow: it refreshes every upstream source, records source versions, and
+generates the schema and rule outputs. `generate` reruns that schema and rule generation from existing upstream data
+without network access.
 
-`generate` reruns schema and rule generation from existing upstream data without network access. It does not rebuild
-the AWS API operation catalog because that step requires botocore service models and is owned by the complete `sync`
-workflow.
+`--cfn-lint-root` is required by `sync`, which fails before starting work when it is absent. A successful sync records
+its source-qualified versions only after all source processing succeeds.
 
-`--cfn-lint-root` and `--aws-cli-root` are required by `sync`, which fails before starting work when either is absent.
-A successful sync records both strict, source-qualified values together only after all source processing succeeds.
+### AWS CLI operation catalog
+
+`generate_aws_cli_catalog` is a separate command that (re)builds
+`generated/data/aws_cli_operation_catalog.json`, the adapter catalog that maps AWS CLI operations to CloudFormation
+resource types for `validateAwsCliCommand`. It is intentionally decoupled from `sync`/`generate` because it derives
+from AWS CLI botocore service models plus CloudFormation provider handler metadata and is regenerated on its own
+cadence. It only generates the catalog and never downloads or processes schemas: it reads the provider schemas
+already present under `upstream/schemas` (written by `sync`) and the committed compiled schemas under
+`generated/schema-validator`, and fails with a clear message if either is missing.
+
 
 ## Directory Structure
 
