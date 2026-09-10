@@ -23,6 +23,7 @@ from collections.abc import Mapping
 
 from .bindings_python import (
     PyCelEngine as _PyCelEngine,
+    PyCompositeEngine as _PyCompositeEngine,
     PyRegoEngine as _PyRegoEngine,
     PySchemaValidator as _PySchemaValidator,
     PySemanticModel as _PySemanticModel,
@@ -98,6 +99,7 @@ from .validation_engine import (
     AwsCliOperationKind,
     AwsCliTemplateSource,
     AwsCliValue as _NativeAwsCliValue,
+    CompositeEngineConfig,
     EngineConfig,
     EngineType,
     ExternalRuleSource,
@@ -111,6 +113,8 @@ __all__ = [
     "AwsCliOperationKind",
     "AwsCliTemplateSource",
     "CelEngine",
+    "CompositeEngine",
+    "CompositeEngineConfig",
     "ConditionalNull",
     "ConditionalNullEntry",
     "DetailLevel",
@@ -304,8 +308,8 @@ def _to_native_aws_cli_value(value: object) -> _NativeAwsCliValue:
 class Engine:
     """Validates CloudFormation templates against the built-in rule set.
 
-    Base class for :class:`RegoEngine` and :class:`CelEngine`. Construction is
-    expensive (rules are compiled once); reuse one engine across templates.
+    Base class for :class:`RegoEngine`, :class:`CelEngine`, and
+    :class:`CompositeEngine`. Construction is expensive (rules are compiled once); reuse one engine across templates.
     """
 
     _inner_cls: typing.ClassVar[typing.Optional[type]] = None
@@ -315,7 +319,9 @@ class Engine:
         config: typing.Optional[EngineConfig] = None,
     ):
         if self._inner_cls is None:
-            raise TypeError(f"{type(self).__name__} has no engine; construct RegoEngine or CelEngine instead")
+            raise TypeError(
+                f"{type(self).__name__} has no engine; construct RegoEngine, CelEngine, or CompositeEngine instead"
+            )
         self._inner = self._inner_cls(
             config if config is not None else EngineConfig(),
         )
@@ -352,7 +358,7 @@ class Engine:
         return self._inner.list_rules()
 
     def engine_name(self) -> str:
-        """Returns the engine identifier ("rego" or "cel")."""
+        """Returns the engine identifier ("rego", "cel", or "composite")."""
         return self._inner.engine_name()
 
 
@@ -366,6 +372,24 @@ class CelEngine(Engine):
     """CEL-based validation engine."""
 
     _inner_cls = _PyCelEngine
+
+
+class CompositeEngine(Engine):
+    """Composite validation engine.
+
+    Evaluates the built-in rules with one engine and caller-supplied custom Rego
+    and Guard rules with another, reporting their combined diagnostics. With no
+    custom rules it produces exactly the built-in diagnostics.
+
+    Unlike :class:`RegoEngine` and :class:`CelEngine`, it is configured with a
+    :class:`CompositeEngineConfig`, which carries only the external rules layered
+    on top of the built-ins. ``engine_name()`` returns ``"composite"``.
+    """
+
+    _inner_cls = _PyCompositeEngine
+
+    def __init__(self, config: typing.Optional[CompositeEngineConfig] = None):
+        self._inner = self._inner_cls(config if config is not None else CompositeEngineConfig())
 
 
 class TemplateModel:

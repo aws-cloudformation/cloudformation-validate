@@ -1,7 +1,7 @@
 """Snapshot validation, mirroring the wasm and JVM suites.
 
-Every template in the corpus is validated through both engines at both detail
-levels, and the result must match resources/expected/validation_reports*.json
+Every template in the corpus is validated through all three engines at both
+detail levels, and the result must match resources/expected/validation_reports*.json
 chunks exactly (up to the fields the snapshot file intentionally excludes). The
 typed uniffi records are serialized back into serde's JSON shape (camelCase
 names, enum names, unwrapped JsonValue variants, Nones omitted), so this also
@@ -17,6 +17,7 @@ import unittest
 
 from cloudformation_validate import (
     CelEngine,
+    CompositeEngine,
     DetailLevel,
     EntityType,
     JsonValue,
@@ -99,6 +100,7 @@ def strip_snapshot_excluded_fields(report, file_path=None):
         report["metadata"].pop("rulesEvaluated", None)
         report["metadata"].pop("cfnLintVersion", None)
         report["metadata"].pop("resourceSchemaVersion", None)
+        report["metadata"].pop("suppressed", None)
     return report
 
 
@@ -154,6 +156,7 @@ STANDARD_DEBUG = ValidateConfig(severity_level=Severity.DEBUG, detail_level=Deta
 
 REGO = RegoEngine()
 CEL = CelEngine()
+COMPOSITE = CompositeEngine()
 
 
 class SnapshotValidationTest(unittest.TestCase):
@@ -192,6 +195,12 @@ class SnapshotValidationTest(unittest.TestCase):
 
     def test_cel_standard_matches_snapshot(self):
         self.assert_matches_snapshot(CEL, detailed=False)
+
+    def test_composite_detailed_matches_snapshot(self):
+        self.assert_matches_snapshot(COMPOSITE, detailed=True)
+
+    def test_composite_standard_matches_snapshot(self):
+        self.assert_matches_snapshot(COMPOSITE, detailed=False)
 
 
 class PerformanceMetricsTest(unittest.TestCase):

@@ -6,6 +6,7 @@ import software.amazon.cloudformation.validate.diagnostics.ValidationReport
 import software.amazon.cloudformation.validate.engine.AwsCliCommandContext as NativeAwsCliCommand
 import software.amazon.cloudformation.validate.engine.AwsCliCommandValidation
 import software.amazon.cloudformation.validate.engine.AwsCliValue as NativeAwsCliValue
+import software.amazon.cloudformation.validate.engine.CompositeEngineConfig
 import software.amazon.cloudformation.validate.engine.EngineConfig
 import software.amazon.cloudformation.validate.engine.ExternalRuleSource
 import software.amazon.cloudformation.validate.rules.RuleInfo
@@ -107,9 +108,10 @@ fun fileToAdditionalSchemaSource(file: File, typeName: String? = null): Addition
     AdditionalSchemaSource(typeName = typeName, schema = file.readText())
 
 /**
- * Reads a rule file into an [ExternalRuleSource] for [EngineConfig.customRules] or
- * [EngineConfig.guardRules]. The file path becomes the rule source name - the file-based
- * counterpart to passing a template [File] to [Engine.validateTemplate].
+ * Reads a rule file into an [ExternalRuleSource] for [EngineConfig.customRules],
+ * [EngineConfig.guardRules], [CompositeEngineConfig.regoRules], or
+ * [CompositeEngineConfig.guardRules]. The file path becomes the rule source name -
+ * the file-based counterpart to passing a template [File] to [Engine.validateTemplate].
  */
 fun fileToExternalRuleSource(file: File): ExternalRuleSource =
     ExternalRuleSource(name = file.path, content = file.readText())
@@ -161,6 +163,29 @@ class CelEngine(
     config: EngineConfig = EngineConfig(),
 ) : Engine {
     private val inner = JvmCelEngine(config)
+
+    override fun validateTemplate(template: File, config: ValidateConfig): ValidationReport =
+        inner.validateTemplate(template.readBytes(), config, template.path)
+
+    override fun validateAwsCliCommand(
+        request: AwsCliCommand,
+        config: ValidateConfig,
+    ): AwsCliCommandValidation = inner.validateAwsCliCommand(request.toNative(), config)
+
+    override fun listRules(): List<RuleInfo> = inner.listRules()
+    override fun engineName(): String = inner.engineName()
+}
+
+/**
+ * Evaluates the built-in rules together with any caller-supplied external rules,
+ * returning one merged report. Configured with [CompositeEngineConfig], which
+ * carries only the external rules layered on top of the built-ins - not the
+ * engine-native `customRules` field of [EngineConfig].
+ */
+class CompositeEngine(
+    config: CompositeEngineConfig = CompositeEngineConfig(),
+) : Engine {
+    private val inner = JvmCompositeEngine(config)
 
     override fun validateTemplate(template: File, config: ValidateConfig): ValidationReport =
         inner.validateTemplate(template.readBytes(), config, template.path)

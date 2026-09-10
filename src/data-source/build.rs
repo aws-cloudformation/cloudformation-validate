@@ -206,6 +206,9 @@ fn embed_minified_json(path: &Path, const_name: &str, out_dir: &Path, code: &mut
         panic!("required JSON document must not be empty: {}", path.display());
     }
     let minified = serde_json::to_vec(&value).unwrap();
+    // Preallocating the known payload length avoids geometric growth for the
+    // embedded artifacts without changing decoding semantics.
+    let uncompressed_len = minified.len();
     let compressed = zstd::encode_all(Cursor::new(&minified), 9).unwrap();
 
     let bin_path = out_dir.join(format!("{}.json.zst", const_name.to_lowercase()));
@@ -216,7 +219,7 @@ fn embed_minified_json(path: &Path, const_name: &str, out_dir: &Path, code: &mut
              const COMPRESSED: &[u8] = include_bytes!({:?});\n    \
              let mut decoder = ruzstd::decoding::StreamingDecoder::new(COMPRESSED)\n        \
                  .expect(\"zstd stream init {const_name}\");\n    \
-             let mut out = Vec::new();\n    \
+             let mut out = Vec::with_capacity({uncompressed_len});\n    \
              std::io::Read::read_to_end(&mut decoder, &mut out).expect(\"zstd decode {const_name}\");\n    \
              out\n\
          }});\n",

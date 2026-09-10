@@ -113,6 +113,32 @@ let _engine = RegoEngine::new(config)?;
 
 See [Custom Rules](../CUSTOM_RULES.md) for Rego, CEL, and Guard formats.
 
+### Composite engine
+
+`CompositeEngine`, re-exported at the crate root, is an additive engine. It evaluates every built-in rule with CEL and
+layers your own rules on top: custom CEL rules run in the same CEL engine that owns the built-ins, while a separate
+external-only Rego engine evaluates custom Rego and translated Guard rules. That external engine is constructed only
+when the configuration supplies custom Rego or Guard rules, and it still runs when built-in rules are disabled.
+
+It takes its own `CompositeEngineConfig` rather than `EngineConfig`. The config carries `rego_rules`, `cel_rules`,
+`guard_rules`, and `schema_validator_config`; it has no field for engine-native built-in custom rules because the
+composite fixes which engine owns the built-ins. `RegoEngine`, `CelEngine`, and `EngineConfig` are unchanged.
+`EngineType` now selects `Rego`, `Cel`, or `Composite`, with `Composite` as its default. Only the documented subset of
+the Guard language is translated; unsupported constructs are rejected at load time.
+
+```rust
+use cloudformation_validate::{CompositeEngine, CompositeEngineConfig, ExternalRuleSource, ValidationEngine};
+
+// CEL owns the built-ins; the external-only Rego engine is built only because a
+// Guard rule is supplied here.
+let engine = CompositeEngine::new(CompositeEngineConfig::new().with_guard_rules([ExternalRuleSource {
+    name: "s3.guard".to_string(),
+    content: "rule bucket_name { AWS::S3::Bucket { Properties.BucketName EXISTS } }".to_string(),
+}]))?;
+assert_eq!(engine.engine_name(), "composite");
+# Ok::<(), Box<dyn std::error::Error>>(())
+```
+
 ## Validation configuration
 
 `ValidateConfig` controls each validation call.
@@ -200,6 +226,7 @@ The facade re-exports these implementation crates for callers that need APIs bey
 | Module                  | Contents                                                              |
 |-------------------------|-----------------------------------------------------------------------|
 | `cel_engine`            | `CelEngine` implementation.                                           |
+| `composite_engine`      | `CompositeEngine` implementation.                                     |
 | `rego_engine`           | `RegoEngine` implementation.                                          |
 | `validation_engine`     | Orchestration, configs, traits, helpers, and validation entry points. |
 | `schema_validator`      | Compiled schema store, overlays, and standalone schema validation.    |

@@ -382,9 +382,9 @@ fn register_resolve(rego: &mut regorus::Engine) {
             // `Properties` wrapped in `Fn::If` stores values only under the
             // synthetic branch path - fall back to scenario resolution so the
             // rule still sees a per-branch value.
-            let scenarios = model.resolve_scenarios_json(rid, path);
-            if let Some((first, _)) = scenarios.into_iter().next() {
-                return Ok(serde_json_to_rego_value(&first));
+            let scenarios = model.resolve_scenarios_json_shared(rid, path);
+            if let Some((first, _)) = scenarios.first() {
+                return Ok(serde_json_to_rego_value(first));
             }
             Ok(Value::Undefined)
         }),
@@ -409,9 +409,9 @@ fn register_resolve_preserving_conditionals(rego: &mut regorus::Engine) {
                 return Ok(serde_json_to_rego_value(&resolved_to_json_preserving_conditionals(&val)));
             }
             // A conditional wrapping the entire Properties block stores values only at branch-qualified paths.
-            let scenarios = model.resolve_scenarios_json(rid, path);
-            if let Some((first, _)) = scenarios.into_iter().next() {
-                return Ok(serde_json_to_rego_value(&first));
+            let scenarios = model.resolve_scenarios_json_shared(rid, path);
+            if let Some((first, _)) = scenarios.first() {
+                return Ok(serde_json_to_rego_value(first));
             }
             Ok(Value::Undefined)
         }),
@@ -437,11 +437,11 @@ fn register_resolve_all(rego: &mut regorus::Engine) {
             // `Properties` wrapped in `Fn::If` stores values under a synthetic
             // branch path. Fall back to scenario resolution so rules that walk
             // by property name still see per-branch values.
-            let scenarios = model.resolve_scenarios_json(rid, path);
+            let scenarios = model.resolve_scenarios_json_shared(rid, path);
             if scenarios.is_empty() {
                 return Ok(Value::from(Vec::<Value>::new()));
             }
-            let vals: Vec<Value> = scenarios.into_iter().map(|(v, _)| serde_json_to_rego_value(&v)).collect();
+            let vals: Vec<Value> = scenarios.iter().map(|(v, _)| serde_json_to_rego_value(v)).collect();
             Ok(Value::from(vals))
         }),
     );
@@ -578,10 +578,10 @@ fn register_resolve_scenarios(rego: &mut regorus::Engine) {
                     let mut results: Vec<Value> = Vec::new();
                     for i in 0..arr_len {
                         let idx_path = format!("{}.{}{}", arr_path, i, suffix);
-                        let scenarios = model.resolve_scenarios_json(rid, &idx_path);
-                        for (v_json, conds) in scenarios {
+                        let scenarios = model.resolve_scenarios_json_shared(rid, &idx_path);
+                        for (v_json, conds) in scenarios.iter() {
                             let mut conds_map = serde_json::Map::new();
-                            for (k, b) in &conds {
+                            for (k, b) in conds {
                                 conds_map.insert(k.clone(), serde_json::Value::Bool(*b));
                             }
                             if let Ok(v) = Value::from_json_str(
@@ -596,12 +596,12 @@ fn register_resolve_scenarios(rego: &mut regorus::Engine) {
                 }
             }
 
-            let scenarios = model.resolve_scenarios_json(rid, path);
+            let scenarios = model.resolve_scenarios_json_shared(rid, path);
             let results: Vec<Value> = scenarios
-                .into_iter()
+                .iter()
                 .filter_map(|(v_json, conds)| {
                     let mut conds_map = serde_json::Map::new();
-                    for (k, b) in &conds {
+                    for (k, b) in conds {
                         conds_map.insert(k.clone(), serde_json::Value::Bool(*b));
                     }
                     Value::from_json_str(&serde_json::json!({"value": v_json, "conditions": conds_map}).to_string())
@@ -629,6 +629,19 @@ fn register_has_unresolved_scenario(rego: &mut regorus::Engine) {
     );
 }
 
+fn condition_assumptions(value: &Value) -> Vec<(String, bool)> {
+    let Ok(entries) = value.as_object() else {
+        return Vec::new();
+    };
+    entries
+        .iter()
+        .filter_map(|(name, truth)| match (name.as_string(), truth.as_bool()) {
+            (Ok(name), Ok(truth)) => Some((name.to_string(), *truth)),
+            _ => None,
+        })
+        .collect()
+}
+
 fn register_scenario_source_path(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "scenario_source_path".into(),
@@ -639,17 +652,7 @@ fn register_scenario_source_path(rego: &mut regorus::Engine) {
             };
             let resource_id = params[0].as_string()?;
             let effective_path = params[1].as_string()?;
-            let conditions_json = params[2].to_json_str()?;
-            let conditions_value: serde_json::Value = serde_json::from_str(&conditions_json).unwrap_or_default();
-            let conditions: HashMap<String, bool> = conditions_value
-                .as_object()
-                .map(|values| {
-                    values
-                        .iter()
-                        .filter_map(|(name, value)| value.as_bool().map(|value| (name.clone(), value)))
-                        .collect()
-                })
-                .unwrap_or_default();
+            let conditions: HashMap<String, bool> = condition_assumptions(&params[2]).into_iter().collect();
             let source_path = model
                 .scenario_source_path(resource_id.as_ref(), effective_path.as_ref(), &conditions)
                 .unwrap_or_else(|| effective_path.to_string());
@@ -705,10 +708,10 @@ fn register_properties_scenarios(rego: &mut regorus::Engine) {
             }
 
             let results: Vec<Value> = model
-                .resolve_properties_scenarios(rid.as_ref())
-                .into_iter()
+                .resolve_properties_scenarios_shared(rid.as_ref())
+                .iter()
                 .map(|(properties, conditions)| {
-                    let properties = project_selected_properties(&properties, &selected_fields);
+                    let properties = project_selected_properties(properties, &selected_fields);
                     json_to_value(&serde_json::json!({
                         "properties": properties,
                         "conditions": conditions,
@@ -757,12 +760,7 @@ fn register_is_satisfiable(rego: &mut regorus::Engine) {
             let Some(model) = current_model() else {
                 return Ok(Value::Undefined);
             };
-            let conds_str = params[0].to_json_str()?;
-            let conds_val: serde_json::Value = serde_json::from_str(&conds_str).unwrap_or_default();
-            let assumptions: Vec<(String, bool)> = conds_val
-                .as_object()
-                .map(|m| m.iter().filter_map(|(k, v)| v.as_bool().map(|b| (k.clone(), b))).collect())
-                .unwrap_or_default();
+            let assumptions = condition_assumptions(&params[0]);
             if assumptions.is_empty() {
                 return Ok(Value::from(true));
             }
@@ -1085,9 +1083,22 @@ fn register_has_property(rego: &mut regorus::Engine) {
             };
             let rid = params[0].as_string()?;
             let prop = params[1].as_string()?;
-            let has =
-                model.resources.get(rid.as_ref()).map(|r| r.properties.contains_key(prop.as_ref())).unwrap_or(false);
-            Ok(Value::from(has))
+            let prop = prop.as_ref();
+            // Property names are documented as bare (`BucketName`), but a Guard
+            // `Properties.X EXISTS` clause translates to a leading `Properties.`
+            // prefix. Accept both by also checking the name with that prefix
+            // stripped, since the model stores top-level properties under the bare
+            // name.
+            let bare_prop = prop.strip_prefix("Properties.").unwrap_or(prop);
+            let has_top_level_property = model.resources.get(rid.as_ref()).is_some_and(|resource| {
+                resource.properties.contains_key(prop) || resource.properties.contains_key(bare_prop)
+            });
+            if has_top_level_property {
+                return Ok(Value::from(true));
+            }
+            let property_path =
+                if prop.starts_with("Properties.") { prop.to_string() } else { format!("Properties.{prop}") };
+            Ok(Value::from(model.resolve_deep(rid.as_ref(), &property_path).is_some()))
         }),
     );
 }
@@ -1528,7 +1539,7 @@ fn register_property_can_be_absent(rego: &mut regorus::Engine) {
             if !key_present {
                 return Ok(Value::from(true));
             }
-            let scenarios = model.resolve_scenarios_json(rid.as_ref(), path.as_ref());
+            let scenarios = model.resolve_scenarios_json_shared(rid.as_ref(), path.as_ref());
             let absent = scenarios.is_empty() || scenarios.iter().any(|(v, _)| v.is_null());
             Ok(Value::from(absent))
         }),
@@ -2150,7 +2161,7 @@ fn register_make_diag(rego: &mut regorus::Engine) {
                 m.insert("end_line".into(), span.end_line.into());
                 m.insert("end_column".into(), span.end_column.into());
             }
-            Value::from_json_str(&obj.to_string())
+            Ok(json_to_value(&obj))
         }),
     );
 }
@@ -2181,7 +2192,7 @@ fn register_make_diag_at(rego: &mut regorus::Engine) {
                 m.insert("end_line".into(), span.end_line.into());
                 m.insert("end_column".into(), span.end_column.into());
             }
-            Value::from_json_str(&obj.to_string())
+            Ok(json_to_value(&obj))
         }),
     );
 }
@@ -2218,7 +2229,7 @@ fn register_make_diag_at_source(rego: &mut regorus::Engine) {
                 fields.insert("end_line".into(), span.end_line.into());
                 fields.insert("end_column".into(), span.end_column.into());
             }
-            Value::from_json_str(&obj.to_string())
+            Ok(json_to_value(&obj))
         }),
     );
 }
@@ -2259,7 +2270,7 @@ fn register_make_diag_full(rego: &mut regorus::Engine) {
                 m.insert("end_line".into(), span.end_line.into());
                 m.insert("end_column".into(), span.end_column.into());
             }
-            Value::from_json_str(&obj.to_string())
+            Ok(json_to_value(&obj))
         }),
     );
 }
@@ -2298,7 +2309,7 @@ fn register_make_diag_related(rego: &mut regorus::Engine) {
             m.insert("end_line".into(), span.end_line.into());
             m.insert("end_column".into(), span.end_column.into());
         }
-        Value::from_json_str(&obj.to_string())
+        Ok(json_to_value(&obj))
     }));
 }
 
@@ -2332,7 +2343,7 @@ fn register_make_diag_conditional(rego: &mut regorus::Engine) {
                 m.insert("end_line".into(), span.end_line.into());
                 m.insert("end_column".into(), span.end_column.into());
             }
-            Value::from_json_str(&obj.to_string())
+            Ok(json_to_value(&obj))
         }),
     );
 }
@@ -2718,6 +2729,54 @@ mod tests {
         assert!(arr.as_array().expect("should be array").is_empty());
         let obj = json_to_value(&serde_json::json!({}));
         obj.as_object().expect("should be a valid object");
+    }
+
+    #[test]
+    fn condition_assumptions_reads_string_keyed_booleans() {
+        let value = json_to_value(&serde_json::json!({"IsProd": true, "IsDev": false}));
+        let mut pairs = condition_assumptions(&value);
+        pairs.sort();
+        assert_eq!(pairs, vec![("IsDev".to_string(), false), ("IsProd".to_string(), true)]);
+    }
+
+    #[test]
+    fn condition_assumptions_is_empty_for_non_object() {
+        assert!(condition_assumptions(&Value::from("not an object")).is_empty());
+        assert!(condition_assumptions(&Value::Null).is_empty());
+    }
+
+    #[test]
+    fn condition_assumptions_skips_non_boolean_values() {
+        let value = json_to_value(&serde_json::json!({"IsProd": true, "Count": 3, "Name": "x"}));
+        assert_eq!(condition_assumptions(&value), vec![("IsProd".to_string(), true)]);
+    }
+
+    #[test]
+    fn condition_assumptions_skips_non_string_keys() {
+        let mut value = Value::new_object();
+        let object = value.as_object_mut().expect("a fresh object");
+        object.insert(Value::from("IsProd"), Value::from(true));
+        object.insert(Value::from(7i64), Value::from(false));
+        assert_eq!(condition_assumptions(&value), vec![("IsProd".to_string(), true)]);
+    }
+
+    #[test]
+    fn json_to_value_preserves_diagnostic_object_numbers() {
+        let obj = serde_json::json!({
+            "rule_id": "E9999",
+            "severity": "error",
+            "message": "m",
+            "resource_id": "R",
+            "resource_path": "Properties.X",
+            "start_line": 12,
+            "start_column": 3,
+            "end_line": 12,
+            "end_column": 9,
+        });
+        let round_tripped = serde_json::to_value(json_to_value(&obj)).expect("regorus value serializes");
+        assert_eq!(round_tripped["start_line"].as_u64(), Some(12));
+        assert_eq!(round_tripped["end_column"].as_u64(), Some(9));
+        assert_eq!(round_tripped["rule_id"], serde_json::json!("E9999"));
     }
 
     #[test]

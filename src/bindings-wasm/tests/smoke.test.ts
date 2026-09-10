@@ -6,6 +6,7 @@ import * as path from 'path';
 const {
     RegoEngine,
     CelEngine,
+    CompositeEngine,
     AwsCliCommand,
     SchemaValidator,
     SchemaFile,
@@ -107,6 +108,7 @@ const ENRICHMENT_DIAGNOSTIC_FIELDS = ['documentationUrl', 'context', 'ruleDescri
 
 const CEL = new CelEngine();
 const REGO = new RegoEngine();
+const COMPOSITE = new CompositeEngine();
 
 const TEMPLATE_WITH_OVERLAY_PROPERTY = `
 Resources:
@@ -141,6 +143,7 @@ function stripSnapshotExcludedFields(report: any, filePath?: string): unknown {
         delete clone.metadata.rulesEvaluated;
         delete clone.metadata.cfnLintVersion;
         delete clone.metadata.resourceSchemaVersion;
+        delete clone.metadata.suppressed;
     }
     return clone;
 }
@@ -176,6 +179,100 @@ describe('engine construction', () => {
         expect(engine.engineName()).toBe('rego');
         engine.free();
     });
+
+    it("CompositeEngine reports name 'composite'", () => {
+        const engine = new CompositeEngine();
+        expect(engine.engineName()).toBe('composite');
+        engine.free();
+    });
+});
+
+// ── CompositeEngine ──────────────────────────────────────────────────────────
+
+describe('CompositeEngine', () => {
+    const BUCKET_TEMPLATE = 'bad/invalid_deletion_policy.yaml';
+
+    it('with no external rules matches the built-in engine diagnostics and rules', () => {
+        const engine = new CompositeEngine();
+        const template = loadTemplate(BUCKET_TEMPLATE);
+        const baseline = REGO.validateTemplate(template).diagnostics;
+        expect(baseline.length, 'the parity template must produce built-in diagnostics').toBeGreaterThan(0);
+        expect(engine.validateTemplate(template).diagnostics).toEqual(baseline);
+        expect(engine.listRules()).toEqual(REGO.listRules());
+        engine.free();
+    });
+
+    it('evaluates a custom CEL rule layered on top of the built-ins', () => {
+        const builtinRuleCount = CEL.listRules().length;
+        const engine = new CompositeEngine({
+            celRules: [{ name: 'cel_custom.json', content: loadRule('cel_custom.json') }],
+        });
+
+        const report = engine.validateTemplate(loadTemplate(BUCKET_TEMPLATE));
+        const custom = report.diagnostics.find((d: any) => d.ruleId === 'CUSTOM001');
+        expect(custom, 'CUSTOM001 diagnostic must fire').toBeDefined();
+        expect(custom.severity).toBe('ERROR');
+        expect(custom.source).toBe('CUSTOM');
+
+        const rules = engine.listRules();
+        const registered = rules.find((r: any) => r.id === 'CUSTOM001');
+        expect(registered, 'CUSTOM001 must be listed').toBeDefined();
+        expect(registered.origin).toBe('CUSTOM');
+        expect(rules.filter((r: any) => r.origin !== 'CUSTOM').length).toBe(builtinRuleCount);
+        engine.free();
+    });
+
+    it('evaluates a custom Rego rule layered on top of the built-ins', () => {
+        const builtinRuleCount = CEL.listRules().length;
+        const engine = new CompositeEngine({
+            regoRules: [{ name: 'rego_custom.rego', content: loadRule('rego_custom.rego') }],
+        });
+
+        const report = engine.validateTemplate(loadTemplate(BUCKET_TEMPLATE));
+        const custom = report.diagnostics.find((d: any) => d.ruleId === 'CUSTOM001');
+        expect(custom, 'CUSTOM001 diagnostic must fire').toBeDefined();
+        expect(custom.severity).toBe('ERROR');
+        expect(custom.source).toBe('CUSTOM');
+        expect(custom.entity?.logicalId).toBe('Bucket');
+        expect(custom.entity?.resourceType).toBe('AWS::S3::Bucket');
+
+        const rules = engine.listRules();
+        const registered = rules.find((r: any) => r.id === 'CUSTOM001');
+        expect(registered, 'CUSTOM001 must be listed').toBeDefined();
+        expect(registered.origin).toBe('CUSTOM');
+        expect(rules.filter((r: any) => r.origin !== 'CUSTOM').length).toBe(builtinRuleCount);
+        engine.free();
+    });
+
+    it('evaluates a Guard rule layered on top of the built-ins', () => {
+        const engine = new CompositeEngine({
+            guardRules: [{ name: 'guard_encryption.guard', content: loadRule('guard_encryption.guard') }],
+        });
+
+        const report = engine.validateTemplate(loadTemplate(BUCKET_TEMPLATE));
+        const guard = report.diagnostics.find((d: any) => d.ruleId === 'check_bucket_encryption');
+        expect(guard, 'check_bucket_encryption diagnostic must fire').toBeDefined();
+        expect(guard.severity).toBe('ERROR');
+        expect(guard.source).toBe('GUARD');
+        expect(guard.entity?.logicalId).toBe('Bucket');
+
+        const listed = engine.listRules().find((r: any) => r.id === 'check_bucket_encryption');
+        expect(listed, 'check_bucket_encryption must be listed').toBeDefined();
+        expect(listed.origin).toBe('GUARD');
+        engine.free();
+    });
+
+    it('disableBuiltinRules leaves only the external Guard finding', () => {
+        const engine = new CompositeEngine({
+            guardRules: [{ name: 'guard_encryption.guard', content: loadRule('guard_encryption.guard') }],
+        });
+
+        const report = engine.validateTemplate(loadTemplate(BUCKET_TEMPLATE), { disableBuiltinRules: true });
+        const ruleIds = report.diagnostics.map((d: any) => d.ruleId);
+        expect(ruleIds).toContain('check_bucket_encryption');
+        expect(ruleIds.every((id: string) => id === 'check_bucket_encryption')).toBe(true);
+        engine.free();
+    });
 });
 
 // ── SchemaValidator ──────────────────────────────────────────────────────────
@@ -206,10 +303,17 @@ describe('listRules', () => {
         expect(ids).toEqual([...ids].sort());
     });
 
-    it('CelEngine and RegoEngine list identical rules', () => {
+    it('CompositeEngine rules are sorted by id', () => {
+        const ids = COMPOSITE.listRules().map((r: any) => r.id);
+        expect(ids.length).toBeGreaterThan(0);
+        expect(ids).toEqual([...ids].sort());
+    });
+
+    it('CelEngine, RegoEngine, and CompositeEngine list identical rules', () => {
         const celRules = CEL.listRules();
         const regoRules = REGO.listRules();
         expect(celRules).toEqual(regoRules);
+        expect(COMPOSITE.listRules()).toEqual(regoRules);
     });
 });
 
@@ -268,6 +372,26 @@ describe('invalid input', () => {
         expect(report.diagnostics[0].ruleId).toBe('F1101');
         expect(report.diagnostics[0].severity).toBe('FATAL');
     });
+
+    it('CompositeEngine returns F1101 for empty template', () => {
+        const report = COMPOSITE.validateTemplate(loadTemplate('empty.yaml'));
+        expect(report.status).toBe('ERROR');
+        expect(report.diagnostics[0].ruleId).toBe('F1101');
+        expect(report.diagnostics[0].severity).toBe('FATAL');
+    });
+});
+
+// ── Valid input ──────────────────────────────────────────────────────────────
+
+describe('valid template', () => {
+    const GOOD_TEMPLATE = 'good/generic.yaml';
+
+    it('all engines agree on an OK report for a good template', () => {
+        const rego = REGO.validateTemplate(loadTemplate(GOOD_TEMPLATE));
+        expect(rego.status).toBe('OK');
+        expect(CEL.validateTemplate(loadTemplate(GOOD_TEMPLATE)).diagnostics).toEqual(rego.diagnostics);
+        expect(COMPOSITE.validateTemplate(loadTemplate(GOOD_TEMPLATE)).diagnostics).toEqual(rego.diagnostics);
+    });
 });
 
 // ── AWS CLI command validation ──────────────────────────────────────────────
@@ -276,6 +400,7 @@ describe('AWS CLI command validation', () => {
     const engines = [
         ['rego', REGO],
         ['cel', CEL],
+        ['composite', COMPOSITE],
     ] as const;
 
     function diagnosticKeys(report: any): string[] {
@@ -285,7 +410,7 @@ describe('AWS CLI command validation', () => {
         );
     }
 
-    it('synthesizes canonical S3 CreateBucket state on both engines', () => {
+    it('synthesizes canonical S3 CreateBucket state on all engines', () => {
         const request = new AwsCliCommand('s3', 'CreateBucket', { Bucket: 'synthetic-bucket' });
         const validations: Record<string, any> = {};
 
@@ -303,8 +428,11 @@ describe('AWS CLI command validation', () => {
             validations[name] = validation;
         }
 
-        expect(Array.from(validations.rego.template)).toEqual(Array.from(validations.cel.template));
-        expect(diagnosticKeys(validations.rego.report)).toEqual(diagnosticKeys(validations.cel.report));
+        for (const [name, validation] of Object.entries(validations)) {
+            if (name === 'rego') continue;
+            expect(Array.from(validation.template), name).toEqual(Array.from(validations.rego.template));
+            expect(diagnosticKeys(validation.report), name).toEqual(diagnosticKeys(validations.rego.report));
+        }
     });
 
     it('preserves CloudFormation TemplateBody bytes exactly on both engines', () => {
@@ -504,7 +632,7 @@ describe('AWS CLI command validation', () => {
 // ── Additional schema overlays ──────────────────────────────────────────────
 
 describe('additional schemas', () => {
-    it('SchemaFile applies through the public config on both engines', () => {
+    it('SchemaFile applies through the public config on all engines', () => {
         const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'cloudformation-validate-overlay-'));
         try {
             const templatePath = path.join(directory, 'template.yaml');
@@ -516,6 +644,7 @@ describe('additional schemas', () => {
             for (const [name, baseline, EngineType] of [
                 ['rego', REGO, RegoEngine],
                 ['cel', CEL, CelEngine],
+                ['composite', COMPOSITE, CompositeEngine],
             ] as const) {
                 expect(
                     baseline
@@ -550,11 +679,17 @@ describe('custom rule', () => {
         const rego = new RegoEngine({
             customRules: [{ name: 'rego_custom.rego', content: loadRule('rego_custom.rego') }],
         });
-
-        for (const [name, engine] of [
+        // The composite runs the same CEL custom rule through its built-in engine.
+        const composite = new CompositeEngine({
+            celRules: [{ name: 'cel_custom.json', content: loadRule('cel_custom.json') }],
+        });
+        const engines = [
             ['cel', cel],
             ['rego', rego],
-        ] as const) {
+            ['composite', composite],
+        ] as const;
+
+        for (const [name, engine] of engines) {
             const report = (engine as any).validateTemplate(loadTemplate('bad/invalid_deletion_policy.yaml'));
             const d = report.diagnostics.find((d: any) => d.ruleId === 'CUSTOM001');
             expect(d, `${name}: CUSTOM001 diagnostic must fire`).toBeDefined();
@@ -564,10 +699,7 @@ describe('custom rule', () => {
         }
 
         const baselineCount = CEL.listRules().length;
-        for (const [name, engine] of [
-            ['cel', cel],
-            ['rego', rego],
-        ] as const) {
+        for (const [name, engine] of engines) {
             const rules = (engine as any).listRules();
             const c = rules.find((r: any) => r.id === 'CUSTOM001');
             expect(c, `${name}: CUSTOM001 must exist`).toBeDefined();
@@ -578,8 +710,10 @@ describe('custom rule', () => {
         }
 
         expect(cel.listRules()).toEqual(rego.listRules());
+        expect(cel.listRules()).toEqual(composite.listRules());
         cel.free();
         rego.free();
+        composite.free();
     });
 });
 
@@ -593,11 +727,15 @@ describe('guard rule', () => {
         const rego = new RegoEngine({
             guardRules: [{ name: 'guard_encryption.guard', content: loadRule('guard_encryption.guard') }],
         });
+        const composite = new CompositeEngine({
+            guardRules: [{ name: 'guard_encryption.guard', content: loadRule('guard_encryption.guard') }],
+        });
 
         const baselineCount = CEL.listRules().length;
         for (const [name, engine] of [
             ['cel', cel],
             ['rego', rego],
+            ['composite', composite],
         ] as const) {
             const rules = (engine as any).listRules();
             const g = rules.find((r: any) => r.id === 'check_bucket_encryption');
@@ -616,8 +754,10 @@ describe('guard rule', () => {
         }
 
         expect(cel.listRules()).toEqual(rego.listRules());
+        expect(composite.listRules()).toEqual(rego.listRules());
         cel.free();
         rego.free();
+        composite.free();
     });
 });
 
@@ -633,6 +773,10 @@ describe('single combined custom + guard', () => {
             customRules: [{ name: 'rego_custom.rego', content: loadRule('rego_custom.rego') }],
             guardRules: [{ name: 'guard_encryption.guard', content: loadRule('guard_encryption.guard') }],
         });
+        const composite = new CompositeEngine({
+            celRules: [{ name: 'cel_custom.json', content: loadRule('cel_custom.json') }],
+            guardRules: [{ name: 'guard_encryption.guard', content: loadRule('guard_encryption.guard') }],
+        });
 
         // Rego discovers custom rule metadata during evaluation.
         rego.validateTemplate(loadTemplate('bad/invalid_deletion_policy.yaml'));
@@ -640,6 +784,7 @@ describe('single combined custom + guard', () => {
         for (const [name, engine] of [
             ['cel', cel],
             ['rego', rego],
+            ['composite', composite],
         ] as const) {
             const rules = (engine as any).listRules();
             expect(rules.find((r: any) => r.id === 'CUSTOM001')?.origin).toBe('CUSTOM');
@@ -649,8 +794,10 @@ describe('single combined custom + guard', () => {
         }
 
         expect(cel.listRules()).toEqual(rego.listRules());
+        expect(cel.listRules()).toEqual(composite.listRules());
         cel.free();
         rego.free();
+        composite.free();
     });
 });
 
@@ -672,6 +819,13 @@ describe('multi combined custom + guard', () => {
                 { name: 'guard_multi.guard', content: loadRule('guard_multi.guard') },
             ],
         });
+        const composite = new CompositeEngine({
+            celRules: [{ name: 'cel_multi_custom.json', content: loadRule('cel_multi_custom.json') }],
+            guardRules: [
+                { name: 'guard_encryption.guard', content: loadRule('guard_encryption.guard') },
+                { name: 'guard_multi.guard', content: loadRule('guard_multi.guard') },
+            ],
+        });
 
         // Rego discovers custom rule metadata during evaluation.
         rego.validateTemplate(loadTemplate('bad/invalid_deletion_policy.yaml'));
@@ -679,6 +833,7 @@ describe('multi combined custom + guard', () => {
         for (const [name, engine] of [
             ['cel', cel],
             ['rego', rego],
+            ['composite', composite],
         ] as const) {
             const rules = (engine as any).listRules();
 
@@ -714,8 +869,10 @@ describe('multi combined custom + guard', () => {
         }
 
         expect(cel.listRules()).toEqual(rego.listRules());
+        expect(cel.listRules()).toEqual(composite.listRules());
         cel.free();
         rego.free();
+        composite.free();
     });
 });
 
@@ -768,6 +925,8 @@ describe('snapshot validation', () => {
     standardTests('rego', REGO);
     detailedTests('cel', CEL);
     standardTests('cel', CEL);
+    detailedTests('composite', COMPOSITE);
+    standardTests('composite', COMPOSITE);
 });
 
 describe('report fields excluded from snapshot', () => {
@@ -800,6 +959,7 @@ describe('validateTemplate detail level', () => {
     for (const [engineName, engine] of [
         ['rego', REGO],
         ['cel', CEL],
+        ['composite', COMPOSITE],
     ] as const) {
         it(`${engineName} defaults to DETAILED when detailLevel is omitted`, () => {
             const withDefault = engine.validateTemplate(loadTemplate(DETAIL_LEVEL_TEMPLATE), {

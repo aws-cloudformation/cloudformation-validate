@@ -1,4 +1,5 @@
 use cel_engine::CelEngine;
+use composite_engine::CompositeEngine;
 use diagnostics::{DetailLevel, ValidationReport};
 use rego_engine::RegoEngine;
 use rules::Severity;
@@ -8,7 +9,9 @@ use serde_json::Value;
 use std::fs;
 use std::hint::black_box;
 use std::time::Instant;
-use validation_engine::{EngineConfig, ValidateConfig, ValidationEngine, validate_bytes_with_path};
+use validation_engine::{
+    CompositeEngineConfig, EngineConfig, ValidateConfig, ValidationEngine, validate_bytes_with_path,
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -109,7 +112,10 @@ fn parse_positive(value: &str, name: &str) -> Result<usize, String> {
 
 pub fn run(arguments: &[String]) -> Result<(), String> {
     if arguments.len() < 5 {
-        return Err("usage: performance-harness measure <rego|cel> <iterations> <warmups> <label> <template>...".into());
+        return Err(
+            "usage: performance-harness measure <rego|cel|composite> <iterations> <warmups> <label> <template>..."
+                .into(),
+        );
     }
     let engine_name = &arguments[0];
     let iterations = parse_positive(&arguments[1], "iterations")?;
@@ -142,7 +148,11 @@ pub fn run(arguments: &[String]) -> Result<(), String> {
             CelEngine::new_with_schema_validator(config, &schema_validator)
                 .map_err(|error| format!("CEL engine initialization failed: {error}"))?,
         ),
-        _ => return Err("engine must be 'rego' or 'cel'".into()),
+        "composite" => Box::new(
+            CompositeEngine::new_with_schema_validator(CompositeEngineConfig::default(), &schema_validator)
+                .map_err(|error| format!("Composite engine initialization failed: {error}"))?,
+        ),
+        _ => return Err("engine must be 'rego', 'cel', or 'composite'".into()),
     };
     let engine_init_ms = engine_start.elapsed().as_secs_f64() * 1000.0;
 

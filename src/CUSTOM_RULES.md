@@ -1,7 +1,9 @@
 # Custom Rules Reference
 
-Custom rules can be written as CEL JSON, Rego, or CloudFormation Guard. CEL rules run only in `CelEngine`, Rego rules
-run only in `RegoEngine`, and Guard rules are translated for either engine.
+Custom rules can be written as CEL JSON, Rego, or CloudFormation Guard. CEL rules run in `CelEngine`, Rego rules
+run in `RegoEngine`, and Guard rules are translated for either engine. The composite engine accepts all three: it
+layers custom CEL rules on the built-in rules through the CEL engine that owns the built-ins, and layers custom Rego
+and translated Guard rules through a separate external-only Rego engine.
 
 ## Rule IDs and Severity
 
@@ -209,7 +211,9 @@ violation contains v if {
 
 Most resource paths passed to resolution and location functions start with `Properties.`, for example
 `"Properties.BucketName"`. The exceptions are explicitly property-name APIs: `has_property(name, "BucketName")` and
-the field list passed to `properties_scenarios` use bare top-level property names.
+the field list passed to `properties_scenarios` use bare top-level property names. `CompositeEngine` constructs Rego in
+external-only mode but still registers every builtin documented below and loads the embedded data tables, so the same
+custom Rego API is available there; only the product's handwritten built-in policy packages are omitted.
 
 The engine disables strict builtin errors. A builtin invocation with an invalid argument type or a failed parse is
 therefore normally undefined rather than an engine-terminating error. Functions that deliberately use `false`, `null`,
@@ -399,9 +403,10 @@ violation contains v if {
 ## Guard DSL Rules
 
 [CloudFormation Guard](https://docs.aws.amazon.com/cfn-guard/latest/ug/what-is-guard.html) rules are translated
-internally and can run with either engine. The Guard rule name becomes the diagnostic ID. Guard names begin with an
-ASCII letter and continue with letters, digits, or `_`, which is within the custom-ID character set. Every Guard
-finding reports `ERROR`.
+internally and can run with either engine or the composite engine. The Guard rule name becomes the diagnostic ID. Guard
+names begin with an ASCII letter and continue with letters, digits, or `_`, which is within the custom-ID character set.
+Every Guard finding reports `ERROR`. Only the subset of the Guard language documented below is supported; unsupported
+constructs are rejected at load time rather than silently ignored or partially evaluated.
 
 ### Structure
 
@@ -456,6 +461,10 @@ rule s3_versioning {
 |                            | CEL (JSON)                                  | Rego                                         | Guard DSL                     |
 |----------------------------|---------------------------------------------|----------------------------------------------|-------------------------------|
 | **Best for**               | Property checks and data-driven predicates  | Complex resolution and cross-resource logic  | Declarative compliance checks |
-| **Engine**                 | `CelEngine`                                 | `RegoEngine`                                 | Either                        |
+| **Engine**                 | `CelEngine` or composite                    | `RegoEngine` or composite                    | Either engine, or composite   |
 | **Template introspection** | Shared model variables plus CEL functions   | Shared model plus all 67 custom builtins     | Translated property checks    |
 | **Cross-resource checks**  | Via `resources`, `edges`, and other globals | Via `input`, graph builtins, and SAT helpers | No cross-rule references      |
+
+The composite engine evaluates the built-in rules with CEL and layers custom rules from all three formats on top:
+custom CEL rules run in the same CEL engine that owns the built-ins, while custom Rego and translated Guard rules run
+in a separate external-only Rego engine, constructed only when such rules are supplied.

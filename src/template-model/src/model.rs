@@ -317,7 +317,7 @@ pub struct SemanticModel {
     invalid_inline_conditions: HashSet<String>,
     resolve_memo: Mutex<HashMap<(String, String), Option<ResolvedValue>>>,
     raw_scenario_memo: Mutex<HashMap<(String, String), Vec<(ResolvedValue, HashMap<String, bool>)>>>,
-    properties_scenario_cache: Mutex<HashMap<String, Vec<(ResolvedValue, HashMap<String, bool>)>>>,
+    properties_scenario_cache: Mutex<HashMap<String, Arc<Vec<(ResolvedValue, HashMap<String, bool>)>>>>,
     scenario_memo: Mutex<HashMap<(String, String), Arc<Vec<(serde_json::Value, HashMap<String, bool>)>>>>,
     lifecycle_policy_scenario_cache: Mutex<HashMap<(String, String), Vec<(serde_json::Value, HashMap<String, bool>)>>>,
     /// Cumulative count of scenarios materialized by `resolve_scenarios` across
@@ -1757,18 +1757,33 @@ impl SemanticModel {
         Some(ResolvedValue::Map { entries })
     }
 
-    pub fn resolve_properties_scenarios(&self, resource_id: &str) -> Vec<(ResolvedValue, HashMap<String, bool>)> {
+    /// Returns one immutable whole-properties scenario allocation shared across
+    /// read-only callers, materializing and caching it on first access. The lock
+    /// is held across expansion so a resource's scenarios are computed once and
+    /// its budget charged once.
+    pub fn resolve_properties_scenarios_shared(
+        &self,
+        resource_id: &str,
+    ) -> Arc<Vec<(ResolvedValue, HashMap<String, bool>)>> {
         let mut cache = self.properties_scenario_cache.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
         if let Some(scenarios) = cache.get(resource_id) {
-            return scenarios.clone();
+            return Arc::clone(scenarios);
         }
-        let Some(properties) = self.resolved_properties_value(resource_id) else {
-            return vec![];
+        let scenarios = match self.resolved_properties_value(resource_id) {
+            Some(properties) => self.collect_scenarios_with_budget(
+                &properties,
+                MAX_SCENARIO_COMBINATIONS,
+                MAX_TOTAL_SCENARIO_COMBINATIONS,
+            ),
+            None => Vec::new(),
         };
-        let scenarios =
-            self.collect_scenarios_with_budget(&properties, MAX_SCENARIO_COMBINATIONS, MAX_TOTAL_SCENARIO_COMBINATIONS);
-        cache.insert(resource_id.to_string(), scenarios.clone());
-        scenarios
+        let shared = Arc::new(scenarios);
+        cache.insert(resource_id.to_string(), Arc::clone(&shared));
+        shared
+    }
+
+    pub fn resolve_properties_scenarios(&self, resource_id: &str) -> Vec<(ResolvedValue, HashMap<String, bool>)> {
+        self.resolve_properties_scenarios_shared(resource_id).as_ref().clone()
     }
 
     /// Returns the authored, branch-qualified source path for an effective path in
@@ -3260,6 +3275,36 @@ Resources:
         assert_eq!(first.as_ref(), owned.as_slice());
         assert!(combinations_after_first > 0);
         assert_eq!(model.scenario_combinations_used(), combinations_after_first);
+    }
+
+    #[test]
+    fn resolve_properties_scenarios_shared_reuses_allocation_and_matches_owned() {
+        let input = br#"{
+            "Parameters": {"Mode": {"Type": "String"}},
+            "Conditions": {"ChooseFirst": {"Fn::Equals": [{"Ref": "Mode"}, "first"]}},
+            "Resources": {"R": {"Type": "T", "Properties": {
+                "V": {"Fn::If": ["ChooseFirst", "a", "b"]}
+            }}}
+        }"#;
+        let model = SemanticModel::from_bytes(input).unwrap();
+
+        let first = model.resolve_properties_scenarios_shared("R");
+        let combinations_after_first = model.scenario_combinations_used();
+        let second = model.resolve_properties_scenarios_shared("R");
+        let owned = model.resolve_properties_scenarios("R");
+
+        assert!(Arc::ptr_eq(&first, &second), "repeated shared access must reuse one allocation");
+        assert!(first.len() > 1, "the Fn::If value must expand the whole-properties object into multiple scenarios");
+        assert_eq!(
+            serde_json::to_value(first.as_ref()).expect("shared scenarios serialize"),
+            serde_json::to_value(&owned).expect("owned scenarios serialize"),
+            "the owned API must return the same scenarios as the shared accessor"
+        );
+        assert_eq!(
+            model.scenario_combinations_used(),
+            combinations_after_first,
+            "a cached shared access must not consume additional scenario budget"
+        );
     }
 
     #[test]

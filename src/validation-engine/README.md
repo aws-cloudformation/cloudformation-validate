@@ -2,7 +2,8 @@
 
 Defines the `ValidationEngine` trait and orchestrates the full validation pipeline: schema validation → engine rule
 evaluation → Step Functions validation → diagnostic enrichment → filtering → report assembly. Engine-agnostic - any
-engine ([rego-engine](../rego-engine/README.md), [cel-engine](../cel-engine/README.md)) implements the trait and plugs
+engine ([rego-engine](../rego-engine/README.md), [cel-engine](../cel-engine/README.md),
+[composite-engine](../composite-engine/README.md)) implements the trait and plugs
 into this pipeline.
 
 See [API.md](API.md) for usage examples and public API reference.

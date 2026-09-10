@@ -2,12 +2,15 @@ mod common;
 
 use cel_engine::CelEngine;
 use common::{ENRICHMENT_DIAGNOSTIC_FIELDS, deep_diff, discover_all_templates, load_combined_snapshots, load_template};
+use composite_engine::CompositeEngine;
 use data_source::embedded::{CFN_LINT_VERSION, RESOURCE_SCHEMA_VERSION};
 use diagnostics::DetailLevel;
 use rego_engine::RegoEngine;
 use rules::Severity;
 use schema_validator::SchemaValidator;
-use validation_engine::{EngineConfig, ValidateConfig, ValidationEngine, validate_bytes_with_path};
+use validation_engine::{
+    CompositeEngineConfig, EngineConfig, ValidateConfig, ValidationEngine, validate_bytes_with_path,
+};
 
 fn validate_to_json(
     engine: &dyn ValidationEngine,
@@ -176,17 +179,31 @@ fn cel_standard_matches_snapshot() {
     check_standard("cel", &engine);
 }
 
+#[test]
+fn composite_detailed_matches_snapshot() {
+    let engine = CompositeEngine::new(CompositeEngineConfig::default()).expect("composite engine");
+    check_detailed("composite", &engine);
+}
+
+#[test]
+fn composite_standard_matches_snapshot() {
+    let engine = CompositeEngine::new(CompositeEngineConfig::default()).expect("composite engine");
+    check_standard("composite", &engine);
+}
+
 const EXPECTED_RULES_EVALUATED: u64 = 303;
 
 #[test]
 fn rules_evaluated_is_full_rule_count() {
     let rego = RegoEngine::new(EngineConfig::default()).expect("rego engine");
     let cel = CelEngine::new(EngineConfig::default()).expect("cel engine");
+    let composite = CompositeEngine::new(CompositeEngineConfig::default()).expect("composite engine");
     let bytes = load_template("good/generic.yaml");
 
     for (name, report) in [
         ("rego", validate_to_json(&rego, &bytes, "good/generic.yaml", DetailLevel::Detailed)),
         ("cel", validate_to_json(&cel, &bytes, "good/generic.yaml", DetailLevel::Detailed)),
+        ("composite", validate_to_json(&composite, &bytes, "good/generic.yaml", DetailLevel::Detailed)),
     ] {
         assert_eq!(
             report["metadata"]["rulesEvaluated"].as_u64(),
@@ -238,11 +255,13 @@ fn engine_version_matches_expected_version_fixture() {
 
     let rego = RegoEngine::new(EngineConfig::default()).expect("rego engine");
     let cel = CelEngine::new(EngineConfig::default()).expect("cel engine");
+    let composite = CompositeEngine::new(CompositeEngineConfig::default()).expect("composite engine");
     let bytes = load_template("good/generic.yaml");
 
     for (name, report) in [
         ("rego", validate_to_json(&rego, &bytes, "good/generic.yaml", DetailLevel::Detailed)),
         ("cel", validate_to_json(&cel, &bytes, "good/generic.yaml", DetailLevel::Detailed)),
+        ("composite", validate_to_json(&composite, &bytes, "good/generic.yaml", DetailLevel::Detailed)),
     ] {
         assert_eq!(
             report["version"].as_str(),

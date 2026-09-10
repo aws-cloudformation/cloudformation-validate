@@ -11,7 +11,7 @@ use std::str::from_utf8;
 use std::sync::{Arc, LazyLock, Mutex};
 use template_model::SemanticModel;
 use validation_engine::{
-    EngineConfig, ValidateConfig, ValidationEngine, ValidationError, build_rule_list, extract_diagnostics,
+    EngineConfig, ValidateConfig, ValidationEngine, ValidationError, build_rule_list, extract_diagnostics_from_value,
     semantic_model_to_input_json,
 };
 
@@ -83,9 +83,6 @@ const CORE_PACKAGES: &[(Category, &str)] = &[
     (Category::BestPractice, "data.best_practices.violation"),
     (Category::Resource, "data.resources.violation"),
 ];
-
-/// Pre-allocated capacity for merging all embedded JSON data files into one string.
-const MERGED_DATA_INITIAL_CAPACITY: usize = 8 * 1024 * 1024;
 
 /// The [`REGORUS_DATA`] entry holding the catalog of resource types the rules
 /// treat as existing.
@@ -175,8 +172,24 @@ fn extend_primary_identifiers_data(catalog: &OverlayCatalog) -> anyhow::Result<O
     Ok(Some(serde_json::to_string(&data)?))
 }
 
+/// Whether an engine instance loads and evaluates the handwritten built-in
+/// policies, or serves only caller-supplied external rules.
+///
+/// In [`BuiltinRuleMode::ExternalOnly`] the built-in policies are neither loaded
+/// nor advertised through registry metadata, so the engine evaluates only custom
+/// and translated Guard rules. Embedded data tables, custom builtins, and
+/// external-rule metadata are retained in both modes.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum BuiltinRuleMode {
+    Enabled,
+    ExternalOnly,
+}
+
 pub struct RegoEngine {
     base_rego: regorus::Engine,
+    /// Whether the handwritten built-in policies are evaluated, or only the
+    /// caller-supplied external rules.
+    builtin_mode: BuiltinRuleMode,
     /// Built-in rule metadata from the rules registry only.
     registry_metadata: HashMap<String, RuleMetadataEntry>,
     /// Metadata for custom user rules and translated guard rules.
@@ -196,7 +209,7 @@ impl RegoEngine {
             config.build_overlay_catalog().map_err(|e| anyhow::anyhow!("Failed to build overlay catalog: {e}"))?;
         let start = web_time::Instant::now();
         let schema_metadata = schema_metadata_catalog_with_overlays(&overlay_catalog)?;
-        Self::new_from_parts(config, &overlay_catalog, schema_metadata, start)
+        Self::new_from_parts(config, &overlay_catalog, schema_metadata, BuiltinRuleMode::Enabled, start)
     }
 
     /// Constructs the engine reusing metadata from an already-built
@@ -213,7 +226,35 @@ impl RegoEngine {
     pub fn new_with_schema_validator(config: EngineConfig, validator: &SchemaValidator) -> anyhow::Result<Self> {
         let start = web_time::Instant::now();
         let schema_metadata = validator.schema_metadata_catalog()?;
-        Self::new_from_parts(config, validator.overlay_catalog(), schema_metadata, start)
+        Self::new_from_parts(config, validator.overlay_catalog(), schema_metadata, BuiltinRuleMode::Enabled, start)
+    }
+
+    /// Constructs an engine that evaluates only the caller-supplied custom and
+    /// translated Guard rules, without loading or advertising the handwritten
+    /// built-in policies. Embedded data tables and custom builtins remain
+    /// available so external rules can call them.
+    ///
+    /// This backs the composite engine, whose built-in rules are owned by a
+    /// separate engine; loading them here too would double-evaluate them.
+    pub fn new_external_only(config: EngineConfig) -> anyhow::Result<Self> {
+        let overlay_catalog =
+            config.build_overlay_catalog().map_err(|e| anyhow::anyhow!("Failed to build overlay catalog: {e}"))?;
+        let start = web_time::Instant::now();
+        let schema_metadata = schema_metadata_catalog_with_overlays(&overlay_catalog)?;
+        Self::new_from_parts(config, &overlay_catalog, schema_metadata, BuiltinRuleMode::ExternalOnly, start)
+    }
+
+    /// External-only counterpart to [`RegoEngine::new_with_schema_validator`],
+    /// reusing an already-built validator's overlay catalog and shared
+    /// schema-metadata catalog.
+    #[doc(hidden)]
+    pub fn new_external_only_with_schema_validator(
+        config: EngineConfig,
+        validator: &SchemaValidator,
+    ) -> anyhow::Result<Self> {
+        let start = web_time::Instant::now();
+        let schema_metadata = validator.schema_metadata_catalog()?;
+        Self::new_from_parts(config, validator.overlay_catalog(), schema_metadata, BuiltinRuleMode::ExternalOnly, start)
     }
 
     /// Internal constructor that accepts a pre-built overlay catalog and the
@@ -222,6 +263,7 @@ impl RegoEngine {
         config: EngineConfig,
         overlay_catalog: &OverlayCatalog,
         schema_metadata: Arc<SchemaMetadataCatalog>,
+        builtin_mode: BuiltinRuleMode,
         start: web_time::Instant,
     ) -> anyhow::Result<Self> {
         let mut rego = regorus::Engine::new();
@@ -240,7 +282,10 @@ impl RegoEngine {
             // Extend primary_identifiers data with overlay entries
             let extended_primary_ids = extend_primary_identifiers_data(overlay_catalog)?;
 
-            let mut merged = String::with_capacity(MERGED_DATA_INITIAL_CAPACITY);
+            // Embedded lengths closely size the common no-overlay path; extended
+            // overlay documents can grow the buffer normally when they are larger.
+            let merged_capacity: usize = REGORUS_DATA.iter().map(|(_, json_bytes)| json_bytes.len()).sum();
+            let mut merged = String::with_capacity(merged_capacity);
             merged.push('{');
             for (i, (path, json_bytes)) in REGORUS_DATA.iter().enumerate() {
                 let json_str = match (
@@ -271,14 +316,20 @@ impl RegoEngine {
             rego.add_data(regorus::Value::from_json_str(&merged)?)?;
         }
 
-        for (path, source) in policies::HANDWRITTEN_REGO_POLICIES {
-            rego.add_policy(path.to_string(), source.to_string())?;
-        }
-        debug!(
-            "Loaded {} data files, {} handwritten rules",
-            REGORUS_DATA.len(),
-            policies::HANDWRITTEN_REGO_POLICIES.len()
-        );
+        // In external-only mode the built-in policies are owned by a separate
+        // engine, so they are neither loaded nor evaluated here. Embedded data,
+        // custom builtins, custom Rego, and translated Guard are still loaded
+        // below regardless of mode.
+        let handwritten_rule_count = match builtin_mode {
+            BuiltinRuleMode::Enabled => {
+                for (path, source) in policies::HANDWRITTEN_REGO_POLICIES {
+                    rego.add_policy(path.to_string(), source.to_string())?;
+                }
+                policies::HANDWRITTEN_REGO_POLICIES.len()
+            }
+            BuiltinRuleMode::ExternalOnly => 0,
+        };
+        debug!("Loaded {} data files, {} handwritten rules", REGORUS_DATA.len(), handwritten_rule_count);
 
         let mut translated_guard_sources = Vec::new();
         let mut guard_rule_metadata: Vec<(String, Option<String>, String, Severity, RuleOrigin)> = Vec::new();
@@ -333,7 +384,12 @@ impl RegoEngine {
 
         crate::builtins::register_all(&mut rego, overlay_catalog, schema_metadata)?;
 
-        let registry_metadata = build_rule_metadata_map();
+        // External-only construction advertises no built-in rules; their
+        // metadata belongs to the engine that owns the built-in policies.
+        let registry_metadata = match builtin_mode {
+            BuiltinRuleMode::Enabled => build_rule_metadata_map(),
+            BuiltinRuleMode::ExternalOnly => HashMap::new(),
+        };
         let mut external_rule_metadata: HashMap<String, RuleMetadataEntry> = HashMap::new();
         for (id, cat, desc, severity, origin) in guard_rule_metadata {
             external_rule_metadata.entry(id).or_insert(RuleMetadataEntry {
@@ -344,12 +400,17 @@ impl RegoEngine {
             });
         }
 
-        rego.set_input(regorus::Value::new_object());
-        let _ = rego.eval_rule("data.all_violations.violation".to_string());
+        // Warming up the aggregate compiles the built-in policies once so the
+        // first real evaluation is not charged that cost. The aggregate only
+        // exists when the built-in policies are loaded.
+        if matches!(builtin_mode, BuiltinRuleMode::Enabled) {
+            rego.set_input(regorus::Value::new_object());
+            let _ = rego.eval_rule("data.all_violations.violation".to_string());
+        }
 
         info!(
             "RegoEngine initialized: {} handwritten rules, {} data files, {} registry + {} external metadata entries",
-            policies::HANDWRITTEN_REGO_POLICIES.len(),
+            handwritten_rule_count,
             REGORUS_DATA.len(),
             registry_metadata.len(),
             external_rule_metadata.len()
@@ -357,6 +418,7 @@ impl RegoEngine {
         let init_metric = phase_metric(start);
         Ok(RegoEngine {
             base_rego: rego,
+            builtin_mode,
             registry_metadata,
             external_rule_metadata,
             discovered_custom_metadata: Mutex::new(HashMap::new()),
@@ -384,13 +446,13 @@ impl RegoEngine {
         let value = rego.eval_rule(package.to_string()).map_err(|e| {
             ValidationError::Engine(format!("{source_label} rule package '{package}' failed to evaluate: {e}"))
         })?;
-        let json_str = value.to_json_str().map_err(|e| {
+        let diagnostics_json = serde_json::to_value(&value).map_err(|e| {
             ValidationError::Engine(format!(
                 "{source_label} rule package '{package}' produced a result that could not be \
                  serialized to JSON: {e}"
             ))
         })?;
-        extract_diagnostics(&json_str, model, out, origin).map_err(ValidationError::from)
+        extract_diagnostics_from_value(&diagnostics_json, model, out, origin).map_err(ValidationError::from)
     }
 
     /// The built-in rule IDs that global filtering proves cannot survive under
@@ -441,7 +503,11 @@ impl ValidationEngine for RegoEngine {
 
         let mut diagnostics = Vec::new();
 
-        if !config.disable_builtin_rules {
+        // Core built-in policies run only when this engine owns them and the
+        // caller has not disabled built-ins. The custom and Guard loops below run
+        // unconditionally so external rules are always evaluated.
+        let evaluate_builtins = matches!(self.builtin_mode, BuiltinRuleMode::Enabled) && !config.disable_builtin_rules;
+        if evaluate_builtins {
             let excluded_cats = config.filters.excluded_categories();
 
             let needed_core: Vec<&str> = CORE_PACKAGES
@@ -453,13 +519,14 @@ impl ValidationEngine for RegoEngine {
             if needed_core.len() == CORE_PACKAGES.len() {
                 match rego.eval_rule("data.all_violations.violation".to_string()) {
                     Ok(val) => {
-                        let json_str = val.to_json_str().map_err(|e| {
+                        let diagnostics_json = serde_json::to_value(&val).map_err(|e| {
                             ValidationError::Engine(format!(
                                 "Aggregated rule evaluation produced a result that could not be \
                              serialized to JSON: {e}"
                             ))
                         })?;
-                        extract_diagnostics(&json_str, model, &mut diagnostics, None).map_err(ValidationError::from)?;
+                        extract_diagnostics_from_value(&diagnostics_json, model, &mut diagnostics, None)
+                            .map_err(ValidationError::from)?;
                     }
                     Err(e) => {
                         warn!("Aggregated eval failed ({}), falling back to individual packages", e);
@@ -704,11 +771,11 @@ Resources:
     }
 
     #[test]
-    fn guard_rule_exists_check_ignores_properties_prefix() {
-        // BUG: Guard DSL `Properties.BucketName EXISTS` translates to
-        // `has_property(name, "Properties.BucketName")` but has_property looks up
-        // `resource.properties["Properties.BucketName"]` - the actual key is just
-        // "BucketName", so the check always fails and the violation always fires.
+    fn guard_rule_exists_check_accepts_properties_prefix() {
+        // A Guard `Properties.BucketName EXISTS` clause translates to
+        // `has_property(name, "Properties.BucketName")`. has_property accepts the
+        // leading `Properties.` prefix, so when BucketName is present the existence
+        // check is satisfied and the rule does not fire.
         let guard_source = r#"
 rule check_bucket_name {
     AWS::S3::Bucket {
@@ -736,9 +803,104 @@ Resources:
         let diags = engine.evaluate_rules(&model, &ValidateConfig::default()).unwrap();
         let guard_diag = diags.iter().find(|d| d.rule_id == "check_bucket_name");
         assert!(
-            guard_diag.is_some(),
-            "guard rule fires due to Properties. prefix mismatch in has_property (known bug)"
+            guard_diag.is_none(),
+            "guard EXISTS must be satisfied when BucketName is present, so the rule must not fire; got: {:?}",
+            diags.iter().map(|d| &d.rule_id).collect::<Vec<_>>()
         );
+    }
+
+    #[test]
+    fn external_only_engine_evaluates_external_rules_but_skips_builtins() {
+        let custom_rego = r#"
+package external_only_test
+import rego.v1
+
+violation contains v if {
+    v := {"rule_id": "EXT_ONLY", "severity": "error", "message": "external rule fired", "resource_id": ""}
+}
+"#;
+        let config = EngineConfig {
+            custom_rules: vec![ExternalRuleSource {
+                name: "external_only_test.rego".into(),
+                content: custom_rego.into(),
+            }],
+            guard_rules: vec![],
+            ..Default::default()
+        };
+        let engine = RegoEngine::new_external_only(config).unwrap();
+        assert!(engine.rule_metadata().is_empty(), "an external-only engine must advertise no built-in registry rules");
+
+        // An empty Resources section makes a normal engine emit a built-in
+        // structural diagnostic, so its absence proves the built-ins were
+        // skipped rather than simply not triggered.
+        let model = make_model_from_yaml(
+            r#"
+AWSTemplateFormatVersion: "2010-09-09"
+Resources: {}
+"#,
+        );
+        let normal_diags = RegoEngine::new(EngineConfig::default())
+            .unwrap()
+            .evaluate_rules(&model, &ValidateConfig::default())
+            .unwrap();
+        assert!(
+            normal_diags.iter().any(|d| d.rule_id == "F0001"),
+            "a normal engine must emit the built-in F0001 for empty Resources"
+        );
+
+        let diags = engine.evaluate_rules(&model, &ValidateConfig::default()).unwrap();
+        let external = diags.iter().find(|d| d.rule_id == "EXT_ONLY").expect("the external rule must still evaluate");
+        assert_eq!(external.severity, Severity::Error);
+        assert_eq!(external.source, RuleOrigin::Custom);
+        assert!(
+            diags.iter().all(|d| d.rule_id == "EXT_ONLY"),
+            "external-only evaluation must produce no built-in diagnostics, got: {:?}",
+            diags.iter().map(|d| &d.rule_id).collect::<Vec<_>>()
+        );
+        assert!(
+            !engine.list_rules().iter().any(|r| r.id == "F0001"),
+            "external-only list_rules must not include built-in rule IDs"
+        );
+    }
+
+    #[test]
+    fn external_only_engine_registers_custom_builtin_helpers() {
+        let custom_rego = r#"
+package external_builtin_test
+import rego.v1
+
+violation contains make_diag("EXT_BUILTINS", "error", name, "custom builtins available") if {
+    some name in resources_of_type("AWS::S3::Bucket")
+    has_property(name, "BucketName")
+    resolve(name, "Properties.BucketName") == "custom-builtins-bucket"
+    "BucketName" in schema_properties("AWS::S3::Bucket")
+}
+"#;
+        let engine = RegoEngine::new_external_only(EngineConfig {
+            custom_rules: vec![ExternalRuleSource {
+                name: "external_builtin_test.rego".into(),
+                content: custom_rego.into(),
+            }],
+            ..Default::default()
+        })
+        .expect("external-only engine must initialize with custom builtins");
+        let model = make_model_from_yaml(
+            r#"
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: custom-builtins-bucket
+"#,
+        );
+
+        let diagnostics = engine.evaluate_rules(&model, &ValidateConfig::default()).expect("custom rule must evaluate");
+        let finding = diagnostics
+            .iter()
+            .find(|diagnostic| diagnostic.rule_id == "EXT_BUILTINS")
+            .expect("custom rule using resource, resolution, schema, and diagnostic helpers must fire");
+        assert_eq!(finding.source, RuleOrigin::Custom);
+        assert_eq!(finding.resource_logical_id(), Some("Bucket"));
     }
 
     #[test]

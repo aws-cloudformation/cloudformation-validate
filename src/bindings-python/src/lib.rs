@@ -25,7 +25,7 @@ pub use template_model::resolver::{MapEntry, ParameterInfo, RefKind, ResolvedVal
 pub use template_model::{JsonValue, PseudoParameterOverrides, SourceSpan};
 pub use validation_engine::{
     AwsCliCommand, AwsCliCommandValidation, AwsCliCommandValidationStatus, AwsCliOperationKind, AwsCliTemplateSource,
-    AwsCliValue, EngineConfig, EngineType, ExternalRuleSource,
+    AwsCliValue, CompositeEngineConfig, EngineConfig, EngineType, ExternalRuleSource,
 };
 
 pub use schema_validator::SchemaValidatorConfig;
@@ -133,7 +133,7 @@ impl PySchemaValidator {
 }
 
 macro_rules! impl_py_engine {
-    ($PyType:ident, $InnerEngine:ty, $constructor:path) => {
+    ($PyType:ident, $InnerEngine:ty, $Config:ty, $constructor:path) => {
         #[derive(uniffi::Object)]
         pub struct $PyType {
             engine: $InnerEngine,
@@ -143,7 +143,7 @@ macro_rules! impl_py_engine {
         #[uniffi::export]
         impl $PyType {
             #[uniffi::constructor]
-            pub fn new(config: EngineConfig) -> Result<Arc<Self>, ValidationError> {
+            pub fn new(config: $Config) -> Result<Arc<Self>, ValidationError> {
                 validation_engine::catch_panics(
                     || {
                         let schema_config = config.schema_validator_config.clone().unwrap_or_default();
@@ -213,8 +213,19 @@ macro_rules! impl_py_engine {
     };
 }
 
-impl_py_engine!(PyRegoEngine, rego_engine::RegoEngine, rego_engine::RegoEngine::new_with_schema_validator);
-impl_py_engine!(PyCelEngine, cel_engine::CelEngine, cel_engine::CelEngine::new_with_schema_validator);
+impl_py_engine!(
+    PyRegoEngine,
+    rego_engine::RegoEngine,
+    EngineConfig,
+    rego_engine::RegoEngine::new_with_schema_validator
+);
+impl_py_engine!(PyCelEngine, cel_engine::CelEngine, EngineConfig, cel_engine::CelEngine::new_with_schema_validator);
+impl_py_engine!(
+    PyCompositeEngine,
+    composite_engine::CompositeEngine,
+    CompositeEngineConfig,
+    composite_engine::CompositeEngine::new_with_schema_validator
+);
 
 #[derive(uniffi::Object)]
 pub struct PySemanticModel {

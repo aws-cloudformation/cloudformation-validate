@@ -52,7 +52,7 @@ the same template and config.
 |--------------------------------------------|------------------|------------------------------------------------------------------------------------------------------------------|
 | `validate_template(template, config=None)` | `ValidationReport` | Validates and returns a report. `config.detail_level` sets the detail (default `DETAILED`); at `STANDARD` the enrichment fields are omitted |
 | `list_rules()`                             | `list[RuleInfo]` | Returns metadata for every built-in and loaded custom rule                                                       |
-| `engine_name()`                            | `str`            | `"rego"` or `"cel"`                                                                                              |
+| `engine_name()`                            | `str`            | `"rego"`, `"cel"`, or `"composite"`                                                                              |
 
 `template` is a file path (`str` / `os.PathLike`) or raw `bytes`; `config` is an optional `ValidateConfig`.
 
@@ -189,6 +189,30 @@ engine = CelEngine(
     ),
 )
 ```
+
+### CompositeEngine
+
+`CompositeEngine` also subclasses `Engine` and exposes the same methods, but evaluates the built-in rules with one
+engine and your custom Rego and Guard rules with another, reporting their combined diagnostics. With no custom rules it
+produces exactly the built-in diagnostics, and `engine_name()` returns `"composite"`. It is constructed from a
+`CompositeEngineConfig` rather than an `EngineConfig`.
+
+```python
+from cloudformation_validate import CompositeEngine, CompositeEngineConfig, file_to_external_rule_source
+
+engine = CompositeEngine()  # built-in rules only
+engine = CompositeEngine(CompositeEngineConfig(rego_rules=[file_to_external_rule_source("rules/s3_encryption.rego")]))
+report = engine.validate_standard("template.yaml")
+```
+
+`CompositeEngineConfig` carries only the external rules layered on top of the built-ins:
+
+| Field                     | Default | Description                                                      |
+|---------------------------|---------|------------------------------------------------------------------|
+| `rego_rules`              | `[]`    | Custom Rego rules layered on top of the built-in rules           |
+| `cel_rules`               | `[]`    | Custom CEL rules layered on top of the built-in rules            |
+| `guard_rules`             | `[]`    | CloudFormation Guard DSL rules - translated internally           |
+| `schema_validator_config` | `None`  | Optional `SchemaValidatorConfig`; observed by both inner engines |
 
 ## ValidateConfig
 

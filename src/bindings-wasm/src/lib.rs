@@ -1,4 +1,5 @@
 use cel_engine::CelEngine;
+use composite_engine::CompositeEngine;
 use diagnostics::DetailLevel;
 use rego_engine::RegoEngine;
 use rules::{FilterConfig, RuleFilterConfig, Severity};
@@ -6,7 +7,8 @@ use schema_validator::{SchemaValidator, SchemaValidatorConfig};
 use serde::Deserialize;
 use template_model::{PseudoParameterOverrides, SemanticModel};
 use validation_engine::{
-    AwsCliCommand, EngineConfig, ValidationEngine, catch_panics, validate_aws_cli_command, validate_bytes_with_path,
+    AwsCliCommand, CompositeEngineConfig, EngineConfig, ValidationEngine, catch_panics, validate_aws_cli_command,
+    validate_bytes_with_path,
 };
 use wasm_bindgen::prelude::*;
 
@@ -123,7 +125,7 @@ impl WasmSchemaValidator {
 }
 
 macro_rules! wasm_engine {
-    ($wrapper:ident, $inner:ty) => {
+    ($wrapper:ident, $inner:ty, $config:ty) => {
         #[wasm_bindgen]
         pub struct $wrapper {
             engine: $inner,
@@ -133,7 +135,7 @@ macro_rules! wasm_engine {
         #[wasm_bindgen]
         impl $wrapper {
             #[wasm_bindgen(constructor)]
-            pub fn new(config: EngineConfig) -> Result<$wrapper, JsValue> {
+            pub fn new(config: $config) -> Result<$wrapper, JsValue> {
                 catch_panics(
                     || {
                         let schema_config = config.schema_validator_config.clone().unwrap_or_default();
@@ -199,8 +201,9 @@ macro_rules! wasm_engine {
     };
 }
 
-wasm_engine!(WasmRegoEngine, RegoEngine);
-wasm_engine!(WasmCelEngine, CelEngine);
+wasm_engine!(WasmRegoEngine, RegoEngine, EngineConfig);
+wasm_engine!(WasmCelEngine, CelEngine, EngineConfig);
+wasm_engine!(WasmCompositeEngine, CompositeEngine, CompositeEngineConfig);
 
 #[wasm_bindgen]
 pub struct WasmSemanticModel {

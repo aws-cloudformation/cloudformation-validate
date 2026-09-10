@@ -13,7 +13,7 @@ fn project_root() -> PathBuf {
 }
 
 fn usage() -> &'static str {
-    "usage:\n  performance-harness measure <rego|cel> <iterations> <warmups> <label> <template>...\n  performance-harness check [--expected <file>] [--output-dir <directory>]\n  performance-harness update [--expected <file>] [--profile <profile>] [--output-dir <directory>]"
+    "usage:\n  performance-harness measure <rego|cel|composite> <iterations> <warmups> <label> <template>...\n  performance-harness check [--expected <file>] [--output-dir <directory>]\n  performance-harness update [--expected <file>] [--profile <profile>] [--output-dir <directory>]"
 }
 
 fn option_value(arguments: &[String], index: &mut usize, option: &str) -> Result<String, String> {

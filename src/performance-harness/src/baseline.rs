@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
 const SCHEMA_VERSION: u32 = 1;
-const ENGINES: [&str; 2] = ["rego", "cel"];
+const ENGINES: [&str; 3] = ["rego", "cel", "composite"];
 
 #[derive(Debug, Clone)]
 struct Workload {
@@ -1616,7 +1616,7 @@ mod tests {
         let reference = github_baselines.first().expect("GitHub reference baseline");
         let macos = load_baseline(&expected_directory().join("local-macos-arm64.json")).expect("macOS baseline");
         assert_eq!(reference.cases.keys().collect::<Vec<_>>(), macos.cases.keys().collect::<Vec<_>>());
-        assert_eq!(reference.cases.len(), 38);
+        assert_eq!(reference.cases.len(), 57);
         fn assert_threshold(
             threshold: &MetricThreshold,
             regression: f64,

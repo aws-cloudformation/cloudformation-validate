@@ -3,10 +3,9 @@
 The command-line front end for the validation engine.
 
 The CLI wires the workspace together: it parses a template with [template-model](../template-model/README.md), selects
-an engine ([rego-engine](../rego-engine/README.md) or [cel-engine](../cel-engine/README.md)), runs the
-[validation-engine](../validation-engine/README.md) pipeline (
-including [schema-validator](../schema-validator/README.md)),
-and renders the resulting report as JSON.
+an engine ([composite-engine](../composite-engine/README.md), [rego-engine](../rego-engine/README.md), or
+[cel-engine](../cel-engine/README.md)), runs the [validation-engine](../validation-engine/README.md) pipeline (
+including [schema-validator](../schema-validator/README.md)), and renders the resulting report as JSON.
 
 ## How it works
 
@@ -14,7 +13,7 @@ and renders the resulting report as JSON.
   template.yaml ──▶ cfn-validate ──▶ JSON report (stdout)
                          │
                          ├── Parse template (template-model)
-                         ├── Select engine (rego-engine or cel-engine)
+                         ├── Select engine (composite, rego, or cel)
                          ├── Run validation pipeline (validation-engine)
                          │   ├── Schema validation (schema-validator)
                          │   ├── Engine rule evaluation
@@ -68,8 +67,8 @@ touching a same-named entity of another type.
 
 | Option                       | Description                                               |
 |------------------------------|-----------------------------------------------------------|
-| `--engine rego\|cel`         | Validation engine (default: rego)                         |
-| `--rule-source <PATH>`       | Load a custom Rego/CEL rule file (repeatable)             |
+| `--engine rego\|cel\|composite` | Validation engine (default: composite). `composite` layers the external rules over the built-in rules |
+| `--rule-source <PATH>`       | Load a custom Rego/CEL rule file (repeatable). With `--engine composite`, these are the Rego rules layered on top of the built-ins |
 | `--guard-rule-source <PATH>` | Load Guard (`.guard`) rule file or directory (repeatable) |
 | `--additional-schema <PATH>` | Merge a CloudFormation resource provider schema (`.json`) file, or every `.json` in a directory, on top of the bundled schemas (repeatable) |
 
