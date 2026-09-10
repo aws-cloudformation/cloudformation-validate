@@ -206,9 +206,11 @@ impl EngineConfig {
 /// one engine and caller-supplied external rules with another.
 ///
 /// The built-in rules are always evaluated, so this config only carries the
-/// external rules layered on top plus the shared schema configuration. It has
-/// no field for engine-native built-in custom rules because the composite fixes
-/// which engine owns the built-ins.
+/// external rules layered on top plus the shared schema configuration. Custom
+/// rules can be supplied in all three formats: Rego and Guard are evaluated by
+/// the external engine, while CEL custom rules are evaluated by the engine that
+/// owns the built-ins. It has no field for engine-native built-in custom rules
+/// because the composite fixes which engine owns the built-ins.
 #[derive(Default, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
 #[cfg_attr(feature = "wasm-bindings", tsify(from_wasm_abi))]
@@ -219,6 +221,12 @@ pub struct CompositeEngineConfig {
     #[serde(default)]
     #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub rego_rules: Vec<ExternalRuleSource>,
+    /// Custom CEL rules layered on top of the built-in rules. They are evaluated
+    /// by the same engine that owns the built-ins, since CEL custom rules are a
+    /// CEL-engine feature.
+    #[serde(default)]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
+    pub cel_rules: Vec<ExternalRuleSource>,
     /// Guard DSL rules as raw source text, layered on top of the built-in rules.
     #[serde(default)]
     #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
@@ -242,6 +250,13 @@ impl CompositeEngineConfig {
     /// Adds custom Rego rules layered on top of the built-in rules.
     pub fn with_rego_rules(mut self, rules: impl IntoIterator<Item = ExternalRuleSource>) -> Self {
         self.rego_rules.extend(rules);
+        self
+    }
+
+    /// Adds custom CEL rules layered on top of the built-in rules. They are
+    /// evaluated by the engine that owns the built-ins.
+    pub fn with_cel_rules(mut self, rules: impl IntoIterator<Item = ExternalRuleSource>) -> Self {
+        self.cel_rules.extend(rules);
         self
     }
 

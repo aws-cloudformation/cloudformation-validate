@@ -266,9 +266,9 @@ fn main() {
     // here so it surfaces as a structured error and a clean exit code rather than an
     // uncaught abort - matching how the library bindings guard the same entry point.
     //
-    // The composite engine layers the same external rules over the built-ins: the
-    // --rule-source inputs become its Rego rules and the resolved --guard-rule-source
-    // inputs its Guard rules.
+    // The composite engine layers the same external rules over the built-ins:
+    // the --rule-source inputs become its CEL (.json) or Rego (.rego) rules by
+    // file extension and the resolved --guard-rule-source inputs its Guard rules.
     let engine_init: Result<Box<dyn ValidationEngine>, ValidationError> = catch_panics(
         || {
             let engine: Box<dyn ValidationEngine> = match engine_selection {
@@ -286,13 +286,24 @@ fn main() {
                     )
                     .map_err(|e| e.to_string())?,
                 ),
-                EngineType::Composite => Box::new(
-                    CompositeEngine::new_with_schema_validator(
-                        CompositeEngineConfig { rego_rules: custom_rules, guard_rules, schema_validator_config: None },
-                        &schema_validator,
+                EngineType::Composite => {
+                    // A standalone engine interprets every --rule-source in its
+                    // own dialect, but the composite fixes which engine owns which
+                    // format: CEL custom rules (.json) go to the built-in CEL
+                    // engine, Rego custom rules (.rego) to the external engine.
+                    // Guard rules are translated and evaluated externally.
+                    let (cel_rules, rego_rules): (Vec<ExternalRuleSource>, Vec<ExternalRuleSource>) =
+                        custom_rules.into_iter().partition(|rule| {
+                            rule.name.rsplit('.').next().is_some_and(|ext| ext.eq_ignore_ascii_case("json"))
+                        });
+                    Box::new(
+                        CompositeEngine::new_with_schema_validator(
+                            CompositeEngineConfig { rego_rules, cel_rules, guard_rules, schema_validator_config: None },
+                            &schema_validator,
+                        )
+                        .map_err(|e| e.to_string())?,
                     )
-                    .map_err(|e| e.to_string())?,
-                ),
+                }
             };
             Ok(engine)
         },
