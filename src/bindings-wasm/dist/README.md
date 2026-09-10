@@ -39,7 +39,8 @@ Each diagnostic identifies the rule, severity, affected resource and property, a
 ## Engine
 
 `RegoEngine` and `CelEngine` both implement the `Engine` interface and are interchangeable - they produce identical
-diagnostics for the same template and config.
+diagnostics for the same template and config. `CompositeEngine` implements the same interface and adds custom Rego and
+Guard rules on top of the built-in rules - see [`CompositeEngine`](#compositeengine).
 
 ### `Engine` interface
 
@@ -47,7 +48,7 @@ diagnostics for the same template and config.
 |---------------------------------------|------------------|------------------------------------------------------------------------------------------------------------------|
 | `validateTemplate(template, config?)` | `ValidationReport` | Validates and returns diagnostics. `config.detailLevel` (default `DETAILED`) sets how much per-diagnostic context is attached: `DETAILED` adds documentation URLs, rule descriptions, phase tags, and `ViolationContext`; `STANDARD` omits those enrichment fields |
 | `listRules()`                         | `RuleInfo[]`     | Returns metadata for every built-in and loaded custom rule                                                       |
-| `engineName()`                        | `string`         | `"rego"` or `"cel"`                                                                                              |
+| `engineName()`                        | `string`         | `"rego"`, `"cel"`, or `"composite"`                                                                              |
 | `free()`                              | `void`           | Releases the engine's off-heap memory                                                                            |
 
 ### `EngineConfig`
@@ -104,6 +105,36 @@ const engine = new CelEngine({
         additionalSchemas: [new SchemaFile("schemas/aws-lambda-function.json")],
     },
 });
+```
+
+### `CompositeEngine`
+
+`CompositeEngine` implements the same `Engine` interface but takes a `CompositeEngineConfig`. It evaluates every
+built-in rule with a fixed built-in CEL evaluator and layers the caller-supplied custom rules on top: custom CEL rules
+run in that built-in engine, while custom Rego and Guard rules run in a separate external engine. With no custom rules
+it produces the same built-in diagnostics as `RegoEngine` and `CelEngine`.
+
+```typescript
+interface CompositeEngineConfig {
+    regoRules?: RuleSource[];                        // custom Rego rules layered on top of the built-in rules
+    celRules?: RuleSource[];                         // custom CEL rules layered on top of the built-in rules
+    guardRules?: RuleSource[];                       // CloudFormation Guard DSL rules layered on top of the built-in rules
+    schemaValidatorConfig?: SchemaValidatorConfig;   // schema validation and overlay configuration
+}
+```
+
+```typescript
+import { CompositeEngine, RuleFile, TemplateFile } from "@aws/cloudformation-validate";
+
+const engine = new CompositeEngine({
+    regoRules: [new RuleFile("rules/s3_naming.rego")],
+    guardRules: [new RuleFile("rules/compliance.guard")],
+});
+try {
+    const report = engine.validateTemplate(new TemplateFile("template.yaml"));
+} finally {
+    engine.free();
+}
 ```
 
 ## ValidateConfig

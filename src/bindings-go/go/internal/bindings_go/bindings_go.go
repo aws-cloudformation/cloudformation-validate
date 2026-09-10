@@ -407,6 +407,33 @@ func uniffiCheckChecksums() {
 	}
 	{
 		checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
+			return C.uniffi_bindings_go_checksum_method_gocompositeengine_engine_name()
+		})
+		if checksum != 48476 {
+			// If this happens try cleaning and rebuilding your project
+			panic("bindings_go: uniffi_bindings_go_checksum_method_gocompositeengine_engine_name: UniFFI API checksum mismatch")
+		}
+	}
+	{
+		checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
+			return C.uniffi_bindings_go_checksum_method_gocompositeengine_list_rules_json()
+		})
+		if checksum != 37081 {
+			// If this happens try cleaning and rebuilding your project
+			panic("bindings_go: uniffi_bindings_go_checksum_method_gocompositeengine_list_rules_json: UniFFI API checksum mismatch")
+		}
+	}
+	{
+		checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
+			return C.uniffi_bindings_go_checksum_method_gocompositeengine_validate_template_json()
+		})
+		if checksum != 63196 {
+			// If this happens try cleaning and rebuilding your project
+			panic("bindings_go: uniffi_bindings_go_checksum_method_gocompositeengine_validate_template_json: UniFFI API checksum mismatch")
+		}
+	}
+	{
+		checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 			return C.uniffi_bindings_go_checksum_method_goregoengine_engine_name()
 		})
 		if checksum != 2132 {
@@ -544,16 +571,25 @@ func uniffiCheckChecksums() {
 		checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 			return C.uniffi_bindings_go_checksum_constructor_gocelengine_new()
 		})
-		if checksum != 62326 {
+		if checksum != 37802 {
 			// If this happens try cleaning and rebuilding your project
 			panic("bindings_go: uniffi_bindings_go_checksum_constructor_gocelengine_new: UniFFI API checksum mismatch")
 		}
 	}
 	{
 		checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
+			return C.uniffi_bindings_go_checksum_constructor_gocompositeengine_new()
+		})
+		if checksum != 65028 {
+			// If this happens try cleaning and rebuilding your project
+			panic("bindings_go: uniffi_bindings_go_checksum_constructor_gocompositeengine_new: UniFFI API checksum mismatch")
+		}
+	}
+	{
+		checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 			return C.uniffi_bindings_go_checksum_constructor_goregoengine_new()
 		})
-		if checksum != 50221 {
+		if checksum != 21328 {
 			// If this happens try cleaning and rebuilding your project
 			panic("bindings_go: uniffi_bindings_go_checksum_constructor_goregoengine_new: UniFFI API checksum mismatch")
 		}
@@ -785,8 +821,10 @@ type GoCelEngine struct {
 	ffiObject FfiObject
 }
 
-// Builds an engine from a JSON engine config (`{}` for defaults;
-// `customRules` / `guardRules` load external rule sources).
+// Builds an engine from a JSON config string. `{}` selects the
+// built-in defaults; the JSON may carry external rule sources and an
+// optional nested schema validator config, following this engine's
+// option schema.
 func NewGoCelEngine(configJson string) (*GoCelEngine, error) {
 	_uniffiRV, _uniffiErr := rustCallWithError[*ValidationError](FfiConverterValidationError{}, func(_uniffiStatus *C.RustCallStatus) C.uint64_t {
 		return C.uniffi_bindings_go_fn_constructor_gocelengine_new(FfiConverterStringINSTANCE.Lower(configJson), _uniffiStatus)
@@ -905,6 +943,143 @@ func (_ FfiDestroyerGoCelEngine) Destroy(value *GoCelEngine) {
 	value.Destroy()
 }
 
+type GoCompositeEngineInterface interface {
+	EngineName() string
+	// Returns the engine's rules as a JSON array of rule infos.
+	ListRulesJson() (string, error)
+	// Validates a template and returns the report as JSON.
+	//
+	// The detail level carried by `options_json` controls enrichment:
+	// `STANDARD` leaves enrichment fields absent, while `DETAILED`
+	// populates them. Either value produces a Go `ValidationReport`.
+	ValidateTemplateJson(template []byte, optionsJson string, filePath string) (string, error)
+}
+type GoCompositeEngine struct {
+	ffiObject FfiObject
+}
+
+// Builds an engine from a JSON config string. `{}` selects the
+// built-in defaults; the JSON may carry external rule sources and an
+// optional nested schema validator config, following this engine's
+// option schema.
+func NewGoCompositeEngine(configJson string) (*GoCompositeEngine, error) {
+	_uniffiRV, _uniffiErr := rustCallWithError[*ValidationError](FfiConverterValidationError{}, func(_uniffiStatus *C.RustCallStatus) C.uint64_t {
+		return C.uniffi_bindings_go_fn_constructor_gocompositeengine_new(FfiConverterStringINSTANCE.Lower(configJson), _uniffiStatus)
+	})
+	if _uniffiErr != nil {
+		var _uniffiDefaultValue *GoCompositeEngine
+		return _uniffiDefaultValue, _uniffiErr
+	} else {
+		return FfiConverterGoCompositeEngineINSTANCE.Lift(_uniffiRV), nil
+	}
+}
+
+func (_self *GoCompositeEngine) EngineName() string {
+	_pointer := _self.ffiObject.incrementPointer("*GoCompositeEngine")
+	defer _self.ffiObject.decrementPointer()
+	return FfiConverterStringINSTANCE.Lift(rustCall(func(_uniffiStatus *C.RustCallStatus) RustBufferI {
+		return GoRustBuffer{
+			inner: C.uniffi_bindings_go_fn_method_gocompositeengine_engine_name(
+				_pointer, _uniffiStatus),
+		}
+	}))
+}
+
+// Returns the engine's rules as a JSON array of rule infos.
+func (_self *GoCompositeEngine) ListRulesJson() (string, error) {
+	_pointer := _self.ffiObject.incrementPointer("*GoCompositeEngine")
+	defer _self.ffiObject.decrementPointer()
+	_uniffiRV, _uniffiErr := rustCallWithError[*ValidationError](FfiConverterValidationError{}, func(_uniffiStatus *C.RustCallStatus) RustBufferI {
+		return GoRustBuffer{
+			inner: C.uniffi_bindings_go_fn_method_gocompositeengine_list_rules_json(
+				_pointer, _uniffiStatus),
+		}
+	})
+	if _uniffiErr != nil {
+		var _uniffiDefaultValue string
+		return _uniffiDefaultValue, _uniffiErr
+	} else {
+		return FfiConverterStringINSTANCE.Lift(_uniffiRV), nil
+	}
+}
+
+// Validates a template and returns the report as JSON.
+//
+// The detail level carried by `options_json` controls enrichment:
+// `STANDARD` leaves enrichment fields absent, while `DETAILED`
+// populates them. Either value produces a Go `ValidationReport`.
+func (_self *GoCompositeEngine) ValidateTemplateJson(template []byte, optionsJson string, filePath string) (string, error) {
+	_pointer := _self.ffiObject.incrementPointer("*GoCompositeEngine")
+	defer _self.ffiObject.decrementPointer()
+	_uniffiRV, _uniffiErr := rustCallWithError[*ValidationError](FfiConverterValidationError{}, func(_uniffiStatus *C.RustCallStatus) RustBufferI {
+		return GoRustBuffer{
+			inner: C.uniffi_bindings_go_fn_method_gocompositeengine_validate_template_json(
+				_pointer, FfiConverterBytesINSTANCE.Lower(template), FfiConverterStringINSTANCE.Lower(optionsJson), FfiConverterStringINSTANCE.Lower(filePath), _uniffiStatus),
+		}
+	})
+	if _uniffiErr != nil {
+		var _uniffiDefaultValue string
+		return _uniffiDefaultValue, _uniffiErr
+	} else {
+		return FfiConverterStringINSTANCE.Lift(_uniffiRV), nil
+	}
+}
+func (object *GoCompositeEngine) Destroy() {
+	runtime.SetFinalizer(object, nil)
+	object.ffiObject.destroy()
+}
+
+type FfiConverterGoCompositeEngine struct{}
+
+var FfiConverterGoCompositeEngineINSTANCE = FfiConverterGoCompositeEngine{}
+
+func (c FfiConverterGoCompositeEngine) Lift(handle C.uint64_t) *GoCompositeEngine {
+	result := &GoCompositeEngine{
+		newFfiObject(
+			handle,
+			func(handle C.uint64_t, status *C.RustCallStatus) C.uint64_t {
+				return C.uniffi_bindings_go_fn_clone_gocompositeengine(handle, status)
+			},
+			func(handle C.uint64_t, status *C.RustCallStatus) {
+				C.uniffi_bindings_go_fn_free_gocompositeengine(handle, status)
+			},
+		),
+	}
+	runtime.SetFinalizer(result, (*GoCompositeEngine).Destroy)
+	return result
+}
+
+func (c FfiConverterGoCompositeEngine) Read(reader io.Reader) *GoCompositeEngine {
+	return c.Lift(C.uint64_t(readUint64(reader)))
+}
+
+func (c FfiConverterGoCompositeEngine) Lower(value *GoCompositeEngine) C.uint64_t {
+	// TODO: this is bad - all synchronization from ObjectRuntime.go is discarded here,
+	// because the handle will be decremented immediately after this function returns,
+	// and someone will be left holding onto a non-locked handle.
+	handle := value.ffiObject.incrementPointer("*GoCompositeEngine")
+	defer value.ffiObject.decrementPointer()
+	return handle
+}
+
+func (c FfiConverterGoCompositeEngine) Write(writer io.Writer, value *GoCompositeEngine) {
+	writeUint64(writer, uint64(c.Lower(value)))
+}
+
+func LiftFromExternalGoCompositeEngine(handle uint64) *GoCompositeEngine {
+	return FfiConverterGoCompositeEngineINSTANCE.Lift(C.uint64_t(handle))
+}
+
+func LowerToExternalGoCompositeEngine(value *GoCompositeEngine) uint64 {
+	return uint64(FfiConverterGoCompositeEngineINSTANCE.Lower(value))
+}
+
+type FfiDestroyerGoCompositeEngine struct{}
+
+func (_ FfiDestroyerGoCompositeEngine) Destroy(value *GoCompositeEngine) {
+	value.Destroy()
+}
+
 type GoRegoEngineInterface interface {
 	EngineName() string
 	// Returns the engine's rules as a JSON array of rule infos.
@@ -920,8 +1095,10 @@ type GoRegoEngine struct {
 	ffiObject FfiObject
 }
 
-// Builds an engine from a JSON engine config (`{}` for defaults;
-// `customRules` / `guardRules` load external rule sources).
+// Builds an engine from a JSON config string. `{}` selects the
+// built-in defaults; the JSON may carry external rule sources and an
+// optional nested schema validator config, following this engine's
+// option schema.
 func NewGoRegoEngine(configJson string) (*GoRegoEngine, error) {
 	_uniffiRV, _uniffiErr := rustCallWithError[*ValidationError](FfiConverterValidationError{}, func(_uniffiStatus *C.RustCallStatus) C.uint64_t {
 		return C.uniffi_bindings_go_fn_constructor_goregoengine_new(FfiConverterStringINSTANCE.Lower(configJson), _uniffiStatus)

@@ -1,6 +1,7 @@
 'use strict';
 Object.defineProperty(exports, '__esModule', { value: true });
-exports.CelEngine =
+exports.CompositeEngine =
+    exports.CelEngine =
     exports.RegoEngine =
     exports.SchemaValidator =
     exports.TemplateModel =
@@ -56,6 +57,16 @@ function toAdditionalSchemas(sources) {
 function toWasmEngineConfig(config) {
     return {
         customRules: toExternalRuleSources(config?.customRules),
+        guardRules: toExternalRuleSources(config?.guardRules),
+        schemaValidatorConfig: config?.schemaValidatorConfig
+            ? toWasmSchemaValidatorConfig(config.schemaValidatorConfig)
+            : undefined,
+    };
+}
+function toWasmCompositeEngineConfig(config) {
+    return {
+        regoRules: toExternalRuleSources(config?.regoRules),
+        celRules: toExternalRuleSources(config?.celRules),
         guardRules: toExternalRuleSources(config?.guardRules),
         schemaValidatorConfig: config?.schemaValidatorConfig
             ? toWasmSchemaValidatorConfig(config.schemaValidatorConfig)
@@ -126,10 +137,10 @@ class SchemaValidator {
     }
 }
 exports.SchemaValidator = SchemaValidator;
-function createEngineClass(WasmClass) {
+function createEngineClass(WasmClass, toWasmConfig) {
     return class {
         constructor(config) {
-            this.inner = new WasmClass(toWasmEngineConfig(config));
+            this.inner = new WasmClass(toWasmConfig(config));
         }
         validateTemplate(template, config) {
             return this.inner.validateTemplate(template.readBytes(), config ?? {}, template.path);
@@ -145,8 +156,9 @@ function createEngineClass(WasmClass) {
         }
     };
 }
-exports.RegoEngine = createEngineClass(bridge.WasmRegoEngine);
-exports.CelEngine = createEngineClass(bridge.WasmCelEngine);
+exports.RegoEngine = createEngineClass(bridge.WasmRegoEngine, toWasmEngineConfig);
+exports.CelEngine = createEngineClass(bridge.WasmCelEngine, toWasmEngineConfig);
+exports.CompositeEngine = createEngineClass(bridge.WasmCompositeEngine, toWasmCompositeEngineConfig);
 function version() {
     return bridge.version();
 }

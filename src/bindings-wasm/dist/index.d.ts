@@ -116,6 +116,24 @@ export interface EngineConfig {
     schemaValidatorConfig?: SchemaValidatorConfig;
 }
 /**
+ * Configuration for the {@link CompositeEngine}. The built-in rules are always
+ * evaluated by the engine's fixed built-in evaluator, so these fields only layer
+ * external rules on top - there is no engine-native custom-rule field.
+ */
+export interface CompositeEngineConfig {
+    /** Custom Rego rules layered on top of the built-in rules. */
+    regoRules?: RuleSource[];
+    /** Custom CEL rules layered on top of the built-in rules. */
+    celRules?: RuleSource[];
+    /** CloudFormation Guard DSL rules layered on top of the built-in rules. */
+    guardRules?: RuleSource[];
+    /**
+     * Optional schema validator configuration, observed by both the built-in and
+     * external rule evaluation.
+     */
+    schemaValidatorConfig?: SchemaValidatorConfig;
+}
+/**
  * Configuration for the schema validator. Additional schemas are merged on top
  * of the bundled CloudFormation provider schemas before schema validation.
  */
@@ -151,4 +169,5 @@ export declare class SchemaValidator {
 }
 export declare const RegoEngine: new (config?: EngineConfig) => Engine;
 export declare const CelEngine: new (config?: EngineConfig) => Engine;
+export declare const CompositeEngine: new (config?: CompositeEngineConfig) => Engine;
 export declare function version(): string;
