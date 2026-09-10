@@ -1,9 +1,9 @@
 # Custom Rules Reference
 
-Custom rules can be written as CEL JSON, Rego, or CloudFormation Guard. CEL rules run only in `CelEngine`, Rego rules
-run in `RegoEngine`, and Guard rules are translated for either engine. The composite engine layers custom Rego and
-Guard rules on top of the built-in rules through a separate external-only Rego engine; it does not accept custom CEL,
-which remains a `CelEngine` feature.
+Custom rules can be written as CEL JSON, Rego, or CloudFormation Guard. CEL rules run in `CelEngine`, Rego rules
+run in `RegoEngine`, and Guard rules are translated for either engine. The composite engine accepts all three: it
+layers custom CEL rules on the built-in rules through the CEL engine that owns the built-ins, and layers custom Rego
+and translated Guard rules through a separate external-only Rego engine.
 
 ## Rule IDs and Severity
 
@@ -461,10 +461,10 @@ rule s3_versioning {
 |                            | CEL (JSON)                                  | Rego                                         | Guard DSL                     |
 |----------------------------|---------------------------------------------|----------------------------------------------|-------------------------------|
 | **Best for**               | Property checks and data-driven predicates  | Complex resolution and cross-resource logic  | Declarative compliance checks |
-| **Engine**                 | `CelEngine` only                            | `RegoEngine` or composite                    | Either engine, or composite   |
+| **Engine**                 | `CelEngine` or composite                    | `RegoEngine` or composite                    | Either engine, or composite   |
 | **Template introspection** | Shared model variables plus CEL functions   | Shared model plus all 67 custom builtins     | Translated property checks    |
 | **Cross-resource checks**  | Via `resources`, `edges`, and other globals | Via `input`, graph builtins, and SAT helpers | No cross-rule references      |
 
-The composite engine evaluates the built-in rules with CEL and evaluates custom Rego and translated Guard rules with a
-separate external-only Rego engine, constructed only when such rules are supplied. Custom CEL rules are therefore not
-available through the composite engine; use `CelEngine` for those.
+The composite engine evaluates the built-in rules with CEL and layers custom rules from all three formats on top:
+custom CEL rules run in the same CEL engine that owns the built-ins, while custom Rego and translated Guard rules run
+in a separate external-only Rego engine, constructed only when such rules are supplied.

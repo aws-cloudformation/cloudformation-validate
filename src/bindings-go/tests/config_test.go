@@ -67,6 +67,7 @@ const fullEngineConfigJSON = `{
 // Kept in sync with FULL_COMPOSITE_OPTIONS_JSON in ../src/lib.rs.
 const fullCompositeEngineConfigJSON = `{
     "regoRules": [{"name": "custom.rego", "content": "package x"}],
+    "celRules": [{"name": "custom.json", "content": "{\"rules\":[]}"}],
     "guardRules": [{"name": "compliance.guard", "content": "let x = 1"}],
     "schemaValidatorConfig": {
         "additionalSchemas": [{
@@ -159,6 +160,7 @@ func TestFullEngineConfigMarshalsToTheContractShape(t *testing.T) {
 func TestFullCompositeEngineConfigMarshalsToTheContractShape(t *testing.T) {
 	config := &cfnvalidate.CompositeEngineConfig{
 		RegoRules:  []cfnvalidate.ExternalRuleSource{{Name: "custom.rego", Content: "package x"}},
+		CelRules:   []cfnvalidate.ExternalRuleSource{{Name: "custom.json", Content: `{"rules":[]}`}},
 		GuardRules: []cfnvalidate.ExternalRuleSource{{Name: "compliance.guard", Content: "let x = 1"}},
 		SchemaValidatorConfig: &cfnvalidate.SchemaValidatorConfig{
 			AdditionalSchemas: []cfnvalidate.AdditionalSchemaSource{{

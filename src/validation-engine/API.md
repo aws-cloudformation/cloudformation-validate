@@ -78,15 +78,17 @@ supplies such rules, and it still runs when built-in rules are disabled. Finding
 pipeline performs the single finalize pass.
 
 It is constructed from a `CompositeEngineConfig`, a type distinct from `EngineConfig`. The composite fixes which engine
-owns the built-ins, so the config has no field for engine-native built-in custom rules: custom CEL rules are not
-accepted by the composite and remain a `CelEngine` feature. `RegoEngine`, `CelEngine`, and `EngineConfig` are
-unchanged. `EngineType` now selects `Rego`, `Cel`, or `Composite`, with `Composite` as its default. `EngineType` is
-only a selector, so construct `CompositeEngine` directly when embedding, or select it in the CLI with
-`--engine composite` (the default).
+owns the built-ins, so the config has no field for engine-native built-in custom rules; it does accept caller-supplied
+custom rules in all three formats, layered on the built-ins. Custom CEL rules are evaluated by the engine that owns the
+built-ins (CEL), while custom Rego and translated Guard rules are evaluated by the external engine. `RegoEngine`,
+`CelEngine`, and `EngineConfig` are unchanged. `EngineType` now selects `Rego`, `Cel`, or `Composite`, with `Composite`
+as its default. `EngineType` is only a selector, so construct `CompositeEngine` directly when embedding, or select it
+in the CLI with `--engine composite` (the default).
 
 | Field (Rust / serialized)                            | Type                            | Description                                                             |
 |------------------------------------------------------|---------------------------------|-------------------------------------------------------------------------|
 | `rego_rules` / `regoRules`                           | `Vec<ExternalRuleSource>`       | Custom Rego rules layered on the built-ins, run by the external engine. |
+| `cel_rules` / `celRules`                             | `Vec<ExternalRuleSource>`       | Custom CEL rules layered on the built-ins, run by the built-in engine.  |
 | `guard_rules` / `guardRules`                         | `Vec<ExternalRuleSource>`       | Guard DSL rules, translated and run by the external engine.             |
 | `schema_validator_config` / `schemaValidatorConfig`  | `Option<SchemaValidatorConfig>` | Additional schemas observed by both inner engines.                      |
 
@@ -100,10 +102,11 @@ use validation_engine::{
     CompositeEngineConfig, ExternalRuleSource, ValidateConfig, validate_bytes_with_path,
 };
 
-// CEL owns the built-ins; the external-only Rego engine is built only because
-// external rules are supplied here.
+// CEL owns the built-ins and any custom CEL rules; the external-only Rego engine
+// is built only because external Rego or Guard rules are supplied here.
 let engine = CompositeEngine::new(
     CompositeEngineConfig::new()
+        .with_cel_rules([ExternalRuleSource { name: "extra.json".into(), content: cel_source }])
         .with_rego_rules([ExternalRuleSource { name: "extra.rego".into(), content: rego_source }])
         .with_guard_rules([ExternalRuleSource { name: "policy.guard".into(), content: guard_source }]),
 )?;
@@ -293,7 +296,7 @@ For engines that produce JSON diagnostics:
 | `ValidationEngine` | Trait that engines implement - provides `evaluate_rules` and rule metadata  |
 | `EngineType`       | `Composite` (default), `Rego`, or `Cel` - selects which validation engine evaluates rules |
 | `EngineConfig`     | Engine construction config: `custom_rules` and `guard_rules` as `ExternalRuleSource` |
-| `CompositeEngineConfig` | Composite engine construction config: `rego_rules` and `guard_rules` as `ExternalRuleSource`, plus optional `schema_validator_config`; no custom-CEL field |
+| `CompositeEngineConfig` | Composite engine construction config: `rego_rules`, `cel_rules`, and `guard_rules` as `ExternalRuleSource`, plus optional `schema_validator_config` |
 | `ValidateConfig`   | Per-call config: filters, detail level, severity level, parameter overrides, strict, disable_builtin_rules |
 | `ExternalRuleSource` | `{ name: String, content: String }` - a pre-read rule file's identifier and raw content |
 | `ValidationError`  | `Parse(ParseError)` or `Engine(String)`                                     |

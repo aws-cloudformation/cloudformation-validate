@@ -138,6 +138,8 @@ export interface EngineConfig {
 export interface CompositeEngineConfig {
     /** Custom Rego rules layered on top of the built-in rules. */
     regoRules?: RuleSource[];
+    /** Custom CEL rules layered on top of the built-in rules. */
+    celRules?: RuleSource[];
     /** CloudFormation Guard DSL rules layered on top of the built-in rules. */
     guardRules?: RuleSource[];
     /**
@@ -185,6 +187,7 @@ function toWasmEngineConfig(config?: EngineConfig): WasmEngineConfig {
 function toWasmCompositeEngineConfig(config?: CompositeEngineConfig): WasmCompositeEngineConfig {
     return {
         regoRules: toExternalRuleSources(config?.regoRules),
+        celRules: toExternalRuleSources(config?.celRules),
         guardRules: toExternalRuleSources(config?.guardRules),
         schemaValidatorConfig: config?.schemaValidatorConfig
             ? toWasmSchemaValidatorConfig(config.schemaValidatorConfig)

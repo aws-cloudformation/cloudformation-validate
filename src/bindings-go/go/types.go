@@ -231,6 +231,9 @@ type CompositeEngineConfig struct {
 	// RegoRules are custom Rego rules evaluated by the external engine, layered
 	// on top of the built-in rules.
 	RegoRules []ExternalRuleSource `json:"regoRules,omitempty"`
+	// CelRules are custom CEL rules evaluated by the built-in CEL engine, layered
+	// on top of the built-in rules.
+	CelRules []ExternalRuleSource `json:"celRules,omitempty"`
 	// GuardRules are Guard DSL rules, translated and evaluated by the external
 	// engine, layered on top of the built-in rules.
 	GuardRules []ExternalRuleSource `json:"guardRules,omitempty"`

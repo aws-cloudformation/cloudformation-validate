@@ -2140,7 +2140,7 @@ Resources:
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/184
 #[test]
 fn issue_184_names_the_incompatible_aurora_engine() {
-    let diagnostics = validate_both("issue-184.yaml");
+    let diagnostics = validate_all("issue-184.yaml");
     assert_rule_parity(&diagnostics, "E3025");
     assert_count(&diagnostics, "E3025", 1);
     assert_fires_on_property(&diagnostics, "E3025", "Properties.DBInstanceClass");
@@ -2169,7 +2169,7 @@ Resources:
       Engine: mysql
 "#;
 
-    let diagnostics = validate_both_bytes(template);
+    let diagnostics = validate_all_bytes(template);
 
     assert_absent(&diagnostics, "E3025");
 }
@@ -2179,7 +2179,7 @@ Resources:
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/339
 #[test]
 fn issue_339_accepts_the_launch_template_ssm_image_alias() {
-    let diagnostics = validate_both("issue-339.yaml");
+    let diagnostics = validate_all("issue-339.yaml");
 
     assert_absent(&diagnostics, "E1152");
 }
@@ -2195,7 +2195,7 @@ Resources:
         ImageId: resolve:ssx:/aws/service/example/image_id
 "#;
 
-    let diagnostics = validate_both_bytes(template);
+    let diagnostics = validate_all_bytes(template);
 
     assert_rule_parity(&diagnostics, "E1152");
     assert_count(&diagnostics, "E1152", 1);
@@ -2207,7 +2207,7 @@ Resources:
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/357
 #[test]
 fn issue_357_explains_that_bucket_policy_resources_share_one_target() {
-    let diagnostics = validate_both("issue-357.yaml");
+    let diagnostics = validate_all("issue-357.yaml");
     let expected_message = "Only one AWS::S3::BucketPolicy resource can target a given bucket; resources {'FirstBucketPolicy', 'SecondBucketPolicy'} all target bucket 'Ref(\"CfnBucket\")'";
 
     assert_rule_parity(&diagnostics, "E3019");
@@ -2250,7 +2250,7 @@ Resources:
         Statement: []
 "#;
 
-    let diagnostics = validate_both_bytes(template);
+    let diagnostics = validate_all_bytes(template);
 
     assert_absent(&diagnostics, "E3019");
 }

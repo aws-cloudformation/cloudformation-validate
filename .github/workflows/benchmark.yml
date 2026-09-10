@@ -144,7 +144,7 @@ jobs:
       shell: bash
       run: |
         set -euo pipefail
-        # Validate all 10 aggregate files (5 bindings × 2 engines): JSON parses,
+        # Validate all 15 aggregate files (5 bindings × 3 engines): JSON parses,
         # binding/engine labels match, and the enriched provenance/startup/memory
         # contract produced by compare_benchmarks.py is present.
         python3 - <<'PY'
@@ -155,14 +155,19 @@ jobs:
         EXPECTED = [
             ("native", "rego", "cfn-validate/reports/rego/aggregate_detailed.json"),
             ("native", "cel", "cfn-validate/reports/cel/aggregate_detailed.json"),
+            ("native", "composite", "cfn-validate/reports/composite/aggregate_detailed.json"),
             ("wasm", "rego", "bindings-wasm/reports/rego/aggregate_detailed.json"),
             ("wasm", "cel", "bindings-wasm/reports/cel/aggregate_detailed.json"),
+            ("wasm", "composite", "bindings-wasm/reports/composite/aggregate_detailed.json"),
             ("jvm", "rego", "bindings-jvm/reports/rego/aggregate_detailed.json"),
             ("jvm", "cel", "bindings-jvm/reports/cel/aggregate_detailed.json"),
+            ("jvm", "composite", "bindings-jvm/reports/composite/aggregate_detailed.json"),
             ("python", "rego", "bindings-python/reports/rego/aggregate_detailed.json"),
             ("python", "cel", "bindings-python/reports/cel/aggregate_detailed.json"),
+            ("python", "composite", "bindings-python/reports/composite/aggregate_detailed.json"),
             ("go", "rego", "bindings-go/reports/rego/aggregate_detailed.json"),
             ("go", "cel", "bindings-go/reports/cel/aggregate_detailed.json"),
+            ("go", "composite", "bindings-go/reports/composite/aggregate_detailed.json"),
         ]
 
         def is_num(value):

@@ -201,6 +201,26 @@ describe('CompositeEngine', () => {
         engine.free();
     });
 
+    it('evaluates a custom CEL rule layered on top of the built-ins', () => {
+        const builtinRuleCount = CEL.listRules().length;
+        const engine = new CompositeEngine({
+            celRules: [{ name: 'cel_custom.json', content: loadRule('cel_custom.json') }],
+        });
+
+        const report = engine.validateTemplate(loadTemplate(BUCKET_TEMPLATE));
+        const custom = report.diagnostics.find((d: any) => d.ruleId === 'CUSTOM001');
+        expect(custom, 'CUSTOM001 diagnostic must fire').toBeDefined();
+        expect(custom.severity).toBe('ERROR');
+        expect(custom.source).toBe('CUSTOM');
+
+        const rules = engine.listRules();
+        const registered = rules.find((r: any) => r.id === 'CUSTOM001');
+        expect(registered, 'CUSTOM001 must be listed').toBeDefined();
+        expect(registered.origin).toBe('CUSTOM');
+        expect(rules.filter((r: any) => r.origin !== 'CUSTOM').length).toBe(builtinRuleCount);
+        engine.free();
+    });
+
     it('evaluates a custom Rego rule layered on top of the built-ins', () => {
         const builtinRuleCount = CEL.listRules().length;
         const engine = new CompositeEngine({

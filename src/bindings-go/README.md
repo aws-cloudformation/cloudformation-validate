@@ -126,6 +126,7 @@ only the external Rego and Guard rules layered on top, plus a schema config obse
 ```go
 type CompositeEngineConfig struct {
     RegoRules             []ExternalRuleSource   // custom Rego rules for the external engine
+    CelRules              []ExternalRuleSource   // custom CEL rules for the built-in CEL engine
     GuardRules            []ExternalRuleSource   // CloudFormation Guard DSL rules - translated internally
     SchemaValidatorConfig *SchemaValidatorConfig // optional schema validator configuration, observed by both engines
 }

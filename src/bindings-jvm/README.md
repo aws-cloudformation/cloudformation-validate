@@ -120,13 +120,15 @@ val engine = CelEngine(
 ### CompositeEngine
 
 `CompositeEngine` also implements `Engine`, so it is a drop-in wherever an `Engine` is expected. It evaluates the
-built-in rules together with any caller-supplied external rules and returns one merged report; `engineName()` is
+built-in rules together with any caller-supplied custom rules and returns one merged report; `engineName()` is
 `"composite"`. It is configured with `CompositeEngineConfig` rather than `EngineConfig` - the built-in rules are always
-evaluated, so the config carries only the external rules layered on top and has no `customRules` field.
+evaluated, so the config carries only the custom rules layered on top (custom CEL rules run in the built-in engine,
+custom Rego and Guard rules in a separate external engine) and has no `customRules` field.
 
 | Field                   | Default       | Description                                                                          |
 |-------------------------|---------------|--------------------------------------------------------------------------------------|
 | `regoRules`             | `emptyList()` | Custom Rego rules layered on top of the built-in rules                               |
+| `celRules`              | `emptyList()` | Custom CEL rules layered on top of the built-in rules, run by the built-in engine    |
 | `guardRules`            | `emptyList()` | CloudFormation Guard DSL rules layered on top of the built-in rules                  |
 | `schemaValidatorConfig` | `null`        | Optional `SchemaValidatorConfig` with additional schemas merged over bundled schemas |
 

@@ -300,6 +300,27 @@ class CompositeEngineTest(unittest.TestCase):
             "composite defaults must match the parity engines",
         )
 
+    def test_cel_custom_rule_fires_alongside_builtins(self):
+        config = CompositeEngineConfig(
+            cel_rules=[ExternalRuleSource(name="cel_custom.json", content=load_rule("cel_custom.json"))]
+        )
+        report = CompositeEngine(config).validate_template(UNENCRYPTED_BUCKET)
+
+        custom = [d for d in report.diagnostics if d.rule_id == "CUSTOM001"]
+        self.assertEqual(1, len(custom), "custom cel rule must fire exactly once")
+        self.assertEqual("S3 bucket must have encryption configured", custom[0].message)
+
+        builtin_keys = sorted(
+            (d.rule_id, d.severity.name, d.start_line, d.start_column)
+            for d in report.diagnostics
+            if d.rule_id != "CUSTOM001"
+        )
+        self.assertEqual(
+            diagnostic_keys(CEL.validate_template(UNENCRYPTED_BUCKET)),
+            builtin_keys,
+            "built-in diagnostics must appear exactly once alongside the custom cel finding",
+        )
+
     def test_rego_custom_rule_fires_alongside_builtins(self):
         config = CompositeEngineConfig(
             rego_rules=[ExternalRuleSource(name="rego_custom.rego", content=load_rule("rego_custom.rego"))]

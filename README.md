@@ -143,15 +143,17 @@ for d in &report.diagnostics {
 ```
 
 The `RegoEngine` and `CelEngine` are interchangeable. For an additive setup, `CompositeEngine` evaluates the built-in
-rules with CEL and layers your own Rego and translated Guard rules on top through its own `CompositeEngineConfig`. The
-external-only Rego engine is built only when external rules are supplied, and custom CEL rules remain a `CelEngine`
-feature:
+rules with CEL and layers your own custom rules on top through its own `CompositeEngineConfig`: custom CEL rules run in
+the CEL engine that owns the built-ins, while custom Rego and translated Guard rules run in a separate external-only
+Rego engine that is built only when such rules are supplied:
 
 ```rust
 use cloudformation_validate::{CompositeEngine, CompositeEngineConfig, ExternalRuleSource};
 
 let engine = CompositeEngine::new(
     CompositeEngineConfig::new()
+        .with_cel_rules([ExternalRuleSource { name: "checks.json".into(), content: cel_source }])
+        .with_rego_rules([ExternalRuleSource { name: "checks.rego".into(), content: rego_source }])
         .with_guard_rules([ExternalRuleSource { name: "policy.guard".into(), content: guard_source }]),
 )?;
 ```

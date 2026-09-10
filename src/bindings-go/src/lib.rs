@@ -152,14 +152,15 @@ impl EngineOptions {
 /// Composite engine construction options, deserialized from the JSON produced by
 /// the Go wrapper. A strict mirror of the core `CompositeEngineConfig`: the
 /// composite fixes which engine owns the built-in rules, so it carries only the
-/// external Rego rules, Guard rules, and shared schema config layered on top -
-/// there is no field for engine-native built-in custom rules. Rejecting unknown
-/// keys turns a drifted field name into an error rather than an engine that
-/// silently loads none of the caller's rules.
+/// external Rego rules, custom CEL rules, Guard rules, and shared schema config
+/// layered on top - there is no field for engine-native built-in custom rules.
+/// Rejecting unknown keys turns a drifted field name into an error rather than
+/// an engine that silently loads none of the caller's rules.
 #[derive(serde::Deserialize, Default)]
 #[serde(rename_all = "camelCase", default, deny_unknown_fields)]
 struct CompositeEngineOptions {
     rego_rules: Vec<RuleSourceOptions>,
+    cel_rules: Vec<RuleSourceOptions>,
     guard_rules: Vec<RuleSourceOptions>,
     schema_validator_config: Option<SchemaValidatorOptionsInline>,
 }
@@ -179,6 +180,7 @@ impl CompositeEngineOptions {
             self.schema_validator_config.map(SchemaValidatorOptionsInline::into_core).unwrap_or_default();
         let composite_config = CompositeEngineConfig {
             rego_rules: self.rego_rules.into_iter().map(ExternalRuleSource::from).collect(),
+            cel_rules: self.cel_rules.into_iter().map(ExternalRuleSource::from).collect(),
             guard_rules: self.guard_rules.into_iter().map(ExternalRuleSource::from).collect(),
             schema_validator_config: None,
         };
@@ -604,6 +606,7 @@ mod tests {
     /// tests pin the composite wire contract from both sides.
     const FULL_COMPOSITE_OPTIONS_JSON: &str = r#"{
         "regoRules": [{"name": "custom.rego", "content": "package x"}],
+        "celRules": [{"name": "custom.json", "content": "{\"rules\":[]}"}],
         "guardRules": [{"name": "compliance.guard", "content": "let x = 1"}],
         "schemaValidatorConfig": {
             "additionalSchemas": [{
@@ -620,6 +623,8 @@ mod tests {
         assert_eq!(1, options.rego_rules.len());
         assert_eq!("custom.rego", options.rego_rules[0].name);
         assert_eq!("package x", options.rego_rules[0].content);
+        assert_eq!(1, options.cel_rules.len());
+        assert_eq!("custom.json", options.cel_rules[0].name);
         assert_eq!(1, options.guard_rules.len());
         assert_eq!("compliance.guard", options.guard_rules[0].name);
         assert_eq!("let x = 1", options.guard_rules[0].content);
@@ -634,6 +639,7 @@ mod tests {
             CompositeEngineOptions::parse("{}").expect("an empty object must parse").into_engine_build();
 
         assert!(composite_config.rego_rules.is_empty());
+        assert!(composite_config.cel_rules.is_empty());
         assert!(composite_config.guard_rules.is_empty());
         assert!(schema_config.additional_schemas.is_empty());
         assert!(

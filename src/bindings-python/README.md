@@ -123,6 +123,7 @@ report = engine.validate_standard("template.yaml")
 | Field                     | Default | Description                                                      |
 |---------------------------|---------|------------------------------------------------------------------|
 | `rego_rules`              | `[]`    | Custom Rego rules layered on top of the built-in rules           |
+| `cel_rules`               | `[]`    | Custom CEL rules layered on top of the built-in rules            |
 | `guard_rules`             | `[]`    | CloudFormation Guard DSL rules - translated internally           |
 | `schema_validator_config` | `None`  | Optional `SchemaValidatorConfig`; observed by both inner engines |
 

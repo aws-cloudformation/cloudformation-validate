@@ -110,13 +110,14 @@ const engine = new CelEngine({
 ### `CompositeEngine`
 
 `CompositeEngine` implements the same `Engine` interface but takes a `CompositeEngineConfig`. It evaluates every
-built-in rule with a fixed built-in evaluator and layers the caller-supplied external rules on top - so its config has
-no engine-native custom-rule field. With no external rules it produces the same built-in diagnostics as `RegoEngine`
-and `CelEngine`.
+built-in rule with a fixed built-in CEL evaluator and layers the caller-supplied custom rules on top: custom CEL rules
+run in that built-in engine, while custom Rego and Guard rules run in a separate external engine. With no custom rules
+it produces the same built-in diagnostics as `RegoEngine` and `CelEngine`.
 
 ```typescript
 interface CompositeEngineConfig {
     regoRules?: RuleSource[];                        // custom Rego rules layered on top of the built-in rules
+    celRules?: RuleSource[];                         // custom CEL rules layered on top of the built-in rules
     guardRules?: RuleSource[];                       // CloudFormation Guard DSL rules layered on top of the built-in rules
     schemaValidatorConfig?: SchemaValidatorConfig;   // schema validation and overlay configuration
 }
