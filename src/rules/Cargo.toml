@@ -1,7 +1,9 @@
 [package]
-name = "rules"
+name = "cloudformation-validate-rules"
+publish = true
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 license.workspace = true
 description.workspace = true
 repository.workspace = true
@@ -17,7 +19,7 @@ wasm-bindings = ["dep:tsify", "dep:wasm-bindgen", "template-model/wasm-bindings"
 uniffi-bindings = ["dep:uniffi", "template-model/uniffi-bindings"]
 
 [dependencies]
-template-model = { path = "../template-model" }
+template-model = { workspace = true }
 serde = { version = "1", features = ["derive"] }
 regex = "1"
 log = "0.4"

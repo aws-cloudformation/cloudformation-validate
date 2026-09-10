@@ -10,6 +10,7 @@ violation contains make_diag_related("E3060", "ERROR", b_name,
     "Properties.CidrBlock",
     sprintf("'%s' overlaps with '%s'", [b_cidr, a_cidr]),
     [{"resource": a_name, "message": sprintf("Overlapping subnet CIDR %s", [a_cidr])}]) if {
+    cfn_rule_active("E3060")
     subnets := resources_of_type("AWS::EC2::Subnet")
     some b_idx, b_name in subnets
     b_idx > 0

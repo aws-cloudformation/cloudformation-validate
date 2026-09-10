@@ -6,7 +6,8 @@
 src/
 ├── Cargo.toml                  # Workspace root
 ├── rust-toolchain.toml         # Pinned toolchain + wasm32 target
-├── cfn-validate/               # CLI binary (`cfn-validate`) and library facade
+├── bindings-rust/              # Public Rust library facade published as `cloudformation-validate`
+├── cfn-validate/               # CLI binary (`cfn-validate`) and CLI-only helpers
 ├── validation-engine/          # ValidationEngine trait, orchestration pipeline, Step Functions validation
 ├── template-model/             # LEAF crate — parser (JSON/YAML), SemanticModel, intrinsic resolver,
 │                               # condition SAT solver, reference graph, SAM transform, nesting, template
@@ -18,15 +19,14 @@ src/
 │                               # severity, category, descriptions), filter, category/severity enums
 │                               # (depends on template-model)
 ├── schema-validator/           # Compiled JSON Schema validation against provider schemas
-├── rego-engine/                # Rego evaluation via Regorus + custom builtins + Guard→Rego translation
-│   └── handwritten/rego/       # Hand-written Rego policies (structure, intrinsics, references,
-│                               # resources, best_practices)
+├── rego-engine/                # Rego evaluation via Regorus + custom builtins + Guard→Rego translation;
+│   └── handwritten/rego/       # hand-written policies embedded by rego-engine/build.rs
 ├── cel-engine/                 # Native Rust rules + CEL interpreter + Guard→CEL translation
 │   └── src/rules/              # Native rules: structure, intrinsics, references, conditions,
 │                               # resources, resources_extra, best_practices, patterns
 ├── data-source/                # BUILD-TIME — downloads schemas, syncs cfn-lint data, generates
-│   ├── src/                    # schema-validator artifacts and CEL rules; build.rs embeds them and
-│   │                           # the hand-written Rego policies into the binary (zstd)
+│   ├── src/                    # schema-validator artifacts and CEL rules; build.rs embeds generated
+│   │                           # and hand-maintained shared data into the binary (zstd)
 │   ├── generated/              # Generated artifacts (committed, NEVER edit manually)
 │   ├── handwritten/            # Hand-maintained JSON reference tables (deprecated resource types,
 │   │                           # sensitive ports, GetAtt return-type overrides, schema-dependent
@@ -48,12 +48,12 @@ src/
 ├── bindings-go/                # Go bindings (UniFFI via uniffi-bindgen-go) — JSON-over-FFI, cgo static linking
 │   ├── go/                     # The published Go module: hand-maintained API + types, generated
 │   │                           # internal/bindings_go, and per-platform libs/ static libraries (committed)
-│   ├── tests/                  # Go test harness module (smoke, golden, config, security tests; run.sh)
+│   ├── tests/                  # Go test harness module (smoke, snapshot, config, security tests; run.sh)
 │   ├── bench/                  # Go benchmark harness module (main.go — corpus/report benchmark)
 │   └── native/                 # Hand-maintained cgo link directives copied into the generated package
 └── resources/                  # Test-fixture CRATE (workspace member)
-    ├── src/                    # Corpus discovery API (templates_dir, validation_reports_file, GOLDEN_DIRS, …)
-    ├── examples/               # generate_validation_reports.rs — golden-file regeneration
+    ├── src/                    # Corpus discovery API (templates_dir, load_merged_snapshots, discover_snapshot_chunks, …)
+    ├── examples/               # generate_validation_reports.rs — snapshot regeneration
     ├── templates/              # Test corpus
     │   ├── good/               # Valid templates — expect zero diagnostics
     │   ├── bad/                # Invalid templates — named after the rule/behavior they test
@@ -64,13 +64,16 @@ src/
     │   ├── quickstart/         # AWS QuickStart templates (performance corpus)
     │   ├── public/             # Public example templates
     │   └── cdk/                # CDK-synthesized templates
-    ├── expected/               # validation_reports.json — the golden file (both engines must agree)
+    ├── expected/               # validation_reports*.json — numbered snapshot chunks (both engines must agree)
     ├── rules/                  # Custom rule fixtures for testing (Rego, CEL, Guard)
     └── security/               # Security/stress fixtures (pathological conditions, deep nesting)
 ```
 
 ## Top-level directories
 
+- `.kiro/steering/` — persistent guidance recursively loaded by Kiro; tracked files contain shared project rules
+- `.kiro/steering/private/` — gitignored machine-local confidential agent context and skills; its filenames and
+  contents must never be committed
 - `scripts/` — Python comparison/audit scripts and their `snapshots/` data (see `tech.md` for usage)
 - `.github/workflows/` — CI: format check, clippy, cargo audit, coverage tests on all supported OSes, JVM + WASM +
   Python + Go test jobs
@@ -99,7 +102,7 @@ src/
   go in `rego-engine/handwritten/rego/` or `cel-engine/src/rules/`.
 - **Hand-written Rego policies live in `rego-engine/handwritten/rego/`.** These are hand-authored Rego rules organized
   by category (structure, intrinsics, references, resources, best_practices). They are embedded into the binary by
-  `data-source/build.rs`.
+  `rego-engine/build.rs`.
 - **All rules must be registered in the `rules` crate registry (`rules/src/registry.rs`).** A rule that evaluates but
   is not registered is a bug — the registry is the single source of truth for IDs, severity, category, and description.
 - **Native Rust rules live under `cel-engine/src/rules/`.** Choose the appropriate module (structure, intrinsics,

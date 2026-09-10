@@ -9,7 +9,7 @@
 //	if err != nil { ... }
 //	defer engine.Destroy()
 //
-//	report, err := engine.ValidateStandardFile("template.yaml", nil)
+//	report, err := engine.ValidateTemplateFile("template.yaml", nil)
 //	for _, d := range report.Diagnostics {
 //	    fmt.Printf("[%s] %s: %s\n", d.Severity, d.RuleID, d.Message)
 //	}
@@ -81,8 +81,7 @@ func decodeInto[T any](data string, what string) (*T, error) {
 
 // nativeEngine is the method set shared by the generated engine objects.
 type nativeEngine interface {
-	ValidateStandardJson(template []byte, optionsJson string, filePath string) (string, error)
-	ValidateDetailedJson(template []byte, optionsJson string, filePath string) (string, error)
+	ValidateTemplateJson(template []byte, optionsJson string, filePath string) (string, error)
 	ValidateAwsApiRequestJson(requestJson string, optionsJson string) (string, error)
 	ListRulesJson() (string, error)
 	EngineName() string
@@ -124,9 +123,12 @@ func NewCelEngine(config *EngineConfig) (*Engine, error) {
 	return &Engine{inner: inner}, nil
 }
 
-// ValidateStandard validates template bytes and returns a standard-detail
-// report. filePath labels the report; pass "" for the default.
-func (e *Engine) ValidateStandard(template []byte, config *ValidateConfig, filePath string) (*StandardReport, error) {
+// ValidateTemplate validates template bytes and returns a report. The report's
+// detail follows config.DetailLevel: DETAILED (the default when unset) carries
+// per-diagnostic documentation URLs, rule descriptions, phase tags, and
+// violation context, while STANDARD leaves those fields nil. filePath labels
+// the report; pass "" for the default.
+func (e *Engine) ValidateTemplate(template []byte, config *ValidateConfig, filePath string) (*ValidationReport, error) {
 	optionsJSON, err := validateConfigJSON(config)
 	if err != nil {
 		return nil, err
@@ -134,49 +136,21 @@ func (e *Engine) ValidateStandard(template []byte, config *ValidateConfig, fileP
 	if filePath == "" {
 		filePath = defaultFilePath
 	}
-	data, err := e.inner.ValidateStandardJson(template, optionsJSON, filePath)
+	data, err := e.inner.ValidateTemplateJson(template, optionsJSON, filePath)
 	if err != nil {
 		return nil, err
 	}
-	return decodeInto[StandardReport](data, "standard report")
+	return decodeInto[ValidationReport](data, "report")
 }
 
-// ValidateStandardFile reads a template from disk and returns a
-// standard-detail report.
-func (e *Engine) ValidateStandardFile(path string, config *ValidateConfig) (*StandardReport, error) {
+// ValidateTemplateFile reads a template from disk and validates it. See
+// ValidateTemplate for how config.DetailLevel controls the report detail.
+func (e *Engine) ValidateTemplateFile(path string, config *ValidateConfig) (*ValidationReport, error) {
 	template, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("cfnvalidate: reading template: %w", err)
 	}
-	return e.ValidateStandard(template, config, path)
-}
-
-// ValidateDetailed validates template bytes and returns a detailed report with
-// per-diagnostic context and enrichment. filePath labels the report; pass ""
-// for the default.
-func (e *Engine) ValidateDetailed(template []byte, config *ValidateConfig, filePath string) (*DetailedReport, error) {
-	optionsJSON, err := validateConfigJSON(config)
-	if err != nil {
-		return nil, err
-	}
-	if filePath == "" {
-		filePath = defaultFilePath
-	}
-	data, err := e.inner.ValidateDetailedJson(template, optionsJSON, filePath)
-	if err != nil {
-		return nil, err
-	}
-	return decodeInto[DetailedReport](data, "detailed report")
-}
-
-// ValidateDetailedFile reads a template from disk and returns a detailed
-// report.
-func (e *Engine) ValidateDetailedFile(path string, config *ValidateConfig) (*DetailedReport, error) {
-	template, err := os.ReadFile(path)
-	if err != nil {
-		return nil, fmt.Errorf("cfnvalidate: reading template: %w", err)
-	}
-	return e.ValidateDetailed(template, config, path)
+	return e.ValidateTemplate(template, config, path)
 }
 
 // ListRules lists every rule this engine evaluates, sorted by rule ID.
@@ -205,7 +179,8 @@ func (e *Engine) Destroy() {
 // ValidateAWSAPIRequest classifies and validates an AWS API request against
 // CloudFormation schemas and rules entirely offline. The result contains
 // operation classification, resource type inference, and an optional
-// StandardReport when the request was validated (not skipped).
+// ValidationReport when the request was validated (not skipped). The report
+// carries only the shared diagnostic fields; enrichment fields are left nil.
 func (e *Engine) ValidateAWSAPIRequest(request AWSAPIRequest, config *ValidateConfig) (*AWSAPIRequestValidation, error) {
 	optionsJSON, err := validateConfigJSON(config)
 	if err != nil {
@@ -486,8 +461,9 @@ func (v *SchemaValidator) SchemaCount() uint32 {
 }
 
 // Validate checks template bytes against the provider schemas. region selects
-// region-specific schemas; nil uses the default.
-func (v *SchemaValidator) Validate(template []byte, region *string) ([]StandardDiagnostic, error) {
+// region-specific schemas; nil uses the default. The returned diagnostics carry
+// only the shared fields; enrichment fields are left nil.
+func (v *SchemaValidator) Validate(template []byte, region *string) ([]Diagnostic, error) {
 	model, err := bindings.GoSemanticModelParse(template)
 	if err != nil {
 		return nil, err
@@ -497,7 +473,7 @@ func (v *SchemaValidator) Validate(template []byte, region *string) ([]StandardD
 	if err != nil {
 		return nil, err
 	}
-	diagnostics, err := decodeInto[[]StandardDiagnostic](data, "diagnostics")
+	diagnostics, err := decodeInto[[]Diagnostic](data, "diagnostics")
 	if err != nil {
 		return nil, err
 	}

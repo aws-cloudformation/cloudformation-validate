@@ -6,6 +6,7 @@ import rego.v1
 violation contains make_diag_at("E3062", "ERROR", name,
     "Properties.DBInstanceClass",
     sprintf("DBInstanceClass '%s' is not valid for Engine '%s' EngineVersion '%s'", [cls, eng, ver])) if {
+    cfn_rule_active("E3062")
     some name in resources_of_type("AWS::RDS::DBInstance")
     eng := resolve(name, "Properties.Engine")
     is_string(eng)

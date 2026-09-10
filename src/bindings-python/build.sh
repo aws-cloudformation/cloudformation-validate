@@ -68,8 +68,8 @@ EOF
 # ── Prerequisites ─────────────────────────────────────────────────────────────
 command -v "$PYTHON" &>/dev/null || { echo "Error: $PYTHON not found on PATH" >&2; exit 1; }
 command -v unzip &>/dev/null || { echo "Error: unzip not found on PATH" >&2; exit 1; }
-"$PYTHON" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 9) else 1)' \
-    || { echo "Error: Python 3.9+ required, found $("$PYTHON" --version)" >&2; exit 1; }
+"$PYTHON" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)' \
+    || { echo "Error: Python 3.10+ required, found $("$PYTHON" --version)" >&2; exit 1; }
 "$PYTHON" -m pip --version &>/dev/null \
     || { echo "Error: pip not available ($PYTHON -m pip failed)" >&2; exit 1; }
 

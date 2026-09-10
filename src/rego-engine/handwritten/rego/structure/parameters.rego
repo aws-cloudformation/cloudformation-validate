@@ -2,22 +2,74 @@ package structure
 
 import rego.v1
 
-# F2002: Parameter Type must be valid
 _valid_param_types := {t | some t in data.rule_tables.valid_parameter_types}
+
+_parameter_type_inner(ptype) := inner if {
+    startswith(ptype, "AWS::SSM::Parameter::Value<")
+    endswith(ptype, ">")
+    inner := trim_suffix(trim_prefix(ptype, "AWS::SSM::Parameter::Value<"), ">")
+    inner != ""
+}
+
+_parameter_type_inner(ptype) := inner if {
+    startswith(ptype, "List<")
+    endswith(ptype, ">")
+    inner := trim_suffix(trim_prefix(ptype, "List<"), ">")
+    inner != ""
+}
+
+_list_type_inner(ptype) := inner if {
+    startswith(ptype, "List<")
+    endswith(ptype, ">")
+    inner := trim_suffix(trim_prefix(ptype, "List<"), ">")
+    inner != ""
+}
+
+_aws_specific_parameter_type(ptype) if {
+    segments := split(ptype, "::")
+    count(segments) >= 3
+    segments[0] == "AWS"
+    every segment in segments { segment != "" }
+}
+
+_accepted_undocumented_param_type(ptype) if {
+    inner := _parameter_type_inner(ptype)
+    _aws_specific_parameter_type(inner)
+}
+
+_accepted_undocumented_param_type(ptype) if {
+    inner := _parameter_type_inner(ptype)
+    base_type := _list_type_inner(inner)
+    _aws_specific_parameter_type(base_type)
+}
 
 violation contains make_diag_at("F2002", "FATAL", "",
     sprintf("Parameters/%s/Type", [name]),
     sprintf("Parameter '%s' has invalid Type '%s'", [name, ptype])) if {
+    cfn_rule_active("F2002")
     some name, param in input.parameters
     ptype := param.type
     ptype != null
     not ptype in _valid_param_types
+    not _accepted_undocumented_param_type(ptype)
+}
+
+violation contains make_diag_at("W2002", "WARN", "",
+    sprintf("Parameters/%s/Type", [name]),
+    sprintf("Parameter '%s' Type '%s' is accepted by CloudFormation but is not officially documented; CloudFormation will not validate its values", [name, ptype])) if {
+    cfn_rule_active("W2002")
+    some name, param in input.parameters
+    ptype := param.type
+    ptype != null
+    not ptype in _valid_param_types
+    _accepted_undocumented_param_type(ptype)
 }
 
 # F0015: Default value must be numeric when parameter Type is Number
 violation contains make_diag_at("F0015", "FATAL", "",
     sprintf("Parameters/%s/Default", [name]),
     sprintf("Parameter '%s' Default '%s' is not a valid number", [name, def])) if {
+    cfn_rule_active("F0015")
     some name, param in input.parameters
     param.type == "Number"
     def := object.get(param, "default", null)
@@ -30,6 +82,7 @@ violation contains make_diag_at("F0015", "FATAL", "",
 violation contains make_diag_at("F0016", "FATAL", "",
     sprintf("Parameters/%s/AllowedValues", [name]),
     sprintf("Parameter '%s' AllowedValues entry '%s' is not a valid number", [name, val])) if {
+    cfn_rule_active("F0016")
     some name, param in input.parameters
     param.type == "Number"
     avs := param.allowedValues
@@ -46,6 +99,7 @@ _snapshot_capable_types := {t | some t in data.rule_tables.snapshot_capable_reso
 violation contains make_diag_full("F3016", "FATAL", name, "DeletionPolicy",
     sprintf("DeletionPolicy must be one of Delete, Retain, RetainExceptOnCreate, Snapshot, got '%s'", [dp]),
     "", "") if {
+    cfn_rule_active("F3016")
     some name, res in input.resources
     res.resourceType in _snapshot_capable_types
     scenarios := lifecycle_policy_scenarios(name, "DeletionPolicy")
@@ -57,6 +111,7 @@ violation contains make_diag_full("F3016", "FATAL", name, "DeletionPolicy",
 violation contains make_diag_full("F3016", "FATAL", name, "DeletionPolicy",
     sprintf("DeletionPolicy must be one of Delete, Retain, RetainExceptOnCreate, got '%s'", [dp]),
     "", "") if {
+    cfn_rule_active("F3016")
     some name, res in input.resources
     not res.resourceType in _snapshot_capable_types
     scenarios := lifecycle_policy_scenarios(name, "DeletionPolicy")
@@ -68,6 +123,7 @@ violation contains make_diag_full("F3016", "FATAL", name, "DeletionPolicy",
 violation contains make_diag_full("F3016", "FATAL", name, "DeletionPolicy",
     sprintf("DeletionPolicy must be one of Delete, Retain, RetainExceptOnCreate, Snapshot, got %s", [shape]),
     "", "") if {
+    cfn_rule_active("F3016")
     some name, res in input.resources
     res.resourceType in _snapshot_capable_types
     scenarios := lifecycle_policy_scenarios(name, "DeletionPolicy")
@@ -79,6 +135,7 @@ violation contains make_diag_full("F3016", "FATAL", name, "DeletionPolicy",
 violation contains make_diag_full("F3016", "FATAL", name, "DeletionPolicy",
     sprintf("DeletionPolicy must be one of Delete, Retain, RetainExceptOnCreate, got %s", [shape]),
     "", "") if {
+    cfn_rule_active("F3016")
     some name, res in input.resources
     not res.resourceType in _snapshot_capable_types
     scenarios := lifecycle_policy_scenarios(name, "DeletionPolicy")
@@ -127,6 +184,7 @@ _path_segment_to_regex(seg) := seg if {
 violation contains make_diag_at("W2506", "WARN", "",
     sprintf("Parameters/%s", [pname]),
     sprintf("Parameter '%s' is used as an ImageId but has Type '%s' - consider using 'AWS::EC2::Image::Id'", [pname, ptype])) if {
+    cfn_rule_active("W2506")
     some name, res in input.resources
     patterns := _image_id_slots[res.resourceType]
     some edge in res.outgoingRefs

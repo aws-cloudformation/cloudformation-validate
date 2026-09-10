@@ -18,9 +18,9 @@ Rules are organized into Rego packages by category:
 | `resources`      | `data.resources.violation`      | Resource-specific    |
 | `all_violations` | `data.all_violations.violation` | All packages at once |
 
-Rules come from four sources: handwritten Rego policies (embedded), generated data from
-data-source (embedded), user-provided custom Rego policies, and Guard DSL files translated
-to Rego at engine initialization.
+Rules come from four sources: handwritten Rego policies embedded by this crate's build script, generated shared data
+embedded by data-source, user-provided custom Rego policies, and Guard DSL files translated to Rego at engine
+initialization.
 
 ## Custom Builtins
 

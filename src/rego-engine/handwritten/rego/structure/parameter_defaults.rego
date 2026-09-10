@@ -6,6 +6,7 @@ import rego.v1
 violation contains make_diag_at("F2012", "FATAL", "",
     sprintf("Parameters/%s/Default", [name]),
     sprintf("Parameter '%s' Default '%s' is not in AllowedValues %s", [name, def, render_list(avs)])) if {
+    cfn_rule_active("F2012")
     some name, param in input.parameters
     not _is_cdl_type(param.type)
     def := object.get(param, "default", null)
@@ -21,6 +22,7 @@ violation contains make_diag_at("F2012", "FATAL", "",
 violation contains make_diag_at("F2012", "FATAL", "",
     sprintf("Parameters/%s/Default", [name]),
     sprintf("Parameter '%s' Default '%s' is not in AllowedValues %s", [name, element, render_list(avs)])) if {
+    cfn_rule_active("F2012")
     some name, param in input.parameters
     _is_cdl_type(param.type)
     def := object.get(param, "default", null)
@@ -41,6 +43,7 @@ violation contains make_diag_at("F2012", "FATAL", "",
 violation contains make_diag_at("F2015", "FATAL", "",
     sprintf("Parameters/%s/Default", [name]),
     sprintf("Parameter '%s' Default '%s' does not match AllowedPattern '%s'", [name, def, pat])) if {
+    cfn_rule_active("F2015")
     some name, param in input.parameters
     def := object.get(param, "default", null)
     def != null
@@ -57,6 +60,7 @@ violation contains make_diag_at("F2015", "FATAL", "",
 violation contains make_diag_at("F2015", "FATAL", "",
     sprintf("Parameters/%s/Default", [name]),
     sprintf("Parameter '%s' Default does not match AllowedPattern '%s'", [name, pat])) if {
+    cfn_rule_active("F2015")
     some name, param in input.parameters
     _is_cdl_type(param.type)
     def := object.get(param, "default", null)
@@ -76,6 +80,7 @@ _is_cdl_type(t) if { startswith(t, "List<") }
 violation contains make_diag_at("F2015", "FATAL", "",
     sprintf("Parameters/%s/Default", [name]),
     sprintf("Parameter '%s' Default length %d is less than MinLength %d", [name, count(def), ml])) if {
+    cfn_rule_active("F2015")
     some name, param in input.parameters
     def := object.get(param, "default", null)
     def != null
@@ -89,6 +94,7 @@ violation contains make_diag_at("F2015", "FATAL", "",
 violation contains make_diag_at("F2015", "FATAL", "",
     sprintf("Parameters/%s/Default", [name]),
     sprintf("Parameter '%s' Default length %d exceeds MaxLength %d", [name, count(def), ml])) if {
+    cfn_rule_active("F2015")
     some name, param in input.parameters
     def := object.get(param, "default", null)
     def != null
@@ -102,6 +108,7 @@ violation contains make_diag_at("F2015", "FATAL", "",
 violation contains make_diag_at("F2015", "FATAL", "",
     sprintf("Parameters/%s/Default", [name]),
     sprintf("Parameter '%s' Default %d is less than MinValue %d", [name, num, mv])) if {
+    cfn_rule_active("F2015")
     some name, param in input.parameters
     param.type == "Number"
     def := object.get(param, "default", null)
@@ -116,6 +123,7 @@ violation contains make_diag_at("F2015", "FATAL", "",
 violation contains make_diag_at("F2015", "FATAL", "",
     sprintf("Parameters/%s/Default", [name]),
     sprintf("Parameter '%s' Default %d exceeds MaxValue %d", [name, num, mv])) if {
+    cfn_rule_active("F2015")
     some name, param in input.parameters
     param.type == "Number"
     def := object.get(param, "default", null)
@@ -133,6 +141,7 @@ violation contains make_diag_at("F2015", "FATAL", "",
 violation contains make_diag_at("W2509", "WARN", "",
     sprintf("Parameters/%s", [name]),
     sprintf("Parameter '%s' appears to be a password but does not have NoEcho set to true", [name])) if {
+    cfn_rule_active("W2509")
     some name, param in input.parameters
     _is_password_param_name(name)
     param.type == "String"
@@ -162,6 +171,7 @@ _param_has_noecho(name) if {
 violation contains make_diag_at("F6005", "FATAL", "",
     sprintf("Outputs/%s/Export/Name", [name]),
     sprintf("Output '%s' Export Name must not be empty", [name])) if {
+    cfn_rule_active("F6005")
     some name, out in input.outputs
     export := out.exportName
     export != null

@@ -26,13 +26,64 @@ function loadRule(filename: string): string {
     return fs.readFileSync(path.join(RULES_DIR, filename), 'utf-8');
 }
 
-const COMBINED_GOLDEN: Record<string, unknown> = JSON.parse(
-    fs.readFileSync(path.join(EXPECTED_DIR, 'validation_reports.json'), 'utf-8'),
-);
+const CHUNK_PREFIX = 'validation_reports';
+const CHUNK_EXTENSION = '.json';
 
-const GOLDEN_DIRS = ['bad', 'cdk', 'good', 'gh-issues', 'integration', 'issues', 'lsp', 'public', 'quickstart'];
+/**
+ * Discover all numbered snapshot chunk files (validation_reportsN.json) in numeric
+ * order and strictly merge them into a single map. Fails on no chunks, non-object
+ * JSON, or duplicate template keys.
+ */
+function loadCombinedSnapshots(): Record<string, unknown> {
+    const entries = fs.readdirSync(EXPECTED_DIR);
+    const chunks: { index: number; path: string }[] = [];
+    const pattern = new RegExp(`^${CHUNK_PREFIX}([1-9][0-9]*)${CHUNK_EXTENSION.replace('.', '\\.')}$`);
+    for (const entry of entries) {
+        const match = pattern.exec(entry);
+        if (match) {
+            const index = parseInt(match[1], 10);
+            chunks.push({ index, path: path.join(EXPECTED_DIR, entry) });
+        }
+    }
+    if (chunks.length === 0) {
+        throw new Error(`no snapshot chunk files (${CHUNK_PREFIX}N${CHUNK_EXTENSION}) found in ${EXPECTED_DIR}`);
+    }
+    chunks.sort((a, b) => a.index - b.index);
 
+    for (let i = 0; i < chunks.length; i++) {
+        if (chunks[i].index !== i + 1) {
+            throw new Error(
+                `non-contiguous snapshot chunk sequence: expected index ${i + 1} but found ${chunks[i].index}`,
+            );
+        }
+    }
+
+    const merged: Record<string, unknown> = {};
+    for (const chunk of chunks) {
+        const data = JSON.parse(fs.readFileSync(chunk.path, 'utf-8'));
+        if (typeof data !== 'object' || data === null || Array.isArray(data)) {
+            throw new Error(`snapshot chunk ${path.basename(chunk.path)} is not a JSON object`);
+        }
+        for (const [key, value] of Object.entries(data)) {
+            if (key in merged) {
+                throw new Error(`duplicate template key "${key}" in chunk ${path.basename(chunk.path)}`);
+            }
+            merged[key] = value;
+        }
+    }
+    return merged;
+}
+
+const COMBINED_SNAPSHOTS: Record<string, unknown> = loadCombinedSnapshots();
+
+/**
+ * Recursively discover all template files (.yaml/.yml/.json) under the templates
+ * root, excluding security fixtures. Returns sorted forward-slash relative paths.
+ */
 function discoverAllTemplates(): string[] {
+    if (!fs.existsSync(TEMPLATES_ROOT)) {
+        throw new Error(`templates directory does not exist: ${TEMPLATES_ROOT}`);
+    }
     const templates: string[] = [];
     function walk(dir: string) {
         for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -43,16 +94,16 @@ function discoverAllTemplates(): string[] {
             }
         }
     }
-    for (const sub of GOLDEN_DIRS) {
-        const dir = path.join(TEMPLATES_ROOT, sub);
-        if (fs.existsSync(dir)) walk(dir);
+    walk(TEMPLATES_ROOT);
+    if (templates.length === 0) {
+        throw new Error(`no templates discovered in ${TEMPLATES_ROOT}`);
     }
     return templates.sort();
 }
 
 const EXPECTED_TEMPLATES = discoverAllTemplates();
 
-const FULL_ONLY_DIAGNOSTIC_FIELDS = ['documentationUrl', 'context', 'ruleDescription', 'phase', 'section'];
+const ENRICHMENT_DIAGNOSTIC_FIELDS = ['documentationUrl', 'context', 'ruleDescription', 'phase', 'section'];
 
 const CEL = new CelEngine();
 const REGO = new RegoEngine();
@@ -75,11 +126,11 @@ const LAMBDA_OVERLAY_SCHEMA = `{
   "properties": {"TestForOverride": {"type": "string"}}
 }`;
 
-function loadGolden(rel: string): unknown {
-    return COMBINED_GOLDEN[rel];
+function loadSnapshot(rel: string): unknown {
+    return COMBINED_SNAPSHOTS[rel];
 }
 
-function stripGoldenExcludedFields(report: any, filePath?: string): unknown {
+function stripSnapshotExcludedFields(report: any, filePath?: string): unknown {
     const clone = JSON.parse(JSON.stringify(report));
     if (filePath !== undefined) {
         clone.filePath = filePath;
@@ -96,33 +147,18 @@ function stripGoldenExcludedFields(report: any, filePath?: string): unknown {
 
 // ── version ──────────────────────────────────────────────────────────────────
 
-function readWorkspaceVersion(): string {
-    const cargoTomlPath = path.resolve(__dirname, '../../Cargo.toml');
-    const lines = fs.readFileSync(cargoTomlPath, 'utf-8').split('\n');
-    let inWorkspacePackage = false;
-    for (const line of lines) {
-        const trimmed = line.trim();
-        if (trimmed === '[workspace.package]') {
-            inWorkspacePackage = true;
-            continue;
-        }
-        if (inWorkspacePackage && trimmed.startsWith('[')) {
-            break;
-        }
-        if (inWorkspacePackage && trimmed.startsWith('version = ')) {
-            const value = trimmed.slice('version = '.length).trim();
-            if (!value.startsWith('"') || !value.endsWith('"')) {
-                throw new Error(`malformed version line in ${cargoTomlPath}: ${line}`);
-            }
-            return value.slice(1, -1);
-        }
+function readExpectedVersion(): string {
+    const expectedVersionPath = path.join(EXPECTED_DIR, 'version.txt');
+    const expectedVersion = fs.readFileSync(expectedVersionPath, 'utf-8').trim();
+    if (expectedVersion.length === 0) {
+        throw new Error(`${expectedVersionPath} must not be empty`);
     }
-    throw new Error(`missing 'version = ' under [workspace.package] in ${cargoTomlPath}`);
+    return expectedVersion;
 }
 
 describe('version', () => {
-    it('returns the crate version from workspace Cargo.toml', () => {
-        expect(version()).toBe(readWorkspaceVersion());
+    it('returns the expected version fixture', () => {
+        expect(version()).toBe(readExpectedVersion());
     });
 });
 
@@ -220,14 +256,14 @@ describe('TemplateModel', () => {
 
 describe('invalid input', () => {
     it('CelEngine returns F1101 for empty template', () => {
-        const report = CEL.validateStandard(loadTemplate('empty.yaml'));
+        const report = CEL.validateTemplate(loadTemplate('empty.yaml'));
         expect(report.status).toBe('ERROR');
         expect(report.diagnostics[0].ruleId).toBe('F1101');
         expect(report.diagnostics[0].severity).toBe('FATAL');
     });
 
     it('RegoEngine returns F1101 for empty template', () => {
-        const report = REGO.validateStandard(loadTemplate('empty.yaml'));
+        const report = REGO.validateTemplate(loadTemplate('empty.yaml'));
         expect(report.status).toBe('ERROR');
         expect(report.diagnostics[0].ruleId).toBe('F1101');
         expect(report.diagnostics[0].severity).toBe('FATAL');
@@ -483,7 +519,7 @@ describe('additional schemas', () => {
             ] as const) {
                 expect(
                     baseline
-                        .validateStandard(template)
+                        .validateTemplate(template)
                         .diagnostics.some((diagnostic: any) => diagnostic.ruleId === 'F3002'),
                     `${name} baseline must report the unpublished property`,
                 ).toBe(true);
@@ -491,7 +527,7 @@ describe('additional schemas', () => {
                 const engine = new EngineType({
                     schemaValidatorConfig: { additionalSchemas: [new SchemaFile(schemaPath)] },
                 });
-                const report = engine.validateStandard(template);
+                const report = engine.validateTemplate(template);
                 expect(
                     report.diagnostics.some((diagnostic: any) => diagnostic.ruleId === 'F3002'),
                     `${name} public config must apply the overlay`,
@@ -519,7 +555,7 @@ describe('custom rule', () => {
             ['cel', cel],
             ['rego', rego],
         ] as const) {
-            const report = (engine as any).validateStandard(loadTemplate('bad/invalid_deletion_policy.yaml'));
+            const report = (engine as any).validateTemplate(loadTemplate('bad/invalid_deletion_policy.yaml'));
             const d = report.diagnostics.find((d: any) => d.ruleId === 'CUSTOM001');
             expect(d, `${name}: CUSTOM001 diagnostic must fire`).toBeDefined();
             expect(d.severity).toBe('ERROR');
@@ -571,7 +607,7 @@ describe('guard rule', () => {
             expect(g.description).toBe('S3 bucket must have encryption configured');
             expect(rules.filter((r: any) => r.origin !== 'GUARD').length).toBe(baselineCount);
 
-            const report = (engine as any).validateStandard(loadTemplate('bad/invalid_deletion_policy.yaml'));
+            const report = (engine as any).validateTemplate(loadTemplate('bad/invalid_deletion_policy.yaml'));
             const d = report.diagnostics.find((d: any) => d.ruleId === 'check_bucket_encryption');
             expect(d, `${name}: check_bucket_encryption diagnostic must fire`).toBeDefined();
             expect(d.severity).toBe('ERROR');
@@ -599,7 +635,7 @@ describe('single combined custom + guard', () => {
         });
 
         // Rego discovers custom rule metadata during evaluation.
-        rego.validateStandard(loadTemplate('bad/invalid_deletion_policy.yaml'));
+        rego.validateTemplate(loadTemplate('bad/invalid_deletion_policy.yaml'));
 
         for (const [name, engine] of [
             ['cel', cel],
@@ -638,7 +674,7 @@ describe('multi combined custom + guard', () => {
         });
 
         // Rego discovers custom rule metadata during evaluation.
-        rego.validateStandard(loadTemplate('bad/invalid_deletion_policy.yaml'));
+        rego.validateTemplate(loadTemplate('bad/invalid_deletion_policy.yaml'));
 
         for (const [name, engine] of [
             ['cel', cel],
@@ -683,11 +719,11 @@ describe('multi combined custom + guard', () => {
     });
 });
 
-function stripDetailedOnlyFields(report: any): unknown {
+function stripEnrichmentFields(report: any): unknown {
     const clone = JSON.parse(JSON.stringify(report));
     if (clone.diagnostics) {
         for (const d of clone.diagnostics) {
-            for (const field of FULL_ONLY_DIAGNOSTIC_FIELDS) {
+            for (const field of ENRICHMENT_DIAGNOSTIC_FIELDS) {
                 delete d[field];
             }
         }
@@ -695,25 +731,33 @@ function stripDetailedOnlyFields(report: any): unknown {
     return clone;
 }
 
-describe('golden file validation', () => {
+describe('snapshot validation', () => {
     function detailedTests(engineName: string, engine: any) {
-        describe(`${engineName} detailed matches golden`, () => {
+        describe(`${engineName} detailed matches snapshot`, () => {
             for (const rel of EXPECTED_TEMPLATES) {
                 it(rel, () => {
-                    const actual = engine.validateDetailed(loadTemplate(rel), { severityLevel: 'DEBUG' });
-                    expect(stripGoldenExcludedFields(actual, rel)).toEqual(stripGoldenExcludedFields(loadGolden(rel)));
+                    const actual = engine.validateTemplate(loadTemplate(rel), {
+                        severityLevel: 'DEBUG',
+                        detailLevel: 'DETAILED',
+                    });
+                    expect(stripSnapshotExcludedFields(actual, rel)).toEqual(
+                        stripSnapshotExcludedFields(loadSnapshot(rel)),
+                    );
                 });
             }
         });
     }
 
     function standardTests(engineName: string, engine: any) {
-        describe(`${engineName} standard matches golden`, () => {
+        describe(`${engineName} standard matches snapshot`, () => {
             for (const rel of EXPECTED_TEMPLATES) {
                 it(rel, () => {
-                    const actual = engine.validateStandard(loadTemplate(rel), { severityLevel: 'DEBUG' });
-                    expect(stripGoldenExcludedFields(actual, rel)).toEqual(
-                        stripGoldenExcludedFields(stripDetailedOnlyFields(loadGolden(rel))),
+                    const actual = engine.validateTemplate(loadTemplate(rel), {
+                        severityLevel: 'DEBUG',
+                        detailLevel: 'STANDARD',
+                    });
+                    expect(stripSnapshotExcludedFields(stripEnrichmentFields(actual), rel)).toEqual(
+                        stripSnapshotExcludedFields(stripEnrichmentFields(loadSnapshot(rel))),
                     );
                 });
             }
@@ -726,11 +770,14 @@ describe('golden file validation', () => {
     standardTests('cel', CEL);
 });
 
-describe('report fields excluded from golden', () => {
+describe('report fields excluded from snapshot', () => {
     const REPORT_TEMPLATE = 'good/generic.yaml';
 
     it('performance is present with a timing metric per phase', () => {
-        const report = REGO.validateDetailed(loadTemplate(REPORT_TEMPLATE), { severityLevel: 'DEBUG' });
+        const report = REGO.validateTemplate(loadTemplate(REPORT_TEMPLATE), {
+            severityLevel: 'DEBUG',
+            detailLevel: 'DETAILED',
+        });
         const phases = [
             'schemaInit',
             'engineInit',
@@ -745,4 +792,53 @@ describe('report fields excluded from golden', () => {
             expect(typeof report.performance[phase].durationMs, `performance.${phase}.durationMs`).toBe('number');
         }
     });
+});
+
+describe('validateTemplate detail level', () => {
+    const DETAIL_LEVEL_TEMPLATE = 'good/generic.yaml';
+
+    for (const [engineName, engine] of [
+        ['rego', REGO],
+        ['cel', CEL],
+    ] as const) {
+        it(`${engineName} defaults to DETAILED when detailLevel is omitted`, () => {
+            const withDefault = engine.validateTemplate(loadTemplate(DETAIL_LEVEL_TEMPLATE), {
+                severityLevel: 'DEBUG',
+            });
+            const explicitDetailed = engine.validateTemplate(loadTemplate(DETAIL_LEVEL_TEMPLATE), {
+                severityLevel: 'DEBUG',
+                detailLevel: 'DETAILED',
+            });
+            expect(withDefault.diagnostics.some((d: any) => d.ruleDescription !== undefined)).toBe(true);
+            expect(stripSnapshotExcludedFields(withDefault)).toEqual(stripSnapshotExcludedFields(explicitDetailed));
+        });
+
+        it(`${engineName} STANDARD omits the enrichment fields that DETAILED includes`, () => {
+            const detailed = engine.validateTemplate(loadTemplate(DETAIL_LEVEL_TEMPLATE), {
+                severityLevel: 'DEBUG',
+                detailLevel: 'DETAILED',
+            });
+            const standard = engine.validateTemplate(loadTemplate(DETAIL_LEVEL_TEMPLATE), {
+                severityLevel: 'DEBUG',
+                detailLevel: 'STANDARD',
+            });
+            expect(detailed.diagnostics.some((d: any) => d.ruleDescription !== undefined)).toBe(true);
+            expect(standard.diagnostics.every((d: any) => d.ruleDescription === undefined)).toBe(true);
+        });
+
+        it(`${engineName} STANDARD omits the parse-phase field a DETAILED parse error carries`, () => {
+            const detailed = engine.validateTemplate(loadTemplate('empty.yaml'), {
+                severityLevel: 'DEBUG',
+                detailLevel: 'DETAILED',
+            });
+            const standard = engine.validateTemplate(loadTemplate('empty.yaml'), {
+                severityLevel: 'DEBUG',
+                detailLevel: 'STANDARD',
+            });
+            expect(detailed.diagnostics[0].ruleId).toBe('F1101');
+            expect(detailed.diagnostics[0].phase).toBe('PARSE');
+            expect(standard.diagnostics[0].ruleId).toBe('F1101');
+            expect(standard.diagnostics[0].phase).toBeUndefined();
+        });
+    }
 });

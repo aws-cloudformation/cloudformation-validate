@@ -1,6 +1,6 @@
 # cloudformation-validate vs cfn-lint - Parity Report
 
-> Generated: 2026-08-18 23:39:45  
+> Generated: 2026-09-07 21:48:15  
 > Engine: **rego**  
 > Detail level: **detailed**  
 > Matching: `(rule_id, resource_id, path)` two-pass with `(rule_id, resource_id)` fallback + aliases  
@@ -24,23 +24,23 @@
 |--------|------:|
 | True Positives | 4053 |
 | False Positives (engine bugs) | 87 |
-| Engine Extra (correct, cfn-lint gap) | 8288 |
+| Engine Extra (correct, cfn-lint gap) | 8257 |
 | False Negatives (engine misses) | 356 |
 | Precision | 97.90% |
 | Recall | 91.93% |
 | F1 | 94.82% |
 | Unique rules detected | 238 |
-| Perfect templates | 494/665 |
+| Perfect templates | 495/665 |
 | Location mismatches (matched pairs) | 9 |
 
 ### By Severity
 
 | Severity | TP | FP | EE | FN | Precision | Recall |
 |----------|---:|---:|---:|---:|----------:|-------:|
-| Fatal | 447 | 12 | 81 | 145 | 97.39% | 75.51% |
-| Error | 856 | 63 | 12 | 140 | 93.14% | 85.94% |
+| Fatal | 447 | 13 | 81 | 145 | 97.17% | 75.51% |
+| Error | 856 | 62 | 12 | 140 | 93.25% | 85.94% |
 | Warning | 2080 | 0 | 371 | 61 | 100.00% | 97.15% |
-| Info | 670 | 12 | 7824 | 10 | 98.24% | 98.53% |
+| Info | 670 | 12 | 7793 | 10 | 98.24% | 98.53% |
 
 ## False Negatives - 356 missed findings across 93 rules
 
@@ -321,17 +321,17 @@ but found another document
 ### E3043 - 8 missed - Validate parameters for in a nested stack
 
 - **E3043** `Stack3` → `Properties.Parameters` L18 in `bad_resources_cloudformation_stacks_yaml`
-  > Nested stack template parameter "One" is not specified when condition "IsUsEast1" is False and when condition "IsUsWest2" is True
+  > Nested stack template parameter "One" is not specified when condition "IsUsWest2" is True and when condition "IsUsEast1" is False
 - **E3043** `Stack3` → `Properties.Parameters` L18 in `bad_resources_cloudformation_stacks_yaml`
-  > Nested stack template parameter "Two" is not specified when condition "IsUsEast1" is False and when condition "IsUsWest2" is False
+  > Nested stack template parameter "Two" is not specified when condition "IsUsWest2" is False and when condition "IsUsEast1" is False
 - **E3043** `Stack3` → `Properties.Parameters` L18 in `bad_resources_cloudformation_stacks_yaml`
-  > Nested stack template parameter "Two" is not specified when condition "IsUsEast1" is True and when condition "IsUsWest2" is False
+  > Nested stack template parameter "Two" is not specified when condition "IsUsWest2" is False and when condition "IsUsEast1" is True
 - **E3043** `Stack3` → `Properties.Parameters` L18 in `bad_resources_cloudformation_stacks_yaml`
-  > Specified parameter "Three" doesn't exist in nested stack template when condition "IsUsEast1" is False and when condition "IsUsWest2" is False
+  > Specified parameter "Three" doesn't exist in nested stack template when condition "IsUsWest2" is False and when condition "IsUsEast1" is False
 - **E3043** `Stack3` → `Properties.Parameters` L18 in `bad_resources_cloudformation_stacks_yaml`
-  > Specified parameter "Three" doesn't exist in nested stack template when condition "IsUsEast1" is False and when condition "IsUsWest2" is True
+  > Specified parameter "Three" doesn't exist in nested stack template when condition "IsUsWest2" is True and when condition "IsUsEast1" is False
 - **E3043** `Stack3` → `Properties.Parameters` L18 in `bad_resources_cloudformation_stacks_yaml`
-  > Specified parameter "Zero" doesn't exist in nested stack template when condition "IsUsEast1" is True and when condition "IsUsWest2" is False
+  > Specified parameter "Zero" doesn't exist in nested stack template when condition "IsUsWest2" is False and when condition "IsUsEast1" is True
 - **E3043** `StackNormal` → `Properties.Parameters` L10 in `bad_resources_cloudformation_stacks_yaml`
   > Nested stack template parameter "Two" is not specified at Resources/StackNormal/Properties/Parameters
 - **E3043** `StackNormal` → `Properties.Parameters.Three` L12 in `bad_resources_cloudformation_stacks_yaml`
@@ -1040,7 +1040,7 @@ but found another document
 - **W6001** → `Outputs.ImportedValue.Value.Fn::ImportValue` L39 in `good_output_value_string_yaml`
   > The output value {'Fn::ImportValue': 'SomeExportedName'} is an import from another output
 
-## False Positives - 87 extra findings across 14 rules
+## False Positives - 87 extra findings across 15 rules
 
 These are diagnostics the engine reports but cfn-lint does not expect (potential bugs).
 
@@ -1220,30 +1220,33 @@ These are diagnostics the engine reports but cfn-lint does not expect (potential
 - **F3016** `NoValuePoliciesWithoutTransform` (AWS::SQS::Queue) → `DeletionPolicy` L64 in `bad_lifecycle_policy_shapes_yaml`
   > DeletionPolicy must be one of Delete, Retain, RetainExceptOnCreate, got null
 
-### E3510 - 3 extra - Validate identity based IAM polices
-
-- **E3510** `rIamPolicy` (AWS::IAM::Policy) → `Properties.PolicyDocument` L38 in `bad_resources_iam_iam_policy_yaml`
-  > [{"Statement":{}}] is not of type 'object'
-- **E3510** `PolicyBadIdAndCondition` (AWS::IAM::RolePolicy) → `Properties.PolicyDocument.Id` L47 in `bad_resources_iam_identity_policy_e3510_yaml`
-  > Additional properties are not allowed ('Id' was unexpected)
-- **E3510** `WildcardServicePolicy` (AWS::IAM::ManagedPolicy) → `Properties.PolicyDocument.Statement.0.Resource` L13 in `bad_resources_iam_identity_policy_wildcard_service_yaml`
-  > 'arn:aws:*:::example-bucket/*' does not match '^(arn:(aws[A-Za-z\-]*?|[A-Za-z?*\-]*[?*][A-Za-z?*\-]*):[^:*?]+:[^:]*(:(?:\d{12}|\*|aws)?:.+|)|\*)$'
-
-### F3017 - 3 extra - Check Properties that need at least one of a list of properties
-
-- **F3017** `Topic` (AWS::SNS::Topic) → `Properties.KmsMasterKeyId` L11 in `bad_hardcoded_partition_yaml`
-  > Value is not valid under any of the 3 anyOf schemas (0 branches matched; at least one is required). Branch failures: branch 1: 'arn:aws:kms:us-east-1:123456789012:key/12345' does not match format 'AWS
-- **F3017** `JoinedUsername` (AWS::RDS::DBCluster) → `Properties.MasterUsername` L9 in `bad_resources_rds_not_enum_master_username_join_yaml`
-  > 'rdsadmin' at 'MasterUsername' does not satisfy the composition branch constraint (none of ['rdsadmin']): 'rdsadmin' must not be one of ['rdsadmin']
-- **F3017** `MyDB` (AWS::RDS::DBCluster) → `Properties.MasterUsername` L7 in `bad_resources_rds_not_enum_master_username_yaml`
-  > 'rdsadmin' at 'MasterUsername' does not satisfy the composition branch constraint (none of ['rdsadmin']): 'rdsadmin' must not be one of ['rdsadmin']
-
 ### E3029 - 2 extra - Validate Route53 record set aliases
 
 - **E3029** `ConditionalInvalidAliasTypes` (AWS::Route53::RecordSet) → `Properties.AliasTarget` L48 in `bad_route53_conditional_scenarios_yaml`
   > AliasTarget cannot be used with record type 'NS'
 - **E3029** `ConditionalInvalidAliasTypes` (AWS::Route53::RecordSet) → `Properties.AliasTarget` L48 in `bad_route53_conditional_scenarios_yaml`
   > AliasTarget cannot be used with record type 'SOA'
+
+### E3510 - 2 extra - Validate identity based IAM polices
+
+- **E3510** `PolicyBadIdAndCondition` (AWS::IAM::RolePolicy) → `Properties.PolicyDocument.Id` L47 in `bad_resources_iam_identity_policy_e3510_yaml`
+  > Additional properties are not allowed ('Id' was unexpected)
+- **E3510** `WildcardServicePolicy` (AWS::IAM::ManagedPolicy) → `Properties.PolicyDocument.Statement.0.Resource` L13 in `bad_resources_iam_identity_policy_wildcard_service_yaml`
+  > 'arn:aws:*:::example-bucket/*' does not match '^(arn:(aws[A-Za-z\-]*?|[A-Za-z?*\-]*[?*][A-Za-z?*\-]*):[^:*?]+:[^:]*(:(?:\d{12}|\*|aws)?:.+|)|\*)$'
+
+### F3017 - 2 extra - Check Properties that need at least one of a list of properties
+
+- **F3017** `JoinedUsername` (AWS::RDS::DBCluster) → `Properties.MasterUsername` L9 in `bad_resources_rds_not_enum_master_username_join_yaml`
+  > 'rdsadmin' at 'MasterUsername' does not satisfy the composition branch constraint (none of ['rdsadmin']): 'rdsadmin' must not be one of ['rdsadmin']
+- **F3017** `MyDB` (AWS::RDS::DBCluster) → `Properties.MasterUsername` L7 in `bad_resources_rds_not_enum_master_username_yaml`
+  > 'rdsadmin' at 'MasterUsername' does not satisfy the composition branch constraint (none of ['rdsadmin']): 'rdsadmin' must not be one of ['rdsadmin']
+
+### F3033 - 2 extra - Check if a string has between min and max number of values specified
+
+- **F3033** `myRepository` (AWS::CodeCommit::Repository) → `Properties.RepositoryName` L7 in `bad_resources_properties_string_size_yaml`
+  > length 130 exceeds maximum 100
+- **F3033** `myRepository2` (AWS::CodeCommit::Repository) → `Properties.RepositoryName` L11 in `bad_resources_properties_string_size_yaml`
+  > length 0 is below minimum 1
 
 ### E1155 - 1 extra
 
@@ -1260,11 +1263,11 @@ These are diagnostics the engine reports but cfn-lint does not expect (potential
 - **F2002** → `Parameters.mySsmParam.Type` L30 in `bad_parameters_configuration_yaml`
   > Parameter 'mySsmParam' has invalid Type 'AWS::SSM::Parameter::Value<Test>'
 
-## Engine Extra - 8288 correct findings across 43 rules
+## Engine Extra - 8257 correct findings across 43 rules
 
 These are correct diagnostics the engine reports that cfn-lint does not cover.
 
-### I9001 - 5465 findings
+### I9001 - 5434 findings
 
 - **I9001** `MyBucket` (AWS::S3::Bucket) → `Properties.BucketName` L7 in `bad_E1050_dynamic_ref_malformed_yaml`
   > Property 'BucketName' is create-only; updating it will cause resource replacement
@@ -1314,8 +1317,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'HostedZoneName' is create-only; updating it will cause resource replacement
 - **I9001** `Standalone` (AWS::Route53::RecordSet) → `Properties.HostedZoneName` L12 in `bad_E3023_conditional_record_items_yaml`
   > Property 'HostedZoneName' is create-only; updating it will cause resource replacement
-- **I9001** `Standalone` (AWS::Route53::RecordSet) → `Properties.Name` L13 in `bad_E3023_conditional_record_items_yaml`
-  > Property 'Name' is create-only; updating it will cause resource replacement
 - **I9001** `AuthorizerLiteral` (AWS::ApiGateway::Authorizer) → `Properties.RestApiId` L21 in `bad_E3699_authorizer_literal_and_param_rest_api_yaml`
   > Property 'RestApiId' is create-only; updating it will cause resource replacement
 - **I9001** `AuthorizerParam` (AWS::ApiGateway::Authorizer) → `Properties.RestApiId` L40 in `bad_E3699_authorizer_literal_and_param_rest_api_yaml`
@@ -4208,68 +4209,40 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'HostedZoneName' is create-only; updating it will cause resource replacement
 - **I9001** `StandaloneInvalidFalse` (AWS::Route53::RecordSet) → `Properties.HostedZoneName` L26 in `bad_route53_conditional_record_arrays_yaml`
   > Property 'HostedZoneName' is create-only; updating it will cause resource replacement
-- **I9001** `StandaloneInvalidFalse` (AWS::Route53::RecordSet) → `Properties.Name` L27 in `bad_route53_conditional_record_arrays_yaml`
-  > Property 'Name' is create-only; updating it will cause resource replacement
 - **I9001** `StandaloneInvalidTrue` (AWS::Route53::RecordSet) → `Properties.HostedZoneName` L15 in `bad_route53_conditional_record_arrays_yaml`
   > Property 'HostedZoneName' is create-only; updating it will cause resource replacement
-- **I9001** `StandaloneInvalidTrue` (AWS::Route53::RecordSet) → `Properties.Name` L16 in `bad_route53_conditional_record_arrays_yaml`
-  > Property 'Name' is create-only; updating it will cause resource replacement
 - **I9001** `StandaloneMixedInvalidFalse` (AWS::Route53::RecordSet) → `Properties.HostedZoneName` L49 in `bad_route53_conditional_record_arrays_yaml`
   > Property 'HostedZoneName' is create-only; updating it will cause resource replacement
-- **I9001** `StandaloneMixedInvalidFalse` (AWS::Route53::RecordSet) → `Properties.Name` L50 in `bad_route53_conditional_record_arrays_yaml`
-  > Property 'Name' is create-only; updating it will cause resource replacement
 - **I9001** `StandaloneMixedInvalidTrue` (AWS::Route53::RecordSet) → `Properties.HostedZoneName` L37 in `bad_route53_conditional_record_arrays_yaml`
   > Property 'HostedZoneName' is create-only; updating it will cause resource replacement
-- **I9001** `StandaloneMixedInvalidTrue` (AWS::Route53::RecordSet) → `Properties.Name` L38 in `bad_route53_conditional_record_arrays_yaml`
-  > Property 'Name' is create-only; updating it will cause resource replacement
 - **I9001** `StandaloneUnresolvedCnameCardinality` (AWS::Route53::RecordSet) → `Properties.HostedZoneName` L121 in `bad_route53_conditional_record_arrays_yaml`
   > Property 'HostedZoneName' is create-only; updating it will cause resource replacement
-- **I9001** `StandaloneUnresolvedCnameCardinality` (AWS::Route53::RecordSet) → `Properties.Name` L122 in `bad_route53_conditional_record_arrays_yaml`
-  > Property 'Name' is create-only; updating it will cause resource replacement
 - **I9001** `ConditionalInvalidAliasTypes` (AWS::Route53::RecordSet) → `Properties.HostedZoneName` L45 in `bad_route53_conditional_scenarios_yaml`
   > Property 'HostedZoneName' is create-only; updating it will cause resource replacement
-- **I9001** `ConditionalInvalidAliasTypes` (AWS::Route53::RecordSet) → `Properties.Name` L46 in `bad_route53_conditional_scenarios_yaml`
-  > Property 'Name' is create-only; updating it will cause resource replacement
 - **I9001** `ConditionalRecordSetsInvalidFirst` (AWS::Route53::RecordSetGroup) → `Properties.HostedZoneName` L54 in `bad_route53_conditional_scenarios_yaml`
   > Property 'HostedZoneName' is create-only; updating it will cause resource replacement
 - **I9001** `ConditionalRecordSetsInvalidSecond` (AWS::Route53::RecordSetGroup) → `Properties.HostedZoneName` L68 in `bad_route53_conditional_scenarios_yaml`
   > Property 'HostedZoneName' is create-only; updating it will cause resource replacement
 - **I9001** `MyAAAARecordSet` (AWS::Route53::RecordSet) → `Properties.HostedZoneId` L50 in `bad_route53_yaml`
   > Property 'HostedZoneId' is create-only; updating it will cause resource replacement
-- **I9001** `MyAAAARecordSet` (AWS::Route53::RecordSet) → `Properties.Name` L51 in `bad_route53_yaml`
-  > Property 'Name' is create-only; updating it will cause resource replacement
 - **I9001** `MyARecordSet` (AWS::Route53::RecordSet) → `Properties.HostedZoneId` L40 in `bad_route53_yaml`
   > Property 'HostedZoneId' is create-only; updating it will cause resource replacement
-- **I9001** `MyARecordSet` (AWS::Route53::RecordSet) → `Properties.Name` L41 in `bad_route53_yaml`
-  > Property 'Name' is create-only; updating it will cause resource replacement
 - **I9001** `MyAliasRecordSet` (AWS::Route53::RecordSet) → `Properties.HostedZoneId` L110 in `bad_route53_yaml`
   > Property 'HostedZoneId' is create-only; updating it will cause resource replacement
-- **I9001** `MyAliasRecordSet` (AWS::Route53::RecordSet) → `Properties.Name` L111 in `bad_route53_yaml`
-  > Property 'Name' is create-only; updating it will cause resource replacement
 - **I9001** `MyCAARecordSet` (AWS::Route53::RecordSet) → `Properties.HostedZoneId` L64 in `bad_route53_yaml`
   > Property 'HostedZoneId' is create-only; updating it will cause resource replacement
-- **I9001** `MyCAARecordSet` (AWS::Route53::RecordSet) → `Properties.Name` L65 in `bad_route53_yaml`
-  > Property 'Name' is create-only; updating it will cause resource replacement
 - **I9001** `MyCNAMERecordSet` (AWS::Route53::RecordSet) → `Properties.HostedZoneId` L75 in `bad_route53_yaml`
   > Property 'HostedZoneId' is create-only; updating it will cause resource replacement
-- **I9001** `MyCNAMERecordSet` (AWS::Route53::RecordSet) → `Properties.Name` L76 in `bad_route53_yaml`
-  > Property 'Name' is create-only; updating it will cause resource replacement
 - **I9001** `MyCNAMERecordSetConditions` (AWS::Route53::RecordSet) → `Properties.HostedZoneId` L86 in `bad_route53_yaml`
   > Property 'HostedZoneId' is create-only; updating it will cause resource replacement
-- **I9001** `MyCNAMERecordSetConditions` (AWS::Route53::RecordSet) → `Properties.Name` L87 in `bad_route53_yaml`
-  > Property 'Name' is create-only; updating it will cause resource replacement
 - **I9001** `MyHostedZone` (AWS::Route53::HostedZone) → `Properties.Name` L19 in `bad_route53_yaml`
   > Property 'Name' is create-only; updating it will cause resource replacement
 - **I9001** `MyMXRecordSet` (AWS::Route53::RecordSet) → `Properties.HostedZoneId` L99 in `bad_route53_yaml`
   > Property 'HostedZoneId' is create-only; updating it will cause resource replacement
-- **I9001** `MyMXRecordSet` (AWS::Route53::RecordSet) → `Properties.Name` L100 in `bad_route53_yaml`
-  > Property 'Name' is create-only; updating it will cause resource replacement
 - **I9001** `MyRecordSetGroup` (AWS::Route53::RecordSetGroup) → `Properties.HostedZoneId` L121 in `bad_route53_yaml`
   > Property 'HostedZoneId' is create-only; updating it will cause resource replacement
 - **I9001** `MyTXTRecordSet` (AWS::Route53::RecordSet) → `Properties.HostedZoneId` L27 in `bad_route53_yaml`
   > Property 'HostedZoneId' is create-only; updating it will cause resource replacement
-- **I9001** `MyTXTRecordSet` (AWS::Route53::RecordSet) → `Properties.Name` L28 in `bad_route53_yaml`
-  > Property 'Name' is create-only; updating it will cause resource replacement
 - **I9001** `PoorlyConfiguredRoute53` (AWS::Route53::RecordSetGroup) → `Properties.HostedZoneId` L174 in `bad_route53_yaml`
   > Property 'HostedZoneId' is create-only; updating it will cause resource replacement
 - **I9001** `ModelPackage` (AWS::SageMaker::ModelPackage) → `Properties.ValidationSpecification` L35 in `bad_sagemaker_instance_types_yaml`
@@ -8724,8 +8697,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'SourceArn' is create-only; updating it will cause resource replacement
 - **I9001** `UrlShortenerDomain9F16453F` (AWS::Route53::RecordSet) → `Properties.HostedZoneId` L539 in `cdk_py-url-shortener--urlshort-app.template_json`
   > Property 'HostedZoneId' is create-only; updating it will cause resource replacement
-- **I9001** `UrlShortenerDomain9F16453F` (AWS::Route53::RecordSet) → `Properties.Name` L540 in `cdk_py-url-shortener--urlshort-app.template_json`
-  > Property 'Name' is create-only; updating it will cause resource replacement
 - **I9001** `generatorPingTask1D3C2E79` (AWS::ECS::TaskDefinition) → `Properties.ContainerDefinitions` L32 in `cdk_py-url-shortener--urlshort-load-test.template_json`
   > Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement
 - **I9001** `generatorPingTask1D3C2E79` (AWS::ECS::TaskDefinition) → `Properties.Cpu` L47 in `cdk_py-url-shortener--urlshort-load-test.template_json`
@@ -9218,40 +9189,24 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'StorageEncrypted' is create-only; updating it will cause resource replacement
 - **I9001** `HttpsAlias` (AWS::Route53::RecordSet) → `Properties.HostedZoneId` L20 in `gh-issues_issue-246_yaml`
   > Property 'HostedZoneId' is create-only; updating it will cause resource replacement
-- **I9001** `HttpsAlias` (AWS::Route53::RecordSet) → `Properties.Name` L21 in `gh-issues_issue-246_yaml`
-  > Property 'Name' is create-only; updating it will cause resource replacement
 - **I9001** `ALB` (AWS::ElasticLoadBalancingV2::LoadBalancer) → `Properties.Type` L6 in `gh-issues_issue-247_json`
   > Property 'Type' is create-only; updating it will cause resource replacement
 - **I9001** `AGetAtt` (AWS::Route53::RecordSet) → `Properties.HostedZoneId` L12 in `gh-issues_issue-264_yaml`
   > Property 'HostedZoneId' is create-only; updating it will cause resource replacement
-- **I9001** `AGetAtt` (AWS::Route53::RecordSet) → `Properties.Name` L13 in `gh-issues_issue-264_yaml`
-  > Property 'Name' is create-only; updating it will cause resource replacement
 - **I9001** `AResourceRef` (AWS::Route53::RecordSet) → `Properties.HostedZoneId` L21 in `gh-issues_issue-264_yaml`
   > Property 'HostedZoneId' is create-only; updating it will cause resource replacement
-- **I9001** `AResourceRef` (AWS::Route53::RecordSet) → `Properties.Name` L22 in `gh-issues_issue-264_yaml`
-  > Property 'Name' is create-only; updating it will cause resource replacement
 - **I9001** `AaaaGetAtt` (AWS::Route53::RecordSet) → `Properties.HostedZoneId` L30 in `gh-issues_issue-264_yaml`
   > Property 'HostedZoneId' is create-only; updating it will cause resource replacement
-- **I9001** `AaaaGetAtt` (AWS::Route53::RecordSet) → `Properties.Name` L31 in `gh-issues_issue-264_yaml`
-  > Property 'Name' is create-only; updating it will cause resource replacement
 - **I9001** `CaaGetAtt` (AWS::Route53::RecordSet) → `Properties.HostedZoneId` L57 in `gh-issues_issue-264_yaml`
   > Property 'HostedZoneId' is create-only; updating it will cause resource replacement
-- **I9001** `CaaGetAtt` (AWS::Route53::RecordSet) → `Properties.Name` L58 in `gh-issues_issue-264_yaml`
-  > Property 'Name' is create-only; updating it will cause resource replacement
 - **I9001** `DynamicParameter` (AWS::Route53::RecordSet) → `Properties.HostedZoneId` L66 in `gh-issues_issue-264_yaml`
   > Property 'HostedZoneId' is create-only; updating it will cause resource replacement
-- **I9001** `DynamicParameter` (AWS::Route53::RecordSet) → `Properties.Name` L67 in `gh-issues_issue-264_yaml`
-  > Property 'Name' is create-only; updating it will cause resource replacement
 - **I9001** `Group` (AWS::Route53::RecordSetGroup) → `Properties.HostedZoneId` L75 in `gh-issues_issue-264_yaml`
   > Property 'HostedZoneId' is create-only; updating it will cause resource replacement
 - **I9001** `MxGetAtt` (AWS::Route53::RecordSet) → `Properties.HostedZoneId` L48 in `gh-issues_issue-264_yaml`
   > Property 'HostedZoneId' is create-only; updating it will cause resource replacement
-- **I9001** `MxGetAtt` (AWS::Route53::RecordSet) → `Properties.Name` L49 in `gh-issues_issue-264_yaml`
-  > Property 'Name' is create-only; updating it will cause resource replacement
 - **I9001** `TxtGetAtt` (AWS::Route53::RecordSet) → `Properties.HostedZoneId` L39 in `gh-issues_issue-264_yaml`
   > Property 'HostedZoneId' is create-only; updating it will cause resource replacement
-- **I9001** `TxtGetAtt` (AWS::Route53::RecordSet) → `Properties.Name` L40 in `gh-issues_issue-264_yaml`
-  > Property 'Name' is create-only; updating it will cause resource replacement
 - **I9001** `Instance` (AWS::EC2::Instance) → `Properties.ImageId` L16 in `gh-issues_issue-34_json`
   > Property 'ImageId' is create-only; updating it will cause resource replacement
 - **I9001** `Instance` (AWS::EC2::Instance) → `Properties.InstanceType` L17 in `gh-issues_issue-34_json`
@@ -10308,34 +10263,20 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'HostedZoneName' is create-only; updating it will cause resource replacement
 - **I9001** `StandaloneBothBranchesValid` (AWS::Route53::RecordSet) → `Properties.HostedZoneName` L13 in `good_route53_conditional_record_arrays_yaml`
   > Property 'HostedZoneName' is create-only; updating it will cause resource replacement
-- **I9001** `StandaloneBothBranchesValid` (AWS::Route53::RecordSet) → `Properties.Name` L14 in `good_route53_conditional_record_arrays_yaml`
-  > Property 'Name' is create-only; updating it will cause resource replacement
 - **I9001** `StandaloneMutuallyExclusiveCnameItems` (AWS::Route53::RecordSet) → `Properties.HostedZoneName` L65 in `good_route53_conditional_record_arrays_yaml`
   > Property 'HostedZoneName' is create-only; updating it will cause resource replacement
-- **I9001** `StandaloneMutuallyExclusiveCnameItems` (AWS::Route53::RecordSet) → `Properties.Name` L66 in `good_route53_conditional_record_arrays_yaml`
-  > Property 'Name' is create-only; updating it will cause resource replacement
 - **I9001** `StandaloneUnreachableInvalid` (AWS::Route53::RecordSet) → `Properties.HostedZoneName` L25 in `good_route53_conditional_record_arrays_yaml`
   > Property 'HostedZoneName' is create-only; updating it will cause resource replacement
-- **I9001** `StandaloneUnreachableInvalid` (AWS::Route53::RecordSet) → `Properties.Name` L26 in `good_route53_conditional_record_arrays_yaml`
-  > Property 'Name' is create-only; updating it will cause resource replacement
 - **I9001** `Group` (AWS::Route53::RecordSetGroup) → `Properties.HostedZoneName` L21 in `good_route53_conditional_record_items_yaml`
   > Property 'HostedZoneName' is create-only; updating it will cause resource replacement
 - **I9001** `Standalone` (AWS::Route53::RecordSet) → `Properties.HostedZoneName` L12 in `good_route53_conditional_record_items_yaml`
   > Property 'HostedZoneName' is create-only; updating it will cause resource replacement
-- **I9001** `Standalone` (AWS::Route53::RecordSet) → `Properties.Name` L13 in `good_route53_conditional_record_items_yaml`
-  > Property 'Name' is create-only; updating it will cause resource replacement
 - **I9001** `ConditionalProperties` (AWS::Route53::RecordSet) → `Properties.HostedZoneName` L14 in `good_route53_conditional_scenarios_yaml`
   > Property 'HostedZoneName' is create-only; updating it will cause resource replacement
-- **I9001** `ConditionalProperties` (AWS::Route53::RecordSet) → `Properties.Name` L15 in `good_route53_conditional_scenarios_yaml`
-  > Property 'Name' is create-only; updating it will cause resource replacement
 - **I9001** `LiteralNoValueAlias` (AWS::Route53::RecordSet) → `Properties.HostedZoneName` L61 in `good_route53_conditional_scenarios_yaml`
   > Property 'HostedZoneName' is create-only; updating it will cause resource replacement
-- **I9001** `LiteralNoValueAlias` (AWS::Route53::RecordSet) → `Properties.Name` L62 in `good_route53_conditional_scenarios_yaml`
-  > Property 'Name' is create-only; updating it will cause resource replacement
 - **I9001** `MutuallyExclusiveConditions` (AWS::Route53::RecordSet) → `Properties.HostedZoneName` L30 in `good_route53_conditional_scenarios_yaml`
   > Property 'HostedZoneName' is create-only; updating it will cause resource replacement
-- **I9001** `MutuallyExclusiveConditions` (AWS::Route53::RecordSet) → `Properties.Name` L31 in `good_route53_conditional_scenarios_yaml`
-  > Property 'Name' is create-only; updating it will cause resource replacement
 - **I9001** `Policy` (AWS::ApplicationAutoScaling::ScalingPolicy) → `Properties.PolicyName` L16 in `good_schema_required_xor_resource_condition_yaml`
   > Property 'PolicyName' is create-only; updating it will cause resource replacement
 - **I9001** `Policy` (AWS::ApplicationAutoScaling::ScalingPolicy) → `Properties.ResourceId` L19 in `good_schema_required_xor_resource_condition_yaml`
@@ -17969,7 +17910,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **W9054** `CertAuth` (AWS::ACMPCA::CertificateAuthorityActivation) → `Properties.Certificate` L8 in `bad_schema_write_only_yaml`
   > Write-only property 'Certificate' of 'CertAuth' is referenced in output 'WriteOnlyOutput'
 
-## Per-Template Breakdown - 171 templates with mismatches
+## Per-Template Breakdown - 170 templates with mismatches
 
 ### `good_lifecycle_intrinsic_scenarios_yaml` - 16 mismatches (0 TP, 0 FP, 0 EE, 16 FN)
 
@@ -18109,12 +18050,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `F2015` ×4
 - EE: `F2012` ×8
 
-### `bad_resources_iam_iam_policy_yaml` - 4 mismatches (20 TP, 1 FP, 4 EE, 3 FN)
-
-- FN: `F3003` ×3
-- FP: `E3510`
-- EE: `E1028`, `I9001`, `I9040`, `W2512`
-
 ### `bad_resources_iam_resource_policy_yaml` - 4 mismatches (0 TP, 0 FP, 2 EE, 4 FN)
 
 - FN: `E3513` ×4
@@ -18190,15 +18125,26 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FP: `E3639` ×3
 - EE: `I9001` ×10, `I9040` ×7, `F3003`
 
+### `bad_resources_iam_iam_policy_yaml` - 3 mismatches (20 TP, 0 FP, 4 EE, 3 FN)
+
+- FN: `F3003` ×3
+- EE: `E1028`, `I9001`, `I9040`, `W2512`
+
+### `bad_resources_properties_string_size_yaml` - 3 mismatches (3 TP, 2 FP, 3 EE, 1 FN)
+
+- FN: `E3065`
+- FP: `F3033` ×2
+- EE: `I9040` ×3
+
 ### `bad_resources_updatereplacepolicy_yaml` - 3 mismatches (20 TP, 0 FP, 12 EE, 3 FN)
 
 - FN: `F0018` ×3
 - EE: `I9001` ×4, `I9040` ×4, `W9008` ×3, `I9003`
 
-### `bad_route53_yaml` - 3 mismatches (31 TP, 0 FP, 20 EE, 3 FN)
+### `bad_route53_yaml` - 3 mismatches (31 TP, 0 FP, 12 EE, 3 FN)
 
 - FN: `E3023` ×3
-- EE: `I9001` ×19, `I9002`
+- EE: `I9001` ×11, `I9002`
 
 ### `bad_sam_connector_missing_destination_yaml` - 3 mismatches (0 TP, 1 FP, 0 EE, 2 FN)
 
@@ -18334,10 +18280,10 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FP: `F3017`
 - EE: `I9001` ×2, `I9040`
 
-### `bad_route53_conditional_scenarios_yaml` - 2 mismatches (6 TP, 2 FP, 4 EE, 0 FN)
+### `bad_route53_conditional_scenarios_yaml` - 2 mismatches (6 TP, 2 FP, 3 EE, 0 FN)
 
 - FP: `E3029` ×2
-- EE: `I9001` ×4
+- EE: `I9001` ×3
 
 ### `bad_sam_api_missing_stagename_yaml` - 2 mismatches (0 TP, 1 FP, 0 EE, 1 FN)
 
@@ -18522,11 +18468,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `E1017`
 - EE: `I9001` ×8, `I9040` ×4
 
-### `bad_hardcoded_partition_yaml` - 1 mismatches (0 TP, 1 FP, 5 EE, 0 FN)
-
-- FP: `F3017`
-- EE: `I9001` ×2, `I9040` ×2, `W9013`
-
 ### `bad_invalid_mapping_structure_yaml` - 1 mismatches (1 TP, 0 FP, 2 EE, 1 FN)
 
 - FN: `E7001`
@@ -18601,11 +18542,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 - FN: `E3678`
 - EE: `I9040` ×3, `W9013` ×3, `F3003`, `I9001`
-
-### `bad_resources_properties_string_size_yaml` - 1 mismatches (3 TP, 0 FP, 3 EE, 1 FN)
-
-- FN: `E3065`
-- EE: `I9040` ×3
 
 ### `bad_sam_function_autopublishalias_invalid_name_yaml` - 1 mismatches (0 TP, 1 FP, 0 EE, 0 FN)
 
@@ -18775,10 +18711,10 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `W1030`
 - EE: `I9001` ×2
 
-### `good_route53_conditional_record_arrays_yaml` - 1 mismatches (2 TP, 0 FP, 9 EE, 1 FN)
+### `good_route53_conditional_record_arrays_yaml` - 1 mismatches (2 TP, 0 FP, 6 EE, 1 FN)
 
 - FN: `E3023`
-- EE: `I9001` ×9
+- EE: `I9001` ×6
 
 ### `good_schema_resource_yaml` - 1 mismatches (0 TP, 0 FP, 0 EE, 1 FN)
 
@@ -18818,7 +18754,7 @@ other tool's output. They are excluded from precision/recall scoring.
 - `integration_creationpolicy_yaml` (4 diagnostics)
 - `integration_updatepolicy_yaml` (1 diagnostics)
 
-### Engine reports with no cfn-lint result — 12 templates, 65 diagnostics
+### Engine reports with no cfn-lint result — 14 templates, 152 diagnostics
 
 - `bad_E2530_I2530_snapstart_sourced_tables_yaml` (11 diagnostics)
 - `bad_E3512_opensearch_access_policy_yaml` (4 diagnostics)
@@ -18829,8 +18765,10 @@ other tool's output. They are excluded from precision/recall scoring.
 - `bad_W2501_nested_password_W1011_exact_path_yaml` (4 diagnostics)
 - `bad_W3660_api_gateway_body_mixing_yaml` (19 diagnostics)
 - `bad_W3671_spotfleet_ebs_iops_yaml` (4 diagnostics)
+- `bad_resources_ecs_fargate_numeric_spellings_e3047_yaml` (45 diagnostics)
 - `empty_yaml` (0 diagnostics)
 - `good_E3663_custom_environment_key_yaml` (0 diagnostics)
+- `good_ecs_fargate_decimal_units_yaml` (42 diagnostics)
 - `malformed_yaml` (0 diagnostics)
 
 ## Root-Cause Analysis
@@ -18849,8 +18787,8 @@ other tool's output. They are excluded from precision/recall scoring.
 
 | Cause | Count | % of FP | Rules |
 |-------|------:|--------:|-------|
-| Other | 46 | 52.87% | E0001, F0018, F2002, F3016, F3017 |
-| Over-reporting property/intrinsic errors | 29 | 33.33% | E1155, E3001, E3019, E3022, E3029, E3055, E3510, E3639 |
+| Other | 47 | 54.02% | E0001, F0018, F2002, F3016, F3017, F3033 |
+| Over-reporting property/intrinsic errors | 28 | 32.18% | E1155, E3001, E3019, E3022, E3029, E3055, E3510, E3639 |
 | Stricter than cfn-lint (informational) | 12 | 13.79% | I3011 |
 
 ## Location Mismatches - 9 matched pairs disagree on line

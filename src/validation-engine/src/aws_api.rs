@@ -1,4 +1,4 @@
-use diagnostics::{DetailLevel, StandardReport, Summary, ValidationReport};
+use diagnostics::{DetailLevel, Summary, ValidationReport, output};
 use rules::Severity;
 use schema_validator::{PropertyValueType, ResourceSchemaMetadata, SchemaValidator};
 use serde::{Deserialize, Serialize};
@@ -184,9 +184,9 @@ pub enum AwsApiTemplateSource {
 
 /// Canonical result for AWS API request validation.
 ///
-/// Contains standard diagnostics only — detailed enrichment is not meaningful
-/// for synthesized API-request templates because there is no user-authored
-/// source to annotate with context.
+/// The report is projected at the `STANDARD` detail level — detailed enrichment
+/// is not meaningful for synthesized API-request templates because there is no
+/// user-authored source to annotate with context.
 #[derive(Debug, Clone, Serialize)]
 #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Record))]
 #[serde(rename_all = "camelCase")]
@@ -197,7 +197,7 @@ pub struct AwsApiRequestValidation {
     pub template_source: Option<AwsApiTemplateSource>,
     pub resource_types: Vec<String>,
     pub reason: String,
-    pub report: Option<StandardReport>,
+    pub report: Option<output::ValidationReport>,
     /// The exact template bytes that were validated, or `None` when the request
     /// was skipped. For `TemplateBody` requests, this is the caller's original
     /// bytes without reserializing. For synthesized requests, this is the
@@ -254,7 +254,7 @@ pub fn validate_aws_api_request_with_path(
         template_source: synthesis.source,
         resource_types: synthesis.resource_types,
         reason: synthesis.reason,
-        report: Some(report.to_standard()),
+        report: Some(report.to_report(DetailLevel::Standard)),
         template: Some(template),
     })
 }

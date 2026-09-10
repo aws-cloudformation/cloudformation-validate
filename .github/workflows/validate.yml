@@ -12,11 +12,11 @@ on:
         required: false
         type: boolean
         default: false
-      rust-tests-only:
-        description: 'Run only Rust core tests'
+      release-run:
+        description: 'Run every binding test matrix for a release workflow'
         required: false
         type: boolean
-        default: false
+        default: true
 
   workflow_dispatch:
     inputs:
@@ -29,11 +29,11 @@ on:
         required: false
         type: boolean
         default: false
-      rust-tests-only:
-        description: 'Run only Rust core tests'
+      release-run:
+        description: 'Run every binding test matrix for a release workflow'
         required: false
         type: boolean
-        default: false
+        default: true
 
 permissions:
   contents: read
@@ -41,6 +41,34 @@ permissions:
 jobs:
   get-configs:
     uses: ./.github/workflows/configs.yml
+
+  release-assets:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      run_tests: ${{ inputs.release-run || steps.filter.outputs.release_assets == 'true' }}
+    steps:
+    - if: ${{ !inputs.release-run && github.event_name == 'push' }}
+      uses: actions/checkout@v6
+      with:
+        ref: ${{ inputs.ref }}
+
+    - name: Detect changed release assets
+      if: ${{ !inputs.release-run && (github.event_name == 'pull_request' || github.event_name == 'push') }}
+      id: filter
+      uses: dorny/paths-filter@v4.0.3
+      with:
+        base: main
+        filters: |
+          release_assets:
+            - 'release-bin/**'
+            - 'src/bindings-jvm/generated/**'
+            - 'src/bindings-wasm/dist/**'
+            - 'src/bindings-python/generated/dist/**'
+            - 'src/bindings-go/go/internal/**'
+            - 'src/bindings-go/go/libs/**'
 
   format:
     needs: [ get-configs ]
@@ -51,7 +79,7 @@ jobs:
         ref: ${{ inputs.ref }}
 
     - name: Install Rust ${{ needs.get-configs.outputs.rust-toolchain }}
-      uses: dtolnay/rust-toolchain@stable
+      uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c
       with:
         toolchain: ${{ needs.get-configs.outputs.rust-toolchain }}
 
@@ -71,15 +99,10 @@ jobs:
         ref: ${{ inputs.ref }}
 
     - name: Install Rust ${{ needs.get-configs.outputs.rust-toolchain }}
-      uses: dtolnay/rust-toolchain@stable
+      uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c
       with:
         toolchain: ${{ needs.get-configs.outputs.rust-toolchain }}
         components: clippy
-
-    - name: Cache Cargo
-      uses: Swatinem/rust-cache@v2
-      with:
-        workspaces: ${{ needs.get-configs.outputs.working-dir }}
 
     - name: Log tool versions
       uses: ./.github/actions/print-build-versions
@@ -97,12 +120,12 @@ jobs:
         ref: ${{ inputs.ref }}
 
     - name: Install Rust ${{ needs.get-configs.outputs.rust-toolchain }}
-      uses: dtolnay/rust-toolchain@stable
+      uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c
       with:
         toolchain: ${{ needs.get-configs.outputs.rust-toolchain }}
 
     - name: Install cargo-audit ${{ needs.get-configs.outputs.cargo-audit-version }}
-      uses: taiki-e/install-action@v2
+      uses: taiki-e/install-action@v2.86.7
       with:
         tool: cargo-audit@${{ needs.get-configs.outputs.cargo-audit-version }}
 
@@ -131,18 +154,13 @@ jobs:
         ref: ${{ inputs.ref }}
 
     - name: Install Rust ${{ needs.get-configs.outputs.rust-toolchain }}
-      uses: dtolnay/rust-toolchain@stable
+      uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c
       with:
         toolchain: ${{ needs.get-configs.outputs.rust-toolchain }}
         components: llvm-tools-preview
 
-    - name: Cache Cargo
-      uses: Swatinem/rust-cache@v2
-      with:
-        workspaces: ${{ env.WORKING_DIR }}
-
     - name: Install cargo-llvm-cov ${{ needs.get-configs.outputs.cargo-llvm-cov-version }}
-      uses: taiki-e/install-action@v2
+      uses: taiki-e/install-action@v2.86.7
       with:
         tool: cargo-llvm-cov@${{ needs.get-configs.outputs.cargo-llvm-cov-version }}
 
@@ -157,9 +175,17 @@ jobs:
       working-directory: ${{ env.WORKING_DIR }}
       run: cargo llvm-cov --locked --release --workspace --no-fail-fast
 
-  test-jvm:
-    if: ${{ !inputs.rust-tests-only }}
+  performance:
     needs: [ get-configs ]
+    uses: ./.github/workflows/performance-regression.yml
+    permissions:
+      contents: read
+    with:
+      ref: ${{ inputs.ref }}
+
+  test-jvm:
+    if: ${{ needs.release-assets.outputs.run_tests == 'true' }}
+    needs: [ get-configs, release-assets ]
     strategy:
       fail-fast: ${{ inputs.fail-fast }}
       matrix:
@@ -182,14 +208,9 @@ jobs:
         ref: ${{ inputs.ref }}
 
     - name: Install Rust ${{ needs.get-configs.outputs.rust-toolchain }}
-      uses: dtolnay/rust-toolchain@stable
+      uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c
       with:
         toolchain: ${{ needs.get-configs.outputs.rust-toolchain }}
-
-    - name: Cache Cargo
-      uses: Swatinem/rust-cache@v2
-      with:
-        workspaces: ${{ env.WORKING_DIR }}
 
     - name: Setup JVM toolchain
       uses: ./.github/actions/setup-jvm-toolchain
@@ -210,8 +231,8 @@ jobs:
       run: ./run.sh
 
   test-wasm:
-    if: ${{ !inputs.rust-tests-only }}
-    needs: [ get-configs ]
+    if: ${{ needs.release-assets.outputs.run_tests == 'true' }}
+    needs: [ get-configs, release-assets ]
     strategy:
       fail-fast: ${{ inputs.fail-fast }}
       matrix:
@@ -234,14 +255,9 @@ jobs:
         ref: ${{ inputs.ref }}
 
     - name: Install Rust ${{ needs.get-configs.outputs.rust-toolchain }}
-      uses: dtolnay/rust-toolchain@stable
+      uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c
       with:
         toolchain: ${{ needs.get-configs.outputs.rust-toolchain }}
-
-    - name: Cache Cargo
-      uses: Swatinem/rust-cache@v2
-      with:
-        workspaces: ${{ env.WORKING_DIR }}
 
     - name: Setup Node.js ${{ needs.get-configs.outputs.node-version }}
       uses: actions/setup-node@v6
@@ -249,7 +265,7 @@ jobs:
         node-version: ${{ needs.get-configs.outputs.node-version }}
 
     - name: Install wasm-pack ${{ needs.get-configs.outputs.wasm-pack-version }}
-      uses: taiki-e/install-action@v2
+      uses: taiki-e/install-action@v2.86.7
       with:
         tool: wasm-pack@${{ needs.get-configs.outputs.wasm-pack-version }}
 
@@ -261,8 +277,8 @@ jobs:
       run: ./run.sh
 
   test-python:
-    if: ${{ !inputs.rust-tests-only }}
-    needs: [ get-configs ]
+    if: ${{ needs.release-assets.outputs.run_tests == 'true' }}
+    needs: [ get-configs, release-assets ]
     strategy:
       fail-fast: ${{ inputs.fail-fast }}
       matrix:
@@ -272,7 +288,6 @@ jobs:
         - { os: macos-latest, platform: darwin, arch: aarch64 }
         - { os: macos-15-intel, platform: darwin, arch: x64 }
         - { os: windows-latest, platform: win32, arch: x64 }
-        - { os: windows-11-arm, platform: win32, arch: aarch64 }
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -285,14 +300,9 @@ jobs:
         ref: ${{ inputs.ref }}
 
     - name: Install Rust ${{ needs.get-configs.outputs.rust-toolchain }}
-      uses: dtolnay/rust-toolchain@stable
+      uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c
       with:
         toolchain: ${{ needs.get-configs.outputs.rust-toolchain }}
-
-    - name: Cache Cargo
-      uses: Swatinem/rust-cache@v2
-      with:
-        workspaces: ${{ env.WORKING_DIR }}
 
     - name: Setup Python ${{ needs.get-configs.outputs.python-version }}
       uses: actions/setup-python@v6
@@ -307,14 +317,16 @@ jobs:
       run: ./bindings-python/tests/run.sh
 
   test-go:
-    if: ${{ !inputs.rust-tests-only }}
-    needs: [ get-configs ]
+    if: ${{ needs.release-assets.outputs.run_tests == 'true' }}
+    needs: [ get-configs, release-assets ]
     strategy:
       fail-fast: ${{ inputs.fail-fast }}
       matrix:
         include:
         - { os: ubuntu-latest, platform: linux, arch: x64 }
+        - { os: ubuntu-24.04-arm, platform: linux, arch: aarch64 }
         - { os: macos-latest, platform: darwin, arch: aarch64 }
+        - { os: macos-15-intel, platform: darwin, arch: x64 }
         - { os: windows-latest, platform: win32, arch: x64 }
     runs-on: ${{ matrix.os }}
     defaults:
@@ -328,14 +340,9 @@ jobs:
         ref: ${{ inputs.ref }}
 
     - name: Install Rust ${{ needs.get-configs.outputs.rust-toolchain }}
-      uses: dtolnay/rust-toolchain@stable
+      uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c
       with:
         toolchain: ${{ needs.get-configs.outputs.rust-toolchain }}
-
-    - name: Cache Cargo
-      uses: Swatinem/rust-cache@v2
-      with:
-        workspaces: ${{ env.WORKING_DIR }}
 
     - name: Setup Go ${{ needs.get-configs.outputs.go-version }}
       uses: actions/setup-go@v6

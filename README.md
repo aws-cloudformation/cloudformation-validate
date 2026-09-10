@@ -1,8 +1,23 @@
 # cloudformation-validate
 
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+[![Latest release](https://img.shields.io/github/v/release/aws-cloudformation/cloudformation-validate?include_prereleases)](https://github.com/aws-cloudformation/cloudformation-validate/releases)
 [![Main CI](https://github.com/aws-cloudformation/cloudformation-validate/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/aws-cloudformation/cloudformation-validate/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/aws-cloudformation/cloudformation-validate/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/aws-cloudformation/cloudformation-validate/actions/workflows/codeql.yml)
+[![inspect.software](https://raw.githubusercontent.com/inspect-software/badges/main/v1/a/aws-cloudformation/cloudformation-validate.svg)](https://inspect.software/software/aws-cloudformation/cloudformation-validate)
+[![Offline](https://img.shields.io/badge/runtime-fully%20offline-success)](#features)
+
+[![crates.io version](https://img.shields.io/crates/v/cloudformation-validate?logo=rust)](https://crates.io/crates/cloudformation-validate)
+[![npm version](https://img.shields.io/npm/v/%40aws%2Fcloudformation-validate?logo=npm)](https://www.npmjs.com/package/@aws/cloudformation-validate)
+[![Maven Central](https://img.shields.io/maven-central/v/software.amazon.cloudformation/cloudformation-validate?logo=apachemaven)](https://central.sonatype.com/artifact/software.amazon.cloudformation/cloudformation-validate)
+[![PyPI version](https://img.shields.io/pypi/v/cloudformation-validate?logo=pypi)](https://pypi.org/project/cloudformation-validate/)
+[![Go Reference](https://pkg.go.dev/badge/github.com/aws-cloudformation/cloudformation-validate/src/bindings-go/go.svg)](https://pkg.go.dev/github.com/aws-cloudformation/cloudformation-validate/src/bindings-go/go)
+
+[![Rust toolchain](https://img.shields.io/badge/Rust%20toolchain-1.96.0-orange?logo=rust)](src/rust-toolchain.toml)
+[![Node.js](https://img.shields.io/node/v/%40aws%2Fcloudformation-validate?logo=nodedotjs)](src/bindings-wasm/README.md)
+[![Python](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Ftest.pypi.org%2Fpypi%2Fcloudformation-validate%2Fjson&query=%24.info.requires_python&label=Python&logo=python)](src/bindings-python/README.md)
+[![Go](https://img.shields.io/badge/Go-%3E%3D1.26-00ADD8?logo=go)](src/bindings-go/README.md)
+[![JVM](https://img.shields.io/badge/JVM-21%2B-orange?logo=openjdk)](src/bindings-jvm/README.md)
 
 Fast, offline, embeddable validation for AWS CloudFormation templates.
 
@@ -47,11 +62,13 @@ When a template is submitted, `cloudformation-validate` runs a fixed pipeline:
 
 ## Installation
 
-Use a prebuilt CLI or install a published language binding; Rust and this source repository are not required.
+Use the prebuilt CLI, embed the Rust library, or install a published language binding; this source repository is not
+required.
 
 | Interface | Published artifact | Install |
 |-----------|--------------------|---------|
-| CLI | [GitHub Releases](https://github.com/aws-cloudformation/cloudformation-validate/releases) | [Download the newest binary for Linux, macOS, or Windows](INSTALLATION.md#command-line-interface) |
+| CLI binary | [GitHub Releases](https://github.com/aws-cloudformation/cloudformation-validate/releases) | [Download the newest binary for Linux, macOS, or Windows](INSTALLATION.md#command-line-interface) |
+| Rust library | [crates.io: `cloudformation-validate`](https://crates.io/crates/cloudformation-validate) | `cargo add cloudformation-validate` |
 | Node.js | [npm: `@aws/cloudformation-validate`](https://www.npmjs.com/package/@aws/cloudformation-validate) | `npm install @aws/cloudformation-validate` |
 | Python | [PyPI](https://pypi.org/project/cloudformation-validate/) / [TestPyPI beta](https://test.pypi.org/project/cloudformation-validate/) | `python3 -m pip install cloudformation-validate` |
 | Go | [Go module](https://pkg.go.dev/github.com/aws-cloudformation/cloudformation-validate/src/bindings-go/go) | `go get github.com/aws-cloudformation/cloudformation-validate/src/bindings-go/go@latest` |
@@ -87,33 +104,44 @@ cargo run -p cfn-validate -- template.yaml --guard-rule-source ./my-rules/
 
 ## Embedding as a library
 
-### Rust
+### Rust [(bindings-rust)](src/bindings-rust/README.md)
+
+Add the library facade:
+
+```toml
+[dependencies]
+cloudformation-validate = "1.10.0"
+```
 
 Construct an engine and a schema validator once, then validate many templates:
 
 ```rust
-use rego_engine::RegoEngine;
-use schema_validator::SchemaValidator;
-use validation_engine::{validate_bytes_with_path, EngineConfig, ValidateConfig};
+use cloudformation_validate::{
+    EngineConfig, RegoEngine, SchemaValidator, ValidateConfig, validate_bytes_with_path,
+};
 
 let schema_validator = SchemaValidator::default();
 let engine = RegoEngine::new(EngineConfig::default())?;
 
-let bytes = std::fs::read("template.yaml") ?;
+let bytes = std::fs::read("template.yaml")?;
 let report = validate_bytes_with_path(
-    & engine,
-    & schema_validator,
-    & bytes,
-    ValidateConfig::default (),
+    &engine,
+    &schema_validator,
+    &bytes,
+    ValidateConfig::default(),
     "template.yaml".to_string(),
-) ?;
+)?;
 
-for d in & report.diagnostics {
+for d in &report.diagnostics {
     println!("[{}] {} - {}", d.severity, d.rule_id, d.message);
 }
 ```
 
 See [validation-engine/API.md](src/validation-engine/API.md) for the full embedding API.
+
+Every language binding exposes one template-validation method. Its optional per-call configuration accepts a
+`STANDARD` or `DETAILED` detail level; omitting it uses `DETAILED`. Both levels return the same report and diagnostic
+models, with enrichment fields absent at `STANDARD`.
 
 ### Node.js [(bindings-wasm)](src/bindings-wasm/README.md)
 
@@ -121,7 +149,7 @@ See [validation-engine/API.md](src/validation-engine/API.md) for the full embedd
 import {RegoEngine, TemplateFile} from "@aws/cloudformation-validate";
 
 const engine = new RegoEngine();
-const report = engine.validateStandard(new TemplateFile("template.yaml"));
+const report = engine.validateTemplate(new TemplateFile("template.yaml"));
 for (const d of report.diagnostics) {
     console.log(`[${d.severity}] ${d.ruleId}: ${d.message}`);
 }
@@ -134,7 +162,7 @@ engine.free();
 from cloudformation_validate import RegoEngine
 
 engine = RegoEngine()
-report = engine.validate_standard("template.yaml")
+report = engine.validate_template("template.yaml")
 for d in report.diagnostics:
     print(f"[{d.severity.name}] {d.rule_id}: {d.message}")
 ```
@@ -150,7 +178,7 @@ if err != nil {
 }
 defer engine.Destroy()
 
-report, err := engine.ValidateStandardFile("template.yaml", nil)
+report, err := engine.ValidateTemplateFile("template.yaml", nil)
 for _, d := range report.Diagnostics {
     fmt.Printf("[%s] %s: %s\n", d.Severity, d.RuleID, d.Message)
 }
@@ -163,7 +191,7 @@ import software.amazon.cloudformation.validate.*
 import java.io.File
 
 val engine = RegoEngine()
-val report = engine.validateStandard(File("template.yaml"))
+val report = engine.validateTemplate(File("template.yaml"))
 for (d in report.diagnostics) {
     println("[${d.severity}] ${d.ruleId}: ${d.message}")
 }

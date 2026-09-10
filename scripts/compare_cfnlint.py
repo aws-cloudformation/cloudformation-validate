@@ -151,7 +151,7 @@ def _warn_if_benchmark_stale(bench_bin):
     With --skip-build the script reuses whatever cfn-benchmark exists. A common
     trap is rebuilding only `cfn-validate` (`cargo build -p cfn-validate --bin
     cfn-validate`), which leaves cfn-benchmark stale - the comparison then runs on
-    old behavior while a freshly-built golden passes, producing phantom results.
+    old behavior while a freshly-built snapshot passes, producing phantom results.
     """
     bench_mtime = bench_bin.stat().st_mtime
     newest_src = 0.0

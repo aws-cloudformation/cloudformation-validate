@@ -10,6 +10,7 @@ violation contains make_diag_full("E3050", "ERROR", name,
     sprintf("Ref to IAM role '%s' with Path '%s' - use GetAtt %s.Arn instead", [target, iam_path, target]),
     "Switch from Ref to !GetAtt <Role>.Arn when Path is not '/'",
     "") if {
+    cfn_rule_active("E3050")
     some name in resources_of_type("AWS::CodeBuild::Project")
     target := follow_ref(name, "Properties.ServiceRole")
     target != null

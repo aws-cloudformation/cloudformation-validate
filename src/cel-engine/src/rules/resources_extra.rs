@@ -15,9 +15,9 @@ use template_model::consts::{
     KEY_CREATION_POLICY, KEY_PROPERTIES, KEY_UPDATE_POLICY, PARAM_TYPE_STRING, TRANSFORM_SERVERLESS,
 };
 use template_model::dynamodb::analyze_dynamodb_table_scenarios;
-use template_model::fargate::{CPU_UNIT_LABELS, cpu_is_offered};
+use template_model::fargate::{CPU_UNIT_LABELS, VCPU_SIZES, cpu_is_offered};
 use template_model::iam_policy::{inline_identity_policy_document_paths, validate_identity_policy_scenarios};
-use template_model::message::{render_str_list, render_value};
+use template_model::message::{primary_identifier_conflict_message, render_str_list, render_value};
 use template_model::resolver::{RefKind, ResolvedValue};
 use template_model::route_table::duplicate_subnet_associations;
 use template_model::{
@@ -1414,13 +1414,12 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     // list whose schema requires uniqueItems is covered by the Fatal uniqueItems
     // check instead, so it is excluded here. The `Command` property of
     // run-command resources legitimately repeats values and is exempt.
-    if let Some(sm) = ctx.cached_data.schema_metadata().get("schema_metadata").and_then(|s| s.as_object()) {
+    {
+        let schema_metadata = ctx.cached_data.schema_metadata_catalog();
         for (name, res) in &m.resources {
-            let Some(type_meta) = sm.get(&res.resource_type).and_then(|t| t.as_object()) else {
+            let Some(type_meta) = schema_metadata.get(&res.resource_type) else {
                 continue;
             };
-            let known_props = type_meta.get("property_types").and_then(|p| p.as_object());
-            let constraints = type_meta.get("property_constraints").and_then(|p| p.as_object());
             for prop in res.properties.keys() {
                 if prop == "Command" {
                     continue;
@@ -1428,13 +1427,13 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                 // Only a property the schema actually defines can be a "list that
                 // permits duplicates"; an unknown property is a structural error
                 // handled elsewhere.
-                if !known_props.is_some_and(|p| p.contains_key(prop)) {
+                if !type_meta.property_types.contains_key(prop) {
                     continue;
                 }
-                let requires_unique = constraints
-                    .and_then(|c| c.get(prop))
-                    .and_then(|meta| meta.get("uniqueItems"))
-                    .and_then(|v| v.as_bool())
+                let requires_unique = type_meta
+                    .property_constraints
+                    .get(prop)
+                    .and_then(|constraints| constraints.unique_items)
                     .unwrap_or(false);
                 if requires_unique {
                     continue;
@@ -2410,63 +2409,58 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         check_iam_action_resources(&mut out, m, name, &doc, &ctx.cached_data.iam_action_resource_patterns);
     }
 
+    let mut vpc_cidrs: HashMap<&str, (String, Ipv4Cidr)> = HashMap::new();
     for vpc_name in m.resources_of_type("AWS::EC2::VPC") {
-        let vpc_cidr_str = match resolve_concrete(m, vpc_name, "Properties.CidrBlock")
-            .and_then(|v| if let serde_json::Value::String(s) = v { Some(s) } else { None })
+        let Some(serde_json::Value::String(vpc_cidr)) = resolve_concrete(m, vpc_name, "Properties.CidrBlock") else {
+            continue;
+        };
+        if let Some(vpc_network) = parse_ipv4_cidr(&vpc_cidr) {
+            vpc_cidrs.insert(vpc_name, (vpc_cidr, vpc_network));
+        }
+    }
+    for subnet_name in m.resources_of_type("AWS::EC2::Subnet") {
+        let subnet_vpc = resolve_concrete(m, subnet_name, "Properties.VpcId");
+        let referenced_vpc = m
+            .follow_ref(subnet_name, "Properties.VpcId")
+            .or_else(|| subnet_vpc.as_ref().and_then(|value| value.as_str()));
+        let Some((vpc_cidr, vpc_network)) = referenced_vpc.and_then(|vpc_name| vpc_cidrs.get(vpc_name)) else {
+            continue;
+        };
+        if let Some(serde_json::Value::String(subnet_cidr)) = resolve_concrete(m, subnet_name, "Properties.CidrBlock")
+            && let Some(subnet_network) = parse_ipv4_cidr(&subnet_cidr)
+            && !is_subnet_of(subnet_network, *vpc_network)
         {
-            Some(s) => s,
-            None => continue,
-        };
-        let vpc_net = match parse_ipv4_cidr(&vpc_cidr_str) {
-            Some(n) => n,
-            None => continue,
-        };
-        for subnet_name in m.resources_of_type("AWS::EC2::Subnet") {
-            let subnet_vpc = resolve_concrete(m, subnet_name, "Properties.VpcId");
-            let refs_this_vpc = m.follow_ref(subnet_name, "Properties.VpcId").map(|t| t == vpc_name).unwrap_or(false)
-                || subnet_vpc.as_ref().and_then(|v| v.as_str()) == Some(vpc_name);
-            if !refs_this_vpc {
-                continue;
-            }
-            if let Some(serde_json::Value::String(sub_cidr)) = resolve_concrete(m, subnet_name, "Properties.CidrBlock")
-                && let Some(sub_net) = parse_ipv4_cidr(&sub_cidr)
-                && !is_subnet_of(sub_net, vpc_net)
-            {
-                out.push(make_resource_diagnostic(
-                    "E3059",
-                    &format!("Subnet CIDR '{}' is not within VPC CIDR '{}'", sub_cidr, vpc_cidr_str),
-                    m,
-                    subnet_name,
-                    "Properties.CidrBlock",
-                    None,
-                ));
-            }
+            out.push(make_resource_diagnostic(
+                "E3059",
+                &format!("Subnet CIDR '{}' is not within VPC CIDR '{}'", subnet_cidr, vpc_cidr),
+                m,
+                subnet_name,
+                "Properties.CidrBlock",
+                None,
+            ));
         }
     }
 
     {
-        for (resource_type, identifier_properties) in &ctx.cached_data.primary_identifiers {
+        let mut resource_types: Vec<&String> = m
+            .resources_by_type
+            .keys()
+            .filter(|resource_type| ctx.cached_data.primary_identifiers.contains_key(*resource_type))
+            .collect();
+        resource_types.sort_unstable();
+        for resource_type in resource_types {
+            let identifier_properties = &ctx.cached_data.primary_identifiers[resource_type];
             let conflicts = m.primary_identifier_conflicts(resource_type, identifier_properties);
             for (tuple, resources) in &conflicts {
-                let instance_repr = render_primary_id_dict(identifier_properties, tuple);
-                let resources_repr = render_resource_set(resources);
+                let message =
+                    primary_identifier_conflict_message(resource_type, identifier_properties, tuple, resources);
                 let path = if identifier_properties.len() == 1 {
                     format!("Properties.{}", identifier_properties[0])
                 } else {
                     KEY_PROPERTIES.to_string()
                 };
                 for resource_id in resources {
-                    out.push(make_resource_diagnostic(
-                        "E3019",
-                        &format!(
-                            "Primary identifiers {} should have unique values across the resources {}",
-                            instance_repr, resources_repr
-                        ),
-                        m,
-                        resource_id,
-                        &path,
-                        None,
-                    ));
+                    out.push(make_resource_diagnostic("E3019", &message, m, resource_id, &path, None));
                 }
             }
         }
@@ -2485,63 +2479,52 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    if let Some(sm) = ctx.cached_data.schema_metadata().get("schema_metadata").and_then(|s| s.as_object()) {
+    {
+        let schema_metadata = ctx.cached_data.schema_metadata_catalog();
         for (name, res) in &m.resources {
-            if let Some(type_meta) = sm.get(&res.resource_type).and_then(|t| t.as_object()) {
-                let prop_types = type_meta.get("property_types").and_then(|p| p.as_object());
-                if let Some(props_meta) = type_meta.get("property_constraints").and_then(|p| p.as_object()) {
-                    for (prop, meta) in props_meta {
-                        let is_string =
-                            prop_types.and_then(|pt| pt.get(prop)).and_then(|v| v.as_str()) == Some("string");
-                        let max_len = meta
-                            .get("maxLength")
-                            .and_then(|v| v.as_u64())
-                            .or_else(|| if is_string { meta.get("maximum").and_then(|v| v.as_u64()) } else { None });
-                        let min_len = meta
-                            .get("minLength")
-                            .and_then(|v| v.as_u64())
-                            .or_else(|| if is_string { meta.get("minimum").and_then(|v| v.as_u64()) } else { None });
-                        if max_len.is_none() && min_len.is_none() {
-                            continue;
+            if let Some(type_meta) = schema_metadata.get(&res.resource_type) {
+                for (prop, constraints) in &type_meta.property_constraints {
+                    let is_string = type_meta.property_types.get(prop).map(|t| t == "string").unwrap_or(false);
+                    let max_len = constraints.max_length.or_else(|| {
+                        if is_string { constraints.maximum.as_ref().and_then(|v| v.as_u64()) } else { None }
+                    });
+                    let min_len = constraints.min_length.or_else(|| {
+                        if is_string { constraints.minimum.as_ref().and_then(|v| v.as_u64()) } else { None }
+                    });
+                    if max_len.is_none() && min_len.is_none() {
+                        continue;
+                    }
+                    let path = format!("Properties.{}", prop);
+                    // Only reported when the constraint is broken whichever
+                    // value the deployment picks: the shortest possibility
+                    // still too long, or the longest still too short. A value
+                    // the template states literally is checked against the
+                    // constraint by schema validation instead, and a value with
+                    // any unknown possibility yields no bounds at all.
+                    if let Some((shortest, longest)) = m.estimated_string_length_bounds(name, &path) {
+                        if let Some(max) = max_len
+                            && shortest as u64 > max
+                        {
+                            out.push(make_resource_diagnostic(
+                                "W9006",
+                                &format!("String length {} exceeds maximum {} for property '{}'", shortest, max, prop),
+                                m,
+                                name,
+                                &path,
+                                None,
+                            ));
                         }
-                        let path = format!("Properties.{}", prop);
-                        // Only reported when the constraint is broken whichever
-                        // value the deployment picks: the shortest possibility
-                        // still too long, or the longest still too short. A value
-                        // the template states literally is checked against the
-                        // constraint by schema validation instead, and a value with
-                        // any unknown possibility yields no bounds at all.
-                        if let Some((shortest, longest)) = m.estimated_string_length_bounds(name, &path) {
-                            if let Some(max) = max_len
-                                && shortest as u64 > max
-                            {
-                                out.push(make_resource_diagnostic(
-                                    "W9006",
-                                    &format!(
-                                        "String length {} exceeds maximum {} for property '{}'",
-                                        shortest, max, prop
-                                    ),
-                                    m,
-                                    name,
-                                    &path,
-                                    None,
-                                ));
-                            }
-                            if let Some(min) = min_len
-                                && (longest as u64) < min
-                            {
-                                out.push(make_resource_diagnostic(
-                                    "W9006",
-                                    &format!(
-                                        "String length {} is below minimum {} for property '{}'",
-                                        longest, min, prop
-                                    ),
-                                    m,
-                                    name,
-                                    &path,
-                                    None,
-                                ));
-                            }
+                        if let Some(min) = min_len
+                            && (longest as u64) < min
+                        {
+                            out.push(make_resource_diagnostic(
+                                "W9006",
+                                &format!("String length {} is below minimum {} for property '{}'", longest, min, prop),
+                                m,
+                                name,
+                                &path,
+                                None,
+                            ));
                         }
                     }
                 }
@@ -3050,10 +3033,14 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             ),
         ];
         for &(rule_id, rtype, prop_path, enum_key) in enum_checks {
+            let resources = m.resources_of_type(rtype);
+            if resources.is_empty() {
+                continue;
+            }
             let Some(allowed) = region_flat_allowed(&ctx.cached_data.enum_data, enum_key, region) else {
                 continue;
             };
-            for name in m.resources_of_type(rtype) {
+            for name in resources {
                 if let Some(val) = resolve_enum_string(m, name, prop_path)
                     && !allowed.contains(val.as_str())
                 {
@@ -3100,10 +3087,14 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             ),
         ];
         for &(rule_id, rtype, wildcard_path, report_path, enum_key) in wildcard_enum_checks {
+            let resources = m.resources_of_type(rtype);
+            if resources.is_empty() {
+                continue;
+            }
             let Some(allowed) = region_flat_allowed(&ctx.cached_data.enum_data, enum_key, region) else {
                 continue;
             };
-            for name in m.resources_of_type(rtype) {
+            for name in resources {
                 let mut reported = HashSet::new();
                 for val in resolve_concrete_strings(m, name, wildcard_path) {
                     if allowed.contains(val.as_str()) || !reported.insert(val.clone()) {
@@ -3137,14 +3128,14 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                 let Some(val) = resolve_enum_string(m, name, "Properties.DBInstanceClass") else {
                     continue;
                 };
-                if let Some(sorted) =
-                    region_enums::conditional_invalid_enum(region_map, region, "DBInstanceClass", true, &val, |prop| {
+                if let Some(mismatch) =
+                    region_enums::conditional_enum_mismatch(region_map, region, "DBInstanceClass", true, &val, |prop| {
                         resolve_enum_string(m, name, &format!("Properties.{}", prop))
                     })
                 {
                     out.push(make_resource_diagnostic(
                         "E3025",
-                        &region_enums::conditional_invalid_message(&val, &sorted, region),
+                        &region_enums::conditional_mismatch_message(&val, &mismatch, region),
                         m,
                         name,
                         "Properties.DBInstanceClass",
@@ -3154,9 +3145,9 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             }
         }
 
-        // E3694: RDS DBCluster DBClusterInstanceClass. Like E3025 this is a
-        // conditional schema keyed on Engine, but Engine is NOT lowercased for
-        // DBCluster, so match the const case-sensitively.
+        // RDS DBCluster DBClusterInstanceClass uses a conditional schema keyed
+        // on Engine, but Engine is not lowercased for DBCluster, so match the
+        // const case-sensitively.
         if let Some(region_map) =
             region_map_for_key(&ctx.cached_data.enum_data, "data/aws_rds_dbcluster_dbclusterinstanceclass_enum")
         {
@@ -3164,7 +3155,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                 let Some(val) = resolve_enum_string(m, name, "Properties.DBClusterInstanceClass") else {
                     continue;
                 };
-                if let Some(sorted) = region_enums::conditional_invalid_enum(
+                if let Some(mismatch) = region_enums::conditional_enum_mismatch(
                     region_map,
                     region,
                     "DBClusterInstanceClass",
@@ -3174,7 +3165,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                 ) {
                     out.push(make_resource_diagnostic(
                         "E3694",
-                        &region_enums::conditional_invalid_message(&val, &sorted, region),
+                        &region_enums::conditional_mismatch_message(&val, &mismatch, region),
                         m,
                         name,
                         "Properties.DBClusterInstanceClass",
@@ -3184,10 +3175,12 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             }
         }
 
-        if let Some(allowed) =
-            region_flat_allowed(&ctx.cached_data.enum_data, "data/aws_amazonmq_broker_instancetype_enum", region)
+        let amazonmq_brokers = m.resources_of_type("AWS::AmazonMQ::Broker");
+        if !amazonmq_brokers.is_empty()
+            && let Some(allowed) =
+                region_flat_allowed(&ctx.cached_data.enum_data, "data/aws_amazonmq_broker_instancetype_enum", region)
         {
-            for name in m.resources_of_type("AWS::AmazonMQ::Broker") {
+            for name in amazonmq_brokers {
                 if let Some(val) = resolve_enum_string(m, name, "Properties.HostInstanceType")
                     && !allowed.contains(val.as_str())
                 {
@@ -3203,12 +3196,15 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             }
         }
 
-        if let Some(allowed) = region_flat_allowed(
-            &ctx.cached_data.enum_data,
-            "data/aws_emr_cluster_instancetypeconfig_instancetype_enum",
-            region,
-        ) {
-            for name in m.resources_of_type("AWS::EMR::InstanceFleetConfig") {
+        let emr_instance_fleets = m.resources_of_type("AWS::EMR::InstanceFleetConfig");
+        if !emr_instance_fleets.is_empty()
+            && let Some(allowed) = region_flat_allowed(
+                &ctx.cached_data.enum_data,
+                "data/aws_emr_cluster_instancetypeconfig_instancetype_enum",
+                region,
+            )
+        {
+            for name in emr_instance_fleets {
                 if let Some(val) = resolve_enum_string(m, name, "Properties.InstanceType")
                     && !allowed.contains(val.as_str())
                 {
@@ -3961,14 +3957,15 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                         out.push(make_resource_diagnostic(
                             "E3048",
                             &format!(
-                                "Fargate Cpu value {} is not valid. Must be one of {}",
+                                "Fargate Cpu value {} is not valid. Valid sizes are {} CPU units or {} vCPU.",
                                 rendered,
                                 render_str_list(CPU_UNIT_LABELS),
+                                render_str_list(VCPU_SIZES.iter().map(|(label, _)| *label)),
                             ),
                             m,
                             name,
                             "Properties.Cpu",
-                            Some("Use a valid Fargate Cpu value (256, 512, 1024, 2048, 4096, 8192, 16384, or 32768)"),
+                            Some("Use a valid Fargate Cpu size in CPU units or vCPU"),
                         ));
                     }
                 }
@@ -4136,8 +4133,8 @@ fn region_flat_allowed<'a>(
     enum_data: &'a HashMap<String, serde_json::Value>,
     enum_key: &str,
     region: Option<&str>,
-) -> Option<BTreeSet<&'a str>> {
-    region_enums::flat_allowed_values(region_map_for_key(enum_data, enum_key)?, region)
+) -> Option<HashSet<&'a str>> {
+    region_enums::flat_allowed_value_set(region_map_for_key(enum_data, enum_key)?, region)
 }
 
 /// A scalar string property value, collapsing an `Fn::If`-wrapped value to its
@@ -4184,19 +4181,6 @@ fn collect_concrete_strings(value: &ResolvedValue, out: &mut Vec<String>) {
         }
         _ => {}
     }
-}
-
-/// Renders `{'Prop1': 'val1', 'Prop2': 'val2'}` in Python `repr` style for duplicate-identifier messages.
-fn render_primary_id_dict(props: &[String], values: &[String]) -> String {
-    let pairs: Vec<String> = props.iter().zip(values.iter()).map(|(p, v)| format!("'{}': '{}'", p, v)).collect();
-    format!("{{{}}}", pairs.join(", "))
-}
-
-/// Renders `{'A', 'B'}` in Python repr style for a Python set of resource names.
-/// Python `repr(set)` uses iteration order; we sort for determinism across engines.
-fn render_resource_set(names: &BTreeSet<String>) -> String {
-    let quoted: Vec<String> = names.iter().map(|n| format!("'{}'", n)).collect();
-    format!("{{{}}}", quoted.join(", "))
 }
 
 /// First scalar (string/number/bool) value that repeats in the array, formatted

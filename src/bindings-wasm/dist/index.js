@@ -131,11 +131,8 @@ function createEngineClass(WasmClass) {
         constructor(config) {
             this.inner = new WasmClass(toWasmEngineConfig(config));
         }
-        validateStandard(template, config) {
-            return this.inner.validateStandard(template.readBytes(), config ?? {}, template.path);
-        }
-        validateDetailed(template, config) {
-            return this.inner.validateDetailed(template.readBytes(), config ?? {}, template.path);
+        validateTemplate(template, config) {
+            return this.inner.validateTemplate(template.readBytes(), config ?? {}, template.path);
         }
         listRules() {
             return this.inner.listRules();

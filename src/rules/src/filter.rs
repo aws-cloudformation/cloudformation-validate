@@ -1,3 +1,4 @@
+use crate::Severity;
 use log::warn;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -137,6 +138,29 @@ impl RuleFilterConfig {
             && self.services.is_empty()
     }
 
+    /// Whether the rule matches on a dimension that applies uniformly to every
+    /// diagnostic it can emit - an exact ID, a category, an ID range, or an ID
+    /// regex - independent of the resource or entity a given diagnostic fires on.
+    fn matches_globally(&self, rule_id: &str, category: Option<&str>, compiled: &CompiledPatterns) -> bool {
+        self.ids.iter().any(|id| id == rule_id)
+            || category.is_some_and(|cat| self.categories.iter().any(|c| c == cat))
+            || self.id_ranges.iter().any(|range| range_matches(rule_id, range))
+            || compiled.matches(rule_id)
+    }
+
+    /// Whether this filter could match at least one diagnostic the rule can emit,
+    /// for some resource, entity, or type: either a global dimension matches, or a
+    /// scoped dimension carries a rule scope that covers this rule. Used for global
+    /// include gating - a rule that a non-empty include filter can never admit
+    /// produces nothing and can be pruned before evaluation.
+    fn could_match_rule(&self, rule_id: &str, category: Option<&str>, compiled: &CompiledPatterns) -> bool {
+        self.matches_globally(rule_id, category, compiled)
+            || self.resource_ids.iter().any(|f| rule_scope_matches(&f.rule_id, rule_id))
+            || self.logical_ids.iter().any(|f| rule_scope_matches(&f.rule_id, rule_id))
+            || self.resource_types.iter().any(|f| rule_scope_matches(&f.rule_id, rule_id))
+            || self.services.iter().any(|f| rule_scope_matches(&f.rule_id, rule_id))
+    }
+
     fn matches(
         &self,
         rule_id: &str,
@@ -147,18 +171,7 @@ impl RuleFilterConfig {
         entity_type: Option<EntityType>,
         compiled: &CompiledPatterns,
     ) -> bool {
-        if self.ids.iter().any(|id| id == rule_id) {
-            return true;
-        }
-        if let Some(cat) = category
-            && self.categories.iter().any(|c| c == cat)
-        {
-            return true;
-        }
-        if self.id_ranges.iter().any(|r| range_matches(rule_id, r)) {
-            return true;
-        }
-        if compiled.matches(rule_id) {
+        if self.matches_globally(rule_id, category, compiled) {
             return true;
         }
         if let Some(rid) = resource_id
@@ -304,6 +317,41 @@ impl FilterConfig {
         let mut invalid = compiled.include.invalid.clone();
         invalid.extend(compiled.exclude.invalid.iter().cloned());
         invalid
+    }
+
+    /// Whether global filtering can prove, before any rule evaluation, that no
+    /// diagnostic this built-in rule could emit will survive finalization -
+    /// regardless of the resource, path, or entity it fires on. A rule proven
+    /// globally unable to survive can skip its work entirely without changing the
+    /// reported diagnostics, because finalization would have removed every one of
+    /// its findings anyway.
+    ///
+    /// Only dimensions that apply uniformly to every diagnostic of the rule are
+    /// consulted: the minimum-severity gate (accounting for the strict promotion
+    /// of Warn to Error) and the global include/exclude dimensions - exact ID,
+    /// category, ID range, and ID regex. The scoped resource-id, logical-id,
+    /// resource-type, and service dimensions can still admit the rule for some
+    /// resource, so they never justify global suppression.
+    #[must_use]
+    pub fn globally_suppresses_builtin_rule(
+        &self,
+        rule_id: &str,
+        category: Option<&str>,
+        severity: Severity,
+        strict: bool,
+        severity_level: Severity,
+    ) -> bool {
+        // Strict mode promotes a Warn to an Error before the severity gate runs,
+        // so gate on the promoted severity to stay consistent with finalization.
+        let effective_severity = if strict && severity == Severity::Warn { Severity::Error } else { severity };
+        if effective_severity < severity_level {
+            return true;
+        }
+        let compiled = self.compiled();
+        if self.exclude.matches_globally(rule_id, category, &compiled.exclude) {
+            return true;
+        }
+        !self.include.is_empty() && !self.include.could_match_rule(rule_id, category, &compiled.include)
     }
 }
 
@@ -864,5 +912,230 @@ mod tests {
         assert!(f.matches_rule("E3012", Some("schema"), None, None, None, None));
         let f2 = f.clone();
         assert!(f2.matches_rule("E3012", Some("schema"), None, None, None, None));
+    }
+
+    #[test]
+    fn empty_filter_globally_suppresses_nothing_at_the_default_level() {
+        let f = FilterConfig::default();
+        assert!(!f.globally_suppresses_builtin_rule(
+            "W9010",
+            Some("best-practice"),
+            Severity::Warn,
+            false,
+            Severity::Info
+        ));
+        assert!(!f.globally_suppresses_builtin_rule("E3012", Some("schema"), Severity::Error, false, Severity::Info));
+    }
+
+    #[test]
+    fn severity_gate_suppresses_rules_below_the_minimum_level() {
+        let f = FilterConfig::default();
+        // Reporting only errors and above prunes Warn and Info rules globally.
+        assert!(f.globally_suppresses_builtin_rule(
+            "W9010",
+            Some("best-practice"),
+            Severity::Warn,
+            false,
+            Severity::Error
+        ));
+        assert!(f.globally_suppresses_builtin_rule(
+            "I3011",
+            Some("best-practice"),
+            Severity::Info,
+            false,
+            Severity::Error
+        ));
+        assert!(!f.globally_suppresses_builtin_rule("E3012", Some("schema"), Severity::Error, false, Severity::Error));
+    }
+
+    #[test]
+    fn strict_promotion_keeps_a_warn_rule_alive_at_the_error_level() {
+        let f = FilterConfig::default();
+        // Strict promotes Warn to Error, so a Warn rule survives an Error gate.
+        assert!(!f.globally_suppresses_builtin_rule(
+            "W9010",
+            Some("best-practice"),
+            Severity::Warn,
+            true,
+            Severity::Error
+        ));
+        // An Info rule is not promoted and is still pruned.
+        assert!(f.globally_suppresses_builtin_rule(
+            "I3011",
+            Some("best-practice"),
+            Severity::Info,
+            true,
+            Severity::Error
+        ));
+    }
+
+    #[test]
+    fn global_exclude_dimensions_suppress_a_rule() {
+        let by_id = FilterConfig {
+            exclude: RuleFilterConfig { ids: vec!["W9010".into()], ..Default::default() },
+            ..Default::default()
+        };
+        assert!(by_id.globally_suppresses_builtin_rule(
+            "W9010",
+            Some("best-practice"),
+            Severity::Warn,
+            false,
+            Severity::Info
+        ));
+
+        let by_category = FilterConfig {
+            exclude: RuleFilterConfig { categories: vec!["best-practice".into()], ..Default::default() },
+            ..Default::default()
+        };
+        assert!(by_category.globally_suppresses_builtin_rule(
+            "W9010",
+            Some("best-practice"),
+            Severity::Warn,
+            false,
+            Severity::Info
+        ));
+
+        let by_range = FilterConfig {
+            exclude: RuleFilterConfig {
+                id_ranges: vec![IdRange { prefix: "W".into(), start: 9000, end: 9099 }],
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        assert!(by_range.globally_suppresses_builtin_rule(
+            "W9010",
+            Some("best-practice"),
+            Severity::Warn,
+            false,
+            Severity::Info
+        ));
+
+        let by_pattern = FilterConfig {
+            exclude: RuleFilterConfig { id_patterns: vec!["^W90".into()], ..Default::default() },
+            ..Default::default()
+        };
+        assert!(by_pattern.globally_suppresses_builtin_rule(
+            "W9010",
+            Some("best-practice"),
+            Severity::Warn,
+            false,
+            Severity::Info
+        ));
+    }
+
+    #[test]
+    fn scoped_exclude_dimensions_never_globally_suppress() {
+        // These filters only silence the rule on specific resources, so it can
+        // still fire elsewhere and must not be pruned before evaluation.
+        let by_type = FilterConfig {
+            exclude: RuleFilterConfig {
+                resource_types: vec![ResourceTypeFilter {
+                    rule_id: Some("W9010".into()),
+                    resource_type: "AWS::EC2::Instance".into(),
+                }],
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        assert!(!by_type.globally_suppresses_builtin_rule(
+            "W9010",
+            Some("best-practice"),
+            Severity::Warn,
+            false,
+            Severity::Info
+        ));
+
+        let by_service = FilterConfig {
+            exclude: RuleFilterConfig {
+                services: vec![ServiceFilter { rule_id: None, service: "AWS::EC2".into() }],
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        assert!(!by_service.globally_suppresses_builtin_rule(
+            "W9010",
+            Some("best-practice"),
+            Severity::Warn,
+            false,
+            Severity::Info
+        ));
+
+        let by_resource_id = FilterConfig {
+            exclude: RuleFilterConfig {
+                resource_ids: vec![ResourceIdFilter { rule_id: None, resource_id: "MyInstance".into() }],
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        assert!(!by_resource_id.globally_suppresses_builtin_rule(
+            "W9010",
+            Some("best-practice"),
+            Severity::Warn,
+            false,
+            Severity::Info
+        ));
+    }
+
+    #[test]
+    fn nonempty_include_globally_suppresses_rules_it_can_never_admit() {
+        let f = FilterConfig {
+            include: RuleFilterConfig { ids: vec!["E3012".into()], ..Default::default() },
+            ..Default::default()
+        };
+        // Only E3012 is included, so any other rule can never survive.
+        assert!(f.globally_suppresses_builtin_rule(
+            "W9010",
+            Some("best-practice"),
+            Severity::Warn,
+            false,
+            Severity::Info
+        ));
+        assert!(!f.globally_suppresses_builtin_rule("E3012", Some("schema"), Severity::Error, false, Severity::Info));
+    }
+
+    #[test]
+    fn nonempty_include_with_scoped_dimension_keeps_a_coverable_rule_alive() {
+        // A scoped include entry with no rule scope could admit any rule on the
+        // matching resource, so no rule is globally pruned.
+        let f = FilterConfig {
+            include: RuleFilterConfig {
+                resource_types: vec![ResourceTypeFilter { rule_id: None, resource_type: "AWS::EC2::Instance".into() }],
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        assert!(!f.globally_suppresses_builtin_rule(
+            "W9010",
+            Some("best-practice"),
+            Severity::Warn,
+            false,
+            Severity::Info
+        ));
+
+        // A scoped include entry bound to a different rule cannot admit this one.
+        let scoped_to_other = FilterConfig {
+            include: RuleFilterConfig {
+                resource_types: vec![ResourceTypeFilter {
+                    rule_id: Some("E3012".into()),
+                    resource_type: "AWS::EC2::Instance".into(),
+                }],
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        assert!(scoped_to_other.globally_suppresses_builtin_rule(
+            "W9010",
+            Some("best-practice"),
+            Severity::Warn,
+            false,
+            Severity::Info
+        ));
+        assert!(!scoped_to_other.globally_suppresses_builtin_rule(
+            "E3012",
+            Some("schema"),
+            Severity::Error,
+            false,
+            Severity::Info
+        ));
     }
 }

@@ -3,16 +3,16 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 WORKSPACE="$(cd "$SCRIPT_DIR/.." && pwd)"
+REPOSITORY_ROOT="$(cd "$WORKSPACE/.." && pwd)"
 # The published CLI binaries live outside the cargo workspace, in release-bin/ at
 # the repository root - the same directory the release workflow reads them from.
-RELEASE_DIR="$(cd "$WORKSPACE/.." && pwd)/release-bin"
+RELEASE_DIR="$REPOSITORY_ROOT/release-bin"
 TARGET_RELEASE="$WORKSPACE/target/release"
 
-ARCH="$(uname -m)"
+ARCH="$(bash "$REPOSITORY_ROOT/scripts/build-support/rust-host-architecture.sh")"
 case "$ARCH" in
-    arm64|aarch64)  ARCH="aarch64" ;;
-    x86_64|amd64)   ARCH="x64"     ;;
-    *) echo "Unsupported architecture: $ARCH" >&2; exit 1 ;;
+    aarch64) ARCH="aarch64" ;;
+    x86_64)  ARCH="x64"     ;;
 esac
 
 case "$(uname -s)" in

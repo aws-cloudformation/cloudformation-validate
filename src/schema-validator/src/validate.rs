@@ -99,7 +99,7 @@ fn value_depends_on_parameter_in_scenario(
     scenario: &HashMap<String, bool>,
 ) -> bool {
     let descendant_prefix = format!("{prop_path}.");
-    m.graph.outgoing(rid).into_iter().any(|edge| {
+    m.graph.outgoing_edges(rid).any(|edge| {
         (edge.source_path == prop_path || edge.source_path.starts_with(&descendant_prefix))
             && m.parameters.contains_key(&edge.target)
             && condition_context_matches_scenario(m, edge.condition_context.as_deref(), scenario)
@@ -150,9 +150,10 @@ pub fn validate_all_resources(
     model: &Arc<SemanticModel>,
     region: Option<&str>,
 ) -> Vec<Diagnostic> {
+    reset_scenario_filter();
     reset_schema_budget_exhaustions();
     let mut out = Vec::new();
-    let relevant: HashSet<&str> = model.resources.values().map(|r| r.resource_type.as_str()).collect();
+    let relevant: HashSet<&str> = model.resources_by_type.keys().map(String::as_str).collect();
 
     validate_lifecycle(&mut out, store, model);
 
@@ -246,6 +247,7 @@ fn is_valid_logical_id(rid: &str) -> bool {
 }
 
 pub fn enrich_schema_context(diagnostics: &mut [Diagnostic], store: &CompiledSchemaStore, model: &Arc<SemanticModel>) {
+    reset_scenario_filter();
     for d in diagnostics.iter_mut() {
         if d.phase != Some(Phase::Schema) {
             continue;
@@ -614,7 +616,10 @@ fn validate_resource(
         );
     }
 
-    for (prop_name, prop_schema) in &schema.properties {
+    for prop_name in res.properties.keys() {
+        let Some(prop_schema) = schema.properties.get(prop_name) else {
+            continue;
+        };
         let resolved = prop_schema.resolve(defs);
         let prop_path = format!("{}.{}", base, prop_name);
         validate_prop(out, store, m, rid, &res.resource_type, &prop_path, &resolved, defs, region);
@@ -1200,33 +1205,18 @@ fn validate_object_keys_inner(
     base_path: &str,
     scenario: Option<&HashMap<String, bool>>,
 ) {
-    // When an outer key scenario is provided, install it as the SCENARIO_FILTER
-    // for the duration of this call. This ensures requiredOr/requiredXor and
-    // anyOf/oneOf evaluation inside this branch are constrained to the
-    // condition world that produced this key set. Restore any previous filter
-    // on exit so nested composition preserves outer constraints.
-    let previous_filter = SCENARIO_FILTER.with(|f| f.borrow().clone());
-    if let Some(outer_conds) = scenario {
-        let merged = match &previous_filter {
-            Some(existing) => {
-                let mut combined = existing.clone();
-                for (k, v) in outer_conds {
-                    if let Some(prev) = combined.get(k) {
-                        if prev != v {
-                            // Contradictory condition: skip installing filter.
-                            SCENARIO_FILTER.with(|f| *f.borrow_mut() = previous_filter.clone());
-                            return;
-                        }
-                    } else {
-                        combined.insert(k.clone(), *v);
-                    }
-                }
-                combined
-            }
-            None => outer_conds.clone(),
-        };
-        SCENARIO_FILTER.with(|f| *f.borrow_mut() = Some(merged));
-    }
+    // When an outer key scenario is provided, constrain nested composition to
+    // the same condition world. The scope restores any prior nested assignment
+    // during normal return and panic unwinding.
+    let _scenario_filter_scope = match scenario {
+        Some(outer_conditions) => {
+            let Some(merged) = merged_scenario_filter(outer_conditions) else {
+                return;
+            };
+            Some(ScenarioFilterScope::enter(merged))
+        }
+        None => None,
+    };
 
     let before_len = out.len();
     for req in required {
@@ -1374,9 +1364,6 @@ fn validate_object_keys_inner(
             }
         }
     }
-
-    // Restore the previous SCENARIO_FILTER.
-    SCENARIO_FILTER.with(|f| *f.borrow_mut() = previous_filter);
 }
 
 /// Enumerate object key-sets visible at `prop_path`, one per condition
@@ -2094,11 +2081,9 @@ fn validate_sub_value_constraints(
         // Only scenarios consistent with the active group assignment (if any)
         // participate: a value from a mutually exclusive `Fn::If` branch must
         // not decide this assignment's branch match.
-        let scenarios: Vec<(serde_json::Value, HashMap<String, bool>)> = m
-            .resolve_scenarios_json(rid, &prop_path)
-            .into_iter()
-            .filter(|(_, conds)| scenario_consistent_with_filter(m, conds))
-            .collect();
+        let shared_scenarios = m.resolve_scenarios_json_shared(rid, &prop_path);
+        let scenarios: Vec<_> =
+            shared_scenarios.iter().filter(|(_, conds)| scenario_consistent_with_filter(m, conds)).collect();
 
         // When the property is absent from the template and not required, it
         // does not contribute a mismatch - the constraint is vacuously true.
@@ -2149,11 +2134,9 @@ fn validate_sub_value_constraints(
     // validation above already enforces them.
     if sub_self_constrains_value(sub) {
         let self_schema = schema_for_self_value_constraints(sub);
-        let scenarios: Vec<(serde_json::Value, HashMap<String, bool>)> = m
-            .resolve_scenarios_json(rid, base_path)
-            .into_iter()
-            .filter(|(_, conds)| scenario_consistent_with_filter(m, conds))
-            .collect();
+        let shared_scenarios = m.resolve_scenarios_json_shared(rid, base_path);
+        let scenarios: Vec<_> =
+            shared_scenarios.iter().filter(|(_, conds)| scenario_consistent_with_filter(m, conds)).collect();
         if !scenarios.is_empty() {
             let any_scenario_matches = scenarios.iter().any(|(val, conds)| {
                 if !is_satisfiable(m, conds) || val.is_null() || defer_value_constraints(m, rid, base_path, val, conds)
@@ -2602,32 +2585,51 @@ fn validate_sub_under_assignment(
     base_path: &str,
     assignment: &HashMap<String, bool>,
 ) {
+    let Some(merged) = merged_scenario_filter(assignment) else {
+        return;
+    };
+    let _scenario_filter_scope = ScenarioFilterScope::enter(merged.clone());
+    let effective_keys: Vec<String> =
+        actual_keys.iter().filter(|key| property_present_under(m, rid, base_path, key, &merged)).cloned().collect();
+    validate_sub(out, m, rid, rtype, &effective_keys, sub, defs, base_path, 0);
+}
+
+struct ScenarioFilterScope {
+    previous: Option<HashMap<String, bool>>,
+}
+
+impl ScenarioFilterScope {
+    fn enter(assignment: HashMap<String, bool>) -> Self {
+        let previous = SCENARIO_FILTER.with(|filter| filter.replace(Some(assignment)));
+        Self { previous }
+    }
+}
+
+impl Drop for ScenarioFilterScope {
+    fn drop(&mut self) {
+        let previous = self.previous.take();
+        SCENARIO_FILTER.with(|filter| {
+            filter.replace(previous);
+        });
+    }
+}
+
+fn merged_scenario_filter(assignment: &HashMap<String, bool>) -> Option<HashMap<String, bool>> {
     SCENARIO_FILTER.with(|filter| {
-        let previous = filter.borrow().clone();
-        // Merge the new assignment with any existing outer filter using
-        // conflict-safe merge: never overwrite a contradictory prior condition.
-        let merged = match &previous {
-            Some(outer) => {
-                let mut combined = outer.clone();
-                for (k, v) in assignment {
-                    if let Some(prev) = combined.get(k) {
-                        if prev != v {
-                            // Contradictory: skip this assignment entirely.
-                            return;
-                        }
-                    } else {
-                        combined.insert(k.clone(), *v);
-                    }
-                }
-                combined
+        let mut merged = filter.borrow().clone().unwrap_or_default();
+        for (name, value) in assignment {
+            if merged.get(name).is_some_and(|previous| previous != value) {
+                return None;
             }
-            None => assignment.clone(),
-        };
-        *filter.borrow_mut() = Some(merged.clone());
-        let effective_keys: Vec<String> =
-            actual_keys.iter().filter(|key| property_present_under(m, rid, base_path, key, &merged)).cloned().collect();
-        validate_sub(out, m, rid, rtype, &effective_keys, sub, defs, base_path, 0);
-        *filter.borrow_mut() = previous;
+            merged.insert(name.clone(), *value);
+        }
+        Some(merged)
+    })
+}
+
+fn reset_scenario_filter() {
+    SCENARIO_FILTER.with(|filter| {
+        filter.replace(None);
     });
 }
 
@@ -4022,12 +4024,17 @@ fn single_type_compatible(source: &str, expected: &str) -> bool {
     }
 }
 
+const EC2_IMAGE_ID_FORMAT: &str = "AWS::EC2::Image.Id";
+const EC2_LAUNCH_TEMPLATE_RESOURCE_TYPE: &str = "AWS::EC2::LaunchTemplate";
+const EC2_LAUNCH_TEMPLATE_IMAGE_ID_PATH: &str = "Properties.LaunchTemplateData.ImageId";
+const EC2_SSM_IMAGE_ALIAS_PREFIX: &str = "resolve:ssm:";
+
 static FORMAT_PATTERNS: LazyLock<HashMap<&'static str, Arc<CompiledPattern>>> = LazyLock::new(|| {
     let sources: [(&str, &str); 13] = [
         ("AWS::EC2::VPC.Id", r"^vpc-[a-f0-9]{8,17}$"),
         ("AWS::EC2::Subnet.Id", r"^subnet-[a-f0-9]{8,17}$"),
         ("AWS::EC2::SecurityGroup.Id", r"^sg-[a-f0-9]{8,17}$"),
-        ("AWS::EC2::Image.Id", r"^ami-([0-9a-z]{8}|[0-9a-z]{17})$"),
+        (EC2_IMAGE_ID_FORMAT, r"^ami-([0-9a-z]{8}|[0-9a-z]{17})$"),
         ("AWS::IAM::Role.Arn", IAM_ROLE_ARN_PATTERN),
         ("AWS::Logs::LogGroup.Name", r"^[\.\-_/#A-Za-z0-9]{1,512}$"),
         ("AWS::EC2::SecurityGroup.Name", SECURITY_GROUP_NAME_PATTERN),
@@ -4110,6 +4117,26 @@ fn format_value_matches(value: &str, format: &str) -> bool {
     }
 }
 
+fn sns_kms_identifier_is_runtime_validated(model: &SemanticModel, resource_id: &str, property_path: &str) -> bool {
+    property_path == "Properties.KmsMasterKeyId"
+        && model.resource(resource_id).is_some_and(|resource| resource.resource_type == "AWS::SNS::Topic")
+}
+
+fn ec2_resolves_ssm_image_alias(
+    model: &SemanticModel,
+    resource_id: &str,
+    property_path: &str,
+    format: &str,
+    value: &str,
+) -> bool {
+    format == EC2_IMAGE_ID_FORMAT
+        && property_path == EC2_LAUNCH_TEMPLATE_IMAGE_ID_PATH
+        && value.starts_with(EC2_SSM_IMAGE_ALIAS_PREFIX)
+        && model
+            .resource(resource_id)
+            .is_some_and(|resource| resource.resource_type == EC2_LAUNCH_TEMPLATE_RESOURCE_TYPE)
+}
+
 /// Validates property-level composition (anyOf/oneOf/allOf/if_then_else) when
 /// the property value is a scalar (no nested object keys). Uses
 /// `schema_value_matches` to test each concrete satisfiable scenario against
@@ -4147,7 +4174,7 @@ fn validate_prop_composition(
     }
 
     // anyOf: at least one branch must match for each satisfiable scenario
-    if !schema.any_of.is_empty() {
+    if !schema.any_of.is_empty() && !sns_kms_identifier_is_runtime_validated(m, rid, prop_path) {
         for (val, conds) in scenarios {
             if !is_satisfiable(m, conds) || val.is_null() || defer_value_constraints(m, rid, prop_path, val, conds) {
                 continue;
@@ -4258,6 +4285,9 @@ fn validate_format(
             if m.is_from_parameter(rid, prop_path) {
                 continue;
             }
+            if ec2_resolves_ssm_image_alias(m, rid, prop_path, format, &s) {
+                continue;
+            }
             if !re.is_match(&s) {
                 let rule_id = format_rule_for_format(format).unwrap_or("E1103");
                 out.push(build_diagnostic_conditional(
@@ -4327,18 +4357,18 @@ fn validate_lifecycle(out: &mut Vec<Diagnostic>, store: &CompiledSchemaStore, mo
                 // rule id and severity differ by how far the runtime is through
                 // its lifecycle. The band is a snapshot taken at data-sync time.
                 let (rule_id, band) = if lifecycle.is_runtime_eol(runtime) {
-                    ("E2533", true)
+                    ("E2533", Some(RuntimeLifecycleBand::EndOfLife))
                 } else if lifecycle.is_runtime_create_blocked(runtime) {
-                    ("E2531", true)
+                    ("E2531", Some(RuntimeLifecycleBand::CreateBlocked))
                 } else if lifecycle.is_runtime_deprecated(runtime) {
-                    ("W2531", true)
+                    ("W2531", Some(RuntimeLifecycleBand::Deprecated))
                 } else {
-                    ("", false)
+                    ("", None)
                 };
-                if band {
+                if let Some(band) = band {
                     out.push(build_diagnostic(
                         rule_id,
-                        &runtime_deprecation_message(lifecycle, runtime),
+                        &runtime_deprecation_message(lifecycle, runtime, band),
                         model,
                         rid,
                         "Properties.Runtime",
@@ -4350,11 +4380,21 @@ fn validate_lifecycle(out: &mut Vec<Diagnostic>, store: &CompiledSchemaStore, mo
     }
 }
 
-/// Builds the dated runtime-deprecation message CloudFormation reports for all
-/// three bands: "Runtime 'X' was deprecated on 'D'. Creation was disabled on 'C'
-/// and update on 'U'. Please consider updating to 'S'". A string value renders
-/// single-quoted; a missing successor renders as bare `None` (Python `repr`).
-fn runtime_deprecation_message(lifecycle: &crate::store::LifecycleStore, runtime: &str) -> String {
+#[derive(Clone, Copy)]
+enum RuntimeLifecycleBand {
+    Deprecated,
+    CreateBlocked,
+    EndOfLife,
+}
+
+/// Builds the dated runtime-deprecation message using the lifecycle band from
+/// the embedded data snapshot. A string successor renders single-quoted; a
+/// missing successor renders as bare `None` (Python `repr`).
+fn runtime_deprecation_message(
+    lifecycle: &crate::store::LifecycleStore,
+    runtime: &str,
+    band: RuntimeLifecycleBand,
+) -> String {
     let Some(dates) = lifecycle.runtime_lifecycle(runtime) else {
         return format!("Runtime '{}' is deprecated", runtime);
     };
@@ -4362,9 +4402,14 @@ fn runtime_deprecation_message(lifecycle: &crate::store::LifecycleStore, runtime
         Some(s) => format!("'{}'", s),
         None => "None".to_string(),
     };
+    let (creation_status, update_status) = match band {
+        RuntimeLifecycleBand::Deprecated => ("will be disabled", "will be disabled"),
+        RuntimeLifecycleBand::CreateBlocked => ("was disabled", "will be disabled"),
+        RuntimeLifecycleBand::EndOfLife => ("was disabled", "were disabled"),
+    };
     format!(
-        "Runtime '{}' was deprecated on '{}'. Creation was disabled on '{}' and update on '{}'. Please consider updating to {}",
-        runtime, dates.deprecated, dates.create_block, dates.update_block, successor
+        "Runtime '{}' was deprecated on '{}'. Creation {} on '{}', and updates {} on '{}'. Please consider updating to {}",
+        runtime, dates.deprecated, creation_status, dates.create_block, update_status, dates.update_block, successor
     )
 }
 
@@ -4979,6 +5024,33 @@ fn build_diagnostic_conditional(
 mod tests {
     use super::*;
     use serde_json::json;
+
+    fn current_scenario_filter() -> Option<HashMap<String, bool>> {
+        SCENARIO_FILTER.with(|filter| filter.borrow().clone())
+    }
+
+    #[test]
+    fn scenario_filter_scope_restores_outer_assignment_after_unwind() {
+        reset_scenario_filter();
+        let _outer_scope = ScenarioFilterScope::enter(HashMap::from([("Outer".to_string(), true)]));
+        let unwind = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let _inner_scope = ScenarioFilterScope::enter(HashMap::from([("Inner".to_string(), false)]));
+            assert_eq!(current_scenario_filter(), Some(HashMap::from([("Inner".to_string(), false)])));
+            panic!("exercise unwind cleanup");
+        }));
+        assert!(unwind.is_err());
+        assert_eq!(current_scenario_filter(), Some(HashMap::from([("Outer".to_string(), true)])));
+    }
+
+    #[test]
+    fn validation_entry_clears_a_stale_scenario_filter() {
+        SCENARIO_FILTER.with(|filter| {
+            filter.replace(Some(HashMap::from([("PreviousTemplate".to_string(), true)])));
+        });
+        let diagnostics = diagnostics_for_mode_value("managed");
+        assert!(diagnostics.is_empty(), "the new validation must not inherit a prior scenario assignment");
+        assert!(current_scenario_filter().is_none(), "validation leaves no scenario filter behind");
+    }
 
     #[test]
     fn levenshtein_distance_identical_strings() {

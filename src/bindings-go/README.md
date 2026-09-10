@@ -20,10 +20,10 @@ go get github.com/aws-cloudformation/cloudformation-validate/src/bindings-go/go
 import cfnvalidate "github.com/aws-cloudformation/cloudformation-validate/src/bindings-go/go"
 ```
 
-Requires Go 1.26+ with cgo enabled (the default) and a C toolchain for linking. The module bundles a prebuilt static
-library for each supported platform (Linux x86-64, macOS aarch64, Windows x86-64) and selects the right one per
-`GOOS`/`GOARCH`. On Windows, link with the MinGW-w64 toolchain - the bundled Windows library is built for the GNU ABI
-and cannot be consumed by MSVC.
+Requires Go 1.26+ with cgo enabled (the default) and a C toolchain for linking. The module bundles prebuilt static
+libraries for Linux and macOS on x86-64 and ARM64, plus Windows on x86-64, and selects the matching library for
+`GOOS`/`GOARCH`. On Windows, link with MinGW-w64. The bundled Windows library uses the GNU ABI and cannot be consumed
+by MSVC.
 
 ## Quick start
 
@@ -36,7 +36,7 @@ if err != nil {
 }
 defer engine.Destroy()
 
-report, err := engine.ValidateStandardFile("template.yaml", nil)
+report, err := engine.ValidateTemplateFile("template.yaml", nil)
 if err != nil {
     log.Fatal(err)
 }
@@ -46,7 +46,7 @@ for _, d := range report.Diagnostics {
 ```
 
 Each diagnostic identifies the rule, severity, affected resource and property, and source location - see
-[StandardDiagnostic](#standarddiagnostic). Engines are expensive to construct (rules compile once) and cheap to reuse
+[Diagnostic](#diagnostic). Engines are expensive to construct (rules compile once) and cheap to reuse
 - create one engine and validate many templates. Errors from the native side are returned as Go `error` values;
 internal panics are caught at the FFI boundary and surface the same way, never a process abort.
 
@@ -55,16 +55,18 @@ internal panics are caught at the FFI boundary and surface the same way, never a
 `NewRegoEngine` and `NewCelEngine` both return an `*Engine` and are interchangeable - they produce identical
 diagnostics for the same template and config. A `nil` config uses only the built-in rules.
 
-| Method                                                                       | Returns                    | Description                                                                                     |
-|------------------------------------------------------------------------------|----------------------------|-------------------------------------------------------------------------------------------------|
-| `ValidateStandard(template []byte, config *ValidateConfig, filePath string)` | `(*StandardReport, error)` | Validates bytes without extended context. `filePath` labels the report; `""` uses `"template"`. |
-| `ValidateStandardFile(path string, config *ValidateConfig)`                  | `(*StandardReport, error)` | Reads a template from disk, then validates it                                                   |
-| `ValidateDetailed(template []byte, config *ValidateConfig, filePath string)` | `(*DetailedReport, error)` | Validates bytes with documentation URLs, rule descriptions, phase tags, and `ViolationContext`  |
-| `ValidateDetailedFile(path string, config *ValidateConfig)`                  | `(*DetailedReport, error)` | Reads a template from disk, then validates it (detailed)                                        |
-| `ValidateAWSAPIRequest(request AWSAPIRequest, config *ValidateConfig)`       | `(*AWSAPIRequestValidation, error)` | Classifies and validates an AWS API request offline                                       |
-| `ListRules()`                                                                | `([]RuleInfo, error)`      | Returns metadata for every built-in and loaded custom rule                                      |
-| `EngineName()`                                                               | `string`                   | `"rego"` or `"cel"`                                                                             |
-| `Destroy()`                                                                  | -                          | Releases the native engine; the engine must not be used afterwards                              |
+| Method                                                                       | Returns                             | Description                                                                                     |
+|------------------------------------------------------------------------------|-------------------------------------|-------------------------------------------------------------------------------------------------|
+| `ValidateTemplate(template []byte, config *ValidateConfig, filePath string)` | `(*ValidationReport, error)`        | Validates bytes; `config.DetailLevel` selects the detail level; `filePath` labels the report.   |
+| `ValidateTemplateFile(path string, config *ValidateConfig)`                  | `(*ValidationReport, error)`        | Reads a template from disk, then validates it                                                   |
+| `ValidateAWSAPIRequest(request AWSAPIRequest, config *ValidateConfig)`       | `(*AWSAPIRequestValidation, error)` | Classifies and validates an AWS API request offline                                             |
+| `ListRules()`                                                                | `([]RuleInfo, error)`               | Returns metadata for every built-in and loaded custom rule                                      |
+| `EngineName()`                                                               | `string`                            | `"rego"` or `"cel"`                                                                             |
+| `Destroy()`                                                                  | -                                   | Releases the native engine; the engine must not be used afterwards                              |
+
+Validation returns a `*ValidationReport`. `config.DetailLevel` selects the detail: `DETAILED` (the default
+when unset) enriches each diagnostic with documentation URLs, rule descriptions, phase tags, and `ViolationContext`,
+while `STANDARD` leaves those fields nil. An empty `filePath` labels the report `"template"`.
 
 ### EngineConfig
 
@@ -121,13 +123,14 @@ config := &cfnvalidate.ValidateConfig{
     Exclude:       &cfnvalidate.RuleFilterConfig{IDs: []string{"I1002"}},
     SeverityLevel: cfnvalidate.SeverityWarn,
 }
-report, err := engine.ValidateStandardFile("template.yaml", config)
+report, err := engine.ValidateTemplateFile("template.yaml", config)
 ```
 
 ```go
 type ValidateConfig struct {
     Include                  *RuleFilterConfig
     Exclude                  *RuleFilterConfig
+    DetailLevel              DetailLevel
     SeverityLevel            Severity
     ParameterOverrides       map[string]string
     PseudoParameterOverrides *PseudoParameterOverrides
@@ -140,6 +143,7 @@ type ValidateConfig struct {
 |----------------------------|--------------------------|-------------------------------------------------------------------------------------------------------------------------------------------|
 | `Include`                  | `nil` (all rules)        | When set, only matching rules produce diagnostics. Empty means include everything.                                                        |
 | `Exclude`                  | `nil` (nothing excluded) | Matching rules are suppressed. Applied after `Include`.                                                                                   |
+| `DetailLevel`              | `DETAILED`               | Report detail level. `DETAILED` (the default) adds documentation URLs, rule descriptions, phase tags, and `ViolationContext`; `STANDARD` omits them. |
 | `SeverityLevel`            | `INFO`                   | Minimum severity threshold. Diagnostics below this level are dropped. Values: `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`.                  |
 | `ParameterOverrides`       | `nil`                    | Override template parameter values during resolution. Keys are parameter logical IDs.                                                     |
 | `PseudoParameterOverrides` | `nil`                    | Override CloudFormation pseudo-parameters (`AWS::AccountId`, `AWS::Region`, etc.).                                                        |
@@ -199,7 +203,9 @@ type PseudoParameterOverrides struct {
 
 Validates an AWS API request by classifying the operation, inferring the CloudFormation resource type, and running
 schema and rule validation against a synthesized template - entirely offline. The method returns classification
-metadata and an optional `StandardReport` when the request was validated (not skipped for read-only operations).
+metadata and an optional `ValidationReport` when the request was validated (not skipped for read-only operations). The
+report is projected at the `STANDARD` detail level: enrichment fields are nil because a synthesized template has no
+user-authored source to annotate.
 
 ```go
 engine, _ := cfnvalidate.NewRegoEngine(nil)
@@ -261,7 +267,7 @@ type AWSAPIRequestValidation struct {
     TemplateSource *AWSAPITemplateSource         // TEMPLATE_BODY, SYNTHESIZED_CREATE, etc.
     ResourceTypes  []string                      // inferred CloudFormation resource types
     Reason         string                        // human-readable explanation
-    Report         *StandardReport               // present only when Status is VALIDATED
+    Report         *ValidationReport             // present only when Status is VALIDATED
     Template       []byte                        // exact validated/synthesized template bytes; nil when SKIPPED
 }
 ```
@@ -318,39 +324,40 @@ if err != nil {
 | Method                                            | Returns                       | Description                                                   |
 |---------------------------------------------------|-------------------------------|---------------------------------------------------------------|
 | `cfnvalidate.NewSchemaValidator(config)`          | `(*SchemaValidator, error)`   | Constructs a validator; `nil` uses only the bundled schemas   |
-| `Validate(template []byte, region *string)`       | `([]StandardDiagnostic, error)` | Schema diagnostics. `nil` region defaults to `"us-east-1"`. |
+| `Validate(template []byte, region *string)`       | `([]Diagnostic, error)`       | Schema diagnostics. `nil` region defaults to `"us-east-1"`.   |
 | `ListRules()`                                     | `([]RuleInfo, error)`         | Schema rule metadata                                          |
 | `SchemaCount()`                                   | `uint32`                      | Number of compiled provider schemas                           |
 | `Destroy()`                                       | -                             | Releases the native validator; it must not be used afterwards |
 
 ## Report Types
 
-### StandardReport / DetailedReport
+### ValidationReport
 
 ```go
-type StandardReport struct {
+type ValidationReport struct {
     FilePath    string
     Status      ReportStatus         // OK, ANALYSIS_INCOMPLETE (findings may be omitted), or ERROR (pipeline failure)
     Version     string
     Metadata    ReportMetadata
     Performance PerformanceMetrics
-    Diagnostics []StandardDiagnostic
+    Diagnostics []Diagnostic
 }
 ```
 
-`DetailedReport` has the same structure but its diagnostics are `DetailedDiagnostic`, which embed
-`StandardDiagnostic` and add `DocumentationURL`, `RuleDescription`, `Phase` (`PARSE` | `SCHEMA` | `LINT`), and
-`Context` (a `*ViolationContext` with `ActualValue`, `ExpectedConstraint`, `ResolutionSource`, etc.).
+`ValidationReport` is returned by template validation. Its diagnostics are `Diagnostic` - a single flattened finding
+that always carries the rule, severity, affected resource and property, and source location, plus the enrichment fields `DocumentationURL`, `RuleDescription`, `Phase` (`PARSE` | `SCHEMA` | `LINT`), and `Context` (a
+`*ViolationContext` with `ActualValue`, `ExpectedConstraint`, `ResolutionSource`, etc.). Those enrichment fields are
+populated when validation runs at the `DETAILED` detail level and left nil at `STANDARD`.
 
 Each optional budget-exhaustion record retains a stable machine-readable kind and also includes a
 human-readable description sentence, the numeric limit, and whether that specific exhaustion makes analysis
 incomplete. `requiredPropertyCombinations` is context-only, so its `AnalysisIncomplete` value is `false` and the
 report can remain `StatusOK`.
 
-### StandardDiagnostic
+### Diagnostic
 
 ```go
-type StandardDiagnostic struct {
+type Diagnostic struct {
     RuleID            string          // e.g. "E3012", "F1001", "W3010"
     Severity          Severity        // FATAL, ERROR, WARN, INFO, DEBUG
     Message           string
@@ -364,7 +371,11 @@ type StandardDiagnostic struct {
     EndLine           *int
     EndColumn         *int
     RelatedResources  []RelatedResource
-    ConditionScenario map[string]bool // condition truth assignment that triggers this diagnostic
+    ConditionScenario map[string]bool   // condition truth assignment that triggers this diagnostic
+    DocumentationURL  *string           // DETAILED level only
+    RuleDescription   *string           // DETAILED level only
+    Phase             *string           // PARSE | SCHEMA | LINT; DETAILED level only
+    Context           *ViolationContext // DETAILED level only
 }
 
 // The named template entity a diagnostic is attributed to. The entity type is the
@@ -381,4 +392,5 @@ type Entity struct {
 ```
 
 `Severity` and `RuleOrigin` are string types with named constants (`cfnvalidate.SeverityWarn`,
-`cfnvalidate.RuleOriginGuard`, …); `ReportStatus` is `StatusOK`, `StatusAnalysisIncomplete`, or `StatusError`.
+`cfnvalidate.RuleOriginGuard`, …); `ReportStatus` is `StatusOK`, `StatusAnalysisIncomplete`, or `StatusError`;
+`DetailLevel` is `DetailLevelStandard` or `DetailLevelDetailed`.

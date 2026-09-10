@@ -3,8 +3,8 @@ use serde_json::Value;
 
 pub const CPU_UNIT_LABELS: &[&str] = &["256", "512", "1024", "2048", "4096", "8192", "16384", "32768"];
 
-const VCPU_SIZES: &[(&str, i64)] =
-    &[(".25", 256), (".5", 512), ("1", 1024), ("2", 2048), ("4", 4096), ("8", 8192), ("16", 16384), ("32", 32768)];
+pub const VCPU_SIZES: &[(&str, i64)] =
+    &[("0.25", 256), ("0.5", 512), ("1", 1024), ("2", 2048), ("4", 4096), ("8", 8192), ("16", 16384), ("32", 32768)];
 const MIB_PER_GIB: i64 = 1024;
 
 /// Returns whether an authored string-or-integer Cpu value names a Fargate size.
@@ -27,30 +27,62 @@ pub fn task_size_is_offered(cpu: &Value, memory: &Value) -> Option<bool> {
     })
 }
 
+fn normalize_unsigned_decimal(authored: &str) -> Option<String> {
+    let unsigned = authored.strip_prefix('+').unwrap_or(authored);
+    let (whole, fraction) = match unsigned.split_once('.') {
+        Some((whole, fraction)) if !fraction.contains('.') => (whole, Some(fraction)),
+        Some(_) => return None,
+        None => (unsigned, None),
+    };
+    if whole.is_empty() && fraction.is_none_or(str::is_empty) {
+        return None;
+    }
+    if !whole.bytes().all(|byte| byte.is_ascii_digit())
+        || fraction.is_some_and(|digits| !digits.bytes().all(|byte| byte.is_ascii_digit()))
+    {
+        return None;
+    }
+
+    let significant_whole = whole.trim_start_matches('0');
+    let normalized_whole = if significant_whole.is_empty() { "0" } else { significant_whole };
+    let significant_fraction = fraction.unwrap_or_default().trim_end_matches('0');
+    if significant_fraction.is_empty() {
+        Some(normalized_whole.to_string())
+    } else {
+        Some(format!("{normalized_whole}.{significant_fraction}"))
+    }
+}
+
 fn cpu_units(authored: &str) -> Option<i64> {
+    if authored.trim() != authored {
+        return None;
+    }
     if authored.bytes().all(|byte| byte.is_ascii_digit()) && !authored.is_empty() {
         return CPU_UNIT_LABELS.iter().find(|offered| **offered == authored).and_then(|offered| offered.parse().ok());
     }
 
     let lower = authored.to_ascii_lowercase();
-    let vcpu = lower.strip_suffix("vcpu")?.trim();
-    VCPU_SIZES.iter().find(|(label, _)| *label == vcpu).map(|(_, units)| *units)
+    let normalized_vcpu = normalize_unsigned_decimal(lower.strip_suffix("vcpu")?.trim_end())?;
+    VCPU_SIZES.iter().find(|(label, _)| *label == normalized_vcpu).map(|(_, units)| *units)
 }
 
 fn memory_mib(authored: &str) -> Option<i64> {
+    if authored.trim() != authored {
+        return None;
+    }
     if !authored.is_empty() && authored.bytes().all(|byte| byte.is_ascii_digit()) {
         return authored.parse().ok();
     }
 
     let lower = authored.to_ascii_lowercase();
-    let gib = lower.strip_suffix("gb")?.trim();
-    if gib == "0.5" {
+    let normalized_gib = normalize_unsigned_decimal(lower.strip_suffix("gb")?.trim_end())?;
+    if normalized_gib == "0.5" {
         return Some(MIB_PER_GIB / 2);
     }
-    if gib.is_empty() || !gib.bytes().all(|byte| byte.is_ascii_digit()) {
+    if normalized_gib.contains('.') {
         return None;
     }
-    gib.parse::<i64>().ok()?.checked_mul(MIB_PER_GIB)
+    normalized_gib.parse::<i64>().ok()?.checked_mul(MIB_PER_GIB)
 }
 
 fn valid_size_pair(cpu: i64, memory: i64) -> bool {
@@ -74,15 +106,37 @@ mod tests {
     use serde_json::json;
 
     #[test]
-    fn cpu_accepts_offered_unit_and_vcpu_spellings() {
-        for value in [json!(256), json!("256"), json!(".25 vCPU"), json!("16vcpu"), json!("32 VCPU")] {
+    fn cpu_accepts_ecs_decimal_spellings_without_scientific_notation() {
+        for value in [
+            json!(256),
+            json!("256"),
+            json!(".25 vCPU"),
+            json!("0.250 vCPU"),
+            json!("0.5vCPU"),
+            json!("02 VCPU"),
+            json!("+2.00 vCpu"),
+            json!("2. vCPU"),
+            json!("2\tvCPU"),
+            json!("2\nvCPU"),
+            json!("16vcpu"),
+            json!("32 VCPU"),
+        ] {
             assert_eq!(cpu_is_offered(&value), Some(true), "{value} must name an offered Cpu size");
         }
     }
 
     #[test]
-    fn cpu_rejects_unoffered_scalar_spellings_and_defers_other_shapes() {
-        for value in [json!("0512"), json!("3 vCPU"), json!("bananas"), json!(128)] {
+    fn cpu_rejects_unoffered_and_unsupported_spellings_and_defers_other_shapes() {
+        for value in [
+            json!("0512"),
+            json!("3 vCPU"),
+            json!("2e0 vCPU"),
+            json!(" 2 vCPU"),
+            json!("2 vCPU "),
+            json!("-2 vCPU"),
+            json!("bananas"),
+            json!(128),
+        ] {
             assert_eq!(cpu_is_offered(&value), Some(false), "{value} must not name an offered Cpu size");
         }
         for value in [json!(256.0), json!(true), json!([256]), json!({"Cpu": 256}), json!(null)] {
@@ -91,10 +145,13 @@ mod tests {
     }
 
     #[test]
-    fn task_sizes_accept_units_and_documented_unit_suffixes() {
+    fn task_sizes_accept_ecs_decimal_suffixes_without_scientific_notation() {
         for (cpu, memory) in [
             (json!(256), json!(512)),
-            (json!(".25 vCPU"), json!("0.5 GB")),
+            (json!("0.25 vCPU"), json!("0.5 GB")),
+            (json!("02 vCPU"), json!("04 GB")),
+            (json!("+2.0 vCPU"), json!("+4.0 GB")),
+            (json!("2. vCPU"), json!("4. GB")),
             (json!("8 vCPU"), json!("60GB")),
             (json!("16 vCPU"), json!("120 GB")),
             (json!(32768), json!("60 GB")),
@@ -106,8 +163,15 @@ mod tests {
     }
 
     #[test]
-    fn task_sizes_enforce_ranges_steps_and_discrete_32_vcpu_values() {
+    fn task_sizes_reject_scientific_notation_outer_whitespace_and_invalid_combinations() {
         for (cpu, memory) in [
+            (json!("2e0 vCPU"), json!("4 GB")),
+            (json!("2 vCPU"), json!("4e0 GB")),
+            (json!(" 2 vCPU"), json!("4 GB")),
+            (json!("2 vCPU"), json!(" 4 GB")),
+            (json!("2 vCPU "), json!("4 GB")),
+            (json!("2 vCPU"), json!("4 GB ")),
+            (json!("2 vCPU"), json!("4096.0")),
             (json!(8192), json!(17408)),
             (json!("8 vCPU"), json!("17 GB")),
             (json!(16384), json!(36864)),

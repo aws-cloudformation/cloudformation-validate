@@ -36,6 +36,8 @@ class SmokeTest {
     }""".trimIndent()
 
     private fun defaultConfig() = ValidateConfig(severityLevel = Severity.DEBUG)
+    private fun detailedConfig() = ValidateConfig(severityLevel = Severity.DEBUG, detailLevel = DetailLevel.DETAILED)
+    private fun standardConfig() = ValidateConfig(severityLevel = Severity.DEBUG, detailLevel = DetailLevel.STANDARD)
 
     private fun celCustomConfig() = EngineConfig(
         customRules = listOf(ExternalRuleSource(name = "cel_custom.json", content = loadRule("cel_custom.json"))),
@@ -61,32 +63,16 @@ class SmokeTest {
 
     // ── version ──────────────────────────────────────────────────────────────
 
-    private fun readWorkspaceVersion(): String {
-        val cargoToml = File(resourcesRoot.parentFile, "Cargo.toml")
-        var inWorkspacePackage = false
-        for (line in cargoToml.readLines()) {
-            val trimmed = line.trim()
-            if (trimmed == "[workspace.package]") {
-                inWorkspacePackage = true
-                continue
-            }
-            if (inWorkspacePackage && trimmed.startsWith("[")) {
-                break
-            }
-            if (inWorkspacePackage && trimmed.startsWith("version = ")) {
-                val value = trimmed.removePrefix("version = ").trim()
-                require(value.startsWith("\"") && value.endsWith("\"")) {
-                    "malformed version line in ${cargoToml.path}: $line"
-                }
-                return value.substring(1, value.length - 1)
-            }
-        }
-        error("missing 'version = ' under [workspace.package] in ${cargoToml.path}")
+    private fun readExpectedVersion(): String {
+        val expectedVersionFile = File(expectedDir, "version.txt")
+        val expectedVersion = expectedVersionFile.readText().trim()
+        require(expectedVersion.isNotEmpty()) { "${expectedVersionFile.path} must not be empty" }
+        return expectedVersion
     }
 
     @Test
-    fun versionReturnsCrateVersionFromWorkspaceCargoToml() {
-        assertEquals(readWorkspaceVersion(), version())
+    fun versionReturnsExpectedVersionFixture() {
+        assertEquals(readExpectedVersion(), version())
     }
 
     // ── Engine construction ──────────────────────────────────────────────────
@@ -108,12 +94,12 @@ class SmokeTest {
                 additionalSchemas = listOf(AdditionalSchemaSource(typeName = null, schema = lambdaOverlaySchema)),
             ),
         )
-        val celBaseline = JvmCelEngine(EngineConfig()).validateStandard(
+        val celBaseline = JvmCelEngine(EngineConfig()).validateTemplate(
             templateWithOverlayProperty,
             defaultConfig(),
             "overlay.yaml",
         )
-        val regoBaseline = JvmRegoEngine(EngineConfig()).validateStandard(
+        val regoBaseline = JvmRegoEngine(EngineConfig()).validateTemplate(
             templateWithOverlayProperty,
             defaultConfig(),
             "overlay.yaml",
@@ -121,8 +107,8 @@ class SmokeTest {
         assertTrue(celBaseline.diagnostics.any { it.ruleId == "F3002" }, "CEL baseline must report the property")
         assertTrue(regoBaseline.diagnostics.any { it.ruleId == "F3002" }, "Rego baseline must report the property")
 
-        val cel = JvmCelEngine(config).validateStandard(templateWithOverlayProperty, defaultConfig(), "overlay.yaml")
-        val rego = JvmRegoEngine(config).validateStandard(templateWithOverlayProperty, defaultConfig(), "overlay.yaml")
+        val cel = JvmCelEngine(config).validateTemplate(templateWithOverlayProperty, defaultConfig(), "overlay.yaml")
+        val rego = JvmRegoEngine(config).validateTemplate(templateWithOverlayProperty, defaultConfig(), "overlay.yaml")
         assertFalse(cel.diagnostics.any { it.ruleId == "F3002" }, "CEL config must apply the overlay")
         assertFalse(rego.diagnostics.any { it.ruleId == "F3002" }, "Rego config must apply the overlay")
     }
@@ -209,7 +195,7 @@ class SmokeTest {
 
     @Test
     fun celReturnsF1101ForEmptyTemplate() {
-        val report = CEL.validateStandard(templateFile("empty.yaml"), defaultConfig())
+        val report = CEL.validateTemplate(templateFile("empty.yaml"), defaultConfig())
         assertEquals("ERROR", report.status.name)
         assertEquals("F1101", report.diagnostics[0].ruleId)
         assertEquals(Severity.FATAL, report.diagnostics[0].severity)
@@ -217,7 +203,7 @@ class SmokeTest {
 
     @Test
     fun regoReturnsF1101ForEmptyTemplate() {
-        val report = REGO.validateStandard(templateFile("empty.yaml"), defaultConfig())
+        val report = REGO.validateTemplate(templateFile("empty.yaml"), defaultConfig())
         assertEquals("ERROR", report.status.name)
         assertEquals("F1101", report.diagnostics[0].ruleId)
         assertEquals(Severity.FATAL, report.diagnostics[0].severity)
@@ -233,8 +219,8 @@ class SmokeTest {
 
         for ((name, engine) in listOf("cel" to cel as Any, "rego" to rego as Any)) {
             val report = when (engine) {
-                is JvmCelEngine -> engine.validateStandard(templateBytes(badTemplate), defaultConfig(), badTemplate)
-                is JvmRegoEngine -> engine.validateStandard(templateBytes(badTemplate), defaultConfig(), badTemplate)
+                is JvmCelEngine -> engine.validateTemplate(templateBytes(badTemplate), defaultConfig(), badTemplate)
+                is JvmRegoEngine -> engine.validateTemplate(templateBytes(badTemplate), defaultConfig(), badTemplate)
                 else -> error("")
             }
             val d = report.diagnostics.find { it.ruleId == "CUSTOM001" } ?: fail("$name: CUSTOM001 diagnostic must fire")
@@ -274,8 +260,8 @@ class SmokeTest {
             assertEquals(baselineCount, rules.count { it.origin != RuleOrigin.GUARD }, "$name: must not pollute builtins")
 
             val report = when (engine) {
-                is JvmCelEngine -> engine.validateStandard(templateBytes(badTemplate), defaultConfig(), badTemplate)
-                is JvmRegoEngine -> engine.validateStandard(templateBytes(badTemplate), defaultConfig(), badTemplate)
+                is JvmCelEngine -> engine.validateTemplate(templateBytes(badTemplate), defaultConfig(), badTemplate)
+                is JvmRegoEngine -> engine.validateTemplate(templateBytes(badTemplate), defaultConfig(), badTemplate)
                 else -> error("")
             }
             val d = report.diagnostics.find { it.ruleId == "check_bucket_encryption" } ?: fail("$name: diagnostic must fire")
@@ -295,7 +281,7 @@ class SmokeTest {
         val rego = JvmRegoEngine(regoCombinedConfig())
 
         // Rego discovers custom rule metadata during evaluation.
-        rego.validateStandard(templateBytes("bad/invalid_deletion_policy.yaml"), defaultConfig(), "bad/invalid_deletion_policy.yaml")
+        rego.validateTemplate(templateBytes("bad/invalid_deletion_policy.yaml"), defaultConfig(), "bad/invalid_deletion_policy.yaml")
 
         for ((name, rules) in listOf("cel" to cel.listRules(), "rego" to rego.listRules())) {
             assertEquals(RuleOrigin.CUSTOM, rules.find { it.id == "CUSTOM001" }?.origin, "$name: CUSTOM001 origin")
@@ -329,7 +315,7 @@ class SmokeTest {
         val rego = JvmRegoEngine(multiCombinedConfig("rego"))
 
         // Rego discovers custom rule metadata during evaluation.
-        rego.validateStandard(templateBytes("bad/invalid_deletion_policy.yaml"), defaultConfig(), "bad/invalid_deletion_policy.yaml")
+        rego.validateTemplate(templateBytes("bad/invalid_deletion_policy.yaml"), defaultConfig(), "bad/invalid_deletion_policy.yaml")
 
         for ((name, rules) in listOf("cel" to cel.listRules(), "rego" to rego.listRules())) {
             val c1 = rules.find { it.id == "CUSTOM010" } ?: fail("$name: CUSTOM010 must exist")
@@ -362,70 +348,85 @@ class SmokeTest {
     }
 
     @TestFactory
-    fun regoDetailedMatchesGolden(): List<DynamicTest> = goldenDetailedTests("rego", REGO)
+    fun regoDetailedMatchesSnapshot(): List<DynamicTest> = snapshotDetailedTests("rego", REGO)
 
     @TestFactory
-    fun regoStandardMatchesGolden(): List<DynamicTest> = goldenStandardTests("rego", REGO)
+    fun regoStandardMatchesSnapshot(): List<DynamicTest> = snapshotStandardTests("rego", REGO)
 
     @TestFactory
-    fun celDetailedMatchesGolden(): List<DynamicTest> = goldenDetailedTests("cel", CEL)
+    fun celDetailedMatchesSnapshot(): List<DynamicTest> = snapshotDetailedTests("cel", CEL)
 
     @TestFactory
-    fun celStandardMatchesGolden(): List<DynamicTest> = goldenStandardTests("cel", CEL)
+    fun celStandardMatchesSnapshot(): List<DynamicTest> = snapshotStandardTests("cel", CEL)
 
-    private fun goldenDetailedTests(engineName: String, engine: Any): List<DynamicTest> {
+    @Test
+    fun omittingDetailLevelDefaultsToDetailed() {
+        val template = templateFile("good/generic.yaml")
+        val default = REGO.validateTemplate(template, ValidateConfig(severityLevel = Severity.DEBUG))
+        val explicitDetailed = REGO.validateTemplate(template, detailedConfig())
+        val explicitStandard = REGO.validateTemplate(template, standardConfig())
+
+        assertTrue(
+            default.diagnostics.any { it.ruleDescription != null },
+            "the default report must carry enrichment fields",
+        )
+        assertTrue(
+            explicitStandard.diagnostics.all { it.ruleDescription == null },
+            "the STANDARD detail level must leave enrichment fields absent",
+        )
+        assertEquals(
+            stripSnapshotExcludedFields(parseJson(gson.toJson(explicitDetailed))),
+            stripSnapshotExcludedFields(parseJson(gson.toJson(default))),
+            "omitting detailLevel must produce the same report as an explicit DETAILED detail level",
+        )
+    }
+
+    private fun snapshotDetailedTests(engineName: String, engine: Any): List<DynamicTest> {
         return EXPECTED_TEMPLATES.map { rel ->
             DynamicTest.dynamicTest("$engineName detailed:$rel") {
-                val actual = parseJson(gson.toJson(validateDetailed(engine, rel)))
+                val actual = parseJson(gson.toJson(validateWithDetailLevel(engine, rel, detailedConfig())))
                 @Suppress("UNCHECKED_CAST")
-                val expected = COMBINED_GOLDEN[rel] as Map<String, Any?>
+                val expected = COMBINED_SNAPSHOTS[rel] as Map<String, Any?>
                 assertEquals(
-                    stripGoldenExcludedFields(expected),
-                    stripGoldenExcludedFields(actual, rel),
-                    "$engineName detailed output for $rel differs from golden"
+                    stripSnapshotExcludedFields(expected),
+                    stripSnapshotExcludedFields(actual, rel),
+                    "$engineName detailed output for $rel differs from snapshot"
                 )
             }
         }
     }
 
-    private fun goldenStandardTests(engineName: String, engine: Any): List<DynamicTest> {
+    private fun snapshotStandardTests(engineName: String, engine: Any): List<DynamicTest> {
         return EXPECTED_TEMPLATES.map { rel ->
             DynamicTest.dynamicTest("$engineName standard:$rel") {
-                val actual = parseJson(gson.toJson(validateStandard(engine, rel)))
+                val actual = parseJson(gson.toJson(validateWithDetailLevel(engine, rel, standardConfig())))
                 @Suppress("UNCHECKED_CAST")
-                val expected = stripDetailedOnlyFields(COMBINED_GOLDEN[rel] as Map<String, Any?>)
+                val expected = stripEnrichmentFields(COMBINED_SNAPSHOTS[rel] as Map<String, Any?>)
                 assertEquals(
-                    stripGoldenExcludedFields(expected),
-                    stripGoldenExcludedFields(actual, rel),
-                    "$engineName standard output for $rel differs from golden"
+                    stripSnapshotExcludedFields(expected),
+                    stripSnapshotExcludedFields(actual, rel),
+                    "$engineName standard output for $rel differs from snapshot"
                 )
             }
         }
     }
 
     @Suppress("UNCHECKED_CAST")
-    private fun stripDetailedOnlyFields(report: Map<String, Any?>): Map<String, Any?> {
+    private fun stripEnrichmentFields(report: Map<String, Any?>): Map<String, Any?> {
         val out = LinkedHashMap(report)
         val diags = (out["diagnostics"] as? List<Map<String, Any?>>) ?: return out
         out["diagnostics"] = diags.map { d ->
             val stripped = LinkedHashMap(d)
-            for (field in FULL_ONLY_FIELDS) stripped.remove(field)
+            for (field in ENRICHMENT_FIELDS) stripped.remove(field)
             stripped
         }
         return out
     }
 
-    private fun validateDetailed(engine: Any, rel: String): DetailedReport =
+    private fun validateWithDetailLevel(engine: Any, rel: String, config: ValidateConfig): ValidationReport =
         when (engine) {
-            is CelEngine -> engine.validateDetailed(templateFile(rel), defaultConfig())
-            is RegoEngine -> engine.validateDetailed(templateFile(rel), defaultConfig())
-            else -> throw IllegalArgumentException("Unknown engine type: ${engine::class}")
-        }
-
-    private fun validateStandard(engine: Any, rel: String): StandardReport =
-        when (engine) {
-            is CelEngine -> engine.validateStandard(templateFile(rel), defaultConfig())
-            is RegoEngine -> engine.validateStandard(templateFile(rel), defaultConfig())
+            is CelEngine -> engine.validateTemplate(templateFile(rel), config)
+            is RegoEngine -> engine.validateTemplate(templateFile(rel), config)
             else -> throw IllegalArgumentException("Unknown engine type: ${engine::class}")
         }
 
@@ -435,7 +436,7 @@ class SmokeTest {
     }
 
     @Suppress("UNCHECKED_CAST")
-    private fun stripGoldenExcludedFields(report: Map<String, Any?>, filePath: String? = null): Map<String, Any?> {
+    private fun stripSnapshotExcludedFields(report: Map<String, Any?>, filePath: String? = null): Map<String, Any?> {
         val out = LinkedHashMap(report)
         if (filePath != null) out["filePath"] = filePath
         out.remove("version")
@@ -453,7 +454,7 @@ class SmokeTest {
 
     @Test
     fun performanceIsPresentWithTimingPerPhase() {
-        val performance = REGO.validateDetailed(templateFile("good/generic.yaml"), defaultConfig()).performance
+        val performance = REGO.validateTemplate(templateFile("good/generic.yaml"), defaultConfig()).performance
         val phases = listOf(
             performance.schemaInit,
             performance.engineInit,
@@ -472,7 +473,7 @@ class SmokeTest {
 
     private val awsApiEngines: List<Pair<String, Engine>> = listOf("rego" to REGO, "cel" to CEL)
 
-    private fun diagnosticKeys(report: StandardReport): List<String> =
+    private fun diagnosticKeys(report: ValidationReport): List<String> =
         report.diagnostics.map { "${it.ruleId}|${it.severity}|${it.startLine}|${it.startColumn}" }.sorted()
 
     @Suppress("UNCHECKED_CAST")
@@ -585,38 +586,85 @@ class SmokeTest {
         private val gson = buildBindingsGson()
 
         private val EXPECTED_TEMPLATES: List<String>
-        private val COMBINED_GOLDEN: Map<String, Any?>
+        private val COMBINED_SNAPSHOTS: Map<String, Any?>
 
-        private val GOLDEN_DIRS = listOf("bad", "cdk", "good", "gh-issues", "integration", "issues", "lsp", "public", "quickstart")
+        private const val CHUNK_PREFIX = "validation_reports"
+        private const val CHUNK_EXTENSION = ".json"
 
         init {
-            val goldenFile = File(expectedDir, "validation_reports.json")
-            @Suppress("UNCHECKED_CAST")
-            COMBINED_GOLDEN = JsonParser(goldenFile.readText()).parseValue() as Map<String, Any?>
+            COMBINED_SNAPSHOTS = loadCombinedSnapshots()
             EXPECTED_TEMPLATES = discoverAllTemplates()
         }
 
-        private fun discoverAllTemplates(): List<String> {
-            val templates = mutableListOf<String>()
-            for (sub in GOLDEN_DIRS) {
-                val dir = File(templatesRoot, sub)
-                if (dir.isDirectory) {
-                    dir.walkTopDown().filter { it.isFile && it.extension in listOf("yaml", "yml", "json") }.forEach {
-                        templates.add(it.relativeTo(templatesRoot).path.replace('\\', '/'))
+        /**
+         * Discover all numbered snapshot chunk files in numeric order and merge
+         * them strictly. Fails on no chunks, non-object JSON, or duplicate keys.
+         */
+        private fun loadCombinedSnapshots(): Map<String, Any?> {
+            val pattern = Regex("^${Regex.escape(CHUNK_PREFIX)}([1-9][0-9]*)${Regex.escape(CHUNK_EXTENSION)}$")
+            val chunkFiles = (expectedDir.listFiles() ?: error("cannot list $expectedDir"))
+                .filter { it.isFile }
+                .mapNotNull { file ->
+                    pattern.matchEntire(file.name)?.let { match ->
+                        val indexStr = match.groupValues[1]
+                        val index = indexStr.toIntOrNull()
+                            ?: error("snapshot chunk index overflows Int: ${file.name}")
+                        require(index >= 1) { "snapshot chunk index must be >= 1: ${file.name}" }
+                        index to file
                     }
                 }
+                .sortedBy { it.first }
+
+            require(chunkFiles.isNotEmpty()) {
+                "no snapshot chunk files (${CHUNK_PREFIX}N${CHUNK_EXTENSION}) found in $expectedDir"
+            }
+
+            for ((i, pair) in chunkFiles.withIndex()) {
+                require(pair.first == i + 1) {
+                    "non-contiguous snapshot chunk sequence: expected index ${i + 1} but found ${pair.first}"
+                }
+            }
+
+            val merged = linkedMapOf<String, Any?>()
+            for ((_, file) in chunkFiles) {
+                @Suppress("UNCHECKED_CAST")
+                val chunkData = JsonParser(file.readText()).parseValue() as? Map<String, Any?>
+                    ?: error("snapshot chunk ${file.name} is not a JSON object")
+                for ((key, value) in chunkData) {
+                    require(key !in merged) {
+                        "duplicate template key \"$key\" in chunk ${file.name}"
+                    }
+                    merged[key] = value
+                }
+            }
+            return merged
+        }
+
+        /**
+         * Recursively scan the entire templates directory for .yaml/.yml/.json.
+         */
+        private fun discoverAllTemplates(): List<String> {
+            require(templatesRoot.isDirectory) {
+                "templates directory does not exist: ${templatesRoot.absolutePath}"
+            }
+            val templates = mutableListOf<String>()
+            templatesRoot.walkTopDown().filter { it.isFile && it.extension in listOf("yaml", "yml", "json") }.forEach {
+                templates.add(it.relativeTo(templatesRoot).path.replace('\\', '/'))
+            }
+            require(templates.isNotEmpty()) {
+                "no templates discovered in ${templatesRoot.absolutePath}"
             }
             return templates.sorted()
         }
 
-        private val FULL_ONLY_FIELDS = listOf("documentationUrl", "context", "ruleDescription", "phase", "section")
+        private val ENRICHMENT_FIELDS = listOf("documentationUrl", "context", "ruleDescription", "phase", "section")
 
         private val CEL = CelEngine(EngineConfig())
         private val REGO = RegoEngine(EngineConfig())
     }
 }
 
-// ── Minimal JSON parser (for golden file comparison) ─────────────────────────
+// ── Minimal JSON parser (for snapshot file comparison) ─────────────────────────
 
 private class JsonParser(private val src: String) {
     private var pos = 0

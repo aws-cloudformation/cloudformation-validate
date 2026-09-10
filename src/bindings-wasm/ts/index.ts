@@ -1,5 +1,6 @@
 import type {
-    DetailedReport,
+    Diagnostic,
+    ValidationReport,
     DiagnosticModel,
     AdditionalSchemaSource,
     EngineConfig as WasmEngineConfig,
@@ -10,8 +11,6 @@ import type {
     ResolvedResource,
     RuleInfo,
     SourceSpan,
-    StandardDiagnostic,
-    StandardReport,
     ValidateConfig,
 } from '../dist/bindings_wasm';
 import { readFileSync } from 'fs';
@@ -33,14 +32,12 @@ export type {
     ResourceRef,
     RelatedResource,
     ViolationContext,
-    StandardDiagnostic,
-    DetailedDiagnostic,
+    Diagnostic,
     PhaseMetric,
     PerformanceMetrics,
     Summary,
     ReportMetadata,
-    StandardReport,
-    DetailedReport,
+    ValidationReport,
     PseudoParameterOverrides,
     ValidateConfig,
     ExternalRuleSource,
@@ -141,7 +138,7 @@ export interface AwsApiRequestValidation {
     templateSource: AwsApiTemplateSource | null;
     resourceTypes: string[];
     reason: string;
-    report: StandardReport | null;
+    report: ValidationReport | null;
     template: Uint8Array | null;
 }
 
@@ -330,8 +327,7 @@ function fromWireAwsApiRequestValidation(validation: WireAwsApiRequestValidation
 }
 
 export interface Engine {
-    validateStandard(template: TemplateFile, config?: ValidateConfig): StandardReport;
-    validateDetailed(template: TemplateFile, config?: ValidateConfig): DetailedReport;
+    validateTemplate(template: TemplateFile, config?: ValidateConfig): ValidationReport;
     validateAwsApiRequest(request: AwsApiRequest, config?: ValidateConfig): AwsApiRequestValidation;
     listRules(): RuleInfo[];
     engineName(): string;
@@ -483,7 +479,7 @@ export class SchemaValidator {
         return this.inner.schemaCount();
     }
 
-    validate(template: TemplateFile, region?: string): StandardDiagnostic[] {
+    validate(template: TemplateFile, region?: string): Diagnostic[] {
         const model = bridge.WasmSemanticModel.parse(template.readBytes());
         try {
             return this.inner.validate(model, region).diagnostics;
@@ -498,8 +494,7 @@ export class SchemaValidator {
 }
 
 interface WasmEngineInstance {
-    validateStandard(template: Uint8Array, options: ValidateConfig, filePath: string): StandardReport;
-    validateDetailed(template: Uint8Array, options: ValidateConfig, filePath: string): DetailedReport;
+    validateTemplate(template: Uint8Array, options: ValidateConfig, filePath: string): ValidationReport;
     validateAwsApiRequest(request: WireAwsApiRequest, options: ValidateConfig): WireAwsApiRequestValidation;
     listRules(): RuleInfo[];
     engineName(): string;
@@ -516,12 +511,8 @@ function createEngineClass(
             this.inner = new WasmClass(toWasmEngineConfig(config));
         }
 
-        validateStandard(template: TemplateFile, config?: ValidateConfig): StandardReport {
-            return this.inner.validateStandard(template.readBytes(), config ?? {}, template.path);
-        }
-
-        validateDetailed(template: TemplateFile, config?: ValidateConfig): DetailedReport {
-            return this.inner.validateDetailed(template.readBytes(), config ?? {}, template.path);
+        validateTemplate(template: TemplateFile, config?: ValidateConfig): ValidationReport {
+            return this.inner.validateTemplate(template.readBytes(), config ?? {}, template.path);
         }
 
         validateAwsApiRequest(request: AwsApiRequest, config?: ValidateConfig): AwsApiRequestValidation {

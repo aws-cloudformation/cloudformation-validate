@@ -58,9 +58,10 @@ runs:
 
     - name: Setup Gradle ${{ inputs.gradle-version }}
       if: ${{ inputs.gradle-version != '' }}
-      uses: gradle/actions/setup-gradle@v6
+      uses: gradle/actions/setup-gradle@v6.3.0
       with:
         gradle-version: ${{ inputs.gradle-version }}
+        cache-disabled: true
 
     - name: Put configured JDK first on PATH
       shell: bash

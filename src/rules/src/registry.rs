@@ -411,6 +411,12 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         origin: RuleOrigin::CfnLint,
     },
     RuleDefinition {
+        id: "W2002",
+        category: Category::BestPractice,
+        description: "Parameter type is not officially supported by CloudFormation",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
         id: "W7001",
         category: Category::BestPractice,
         description: "Check if Mappings are Used",

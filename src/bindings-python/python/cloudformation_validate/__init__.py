@@ -8,7 +8,7 @@ Example:
     from cloudformation_validate import RegoEngine
 
     engine = RegoEngine()
-    report = engine.validate_standard("template.yaml")
+    report = engine.validate_template("template.yaml")
     for d in report.diagnostics:
         print(f"[{d.severity.name}] {d.rule_id}: {d.message}")
 """
@@ -31,9 +31,8 @@ from .bindings_python import (
     version,
 )
 from .diagnostics import (
-    DetailedDiagnostic,
-    DetailedReport,
     DetailLevel,
+    Diagnostic,
     Entity,
     PerformanceMetrics,
     PhaseMetric,
@@ -41,9 +40,8 @@ from .diagnostics import (
     ReportMetadata,
     ReportStatus,
     ResourceRef,
-    StandardDiagnostic,
-    StandardReport,
     Summary,
+    ValidationReport,
     ViolationContext,
 )
 from .rules import (
@@ -116,8 +114,7 @@ __all__ = [
     "ConditionalNull",
     "ConditionalNullEntry",
     "DetailLevel",
-    "DetailedDiagnostic",
-    "DetailedReport",
+    "Diagnostic",
     "DiagnosticCondition",
     "DiagnosticForEachExpansion",
     "DiagnosticImplication",
@@ -171,12 +168,11 @@ __all__ = [
     "ServiceFilter",
     "Severity",
     "SourceSpan",
-    "StandardDiagnostic",
-    "StandardReport",
     "Summary",
     "TemplateModel",
     "ValidateConfig",
     "ValidationError",
+    "ValidationReport",
     "ViolationContext",
     "file_to_additional_schema_source",
     "file_to_external_rule_source",
@@ -214,7 +210,7 @@ def file_to_external_rule_source(path: typing.Union[str, os.PathLike]) -> Extern
     """Reads a rule file into an :class:`ExternalRuleSource` for an engine's custom or Guard rules.
 
     The file path becomes the rule source name - the file-based counterpart to passing a
-    template path to :meth:`Engine.validate_standard`.
+    template path to :meth:`Engine.validate_template`.
     """
     resolved = os.fspath(path)
     with open(resolved, encoding="utf-8") as f:
@@ -324,15 +320,17 @@ class Engine:
             config if config is not None else EngineConfig(),
         )
 
-    def validate_standard(self, template: Template, config: typing.Optional[ValidateConfig] = None) -> StandardReport:
-        """Validates a template and returns a standard-detail report."""
-        content, path = _template_bytes(template)
-        return self._inner.validate_standard(content, config if config is not None else ValidateConfig(), path)
+    def validate_template(self, template: Template, config: typing.Optional[ValidateConfig] = None) -> ValidationReport:
+        """Validates a template and returns a :class:`ValidationReport`.
 
-    def validate_detailed(self, template: Template, config: typing.Optional[ValidateConfig] = None) -> DetailedReport:
-        """Validates a template and returns a detailed report with violation context."""
+        The amount of detail is controlled by ``config.detail_level`` (a
+        :class:`DetailLevel`), which defaults to :attr:`DetailLevel.DETAILED`. At
+        :attr:`DetailLevel.STANDARD` the enrichment fields -
+        violation context, rule description, and documentation URL - are left
+        unset; the report is otherwise identical.
+        """
         content, path = _template_bytes(template)
-        return self._inner.validate_detailed(content, config if config is not None else ValidateConfig(), path)
+        return self._inner.validate_template(content, config if config is not None else ValidateConfig(), path)
 
     def validate_aws_api_request(
         self, request: AwsApiRequest, config: typing.Optional[ValidateConfig] = None
@@ -420,6 +418,6 @@ class SchemaValidator:
     def schema_count(self) -> int:
         return self._inner.schema_count()
 
-    def validate(self, template: Template, region: typing.Optional[str] = None) -> typing.List[StandardDiagnostic]:
+    def validate(self, template: Template, region: typing.Optional[str] = None) -> typing.List[Diagnostic]:
         model = _PySemanticModel.parse(_template_bytes(template)[0])
         return self._inner.validate(model, region).diagnostics

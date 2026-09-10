@@ -7,6 +7,7 @@ violation contains make_diag_full("E3048", "ERROR", name,
     sprintf("Fargate requires NetworkMode 'awsvpc', got '%s'", [network_mode]),
     "Set NetworkMode to 'awsvpc'",
     "") if {
+    cfn_rule_active("E3048")
     some name in resources_of_type("AWS::ECS::TaskDefinition")
     some network_scenario in _fargate_property_scenarios(name, "Properties.NetworkMode")
     network_mode := network_scenario.value
@@ -20,6 +21,7 @@ violation contains make_diag_full("E3048", "ERROR", name,
     "Fargate requires NetworkMode to be specified as 'awsvpc'",
     "Set NetworkMode to 'awsvpc'",
     "") if {
+    cfn_rule_active("E3048")
     some name in resources_of_type("AWS::ECS::TaskDefinition")
     _fargate_property_missing(name, "NetworkMode")
 }
@@ -29,15 +31,21 @@ violation contains make_diag_full("E3048", "ERROR", name,
     "Fargate requires Cpu to be specified",
     "Set Cpu to a valid Fargate value (256, 512, 1024, 2048, 4096, 8192, 16384, or 32768)",
     "") if {
+    cfn_rule_active("E3048")
     some name in resources_of_type("AWS::ECS::TaskDefinition")
     _fargate_property_missing(name, "Cpu")
 }
 
 violation contains make_diag_full("E3048", "ERROR", name,
     "Properties.Cpu",
-    sprintf("Fargate Cpu value %s is not valid. Must be one of %s", [render_value(cpu), _fargate_cpu_list_str]),
-    "Use a valid Fargate Cpu value (256, 512, 1024, 2048, 4096, 8192, 16384, or 32768)",
+    sprintf("Fargate Cpu value %s is not valid. Valid sizes are %s CPU units or %s vCPU.", [
+        render_value(cpu),
+        _fargate_cpu_unit_list_str,
+        _fargate_vcpu_list_str,
+    ]),
+    "Use a valid Fargate Cpu size in CPU units or vCPU",
     "") if {
+    cfn_rule_active("E3048")
     some name in resources_of_type("AWS::ECS::TaskDefinition")
     some cpu_scenario in _fargate_property_scenarios(name, "Properties.Cpu")
     cpu := cpu_scenario.value
@@ -50,6 +58,7 @@ violation contains make_diag_full("E3048", "ERROR", name,
     "Fargate requires Memory to be specified",
     "Set Memory to a valid Fargate value",
     "") if {
+    cfn_rule_active("E3048")
     some name in resources_of_type("AWS::ECS::TaskDefinition")
     _fargate_property_missing(name, "Memory")
 }
@@ -59,6 +68,7 @@ violation contains make_diag_full("E3048", "ERROR", name,
     "Fargate does not support PlacementConstraints",
     "Remove PlacementConstraints for Fargate tasks",
     "") if {
+    cfn_rule_active("E3048")
     some name in resources_of_type("AWS::ECS::TaskDefinition")
     _fargate_placement_declared(name)
 }
@@ -68,6 +78,7 @@ violation contains make_diag_full("E3048", "ERROR", name,
     sprintf("Fargate does not support log driver '%s'. Supported drivers: %s", [driver_scenario.value, _fargate_log_drivers_str]),
     _fargate_log_driver_fix,
     "") if {
+    cfn_rule_active("E3048")
     some name in resources_of_type("AWS::ECS::TaskDefinition")
     some driver_scenario in _fargate_invalid_log_drivers(name)
 }
@@ -114,7 +125,8 @@ _fargate_property_scenarios(name, path) := {property_scenario |
     _scenario_conditions_compatible(name, compatibility_scenario.conditions, property_scenario.conditions)
 }
 
-_fargate_cpu_list_str := "['256', '512', '1024', '2048', '4096', '8192', '16384', '32768']"
+_fargate_cpu_unit_list_str := "['256', '512', '1024', '2048', '4096', '8192', '16384', '32768']"
+_fargate_vcpu_list_str := "['0.25', '0.5', '1', '2', '4', '8', '16', '32']"
 _fargate_log_drivers_str := sprintf("['%s']", [concat("', '", data.fargate_supported_log_drivers)])
 
 _fargate_log_driver_fix := sprintf("Use '%s'", [data.fargate_supported_log_drivers[0]]) if {

@@ -5,11 +5,11 @@ severity model documented in `product.md`.
 
 ## Summary
 
-- Total rules: **302**
-- By severity: Fatal=69, Error=148, Warn=63, Info=22
-- By true origin: CfnLint=203, Engine=29, Engine(collision)=1, Schema=69
-- By category: BestPractice=49, Deprecation=8, Intrinsic=52, Parameter=8, Reference=2, Resource=87, Schema=25, Security=14, Structure=57
-- cfn-lint reference: 322 rule IDs loaded
+- Total rules: **303**
+- By severity: Fatal=69, Error=148, Warn=64, Info=22
+- By true origin: CfnLint=204, Engine=29, Engine(collision)=1, Schema=69
+- By category: BestPractice=50, Deprecation=8, Intrinsic=52, Parameter=8, Reference=2, Resource=87, Schema=25, Security=14, Structure=57
+- cfn-lint reference: 323 rule IDs loaded
 - E→F promoted rules: 51
 - Engine-extra rules: 60
 
@@ -29,10 +29,11 @@ True origin is computed by checking cfn-lint source, not the registry's
 For non-Fatal CfnLint-origin rules, our description should align with
 cfn-lint's `shortdesc`. Fatal rules are exempt
 
-### Hard mismatches (3) - likely different rule
+### Hard mismatches (4) - likely different rule
 
 | ID | Sev | Sim | Our description | cfn-lint shortdesc |
 |----|-----|----:|------------------|--------------------|
+| `E3001` | Error | 0.00 | Basic CloudFormation Resource Check | SAM resource-level properties are ignored |
 | `E1022` | Error | 0.09 | Fn::Join requires a string delimiter and a list of strings or string-producing intrinsics | Join validation of parameters |
 | `E1024` | Error | 0.09 | Fn::Cidr requires a CIDR-format ipBlock string and integer count/cidrBits | Cidr validation of parameters |
 | `E1031` | Error | 0.09 | Fn::ToJsonString argument must be a non-empty array/object or a supported function | ToJsonString validation of parameters |
@@ -122,10 +123,10 @@ schema-validator extensions or Fatal schema rules).
 | `E3721` | Error | Validate ReplicaMode value for Oracle and Db2 engines | DbInstanceReplicaMode.py |
 | `E3722` | Error | Cookies Forward must be a valid enum when CachePolicyId is absent | DistributionCacheBehaviorForwardEnum.py |
 | `E3723` | Error | ResourcePath must start with / when method settings are configured | StageMethodSettingsResourcePath.py |
-| `E3724` | Error | Validate Globals section | GlobalsTransform.py |
+| `E3724` | Error | Validate Globals section and IgnoreGlobals entries | GlobalsTransform.py |
 | `W1034` | Warn | Validate the values that come from a Fn::FindInMap function | FindInMapResolved.py |
 | `W1036` | Warn | Validate the values that come from a Fn::GetAZs function | GetAzResolved.py |
-| `W2002` | Warn | Parameter type is not officially supported by CloudFormation | UnsupportedParameterType.py |
+| `W3001` | Warn | SAM resource-level properties are ignored | Configuration.py |
 | `W3699` | Warn | ReplicaMode is ignored for non-Oracle/Db2 engines | DbInstanceReplicaModeIgnored.py |
 | `W3700` | Warn | Non-standard Domain values are converted to vpc | EipDomain.py |
 | `W3701` | Warn | SSM Parameter Name should not use /aws/ or /ssm/ prefix | ParameterNamePrefix.py |
@@ -243,7 +244,7 @@ Same rule ID emitted with semantically different messages.
 **`E3048`** - registry: "Validate ECS Fargate tasks have required properties and values"
 
 - Cluster 1 (4 sites): "Fargate requires NetworkMode to be specified as 'awsvpc'"
-- Cluster 2 (1 sites): "Fargate Cpu value {} is not valid. Must be one of {}"
+- Cluster 2 (1 sites): "Fargate Cpu value {} is not valid. Valid sizes are {} CPU units or {} vCPU."
 - Cluster 3 (2 sites): "Fargate does not support PlacementConstraints"
 
 **`E3671`** - registry: "Validate block device mapping configuration"
@@ -303,7 +304,7 @@ with `cargo test -p cfn-validate --test engine_parity` for ground truth.
 
 **CEL only (2):** `E3023`, `E3510`
 
-_Scanned 257 CEL sites (195 IDs), 279 Rego sites (193 IDs)._
+_Scanned 259 CEL sites (196 IDs), 283 Rego sites (194 IDs)._
 
 ## Appendix: full rule inventory
 
@@ -561,6 +562,7 @@ _Scanned 257 CEL sites (195 IDs), 279 Rego sites (193 IDs)._
 | `W1102` | Warn | BestPractice | Engine | Engine | Invalid intrinsic function usage |
 | `W1103` | Warn | Intrinsic | Engine | Engine(collision) | Unknown intrinsic function name |
 | `W2001` | Warn | BestPractice | CfnLint | CfnLint | Check if Parameters are Used |
+| `W2002` | Warn | BestPractice | CfnLint | CfnLint | Parameter type is not officially supported by CloudFormation |
 | `W2010` | Warn | Security | CfnLint | CfnLint | NoEcho parameters are not masked when used in Metadata and Outputs |
 | `W2501` | Warn | Security | CfnLint | CfnLint | Check if Password Properties are correctly configured |
 | `W2502` | Warn | BestPractice | Engine | Engine | DependsOn conditional resource without matching condition |

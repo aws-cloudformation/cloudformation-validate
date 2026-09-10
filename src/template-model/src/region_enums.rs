@@ -18,7 +18,7 @@
 //!   a value is valid in a region only when it is in the intersection of every
 //!   matching branch's enum.
 
-use crate::message::render_str_list;
+use crate::message::{quote, render_str_list};
 use crate::model::SemanticModel;
 use crate::regions::AWS_REGIONS;
 use crate::resolved_value::resolved_value_at_path;
@@ -145,13 +145,46 @@ pub fn flat_invalid_message(value: &str, region: Option<&str>) -> String {
 
 /// Diagnostic message for a conditional RDS instance-class value that is not one
 /// of the allowed classes for the effective scope, rendering the candidate enum.
-/// With a region configured this is today's message verbatim; with none
-/// configured it states the value is one of none in any region.
+/// This compatibility helper preserves the original context-free wording for
+/// external callers; engine diagnostics use [`conditional_mismatch_message`].
 pub fn conditional_invalid_message(value: &str, allowed_sorted: &[String], region: Option<&str>) -> String {
     let rendered = render_str_list(allowed_sorted);
     match region {
         Some(region) => format!("'{value}' is not one of {rendered} in '{region}'"),
         None => format!("'{value}' is not one of {rendered} in any region"),
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ConditionalEnumMismatch {
+    allowed_values: Vec<String>,
+    property_constraints: Vec<(String, String)>,
+}
+
+#[derive(Clone, Debug)]
+struct ConditionalBranchEnum {
+    allowed_values: HashSet<String>,
+    property_constraints: Vec<(String, String)>,
+}
+
+/// Diagnostic message for a conditional instance-class mismatch. It names the
+/// resource properties whose values selected the failing enum branch so a class
+/// that is valid for another engine or license model is not described as globally invalid.
+pub fn conditional_mismatch_message(value: &str, mismatch: &ConditionalEnumMismatch, region: Option<&str>) -> String {
+    if mismatch.property_constraints.is_empty() {
+        return conditional_invalid_message(value, &mismatch.allowed_values, region);
+    }
+
+    let rendered_allowed = render_str_list(&mismatch.allowed_values);
+    let rendered_constraints = mismatch
+        .property_constraints
+        .iter()
+        .map(|(property, expected)| format!("{property} is {}", quote(expected)))
+        .collect::<Vec<_>>()
+        .join(" and ");
+    match region {
+        Some(region) => format!("'{value}' is not one of {rendered_allowed} when {rendered_constraints} in '{region}'"),
+        None => format!("'{value}' is not one of {rendered_allowed} when {rendered_constraints} in any region"),
     }
 }
 
@@ -161,17 +194,17 @@ pub fn conditional_invalid_message(value: &str, allowed_sorted: &[String], regio
 /// caller skips validation - a dynamic or unknown configured region is not
 /// validated, matching today's per-region lookup that returns `None` for a
 /// missing region.
-pub fn flat_allowed_values<'a>(
+pub fn flat_allowed_value_set<'a>(
     doc: &'a serde_json::Map<String, serde_json::Value>,
     region: Option<&str>,
-) -> Option<BTreeSet<&'a str>> {
+) -> Option<HashSet<&'a str>> {
     match region {
         Some(region) => {
             let values = doc.get(region)?.get("enum")?.as_array()?;
             Some(values.iter().filter_map(|v| v.as_str()).collect())
         }
         None => {
-            let mut union = BTreeSet::new();
+            let mut union = HashSet::new();
             for region in AWS_REGIONS {
                 if let Some(values) = doc.get(*region).and_then(|r| r.get("enum")).and_then(|e| e.as_array()) {
                     union.extend(values.iter().filter_map(|v| v.as_str()));
@@ -186,6 +219,14 @@ pub fn flat_allowed_values<'a>(
     }
 }
 
+/// Returns the same allowed values in deterministic order for callers that iterate them.
+pub fn flat_allowed_values<'a>(
+    doc: &'a serde_json::Map<String, serde_json::Value>,
+    region: Option<&str>,
+) -> Option<BTreeSet<&'a str>> {
+    flat_allowed_value_set(doc, region).map(|allowed| allowed.into_iter().collect())
+}
+
 /// For a conditional RDS document (`{ "<region>": { "allOf": [...] } }`), returns
 /// the sorted enum to render when `value` is invalid for the effective scope, or
 /// `None` when the value is valid or the document does not apply. `resolve_prop`
@@ -193,10 +234,9 @@ pub fn flat_allowed_values<'a>(
 /// branch `if.required` consts key on.
 ///
 /// With a region configured, this validates against that one region's
-/// matching-branch intersection (today's behavior). With no region configured, a
-/// value is valid when it is valid in *any* region, so it is flagged only when it
-/// fails in every region; the rendered enum is then the largest failing branch
-/// across all regions - the most informative candidate list.
+/// matching-branch intersection. With no region configured, a value is valid
+/// when it is valid in *any* region, so it is flagged only when it fails in every
+/// region; the rendered enum is then the largest failing branch across all regions.
 pub fn conditional_invalid_enum<F>(
     doc: &serde_json::Map<String, serde_json::Value>,
     region: Option<&str>,
@@ -208,25 +248,36 @@ pub fn conditional_invalid_enum<F>(
 where
     F: Fn(&str) -> Option<String>,
 {
+    conditional_enum_mismatch(doc, region, target_prop, normalize_engine_case, value, resolve_prop)
+        .map(|mismatch| mismatch.allowed_values)
+}
+
+/// Returns the failing enum branch together with the property constraints that
+/// selected it. A value that is valid under any region is accepted when no
+/// region is configured; otherwise the largest failing branch is returned.
+pub fn conditional_enum_mismatch<F>(
+    doc: &serde_json::Map<String, serde_json::Value>,
+    region: Option<&str>,
+    target_prop: &str,
+    normalize_engine_case: bool,
+    value: &str,
+    resolve_prop: F,
+) -> Option<ConditionalEnumMismatch>
+where
+    F: Fn(&str) -> Option<String>,
+{
     match region {
         Some(region) => {
             let region_doc = doc.get(region)?;
             let branch_enums = conditional_branch_enums(region_doc, target_prop, normalize_engine_case, &resolve_prop);
-            invalid_branch_enum(&branch_enums, value)
+            invalid_branch_mismatch(&branch_enums, value)
         }
         None => {
-            // Valid when valid in any region; flag only when invalid in every
-            // region. Collect each region's matching-branch enums, and treat the
-            // value as invalid only if no region has a matching branch that
-            // contains it. Report the largest branch enum the value is missing
-            // from, across all regions. If no region has a matching branch (no
-            // region key present, or a dynamic/unmatched Engine), the value is not
-            // validated - `had_matching_branch` stays false.
             let mut valid_somewhere = false;
             let mut had_matching_branch = false;
-            let mut failing_largest: Option<Vec<String>> = None;
-            for r in AWS_REGIONS {
-                let Some(region_doc) = doc.get(*r) else {
+            let mut failing_largest: Option<ConditionalEnumMismatch> = None;
+            for region in AWS_REGIONS {
+                let Some(region_doc) = doc.get(*region) else {
                     continue;
                 };
                 let branch_enums =
@@ -235,18 +286,18 @@ where
                     continue;
                 }
                 had_matching_branch = true;
-                if branch_enums.iter().all(|allowed| allowed.iter().any(|v| v == value)) {
+                if branch_enums.iter().all(|branch| branch.allowed_values.contains(value)) {
                     valid_somewhere = true;
                     break;
                 }
-                if let Some(sorted) = invalid_branch_enum(&branch_enums, value)
-                    && failing_largest.as_ref().is_none_or(|cur| sorted.len() > cur.len())
+                if let Some(mismatch) = invalid_branch_mismatch(&branch_enums, value)
+                    && failing_largest
+                        .as_ref()
+                        .is_none_or(|current| mismatch.allowed_values.len() > current.allowed_values.len())
                 {
-                    failing_largest = Some(sorted);
+                    failing_largest = Some(mismatch);
                 }
             }
-            // No region had a matching branch (dynamic/unmatched Engine) → not
-            // validated, exactly as the per-region path leaves it unvalidated.
             if !had_matching_branch || valid_somewhere {
                 return None;
             }
@@ -257,68 +308,86 @@ where
 
 /// Collects every `then.<target_prop>.enum` from a conditional region document
 /// whose `allOf` branch `if.required` consts all match the resolved properties.
-/// Returns one enum per matching branch (the whole schema is evaluated, so EVERY
-/// matching branch applies), or empty when no branch matches - so a resource with
-/// a dynamic or unmatched Engine is not validated. The `Engine` const is matched
-/// case-insensitively when `normalize_engine_case` is set.
+/// Each enum retains the const constraints that selected it because those values
+/// explain why an otherwise valid instance class is incompatible.
 fn conditional_branch_enums<F>(
     region_doc: &serde_json::Value,
     target_prop: &str,
     normalize_engine_case: bool,
     resolve_prop: &F,
-) -> Vec<HashSet<String>>
+) -> Vec<ConditionalBranchEnum>
 where
     F: Fn(&str) -> Option<String>,
 {
-    let mut enums = Vec::new();
-    let Some(branches) = region_doc.get("allOf").and_then(|v| v.as_array()) else {
-        return enums;
+    let mut matching_branches = Vec::new();
+    let Some(branches) = region_doc.get("allOf").and_then(|value| value.as_array()) else {
+        return matching_branches;
     };
     for branch in branches {
-        let (Some(required), Some(if_props)) = (
-            branch.get("if").and_then(|c| c.get("required")).and_then(|v| v.as_array()),
-            branch.get("if").and_then(|c| c.get("properties")).and_then(|v| v.as_object()),
+        let (Some(required), Some(if_properties)) = (
+            branch.get("if").and_then(|condition| condition.get("required")).and_then(|value| value.as_array()),
+            branch.get("if").and_then(|condition| condition.get("properties")).and_then(|value| value.as_object()),
         ) else {
             continue;
         };
-        let all_required_match = required.iter().filter_map(|r| r.as_str()).filter(|p| *p != target_prop).all(|prop| {
-            let Some(expected) = if_props.get(prop).and_then(|p| p.get("const")).and_then(|c| c.as_str()) else {
-                return false;
+
+        let mut property_constraints = Vec::new();
+        let mut all_required_match = true;
+        for property in required.iter().filter_map(|value| value.as_str()).filter(|property| *property != target_prop) {
+            let Some(expected) =
+                if_properties.get(property).and_then(|schema| schema.get("const")).and_then(|value| value.as_str())
+            else {
+                all_required_match = false;
+                break;
             };
-            let Some(actual) = resolve_prop(prop) else {
-                return false;
+            let Some(actual) = resolve_prop(property) else {
+                all_required_match = false;
+                break;
             };
-            if normalize_engine_case && prop == "Engine" {
+            let matches = if normalize_engine_case && property == "Engine" {
                 actual.eq_ignore_ascii_case(expected)
             } else {
                 actual == expected
+            };
+            if !matches {
+                all_required_match = false;
+                break;
             }
-        });
-        if all_required_match
-            && let Some(enum_vals) = branch
-                .get("then")
-                .and_then(|t| t.get("properties"))
-                .and_then(|p| p.get(target_prop))
-                .and_then(|d| d.get("enum"))
-                .and_then(|e| e.as_array())
-        {
-            enums.push(enum_vals.iter().filter_map(|v| v.as_str().map(String::from)).collect::<HashSet<String>>());
+            property_constraints.push((property.to_string(), expected.to_string()));
         }
+        if !all_required_match {
+            continue;
+        }
+        property_constraints.sort_unstable();
+
+        let Some(enum_values) = branch
+            .get("then")
+            .and_then(|then_schema| then_schema.get("properties"))
+            .and_then(|properties| properties.get(target_prop))
+            .and_then(|property_schema| property_schema.get("enum"))
+            .and_then(|value| value.as_array())
+        else {
+            continue;
+        };
+        matching_branches.push(ConditionalBranchEnum {
+            allowed_values: enum_values.iter().filter_map(|value| value.as_str().map(String::from)).collect(),
+            property_constraints,
+        });
     }
-    enums
+    matching_branches
 }
 
-/// The enum to render when `value` is not in the intersection of all matching
-/// branch enums: the largest branch enum missing the value. `None` when the value
-/// is in every branch (valid) or there are no matching branches.
-fn invalid_branch_enum(branch_enums: &[HashSet<String>], value: &str) -> Option<Vec<String>> {
+/// Returns the largest matching branch that excludes `value`, preserving the
+/// constraints that selected it. `None` means every matching branch accepts the
+/// value or no branch matched.
+fn invalid_branch_mismatch(branch_enums: &[ConditionalBranchEnum], value: &str) -> Option<ConditionalEnumMismatch> {
     let failing_largest = branch_enums
         .iter()
-        .filter(|allowed| !allowed.iter().any(|v| v == value))
-        .max_by_key(|allowed| allowed.len())?;
-    let mut sorted: Vec<String> = failing_largest.iter().cloned().collect();
-    sorted.sort();
-    Some(sorted)
+        .filter(|branch| !branch.allowed_values.contains(value))
+        .max_by_key(|branch| branch.allowed_values.len())?;
+    let mut allowed_values: Vec<String> = failing_largest.allowed_values.iter().cloned().collect();
+    allowed_values.sort();
+    Some(ConditionalEnumMismatch { allowed_values, property_constraints: failing_largest.property_constraints.clone() })
 }
 
 #[cfg(test)]
@@ -418,6 +487,52 @@ mod tests {
         assert!(invalid.is_some(), "db.bogus is valid in no region → flagged");
         let rendered = invalid.unwrap();
         assert!(rendered.contains(&"db.big".to_string()), "renders the largest failing branch across regions");
+    }
+
+    #[test]
+    fn conditional_message_names_the_engine_that_selected_the_enum() {
+        let doc = conditional_doc();
+        let engine = |property: &str| (property == "Engine").then(|| "MySQL".to_string());
+        let mismatch = conditional_enum_mismatch(&doc, None, "DBInstanceClass", true, "db.bogus", engine).unwrap();
+
+        assert_eq!(
+            conditional_mismatch_message("db.bogus", &mismatch, None),
+            "'db.bogus' is not one of ['db.big', 'db.small'] when Engine is 'mysql' in any region"
+        );
+    }
+
+    #[test]
+    fn conditional_message_includes_every_constraint_on_the_failing_branch() {
+        let doc = json!({
+            "us-east-1": {
+                "allOf": [{
+                    "if": {
+                        "required": ["Engine", "LicenseModel", "DBInstanceClass"],
+                        "properties": {
+                            "Engine": { "const": "oracle-se2" },
+                            "LicenseModel": { "const": "license-included" }
+                        }
+                    },
+                    "then": { "properties": { "DBInstanceClass": { "enum": ["db.allowed"] } } }
+                }]
+            }
+        })
+        .as_object()
+        .unwrap()
+        .clone();
+        let properties = |property: &str| match property {
+            "Engine" => Some("oracle-se2".to_string()),
+            "LicenseModel" => Some("license-included".to_string()),
+            _ => None,
+        };
+        let mismatch =
+            conditional_enum_mismatch(&doc, Some("us-east-1"), "DBInstanceClass", true, "db.bogus", properties)
+                .unwrap();
+
+        assert_eq!(
+            conditional_mismatch_message("db.bogus", &mismatch, Some("us-east-1")),
+            "'db.bogus' is not one of ['db.allowed'] when Engine is 'oracle-se2' and LicenseModel is 'license-included' in 'us-east-1'"
+        );
     }
 
     #[test]

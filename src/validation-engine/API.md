@@ -77,8 +77,9 @@ if let Some(report) = &result.report {
 bytes are validated without rewriting; `TemplateURL` is skipped because validation is offline. Every result includes
 an operation kind, validation status, optional template source, resource candidates, and reason. `Validated` means the
 modeled template reached the normal validation pipeline; `Skipped` has no report and explains why.
-`AwsApiRequestValidation` contains an `Option<StandardReport>` directly — detailed enrichment is not supported for
-synthesized API-request templates because there is no user-authored source to annotate with context.
+`AwsApiRequestValidation` carries an `Option<diagnostics::output::ValidationReport>` projected at the `STANDARD` detail
+level — detailed enrichment is not supported for synthesized API-request templates because there is no user-authored
+source to annotate with context.
 The `template` field carries the exact bytes that were validated — the caller's original `TemplateBody` without
 reserializing, or the synthesized JSON template for adapter-mapped requests — so consumers can display the modeled
 template that produced the diagnostics. It is `None` when the request was skipped.
@@ -272,8 +273,10 @@ report becomes `AnalysisIncomplete` when any exhausted budget has a `true` value
 Convert to output format:
 
 ```rust
-let standard = report.to_standard();  // StandardReport with StandardDiagnostic (flattened, no context)
-let detailed = report.to_detailed();  // DetailedReport with DetailedDiagnostic (includes context)
+// One serialized report model; the detail level controls whether the
+// per-diagnostic enrichment fields are populated.
+let standard = report.to_report(DetailLevel::Standard);  // diagnostics::output::ValidationReport, enrichment fields omitted
+let detailed = report.to_report(DetailLevel::Detailed);  // diagnostics::output::ValidationReport, enrichment fields populated
 ```
 
 Each `Diagnostic` contains:

@@ -359,6 +359,53 @@ export interface ReferenceEdge {
 }
 
 /**
+ * A single validation finding in the public report shape: the targeted entity is
+ * carried as a nested `entity` struct and the source location is flattened into
+ * individual line/column fields. The enrichment fields - `documentation_url`,
+ * `rule_description`, `phase`, and `context` - are carried only when a report is
+ * projected at the `DETAILED` detail level; the `STANDARD` detail level leaves them
+ * `None`, so they are omitted from serialization.
+ */
+export interface Diagnostic {
+    /**
+     * Identifier of the rule that produced this finding; its leading letter encodes the severity.
+     */
+    ruleId: string;
+    severity: Severity;
+    message: string;
+    /**
+     * Where the rule came from, such as a provider schema, the built-in engine, or a user-supplied rule.
+     */
+    source: RuleOrigin;
+    /**
+     * The named template entity this finding targets - a resource, parameter, output, mapping, condition, or template rule - if any.
+     */
+    entity?: Entity;
+    /**
+     * Path to the offending property within the resource, such as \'Properties.Name\'.
+     */
+    propertyPath?: string;
+    suggestedFix?: string;
+    category?: string;
+    /**
+     * Line in the source template where the finding begins (1-based).
+     */
+    startLine?: number;
+    startColumn?: number;
+    endLine?: number;
+    endColumn?: number;
+    relatedResources?: RelatedResource[];
+    /**
+     * Condition name to boolean assignment under which this finding applies, when it depends on template conditions.
+     */
+    conditionScenario?: Record<string, boolean>;
+    documentationUrl?: string;
+    ruleDescription?: string;
+    phase?: Phase;
+    context?: ViolationContext;
+}
+
+/**
  * A template Parameter\'s declaration: its type, constraints (allowed values/pattern,
  * length and value bounds), default, and description.
  */
@@ -645,19 +692,7 @@ export interface SchemaValidatorConfig {
 export type DetailLevel = 'STANDARD' | 'DETAILED';
 
 /**
- * Detailed validation result: like the standard report but with per-diagnostic context and enrichment.
- */
-export interface DetailedReport {
-    filePath: string;
-    status: ReportStatus;
-    version: string;
-    metadata: ReportMetadata;
-    performance: PerformanceMetrics;
-    diagnostics: DetailedDiagnostic[];
-}
-
-/**
- * Extra detail about a specific violation, present only in the detailed report.
+ * Extra detail about a specific violation, present only at the `DETAILED` detail level.
  */
 export interface ViolationContext {
     /**
@@ -791,18 +826,6 @@ export interface ResolutionSource {
 export type EngineType = 'REGO' | 'CEL';
 
 /**
- * Standard validation result: the report plus flattened diagnostics.
- */
-export interface StandardReport {
-    filePath: string;
-    status: ReportStatus;
-    version: string;
-    metadata: ReportMetadata;
-    performance: PerformanceMetrics;
-    diagnostics: StandardDiagnostic[];
-}
-
-/**
  * Suppress a rule for a specific logical resource ID. An absent `rule_id`
  * scopes the filter to every rule on that resource.
  */
@@ -886,6 +909,20 @@ export interface Entity {
 }
 
 /**
+ * The serializable validation result: report metadata, performance metrics, and
+ * the flattened diagnostics. The per-diagnostic enrichment fields are present only
+ * when the report is projected at the `DETAILED` detail level.
+ */
+export interface ValidationReport {
+    filePath: string;
+    status: ReportStatus;
+    version: string;
+    metadata: ReportMetadata;
+    performance: PerformanceMetrics;
+    diagnostics: Diagnostic[];
+}
+
+/**
  * The template resource a diagnostic is attributed to, when it targets one.
  */
 export interface ResourceRef {
@@ -965,86 +1002,6 @@ export interface PseudoParameterOverrides {
  */
 export type RuleOrigin = 'SCHEMA' | 'CFN_LINT' | 'ENGINE' | 'CUSTOM' | 'GUARD';
 
-/**
- *r" A single validation finding with its source location flattened into individual fields.
- */
-export interface StandardDiagnostic {
-    /**
-     * Identifier of the rule that produced this finding; its leading letter encodes the severity.
-     */
-    ruleId: string;
-    severity: Severity;
-    message: string;
-    /**
-     * Where the rule came from, such as a provider schema, the built-in engine, or a user-supplied rule.
-     */
-    source: RuleOrigin;
-    /**
-     * The named template entity this finding targets - a resource, parameter, output, mapping, condition, or template rule - if any.
-     */
-    entity?: Entity;
-    /**
-     * Path to the offending property within the resource, such as \'Properties.Name\'.
-     */
-    propertyPath?: string;
-    suggestedFix?: string;
-    category?: string;
-    /**
-     * Line in the source template where the finding begins (1-based).
-     */
-    startLine?: number;
-    startColumn?: number;
-    endLine?: number;
-    endColumn?: number;
-    relatedResources?: RelatedResource[];
-    /**
-     * Condition name to boolean assignment under which this finding applies, when it depends on template conditions.
-     */
-    conditionScenario?: Record<string, boolean>;
-}
-
-/**
- *r" A validation finding with additional context and enrichment beyond the standard finding.
- */
-export interface DetailedDiagnostic {
-    /**
-     * Identifier of the rule that produced this finding; its leading letter encodes the severity.
-     */
-    ruleId: string;
-    severity: Severity;
-    message: string;
-    /**
-     * Where the rule came from, such as a provider schema, the built-in engine, or a user-supplied rule.
-     */
-    source: RuleOrigin;
-    /**
-     * The named template entity this finding targets - a resource, parameter, output, mapping, condition, or template rule - if any.
-     */
-    entity?: Entity;
-    /**
-     * Path to the offending property within the resource, such as \'Properties.Name\'.
-     */
-    propertyPath?: string;
-    suggestedFix?: string;
-    category?: string;
-    /**
-     * Line in the source template where the finding begins (1-based).
-     */
-    startLine?: number;
-    startColumn?: number;
-    endLine?: number;
-    endColumn?: number;
-    relatedResources?: RelatedResource[];
-    /**
-     * Condition name to boolean assignment under which this finding applies, when it depends on template conditions.
-     */
-    conditionScenario?: Record<string, boolean>;
-    documentationUrl?: string;
-    ruleDescription?: string;
-    phase?: Phase;
-    context?: ViolationContext;
-}
-
 export interface EngineConfig {
     /**
      * Engine-native custom rules (Rego or CEL depending on engine).
@@ -1116,6 +1073,7 @@ export interface Summary {
 export interface ValidateConfig {
     include?: RuleFilterConfig;
     exclude?: RuleFilterConfig;
+    detailLevel?: DetailLevel;
     severityLevel?: Severity;
     parameterOverrides?: Record<string, string>;
     pseudoParameterOverrides?: PseudoParameterOverrides;
@@ -1124,7 +1082,7 @@ export interface ValidateConfig {
 }
 
 export interface WasmSchemaValidationResult {
-    diagnostics: StandardDiagnostic[];
+    diagnostics: Diagnostic[];
     metric: PhaseMetric;
 }
 
@@ -1136,8 +1094,7 @@ export class WasmCelEngine {
     engineName(): string;
     listRules(): any;
     constructor(config: EngineConfig);
-    validateDetailed(template: Uint8Array, options: ValidateConfig, file_path: string): any;
-    validateStandard(template: Uint8Array, options: ValidateConfig, file_path: string): any;
+    validateTemplate(template: Uint8Array, options: ValidateConfig, file_path: string): any;
 }
 
 export class WasmRegoEngine {
@@ -1146,8 +1103,7 @@ export class WasmRegoEngine {
     engineName(): string;
     listRules(): any;
     constructor(config: EngineConfig);
-    validateDetailed(template: Uint8Array, options: ValidateConfig, file_path: string): any;
-    validateStandard(template: Uint8Array, options: ValidateConfig, file_path: string): any;
+    validateTemplate(template: Uint8Array, options: ValidateConfig, file_path: string): any;
 }
 
 export class WasmSchemaValidator {

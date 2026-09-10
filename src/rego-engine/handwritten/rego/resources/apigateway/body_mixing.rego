@@ -17,6 +17,7 @@ _apigw_body_property(api_id) := "BodyS3Location" if {
 violation contains make_diag_at("W3660", "WARN", api_id,
     sprintf("Properties.%s", [property]),
     sprintf("Defining '%s' with a relation to resource '%s' of type '%s' may result in drift and orphaned resources", [property, name, rtype])) if {
+    cfn_rule_active("W3660")
     some rtype in _apigw_mixing_types
     some name in resources_of_type(rtype)
     api_id := follow_ref(name, "Properties.RestApiId")

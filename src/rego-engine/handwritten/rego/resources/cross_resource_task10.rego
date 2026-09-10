@@ -10,6 +10,7 @@ import rego.v1
 violation contains make_diag_at("E3706", "ERROR", name,
     "Properties.MaxSize",
     sprintf("%s is less than the minimum of %d", [render_value(max_raw), min_num])) if {
+    cfn_rule_active("E3706")
     some name in resources_of_type("AWS::AutoScaling::AutoScalingGroup")
     max_raw := resolve(name, "Properties.MaxSize")
     min_num := coerce_to_number(resolve(name, "Properties.MinSize"))
@@ -21,6 +22,7 @@ violation contains make_diag_at("E3706", "ERROR", name,
 violation contains make_diag_at("E3676", "ERROR", name,
     "Properties.Certificates",
     sprintf("%s listener requires Certificates", [proto])) if {
+    cfn_rule_active("E3676")
     some name in resources_of_type("AWS::ElasticLoadBalancingV2::Listener")
     proto := resolve(name, "Properties.Protocol")
     proto in data.load_balancer_v2_certificate_protocols
@@ -31,6 +33,7 @@ violation contains make_diag_at("E3676", "ERROR", name,
 violation contains make_diag_at("E3663", "ERROR", name,
     "Properties.Environment.Variables",
     sprintf("Environment variable '%s' is a Lambda reserved key", [key])) if {
+    cfn_rule_active("E3663")
     some name in resources_of_type("AWS::Lambda::Function")
     env := resolve(name, "Properties.Environment.Variables")
     is_object(env)
@@ -45,6 +48,7 @@ violation contains make_diag_at("E3663", "ERROR", name,
 violation contains make_diag_at("E3685", "ERROR", name,
     sprintf("Properties.%s", [first_prop]),
     "Container image functions cannot specify Handler, Runtime, or Layers properties") if {
+    cfn_rule_active("E3685")
     some name in resources_of_type("AWS::Lambda::Function")
     resolve(name, "Properties.PackageType") == "Image"
     present := [p | some p in data.lambda_image_excluded_properties; has_property(name, p)]
@@ -56,6 +60,7 @@ violation contains make_diag_at("E3685", "ERROR", name,
 violation contains make_diag_at("E3660", "ERROR", name,
     "Properties.Name",
     "'Name' is required when 'Body' or 'BodyS3Location' is not provided") if {
+    cfn_rule_active("E3660")
     some name in resources_of_type("AWS::ApiGateway::RestApi")
     not has_property(name, "Body")
     not has_property(name, "BodyS3Location")
@@ -66,6 +71,7 @@ violation contains make_diag_at("E3660", "ERROR", name,
 violation contains make_diag_at("E3704", "ERROR", name,
     "Properties.TransitEncryptionEnabled",
     "TransitEncryptionEnabled must be explicitly set when Engine is 'valkey'") if {
+    cfn_rule_active("E3704")
     some name in resources_of_type("AWS::ElastiCache::ReplicationGroup")
     resolve(name, "Properties.Engine") == "valkey"
     not has_property(name, "TransitEncryptionEnabled")
@@ -75,6 +81,7 @@ violation contains make_diag_at("E3704", "ERROR", name,
 violation contains make_diag_at("E3680", "ERROR", name,
     "Properties.Subnets",
     "Application load balancer requires at least 2 subnets") if {
+    cfn_rule_active("E3680")
     some name in resources_of_type("AWS::ElasticLoadBalancingV2::LoadBalancer")
     lb_type := object.get(input.resources[name], "resourceType", "application")
     lb_type in {"application", ""}

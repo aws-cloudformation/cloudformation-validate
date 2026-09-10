@@ -19,6 +19,7 @@ _w3002_checks contains {"type": rtype, "path": prop_path} if {
 violation contains make_diag_at("W3002", "WARN", name,
     check.path,
     "This code may only work with 'package' cli command") if {
+    cfn_rule_active("W3002")
     not has_transform("AWS::Serverless-2016-10-31")
     some check in _w3002_checks
     some name in resources_of_type(check.type)

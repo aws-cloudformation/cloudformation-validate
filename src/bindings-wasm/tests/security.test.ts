@@ -36,9 +36,9 @@ function validateInWorker(engineName: string, templatePath: string): Promise<Wor
         const Engine = workerData.engineName === 'rego' ? RegoEngine : CelEngine;
         const engine = new Engine();
         try {
-            const report = engine.validateDetailed(
+            const report = engine.validateTemplate(
                 new TemplateFile(workerData.templatePath),
-                { severityLevel: 'DEBUG' },
+                { severityLevel: 'DEBUG', detailLevel: 'DETAILED' },
             );
             parentPort.postMessage({
                 ok: true,

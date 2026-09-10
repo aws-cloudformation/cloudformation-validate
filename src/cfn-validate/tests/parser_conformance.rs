@@ -147,7 +147,7 @@ fn push_indent(out: &mut String, indent: usize) {
     }
 }
 
-/// Validates `bytes` at detailed level and returns the diagnostics as a
+/// Validates `bytes` at the `DETAILED` detail level and returns the diagnostics as a
 /// location-independent, order-independent multiset: each diagnostic is a JSON
 /// object with its source-location fields removed, and the collection is sorted so
 /// two runs can be compared directly.
@@ -156,7 +156,7 @@ fn diagnostic_multiset(engine: &dyn ValidationEngine, bytes: &[u8], path: &str) 
     let config =
         ValidateConfig { detail_level: DetailLevel::Detailed, severity_level: Severity::Debug, ..Default::default() };
     let report = validate_bytes_with_path(engine, &sv, bytes, config, path.to_string()).expect("validate");
-    let detailed = serde_json::to_value(report.to_detailed()).expect("serialize detailed report");
+    let detailed = serde_json::to_value(report.to_report(DetailLevel::Detailed)).expect("serialize report");
 
     let mut diagnostics: Vec<Value> = detailed
         .get("diagnostics")

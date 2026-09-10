@@ -8,11 +8,12 @@ compile time. Everything compiles into the binary - no runtime fetching.
 ## Commands
 
 ```bash
-# Generate schema and rule artifacts from existing upstream data
-cargo run -p data-source --features maintenance --example generate
+# Generate from existing upstream data
+cargo run -p cloudformation-validate-data-source --features maintenance --example generate
 
-# Refresh every upstream source and generate every output, including the AWS API operation catalog
-cargo run -p data-source --features maintenance --example sync -- \
+# Refresh all upstream sources, then generate every output including the AWS API operation catalog
+# (cfn-lint root and AWS CLI root are required)
+cargo run -p cloudformation-validate-data-source --features maintenance --example sync -- \
   --cfn-lint-root <DIR> \
   --aws-cli-root <DIR>
 ```

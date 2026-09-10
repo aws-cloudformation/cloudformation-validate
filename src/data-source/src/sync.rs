@@ -72,7 +72,7 @@ fn clear_cache_directory(cache_directory: &Path) -> anyhow::Result<()> {
 
 fn print_usage() {
     eprintln!(
-        "Usage: cargo run -p data-source --features maintenance --example sync -- --cfn-lint-root <DIR> --aws-cli-root <DIR>
+        "Usage: cargo run -p cloudformation-validate-data-source --features maintenance --example sync -- --cfn-lint-root <DIR> --aws-cli-root <DIR>
 
 Refreshes all upstream sources, records their versions, generates every output,
 and rebuilds the AWS API operation catalog.

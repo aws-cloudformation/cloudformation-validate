@@ -516,7 +516,7 @@ const GOOD_FIXTURES_WITH_EXPECTED_ERRORS: &[&str] = &[
 ];
 
 /// Fixtures in the exception list have exact Fatal/Error diagnostics protected
-/// by golden tests; this complementary guard covers templates expected clean.
+/// by snapshot tests; this complementary guard covers templates expected clean.
 #[test]
 fn good_templates_without_expected_errors_are_clean() {
     let sv = SchemaValidator::default();

@@ -23,7 +23,7 @@ import { RegoEngine, TemplateFile } from "@aws/cloudformation-validate";
 
 const engine = new RegoEngine();
 try {
-    const report = engine.validateStandard(new TemplateFile("template.yaml"));
+    const report = engine.validateTemplate(new TemplateFile("template.yaml"));
     for (const d of report.diagnostics) {
         console.log(`[${d.severity}] ${d.ruleId}: ${d.message}`);
     }
@@ -33,7 +33,7 @@ try {
 ```
 
 Each diagnostic identifies the rule, severity, affected resource and property, and source location - see
-[StandardDiagnostic](#standarddiagnostic). A complete, runnable project is in
+[Diagnostic](#diagnostic). A complete, runnable project is in
 [examples](https://github.com/aws-cloudformation/cloudformation-validate/tree/main/src/bindings-wasm/examples).
 
 ## Engine
@@ -43,14 +43,13 @@ diagnostics for the same template and config.
 
 ### `Engine` interface
 
-| Method                                | Returns          | Description                                                                                                      |
-|---------------------------------------|------------------|------------------------------------------------------------------------------------------------------------------|
-| `validateStandard(template, config?)`      | `StandardReport`            | Validates and returns diagnostics without extended context                                                       |
-| `validateDetailed(template, config?)`      | `DetailedReport`            | Validates and returns diagnostics with documentation URLs, rule descriptions, phase tags, and `ViolationContext` |
-| `validateAwsApiRequest(request, config?)`  | `AwsApiRequestValidation`   | Classifies, models, and validates one AWS API request entirely offline                                            |
-| `listRules()`                              | `RuleInfo[]`                 | Returns metadata for every built-in and loaded custom rule                                                       |
-| `engineName()`                             | `string`                     | `"rego"` or `"cel"`                                                                                              |
-| `free()`                                   | `void`                       | Releases the engine's off-heap memory                                                                            |
+| Method                                    | Returns                   | Description                                                                                                      |
+|-------------------------------------------|---------------------------|------------------------------------------------------------------------------------------------------------------|
+| `validateTemplate(template, config?)`     | `ValidationReport`        | Validates and returns diagnostics. `config.detailLevel` (default `DETAILED`) sets how much per-diagnostic context is attached: `DETAILED` adds documentation URLs, rule descriptions, phase tags, and `ViolationContext`; `STANDARD` omits those enrichment fields |
+| `validateAwsApiRequest(request, config?)` | `AwsApiRequestValidation` | Classifies, models, and validates one AWS API request entirely offline                                           |
+| `listRules()`                             | `RuleInfo[]`              | Returns metadata for every built-in and loaded custom rule                                                       |
+| `engineName()`                            | `string`                  | `"rego"` or `"cel"`                                                                                              |
+| `free()`                                  | `void`                    | Releases the engine's off-heap memory                                                                            |
 
 ### `EngineConfig`
 
@@ -155,6 +154,7 @@ Controls filtering, severity, parameter overrides, and behavior. All fields opti
 interface ValidateConfig {
     include?: RuleFilterConfig;
     exclude?: RuleFilterConfig;
+    detailLevel?: DetailLevel;
     severityLevel?: Severity;
     parameterOverrides?: Record<string, string>;
     pseudoParameterOverrides?: PseudoParameterOverrides;
@@ -167,6 +167,7 @@ interface ValidateConfig {
 |----------------------------|-------------------------|--------------------------------------------------------------------------------------------------------------------------|
 | `include`                  | `{}` (all rules)        | When set, only matching rules produce diagnostics. Empty means include everything.                                       |
 | `exclude`                  | `{}` (nothing excluded) | Matching rules are suppressed. Applied after `include`.                                                                  |
+| `detailLevel`              | `"DETAILED"`            | Per-diagnostic detail attached to findings. `"DETAILED"` adds documentation URLs, rule descriptions, phase tags, and `ViolationContext`; `"STANDARD"` omits those enrichment fields. Values: `DETAILED`, `STANDARD`. |
 | `severityLevel`            | `"INFO"`                | Minimum severity threshold. Diagnostics below this level are dropped. Values: `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`. |
 | `parameterOverrides`       | `{}`                    | Override template parameter values during resolution. Keys are parameter logical IDs.                                    |
 | `pseudoParameterOverrides` | all `undefined`         | Override CloudFormation pseudo-parameters (`AWS::AccountId`, `AWS::Region`, etc.).                                       |
@@ -265,39 +266,42 @@ validator.free();
 
 | Method                        | Returns                | Description                                             |
 |-------------------------------|------------------------|---------------------------------------------------------|
-| `validate(template, region?)` | `StandardDiagnostic[]` | Schema diagnostics. `region` defaults to `"us-east-1"`. |
+| `validate(template, region?)` | `Diagnostic[]` | Schema diagnostics at standard detail - the enrichment fields are omitted. `region` defaults to `"us-east-1"`. |
 | `listRules()`                 | `RuleInfo[]`           | Schema rule metadata                                    |
 | `schemaCount()`               | `number`               | Number of compiled provider schemas                     |
 | `free()`                      | `void`                 | Releases WASM memory                                    |
 
 ## Report Types
 
-### StandardReport / DetailedReport
+### ValidationReport
+
+`validateTemplate` always returns a `ValidationReport`:
 
 ```typescript
-interface StandardReport {
+interface ValidationReport {
     filePath: string;
     status: "OK" | "ANALYSIS_INCOMPLETE" | "ERROR"; // ERROR is a pipeline failure; ANALYSIS_INCOMPLETE may omit findings
     version: string;
     metadata: ReportMetadata;
     performance: PerformanceMetrics;
-    diagnostics: StandardDiagnostic[];
+    diagnostics: Diagnostic[];
 }
 ```
 
-`DetailedReport` has the same structure but its diagnostics include additional fields: `documentationUrl`,
-`ruleDescription`, `phase` (`PARSE` | `SCHEMA` | `LINT`), and `context` (`ViolationContext` with
-`actualValue`, `expectedConstraint`, `resolutionSource`, etc.).
+Every finding is a `Diagnostic` (see [Diagnostic](#diagnostic)). Its enrichment fields -
+`documentationUrl`, `ruleDescription`, `phase` (`PARSE` | `SCHEMA` | `LINT`), and `context` (`ViolationContext` with
+`actualValue`, `expectedConstraint`, `resolutionSource`, etc.) - are populated only at `detailLevel: "DETAILED"` (the
+default); validating with `detailLevel: "STANDARD"` omits them, leaving the base diagnostic fields.
 
 Each optional budget-exhaustion record retains a stable machine-readable kind and also includes a
 human-readable description sentence, the numeric limit, and whether that specific exhaustion makes analysis
 incomplete. `requiredPropertyCombinations` is context-only, so its `analysisIncomplete` value is `false` and the
 report can remain `"OK"`.
 
-### StandardDiagnostic
+### Diagnostic
 
 ```typescript
-interface StandardDiagnostic {
+interface Diagnostic {
     ruleId: string;                    // e.g. "E3012", "F1001", "W3010"
     severity: Severity;                // "FATAL" | "ERROR" | "WARN" | "INFO" | "DEBUG"
     message: string;
@@ -312,6 +316,11 @@ interface StandardDiagnostic {
     endColumn?: number;
     relatedResources?: RelatedResource[];
     conditionScenario?: Record<string, boolean>;  // condition truth assignment that triggers this diagnostic
+    // Enrichment fields: present at detailLevel "DETAILED" (the default), omitted at "STANDARD".
+    documentationUrl?: string;
+    ruleDescription?: string;
+    phase?: "PARSE" | "SCHEMA" | "LINT";           // pipeline stage that produced the finding
+    context?: ViolationContext;                    // actualValue, expectedConstraint, resolutionSource, etc.
 }
 
 // The named template entity a diagnostic is attributed to. The entity type is the
