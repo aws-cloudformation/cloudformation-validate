@@ -5050,6 +5050,13 @@
         "format": "date-time",
         "description": "The timestamp when the registry record was created."
       },
+      "CreatedBy": {
+        "type": "string",
+        "pattern": "^[0-9]{12}$",
+        "min_length": 12,
+        "max_length": 12,
+        "description": "The identifier of the AWS account that created the registry record."
+      },
       "Description": {
         "type": "string",
         "min_length": 1,
@@ -5143,6 +5150,16 @@
           },
           "Source": {
             "ref_name": "DescriptorSource"
+          }
+        },
+        "additional_properties": false
+      },
+      "AgUiDescriptor": {
+        "type": "object",
+        "description": "The AG-UI (Agent-User Interaction) descriptor, populated for records detected from an AG-UI protocol source. This descriptor is source-only: its content is synchronized from the configured source URL rather than supplied inline.",
+        "properties": {
+          "Source": {
+            "ref_name": "SourceOnlyDescriptorSource"
           }
         },
         "additional_properties": false
@@ -5256,11 +5273,27 @@
           "AgentSkillsDefinition": {
             "ref_name": "AgentSkillsDefinitionDescriptor"
           },
+          "Agui": {
+            "ref_name": "AgUiDescriptor"
+          },
           "Custom": {
             "ref_name": "CustomDescriptor"
           },
+          "Http": {
+            "ref_name": "HttpDescriptor"
+          },
           "McpServer": {
             "ref_name": "McpServerDescriptor"
+          }
+        },
+        "additional_properties": false
+      },
+      "HttpDescriptor": {
+        "type": "object",
+        "description": "The HTTP descriptor, populated for records detected from an HTTP protocol source. This descriptor is source-only: its content is synchronized from the configured source URL rather than supplied inline.",
+        "properties": {
+          "Source": {
+            "ref_name": "SourceOnlyDescriptorSource"
           }
         },
         "additional_properties": false
@@ -5319,7 +5352,8 @@
           "MCP",
           "AGENT",
           "SKILL",
-          "CUSTOM"
+          "CUSTOM",
+          "GATEWAY"
         ],
         "description": "The type of the registry record."
       },
@@ -5468,6 +5502,33 @@
         ],
         "additional_properties": false
       },
+      "SourceOnlyDescriptorSource": {
+        "type": "object",
+        "description": "Source configuration for a source-only descriptor. Unlike mcpServer/a2aAgentCard sources, source-only descriptors do not support credential providers.",
+        "properties": {
+          "FromUrl": {
+            "ref_name": "SourceOnlyDescriptorSourceFromUrl"
+          }
+        },
+        "additional_properties": false
+      },
+      "SourceOnlyDescriptorSourceFromUrl": {
+        "type": "object",
+        "description": "URL-based source configuration for a source-only descriptor.",
+        "properties": {
+          "Url": {
+            "type": "string",
+            "pattern": "^https://.*$",
+            "min_length": 1,
+            "max_length": 2048,
+            "description": "URL source for descriptor content."
+          }
+        },
+        "required": [
+          "Url"
+        ],
+        "additional_properties": false
+      },
       "Tag": {
         "type": "object",
         "description": "A tag to assign to the registry record.",
@@ -5506,7 +5567,8 @@
       "RegistryArn",
       "Status",
       "CreatedAt",
-      "UpdatedAt"
+      "UpdatedAt",
+      "CreatedBy"
     ],
     "write_only_properties": [
       "RegistryId"
@@ -103449,49 +103511,69 @@
     "type_name": "AWS::DMS::ReplicationTask",
     "properties": {
       "CdcStartPosition": {
-        "type": "string"
+        "type": "string",
+        "description": "Indicates when you want a change data capture (CDC) operation to start. Use either CdcStartPosition or CdcStartTime to specify when you want a CDC operation to start. Specifying both values results in an error."
       },
       "CdcStartTime": {
-        "type": "number"
+        "type": "number",
+        "description": "Indicates the start time for a change data capture (CDC) operation. Use either CdcStartTime or CdcStartPosition to specify when you want a CDC operation to start. Specifying both values results in an error."
       },
       "CdcStopPosition": {
-        "type": "string"
-      },
-      "Id": {
-        "type": "string"
+        "type": "string",
+        "description": "Indicates when you want a change data capture (CDC) operation to stop. The value can be either server time or commit time."
       },
       "MigrationType": {
-        "type": "string"
+        "type": "string",
+        "enum": [
+          "full-load",
+          "cdc",
+          "full-load-and-cdc"
+        ],
+        "description": "The migration type."
       },
       "ReplicationInstanceArn": {
-        "type": "string"
+        "type": "string",
+        "description": "The Amazon Resource Name (ARN) of a replication instance."
+      },
+      "ReplicationTaskArn": {
+        "type": "string",
+        "description": "The ARN of the ReplicationTask. Also serves the purpise of Primary Identifier."
       },
       "ReplicationTaskIdentifier": {
-        "type": "string"
+        "type": "string",
+        "pattern": "^[a-zA-Z][a-zA-Z0-9]*(?:-[a-zA-Z0-9]+)*$",
+        "description": "An identifier for the replication task."
       },
       "ReplicationTaskSettings": {
-        "type": "string"
+        "type": "string",
+        "description": "Overall settings for the task, in JSON format"
       },
       "ResourceIdentifier": {
-        "type": "string"
+        "type": "string",
+        "description": "A friendly name for the resource identifier at the end of the EndpointArn response parameter that is returned in the created Endpoint object."
       },
       "SourceEndpointArn": {
-        "type": "string"
+        "type": "string",
+        "description": "An Amazon Resource Name (ARN) that uniquely identifies the source endpoint."
       },
       "TableMappings": {
-        "type": "string"
+        "type": "string",
+        "description": "The table mappings for the task, in JSON format."
       },
       "Tags": {
         "type": "array",
+        "unique_items": true,
         "items": {
           "ref_name": "Tag"
         }
       },
       "TargetEndpointArn": {
-        "type": "string"
+        "type": "string",
+        "description": "An Amazon Resource Name (ARN) that uniquely identifies the target endpoint."
       },
       "TaskData": {
-        "type": "string"
+        "type": "string",
+        "description": "Supplemental information that the task requires to migrate the data for certain source and target endpoints."
       }
     },
     "definitions": {
@@ -103499,10 +103581,12 @@
         "type": "object",
         "properties": {
           "Key": {
-            "type": "string"
+            "type": "string",
+            "description": "Tag key"
           },
           "Value": {
-            "type": "string"
+            "type": "string",
+            "description": "Tag value"
           }
         },
         "required": [
@@ -103521,16 +103605,20 @@
     ],
     "additional_properties": false,
     "read_only_properties": [
-      "Id"
+      "ReplicationTaskArn"
+    ],
+    "write_only_properties": [
+      "CdcStartTime"
     ],
     "create_only_properties": [
       "ResourceIdentifier",
       "TargetEndpointArn",
       "ReplicationInstanceArn",
-      "SourceEndpointArn"
+      "SourceEndpointArn",
+      "MigrationType"
     ],
     "primary_identifier": [
-      "Id"
+      "ReplicationTaskArn"
     ],
     "description": "Resource Type definition for AWS::DMS::ReplicationTask"
   },
@@ -165027,10 +165115,16 @@
     "properties": {
       "BackupId": {
         "type": "string",
+        "pattern": "^(backup-[0-9a-f]{8,})$",
+        "min_length": 12,
+        "max_length": 128,
         "description": "Specifies the ID of the volume backup to use to create a new volume."
       },
       "Name": {
         "type": "string",
+        "pattern": "^[^\\u0000\\u0085\\u2028\\u2029\\r\\n]{1,203}$",
+        "min_length": 1,
+        "max_length": 203,
         "description": "The name of the volume."
       },
       "OntapConfiguration": {
@@ -165045,6 +165139,8 @@
       },
       "Tags": {
         "type": "array",
+        "min_items": 1,
+        "max_items": 50,
         "description": "One or more tags.",
         "items": {
           "ref_name": "Tag"
@@ -165060,6 +165156,10 @@
       },
       "VolumeType": {
         "type": "string",
+        "enum": [
+          "ONTAP",
+          "OPENZFS"
+        ],
         "description": "The type of the volume."
       }
     },
@@ -165069,13 +165169,20 @@
         "properties": {
           "Aggregates": {
             "type": "array",
+            "min_items": 0,
+            "max_items": 6,
             "description": "The list of aggregates that this volume resides on. Aggregates are storage pools which make up your primary storage tier.",
             "items": {
-              "type": "string"
+              "type": "string",
+              "pattern": "^(aggr[0-9]{1,2})$",
+              "min_length": 5,
+              "max_length": 6
             }
           },
           "ConstituentsPerAggregate": {
             "type": "integer",
+            "minimum": 1.0,
+            "maximum": 200.0,
             "description": "Used to explicitly set the number of constituents within the FlexGroup per storage aggregate. This field is optional when creating a FlexGroup volume. If unspecified, the default value will be 8. This field cannot be provided when creating a FlexVol volume."
           }
         },
@@ -165086,10 +165193,20 @@
         "properties": {
           "Type": {
             "type": "string",
+            "enum": [
+              "DAYS",
+              "HOURS",
+              "MINUTES",
+              "MONTHS",
+              "NONE",
+              "YEARS"
+            ],
             "description": "Defines the type of time for the autocommit period of a file in an FSx for ONTAP SnapLock volume. Setting this value to NONE disables autocommit. The default value is NONE."
           },
           "Value": {
             "type": "integer",
+            "minimum": 1.0,
+            "maximum": 65535.0,
             "description": "Defines the amount of time for the autocommit period of a file in an FSx for ONTAP SnapLock volume."
           }
         },
@@ -165103,13 +165220,21 @@
         "properties": {
           "Clients": {
             "type": "string",
+            "pattern": "^[ -~]{1,128}$",
+            "min_length": 1,
+            "max_length": 128,
             "description": "A value that specifies who can mount the file system. You can provide a wildcard character (*), an IP address (0.0.0.0), or a CIDR address (192.0.2.0/24). By default, Amazon FSx uses the wildcard character when specifying the client."
           },
           "Options": {
             "type": "array",
+            "min_items": 1,
+            "max_items": 20,
             "description": "The configuration object for mounting a Network File System (NFS) file system.",
             "items": {
-              "type": "string"
+              "type": "string",
+              "pattern": "^[ -~]{1,128}$",
+              "min_length": 1,
+              "max_length": 128
             }
           }
         },
@@ -165124,6 +165249,8 @@
         "properties": {
           "ClientConfigurations": {
             "type": "array",
+            "min_items": 0,
+            "max_items": 25,
             "description": "The configuration object for mounting a Network File System (NFS) file system.",
             "items": {
               "ref_name": "ClientConfigurations"
@@ -165147,22 +165274,38 @@
           },
           "JunctionPath": {
             "type": "string",
+            "pattern": "^[^\\u0000\\u0085\\u2028\\u2029\\r\\n]{1,255}$",
+            "min_length": 1,
+            "max_length": 255,
             "description": "Specifies the location in the SVM's namespace where the volume is mounted. This parameter is required. The JunctionPath must have a leading forward slash, such as /vol3."
           },
           "OntapVolumeType": {
             "type": "string",
+            "enum": [
+              "DP",
+              "RW"
+            ],
             "description": "Specifies the type of volume you are creating. Valid values are the following: RW or DP"
           },
           "SecurityStyle": {
             "type": "string",
+            "enum": [
+              "MIXED",
+              "NTFS",
+              "UNIX"
+            ],
             "description": "Specifies the security style for the volume. If a volume's security style is not specified, it is automatically set to the root volume's security style."
           },
           "SizeInBytes": {
             "type": "string",
+            "minimum": 0.0,
+            "maximum": 2.2517998e+16,
             "description": "Specifies the configured size of the volume, in bytes."
           },
           "SizeInMegabytes": {
             "type": "string",
+            "minimum": 0.0,
+            "maximum": 2147483647.0,
             "description": "Use SizeInBytes instead. Specifies the size of the volume, in megabytes (MB), that you are creating"
           },
           "SnaplockConfiguration": {
@@ -165170,6 +165313,8 @@
           },
           "SnapshotPolicy": {
             "type": "string",
+            "min_length": 1,
+            "max_length": 255,
             "description": "Specifies the snapshot policy for the volume. There are three built-in snapshot policies: default, default-1weekly, none."
           },
           "StorageEfficiencyEnabled": {
@@ -165178,6 +165323,9 @@
           },
           "StorageVirtualMachineId": {
             "type": "string",
+            "pattern": "^(svm-[0-9a-f]{17,})$",
+            "min_length": 21,
+            "max_length": 21,
             "description": "Specifies the ONTAP SVM in which to create the volume."
           },
           "TieringPolicy": {
@@ -165185,6 +165333,10 @@
           },
           "VolumeStyle": {
             "type": "string",
+            "enum": [
+              "FLEXGROUP",
+              "FLEXVOL"
+            ],
             "description": "Use to specify the style of an ONTAP volume."
           }
         },
@@ -165202,10 +165354,17 @@
           },
           "DataCompressionType": {
             "type": "string",
+            "enum": [
+              "LZ4",
+              "NONE",
+              "ZSTD"
+            ],
             "description": "Specifies the method used to compress the data on the volume"
           },
           "NfsExports": {
             "type": "array",
+            "min_items": 0,
+            "max_items": 1,
             "description": "The configuration object for mounting a Network File System (NFS) file system.",
             "items": {
               "ref_name": "NfsExports"
@@ -165223,6 +165382,9 @@
           },
           "ParentVolumeId": {
             "type": "string",
+            "pattern": "^(fsvol-[0-9a-f]{17,})$",
+            "min_length": 23,
+            "max_length": 23,
             "description": "The ID of the volume to use as the parent volume of the volume that you are creating."
           },
           "ReadOnly": {
@@ -165231,18 +165393,26 @@
           },
           "RecordSizeKiB": {
             "type": "integer",
+            "minimum": 4.0,
+            "maximum": 4096.0,
             "description": "Specifies the suggested block size for a volume in a ZFS dataset, in kibibytes (KiB)."
           },
           "StorageCapacityQuotaGiB": {
             "type": "integer",
+            "minimum": -1.0,
+            "maximum": 2147483647.0,
             "description": "Sets the maximum storage size in gibibytes (GiB) for the volume. You can specify a quota that is larger than the storage on the parent volume. A volume quota limits the amount of storage that the volume can consume to the configured amount, but does not guarantee the space will be available on the parent volume. To guarantee quota space, you must also set StorageCapacityReservationGiB. To not specify a storage capacity quota, set this to -1."
           },
           "StorageCapacityReservationGiB": {
             "type": "integer",
+            "minimum": -1.0,
+            "maximum": 2147483647.0,
             "description": "Specifies the amount of storage in gibibytes (GiB) to reserve from the parent volume. Setting StorageCapacityReservationGiB guarantees that the specified amount of storage space on the parent volume will always be available for the volume. You can't reserve more storage than the parent volume has. To not specify a storage capacity reservation, set this to 0 or -1. For more information, see Volume properties in the Amazon FSx for OpenZFS User Guide."
           },
           "UserAndGroupQuotas": {
             "type": "array",
+            "min_items": 0,
+            "max_items": 500,
             "description": "Configures how much storage users and groups can use on the volume.",
             "items": {
               "ref_name": "UserAndGroupQuotas"
@@ -165259,10 +165429,18 @@
         "properties": {
           "CopyStrategy": {
             "type": "string",
+            "enum": [
+              "CLONE",
+              "FULL_COPY",
+              "INCREMENTAL_COPY"
+            ],
             "description": "The configuration object for mounting a Network File System (NFS) file system."
           },
           "SnapshotARN": {
             "type": "string",
+            "pattern": "^arn:(?=[^:]+:fsx:[^:]+:\\d{12}:)((|(?=[a-z0-9-.]{1,63})(?!\\d{1,3}(\\.\\d{1,3}){3})(?![^:]*-{2})(?![^:]*-\\.)(?![^:]*\\.-)[a-z0-9].*(?<!-)):){4}(?!/).{0,1024}$",
+            "min_length": 8,
+            "max_length": 512,
             "description": "Specifies the snapshot to use when creating an OpenZFS volume from a snapshot."
           }
         },
@@ -165277,10 +165455,22 @@
         "properties": {
           "Type": {
             "type": "string",
+            "enum": [
+              "DAYS",
+              "HOURS",
+              "INFINITE",
+              "MINUTES",
+              "MONTHS",
+              "SECONDS",
+              "UNSPECIFIED",
+              "YEARS"
+            ],
             "description": "Defines the type of time for the retention period of an FSx for ONTAP SnapLock volume. Set it to one of the valid types. If you set it to INFINITE, the files are retained forever. If you set it to UNSPECIFIED, the files are retained until you set an explicit retention period."
           },
           "Value": {
             "type": "integer",
+            "minimum": 0.0,
+            "maximum": 65535.0,
             "description": "Defines the amount of time for the retention period of an FSx for ONTAP SnapLock volume. You can't set a value for INFINITE or UNSPECIFIED."
           }
         },
@@ -165301,6 +165491,11 @@
           },
           "PrivilegedDelete": {
             "type": "string",
+            "enum": [
+              "DISABLED",
+              "ENABLED",
+              "PERMANENTLY_DISABLED"
+            ],
             "description": "Enables, disables, or permanently disables privileged delete on an FSx for ONTAP SnapLock Enterprise volume."
           },
           "RetentionPeriod": {
@@ -165308,6 +165503,10 @@
           },
           "SnaplockType": {
             "type": "string",
+            "enum": [
+              "COMPLIANCE",
+              "ENTERPRISE"
+            ],
             "description": "Specifies the retention mode of an FSx for ONTAP SnapLock volume. After it is set, it can't be changed."
           },
           "VolumeAppendModeEnabled": {
@@ -165345,10 +165544,16 @@
         "properties": {
           "Key": {
             "type": "string",
+            "pattern": "^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$",
+            "min_length": 1,
+            "max_length": 128,
             "description": "A value that specifies the TagKey, the name of the tag. Tag keys must be unique for the resource to which they are attached."
           },
           "Value": {
             "type": "string",
+            "pattern": "^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$",
+            "min_length": 0,
+            "max_length": 256,
             "description": "A value that specifies the TagValue, the value assigned to the corresponding tag key. Tag values can be null and don't have to be unique in a tag set. For example, you can have a key-value pair in a tag set of finances : April and also of payroll : April."
           }
         },
@@ -165364,10 +165569,18 @@
         "properties": {
           "CoolingPeriod": {
             "type": "integer",
+            "minimum": 2.0,
+            "maximum": 183.0,
             "description": "Specifies the number of days that user data in a volume must remain inactive before it is considered \"cold\" and moved to the capacity pool."
           },
           "Name": {
             "type": "string",
+            "enum": [
+              "ALL",
+              "AUTO",
+              "NONE",
+              "SNAPSHOT_ONLY"
+            ],
             "description": "Specifies the tiering policy used to transition data. Default value is SNAPSHOT_ONLY."
           }
         },
@@ -165378,14 +165591,22 @@
         "properties": {
           "Id": {
             "type": "integer",
+            "minimum": 0.0,
+            "maximum": 2147483647.0,
             "description": "The ID of the user or group that the quota applies to."
           },
           "StorageCapacityQuotaGiB": {
             "type": "integer",
+            "minimum": 0.0,
+            "maximum": 2147483647.0,
             "description": "The user or group's storage quota, in gibibytes (GiB)."
           },
           "Type": {
             "type": "string",
+            "enum": [
+              "GROUP",
+              "USER"
+            ],
             "description": "Specifies whether the quota applies to a user or group."
           }
         },
@@ -186812,7 +187033,7 @@
           },
           "ImageScanningEnabled": {
             "type": "boolean",
-            "description": "This sets whether Image Builder keeps a snapshot of the vulnerability scans that Amazon Inspector runs against the build instance when you create a new image."
+            "description": "This sets whether Image Builder keeps a snapshot of the vulnerability scans that Amazon Inspector runs against the test instance when you create a new image."
           }
         },
         "additional_properties": false
@@ -187123,7 +187344,7 @@
           },
           "ImageScanningEnabled": {
             "type": "boolean",
-            "description": "This sets whether Image Builder keeps a snapshot of the vulnerability scans that Amazon Inspector runs against the build instance when you create a new image."
+            "description": "This sets whether Image Builder keeps a snapshot of the vulnerability scans that Amazon Inspector runs against the test instance when you create a new image."
           }
         },
         "additional_properties": false
@@ -194975,6 +195196,9 @@
           "Http": {
             "ref_name": "HttpAction"
           },
+          "InfluxDB": {
+            "ref_name": "InfluxDBAction"
+          },
           "IotAnalytics": {
             "ref_name": "IotAnalyticsAction"
           },
@@ -195367,11 +195591,85 @@
         "additional_properties": false
       },
       "InfluxDBAction": {
+        "type": "object",
         "properties": {
+          "BatchConfig": {
+            "ref_name": "InfluxDBBatchConfig"
+          },
+          "DatabaseName": {
+            "type": "string",
+            "pattern": "^[^_\\\"][^\\\"]+$",
+            "min_length": 2,
+            "max_length": 64
+          },
+          "DestinationArn": {
+            "type": "string"
+          },
+          "Organization": {
+            "type": "string",
+            "min_length": 1,
+            "max_length": 64
+          },
           "RoleArn": {
+            "type": "string",
             "format": "AWS::IAM::Role.Arn"
+          },
+          "TableName": {
+            "type": "string",
+            "pattern": "^[^_].*$",
+            "min_length": 1,
+            "max_length": 1024
+          },
+          "Tags": {
+            "type": "object",
+            "additional_properties": false,
+            "pattern_properties": {
+              ".*": {
+                "type": "string"
+              }
+            }
+          },
+          "TimestampUnit": {
+            "type": "string",
+            "enum": [
+              "ms",
+              "ns",
+              "s",
+              "us"
+            ]
           }
-        }
+        },
+        "required": [
+          "DestinationArn",
+          "RoleArn",
+          "DatabaseName",
+          "TableName"
+        ],
+        "additional_properties": false
+      },
+      "InfluxDBBatchConfig": {
+        "type": "object",
+        "properties": {
+          "BatchAcrossTopics": {
+            "type": "boolean"
+          },
+          "MaxBatchOpenMs": {
+            "type": "integer",
+            "minimum": 5.0,
+            "maximum": 1000.0
+          },
+          "MaxBatchSize": {
+            "type": "integer",
+            "minimum": 1.0,
+            "maximum": 500.0
+          },
+          "MaxBatchSizeBytes": {
+            "type": "integer",
+            "minimum": 100.0,
+            "maximum": 131072.0
+          }
+        },
+        "additional_properties": false
       },
       "IotAnalyticsAction": {
         "type": "object",
@@ -196003,6 +196301,9 @@
       "HttpUrlProperties": {
         "ref_name": "HttpUrlDestinationSummary"
       },
+      "InfluxDBProperties": {
+        "ref_name": "InfluxDBDestinationProperties"
+      },
       "Status": {
         "ref_name": "TopicRuleDestinationStatus"
       },
@@ -196022,6 +196323,37 @@
             "type": "string"
           }
         },
+        "additional_properties": false
+      },
+      "InfluxDBDestinationProperties": {
+        "type": "object",
+        "properties": {
+          "Endpoint": {
+            "type": "string",
+            "description": "The endpoint URL of the InfluxDB database."
+          },
+          "InfluxDBVersion": {
+            "type": "string",
+            "description": "The version of the InfluxDB database (for example, V2 or V3)."
+          },
+          "SecretId": {
+            "type": "string",
+            "description": "The ARN or name of the Secrets Manager secret containing the InfluxDB API token."
+          },
+          "SecretKey": {
+            "type": "string",
+            "description": "The key name within the secret that contains the InfluxDB token."
+          },
+          "SecretType": {
+            "type": "string",
+            "description": "The type of the secret value (SecretString or SecretBinary)."
+          }
+        },
+        "required": [
+          "Endpoint",
+          "InfluxDBVersion",
+          "SecretId"
+        ],
         "additional_properties": false
       },
       "TopicRuleDestinationStatus": {
@@ -196071,7 +196403,8 @@
     ],
     "create_only_properties": [
       "HttpUrlProperties",
-      "VpcProperties"
+      "VpcProperties",
+      "InfluxDBProperties"
     ],
     "primary_identifier": [
       "Arn"
@@ -203149,6 +203482,166 @@
     "source_url": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-IoTSiteWise.git",
     "description": "Resource schema for AWS::IoTSiteWise::Gateway"
   },
+  "AWS::IoTSiteWise::Pipeline": {
+    "type_name": "AWS::IoTSiteWise::Pipeline",
+    "properties": {
+      "Computations": {
+        "type": "array",
+        "min_items": 1,
+        "max_items": 50,
+        "description": "The list of compute nodes that form the pipeline DAG.",
+        "items": {
+          "ref_name": "ComputeNode"
+        }
+      },
+      "Description": {
+        "type": "string",
+        "pattern": "^[^\\u0000-\\u001F\\u007F]+$",
+        "min_length": 0,
+        "max_length": 2048,
+        "description": "A description of the pipeline."
+      },
+      "EnvironmentVariables": {
+        "ref_name": "EnvironmentVariablesMap"
+      },
+      "PipelineArn": {
+        "type": "string",
+        "pattern": "^arn:[\\w+=\\/,.@-]+:[\\w+=\\/,.@-]+:[\\w+=\\/,.@-]*:[0-9]+:[\\w+=\\/,.@-]+$",
+        "min_length": 1,
+        "max_length": 2048,
+        "description": "The ARN of the pipeline."
+      },
+      "PipelineName": {
+        "type": "string",
+        "pattern": "^[a-zA-Z0-9_-]+$",
+        "min_length": 1,
+        "max_length": 128,
+        "description": "The name of the pipeline. Must be unique within the workspace."
+      },
+      "Status": {
+        "type": "string",
+        "enum": [
+          "ACTIVE",
+          "CREATING",
+          "UPDATING",
+          "DELETING",
+          "FAILED"
+        ],
+        "description": "The current lifecycle status of the pipeline."
+      },
+      "Tags": {
+        "type": "array",
+        "max_items": 50,
+        "description": "An array of key-value pairs to apply to this resource.",
+        "items": {
+          "ref_name": "Tag"
+        }
+      },
+      "WorkspaceName": {
+        "type": "string",
+        "pattern": "^[a-zA-Z0-9_-]+$",
+        "min_length": 1,
+        "max_length": 128,
+        "description": "The name of the workspace."
+      }
+    },
+    "definitions": {
+      "ComputeNode": {
+        "type": "object",
+        "description": "A single compute node in a pipeline DAG.",
+        "properties": {
+          "ComputeNodeName": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9_-]+$",
+            "min_length": 1,
+            "max_length": 128,
+            "description": "The unique name for this compute node within the pipeline."
+          },
+          "DependsOn": {
+            "type": "array",
+            "min_items": 0,
+            "max_items": 50,
+            "description": "A list of compute node names that must complete successfully before this node can start.",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9_-]+$",
+              "min_length": 1,
+              "max_length": 128
+            }
+          },
+          "EnvironmentVariables": {
+            "ref_name": "EnvironmentVariablesMap"
+          },
+          "TaskName": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9_-]+$",
+            "min_length": 1,
+            "max_length": 128,
+            "description": "The name of the task to execute for this compute node."
+          }
+        },
+        "required": [
+          "ComputeNodeName",
+          "TaskName"
+        ],
+        "additional_properties": false
+      },
+      "EnvironmentVariablesMap": {
+        "type": "object",
+        "max_properties": 100,
+        "description": "A map of environment variable key-value pairs.",
+        "additional_properties": false,
+        "pattern_properties": {
+          "^[a-zA-Z_][a-zA-Z0-9_]*$": {
+            "type": "string",
+            "max_length": 2048
+          }
+        }
+      },
+      "Tag": {
+        "type": "object",
+        "description": "A key-value pair to associate with a resource.",
+        "properties": {
+          "Key": {
+            "type": "string",
+            "min_length": 1,
+            "max_length": 128,
+            "description": "The key name of the tag."
+          },
+          "Value": {
+            "type": "string",
+            "min_length": 0,
+            "max_length": 256,
+            "description": "The value for the tag."
+          }
+        },
+        "required": [
+          "Key",
+          "Value"
+        ],
+        "additional_properties": false
+      }
+    },
+    "required": [
+      "WorkspaceName",
+      "PipelineName",
+      "Computations"
+    ],
+    "additional_properties": false,
+    "read_only_properties": [
+      "PipelineArn",
+      "Status"
+    ],
+    "create_only_properties": [
+      "WorkspaceName",
+      "PipelineName"
+    ],
+    "primary_identifier": [
+      "PipelineArn"
+    ],
+    "source_url": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-iotsitewise",
+    "description": "Resource schema for AWS::IoTSiteWise::Pipeline. A pipeline defines a directed acyclic graph (DAG) of compute nodes, where each node references a task definition and can declare dependencies on other nodes."
+  },
   "AWS::IoTSiteWise::Portal": {
     "type_name": "AWS::IoTSiteWise::Portal",
     "properties": {
@@ -203411,6 +203904,339 @@
     ],
     "source_url": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-IoTSiteWise.git",
     "description": "Resource schema for AWS::IoTSiteWise::Project"
+  },
+  "AWS::IoTSiteWise::Task": {
+    "type_name": "AWS::IoTSiteWise::Task",
+    "properties": {
+      "Description": {
+        "type": "string",
+        "pattern": "^[^\\u0000-\\u001F\\u007F]+$",
+        "min_length": 0,
+        "max_length": 2048,
+        "description": "A description of the task."
+      },
+      "Status": {
+        "type": "string",
+        "enum": [
+          "ACTIVE",
+          "CREATING",
+          "UPDATING",
+          "DELETING",
+          "FAILED"
+        ],
+        "description": "The current lifecycle status of the task."
+      },
+      "Tags": {
+        "type": "array",
+        "max_items": 50,
+        "description": "An array of key-value pairs to apply to this resource.",
+        "items": {
+          "ref_name": "Tag"
+        }
+      },
+      "TaskArn": {
+        "type": "string",
+        "pattern": "^arn:[\\w+=\\/,.@-]+:[\\w+=\\/,.@-]+:[\\w+=\\/,.@-]*:[0-9]+:[\\w+=\\/,.@-]+$",
+        "min_length": 1,
+        "max_length": 2048,
+        "description": "The ARN of the task."
+      },
+      "TaskConfiguration": {
+        "ref_name": "TaskConfiguration"
+      },
+      "TaskName": {
+        "type": "string",
+        "pattern": "^[a-zA-Z0-9_-]+$",
+        "min_length": 1,
+        "max_length": 128,
+        "description": "The name of the task. Must be unique within the workspace."
+      },
+      "WorkspaceName": {
+        "type": "string",
+        "pattern": "^[a-zA-Z0-9_-]+$",
+        "min_length": 1,
+        "max_length": 128,
+        "description": "The name of the workspace."
+      }
+    },
+    "definitions": {
+      "ContainerTaskConfiguration": {
+        "type": "object",
+        "description": "Configuration for running a custom container image on managed compute.",
+        "properties": {
+          "Command": {
+            "type": "array",
+            "description": "The command to execute in the container.",
+            "items": {
+              "type": "string"
+            }
+          },
+          "EcrUri": {
+            "type": "string",
+            "pattern": "^((\\d{12}\\.dkr\\.ecr\\.[a-z0-9-]+\\.[a-z.]+)|public\\.ecr\\.aws/[a-z][a-z0-9]+([._-][a-z0-9]+)*)/[a-z0-9]+((\\.||__|__|-+)[a-z0-9]+)*(/[a-z0-9]+((\\.||__|__|-+)[a-z0-9]+)*)*(:[a-zA-Z0-9._-]+|@sha256:[a-f0-9]{64})?$",
+            "min_length": 1,
+            "max_length": 1024,
+            "description": "The Amazon ECR image URI for the task container."
+          },
+          "EnvironmentVariables": {
+            "ref_name": "EnvironmentVariablesMap"
+          },
+          "ProcessingType": {
+            "type": "string",
+            "enum": [
+              "GENERIC_COMPUTE_PROCESSING",
+              "HARDWARE_ACCELERATED_PROCESSING"
+            ],
+            "description": "The processing type for compute resources."
+          },
+          "ProcessingUnit": {
+            "type": "string",
+            "enum": [
+              "UNITS_2",
+              "UNITS_4",
+              "UNITS_8",
+              "UNITS_12",
+              "UNITS_16",
+              "UNITS_24",
+              "UNITS_32",
+              "UNITS_36",
+              "UNITS_48",
+              "UNITS_60",
+              "UNITS_64",
+              "UNITS_72",
+              "UNITS_84",
+              "UNITS_96"
+            ],
+            "description": "The processing unit allocation that determines vCPU, memory, and GPU resources."
+          },
+          "TaskExecutionRole": {
+            "type": "string",
+            "pattern": "^arn:[\\w+=\\/,.@-]+:iam::[0-9]+:role/[\\w+=,.@/-]+$",
+            "min_length": 20,
+            "max_length": 2048,
+            "description": "The ARN of the IAM role that grants the containerized workload permissions to access AWS resources."
+          },
+          "TimeoutSeconds": {
+            "type": "integer",
+            "minimum": 60.0,
+            "maximum": 86400.0,
+            "description": "The timeout in seconds for task execution. Default: 3600 (1 hour)."
+          }
+        },
+        "required": [
+          "EcrUri",
+          "TaskExecutionRole",
+          "ProcessingType",
+          "ProcessingUnit"
+        ],
+        "additional_properties": false
+      },
+      "EnvironmentVariablesMap": {
+        "type": "object",
+        "max_properties": 100,
+        "description": "A map of environment variable key-value pairs.",
+        "additional_properties": false,
+        "pattern_properties": {
+          "^[a-zA-Z_][a-zA-Z0-9_]*$": {
+            "type": "string",
+            "max_length": 2048
+          }
+        }
+      },
+      "Tag": {
+        "type": "object",
+        "description": "A key-value pair to associate with a resource.",
+        "properties": {
+          "Key": {
+            "type": "string",
+            "min_length": 1,
+            "max_length": 128,
+            "description": "The key name of the tag."
+          },
+          "Value": {
+            "type": "string",
+            "min_length": 0,
+            "max_length": 256,
+            "description": "The value for the tag."
+          }
+        },
+        "required": [
+          "Key",
+          "Value"
+        ],
+        "additional_properties": false
+      },
+      "TaskConfiguration": {
+        "type": "object",
+        "description": "The task execution configuration.",
+        "properties": {
+          "ContainerTaskConfiguration": {
+            "ref_name": "ContainerTaskConfiguration"
+          }
+        },
+        "required": [
+          "ContainerTaskConfiguration"
+        ],
+        "additional_properties": false
+      }
+    },
+    "required": [
+      "WorkspaceName",
+      "TaskName",
+      "TaskConfiguration"
+    ],
+    "additional_properties": false,
+    "read_only_properties": [
+      "TaskArn",
+      "Status"
+    ],
+    "create_only_properties": [
+      "WorkspaceName",
+      "TaskName"
+    ],
+    "primary_identifier": [
+      "TaskArn"
+    ],
+    "source_url": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-iotsitewise",
+    "description": "Resource schema for AWS::IoTSiteWise::Task. A task defines a reusable containerized compute workload that can be referenced by one or more pipeline compute nodes."
+  },
+  "AWS::IoTSiteWise::Workspace": {
+    "type_name": "AWS::IoTSiteWise::Workspace",
+    "properties": {
+      "CreatedAt": {
+        "type": "string",
+        "format": "date-time",
+        "description": "The time the workspace was created."
+      },
+      "EncryptionConfiguration": {
+        "ref_name": "EncryptionConfiguration"
+      },
+      "KmsKeyId": {
+        "type": "string",
+        "pattern": "^arn:aws[a-zA-Z-]*:kms:[a-z0-9-]+:[0-9]{12}:key/.+$",
+        "min_length": 1,
+        "max_length": 2048,
+        "description": "The ARN of the AWS KMS key used for KMS_BASED_ENCRYPTION. Required when EncryptionConfiguration.EncryptionType is KMS_BASED_ENCRYPTION.",
+        "any_of": [
+          {
+            "format": "AWS::KMS::Key.Arn"
+          },
+          {
+            "format": "AWS::KMS::Key.Id"
+          },
+          {
+            "format": "AWS::KMS::Alias.AliasName"
+          }
+        ]
+      },
+      "Status": {
+        "type": "string",
+        "enum": [
+          "CREATING",
+          "ACTIVE",
+          "UPDATING",
+          "DELETING",
+          "FAILED"
+        ],
+        "description": "The current state of the workspace."
+      },
+      "Tags": {
+        "type": "array",
+        "max_items": 50,
+        "description": "An array of key-value pairs to apply to this resource.",
+        "items": {
+          "ref_name": "Tag"
+        }
+      },
+      "UpdatedAt": {
+        "type": "string",
+        "format": "date-time",
+        "description": "The time the workspace was last updated."
+      },
+      "WorkspaceArn": {
+        "type": "string",
+        "min_length": 1,
+        "max_length": 1600,
+        "description": "The ARN of the workspace."
+      },
+      "WorkspaceDescription": {
+        "type": "string",
+        "pattern": "^[^\\u0000-\\u001F\\u007F]+$",
+        "min_length": 0,
+        "max_length": 2048,
+        "description": "A description of the workspace."
+      },
+      "WorkspaceName": {
+        "type": "string",
+        "pattern": "^[a-zA-Z0-9_-]+$",
+        "min_length": 1,
+        "max_length": 128,
+        "description": "The name of the workspace."
+      }
+    },
+    "definitions": {
+      "EncryptionConfiguration": {
+        "type": "object",
+        "description": "The encryption configuration for the workspace.",
+        "properties": {
+          "EncryptionType": {
+            "type": "string",
+            "enum": [
+              "SITEWISE_DEFAULT_ENCRYPTION",
+              "KMS_BASED_ENCRYPTION"
+            ],
+            "description": "The type of encryption."
+          }
+        },
+        "required": [
+          "EncryptionType"
+        ],
+        "additional_properties": false
+      },
+      "Tag": {
+        "type": "object",
+        "description": "A key-value pair to associate with a resource.",
+        "properties": {
+          "Key": {
+            "type": "string",
+            "min_length": 1,
+            "max_length": 128,
+            "description": "The key name of the tag."
+          },
+          "Value": {
+            "type": "string",
+            "min_length": 0,
+            "max_length": 256,
+            "description": "The value for the tag."
+          }
+        },
+        "required": [
+          "Key",
+          "Value"
+        ],
+        "additional_properties": false
+      }
+    },
+    "required": [
+      "WorkspaceName",
+      "EncryptionConfiguration"
+    ],
+    "additional_properties": false,
+    "read_only_properties": [
+      "WorkspaceArn",
+      "Status",
+      "CreatedAt",
+      "UpdatedAt"
+    ],
+    "create_only_properties": [
+      "WorkspaceName",
+      "EncryptionConfiguration",
+      "KmsKeyId"
+    ],
+    "primary_identifier": [
+      "WorkspaceArn"
+    ],
+    "description": "Represents an AWS IoT SiteWise workspace that provides logical isolation for tasks and pipelines."
   },
   "AWS::IoTThingsGraph::FlowTemplate": {
     "type_name": "AWS::IoTThingsGraph::FlowTemplate",
@@ -237076,6 +237902,9 @@
         "format": "date-time",
         "description": "The timestamp when the router output was created."
       },
+      "FabricConfiguration": {
+        "ref_name": "FabricConfiguration"
+      },
       "Id": {
         "type": "string",
         "description": "The unique identifier of the router output."
@@ -237154,6 +237983,26 @@
         "type": "object",
         "description": "Configuration settings for default maintenance scheduling.",
         "additional_properties": false
+      },
+      "FabricConfiguration": {
+        "type": "object",
+        "description": "The fabric configuration settings for the router output.",
+        "properties": {
+          "RecoveryLatencyMode": {
+            "ref_name": "FabricLatencyMode"
+          }
+        },
+        "required": [
+          "RecoveryLatencyMode"
+        ],
+        "additional_properties": false
+      },
+      "FabricLatencyMode": {
+        "type": "string",
+        "enum": [
+          "BALANCED",
+          "LOW_LATENCY"
+        ]
       },
       "FlowTransitEncryption": {
         "type": "object",
@@ -237697,10 +238546,6 @@
           "Key",
           "Value"
         ],
-        "additional_properties": false
-      },
-      "Unit": {
-        "type": "object",
         "additional_properties": false
       }
     },
@@ -272937,7 +273782,7 @@
       },
       "PlanTier": {
         "type": "string",
-        "description": "The tier of the pricing plan. Upgrades take effect immediately. However, rolling back an upgrade does not revert billing instantly; it schedules a downgrade to the end of the current billing period, and the higher-tier charge applies for the remainder of that month. While a downgrade is scheduled, the CurrentPlanTier property reports the tier currently being billed."
+        "description": "The tier of the pricing plan. CloudFormation does not change the tier of an existing subscription; a stack update that changes the tier, upgrading or downgrading it, is rejected."
       },
       "ResourceArns": {
         "type": "array",
@@ -322758,7 +323603,7 @@
       "DataSetRelations": {
         "type": "array",
         "min_items": 0,
-        "max_items": 20,
+        "max_items": 32,
         "items": {
           "ref_name": "DataSetRelation"
         }
@@ -322766,7 +323611,7 @@
       "DataSets": {
         "type": "array",
         "min_items": 1,
-        "max_items": 20,
+        "max_items": 32,
         "items": {
           "ref_name": "DataSetReference"
         }
@@ -322935,7 +323780,7 @@
           "DataSetRelations": {
             "type": "array",
             "min_items": 0,
-            "max_items": 20,
+            "max_items": 32,
             "items": {
               "ref_name": "DataSetRelation"
             }
@@ -322943,7 +323788,7 @@
           "DataSets": {
             "type": "array",
             "min_items": 1,
-            "max_items": 20,
+            "max_items": 32,
             "items": {
               "ref_name": "DataSetReference"
             }
@@ -322971,8 +323816,7 @@
       "Arn"
     ],
     "write_only_properties": [
-      "FolderArns",
-      "DataSets.*.DataSetName"
+      "FolderArns"
     ],
     "create_only_properties": [
       "AwsAccountId",
@@ -331200,6 +332044,7 @@
         "properties": {
           "Key": {
             "type": "string",
+            "pattern": "^(resourceArn|internalId|[a-zA-Z0-9+\\-=._:/@]+)$",
             "min_length": 1,
             "max_length": 128,
             "description": "The key name of the tag. You can specify a value that is 1 to 128 Unicode characters in length and cannot be prefixed with aws:. You can use any of the following characters: the set of Unicode letters, digits, whitespace, _, ., /, =, +, and -."
@@ -361882,6 +362727,43 @@
         ],
         "additional_properties": false
       },
+      "ClusterAccountingDatabase": {
+        "type": "object",
+        "description": "External MySQL-compatible accounting database that a Slurm cluster's slurmdbd connects to. Database credentials are supplied out-of-band through the referenced Secrets Manager secret. Supported only with Continuous node provisioning.",
+        "properties": {
+          "Endpoint": {
+            "type": "string",
+            "pattern": "^(?=.{1,255}$)([a-zA-Z0-9]([a-zA-Z0-9\\-]{0,61}[a-zA-Z0-9])?)(\\.[a-zA-Z0-9]([a-zA-Z0-9\\-]{0,61}[a-zA-Z0-9])?)*$",
+            "min_length": 1,
+            "max_length": 255,
+            "description": "Hostname or endpoint of the accounting database, such as an RDS endpoint."
+          },
+          "Name": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9$_]+$",
+            "min_length": 1,
+            "max_length": 64,
+            "description": "Name of the accounting database schema. Defaults to slurm_acct_db when omitted."
+          },
+          "Port": {
+            "type": "integer",
+            "minimum": 1.0,
+            "maximum": 65535.0,
+            "description": "TCP port of the accounting database. Defaults to 3306 when omitted."
+          },
+          "SecretArn": {
+            "type": "string",
+            "min_length": 20,
+            "max_length": 2048,
+            "description": "ARN of the Secrets Manager secret holding the database credentials."
+          }
+        },
+        "required": [
+          "Endpoint",
+          "SecretArn"
+        ],
+        "additional_properties": false
+      },
       "ClusterAutoScalingConfig": {
         "type": "object",
         "description": "Configuration for cluster auto-scaling",
@@ -362271,6 +363153,9 @@
         "type": "object",
         "description": "Specifies parameter(s) related to Slurm as orchestrator.",
         "properties": {
+          "AccountingDatabase": {
+            "ref_name": "ClusterAccountingDatabase"
+          },
           "SlurmConfigStrategy": {
             "type": "string",
             "enum": [
@@ -364994,15 +365879,15 @@
       "EndpointConfigName": {
         "type": "string",
         "pattern": "^[a-zA-Z0-9](-*[a-zA-Z0-9]){0,62}$",
-        "min_length": 0,
-        "max_length": 63,
+        "min_length": 1,
+        "max_length": 64,
         "description": "The name of the endpoint configuration for the SageMaker endpoint. This is a required property."
       },
       "EndpointName": {
         "type": "string",
         "pattern": "^[a-zA-Z0-9](-*[a-zA-Z0-9]){0,62}$",
-        "min_length": 0,
-        "max_length": 63,
+        "min_length": 1,
+        "max_length": 64,
         "description": "The name of the SageMaker endpoint. This name must be unique within an AWS Region."
       },
       "ExcludeRetainedVariantProperties": {
@@ -365054,7 +365939,6 @@
             "type": "array",
             "min_items": 0,
             "max_items": 10,
-            "unique_items": true,
             "description": "List of CloudWatch alarms to monitor during the deployment. If any alarm goes off, the deployment is rolled back.",
             "items": {
               "ref_name": "Alarm"
@@ -365226,8 +366110,7 @@
     ],
     "additional_properties": false,
     "read_only_properties": [
-      "EndpointArn",
-      "EndpointName"
+      "EndpointArn"
     ],
     "write_only_properties": [
       "ExcludeRetainedVariantProperties",
@@ -393770,19 +394653,32 @@
     "type_name": "AWS::ServiceDiscovery::HttpNamespace",
     "properties": {
       "Arn": {
-        "type": "string"
+        "type": "string",
+        "pattern": "^arn:(aws|aws-cn|aws-us-gov):servicediscovery:\\w+(?:-\\w+)+:[0-9]*:namespace\\/.*",
+        "description": "The Amazon Resource Name (ARN) of the namespace."
       },
       "Description": {
-        "type": "string"
+        "type": "string",
+        "min_length": 0,
+        "max_length": 1024,
+        "description": "A description for the namespace."
       },
       "Id": {
-        "type": "string"
+        "type": "string",
+        "description": "The ID of the namespace."
       },
       "Name": {
-        "type": "string"
+        "type": "string",
+        "pattern": "^(?!arn:)[!-~]{1,1024}$",
+        "min_length": 1,
+        "max_length": 1024,
+        "description": "The name that you want to assign to this namespace."
       },
       "Tags": {
         "type": "array",
+        "min_items": 0,
+        "max_items": 200,
+        "description": "The tags for the namespace. Each tag consists of a key and an optional value, both of which you define. Tag keys can have a maximum character length of 128 characters, and tag values can have a maximum length of 256 characters.",
         "items": {
           "ref_name": "Tag"
         }
@@ -393793,10 +394689,14 @@
         "type": "object",
         "properties": {
           "Key": {
-            "type": "string"
+            "type": "string",
+            "min_length": 1,
+            "max_length": 128
           },
           "Value": {
-            "type": "string"
+            "type": "string",
+            "min_length": 0,
+            "max_length": 256
           }
         },
         "required": [

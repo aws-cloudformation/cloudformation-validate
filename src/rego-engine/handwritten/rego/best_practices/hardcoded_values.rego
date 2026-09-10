@@ -6,6 +6,7 @@ import rego.v1
 violation contains make_diag_at("W9010", "WARN", name,
     "Properties.ImageId",
     "Hardcoded AMI ID - use a parameter or mapping for portability") if {
+    cfn_rule_active("W9010")
     some name in resources_of_type("AWS::EC2::Instance")
     val := resolve(name, "Properties.ImageId")
     is_string(val)
@@ -18,6 +19,7 @@ violation contains make_diag_at("W9010", "WARN", name,
 # pseudo-parameter stand-in, not a literal the author typed.
 violation contains make_diag("W9013", "WARN", name,
     "Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter") if {
+    cfn_rule_active("W9013")
     some name, res in input.resources
     some key in object.keys(res.properties)
     val := res.properties[key]
@@ -30,6 +32,7 @@ violation contains make_diag("W9013", "WARN", name,
 violation contains make_diag_at("I3042", "INFO", name,
     path,
     sprintf("ARN in Resource %s contains hardcoded Partition in ARN or incorrectly placed Pseudo Parameters", [name])) if {
+    cfn_rule_active("I3042")
     not has_transform("AWS::Serverless-2016-10-31")
     some name, res in input.resources
     some path in res.hardcodedPartitionArns
@@ -41,6 +44,7 @@ violation contains make_diag_at("I3042", "INFO", name,
 # policy asks for something other than Delete.
 violation contains make_diag("W3011", "WARN", name,
     "Both 'UpdateReplacePolicy' and 'DeletionPolicy' are needed to protect resource from deletion") if {
+    cfn_rule_active("W3011")
     some name, res in input.resources
     deletion_status := lifecycle_attribute_status(name, "DeletionPolicy")
     update_status := lifecycle_attribute_status(name, "UpdateReplacePolicy")
@@ -51,6 +55,7 @@ violation contains make_diag("W3011", "WARN", name,
 
 violation contains make_diag("W3011", "WARN", name,
     "Both 'UpdateReplacePolicy' and 'DeletionPolicy' are needed to protect resource from deletion") if {
+    cfn_rule_active("W3011")
     some name, res in input.resources
     deletion_status := lifecycle_attribute_status(name, "DeletionPolicy")
     update_status := lifecycle_attribute_status(name, "UpdateReplacePolicy")

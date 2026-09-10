@@ -10,6 +10,7 @@ import rego.v1
 # entirely rather than guessed at.
 violation contains make_diag("F3006", "FATAL", name,
     sprintf("Unknown resource type '%s'", [rtype])) if {
+    cfn_rule_active("F3006")
     some name, res in input.resources
     rtype := res.resourceType
     is_string(rtype)

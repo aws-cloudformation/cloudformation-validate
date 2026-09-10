@@ -27,20 +27,20 @@ artifact compatible with the installer host.
 from cloudformation_validate import RegoEngine
 
 engine = RegoEngine()
-report = engine.validate_standard("template.yaml")
+report = engine.validate_template("template.yaml")
 
 for d in report.diagnostics:
     print(f"[{d.severity.name}] {d.rule_id}: {d.message}")
 ```
 
 Each diagnostic identifies the rule, severity, affected resource and property, and source location - see
-[StandardDiagnostic](#standarddiagnostic).
+[Diagnostic](#diagnostic).
 
 Engines are expensive to construct (rules compile once) and cheap to reuse - create one engine and validate many
 templates. A template is passed either as a file path (`str` or `os.PathLike`, read from disk) or as raw `bytes`:
 
 ```python
-report = engine.validate_standard(b"Resources: {}")
+report = engine.validate_template(b"Resources: {}")
 ```
 
 ## Engine
@@ -50,8 +50,7 @@ the same template and config.
 
 | Method                                     | Returns          | Description                                                                                                      |
 |--------------------------------------------|------------------|------------------------------------------------------------------------------------------------------------------|
-| `validate_standard(template, config=None)` | `StandardReport` | Validates and returns diagnostics without extended context                                                       |
-| `validate_detailed(template, config=None)` | `DetailedReport` | Validates and returns diagnostics with documentation URLs, rule descriptions, phase tags, and `ViolationContext` |
+| `validate_template(template, config=None)` | `ValidationReport` | Validates and returns a report. `config.detail_level` sets the detail (default `DETAILED`); at `STANDARD` the enrichment fields are omitted |
 | `list_rules()`                             | `list[RuleInfo]` | Returns metadata for every built-in and loaded custom rule                                                       |
 | `engine_name()`                            | `str`            | `"rego"`, `"cel"`, or `"composite"`                                                                              |
 
@@ -89,7 +88,7 @@ engine = RegoEngine(
 ```
 
 Each rule is an `ExternalRuleSource`. Load one from a file with `file_to_external_rule_source(path)` - the same
-pattern as passing a template path to `validate_standard` - or construct it from explicit values with
+pattern as passing a template path to `validate_template` - or construct it from explicit values with
 `ExternalRuleSource(name, content)`, where `name` identifies the rule in diagnostics and `content` is the full rule
 source text. The two can be mixed freely:
 
@@ -137,7 +136,7 @@ config = ValidateConfig(
     exclude=RuleFilterConfig(ids=["I1002"]),
     severity_level=Severity.WARN,
 )
-report = engine.validate_standard("template.yaml", config)
+report = engine.validate_template("template.yaml", config)
 ```
 
 | Field                        | Default                  | Description                                                                                                                               |
@@ -145,6 +144,7 @@ report = engine.validate_standard("template.yaml", config)
 | `include`                    | empty (all rules)        | When set, only matching rules produce diagnostics. Empty means include everything.                                                        |
 | `exclude`                    | empty (nothing excluded) | Matching rules are suppressed. Applied after `include`.                                                                                   |
 | `severity_level`             | `Severity.INFO`          | Minimum severity threshold. Diagnostics below this level are dropped. Values: `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`.                  |
+| `detail_level`               | `DetailLevel.DETAILED`   | Report detail. `DETAILED` enriches diagnostics with violation context, rule descriptions, and documentation URLs; `STANDARD` omits them. |
 | `parameter_overrides`        | `{}`                     | Override template parameter values during resolution. Keys are parameter logical IDs.                                                     |
 | `pseudo_parameter_overrides` | all `None`               | Override CloudFormation pseudo-parameters (`AWS::AccountId`, `AWS::Region`, etc.).                                                        |
 | `strict`                     | `False`                  | When `True`, `WARN`-severity diagnostics are upgraded to `ERROR`.                                                                         |
@@ -248,7 +248,7 @@ diagnostics = validator.validate("template.yaml")
 
 | Method                            | Returns                    | Description                                             |
 |-----------------------------------|----------------------------|---------------------------------------------------------|
-| `validate(template, region=None)` | `list[StandardDiagnostic]` | Schema diagnostics. `region` defaults to `"us-east-1"`. |
+| `validate(template, region=None)` | `list[Diagnostic]` | Schema diagnostics. `region` defaults to `"us-east-1"`. |
 | `list_rules()`                    | `list[RuleInfo]`           | Schema rule metadata                                    |
 | `schema_count()`                  | `int`                      | Number of compiled provider schemas                     |
 
@@ -256,33 +256,37 @@ diagnostics = validator.validate("template.yaml")
 
 All report and diagnostic types are dataclass-like records re-exported from `cloudformation_validate`.
 
-### StandardReport / DetailedReport
+### ValidationReport
+
+`validate_template` always returns a `ValidationReport`. `config.detail_level` controls diagnostic enrichment: at
+`DetailLevel.DETAILED` (the default) each diagnostic is a fully enriched `Diagnostic`; at `DetailLevel.STANDARD`
+the report keeps the same shape but the enrichment fields are omitted.
 
 ```python
 @dataclass
-class StandardReport:
+class ValidationReport:
     file_path: str
     status: ReportStatus  # OK, ANALYSIS_INCOMPLETE (findings may be omitted), or ERROR (pipeline failure)
     version: str
     metadata: ReportMetadata
     performance: PerformanceMetrics
-    diagnostics: list[StandardDiagnostic]
+    diagnostics: list[Diagnostic]
 ```
-
-`DetailedReport` has the same structure but its diagnostics are `DetailedDiagnostic`, which add `documentation_url`,
-`rule_description`, `phase` (`PARSE` | `SCHEMA` | `LINT`), and `context` (a `ViolationContext` with `actual_value`,
-`expected_constraint`, `resolution_source`, etc.).
 
 Each optional budget-exhaustion record retains a stable machine-readable kind and also includes a
 human-readable description sentence, the numeric limit, and whether that specific exhaustion makes analysis
 incomplete. `requiredPropertyCombinations` is context-only, so its `analysis_incomplete` value is `False` and the
 report can remain `ReportStatus.OK`.
 
-### StandardDiagnostic
+### Diagnostic
+
+`validate_template` returns `Diagnostic` records, and `SchemaValidator.validate` returns a list of them. The
+enrichment fields (`documentation_url`, `rule_description`, `phase`, `context`) are populated at `DetailLevel.DETAILED`
+and left unset at `DetailLevel.STANDARD`; every other field is always present.
 
 ```python
 @dataclass
-class StandardDiagnostic:
+class Diagnostic:
     rule_id: str  # e.g. "E3012", "F1001", "W3010"
     severity: Severity  # FATAL, ERROR, WARN, INFO, DEBUG
     message: str
@@ -297,6 +301,10 @@ class StandardDiagnostic:
     end_column: int | None
     related_resources: list[RelatedResource] | None
     condition_scenario: dict[str, bool] | None  # condition truth assignment that triggers this diagnostic
+    documentation_url: str | None  # detailed level only
+    rule_description: str | None  # detailed level only
+    phase: str | None  # detailed level only; PARSE | SCHEMA | LINT
+    context: ViolationContext | None  # detailed level only; actual_value, expected_constraint, resolution_source, etc.
 
 
 # The named template entity a diagnostic is attributed to. The entity type is the

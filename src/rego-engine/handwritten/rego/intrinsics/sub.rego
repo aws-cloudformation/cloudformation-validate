@@ -11,6 +11,7 @@ pseudo_params_sub := {
 violation contains make_diag_full("F1018", "FATAL", name, edge.sourcePath,
     sprintf("Fn::Sub variable '${%s}' does not reference a valid resource, parameter, or pseudo-parameter", [target]),
     "", "") if {
+    cfn_rule_active("F1018")
     some name, res in input.resources
     some edge in res.outgoingRefs
     edge.kind == "Sub"

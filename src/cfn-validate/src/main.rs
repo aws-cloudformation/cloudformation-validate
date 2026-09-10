@@ -445,10 +445,7 @@ fn parse_logical_id_target(target: &str, flag: &str) -> (String, Option<EntityTy
 }
 
 fn print_report(report: &ValidationReport, format: &DetailLevel) -> Result<(), serde_json::Error> {
-    let json = match format {
-        DetailLevel::Standard => serde_json::to_string_pretty(&report.to_standard())?,
-        DetailLevel::Detailed => serde_json::to_string_pretty(&report.to_detailed())?,
-    };
+    let json = serde_json::to_string_pretty(&report.to_report(format.clone()))?;
     println!("{}", json);
     Ok(())
 }

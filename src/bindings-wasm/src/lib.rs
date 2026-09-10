@@ -44,6 +44,9 @@ pub struct ValidateConfig {
     pub exclude: RuleFilterConfig,
     #[serde(default)]
     #[tsify(optional)]
+    pub detail_level: Option<DetailLevel>,
+    #[serde(default)]
+    #[tsify(optional)]
     pub severity_level: Option<Severity>,
     #[serde(default)]
     #[tsify(optional, type = "Record<string, string>")]
@@ -59,11 +62,11 @@ pub struct ValidateConfig {
     pub disable_builtin_rules: Option<bool>,
 }
 
-fn build_core_config(opts: ValidateConfig, detail_level: DetailLevel) -> validation_engine::ValidateConfig {
+fn build_core_config(opts: ValidateConfig) -> validation_engine::ValidateConfig {
     let defaults = validation_engine::ValidateConfig::default();
     validation_engine::ValidateConfig {
         filters: FilterConfig::new(opts.include, opts.exclude),
-        detail_level,
+        detail_level: opts.detail_level.unwrap_or(defaults.detail_level),
         severity_level: opts.severity_level.unwrap_or(defaults.severity_level),
         parameter_overrides: opts.parameter_overrides.unwrap_or_default(),
         pseudo_parameter_overrides: opts.pseudo_parameter_overrides.unwrap_or_default(),
@@ -75,7 +78,7 @@ fn build_core_config(opts: ValidateConfig, detail_level: DetailLevel) -> validat
 #[derive(serde::Serialize, tsify::Tsify)]
 #[serde(rename_all = "camelCase")]
 pub struct WasmSchemaValidationResult {
-    pub diagnostics: Vec<diagnostics::StandardDiagnostic>,
+    pub diagnostics: Vec<diagnostics::output::Diagnostic>,
     pub metric: diagnostics::PhaseMetric,
 }
 
@@ -111,7 +114,8 @@ impl WasmSchemaValidator {
         catch_panics(
             || {
                 let result = self.inner.validate(&model.model, region.as_deref());
-                let diagnostics: Vec<_> = result.diagnostics.iter().map(|d| d.to_standard()).collect();
+                let diagnostics: Vec<_> =
+                    result.diagnostics.iter().map(|d| d.to_report(DetailLevel::Standard)).collect();
                 to_js(&WasmSchemaValidationResult { diagnostics, metric: result.metric })
             },
             wasm_panic_err,
@@ -143,8 +147,8 @@ macro_rules! wasm_engine {
                 )
             }
 
-            #[wasm_bindgen(js_name = "validateStandard")]
-            pub fn validate_standard(
+            #[wasm_bindgen(js_name = "validateTemplate")]
+            pub fn validate_template(
                 &self,
                 template: &[u8],
                 options: ValidateConfig,
@@ -152,30 +156,12 @@ macro_rules! wasm_engine {
             ) -> Result<JsValue, JsValue> {
                 catch_panics(
                     || {
-                        let config = build_core_config(options, DetailLevel::Standard);
+                        let config = build_core_config(options);
+                        let detail_level = config.detail_level.clone();
                         let report =
                             validate_bytes_with_path(&self.engine, &self.schema_validator, template, config, file_path)
                                 .map_err(to_js_err)?;
-                        to_js(&report.to_standard())
-                    },
-                    wasm_panic_err,
-                )
-            }
-
-            #[wasm_bindgen(js_name = "validateDetailed")]
-            pub fn validate_detailed(
-                &self,
-                template: &[u8],
-                options: ValidateConfig,
-                file_path: String,
-            ) -> Result<JsValue, JsValue> {
-                catch_panics(
-                    || {
-                        let config = build_core_config(options, DetailLevel::Detailed);
-                        let report =
-                            validate_bytes_with_path(&self.engine, &self.schema_validator, template, config, file_path)
-                                .map_err(to_js_err)?;
-                        to_js(&report.to_detailed())
+                        to_js(&report.to_report(detail_level))
                     },
                     wasm_panic_err,
                 )

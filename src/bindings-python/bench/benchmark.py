@@ -326,7 +326,7 @@ def _measure_startup(
     consumer_init_ms = engine_init_ms
 
     validate_start = time.perf_counter()
-    report = engine._inner.validate_detailed(startup_bytes, benchmark_config, startup_label)
+    report = engine._inner.validate_template(startup_bytes, benchmark_config, startup_label)
     host_ms = (time.perf_counter() - validate_start) * 1000.0
 
     perf = report.performance
@@ -677,6 +677,7 @@ def main() -> None:
     from cloudformation_validate import (  # noqa: E402
         CelEngine,
         CompositeEngine,
+        DetailLevel,
         EntityType,
         JsonValue,
         RegoEngine,
@@ -694,7 +695,7 @@ def main() -> None:
 
     engine_class = {"rego": RegoEngine, "cel": CelEngine, "composite": CompositeEngine}[engine_name]
 
-    benchmark_config = ValidateConfig(severity_level=Severity.DEBUG)
+    benchmark_config = ValidateConfig(severity_level=Severity.DEBUG, detail_level=DetailLevel.DETAILED)
 
     if startup_probe:
         _run_startup_probe(
@@ -791,7 +792,7 @@ def main() -> None:
             try:
                 model = TemplateModel(template_bytes)
             except Exception as exc:
-                parse_failure_report = engine._inner.validate_detailed(
+                parse_failure_report = engine._inner.validate_template(
                     template_bytes, benchmark_config, rel_path
                 )
                 _write_template_report(
@@ -812,7 +813,7 @@ def main() -> None:
 
             t0 = time.perf_counter()
             try:
-                report = engine._inner.validate_detailed(
+                report = engine._inner.validate_template(
                     template_bytes, benchmark_config, rel_path
                 )
             except Exception as exc:

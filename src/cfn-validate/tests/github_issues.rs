@@ -20,7 +20,7 @@ mod common;
 use cel_engine::CelEngine;
 use common::load_template;
 use composite_engine::CompositeEngine;
-use diagnostics::Diagnostic;
+use diagnostics::{DetailLevel, Diagnostic};
 use rego_engine::RegoEngine;
 use rules::Severity;
 use schema_validator::SchemaValidator;
@@ -127,7 +127,8 @@ fn rule_diagnostic_signatures(diags: &[Diagnostic], rule_id: &str) -> Vec<String
         .iter()
         .filter(|diagnostic| diagnostic.rule_id == rule_id)
         .map(|diagnostic| {
-            serde_json::to_string(&diagnostic.to_detailed()).expect("diagnostic serialization should succeed")
+            serde_json::to_string(&diagnostic.to_report(DetailLevel::Detailed))
+                .expect("diagnostic serialization should succeed")
         })
         .collect();
     signatures.sort();
@@ -2132,4 +2133,124 @@ Resources:
     assert_rule_parity(&reserved_diagnostics, "E3663");
     assert_count(&reserved_diagnostics, "E3663", 1);
     assert_fires_on_property(&reserved_diagnostics, "E3663", "Properties.Environment.Variables");
+}
+
+/// Issue #184: the instance class is valid for several standard RDS engines but
+/// not for Aurora, so the diagnostic must name the engine compatibility context.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/184
+#[test]
+fn issue_184_names_the_incompatible_aurora_engine() {
+    let diagnostics = validate_both("issue-184.yaml");
+    assert_rule_parity(&diagnostics, "E3025");
+    assert_count(&diagnostics, "E3025", 1);
+    assert_fires_on_property(&diagnostics, "E3025", "Properties.DBInstanceClass");
+
+    for (engine, engine_diagnostics) in &diagnostics {
+        let message = engine_diagnostics
+            .iter()
+            .find(|diagnostic| diagnostic.rule_id == "E3025")
+            .map(|diagnostic| diagnostic.message.as_str())
+            .expect("the instance-class diagnostic should be present");
+        assert!(
+            message.ends_with("when Engine is 'aurora-mysql' in any region"),
+            "[{engine}] compatibility context missing from message: {message}"
+        );
+    }
+}
+
+#[test]
+fn issue_184_accepts_the_same_instance_class_for_mysql() {
+    let template = br#"
+Resources:
+  MysqlInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceClass: db.m5.large
+      Engine: mysql
+"#;
+
+    let diagnostics = validate_both_bytes(template);
+
+    assert_absent(&diagnostics, "E3025");
+}
+
+/// Issue #339: EC2 resolves the official Systems Manager ImageId alias when an
+/// instance launches from a launch template, so it is not a literal AMI ID.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/339
+#[test]
+fn issue_339_accepts_the_launch_template_ssm_image_alias() {
+    let diagnostics = validate_both("issue-339.yaml");
+
+    assert_absent(&diagnostics, "E1152");
+}
+
+#[test]
+fn issue_339_still_rejects_an_unrecognized_image_alias_prefix() {
+    let template = br#"
+Resources:
+  LaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateData:
+        ImageId: resolve:ssx:/aws/service/example/image_id
+"#;
+
+    let diagnostics = validate_both_bytes(template);
+
+    assert_rule_parity(&diagnostics, "E1152");
+    assert_count(&diagnostics, "E1152", 1);
+    assert_fires_on_property(&diagnostics, "E1152", "Properties.LaunchTemplateData.ImageId");
+}
+
+/// Issue #357: a bucket policy's primary identifier is the bucket it targets,
+/// so duplicate definitions need target-oriented guidance rather than creation jargon.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/357
+#[test]
+fn issue_357_explains_that_bucket_policy_resources_share_one_target() {
+    let diagnostics = validate_both("issue-357.yaml");
+    let expected_message = "Only one AWS::S3::BucketPolicy resource can target a given bucket; resources {'FirstBucketPolicy', 'SecondBucketPolicy'} all target bucket 'Ref(\"CfnBucket\")'";
+
+    assert_rule_parity(&diagnostics, "E3019");
+    assert_count(&diagnostics, "E3019", 2);
+    assert_rule_targets_on_resources(
+        &diagnostics,
+        "E3019",
+        &["FirstBucketPolicy", "SecondBucketPolicy"],
+        &[("FirstBucketPolicy", "Properties.Bucket"), ("SecondBucketPolicy", "Properties.Bucket")],
+    );
+    assert_rule_start_locations(&diagnostics, "E3019", &[("FirstBucketPolicy", 7, 7), ("SecondBucketPolicy", 18, 7)]);
+    for (engine, engine_diagnostics) in &diagnostics {
+        let messages = engine_diagnostics
+            .iter()
+            .filter(|diagnostic| diagnostic.rule_id == "E3019")
+            .map(|diagnostic| diagnostic.message.as_str())
+            .collect::<Vec<_>>();
+        assert!(
+            messages.iter().all(|message| *message == expected_message),
+            "[{engine}] unexpected bucket-policy conflict messages: {messages:?}"
+        );
+    }
+}
+
+#[test]
+fn issue_357_allows_bucket_policies_for_distinct_buckets() {
+    let template = br#"
+Resources:
+  FirstPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: first-bucket
+      PolicyDocument:
+        Statement: []
+  SecondPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: second-bucket
+      PolicyDocument:
+        Statement: []
+"#;
+
+    let diagnostics = validate_both_bytes(template);
+
+    assert_absent(&diagnostics, "E3019");
 }

@@ -8,6 +8,7 @@ violation contains make_diag_full("W3045", "WARN", name,
     "AccessControl property is deprecated. Use bucket policies instead",
     "Remove AccessControl and use an AWS::S3::BucketPolicy resource",
     "") if {
+    cfn_rule_active("W3045")
     some name in resources_of_type("AWS::S3::Bucket")
     ac := resolve(name, "Properties.AccessControl")
     ac != null
@@ -19,6 +20,7 @@ violation contains make_diag_full("E3045", "ERROR", name,
     "A bucket with 'AccessControl' set should also have at least one 'OwnershipControl' configured",
     "Add OwnershipControls to the bucket when using AccessControl",
     "") if {
+    cfn_rule_active("E3045")
     some name in resources_of_type("AWS::S3::Bucket")
     ac := resolve(name, "Properties.AccessControl")
     ac != null

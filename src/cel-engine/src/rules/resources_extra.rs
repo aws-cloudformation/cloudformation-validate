@@ -17,7 +17,7 @@ use template_model::consts::{
 use template_model::dynamodb::analyze_dynamodb_table_scenarios;
 use template_model::fargate::{CPU_UNIT_LABELS, VCPU_SIZES, cpu_is_offered};
 use template_model::iam_policy::{inline_identity_policy_document_paths, validate_identity_policy_scenarios};
-use template_model::message::{render_str_list, render_value};
+use template_model::message::{primary_identifier_conflict_message, render_str_list, render_value};
 use template_model::resolver::{RefKind, ResolvedValue};
 use template_model::route_table::duplicate_subnet_associations;
 use template_model::{
@@ -2452,25 +2452,15 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             let identifier_properties = &ctx.cached_data.primary_identifiers[resource_type];
             let conflicts = m.primary_identifier_conflicts(resource_type, identifier_properties);
             for (tuple, resources) in &conflicts {
-                let instance_repr = render_primary_id_dict(identifier_properties, tuple);
-                let resources_repr = render_resource_set(resources);
+                let message =
+                    primary_identifier_conflict_message(resource_type, identifier_properties, tuple, resources);
                 let path = if identifier_properties.len() == 1 {
                     format!("Properties.{}", identifier_properties[0])
                 } else {
                     KEY_PROPERTIES.to_string()
                 };
                 for resource_id in resources {
-                    out.push(make_resource_diagnostic(
-                        "E3019",
-                        &format!(
-                            "Primary identifiers {} should have unique values across the resources {}",
-                            instance_repr, resources_repr
-                        ),
-                        m,
-                        resource_id,
-                        &path,
-                        None,
-                    ));
+                    out.push(make_resource_diagnostic("E3019", &message, m, resource_id, &path, None));
                 }
             }
         }
@@ -3138,14 +3128,14 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                 let Some(val) = resolve_enum_string(m, name, "Properties.DBInstanceClass") else {
                     continue;
                 };
-                if let Some(sorted) =
-                    region_enums::conditional_invalid_enum(region_map, region, "DBInstanceClass", true, &val, |prop| {
+                if let Some(mismatch) =
+                    region_enums::conditional_enum_mismatch(region_map, region, "DBInstanceClass", true, &val, |prop| {
                         resolve_enum_string(m, name, &format!("Properties.{}", prop))
                     })
                 {
                     out.push(make_resource_diagnostic(
                         "E3025",
-                        &region_enums::conditional_invalid_message(&val, &sorted, region),
+                        &region_enums::conditional_mismatch_message(&val, &mismatch, region),
                         m,
                         name,
                         "Properties.DBInstanceClass",
@@ -3155,9 +3145,9 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             }
         }
 
-        // E3694: RDS DBCluster DBClusterInstanceClass. Like E3025 this is a
-        // conditional schema keyed on Engine, but Engine is NOT lowercased for
-        // DBCluster, so match the const case-sensitively.
+        // RDS DBCluster DBClusterInstanceClass uses a conditional schema keyed
+        // on Engine, but Engine is not lowercased for DBCluster, so match the
+        // const case-sensitively.
         if let Some(region_map) =
             region_map_for_key(&ctx.cached_data.enum_data, "data/aws_rds_dbcluster_dbclusterinstanceclass_enum")
         {
@@ -3165,7 +3155,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                 let Some(val) = resolve_enum_string(m, name, "Properties.DBClusterInstanceClass") else {
                     continue;
                 };
-                if let Some(sorted) = region_enums::conditional_invalid_enum(
+                if let Some(mismatch) = region_enums::conditional_enum_mismatch(
                     region_map,
                     region,
                     "DBClusterInstanceClass",
@@ -3175,7 +3165,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                 ) {
                     out.push(make_resource_diagnostic(
                         "E3694",
-                        &region_enums::conditional_invalid_message(&val, &sorted, region),
+                        &region_enums::conditional_mismatch_message(&val, &mismatch, region),
                         m,
                         name,
                         "Properties.DBClusterInstanceClass",
@@ -4191,19 +4181,6 @@ fn collect_concrete_strings(value: &ResolvedValue, out: &mut Vec<String>) {
         }
         _ => {}
     }
-}
-
-/// Renders `{'Prop1': 'val1', 'Prop2': 'val2'}` in Python `repr` style for duplicate-identifier messages.
-fn render_primary_id_dict(props: &[String], values: &[String]) -> String {
-    let pairs: Vec<String> = props.iter().zip(values.iter()).map(|(p, v)| format!("'{}': '{}'", p, v)).collect();
-    format!("{{{}}}", pairs.join(", "))
-}
-
-/// Renders `{'A', 'B'}` in Python repr style for a Python set of resource names.
-/// Python `repr(set)` uses iteration order; we sort for determinism across engines.
-fn render_resource_set(names: &BTreeSet<String>) -> String {
-    let quoted: Vec<String> = names.iter().map(|n| format!("'{}'", n)).collect();
-    format!("{{{}}}", quoted.join(", "))
 }
 
 /// First scalar (string/number/bool) value that repeats in the array, formatted

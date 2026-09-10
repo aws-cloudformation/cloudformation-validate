@@ -281,7 +281,7 @@
       ],
       "initAndFirstMs": 464.951,
       "peakRssBytes": 392003584,
-      "warmPerCallMs": 79.696,
+      "warmPerCallMs": 51.72,
       "aggregateMetrics": [
         "initAndFirstMs",
         "warmPerCallMs",
@@ -294,9 +294,9 @@
         "warmPerCallMs",
         "peakRssBytes"
       ],
-      "initAndFirstMs": 952.563,
+      "initAndFirstMs": 877.042,
       "peakRssBytes": 421531648,
-      "warmPerCallMs": 575.075,
+      "warmPerCallMs": 449.299,
       "aggregateMetrics": [
         "initAndFirstMs",
         "warmPerCallMs",
@@ -311,7 +311,7 @@
       ],
       "initAndFirstMs": 469.332,
       "peakRssBytes": 401674240,
-      "warmPerCallMs": 86.251,
+      "warmPerCallMs": 66.551,
       "aggregateMetrics": [
         "initAndFirstMs",
         "warmPerCallMs",
@@ -397,9 +397,9 @@
         "warmPerCallMs",
         "peakRssBytes"
       ],
-      "initAndFirstMs": 932.465,
+      "initAndFirstMs": 849.484,
       "peakRssBytes": 416006144,
-      "warmPerCallMs": 546.772,
+      "warmPerCallMs": 416.458,
       "aggregateMetrics": [
         "initAndFirstMs",
         "warmPerCallMs",
@@ -481,7 +481,7 @@
       ],
       "initAndFirstMs": 493.582,
       "peakRssBytes": 396894208,
-      "warmPerCallMs": 109.16,
+      "warmPerCallMs": 100.47,
       "aggregateMetrics": [
         "initAndFirstMs",
         "warmPerCallMs",
@@ -526,7 +526,7 @@
       ],
       "initAndFirstMs": 376.776,
       "peakRssBytes": 389062656,
-      "warmPerCallMs": 2.55,
+      "warmPerCallMs": 2.498,
       "aggregateMetrics": [
         "initAndFirstMs",
         "warmPerCallMs",
@@ -539,9 +539,9 @@
         "warmPerCallMs",
         "peakRssBytes"
       ],
-      "initAndFirstMs": 654.01,
+      "initAndFirstMs": 569.461,
       "peakRssBytes": 400891904,
-      "warmPerCallMs": 283.182,
+      "warmPerCallMs": 140.963,
       "aggregateMetrics": [
         "initAndFirstMs",
         "warmPerCallMs",
@@ -596,7 +596,7 @@
     },
     "cargoLockSha256": "ef1591fe115b30739b47ced27ca1c2ad9faa1736c052739205ec4d197e29620c",
     "generatedAtUtc": "2026-08-29T19:11:12Z",
-    "gitSha": "41c430f79e1e6c510f8a1790ef4aa7e9e0974aef",
+    "gitSha": "40da90156a777a0f00c9805d5f707724823a2897",
     "rustVersion": "rustc 1.96.0",
     "workingTreeDirty": false,
     "validationRun": {

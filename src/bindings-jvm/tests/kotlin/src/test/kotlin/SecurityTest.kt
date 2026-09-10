@@ -41,9 +41,9 @@ class SecurityTest {
                         try {
                             val report =
                                 when (engine) {
-                                    is RegoEngine -> engine.validateDetailed(template, config)
-                                    is CelEngine -> engine.validateDetailed(template, config)
-                                    is CompositeEngine -> engine.validateDetailed(template, config)
+                                    is RegoEngine -> engine.validateTemplate(template, config)
+                                    is CelEngine -> engine.validateTemplate(template, config)
+                                    is CompositeEngine -> engine.validateTemplate(template, config)
                                     else -> error("unsupported engine type")
                                 }
                             assertNotNull(report.status)

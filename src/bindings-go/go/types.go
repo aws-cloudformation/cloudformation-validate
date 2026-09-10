@@ -14,6 +14,17 @@ const (
 	SeverityDebug Severity = "DEBUG"
 )
 
+// DetailLevel controls how much per-diagnostic context a report carries.
+// DETAILED, the level used when DetailLevel is unset, enriches each diagnostic
+// with documentation URLs, rule descriptions, phase tags, and violation
+// context; STANDARD leaves those fields absent.
+type DetailLevel string
+
+const (
+	DetailLevelStandard DetailLevel = "STANDARD"
+	DetailLevelDetailed DetailLevel = "DETAILED"
+)
+
 // ReportStatus is the outcome of a validation run. StatusOK means validation
 // completed without correctness-affecting curtailment. StatusAnalysisIncomplete
 // means a deterministic budget curtailed analysis and could omit findings.
@@ -70,7 +81,8 @@ type RelatedResource struct {
 	Message  string       `json:"message"`
 }
 
-// ViolationContext carries the resolved values behind a detailed diagnostic.
+// ViolationContext carries the resolved values behind a diagnostic's enrichment
+// context, populated only at the DETAILED detail level.
 type ViolationContext struct {
 	ActualValue        json.RawMessage            `json:"actualValue,omitempty"`
 	ExpectedConstraint *string                    `json:"expectedConstraint,omitempty"`
@@ -90,8 +102,10 @@ const (
 	RuleOriginGuard   RuleOrigin = "GUARD"
 )
 
-// StandardDiagnostic is a single validation finding.
-type StandardDiagnostic struct {
+// Diagnostic is a single validation finding. The enrichment fields
+// (DocumentationURL, RuleDescription, Phase, Context) are populated only when
+// validation runs at the DETAILED detail level; a STANDARD run leaves them nil.
+type Diagnostic struct {
 	RuleID            string            `json:"ruleId"`
 	Severity          Severity          `json:"severity"`
 	Message           string            `json:"message"`
@@ -106,15 +120,10 @@ type StandardDiagnostic struct {
 	EndColumn         *int              `json:"endColumn,omitempty"`
 	RelatedResources  []RelatedResource `json:"relatedResources,omitempty"`
 	ConditionScenario map[string]bool   `json:"conditionScenario,omitempty"`
-}
-
-// DetailedDiagnostic is a StandardDiagnostic enriched with rule context.
-type DetailedDiagnostic struct {
-	StandardDiagnostic
-	DocumentationURL *string           `json:"documentationUrl,omitempty"`
-	RuleDescription  *string           `json:"ruleDescription,omitempty"`
-	Phase            *string           `json:"phase,omitempty"`
-	Context          *ViolationContext `json:"context,omitempty"`
+	DocumentationURL  *string           `json:"documentationUrl,omitempty"`
+	RuleDescription   *string           `json:"ruleDescription,omitempty"`
+	Phase             *string           `json:"phase,omitempty"`
+	Context           *ViolationContext `json:"context,omitempty"`
 }
 
 // Summary counts diagnostics by severity.
@@ -163,24 +172,16 @@ type PerformanceMetrics struct {
 	ValidateTotal      PhaseMetric `json:"validateTotal"`
 }
 
-// StandardReport is the result of ValidateStandard.
-type StandardReport struct {
-	FilePath    string               `json:"filePath"`
-	Status      ReportStatus         `json:"status"`
-	Version     string               `json:"version"`
-	Metadata    ReportMetadata       `json:"metadata"`
-	Performance PerformanceMetrics   `json:"performance"`
-	Diagnostics []StandardDiagnostic `json:"diagnostics"`
-}
-
-// DetailedReport is the result of ValidateDetailed.
-type DetailedReport struct {
-	FilePath    string               `json:"filePath"`
-	Status      ReportStatus         `json:"status"`
-	Version     string               `json:"version"`
-	Metadata    ReportMetadata       `json:"metadata"`
-	Performance PerformanceMetrics   `json:"performance"`
-	Diagnostics []DetailedDiagnostic `json:"diagnostics"`
+// ValidationReport is the result of ValidateTemplate. Its diagnostics carry the
+// enrichment fields only when validation ran at the DETAILED detail level; a
+// STANDARD run leaves them nil.
+type ValidationReport struct {
+	FilePath    string             `json:"filePath"`
+	Status      ReportStatus       `json:"status"`
+	Version     string             `json:"version"`
+	Metadata    ReportMetadata     `json:"metadata"`
+	Performance PerformanceMetrics `json:"performance"`
+	Diagnostics []Diagnostic       `json:"diagnostics"`
 }
 
 // RuleInfo describes one rule in the registry.
@@ -307,10 +308,11 @@ type PseudoParameterOverrides struct {
 }
 
 // ValidateConfig holds per-call validation options. A nil *ValidateConfig uses
-// the defaults.
+// the defaults. DetailLevel defaults to DETAILED when left empty.
 type ValidateConfig struct {
 	Include                  *RuleFilterConfig         `json:"include,omitempty"`
 	Exclude                  *RuleFilterConfig         `json:"exclude,omitempty"`
+	DetailLevel              DetailLevel               `json:"detailLevel,omitempty"`
 	SeverityLevel            Severity                  `json:"severityLevel,omitempty"`
 	ParameterOverrides       map[string]string         `json:"parameterOverrides,omitempty"`
 	PseudoParameterOverrides *PseudoParameterOverrides `json:"pseudoParameterOverrides,omitempty"`

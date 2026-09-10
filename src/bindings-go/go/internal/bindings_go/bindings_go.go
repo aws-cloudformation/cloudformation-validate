@@ -398,20 +398,11 @@ func uniffiCheckChecksums() {
 	}
 	{
 		checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
-			return C.uniffi_bindings_go_checksum_method_gocelengine_validate_detailed_json()
+			return C.uniffi_bindings_go_checksum_method_gocelengine_validate_template_json()
 		})
-		if checksum != 26703 {
+		if checksum != 56745 {
 			// If this happens try cleaning and rebuilding your project
-			panic("bindings_go: uniffi_bindings_go_checksum_method_gocelengine_validate_detailed_json: UniFFI API checksum mismatch")
-		}
-	}
-	{
-		checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
-			return C.uniffi_bindings_go_checksum_method_gocelengine_validate_standard_json()
-		})
-		if checksum != 38180 {
-			// If this happens try cleaning and rebuilding your project
-			panic("bindings_go: uniffi_bindings_go_checksum_method_gocelengine_validate_standard_json: UniFFI API checksum mismatch")
+			panic("bindings_go: uniffi_bindings_go_checksum_method_gocelengine_validate_template_json: UniFFI API checksum mismatch")
 		}
 	}
 	{
@@ -434,20 +425,11 @@ func uniffiCheckChecksums() {
 	}
 	{
 		checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
-			return C.uniffi_bindings_go_checksum_method_goregoengine_validate_detailed_json()
+			return C.uniffi_bindings_go_checksum_method_goregoengine_validate_template_json()
 		})
-		if checksum != 30076 {
+		if checksum != 51794 {
 			// If this happens try cleaning and rebuilding your project
-			panic("bindings_go: uniffi_bindings_go_checksum_method_goregoengine_validate_detailed_json: UniFFI API checksum mismatch")
-		}
-	}
-	{
-		checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
-			return C.uniffi_bindings_go_checksum_method_goregoengine_validate_standard_json()
-		})
-		if checksum != 60446 {
-			// If this happens try cleaning and rebuilding your project
-			panic("bindings_go: uniffi_bindings_go_checksum_method_goregoengine_validate_standard_json: UniFFI API checksum mismatch")
+			panic("bindings_go: uniffi_bindings_go_checksum_method_goregoengine_validate_template_json: UniFFI API checksum mismatch")
 		}
 	}
 	{
@@ -472,7 +454,7 @@ func uniffiCheckChecksums() {
 		checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 			return C.uniffi_bindings_go_checksum_method_goschemavalidator_validate_json()
 		})
-		if checksum != 33987 {
+		if checksum != 55662 {
 			// If this happens try cleaning and rebuilding your project
 			panic("bindings_go: uniffi_bindings_go_checksum_method_goschemavalidator_validate_json: UniFFI API checksum mismatch")
 		}
@@ -792,10 +774,12 @@ type GoCelEngineInterface interface {
 	EngineName() string
 	// Returns the engine's rules as a JSON array of rule infos.
 	ListRulesJson() (string, error)
-	// Validates a template and returns the detailed report as JSON.
-	ValidateDetailedJson(template []byte, optionsJson string, filePath string) (string, error)
-	// Validates a template and returns the standard report as JSON.
-	ValidateStandardJson(template []byte, optionsJson string, filePath string) (string, error)
+	// Validates a template and returns the report as JSON.
+	//
+	// The detail level carried by `options_json` controls enrichment:
+	// `STANDARD` leaves enrichment fields absent, while `DETAILED`
+	// populates them. Either value produces a Go `ValidationReport`.
+	ValidateTemplateJson(template []byte, optionsJson string, filePath string) (string, error)
 }
 type GoCelEngine struct {
 	ffiObject FfiObject
@@ -844,31 +828,17 @@ func (_self *GoCelEngine) ListRulesJson() (string, error) {
 	}
 }
 
-// Validates a template and returns the detailed report as JSON.
-func (_self *GoCelEngine) ValidateDetailedJson(template []byte, optionsJson string, filePath string) (string, error) {
+// Validates a template and returns the report as JSON.
+//
+// The detail level carried by `options_json` controls enrichment:
+// `STANDARD` leaves enrichment fields absent, while `DETAILED`
+// populates them. Either value produces a Go `ValidationReport`.
+func (_self *GoCelEngine) ValidateTemplateJson(template []byte, optionsJson string, filePath string) (string, error) {
 	_pointer := _self.ffiObject.incrementPointer("*GoCelEngine")
 	defer _self.ffiObject.decrementPointer()
 	_uniffiRV, _uniffiErr := rustCallWithError[*ValidationError](FfiConverterValidationError{}, func(_uniffiStatus *C.RustCallStatus) RustBufferI {
 		return GoRustBuffer{
-			inner: C.uniffi_bindings_go_fn_method_gocelengine_validate_detailed_json(
-				_pointer, FfiConverterBytesINSTANCE.Lower(template), FfiConverterStringINSTANCE.Lower(optionsJson), FfiConverterStringINSTANCE.Lower(filePath), _uniffiStatus),
-		}
-	})
-	if _uniffiErr != nil {
-		var _uniffiDefaultValue string
-		return _uniffiDefaultValue, _uniffiErr
-	} else {
-		return FfiConverterStringINSTANCE.Lift(_uniffiRV), nil
-	}
-}
-
-// Validates a template and returns the standard report as JSON.
-func (_self *GoCelEngine) ValidateStandardJson(template []byte, optionsJson string, filePath string) (string, error) {
-	_pointer := _self.ffiObject.incrementPointer("*GoCelEngine")
-	defer _self.ffiObject.decrementPointer()
-	_uniffiRV, _uniffiErr := rustCallWithError[*ValidationError](FfiConverterValidationError{}, func(_uniffiStatus *C.RustCallStatus) RustBufferI {
-		return GoRustBuffer{
-			inner: C.uniffi_bindings_go_fn_method_gocelengine_validate_standard_json(
+			inner: C.uniffi_bindings_go_fn_method_gocelengine_validate_template_json(
 				_pointer, FfiConverterBytesINSTANCE.Lower(template), FfiConverterStringINSTANCE.Lower(optionsJson), FfiConverterStringINSTANCE.Lower(filePath), _uniffiStatus),
 		}
 	})
@@ -939,10 +909,12 @@ type GoRegoEngineInterface interface {
 	EngineName() string
 	// Returns the engine's rules as a JSON array of rule infos.
 	ListRulesJson() (string, error)
-	// Validates a template and returns the detailed report as JSON.
-	ValidateDetailedJson(template []byte, optionsJson string, filePath string) (string, error)
-	// Validates a template and returns the standard report as JSON.
-	ValidateStandardJson(template []byte, optionsJson string, filePath string) (string, error)
+	// Validates a template and returns the report as JSON.
+	//
+	// The detail level carried by `options_json` controls enrichment:
+	// `STANDARD` leaves enrichment fields absent, while `DETAILED`
+	// populates them. Either value produces a Go `ValidationReport`.
+	ValidateTemplateJson(template []byte, optionsJson string, filePath string) (string, error)
 }
 type GoRegoEngine struct {
 	ffiObject FfiObject
@@ -991,31 +963,17 @@ func (_self *GoRegoEngine) ListRulesJson() (string, error) {
 	}
 }
 
-// Validates a template and returns the detailed report as JSON.
-func (_self *GoRegoEngine) ValidateDetailedJson(template []byte, optionsJson string, filePath string) (string, error) {
+// Validates a template and returns the report as JSON.
+//
+// The detail level carried by `options_json` controls enrichment:
+// `STANDARD` leaves enrichment fields absent, while `DETAILED`
+// populates them. Either value produces a Go `ValidationReport`.
+func (_self *GoRegoEngine) ValidateTemplateJson(template []byte, optionsJson string, filePath string) (string, error) {
 	_pointer := _self.ffiObject.incrementPointer("*GoRegoEngine")
 	defer _self.ffiObject.decrementPointer()
 	_uniffiRV, _uniffiErr := rustCallWithError[*ValidationError](FfiConverterValidationError{}, func(_uniffiStatus *C.RustCallStatus) RustBufferI {
 		return GoRustBuffer{
-			inner: C.uniffi_bindings_go_fn_method_goregoengine_validate_detailed_json(
-				_pointer, FfiConverterBytesINSTANCE.Lower(template), FfiConverterStringINSTANCE.Lower(optionsJson), FfiConverterStringINSTANCE.Lower(filePath), _uniffiStatus),
-		}
-	})
-	if _uniffiErr != nil {
-		var _uniffiDefaultValue string
-		return _uniffiDefaultValue, _uniffiErr
-	} else {
-		return FfiConverterStringINSTANCE.Lift(_uniffiRV), nil
-	}
-}
-
-// Validates a template and returns the standard report as JSON.
-func (_self *GoRegoEngine) ValidateStandardJson(template []byte, optionsJson string, filePath string) (string, error) {
-	_pointer := _self.ffiObject.incrementPointer("*GoRegoEngine")
-	defer _self.ffiObject.decrementPointer()
-	_uniffiRV, _uniffiErr := rustCallWithError[*ValidationError](FfiConverterValidationError{}, func(_uniffiStatus *C.RustCallStatus) RustBufferI {
-		return GoRustBuffer{
-			inner: C.uniffi_bindings_go_fn_method_goregoengine_validate_standard_json(
+			inner: C.uniffi_bindings_go_fn_method_goregoengine_validate_template_json(
 				_pointer, FfiConverterBytesINSTANCE.Lower(template), FfiConverterStringINSTANCE.Lower(optionsJson), FfiConverterStringINSTANCE.Lower(filePath), _uniffiStatus),
 		}
 	})
@@ -1087,7 +1045,8 @@ type GoSchemaValidatorInterface interface {
 	ListRulesJson() (string, error)
 	SchemaCount() uint32
 	// Validates a parsed model against the provider schemas and returns the
-	// diagnostics as a JSON array of standard diagnostics.
+	// diagnostics as a JSON array, projected at the standard detail level so
+	// enrichment fields are omitted.
 	ValidateJson(model *GoSemanticModel, region *string) (string, error)
 }
 type GoSchemaValidator struct {
@@ -1134,7 +1093,8 @@ func (_self *GoSchemaValidator) SchemaCount() uint32 {
 }
 
 // Validates a parsed model against the provider schemas and returns the
-// diagnostics as a JSON array of standard diagnostics.
+// diagnostics as a JSON array, projected at the standard detail level so
+// enrichment fields are omitted.
 func (_self *GoSchemaValidator) ValidateJson(model *GoSemanticModel, region *string) (string, error) {
 	_pointer := _self.ffiObject.incrementPointer("*GoSchemaValidator")
 	defer _self.ffiObject.decrementPointer()

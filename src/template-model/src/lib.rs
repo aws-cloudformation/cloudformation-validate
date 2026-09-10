@@ -48,7 +48,7 @@ pub use consts::{
 pub use defect::{DefectPhase, ParseDefect};
 pub use ir::*;
 pub use json_value::JsonValue;
-pub use message::{quote, render_str_list, render_value, render_value_list};
+pub use message::{primary_identifier_conflict_message, quote, render_str_list, render_value, render_value_list};
 pub use model::{ParseConfig, ParseResult, PseudoParameterOverrides, SemanticModel};
 pub use pattern::{
     CompiledPattern, anchor_allowed_pattern, compile as compile_pattern, default_matches_pattern, is_service_valid,

@@ -18,6 +18,7 @@ violation contains make_diag_full("E3511", "ERROR", name,
     sprintf("IAM Role ARN '%s' does not match expected pattern", [val]),
     "Use format: arn:aws:iam::123456789012:role/role-name",
     "") if {
+    cfn_rule_active("E3511")
     some prop in _iam_role_arn_checks
     some name in resources_of_type(prop.type)
     val := resolve(name, prop.path)

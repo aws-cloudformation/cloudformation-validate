@@ -7,6 +7,7 @@ import rego.v1
 violation contains make_diag_at("E3026", "ERROR", name,
     "Properties.AutomaticFailoverEnabled",
     "AutomaticFailoverEnabled must be true when NumCacheClusters > 1 and Engine is 'redis'") if {
+    cfn_rule_active("E3026")
     some name in resources_of_type("AWS::ElastiCache::ReplicationGroup")
     engine := resolve(name, "Properties.Engine")
     engine == "redis"

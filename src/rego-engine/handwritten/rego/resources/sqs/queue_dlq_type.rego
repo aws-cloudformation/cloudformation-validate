@@ -7,6 +7,7 @@ import rego.v1
 violation contains make_diag_at("E3502", "ERROR", name,
     "Properties.RedrivePolicy",
     "Source queue type 'FIFO' does not match destination queue type 'standard'") if {
+    cfn_rule_active("E3502")
     some name, res in input.resources
     res.resourceType == "AWS::SQS::Queue"
     resolve(name, "Properties.FifoQueue") == true
@@ -20,6 +21,7 @@ violation contains make_diag_at("E3502", "ERROR", name,
 violation contains make_diag_at("E3502", "ERROR", name,
     "Properties.RedrivePolicy",
     "Source queue type 'standard' does not match destination queue type 'FIFO'") if {
+    cfn_rule_active("E3502")
     some name, res in input.resources
     res.resourceType == "AWS::SQS::Queue"
     not resolve(name, "Properties.FifoQueue") == true

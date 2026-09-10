@@ -8,6 +8,7 @@ import unittest
 from cloudformation_validate import (
     CelEngine,
     CompositeEngine,
+    DetailLevel,
     RegoEngine,
     ReportStatus,
     Severity,
@@ -35,8 +36,8 @@ def discover_security_templates():
 def validate_security_template(engine_name, template_path, outcome_queue):
     try:
         engine = ENGINE_FACTORIES[engine_name]()
-        config = ValidateConfig(severity_level=Severity.DEBUG)
-        report = engine.validate_detailed(template_path, config)
+        config = ValidateConfig(severity_level=Severity.DEBUG, detail_level=DetailLevel.DETAILED)
+        report = engine.validate_template(template_path, config)
         if report.status is None or not isinstance(report.diagnostics, list):
             outcome_queue.put(("error", "detailed validation returned an incomplete report"))
             return

@@ -15,6 +15,7 @@ import rego.v1
 # matched case-insensitively for DBInstance.
 violation contains make_diag_full("E3025", "ERROR", name,
     "Properties.DBInstanceClass", msg, "", "") if {
+    cfn_rule_active("E3025")
     some name in resources_of_type("AWS::RDS::DBInstance")
     val := resolve(name, "Properties.DBInstanceClass")
     is_string(val)
@@ -27,6 +28,7 @@ violation contains make_diag_full("E3025", "ERROR", name,
 # (false).
 violation contains make_diag_full("E3694", "ERROR", name,
     "Properties.DBClusterInstanceClass", msg, "", "") if {
+    cfn_rule_active("E3694")
     some name in resources_of_type("AWS::RDS::DBCluster")
     val := resolve(name, "Properties.DBClusterInstanceClass")
     is_string(val)

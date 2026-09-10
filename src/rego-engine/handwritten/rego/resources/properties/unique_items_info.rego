@@ -9,6 +9,7 @@ import rego.v1
 violation contains make_diag_at("I3037", "INFO", name,
     sprintf("Properties.%s", [prop]),
     sprintf("Array property '%s' contains duplicate value: %s", [prop, _format_item(dup)])) if {
+    cfn_rule_active("I3037")
     some name, res in input.resources
     some prop in object.keys(res.properties)
     prop != "Command"

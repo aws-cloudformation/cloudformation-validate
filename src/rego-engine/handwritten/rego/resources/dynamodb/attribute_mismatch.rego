@@ -7,6 +7,7 @@ violation contains make_diag_full("E3039", "ERROR", name,
     msg,
     "",
     "") if {
+    cfn_rule_active("E3039")
     some name in resources_of_type("AWS::DynamoDB::Table")
     analysis := dynamodb_scenario_analysis(name)
     some mismatch in analysis.attribute_mismatches

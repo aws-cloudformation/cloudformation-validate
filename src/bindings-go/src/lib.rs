@@ -52,6 +52,7 @@ fn panic_to_error(message: String) -> ValidationError {
 struct ValidateOptions {
     include: RuleFilterConfig,
     exclude: RuleFilterConfig,
+    detail_level: Option<DetailLevel>,
     severity_level: Option<Severity>,
     parameter_overrides: HashMap<String, String>,
     pseudo_parameter_overrides: PseudoParameterOverrides,
@@ -64,11 +65,11 @@ impl ValidateOptions {
         serde_json::from_str(options_json).map_err(|e| ValidationError::new(format!("invalid options JSON: {e}")))
     }
 
-    fn to_core(&self, detail_level: DetailLevel) -> validation_engine::ValidateConfig {
+    fn to_core(&self) -> validation_engine::ValidateConfig {
         let defaults = validation_engine::ValidateConfig::default();
         validation_engine::ValidateConfig {
             filters: FilterConfig::new(self.include.clone(), self.exclude.clone()),
-            detail_level,
+            detail_level: self.detail_level.clone().unwrap_or(defaults.detail_level),
             severity_level: self.severity_level.unwrap_or(defaults.severity_level),
             parameter_overrides: self.parameter_overrides.clone(),
             pseudo_parameter_overrides: self.pseudo_parameter_overrides.clone(),
@@ -257,12 +258,14 @@ impl GoSchemaValidator {
     }
 
     /// Validates a parsed model against the provider schemas and returns the
-    /// diagnostics as a JSON array of standard diagnostics.
+    /// diagnostics as a JSON array, projected at the standard detail level so
+    /// enrichment fields are omitted.
     pub fn validate_json(&self, model: &GoSemanticModel, region: Option<String>) -> Result<String, ValidationError> {
         catch_panics(
             || {
                 let result = self.inner.validate(&model.model, region.as_deref());
-                let diagnostics: Vec<_> = result.diagnostics.iter().map(|d| d.to_standard()).collect();
+                let diagnostics: Vec<_> =
+                    result.diagnostics.iter().map(|d| d.to_report(DetailLevel::Standard)).collect();
                 to_json(&diagnostics)
             },
             panic_to_error,
@@ -298,8 +301,12 @@ macro_rules! impl_go_engine {
                 )
             }
 
-            /// Validates a template and returns the standard report as JSON.
-            pub fn validate_standard_json(
+            /// Validates a template and returns the report as JSON.
+            ///
+            /// The detail level carried by `options_json` controls enrichment:
+            /// `STANDARD` leaves enrichment fields absent, while `DETAILED`
+            /// populates them. Either value produces a Go `ValidationReport`.
+            pub fn validate_template_json(
                 &self,
                 template: Vec<u8>,
                 options_json: String,
@@ -307,7 +314,8 @@ macro_rules! impl_go_engine {
             ) -> Result<String, ValidationError> {
                 catch_panics(
                     || {
-                        let config = ValidateOptions::parse(&options_json)?.to_core(DetailLevel::Standard);
+                        let config = ValidateOptions::parse(&options_json)?.to_core();
+                        let detail_level = config.detail_level.clone();
                         let report = validate_bytes_with_path(
                             &self.engine,
                             &self.schema_validator,
@@ -316,31 +324,7 @@ macro_rules! impl_go_engine {
                             file_path,
                         )
                         .map_err(ValidationError::new)?;
-                        to_json(&report.to_standard())
-                    },
-                    panic_to_error,
-                )
-            }
-
-            /// Validates a template and returns the detailed report as JSON.
-            pub fn validate_detailed_json(
-                &self,
-                template: Vec<u8>,
-                options_json: String,
-                file_path: String,
-            ) -> Result<String, ValidationError> {
-                catch_panics(
-                    || {
-                        let config = ValidateOptions::parse(&options_json)?.to_core(DetailLevel::Detailed);
-                        let report = validate_bytes_with_path(
-                            &self.engine,
-                            &self.schema_validator,
-                            &template,
-                            config,
-                            file_path,
-                        )
-                        .map_err(ValidationError::new)?;
-                        to_json(&report.to_detailed())
+                        to_json(&report.to_report(detail_level))
                     },
                     panic_to_error,
                 )
@@ -498,6 +482,7 @@ mod tests {
             "resourceTypes": [{"resourceType": "AWS::SQS::Queue"}],
             "services": [{"service": "AWS::SQS"}]
         },
+        "detailLevel": "STANDARD",
         "severityLevel": "WARN",
         "parameterOverrides": {"Environment": "prod"},
         "pseudoParameterOverrides": {
@@ -536,6 +521,7 @@ mod tests {
         assert_eq!("AWS::SQS::Queue", options.exclude.resource_types[0].resource_type);
         assert_eq!("AWS::SQS", options.exclude.services[0].service);
 
+        assert_eq!(Some(DetailLevel::Standard), options.detail_level);
         assert_eq!(Some(Severity::Warn), options.severity_level);
         assert_eq!(Some(&"prod".to_string()), options.parameter_overrides.get("Environment"));
         assert_eq!(Some("us-west-2"), options.pseudo_parameter_overrides.region.as_deref());
@@ -548,7 +534,7 @@ mod tests {
     #[test]
     fn empty_object_yields_core_defaults() {
         let defaults = validation_engine::ValidateConfig::default();
-        let config = ValidateOptions::parse("{}").expect("an empty object must parse").to_core(DetailLevel::Detailed);
+        let config = ValidateOptions::parse("{}").expect("an empty object must parse").to_core();
 
         assert_eq!(defaults.severity_level, config.severity_level);
         assert_eq!(defaults.strict, config.strict);

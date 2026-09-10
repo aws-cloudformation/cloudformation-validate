@@ -13,6 +13,7 @@ violation contains make_diag_full("W3663", "WARN", name,
     "Lambda Permission with a SourceArn that has no account id should also specify SourceAccount",
     "Add SourceAccount property",
     "") if {
+    cfn_rule_active("W3663")
     some name in resources_of_type("AWS::Lambda::Permission")
     not has_property(name, "SourceAccount")
     target := follow_ref(name, "Properties.SourceArn")
@@ -28,6 +29,7 @@ violation contains make_diag_full("W3663", "WARN", name,
     "Lambda Permission with a SourceArn that has no account id should also specify SourceAccount",
     "Add SourceAccount property",
     "") if {
+    cfn_rule_active("W3663")
     some name in resources_of_type("AWS::Lambda::Permission")
     not has_property(name, "SourceAccount")
     not is_from_intrinsic(name, "Properties.SourceArn")

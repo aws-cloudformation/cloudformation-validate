@@ -84,6 +84,7 @@
     ],
     "AWS::AgentRegistry::RegistryRecord": [
       "CreatedAt",
+      "CreatedBy",
       "RecordArn",
       "RecordId",
       "RegistryArn",
@@ -2185,7 +2186,7 @@
       "ReplicationInstancePublicIpAddresses"
     ],
     "AWS::DMS::ReplicationTask": [
-      "Id"
+      "ReplicationTaskArn"
     ],
     "AWS::DRS::SourceNetwork": [
       "Arn",
@@ -4941,6 +4942,10 @@
     "AWS::IoTSiteWise::Gateway": [
       "GatewayId"
     ],
+    "AWS::IoTSiteWise::Pipeline": [
+      "PipelineArn",
+      "Status"
+    ],
     "AWS::IoTSiteWise::Portal": [
       "PortalArn",
       "PortalClientId",
@@ -4950,6 +4955,16 @@
     "AWS::IoTSiteWise::Project": [
       "ProjectArn",
       "ProjectId"
+    ],
+    "AWS::IoTSiteWise::Task": [
+      "Status",
+      "TaskArn"
+    ],
+    "AWS::IoTSiteWise::Workspace": [
+      "CreatedAt",
+      "Status",
+      "UpdatedAt",
+      "WorkspaceArn"
     ],
     "AWS::IoTThingsGraph::FlowTemplate": [
       "Id"
@@ -8048,8 +8063,7 @@
       "Url"
     ],
     "AWS::SageMaker::Endpoint": [
-      "EndpointArn",
-      "EndpointName"
+      "EndpointArn"
     ],
     "AWS::SageMaker::EndpointConfig": [
       "EndpointConfigArn",
@@ -9332,6 +9346,7 @@
     },
     "AWS::AgentRegistry::RegistryRecord": {
       "CreatedAt": "string",
+      "CreatedBy": "string",
       "Description": "string",
       "DisplayName": "string",
       "Name": "string",
@@ -13340,9 +13355,9 @@
       "CdcStartPosition": "string",
       "CdcStartTime": "number",
       "CdcStopPosition": "string",
-      "Id": "string",
       "MigrationType": "string",
       "ReplicationInstanceArn": "string",
+      "ReplicationTaskArn": "string",
       "ReplicationTaskIdentifier": "string",
       "ReplicationTaskSettings": "string",
       "ResourceIdentifier": "string",
@@ -18386,6 +18401,15 @@
       "GatewayVersion": "string",
       "Tags": "array"
     },
+    "AWS::IoTSiteWise::Pipeline": {
+      "Computations": "array",
+      "Description": "string",
+      "PipelineArn": "string",
+      "PipelineName": "string",
+      "Status": "string",
+      "Tags": "array",
+      "WorkspaceName": "string"
+    },
     "AWS::IoTSiteWise::Portal": {
       "Alarms": "object",
       "NotificationSenderEmail": "string",
@@ -18409,6 +18433,24 @@
       "ProjectId": "string",
       "ProjectName": "string",
       "Tags": "array"
+    },
+    "AWS::IoTSiteWise::Task": {
+      "Description": "string",
+      "Status": "string",
+      "Tags": "array",
+      "TaskArn": "string",
+      "TaskName": "string",
+      "WorkspaceName": "string"
+    },
+    "AWS::IoTSiteWise::Workspace": {
+      "CreatedAt": "string",
+      "KmsKeyId": "string",
+      "Status": "string",
+      "Tags": "array",
+      "UpdatedAt": "string",
+      "WorkspaceArn": "string",
+      "WorkspaceDescription": "string",
+      "WorkspaceName": "string"
     },
     "AWS::IoTThingsGraph::FlowTemplate": {
       "CompatibleNamespaceVersion": "number",

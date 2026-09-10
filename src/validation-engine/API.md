@@ -245,8 +245,10 @@ report becomes `AnalysisIncomplete` when any exhausted budget has a `true` value
 Convert to output format:
 
 ```rust
-let standard = report.to_standard();  // StandardReport with StandardDiagnostic (flattened, no context)
-let detailed = report.to_detailed();  // DetailedReport with DetailedDiagnostic (includes context)
+// One serialized report model; the detail level controls whether the
+// per-diagnostic enrichment fields are populated.
+let standard = report.to_report(DetailLevel::Standard);  // diagnostics::output::ValidationReport, enrichment fields omitted
+let detailed = report.to_report(DetailLevel::Detailed);  // diagnostics::output::ValidationReport, enrichment fields populated
 ```
 
 Each `Diagnostic` contains:

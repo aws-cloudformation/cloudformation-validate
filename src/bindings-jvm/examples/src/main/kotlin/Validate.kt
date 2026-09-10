@@ -12,7 +12,7 @@ fun main(args: Array<String>) {
 
     // RegoEngine and CelEngine are interchangeable - both produce identical diagnostics.
     val engine = RegoEngine()
-    val report = engine.validateStandard(template)
+    val report = engine.validateTemplate(template)
 
     println("${report.filePath}: ${report.status}")
     for (d in report.diagnostics) {

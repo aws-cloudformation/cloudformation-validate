@@ -1,12 +1,12 @@
 # cloudformation-validate
 
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+[![Latest release](https://img.shields.io/github/v/release/aws-cloudformation/cloudformation-validate?include_prereleases)](https://github.com/aws-cloudformation/cloudformation-validate/releases)
 [![Main CI](https://github.com/aws-cloudformation/cloudformation-validate/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/aws-cloudformation/cloudformation-validate/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/aws-cloudformation/cloudformation-validate/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/aws-cloudformation/cloudformation-validate/actions/workflows/codeql.yml)
 [![inspect.software](https://raw.githubusercontent.com/inspect-software/badges/main/v1/a/aws-cloudformation/cloudformation-validate.svg)](https://inspect.software/software/aws-cloudformation/cloudformation-validate)
 [![Offline](https://img.shields.io/badge/runtime-fully%20offline-success)](#features)
 
-[![Latest release](https://img.shields.io/github/v/release/aws-cloudformation/cloudformation-validate?include_prereleases)](https://github.com/aws-cloudformation/cloudformation-validate/releases)
 [![crates.io version](https://img.shields.io/crates/v/cloudformation-validate?logo=rust)](https://crates.io/crates/cloudformation-validate)
 [![npm version](https://img.shields.io/npm/v/%40aws%2Fcloudformation-validate?logo=npm)](https://www.npmjs.com/package/@aws/cloudformation-validate)
 [![Maven Central](https://img.shields.io/maven-central/v/software.amazon.cloudformation/cloudformation-validate?logo=apachemaven)](https://central.sonatype.com/artifact/software.amazon.cloudformation/cloudformation-validate)
@@ -158,13 +158,17 @@ let engine = CompositeEngine::new(
 
 See [validation-engine/API.md](src/validation-engine/API.md) for the full embedding API.
 
+Every language binding exposes one template-validation method. Its optional per-call configuration accepts a
+`STANDARD` or `DETAILED` detail level; omitting it uses `DETAILED`. Both levels return the same report and diagnostic
+models, with enrichment fields absent at `STANDARD`.
+
 ### Node.js [(bindings-wasm)](src/bindings-wasm/README.md)
 
 ```typescript
 import {RegoEngine, TemplateFile} from "@aws/cloudformation-validate";
 
 const engine = new RegoEngine();
-const report = engine.validateStandard(new TemplateFile("template.yaml"));
+const report = engine.validateTemplate(new TemplateFile("template.yaml"));
 for (const d of report.diagnostics) {
     console.log(`[${d.severity}] ${d.ruleId}: ${d.message}`);
 }
@@ -177,7 +181,7 @@ engine.free();
 from cloudformation_validate import RegoEngine
 
 engine = RegoEngine()
-report = engine.validate_standard("template.yaml")
+report = engine.validate_template("template.yaml")
 for d in report.diagnostics:
     print(f"[{d.severity.name}] {d.rule_id}: {d.message}")
 ```
@@ -193,7 +197,7 @@ if err != nil {
 }
 defer engine.Destroy()
 
-report, err := engine.ValidateStandardFile("template.yaml", nil)
+report, err := engine.ValidateTemplateFile("template.yaml", nil)
 for _, d := range report.Diagnostics {
     fmt.Printf("[%s] %s: %s\n", d.Severity, d.RuleID, d.Message)
 }
@@ -206,7 +210,7 @@ import software.amazon.cloudformation.validate.*
 import java.io.File
 
 val engine = RegoEngine()
-val report = engine.validateStandard(File("template.yaml"))
+val report = engine.validateTemplate(File("template.yaml"))
 for (d in report.diagnostics) {
     println("[${d.severity}] ${d.ruleId}: ${d.message}")
 }

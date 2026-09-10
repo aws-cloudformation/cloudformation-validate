@@ -1,9 +1,7 @@
 mod common;
 
 use cel_engine::CelEngine;
-use common::{
-    DETAILED_ONLY_DIAGNOSTIC_FIELDS, deep_diff, discover_all_templates, load_combined_snapshots, load_template,
-};
+use common::{ENRICHMENT_DIAGNOSTIC_FIELDS, deep_diff, discover_all_templates, load_combined_snapshots, load_template};
 use composite_engine::CompositeEngine;
 use data_source::embedded::{CFN_LINT_VERSION, RESOURCE_SCHEMA_VERSION};
 use diagnostics::DetailLevel;
@@ -24,17 +22,14 @@ fn validate_to_json(
     let config =
         ValidateConfig { detail_level: detail_level.clone(), severity_level: Severity::Debug, ..Default::default() };
     let report = validate_bytes_with_path(engine, &sv, bytes, config, relative_path.to_string()).expect("validate");
-    match detail_level {
-        DetailLevel::Detailed => serde_json::to_value(report.to_detailed()).expect("serialize"),
-        DetailLevel::Standard => serde_json::to_value(report.to_standard()).expect("serialize"),
-    }
+    serde_json::to_value(report.to_report(detail_level)).expect("serialize")
 }
 
-fn strip_detailed_only_fields(val: &mut serde_json::Value) {
+fn strip_enrichment_fields(val: &mut serde_json::Value) {
     if let Some(diags) = val.as_object_mut().and_then(|o| o.get_mut("diagnostics")).and_then(|d| d.as_array_mut()) {
         for diag in diags {
             if let Some(obj) = diag.as_object_mut() {
-                for field in DETAILED_ONLY_DIAGNOSTIC_FIELDS {
+                for field in ENRICHMENT_DIAGNOSTIC_FIELDS {
                     obj.remove(*field);
                 }
             }
@@ -94,7 +89,7 @@ fn check_standard(engine_name: &str, engine: &dyn ValidationEngine) {
         let actual = validate_to_json(engine, &bytes, relative_path, DetailLevel::Standard);
 
         let mut expected = snapshot.clone();
-        strip_detailed_only_fields(&mut expected);
+        strip_enrichment_fields(&mut expected);
 
         let diffs = deep_diff(&expected, &actual, "");
         if !diffs.is_empty() {
