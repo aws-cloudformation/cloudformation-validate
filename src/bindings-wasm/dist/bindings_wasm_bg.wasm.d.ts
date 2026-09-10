@@ -10,15 +10,7 @@ export const version: () => [number, number];
 export const wasmcelengine_engineName: (a: number) => [number, number];
 export const wasmcelengine_listRules: (a: number) => [number, number, number];
 export const wasmcelengine_new: (a: any) => [number, number, number];
-export const wasmcelengine_validateDetailed: (
-    a: number,
-    b: number,
-    c: number,
-    d: any,
-    e: number,
-    f: number,
-) => [number, number, number];
-export const wasmcelengine_validateStandard: (
+export const wasmcelengine_validateTemplate: (
     a: number,
     b: number,
     c: number,
@@ -29,15 +21,7 @@ export const wasmcelengine_validateStandard: (
 export const wasmregoengine_engineName: (a: number) => [number, number];
 export const wasmregoengine_listRules: (a: number) => [number, number, number];
 export const wasmregoengine_new: (a: any) => [number, number, number];
-export const wasmregoengine_validateDetailed: (
-    a: number,
-    b: number,
-    c: number,
-    d: any,
-    e: number,
-    f: number,
-) => [number, number, number];
-export const wasmregoengine_validateStandard: (
+export const wasmregoengine_validateTemplate: (
     a: number,
     b: number,
     c: number,

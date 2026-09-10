@@ -54,29 +54,12 @@ class WasmCelEngine {
      * @param {string} file_path
      * @returns {any}
      */
-    validateDetailed(template, options, file_path) {
+    validateTemplate(template, options, file_path) {
         const ptr0 = passArray8ToWasm0(template, wasm.__wbindgen_malloc);
         const len0 = WASM_VECTOR_LEN;
         const ptr1 = passStringToWasm0(file_path, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len1 = WASM_VECTOR_LEN;
-        const ret = wasm.wasmcelengine_validateDetailed(this.__wbg_ptr, ptr0, len0, options, ptr1, len1);
-        if (ret[2]) {
-            throw takeFromExternrefTable0(ret[1]);
-        }
-        return takeFromExternrefTable0(ret[0]);
-    }
-    /**
-     * @param {Uint8Array} template
-     * @param {ValidateConfig} options
-     * @param {string} file_path
-     * @returns {any}
-     */
-    validateStandard(template, options, file_path) {
-        const ptr0 = passArray8ToWasm0(template, wasm.__wbindgen_malloc);
-        const len0 = WASM_VECTOR_LEN;
-        const ptr1 = passStringToWasm0(file_path, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-        const len1 = WASM_VECTOR_LEN;
-        const ret = wasm.wasmcelengine_validateStandard(this.__wbg_ptr, ptr0, len0, options, ptr1, len1);
+        const ret = wasm.wasmcelengine_validateTemplate(this.__wbg_ptr, ptr0, len0, options, ptr1, len1);
         if (ret[2]) {
             throw takeFromExternrefTable0(ret[1]);
         }
@@ -140,29 +123,12 @@ class WasmRegoEngine {
      * @param {string} file_path
      * @returns {any}
      */
-    validateDetailed(template, options, file_path) {
+    validateTemplate(template, options, file_path) {
         const ptr0 = passArray8ToWasm0(template, wasm.__wbindgen_malloc);
         const len0 = WASM_VECTOR_LEN;
         const ptr1 = passStringToWasm0(file_path, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len1 = WASM_VECTOR_LEN;
-        const ret = wasm.wasmregoengine_validateDetailed(this.__wbg_ptr, ptr0, len0, options, ptr1, len1);
-        if (ret[2]) {
-            throw takeFromExternrefTable0(ret[1]);
-        }
-        return takeFromExternrefTable0(ret[0]);
-    }
-    /**
-     * @param {Uint8Array} template
-     * @param {ValidateConfig} options
-     * @param {string} file_path
-     * @returns {any}
-     */
-    validateStandard(template, options, file_path) {
-        const ptr0 = passArray8ToWasm0(template, wasm.__wbindgen_malloc);
-        const len0 = WASM_VECTOR_LEN;
-        const ptr1 = passStringToWasm0(file_path, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-        const len1 = WASM_VECTOR_LEN;
-        const ret = wasm.wasmregoengine_validateStandard(this.__wbg_ptr, ptr0, len0, options, ptr1, len1);
+        const ret = wasm.wasmregoengine_validateTemplate(this.__wbg_ptr, ptr0, len0, options, ptr1, len1);
         if (ret[2]) {
             throw takeFromExternrefTable0(ret[1]);
         }

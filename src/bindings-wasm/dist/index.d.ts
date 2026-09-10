@@ -1,5 +1,6 @@
 import type {
-    DetailedReport,
+    Diagnostic,
+    ValidationReport,
     DiagnosticModel,
     AdditionalSchemaSource,
     ExternalRuleSource,
@@ -8,8 +9,6 @@ import type {
     ResolvedResource,
     RuleInfo,
     SourceSpan,
-    StandardDiagnostic,
-    StandardReport,
     ValidateConfig,
 } from './bindings_wasm';
 export type {
@@ -29,14 +28,12 @@ export type {
     ResourceRef,
     RelatedResource,
     ViolationContext,
-    StandardDiagnostic,
-    DetailedDiagnostic,
+    Diagnostic,
     PhaseMetric,
     PerformanceMetrics,
     Summary,
     ReportMetadata,
-    StandardReport,
-    DetailedReport,
+    ValidationReport,
     PseudoParameterOverrides,
     ValidateConfig,
     ExternalRuleSource,
@@ -80,8 +77,7 @@ export type JsonValue =
           [key: string]: JsonValue;
       };
 export interface Engine {
-    validateStandard(template: TemplateFile, config?: ValidateConfig): StandardReport;
-    validateDetailed(template: TemplateFile, config?: ValidateConfig): DetailedReport;
+    validateTemplate(template: TemplateFile, config?: ValidateConfig): ValidationReport;
     listRules(): RuleInfo[];
     engineName(): string;
     free(): void;
@@ -150,7 +146,7 @@ export declare class SchemaValidator {
     constructor(config?: SchemaValidatorConfig);
     listRules(): RuleInfo[];
     schemaCount(): number;
-    validate(template: TemplateFile, region?: string): StandardDiagnostic[];
+    validate(template: TemplateFile, region?: string): Diagnostic[];
     free(): void;
 }
 export declare const RegoEngine: new (config?: EngineConfig) => Engine;
