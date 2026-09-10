@@ -398,6 +398,13 @@ func TestCombinedCustomAndGuardRuleListings(t *testing.T) {
 	}
 	cel := mustEngine(t, cfnvalidate.NewCelEngine, celConfig)
 	rego := mustEngine(t, cfnvalidate.NewRegoEngine, regoConfig)
+	// The composite takes the same CEL custom rules (run by its built-in CEL
+	// engine) and the same Guard rules (run by its external engine), so it must
+	// list exactly what the standalone engines list.
+	composite := mustCompositeEngine(t, &cfnvalidate.CompositeEngineConfig{
+		CelRules:   celConfig.CustomRules,
+		GuardRules: celConfig.GuardRules,
+	})
 
 	// Rego discovers custom rule metadata during evaluation.
 	if _, err := rego.ValidateTemplateFile(filepath.Join(templatesRoot, "bad", "invalid_deletion_policy.yaml"), nil); err != nil {
@@ -418,7 +425,7 @@ func TestCombinedCustomAndGuardRuleListings(t *testing.T) {
 	}
 
 	lists := map[string][]cfnvalidate.RuleInfo{}
-	for name, engine := range map[string]*cfnvalidate.Engine{"cel": cel, "rego": rego} {
+	for name, engine := range map[string]*cfnvalidate.Engine{"cel": cel, "rego": rego, "composite": composite} {
 		rules, err := engine.ListRules()
 		if err != nil {
 			t.Fatalf("%s: ListRules failed: %v", name, err)
@@ -451,7 +458,11 @@ func TestCombinedCustomAndGuardRuleListings(t *testing.T) {
 
 	celJSON, _ := json.Marshal(lists["cel"])
 	regoJSON, _ := json.Marshal(lists["rego"])
+	compositeJSON, _ := json.Marshal(lists["composite"])
 	if !strings.EqualFold(string(celJSON), string(regoJSON)) {
 		t.Error("CEL and Rego must list identical rules with custom + guard sources")
+	}
+	if !strings.EqualFold(string(celJSON), string(compositeJSON)) {
+		t.Error("composite must list identical rules to the standalone engines with custom + guard sources")
 	}
 }

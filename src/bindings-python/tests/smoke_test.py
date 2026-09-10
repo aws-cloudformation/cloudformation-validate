@@ -152,11 +152,14 @@ class ValidateTest(unittest.TestCase):
         self.assertTrue(report.diagnostics, "unencrypted bucket template must produce diagnostics")
 
     def test_engines_agree_on_diagnostics(self):
-        self.assertEqual(
-            diagnostic_keys(REGO.validate_template(UNENCRYPTED_BUCKET)),
-            diagnostic_keys(CEL.validate_template(UNENCRYPTED_BUCKET)),
-            "Rego and CEL must produce identical diagnostics",
-        )
+        expected = diagnostic_keys(REGO.validate_template(UNENCRYPTED_BUCKET))
+        self.assertTrue(expected, "the unencrypted bucket must produce built-in diagnostics")
+        for engine in (CEL, COMPOSITE):
+            self.assertEqual(
+                expected,
+                diagnostic_keys(engine.validate_template(UNENCRYPTED_BUCKET)),
+                f"{engine.engine_name()} must produce the same diagnostics as rego",
+            )
 
     def test_severity_level_filters_below_threshold(self):
         config = ValidateConfig(severity_level=Severity.ERROR)
@@ -268,6 +271,18 @@ class CustomRulesTest(unittest.TestCase):
             custom_rules=[ExternalRuleSource(name="rego_custom.rego", content=load_rule("rego_custom.rego"))]
         )
         self.assert_custom_rule_fires(RegoEngine(config))
+
+    def test_composite_cel_custom_rule_fires(self):
+        config = CompositeEngineConfig(
+            cel_rules=[ExternalRuleSource(name="cel_custom.json", content=load_rule("cel_custom.json"))]
+        )
+        self.assert_custom_rule_fires(CompositeEngine(config))
+
+    def test_composite_rego_custom_rule_fires(self):
+        config = CompositeEngineConfig(
+            rego_rules=[ExternalRuleSource(name="rego_custom.rego", content=load_rule("rego_custom.rego"))]
+        )
+        self.assert_custom_rule_fires(CompositeEngine(config))
 
     def test_guard_rule_fires_on_all_engines(self):
         guard_rule = ExternalRuleSource(name="guard_encryption.guard", content=load_rule("guard_encryption.guard"))

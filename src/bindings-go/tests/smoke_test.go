@@ -282,12 +282,10 @@ func TestDiagnosticsFireWithEntities(t *testing.T) {
 }
 
 func TestEnginesAgreeOnDiagnostics(t *testing.T) {
-	// The rego/cel pair is the dedicated parity check; the composite engine's
-	// agreement with the built-ins is covered by TestCompositeDefaultMatchesCelBuiltins.
-	engines := map[string]*cfnvalidate.Engine{
-		"rego": mustEngine(t, cfnvalidate.NewRegoEngine, nil),
-		"cel":  mustEngine(t, cfnvalidate.NewCelEngine, nil),
-	}
+	// Every engine must produce the same built-in diagnostics for the same
+	// template: rego and cel are the two independent built-in implementations,
+	// and composite reuses the cel built-ins with no external rules layered on.
+	engines := allEngines(t)
 	reports := map[string][]string{}
 	for name, engine := range engines {
 		report, err := engine.ValidateTemplate([]byte(unencryptedBucket), nil, "")
@@ -296,8 +294,13 @@ func TestEnginesAgreeOnDiagnostics(t *testing.T) {
 		}
 		reports[name] = diagnosticKeys(report)
 	}
-	if got, want := reports["rego"], reports["cel"]; !equalStrings(got, want) {
-		t.Errorf("engines disagree:\nrego: %v\ncel:  %v", got, want)
+	if len(reports["rego"]) == 0 {
+		t.Fatal("the unencrypted bucket must produce built-in diagnostics")
+	}
+	for name, keys := range reports {
+		if got, want := keys, reports["rego"]; !equalStrings(got, want) {
+			t.Errorf("engines disagree:\nrego: %v\n%s: %v", want, name, got)
+		}
 	}
 }
 
@@ -399,23 +402,29 @@ func hasDetailedEnrichment(report *cfnvalidate.ValidationReport) bool {
 }
 
 func TestCustomRulesFire(t *testing.T) {
-	cases := map[string]struct {
-		build  func(*cfnvalidate.EngineConfig) (*cfnvalidate.Engine, error)
-		config *cfnvalidate.EngineConfig
-	}{
-		"cel custom": {
-			cfnvalidate.NewCelEngine,
-			&cfnvalidate.EngineConfig{CustomRules: []cfnvalidate.ExternalRuleSource{{Name: "cel_custom.json", Content: ""}}},
+	// Each case builds an engine whose only custom rule is CUSTOM001 in the
+	// dialect that engine accepts. The composite accepts both dialects, so it is
+	// exercised once per dialect.
+	rule := func(name string) []cfnvalidate.ExternalRuleSource {
+		return []cfnvalidate.ExternalRuleSource{{Name: name, Content: loadRule(t, name)}}
+	}
+	cases := map[string]func() *cfnvalidate.Engine{
+		"cel custom": func() *cfnvalidate.Engine {
+			return mustEngine(t, cfnvalidate.NewCelEngine, &cfnvalidate.EngineConfig{CustomRules: rule("cel_custom.json")})
 		},
-		"rego custom": {
-			cfnvalidate.NewRegoEngine,
-			&cfnvalidate.EngineConfig{CustomRules: []cfnvalidate.ExternalRuleSource{{Name: "rego_custom.rego", Content: ""}}},
+		"rego custom": func() *cfnvalidate.Engine {
+			return mustEngine(t, cfnvalidate.NewRegoEngine, &cfnvalidate.EngineConfig{CustomRules: rule("rego_custom.rego")})
+		},
+		"composite cel custom": func() *cfnvalidate.Engine {
+			return mustCompositeEngine(t, &cfnvalidate.CompositeEngineConfig{CelRules: rule("cel_custom.json")})
+		},
+		"composite rego custom": func() *cfnvalidate.Engine {
+			return mustCompositeEngine(t, &cfnvalidate.CompositeEngineConfig{RegoRules: rule("rego_custom.rego")})
 		},
 	}
-	for name, tc := range cases {
+	for name, build := range cases {
 		t.Run(name, func(t *testing.T) {
-			tc.config.CustomRules[0].Content = loadRule(t, tc.config.CustomRules[0].Name)
-			engine := mustEngine(t, tc.build, tc.config)
+			engine := build()
 			report, err := engine.ValidateTemplate([]byte(unencryptedBucket), nil, "")
 			if err != nil {
 				t.Fatalf("validation failed: %v", err)

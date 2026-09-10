@@ -443,11 +443,17 @@ describe('custom rule', () => {
         const rego = new RegoEngine({
             customRules: [{ name: 'rego_custom.rego', content: loadRule('rego_custom.rego') }],
         });
-
-        for (const [name, engine] of [
+        // The composite runs the same CEL custom rule through its built-in engine.
+        const composite = new CompositeEngine({
+            celRules: [{ name: 'cel_custom.json', content: loadRule('cel_custom.json') }],
+        });
+        const engines = [
             ['cel', cel],
             ['rego', rego],
-        ] as const) {
+            ['composite', composite],
+        ] as const;
+
+        for (const [name, engine] of engines) {
             const report = (engine as any).validateTemplate(loadTemplate('bad/invalid_deletion_policy.yaml'));
             const d = report.diagnostics.find((d: any) => d.ruleId === 'CUSTOM001');
             expect(d, `${name}: CUSTOM001 diagnostic must fire`).toBeDefined();
@@ -457,10 +463,7 @@ describe('custom rule', () => {
         }
 
         const baselineCount = CEL.listRules().length;
-        for (const [name, engine] of [
-            ['cel', cel],
-            ['rego', rego],
-        ] as const) {
+        for (const [name, engine] of engines) {
             const rules = (engine as any).listRules();
             const c = rules.find((r: any) => r.id === 'CUSTOM001');
             expect(c, `${name}: CUSTOM001 must exist`).toBeDefined();
@@ -471,8 +474,10 @@ describe('custom rule', () => {
         }
 
         expect(cel.listRules()).toEqual(rego.listRules());
+        expect(cel.listRules()).toEqual(composite.listRules());
         cel.free();
         rego.free();
+        composite.free();
     });
 });
 
@@ -532,6 +537,10 @@ describe('single combined custom + guard', () => {
             customRules: [{ name: 'rego_custom.rego', content: loadRule('rego_custom.rego') }],
             guardRules: [{ name: 'guard_encryption.guard', content: loadRule('guard_encryption.guard') }],
         });
+        const composite = new CompositeEngine({
+            celRules: [{ name: 'cel_custom.json', content: loadRule('cel_custom.json') }],
+            guardRules: [{ name: 'guard_encryption.guard', content: loadRule('guard_encryption.guard') }],
+        });
 
         // Rego discovers custom rule metadata during evaluation.
         rego.validateTemplate(loadTemplate('bad/invalid_deletion_policy.yaml'));
@@ -539,6 +548,7 @@ describe('single combined custom + guard', () => {
         for (const [name, engine] of [
             ['cel', cel],
             ['rego', rego],
+            ['composite', composite],
         ] as const) {
             const rules = (engine as any).listRules();
             expect(rules.find((r: any) => r.id === 'CUSTOM001')?.origin).toBe('CUSTOM');
@@ -548,8 +558,10 @@ describe('single combined custom + guard', () => {
         }
 
         expect(cel.listRules()).toEqual(rego.listRules());
+        expect(cel.listRules()).toEqual(composite.listRules());
         cel.free();
         rego.free();
+        composite.free();
     });
 });
 
@@ -571,6 +583,13 @@ describe('multi combined custom + guard', () => {
                 { name: 'guard_multi.guard', content: loadRule('guard_multi.guard') },
             ],
         });
+        const composite = new CompositeEngine({
+            celRules: [{ name: 'cel_multi_custom.json', content: loadRule('cel_multi_custom.json') }],
+            guardRules: [
+                { name: 'guard_encryption.guard', content: loadRule('guard_encryption.guard') },
+                { name: 'guard_multi.guard', content: loadRule('guard_multi.guard') },
+            ],
+        });
 
         // Rego discovers custom rule metadata during evaluation.
         rego.validateTemplate(loadTemplate('bad/invalid_deletion_policy.yaml'));
@@ -578,6 +597,7 @@ describe('multi combined custom + guard', () => {
         for (const [name, engine] of [
             ['cel', cel],
             ['rego', rego],
+            ['composite', composite],
         ] as const) {
             const rules = (engine as any).listRules();
 
@@ -613,8 +633,10 @@ describe('multi combined custom + guard', () => {
         }
 
         expect(cel.listRules()).toEqual(rego.listRules());
+        expect(cel.listRules()).toEqual(composite.listRules());
         cel.free();
         rego.free();
+        composite.free();
     });
 });
 
@@ -701,6 +723,7 @@ describe('validateTemplate detail level', () => {
     for (const [engineName, engine] of [
         ['rego', REGO],
         ['cel', CEL],
+        ['composite', COMPOSITE],
     ] as const) {
         it(`${engineName} defaults to DETAILED when detailLevel is omitted`, () => {
             const withDefault = engine.validateTemplate(loadTemplate(DETAIL_LEVEL_TEMPLATE), {

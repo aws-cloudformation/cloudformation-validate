@@ -47,6 +47,11 @@ class SmokeTest {
         customRules = listOf(ExternalRuleSource(name = "rego_custom.rego", content = loadRule("rego_custom.rego"))),
     )
 
+    /** The composite counterpart of [celCustomConfig]: the same CEL custom rule, run by the built-in engine. */
+    private fun compositeCelCustomConfig() = CompositeEngineConfig(
+        celRules = listOf(ExternalRuleSource(name = "cel_custom.json", content = loadRule("cel_custom.json"))),
+    )
+
     private fun guardConfig() = EngineConfig(
         guardRules = listOf(ExternalRuleSource(name = "guard_encryption.guard", content = loadRule("guard_encryption.guard")))
     )
@@ -62,6 +67,12 @@ class SmokeTest {
 
     private fun regoCombinedConfig() = EngineConfig(
         customRules = listOf(ExternalRuleSource(name = "rego_custom.rego", content = loadRule("rego_custom.rego"))),
+        guardRules = listOf(ExternalRuleSource(name = "guard_encryption.guard", content = loadRule("guard_encryption.guard")))
+    )
+
+    /** The composite counterpart of [celCombinedConfig]: the same CEL custom rule plus the same Guard rule. */
+    private fun compositeCombinedConfig() = CompositeEngineConfig(
+        celRules = listOf(ExternalRuleSource(name = "cel_custom.json", content = loadRule("cel_custom.json"))),
         guardRules = listOf(ExternalRuleSource(name = "guard_encryption.guard", content = loadRule("guard_encryption.guard")))
     )
 
@@ -259,12 +270,15 @@ class SmokeTest {
     fun customRuleListRulesAndValidateMatchBetweenEngines() {
         val cel = JvmCelEngine(celCustomConfig())
         val rego = JvmRegoEngine(regoCustomConfig())
+        val composite = JvmCompositeEngine(compositeCelCustomConfig())
         val badTemplate = "bad/invalid_deletion_policy.yaml"
+        val engines = listOf("cel" to cel as Any, "rego" to rego as Any, "composite" to composite as Any)
 
-        for ((name, engine) in listOf("cel" to cel as Any, "rego" to rego as Any)) {
+        for ((name, engine) in engines) {
             val report = when (engine) {
                 is JvmCelEngine -> engine.validateTemplate(templateBytes(badTemplate), defaultConfig(), badTemplate)
                 is JvmRegoEngine -> engine.validateTemplate(templateBytes(badTemplate), defaultConfig(), badTemplate)
+                is JvmCompositeEngine -> engine.validateTemplate(templateBytes(badTemplate), defaultConfig(), badTemplate)
                 else -> error("")
             }
             val d = report.diagnostics.find { it.ruleId == "CUSTOM001" } ?: fail("$name: CUSTOM001 diagnostic must fire")
@@ -274,8 +288,8 @@ class SmokeTest {
         }
 
         val baselineCount = CEL.listRules().size
-        for ((name, engine) in listOf("cel" to cel as Any, "rego" to rego as Any)) {
-            val rules = when (engine) { is JvmCelEngine -> engine.listRules(); is JvmRegoEngine -> engine.listRules(); else -> error("") }
+        for ((name, engine) in engines) {
+            val rules = when (engine) { is JvmCelEngine -> engine.listRules(); is JvmRegoEngine -> engine.listRules(); is JvmCompositeEngine -> engine.listRules(); else -> error("") }
             val c = rules.find { it.id == "CUSTOM001" } ?: fail("$name: CUSTOM001 must exist")
             assertEquals(Severity.ERROR, c.severity, "$name: CUSTOM001 severity")
             assertEquals(RuleOrigin.CUSTOM, c.origin, "$name: CUSTOM001 origin")
@@ -284,6 +298,7 @@ class SmokeTest {
         }
 
         assertEquals(gson.toJson(cel.listRules()), gson.toJson(rego.listRules()), "custom: listRules must be identical")
+        assertEquals(gson.toJson(cel.listRules()), gson.toJson(composite.listRules()), "custom: composite listRules must be identical")
     }
 
     // ── Guard rules: 1 file, 1 rule ─────────────────────────────────────────
@@ -326,11 +341,12 @@ class SmokeTest {
     fun singleCombinedListRulesAndValidateMatchBetweenEngines() {
         val cel = JvmCelEngine(celCombinedConfig())
         val rego = JvmRegoEngine(regoCombinedConfig())
+        val composite = JvmCompositeEngine(compositeCombinedConfig())
 
         // Rego discovers custom rule metadata during evaluation.
         rego.validateTemplate(templateBytes("bad/invalid_deletion_policy.yaml"), defaultConfig(), "bad/invalid_deletion_policy.yaml")
 
-        for ((name, rules) in listOf("cel" to cel.listRules(), "rego" to rego.listRules())) {
+        for ((name, rules) in listOf("cel" to cel.listRules(), "rego" to rego.listRules(), "composite" to composite.listRules())) {
             assertEquals(RuleOrigin.CUSTOM, rules.find { it.id == "CUSTOM001" }?.origin, "$name: CUSTOM001 origin")
             assertEquals(RuleOrigin.GUARD, rules.find { it.id == "check_bucket_encryption" }?.origin, "$name: check_bucket_encryption origin")
             val ids = rules.map { it.id }
@@ -338,33 +354,40 @@ class SmokeTest {
         }
 
         assertEquals(gson.toJson(cel.listRules()), gson.toJson(rego.listRules()), "single_combined: listRules must be identical")
+        assertEquals(gson.toJson(cel.listRules()), gson.toJson(composite.listRules()), "single_combined: composite listRules must be identical")
     }
 
     // ── Multi: 2 custom rules + 2 guard files (1 rule + 2 rules) ────────────
 
+    private fun multiGuardRules() = listOf(
+        ExternalRuleSource(name = "guard_encryption.guard", content = loadRule("guard_encryption.guard")),
+        ExternalRuleSource(name = "guard_multi.guard", content = loadRule("guard_multi.guard")),
+    )
+
     private fun multiCombinedConfig(engine: String) = if (engine == "rego") EngineConfig(
         customRules = listOf(ExternalRuleSource(name = "rego_multi_custom.rego", content = loadRule("rego_multi_custom.rego"))),
-        guardRules = listOf(
-            ExternalRuleSource(name = "guard_encryption.guard", content = loadRule("guard_encryption.guard")),
-            ExternalRuleSource(name = "guard_multi.guard", content = loadRule("guard_multi.guard")),
-        )
+        guardRules = multiGuardRules(),
     ) else EngineConfig(
         customRules = listOf(ExternalRuleSource(name = "cel_multi_custom.json", content = loadRule("cel_multi_custom.json"))),
-        guardRules = listOf(
-            ExternalRuleSource(name = "guard_encryption.guard", content = loadRule("guard_encryption.guard")),
-            ExternalRuleSource(name = "guard_multi.guard", content = loadRule("guard_multi.guard")),
-        )
+        guardRules = multiGuardRules(),
+    )
+
+    /** The composite counterpart of the multi-combined configs: the CEL custom rules plus both Guard files. */
+    private fun compositeMultiCombinedConfig() = CompositeEngineConfig(
+        celRules = listOf(ExternalRuleSource(name = "cel_multi_custom.json", content = loadRule("cel_multi_custom.json"))),
+        guardRules = multiGuardRules(),
     )
 
     @Test
     fun multiCombinedListRulesMatchBetweenEnginesWithExplicitValues() {
         val cel = JvmCelEngine(multiCombinedConfig("cel"))
         val rego = JvmRegoEngine(multiCombinedConfig("rego"))
+        val composite = JvmCompositeEngine(compositeMultiCombinedConfig())
 
         // Rego discovers custom rule metadata during evaluation.
         rego.validateTemplate(templateBytes("bad/invalid_deletion_policy.yaml"), defaultConfig(), "bad/invalid_deletion_policy.yaml")
 
-        for ((name, rules) in listOf("cel" to cel.listRules(), "rego" to rego.listRules())) {
+        for ((name, rules) in listOf("cel" to cel.listRules(), "rego" to rego.listRules(), "composite" to composite.listRules())) {
             val c1 = rules.find { it.id == "CUSTOM010" } ?: fail("$name: CUSTOM010 must exist")
             assertEquals(Severity.ERROR, c1.severity, "$name: CUSTOM010 severity")
             assertEquals(RuleOrigin.CUSTOM, c1.origin, "$name: CUSTOM010 origin")
@@ -392,6 +415,7 @@ class SmokeTest {
         }
 
         assertEquals(gson.toJson(cel.listRules()), gson.toJson(rego.listRules()), "multi_combined: listRules must be identical")
+        assertEquals(gson.toJson(cel.listRules()), gson.toJson(composite.listRules()), "multi_combined: composite listRules must be identical")
     }
 
     // ── CompositeEngine ──────────────────────────────────────────────────────
