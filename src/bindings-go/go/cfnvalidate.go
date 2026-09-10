@@ -51,6 +51,13 @@ func engineConfigJSON(config *EngineConfig) (string, error) {
 	return marshalConfig(config)
 }
 
+func compositeEngineConfigJSON(config *CompositeEngineConfig) (string, error) {
+	if config == nil {
+		return "{}", nil
+	}
+	return marshalConfig(config)
+}
+
 func schemaConfigJSON(config *SchemaValidatorConfig) (string, error) {
 	if config == nil {
 		return "{}", nil
@@ -82,8 +89,9 @@ type nativeEngine interface {
 }
 
 // Engine validates CloudFormation templates against the built-in rule set,
-// optionally extended with custom rules. RegoEngine and CelEngine are
-// interchangeable: both produce identical diagnostics.
+// optionally extended with custom rules. Engines from NewRegoEngine,
+// NewCelEngine, and NewCompositeEngine all produce identical built-in
+// diagnostics; the composite engine layers any external rule findings on top.
 type Engine struct {
 	inner nativeEngine
 }
@@ -110,6 +118,23 @@ func NewCelEngine(config *EngineConfig) (*Engine, error) {
 		return nil, err
 	}
 	inner, err := bindings.NewGoCelEngine(configJSON)
+	if err != nil {
+		return nil, err
+	}
+	return &Engine{inner: inner}, nil
+}
+
+// NewCompositeEngine builds a composite engine that evaluates the built-in
+// rules with one engine and the caller-supplied external Rego and Guard rules
+// with another. It produces the same built-in diagnostics as NewRegoEngine and
+// NewCelEngine, plus any external findings. A nil config uses only the built-in
+// rules.
+func NewCompositeEngine(config *CompositeEngineConfig) (*Engine, error) {
+	configJSON, err := compositeEngineConfigJSON(config)
+	if err != nil {
+		return nil, err
+	}
+	inner, err := bindings.NewGoCompositeEngine(configJSON)
 	if err != nil {
 		return nil, err
 	}
@@ -159,7 +184,7 @@ func (e *Engine) ListRules() ([]RuleInfo, error) {
 	return *rules, nil
 }
 
-// EngineName returns the engine identifier ("rego" or "cel").
+// EngineName returns the engine identifier ("rego", "cel", or "composite").
 func (e *Engine) EngineName() string {
 	return e.inner.EngineName()
 }

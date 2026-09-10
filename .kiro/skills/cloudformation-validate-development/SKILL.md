@@ -46,10 +46,10 @@ cargo fmt --all
 cargo clippy --locked --all-targets --workspace -- -D warnings
 
 # Run the CLI
-cargo run -p cfn-validate -- <template|dir> --engine rego|cel --format standard|detailed --level fatal|error|warn|info|debug
+cargo run -p cfn-validate -- <template|dir> --engine rego|cel|composite --format standard|detailed --level fatal|error|warn|info|debug
 cargo run -p cfn-validate -- --list-rules
 
-# Regenerate after a change that alters diagnostics; verifies engine parity and rewrites the snapshot chunk files.
+# Regenerate after a change that alters diagnostics; verifies rego == cel == composite parity and rewrites the snapshot chunk files.
 cargo run --release -p resources --example generate_validation_reports
 ```
 
@@ -78,7 +78,7 @@ cargo run -p cloudformation-validate-template-model --example inspect -- <templa
 
 # Accuracy vs cfn-lint. Requires a local cfn-lint checkout - first check whether cfn-lint is available on the
 # machine (`cfn-lint --version`), then ask the user for the checkout path; never assume or hardcode a location.
-CFN_LINT_ROOT=<path> python3 scripts/compare_cfnlint.py --engine rego|cel
+CFN_LINT_ROOT=<path> python3 scripts/compare_cfnlint.py --engine rego|cel|composite
 ```
 
 If deeper investigation is needed, write a small standalone script or Rust example that isolates the behavior.
@@ -87,11 +87,16 @@ Prefer LSP operations (goto definition, find references, symbol search) over tex
 
 ## Architecture (the non-obvious rules)
 
-- **The two engines must stay at parity.** `EngineType::Rego` (default) and `EngineType::Cel` must produce identical
-  diagnostics (ID, severity, location, message) for any template - divergence is a bug. Every rule exists in both
-  engines or in neither; add/fix it in both in the same change. Rego rules are hand-written policies in
-  `rego-engine/handwritten/rego/`; CEL rules are native Rust in `cel-engine/src/rules/` (the CEL interpreter is only
-  for user-supplied custom rules).
+- **The two built-in rule engines must stay at parity.** `EngineType::Rego` and `EngineType::Cel` are independent
+  implementations of the built-in rules and must produce identical diagnostics (ID, severity, location, message) for
+  any template - divergence is a bug. Every rule exists in both engines or in neither; add/fix it in both in the same
+  change. Rego rules are hand-written policies in `rego-engine/handwritten/rego/`; CEL rules are native Rust in
+  `cel-engine/src/rules/` (the CEL interpreter is only for user-supplied custom rules).
+- **`EngineType::Composite` is the default selector, not a third implementation.** It evaluates the built-in rules with
+  CEL and layers an optional external-only Rego engine (custom Rego + translated Guard) on top, built only when
+  external rules are supplied. With no custom rules `rego`, `cel`, and `composite` produce the same diagnostics; the
+  CLI exposes all three as `--engine rego|cel|composite`. A built-in-rule mismatch is still diagnosed and fixed in the
+  Rego or CEL implementation.
 - **`rules/src/registry.rs` (`RULE_REGISTRY`) is the single source of truth** for every rule's ID, severity, category,
   and description. A rule that evaluates but isn't registered is a bug. IDs match `[FEWID]\d{4}` (F=Fatal, E=Error,
   W=Warn, I=Info, D=Debug; enum variant `Warn`, serialized `WARN`).
@@ -164,8 +169,9 @@ Apply every relevant step below; do not apply this procedure wholesale to docume
 3. Check the SemanticModel with `inspect`; fix `template-model` if the model is wrong.
 4. Compare against cfn-lint for E/W/I or cfn-guard for Guard. Investigate a cfn-lint mismatch using the independent
    evidence rather than assuming cfn-lint is correct. Check Fatal rules against the compiled schemas.
-5. Run `cfn-validate` with both engines on the repro, then run the corpus. Preserve parity and zero false positives;
-   regenerate the snapshot files if diagnostics legitimately changed.
+5. Run `cfn-validate` with all three engines (`rego`, `cel`, `composite`) on the repro, then run the corpus. All three
+   outputs must agree and stay free of false positives; diagnose any built-in-rule mismatch in the Rego or CEL
+   implementation. Regenerate the snapshot files if diagnostics legitimately changed.
 6. For core Rust changes, run only Cargo tests that exercise the change; use the workspace suite once only when its
    broad coverage is relevant. For every Rust change, run format and clippy.
 7. For binding changes, build and test the affected packaged consumer artifact instead of using Cargo tests as a

@@ -8,7 +8,7 @@ Performance is checked against a versioned environment profile, never against an
   GitHub-hosted `ubuntu-latest` x64 runners. The harness derives and enforces the matching model automatically.
 * `expected/local-macos-arm64.json` is the contract for the recorded reference Apple Silicon Mac. The harness rejects a different Mac model instead of comparing unlike hardware.
 
-The `check` command spawns the current release executable for both engines across synthetic, real-template, and security workloads. Each case discards its first process launch, then uses the median of five independent launches. An apparent failure receives four additional samples and is evaluated again over the combined set.
+The `check` command spawns the current release executable for all three engines (rego, cel, composite) across synthetic, real-template, and security workloads. Each case discards its first process launch, then uses the median of five independent launches. An apparent failure receives four additional samples and is evaluated again over the combined set.
 
 Only robust end-to-end metrics are enforced: initialization plus first validation, warm validation time per call above the profile's stability floor, and peak resident memory. Per-case ratios are normalized by the run-wide geometric-mean ratio for that metric, removing common GitHub host-speed shifts; the raw aggregate separately fails broad changes that exceed its explicit band. The long cross-reference-fanout timing case is aggregate-only because identical-tree GitHub runs showed workload-specific variance beyond the normal residual range.
 

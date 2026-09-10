@@ -16,6 +16,7 @@ path = "src/lib.rs"
 
 [dependencies]
 cel-engine = { workspace = true }
+composite-engine = { workspace = true }
 data-source = { workspace = true }
 diagnostics = { workspace = true }
 rego-engine = { workspace = true }

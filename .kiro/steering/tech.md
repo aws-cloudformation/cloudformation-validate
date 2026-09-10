@@ -72,7 +72,9 @@ Regenerate the snapshot files (`resources/expected/validation_reports*.json`) af
 cargo run --release -p resources --example generate_validation_reports
 ```
 
-It runs both engines on the whole corpus in parallel, verifies they agree, and rewrites the snapshot chunk files.
+It runs all three engines (rego, cel, composite) on the whole corpus in parallel, verifies `rego == cel == composite`,
+and rewrites the snapshot chunk files. The composite report is the one persisted; with no custom rules it matches the
+standalone Rego and CEL engines.
 
 ## Reference projects — compatibility evidence
 
@@ -103,16 +105,18 @@ debugging. If the model is wrong, fix `template-model`.
 ### cfn-validate
 
 ```bash
-cargo run -p cfn-validate -- <template|dir> --engine rego|cel --format standard|detailed --level fatal|error|warn|info|debug
+cargo run -p cfn-validate -- <template|dir> --engine rego|cel|composite --format standard|detailed --level fatal|error|warn|info|debug
 cargo run -p cfn-validate -- --list-rules
 ```
 
-Always run with both engines to verify parity.
+Run all three selectors (`rego`, `cel`, `composite`) and verify their outputs agree. `composite` (the default) reuses
+the CEL built-ins and layers an external-only Rego engine for custom/Guard rules, so it is not a third built-in
+implementation — diagnose any built-in-rule mismatch in the Rego or CEL implementation and fix it there.
 
 ### Python scripts in `scripts/`
 
 - `compare_cfnlint.py` — compares cfn-validate output against cfn-lint for accuracy verification. Requires a local
-  cfn-lint checkout: `CFN_LINT_ROOT=<path> python3 scripts/compare_cfnlint.py --engine rego|cel`. First check whether
+  cfn-lint checkout: `CFN_LINT_ROOT=<path> python3 scripts/compare_cfnlint.py --engine rego|cel|composite`. First check whether
   cfn-lint is available on the machine (`cfn-lint --version`), then ask the user for the checkout path — never assume
   or hardcode one.
 - `audit_rule_categorization.py` — audits rule registry for categorization consistency
@@ -159,10 +163,12 @@ unrelated changes such as documentation or workflow-only edits.
 4. Compare against the applicable external implementation (cfn-lint for E/W/I, cloudformation-guard for Guard). If
    cfn-lint differs, investigate and resolve the mismatch using the first-principles evidence; do not assume cfn-lint
    is correct. Fatal rules are checked against the compiled schemas.
-5. Run `cfn-validate` with both `--engine rego` and `--engine cel` on the repro template. Outputs must be identical on
-   rule ID, severity, location, and message.
-6. Run the full test corpus with both engines. Zero new false positives on `templates/good/`. Regenerate the snapshot
-   file if diagnostics legitimately changed.
+5. Run `cfn-validate` with `--engine rego`, `--engine cel`, and `--engine composite` on the repro template. All three
+   outputs must be identical on rule ID, severity, location, and message. `composite` reuses the CEL built-ins and
+   layers an external-only Rego engine for custom/Guard rules, so it is not a third built-in implementation — diagnose
+   any built-in-rule mismatch in the Rego or CEL implementation.
+6. Run the full test corpus with all three engines. Zero new false positives on `templates/good/`. Regenerate the
+   snapshot file if diagnostics legitimately changed.
 7. For core Rust changes, run targeted Cargo tests that cover the change; use `cargo test --workspace` once only when
    the broad suite provides relevant coverage. Do not use Cargo tests to validate binding-only changes.
 8. For every Rust source change, run `cargo fmt --all` and

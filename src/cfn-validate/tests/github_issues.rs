@@ -9,13 +9,17 @@
 //! recursively covers the entire `resources/templates/` tree, so this file adds
 //! focused, rule-level assertions on top of the full-report snapshots.
 //!
-//! Both engines must agree on every assertion here unless a test explicitly says
-//! otherwise (see `issue_36_*`, which pins a known rego/cel divergence).
+//! Every engine must agree on every assertion here unless a test explicitly says
+//! otherwise (see `issue_54_w3045_diverges_on_symbolic_accesscontrol_ref`, which
+//! pins a known rego/cel divergence). The composite selector evaluates the
+//! built-in rules with CEL, so it is checked alongside the two built-in engines
+//! and tracks the CEL engine - including where a divergence is pinned.
 
 mod common;
 
 use cel_engine::CelEngine;
 use common::load_template;
+use composite_engine::CompositeEngine;
 use diagnostics::{DetailLevel, Diagnostic};
 use rego_engine::RegoEngine;
 use rules::Severity;
@@ -23,10 +27,12 @@ use schema_validator::SchemaValidator;
 use std::sync::LazyLock;
 use template_model::EntityType;
 use template_model::PseudoParameterOverrides;
-use validation_engine::{EngineConfig, ValidateConfig, ValidationEngine, validate_bytes};
+use validation_engine::{CompositeEngineConfig, EngineConfig, ValidateConfig, ValidationEngine, validate_bytes};
 
 static REGO: LazyLock<RegoEngine> = LazyLock::new(|| RegoEngine::new(EngineConfig::default()).unwrap());
 static CEL: LazyLock<CelEngine> = LazyLock::new(|| CelEngine::new(EngineConfig::default()).unwrap());
+static COMPOSITE: LazyLock<CompositeEngine> =
+    LazyLock::new(|| CompositeEngine::new(CompositeEngineConfig::default()).unwrap());
 
 /// Validate a `gh-issues` fixture with one engine at the lowest severity gate
 /// (so INFO/DEBUG findings are visible to assertions).
@@ -40,25 +46,28 @@ fn debug_config() -> ValidateConfig {
     ValidateConfig { severity_level: Severity::Debug, ..Default::default() }
 }
 
-/// Run both engines with the default config and return their diagnostics tagged
-/// by engine name. Every assertion helper checks both, so a test that passes is
-/// asserting both engines agree on that fact.
-fn validate_both(fixture: &str) -> Vec<(&'static str, Vec<Diagnostic>)> {
+/// Run every engine with the default config and return their diagnostics tagged
+/// by engine name. Every assertion helper checks each, so a test that passes is
+/// asserting all engines agree on that fact. The composite selector evaluates the
+/// built-in rules with CEL, so it is included here and tracks the CEL engine.
+fn validate_all(fixture: &str) -> Vec<(&'static str, Vec<Diagnostic>)> {
     vec![
         ("rego", validate_with(&*REGO, fixture, debug_config())),
         ("cel", validate_with(&*CEL, fixture, debug_config())),
+        ("composite", validate_with(&*COMPOSITE, fixture, debug_config())),
     ]
 }
 
-/// Like [`validate_both`] but for an inline template. Used by the companion tests
+/// Like [`validate_all`] but for an inline template. Used by the companion tests
 /// that guard the positive boundary of a false-positive fix (the rule must still
 /// fire on a genuine violation): these adversarial templates are not snapshot
 /// fixtures, so they live inline rather than under `gh-issues/`.
-fn validate_both_bytes(template: &[u8]) -> Vec<(&'static str, Vec<Diagnostic>)> {
+fn validate_all_bytes(template: &[u8]) -> Vec<(&'static str, Vec<Diagnostic>)> {
     let sv = SchemaValidator::default();
     vec![
         ("rego", validate_bytes(&*REGO, &sv, template, debug_config()).unwrap().diagnostics),
         ("cel", validate_bytes(&*CEL, &sv, template, debug_config()).unwrap().diagnostics),
+        ("composite", validate_bytes(&*COMPOSITE, &sv, template, debug_config()).unwrap().diagnostics),
     ]
 }
 
@@ -208,7 +217,7 @@ fn assert_rule_start_locations(
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/34
 #[test]
 fn issue_34_no_false_positive_on_ssm_typed_parameter_default() {
-    let diags = validate_both("issue-34.json");
+    let diags = validate_all("issue-34.json");
     assert_absent(&diags, "E1152");
     assert_absent(&diags, "W1030");
     assert_fires_with_severity(&diags, "W2506", Severity::Warn);
@@ -223,7 +232,7 @@ fn issue_34_no_false_positive_on_ssm_typed_parameter_default() {
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/34
 #[test]
 fn issue_34_w2506_does_not_overfire_on_non_image_slot() {
-    let diags = validate_both("issue-34-w2506-overfire.json");
+    let diags = validate_all("issue-34-w2506-overfire.json");
     assert_absent(&diags, "W2506");
     assert_count(&diags, "W2506", 0);
 }
@@ -236,7 +245,7 @@ fn issue_34_w2506_does_not_overfire_on_non_image_slot() {
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/35
 #[test]
 fn issue_35_e3027_absent_on_embedded_dynamic_reference() {
-    let diags = validate_both("issue-35.yaml");
+    let diags = validate_all("issue-35.yaml");
     assert_absent(&diags, "E3027");
 }
 
@@ -249,7 +258,7 @@ fn issue_35_e3027_absent_on_embedded_dynamic_reference() {
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/37
 #[test]
 fn issue_37_w3697_fires_on_autoscaling_launchconfiguration() {
-    let diags = validate_both("issue-37.yaml");
+    let diags = validate_all("issue-37.yaml");
     assert_fires_with_severity(&diags, "W3697", Severity::Warn);
     assert_fires_on_resource(&diags, "W3697", "MyLaunchConfig");
     assert_count(&diags, "W3697", 1);
@@ -276,7 +285,11 @@ fn issue_37_w3697_suppressed_per_service_by_exclude_filter() {
         ),
         ..Default::default()
     };
-    for (name, engine) in [("rego", &*REGO as &dyn ValidationEngine), ("cel", &*CEL as &dyn ValidationEngine)] {
+    for (name, engine) in [
+        ("rego", &*REGO as &dyn ValidationEngine),
+        ("cel", &*CEL as &dyn ValidationEngine),
+        ("composite", &*COMPOSITE as &dyn ValidationEngine),
+    ] {
         let diags = validate_with(engine, "issue-37.yaml", config.clone());
         assert_eq!(count(&diags, "W3697"), 0, "[{name}] excluding W3697 for the AutoScaling service must silence it");
     }
@@ -299,7 +312,11 @@ fn issue_37_service_filter_without_rule_id_silences_whole_service() {
         ),
         ..Default::default()
     };
-    for (name, engine) in [("rego", &*REGO as &dyn ValidationEngine), ("cel", &*CEL as &dyn ValidationEngine)] {
+    for (name, engine) in [
+        ("rego", &*REGO as &dyn ValidationEngine),
+        ("cel", &*CEL as &dyn ValidationEngine),
+        ("composite", &*COMPOSITE as &dyn ValidationEngine),
+    ] {
         let diags = validate_with(engine, "issue-37.yaml", config.clone());
         let on_autoscaling = diags.iter().any(|d| {
             d.entity
@@ -320,7 +337,7 @@ fn issue_37_service_filter_without_rule_id_silences_whole_service() {
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/38
 #[test]
 fn issue_38_no_false_positive_on_nested_readonly_subproperty() {
-    let diags = validate_both("issue-38.json");
+    let diags = validate_all("issue-38.json");
     assert_absent(&diags, "E3040");
     assert_count(&diags, "E3040", 0);
     assert_fires_on_resource(&diags, "I9001", "Memory");
@@ -332,7 +349,7 @@ fn issue_38_no_false_positive_on_nested_readonly_subproperty() {
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/39
 #[test]
 fn issue_39_no_false_positive_on_vpc_cidrblock_getatt() {
-    let diags = validate_both("issue-39.json");
+    let diags = validate_all("issue-39.json");
     assert_absent(&diags, "E9004");
     assert_absent(&diags, "E9003");
     assert_count(&diags, "E9004", 0);
@@ -344,7 +361,7 @@ fn issue_39_no_false_positive_on_vpc_cidrblock_getatt() {
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/40
 #[test]
 fn issue_40_e1150_only_on_concrete_value_not_on_ref() {
-    let diags = validate_both("issue-40.yaml");
+    let diags = validate_all("issue-40.yaml");
     assert_fires_with_severity(&diags, "E1150", Severity::Error);
     assert_count(&diags, "E1150", 1);
     assert_fires_on_resource(&diags, "E1150", "DaxConcrete");
@@ -357,7 +374,7 @@ fn issue_40_e1150_only_on_concrete_value_not_on_ref() {
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/41
 #[test]
 fn issue_41_no_w9013_on_join_ref_accountid() {
-    let diags = validate_both("issue-41.json");
+    let diags = validate_all("issue-41.json");
     assert_absent(&diags, "W9013");
     assert_count(&diags, "W9013", 0);
 }
@@ -371,7 +388,7 @@ fn issue_41_no_w9013_on_join_ref_accountid() {
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/42
 #[test]
 fn issue_42_omitted_healthcheckport_is_info_not_error() {
-    let diags = validate_both("issue-42.yaml");
+    let diags = validate_all("issue-42.yaml");
     assert_absent(&diags, "E3049");
     assert_fires_with_severity(&diags, "I3049", Severity::Info);
     assert_fires_on_resource(&diags, "I3049", "TargetGroup");
@@ -388,7 +405,7 @@ fn issue_42_omitted_healthcheckport_is_info_not_error() {
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/42
 #[test]
 fn issue_42_no_finding_on_deploy_time_healthcheckport() {
-    let diags = validate_both("issue-42-ref.yaml");
+    let diags = validate_all("issue-42-ref.yaml");
     assert_absent(&diags, "E3049");
     assert_absent(&diags, "I3049");
     assert_absent(&diags, "W3049");
@@ -403,7 +420,7 @@ fn issue_42_no_finding_on_deploy_time_healthcheckport() {
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/42
 #[test]
 fn issue_42_conditional_healthcheckport_warns_on_wrong_branch() {
-    let diags = validate_both("issue-42-if.yaml");
+    let diags = validate_all("issue-42-if.yaml");
     assert_absent(&diags, "E3049");
     assert_absent(&diags, "I3049");
     assert_fires_with_severity(&diags, "W3049", Severity::Warn);
@@ -418,7 +435,7 @@ fn issue_42_conditional_healthcheckport_warns_on_wrong_branch() {
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/44
 #[test]
 fn issue_44_no_e3702_false_positive_on_changeset_execute() {
-    let diags = validate_both("issue-44.json");
+    let diags = validate_all("issue-44.json");
     assert_absent(&diags, "E3702");
     assert_count(&diags, "E3702", 0);
 }
@@ -428,7 +445,7 @@ fn issue_44_no_e3702_false_positive_on_changeset_execute() {
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/45
 #[test]
 fn issue_45_no_false_positive_on_array_getatt_wrapped_in_join() {
-    let diags = validate_both("issue-45.json");
+    let diags = validate_all("issue-45.json");
     assert_absent(&diags, "F6101");
     assert_count(&diags, "F6101", 0);
     assert_fires_on_resource(&diags, "I9040", "interfaceVpcEndpoint89C99945");
@@ -439,7 +456,7 @@ fn issue_45_no_false_positive_on_array_getatt_wrapped_in_join() {
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/46
 #[test]
 fn issue_46_no_false_positive_on_eks_securitygroupid_getatt() {
-    let diags = validate_both("issue-46.json");
+    let diags = validate_all("issue-46.json");
     assert_absent(&diags, "E1150");
     assert_absent(&diags, "E1041");
     assert_fires_on_resource(&diags, "W9002", "ClusterEB0386A7");
@@ -453,7 +470,7 @@ fn issue_46_no_false_positive_on_eks_securitygroupid_getatt() {
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/47
 #[test]
 fn issue_47_enum_mismatch_is_warning() {
-    let diags = validate_both("issue-47.json");
+    let diags = validate_all("issue-47.json");
     assert_fires_with_severity(&diags, "W3030", Severity::Warn);
     assert_fires_on_resource(&diags, "W3030", "MyFunction");
     assert_count(&diags, "W3030", 1);
@@ -467,7 +484,7 @@ fn issue_47_enum_mismatch_is_warning() {
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/49
 #[test]
 fn issue_49_region_scoped_enums_assume_us_east_1() {
-    let diags = validate_both("issue-49.yaml");
+    let diags = validate_all("issue-49.yaml");
     assert_fires_with_severity(&diags, "E3652", Severity::Error);
     assert_fires_on_resource(&diags, "E3652", "EsDomain");
     assert_fires_on_resource(&diags, "E3620", "DocDbInstance");
@@ -479,7 +496,7 @@ fn issue_49_region_scoped_enums_assume_us_east_1() {
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/50
 #[test]
 fn issue_50_no_false_positive_on_fn_split_ref_iam_resource() {
-    let diags = validate_both("issue-50.json");
+    let diags = validate_all("issue-50.json");
     assert_absent(&diags, "W1030");
     assert_fires_on_resource(&diags, "I9040", "MyFunctionServiceRole");
     assert_count(&diags, "I9040", 1);
@@ -512,7 +529,7 @@ fn issue_50_no_w1030_on_string_ref_in_iam_resource() {
     }
   }
 }"#;
-    let diags = validate_both_bytes(TEMPLATE);
+    let diags = validate_all_bytes(TEMPLATE);
     assert_absent(&diags, "W1030");
     assert_count(&diags, "W1030", 0);
 }
@@ -523,7 +540,7 @@ fn issue_50_no_w1030_on_string_ref_in_iam_resource() {
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/52
 #[test]
 fn issue_52_no_w9007_on_distinct_importvalue() {
-    let diags = validate_both("issue-52.json");
+    let diags = validate_all("issue-52.json");
     assert_absent(&diags, "W9007");
     assert_count(&diags, "W9007", 0);
 }
@@ -546,7 +563,7 @@ fn issue_52_w9007_still_fires_on_literal_duplicates() {
     }
   }
 }"#;
-    let diags = validate_both_bytes(TEMPLATE);
+    let diags = validate_all_bytes(TEMPLATE);
     assert_fires_with_severity(&diags, "W9007", Severity::Warn);
     assert_count(&diags, "W9007", 1);
 }
@@ -572,7 +589,7 @@ fn issue_52_w9007_still_fires_on_repeated_import_of_same_export() {
     }
   }
 }"#;
-    let diags = validate_both_bytes(TEMPLATE);
+    let diags = validate_all_bytes(TEMPLATE);
     assert_fires_with_severity(&diags, "W9007", Severity::Warn);
     assert_count(&diags, "W9007", 1);
 }
@@ -588,7 +605,7 @@ fn issue_52_w9007_still_fires_on_repeated_import_of_same_export() {
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/53
 #[test]
 fn issue_53_f3004_fires_on_real_dependson_cycle() {
-    let diags = validate_both("issue-53.json");
+    let diags = validate_all("issue-53.json");
     assert_fires_with_severity(&diags, "F3004", Severity::Fatal);
     assert_count(&diags, "F3004", 2);
     assert_fires_on_resource(&diags, "F3004", "ClusterCreationRoleDefaultPolicyE8BDFC7B");
@@ -619,7 +636,7 @@ fn issue_53_f3004_fires_on_real_dependson_cycle() {
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/54
 #[test]
 fn issue_54_f3003_false_required_ownershipcontrols() {
-    let diags = validate_both("issue-54.json");
+    let diags = validate_all("issue-54.json");
     assert_absent(&diags, "F3003");
     assert_count(&diags, "F3003", 0);
     assert_fires_with_severity(&diags, "E3045", Severity::Error);
@@ -634,7 +651,7 @@ fn issue_54_f3003_false_required_ownershipcontrols() {
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/54
 #[test]
 fn issue_54_no_required_ownershipcontrols_on_bare_bucket() {
-    let diags = validate_both("issue-54-bare.json");
+    let diags = validate_all("issue-54-bare.json");
     assert_absent(&diags, "F3003");
     assert_count(&diags, "F3003", 0);
     assert_absent(&diags, "E3045");
@@ -657,7 +674,7 @@ fn issue_54_no_required_ownershipcontrols_on_bare_bucket() {
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/54
 #[test]
 fn issue_54_no_f3003_when_ownershipcontrols_present() {
-    let diags = validate_both("issue-54-with-ownership.json");
+    let diags = validate_all("issue-54-with-ownership.json");
     assert_absent(&diags, "F3003");
     assert_count(&diags, "F3003", 0);
     assert_absent(&diags, "E3045");
@@ -683,11 +700,16 @@ fn issue_54_w3045_diverges_on_symbolic_accesscontrol_ref() {
     let sv = SchemaValidator::default();
     let rego = validate_bytes(&*REGO, &sv, TEMPLATE, debug_config()).unwrap().diagnostics;
     let cel = validate_bytes(&*CEL, &sv, TEMPLATE, debug_config()).unwrap().diagnostics;
+    let composite = validate_bytes(&*COMPOSITE, &sv, TEMPLATE, debug_config()).unwrap().diagnostics;
 
     assert!(cel.iter().any(|d| d.rule_id == "W3045"), "cel should fire W3045 (property is present)");
     assert!(
         !rego.iter().any(|d| d.rule_id == "W3045"),
         "rego currently does NOT fire W3045 on a symbolic AccessControl Ref (false negative)"
+    );
+    assert!(
+        composite.iter().any(|d| d.rule_id == "W3045"),
+        "composite evaluates the built-in rules with CEL, so it fires W3045 like CEL, not rego"
     );
 }
 
@@ -697,7 +719,7 @@ fn issue_54_w3045_diverges_on_symbolic_accesscontrol_ref() {
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/55
 #[test]
 fn issue_55_no_false_positive_on_commadelimitedlist_default() {
-    let diags = validate_both("issue-55.json");
+    let diags = validate_all("issue-55.json");
     assert_absent(&diags, "F3012");
     assert_absent(&diags, "W9003");
     assert_count(&diags, "F3012", 0);
@@ -708,7 +730,7 @@ fn issue_55_no_false_positive_on_commadelimitedlist_default() {
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/56
 #[test]
 fn issue_56_no_fatal_on_unrecognized_getstackoutput_intrinsic() {
-    let diags = validate_both("issue-56.json");
+    let diags = validate_all("issue-56.json");
     assert_absent(&diags, "F3012");
     assert_absent(&diags, "W9003");
     assert_count(&diags, "F3012", 0);
@@ -721,7 +743,7 @@ fn issue_56_no_fatal_on_unrecognized_getstackoutput_intrinsic() {
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/57
 #[test]
 fn issue_57_no_e3057_on_valid_origin_group_id() {
-    let diags = validate_both("issue-57.json");
+    let diags = validate_all("issue-57.json");
     assert_absent(&diags, "E3057");
     assert_count(&diags, "E3057", 0);
 }
@@ -756,7 +778,7 @@ fn issue_57_e3057_still_fires_on_dangling_target_origin_id() {
     }
   }
 }"#;
-    let diags = validate_both_bytes(TEMPLATE);
+    let diags = validate_all_bytes(TEMPLATE);
     assert_fires_with_severity(&diags, "E3057", Severity::Error);
     assert_fires_on_resource(&diags, "E3057", "Dist");
     assert_count(&diags, "E3057", 1);
@@ -769,7 +791,7 @@ fn issue_57_e3057_still_fires_on_dangling_target_origin_id() {
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/61
 #[test]
 fn issue_61_f3017_anyof_on_bare_ec2_volume() {
-    let diags = validate_both("issue-61.json");
+    let diags = validate_all("issue-61.json");
     assert_fires_with_severity(&diags, "F3017", Severity::Fatal);
     assert_fires_on_resource(&diags, "F3017", "Resource");
     assert_count(&diags, "F3017", 1);
@@ -815,7 +837,7 @@ fn issue_61_f3017_anyof_on_bare_ec2_volume() {
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/62
 #[test]
 fn issue_62_f3032_fatal_on_empty_unconstrained_array() {
-    let diags = validate_both("issue-62.json");
+    let diags = validate_all("issue-62.json");
     assert_fires_with_severity(&diags, "F3032", Severity::Fatal);
     assert_fires_on_resource(&diags, "F3032", "Canary");
     assert_count(&diags, "F3032", 1);
@@ -830,7 +852,7 @@ fn issue_62_f3032_fatal_on_empty_unconstrained_array() {
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/62
 #[test]
 fn issue_62_i3013_reports_single_retention_finding() {
-    let diags = validate_both("issue-62.json");
+    let diags = validate_all("issue-62.json");
     assert_fires_with_severity(&diags, "I3013", Severity::Info);
     assert_count(&diags, "I3013", 1);
     assert_fires_on_resource(&diags, "I3013", "Canary");
@@ -855,7 +877,7 @@ fn issue_62_i3013_reports_single_retention_finding() {
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/63
 #[test]
 fn issue_63_e2001_on_intrinsic_in_parameter_default() {
-    let diags = validate_both("issue-63.json");
+    let diags = validate_all("issue-63.json");
     assert_fires_with_severity(&diags, "E2001", Severity::Error);
     assert_count(&diags, "E2001", 1);
 }
@@ -867,7 +889,7 @@ fn issue_63_e2001_on_intrinsic_in_parameter_default() {
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/67
 #[test]
 fn issue_67_f3014_promql_alarm() {
-    let diags = validate_both("issue-67.json");
+    let diags = validate_all("issue-67.json");
     assert_absent(&diags, "F3014");
     assert_count(&diags, "F3014", 0);
 }
@@ -879,7 +901,7 @@ fn issue_67_f3014_promql_alarm() {
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/68
 #[test]
 fn issue_68_zipfile_runtime_forward_looking_vs_enum_snapshot() {
-    let diags = validate_both("issue-68.json");
+    let diags = validate_all("issue-68.json");
     assert_fires_with_severity(&diags, "E3677", Severity::Error);
     assert_fires_on_resource(&diags, "E3677", "FutureNodeFunc");
     assert_count(&diags, "E3677", 1);
@@ -894,7 +916,7 @@ fn issue_68_zipfile_runtime_forward_looking_vs_enum_snapshot() {
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/69
 #[test]
 fn issue_69_f3037_f3032_content_constraints_are_fatal() {
-    let diags = validate_both("issue-69.yaml");
+    let diags = validate_all("issue-69.yaml");
     assert_fires_with_severity(&diags, "F3037", Severity::Fatal);
     assert_fires_on_resource(&diags, "F3037", "Profile");
     assert_fires_with_severity(&diags, "F3032", Severity::Fatal);
@@ -912,7 +934,7 @@ fn issue_69_f3037_f3032_content_constraints_are_fatal() {
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/144
 #[test]
 fn issue_144_no_w9009_when_only_nested_subproperty_deprecated() {
-    let diags = validate_both("issue-144.yaml");
+    let diags = validate_all("issue-144.yaml");
     assert_absent(&diags, "W9009");
     assert_count(&diags, "W9009", 0);
     // The fix reports the actual create-only leaf, not the top-level parent.
@@ -948,7 +970,7 @@ Resources:
           RoleArn: arn:aws:iam::123456789012:role/r
           Url: https://example.com/key
 "#;
-    let diags = validate_both_bytes(TEMPLATE);
+    let diags = validate_all_bytes(TEMPLATE);
     assert_fires_with_severity(&diags, "W9009", Severity::Warn);
     assert_fires_on_property(&diags, "W9009", "Properties.Source.Decryption.Url");
     assert_count(&diags, "W9009", 1);
@@ -964,7 +986,7 @@ Resources:
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/185
 #[test]
 fn issue_185_no_w3030_on_number_parameter_default() {
-    let diags = validate_both("issue-185.yaml");
+    let diags = validate_all("issue-185.yaml");
     assert_absent(&diags, "W3030");
     // The float-vs-integer confusion must not surface as a type finding either.
     assert_absent(&diags, "F3012");
@@ -991,7 +1013,7 @@ Resources:
     UpdateReplacePolicy: Retain
     DeletionPolicy: Retain
 "#;
-    let diags = validate_both_bytes(TEMPLATE);
+    let diags = validate_all_bytes(TEMPLATE);
     assert_fires_with_severity(&diags, "W3030", Severity::Warn);
     assert_count(&diags, "W3030", 1);
 }
@@ -1005,7 +1027,7 @@ Resources:
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/183
 #[test]
 fn issue_183_w3663_fires_only_for_source_arn_without_valid_account_id() {
-    let diags = validate_both("issue-183.yaml");
+    let diags = validate_all("issue-183.yaml");
     assert_count(&diags, "W3663", 1);
     assert_fires_on_resource(&diags, "W3663", "PermissionInvalidAccountId");
     assert_fires_with_severity(&diags, "W3663", Severity::Warn);
@@ -1029,7 +1051,7 @@ fn issue_183_w3663_fires_only_for_source_arn_without_valid_account_id() {
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/186
 #[test]
 fn issue_186_lowercase_clb_protocols_do_not_warn() {
-    let diags = validate_both("issue-186-clb.json");
+    let diags = validate_all("issue-186-clb.json");
     assert_count(&diags, "W3030", 0);
 }
 
@@ -1040,7 +1062,7 @@ fn issue_186_lowercase_clb_protocols_do_not_warn() {
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/186
 #[test]
 fn issue_186_lowercase_imagebuilder_onfailure_keeps_enum_warning() {
-    let diags = validate_both("issue-186-imagebuilder.json");
+    let diags = validate_all("issue-186-imagebuilder.json");
     assert_fires_with_severity(&diags, "W3030", Severity::Warn);
     assert_count(&diags, "W3030", 1);
     assert_fires_on_resource(&diags, "W3030", "ImagePipeline7DDDE57F");
@@ -1055,7 +1077,7 @@ fn issue_186_lowercase_imagebuilder_onfailure_keeps_enum_warning() {
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/194
 #[test]
 fn issue_194_importvalue_as_parameter_default_is_an_error() {
-    let diags = validate_both("issue-194.json");
+    let diags = validate_all("issue-194.json");
     assert_fires_with_severity(&diags, "E2001", Severity::Error);
     assert_count(&diags, "E2001", 1);
     assert_fires_on_property(&diags, "E2001", "Parameters/SomeParameter/Default");
@@ -1075,7 +1097,7 @@ fn issue_194_importvalue_as_parameter_default_is_an_error() {
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/247
 #[test]
 fn issue_247_no_w9007_on_distinct_getstackoutput() {
-    let diags = validate_both("issue-247.json");
+    let diags = validate_all("issue-247.json");
     assert_absent(&diags, "W9007");
     assert_count(&diags, "W9007", 0);
 }
@@ -1130,7 +1152,7 @@ fn issue_247_each_identifying_argument_distinguishes_on_its_own() {
   }
 }"#;
     for template in [DIFFERENT_STACK_NAME, DIFFERENT_REGION, DIFFERENT_OUTPUT_NAME] {
-        let diags = validate_both_bytes(template);
+        let diags = validate_all_bytes(template);
         assert_absent(&diags, "W9007");
         assert_count(&diags, "W9007", 0);
     }
@@ -1156,7 +1178,7 @@ fn issue_247_w9007_still_fires_on_repeated_getstackoutput() {
     }
   }
 }"#;
-    let diags = validate_both_bytes(TEMPLATE);
+    let diags = validate_all_bytes(TEMPLATE);
     assert_fires_with_severity(&diags, "W9007", Severity::Warn);
     assert_count(&diags, "W9007", 1);
 }
@@ -1187,7 +1209,7 @@ fn issue_247_no_w9007_when_stack_names_come_from_different_parameters() {
     }
   }
 }"#;
-    let diags = validate_both_bytes(TEMPLATE);
+    let diags = validate_all_bytes(TEMPLATE);
     assert_absent(&diags, "W9007");
     assert_count(&diags, "W9007", 0);
 }
@@ -1217,7 +1239,7 @@ fn issue_52_no_w9007_when_export_names_come_from_different_parameters() {
     }
   }
 }"#;
-    let diags = validate_both_bytes(TEMPLATE);
+    let diags = validate_all_bytes(TEMPLATE);
     assert_absent(&diags, "W9007");
     assert_count(&diags, "W9007", 0);
 }
@@ -1243,7 +1265,7 @@ fn no_w9007_on_distinct_selects_of_one_deploy_time_list() {
     }
   }
 }"#;
-    let diags = validate_both_bytes(TEMPLATE);
+    let diags = validate_all_bytes(TEMPLATE);
     assert_absent(&diags, "W9007");
     assert_count(&diags, "W9007", 0);
 }
@@ -1269,7 +1291,7 @@ fn w9007_still_fires_when_two_entries_read_one_deploy_time_value() {
     }
   }
 }"#;
-    let diags = validate_both_bytes(TEMPLATE);
+    let diags = validate_all_bytes(TEMPLATE);
     assert_fires_with_severity(&diags, "W9007", Severity::Warn);
     assert_count(&diags, "W9007", 1);
 }
@@ -1288,7 +1310,7 @@ fn w9007_still_fires_when_two_entries_read_one_deploy_time_value() {
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/36
 #[test]
 fn issue_36_no_e1156_on_iso_partition_arn() {
-    let diags = validate_both("issue-36.yaml");
+    let diags = validate_all("issue-36.yaml");
     assert_absent(&diags, "E1156");
     assert_count(&diags, "E1156", 0);
 }
@@ -1312,8 +1334,9 @@ Resources:
     let sv = SchemaValidator::default();
     let rego = validate_bytes(&*REGO, &sv, VALID, debug_config()).unwrap().diagnostics;
     let cel = validate_bytes(&*CEL, &sv, VALID, debug_config()).unwrap().diagnostics;
+    let composite = validate_bytes(&*COMPOSITE, &sv, VALID, debug_config()).unwrap().diagnostics;
 
-    for (name, d) in [("rego", &rego), ("cel", &cel)] {
+    for (name, d) in [("rego", &rego), ("cel", &cel), ("composite", &composite)] {
         assert!(!d.iter().any(|x| x.rule_id == "E1156"), "[{name}] E1156 must not fire on an aws-isob ARN");
         assert!(!d.iter().any(|x| x.rule_id == "E3511"), "[{name}] E3511 must not fire on an aws-isob ARN");
     }
@@ -1330,8 +1353,10 @@ Resources:
 "#;
     let rego_bad = validate_bytes(&*REGO, &sv, MALFORMED, debug_config()).unwrap().diagnostics;
     let cel_bad = validate_bytes(&*CEL, &sv, MALFORMED, debug_config()).unwrap().diagnostics;
+    let composite_bad = validate_bytes(&*COMPOSITE, &sv, MALFORMED, debug_config()).unwrap().diagnostics;
     assert!(rego_bad.iter().any(|d| d.rule_id == "E3511"), "rego must still fire E3511 on a malformed ARN");
     assert!(cel_bad.iter().any(|d| d.rule_id == "E3511"), "cel must still fire E3511 on a malformed ARN");
+    assert!(composite_bad.iter().any(|d| d.rule_id == "E3511"), "composite must still fire E3511 on a malformed ARN");
 }
 
 // ---------------------------------------------------------------------------
@@ -1356,7 +1381,8 @@ fn issue_65_no_f3031_f3033_on_accountid_ref() {
     };
     let diags = vec![
         ("rego", validate_with(&*REGO, "issue-65.json", config.clone())),
-        ("cel", validate_with(&*CEL, "issue-65.json", config)),
+        ("cel", validate_with(&*CEL, "issue-65.json", config.clone())),
+        ("composite", validate_with(&*COMPOSITE, "issue-65.json", config)),
     ];
     assert_absent(&diags, "F3031");
     assert_absent(&diags, "F3033");
@@ -1387,7 +1413,8 @@ fn invalid_account_id_override_emits_single_w9012() {
     };
     let diags = vec![
         ("rego", validate_with(&*REGO, "issue-65.json", config.clone())),
-        ("cel", validate_with(&*CEL, "issue-65.json", config)),
+        ("cel", validate_with(&*CEL, "issue-65.json", config.clone())),
+        ("composite", validate_with(&*COMPOSITE, "issue-65.json", config)),
     ];
     assert_count(&diags, "W9012", 1);
     for (engine, d) in &diags {
@@ -1412,7 +1439,8 @@ fn multiple_invalid_overrides_collapse_into_one_w9012() {
     };
     let diags = vec![
         ("rego", validate_with(&*REGO, "issue-65.json", config.clone())),
-        ("cel", validate_with(&*CEL, "issue-65.json", config)),
+        ("cel", validate_with(&*CEL, "issue-65.json", config.clone())),
+        ("composite", validate_with(&*COMPOSITE, "issue-65.json", config)),
     ];
     assert_count(&diags, "W9012", 1);
     for (engine, d) in &diags {
@@ -1436,7 +1464,8 @@ fn valid_overrides_emit_no_w9012() {
     };
     let diags = vec![
         ("rego", validate_with(&*REGO, "issue-65.json", config.clone())),
-        ("cel", validate_with(&*CEL, "issue-65.json", config)),
+        ("cel", validate_with(&*CEL, "issue-65.json", config.clone())),
+        ("composite", validate_with(&*COMPOSITE, "issue-65.json", config)),
     ];
     assert_absent(&diags, "W9012");
 
@@ -1444,6 +1473,7 @@ fn valid_overrides_emit_no_w9012() {
     let bare = vec![
         ("rego", validate_with(&*REGO, "issue-65.json", debug_config())),
         ("cel", validate_with(&*CEL, "issue-65.json", debug_config())),
+        ("composite", validate_with(&*COMPOSITE, "issue-65.json", debug_config())),
     ];
     assert_absent(&bare, "W9012");
 }
@@ -1466,7 +1496,11 @@ fn fatal_baseline(engine: &dyn ValidationEngine) -> Vec<Diagnostic> {
 
 #[test]
 fn fatal_rule_present_without_filter() {
-    for (name, engine) in [("rego", &*REGO as &dyn ValidationEngine), ("cel", &*CEL as &dyn ValidationEngine)] {
+    for (name, engine) in [
+        ("rego", &*REGO as &dyn ValidationEngine),
+        ("cel", &*CEL as &dyn ValidationEngine),
+        ("composite", &*COMPOSITE as &dyn ValidationEngine),
+    ] {
         let diags = fatal_baseline(engine);
         assert_eq!(count(&diags, "F3017"), 1, "[{name}] F3017 should fire without a filter");
         assert!(diags.iter().any(|d| d.severity == Severity::Fatal), "[{name}] a FATAL diagnostic is expected");
@@ -1484,7 +1518,11 @@ fn fatal_rule_suppressed_by_exclude_id() {
         ),
         ..Default::default()
     };
-    for (name, engine) in [("rego", &*REGO as &dyn ValidationEngine), ("cel", &*CEL as &dyn ValidationEngine)] {
+    for (name, engine) in [
+        ("rego", &*REGO as &dyn ValidationEngine),
+        ("cel", &*CEL as &dyn ValidationEngine),
+        ("composite", &*COMPOSITE as &dyn ValidationEngine),
+    ] {
         let diags = validate_with(engine, "issue-61.json", config.clone());
         assert_eq!(count(&diags, "F3017"), 0, "[{name}] --exclude-ids F3017 must suppress the FATAL rule");
         assert!(!diags.iter().any(|d| d.severity == Severity::Fatal), "[{name}] no FATAL should remain after exclude");
@@ -1503,7 +1541,11 @@ fn fatal_rule_suppressed_by_exclude_category() {
         ),
         ..Default::default()
     };
-    for (name, engine) in [("rego", &*REGO as &dyn ValidationEngine), ("cel", &*CEL as &dyn ValidationEngine)] {
+    for (name, engine) in [
+        ("rego", &*REGO as &dyn ValidationEngine),
+        ("cel", &*CEL as &dyn ValidationEngine),
+        ("composite", &*COMPOSITE as &dyn ValidationEngine),
+    ] {
         let diags = validate_with(engine, "issue-61.json", config.clone());
         assert_eq!(count(&diags, "F3017"), 0, "[{name}] excluding the Schema category must suppress the FATAL rule");
     }
@@ -1523,7 +1565,11 @@ fn fatal_rule_suppressed_by_exclude_range() {
         ),
         ..Default::default()
     };
-    for (name, engine) in [("rego", &*REGO as &dyn ValidationEngine), ("cel", &*CEL as &dyn ValidationEngine)] {
+    for (name, engine) in [
+        ("rego", &*REGO as &dyn ValidationEngine),
+        ("cel", &*CEL as &dyn ValidationEngine),
+        ("composite", &*COMPOSITE as &dyn ValidationEngine),
+    ] {
         let diags = validate_with(engine, "issue-61.json", config.clone());
         assert_eq!(count(&diags, "F3017"), 0, "[{name}] excluding the F3000-F3099 range must suppress the FATAL rule");
     }
@@ -1550,7 +1596,7 @@ Resources:
       TopicArn: !If [IsProd, "arn:aws:sns:us-east-1:123456789012:prod", "arn:aws:sns:us-east-1:123456789012:dev"]
       Endpoint: x
 "#;
-    let diags = validate_both_bytes(template);
+    let diags = validate_all_bytes(template);
     assert_fires_with_severity(&diags, "W9002", Severity::Warn);
     assert_count(&diags, "W9002", 1);
 }
@@ -1572,7 +1618,7 @@ Resources:
       RoleArn: "arn:aws:iam::123456789012:role/r1"
       Endpoint: x
 "#;
-    let diags = validate_both_bytes(template);
+    let diags = validate_all_bytes(template);
     assert_count(&diags, "W9002", 2);
 }
 
@@ -1602,7 +1648,7 @@ Outputs:
   ConditionalListBranch:
     Value: !If [Always, ["x"], ["y"]]
 "#;
-    let diags = validate_both_bytes(template);
+    let diags = validate_all_bytes(template);
     assert_fires_with_severity(&diags, "F6101", Severity::Fatal);
     // Four whole-value violations plus both branches of the conditional.
     assert_count(&diags, "F6101", 6);
@@ -1640,7 +1686,7 @@ Outputs:
   EmptyList:
     Value: []
 "#;
-    let diags = validate_both_bytes(template);
+    let diags = validate_all_bytes(template);
     assert_absent(&diags, "F6101");
 }
 
@@ -1649,7 +1695,7 @@ Outputs:
 /// message - and must anchor at the entity's own span, not the section key.
 #[test]
 fn issue_201_parameter_diagnostics_carry_entity() {
-    let by_engine = validate_both("issue-201.json");
+    let by_engine = validate_all("issue-201.json");
     for (engine, diags) in &by_engine {
         for rule_id in ["F2002", "W2001"] {
             let matched: Vec<&Diagnostic> = diags.iter().filter(|d| d.rule_id == rule_id).collect();
@@ -1689,7 +1735,7 @@ Resources:
     Properties:
       NotAProperty: x
 "#;
-    let by_engine = validate_both_bytes(template);
+    let by_engine = validate_all_bytes(template);
     for (engine, diags) in &by_engine {
         let on_q: Vec<&Diagnostic> = diags.iter().filter(|d| d.resource_logical_id() == Some("Q")).collect();
         assert!(!on_q.is_empty(), "[{engine}] expected diagnostics on resource Q");
@@ -1715,7 +1761,7 @@ Resources:
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/226
 #[test]
 fn issue_226_e9002_ignores_icmp_type_code_but_fires_on_inverted_tcp_range() {
-    let diags = validate_both("issue-226.yaml");
+    let diags = validate_all("issue-226.yaml");
     assert_fires_with_severity(&diags, "E9002", Severity::Error);
     assert_fires_on_resource(&diags, "E9002", "InvertedRangeSecurityGroup");
     assert_count(&diags, "E9002", 1);
@@ -1736,7 +1782,7 @@ fn issue_226_e9002_ignores_icmp_type_code_but_fires_on_inverted_tcp_range() {
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/235
 #[test]
 fn issue_235_w9008_handles_all_rds_storage_encryption_modes() {
-    let diags = validate_both("issue-235.yaml");
+    let diags = validate_all("issue-235.yaml");
     let expected = vec![
         "AllowedValuesEncryption",
         "ConditionalClusterOrStandalone",
@@ -1772,7 +1818,7 @@ fn issue_235_w9008_handles_all_rds_storage_encryption_modes() {
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/246
 #[test]
 fn issue_246_cloudfront_https_alias_is_valid() {
-    let diags = validate_both("issue-246.yaml");
+    let diags = validate_all("issue-246.yaml");
     assert_absent(&diags, "E3029");
 }
 
@@ -1794,7 +1840,7 @@ Resources:
         EvaluateTargetHealth: false
         HostedZoneId: Z123456789EXAMPLE
 "#;
-    let diags = validate_both_bytes(TEMPLATE);
+    let diags = validate_all_bytes(TEMPLATE);
     assert_absent(&diags, "E3029");
 }
 
@@ -1822,7 +1868,7 @@ Resources:
         EvaluateTargetHealth: false
         HostedZoneId: Z2FDTNDATAQYW2
 "#;
-    let diags = validate_both_bytes(TEMPLATE);
+    let diags = validate_all_bytes(TEMPLATE);
     assert_count(&diags, "E3029", 1);
     assert_fires_on_property(&diags, "E3029", "Properties.TTL");
 }
@@ -1854,7 +1900,7 @@ Resources:
         EvaluateTargetHealth: false
         HostedZoneId: Z123456789EXAMPLE
 "#;
-    let diags = validate_both_bytes(TEMPLATE);
+    let diags = validate_all_bytes(TEMPLATE);
     assert_count(&diags, "E3029", 2);
     assert_fires_on_property(&diags, "E3029", "Properties.AliasTarget");
 }
@@ -1864,7 +1910,7 @@ Resources:
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/264
 #[test]
 fn issue_264_unresolved_values_skip_checks_without_hiding_concrete_siblings() {
-    let unresolved_diags = validate_both("issue-264.yaml");
+    let unresolved_diags = validate_all("issue-264.yaml");
     assert_absent(&unresolved_diags, "E3023");
 
     const TEMPLATE: &[u8] = br#"
@@ -1903,7 +1949,7 @@ Resources:
       ResourceRecords:
         - !Join ['', ['999.0.2.3']]
 "#;
-    let mixed_diags = validate_both_bytes(TEMPLATE);
+    let mixed_diags = validate_all_bytes(TEMPLATE);
     assert_rule_parity(&mixed_diags, "E3023");
     assert_rule_targets_on_resources(
         &mixed_diags,
@@ -1923,7 +1969,7 @@ Resources:
 #[test]
 fn issue_264_conditional_record_arrays_validate_reachable_branches() {
     let invalid_template = load_template("bad/route53_conditional_record_arrays.yaml");
-    let invalid_diags = validate_both_bytes(&invalid_template);
+    let invalid_diags = validate_all_bytes(&invalid_template);
     assert_rule_parity(&invalid_diags, "E3023");
     assert_rule_targets_on_resources(
         &invalid_diags,
@@ -1965,7 +2011,7 @@ fn issue_264_conditional_record_arrays_validate_reachable_branches() {
     );
 
     let valid_template = load_template("good/route53_conditional_record_arrays.yaml");
-    let valid_diags = validate_both_bytes(&valid_template);
+    let valid_diags = validate_all_bytes(&valid_template);
     assert_rule_parity(&valid_diags, "E3023");
     assert_rule_targets_on_resources(
         &valid_diags,
@@ -2008,7 +2054,7 @@ Resources:
         TTL: '300'
         ResourceRecords: [192.0.2.1]
 "#;
-    let standalone_diags = validate_both_bytes(STANDALONE_TEMPLATE);
+    let standalone_diags = validate_all_bytes(STANDALONE_TEMPLATE);
     assert_rule_parity(&standalone_diags, "E3023");
     assert_rule_targets_on_resources(
         &standalone_diags,
@@ -2018,7 +2064,7 @@ Resources:
     );
 
     let grouped_template = load_template("bad/route53_conditional_scenarios.yaml");
-    let grouped_diags = validate_both_bytes(&grouped_template);
+    let grouped_diags = validate_all_bytes(&grouped_template);
     assert_rule_parity(&grouped_diags, "E3023");
     assert_rule_targets_on_resources(
         &grouped_diags,
@@ -2037,7 +2083,7 @@ Resources:
 #[test]
 fn issue_264_cname_cardinality_counts_effective_records() {
     let valid_template = load_template("good/route53_conditional_record_arrays.yaml");
-    let valid_diags = validate_both_bytes(&valid_template);
+    let valid_diags = validate_all_bytes(&valid_template);
     assert_rule_parity(&valid_diags, "E3023");
     assert_rule_targets_on_resources(
         &valid_diags,
@@ -2047,7 +2093,7 @@ fn issue_264_cname_cardinality_counts_effective_records() {
     );
 
     let invalid_template = load_template("bad/route53_conditional_record_arrays.yaml");
-    let invalid_diags = validate_both_bytes(&invalid_template);
+    let invalid_diags = validate_all_bytes(&invalid_template);
     assert_rule_parity(&invalid_diags, "E3023");
     assert_rule_targets_on_resources(
         &invalid_diags,
@@ -2065,7 +2111,7 @@ fn issue_264_cname_cardinality_counts_effective_records() {
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/278
 #[test]
 fn issue_278_tz_is_unreserved_without_disabling_reserved_key_validation() {
-    let tz_diagnostics = validate_both("issue-278.yaml");
+    let tz_diagnostics = validate_all("issue-278.yaml");
     assert_absent(&tz_diagnostics, "E3663");
 
     let reserved_template = br#"
@@ -2083,7 +2129,7 @@ Resources:
         Variables:
           AWS_REGION: us-east-1
 "#;
-    let reserved_diagnostics = validate_both_bytes(reserved_template);
+    let reserved_diagnostics = validate_all_bytes(reserved_template);
     assert_rule_parity(&reserved_diagnostics, "E3663");
     assert_count(&reserved_diagnostics, "E3663", 1);
     assert_fires_on_property(&reserved_diagnostics, "E3663", "Properties.Environment.Variables");
@@ -2094,7 +2140,7 @@ Resources:
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/184
 #[test]
 fn issue_184_names_the_incompatible_aurora_engine() {
-    let diagnostics = validate_both("issue-184.yaml");
+    let diagnostics = validate_all("issue-184.yaml");
     assert_rule_parity(&diagnostics, "E3025");
     assert_count(&diagnostics, "E3025", 1);
     assert_fires_on_property(&diagnostics, "E3025", "Properties.DBInstanceClass");
@@ -2123,7 +2169,7 @@ Resources:
       Engine: mysql
 "#;
 
-    let diagnostics = validate_both_bytes(template);
+    let diagnostics = validate_all_bytes(template);
 
     assert_absent(&diagnostics, "E3025");
 }
@@ -2133,7 +2179,7 @@ Resources:
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/339
 #[test]
 fn issue_339_accepts_the_launch_template_ssm_image_alias() {
-    let diagnostics = validate_both("issue-339.yaml");
+    let diagnostics = validate_all("issue-339.yaml");
 
     assert_absent(&diagnostics, "E1152");
 }
@@ -2149,7 +2195,7 @@ Resources:
         ImageId: resolve:ssx:/aws/service/example/image_id
 "#;
 
-    let diagnostics = validate_both_bytes(template);
+    let diagnostics = validate_all_bytes(template);
 
     assert_rule_parity(&diagnostics, "E1152");
     assert_count(&diagnostics, "E1152", 1);
@@ -2161,7 +2207,7 @@ Resources:
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/357
 #[test]
 fn issue_357_explains_that_bucket_policy_resources_share_one_target() {
-    let diagnostics = validate_both("issue-357.yaml");
+    let diagnostics = validate_all("issue-357.yaml");
     let expected_message = "Only one AWS::S3::BucketPolicy resource can target a given bucket; resources {'FirstBucketPolicy', 'SecondBucketPolicy'} all target bucket 'Ref(\"CfnBucket\")'";
 
     assert_rule_parity(&diagnostics, "E3019");
@@ -2204,7 +2250,7 @@ Resources:
         Statement: []
 "#;
 
-    let diagnostics = validate_both_bytes(template);
+    let diagnostics = validate_all_bytes(template);
 
     assert_absent(&diagnostics, "E3019");
 }

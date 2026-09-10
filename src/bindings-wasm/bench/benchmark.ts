@@ -13,9 +13,10 @@ const moduleLoadMs = performance.now() - moduleLoadStart;
 import type { ValidationReport, EngineConfig, ValidateConfig } from '@aws/cloudformation-validate';
 import type {
     WasmCelEngine as WasmCelEngineType,
+    WasmCompositeEngine as WasmCompositeEngineType,
     WasmRegoEngine as WasmRegoEngineType,
 } from '@aws/cloudformation-validate/bindings_wasm';
-type WasmEngine = WasmRegoEngineType | WasmCelEngineType;
+type WasmEngine = WasmRegoEngineType | WasmCelEngineType | WasmCompositeEngineType;
 
 // Raw WASM bindings - accept Uint8Array directly, no file I/O.
 // The public package re-exports wrapper classes that read from File/TemplateFile;
@@ -26,8 +27,8 @@ const WasmSemanticModel: { parse(bytes: Uint8Array): { free(): void } } = wasmRa
 const args = process.argv.slice(2);
 if (args.includes('-h') || args.includes('--help')) {
     console.error(
-        'Usage: npx ts-node benchmark.ts [TEMPLATE|DIR] [--engine rego|cel] [--iterations N]\n' +
-            '       npx ts-node benchmark.ts --startup-probe [--engine rego|cel]',
+        'Usage: npx ts-node benchmark.ts [TEMPLATE|DIR] [--engine rego|cel|composite] [--iterations N]\n' +
+            '       npx ts-node benchmark.ts --startup-probe [--engine rego|cel|composite]',
     );
     process.exit(2);
 }
@@ -57,7 +58,7 @@ const positionalArg = (() => {
 const templateDir = positionalArg ?? DEFAULT_TEMPLATE_DIR;
 
 const engineFlag: string = (() => {
-    if (!args.includes('--engine')) return 'rego';
+    if (!args.includes('--engine')) return 'composite';
     const val = argValue('--engine');
     if (val === undefined || val.startsWith('-')) {
         console.error('Error: --engine requires a value');
@@ -65,8 +66,8 @@ const engineFlag: string = (() => {
     }
     return val;
 })();
-if (engineFlag !== 'rego' && engineFlag !== 'cel') {
-    console.error(`Error: --engine must be 'rego' or 'cel', got '${engineFlag}'`);
+if (engineFlag !== 'rego' && engineFlag !== 'cel' && engineFlag !== 'composite') {
+    console.error(`Error: --engine must be 'rego', 'cel', or 'composite', got '${engineFlag}'`);
     process.exit(2);
 }
 const formatFlag = 'DETAILED';
@@ -393,8 +394,17 @@ const engineConfig: EngineConfig = {
     customRules: [],
     guardRules: [],
 };
+// CompositeEngine takes a CompositeEngineConfig (regoRules + guardRules) rather than an
+// EngineConfig. It is constructed through the raw binding namespace, which shares the
+// same structural instance shape as the Rego and CEL engines.
+const compositeEngineConfig = {
+    regoRules: [],
+    guardRules: [],
+};
 function newEngine(): WasmEngine {
-    return engineFlag === 'cel' ? new wasmRaw.WasmCelEngine(engineConfig) : new wasmRaw.WasmRegoEngine(engineConfig);
+    if (engineFlag === 'composite') return new wasmRaw.WasmCompositeEngine(compositeEngineConfig);
+    if (engineFlag === 'cel') return new wasmRaw.WasmCelEngine(engineConfig);
+    return new wasmRaw.WasmRegoEngine(engineConfig);
 }
 
 const validateConfig: ValidateConfig = {

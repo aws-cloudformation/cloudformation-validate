@@ -4,7 +4,7 @@
 //
 // Usage:
 //
-//	go run . [TEMPLATE|DIR] --engine rego|cel --iterations N
+//	go run . [TEMPLATE|DIR] --engine rego|cel|composite --iterations N
 //
 // The default corpus is src/resources/templates (relative to the workspace
 // root). Reports are written to src/bindings-go/reports/{engine}/.
@@ -55,7 +55,7 @@ func main() {
 func run() error {
 	args := os.Args[1:]
 	if hasFlag(args, "-h") || hasFlag(args, "--help") {
-		fmt.Fprintln(os.Stderr, "Usage: bench [TEMPLATE|DIR] --engine rego|cel --iterations N [--startup-probe]")
+		fmt.Fprintln(os.Stderr, "Usage: bench [TEMPLATE|DIR] --engine rego|cel|composite --iterations N [--startup-probe]")
 		return usageError("help requested")
 	}
 
@@ -63,12 +63,12 @@ func run() error {
 		return err
 	}
 
-	engineFlag, err := requiredFlagValue(args, "--engine", "rego")
+	engineFlag, err := requiredFlagValue(args, "--engine", "composite")
 	if err != nil {
 		return err
 	}
-	if engineFlag != "rego" && engineFlag != "cel" {
-		return usageError(fmt.Sprintf("--engine must be 'rego' or 'cel', got %q", engineFlag))
+	if engineFlag != "rego" && engineFlag != "cel" && engineFlag != "composite" {
+		return usageError(fmt.Sprintf("--engine must be 'rego', 'cel', or 'composite', got %q", engineFlag))
 	}
 
 	iterations, err := parseIterations(args)
@@ -609,6 +609,8 @@ func newEngine(name string) (*cfnvalidate.Engine, error) {
 	switch name {
 	case "cel":
 		return cfnvalidate.NewCelEngine(nil)
+	case "composite":
+		return cfnvalidate.NewCompositeEngine(nil)
 	default:
 		return cfnvalidate.NewRegoEngine(nil)
 	}

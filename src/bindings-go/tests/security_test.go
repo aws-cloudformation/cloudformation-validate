@@ -38,7 +38,7 @@ func discoverSecurityTemplates(t *testing.T) []string {
 	return templates
 }
 
-func TestEverySecurityTemplateWithBothEngines(t *testing.T) {
+func TestEverySecurityTemplateWithAllEngines(t *testing.T) {
 	templates := discoverSecurityTemplates(t)
 	debugConfig := &cfnvalidate.ValidateConfig{
 		SeverityLevel: cfnvalidate.SeverityDebug,
@@ -46,7 +46,7 @@ func TestEverySecurityTemplateWithBothEngines(t *testing.T) {
 	}
 	const securityTimeout = 60 * time.Second
 
-	for _, engineName := range []string{"rego", "cel"} {
+	for _, engineName := range []string{"rego", "cel", "composite"} {
 		for _, templatePath := range templates {
 			relativePath := filepath.Base(templatePath)
 			t.Run(engineName+"/"+relativePath, func(t *testing.T) {
@@ -58,10 +58,13 @@ func TestEverySecurityTemplateWithBothEngines(t *testing.T) {
 				go func() {
 					var engine *cfnvalidate.Engine
 					var buildErr error
-					if engineName == "rego" {
+					switch engineName {
+					case "rego":
 						engine, buildErr = cfnvalidate.NewRegoEngine(nil)
-					} else {
+					case "cel":
 						engine, buildErr = cfnvalidate.NewCelEngine(nil)
+					default:
+						engine, buildErr = cfnvalidate.NewCompositeEngine(nil)
 					}
 					if buildErr != nil {
 						completed <- outcome{err: buildErr}

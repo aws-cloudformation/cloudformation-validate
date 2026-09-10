@@ -53,8 +53,9 @@ Each diagnostic identifies the rule, severity, affected resource and property, a
 
 ## Engine
 
-`RegoEngine` and `CelEngine` both implement the `Engine` interface and are interchangeable - they produce identical
-diagnostics for the same template and config.
+`RegoEngine`, `CelEngine`, and `CompositeEngine` all implement the `Engine` interface. `RegoEngine` and `CelEngine` are
+interchangeable - they produce identical diagnostics for the same template and config - and with no custom rules
+`CompositeEngine` produces those same built-in diagnostics (see [CompositeEngine](#compositeengine)).
 
 ### `Engine` interface
 
@@ -70,7 +71,7 @@ interface Engine {
 |--------------------------------------|------------------|------------------------------------------------------------------------------------------------------------------|
 | `validateTemplate(template, config)` | `ValidationReport` | Validates the template. `config.detailLevel` selects how much per-diagnostic context is populated: `DETAILED` (the default) adds documentation URLs, rule descriptions, phase tags, and `ViolationContext`; `STANDARD` leaves those fields absent. |
 | `listRules()`                        | `List<RuleInfo>` | Returns metadata for every built-in and loaded custom rule                                                       |
-| `engineName()`                       | `String`         | `"rego"` or `"cel"`                                                                                              |
+| `engineName()`                       | `String`         | `"rego"`, `"cel"`, or `"composite"`                                                                             |
 
 `template` is a `java.io.File` - the engine reads the bytes and uses the file path for diagnostic source locations.
 
@@ -114,6 +115,31 @@ val engine = CelEngine(
         guardRules = listOf(fileToExternalRuleSource(File("rules/compliance.guard"))),
     ),
 )
+```
+
+### CompositeEngine
+
+`CompositeEngine` also implements `Engine`, so it is a drop-in wherever an `Engine` is expected. It evaluates the
+built-in rules together with any caller-supplied custom rules and returns one merged report; `engineName()` is
+`"composite"`. It is configured with `CompositeEngineConfig` rather than `EngineConfig` - the built-in rules are always
+evaluated, so the config carries only the custom rules layered on top (custom CEL rules run in the built-in engine,
+custom Rego and Guard rules in a separate external engine) and has no `customRules` field.
+
+| Field                   | Default       | Description                                                                          |
+|-------------------------|---------------|--------------------------------------------------------------------------------------|
+| `regoRules`             | `emptyList()` | Custom Rego rules layered on top of the built-in rules                               |
+| `celRules`              | `emptyList()` | Custom CEL rules layered on top of the built-in rules, run by the built-in engine    |
+| `guardRules`            | `emptyList()` | CloudFormation Guard DSL rules layered on top of the built-in rules                  |
+| `schemaValidatorConfig` | `null`        | Optional `SchemaValidatorConfig` with additional schemas merged over bundled schemas |
+
+```kotlin
+import software.amazon.cloudformation.validate.CompositeEngine
+import software.amazon.cloudformation.validate.engine.CompositeEngineConfig
+
+val engine = CompositeEngine(
+    CompositeEngineConfig(regoRules = listOf(fileToExternalRuleSource(File("rules/s3_encryption.rego")))),
+)
+val report = engine.validateTemplate(File("template.yaml"))
 ```
 
 ## ValidateConfig

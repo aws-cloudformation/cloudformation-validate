@@ -21,6 +21,7 @@ rules = { workspace = true }
 template-model = { workspace = true }
 rego-engine = { workspace = true }
 cel-engine = { workspace = true }
+composite-engine = { workspace = true }
 schema-validator = { workspace = true }
 uniffi = "=0.31.2"
 serde = { version = "1", features = ["derive"] }

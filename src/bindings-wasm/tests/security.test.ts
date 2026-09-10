@@ -32,8 +32,9 @@ interface WorkerResult {
 function validateInWorker(engineName: string, templatePath: string): Promise<WorkerResult> {
     const source = `
         const { parentPort, workerData } = require('node:worker_threads');
-        const { CelEngine, RegoEngine, TemplateFile } = require(workerData.packagePath);
-        const Engine = workerData.engineName === 'rego' ? RegoEngine : CelEngine;
+        const { CelEngine, RegoEngine, CompositeEngine, TemplateFile } = require(workerData.packagePath);
+        const engines = { rego: RegoEngine, cel: CelEngine, composite: CompositeEngine };
+        const Engine = engines[workerData.engineName];
         const engine = new Engine();
         try {
             const report = engine.validateTemplate(
@@ -91,7 +92,7 @@ describe('security templates', () => {
         expect(securityTemplates.every((template) => template.startsWith(`${SECURITY_ROOT}${path.sep}`))).toBe(true);
     });
 
-    for (const engineName of ['rego', 'cel']) {
+    for (const engineName of ['rego', 'cel', 'composite']) {
         for (const templatePath of securityTemplates) {
             const templateName = path.relative(SECURITY_ROOT, templatePath).replace(/\\/g, '/');
             it(

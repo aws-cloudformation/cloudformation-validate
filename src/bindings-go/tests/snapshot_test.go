@@ -1,5 +1,5 @@
 // Snapshot validation, mirroring the wasm and JVM suites: every template in
-// the corpus is validated through both engines at both detail levels, and the
+// the corpus is validated through every engine at both detail levels, and the
 // result must match resources/expected/validation_reports*.json chunks exactly
 // (up to the fields the snapshot file intentionally excludes). Reports round-trip
 // through the typed Go structs before comparison, so this also proves the Go
@@ -138,6 +138,7 @@ func stripSnapshotExcludedFields(report map[string]any, filePath string) map[str
 		delete(metadata, "rulesEvaluated")
 		delete(metadata, "cfnLintVersion")
 		delete(metadata, "resourceSchemaVersion")
+		delete(metadata, "suppressed")
 	}
 	return report
 }
@@ -210,7 +211,7 @@ func TestSnapshotValidation(t *testing.T) {
 		DetailLevel:   cfnvalidate.DetailLevelStandard,
 	}
 
-	for engineName, engine := range bothEngines(t) {
+	for engineName, engine := range allEngines(t) {
 		t.Run(engineName+" detailed matches snapshot", func(t *testing.T) {
 			for _, rel := range templates {
 				expected, ok := snapshots[rel]
@@ -275,7 +276,7 @@ func TestPerformanceMetricsPresent(t *testing.T) {
 }
 
 func TestEmptyTemplateReportsFatalParseRule(t *testing.T) {
-	for name, engine := range bothEngines(t) {
+	for name, engine := range allEngines(t) {
 		report, err := engine.ValidateTemplateFile(filepath.Join(templatesRoot, "empty.yaml"), nil)
 		if err != nil {
 			t.Fatalf("%s: validation failed: %v", name, err)
@@ -397,6 +398,13 @@ func TestCombinedCustomAndGuardRuleListings(t *testing.T) {
 	}
 	cel := mustEngine(t, cfnvalidate.NewCelEngine, celConfig)
 	rego := mustEngine(t, cfnvalidate.NewRegoEngine, regoConfig)
+	// The composite takes the same CEL custom rules (run by its built-in CEL
+	// engine) and the same Guard rules (run by its external engine), so it must
+	// list exactly what the standalone engines list.
+	composite := mustCompositeEngine(t, &cfnvalidate.CompositeEngineConfig{
+		CelRules:   celConfig.CustomRules,
+		GuardRules: celConfig.GuardRules,
+	})
 
 	// Rego discovers custom rule metadata during evaluation.
 	if _, err := rego.ValidateTemplateFile(filepath.Join(templatesRoot, "bad", "invalid_deletion_policy.yaml"), nil); err != nil {
@@ -417,7 +425,7 @@ func TestCombinedCustomAndGuardRuleListings(t *testing.T) {
 	}
 
 	lists := map[string][]cfnvalidate.RuleInfo{}
-	for name, engine := range map[string]*cfnvalidate.Engine{"cel": cel, "rego": rego} {
+	for name, engine := range map[string]*cfnvalidate.Engine{"cel": cel, "rego": rego, "composite": composite} {
 		rules, err := engine.ListRules()
 		if err != nil {
 			t.Fatalf("%s: ListRules failed: %v", name, err)
@@ -450,7 +458,11 @@ func TestCombinedCustomAndGuardRuleListings(t *testing.T) {
 
 	celJSON, _ := json.Marshal(lists["cel"])
 	regoJSON, _ := json.Marshal(lists["rego"])
+	compositeJSON, _ := json.Marshal(lists["composite"])
 	if !strings.EqualFold(string(celJSON), string(regoJSON)) {
 		t.Error("CEL and Rego must list identical rules with custom + guard sources")
+	}
+	if !strings.EqualFold(string(celJSON), string(compositeJSON)) {
+		t.Error("composite must list identical rules to the standalone engines with custom + guard sources")
 	}
 }

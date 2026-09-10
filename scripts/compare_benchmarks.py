@@ -6,6 +6,7 @@ divides all timed ``validate()`` calls by the measured wall time.
 """
 
 import argparse
+import itertools
 import json
 import math
 import os
@@ -21,7 +22,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR.parent
 SRC_DIR = PROJECT_ROOT / "src"
 
-ENGINES = ["rego", "cel"]
+ENGINES = ["rego", "cel", "composite"]
 FORMATS = ["detailed"]
 ALL_BINDINGS = [
     ("native", "Native Rust"),
@@ -66,7 +67,7 @@ PAIRED_FLOOR_MS = 0.01
 VALID_BINDINGS = {"native", "wasm", "jvm", "python", "go"}
 
 # Valid engine labels.
-VALID_ENGINES = {"rego", "cel"}
+VALID_ENGINES = {"rego", "cel", "composite"}
 
 # External process timer used to measure startup and full-corpus memory. The
 # GNU coreutils build ("-v") and the macOS build ("-l") report different
@@ -972,17 +973,17 @@ def stat_cols(d, stats=STATS):
     return [ms(*stat(d, s)) for s in stats]
 
 
-def classify_paired(rego_wall, cel_wall):
-    """Classify a paired Rego/CEL comparison for one template.
+def classify_paired(first_wall, second_wall):
+    """Classify a paired comparison of two engines for one template.
 
     Uses a ratio-based threshold: slower / faster >= PAIRED_RATIO_THRESHOLD means
     the difference is practically significant.  Below PAIRED_FLOOR_MS both values
     are trivially fast and classified as noise regardless of ratio.
 
-    Returns one of: "rego_faster", "cel_faster", "within_noise".
+    Returns one of: "first_faster", "second_faster", "within_noise".
     """
-    faster = min(rego_wall, cel_wall)
-    slower = max(rego_wall, cel_wall)
+    faster = min(first_wall, second_wall)
+    slower = max(first_wall, second_wall)
 
     # Both below floor: timer granularity dominates
     if slower < PAIRED_FLOOR_MS:
@@ -991,18 +992,18 @@ def classify_paired(rego_wall, cel_wall):
     # Avoid division by zero when faster == 0 but slower > floor
     if faster <= 0:
         # One is zero, the other is above floor → the nonzero one is slower
-        if rego_wall < cel_wall:
-            return "rego_faster"
-        elif cel_wall < rego_wall:
-            return "cel_faster"
+        if first_wall < second_wall:
+            return "first_faster"
+        elif second_wall < first_wall:
+            return "second_faster"
         return "within_noise"
 
     ratio = slower / faster
     if ratio >= PAIRED_RATIO_THRESHOLD:
-        if rego_wall < cel_wall:
-            return "rego_faster"
+        if first_wall < second_wall:
+            return "first_faster"
         else:
-            return "cel_faster"
+            return "second_faster"
 
     return "within_noise"
 
@@ -1082,13 +1083,27 @@ def top_slowest_section(all_detailed, engines, bindings, top_n):
     return lines
 
 
-def paired_engine_comparison(all_detailed, bindings):
-    """Paired Rego-vs-CEL analysis per binding.
+def engine_display_name(engine):
+    """Human-readable engine label for report headings and table cells."""
+    return {"rego": "Rego", "cel": "CEL", "composite": "Composite"}.get(engine, engine)
 
-    For each binding, computes:
+
+def paired_engine_pairs(all_detailed):
+    """Every unordered pair of engines present in the loaded reports, in canonical
+    ENGINES order, so the report always compares e.g. Rego vs CEL, Rego vs
+    Composite, and CEL vs Composite when all three ran."""
+    present = [engine for engine in ENGINES if engine in all_detailed]
+    return list(itertools.combinations(present, 2))
+
+
+def paired_engine_comparison(all_detailed, bindings):
+    """Paired engine-vs-engine analysis per binding, for every pair of engines
+    that ran (Rego vs CEL, Rego vs Composite, CEL vs Composite).
+
+    For each engine pair and binding, computes:
     - Representative corpus-pass sums (sum of per-template subsequent wallClockMs
       medians — a representative total, not a measured elapsed time or throughput).
-    - Clear direction ratios (Rego/CEL and CEL/Rego)
+    - Clear direction ratios (first/second)
     - Ratio-based 5% practical threshold counts (templates where slower/faster ≥ 1.05)
     - Rule evaluation comparison
     - Largest paired deltas (templates with biggest absolute difference)
@@ -1099,15 +1114,17 @@ def paired_engine_comparison(all_detailed, bindings):
     Tail outliers (high p99/max) can make throughput figures close even when
     typical (median) costs differ noticeably between engines.
     """
-    if "rego" not in all_detailed or "cel" not in all_detailed:
-        return ["## Paired Engine Comparison (Rego vs CEL)", "",
-                "_Requires both rego and cel engines to be present._", ""]
+    pairs = paired_engine_pairs(all_detailed)
+    if not pairs:
+        return ["## Paired Engine Comparison", "",
+                "_Requires at least two engines to be present._", ""]
 
     lines = [
-        "## Paired Engine Comparison (Rego vs CEL)", "",
-        "Per-binding paired analysis using subsequent per-template metrics. "
-        "Each template is compared across engines using the same binding, so "
-        "differences reflect engine behavior rather than binding overhead.", "",
+        "## Paired Engine Comparison", "",
+        "Per-binding paired analysis using subsequent per-template metrics, for every "
+        "pair of engines that ran. Each template is compared across engines using the "
+        "same binding, so differences reflect engine behavior rather than binding "
+        "overhead.", "",
         "**Metric definitions:**", "",
         "- **Corpus-pass sum**: representative sum of per-template subsequent "
         "`wallClockMs` medians across templates with subsequent samples — the total "
@@ -1115,8 +1132,8 @@ def paired_engine_comparison(all_detailed, bindings):
         "not a measured elapsed time or throughput. Tail outliers (high p99/max) can "
         "make throughput figures close even when typical (median) per-template costs "
         "differ noticeably between engines.",
-        "- **Direction ratio**: `sum(Rego subsequent wall) / sum(CEL subsequent wall)` — "
-        "values >1.0 mean Rego is slower overall.",
+        "- **Direction ratio**: `sum(first engine subsequent wall) / sum(second engine "
+        "subsequent wall)` — values >1.0 mean the first engine is slower overall.",
         f"- **{int((PAIRED_RATIO_THRESHOLD - 1) * 100)}% threshold**: count of templates where "
         f"`slower / faster ≥ {PAIRED_RATIO_THRESHOLD}` (ratio-based practical significance "
         f"threshold). Templates where both engines are below {PAIRED_FLOOR_MS} ms "
@@ -1126,59 +1143,76 @@ def paired_engine_comparison(all_detailed, bindings):
         "pure rule-engine cost from shared model/schema work.", "",
     ]
 
+    for first, second in pairs:
+        lines += paired_engine_pair_section(all_detailed, bindings, first, second)
+
+    return lines
+
+
+def paired_engine_pair_section(all_detailed, bindings, first, second):
+    """The report section comparing one engine pair across every binding."""
+    first_name = engine_display_name(first)
+    second_name = engine_display_name(second)
+    lines = [f"### {first_name} vs {second_name}", ""]
+
     for binding, label in bindings:
-        rego_reports = all_detailed.get("rego", {}).get(binding, {})
-        cel_reports = all_detailed.get("cel", {}).get(binding, {})
-        if not rego_reports or not cel_reports:
+        first_reports = all_detailed.get(first, {}).get(binding, {})
+        second_reports = all_detailed.get(second, {}).get(binding, {})
+        if not first_reports or not second_reports:
             continue
 
-        common_paths = set(rego_reports.keys()) & set(cel_reports.keys())
+        common_paths = set(first_reports.keys()) & set(second_reports.keys())
         if not common_paths:
             continue
 
-        rego_wall_sum = 0.0
-        cel_wall_sum = 0.0
-        rego_rule_sum = 0.0
-        cel_rule_sum = 0.0
-        rego_faster_5pct = 0
-        cel_faster_5pct = 0
+        first_wall_sum = 0.0
+        second_wall_sum = 0.0
+        first_rule_sum = 0.0
+        second_rule_sum = 0.0
+        first_faster_5pct = 0
+        second_faster_5pct = 0
         within_noise = 0
         compared = 0
         deltas = []
 
         for fp in sorted(common_paths):
-            rego_sub = get(rego_reports[fp], "benchmarkMetrics", "subsequent", default={})
-            cel_sub = get(cel_reports[fp], "benchmarkMetrics", "subsequent", default={})
-            if (not isinstance(rego_sub, dict) or rego_sub.get("sampleCount", 0) == 0
-                    or not isinstance(cel_sub, dict) or cel_sub.get("sampleCount", 0) == 0):
+            first_sub = get(first_reports[fp], "benchmarkMetrics", "subsequent", default={})
+            second_sub = get(second_reports[fp], "benchmarkMetrics", "subsequent", default={})
+            if (not isinstance(first_sub, dict) or first_sub.get("sampleCount", 0) == 0
+                    or not isinstance(second_sub, dict) or second_sub.get("sampleCount", 0) == 0):
                 continue
 
-            rw = rego_sub.get("wallClockMs")
-            cw = cel_sub.get("wallClockMs")
-            rr = rego_sub.get("ruleEvaluationMs")
-            cr = cel_sub.get("ruleEvaluationMs")
-            if not all(_is_finite_number(v) for v in (rw, cw, rr, cr)):
+            fw = first_sub.get("wallClockMs")
+            sw = second_sub.get("wallClockMs")
+            fr = first_sub.get("ruleEvaluationMs")
+            sr = second_sub.get("ruleEvaluationMs")
+            if not all(_is_finite_number(v) for v in (fw, sw, fr, sr)):
                 continue
 
             compared += 1
-            rego_wall_sum += rw
-            cel_wall_sum += cw
-            rego_rule_sum += rr
-            cel_rule_sum += cr
+            first_wall_sum += fw
+            second_wall_sum += sw
+            first_rule_sum += fr
+            second_rule_sum += sr
 
-            classification = classify_paired(rw, cw)
-            if classification == "rego_faster":
-                rego_faster_5pct += 1
-            elif classification == "cel_faster":
-                cel_faster_5pct += 1
+            classification = classify_paired(fw, sw)
+            if classification == "first_faster":
+                first_faster_5pct += 1
+            elif classification == "second_faster":
+                second_faster_5pct += 1
             else:
                 within_noise += 1
 
-            abs_diff = abs(rw - cw)
-            direction = "Rego faster" if rw < cw else "CEL faster" if cw < rw else "equal"
-            deltas.append((fp, rw, cw, abs_diff, direction))
+            abs_diff = abs(fw - sw)
+            if fw < sw:
+                direction = f"{first_name} faster"
+            elif sw < fw:
+                direction = f"{second_name} faster"
+            else:
+                direction = "equal"
+            deltas.append((fp, fw, sw, abs_diff, direction))
 
-        lines.append(f"### {label}")
+        lines.append(f"#### {label}")
         lines.append("")
         if compared == 0:
             lines.append("_No subsequent samples to compare (single-iteration run)._")
@@ -1187,22 +1221,22 @@ def paired_engine_comparison(all_detailed, bindings):
 
         deltas.sort(key=lambda x: x[3], reverse=True)
 
-        direction_ratio = (rego_wall_sum / cel_wall_sum) if cel_wall_sum > 0 else float("inf")
-        rule_ratio = (rego_rule_sum / cel_rule_sum) if cel_rule_sum > 0 else float("inf")
+        direction_ratio = (first_wall_sum / second_wall_sum) if second_wall_sum > 0 else float("inf")
+        rule_ratio = (first_rule_sum / second_rule_sum) if second_rule_sum > 0 else float("inf")
 
         lines.append(f"**Templates compared:** {compared}")
         lines.append("")
 
         summary_header = ["Metric", "Value"]
         summary_rows = [
-            ["Rego corpus-pass sum (ms)", f"{rego_wall_sum:.2f}"],
-            ["CEL corpus-pass sum (ms)", f"{cel_wall_sum:.2f}"],
-            ["Direction ratio (Rego/CEL)", f"{direction_ratio:.4f}"],
-            ["Rego rule sum (ms)", f"{rego_rule_sum:.2f}"],
-            ["CEL rule sum (ms)", f"{cel_rule_sum:.2f}"],
-            ["Rule ratio (Rego/CEL)", f"{rule_ratio:.4f}"],
-            ["Rego faster by ≥5%", str(rego_faster_5pct)],
-            ["CEL faster by ≥5%", str(cel_faster_5pct)],
+            [f"{first_name} corpus-pass sum (ms)", f"{first_wall_sum:.2f}"],
+            [f"{second_name} corpus-pass sum (ms)", f"{second_wall_sum:.2f}"],
+            [f"Direction ratio ({first_name}/{second_name})", f"{direction_ratio:.4f}"],
+            [f"{first_name} rule sum (ms)", f"{first_rule_sum:.2f}"],
+            [f"{second_name} rule sum (ms)", f"{second_rule_sum:.2f}"],
+            [f"Rule ratio ({first_name}/{second_name})", f"{rule_ratio:.4f}"],
+            [f"{first_name} faster by ≥5%", str(first_faster_5pct)],
+            [f"{second_name} faster by ≥5%", str(second_faster_5pct)],
             ["Within 5% (practical parity)", str(within_noise)],
         ]
         lines += table(summary_header, summary_rows)
@@ -1213,13 +1247,13 @@ def paired_engine_comparison(all_detailed, bindings):
         if top_deltas:
             lines.append("**Largest paired deltas (top 5):**")
             lines.append("")
-            delta_header = ["Template", "Rego (ms)", "CEL (ms)", "Δ (ms)", "Direction"]
+            delta_header = ["Template", f"{first_name} (ms)", f"{second_name} (ms)", "Δ (ms)", "Direction"]
             delta_rows = []
-            for fp, rw, cw, diff, direction in top_deltas:
+            for fp, fw, sw, diff, direction in top_deltas:
                 display_path = fp if len(fp) <= 50 else "…" + fp[-47:]
                 delta_rows.append([
                     display_path,
-                    f"{rw:.4f}", f"{cw:.4f}", f"{diff:.4f}", direction,
+                    f"{fw:.4f}", f"{sw:.4f}", f"{diff:.4f}", direction,
                 ])
             lines += table(delta_header, delta_rows)
             lines.append("")
@@ -1726,9 +1760,9 @@ def build_report(all_loaded, all_detailed, engines, bindings, args, corpus_fp, c
     toc_items.append(
         f"- [Top-{args.top_slowest} Slowest Templates](#top-{args.top_slowest}-slowest-templates-subsequent-wall-clock)"
     )
-    if len(engines) == 2 and "rego" in engines and "cel" in engines:
+    if "rego" in engines and "cel" in engines:
         toc_items.append(
-            "- [Paired Engine Comparison](#paired-engine-comparison-rego-vs-cel)"
+            "- [Paired Engine Comparison](#paired-engine-comparison)"
         )
     toc_items.append("- [Data Sources](#data-sources)")
 
@@ -1752,7 +1786,7 @@ def build_report(all_loaded, all_detailed, engines, bindings, args, corpus_fp, c
             parity_all_passed = False
 
     lines += top_slowest_section(all_detailed, engines, bindings, args.top_slowest)
-    if len(engines) == 2 and "rego" in engines and "cel" in engines:
+    if "rego" in engines and "cel" in engines:
         lines += paired_engine_comparison(all_detailed, bindings)
 
     lines += data_sources_section(all_loaded, engines, bindings)

@@ -6,10 +6,12 @@ import com.google.gson.JsonNull
 import com.google.gson.JsonObject
 import com.google.gson.JsonPrimitive
 import software.amazon.cloudformation.validate.JvmCelEngine
+import software.amazon.cloudformation.validate.JvmCompositeEngine
 import software.amazon.cloudformation.validate.JvmRegoEngine
 import software.amazon.cloudformation.validate.JvmSemanticModel
 import software.amazon.cloudformation.validate.ValidateConfig
 import software.amazon.cloudformation.validate.diagnostics.ValidationReport
+import software.amazon.cloudformation.validate.engine.CompositeEngineConfig
 import software.amazon.cloudformation.validate.engine.EngineConfig
 import software.amazon.cloudformation.validate.gson.buildBindingsGson
 import software.amazon.cloudformation.validate.rules.RuleFilterConfig
@@ -31,8 +33,8 @@ const val DEFAULT_STARTUP_TEMPLATE = "good/minimal.yaml"
 fun main(args: Array<String>) {
     if (args.any { it == "-h" || it == "--help" }) {
         System.err.println(
-            "Usage: gradle run --args=\"[TEMPLATE|DIR] [--engine rego|cel] [--iterations N]\"\n" +
-                "       gradle run --args=\"--startup-probe [--engine rego|cel]\"",
+            "Usage: gradle run --args=\"[TEMPLATE|DIR] [--engine rego|cel|composite] [--iterations N]\"\n" +
+                "       gradle run --args=\"--startup-probe [--engine rego|cel|composite]\"",
         )
         return
     }
@@ -43,7 +45,7 @@ fun main(args: Array<String>) {
     val engineFlag =
         run {
             val idx = args.indexOf("--engine")
-            if (idx < 0) return@run "rego"
+            if (idx < 0) return@run "composite"
             val value = args.getOrNull(idx + 1)
             if (value == null || value.startsWith("-")) {
                 System.err.println("Error: --engine requires a value")
@@ -51,8 +53,8 @@ fun main(args: Array<String>) {
             }
             value
         }
-    if (engineFlag != "rego" && engineFlag != "cel") {
-        System.err.println("Error: --engine must be 'rego' or 'cel', got '$engineFlag'")
+    if (engineFlag != "rego" && engineFlag != "cel" && engineFlag != "composite") {
+        System.err.println("Error: --engine must be 'rego', 'cel', or 'composite', got '$engineFlag'")
         exitProcess(2)
     }
     val iterations =
@@ -694,12 +696,14 @@ private fun queryToolVersion(tool: String): String =
 private fun newEngine(engineFlag: String): Any =
     when (engineFlag) {
         "cel" -> JvmCelEngine(engineConfig())
+        "composite" -> JvmCompositeEngine(compositeEngineConfig())
         else -> JvmRegoEngine(engineConfig())
     }
 
 private fun engineName(engine: Any): String =
     when (engine) {
         is JvmCelEngine -> engine.engineName()
+        is JvmCompositeEngine -> engine.engineName()
         is JvmRegoEngine -> engine.engineName()
         else -> throw IllegalArgumentException("Unknown engine type")
     }
@@ -735,11 +739,14 @@ private fun validateTemplate(
 ): ValidationReport =
     when (engine) {
         is JvmCelEngine -> engine.validateTemplate(template, config, filePath)
+        is JvmCompositeEngine -> engine.validateTemplate(template, config, filePath)
         is JvmRegoEngine -> engine.validateTemplate(template, config, filePath)
         else -> throw IllegalArgumentException("Unknown engine type")
     }
 
 fun engineConfig() = EngineConfig(customRules = listOf(), guardRules = listOf())
+
+fun compositeEngineConfig() = CompositeEngineConfig(regoRules = listOf(), guardRules = listOf())
 
 fun validateConfig() =
     ValidateConfig(

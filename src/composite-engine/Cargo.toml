@@ -1,24 +1,29 @@
 [package]
-name = "performance-harness"
-publish = false
+name = "cloudformation-validate-composite-engine"
+publish = true
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 license.workspace = true
 description.workspace = true
 repository.workspace = true
 keywords.workspace = true
 categories.workspace = true
 
+[lib]
+name = "composite_engine"
+path = "src/lib.rs"
+
 [dependencies]
-cel-engine = { workspace = true }
-composite-engine = { workspace = true }
-diagnostics = { workspace = true }
-rego-engine = { workspace = true }
-rules = { workspace = true }
-schema-validator = { workspace = true }
 validation-engine = { workspace = true }
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
+cel-engine = { workspace = true }
+rego-engine = { workspace = true }
+diagnostics = { workspace = true }
+rules = { workspace = true }
+template-model = { workspace = true }
+schema-validator = { workspace = true }
+anyhow = "1"
+web-time = "1"
 
 [lints]
 workspace = true
