@@ -42,7 +42,11 @@ fn main() -> anyhow::Result<()> {
     let generated_dir = manifest.join("generated");
     let handwritten_dir = manifest.join("handwritten");
 
-    for cache_directory in [upstream_dir.clone(), generated_dir.join("patched_schemas")] {
+    // Every file under these directories is rewritten by a full sync, so clear
+    // them first: a source that stops being produced must not linger as a stale
+    // artifact. `generated/data` is shared by the sync and generate phases and can
+    // only be cleared here, ahead of both.
+    for cache_directory in [upstream_dir.clone(), generated_dir.join("patched_schemas"), generated_dir.join("data")] {
         clear_cache_directory(&cache_directory)?;
     }
 

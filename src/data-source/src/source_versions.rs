@@ -9,10 +9,10 @@ pub const AWS_CLI_SOURCE: &str = "https://github.com/aws/aws-cli";
 
 /// Provenance of every external input behind the committed generated data.
 ///
-/// `sync` records the cfn-lint and resource-schema versions; the AWS CLI
-/// operation catalog generator records the AWS CLI release whose bundled
-/// botocore models the catalog derives from, so that entry is absent until the
-/// catalog has been generated. Each writer preserves the entries it does not own.
+/// `sync` writes a fresh manifest with the cfn-lint and resource-schema
+/// versions; the AWS CLI operation catalog generator, which runs after `sync`,
+/// adds the AWS CLI release whose bundled botocore models the catalog derives
+/// from. That entry is therefore absent until the catalog has been generated.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct SourceVersions {

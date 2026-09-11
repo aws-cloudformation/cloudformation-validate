@@ -103,15 +103,6 @@ impl source_versions::SourceVersions {
         Ok(versions)
     }
 
-    /// The manifest with the `sync`-owned entries replaced and the AWS CLI entry kept.
-    pub(crate) fn with_sync_versions(
-        self,
-        cfn_lint_version: String,
-        resource_schema_version: String,
-    ) -> Result<Self, String> {
-        Self::new(cfn_lint_version, resource_schema_version, self.aws_cli_version)
-    }
-
     /// The manifest with the AWS CLI entry recorded and the `sync`-owned entries kept.
     pub(crate) fn with_aws_cli_version(self, aws_cli_version: String) -> Result<Self, String> {
         Self::new(self.cfn_lint_version, self.resource_schema_version, Some(aws_cli_version))
@@ -154,13 +145,16 @@ pub fn sync_upstream(upstream_dir: &Path, rule_source_root: &str) -> anyhow::Res
         .fail_on_errors("AdditionalSpecs")?;
 
     info!("Step 5: Extracting data tables embedded in cfn-lint rule code");
-    let (table_stats, cfn_lint_version) = cfnlint_tables::sync_cfnlint_tables(&rule_source_dir, &generated_data)?;
+    let (table_stats, cfn_lint_version) =
+        cfnlint_tables::sync_cfnlint_tables(&rule_source_dir, &generated_data, upstream_dir)?;
     table_stats.fail_on_errors("CfnLintTables")?;
 
     verify_files_exist_and_populated(REQUIRED_SYNC_FILES, &generated_data, "Sync")?;
-    // The AWS CLI entry is owned by the catalog generator; sync keeps it.
-    let source_versions = source_versions::SourceVersions::read(&source_versions_path)
-        .and_then(|versions| versions.with_sync_versions(cfn_lint_version, resource_schema_version))
+    verify_files_exist_and_populated(REQUIRED_UPSTREAM_FILES, upstream_dir, "Sync")?;
+    // `generated/data` was cleared ahead of this sync, so the manifest is written
+    // fresh; the AWS CLI entry is recorded by the catalog generator, which must
+    // run after every sync because the catalog is cleared with it.
+    let source_versions = source_versions::SourceVersions::new(cfn_lint_version, resource_schema_version, None)
         .map_err(anyhow::Error::msg)?;
     write_source_versions(&source_versions_path, source_versions)?;
     info!("Recorded complete data source provenance in {}", source_versions_path.display());
@@ -182,7 +176,7 @@ pub fn generate_all(upstream_dir: &Path, generated_dir: &Path, handwritten_dir: 
     codegen_schema_validator::generate(generated_dir, upstream_dir)?;
 
     info!("Step 4: Verifying all expected output files");
-    verify_outputs(generated_dir, handwritten_dir)?;
+    verify_outputs(upstream_dir, generated_dir, handwritten_dir)?;
 
     Ok(())
 }
@@ -220,11 +214,16 @@ const REQUIRED_SYNC_FILES: &[&str] = &[
     "region_resource_types",
     "stateful_resource_types",
     // Tables extracted from cfn-lint rule code
-    "getatt_additions",
     "retention_period_requirements",
     "codepipeline_action_artifact_counts",
     "cfnlint_rule_tables",
 ];
+
+/// Raw intermediates produced by sync_upstream into the upstream directory. They
+/// are consumed only by generate_all and are never embedded, so they are not
+/// committed with the generated data.
+#[cfg(feature = "maintenance")]
+const REQUIRED_UPSTREAM_FILES: &[&str] = &[cfnlint_tables::GETATT_ADDITIONS_NAME];
 
 /// Data files produced by generate_all schema processing.
 #[cfg(feature = "maintenance")]
@@ -248,25 +247,27 @@ const REQUIRED_HANDWRITTEN_FILES: &[&str] = &[
 ];
 
 #[cfg(feature = "maintenance")]
-fn verify_sync_outputs(data_dir: &Path) -> anyhow::Result<()> {
+fn verify_sync_outputs(upstream_dir: &Path, data_dir: &Path) -> anyhow::Result<()> {
     source_versions::SourceVersions::read(&data_dir.join(source_versions::SOURCE_VERSIONS_FILE))
         .map_err(anyhow::Error::msg)?;
-    verify_files_exist_and_populated(REQUIRED_SYNC_FILES, data_dir, "Sync")
+    verify_files_exist_and_populated(REQUIRED_SYNC_FILES, data_dir, "Sync")?;
+    verify_files_exist_and_populated(REQUIRED_UPSTREAM_FILES, upstream_dir, "Sync")
 }
 
 #[cfg(feature = "maintenance")]
-fn verify_outputs(generated_dir: &Path, handwritten_dir: &Path) -> anyhow::Result<()> {
+fn verify_outputs(upstream_dir: &Path, generated_dir: &Path, handwritten_dir: &Path) -> anyhow::Result<()> {
     let data_dir = generated_dir.join("data");
     let schema_validator_dir = generated_dir.join("schema-validator");
     let cel_rules_dir = generated_dir.join("cel-rules");
 
-    verify_sync_outputs(&data_dir)?;
+    verify_sync_outputs(upstream_dir, &data_dir)?;
     verify_files_exist_and_populated(REQUIRED_GENERATE_DATA_FILES, &data_dir, "Generate data")?;
     verify_files_exist_and_populated(REQUIRED_SCHEMA_VALIDATOR_FILES, &schema_validator_dir, "Schema validator")?;
     verify_files_exist_and_populated(REQUIRED_CEL_RULE_FILES, &cel_rules_dir, "Generated CEL rules")?;
     verify_files_exist_and_populated(REQUIRED_HANDWRITTEN_FILES, handwritten_dir, "Handwritten")?;
 
     let total = REQUIRED_SYNC_FILES.len()
+        + REQUIRED_UPSTREAM_FILES.len()
         + REQUIRED_GENERATE_DATA_FILES.len()
         + REQUIRED_SCHEMA_VALIDATOR_FILES.len()
         + REQUIRED_CEL_RULE_FILES.len()
@@ -332,22 +333,14 @@ mod source_version_writer_tests {
     }"#;
 
     #[test]
-    fn each_writer_preserves_the_entries_it_does_not_own() {
+    fn catalog_generator_records_the_aws_cli_entry_and_keeps_sync_entries() {
         let recorded = SourceVersions::from_json(SYNC_ONLY_MANIFEST)
             .expect("manifest should parse")
             .with_aws_cli_version(format!("{AWS_CLI_SOURCE}@2.36.43"))
             .expect("catalog update should be valid");
         assert_eq!(recorded.aws_cli_version.as_deref(), Some("https://github.com/aws/aws-cli@2.36.43"));
         assert_eq!(recorded.cfn_lint_version, format!("{CFN_LINT_SOURCE}@1.54.0"));
-
-        let synced = recorded
-            .with_sync_versions(
-                format!("{CFN_LINT_SOURCE}@1.56.0"),
-                format!("{RESOURCE_SCHEMA_SOURCE}@2026-09-08T00:15:23Z"),
-            )
-            .expect("sync update should be valid");
-        assert_eq!(synced.cfn_lint_version, format!("{CFN_LINT_SOURCE}@1.56.0"));
-        assert_eq!(synced.aws_cli_version.as_deref(), Some("https://github.com/aws/aws-cli@2.36.43"));
+        assert_eq!(recorded.resource_schema_version, format!("{RESOURCE_SCHEMA_SOURCE}@2026-08-07T18:20:13Z"));
 
         let error = SourceVersions::from_json(SYNC_ONLY_MANIFEST)
             .expect("manifest should parse")

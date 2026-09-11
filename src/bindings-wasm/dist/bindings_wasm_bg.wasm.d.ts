@@ -2,6 +2,7 @@
 /* eslint-disable */
 export const memory: WebAssembly.Memory;
 export const __wbg_wasmcelengine_free: (a: number, b: number) => void;
+export const __wbg_wasmcompositeengine_free: (a: number, b: number) => void;
 export const __wbg_wasmregoengine_free: (a: number, b: number) => void;
 export const __wbg_wasmschemavalidator_free: (a: number, b: number) => void;
 export const __wbg_wasmsemanticmodel_free: (a: number, b: number) => void;
@@ -11,6 +12,17 @@ export const wasmcelengine_engineName: (a: number) => [number, number];
 export const wasmcelengine_listRules: (a: number) => [number, number, number];
 export const wasmcelengine_new: (a: any) => [number, number, number];
 export const wasmcelengine_validateTemplate: (
+    a: number,
+    b: number,
+    c: number,
+    d: any,
+    e: number,
+    f: number,
+) => [number, number, number];
+export const wasmcompositeengine_engineName: (a: number) => [number, number];
+export const wasmcompositeengine_listRules: (a: number) => [number, number, number];
+export const wasmcompositeengine_new: (a: any) => [number, number, number];
+export const wasmcompositeengine_validateTemplate: (
     a: number,
     b: number,
     c: number,
