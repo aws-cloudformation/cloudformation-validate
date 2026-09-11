@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
 """Runs benchmarks for every engine × binding and writes a comparison report.
 
+The native benchmark builds ``cfn-benchmark`` from the workspace. The WASM, JVM,
+Python, and Go benchmarks consume the committed distribution artifacts that the
+``build-artifacts`` workflow publishes (``bindings-wasm/dist``, the JVM jar, the
+Python wheels, and the Go module's static libraries), so they measure exactly
+what consumers install; only each binding's benchmark harness is built here.
+
 Subsequent distributions are per-template medians of iterations 2..N; throughput
 divides all timed ``validate()`` calls by the measured wall time.
 """
@@ -85,8 +91,27 @@ JVM_BENCH_BIN = (
 PYTHON_BENCH_DIR = SRC_DIR / "bindings-python" / "bench"
 PYTHON_VENV_PYTHON = PYTHON_BENCH_DIR / ".venv" / "bin" / "python"
 PYTHON_BENCH_SCRIPT = PYTHON_BENCH_DIR / "benchmark.py"
+PYTHON_DISTRIBUTION_NAME = "cloudformation-validate"
 GO_BENCH_DIR = SRC_DIR / "bindings-go" / "bench"
 GO_BENCH_BIN = GO_BENCH_DIR / "build" / "cfn-benchmark-go"
+
+# Committed distribution artifacts consumed by the binding harnesses. The
+# `build-artifacts` workflow owns and commits them; the harness build below never
+# regenerates them, so the benchmark measures the artifact consumers install.
+WASM_DIST_DIR = SRC_DIR / "bindings-wasm" / "dist"
+WASM_DIST_FILES = [
+    WASM_DIST_DIR / "package.json",
+    WASM_DIST_DIR / "index.js",
+    WASM_DIST_DIR / "bindings_wasm.js",
+    WASM_DIST_DIR / "bindings_wasm_bg.wasm",
+]
+JVM_BINDINGS_JAR = SRC_DIR / "bindings-jvm" / "generated" / "cloudformation-validate.jar"
+PYTHON_WHEEL_DIR = SRC_DIR / "bindings-python" / "generated" / "dist"
+PYTHON_WHEEL_GLOB = "cloudformation_validate-*.whl"
+GO_MODULE_DIR = SRC_DIR / "bindings-go" / "go"
+GO_GENERATED_BINDINGS_DIR = GO_MODULE_DIR / "internal" / "bindings_go"
+GO_STATIC_LIBS_DIR = GO_MODULE_DIR / "libs"
+GO_STATIC_LIB_GLOB = "*/libbindings_go.a"
 
 
 def parse_args(argv=None):
@@ -96,7 +121,8 @@ def parse_args(argv=None):
     parser.add_argument(
         "--skip-build",
         action="store_true",
-        help="Skip building artifacts; validate that the prebuilt executables already exist.",
+        help="Skip building the native binary and binding harnesses; validate that the "
+             "prebuilt executables already exist.",
     )
     parser.add_argument(
         "--report-only",
@@ -251,17 +277,57 @@ def run_cmd(cmd, cwd, label):
         sys.exit(f"{label} failed (exit {result.returncode})")
 
 
-def build_all(bindings):
+def missing_committed_artifacts(binding):
+    """Committed distribution artifacts the binding's harness needs but which are absent."""
+    if binding == "wasm":
+        return [str(p) for p in WASM_DIST_FILES if not p.is_file()]
+    if binding == "jvm":
+        return [] if JVM_BINDINGS_JAR.is_file() else [str(JVM_BINDINGS_JAR)]
+    if binding == "python":
+        if any(PYTHON_WHEEL_DIR.glob(PYTHON_WHEEL_GLOB)):
+            return []
+        return [str(PYTHON_WHEEL_DIR / PYTHON_WHEEL_GLOB)]
+    if binding == "go":
+        missing = []
+        if not GO_GENERATED_BINDINGS_DIR.is_dir():
+            missing.append(str(GO_GENERATED_BINDINGS_DIR))
+        if not any(GO_STATIC_LIBS_DIR.glob(GO_STATIC_LIB_GLOB)):
+            missing.append(str(GO_STATIC_LIBS_DIR / GO_STATIC_LIB_GLOB))
+        return missing
+    return []
+
+
+def require_committed_artifacts(bindings):
+    """Fail before any build when a selected binding's committed artifact is absent."""
+    missing = []
+    for binding, label in bindings:
+        for path in missing_committed_artifacts(binding):
+            missing.append(f"{label} ({binding}): {path}")
+    if missing:
+        sys.exit(
+            "committed distribution artifacts are missing:\n"
+            + "\n".join(f"  • {m}" for m in missing)
+            + "\nThe build-artifacts workflow commits them; for a local checkout run the "
+            "binding's build.sh to regenerate them."
+        )
+
+
+def build_harnesses(bindings):
+    """Build the native benchmark binary and each selected binding's benchmark harness.
+
+    The binding harnesses link against the committed distribution artifacts
+    (WASM dist, JVM jar, Python wheel, Go module with static libraries) rather than
+    rebuilding the bindings, so the measured code is the published artifact.
+    """
     binding_ids = {b for b, _ in bindings}
+    require_committed_artifacts(bindings)
 
     if "native" in binding_ids:
-        print("=== Building native Rust (release) ===", file=sys.stderr)
-        run_cmd(["cargo", "build", "--locked", "--release", "--workspace"], SRC_DIR, "cargo build")
+        print("=== Building native Rust benchmark binary (release) ===", file=sys.stderr)
+        run_cmd(["cargo", "build", "--locked", "--release", "-p", "cfn-validate"], SRC_DIR, "cargo build")
 
     if "wasm" in binding_ids:
-        print("=== Building WASM package + bench ===", file=sys.stderr)
-        run_cmd(["bash", str(SRC_DIR / "bindings-wasm" / "build.sh")],
-                SRC_DIR / "bindings-wasm", "WASM build")
+        print(f"=== Building WASM bench against committed {WASM_DIST_DIR} ===", file=sys.stderr)
         if (WASM_BENCH_DIR / "package-lock.json").exists():
             run_cmd(["npm", "ci", "--silent"], WASM_BENCH_DIR, "npm ci (wasm bench)")
         else:
@@ -271,32 +337,28 @@ def build_all(bindings):
         run_cmd(["npx", "tsc", "-p", "tsconfig.json"], WASM_BENCH_DIR, "compile wasm bench (tsc)")
 
     if "jvm" in binding_ids:
-        print("=== Building JVM native library + bindings + bench ===", file=sys.stderr)
-        run_cmd(["bash", str(SRC_DIR / "bindings-jvm" / "build.sh")],
-                SRC_DIR / "bindings-jvm", "JVM build")
+        print(f"=== Building JVM bench against committed {JVM_BINDINGS_JAR} ===", file=sys.stderr)
         gradle = str(JVM_BENCH_DIR / "gradlew") if (JVM_BENCH_DIR / "gradlew").exists() else "gradle"
         run_cmd([gradle, "installDist", "--no-daemon"], JVM_BENCH_DIR, "jvm bench installDist")
 
     if "python" in binding_ids:
-        print("=== Building Python wheel + bench venv ===", file=sys.stderr)
-        run_cmd(["bash", str(SRC_DIR / "bindings-python" / "build.sh")],
-                SRC_DIR / "bindings-python", "Python build")
+        print(f"=== Installing committed wheel from {PYTHON_WHEEL_DIR} into bench venv ===",
+              file=sys.stderr)
         PYTHON_BENCH_DIR.mkdir(parents=True, exist_ok=True)
         venv_dir = PYTHON_BENCH_DIR / ".venv"
         if not venv_dir.exists():
             run_cmd(["python3", "-m", "venv", str(venv_dir)], PYTHON_BENCH_DIR, "create bench venv")
-        venv_pip = str(venv_dir / "bin" / "pip")
-        wheel_dir = SRC_DIR / "bindings-python" / "generated" / "dist"
-        wheels = sorted(wheel_dir.glob("*.whl"))
-        if not wheels:
-            sys.exit(f"No wheel found in {wheel_dir}")
-        run_cmd([venv_pip, "install", "--force-reinstall", "--quiet", str(wheels[-1])],
-                PYTHON_BENCH_DIR, "install wheel into bench venv")
+        # The wheel directory holds one wheel per supported platform; let pip select the
+        # one whose tags match the host instead of guessing from file names.
+        run_cmd(
+            [str(PYTHON_VENV_PYTHON), "-m", "pip", "install", "--force-reinstall", "--quiet",
+             "--no-index", "--find-links", str(PYTHON_WHEEL_DIR), "--only-binary=:all:",
+             PYTHON_DISTRIBUTION_NAME],
+            PYTHON_BENCH_DIR, "install wheel into bench venv",
+        )
 
     if "go" in binding_ids:
-        print("=== Building Go native library + bindings + bench binary ===", file=sys.stderr)
-        run_cmd(["bash", str(SRC_DIR / "bindings-go" / "build.sh")],
-                SRC_DIR / "bindings-go", "Go build")
+        print(f"=== Building Go bench against committed module {GO_MODULE_DIR} ===", file=sys.stderr)
         GO_BENCH_BIN.parent.mkdir(parents=True, exist_ok=True)
         run_cmd(["go", "build", "-o", str(GO_BENCH_BIN), "."], GO_BENCH_DIR, "go bench build")
 
@@ -1308,7 +1370,9 @@ def provenance_section(all_loaded, engines, bindings):
              "version, Cargo, and rustc are the exact tool versions used to build the native "
              "core (injected into the harness environment so measurement is not contaminated "
              "by version queries). Each binding additionally reports the artifact it ships as "
-             "and its runtime.", "",
+             "and its runtime. The WASM, JVM, Python, and Go harnesses run against the committed "
+             "distribution artifacts published by the build-artifacts workflow, not a local "
+             "rebuild of the bindings.", "",
              f"- **cloudformation-validate**: {core}",
              f"- **cargo**: {cargo}",
              f"- **rustc**: {rustc}", ""]
@@ -1808,7 +1872,7 @@ def main(argv=None):
         run_start_epoch = 0
     else:
         if not args.skip_build:
-            build_all(bindings)
+            build_harnesses(bindings)
         else:
             print("Skipping builds (--skip-build); validating prebuilt executables", file=sys.stderr)
             validate_executables(bindings)
