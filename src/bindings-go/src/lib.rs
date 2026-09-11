@@ -369,22 +369,13 @@ macro_rules! impl_go_engine {
             }
 
             /// Validates an AWS CLI command and returns the canonical result as JSON.
-            pub fn validate_aws_cli_command_json(
-                &self,
-                request_json: String,
-                options_json: String,
-            ) -> Result<String, ValidationError> {
+            pub fn validate_aws_cli_command_json(&self, request_json: String) -> Result<String, ValidationError> {
                 catch_panics(
                     || {
                         let request = AwsCliCommandWire::parse(&request_json)?.into_context();
-                        let config = ValidateOptions::parse(&options_json)?.to_core();
-                        let result = validation_engine::validate_aws_cli_command(
-                            &self.engine,
-                            &self.schema_validator,
-                            &request,
-                            config,
-                        )
-                        .map_err(ValidationError::new)?;
+                        let result =
+                            validation_engine::validate_aws_cli_command(&self.engine, &self.schema_validator, &request)
+                                .map_err(ValidationError::new)?;
                         to_json(&result)
                     },
                     panic_to_error,

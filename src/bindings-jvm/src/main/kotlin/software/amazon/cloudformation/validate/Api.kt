@@ -15,10 +15,7 @@ import java.io.File
 
 interface Engine {
     fun validateTemplate(template: File, config: ValidateConfig = ValidateConfig()): ValidationReport
-    fun validateAwsCliCommand(
-        request: AwsCliCommand,
-        config: ValidateConfig = ValidateConfig(),
-    ): AwsCliCommandValidation
+    fun validateAwsCliCommand(request: AwsCliCommand): AwsCliCommandValidation
     fun listRules(): List<RuleInfo>
     fun engineName(): String
 }
@@ -150,10 +147,8 @@ class RegoEngine(
     override fun validateTemplate(template: File, config: ValidateConfig): ValidationReport =
         inner.validateTemplate(template.readBytes(), config, template.path)
 
-    override fun validateAwsCliCommand(
-        request: AwsCliCommand,
-        config: ValidateConfig,
-    ): AwsCliCommandValidation = inner.validateAwsCliCommand(request.toNative(), config)
+    override fun validateAwsCliCommand(request: AwsCliCommand): AwsCliCommandValidation =
+        inner.validateAwsCliCommand(request.toNative())
 
     override fun listRules(): List<RuleInfo> = inner.listRules()
     override fun engineName(): String = inner.engineName()
@@ -167,10 +162,8 @@ class CelEngine(
     override fun validateTemplate(template: File, config: ValidateConfig): ValidationReport =
         inner.validateTemplate(template.readBytes(), config, template.path)
 
-    override fun validateAwsCliCommand(
-        request: AwsCliCommand,
-        config: ValidateConfig,
-    ): AwsCliCommandValidation = inner.validateAwsCliCommand(request.toNative(), config)
+    override fun validateAwsCliCommand(request: AwsCliCommand): AwsCliCommandValidation =
+        inner.validateAwsCliCommand(request.toNative())
 
     override fun listRules(): List<RuleInfo> = inner.listRules()
     override fun engineName(): String = inner.engineName()
@@ -190,10 +183,8 @@ class CompositeEngine(
     override fun validateTemplate(template: File, config: ValidateConfig): ValidationReport =
         inner.validateTemplate(template.readBytes(), config, template.path)
 
-    override fun validateAwsCliCommand(
-        request: AwsCliCommand,
-        config: ValidateConfig,
-    ): AwsCliCommandValidation = inner.validateAwsCliCommand(request.toNative(), config)
+    override fun validateAwsCliCommand(request: AwsCliCommand): AwsCliCommandValidation =
+        inner.validateAwsCliCommand(request.toNative())
 
     override fun listRules(): List<RuleInfo> = inner.listRules()
     override fun engineName(): String = inner.engineName()

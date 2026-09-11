@@ -169,19 +169,13 @@ macro_rules! wasm_engine {
             }
 
             #[wasm_bindgen(js_name = "validateAwsCliCommand")]
-            pub fn validate_aws_cli_command(
-                &self,
-                request: JsValue,
-                options: ValidateConfig,
-            ) -> Result<JsValue, JsValue> {
+            pub fn validate_aws_cli_command(&self, request: JsValue) -> Result<JsValue, JsValue> {
                 catch_panics(
                     || {
                         let request: AwsCliCommand = serde_wasm_bindgen::from_value(request)
                             .map_err(|error| JsValue::from_str(&format!("invalid AWS CLI command: {error}")))?;
-                        let config = build_core_config(options);
-                        let validation =
-                            validate_aws_cli_command(&self.engine, &self.schema_validator, &request, config)
-                                .map_err(to_js_err)?;
+                        let validation = validate_aws_cli_command(&self.engine, &self.schema_validator, &request)
+                            .map_err(to_js_err)?;
                         to_js(&validation)
                     },
                     wasm_panic_err,

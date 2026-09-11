@@ -113,7 +113,7 @@ See the [Go API and examples](src/bindings-go/README.md).
 
 The JVM library is published to
 [Maven Central as `software.amazon.cloudformation:cloudformation-validate`](https://central.sonatype.com/artifact/software.amazon.cloudformation/cloudformation-validate)
-and requires Java 8 or later. The jar includes native libraries for all supported platforms; Maven or Gradle resolves
+and requires JDK 21 or later. The jar includes native libraries for all supported platforms; Maven or Gradle resolves
 JNA, Gson, and the Kotlin standard library.
 
 Gradle (Kotlin DSL):

@@ -89,7 +89,7 @@ func decodeInto[T any](data string, what string) (*T, error) {
 // nativeEngine is the method set shared by the generated engine objects.
 type nativeEngine interface {
 	ValidateTemplateJson(template []byte, optionsJson string, filePath string) (string, error)
-	ValidateAwsCliCommandJson(requestJson string, optionsJson string) (string, error)
+	ValidateAwsCliCommandJson(requestJson string) (string, error)
 	ListRulesJson() (string, error)
 	EngineName() string
 	Destroy()
@@ -202,20 +202,17 @@ func (e *Engine) Destroy() {
 }
 
 // ValidateAWSCLICommand classifies and validates an AWS CLI command against
-// CloudFormation schemas and rules entirely offline. The result contains
-// operation classification, resource type inference, and an optional
-// ValidationReport when the request was validated (not skipped). The report
-// carries only the shared diagnostic fields; enrichment fields are left nil.
-func (e *Engine) ValidateAWSCLICommand(request AWSCLICommand, config *ValidateConfig) (*AWSCLICommandValidation, error) {
-	optionsJSON, err := validateConfigJSON(config)
-	if err != nil {
-		return nil, err
-	}
+// CloudFormation schemas and rules entirely offline, with a validation
+// configuration fixed by the library. The result contains operation
+// classification, resource type inference, and an optional ValidationReport
+// when the request was validated (not skipped). The report carries only the
+// shared diagnostic fields; enrichment fields are left nil.
+func (e *Engine) ValidateAWSCLICommand(request AWSCLICommand) (*AWSCLICommandValidation, error) {
 	requestJSON, err := marshalAWSCLICommand(request)
 	if err != nil {
 		return nil, err
 	}
-	data, err := e.inner.ValidateAwsCliCommandJson(requestJSON, optionsJSON)
+	data, err := e.inner.ValidateAwsCliCommandJson(requestJSON)
 	if err != nil {
 		return nil, err
 	}

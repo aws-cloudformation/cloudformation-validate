@@ -338,20 +338,17 @@ class Engine:
         content, path = _template_bytes(template)
         return self._inner.validate_template(content, config if config is not None else ValidateConfig(), path)
 
-    def validate_aws_cli_command(
-        self, request: AwsCliCommand, config: typing.Optional[ValidateConfig] = None
-    ) -> AwsCliCommandValidation:
+    def validate_aws_cli_command(self, request: AwsCliCommand) -> AwsCliCommandValidation:
         """Classifies, models, and validates an AWS CLI command.
 
-        A skipped command has ``report is None`` and an explicit status and reason.
-        The ``template`` field carries the exact bytes validated (the caller's
-        original ``TemplateBody`` or the synthesized JSON), or ``None`` when skipped.
+        The validation configuration is fixed by the library. A skipped command
+        has ``report is None`` and an explicit status and reason. The ``template``
+        field carries the exact bytes validated (the caller's original
+        ``TemplateBody`` or the synthesized JSON), or ``None`` when skipped.
         """
         if not isinstance(request, AwsCliCommand):
             raise TypeError("request must be an AwsCliCommand")
-        return self._inner.validate_aws_cli_command(
-            request._to_native(), config if config is not None else ValidateConfig()
-        )
+        return self._inner.validate_aws_cli_command(request._to_native())
 
     def list_rules(self) -> typing.List[RuleInfo]:
         """Lists every rule this engine evaluates, sorted by rule ID."""

@@ -188,9 +188,9 @@ pub enum AwsCliTemplateSource {
 
 /// Canonical result for AWS CLI command validation.
 ///
-/// The report is projected at the `STANDARD` detail level — detailed enrichment
-/// is not meaningful for synthesized command templates because there is no
-/// user-authored source to annotate with context.
+/// The report is projected at the `STANDARD` detail level and gated at the
+/// `WARN` severity floor: a command is a deployment action, so Info-level
+/// guidance has nothing for the caller to act on.
 #[derive(Debug, Clone, Serialize)]
 #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Record))]
 #[serde(rename_all = "camelCase")]
@@ -213,13 +213,15 @@ pub struct AwsCliCommandValidation {
 }
 
 /// Classifies, models, and validates one AWS CLI command entirely offline.
+///
+/// The template-validation configuration is fixed — `STANDARD` detail, `WARN`
+/// severity gate, default filters — and cannot be tuned by callers.
 pub fn validate_aws_cli_command(
     engine: &dyn ValidationEngine,
     schema_validator: &SchemaValidator,
     request: &AwsCliCommand,
-    config: ValidateConfig,
 ) -> Result<AwsCliCommandValidation, ValidationError> {
-    validate_aws_cli_command_with_path(engine, schema_validator, request, config, request.default_file_path())
+    validate_aws_cli_command_with_path(engine, schema_validator, request, request.default_file_path())
 }
 
 /// Same as [`validate_aws_cli_command`], with an explicit report path supplied
@@ -228,7 +230,6 @@ pub fn validate_aws_cli_command_with_path(
     engine: &dyn ValidationEngine,
     schema_validator: &SchemaValidator,
     request: &AwsCliCommand,
-    config: ValidateConfig,
     file_path: String,
 ) -> Result<AwsCliCommandValidation, ValidationError> {
     let classification = classify_operation(request, schema_validator)?;
@@ -245,10 +246,8 @@ pub fn validate_aws_cli_command_with_path(
         });
     };
 
-    // Force standard detail level — detailed enrichment is not meaningful for
-    // synthesized command templates (no user-authored source to annotate).
-    let standard_config = ValidateConfig { detail_level: DetailLevel::Standard, ..config };
-    let mut report = validate_bytes_with_path(engine, schema_validator, &template, standard_config, file_path)?;
+    let mut report =
+        validate_bytes_with_path(engine, schema_validator, &template, aws_cli_validate_config(), file_path)?;
     if synthesis.source != Some(AwsCliTemplateSource::TemplateBody) {
         suppress_template_authoring_advice(&mut report);
     }
@@ -265,6 +264,17 @@ pub fn validate_aws_cli_command_with_path(
         template: Some(template),
     })
 }
+
+/// The fixed template-validation configuration every AWS CLI command runs
+/// with: the defaults, at `STANDARD` detail because a modeled command has no
+/// user-authored source to annotate, gated at `Warn` because a command is a
+/// deployment action, not template authoring, so Info-level guidance (best
+/// practices, replacement-on-update notes) has nothing for the caller to act
+/// on. It is not caller-configurable, so every embedding reports the same
+/// findings for the same command.
+fn aws_cli_validate_config() -> ValidateConfig {
+    ValidateConfig { detail_level: DetailLevel::Standard, severity_level: Severity::Warn, ..ValidateConfig::default() }
+}
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "lowercase")]
 enum AdapterPhase {
@@ -277,20 +287,28 @@ enum AdapterPhase {
 struct PropertyMapping {
     source: String,
     target: String,
-    /// API-valid input values the CloudFormation schema cannot represent.
+    /// Input values the CloudFormation schema rejects without the API model
+    /// proving that the service rejects them too.
     #[serde(default)]
     unrepresentable: Option<UnrepresentableDomain>,
 }
 
 /// The part of an API input's value domain that the mapped CloudFormation
-/// property rejects. A request value inside this domain is legal for the
-/// service, so reporting the CloudFormation constraint against it would be a
-/// false finding; synthesis is skipped instead. Each bound is the CloudFormation
-/// constraint that the API range exceeds.
+/// property rejects but the service is not known to reject: either the botocore
+/// model declares a wider domain (an extra enum member, a looser bound or
+/// pattern) or it declares no corresponding constraint at all. A request value
+/// inside this domain may be legal for the service, so reporting the
+/// CloudFormation constraint against it could be a false finding; synthesis is
+/// skipped instead. Each bound is the CloudFormation constraint the API does not
+/// enforce.
 #[derive(Debug, Clone, PartialEq, Default, Deserialize)]
 #[serde(default)]
 struct UnrepresentableDomain {
+    /// API enum members the CloudFormation schema rejects.
     rejected_values: Vec<serde_json::Value>,
+    /// The CloudFormation enum when the API declares none: any other value is
+    /// unrepresentable.
+    allowed_values: Vec<serde_json::Value>,
     minimum: Option<f64>,
     maximum: Option<f64>,
     min_length: Option<u64>,
@@ -301,40 +319,68 @@ struct UnrepresentableDomain {
     tag_value: Option<Box<UnrepresentableDomain>>,
 }
 
-/// An API `pattern` and the CloudFormation `pattern` for the same value that
-/// differ textually. Whether the two admit different values cannot be decided
-/// from the regexes alone, so the divergence is settled per request value: a
-/// value the API pattern accepts and the CloudFormation pattern rejects has no
-/// CloudFormation representation.
+/// A CloudFormation `pattern` the API does not enforce. When the API declares
+/// its own `pattern` that differs textually, whether the two admit different
+/// values cannot be decided from the regexes alone, so the divergence is
+/// settled per request value: a value the API pattern accepts and the
+/// CloudFormation pattern rejects has no CloudFormation representation. When
+/// the API declares no `pattern`, every value the CloudFormation pattern
+/// rejects is unrepresentable.
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 struct PatternDivergence {
-    /// The botocore pattern anchored to the whole value, as the service applies it.
-    api: String,
+    /// The botocore pattern anchored to the whole value, as the service applies
+    /// it; absent when the API declares no pattern for the input.
+    #[serde(default)]
+    api: Option<String>,
     /// The compiled-schema pattern, applied as the schema validator applies it.
     cloudformation: String,
 }
 
 impl PatternDivergence {
-    /// Whether `value` is inside the API pattern but outside the CloudFormation
-    /// pattern. Errs when either pattern is not a regex this tool can evaluate,
-    /// because a divergence that cannot be settled must not be silently ignored.
+    /// Whether `value` is outside the CloudFormation pattern while the API
+    /// pattern, if any, accepts it. A CloudFormation pattern this tool cannot
+    /// compile rejects nothing, because the schema validator compiles patterns
+    /// the same way and reports no finding for one it cannot compile. Errs when
+    /// the API pattern is not a regex this tool can evaluate, because a
+    /// divergence that cannot be settled must not be silently ignored.
     fn rejects(&self, value: &str) -> Result<bool, String> {
-        let api = compile_pattern(&self.api).ok_or_else(|| format!("API pattern '{}' cannot be compiled", self.api))?;
-        let cloudformation = compile_pattern(&self.cloudformation)
-            .ok_or_else(|| format!("CloudFormation pattern '{}' cannot be compiled", self.cloudformation))?;
-        Ok(api.is_match(value) && !cloudformation.is_match(value))
+        let Some(cloudformation) = compile_pattern(&self.cloudformation) else {
+            return Ok(false);
+        };
+        let api = self
+            .api
+            .as_deref()
+            .map(|api_pattern| {
+                compile_pattern(api_pattern).ok_or_else(|| format!("API pattern '{api_pattern}' cannot be compiled"))
+            })
+            .transpose()?;
+        let api_accepts = api.is_none_or(|api| api.is_match(value));
+        Ok(api_accepts && !cloudformation.is_match(value))
     }
 }
+
+/// Suffix shared by every rejection message so a skip reason states why the
+/// constraint cannot be reported against the command: the API either declares a
+/// wider domain or none at all.
+const API_DOES_NOT_ENFORCE: &str = "a constraint the API does not enforce";
 
 impl UnrepresentableDomain {
     /// Describes why `value` has no CloudFormation representation, or `None`
     /// when every part of it is representable. Errs only when the domain itself
     /// cannot be evaluated, which is a defect in the generated catalog.
     fn rejection(&self, value: &AwsCliValue) -> Result<Option<String>, String> {
-        if let Some(json_value) = value.json_value()
-            && self.rejected_values.contains(&json_value)
-        {
-            return Ok(Some(format!("value {json_value} is valid for the API but not for CloudFormation")));
+        if let Some(json_value) = value.json_value() {
+            if self.rejected_values.contains(&json_value) {
+                return Ok(Some(format!(
+                    "value {json_value} is outside the CloudFormation enum, {API_DOES_NOT_ENFORCE}"
+                )));
+            }
+            if !self.allowed_values.is_empty() && !self.allowed_values.contains(&json_value) {
+                return Ok(Some(format!(
+                    "value {json_value} is not one of the CloudFormation values {}, {API_DOES_NOT_ENFORCE}",
+                    serde_json::Value::Array(self.allowed_values.clone())
+                )));
+            }
         }
         match value {
             AwsCliValue::String { value } => {
@@ -361,6 +407,9 @@ impl UnrepresentableDomain {
                 Ok(None)
             }
             AwsCliValue::Object { entries } => {
+                if let Some(rejection) = self.length_rejection(entries.len() as u64, "entry count") {
+                    return Ok(Some(rejection));
+                }
                 for (key, entry) in entries {
                     if let Some(domain) = self.tag_key.as_ref()
                         && let Some(rejection) = domain.rejection(&AwsCliValue::String { value: key.clone() })?
@@ -388,7 +437,7 @@ impl UnrepresentableDomain {
         };
         if divergence.rejects(value)? {
             return Ok(Some(format!(
-                "value {value:?} is valid for the API but does not match the CloudFormation pattern '{}'",
+                "value {value:?} does not match the CloudFormation pattern '{}', {API_DOES_NOT_ENFORCE}",
                 divergence.cloudformation
             )));
         }
@@ -399,12 +448,16 @@ impl UnrepresentableDomain {
         if let Some(minimum) = self.minimum
             && value < minimum
         {
-            return Some(format!("value {value} is valid for the API but below the CloudFormation minimum {minimum}"));
+            return Some(format!(
+                "value {value} is below the CloudFormation minimum {minimum}, {API_DOES_NOT_ENFORCE}"
+            ));
         }
         if let Some(maximum) = self.maximum
             && value > maximum
         {
-            return Some(format!("value {value} is valid for the API but above the CloudFormation maximum {maximum}"));
+            return Some(format!(
+                "value {value} is above the CloudFormation maximum {maximum}, {API_DOES_NOT_ENFORCE}"
+            ));
         }
         None
     }
@@ -414,14 +467,14 @@ impl UnrepresentableDomain {
             && length < min_length
         {
             return Some(format!(
-                "{measure} {length} is valid for the API but below the CloudFormation minimum {min_length}"
+                "{measure} {length} is below the CloudFormation minimum {min_length}, {API_DOES_NOT_ENFORCE}"
             ));
         }
         if let Some(max_length) = self.max_length
             && length > max_length
         {
             return Some(format!(
-                "{measure} {length} is valid for the API but above the CloudFormation maximum {max_length}"
+                "{measure} {length} is above the CloudFormation maximum {max_length}, {API_DOES_NOT_ENFORCE}"
             ));
         }
         None
@@ -452,10 +505,11 @@ struct OperationCatalog {
 /// Generated by `data-source/scripts/generate_aws_cli_catalog.py`: each entry is
 /// derived from the resource type's own provider handler metadata, resolved
 /// against botocore service models, and structurally verified against the
-/// compiled CloudFormation schemas. Each mapping also records the API value
-/// domain the schema cannot represent (enum members, bounds, lengths, and a
-/// diverging regex pattern pair), so a value that is valid for the service but
-/// not for CloudFormation skips synthesis instead of producing a finding.
+/// compiled CloudFormation schemas. Each mapping also records the value domain
+/// the schema rejects without the API enforcing the same constraint (enum
+/// members, bounds, lengths, sizes, and a regex pattern), so a value the
+/// service may accept but CloudFormation rejects skips synthesis instead of
+/// producing a finding.
 /// Only exact service+operation keys resolve; unregistered operations stay
 /// unmapped.
 static ADAPTER_REGISTRY: LazyLock<Result<HashMap<(String, String), OperationAdapter>, String>> =
@@ -1386,7 +1440,7 @@ mod tests {
         assert_eq!(tags.items.as_deref().and_then(|domain| domain.maximum), Some(10.0));
         assert_eq!(
             adapter.mappings[2].unrepresentable.as_ref().and_then(|domain| domain.pattern.clone()),
-            Some(PatternDivergence { api: "^[a-z]{2,4}$".into(), cloudformation: "^[a-z]{2}$".into() })
+            Some(PatternDivergence { api: Some("^[a-z]{2,4}$".into()), cloudformation: "^[a-z]{2}$".into() })
         );
     }
 
@@ -1394,15 +1448,15 @@ mod tests {
     fn pattern_divergence_rejects_only_values_the_api_accepts_and_cloudformation_rejects() {
         let sqs_arn = UnrepresentableDomain {
             pattern: Some(PatternDivergence {
-                api: r"^arn:aws[a-z-]*:sqs:[a-z]{2,4}(-[a-z]+)+-\d:\d{12}:.+$".into(),
+                api: Some(r"^arn:aws[a-z-]*:sqs:[a-z]{2,4}(-[a-z]+)+-\d:\d{12}:.+$".into()),
                 cloudformation: r"^arn:aws[a-z-]*:sqs:[a-z]{2}(-[a-z]+)+-\d:\d{12}:.+$".into(),
             }),
             ..UnrepresentableDomain::default()
         };
         let sovereign = value(serde_json::json!("arn:aws-eusc:sqs:eusc-de-east-1:123456789012:queue"));
         let rejection = sqs_arn.rejection(&sovereign).expect("domain evaluates").expect("value is unrepresentable");
-        assert!(rejection.contains("valid for the API"), "{rejection}");
         assert!(rejection.contains("CloudFormation pattern"), "{rejection}");
+        assert!(rejection.contains(API_DOES_NOT_ENFORCE), "{rejection}");
         assert!(
             sqs_arn
                 .rejection(&value(serde_json::json!("arn:aws:sqs:us-east-1:123456789012:queue")))
@@ -1442,9 +1496,90 @@ mod tests {
     }
 
     #[test]
+    fn cloudformation_only_pattern_rejects_every_value_outside_it() {
+        let table_name = UnrepresentableDomain {
+            pattern: Some(PatternDivergence { api: None, cloudformation: "^[a-zA-Z0-9_.-]+$".into() }),
+            ..UnrepresentableDomain::default()
+        };
+        let table_arn = value(serde_json::json!("arn:aws:dynamodb:us-east-1:123456789012:table/Orders"));
+        let rejection = table_name.rejection(&table_arn).expect("domain evaluates").expect("ARN is unrepresentable");
+        assert!(rejection.contains("does not match the CloudFormation pattern"), "{rejection}");
+        assert!(rejection.contains(API_DOES_NOT_ENFORCE), "{rejection}");
+        assert!(
+            table_name.rejection(&value(serde_json::json!("Orders"))).expect("domain evaluates").is_none(),
+            "a value inside the CloudFormation pattern is representable"
+        );
+    }
+
+    #[test]
+    fn cloudformation_only_enum_rejects_every_value_outside_it() {
+        let data_type = UnrepresentableDomain {
+            allowed_values: vec![serde_json::json!("text"), serde_json::json!("aws:ec2:image")],
+            ..UnrepresentableDomain::default()
+        };
+        let rejection = data_type
+            .rejection(&value(serde_json::json!("aws:ssm:integration")))
+            .expect("domain evaluates")
+            .expect("value outside the CloudFormation enum is unrepresentable");
+        assert!(rejection.contains("is not one of the CloudFormation values"), "{rejection}");
+        assert!(rejection.contains("aws:ec2:image"), "{rejection}");
+        assert!(rejection.contains(API_DOES_NOT_ENFORCE), "{rejection}");
+        assert!(data_type.rejection(&value(serde_json::json!("text"))).expect("domain evaluates").is_none());
+        assert!(
+            data_type.rejection(&value(serde_json::json!(7))).expect("domain evaluates").is_some(),
+            "a non-string value is outside a string enum"
+        );
+    }
+
+    #[test]
+    fn tag_map_entry_count_outside_cloudformation_item_bounds_is_unrepresentable() {
+        let tags =
+            UnrepresentableDomain { min_length: Some(1), max_length: Some(2), ..UnrepresentableDomain::default() };
+        let empty = tags.rejection(&value(serde_json::json!({}))).expect("domain evaluates").expect("empty map");
+        assert!(empty.contains("entry count 0"), "{empty}");
+        assert!(empty.contains("minimum 1"), "{empty}");
+        let crowded = tags
+            .rejection(&value(serde_json::json!({"a": "1", "b": "2", "c": "3"})))
+            .expect("domain evaluates")
+            .expect("three entries above the maximum");
+        assert!(crowded.contains("entry count 3"), "{crowded}");
+        assert!(crowded.contains("maximum 2"), "{crowded}");
+        assert!(tags.rejection(&value(serde_json::json!({"a": "1"}))).expect("domain evaluates").is_none());
+    }
+
+    #[test]
+    fn aws_cli_config_is_fixed_at_standard_detail_and_warn_severity() {
+        let preset = aws_cli_validate_config();
+        assert_eq!(preset.detail_level, DetailLevel::Standard);
+        assert_eq!(preset.severity_level, Severity::Warn);
+        assert!(!preset.strict);
+        assert!(!preset.disable_builtin_rules);
+    }
+
+    #[test]
+    fn synthesized_create_reports_omit_info_findings() {
+        let schema_validator = SchemaValidator::default();
+        let engine = NoopEngine::default();
+        let create_bucket = request("s3", "CreateBucket", serde_json::json!({"Bucket": "my-bucket"}));
+        let validation =
+            validate_aws_cli_command(&engine, &schema_validator, &create_bucket).expect("validation succeeds");
+        let report = validation.report.expect("bucket request is validated");
+        assert_eq!(report.metadata.severity_level, Severity::Warn);
+        assert!(
+            report.diagnostics.iter().all(|diagnostic| diagnostic.severity >= Severity::Warn),
+            "info findings must be gated: {:?}",
+            report.diagnostics
+        );
+        assert!(
+            report.metadata.suppressed >= 1,
+            "the create-only replacement note on BucketName is an Info finding that the floor removes"
+        );
+    }
+
+    #[test]
     fn uncompilable_pattern_divergence_is_a_catalog_error_not_a_silent_skip() {
         let broken = UnrepresentableDomain {
-            pattern: Some(PatternDivergence { api: "^(unclosed$".into(), cloudformation: "^[a-z]+$".into() }),
+            pattern: Some(PatternDivergence { api: Some("^(unclosed$".into()), cloudformation: "^[a-z]+$".into() }),
             ..UnrepresentableDomain::default()
         };
         let error = broken.rejection(&value(serde_json::json!("abc"))).expect_err("broken pattern must error");
@@ -1472,7 +1607,10 @@ mod tests {
             source: "Bucket".into(),
             target: "BucketName".into(),
             unrepresentable: Some(UnrepresentableDomain {
-                pattern: Some(PatternDivergence { api: "^[a-z0-9.-]+$".into(), cloudformation: "^[a-z0-9-]+$".into() }),
+                pattern: Some(PatternDivergence {
+                    api: Some("^[a-z0-9.-]+$".into()),
+                    cloudformation: "^[a-z0-9-]+$".into(),
+                }),
                 ..UnrepresentableDomain::default()
             }),
         }]);
@@ -1487,29 +1625,40 @@ mod tests {
         }
     }
 
-    fn collect_patterns<'a>(domain: &'a UnrepresentableDomain, patterns: &mut Vec<&'a str>) {
+    fn collect_api_patterns<'a>(domain: &'a UnrepresentableDomain, patterns: &mut Vec<&'a str>) {
         if let Some(divergence) = domain.pattern.as_ref() {
-            patterns.push(divergence.api.as_str());
-            patterns.push(divergence.cloudformation.as_str());
+            patterns.extend(divergence.api.as_deref());
         }
         for nested in [&domain.items, &domain.tag_key, &domain.tag_value].into_iter().flatten() {
-            collect_patterns(nested, patterns);
+            collect_api_patterns(nested, patterns);
         }
     }
 
     #[test]
-    fn every_pattern_in_the_embedded_catalog_compiles() {
+    fn every_api_pattern_in_the_embedded_catalog_compiles() {
         let mut patterns = Vec::new();
         for adapter in adapter_registry().expect("embedded catalog parses").values() {
             for mapping in &adapter.mappings {
                 if let Some(domain) = mapping.unrepresentable.as_ref() {
-                    collect_patterns(domain, &mut patterns);
+                    collect_api_patterns(domain, &mut patterns);
                 }
             }
         }
         let uncompilable: Vec<&str> =
             patterns.iter().copied().filter(|pattern| compile_pattern(pattern).is_none()).collect();
-        assert!(uncompilable.is_empty(), "catalog patterns must compile: {uncompilable:?}");
+        assert!(uncompilable.is_empty(), "catalog API patterns must compile: {uncompilable:?}");
+    }
+
+    #[test]
+    fn uncompilable_cloudformation_pattern_rejects_nothing_like_the_schema_validator() {
+        let unclosed_group = UnrepresentableDomain {
+            pattern: Some(PatternDivergence { api: None, cloudformation: "^(unclosed$".into() }),
+            ..UnrepresentableDomain::default()
+        };
+        assert!(
+            unclosed_group.rejection(&value(serde_json::json!("anything"))).expect("domain evaluates").is_none(),
+            "a pattern the schema validator cannot apply produces no finding to guard against"
+        );
     }
 
     #[test]
@@ -1597,7 +1746,8 @@ mod tests {
 
         let reason = skip_reason(map_s3_create_bucket(&adapter, serde_json::json!({"Bucket": "legacy"})));
         assert!(reason.contains("parameter 'Bucket'"), "{reason}");
-        assert!(reason.contains("valid for the API"), "{reason}");
+        assert!(reason.contains("is outside the CloudFormation enum"), "{reason}");
+        assert!(reason.contains(API_DOES_NOT_ENFORCE), "{reason}");
         assert!(reason.contains("property 'BucketName' on AWS::S3::Bucket"), "{reason}");
 
         let reason = skip_reason(map_s3_create_bucket(&adapter, serde_json::json!({"Bucket": "ab"})));
@@ -2333,8 +2483,7 @@ mod tests {
         let schema_validator = SchemaValidator::default();
         let mut exact = request("cloudformation", "CreateChangeSet", serde_json::json!({}));
         exact.parameters.insert("TemplateBody".into(), AwsCliValue::Bytes { value: br#"{"Resources":{}}"#.to_vec() });
-        let validation = validate_aws_cli_command(&engine, &schema_validator, &exact, ValidateConfig::default())
-            .expect("validation succeeds");
+        let validation = validate_aws_cli_command(&engine, &schema_validator, &exact).expect("validation succeeds");
         assert_eq!(validation.status, AwsCliCommandValidationStatus::Validated);
         assert_eq!(validation.template_source, Some(AwsCliTemplateSource::TemplateBody));
         assert!(validation.report.is_some());
@@ -2345,8 +2494,7 @@ mod tests {
         );
 
         let read = request("iam", "GetRole", serde_json::json!({"RoleName": "Synthetic"}));
-        let validation = validate_aws_cli_command(&engine, &schema_validator, &read, ValidateConfig::default())
-            .expect("classification succeeds");
+        let validation = validate_aws_cli_command(&engine, &schema_validator, &read).expect("classification succeeds");
         assert_eq!(validation.status, AwsCliCommandValidationStatus::Skipped);
         assert_eq!(validation.operation_kind, AwsCliOperationKind::ReadOnly);
         assert!(validation.report.is_none());
@@ -2416,16 +2564,15 @@ mod tests {
             },
         );
         let validation =
-            validate_aws_cli_command(&engine, &schema_validator, &template_body, ValidateConfig::default())
-                .expect("validation succeeds");
+            validate_aws_cli_command(&engine, &schema_validator, &template_body).expect("validation succeeds");
         assert_eq!(validation.template_source, Some(AwsCliTemplateSource::TemplateBody));
         let reported = reported_rule_ids(&validation);
         assert!(reported.contains("W9002"), "a real template keeps authoring advice: {reported:?}");
         assert!(reported.contains("W3030"), "{reported:?}");
 
         let synthesized = request("sqs", "CreateQueue", serde_json::json!({"QueueName": "orders"}));
-        let validation = validate_aws_cli_command(&engine, &schema_validator, &synthesized, ValidateConfig::default())
-            .expect("validation succeeds");
+        let validation =
+            validate_aws_cli_command(&engine, &schema_validator, &synthesized).expect("validation succeeds");
         assert_eq!(validation.template_source, Some(AwsCliTemplateSource::SynthesizedCreate));
         let reported = reported_rule_ids(&validation);
         assert!(!reported.contains("W9002"), "modeled API state drops authoring advice: {reported:?}");
@@ -2440,8 +2587,7 @@ mod tests {
             serde_json::json!({"TypeName": "AWS::SQS::Queue", "DesiredState": "{\"QueueName\":\"orders\"}"}),
         );
         let validation =
-            validate_aws_cli_command(&engine, &schema_validator, &desired_state, ValidateConfig::default())
-                .expect("validation succeeds");
+            validate_aws_cli_command(&engine, &schema_validator, &desired_state).expect("validation succeeds");
         assert_eq!(validation.template_source, Some(AwsCliTemplateSource::CloudControlDesiredState));
         let reported = reported_rule_ids(&validation);
         assert!(!reported.contains("W9002"), "Cloud Control desired state drops authoring advice: {reported:?}");
@@ -2457,8 +2603,7 @@ mod tests {
             "UpdateFunctionConfiguration",
             serde_json::json!({"FunctionName": "Synthetic", "MemorySize": 0}),
         );
-        let validation = validate_aws_cli_command(&engine, &schema_validator, &update, ValidateConfig::default())
-            .expect("validation succeeds");
+        let validation = validate_aws_cli_command(&engine, &schema_validator, &update).expect("validation succeeds");
         let report = validation.report.expect("update is validated");
         assert!(
             report
@@ -2565,8 +2710,7 @@ mod tests {
         let engine = NoopEngine::default();
         let schema_validator = SchemaValidator::default();
         let req = request("lambda", "CreateFunction", serde_json::json!({"MemorySize": 0}));
-        let validation = validate_aws_cli_command(&engine, &schema_validator, &req, ValidateConfig::default())
-            .expect("validation succeeds");
+        let validation = validate_aws_cli_command(&engine, &schema_validator, &req).expect("validation succeeds");
         assert_eq!(validation.status, AwsCliCommandValidationStatus::Validated);
         assert_eq!(validation.template_source, Some(AwsCliTemplateSource::SynthesizedCreate));
         let report = validation.report.expect("create is validated");
@@ -2641,8 +2785,7 @@ mod tests {
             let parameters: HashMap<String, AwsCliValue> =
                 [("TemplateBody".to_string(), AwsCliValue::Bytes { value: template.clone() })].into_iter().collect();
             let req = AwsCliCommand::new("cloudformation", operation, parameters);
-            let validation = validate_aws_cli_command(&engine, &schema_validator, &req, ValidateConfig::default())
-                .expect("validation succeeds");
+            let validation = validate_aws_cli_command(&engine, &schema_validator, &req).expect("validation succeeds");
             assert_eq!(
                 validation.status,
                 AwsCliCommandValidationStatus::Validated,

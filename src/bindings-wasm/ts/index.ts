@@ -329,7 +329,7 @@ function fromWireAwsCliCommandValidation(validation: WireAwsCliCommandValidation
 
 export interface Engine {
     validateTemplate(template: TemplateFile, config?: ValidateConfig): ValidationReport;
-    validateAwsCliCommand(request: AwsCliCommand, config?: ValidateConfig): AwsCliCommandValidation;
+    validateAwsCliCommand(request: AwsCliCommand): AwsCliCommandValidation;
     listRules(): RuleInfo[];
     engineName(): string;
     free(): void;
@@ -526,7 +526,7 @@ export class SchemaValidator {
 
 interface WasmEngineInstance {
     validateTemplate(template: Uint8Array, options: ValidateConfig, filePath: string): ValidationReport;
-    validateAwsCliCommand(request: WireAwsCliCommand, options: ValidateConfig): WireAwsCliCommandValidation;
+    validateAwsCliCommand(request: WireAwsCliCommand): WireAwsCliCommandValidation;
     listRules(): RuleInfo[];
     engineName(): string;
     free(): void;
@@ -547,13 +547,11 @@ function createEngineClass<TConfig, TWasmConfig>(
             return this.inner.validateTemplate(template.readBytes(), config ?? {}, template.path);
         }
 
-        validateAwsCliCommand(request: AwsCliCommand, config?: ValidateConfig): AwsCliCommandValidation {
+        validateAwsCliCommand(request: AwsCliCommand): AwsCliCommandValidation {
             if (!(request instanceof AwsCliCommand)) {
                 throw new TypeError('request must be an AwsCliCommand');
             }
-            return fromWireAwsCliCommandValidation(
-                this.inner.validateAwsCliCommand(toWireAwsCliCommand(request), config ?? {}),
-            );
+            return fromWireAwsCliCommandValidation(this.inner.validateAwsCliCommand(toWireAwsCliCommand(request)));
         }
 
         listRules(): RuleInfo[] {

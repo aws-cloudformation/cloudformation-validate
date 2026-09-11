@@ -184,18 +184,12 @@ macro_rules! impl_py_engine {
             pub fn validate_aws_cli_command(
                 &self,
                 request: AwsCliCommand,
-                config: ValidateConfig,
             ) -> Result<AwsCliCommandValidation, ValidationError> {
                 validation_engine::catch_panics(
                     || {
-                        let core_config = config.to_core();
-                        let validation = validation_engine::validate_aws_cli_command(
-                            &self.engine,
-                            &self.schema_validator,
-                            &request,
-                            core_config,
-                        )
-                        .map_err(|e| ValidationError::Engine { msg: e.to_string() })?;
+                        let validation =
+                            validation_engine::validate_aws_cli_command(&self.engine, &self.schema_validator, &request)
+                                .map_err(|e| ValidationError::Engine { msg: e.to_string() })?;
                         Ok(validation)
                     },
                     panic_to_error,

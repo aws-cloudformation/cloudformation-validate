@@ -654,7 +654,7 @@ func TestValidateAWSCLICommandSynthesizesS3CreateBucketOnAllEngines(t *testing.T
 
 	perEngine := map[string]*cfnvalidate.AWSCLICommandValidation{}
 	for name, engine := range allEngines(t) {
-		validation, err := engine.ValidateAWSCLICommand(request, nil)
+		validation, err := engine.ValidateAWSCLICommand(request)
 		if err != nil {
 			t.Fatalf("%s: ValidateAWSCLICommand failed: %v", name, err)
 		}
@@ -706,7 +706,7 @@ func TestValidateAWSCLICommandPreservesExactTemplateBodyBytes(t *testing.T) {
 	}
 
 	for name, engine := range allEngines(t) {
-		validation, err := engine.ValidateAWSCLICommand(request, nil)
+		validation, err := engine.ValidateAWSCLICommand(request)
 		if err != nil {
 			t.Fatalf("%s: ValidateAWSCLICommand failed: %v", name, err)
 		}
@@ -735,7 +735,7 @@ func TestValidateAWSCLICommandConservativelySkipsNestedDynamoDbFields(t *testing
 	}
 
 	for name, engine := range allEngines(t) {
-		validation, err := engine.ValidateAWSCLICommand(request, nil)
+		validation, err := engine.ValidateAWSCLICommand(request)
 		if err != nil {
 			t.Fatalf("%s: ValidateAWSCLICommand failed: %v", name, err)
 		}
@@ -773,7 +773,7 @@ func TestValidateAWSCLICommandDoesNotGuessNoncanonicalServiceAlias(t *testing.T)
 	}
 
 	for name, engine := range allEngines(t) {
-		canonicalValidation, err := engine.ValidateAWSCLICommand(canonical, nil)
+		canonicalValidation, err := engine.ValidateAWSCLICommand(canonical)
 		if err != nil {
 			t.Fatalf("%s: canonical ValidateAWSCLICommand failed: %v", name, err)
 		}
@@ -782,7 +782,7 @@ func TestValidateAWSCLICommandDoesNotGuessNoncanonicalServiceAlias(t *testing.T)
 				name, canonicalValidation.ResourceTypes)
 		}
 
-		aliasValidation, err := engine.ValidateAWSCLICommand(alias, nil)
+		aliasValidation, err := engine.ValidateAWSCLICommand(alias)
 		if err != nil {
 			t.Fatalf("%s: alias ValidateAWSCLICommand failed: %v", name, err)
 		}

@@ -37,13 +37,13 @@ unsafe and is never used. Every candidate must pass all of:
   accepted only for a fully reviewed cfn_type/service/operation/source/target
   context; a same-named member whose meaning differs from the property
   (``PROPERTY_SEMANTIC_DENYLIST``) never maps
-- value-domain verification: an API input value that the service accepts but
-  the CloudFormation schema rejects (enum members, numeric bounds, string
-  lengths, list sizes, tag key/value lengths, and values inside a botocore
-  ``pattern`` that the CloudFormation ``pattern`` rejects) is recorded per
-  mapping as an ``unrepresentable`` domain so the runtime skips synthesis for
-  such a value instead of reporting a CloudFormation finding against a valid
-  API call
+- value-domain verification: every CloudFormation constraint the botocore
+  model does not enforce at least as strictly (enum members, numeric bounds,
+  string lengths, list and tag-map sizes, tag key/value lengths, and a
+  ``pattern`` the API lacks or states differently) is recorded per mapping as
+  an ``unrepresentable`` domain so the runtime skips synthesis for a value
+  outside it instead of reporting a CloudFormation finding against a call the
+  service may accept
 - noun agreement or property-overlap thresholds; ties are dropped entirely
 - global reverse uniqueness: one (service, operation) key maps to exactly one
   catalog entry; unresolvable collisions are dropped entirely
@@ -724,31 +724,68 @@ def _strip_anchors(pattern):
 
 
 def _pattern_divergence(source_shape, node):
-    """The API/CloudFormation ``pattern`` pair when the two regexes differ.
+    """The CloudFormation ``pattern`` the API does not enforce, if any.
 
-    Regex inclusion is undecidable in general, so a textual difference (beyond
-    the ``^``/``$`` anchors, which the schema validator and the service both
-    apply to whole values) is recorded as a candidate divergence and settled
-    per value at runtime: a value the API pattern accepts and the CloudFormation
-    pattern rejects skips synthesis. The API pattern is recorded anchored to the
-    whole value, as the service applies it; the CloudFormation pattern is
-    recorded as written, as the schema validator applies it. Returns ``None``
-    when either side has no pattern, when the two are the same pattern, or when
-    the API pattern is not a regex Python can compile, so a mapping is never
-    restricted on evidence the generator cannot read.
+    When the API declares no ``pattern``, the CloudFormation pattern alone is
+    recorded: every value it rejects is unrepresentable, because the service may
+    still accept it. When both sides declare a pattern, regex inclusion is
+    undecidable in general, so a textual difference (beyond the ``^``/``$``
+    anchors, which the schema validator and the service both apply to whole
+    values) is recorded as a candidate divergence and settled per value at
+    runtime: a value the API pattern accepts and the CloudFormation pattern
+    rejects skips synthesis. The API pattern is recorded anchored to the whole
+    value, as the service applies it; the CloudFormation pattern is recorded as
+    written, as the schema validator applies it, and is not pre-checked here:
+    the runtime compiles it exactly as the schema validator does, so a pattern
+    neither can compile guards nothing, which matches the validator reporting
+    nothing for it. Returns ``None`` when CloudFormation has no pattern, when the
+    two are the same pattern, or when the API pattern is not a regex Python can
+    compile, so a mapping is never restricted on evidence the generator cannot
+    read.
     """
     api_pattern = (getattr(source_shape, 'metadata', None) or {}).get('pattern')
     cfn_pattern = node.get('pattern')
-    if not api_pattern or not cfn_pattern:
+    if not cfn_pattern:
         return None
+    if not api_pattern:
+        return {'cloudformation': cfn_pattern}
     if _strip_anchors(api_pattern) == _strip_anchors(cfn_pattern):
         return None
     anchored_api_pattern = _anchor_pattern(api_pattern)
-    try:
-        re.compile(anchored_api_pattern)
-    except re.error:
+    if not _compiles(anchored_api_pattern):
         return None
     return {'api': anchored_api_pattern, 'cloudformation': cfn_pattern}
+
+
+def _compiles(pattern):
+    try:
+        re.compile(pattern)
+    except re.error:
+        return False
+    return True
+
+
+def _unenforced_maximum(api_maximum, cfn_maximum):
+    """``cfn_maximum`` when the API allows more: a higher maximum or none at all."""
+    if cfn_maximum is None:
+        return None
+    if api_maximum is None or api_maximum > cfn_maximum:
+        return cfn_maximum
+    return None
+
+
+def _unenforced_minimum(api_minimum, cfn_minimum):
+    """``cfn_minimum`` when the API allows less: a lower minimum or none at all."""
+    if cfn_minimum is None:
+        return None
+    if api_minimum is None or api_minimum < cfn_minimum:
+        return cfn_minimum
+    return None
+
+
+def _size_minimum(cfn_minimum):
+    """A length or item-count minimum, with the vacuous zero treated as absent."""
+    return cfn_minimum or None
 
 
 def _string_unrepresentable(source_shape, target_schema, definitions):
@@ -760,9 +797,9 @@ def _string_unrepresentable(source_shape, target_schema, definitions):
     api_min, api_max = _shape_bounds(source_shape)
     cfn_min = node.get('min_length')
     cfn_max = node.get('max_length')
+    cfn_enum = node.get('enum')
     api_enum = list(getattr(source_shape, 'enum', None) or [])
     if api_enum:
-        cfn_enum = node.get('enum')
         pattern = node.get('pattern')
         rejected = sorted(
             value for value in api_enum
@@ -774,10 +811,14 @@ def _string_unrepresentable(source_shape, target_schema, definitions):
         if rejected:
             domain['rejected_values'] = rejected
         return domain
-    if api_max is not None and cfn_max is not None and api_max > cfn_max:
-        domain['max_length'] = cfn_max
-    if api_min is not None and cfn_min is not None and api_min < cfn_min:
-        domain['min_length'] = cfn_min
+    if isinstance(cfn_enum, list) and cfn_enum:
+        domain['allowed_values'] = list(cfn_enum)
+    max_length = _unenforced_maximum(api_max, cfn_max)
+    if max_length is not None:
+        domain['max_length'] = max_length
+    min_length = _unenforced_minimum(api_min, _size_minimum(cfn_min))
+    if min_length is not None:
+        domain['min_length'] = min_length
     pattern_divergence = _pattern_divergence(source_shape, node)
     if pattern_divergence:
         domain['pattern'] = pattern_divergence
@@ -792,12 +833,25 @@ def _numeric_unrepresentable(source_shape, target_schema, definitions):
     )
     domain = {}
     api_min, api_max = _shape_bounds(source_shape)
-    cfn_min = node.get('minimum')
-    cfn_max = node.get('maximum')
-    if api_max is not None and cfn_max is not None and api_max > cfn_max:
-        domain['maximum'] = cfn_max
-    if api_min is not None and cfn_min is not None and api_min < cfn_min:
-        domain['minimum'] = cfn_min
+    maximum = _unenforced_maximum(api_max, node.get('maximum'))
+    if maximum is not None:
+        domain['maximum'] = maximum
+    minimum = _unenforced_minimum(api_min, node.get('minimum'))
+    if minimum is not None:
+        domain['minimum'] = minimum
+    return domain
+
+
+def _size_unrepresentable(source_shape, array_schema):
+    """List-size or tag-map-size bounds of ``array_schema`` the API does not enforce."""
+    domain = {}
+    api_min, api_max = _shape_bounds(source_shape)
+    max_items = _unenforced_maximum(api_max, array_schema.get('max_items'))
+    if max_items is not None:
+        domain['max_length'] = max_items
+    min_items = _unenforced_minimum(api_min, _size_minimum(array_schema.get('min_items')))
+    if min_items is not None:
+        domain['min_length'] = min_items
     return domain
 
 
@@ -816,19 +870,23 @@ def _tag_field_schema(item_schema, definitions, field):
 
 
 def _unrepresentable_domain(source_shape, target_schema, definitions, target):
-    """API-valid values of ``source_shape`` that ``target_schema`` rejects.
+    """Values of ``source_shape`` that ``target_schema`` rejects without the API
+    model proving that the service rejects them too.
 
-    Only provable exclusions are recorded: an API enum member absent from the
-    CloudFormation enum or rejected by its pattern, and API numeric, length, or
-    size bounds that exceed the CloudFormation bounds. The returned mapping is
-    empty when every API-valid value has a CloudFormation representation.
-    Keys name the CloudFormation constraint the API range exceeds:
-    ``rejected_values`` (API enum members CloudFormation rejects),
-    ``minimum``/``maximum`` (numeric bounds), ``min_length``/``max_length``
-    (string length or list size), ``pattern`` (the anchored API regex and the
-    CloudFormation regex when they differ; settled per value at runtime),
-    ``items`` (nested domain of list elements), ``tag_key``/``tag_value``
-    (nested string domains for tag maps).
+    A CloudFormation constraint is recorded whenever the API declares a wider
+    one or none at all, because a value outside it may still be legal for the
+    service and must not be reported as a CloudFormation violation. A
+    constraint the API enforces at least as strictly is not recorded, so a
+    value outside it keeps its CloudFormation finding. The returned mapping is
+    empty when the API enforces every CloudFormation constraint. Keys name the
+    CloudFormation constraint the API does not enforce: ``rejected_values``
+    (API enum members CloudFormation rejects), ``allowed_values`` (the
+    CloudFormation enum when the API declares none), ``minimum``/``maximum``
+    (numeric bounds), ``min_length``/``max_length`` (string length, list size,
+    or tag-map size), ``pattern`` (the CloudFormation regex, paired with the
+    anchored API regex when the API declares a different one; settled per
+    value at runtime), ``items`` (nested domain of list elements),
+    ``tag_key``/``tag_value`` (nested string domains for tag maps).
     """
     source_type = source_shape.type_name
     if source_type == 'string':
@@ -846,20 +904,14 @@ def _unrepresentable_domain(source_shape, target_schema, definitions, target):
         )
         if item_domain:
             domain['items'] = item_domain
-        api_min, api_max = _shape_bounds(source_shape)
-        cfn_min = array_schema.get('min_items')
-        cfn_max = array_schema.get('max_items')
-        if api_max is not None and cfn_max is not None and api_max > cfn_max:
-            domain['max_length'] = cfn_max
-        if api_min is not None and cfn_min is not None and api_min < cfn_min:
-            domain['min_length'] = cfn_min
+        domain.update(_size_unrepresentable(source_shape, array_schema))
         return domain
     if source_type == 'map' and target == 'Tags':
         array_schema = _schema_node_for_type(
             target_schema, definitions, 'array'
         ) or {}
         item_schema = array_schema.get('items') or {}
-        domain = {}
+        domain = _size_unrepresentable(source_shape, array_schema)
         for field, key in (('Key', 'tag_key'), ('Value', 'tag_value')):
             field_domain = _string_unrepresentable(
                 source_shape.key if field == 'Key' else source_shape.value,
@@ -1139,12 +1191,12 @@ def _verify_curated_updates(compiled_schemas, index):
     return verified_adapters
 
 
-def _count_pattern_pairs(domain):
-    """Number of API/CloudFormation ``pattern`` pairs in ``domain`` and its nested domains."""
+def _count_patterns(domain):
+    """Number of CloudFormation ``pattern`` guards in ``domain`` and its nested domains."""
     count = 1 if domain.get('pattern') else 0
     for nested in ('items', 'tag_key', 'tag_value'):
         if domain.get(nested):
-            count += _count_pattern_pairs(domain[nested])
+            count += _count_patterns(domain[nested])
     return count
 
 
@@ -1190,17 +1242,17 @@ def _compute_coverage(unique_adapters, index, compiled_schemas):
         phases[adapter['phase']] += 1
 
     guarded_mappings = 0
-    pattern_pairs = 0
+    patterns = 0
     for adapter in unique_adapters:
         for mapping in adapter.get('mappings', []):
             domain = mapping.get('unrepresentable')
             if domain:
                 guarded_mappings += 1
-                pattern_pairs += _count_pattern_pairs(domain)
+                patterns += _count_patterns(domain)
 
     return {
         'guarded_mappings': guarded_mappings,
-        'pattern_pairs': pattern_pairs,
+        'patterns': patterns,
         'catalog_services': {
             'covered': len({a['service'] for a in unique_adapters}),
             'total': botocore_services,
@@ -1312,9 +1364,9 @@ def _render_coverage(coverage, dropped_count):
             'maps to exactly one resource type'
         ),
         (
-            f"  {coverage['guarded_mappings']:,} property mappings record values the API accepts but "
-            f"CloudFormation rejects ({coverage['pattern_pairs']:,} as regex pattern pairs settled per value); "
-            'such a value skips validation instead of producing a finding'
+            f"  {coverage['guarded_mappings']:,} property mappings record CloudFormation constraints the API "
+            f"does not enforce ({coverage['patterns']:,} as regex patterns settled per value); "
+            'a value outside them skips validation instead of producing a finding'
         ),
         '',
         'What an AWS CLI call can be checked against',
