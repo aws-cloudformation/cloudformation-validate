@@ -6,14 +6,18 @@ embedded in rule classes and the schema layer. This script imports cfn-lint and
 emits that data as JSON so the sync pipeline can consume it directly instead of
 keeping a hand-copied (and drift-prone) duplicate in data-source/handwritten/.
 
-It produces four files in the data-source generated data directory:
+It produces one raw intermediate in the data-source upstream directory:
 
   getatt_additions.json
       Per-resource-type GetAtt attribute names beyond the schema's
       readOnlyProperties, mirroring cfn-lint's own GetAtt expansion
       (cfnlint.schema._getatts: _all_property_types + _exceptions). Only the
       delta over readOnlyProperties is written, since the schema already
-      contributes those - keeping the file free of duplicated data.
+      contributes those - keeping the file free of duplicated data. The
+      generate phase folds this into getatt_attributes.json, so it is never
+      embedded and is not committed.
+
+and three embedded tables in the data-source generated data directory:
 
   retention_period_requirements.json
       Resource type -> retention-period property names whose absence risks
@@ -32,7 +36,8 @@ It produces four files in the data-source generated data directory:
       fail-fast AST extraction when a rule keeps a literal local to a method.
 
 Usage:
-    python3 scripts/sync_cfnlint_data.py --cfn-lint-root /path/to/cfn-lint --out /path/to/generated/data
+    python3 scripts/sync_cfnlint_data.py --cfn-lint-root /path/to/cfn-lint \
+        --out /path/to/generated/data --upstream-out /path/to/upstream
 """
 
 import argparse
@@ -331,7 +336,13 @@ def write_json(path: Path, key: str, value) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Extract data tables from cfn-lint Python rule code")
     parser.add_argument("--cfn-lint-root", required=True, type=Path, help="Path to the cfn-lint repo root")
-    parser.add_argument("--out", required=True, type=Path, help="Output directory (generated data dir)")
+    parser.add_argument("--out", required=True, type=Path, help="Output directory for embedded tables (generated data dir)")
+    parser.add_argument(
+        "--upstream-out",
+        required=True,
+        type=Path,
+        help="Output directory for the raw getatt_additions intermediate (upstream dir)",
+    )
     args = parser.parse_args()
 
     src = args.cfn_lint_root / "src"
@@ -341,9 +352,10 @@ def main() -> int:
     sys.path.insert(0, str(src))
 
     args.out.mkdir(parents=True, exist_ok=True)
+    args.upstream_out.mkdir(parents=True, exist_ok=True)
 
     print(f"Extracting cfn-lint data tables from {args.cfn_lint_root}")
-    write_json(args.out / "getatt_additions.json", "getatt_additions", extract_getatt_additions())
+    write_json(args.upstream_out / "getatt_additions.json", "getatt_additions", extract_getatt_additions())
     write_json(
         args.out / "retention_period_requirements.json",
         "retention_period_requirements",

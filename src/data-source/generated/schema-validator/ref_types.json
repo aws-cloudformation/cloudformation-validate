@@ -253,6 +253,7 @@
     "AWS::Chime::AppInstanceUser": "string",
     "AWS::Chime::ChannelFlow": "string",
     "AWS::Chime::MediaPipelineKinesisVideoStreamPool": "string",
+    "AWS::Chime::VoiceConnector": "string",
     "AWS::CleanRooms::AnalysisTemplate": "string",
     "AWS::CleanRooms::Collaboration": "string",
     "AWS::CleanRooms::ConfiguredTable": "string",
@@ -4152,6 +4153,18 @@
       "Tags": "array",
       "UpdatedTimestamp": "string"
     },
+    "AWS::Chime::VoiceConnector": {
+      "AwsRegion": "string",
+      "CreatedTimestamp": "string",
+      "Name": "string",
+      "NetworkType": "string",
+      "OutboundHostName": "string",
+      "RequireEncryption": "boolean",
+      "Tags": "array",
+      "UpdatedTimestamp": "string",
+      "VoiceConnectorArn": "string",
+      "VoiceConnectorId": "string"
+    },
     "AWS::CleanRooms::AnalysisTemplate": {
       "AnalysisParameters": "array",
       "AnalysisTemplateIdentifier": "string",
@@ -4847,6 +4860,7 @@
     "AWS::CodeBuild::ReportGroup": {
       "Arn": "string",
       "DeleteReports": "boolean",
+      "Id": "string",
       "Name": "string",
       "Tags": "array",
       "Type": "string"
@@ -5242,7 +5256,6 @@
       "Tags": "array"
     },
     "AWS::Config::DeliveryChannel": {
-      "Id": "string",
       "Name": "string",
       "S3BucketName": "string",
       "S3KeyPrefix": "string",
@@ -5776,12 +5789,11 @@
       "Arn": "string",
       "CopyTags": "boolean",
       "CreateInterval": "integer",
-      "CrossRegionCopyTargets": "array",
       "DefaultPolicy": "string",
       "Description": "string",
       "ExecutionRoleArn": "string",
       "ExtendDeletion": "boolean",
-      "Id": "string",
+      "PolicyId": "string",
       "RetainInterval": "integer",
       "State": "string",
       "Tags": "array"
@@ -13078,6 +13090,7 @@
     },
     "AWS::Notifications::ManagedNotificationAdditionalChannelAssociation": {
       "ChannelArn": "string",
+      "IsSensitiveEventsSubscribed": "boolean",
       "ManagedNotificationConfigurationArn": "string"
     },
     "AWS::Notifications::NotificationConfiguration": {
@@ -16509,10 +16522,10 @@
       "AdditionalCodeRepositories": "array",
       "DefaultCodeRepository": "string",
       "DirectInternetAccess": "string",
-      "Id": "string",
       "InstanceType": "string",
       "KmsKeyId": "string",
       "LifecycleConfigName": "string",
+      "NotebookInstanceArn": "string",
       "NotebookInstanceName": "string",
       "PlatformIdentifier": "string",
       "RoleArn": "string",

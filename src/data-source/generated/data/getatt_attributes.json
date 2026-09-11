@@ -1423,6 +1423,13 @@
       "PoolStatus",
       "UpdatedTimestamp"
     ],
+    "AWS::Chime::VoiceConnector": [
+      "CreatedTimestamp",
+      "OutboundHostName",
+      "UpdatedTimestamp",
+      "VoiceConnectorArn",
+      "VoiceConnectorId"
+    ],
     "AWS::CleanRooms::AnalysisTemplate": [
       "AnalysisTemplateIdentifier",
       "Arn",
@@ -1774,7 +1781,8 @@
       "Id"
     ],
     "AWS::CodeBuild::ReportGroup": [
-      "Arn"
+      "Arn",
+      "Id"
     ],
     "AWS::CodeBuild::SourceCredential": [
       "Arn"
@@ -1899,9 +1907,6 @@
       "Arn",
       "CreatedTime",
       "Name"
-    ],
-    "AWS::Config::DeliveryChannel": [
-      "Id"
     ],
     "AWS::Config::OrganizationConfigRule": [
       "Id"
@@ -2153,7 +2158,7 @@
     ],
     "AWS::DLM::LifecyclePolicy": [
       "Arn",
-      "Id"
+      "PolicyId"
     ],
     "AWS::DMS::Certificate": [
       "CertificateArn"
@@ -5978,6 +5983,8 @@
       "CreatedAt",
       "LastModificationErrors",
       "OwnerAccountId",
+      "ProposedNetworkFunctionGroupChange",
+      "ProposedSegmentChange",
       "ResourceArn",
       "SegmentName",
       "State",
@@ -6017,6 +6024,8 @@
       "LastModificationErrors",
       "NetworkFunctionGroupName",
       "OwnerAccountId",
+      "ProposedNetworkFunctionGroupChange",
+      "ProposedSegmentChange",
       "ResourceArn",
       "SegmentName",
       "State",
@@ -6047,6 +6056,8 @@
       "EdgeLocation",
       "LastModificationErrors",
       "OwnerAccountId",
+      "ProposedNetworkFunctionGroupChange",
+      "ProposedSegmentChange",
       "ResourceArn",
       "SegmentName",
       "State",
@@ -6074,6 +6085,8 @@
       "EdgeLocation",
       "LastModificationErrors",
       "OwnerAccountId",
+      "ProposedNetworkFunctionGroupChange",
+      "ProposedSegmentChange",
       "ResourceArn",
       "SegmentName",
       "State",
@@ -6089,6 +6102,8 @@
       "LastModificationErrors",
       "NetworkFunctionGroupName",
       "OwnerAccountId",
+      "ProposedNetworkFunctionGroupChange",
+      "ProposedSegmentChange",
       "ResourceArn",
       "SegmentName",
       "State",
@@ -8343,7 +8358,7 @@
       "Tags"
     ],
     "AWS::SageMaker::NotebookInstance": [
-      "Id",
+      "NotebookInstanceArn",
       "NotebookInstanceName"
     ],
     "AWS::SageMaker::NotebookInstanceLifecycleConfig": [
@@ -8617,9 +8632,6 @@
     "AWS::ServiceDiscovery::HttpNamespace": [
       "Arn",
       "Id"
-    ],
-    "AWS::ServiceDiscovery::Instance": [
-      "InstanceId"
     ],
     "AWS::ServiceDiscovery::PrivateDnsNamespace": [
       "Arn",
@@ -11596,6 +11608,18 @@
       "Tags": "array",
       "UpdatedTimestamp": "string"
     },
+    "AWS::Chime::VoiceConnector": {
+      "AwsRegion": "string",
+      "CreatedTimestamp": "string",
+      "Name": "string",
+      "NetworkType": "string",
+      "OutboundHostName": "string",
+      "RequireEncryption": "boolean",
+      "Tags": "array",
+      "UpdatedTimestamp": "string",
+      "VoiceConnectorArn": "string",
+      "VoiceConnectorId": "string"
+    },
     "AWS::CleanRooms::AnalysisTemplate": {
       "AnalysisParameters": "array",
       "AnalysisTemplateIdentifier": "string",
@@ -12291,6 +12315,7 @@
     "AWS::CodeBuild::ReportGroup": {
       "Arn": "string",
       "DeleteReports": "boolean",
+      "Id": "string",
       "Name": "string",
       "Tags": "array",
       "Type": "string"
@@ -12686,7 +12711,6 @@
       "Tags": "array"
     },
     "AWS::Config::DeliveryChannel": {
-      "Id": "string",
       "Name": "string",
       "S3BucketName": "string",
       "S3KeyPrefix": "string",
@@ -13220,12 +13244,11 @@
       "Arn": "string",
       "CopyTags": "boolean",
       "CreateInterval": "integer",
-      "CrossRegionCopyTargets": "array",
       "DefaultPolicy": "string",
       "Description": "string",
       "ExecutionRoleArn": "string",
       "ExtendDeletion": "boolean",
-      "Id": "string",
+      "PolicyId": "string",
       "RetainInterval": "integer",
       "State": "string",
       "Tags": "array"
@@ -20522,6 +20545,7 @@
     },
     "AWS::Notifications::ManagedNotificationAdditionalChannelAssociation": {
       "ChannelArn": "string",
+      "IsSensitiveEventsSubscribed": "boolean",
       "ManagedNotificationConfigurationArn": "string"
     },
     "AWS::Notifications::NotificationConfiguration": {
@@ -23953,10 +23977,10 @@
       "AdditionalCodeRepositories": "array",
       "DefaultCodeRepository": "string",
       "DirectInternetAccess": "string",
-      "Id": "string",
       "InstanceType": "string",
       "KmsKeyId": "string",
       "LifecycleConfigName": "string",
+      "NotebookInstanceArn": "string",
       "NotebookInstanceName": "string",
       "PlatformIdentifier": "string",
       "RoleArn": "string",

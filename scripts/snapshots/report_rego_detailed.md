@@ -1,6 +1,6 @@
 # cloudformation-validate vs cfn-lint - Parity Report
 
-> Generated: 2026-09-07 21:48:15  
+> Generated: 2026-09-11 11:10:39  
 > Engine: **rego**  
 > Detail level: **detailed**  
 > Matching: `(rule_id, resource_id, path)` two-pass with `(rule_id, resource_id)` fallback + aliases  
@@ -18754,7 +18754,7 @@ other tool's output. They are excluded from precision/recall scoring.
 - `integration_creationpolicy_yaml` (4 diagnostics)
 - `integration_updatepolicy_yaml` (1 diagnostics)
 
-### Engine reports with no cfn-lint result — 14 templates, 152 diagnostics
+### Engine reports with no cfn-lint result — 17 templates, 163 diagnostics
 
 - `bad_E2530_I2530_snapstart_sourced_tables_yaml` (11 diagnostics)
 - `bad_E3512_opensearch_access_policy_yaml` (4 diagnostics)
@@ -18767,6 +18767,9 @@ other tool's output. They are excluded from precision/recall scoring.
 - `bad_W3671_spotfleet_ebs_iops_yaml` (4 diagnostics)
 - `bad_resources_ecs_fargate_numeric_spellings_e3047_yaml` (45 diagnostics)
 - `empty_yaml` (0 diagnostics)
+- `gh-issues_issue-184_yaml` (6 diagnostics)
+- `gh-issues_issue-339_yaml` (0 diagnostics)
+- `gh-issues_issue-357_yaml` (5 diagnostics)
 - `good_E3663_custom_environment_key_yaml` (0 diagnostics)
 - `good_ecs_fargate_decimal_units_yaml` (42 diagnostics)
 - `malformed_yaml` (0 diagnostics)

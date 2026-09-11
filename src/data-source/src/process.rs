@@ -1,4 +1,5 @@
 use crate::SyncStats;
+use crate::cfnlint_tables::GETATT_ADDITIONS_NAME;
 use log::info;
 use serde::Deserialize;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
@@ -138,10 +139,11 @@ pub fn process_schemas(upstream_dir: &Path, generated_dir: &Path, handwritten_di
     info!("Wrote {} patched schemas to patched_schemas/", raw_schemas.len());
 
     fs::write(data_dir.join("schema_metadata.json"), generate_schema_metadata(&schemas, &raw_schemas))?;
-    // getatt_additions is extracted from cfn-lint during sync (into data_dir);
-    // getatt_return_type_overrides is a hand-maintained correction (CloudFormation
-    // stringifies some GetAtt values) that has no cfn-lint equivalent.
-    let getatt_additions = read_getatt_additions(&data_dir)?;
+    // getatt_additions is a raw intermediate extracted from cfn-lint during sync
+    // (into upstream_dir) and folded into getatt_attributes here; getatt_return_type_overrides
+    // is a hand-maintained correction (CloudFormation stringifies some GetAtt
+    // values) that has no cfn-lint equivalent.
+    let getatt_additions = read_getatt_additions(upstream_dir)?;
     let getatt_return_overrides = read_getatt_return_type_overrides(handwritten_dir)?;
     fs::write(
         data_dir.join("getatt_attributes.json"),
@@ -501,14 +503,15 @@ fn remove_dependent_excluded_trigger(value: &mut serde_json::Value, trigger: &st
     removed
 }
 
-/// that extend the schema-derived readOnly attributes with the full set
-/// CloudFormation exposes for Fn::GetAtt on each resource type.
-fn read_getatt_additions(data_dir: &Path) -> anyhow::Result<BTreeMap<String, Vec<String>>> {
+/// Reads the raw GetAtt additions synced into `upstream_dir`. These extend the
+/// schema-derived readOnly attributes with the full set CloudFormation exposes
+/// for Fn::GetAtt on each resource type.
+fn read_getatt_additions(upstream_dir: &Path) -> anyhow::Result<BTreeMap<String, Vec<String>>> {
     #[derive(Deserialize)]
     struct GetAttAdditions {
         getatt_additions: BTreeMap<String, Vec<String>>,
     }
-    let path = data_dir.join("getatt_additions.json");
+    let path = upstream_dir.join(format!("{GETATT_ADDITIONS_NAME}.json"));
     let contents =
         fs::read_to_string(&path).map_err(|source| anyhow::anyhow!("failed to read {}: {}", path.display(), source))?;
     let parsed: GetAttAdditions = serde_json::from_str(&contents)
@@ -780,11 +783,12 @@ mod tests {
         let tmp_schemas = tmp_upstream.join("schemas");
         copy_dir(&upstream_dir.join("schemas"), &tmp_schemas);
         copy_dir(&upstream_dir.join("extensions"), &tmp_upstream.join("extensions"));
+        let getatt_additions = format!("{GETATT_ADDITIONS_NAME}.json");
+        fs::copy(upstream_dir.join(&getatt_additions), tmp_upstream.join(&getatt_additions))
+            .expect("required GetAtt additions fixture");
         let tmp_data = tmp.join("data");
         fs::create_dir_all(&tmp_data).unwrap();
         let generated_data = manifest.join("generated").join("data");
-        fs::copy(generated_data.join("getatt_additions.json"), tmp_data.join("getatt_additions.json"))
-            .expect("required GetAtt additions fixture");
         fs::copy(generated_data.join("region_resource_types.json"), tmp_data.join("region_resource_types.json"))
             .expect("required region resource types fixture");
 

@@ -253,6 +253,7 @@
     "AWS::Chime::AppInstanceUser",
     "AWS::Chime::ChannelFlow",
     "AWS::Chime::MediaPipelineKinesisVideoStreamPool",
+    "AWS::Chime::VoiceConnector",
     "AWS::CleanRooms::AnalysisTemplate",
     "AWS::CleanRooms::Collaboration",
     "AWS::CleanRooms::ConfiguredTable",
