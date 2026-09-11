@@ -112,10 +112,6 @@ jobs:
         BENCHMARK_ITERATIONS: ${{ inputs.iterations }}
         TOP_SLOWEST: ${{ inputs.top_slowest }}
         STARTUP_SAMPLES: ${{ inputs.startup_samples }}
-      # Builds only cfn-benchmark and the per-binding harnesses. The WASM, JVM,
-      # Python, and Go harnesses run against the committed distribution artifacts
-      # (bindings-wasm/dist, bindings-jvm/generated/*.jar, bindings-python/generated/dist/*.whl,
-      # bindings-go/go/libs) owned by the build-artifacts workflow.
       run: |
         set -euo pipefail
 
@@ -218,3 +214,4 @@ jobs:
         name: benchmark-comparison
         path: scripts/snapshots/benchmark_comparison.md
         if-no-files-found: warn
+        retention-days: 90
