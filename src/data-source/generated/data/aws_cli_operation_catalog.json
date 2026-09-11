@@ -198,7 +198,10 @@
    "mappings": [
     {
      "source": "name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "max_length": 64
+     }
     },
     {
      "source": "tags",
@@ -217,7 +220,10 @@
    "mappings": [
     {
      "source": "name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "max_length": 64
+     }
     }
    ],
    "operation": "DeleteRuleGroupsNamespace",
@@ -779,6 +785,33 @@
    "service": "amplify"
   },
   {
+   "cfn_type": "AWS::Amplify::Webhook",
+   "mappings": [
+    {
+     "source": "appId",
+     "target": "AppId"
+    },
+    {
+     "source": "branchName",
+     "target": "BranchName"
+    },
+    {
+     "source": "description",
+     "target": "Description"
+    }
+   ],
+   "operation": "CreateWebhook",
+   "phase": "create",
+   "service": "amplify"
+  },
+  {
+   "cfn_type": "AWS::Amplify::Webhook",
+   "mappings": [],
+   "operation": "DeleteWebhook",
+   "phase": "delete",
+   "service": "amplify"
+  },
+  {
    "cfn_type": "AWS::AmplifyUIBuilder::Component",
    "ignored_inputs": [
     "clientToken"
@@ -1200,6 +1233,34 @@
    "service": "appconfig"
   },
   {
+   "cfn_type": "AWS::AppConfig::ExperimentRun",
+   "mappings": [
+    {
+     "source": "ApplicationIdentifier",
+     "target": "ApplicationIdentifier"
+    },
+    {
+     "source": "Description",
+     "target": "Description"
+    },
+    {
+     "source": "ExperimentDefinitionIdentifier",
+     "target": "ExperimentDefinitionIdentifier"
+    },
+    {
+     "source": "ExposurePercentage",
+     "target": "ExposurePercentage"
+    },
+    {
+     "source": "Tags",
+     "target": "Tags"
+    }
+   ],
+   "operation": "StartExperimentRun",
+   "phase": "create",
+   "service": "appconfig"
+  },
+  {
    "cfn_type": "AWS::AppConfig::Extension",
    "mappings": [
     {
@@ -1352,7 +1413,17 @@
     },
     {
      "source": "connectorType",
-     "target": "ConnectorType"
+     "target": "ConnectorType",
+     "unrepresentable": {
+      "rejected_values": [
+       "CustomerProfiles",
+       "EventBridge",
+       "Honeycode",
+       "LookoutMetrics",
+       "S3",
+       "Upsolver"
+      ]
+     }
     },
     {
      "source": "kmsArn",
@@ -1426,7 +1497,10 @@
     },
     {
      "source": "Description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "InitializationTimeout",
@@ -1472,7 +1546,10 @@
    "mappings": [
     {
      "source": "Description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "KmsKey",
@@ -1510,7 +1587,10 @@
    "mappings": [
     {
      "source": "Description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "EventBridgeBus",
@@ -2455,6 +2535,38 @@
    "service": "appsync"
   },
   {
+   "cfn_type": "AWS::AppSync::Type",
+   "mappings": [
+    {
+     "source": "apiId",
+     "target": "ApiId"
+    },
+    {
+     "source": "definition",
+     "target": "Definition"
+    },
+    {
+     "source": "format",
+     "target": "Format"
+    }
+   ],
+   "operation": "CreateType",
+   "phase": "create",
+   "service": "appsync"
+  },
+  {
+   "cfn_type": "AWS::AppSync::Type",
+   "mappings": [
+    {
+     "source": "apiId",
+     "target": "ApiId"
+    }
+   ],
+   "operation": "DeleteType",
+   "phase": "delete",
+   "service": "appsync"
+  },
+  {
    "cfn_type": "AWS::ApplicationAutoScaling::ScalableTarget",
    "mappings": [
     {
@@ -2539,7 +2651,10 @@
    "mappings": [
     {
      "source": "PolicyName",
-     "target": "PolicyName"
+     "target": "PolicyName",
+     "unrepresentable": {
+      "max_length": 256
+     }
     },
     {
      "source": "ResourceId",
@@ -2818,7 +2933,10 @@
     },
     {
      "source": "name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "max_length": 127
+     }
     },
     {
      "source": "tags",
@@ -3115,7 +3233,10 @@
     },
     {
      "source": "NotificationMetadata",
-     "target": "NotificationMetadata"
+     "target": "NotificationMetadata",
+     "unrepresentable": {
+      "max_length": 1023
+     }
     },
     {
      "source": "NotificationTargetARN",
@@ -3961,7 +4082,10 @@
     },
     {
      "source": "name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "tags",
@@ -4420,7 +4544,10 @@
    "mappings": [
     {
      "source": "apiKey",
-     "target": "ApiKey"
+     "target": "ApiKey",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "apiKeySecretSource",
@@ -5239,7 +5366,10 @@
     },
     {
      "source": "description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "max_length": 1200
+     }
     },
     {
      "source": "roleArn",
@@ -5384,7 +5514,12 @@
     },
     {
      "source": "Tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_value": {
+       "min_length": 1
+      }
+     }
     }
    ],
    "operation": "CreateBillingGroup",
@@ -5426,7 +5561,12 @@
     },
     {
      "source": "Tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_value": {
+       "min_length": 1
+      }
+     }
     }
    ],
    "operation": "CreateCustomLineItem",
@@ -5460,7 +5600,12 @@
     },
     {
      "source": "Tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_value": {
+       "min_length": 1
+      }
+     }
     }
    ],
    "operation": "CreatePricingPlan",
@@ -5510,7 +5655,12 @@
     },
     {
      "source": "Tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_value": {
+       "min_length": 1
+      }
+     }
     },
     {
      "source": "Type",
@@ -5635,6 +5785,41 @@
    "operation": "DeleteReportDefinition",
    "phase": "delete",
    "service": "cur"
+  },
+  {
+   "cfn_type": "AWS::Cases::Case",
+   "ignored_inputs": [
+    "clientToken"
+   ],
+   "mappings": [
+    {
+     "source": "domainId",
+     "target": "DomainId"
+    },
+    {
+     "source": "tags",
+     "target": "Tags"
+    },
+    {
+     "source": "templateId",
+     "target": "TemplateId"
+    }
+   ],
+   "operation": "CreateCase",
+   "phase": "create",
+   "service": "connectcases"
+  },
+  {
+   "cfn_type": "AWS::Cases::Case",
+   "mappings": [
+    {
+     "source": "domainId",
+     "target": "DomainId"
+    }
+   ],
+   "operation": "DeleteCase",
+   "phase": "delete",
+   "service": "connectcases"
   },
   {
    "cfn_type": "AWS::Cases::CaseRule",
@@ -6085,6 +6270,59 @@
    "service": "chime-sdk-messaging"
   },
   {
+   "cfn_type": "AWS::Chime::MediaPipelineKinesisVideoStreamPool",
+   "ignored_inputs": [
+    "ClientRequestToken"
+   ],
+   "mappings": [
+    {
+     "source": "PoolName",
+     "target": "PoolName"
+    }
+   ],
+   "operation": "CreateMediaPipelineKinesisVideoStreamPool",
+   "phase": "create",
+   "service": "chime-sdk-media-pipelines"
+  },
+  {
+   "cfn_type": "AWS::Chime::MediaPipelineKinesisVideoStreamPool",
+   "mappings": [],
+   "operation": "DeleteMediaPipelineKinesisVideoStreamPool",
+   "phase": "delete",
+   "service": "chime-sdk-media-pipelines"
+  },
+  {
+   "cfn_type": "AWS::Chime::VoiceConnector",
+   "mappings": [
+    {
+     "source": "AwsRegion",
+     "target": "AwsRegion"
+    },
+    {
+     "source": "Name",
+     "target": "Name"
+    },
+    {
+     "source": "NetworkType",
+     "target": "NetworkType"
+    },
+    {
+     "source": "RequireEncryption",
+     "target": "RequireEncryption"
+    }
+   ],
+   "operation": "CreateVoiceConnector",
+   "phase": "create",
+   "service": "chime-sdk-voice"
+  },
+  {
+   "cfn_type": "AWS::Chime::VoiceConnector",
+   "mappings": [],
+   "operation": "DeleteVoiceConnector",
+   "phase": "delete",
+   "service": "chime-sdk-voice"
+  },
+  {
    "cfn_type": "AWS::CleanRooms::AnalysisTemplate",
    "mappings": [
     {
@@ -6105,7 +6343,12 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_value": {
+       "min_length": 1
+      }
+     }
     }
    ],
    "operation": "CreateAnalysisTemplate",
@@ -6145,7 +6388,10 @@
     },
     {
      "source": "description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "isMetricsEnabled",
@@ -6165,7 +6411,12 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_value": {
+       "min_length": 1
+      }
+     }
     }
    ],
    "operation": "CreateCollaboration",
@@ -6204,7 +6455,12 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_value": {
+       "min_length": 1
+      }
+     }
     }
    ],
    "operation": "CreateConfiguredTable",
@@ -6243,7 +6499,12 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_value": {
+       "min_length": 1
+      }
+     }
     }
    ],
    "operation": "CreateConfiguredTableAssociation",
@@ -6283,7 +6544,12 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_value": {
+       "min_length": 1
+      }
+     }
     }
    ],
    "operation": "CreateIdMappingTable",
@@ -6319,7 +6585,12 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_value": {
+       "min_length": 1
+      }
+     }
     }
    ],
    "operation": "CreateIdNamespaceAssociation",
@@ -6359,7 +6630,12 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_value": {
+       "min_length": 1
+      }
+     }
     }
    ],
    "operation": "CreateIntermediateTable",
@@ -6399,7 +6675,12 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_value": {
+       "min_length": 1
+      }
+     }
     }
    ],
    "operation": "CreateMembership",
@@ -6430,7 +6711,12 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_value": {
+       "min_length": 1
+      }
+     }
     }
    ],
    "operation": "CreatePrivacyBudgetTemplate",
@@ -6470,7 +6756,12 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_value": {
+       "min_length": 1
+      }
+     }
     }
    ],
    "operation": "CreateConfiguredModelAlgorithm",
@@ -6505,7 +6796,12 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_value": {
+       "min_length": 1
+      }
+     }
     }
    ],
    "operation": "CreateConfiguredModelAlgorithmAssociation",
@@ -6541,7 +6837,12 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_value": {
+       "min_length": 1
+      }
+     }
     }
    ],
    "operation": "CreateTrainingDataset",
@@ -6560,7 +6861,12 @@
    "mappings": [
     {
      "source": "IpAddressType",
-     "target": "IpAddressType"
+     "target": "IpAddressType",
+     "unrepresentable": {
+      "rejected_values": [
+       "ipv6"
+      ]
+     }
     },
     {
      "source": "IpCount",
@@ -7357,7 +7663,10 @@
    "mappings": [
     {
      "source": "FirehoseArn",
-     "target": "FirehoseArn"
+     "target": "FirehoseArn",
+     "unrepresentable": {
+      "min_length": 20
+     }
     },
     {
      "source": "IncludeLinkedAccountsMetrics",
@@ -7373,7 +7682,10 @@
     },
     {
      "source": "RoleArn",
-     "target": "RoleArn"
+     "target": "RoleArn",
+     "unrepresentable": {
+      "min_length": 20
+     }
     }
    ],
    "operation": "PutMetricStream",
@@ -7501,11 +7813,27 @@
     },
     {
      "source": "computeType",
-     "target": "ComputeType"
+     "target": "ComputeType",
+     "unrepresentable": {
+      "rejected_values": [
+       "BUILD_LAMBDA_10GB",
+       "BUILD_LAMBDA_1GB",
+       "BUILD_LAMBDA_2GB",
+       "BUILD_LAMBDA_4GB",
+       "BUILD_LAMBDA_8GB"
+      ]
+     }
     },
     {
      "source": "environmentType",
-     "target": "EnvironmentType"
+     "target": "EnvironmentType",
+     "unrepresentable": {
+      "rejected_values": [
+       "ARM_LAMBDA_CONTAINER",
+       "LINUX_LAMBDA_CONTAINER",
+       "WINDOWS_CONTAINER"
+      ]
+     }
     },
     {
      "source": "fleetServiceRole",
@@ -7536,6 +7864,73 @@
    "service": "codebuild"
   },
   {
+   "cfn_type": "AWS::CodeBuild::SourceCredential",
+   "mappings": [
+    {
+     "source": "authType",
+     "target": "AuthType"
+    },
+    {
+     "source": "serverType",
+     "target": "ServerType"
+    },
+    {
+     "source": "token",
+     "target": "Token"
+    },
+    {
+     "source": "username",
+     "target": "Username"
+    }
+   ],
+   "operation": "ImportSourceCredentials",
+   "phase": "create",
+   "service": "codebuild"
+  },
+  {
+   "cfn_type": "AWS::CodeBuild::SourceCredential",
+   "mappings": [],
+   "operation": "DeleteSourceCredentials",
+   "phase": "delete",
+   "service": "codebuild"
+  },
+  {
+   "cfn_type": "AWS::CodeCommit::Repository",
+   "mappings": [
+    {
+     "source": "kmsKeyId",
+     "target": "KmsKeyId"
+    },
+    {
+     "source": "repositoryDescription",
+     "target": "RepositoryDescription"
+    },
+    {
+     "source": "repositoryName",
+     "target": "RepositoryName"
+    },
+    {
+     "source": "tags",
+     "target": "Tags"
+    }
+   ],
+   "operation": "CreateRepository",
+   "phase": "create",
+   "service": "codecommit"
+  },
+  {
+   "cfn_type": "AWS::CodeCommit::Repository",
+   "mappings": [
+    {
+     "source": "repositoryName",
+     "target": "RepositoryName"
+    }
+   ],
+   "operation": "DeleteRepository",
+   "phase": "delete",
+   "service": "codecommit"
+  },
+  {
    "cfn_type": "AWS::CodeConnections::Connection",
    "mappings": [
     {
@@ -7559,6 +7954,33 @@
    "cfn_type": "AWS::CodeConnections::Connection",
    "mappings": [],
    "operation": "DeleteConnection",
+   "phase": "delete",
+   "service": "codeconnections"
+  },
+  {
+   "cfn_type": "AWS::CodeConnections::Host",
+   "mappings": [
+    {
+     "source": "Name",
+     "target": "Name"
+    },
+    {
+     "source": "ProviderEndpoint",
+     "target": "ProviderEndpoint"
+    },
+    {
+     "source": "ProviderType",
+     "target": "ProviderType"
+    }
+   ],
+   "operation": "CreateHost",
+   "phase": "create",
+   "service": "codeconnections"
+  },
+  {
+   "cfn_type": "AWS::CodeConnections::Host",
+   "mappings": [],
+   "operation": "DeleteHost",
    "phase": "delete",
    "service": "codeconnections"
   },
@@ -8188,7 +8610,10 @@
     },
     {
      "source": "RefreshTokenValidity",
-     "target": "RefreshTokenValidity"
+     "target": "RefreshTokenValidity",
+     "unrepresentable": {
+      "minimum": 1.0
+     }
     },
     {
      "source": "SupportedIdentityProviders",
@@ -8459,7 +8884,17 @@
     },
     {
      "source": "LanguageCode",
-     "target": "LanguageCode"
+     "target": "LanguageCode",
+     "unrepresentable": {
+      "rejected_values": [
+       "ar",
+       "hi",
+       "ja",
+       "ko",
+       "zh",
+       "zh-TW"
+      ]
+     }
     },
     {
      "source": "Mode",
@@ -8647,6 +9082,13 @@
    "service": "config"
   },
   {
+   "cfn_type": "AWS::Config::DeliveryChannel",
+   "mappings": [],
+   "operation": "DeleteDeliveryChannel",
+   "phase": "delete",
+   "service": "config"
+  },
+  {
    "cfn_type": "AWS::Config::OrganizationConformancePack",
    "mappings": [
     {
@@ -8753,10 +9195,6 @@
    ],
    "mappings": [
     {
-     "source": "InstanceId",
-     "target": "InstanceId"
-    },
-    {
      "source": "Origin",
      "target": "Origin"
     }
@@ -8861,10 +9299,6 @@
    "cfn_type": "AWS::Connect::ContactFlowModuleAlias",
    "mappings": [
     {
-     "source": "ContactFlowModuleId",
-     "target": "ContactFlowModuleId"
-    },
-    {
      "source": "ContactFlowModuleVersion",
      "target": "ContactFlowModuleVersion"
     },
@@ -8893,10 +9327,6 @@
    "cfn_type": "AWS::Connect::ContactFlowModuleVersion",
    "mappings": [
     {
-     "source": "ContactFlowModuleId",
-     "target": "ContactFlowModuleId"
-    },
-    {
      "source": "Description",
      "target": "Description"
     }
@@ -8920,10 +9350,6 @@
   {
    "cfn_type": "AWS::Connect::ContactFlowVersion",
    "mappings": [
-    {
-     "source": "ContactFlowId",
-     "target": "ContactFlowId"
-    },
     {
      "source": "Description",
      "target": "Description"
@@ -9063,7 +9489,11 @@
    "mappings": [
     {
      "source": "Description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "max_length": 250,
+      "min_length": 1
+     }
     },
     {
      "source": "DisplayName",
@@ -9221,16 +9651,22 @@
    "cfn_type": "AWS::Connect::IntegrationAssociation",
    "mappings": [
     {
-     "source": "InstanceId",
-     "target": "InstanceId"
-    },
-    {
      "source": "IntegrationArn",
      "target": "IntegrationArn"
     },
     {
      "source": "IntegrationType",
-     "target": "IntegrationType"
+     "target": "IntegrationType",
+     "unrepresentable": {
+      "rejected_values": [
+       "ANALYTICS_CONNECTOR",
+       "CALL_TRANSFER_CONNECTOR",
+       "COGNITO_USER_POOL",
+       "EVENT",
+       "PINPOINT_APP",
+       "VOICE_ID"
+      ]
+     }
     },
     {
      "source": "Tags",
@@ -9321,7 +9757,10 @@
     },
     {
      "source": "Purposes",
-     "target": "Purposes"
+     "target": "Purposes",
+     "unrepresentable": {
+      "min_length": 1
+     }
     }
    ],
    "operation": "CreatePredefinedAttribute",
@@ -9496,10 +9935,6 @@
     "ClientToken"
    ],
    "mappings": [
-    {
-     "source": "InstanceId",
-     "target": "InstanceId"
-    },
     {
      "source": "Key",
      "target": "Key"
@@ -9687,7 +10122,10 @@
     },
     {
      "source": "Username",
-     "target": "Username"
+     "target": "Username",
+     "unrepresentable": {
+      "max_length": 64
+     }
     }
    ],
    "operation": "CreateUser",
@@ -9817,7 +10255,12 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_value": {
+       "min_length": 1
+      }
+     }
     }
    ],
    "operation": "CreateCampaign",
@@ -10370,6 +10813,85 @@
    "service": "customer-profiles"
   },
   {
+   "cfn_type": "AWS::DAX::ParameterGroup",
+   "mappings": [
+    {
+     "source": "Description",
+     "target": "Description"
+    },
+    {
+     "source": "ParameterGroupName",
+     "target": "ParameterGroupName"
+    }
+   ],
+   "operation": "CreateParameterGroup",
+   "phase": "create",
+   "service": "dax"
+  },
+  {
+   "cfn_type": "AWS::DAX::ParameterGroup",
+   "mappings": [
+    {
+     "source": "ParameterGroupName",
+     "target": "ParameterGroupName"
+    }
+   ],
+   "operation": "DeleteParameterGroup",
+   "phase": "delete",
+   "service": "dax"
+  },
+  {
+   "cfn_type": "AWS::DLM::LifecyclePolicy",
+   "mappings": [
+    {
+     "source": "CopyTags",
+     "target": "CopyTags"
+    },
+    {
+     "source": "CreateInterval",
+     "target": "CreateInterval"
+    },
+    {
+     "source": "DefaultPolicy",
+     "target": "DefaultPolicy"
+    },
+    {
+     "source": "Description",
+     "target": "Description"
+    },
+    {
+     "source": "ExecutionRoleArn",
+     "target": "ExecutionRoleArn"
+    },
+    {
+     "source": "ExtendDeletion",
+     "target": "ExtendDeletion"
+    },
+    {
+     "source": "RetainInterval",
+     "target": "RetainInterval"
+    },
+    {
+     "source": "State",
+     "target": "State"
+    },
+    {
+     "source": "Tags",
+     "target": "Tags"
+    }
+   ],
+   "operation": "CreateLifecyclePolicy",
+   "phase": "create",
+   "service": "dlm"
+  },
+  {
+   "cfn_type": "AWS::DLM::LifecyclePolicy",
+   "mappings": [],
+   "operation": "DeleteLifecyclePolicy",
+   "phase": "delete",
+   "service": "dlm"
+  },
+  {
    "cfn_type": "AWS::DMS::Certificate",
    "mappings": [
     {
@@ -10739,6 +11261,65 @@
    "service": "dms"
   },
   {
+   "cfn_type": "AWS::DMS::ReplicationTask",
+   "mappings": [
+    {
+     "source": "CdcStartPosition",
+     "target": "CdcStartPosition"
+    },
+    {
+     "source": "CdcStopPosition",
+     "target": "CdcStopPosition"
+    },
+    {
+     "source": "MigrationType",
+     "target": "MigrationType"
+    },
+    {
+     "source": "ReplicationInstanceArn",
+     "target": "ReplicationInstanceArn"
+    },
+    {
+     "source": "ReplicationTaskIdentifier",
+     "target": "ReplicationTaskIdentifier"
+    },
+    {
+     "source": "ReplicationTaskSettings",
+     "target": "ReplicationTaskSettings"
+    },
+    {
+     "source": "ResourceIdentifier",
+     "target": "ResourceIdentifier"
+    },
+    {
+     "source": "SourceEndpointArn",
+     "target": "SourceEndpointArn"
+    },
+    {
+     "source": "TableMappings",
+     "target": "TableMappings"
+    },
+    {
+     "source": "TargetEndpointArn",
+     "target": "TargetEndpointArn"
+    },
+    {
+     "source": "TaskData",
+     "target": "TaskData"
+    }
+   ],
+   "operation": "CreateReplicationTask",
+   "phase": "create",
+   "service": "dms"
+  },
+  {
+   "cfn_type": "AWS::DMS::ReplicationTask",
+   "mappings": [],
+   "operation": "DeleteReplicationTask",
+   "phase": "delete",
+   "service": "dms"
+  },
+  {
    "cfn_type": "AWS::DRS::SourceNetwork",
    "mappings": [
     {
@@ -10785,7 +11366,12 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_value": {
+       "min_length": 1
+      }
+     }
     }
    ],
    "operation": "CreateCluster",
@@ -11062,6 +11648,25 @@
    "service": "dataexchange"
   },
   {
+   "cfn_type": "AWS::DataExchange::EventAction",
+   "mappings": [
+    {
+     "source": "Tags",
+     "target": "Tags"
+    }
+   ],
+   "operation": "CreateEventAction",
+   "phase": "create",
+   "service": "dataexchange"
+  },
+  {
+   "cfn_type": "AWS::DataExchange::EventAction",
+   "mappings": [],
+   "operation": "DeleteEventAction",
+   "phase": "delete",
+   "service": "dataexchange"
+  },
+  {
    "cfn_type": "AWS::DataPipeline::Pipeline",
    "mappings": [
     {
@@ -11148,7 +11753,10 @@
     },
     {
      "source": "FileSystemAccessRoleArn",
-     "target": "FileSystemAccessRoleArn"
+     "target": "FileSystemAccessRoleArn",
+     "unrepresentable": {
+      "max_length": 128
+     }
     },
     {
      "source": "InTransitEncryption",
@@ -11316,7 +11924,10 @@
    "mappings": [
     {
      "source": "AccessKey",
-     "target": "AccessKey"
+     "target": "AccessKey",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "AgentArns",
@@ -11328,7 +11939,10 @@
     },
     {
      "source": "SecretKey",
-     "target": "SecretKey"
+     "target": "SecretKey",
+     "unrepresentable": {
+      "min_length": 8
+     }
     },
     {
      "source": "ServerHostname",
@@ -11356,15 +11970,26 @@
    "mappings": [
     {
      "source": "S3BucketArn",
-     "target": "S3BucketArn"
+     "target": "S3BucketArn",
+     "unrepresentable": {
+      "max_length": 156
+     }
     },
     {
      "source": "S3StorageClass",
-     "target": "S3StorageClass"
+     "target": "S3StorageClass",
+     "unrepresentable": {
+      "rejected_values": [
+       "OUTPOSTS"
+      ]
+     }
     },
     {
      "source": "Subdirectory",
-     "target": "Subdirectory"
+     "target": "Subdirectory",
+     "unrepresentable": {
+      "max_length": 1024
+     }
     }
    ],
    "operation": "CreateLocationS3",
@@ -11384,7 +12009,12 @@
     },
     {
      "source": "DnsIpAddresses",
-     "target": "DnsIpAddresses"
+     "target": "DnsIpAddresses",
+     "unrepresentable": {
+      "items": {
+       "max_length": 15
+      }
+     }
     },
     {
      "source": "Domain",
@@ -11428,7 +12058,10 @@
     },
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "SourceLocationArn",
@@ -11980,7 +12613,12 @@
     },
     {
      "source": "policyType",
-     "target": "PolicyType"
+     "target": "PolicyType",
+     "unrepresentable": {
+      "rejected_values": [
+       "USE_ASSET_TYPE"
+      ]
+     }
     }
    ],
    "operation": "AddPolicyGrant",
@@ -12007,7 +12645,12 @@
     },
     {
      "source": "policyType",
-     "target": "PolicyType"
+     "target": "PolicyType",
+     "unrepresentable": {
+      "rejected_values": [
+       "USE_ASSET_TYPE"
+      ]
+     }
     }
    ],
    "operation": "RemovePolicyGrant",
@@ -12162,7 +12805,10 @@
     },
     {
      "source": "authorizedPrincipals",
-     "target": "AuthorizedPrincipals"
+     "target": "AuthorizedPrincipals",
+     "unrepresentable": {
+      "max_length": 10
+     }
     },
     {
      "source": "domainIdentifier",
@@ -12235,6 +12881,49 @@
    "operation": "CreateUserProfile",
    "phase": "create",
    "service": "datazone"
+  },
+  {
+   "cfn_type": "AWS::Deadline::Budget",
+   "ignored_inputs": [
+    "clientToken"
+   ],
+   "mappings": [
+    {
+     "source": "approximateDollarLimit",
+     "target": "ApproximateDollarLimit"
+    },
+    {
+     "source": "description",
+     "target": "Description"
+    },
+    {
+     "source": "displayName",
+     "target": "DisplayName"
+    },
+    {
+     "source": "farmId",
+     "target": "FarmId"
+    },
+    {
+     "source": "tags",
+     "target": "Tags"
+    }
+   ],
+   "operation": "CreateBudget",
+   "phase": "create",
+   "service": "deadline"
+  },
+  {
+   "cfn_type": "AWS::Deadline::Budget",
+   "mappings": [
+    {
+     "source": "farmId",
+     "target": "FarmId"
+    }
+   ],
+   "operation": "DeleteBudget",
+   "phase": "delete",
+   "service": "deadline"
   },
   {
    "cfn_type": "AWS::Deadline::Farm",
@@ -12697,6 +13386,45 @@
    "service": "deadline"
   },
   {
+   "cfn_type": "AWS::Deadline::Worker",
+   "ignored_inputs": [
+    "clientToken"
+   ],
+   "mappings": [
+    {
+     "source": "farmId",
+     "target": "FarmId"
+    },
+    {
+     "source": "fleetId",
+     "target": "FleetId"
+    },
+    {
+     "source": "tags",
+     "target": "Tags"
+    }
+   ],
+   "operation": "CreateWorker",
+   "phase": "create",
+   "service": "deadline"
+  },
+  {
+   "cfn_type": "AWS::Deadline::Worker",
+   "mappings": [
+    {
+     "source": "farmId",
+     "target": "FarmId"
+    },
+    {
+     "source": "fleetId",
+     "target": "FleetId"
+    }
+   ],
+   "operation": "DeleteWorker",
+   "phase": "delete",
+   "service": "deadline"
+  },
+  {
    "cfn_type": "AWS::Detective::Graph",
    "mappings": [
     {
@@ -12930,7 +13658,10 @@
    "mappings": [
     {
      "source": "description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "maxDevices",
@@ -12938,7 +13669,10 @@
     },
     {
      "source": "name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "projectArn",
@@ -12961,7 +13695,10 @@
    "mappings": [
     {
      "source": "description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "excludeAppPackagesFromCleanup",
@@ -12969,7 +13706,10 @@
     },
     {
      "source": "name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "packageCleanup",
@@ -12996,7 +13736,10 @@
    "mappings": [
     {
      "source": "description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "downlinkBandwidthBits",
@@ -13016,7 +13759,10 @@
     },
     {
      "source": "name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "projectArn",
@@ -13063,7 +13809,10 @@
     },
     {
      "source": "name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "min_length": 1
+     }
     }
    ],
    "operation": "CreateProject",
@@ -13136,19 +13885,31 @@
    "mappings": [
     {
      "source": "serviceDnsName",
-     "target": "ServiceDnsName"
+     "target": "ServiceDnsName",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "vpceConfigurationDescription",
-     "target": "VpceConfigurationDescription"
+     "target": "VpceConfigurationDescription",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "vpceConfigurationName",
-     "target": "VpceConfigurationName"
+     "target": "VpceConfigurationName",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "vpceServiceName",
-     "target": "VpceServiceName"
+     "target": "VpceServiceName",
+     "unrepresentable": {
+      "min_length": 1
+     }
     }
    ],
    "operation": "CreateVPCEConfiguration",
@@ -13344,6 +14105,25 @@
    "service": "ds"
   },
   {
+   "cfn_type": "AWS::DocDB::DBClusterParameterGroup",
+   "mappings": [
+    {
+     "source": "Description",
+     "target": "Description"
+    }
+   ],
+   "operation": "CreateDBClusterParameterGroup",
+   "phase": "create",
+   "service": "docdb"
+  },
+  {
+   "cfn_type": "AWS::DocDB::DBClusterParameterGroup",
+   "mappings": [],
+   "operation": "DeleteDBClusterParameterGroup",
+   "phase": "delete",
+   "service": "docdb"
+  },
+  {
    "cfn_type": "AWS::DocDB::DBSubnetGroup",
    "mappings": [
     {
@@ -13436,7 +14216,10 @@
     },
     {
      "source": "GlobalClusterIdentifier",
-     "target": "GlobalClusterIdentifier"
+     "target": "GlobalClusterIdentifier",
+     "unrepresentable": {
+      "max_length": 63
+     }
     },
     {
      "source": "SourceDBClusterIdentifier",
@@ -13456,7 +14239,10 @@
    "mappings": [
     {
      "source": "GlobalClusterIdentifier",
-     "target": "GlobalClusterIdentifier"
+     "target": "GlobalClusterIdentifier",
+     "unrepresentable": {
+      "max_length": 63
+     }
     }
    ],
    "operation": "DeleteGlobalCluster",
@@ -13546,7 +14332,11 @@
     },
     {
      "source": "TableName",
-     "target": "TableName"
+     "target": "TableName",
+     "unrepresentable": {
+      "max_length": 255,
+      "min_length": 3
+     }
     }
    ],
    "operation": "CreateBackup",
@@ -13595,6 +14385,81 @@
    "operation": "DeleteTable",
    "phase": "delete",
    "service": "dynamodb"
+  },
+  {
+   "cfn_type": "AWS::EC2::ApplicationStatusCheck",
+   "ignored_inputs": [
+    "ClientToken",
+    "DryRun"
+   ],
+   "mappings": [
+    {
+     "source": "Aggregation",
+     "target": "Aggregation"
+    },
+    {
+     "source": "DeviceIndex",
+     "target": "DeviceIndex"
+    },
+    {
+     "source": "FailureThreshold",
+     "target": "FailureThreshold"
+    },
+    {
+     "source": "InitializationGracePeriodSeconds",
+     "target": "InitializationGracePeriodSeconds"
+    },
+    {
+     "source": "Interval",
+     "target": "Interval"
+    },
+    {
+     "source": "IpScope",
+     "target": "IpScope"
+    },
+    {
+     "source": "IpVersion",
+     "target": "IpVersion"
+    },
+    {
+     "source": "Path",
+     "target": "Path"
+    },
+    {
+     "source": "Port",
+     "target": "Port"
+    },
+    {
+     "source": "Protocol",
+     "target": "Protocol"
+    },
+    {
+     "source": "StatusCodeMatcher",
+     "target": "StatusCodeMatcher"
+    },
+    {
+     "source": "SuccessThreshold",
+     "target": "SuccessThreshold"
+    },
+    {
+     "source": "Timeout",
+     "target": "Timeout"
+    }
+   ],
+   "operation": "CreateApplicationStatusCheck",
+   "phase": "create",
+   "service": "ec2"
+  },
+  {
+   "cfn_type": "AWS::EC2::ApplicationStatusCheck",
+   "ignored_inputs": [
+    "ClientToken",
+    "DryRun"
+   ],
+   "mappings": [],
+   "operation": "DeleteApplicationStatusCheck",
+   "phase": "delete",
+   "service": "ec2"
   },
   {
    "cfn_type": "AWS::EC2::CapacityManagerDataExport",
@@ -14001,6 +14866,36 @@
    ],
    "mappings": [],
    "operation": "DeleteFlowLogs",
+   "phase": "delete",
+   "service": "ec2"
+  },
+  {
+   "cfn_type": "AWS::EC2::FpgaImage",
+   "ignored_inputs": [
+    "ClientToken",
+    "DryRun"
+   ],
+   "mappings": [
+    {
+     "source": "Description",
+     "target": "Description"
+    },
+    {
+     "source": "Name",
+     "target": "Name"
+    }
+   ],
+   "operation": "CreateFpgaImage",
+   "phase": "create",
+   "service": "ec2"
+  },
+  {
+   "cfn_type": "AWS::EC2::FpgaImage",
+   "ignored_inputs": [
+    "DryRun"
+   ],
+   "mappings": [],
+   "operation": "DeleteFpgaImage",
    "phase": "delete",
    "service": "ec2"
   },
@@ -14507,6 +15402,32 @@
    ],
    "mappings": [],
    "operation": "DeleteInternetGateway",
+   "phase": "delete",
+   "service": "ec2"
+  },
+  {
+   "cfn_type": "AWS::EC2::IpamExternalResourceVerificationToken",
+   "ignored_inputs": [
+    "ClientToken",
+    "DryRun"
+   ],
+   "mappings": [
+    {
+     "source": "IpamId",
+     "target": "IpamId"
+    }
+   ],
+   "operation": "CreateIpamExternalResourceVerificationToken",
+   "phase": "create",
+   "service": "ec2"
+  },
+  {
+   "cfn_type": "AWS::EC2::IpamExternalResourceVerificationToken",
+   "ignored_inputs": [
+    "DryRun"
+   ],
+   "mappings": [],
+   "operation": "DeleteIpamExternalResourceVerificationToken",
    "phase": "delete",
    "service": "ec2"
   },
@@ -15354,7 +16275,12 @@
     },
     {
      "source": "PersistRoutes",
-     "target": "PersistRoutes"
+     "target": "PersistRoutes",
+     "unrepresentable": {
+      "rejected_values": [
+       "reset"
+      ]
+     }
     },
     {
      "source": "PersistRoutesDuration",
@@ -15675,7 +16601,12 @@
    "mappings": [
     {
      "source": "State",
-     "target": "State"
+     "target": "State",
+     "unrepresentable": {
+      "rejected_values": [
+       "unblocked"
+      ]
+     }
     }
    ],
    "operation": "EnableSnapshotBlockPublicAccess",
@@ -16070,7 +17001,13 @@
     },
     {
      "source": "DestinationTransitGatewayAttachmentType",
-     "target": "DestinationTransitGatewayAttachmentType"
+     "target": "DestinationTransitGatewayAttachmentType",
+     "unrepresentable": {
+      "rejected_values": [
+       "connect",
+       "tgw-peering"
+      ]
+     }
     },
     {
      "source": "MeteredAccount",
@@ -16098,7 +17035,13 @@
     },
     {
      "source": "SourceTransitGatewayAttachmentType",
-     "target": "SourceTransitGatewayAttachmentType"
+     "target": "SourceTransitGatewayAttachmentType",
+     "unrepresentable": {
+      "rejected_values": [
+       "connect",
+       "tgw-peering"
+      ]
+     }
     },
     {
      "source": "TransitGatewayMeteringPolicyId",
@@ -17495,7 +18438,10 @@
     },
     {
      "source": "lifecyclePolicy",
-     "target": "LifecyclePolicy"
+     "target": "LifecyclePolicy",
+     "unrepresentable": {
+      "min_length": 100
+     }
     },
     {
      "source": "prefix",
@@ -17767,7 +18713,12 @@
     },
     {
      "source": "launchType",
-     "target": "LaunchType"
+     "target": "LaunchType",
+     "unrepresentable": {
+      "rejected_values": [
+       "MANAGED_INSTANCES"
+      ]
+     }
     },
     {
      "source": "platformVersion",
@@ -17775,7 +18726,12 @@
     },
     {
      "source": "propagateTags",
-     "target": "PropagateTags"
+     "target": "PropagateTags",
+     "unrepresentable": {
+      "rejected_values": [
+       "NONE"
+      ]
+     }
     },
     {
      "source": "role",
@@ -17882,7 +18838,13 @@
     },
     {
      "source": "launchType",
-     "target": "LaunchType"
+     "target": "LaunchType",
+     "unrepresentable": {
+      "rejected_values": [
+       "EXTERNAL",
+       "MANAGED_INSTANCES"
+      ]
+     }
     },
     {
      "source": "platformVersion",
@@ -18107,7 +19069,15 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_key": {
+       "max_length": 127
+      },
+      "tag_value": {
+       "max_length": 255
+      }
+     }
     }
    ],
    "operation": "CreateAddon",
@@ -18252,7 +19222,15 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_key": {
+       "max_length": 127
+      },
+      "tag_value": {
+       "max_length": 255
+      }
+     }
     }
    ],
    "operation": "CreateFargateProfile",
@@ -18480,7 +19458,10 @@
     },
     {
      "source": "DefaultS3Location",
-     "target": "DefaultS3Location"
+     "target": "DefaultS3Location",
+     "unrepresentable": {
+      "min_length": 6
+     }
     },
     {
      "source": "Description",
@@ -18492,7 +19473,10 @@
     },
     {
      "source": "EngineSecurityGroupId",
-     "target": "EngineSecurityGroupId"
+     "target": "EngineSecurityGroupId",
+     "unrepresentable": {
+      "min_length": 4
+     }
     },
     {
      "source": "IdcInstanceArn",
@@ -18504,7 +19488,10 @@
     },
     {
      "source": "IdpAuthUrl",
-     "target": "IdpAuthUrl"
+     "target": "IdpAuthUrl",
+     "unrepresentable": {
+      "max_length": 4096
+     }
     },
     {
      "source": "IdpRelayStateParameterName",
@@ -18512,7 +19499,10 @@
     },
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "ServiceRole",
@@ -18567,7 +19557,10 @@
     },
     {
      "source": "StudioId",
-     "target": "StudioId"
+     "target": "StudioId",
+     "unrepresentable": {
+      "min_length": 4
+     }
     }
    ],
    "operation": "CreateStudioSessionMapping",
@@ -18587,7 +19580,10 @@
     },
     {
      "source": "StudioId",
-     "target": "StudioId"
+     "target": "StudioId",
+     "unrepresentable": {
+      "min_length": 4
+     }
     }
    ],
    "operation": "DeleteStudioSessionMapping",
@@ -20387,7 +21383,10 @@
     },
     {
      "source": "roleArn",
-     "target": "RoleArn"
+     "target": "RoleArn",
+     "unrepresentable": {
+      "max_length": 1224
+     }
     }
    ],
    "operation": "CreateExperimentTemplate",
@@ -20421,7 +21420,10 @@
     },
     {
      "source": "roleArn",
-     "target": "RoleArn"
+     "target": "RoleArn",
+     "unrepresentable": {
+      "max_length": 1224
+     }
     }
    ],
    "operation": "CreateTargetAccountConfiguration",
@@ -20764,7 +21766,12 @@
     },
     {
      "source": "elements",
-     "target": "Elements"
+     "target": "Elements",
+     "unrepresentable": {
+      "items": {
+       "max_length": 64
+      }
+     }
     },
     {
      "source": "name",
@@ -20824,11 +21831,21 @@
    "mappings": [
     {
      "source": "dataSource",
-     "target": "DataSource"
+     "target": "DataSource",
+     "unrepresentable": {
+      "rejected_values": [
+       "MODEL_SCORE"
+      ]
+     }
     },
     {
      "source": "dataType",
-     "target": "DataType"
+     "target": "DataType",
+     "unrepresentable": {
+      "rejected_values": [
+       "DATETIME"
+      ]
+     }
     },
     {
      "source": "defaultValue",
@@ -21009,7 +22026,10 @@
    "mappings": [
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "max_length": 128
+     }
     }
    ],
    "operation": "DeleteContainerGroupDefinition",
@@ -21144,7 +22164,10 @@
     },
     {
      "source": "GameServerGroupName",
-     "target": "GameServerGroupName"
+     "target": "GameServerGroupName",
+     "unrepresentable": {
+      "max_length": 128
+     }
     }
    ],
    "operation": "DeleteGameServerGroup",
@@ -21156,7 +22179,10 @@
    "mappings": [
     {
      "source": "CustomEventData",
-     "target": "CustomEventData"
+     "target": "CustomEventData",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "Name",
@@ -21164,7 +22190,10 @@
     },
     {
      "source": "NotificationTarget",
-     "target": "NotificationTarget"
+     "target": "NotificationTarget",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "TimeoutInSeconds",
@@ -21180,7 +22209,10 @@
    "mappings": [
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "max_length": 128
+     }
     }
    ],
    "operation": "DeleteGameSessionQueue",
@@ -21204,7 +22236,11 @@
    "mappings": [
     {
      "source": "LocationName",
-     "target": "LocationName"
+     "target": "LocationName",
+     "unrepresentable": {
+      "max_length": 64,
+      "min_length": 8
+     }
     }
    ],
    "operation": "DeleteLocation",
@@ -21248,7 +22284,12 @@
     },
     {
      "source": "GameSessionQueueArns",
-     "target": "GameSessionQueueArns"
+     "target": "GameSessionQueueArns",
+     "unrepresentable": {
+      "items": {
+       "max_length": 256
+      }
+     }
     },
     {
      "source": "Name",
@@ -21264,7 +22305,10 @@
     },
     {
      "source": "RuleSetName",
-     "target": "RuleSetName"
+     "target": "RuleSetName",
+     "unrepresentable": {
+      "max_length": 128
+     }
     }
    ],
    "operation": "CreateMatchmakingConfiguration",
@@ -21276,7 +22320,10 @@
    "mappings": [
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "max_length": 128
+     }
     }
    ],
    "operation": "DeleteMatchmakingConfiguration",
@@ -21304,7 +22351,10 @@
    "mappings": [
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "max_length": 128
+     }
     }
    ],
    "operation": "DeleteMatchmakingRuleSet",
@@ -21422,7 +22472,10 @@
     },
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "max_length": 64
+     }
     }
    ],
    "operation": "CreateAccelerator",
@@ -21571,7 +22624,10 @@
    "mappings": [
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "max_length": 128
+     }
     }
    ],
    "operation": "DeleteBlueprint",
@@ -21605,6 +22661,30 @@
    "cfn_type": "AWS::Glue::Classifier",
    "mappings": [],
    "operation": "DeleteClassifier",
+   "phase": "delete",
+   "service": "glue"
+  },
+  {
+   "cfn_type": "AWS::Glue::Connection",
+   "mappings": [
+    {
+     "source": "CatalogId",
+     "target": "CatalogId"
+    }
+   ],
+   "operation": "CreateConnection",
+   "phase": "create",
+   "service": "glue"
+  },
+  {
+   "cfn_type": "AWS::Glue::Connection",
+   "mappings": [
+    {
+     "source": "CatalogId",
+     "target": "CatalogId"
+    }
+   ],
+   "operation": "DeleteConnection",
    "phase": "delete",
    "service": "glue"
   },
@@ -21996,7 +23076,10 @@
    "mappings": [
     {
      "source": "Description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "max_length": 1000
+     }
     },
     {
      "source": "Tags",
@@ -22027,7 +23110,10 @@
     },
     {
      "source": "Description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "max_length": 1000
+     }
     },
     {
      "source": "SchemaDefinition",
@@ -22113,6 +23199,78 @@
     }
    ],
    "operation": "DeleteSecurityConfiguration",
+   "phase": "delete",
+   "service": "glue"
+  },
+  {
+   "cfn_type": "AWS::Glue::Session",
+   "mappings": [
+    {
+     "source": "Description",
+     "target": "Description"
+    },
+    {
+     "source": "GlueVersion",
+     "target": "GlueVersion"
+    },
+    {
+     "source": "Id",
+     "target": "Id"
+    },
+    {
+     "source": "IdleTimeout",
+     "target": "IdleTimeout"
+    },
+    {
+     "source": "MaxCapacity",
+     "target": "MaxCapacity"
+    },
+    {
+     "source": "NumberOfWorkers",
+     "target": "NumberOfWorkers"
+    },
+    {
+     "source": "RequestOrigin",
+     "target": "RequestOrigin"
+    },
+    {
+     "source": "Role",
+     "target": "Role"
+    },
+    {
+     "source": "SecurityConfiguration",
+     "target": "SecurityConfiguration"
+    },
+    {
+     "source": "Tags",
+     "target": "Tags"
+    },
+    {
+     "source": "Timeout",
+     "target": "Timeout"
+    },
+    {
+     "source": "WorkerType",
+     "target": "WorkerType"
+    }
+   ],
+   "operation": "CreateSession",
+   "phase": "create",
+   "service": "glue"
+  },
+  {
+   "cfn_type": "AWS::Glue::Session",
+   "mappings": [
+    {
+     "source": "Id",
+     "target": "Id"
+    },
+    {
+     "source": "RequestOrigin",
+     "target": "RequestOrigin"
+    }
+   ],
+   "operation": "DeleteSession",
    "phase": "delete",
    "service": "glue"
   },
@@ -22213,11 +23371,19 @@
    "mappings": [
     {
      "source": "Description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "max_length": 512,
+      "min_length": 1
+     }
     },
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "max_length": 128,
+      "min_length": 5
+     }
     },
     {
      "source": "Tags",
@@ -22233,7 +23399,11 @@
    "mappings": [
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "max_length": 128,
+      "min_length": 5
+     }
     }
    ],
    "operation": "DeleteUsageProfile",
@@ -22722,7 +23892,10 @@
     },
     {
      "source": "DetectorId",
-     "target": "DetectorId"
+     "target": "DetectorId",
+     "unrepresentable": {
+      "max_length": 32
+     }
     },
     {
      "source": "ExpectedBucketOwner",
@@ -22754,7 +23927,10 @@
    "mappings": [
     {
      "source": "DetectorId",
-     "target": "DetectorId"
+     "target": "DetectorId",
+     "unrepresentable": {
+      "max_length": 32
+     }
     }
    ],
    "operation": "DeleteThreatEntitySet",
@@ -22773,7 +23949,10 @@
     },
     {
      "source": "DetectorId",
-     "target": "DetectorId"
+     "target": "DetectorId",
+     "unrepresentable": {
+      "max_length": 32
+     }
     },
     {
      "source": "ExpectedBucketOwner",
@@ -22805,7 +23984,10 @@
    "mappings": [
     {
      "source": "DetectorId",
-     "target": "DetectorId"
+     "target": "DetectorId",
+     "unrepresentable": {
+      "max_length": 32
+     }
     }
    ],
    "operation": "DeleteThreatIntelSet",
@@ -22824,7 +24006,10 @@
     },
     {
      "source": "DetectorId",
-     "target": "DetectorId"
+     "target": "DetectorId",
+     "unrepresentable": {
+      "max_length": 32
+     }
     },
     {
      "source": "ExpectedBucketOwner",
@@ -22856,7 +24041,10 @@
    "mappings": [
     {
      "source": "DetectorId",
-     "target": "DetectorId"
+     "target": "DetectorId",
+     "unrepresentable": {
+      "max_length": 32
+     }
     }
    ],
    "operation": "DeleteTrustedEntitySet",
@@ -23230,7 +24418,10 @@
    "mappings": [
     {
      "source": "UserName",
-     "target": "UserName"
+     "target": "UserName",
+     "unrepresentable": {
+      "max_length": 64
+     }
     }
    ],
    "operation": "DeleteUser",
@@ -23630,7 +24821,10 @@
     },
     {
      "source": "maximumMessageRatePerSecond",
-     "target": "MaximumMessageRatePerSecond"
+     "target": "MaximumMessageRatePerSecond",
+     "unrepresentable": {
+      "maximum": 10.0
+     }
     },
     {
      "source": "name",
@@ -23638,7 +24832,12 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_value": {
+       "min_length": 1
+      }
+     }
     }
    ],
    "operation": "CreateRoom",
@@ -23709,6 +24908,74 @@
     }
    ],
    "operation": "DeleteGroupMembership",
+   "phase": "delete",
+   "service": "identitystore"
+  },
+  {
+   "cfn_type": "AWS::IdentityStore::User",
+   "mappings": [
+    {
+     "source": "Birthdate",
+     "target": "Birthdate"
+    },
+    {
+     "source": "DisplayName",
+     "target": "DisplayName"
+    },
+    {
+     "source": "IdentityStoreId",
+     "target": "IdentityStoreId"
+    },
+    {
+     "source": "Locale",
+     "target": "Locale"
+    },
+    {
+     "source": "NickName",
+     "target": "NickName"
+    },
+    {
+     "source": "PreferredLanguage",
+     "target": "PreferredLanguage"
+    },
+    {
+     "source": "ProfileUrl",
+     "target": "ProfileUrl"
+    },
+    {
+     "source": "Timezone",
+     "target": "Timezone"
+    },
+    {
+     "source": "Title",
+     "target": "Title"
+    },
+    {
+     "source": "UserName",
+     "target": "UserName"
+    },
+    {
+     "source": "UserType",
+     "target": "UserType"
+    },
+    {
+     "source": "Website",
+     "target": "Website"
+    }
+   ],
+   "operation": "CreateUser",
+   "phase": "create",
+   "service": "identitystore"
+  },
+  {
+   "cfn_type": "AWS::IdentityStore::User",
+   "mappings": [
+    {
+     "source": "IdentityStoreId",
+     "target": "IdentityStoreId"
+    }
+   ],
+   "operation": "DeleteUser",
    "phase": "delete",
    "service": "identitystore"
   },
@@ -23802,7 +25069,12 @@
     },
     {
      "source": "platformOverride",
-     "target": "PlatformOverride"
+     "target": "PlatformOverride",
+     "unrepresentable": {
+      "rejected_values": [
+       "macOS"
+      ]
+     }
     },
     {
      "source": "workingDirectory",
@@ -24188,7 +25460,10 @@
     },
     {
      "source": "environmentId",
-     "target": "EnvironmentId"
+     "target": "EnvironmentId",
+     "unrepresentable": {
+      "max_length": 32
+     }
     },
     {
      "source": "tags",
@@ -24286,6 +25561,63 @@
    ],
    "mappings": [],
    "operation": "DeleteInvoiceUnit",
+   "phase": "delete",
+   "service": "invoicing"
+  },
+  {
+   "cfn_type": "AWS::Invoicing::ProcurementPortalPreference",
+   "ignored_inputs": [
+    "ClientToken"
+   ],
+   "mappings": [
+    {
+     "source": "BuyerDomain",
+     "target": "BuyerDomain"
+    },
+    {
+     "source": "BuyerIdentifier",
+     "target": "BuyerIdentifier"
+    },
+    {
+     "source": "EinvoiceDeliveryEnabled",
+     "target": "EinvoiceDeliveryEnabled"
+    },
+    {
+     "source": "ProcurementPortalInstanceEndpoint",
+     "target": "ProcurementPortalInstanceEndpoint"
+    },
+    {
+     "source": "ProcurementPortalName",
+     "target": "ProcurementPortalName"
+    },
+    {
+     "source": "ProcurementPortalSharedSecret",
+     "target": "ProcurementPortalSharedSecret"
+    },
+    {
+     "source": "PurchaseOrderRetrievalEnabled",
+     "target": "PurchaseOrderRetrievalEnabled"
+    },
+    {
+     "source": "SupplierDomain",
+     "target": "SupplierDomain"
+    },
+    {
+     "source": "SupplierIdentifier",
+     "target": "SupplierIdentifier"
+    }
+   ],
+   "operation": "CreateProcurementPortalPreference",
+   "phase": "create",
+   "service": "invoicing"
+  },
+  {
+   "cfn_type": "AWS::Invoicing::ProcurementPortalPreference",
+   "ignored_inputs": [
+    "ClientToken"
+   ],
+   "mappings": [],
+   "operation": "DeleteProcurementPortalPreference",
    "phase": "delete",
    "service": "invoicing"
   },
@@ -24396,7 +25728,12 @@
     },
     {
      "source": "status",
-     "target": "Status"
+     "target": "Status",
+     "unrepresentable": {
+      "rejected_values": [
+       "REGISTER_INACTIVE"
+      ]
+     }
     }
    ],
    "operation": "RegisterCertificate",
@@ -24426,7 +25763,10 @@
     },
     {
      "source": "lambdaFunctionArn",
-     "target": "LambdaFunctionArn"
+     "target": "LambdaFunctionArn",
+     "unrepresentable": {
+      "max_length": 170
+     }
     }
    ],
    "operation": "CreateCertificateProvider",
@@ -24470,7 +25810,10 @@
     },
     {
      "source": "roleArn",
-     "target": "RoleArn"
+     "target": "RoleArn",
+     "unrepresentable": {
+      "max_length": 2028
+     }
     }
    ],
    "operation": "CreateCommand",
@@ -24536,7 +25879,10 @@
     },
     {
      "source": "stringValues",
-     "target": "StringValues"
+     "target": "StringValues",
+     "unrepresentable": {
+      "max_length": 5
+     }
     },
     {
      "source": "type",
@@ -24804,7 +26150,10 @@
    "mappings": [
     {
      "source": "policyDocument",
-     "target": "PolicyDocument"
+     "target": "PolicyDocument",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "policyName",
@@ -24876,7 +26225,12 @@
     },
     {
      "source": "targetType",
-     "target": "TargetType"
+     "target": "TargetType",
+     "unrepresentable": {
+      "rejected_values": [
+       "DEFAULT"
+      ]
+     }
     }
    ],
    "operation": "DeleteV2LoggingLevel",
@@ -24999,7 +26353,12 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_value": {
+       "min_length": 1
+      }
+     }
     }
    ],
    "operation": "CreatePackage",
@@ -25026,7 +26385,12 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_value": {
+       "min_length": 1
+      }
+     }
     },
     {
      "source": "versionName",
@@ -25053,6 +26417,38 @@
     }
    ],
    "operation": "DeletePackageVersion",
+   "phase": "delete",
+   "service": "iot"
+  },
+  {
+   "cfn_type": "AWS::IoT::Stream",
+   "mappings": [
+    {
+     "source": "description",
+     "target": "Description"
+    },
+    {
+     "source": "roleArn",
+     "target": "RoleArn"
+    },
+    {
+     "source": "streamId",
+     "target": "StreamId"
+    }
+   ],
+   "operation": "CreateStream",
+   "phase": "create",
+   "service": "iot"
+  },
+  {
+   "cfn_type": "AWS::IoT::Stream",
+   "mappings": [
+    {
+     "source": "streamId",
+     "target": "StreamId"
+    }
+   ],
+   "operation": "DeleteStream",
    "phase": "delete",
    "service": "iot"
   },
@@ -25283,7 +26679,10 @@
     },
     {
      "source": "nodes",
-     "target": "Nodes"
+     "target": "Nodes",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "signalCatalogArn",
@@ -25434,7 +26833,14 @@
     },
     {
      "source": "AuthenticationMaterialType",
-     "target": "AuthenticationMaterialType"
+     "target": "AuthenticationMaterialType",
+     "unrepresentable": {
+      "rejected_values": [
+       "CUSTOM_PROTOCOL_QR_BAR_CODE",
+       "DISCOVERED_DEVICE",
+       "PRE_ONBOARDED_CLOUD"
+      ]
+     }
     },
     {
      "source": "Brand",
@@ -25756,6 +27162,49 @@
    "service": "iotsitewise"
   },
   {
+   "cfn_type": "AWS::IoTSiteWise::Pipeline",
+   "ignored_inputs": [
+    "clientToken"
+   ],
+   "mappings": [
+    {
+     "source": "description",
+     "target": "Description"
+    },
+    {
+     "source": "pipelineName",
+     "target": "PipelineName"
+    },
+    {
+     "source": "tags",
+     "target": "Tags"
+    },
+    {
+     "source": "workspaceName",
+     "target": "WorkspaceName"
+    }
+   ],
+   "operation": "CreatePipeline",
+   "phase": "create",
+   "service": "iotsitewise"
+  },
+  {
+   "cfn_type": "AWS::IoTSiteWise::Pipeline",
+   "mappings": [
+    {
+     "source": "pipelineName",
+     "target": "PipelineName"
+    },
+    {
+     "source": "workspaceName",
+     "target": "WorkspaceName"
+    }
+   ],
+   "operation": "DeletePipeline",
+   "phase": "delete",
+   "service": "iotsitewise"
+  },
+  {
    "cfn_type": "AWS::IoTSiteWise::Portal",
    "ignored_inputs": [
     "clientToken"
@@ -25846,6 +27295,87 @@
    "service": "iotsitewise"
   },
   {
+   "cfn_type": "AWS::IoTSiteWise::Task",
+   "ignored_inputs": [
+    "clientToken"
+   ],
+   "mappings": [
+    {
+     "source": "description",
+     "target": "Description"
+    },
+    {
+     "source": "tags",
+     "target": "Tags"
+    },
+    {
+     "source": "taskName",
+     "target": "TaskName"
+    },
+    {
+     "source": "workspaceName",
+     "target": "WorkspaceName"
+    }
+   ],
+   "operation": "CreateTask",
+   "phase": "create",
+   "service": "iotsitewise"
+  },
+  {
+   "cfn_type": "AWS::IoTSiteWise::Task",
+   "mappings": [
+    {
+     "source": "taskName",
+     "target": "TaskName"
+    },
+    {
+     "source": "workspaceName",
+     "target": "WorkspaceName"
+    }
+   ],
+   "operation": "DeleteTask",
+   "phase": "delete",
+   "service": "iotsitewise"
+  },
+  {
+   "cfn_type": "AWS::IoTSiteWise::Workspace",
+   "ignored_inputs": [
+    "clientToken"
+   ],
+   "mappings": [
+    {
+     "source": "tags",
+     "target": "Tags"
+    },
+    {
+     "source": "workspaceDescription",
+     "target": "WorkspaceDescription"
+    },
+    {
+     "source": "workspaceName",
+     "target": "WorkspaceName"
+    }
+   ],
+   "operation": "CreateWorkspace",
+   "phase": "create",
+   "service": "iotsitewise"
+  },
+  {
+   "cfn_type": "AWS::IoTSiteWise::Workspace",
+   "ignored_inputs": [
+    "clientToken"
+   ],
+   "mappings": [
+    {
+     "source": "workspaceName",
+     "target": "WorkspaceName"
+    }
+   ],
+   "operation": "DeleteWorkspace",
+   "phase": "delete",
+   "service": "iotsitewise"
+  },
+  {
    "cfn_type": "AWS::IoTTwinMaker::ComponentType",
    "mappings": [
     {
@@ -25854,7 +27384,10 @@
     },
     {
      "source": "description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "max_length": 512
+     }
     },
     {
      "source": "extendsFrom",
@@ -25894,7 +27427,10 @@
    "mappings": [
     {
      "source": "description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "max_length": 512
+     }
     },
     {
      "source": "entityId",
@@ -25946,7 +27482,10 @@
     },
     {
      "source": "description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "max_length": 512
+     }
     },
     {
      "source": "sceneId",
@@ -26018,7 +27557,10 @@
    "mappings": [
     {
      "source": "description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "max_length": 512
+     }
     },
     {
      "source": "role",
@@ -26126,11 +27668,17 @@
     },
     {
      "source": "FirmwareUpdateImage",
-     "target": "FirmwareUpdateImage"
+     "target": "FirmwareUpdateImage",
+     "unrepresentable": {
+      "max_length": 2048
+     }
     },
     {
      "source": "FirmwareUpdateRole",
-     "target": "FirmwareUpdateRole"
+     "target": "FirmwareUpdateRole",
+     "unrepresentable": {
+      "max_length": 256
+     }
     },
     {
      "source": "Name",
@@ -26258,7 +27806,10 @@
     },
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "max_length": 256
+     }
     }
    ],
    "operation": "CreateWirelessGatewayTaskDefinition",
@@ -26367,7 +27918,10 @@
     },
     {
      "source": "TargetKeyId",
-     "target": "TargetKeyId"
+     "target": "TargetKeyId",
+     "unrepresentable": {
+      "max_length": 256
+     }
     }
    ],
    "operation": "CreateAlias",
@@ -26411,7 +27965,13 @@
     },
     {
      "source": "Origin",
-     "target": "Origin"
+     "target": "Origin",
+     "unrepresentable": {
+      "rejected_values": [
+       "AWS_CLOUDHSM",
+       "EXTERNAL_KEY_STORE"
+      ]
+     }
     }
    ],
    "operation": "CreateKey",
@@ -26527,7 +28087,10 @@
    "mappings": [
     {
      "source": "Description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "IndexId",
@@ -26543,7 +28106,10 @@
     },
     {
      "source": "RoleArn",
-     "target": "RoleArn"
+     "target": "RoleArn",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "Schedule",
@@ -26551,7 +28117,18 @@
     },
     {
      "source": "Type",
-     "target": "Type"
+     "target": "Type",
+     "unrepresentable": {
+      "rejected_values": [
+       "ALFRESCO",
+       "BOX",
+       "FSX",
+       "GITHUB",
+       "JIRA",
+       "QUIP",
+       "SLACK"
+      ]
+     }
     }
    ],
    "operation": "CreateDataSource",
@@ -26578,7 +28155,10 @@
    "mappings": [
     {
      "source": "Description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "FileFormat",
@@ -26598,7 +28178,10 @@
     },
     {
      "source": "RoleArn",
-     "target": "RoleArn"
+     "target": "RoleArn",
+     "unrepresentable": {
+      "min_length": 1
+     }
     }
    ],
    "operation": "CreateFaq",
@@ -26637,7 +28220,10 @@
     },
     {
      "source": "RoleArn",
-     "target": "RoleArn"
+     "target": "RoleArn",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "UserContextPolicy",
@@ -26652,6 +28238,84 @@
    "cfn_type": "AWS::Kendra::Index",
    "mappings": [],
    "operation": "DeleteIndex",
+   "phase": "delete",
+   "service": "kendra"
+  },
+  {
+   "cfn_type": "AWS::Kendra::QuerySuggestionsBlockList",
+   "ignored_inputs": [
+    "ClientToken"
+   ],
+   "mappings": [
+    {
+     "source": "Description",
+     "target": "Description"
+    },
+    {
+     "source": "IndexId",
+     "target": "IndexId"
+    },
+    {
+     "source": "Name",
+     "target": "Name"
+    },
+    {
+     "source": "RoleArn",
+     "target": "RoleArn"
+    }
+   ],
+   "operation": "CreateQuerySuggestionsBlockList",
+   "phase": "create",
+   "service": "kendra"
+  },
+  {
+   "cfn_type": "AWS::Kendra::QuerySuggestionsBlockList",
+   "mappings": [
+    {
+     "source": "IndexId",
+     "target": "IndexId"
+    }
+   ],
+   "operation": "DeleteQuerySuggestionsBlockList",
+   "phase": "delete",
+   "service": "kendra"
+  },
+  {
+   "cfn_type": "AWS::Kendra::Thesaurus",
+   "ignored_inputs": [
+    "ClientToken"
+   ],
+   "mappings": [
+    {
+     "source": "Description",
+     "target": "Description"
+    },
+    {
+     "source": "IndexId",
+     "target": "IndexId"
+    },
+    {
+     "source": "Name",
+     "target": "Name"
+    },
+    {
+     "source": "RoleArn",
+     "target": "RoleArn"
+    }
+   ],
+   "operation": "CreateThesaurus",
+   "phase": "create",
+   "service": "kendra"
+  },
+  {
+   "cfn_type": "AWS::Kendra::Thesaurus",
+   "mappings": [
+    {
+     "source": "IndexId",
+     "target": "IndexId"
+    }
+   ],
+   "operation": "DeleteThesaurus",
    "phase": "delete",
    "service": "kendra"
   },
@@ -26718,7 +28382,12 @@
     },
     {
      "source": "Tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_value": {
+       "max_length": 255
+      }
+     }
     },
     {
      "source": "WarmThroughputMiBps",
@@ -26749,7 +28418,12 @@
     },
     {
      "source": "Tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_value": {
+       "max_length": 255
+      }
+     }
     }
    ],
    "operation": "RegisterStreamConsumer",
@@ -26895,7 +28569,11 @@
     },
     {
      "source": "TableCatalogId",
-     "target": "TableCatalogId"
+     "target": "TableCatalogId",
+     "unrepresentable": {
+      "max_length": 12,
+      "min_length": 12
+     }
     },
     {
      "source": "TableName",
@@ -26911,11 +28589,29 @@
    "mappings": [
     {
      "source": "Permissions",
-     "target": "Permissions"
+     "target": "Permissions",
+     "unrepresentable": {
+      "items": {
+       "rejected_values": [
+        "CREATE_CATALOG",
+        "CREATE_LF_TAG_EXPRESSION",
+        "SUPER_USER"
+       ]
+      }
+     }
     },
     {
      "source": "PermissionsWithGrantOption",
-     "target": "PermissionsWithGrantOption"
+     "target": "PermissionsWithGrantOption",
+     "unrepresentable": {
+      "items": {
+       "rejected_values": [
+        "CREATE_CATALOG",
+        "CREATE_LF_TAG_EXPRESSION",
+        "SUPER_USER"
+       ]
+      }
+     }
     }
    ],
    "operation": "GrantPermissions",
@@ -26927,11 +28623,29 @@
    "mappings": [
     {
      "source": "Permissions",
-     "target": "Permissions"
+     "target": "Permissions",
+     "unrepresentable": {
+      "items": {
+       "rejected_values": [
+        "CREATE_CATALOG",
+        "CREATE_LF_TAG_EXPRESSION",
+        "SUPER_USER"
+       ]
+      }
+     }
     },
     {
      "source": "PermissionsWithGrantOption",
-     "target": "PermissionsWithGrantOption"
+     "target": "PermissionsWithGrantOption",
+     "unrepresentable": {
+      "items": {
+       "rejected_values": [
+        "CREATE_CATALOG",
+        "CREATE_LF_TAG_EXPRESSION",
+        "SUPER_USER"
+       ]
+      }
+     }
     }
    ],
    "operation": "RevokePermissions",
@@ -26943,7 +28657,11 @@
    "mappings": [
     {
      "source": "CatalogId",
-     "target": "CatalogId"
+     "target": "CatalogId",
+     "unrepresentable": {
+      "max_length": 12,
+      "min_length": 12
+     }
     },
     {
      "source": "TagKey",
@@ -26963,7 +28681,11 @@
    "mappings": [
     {
      "source": "CatalogId",
-     "target": "CatalogId"
+     "target": "CatalogId",
+     "unrepresentable": {
+      "max_length": 12,
+      "min_length": 12
+     }
     },
     {
      "source": "TagKey",
@@ -27126,11 +28848,18 @@
     },
     {
      "source": "EventSourceArn",
-     "target": "EventSourceArn"
+     "target": "EventSourceArn",
+     "unrepresentable": {
+      "max_length": 1024,
+      "min_length": 12
+     }
     },
     {
      "source": "FunctionName",
-     "target": "FunctionName"
+     "target": "FunctionName",
+     "unrepresentable": {
+      "max_length": 140
+     }
     },
     {
      "source": "FunctionResponseTypes",
@@ -27138,7 +28867,11 @@
     },
     {
      "source": "KMSKeyArn",
-     "target": "KmsKeyArn"
+     "target": "KmsKeyArn",
+     "unrepresentable": {
+      "max_length": 2048,
+      "min_length": 12
+     }
     },
     {
      "source": "MaximumBatchingWindowInSeconds",
@@ -27447,15 +29180,25 @@
    "mappings": [
     {
      "source": "Action",
-     "target": "Action"
+     "target": "Action",
+     "unrepresentable": {
+      "max_length": 256,
+      "min_length": 1
+     }
     },
     {
      "source": "EventSourceToken",
-     "target": "EventSourceToken"
+     "target": "EventSourceToken",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "FunctionName",
-     "target": "FunctionName"
+     "target": "FunctionName",
+     "unrepresentable": {
+      "max_length": 140
+     }
     },
     {
      "source": "FunctionUrlAuthType",
@@ -27467,7 +29210,11 @@
     },
     {
      "source": "Principal",
-     "target": "Principal"
+     "target": "Principal",
+     "unrepresentable": {
+      "max_length": 256,
+      "min_length": 1
+     }
     },
     {
      "source": "PrincipalOrgID",
@@ -27475,11 +29222,18 @@
     },
     {
      "source": "SourceAccount",
-     "target": "SourceAccount"
+     "target": "SourceAccount",
+     "unrepresentable": {
+      "min_length": 12
+     }
     },
     {
      "source": "SourceArn",
-     "target": "SourceArn"
+     "target": "SourceArn",
+     "unrepresentable": {
+      "max_length": 1024,
+      "min_length": 12
+     }
     }
    ],
    "operation": "AddPermission",
@@ -27491,7 +29245,10 @@
    "mappings": [
     {
      "source": "FunctionName",
-     "target": "FunctionName"
+     "target": "FunctionName",
+     "unrepresentable": {
+      "max_length": 140
+     }
     }
    ],
    "operation": "RemovePermission",
@@ -27622,7 +29379,10 @@
     },
     {
      "source": "description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "max_length": 200
+     }
     }
    ],
    "operation": "CreateBotAlias",
@@ -27650,7 +29410,10 @@
     },
     {
      "source": "description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "max_length": 200
+     }
     }
    ],
    "operation": "CreateBotVersion",
@@ -27920,6 +29683,34 @@
     }
    ],
    "operation": "DeleteCertificate",
+   "phase": "delete",
+   "service": "lightsail"
+  },
+  {
+   "cfn_type": "AWS::Lightsail::ContactMethod",
+   "mappings": [
+    {
+     "source": "contactEndpoint",
+     "target": "ContactEndpoint"
+    },
+    {
+     "source": "protocol",
+     "target": "Protocol"
+    }
+   ],
+   "operation": "CreateContactMethod",
+   "phase": "create",
+   "service": "lightsail"
+  },
+  {
+   "cfn_type": "AWS::Lightsail::ContactMethod",
+   "mappings": [
+    {
+     "source": "protocol",
+     "target": "Protocol"
+    }
+   ],
+   "operation": "DeleteContactMethod",
    "phase": "delete",
    "service": "lightsail"
   },
@@ -28380,7 +30171,13 @@
     },
     {
      "source": "PricingPlan",
-     "target": "PricingPlan"
+     "target": "PricingPlan",
+     "unrepresentable": {
+      "rejected_values": [
+       "MobileAssetManagement",
+       "MobileAssetTracking"
+      ]
+     }
     },
     {
      "source": "PricingPlanDataSource",
@@ -28420,7 +30217,13 @@
     },
     {
      "source": "PricingPlan",
-     "target": "PricingPlan"
+     "target": "PricingPlan",
+     "unrepresentable": {
+      "rejected_values": [
+       "MobileAssetManagement",
+       "MobileAssetTracking"
+      ]
+     }
     },
     {
      "source": "Tags",
@@ -28460,7 +30263,13 @@
     },
     {
      "source": "PricingPlan",
-     "target": "PricingPlan"
+     "target": "PricingPlan",
+     "unrepresentable": {
+      "rejected_values": [
+       "MobileAssetManagement",
+       "MobileAssetTracking"
+      ]
+     }
     },
     {
      "source": "Tags",
@@ -28500,7 +30309,13 @@
     },
     {
      "source": "PricingPlan",
-     "target": "PricingPlan"
+     "target": "PricingPlan",
+     "unrepresentable": {
+      "rejected_values": [
+       "MobileAssetManagement",
+       "MobileAssetTracking"
+      ]
+     }
     },
     {
      "source": "Tags",
@@ -28548,7 +30363,13 @@
     },
     {
      "source": "PricingPlan",
-     "target": "PricingPlan"
+     "target": "PricingPlan",
+     "unrepresentable": {
+      "rejected_values": [
+       "MobileAssetManagement",
+       "MobileAssetTracking"
+      ]
+     }
     },
     {
      "source": "PricingPlanDataSource",
@@ -28668,11 +30489,19 @@
     },
     {
      "source": "fieldDelimiter",
-     "target": "FieldDelimiter"
+     "target": "FieldDelimiter",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "recordFields",
-     "target": "RecordFields"
+     "target": "RecordFields",
+     "unrepresentable": {
+      "items": {
+       "max_length": 50
+      }
+     }
     },
     {
      "source": "tags",
@@ -28839,7 +30668,12 @@
     },
     {
      "source": "evaluationFrequency",
-     "target": "EvaluationFrequency"
+     "target": "EvaluationFrequency",
+     "unrepresentable": {
+      "rejected_values": [
+       "ONE_MIN"
+      ]
+     }
     },
     {
      "source": "filterPattern",
@@ -28851,7 +30685,12 @@
     },
     {
      "source": "logGroupArnList",
-     "target": "LogGroupArnList"
+     "target": "LogGroupArnList",
+     "unrepresentable": {
+      "items": {
+       "min_length": 20
+      }
+     }
     }
    ],
    "operation": "CreateLogAnomalyDetector",
@@ -29064,7 +30903,10 @@
     },
     {
      "source": "name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "max_length": 255
+     }
     },
     {
      "source": "queryLanguage",
@@ -29119,7 +30961,12 @@
    "mappings": [
     {
      "source": "storageTier",
-     "target": "StorageTier"
+     "target": "StorageTier",
+     "unrepresentable": {
+      "rejected_values": [
+       "STANDARD"
+      ]
+     }
     }
    ],
    "operation": "PutStorageTierPolicy",
@@ -29395,6 +31242,37 @@
    "operation": "DeleteEnvironment",
    "phase": "delete",
    "service": "m2"
+  },
+  {
+   "cfn_type": "AWS::MGN::NetworkMigrationDefinition",
+   "mappings": [
+    {
+     "source": "description",
+     "target": "Description"
+    },
+    {
+     "source": "name",
+     "target": "Name"
+    },
+    {
+     "source": "tags",
+     "target": "Tags"
+    },
+    {
+     "source": "targetDeployment",
+     "target": "TargetDeployment"
+    }
+   ],
+   "operation": "CreateNetworkMigrationDefinition",
+   "phase": "create",
+   "service": "mgn"
+  },
+  {
+   "cfn_type": "AWS::MGN::NetworkMigrationDefinition",
+   "mappings": [],
+   "operation": "DeleteNetworkMigrationDefinition",
+   "phase": "delete",
+   "service": "mgn"
   },
   {
    "cfn_type": "AWS::MPA::ApprovalTeam",
@@ -29952,7 +31830,16 @@
     },
     {
      "source": "Tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_key": {
+       "max_length": 127
+      },
+      "tag_value": {
+       "max_length": 255,
+       "min_length": 1
+      }
+     }
     }
    ],
    "operation": "CreateAccessor",
@@ -31270,7 +33157,12 @@
     },
     {
      "source": "FunctionType",
-     "target": "FunctionType"
+     "target": "FunctionType",
+     "unrepresentable": {
+      "rejected_values": [
+       "CONCURRENT_EXECUTOR"
+      ]
+     }
     },
     {
      "source": "Tags",
@@ -31378,6 +33270,50 @@
     }
    ],
    "operation": "DeletePlaybackConfiguration",
+   "phase": "delete",
+   "service": "mediatailor"
+  },
+  {
+   "cfn_type": "AWS::MediaTailor::PrefetchSchedule",
+   "mappings": [
+    {
+     "source": "Name",
+     "target": "Name"
+    },
+    {
+     "source": "PlaybackConfigurationName",
+     "target": "PlaybackConfigurationName"
+    },
+    {
+     "source": "ScheduleType",
+     "target": "ScheduleType"
+    },
+    {
+     "source": "StreamId",
+     "target": "StreamId"
+    },
+    {
+     "source": "Tags",
+     "target": "Tags"
+    }
+   ],
+   "operation": "CreatePrefetchSchedule",
+   "phase": "create",
+   "service": "mediatailor"
+  },
+  {
+   "cfn_type": "AWS::MediaTailor::PrefetchSchedule",
+   "mappings": [
+    {
+     "source": "Name",
+     "target": "Name"
+    },
+    {
+     "source": "PlaybackConfigurationName",
+     "target": "PlaybackConfigurationName"
+    }
+   ],
+   "operation": "DeletePrefetchSchedule",
    "phase": "delete",
    "service": "mediatailor"
   },
@@ -32251,7 +34187,12 @@
     },
     {
      "source": "Type",
-     "target": "Type"
+     "target": "Type",
+     "unrepresentable": {
+      "rejected_values": [
+       "STATEFUL_DOMAIN"
+      ]
+     }
     }
    ],
    "operation": "CreateRuleGroup",
@@ -32267,7 +34208,12 @@
     },
     {
      "source": "Type",
-     "target": "Type"
+     "target": "Type",
+     "unrepresentable": {
+      "rejected_values": [
+       "STATEFUL_DOMAIN"
+      ]
+     }
     }
    ],
    "operation": "DeleteRuleGroup",
@@ -33266,7 +35212,10 @@
     },
     {
      "source": "cpuCoreCount",
-     "target": "CpuCoreCount"
+     "target": "CpuCoreCount",
+     "unrepresentable": {
+      "maximum": 368.0
+     }
     },
     {
      "source": "dataStorageSizeInTBs",
@@ -33732,6 +35681,48 @@
    "service": "omics"
   },
   {
+   "cfn_type": "AWS::Omics::RunCache",
+   "ignored_inputs": [
+    "requestId"
+   ],
+   "mappings": [
+    {
+     "source": "cacheBehavior",
+     "target": "CacheBehavior"
+    },
+    {
+     "source": "cacheBucketOwnerId",
+     "target": "CacheBucketOwnerId"
+    },
+    {
+     "source": "cacheS3Location",
+     "target": "CacheS3Location"
+    },
+    {
+     "source": "description",
+     "target": "Description"
+    },
+    {
+     "source": "name",
+     "target": "Name"
+    },
+    {
+     "source": "tags",
+     "target": "Tags"
+    }
+   ],
+   "operation": "CreateRunCache",
+   "phase": "create",
+   "service": "omics"
+  },
+  {
+   "cfn_type": "AWS::Omics::RunCache",
+   "mappings": [],
+   "operation": "DeleteRunCache",
+   "phase": "delete",
+   "service": "omics"
+  },
+  {
    "cfn_type": "AWS::Omics::RunGroup",
    "ignored_inputs": [
     "requestId"
@@ -33859,7 +35850,12 @@
     },
     {
      "source": "engine",
-     "target": "Engine"
+     "target": "Engine",
+     "unrepresentable": {
+      "rejected_values": [
+       "WDL_LENIENT"
+      ]
+     }
     },
     {
      "source": "main",
@@ -33933,7 +35929,12 @@
     },
     {
      "source": "engine",
-     "target": "Engine"
+     "target": "Engine",
+     "unrepresentable": {
+      "rejected_values": [
+       "WDL_LENIENT"
+      ]
+     }
     },
     {
      "source": "main",
@@ -34040,7 +36041,10 @@
    "mappings": [
     {
      "source": "description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "name",
@@ -34279,7 +36283,10 @@
    "mappings": [
     {
      "source": "description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "name",
@@ -34933,6 +36940,29 @@
    "service": "personalize"
   },
   {
+   "cfn_type": "AWS::Personalize::MetricAttribution",
+   "mappings": [
+    {
+     "source": "datasetGroupArn",
+     "target": "DatasetGroupArn"
+    },
+    {
+     "source": "name",
+     "target": "Name"
+    }
+   ],
+   "operation": "CreateMetricAttribution",
+   "phase": "create",
+   "service": "personalize"
+  },
+  {
+   "cfn_type": "AWS::Personalize::MetricAttribution",
+   "mappings": [],
+   "operation": "DeleteMetricAttribution",
+   "phase": "delete",
+   "service": "personalize"
+  },
+  {
    "cfn_type": "AWS::Personalize::Schema",
    "mappings": [
     {
@@ -34945,7 +36975,10 @@
     },
     {
      "source": "schema",
-     "target": "Schema"
+     "target": "Schema",
+     "unrepresentable": {
+      "max_length": 10000
+     }
     }
    ],
    "operation": "CreateSchema",
@@ -35075,6 +37108,43 @@
    "service": "pipes"
   },
   {
+   "cfn_type": "AWS::PricingPlanManager::Subscription",
+   "ignored_inputs": [
+    "clientToken"
+   ],
+   "mappings": [
+    {
+     "source": "planFamily",
+     "target": "PlanFamily"
+    },
+    {
+     "source": "planTier",
+     "target": "PlanTier"
+    },
+    {
+     "source": "resourceArns",
+     "target": "ResourceArns"
+    },
+    {
+     "source": "usageLevel",
+     "target": "UsageLevel"
+    }
+   ],
+   "operation": "CreateSubscription",
+   "phase": "create",
+   "service": "pricing-plan-manager"
+  },
+  {
+   "cfn_type": "AWS::PricingPlanManager::Subscription",
+   "ignored_inputs": [
+    "clientToken"
+   ],
+   "mappings": [],
+   "operation": "CancelSubscription",
+   "phase": "delete",
+   "service": "pricing-plan-manager"
+  },
+  {
    "cfn_type": "AWS::Proton::EnvironmentAccountConnection",
    "ignored_inputs": [
     "clientToken"
@@ -35082,11 +37152,17 @@
    "mappings": [
     {
      "source": "codebuildRoleArn",
-     "target": "CodebuildRoleArn"
+     "target": "CodebuildRoleArn",
+     "unrepresentable": {
+      "max_length": 200
+     }
     },
     {
      "source": "componentRoleArn",
-     "target": "ComponentRoleArn"
+     "target": "ComponentRoleArn",
+     "unrepresentable": {
+      "max_length": 200
+     }
     },
     {
      "source": "environmentName",
@@ -35098,7 +37174,10 @@
     },
     {
      "source": "roleArn",
-     "target": "RoleArn"
+     "target": "RoleArn",
+     "unrepresentable": {
+      "max_length": 200
+     }
     }
    ],
    "operation": "CreateEnvironmentAccountConnection",
@@ -35396,7 +37475,10 @@
     },
     {
      "source": "statementId",
-     "target": "StatementId"
+     "target": "StatementId",
+     "unrepresentable": {
+      "max_length": 100
+     }
     }
    ],
    "operation": "DisassociatePermission",
@@ -35493,7 +37575,12 @@
     },
     {
      "source": "origins",
-     "target": "Origins"
+     "target": "Origins",
+     "unrepresentable": {
+      "items": {
+       "max_length": 64
+      }
+     }
     },
     {
      "source": "roleArn",
@@ -36092,11 +38179,17 @@
     },
     {
      "source": "Description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "max_length": 512
+     }
     },
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "max_length": 128
+     }
     },
     {
      "source": "SpaceId",
@@ -36326,6 +38419,34 @@
    "service": "ram"
   },
   {
+   "cfn_type": "AWS::RDS::ClusterSnapshot",
+   "mappings": [
+    {
+     "source": "DBClusterIdentifier",
+     "target": "DBClusterIdentifier"
+    },
+    {
+     "source": "DBClusterSnapshotIdentifier",
+     "target": "DBClusterSnapshotIdentifier"
+    }
+   ],
+   "operation": "CreateDBClusterSnapshot",
+   "phase": "create",
+   "service": "rds"
+  },
+  {
+   "cfn_type": "AWS::RDS::ClusterSnapshot",
+   "mappings": [
+    {
+     "source": "DBClusterSnapshotIdentifier",
+     "target": "DBClusterSnapshotIdentifier"
+    }
+   ],
+   "operation": "DeleteDBClusterSnapshot",
+   "phase": "delete",
+   "service": "rds"
+  },
+  {
    "cfn_type": "AWS::RDS::CustomDBEngineVersion",
    "mappings": [
     {
@@ -36502,7 +38623,10 @@
     },
     {
      "source": "GlobalClusterIdentifier",
-     "target": "GlobalClusterIdentifier"
+     "target": "GlobalClusterIdentifier",
+     "unrepresentable": {
+      "max_length": 63
+     }
     },
     {
      "source": "Iops",
@@ -37114,6 +39238,34 @@
    "service": "rds"
   },
   {
+   "cfn_type": "AWS::RDS::DBSnapshot",
+   "mappings": [
+    {
+     "source": "DBInstanceIdentifier",
+     "target": "DBInstanceIdentifier"
+    },
+    {
+     "source": "DBSnapshotIdentifier",
+     "target": "DBSnapshotIdentifier"
+    }
+   ],
+   "operation": "CreateDBSnapshot",
+   "phase": "create",
+   "service": "rds"
+  },
+  {
+   "cfn_type": "AWS::RDS::DBSnapshot",
+   "mappings": [
+    {
+     "source": "DBSnapshotIdentifier",
+     "target": "DBSnapshotIdentifier"
+    }
+   ],
+   "operation": "DeleteDBSnapshot",
+   "phase": "delete",
+   "service": "rds"
+  },
+  {
    "cfn_type": "AWS::RDS::DBSubnetGroup",
    "mappings": [
     {
@@ -37210,7 +39362,10 @@
     },
     {
      "source": "GlobalClusterIdentifier",
-     "target": "GlobalClusterIdentifier"
+     "target": "GlobalClusterIdentifier",
+     "unrepresentable": {
+      "max_length": 63
+     }
     },
     {
      "source": "SourceDBClusterIdentifier",
@@ -37230,7 +39385,10 @@
    "mappings": [
     {
      "source": "GlobalClusterIdentifier",
-     "target": "GlobalClusterIdentifier"
+     "target": "GlobalClusterIdentifier",
+     "unrepresentable": {
+      "max_length": 63
+     }
     }
    ],
    "operation": "DeleteGlobalCluster",
@@ -37246,7 +39404,10 @@
     },
     {
      "source": "Description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "IntegrationName",
@@ -37324,7 +39485,12 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_value": {
+       "max_length": 256
+      }
+     }
     }
    ],
    "operation": "CreateInboundExternalLink",
@@ -37360,7 +39526,12 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_value": {
+       "max_length": 256
+      }
+     }
     }
    ],
    "operation": "CreateLink",
@@ -37399,7 +39570,12 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_value": {
+       "max_length": 256
+      }
+     }
     }
    ],
    "operation": "CreateLinkRoutingRule",
@@ -37438,7 +39614,12 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_value": {
+       "max_length": 256
+      }
+     }
     }
    ],
    "operation": "CreateOutboundExternalLink",
@@ -37531,7 +39712,12 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_value": {
+       "max_length": 256
+      }
+     }
     },
     {
      "source": "vpcId",
@@ -37641,11 +39827,17 @@
     },
     {
      "source": "ClusterIdentifier",
-     "target": "ClusterIdentifier"
+     "target": "ClusterIdentifier",
+     "unrepresentable": {
+      "max_length": 63
+     }
     },
     {
      "source": "ClusterParameterGroupName",
-     "target": "ClusterParameterGroupName"
+     "target": "ClusterParameterGroupName",
+     "unrepresentable": {
+      "max_length": 255
+     }
     },
     {
      "source": "ClusterSecurityGroups",
@@ -37717,7 +39909,10 @@
     },
     {
      "source": "MasterUsername",
-     "target": "MasterUsername"
+     "target": "MasterUsername",
+     "unrepresentable": {
+      "max_length": 128
+     }
     },
     {
      "source": "MultiAZ",
@@ -37757,7 +39952,10 @@
    "mappings": [
     {
      "source": "ClusterIdentifier",
-     "target": "ClusterIdentifier"
+     "target": "ClusterIdentifier",
+     "unrepresentable": {
+      "max_length": 63
+     }
     }
    ],
    "operation": "DeleteCluster",
@@ -37777,7 +39975,10 @@
     },
     {
      "source": "ParameterGroupName",
-     "target": "ParameterGroupName"
+     "target": "ParameterGroupName",
+     "unrepresentable": {
+      "max_length": 255
+     }
     }
    ],
    "operation": "CreateClusterParameterGroup",
@@ -37789,7 +39990,10 @@
    "mappings": [
     {
      "source": "ParameterGroupName",
-     "target": "ParameterGroupName"
+     "target": "ParameterGroupName",
+     "unrepresentable": {
+      "max_length": 255
+     }
     }
    ],
    "operation": "DeleteClusterParameterGroup",
@@ -38519,7 +40723,12 @@
     },
     {
      "source": "tier",
-     "target": "Tier"
+     "target": "Tier",
+     "unrepresentable": {
+      "rejected_values": [
+       "NotApplicable"
+      ]
+     }
     }
    ],
    "operation": "CreateResiliencyPolicy",
@@ -38761,11 +40970,17 @@
    "mappings": [
     {
      "source": "Description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "max_length": 512
+     }
     },
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "max_length": 128
+     }
     },
     {
      "source": "Tags",
@@ -38788,7 +41003,10 @@
    "mappings": [
     {
      "source": "Group",
-     "target": "Group"
+     "target": "Group",
+     "unrepresentable": {
+      "min_length": 12
+     }
     },
     {
      "source": "RoleArn",
@@ -39016,7 +41234,10 @@
    "mappings": [
     {
      "source": "cidr",
-     "target": "Cidr"
+     "target": "Cidr",
+     "unrepresentable": {
+      "max_length": 42
+     }
     },
     {
      "source": "clientToken",
@@ -39274,11 +41495,19 @@
     },
     {
      "source": "observabilityRegion",
-     "target": "ObservabilityRegion"
+     "target": "ObservabilityRegion",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "regions",
-     "target": "Regions"
+     "target": "Regions",
+     "unrepresentable": {
+      "items": {
+       "min_length": 1
+      }
+     }
     },
     {
      "source": "tags",
@@ -39340,7 +41569,10 @@
    "mappings": [
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "min_length": 1
+     }
     }
    ],
    "operation": "CreateProfile",
@@ -40228,7 +42460,10 @@
    "mappings": [
     {
      "source": "Bucket",
-     "target": "BucketName"
+     "target": "BucketName",
+     "unrepresentable": {
+      "max_length": 63
+     }
     },
     {
      "source": "OutpostId",
@@ -40251,19 +42486,10 @@
    "mappings": [
     {
      "source": "Bucket",
-     "target": "Bucket"
-    }
-   ],
-   "operation": "PutBucketPolicy",
-   "phase": "create",
-   "service": "s3control"
-  },
-  {
-   "cfn_type": "AWS::S3Outposts::BucketPolicy",
-   "mappings": [
-    {
-     "source": "Bucket",
-     "target": "Bucket"
+     "target": "Bucket",
+     "unrepresentable": {
+      "min_length": 20
+     }
     }
    ],
    "operation": "DeleteBucketPolicy",
@@ -40657,6 +42883,13 @@
    "service": "supplychain"
   },
   {
+   "cfn_type": "AWS::SDB::Domain",
+   "mappings": [],
+   "operation": "DeleteDomain",
+   "phase": "delete",
+   "service": "sdb"
+  },
+  {
    "cfn_type": "AWS::SES::ConfigurationSetEventDestination",
    "mappings": [
     {
@@ -41015,7 +43248,10 @@
    "mappings": [
     {
      "source": "OptOutListName",
-     "target": "OptOutListName"
+     "target": "OptOutListName",
+     "unrepresentable": {
+      "max_length": 64
+     }
     }
    ],
    "operation": "DeleteOptOutList",
@@ -41038,7 +43274,14 @@
     },
     {
      "source": "NumberCapabilities",
-     "target": "NumberCapabilities"
+     "target": "NumberCapabilities",
+     "unrepresentable": {
+      "items": {
+       "rejected_values": [
+        "RCS"
+       ]
+      }
+     }
     },
     {
      "source": "NumberType",
@@ -41344,7 +43587,10 @@
     },
     {
      "source": "Description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "DisplayName",
@@ -41379,7 +43625,13 @@
     },
     {
      "source": "DocumentType",
-     "target": "DocumentType"
+     "target": "DocumentType",
+     "unrepresentable": {
+      "rejected_values": [
+       "ConformancePackTemplate",
+       "QuickSetup"
+      ]
+     }
     },
     {
      "source": "Name",
@@ -41622,7 +43874,12 @@
     },
     {
      "source": "Type",
-     "target": "Type"
+     "target": "Type",
+     "unrepresentable": {
+      "rejected_values": [
+       "SecureString"
+      ]
+     }
     },
     {
      "source": "Value",
@@ -41771,7 +44028,10 @@
     },
     {
      "source": "DisplayName",
-     "target": "DisplayName"
+     "target": "DisplayName",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "Type",
@@ -41863,7 +44123,12 @@
    "mappings": [
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_value": {
+       "min_length": 1
+      }
+     }
     }
    ],
    "operation": "CreateReplicationSet",
@@ -41885,11 +44150,19 @@
    "mappings": [
     {
      "source": "displayName",
-     "target": "DisplayName"
+     "target": "DisplayName",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "engagements",
-     "target": "Engagements"
+     "target": "Engagements",
+     "unrepresentable": {
+      "items": {
+       "max_length": 1000
+      }
+     }
     },
     {
      "source": "name",
@@ -41897,7 +44170,12 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_value": {
+       "min_length": 1
+      }
+     }
     }
    ],
    "operation": "CreateResponsePlan",
@@ -42084,7 +44362,11 @@
    "mappings": [
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "max_length": 32,
+      "min_length": 1
+     }
     }
    ],
    "operation": "CreateInstance",
@@ -42231,15 +44513,29 @@
    "mappings": [
     {
      "source": "AppName",
-     "target": "AppName"
+     "target": "AppName",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "AppType",
-     "target": "AppType"
+     "target": "AppType",
+     "unrepresentable": {
+      "rejected_values": [
+       "CodeEditor",
+       "DetailedProfiler",
+       "JupyterLab",
+       "TensorBoard"
+      ]
+     }
     },
     {
      "source": "DomainId",
-     "target": "DomainId"
+     "target": "DomainId",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "RecoveryMode",
@@ -42247,7 +44543,10 @@
     },
     {
      "source": "UserProfileName",
-     "target": "UserProfileName"
+     "target": "UserProfileName",
+     "unrepresentable": {
+      "min_length": 1
+     }
     }
    ],
    "operation": "CreateApp",
@@ -42259,19 +44558,36 @@
    "mappings": [
     {
      "source": "AppName",
-     "target": "AppName"
+     "target": "AppName",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "AppType",
-     "target": "AppType"
+     "target": "AppType",
+     "unrepresentable": {
+      "rejected_values": [
+       "CodeEditor",
+       "DetailedProfiler",
+       "JupyterLab",
+       "TensorBoard"
+      ]
+     }
     },
     {
      "source": "DomainId",
-     "target": "DomainId"
+     "target": "DomainId",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "UserProfileName",
-     "target": "UserProfileName"
+     "target": "UserProfileName",
+     "unrepresentable": {
+      "min_length": 1
+     }
     }
    ],
    "operation": "DeleteApp",
@@ -42283,7 +44599,10 @@
    "mappings": [
     {
      "source": "AppImageConfigName",
-     "target": "AppImageConfigName"
+     "target": "AppImageConfigName",
+     "unrepresentable": {
+      "min_length": 1
+     }
     }
    ],
    "operation": "CreateAppImageConfig",
@@ -42295,7 +44614,10 @@
    "mappings": [
     {
      "source": "AppImageConfigName",
-     "target": "AppImageConfigName"
+     "target": "AppImageConfigName",
+     "unrepresentable": {
+      "min_length": 1
+     }
     }
    ],
    "operation": "DeleteAppImageConfig",
@@ -42354,7 +44676,11 @@
    "mappings": [
     {
      "source": "ClusterName",
-     "target": "ClusterName"
+     "target": "ClusterName",
+     "unrepresentable": {
+      "max_length": 63,
+      "min_length": 1
+     }
     }
    ],
    "operation": "DeleteCluster",
@@ -42533,11 +44859,17 @@
    "mappings": [
     {
      "source": "EndpointConfigName",
-     "target": "EndpointConfigName"
+     "target": "EndpointConfigName",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "EndpointName",
-     "target": "EndpointName"
+     "target": "EndpointName",
+     "unrepresentable": {
+      "min_length": 1
+     }
     }
    ],
    "operation": "CreateEndpoint",
@@ -42549,10 +44881,55 @@
    "mappings": [
     {
      "source": "EndpointName",
-     "target": "EndpointName"
+     "target": "EndpointName",
+     "unrepresentable": {
+      "min_length": 1
+     }
     }
    ],
    "operation": "DeleteEndpoint",
+   "phase": "delete",
+   "service": "sagemaker"
+  },
+  {
+   "cfn_type": "AWS::SageMaker::EndpointConfig",
+   "mappings": [
+    {
+     "source": "EnableNetworkIsolation",
+     "target": "EnableNetworkIsolation"
+    },
+    {
+     "source": "EndpointConfigName",
+     "target": "EndpointConfigName",
+     "unrepresentable": {
+      "min_length": 1
+     }
+    },
+    {
+     "source": "ExecutionRoleArn",
+     "target": "ExecutionRoleArn"
+    },
+    {
+     "source": "KmsKeyId",
+     "target": "KmsKeyId"
+    }
+   ],
+   "operation": "CreateEndpointConfig",
+   "phase": "create",
+   "service": "sagemaker"
+  },
+  {
+   "cfn_type": "AWS::SageMaker::EndpointConfig",
+   "mappings": [
+    {
+     "source": "EndpointConfigName",
+     "target": "EndpointConfigName",
+     "unrepresentable": {
+      "min_length": 1
+     }
+    }
+   ],
+   "operation": "DeleteEndpointConfig",
    "phase": "delete",
    "service": "sagemaker"
   },
@@ -42816,7 +45193,10 @@
    "mappings": [
     {
      "source": "Description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "EndpointName",
@@ -42895,7 +45275,10 @@
    "mappings": [
     {
      "source": "ArtifactStoreUri",
-     "target": "ArtifactStoreUri"
+     "target": "ArtifactStoreUri",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "AutomaticModelRegistration",
@@ -42903,7 +45286,10 @@
     },
     {
      "source": "MlflowVersion",
-     "target": "MlflowVersion"
+     "target": "MlflowVersion",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "RoleArn",
@@ -43114,7 +45500,10 @@
    "mappings": [
     {
      "source": "ModelPackageName",
-     "target": "ModelPackageName"
+     "target": "ModelPackageName",
+     "unrepresentable": {
+      "max_length": 63
+     }
     }
    ],
    "operation": "DeleteModelPackage",
@@ -43142,7 +45531,10 @@
    "mappings": [
     {
      "source": "ModelPackageGroupName",
-     "target": "ModelPackageGroupName"
+     "target": "ModelPackageGroupName",
+     "unrepresentable": {
+      "max_length": 63
+     }
     }
    ],
    "operation": "DeleteModelPackageGroup",
@@ -43202,6 +45594,88 @@
    "service": "sagemaker"
   },
   {
+   "cfn_type": "AWS::SageMaker::NotebookInstance",
+   "mappings": [
+    {
+     "source": "AcceleratorTypes",
+     "target": "AcceleratorTypes"
+    },
+    {
+     "source": "AdditionalCodeRepositories",
+     "target": "AdditionalCodeRepositories"
+    },
+    {
+     "source": "DefaultCodeRepository",
+     "target": "DefaultCodeRepository"
+    },
+    {
+     "source": "DirectInternetAccess",
+     "target": "DirectInternetAccess"
+    },
+    {
+     "source": "InstanceType",
+     "target": "InstanceType"
+    },
+    {
+     "source": "KmsKeyId",
+     "target": "KmsKeyId"
+    },
+    {
+     "source": "LifecycleConfigName",
+     "target": "LifecycleConfigName"
+    },
+    {
+     "source": "NotebookInstanceName",
+     "target": "NotebookInstanceName",
+     "unrepresentable": {
+      "min_length": 1
+     }
+    },
+    {
+     "source": "PlatformIdentifier",
+     "target": "PlatformIdentifier"
+    },
+    {
+     "source": "RoleArn",
+     "target": "RoleArn"
+    },
+    {
+     "source": "RootAccess",
+     "target": "RootAccess"
+    },
+    {
+     "source": "SecurityGroupIds",
+     "target": "SecurityGroupIds"
+    },
+    {
+     "source": "SubnetId",
+     "target": "SubnetId"
+    },
+    {
+     "source": "VolumeSizeInGB",
+     "target": "VolumeSizeInGB"
+    }
+   ],
+   "operation": "CreateNotebookInstance",
+   "phase": "create",
+   "service": "sagemaker"
+  },
+  {
+   "cfn_type": "AWS::SageMaker::NotebookInstance",
+   "mappings": [
+    {
+     "source": "NotebookInstanceName",
+     "target": "NotebookInstanceName",
+     "unrepresentable": {
+      "min_length": 1
+     }
+    }
+   ],
+   "operation": "DeleteNotebookInstance",
+   "phase": "delete",
+   "service": "sagemaker"
+  },
+  {
    "cfn_type": "AWS::SageMaker::PartnerApp",
    "ignored_inputs": [
     "ClientToken"
@@ -43237,7 +45711,10 @@
     },
     {
      "source": "Tier",
-     "target": "Tier"
+     "target": "Tier",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "Type",
@@ -43366,7 +45843,10 @@
    "mappings": [
     {
      "source": "DomainId",
-     "target": "DomainId"
+     "target": "DomainId",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "SpaceDisplayName",
@@ -43374,7 +45854,10 @@
     },
     {
      "source": "SpaceName",
-     "target": "SpaceName"
+     "target": "SpaceName",
+     "unrepresentable": {
+      "min_length": 1
+     }
     }
    ],
    "operation": "CreateSpace",
@@ -43386,11 +45869,17 @@
    "mappings": [
     {
      "source": "DomainId",
-     "target": "DomainId"
+     "target": "DomainId",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "SpaceName",
-     "target": "SpaceName"
+     "target": "SpaceName",
+     "unrepresentable": {
+      "min_length": 1
+     }
     }
    ],
    "operation": "DeleteSpace",
@@ -43410,7 +45899,10 @@
     },
     {
      "source": "StudioLifecycleConfigName",
-     "target": "StudioLifecycleConfigName"
+     "target": "StudioLifecycleConfigName",
+     "unrepresentable": {
+      "min_length": 1
+     }
     }
    ],
    "operation": "CreateStudioLifecycleConfig",
@@ -43422,7 +45914,10 @@
    "mappings": [
     {
      "source": "StudioLifecycleConfigName",
-     "target": "StudioLifecycleConfigName"
+     "target": "StudioLifecycleConfigName",
+     "unrepresentable": {
+      "min_length": 1
+     }
     }
    ],
    "operation": "DeleteStudioLifecycleConfig",
@@ -43462,7 +45957,10 @@
    "mappings": [
     {
      "source": "DomainId",
-     "target": "DomainId"
+     "target": "DomainId",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "SingleSignOnUserIdentifier",
@@ -43470,11 +45968,17 @@
     },
     {
      "source": "SingleSignOnUserValue",
-     "target": "SingleSignOnUserValue"
+     "target": "SingleSignOnUserValue",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "UserProfileName",
-     "target": "UserProfileName"
+     "target": "UserProfileName",
+     "unrepresentable": {
+      "min_length": 1
+     }
     }
    ],
    "operation": "CreateUserProfile",
@@ -43486,11 +45990,17 @@
    "mappings": [
     {
      "source": "DomainId",
-     "target": "DomainId"
+     "target": "DomainId",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "UserProfileName",
-     "target": "UserProfileName"
+     "target": "UserProfileName",
+     "unrepresentable": {
+      "min_length": 1
+     }
     }
    ],
    "operation": "DeleteUserProfile",
@@ -44139,7 +46649,10 @@
     },
     {
      "source": "subscriberName",
-     "target": "SubscriberName"
+     "target": "SubscriberName",
+     "unrepresentable": {
+      "min_length": 1
+     }
     }
    ],
    "operation": "CreateSubscriber",
@@ -44247,7 +46760,12 @@
     },
     {
      "source": "ProductType",
-     "target": "ProductType"
+     "target": "ProductType",
+     "unrepresentable": {
+      "rejected_values": [
+       "MARKETPLACE"
+      ]
+     }
     },
     {
      "source": "SupportDescription",
@@ -44294,7 +46812,10 @@
     },
     {
      "source": "ProductName",
-     "target": "ProductName"
+     "target": "ProductName",
+     "unrepresentable": {
+      "max_length": 128
+     }
     },
     {
      "source": "ProvisionedProductName",
@@ -44325,7 +46846,10 @@
     },
     {
      "source": "ProvisionedProductName",
-     "target": "ProvisionedProductName"
+     "target": "ProvisionedProductName",
+     "unrepresentable": {
+      "max_length": 128
+     }
     }
    ],
    "operation": "TerminateProvisionedProduct",
@@ -44715,7 +47239,10 @@
     },
     {
      "source": "attributeGroup",
-     "target": "AttributeGroup"
+     "target": "AttributeGroup",
+     "unrepresentable": {
+      "max_length": 256
+     }
     }
    ],
    "operation": "AssociateAttributeGroup",
@@ -44731,7 +47258,10 @@
     },
     {
      "source": "attributeGroup",
-     "target": "AttributeGroup"
+     "target": "AttributeGroup",
+     "unrepresentable": {
+      "max_length": 256
+     }
     }
    ],
    "operation": "DisassociateAttributeGroup",
@@ -44751,7 +47281,12 @@
     },
     {
      "source": "resourceType",
-     "target": "ResourceType"
+     "target": "ResourceType",
+     "unrepresentable": {
+      "rejected_values": [
+       "RESOURCE_TAG_VALUE"
+      ]
+     }
     }
    ],
    "operation": "AssociateResource",
@@ -44771,12 +47306,71 @@
     },
     {
      "source": "resourceType",
-     "target": "ResourceType"
+     "target": "ResourceType",
+     "unrepresentable": {
+      "rejected_values": [
+       "RESOURCE_TAG_VALUE"
+      ]
+     }
     }
    ],
    "operation": "DisassociateResource",
    "phase": "delete",
    "service": "servicecatalog-appregistry"
+  },
+  {
+   "cfn_type": "AWS::ServiceDiscovery::HttpNamespace",
+   "ignored_inputs": [
+    "CreatorRequestId"
+   ],
+   "mappings": [
+    {
+     "source": "Description",
+     "target": "Description"
+    },
+    {
+     "source": "Name",
+     "target": "Name"
+    }
+   ],
+   "operation": "CreateHttpNamespace",
+   "phase": "create",
+   "service": "servicediscovery"
+  },
+  {
+   "cfn_type": "AWS::ServiceDiscovery::Instance",
+   "ignored_inputs": [
+    "CreatorRequestId"
+   ],
+   "mappings": [
+    {
+     "source": "InstanceId",
+     "target": "InstanceId"
+    },
+    {
+     "source": "ServiceId",
+     "target": "ServiceId"
+    }
+   ],
+   "operation": "RegisterInstance",
+   "phase": "create",
+   "service": "servicediscovery"
+  },
+  {
+   "cfn_type": "AWS::ServiceDiscovery::Instance",
+   "mappings": [
+    {
+     "source": "InstanceId",
+     "target": "InstanceId"
+    },
+    {
+     "source": "ServiceId",
+     "target": "ServiceId"
+    }
+   ],
+   "operation": "DeregisterInstance",
+   "phase": "delete",
+   "service": "servicediscovery"
   },
   {
    "cfn_type": "AWS::ServiceDiscovery::PrivateDnsNamespace",
@@ -44970,7 +47564,15 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_key": {
+       "max_length": 127
+      },
+      "tag_value": {
+       "max_length": 255
+      }
+     }
     }
    ],
    "operation": "PutSigningProfile",
@@ -45191,6 +47793,40 @@
    "service": "support-app"
   },
   {
+   "cfn_type": "AWS::SupportAuthZ::SupportPermit",
+   "ignored_inputs": [
+    "clientToken"
+   ],
+   "mappings": [
+    {
+     "source": "description",
+     "target": "Description"
+    },
+    {
+     "source": "name",
+     "target": "Name"
+    },
+    {
+     "source": "supportCaseDisplayId",
+     "target": "SupportCaseDisplayId"
+    },
+    {
+     "source": "tags",
+     "target": "Tags"
+    }
+   ],
+   "operation": "CreateSupportPermit",
+   "phase": "create",
+   "service": "supportauthz"
+  },
+  {
+   "cfn_type": "AWS::SupportAuthZ::SupportPermit",
+   "mappings": [],
+   "operation": "DeleteSupportPermit",
+   "phase": "delete",
+   "service": "supportauthz"
+  },
+  {
    "cfn_type": "AWS::Synthetics::Canary",
    "mappings": [
     {
@@ -45264,6 +47900,54 @@
    "operation": "DeleteGroup",
    "phase": "delete",
    "service": "synthetics"
+  },
+  {
+   "cfn_type": "AWS::Textract::Adapter",
+   "ignored_inputs": [
+    "ClientRequestToken"
+   ],
+   "mappings": [
+    {
+     "source": "AdapterName",
+     "target": "AdapterName"
+    },
+    {
+     "source": "AutoUpdate",
+     "target": "AutoUpdate"
+    },
+    {
+     "source": "Description",
+     "target": "Description"
+    },
+    {
+     "source": "FeatureTypes",
+     "target": "FeatureTypes",
+     "unrepresentable": {
+      "items": {
+       "rejected_values": [
+        "FORMS",
+        "LAYOUT",
+        "SIGNATURES",
+        "TABLES"
+       ]
+      }
+     }
+    },
+    {
+     "source": "Tags",
+     "target": "Tags"
+    }
+   ],
+   "operation": "CreateAdapter",
+   "phase": "create",
+   "service": "textract"
+  },
+  {
+   "cfn_type": "AWS::Textract::Adapter",
+   "mappings": [],
+   "operation": "DeleteAdapter",
+   "phase": "delete",
+   "service": "textract"
   },
   {
    "cfn_type": "AWS::Timestream::Database",
@@ -45362,7 +48046,10 @@
     },
     {
      "source": "vpcSubnetIds",
-     "target": "VpcSubnetIds"
+     "target": "VpcSubnetIds",
+     "unrepresentable": {
+      "max_length": 3
+     }
     }
    ],
    "operation": "CreateDbCluster",
@@ -45434,7 +48121,10 @@
     },
     {
      "source": "vpcSubnetIds",
-     "target": "VpcSubnetIds"
+     "target": "VpcSubnetIds",
+     "unrepresentable": {
+      "max_length": 3
+     }
     }
    ],
    "operation": "CreateDbInstance",
@@ -45659,7 +48349,10 @@
     },
     {
      "source": "SecurityPolicyName",
-     "target": "SecurityPolicyName"
+     "target": "SecurityPolicyName",
+     "unrepresentable": {
+      "max_length": 50
+     }
     },
     {
      "source": "Url",
@@ -45886,6 +48579,37 @@
    "service": "transfer"
   },
   {
+   "cfn_type": "AWS::Translate::ParallelData",
+   "ignored_inputs": [
+    "ClientToken"
+   ],
+   "mappings": [
+    {
+     "source": "Description",
+     "target": "Description"
+    },
+    {
+     "source": "Name",
+     "target": "Name"
+    }
+   ],
+   "operation": "CreateParallelData",
+   "phase": "create",
+   "service": "translate"
+  },
+  {
+   "cfn_type": "AWS::Translate::ParallelData",
+   "mappings": [
+    {
+     "source": "Name",
+     "target": "Name"
+    }
+   ],
+   "operation": "DeleteParallelData",
+   "phase": "delete",
+   "service": "translate"
+  },
+  {
    "cfn_type": "AWS::VerifiedPermissions::IdentitySource",
    "ignored_inputs": [
     "clientToken"
@@ -45978,7 +48702,10 @@
    "mappings": [
     {
      "source": "aliasName",
-     "target": "AliasName"
+     "target": "AliasName",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "policyStoreId",
@@ -45994,7 +48721,10 @@
    "mappings": [
     {
      "source": "aliasName",
-     "target": "AliasName"
+     "target": "AliasName",
+     "unrepresentable": {
+      "min_length": 1
+     }
     }
    ],
    "operation": "DeletePolicyStoreAlias",
@@ -46086,7 +48816,12 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_value": {
+       "min_length": 1
+      }
+     }
     }
    ],
    "operation": "CreateAccessLogSubscription",
@@ -46140,7 +48875,12 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_value": {
+       "min_length": 1
+      }
+     }
     }
    ],
    "operation": "StartDomainVerification",
@@ -46174,11 +48914,19 @@
     },
     {
      "source": "serviceIdentifier",
-     "target": "ServiceIdentifier"
+     "target": "ServiceIdentifier",
+     "unrepresentable": {
+      "min_length": 21
+     }
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_value": {
+       "min_length": 1
+      }
+     }
     }
    ],
    "operation": "CreateListener",
@@ -46190,7 +48938,10 @@
    "mappings": [
     {
      "source": "serviceIdentifier",
-     "target": "ServiceIdentifier"
+     "target": "ServiceIdentifier",
+     "unrepresentable": {
+      "min_length": 21
+     }
     }
    ],
    "operation": "DeleteListener",
@@ -46221,7 +48972,12 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_value": {
+       "min_length": 1
+      }
+     }
     }
    ],
    "operation": "CreateResourceConfiguration",
@@ -46267,7 +49023,12 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_value": {
+       "min_length": 1
+      }
+     }
     },
     {
      "source": "vpcIdentifier",
@@ -46329,15 +49090,26 @@
     },
     {
      "source": "priority",
-     "target": "Priority"
+     "target": "Priority",
+     "unrepresentable": {
+      "maximum": 100.0
+     }
     },
     {
      "source": "serviceIdentifier",
-     "target": "ServiceIdentifier"
+     "target": "ServiceIdentifier",
+     "unrepresentable": {
+      "min_length": 20
+     }
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_value": {
+       "min_length": 1
+      }
+     }
     }
    ],
    "operation": "CreateRule",
@@ -46353,7 +49125,10 @@
     },
     {
      "source": "serviceIdentifier",
-     "target": "ServiceIdentifier"
+     "target": "ServiceIdentifier",
+     "unrepresentable": {
+      "min_length": 20
+     }
     }
    ],
    "operation": "DeleteRule",
@@ -46388,7 +49163,12 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_value": {
+       "min_length": 1
+      }
+     }
     }
    ],
    "operation": "CreateService",
@@ -46418,7 +49198,12 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_value": {
+       "min_length": 1
+      }
+     }
     }
    ],
    "operation": "CreateServiceNetwork",
@@ -46444,7 +49229,12 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_value": {
+       "min_length": 1
+      }
+     }
     }
    ],
    "operation": "CreateServiceNetworkResourceAssociation",
@@ -46466,15 +49256,26 @@
    "mappings": [
     {
      "source": "serviceIdentifier",
-     "target": "ServiceIdentifier"
+     "target": "ServiceIdentifier",
+     "unrepresentable": {
+      "min_length": 20
+     }
     },
     {
      "source": "serviceNetworkIdentifier",
-     "target": "ServiceNetworkIdentifier"
+     "target": "ServiceNetworkIdentifier",
+     "unrepresentable": {
+      "min_length": 20
+     }
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_value": {
+       "min_length": 1
+      }
+     }
     }
    ],
    "operation": "CreateServiceNetworkServiceAssociation",
@@ -46504,11 +49305,19 @@
     },
     {
      "source": "serviceNetworkIdentifier",
-     "target": "ServiceNetworkIdentifier"
+     "target": "ServiceNetworkIdentifier",
+     "unrepresentable": {
+      "min_length": 20
+     }
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_value": {
+       "min_length": 1
+      }
+     }
     },
     {
      "source": "vpcIdentifier",
@@ -46538,7 +49347,12 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_value": {
+       "min_length": 1
+      }
+     }
     },
     {
      "source": "type",
@@ -47279,7 +50093,13 @@
    "mappings": [
     {
      "source": "channelSubtype",
-     "target": "ChannelSubtype"
+     "target": "ChannelSubtype",
+     "unrepresentable": {
+      "rejected_values": [
+       "PUSH",
+       "WHATSAPP"
+      ]
+     }
     },
     {
      "source": "description",
@@ -47472,7 +50292,10 @@
     },
     {
      "source": "name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "softwareSetUpdateMode",
@@ -47629,7 +50452,10 @@
     },
     {
      "source": "subnetIds",
-     "target": "SubnetIds"
+     "target": "SubnetIds",
+     "unrepresentable": {
+      "max_length": 3
+     }
     },
     {
      "source": "vpcId",
@@ -47978,11 +50804,12 @@
  ],
  "format_version": 1,
  "source": {
+  "aws_cli_version": "2.36.19",
   "botocore_service_count": 431,
   "botocore_version": "2.0.0dev155",
-  "compiled_schemas_sha256": "9f33ce28894f17ac771051a55696e18e04596cfdf01014ec13edcafd75524299",
-  "compiled_type_count": 1766,
-  "provider_schemas_sha256": "929767f603b6744fda6741ba5ca5ec42b54847a4f9a07402369ebecd8ce82248",
-  "provider_type_count": 1729
+  "compiled_schemas_sha256": "9eeedf63ea8537503ad5b34b119ab7bb35ec75c8f731e64e5a4376158ee639d7",
+  "compiled_type_count": 1767,
+  "provider_schemas_sha256": "ca88d997e27ec3a357a817c0466dd2ac1ba604bbf8985667432af312c2274d9a",
+  "provider_type_count": 1765
  }
 }

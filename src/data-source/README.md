@@ -15,10 +15,8 @@ cargo run -p cloudformation-validate-data-source --features maintenance --exampl
 cargo run -p cloudformation-validate-data-source --features maintenance --example sync -- --cfn-lint-root <DIR>
 
 # Regenerate the AWS CLI operation catalog (standalone; independent of sync/generate).
-# --aws-cli-root points at a local aws-cli checkout. The resource data must already be
-# present (upstream/schemas from a prior sync, plus the committed compiled schemas).
-cargo run -p cloudformation-validate-data-source --features maintenance \
-  --example generate_aws_cli_catalog -- --aws-cli-root <DIR>
+# --aws-cli-root points at a local aws-cli checkout.
+cargo run -p cloudformation-validate-data-source --features maintenance --example generate_aws_cli_catalog -- --aws-cli-root <DIR>
 ```
 
 The examples require the `maintenance` feature, which enables dependencies used only by the data maintenance
