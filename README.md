@@ -1,4 +1,4 @@
-# cloudformation-validate
+# AWS CloudFormation Validate
 
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Latest release](https://img.shields.io/github/v/release/aws-cloudformation/cloudformation-validate?include_prereleases)](https://github.com/aws-cloudformation/cloudformation-validate/releases)
