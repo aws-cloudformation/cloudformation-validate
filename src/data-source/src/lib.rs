@@ -90,9 +90,7 @@ impl SyncStats {
 }
 
 #[cfg(feature = "maintenance")]
-fn write_source_versions(path: &Path, versions: source_versions::SourceVersions) -> anyhow::Result<()> {
-    let versions = source_versions::SourceVersions::new(versions.cfn_lint_version, versions.resource_schema_version)
-        .map_err(anyhow::Error::msg)?;
+pub(crate) fn write_source_versions(path: &Path, versions: source_versions::SourceVersions) -> anyhow::Result<()> {
     let mut contents = serde_json::to_string_pretty(&versions)?;
     contents.push('\n');
     fs::write(path, contents)?;
@@ -131,8 +129,10 @@ pub fn sync_upstream(upstream_dir: &Path, rule_source_root: &str) -> anyhow::Res
     table_stats.fail_on_errors("CfnLintTables")?;
 
     verify_files_exist_and_populated(REQUIRED_SYNC_FILES, &generated_data, "Sync")?;
-    let source_versions =
-        source_versions::SourceVersions::new(cfn_lint_version, resource_schema_version).map_err(anyhow::Error::msg)?;
+    // The AWS CLI entry is owned by the catalog generator; sync keeps it.
+    let source_versions = source_versions::SourceVersions::read(&source_versions_path)
+        .and_then(|versions| versions.with_sync_versions(cfn_lint_version, resource_schema_version))
+        .map_err(anyhow::Error::msg)?;
     write_source_versions(&source_versions_path, source_versions)?;
     info!("Recorded complete data source provenance in {}", source_versions_path.display());
 

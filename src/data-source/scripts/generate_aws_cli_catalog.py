@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
 """Generate the AWS API operation adapter catalog for validation-engine.
 
-Derives CloudFormation-type -> API-operation adapters from two public sources:
+Derives CloudFormation-type -> API-operation adapters from two sources:
 
-1. CloudFormation resource provider schemas WITH handler metadata
-   (https://github.com/aws-cloudformation/resource-provider-enhanced-schemas
-   releases, ``schemas-standard.zip``). Each type's own create/delete handler
-   permissions contain the type's canonical lifecycle API actions.
-2. Botocore service models (importable ``botocore``), which resolve IAM action
-   prefixes to real services and operations and provide exact input shapes.
+1. CloudFormation resource provider schemas WITH handler metadata, as synced
+   into ``upstream/schemas`` (from the
+   https://github.com/aws-cloudformation/resource-provider-enhanced-schemas
+   releases). Each type's own create/delete handler permissions contain the
+   type's canonical lifecycle API actions. Every mapping is verified against
+   the committed compiled schemas
+   (``generated/schema-validator/compiled_schemas.json``).
+2. Botocore service models (importable ``botocore`` from an AWS CLI checkout),
+   which resolve IAM action prefixes to real services and operations and
+   provide exact input shapes.
 
 Derivation direction is type -> operation, scoped to one type's own handler
 permissions at a time. The global inverse (operation -> type by name) is
@@ -31,7 +35,13 @@ unsafe and is never used. Every candidate must pass all of:
   case-insensitive identifier match, or via the reviewed identifier-rename
   allowlist (``PROPERTY_RENAME_ALLOWLIST``); a differently-named property is
   accepted only for a fully reviewed cfn_type/service/operation/source/target
-  context
+  context; a same-named member whose meaning differs from the property
+  (``PROPERTY_SEMANTIC_DENYLIST``) never maps
+- value-domain verification: an API input value that the service accepts but
+  the CloudFormation schema rejects (enum members, numeric bounds, string
+  lengths, list sizes, tag key/value lengths) is recorded per mapping as an
+  ``unrepresentable`` domain so the runtime skips synthesis for such a value
+  instead of reporting a CloudFormation finding against a valid API call
 - noun agreement or property-overlap thresholds; ties are dropped entirely
 - global reverse uniqueness: one (service, operation) key maps to exactly one
   catalog entry; unresolvable collisions are dropped entirely
@@ -41,8 +51,8 @@ validated as SKIPPED at runtime, never guessed.
 
 Usage:
     python3 generate_aws_cli_catalog.py \
-        --botocore-root /path/to/botocore \
-        --provider-schemas schemas-standard.zip \
+        --botocore-root /path/to/aws-cli/awscli \
+        --provider-schemas ../upstream/schemas \
         --compiled-schemas ../generated/schema-validator/compiled_schemas.json \
         --output ../generated/data/aws_cli_operation_catalog.json
 """
@@ -51,6 +61,7 @@ import argparse
 import hashlib
 import importlib
 import json
+import re
 import sys
 import zipfile
 from collections import defaultdict
@@ -119,6 +130,22 @@ PROPERTY_RENAME_ALLOWLIST = frozenset({
     ('AWS::SNS::Topic', 'sns', 'CreateTopic', 'Name', 'TopicName'),
     ('AWS::StepFunctions::StateMachine', 'stepfunctions', 'CreateStateMachine', 'name', 'StateMachineName'),
     ('AWS::Timestream::ScheduledQuery', 'timestream-query', 'CreateScheduledQuery', 'Name', 'ScheduledQueryName'),
+})
+
+# Reviewed same-identifier mappings whose meaning differs between the API and
+# the CloudFormation property, so a value that is valid for the API can never
+# be the CloudFormation value. Each entry names an API member carrying a bare
+# resource identifier where the same-named CloudFormation property carries the
+# resource ARN (its schema pattern is anchored on ``^arn:``). Such a member is
+# never mapped; when supplied, the request is skipped at runtime.
+PROPERTY_SEMANTIC_DENYLIST = frozenset({
+    ('AWS::Connect::ApprovedOrigin', 'connect', 'AssociateApprovedOrigin', 'InstanceId', 'InstanceId'),
+    ('AWS::Connect::ContactFlowModuleAlias', 'connect', 'CreateContactFlowModuleAlias', 'ContactFlowModuleId', 'ContactFlowModuleId'),
+    ('AWS::Connect::ContactFlowModuleVersion', 'connect', 'CreateContactFlowModuleVersion', 'ContactFlowModuleId', 'ContactFlowModuleId'),
+    ('AWS::Connect::ContactFlowVersion', 'connect', 'CreateContactFlowVersion', 'ContactFlowId', 'ContactFlowId'),
+    ('AWS::Connect::IntegrationAssociation', 'connect', 'CreateIntegrationAssociation', 'InstanceId', 'InstanceId'),
+    ('AWS::Connect::SecurityKey', 'connect', 'AssociateSecurityKey', 'InstanceId', 'InstanceId'),
+    ('AWS::S3Outposts::BucketPolicy', 's3control', 'PutBucketPolicy', 'Bucket', 'Bucket'),
 })
 
 # CFN service segments whose botocore/IAM service identity differs beyond casing.
@@ -401,6 +428,21 @@ def _source_sha256(source_path):
     return digest.hexdigest()
 
 
+def _aws_cli_version(botocore_root):
+    """Release version of the AWS CLI checkout whose ``awscli/`` is ``botocore_root``.
+
+    Read textually from ``awscli/__init__.py`` because importing ``awscli``
+    installs import hooks and is not needed to learn the version.
+    """
+    init_path = botocore_root / '__init__.py'
+    match = re.search(
+        r"^__version__\s*=\s*['\"]([^'\"]+)['\"]", init_path.read_text(), re.M
+    )
+    if match is None:
+        raise SystemExit(f'cannot determine the AWS CLI version from {init_path}')
+    return match.group(1)
+
+
 def _load_provider_schemas(source_path):
     schemas = {}
     if source_path.is_dir():
@@ -635,6 +677,148 @@ def _is_runtime_safe_mapping(source_shape, target_schema, definitions, target):
     return False
 
 
+def _shape_bounds(shape):
+    """botocore ``min``/``max`` traits: string length, list size, or numeric range."""
+    metadata = getattr(shape, 'metadata', None) or {}
+    return metadata.get('min'), metadata.get('max')
+
+
+def _cfn_pattern_rejects(pattern, value):
+    """True only when the CloudFormation pattern provably rejects ``value``.
+
+    JSON Schema patterns are unanchored ECMA regexes; ``re.search`` mirrors
+    that. A pattern Python cannot compile is treated as not rejecting anything,
+    so a mapping is never restricted on unverifiable evidence.
+    """
+    try:
+        return re.search(pattern, value) is None
+    except re.error:
+        return False
+
+
+def _string_unrepresentable(source_shape, target_schema, definitions):
+    node = (
+        _schema_node_for_type(target_schema, definitions, 'string')
+        or _resolve_schema_node(target_schema, definitions)
+    )
+    domain = {}
+    api_min, api_max = _shape_bounds(source_shape)
+    cfn_min = node.get('min_length')
+    cfn_max = node.get('max_length')
+    api_enum = list(getattr(source_shape, 'enum', None) or [])
+    if api_enum:
+        cfn_enum = node.get('enum')
+        pattern = node.get('pattern')
+        rejected = sorted(
+            value for value in api_enum
+            if (isinstance(cfn_enum, list) and value not in cfn_enum)
+            or (pattern and _cfn_pattern_rejects(pattern, value))
+            or (cfn_min is not None and len(value) < cfn_min)
+            or (cfn_max is not None and len(value) > cfn_max)
+        )
+        if rejected:
+            domain['rejected_values'] = rejected
+        return domain
+    if api_max is not None and cfn_max is not None and api_max > cfn_max:
+        domain['max_length'] = cfn_max
+    if api_min is not None and cfn_min is not None and api_min < cfn_min:
+        domain['min_length'] = cfn_min
+    return domain
+
+
+def _numeric_unrepresentable(source_shape, target_schema, definitions):
+    node = (
+        _schema_node_for_type(target_schema, definitions, 'integer')
+        or _schema_node_for_type(target_schema, definitions, 'number')
+        or _resolve_schema_node(target_schema, definitions)
+    )
+    domain = {}
+    api_min, api_max = _shape_bounds(source_shape)
+    cfn_min = node.get('minimum')
+    cfn_max = node.get('maximum')
+    if api_max is not None and cfn_max is not None and api_max > cfn_max:
+        domain['maximum'] = cfn_max
+    if api_min is not None and cfn_min is not None and api_min < cfn_min:
+        domain['minimum'] = cfn_min
+    return domain
+
+
+def _tag_field_schema(item_schema, definitions, field):
+    """Schema node of the ``Key`` or ``Value`` field of a Key/Value tag item."""
+    item_schema = _resolve_tag_schema_node(item_schema, definitions) or {}
+    candidates = [item_schema]
+    for alternatives in ('any_of', 'one_of'):
+        candidates.extend(item_schema.get(alternatives) or [])
+    for candidate in candidates:
+        candidate = _resolve_tag_schema_node(candidate, definitions) or {}
+        properties = candidate.get('properties') or {}
+        if field in properties:
+            return properties[field]
+    return {}
+
+
+def _unrepresentable_domain(source_shape, target_schema, definitions, target):
+    """API-valid values of ``source_shape`` that ``target_schema`` rejects.
+
+    Only provable exclusions are recorded: an API enum member absent from the
+    CloudFormation enum or rejected by its pattern, and API numeric, length, or
+    size bounds that exceed the CloudFormation bounds. The returned mapping is
+    empty when every API-valid value has a CloudFormation representation.
+    Keys name the CloudFormation constraint the API range exceeds:
+    ``rejected_values`` (API enum members CloudFormation rejects),
+    ``minimum``/``maximum`` (numeric bounds), ``min_length``/``max_length``
+    (string length or list size), ``items`` (nested domain of list elements),
+    ``tag_key``/``tag_value`` (nested string domains for tag maps).
+    """
+    source_type = source_shape.type_name
+    if source_type == 'string':
+        return _string_unrepresentable(source_shape, target_schema, definitions)
+    if source_type in ('integer', 'long', 'float', 'double'):
+        return _numeric_unrepresentable(source_shape, target_schema, definitions)
+    if source_type == 'list':
+        array_schema = _schema_node_for_type(
+            target_schema, definitions, 'array'
+        ) or {}
+        domain = {}
+        item_domain = _unrepresentable_domain(
+            source_shape.member, array_schema.get('items') or {}, definitions,
+            target,
+        )
+        if item_domain:
+            domain['items'] = item_domain
+        api_min, api_max = _shape_bounds(source_shape)
+        cfn_min = array_schema.get('min_items')
+        cfn_max = array_schema.get('max_items')
+        if api_max is not None and cfn_max is not None and api_max > cfn_max:
+            domain['max_length'] = cfn_max
+        if api_min is not None and cfn_min is not None and api_min < cfn_min:
+            domain['min_length'] = cfn_min
+        return domain
+    if source_type == 'map' and target == 'Tags':
+        array_schema = _schema_node_for_type(
+            target_schema, definitions, 'array'
+        ) or {}
+        item_schema = array_schema.get('items') or {}
+        domain = {}
+        for field, key in (('Key', 'tag_key'), ('Value', 'tag_value')):
+            field_domain = _string_unrepresentable(
+                source_shape.key if field == 'Key' else source_shape.value,
+                _tag_field_schema(item_schema, definitions, field),
+                definitions,
+            )
+            if field_domain:
+                domain[key] = field_domain
+        return domain
+    return {}
+
+
+def _mapping_entry(source, target, unrepresentable):
+    entry = {'source': source, 'target': target}
+    if unrepresentable:
+        entry['unrepresentable'] = unrepresentable
+    return entry
+
+
 def _property_mappings(
     members, property_schemas, writable_by_lower, resource_segment, definitions,
     cfn_type, service, operation
@@ -642,9 +826,12 @@ def _property_mappings(
     """Return mappings the runtime can serialize without nested rewriting.
 
     A member maps onto a property with the same identifier (case-insensitive)
-    unconditionally. A member that maps onto a differently-named property is a
-    reviewed rename, accepted only when (cfn_type, service, operation, member,
-    target) is present in ``PROPERTY_RENAME_ALLOWLIST``.
+    unconditionally unless the pair is a reviewed semantic mismatch
+    (``PROPERTY_SEMANTIC_DENYLIST``). A member that maps onto a
+    differently-named property is a reviewed rename, accepted only when
+    (cfn_type, service, operation, member, target) is present in
+    ``PROPERTY_RENAME_ALLOWLIST``. Each mapping carries the API value domain the
+    CloudFormation schema cannot represent, when any exists.
     """
     mappings = []
     for member in sorted(members):
@@ -652,6 +839,8 @@ def _property_mappings(
         target = None
         if lowered in writable_by_lower:
             target = writable_by_lower[lowered]
+            if (cfn_type, service, operation, member, target) in PROPERTY_SEMANTIC_DENYLIST:
+                target = None
         else:
             renamed_target = None
             if lowered + 'name' in writable_by_lower:
@@ -665,7 +854,13 @@ def _property_mappings(
         if target and _is_runtime_safe_mapping(
             members[member], property_schemas[target], definitions, target
         ):
-            mappings.append((member, target))
+            mappings.append(_mapping_entry(
+                member,
+                target,
+                _unrepresentable_domain(
+                    members[member], property_schemas[target], definitions, target
+                ),
+            ))
     return mappings
 
 
@@ -780,10 +975,7 @@ def _derive_role(role, verbs, provider_schemas, compiled_schemas, index, require
             'service': top[4],
             'operation': top[5],
             'phase': role,
-            'mappings': [
-                {'source': source, 'target': target}
-                for source, target in mappings
-            ],
+            'mappings': list(mappings),
             'ignored_inputs': _ignored_inputs_for_operation(
                 index.input_members(top[4], top[5]), role, top[4], top[5]
             ),
@@ -820,6 +1012,12 @@ def _enforce_global_uniqueness(adapters):
 
 
 def _verify_curated_updates(compiled_schemas, index):
+    """Return the curated update adapters, verified like derived ones.
+
+    Each returned adapter is a copy whose mappings carry the API value domain the
+    CloudFormation schema cannot represent.
+    """
+    verified_adapters = []
     for adapter in CURATED_UPDATE_ADAPTERS:
         constraints = _compiled_constraints(compiled_schemas, adapter['cfn_type'])
         if constraints is None:
@@ -829,6 +1027,7 @@ def _verify_curated_updates(compiled_schemas, index):
         property_schemas, read_only, primary, definitions = constraints
         members = index.input_members(adapter['service'], adapter['operation'])
         mapping_sources = set()
+        verified_mappings = []
         for mapping in adapter['mappings']:
             if mapping['source'] not in members:
                 raise SystemExit(
@@ -841,6 +1040,14 @@ def _verify_curated_updates(compiled_schemas, index):
                 raise SystemExit(
                     f"curated mapping target {target} is invalid for {adapter['cfn_type']}"
                 )
+            if (
+                adapter['cfn_type'], adapter['service'], adapter['operation'],
+                mapping['source'], target,
+            ) in PROPERTY_SEMANTIC_DENYLIST:
+                raise SystemExit(
+                    f"curated mapping {mapping['source']} -> {target} is a reviewed "
+                    "semantic mismatch"
+                )
             if not _is_runtime_safe_mapping(
                 members[mapping['source']], property_schemas[target],
                 definitions, target
@@ -849,6 +1056,14 @@ def _verify_curated_updates(compiled_schemas, index):
                     f"curated mapping {mapping['source']} -> {target} is not "
                     "runtime shape-compatible"
                 )
+            verified_mappings.append(_mapping_entry(
+                mapping['source'],
+                target,
+                _unrepresentable_domain(
+                    members[mapping['source']], property_schemas[target],
+                    definitions, target,
+                ),
+            ))
         for ignored_name in adapter.get('ignored_inputs', []):
             if ignored_name not in members:
                 raise SystemExit(
@@ -860,6 +1075,8 @@ def _verify_curated_updates(compiled_schemas, index):
                     f"curated ignored_inputs entry '{ignored_name}' overlaps a mapping "
                     f"source in {adapter['service']}:{adapter['operation']}"
                 )
+        verified_adapters.append({**adapter, 'mappings': verified_mappings})
+    return verified_adapters
 
 
 def _compute_coverage(unique_adapters, index, compiled_schemas):
@@ -1109,13 +1326,9 @@ def main():
     deletes, delete_counters = _derive_role(
         'delete', DELETE_VERBS, provider_schemas, compiled_schemas, index, False
     )
-    _verify_curated_updates(compiled_schemas, index)
+    curated_updates = _verify_curated_updates(compiled_schemas, index)
 
-    all_adapters = (
-        list(creates.values())
-        + list(deletes.values())
-        + [dict(adapter) for adapter in CURATED_UPDATE_ADAPTERS]
-    )
+    all_adapters = list(creates.values()) + list(deletes.values()) + curated_updates
     unique_adapters, dropped = _enforce_global_uniqueness(all_adapters)
 
     for adapter in unique_adapters:
@@ -1150,6 +1363,7 @@ def main():
             'compiled_schemas_sha256': _source_sha256(
                 args.compiled_schemas
             ),
+            'aws_cli_version': _aws_cli_version(args.botocore_root),
             'botocore_version': botocore_module.__version__,
             'botocore_service_count': index.service_count,
             'provider_type_count': len(provider_schemas),

@@ -101,6 +101,23 @@ fails both conditions — because it has no mapping, or its value cannot be type
 synthesis is SKIPPED and the reason names the offending parameter. This guarantees that validated templates faithfully
 represent the full caller-supplied state: no parameter is ever silently omitted from the synthesized template.
 
+**API-valid values are never reported as CloudFormation violations.** A same-named API input and CloudFormation
+property can differ in value domain: the service may accept an enum member, numeric bound, string length, list size,
+or tag key/value length that the CloudFormation schema rejects. The generator records that API-only domain on each
+mapping as `unrepresentable`, and the runtime skips synthesis — again naming the parameter and the value — whenever a
+supplied value falls inside it, so a command the service would accept is never modeled as a template that
+CloudFormation would reject. Same-named inputs whose meaning differs from the property (for example an API resource ID
+where the CloudFormation property carries the resource ARN) are removed from the catalog by a reviewed denylist and
+therefore skip synthesis as unmapped parameters.
+
+**Template-authoring advice is not reported for modeled state.** Synthesized templates and wrapped Cloud Control
+desired state never had a template author, so rules whose only remediation is a template construct — replace a literal
+ARN, AMI ID, account ID, availability zone, password, or pseudo-parameter lookalike with a parameter, `Ref`/`GetAtt`,
+mapping, or dynamic reference — are dropped from those reports and counted
+as suppressed. They still apply to `TemplateBody` requests, which validate the caller's real template unchanged. Rules
+that judge the values themselves (schema constraints, deprecations, security posture such as a publicly accessible
+database) are always kept.
+
 Cloud Control `UpdateResource` and `DeleteResource` may report a known `TypeName` supplied explicitly by the request,
 but they never synthesize state. There is no fuzzy inference, substring matching, or generic property-name guessing.
 `TemplateBody` validation is restricted to the closed set of CloudFormation operations that accept it;

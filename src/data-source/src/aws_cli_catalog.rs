@@ -10,6 +10,8 @@
 //! The `generate_aws_cli_catalog` example is the command-line entry point; this
 //! module owns the logic it calls.
 
+use crate::source_versions::{AWS_CLI_SOURCE, SOURCE_VERSIONS_FILE, SourceVersions};
+use crate::write_source_versions;
 use log::info;
 use std::fs;
 use std::path::Path;
@@ -17,10 +19,17 @@ use std::path::Path;
 /// Format version the generator emits and the runtime loader accepts.
 const AWS_CLI_OPERATION_CATALOG_FORMAT_VERSION: u64 = 1;
 
-#[derive(serde::Deserialize)]
+#[derive(Debug, serde::Deserialize)]
 struct AwsCliOperationCatalog {
     format_version: u64,
     adapters: Vec<serde_json::Value>,
+    source: AwsCliOperationCatalogSource,
+}
+
+#[derive(Debug, serde::Deserialize)]
+struct AwsCliOperationCatalogSource {
+    /// Release version of the AWS CLI checkout whose bundled botocore models the catalog derives from.
+    aws_cli_version: String,
 }
 
 /// Generate the AWS CLI operation catalog into `generated_dir/data`.
@@ -69,12 +78,20 @@ pub fn generate_aws_cli_catalog(upstream_dir: &Path, generated_dir: &Path, aws_c
 
     let catalog_bytes = fs::read(&catalog_path)
         .map_err(|error| anyhow::anyhow!("failed to read generated catalog {}: {error}", catalog_path.display()))?;
-    let adapter_count = validate_catalog(&catalog_bytes)?;
-    info!("Generated AWS CLI operation catalog with {adapter_count} adapters at {}", catalog_path.display());
+    let catalog = validate_catalog(&catalog_bytes)?;
+    info!("Generated AWS CLI operation catalog with {} adapters at {}", catalog.adapters.len(), catalog_path.display());
+
+    let source_versions_path = generated_dir.join("data").join(SOURCE_VERSIONS_FILE);
+    let aws_cli_version = format!("{AWS_CLI_SOURCE}@{}", catalog.source.aws_cli_version);
+    let source_versions = SourceVersions::read(&source_versions_path)
+        .and_then(|versions| versions.with_aws_cli_version(aws_cli_version.clone()))
+        .map_err(anyhow::Error::msg)?;
+    write_source_versions(&source_versions_path, source_versions)?;
+    info!("Recorded {aws_cli_version} in {}", source_versions_path.display());
     Ok(())
 }
 
-fn validate_catalog(catalog_bytes: &[u8]) -> anyhow::Result<usize> {
+fn validate_catalog(catalog_bytes: &[u8]) -> anyhow::Result<AwsCliOperationCatalog> {
     let catalog: AwsCliOperationCatalog = serde_json::from_slice(catalog_bytes)
         .map_err(|error| anyhow::anyhow!("generated AWS CLI operation catalog is invalid JSON: {error}"))?;
     anyhow::ensure!(
@@ -84,7 +101,11 @@ fn validate_catalog(catalog_bytes: &[u8]) -> anyhow::Result<usize> {
         AWS_CLI_OPERATION_CATALOG_FORMAT_VERSION
     );
     anyhow::ensure!(!catalog.adapters.is_empty(), "generated AWS CLI operation catalog contains no adapters");
-    Ok(catalog.adapters.len())
+    anyhow::ensure!(
+        !catalog.source.aws_cli_version.trim().is_empty(),
+        "generated AWS CLI operation catalog does not record the AWS CLI version"
+    );
+    Ok(catalog)
 }
 
 #[cfg(test)]
@@ -93,22 +114,32 @@ mod tests {
 
     #[test]
     fn current_catalog_format_with_adapters_is_valid() {
-        let catalog = br#"{"format_version":1,"adapters":[{}]}"#;
-        let adapter_count = validate_catalog(catalog).expect("catalog should be valid");
-        assert_eq!(1, adapter_count);
+        let catalog = br#"{"format_version":1,"adapters":[{}],"source":{"aws_cli_version":"2.36.43"}}"#;
+        let catalog = validate_catalog(catalog).expect("catalog should be valid");
+        assert_eq!(1, catalog.adapters.len());
+        assert_eq!("2.36.43", catalog.source.aws_cli_version);
     }
 
     #[test]
     fn unsupported_catalog_format_is_rejected() {
-        let catalog = br#"{"format_version":2,"adapters":[{}]}"#;
+        let catalog = br#"{"format_version":2,"adapters":[{}],"source":{"aws_cli_version":"2.36.43"}}"#;
         let error = validate_catalog(catalog).expect_err("unsupported format must fail");
         assert!(error.to_string().contains("format version 2, expected 1"));
     }
 
     #[test]
     fn catalog_without_adapters_is_rejected() {
-        let catalog = br#"{"format_version":1,"adapters":[]}"#;
+        let catalog = br#"{"format_version":1,"adapters":[],"source":{"aws_cli_version":"2.36.43"}}"#;
         let error = validate_catalog(catalog).expect_err("empty adapters must fail");
         assert!(error.to_string().contains("contains no adapters"));
+    }
+
+    #[test]
+    fn catalog_without_aws_cli_version_is_rejected() {
+        let catalog = br#"{"format_version":1,"adapters":[{}],"source":{"aws_cli_version":" "}}"#;
+        let error = validate_catalog(catalog).expect_err("blank version must fail");
+        assert!(error.to_string().contains("does not record the AWS CLI version"));
+        let catalog = br#"{"format_version":1,"adapters":[{}],"source":{}}"#;
+        assert!(validate_catalog(catalog).is_err(), "missing version must fail");
     }
 }

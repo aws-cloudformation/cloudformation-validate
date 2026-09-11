@@ -39,6 +39,14 @@ cadence. It only generates the catalog and never downloads or processes schemas:
 already present under `upstream/schemas` (written by `sync`) and the committed compiled schemas under
 `generated/schema-validator`, and fails with a clear message if either is missing.
 
+Besides the operation-to-type and parameter-to-property pairs, each mapping records the API value domain that the
+compiled CloudFormation schema cannot represent (`unrepresentable`: enum members, numeric bounds, string lengths, list
+sizes, tag key/value lengths), derived by comparing the botocore input shape against the compiled property schema. The
+runtime uses it to skip synthesis for a command whose values the service accepts but CloudFormation would reject.
+Same-named inputs whose meaning differs from the CloudFormation property are excluded by the reviewed
+`PROPERTY_SEMANTIC_DENYLIST` in the script. Re-run the command after `sync` (which refreshes the provider schemas and
+compiled schemas), after changing the generator's mapping rules, or after updating the AWS CLI checkout.
+
 
 ## Directory Structure
 
