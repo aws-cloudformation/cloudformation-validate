@@ -89,6 +89,35 @@ impl SyncStats {
     }
 }
 
+/// Manifest writers. They live here rather than in `source_versions.rs` because
+/// the build script compiles that file too and only ever reads the manifest.
+#[cfg(feature = "maintenance")]
+impl source_versions::SourceVersions {
+    pub(crate) fn new(
+        cfn_lint_version: String,
+        resource_schema_version: String,
+        aws_cli_version: Option<String>,
+    ) -> Result<Self, String> {
+        let versions = Self { cfn_lint_version, resource_schema_version, aws_cli_version };
+        versions.validate()?;
+        Ok(versions)
+    }
+
+    /// The manifest with the `sync`-owned entries replaced and the AWS CLI entry kept.
+    pub(crate) fn with_sync_versions(
+        self,
+        cfn_lint_version: String,
+        resource_schema_version: String,
+    ) -> Result<Self, String> {
+        Self::new(cfn_lint_version, resource_schema_version, self.aws_cli_version)
+    }
+
+    /// The manifest with the AWS CLI entry recorded and the `sync`-owned entries kept.
+    pub(crate) fn with_aws_cli_version(self, aws_cli_version: String) -> Result<Self, String> {
+        Self::new(self.cfn_lint_version, self.resource_schema_version, Some(aws_cli_version))
+    }
+}
+
 #[cfg(feature = "maintenance")]
 pub(crate) fn write_source_versions(path: &Path, versions: source_versions::SourceVersions) -> anyhow::Result<()> {
     let mut contents = serde_json::to_string_pretty(&versions)?;
@@ -290,5 +319,40 @@ fn is_stub(path: &Path) -> bool {
             trimmed == "{}" || trimmed == "[]"
         }
         Err(_) => true,
+    }
+}
+
+#[cfg(all(test, feature = "maintenance"))]
+mod source_version_writer_tests {
+    use crate::source_versions::{AWS_CLI_SOURCE, CFN_LINT_SOURCE, RESOURCE_SCHEMA_SOURCE, SourceVersions};
+
+    const SYNC_ONLY_MANIFEST: &str = r#"{
+        "cfn_lint_version":"https://github.com/aws-cloudformation/cfn-lint@1.54.0",
+        "resource_schema_version":"https://github.com/aws-cloudformation/resource-provider-enhanced-schemas@2026-08-07T18:20:13Z"
+    }"#;
+
+    #[test]
+    fn each_writer_preserves_the_entries_it_does_not_own() {
+        let recorded = SourceVersions::from_json(SYNC_ONLY_MANIFEST)
+            .expect("manifest should parse")
+            .with_aws_cli_version(format!("{AWS_CLI_SOURCE}@2.36.43"))
+            .expect("catalog update should be valid");
+        assert_eq!(recorded.aws_cli_version.as_deref(), Some("https://github.com/aws/aws-cli@2.36.43"));
+        assert_eq!(recorded.cfn_lint_version, format!("{CFN_LINT_SOURCE}@1.54.0"));
+
+        let synced = recorded
+            .with_sync_versions(
+                format!("{CFN_LINT_SOURCE}@1.56.0"),
+                format!("{RESOURCE_SCHEMA_SOURCE}@2026-09-08T00:15:23Z"),
+            )
+            .expect("sync update should be valid");
+        assert_eq!(synced.cfn_lint_version, format!("{CFN_LINT_SOURCE}@1.56.0"));
+        assert_eq!(synced.aws_cli_version.as_deref(), Some("https://github.com/aws/aws-cli@2.36.43"));
+
+        let error = SourceVersions::from_json(SYNC_ONLY_MANIFEST)
+            .expect("manifest should parse")
+            .with_aws_cli_version("2.36.43".to_string())
+            .expect_err("unqualified version must fail");
+        assert!(error.contains(AWS_CLI_SOURCE));
     }
 }

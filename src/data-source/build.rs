@@ -94,10 +94,10 @@ fn main() {
     println!("cargo:rerun-if-changed={}", source_versions_path.display());
     require_file(&source_versions_path, "data source provenance");
     let source_versions = SourceVersions::read(&source_versions_path)
-        .and_then(|versions| SourceVersions::new(versions.cfn_lint_version, versions.resource_schema_version))
         .unwrap_or_else(|error| panic!("failed to load required data source versions: {error}"));
     emit_version("CFN_LINT_VERSION", &source_versions.cfn_lint_version, &mut code);
     emit_version("RESOURCE_SCHEMA_VERSION", &source_versions.resource_schema_version, &mut code);
+    emit_optional_version("AWS_CLI_VERSION", source_versions.aws_cli_version.as_deref(), &mut code);
 
     for (relative_path, const_name) in GENERATED_JSON {
         let path = generated_dir.join(relative_path);
@@ -184,6 +184,15 @@ fn main() {
 
 fn emit_version(const_name: &str, version: &str, code: &mut String) {
     code.push_str(&format!("pub const {const_name}: &str = {version:?};\n"));
+}
+
+/// A provenance entry that a later maintenance step may not have recorded yet.
+fn emit_optional_version(const_name: &str, version: Option<&str>, code: &mut String) {
+    let literal = match version {
+        Some(version) => format!("Some({version:?})"),
+        None => "None".to_string(),
+    };
+    code.push_str(&format!("pub const {const_name}: Option<&str> = {literal};\n"));
 }
 
 fn require_file(path: &Path, label: &str) {
