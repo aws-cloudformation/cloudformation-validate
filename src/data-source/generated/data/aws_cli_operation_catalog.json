@@ -271,7 +271,13 @@
     },
     {
      "source": "kmsKeyArn",
-     "target": "KmsKeyArn"
+     "target": "KmsKeyArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:aws[-a-z]*:kms:[-a-z0-9]+:[0-9]{12}:key/[-a-f0-9]+)$",
+       "cloudformation": "^arn:aws[-a-z]*:kms:[-a-z0-9]+:[0-9]{12}:key/.+$"
+      }
+     }
     },
     {
      "source": "tags",
@@ -381,7 +387,13 @@
    "mappings": [
     {
      "source": "analyzerName",
-     "target": "AnalyzerName"
+     "target": "AnalyzerName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[A-Za-z_][A-Za-z0-9_.-]*)$",
+       "cloudformation": "^[A-Za-z][A-Za-z0-9_.-]*$"
+      }
+     }
     },
     {
      "source": "ruleName",
@@ -400,7 +412,13 @@
    "mappings": [
     {
      "source": "analyzerName",
-     "target": "AnalyzerName"
+     "target": "AnalyzerName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[A-Za-z_][A-Za-z0-9_.-]*)$",
+       "cloudformation": "^[A-Za-z][A-Za-z0-9_.-]*$"
+      }
+     }
     },
     {
      "source": "ruleName",
@@ -753,7 +771,13 @@
     },
     {
      "source": "autoSubDomainIAMRole",
-     "target": "AutoSubDomainIAMRole"
+     "target": "AutoSubDomainIAMRole",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^$|^arn:aws:iam::\\d{12}:role.+)$",
+       "cloudformation": "^$|^arn:.+:iam::\\d{12}:role.+"
+      }
+     }
     },
     {
      "source": "domainName",
@@ -1022,7 +1046,13 @@
     },
     {
      "source": "Type",
-     "target": "Type"
+     "target": "Type",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[a-zA-Z0-9\\.\\-]+)$",
+       "cloudformation": "^[a-zA-Z\\.]+"
+      }
+     }
     }
    ],
    "operation": "CreateConfigurationProfile",
@@ -1347,7 +1377,13 @@
     },
     {
      "source": "VersionLabel",
-     "target": "VersionLabel"
+     "target": "VersionLabel",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:.*[^0-9].*)$",
+       "cloudformation": "^$|.*[^0-9].*"
+      }
+     }
     }
    ],
    "operation": "CreateHostedConfigurationVersion",
@@ -1405,7 +1441,13 @@
     },
     {
      "source": "connectorLabel",
-     "target": "ConnectorLabel"
+     "target": "ConnectorLabel",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9][\\w!@#.-]+)$",
+       "cloudformation": "[\\w!@#.-]+"
+      }
+     }
     },
     {
      "source": "connectorProfileName",
@@ -1516,7 +1558,13 @@
     },
     {
      "source": "Namespace",
-     "target": "Namespace"
+     "target": "Namespace",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[a-zA-Z0-9\\/\\._\\-]+$)$",
+       "cloudformation": "^[a-zA-Z0-9/\\._\\-]+$"
+      }
+     }
     },
     {
      "source": "Permissions",
@@ -1557,7 +1605,13 @@
     },
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[a-zA-Z0-9\\/\\._\\-]+$)$",
+       "cloudformation": "^[a-zA-Z0-9/\\._\\-]+$"
+      }
+     }
     },
     {
      "source": "SourceURI",
@@ -1594,11 +1648,23 @@
     },
     {
      "source": "EventBridgeBus",
-     "target": "EventBridgeBus"
+     "target": "EventBridgeBus",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[a-zA-Z0-9\\/\\._\\-]+$)$",
+       "cloudformation": "^[a-zA-Z0-9/\\._\\-]+$"
+      }
+     }
     },
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[a-zA-Z0-9\\/\\._\\-]+$)$",
+       "cloudformation": "^[a-zA-Z0-9/\\._\\-]+$"
+      }
+     }
     },
     {
      "source": "Tags",
@@ -1614,7 +1680,13 @@
    "mappings": [
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[a-zA-Z0-9\\/\\._\\-]+$)$",
+       "cloudformation": "^[a-zA-Z0-9/\\._\\-]+$"
+      }
+     }
     }
    ],
    "operation": "DeleteEventIntegration",
@@ -1707,7 +1779,13 @@
     },
     {
      "source": "VpcConnectorName",
-     "target": "VpcConnectorName"
+     "target": "VpcConnectorName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[A-Za-z0-9][A-Za-z0-9\\-_]{3,39})$",
+       "cloudformation": "^[A-Za-z0-9][A-Za-z0-9-\\\\_]{3,39}$"
+      }
+     }
     }
    ],
    "operation": "CreateVpcConnector",
@@ -1726,7 +1804,13 @@
    "mappings": [
     {
      "source": "ServiceArn",
-     "target": "ServiceArn"
+     "target": "ServiceArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:aws(-[\\w]+)*:[a-z0-9-\\\\.]{0,63}:[a-z0-9-\\\\.]{0,63}:[0-9]{12}:(\\w|\\/|-){1,1011})$",
+       "cloudformation": "arn:aws(-[\\w]+)*:[a-z0-9-\\.]{0,63}:[a-z0-9-\\.]{0,63}:[0-9]{12}:(\\w|/|-){1,1011}"
+      }
+     }
     },
     {
      "source": "VpcIngressConnectionName",
@@ -2316,7 +2400,13 @@
    "mappings": [
     {
      "source": "certificateArn",
-     "target": "CertificateArn"
+     "target": "CertificateArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^arn:[a-z-]*:(acm|iam):[a-z0-9-]*:\\d{12}:(certificate|server-certificate)/[0-9A-Za-z_/-]*$)$",
+       "cloudformation": "^arn:[a-z-]*:acm:[a-z0-9-]*:\\d{12}:certificate/[0-9A-Za-z_/-]*$"
+      }
+     }
     },
     {
      "source": "description",
@@ -2324,7 +2414,13 @@
     },
     {
      "source": "domainName",
-     "target": "DomainName"
+     "target": "DomainName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^(\\*[\\w\\d-]*\\.)?([\\w\\d-]+\\.)+[\\w\\d-]+$)$",
+       "cloudformation": "^(\\*[a-z\\d-]*\\.)?([a-z\\d-]+\\.)+[a-z\\d-]+$"
+      }
+     }
     },
     {
      "source": "tags",
@@ -2340,7 +2436,13 @@
    "mappings": [
     {
      "source": "domainName",
-     "target": "DomainName"
+     "target": "DomainName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^(\\*[\\w\\d-]*\\.)?([\\w\\d-]+\\.)+[\\w\\d-]+$)$",
+       "cloudformation": "^(\\*[a-z\\d-]*\\.)?([a-z\\d-]+\\.)+[a-z\\d-]+$"
+      }
+     }
     }
    ],
    "operation": "DeleteDomainName",
@@ -2356,7 +2458,13 @@
     },
     {
      "source": "domainName",
-     "target": "DomainName"
+     "target": "DomainName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^(\\*[\\w\\d-]*\\.)?([\\w\\d-]+\\.)+[\\w\\d-]+$)$",
+       "cloudformation": "^(\\*[a-z\\d-]*\\.)?([a-z\\d-]+\\.)+[a-z\\d-]+$"
+      }
+     }
     }
    ],
    "operation": "AssociateApi",
@@ -2694,15 +2802,33 @@
     },
     {
      "source": "OpsItemSNSTopicArn",
-     "target": "OpsItemSNSTopicArn"
+     "target": "OpsItemSNSTopicArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^arn:aws(-\\w+)*:[\\w\\d-]+:([\\w\\d-]*)?:[\\w\\d_-]*([:/].+)*$)$",
+       "cloudformation": "^arn:aws(-[\\w]+)*:[\\w\\d-]+:([\\w\\d-]*)?:[\\w\\d_-]*([:/].+)*$"
+      }
+     }
     },
     {
      "source": "ResourceGroupName",
-     "target": "ResourceGroupName"
+     "target": "ResourceGroupName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9\\.\\-_]*)$",
+       "cloudformation": "[a-zA-Z0-9.-_]*"
+      }
+     }
     },
     {
      "source": "SNSNotificationArn",
-     "target": "SNSNotificationArn"
+     "target": "SNSNotificationArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^arn:aws(-\\w+)*:[\\w\\d-]+:([\\w\\d-]*)?:[\\w\\d_-]*([:/].+)*$)$",
+       "cloudformation": "^arn:aws(-[\\w]+)*:[\\w\\d-]+:([\\w\\d-]*)?:[\\w\\d_-]*([:/].+)*$"
+      }
+     }
     }
    ],
    "operation": "CreateApplication",
@@ -2714,7 +2840,13 @@
    "mappings": [
     {
      "source": "ResourceGroupName",
-     "target": "ResourceGroupName"
+     "target": "ResourceGroupName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9\\.\\-_]*)$",
+       "cloudformation": "[a-zA-Z0-9.-_]*"
+      }
+     }
     }
    ],
    "operation": "DeleteApplication",
@@ -2756,7 +2888,13 @@
    "mappings": [
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9._-]+)$",
+       "cloudformation": "[a-zA-Z0-9._-]{1,128}"
+      }
+     }
     },
     {
      "source": "TargetDpus",
@@ -2772,7 +2910,13 @@
    "mappings": [
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9._-]+)$",
+       "cloudformation": "[a-zA-Z0-9._-]{1,128}"
+      }
+     }
     }
    ],
    "operation": "DeleteCapacityReservation",
@@ -2929,13 +3073,23 @@
     },
     {
      "source": "frameworkId",
-     "target": "FrameworkId"
+     "target": "FrameworkId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$)$",
+       "cloudformation": "^([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}|.*\\S.*)$"
+      }
+     }
     },
     {
      "source": "name",
      "target": "Name",
      "unrepresentable": {
-      "max_length": 127
+      "max_length": 127,
+      "pattern": {
+       "api": "^(?:^[^\\\\]*$)$",
+       "cloudformation": "^[a-zA-Z0-9-_\\.]+$"
+      }
      }
     },
     {
@@ -3622,7 +3776,13 @@
    "mappings": [
     {
      "source": "FrameworkDescription",
-     "target": "FrameworkDescription"
+     "target": "FrameworkDescription",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:.*\\S.*)$",
+       "cloudformation": "\\S"
+      }
+     }
     },
     {
      "source": "FrameworkName",
@@ -4074,7 +4234,13 @@
    "mappings": [
     {
      "source": "costCategoryGroupSharingPreferenceArn",
-     "target": "CostCategoryGroupSharingPreferenceArn"
+     "target": "CostCategoryGroupSharingPreferenceArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:aws[-a-z0-9]*:ce::[0-9]{12}:costcategory/[a-f0-9-]{36})$",
+       "cloudformation": "^arn:aws[a-z-]*:ce::[0-9]{12}:costcategory/[a-f0-9-]{36}$"
+      }
+     }
     },
     {
      "source": "groupSharingPreference",
@@ -4199,7 +4365,13 @@
     },
     {
      "source": "policyArn",
-     "target": "PolicyArn"
+     "target": "PolicyArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:aws(-[^:]+)?:bedrock:[a-z0-9-]{1,20}:[0-9]{12}:automated-reasoning-policy/[a-z0-9]{12}(:([1-9][0-9]{0,11}))?)$",
+       "cloudformation": "^arn:aws(-[^:]+)?:bedrock:[a-z0-9-]{1,20}:[0-9]{12}:automated-reasoning-policy\\/[a-z0-9]{12}$"
+      }
+     }
     }
    ],
    "operation": "CreateAutomatedReasoningPolicyVersion",
@@ -4652,7 +4824,13 @@
     },
     {
      "source": "executionRoleArn",
-     "target": "ExecutionRoleArn"
+     "target": "ExecutionRoleArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:aws(-[^:]+)?:iam::([0-9]{12})?:role/.+)$",
+       "cloudformation": "^arn:(aws(?:-cn|-us-gov|-iso(?:-[bef])?)?):iam::[0-9]{12}:role/.+$"
+      }
+     }
     },
     {
      "source": "name",
@@ -4759,7 +4937,13 @@
     },
     {
      "source": "kmsKeyArn",
-     "target": "KmsKeyArn"
+     "target": "KmsKeyArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:aws(|-cn|-us-gov):kms:[a-zA-Z0-9-]*:[0-9]{12}:key/[a-zA-Z0-9-]{36})$",
+       "cloudformation": "^arn:aws(|-cn|-us-gov):kms:[a-zA-Z0-9-]+:[0-9]{12}:key/[a-zA-Z0-9-]{36}$"
+      }
+     }
     },
     {
      "source": "level",
@@ -4948,7 +5132,13 @@
     },
     {
      "source": "executionRoleArn",
-     "target": "ExecutionRoleArn"
+     "target": "ExecutionRoleArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:aws(-[^:]+)?:iam::([0-9]{12})?:role/.+)$",
+       "cloudformation": "^arn:aws(-[^:]+)?:iam::[0-9]{12}:role/.+$"
+      }
+     }
     },
     {
      "source": "harnessName",
@@ -4964,7 +5154,21 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_key": {
+       "pattern": {
+        "api": "^(?:[a-zA-Z0-9\\s._:/=+@-]*)$",
+        "cloudformation": "^[a-zA-Z0-9\\s_.:/=+\\-@]*$"
+       }
+      },
+      "tag_value": {
+       "pattern": {
+        "api": "^(?:[a-zA-Z0-9\\s._:/=+@-]*)$",
+        "cloudformation": "^[a-zA-Z0-9\\s_.:/=+\\-@]*$"
+       }
+      }
+     }
     },
     {
      "source": "timeoutSeconds",
@@ -5005,7 +5209,21 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_key": {
+       "pattern": {
+        "api": "^(?:[a-zA-Z0-9\\s._:/=+@-]*)$",
+        "cloudformation": "^[a-zA-Z0-9\\s_.:/=+\\-@]*$"
+       }
+      },
+      "tag_value": {
+       "pattern": {
+        "api": "^(?:[a-zA-Z0-9\\s._:/=+@-]*)$",
+        "cloudformation": "^[a-zA-Z0-9\\s_.:/=+\\-@]*$"
+       }
+      }
+     }
     },
     {
      "source": "targetVersion",
@@ -5047,7 +5265,13 @@
     },
     {
      "source": "encryptionKeyArn",
-     "target": "EncryptionKeyArn"
+     "target": "EncryptionKeyArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:[a-z0-9-\\.]{1,63}:[a-z0-9-\\.]{0,63}:[a-z0-9-\\.]{0,63}:[a-z0-9-\\.]{0,63}:[^/].{0,1023})$",
+       "cloudformation": "^arn:(aws(?:-cn|-us-gov|-iso(?:-[bef])?)?):[a-z0-9-\\.]{0,63}:[a-z0-9-\\.]{0,63}:[a-z0-9-\\.]{0,63}:[^/].{0,1023}$"
+      }
+     }
     },
     {
      "source": "eventExpiryDuration",
@@ -5055,7 +5279,13 @@
     },
     {
      "source": "memoryExecutionRoleArn",
-     "target": "MemoryExecutionRoleArn"
+     "target": "MemoryExecutionRoleArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:[a-z0-9-\\.]{1,63}:[a-z0-9-\\.]{0,63}:[a-z0-9-\\.]{0,63}:[a-z0-9-\\.]{0,63}:[^/].{0,1023})$",
+       "cloudformation": "^arn:(aws(?:-cn|-us-gov|-iso(?:-[bef])?)?):[a-z0-9-\\.]{0,63}:[a-z0-9-\\.]{0,63}:[a-z0-9-\\.]{0,63}:[^/].{0,1023}$"
+      }
+     }
     },
     {
      "source": "name",
@@ -5128,7 +5358,15 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_key": {
+       "pattern": {
+        "api": "^(?:[a-zA-Z0-9\\s._:/=+@-]*)$",
+        "cloudformation": "^(?!aws:)[a-zA-Z+-=._:/]+$"
+       }
+      }
+     }
     }
    ],
    "operation": "CreateOnlineEvaluationConfig",
@@ -5437,7 +5675,15 @@
    "mappings": [
     {
      "source": "allowedResourceOauth2ReturnUrls",
-     "target": "AllowedResourceOauth2ReturnUrls"
+     "target": "AllowedResourceOauth2ReturnUrls",
+     "unrepresentable": {
+      "items": {
+       "pattern": {
+        "api": "^(?:\\w+:(\\/?\\/?)[^\\s]+)$",
+        "cloudformation": "\\w+:(/?/?)[^\\s]+"
+       }
+      }
+     }
     },
     {
      "source": "name",
@@ -5445,7 +5691,15 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_key": {
+       "pattern": {
+        "api": "^(?:[a-zA-Z0-9\\s._:/=+@-]*)$",
+        "cloudformation": "^(?!aws:)[a-zA-Z+-=._:/]+$"
+       }
+      }
+     }
     }
    ],
    "operation": "CreateWorkloadIdentity",
@@ -5476,11 +5730,25 @@
     },
     {
      "source": "name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[ a-zA-Z0-9_\\+=\\.\\-@]+)$",
+       "cloudformation": "[a-zA-Z0-9_\\+=\\.\\-@]+"
+      }
+     }
     },
     {
      "source": "sourceViews",
-     "target": "SourceViews"
+     "target": "SourceViews",
+     "unrepresentable": {
+      "items": {
+       "pattern": {
+        "api": "^(?:arn:aws[a-z-]*:(billing)::[0-9]{12}:billingview/[a-zA-Z0-9/:_\\+=\\.\\-@]{0,75}[a-zA-Z0-9])$",
+        "cloudformation": "arn:aws[a-z-]*:(billing)::[0-9]{12}:billingview/[a-zA-Z0-9_+=.@-]{1,75}"
+       }
+      }
+     }
     }
    ],
    "operation": "CreateBillingView",
@@ -5545,7 +5813,13 @@
     },
     {
      "source": "BillingGroupArn",
-     "target": "BillingGroupArn"
+     "target": "BillingGroupArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:(arn:aws(-cn)?:billingconductor::[0-9]{12}:billinggroup/)?[a-zA-Z0-9]{10,12})$",
+       "cloudformation": "arn:aws(-cn)?:billingconductor::[0-9]{12}:billinggroup/?[a-zA-Z0-9]{10,12}"
+      }
+     }
     },
     {
      "source": "ComputationRule",
@@ -5596,7 +5870,15 @@
     },
     {
      "source": "PricingRuleArns",
-     "target": "PricingRuleArns"
+     "target": "PricingRuleArns",
+     "unrepresentable": {
+      "items": {
+       "pattern": {
+        "api": "^(?:(arn:aws(-cn)?:billingconductor::[0-9]{12}:pricingrule/)?[a-zA-Z0-9]{10})$",
+        "cloudformation": "arn:aws(-cn)?:billingconductor::[0-9]{12}:pricingrule/[a-zA-Z0-9]{10}"
+       }
+      }
+     }
     },
     {
      "source": "Tags",
@@ -5651,7 +5933,13 @@
     },
     {
      "source": "Service",
-     "target": "Service"
+     "target": "Service",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9]+)$",
+       "cloudformation": "[a-zA-Z0-9\\.\\-]+"
+      }
+     }
     },
     {
      "source": "Tags",
@@ -6092,7 +6380,13 @@
     },
     {
      "source": "IamRoleArn",
-     "target": "IamRoleArn"
+     "target": "IamRoleArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:aws:[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9][A-Za-z0-9:_/+=,@.-]{0,1023})$",
+       "cloudformation": "^arn:(aws[a-zA-Z-]*)?:[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9][A-Za-z0-9:_/+=,@.-]{0,1023}$"
+      }
+     }
     },
     {
      "source": "LoggingLevel",
@@ -6100,7 +6394,15 @@
     },
     {
      "source": "SnsTopicArns",
-     "target": "SnsTopicArns"
+     "target": "SnsTopicArns",
+     "unrepresentable": {
+      "items": {
+       "pattern": {
+        "api": "^(?:arn:aws:[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9][A-Za-z0-9:_/+=,@.-]{0,1023})$",
+        "cloudformation": "^arn:(aws[a-zA-Z-]*)?:[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9][A-Za-z0-9:_/+=,@.-]{0,1023}$"
+       }
+      }
+     }
     },
     {
      "source": "TeamId",
@@ -6127,7 +6429,13 @@
     },
     {
      "source": "IamRoleArn",
-     "target": "IamRoleArn"
+     "target": "IamRoleArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:aws:[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9][A-Za-z0-9:_/+=,@.-]{0,1023})$",
+       "cloudformation": "^arn:(aws[a-zA-Z-]*)?:[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9][A-Za-z0-9:_/+=,@.-]{0,1023}$"
+      }
+     }
     },
     {
      "source": "LoggingLevel",
@@ -6139,7 +6447,15 @@
     },
     {
      "source": "SnsTopicArns",
-     "target": "SnsTopicArns"
+     "target": "SnsTopicArns",
+     "unrepresentable": {
+      "items": {
+       "pattern": {
+        "api": "^(?:arn:aws:[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9][A-Za-z0-9:_/+=,@.-]{0,1023})$",
+        "cloudformation": "^arn:(aws[a-zA-Z-]*)?:[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9][A-Za-z0-9:_/+=,@.-]{0,1023}$"
+       }
+      }
+     }
     }
    ],
    "operation": "CreateSlackChannelConfiguration",
@@ -6229,7 +6545,13 @@
     },
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:.*\\S.*)$",
+       "cloudformation": "^[\\u0009\\u000A\\u000D\\u0020-\\u007E\\u0085\\u00A0-\\uD7FF\\uE000-\\uFFFD\\u10000-\\u10FFFF]*$"
+      }
+     }
     }
    ],
    "operation": "CreateAppInstanceUser",
@@ -6390,7 +6712,11 @@
      "source": "description",
      "target": "Description",
      "unrepresentable": {
-      "min_length": 1
+      "min_length": 1,
+      "pattern": {
+       "api": "^(?:(?!\\s+$)[\\u0020-\\uD7FF\\uE000-\\uFFFD\\uD800\\uDBFF-\\uDC00\\uDFFF\\t\\r\\n]*)$",
+       "cloudformation": "^(?!\\s*$)[\\u0020-\\uD7FF\\uE000-\\uFFFD\\uD800\\uDBFF-\\uDC00\\uDFFF\\t\\r\\n]*$"
+      }
      }
     },
     {
@@ -7206,11 +7532,23 @@
    "mappings": [
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[a-zA-Z0-9._\\-]+$)$",
+       "cloudformation": "(^[a-zA-Z0-9._\\-]+$)"
+      }
+     }
     },
     {
      "source": "Source",
-     "target": "Source"
+     "target": "Source",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:.*)$",
+       "cloudformation": "(.*)"
+      }
+     }
     }
    ],
    "operation": "CreateChannel",
@@ -7435,7 +7773,13 @@
     },
     {
      "source": "Namespace",
-     "target": "Namespace"
+     "target": "Namespace",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[^:].*)$",
+       "cloudformation": "^[^:]"
+      }
+     }
     },
     {
      "source": "OKActions",
@@ -7709,7 +8053,13 @@
    "mappings": [
     {
      "source": "domain",
-     "target": "DomainName"
+     "target": "DomainName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-z][a-z0-9\\-]{0,48}[a-z0-9])$",
+       "cloudformation": "^([a-z][a-z0-9\\-]{0,48}[a-z0-9])$"
+      }
+     }
     }
    ],
    "operation": "CreateDomain",
@@ -7721,7 +8071,13 @@
    "mappings": [
     {
      "source": "domain",
-     "target": "DomainName"
+     "target": "DomainName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-z][a-z0-9\\-]{0,48}[a-z0-9])$",
+       "cloudformation": "^([a-z][a-z0-9\\-]{0,48}[a-z0-9])$"
+      }
+     }
     }
    ],
    "operation": "DeleteDomain",
@@ -7741,7 +8097,13 @@
     },
     {
      "source": "domain",
-     "target": "DomainName"
+     "target": "DomainName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-z][a-z0-9\\-]{0,48}[a-z0-9])$",
+       "cloudformation": "^([a-z][a-z0-9\\-]{0,48}[a-z0-9])$"
+      }
+     }
     },
     {
      "source": "domainOwner",
@@ -7757,7 +8119,13 @@
    "mappings": [
     {
      "source": "domain",
-     "target": "DomainName"
+     "target": "DomainName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-z][a-z0-9\\-]{0,48}[a-z0-9])$",
+       "cloudformation": "^([a-z][a-z0-9\\-]{0,48}[a-z0-9])$"
+      }
+     }
     },
     {
      "source": "domainOwner",
@@ -7777,11 +8145,23 @@
     },
     {
      "source": "domain",
-     "target": "DomainName"
+     "target": "DomainName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-z][a-z0-9\\-]{0,48}[a-z0-9])$",
+       "cloudformation": "^([a-z][a-z0-9\\-]{0,48}[a-z0-9])$"
+      }
+     }
     },
     {
      "source": "repository",
-     "target": "RepositoryName"
+     "target": "RepositoryName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[A-Za-z0-9][A-Za-z0-9._\\-]{1,99})$",
+       "cloudformation": "^([A-Za-z0-9][A-Za-z0-9._\\-]{1,99})$"
+      }
+     }
     }
    ],
    "operation": "CreateRepository",
@@ -7793,11 +8173,23 @@
    "mappings": [
     {
      "source": "domain",
-     "target": "DomainName"
+     "target": "DomainName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-z][a-z0-9\\-]{0,48}[a-z0-9])$",
+       "cloudformation": "^([a-z][a-z0-9\\-]{0,48}[a-z0-9])$"
+      }
+     }
     },
     {
      "source": "repository",
-     "target": "RepositoryName"
+     "target": "RepositoryName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[A-Za-z0-9][A-Za-z0-9._\\-]{1,99})$",
+       "cloudformation": "^([A-Za-z0-9][A-Za-z0-9._\\-]{1,99})$"
+      }
+     }
     }
    ],
    "operation": "DeleteRepository",
@@ -7907,7 +8299,13 @@
     },
     {
      "source": "repositoryName",
-     "target": "RepositoryName"
+     "target": "RepositoryName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[\\w\\.-]+)$",
+       "cloudformation": "^[a-zA-Z0-9._\\-]+(?<!\\.git)$"
+      }
+     }
     },
     {
      "source": "tags",
@@ -7923,7 +8321,13 @@
    "mappings": [
     {
      "source": "repositoryName",
-     "target": "RepositoryName"
+     "target": "RepositoryName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[\\w\\.-]+)$",
+       "cloudformation": "^[a-zA-Z0-9._\\-]+(?<!\\.git)$"
+      }
+     }
     }
    ],
    "operation": "DeleteRepository",
@@ -7939,7 +8343,13 @@
     },
     {
      "source": "HostArn",
-     "target": "HostArn"
+     "target": "HostArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:aws(-[\\w]+)*:(codestar-connections|codeconnections):.+:[0-9]{12}:host\\/.+)$",
+       "cloudformation": "arn:aws(-[\\w]+)*:.+:.+:[0-9]{12}:.+"
+      }
+     }
     },
     {
      "source": "ProviderType",
@@ -8200,7 +8610,13 @@
     },
     {
      "source": "HostArn",
-     "target": "HostArn"
+     "target": "HostArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:aws(-[\\w]+)*:codestar-connections:.+:[0-9]{12}:host\\/.+)$",
+       "cloudformation": "arn:aws(-[\\w]+)*:.+:.+:[0-9]{12}:.+"
+      }
+     }
     },
     {
      "source": "ProviderType",
@@ -8223,19 +8639,43 @@
    "mappings": [
     {
      "source": "ConnectionArn",
-     "target": "ConnectionArn"
+     "target": "ConnectionArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:aws(-[\\w]+)*:.+:.+:[0-9]{12}:.+)$",
+       "cloudformation": "arn:(aws|aws-us-gov|aws-cn):.+:.+:[0-9]{12}:.+"
+      }
+     }
     },
     {
      "source": "EncryptionKeyArn",
-     "target": "EncryptionKeyArn"
+     "target": "EncryptionKeyArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:aws(-[\\w]+)*:kms:[a-z\\-0-9]+:\\d{12}:key/[a-zA-Z0-9\\-]+)$",
+       "cloudformation": "arn:(aws|aws-us-gov|aws-cn):.+:.+:[0-9]{12}:.+"
+      }
+     }
     },
     {
      "source": "OwnerId",
-     "target": "OwnerId"
+     "target": "OwnerId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^.*$)$",
+       "cloudformation": "[a-za-z0-9_\\.-]+"
+      }
+     }
     },
     {
      "source": "RepositoryName",
-     "target": "RepositoryName"
+     "target": "RepositoryName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^.*$)$",
+       "cloudformation": "[a-za-z0-9_\\.-]+"
+      }
+     }
     }
    ],
    "operation": "CreateRepositoryLink",
@@ -8266,11 +8706,23 @@
     },
     {
      "source": "RepositoryLinkId",
-     "target": "RepositoryLinkId"
+     "target": "RepositoryLinkId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[0-9a-fA-F]{8}\\b-[0-9a-fA-F]{4}\\b-[0-9a-fA-F]{4}\\b-[0-9a-fA-F]{4}\\b-[0-9a-fA-F]{12}$)$",
+       "cloudformation": "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
+      }
+     }
     },
     {
      "source": "ResourceName",
-     "target": "ResourceName"
+     "target": "ResourceName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[0-9A-Za-z]+[0-9A-Za-z_\\\\-]*$)$",
+       "cloudformation": "[a-za-z0-9_\\.-]+"
+      }
+     }
     },
     {
      "source": "RoleArn",
@@ -8294,7 +8746,13 @@
    "mappings": [
     {
      "source": "ResourceName",
-     "target": "ResourceName"
+     "target": "ResourceName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[0-9A-Za-z]+[0-9A-Za-z_\\\\-]*$)$",
+       "cloudformation": "[a-za-z0-9_\\.-]+"
+      }
+     }
     },
     {
      "source": "SyncType",
@@ -8515,11 +8973,23 @@
     },
     {
      "source": "SmsAuthenticationMessage",
-     "target": "SmsAuthenticationMessage"
+     "target": "SmsAuthenticationMessage",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:.*\\{####\\}.*)$",
+       "cloudformation": "\\{####\\}"
+      }
+     }
     },
     {
      "source": "SmsVerificationMessage",
-     "target": "SmsVerificationMessage"
+     "target": "SmsVerificationMessage",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:.*\\{####\\}.*)$",
+       "cloudformation": "\\{####\\}"
+      }
+     }
     },
     {
      "source": "UserPoolTier",
@@ -9328,7 +9798,13 @@
    "mappings": [
     {
      "source": "Description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:.*\\S.*)$",
+       "cloudformation": "\\S"
+      }
+     }
     }
    ],
    "operation": "CreateContactFlowModuleVersion",
@@ -9416,7 +9892,13 @@
    "mappings": [
     {
      "source": "Description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[\\\\P{C}\\r\\n\\t]+$)$",
+       "cloudformation": "^[\\P{C}\r\n\t]+$"
+      }
+     }
     },
     {
      "source": "Name",
@@ -9455,7 +9937,13 @@
    "mappings": [
     {
      "source": "Description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[\\\\P{C}\\r\\n\\t]+$)$",
+       "cloudformation": "^[\\P{C}\r\n\t]+$"
+      }
+     }
     },
     {
      "source": "Name",
@@ -9501,7 +9989,13 @@
     },
     {
      "source": "EmailAddress",
-     "target": "EmailAddress"
+     "target": "EmailAddress",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[^\\s@]+@[^\\s@]+\\.[^\\s@]+)$",
+       "cloudformation": "([^\\s@]+@[^\\s@]+\\.[^\\s@]+)"
+      }
+     }
     },
     {
      "source": "Tags",
@@ -9792,7 +10286,13 @@
     },
     {
      "source": "S3Uri",
-     "target": "S3Uri"
+     "target": "S3Uri",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:s3://\\S+/.+|https://\\\\S+\\\\.s3\\\\.\\\\S+\\\\.amazonaws\\\\.com/\\\\S+)$",
+       "cloudformation": "s3://\\S+/.+|https://\\S+\\.s3(\\.\\S+)?\\.amazonaws\\.com/\\S+"
+      }
+     }
     },
     {
      "source": "Tags",
@@ -9911,7 +10411,13 @@
     },
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[0-9a-zA-Z._-]+)$",
+       "cloudformation": "^[a-zA-Z0-9._-]{1,200}$"
+      }
+     }
     },
     {
      "source": "PublishStatus",
@@ -10114,7 +10620,13 @@
     },
     {
      "source": "Password",
-     "target": "Password"
+     "target": "Password",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)[a-zA-Z\\d\\S]{8,64}$/)$",
+       "cloudformation": "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)[a-zA-Z\\d\\S]{8,64}$"
+      }
+     }
     },
     {
      "source": "Tags",
@@ -10201,7 +10713,13 @@
     },
     {
      "source": "ViewContentSha256",
-     "target": "ViewContentSha256"
+     "target": "ViewContentSha256",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[a-zA-Z0-9]$)$",
+       "cloudformation": "^[a-zA-Z0-9]{64}$"
+      }
+     }
     }
    ],
    "operation": "CreateViewVersion",
@@ -10220,11 +10738,23 @@
    "mappings": [
     {
      "source": "Description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[\\\\P{C}\\r\\n\\t]*$)$",
+       "cloudformation": "^[\\P{C}\r\n\t]*$"
+      }
+     }
     },
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:.*\\\\S.*)$",
+       "cloudformation": ".*\\S.*"
+      }
+     }
     },
     {
      "source": "Tags",
@@ -10232,7 +10762,13 @@
     },
     {
      "source": "Title",
-     "target": "Title"
+     "target": "Title",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[\\\\P{C}]*$)$",
+       "cloudformation": "^[\\P{C}]*$"
+      }
+     }
     }
    ],
    "operation": "CreateWorkspace",
@@ -10279,11 +10815,23 @@
    "mappings": [
     {
      "source": "connectCampaignFlowArn",
-     "target": "ConnectCampaignFlowArn"
+     "target": "ConnectCampaignFlowArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:[a-zA-Z0-9-]+:[a-zA-Z0-9-]+:[a-z]{2}-[a-z]+-\\d{1,2}:[a-zA-Z0-9-]+:[^:]+(?:/[^:]+)*(?:/[^:]+)?(?:\\:[^:]+)?)$",
+       "cloudformation": "^arn:.*$"
+      }
+     }
     },
     {
      "source": "connectInstanceId",
-     "target": "ConnectInstanceId"
+     "target": "ConnectInstanceId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[-_.a-zA-Z0-9]+)$",
+       "cloudformation": "^[a-zA-Z0-9_\\-.]*$"
+      }
+     }
     },
     {
      "source": "name",
@@ -10861,7 +11409,13 @@
     },
     {
      "source": "ExecutionRoleArn",
-     "target": "ExecutionRoleArn"
+     "target": "ExecutionRoleArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:aws(-[a-z]{1,3}){0,2}:iam::\\d+:role/.*)$",
+       "cloudformation": "^arn:aws(-[a-z]{1,3}){0,2}:iam::\\d+:role/"
+      }
+     }
     },
     {
      "source": "ExtendDeletion",
@@ -11320,15 +11874,74 @@
    "service": "dms"
   },
   {
+   "cfn_type": "AWS::DRS::LaunchConfigurationTemplate",
+   "mappings": [
+    {
+     "source": "copyPrivateIp",
+     "target": "CopyPrivateIp"
+    },
+    {
+     "source": "copyTags",
+     "target": "CopyTags"
+    },
+    {
+     "source": "exportBucketArn",
+     "target": "ExportBucketArn"
+    },
+    {
+     "source": "launchDisposition",
+     "target": "LaunchDisposition"
+    },
+    {
+     "source": "launchIntoSourceInstance",
+     "target": "LaunchIntoSourceInstance"
+    },
+    {
+     "source": "postLaunchEnabled",
+     "target": "PostLaunchEnabled"
+    },
+    {
+     "source": "tags",
+     "target": "Tags"
+    },
+    {
+     "source": "targetInstanceTypeRightSizingMethod",
+     "target": "TargetInstanceTypeRightSizingMethod"
+    }
+   ],
+   "operation": "CreateLaunchConfigurationTemplate",
+   "phase": "create",
+   "service": "drs"
+  },
+  {
+   "cfn_type": "AWS::DRS::LaunchConfigurationTemplate",
+   "mappings": [],
+   "operation": "DeleteLaunchConfigurationTemplate",
+   "phase": "delete",
+   "service": "drs"
+  },
+  {
    "cfn_type": "AWS::DRS::SourceNetwork",
    "mappings": [
     {
      "source": "originAccountID",
-     "target": "OriginAccountID"
+     "target": "OriginAccountID",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:.*[0-9]{12,}.*)$",
+       "cloudformation": "[0-9]{12,}"
+      }
+     }
     },
     {
      "source": "originRegion",
-     "target": "OriginRegion"
+     "target": "OriginRegion",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:(us(-gov)?|ap|ca|cn|eu|eusc|sa|af|me|mx|il)-([a-z]{2}-)?(central|north|(north(?:east|west))|south|south(?:east|west)|east|west)-[0-9])$",
+       "cloudformation": "^(us(-gov)?|ap|ca|cn|eu|eusc|sa|af|me|il)-([a-z]{2}-)?(central|north|(north(?:east|west))|south|south(?:east|west)|east|west)-[0-9]$"
+      }
+     }
     },
     {
      "source": "tags",
@@ -11702,11 +12315,27 @@
     },
     {
      "source": "SecurityGroupArns",
-     "target": "SecurityGroupArns"
+     "target": "SecurityGroupArns",
+     "unrepresentable": {
+      "items": {
+       "pattern": {
+        "api": "^(?:^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):ec2:[a-z\\-0-9]*:[0-9]{12}:security-group/sg-[a-f0-9]+$)$",
+        "cloudformation": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):ec2:[a-z\\-0-9]*:[0-9]{12}:security-group/.*$"
+       }
+      }
+     }
     },
     {
      "source": "SubnetArns",
-     "target": "SubnetArns"
+     "target": "SubnetArns",
+     "unrepresentable": {
+      "items": {
+       "pattern": {
+        "api": "^(?:^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):ec2:[a-z\\-0-9]*:[0-9]{12}:subnet/subnet-[a-f0-9]+$)$",
+        "cloudformation": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):ec2:[a-z\\-0-9]*:[0-9]{12}:subnet/.*$"
+       }
+      }
+     }
     },
     {
      "source": "VpcEndpointId",
@@ -11749,7 +12378,13 @@
     },
     {
      "source": "EfsFilesystemArn",
-     "target": "EfsFilesystemArn"
+     "target": "EfsFilesystemArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):elasticfilesystem:[a-z\\-0-9]+:[0-9]{12}:file-system/fs-[0-9a-f]{8,40}$)$",
+       "cloudformation": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):elasticfilesystem:[a-z\\-0-9]*:[0-9]{12}:file-system/fs-.*$"
+      }
+     }
     },
     {
      "source": "FileSystemAccessRoleArn",
@@ -11804,7 +12439,13 @@
     },
     {
      "source": "Subdirectory",
-     "target": "Subdirectory"
+     "target": "Subdirectory",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[^\\u0000\\u0085\\u2028\\u2029\\r\\n]{1,255}$)$",
+       "cloudformation": "^[a-zA-Z0-9_\\-\\+\\./\\(\\)\\$\\p{Zs}]+$"
+      }
+     }
     }
    ],
    "operation": "CreateLocationFsxOntap",
@@ -11824,7 +12465,13 @@
     },
     {
      "source": "Subdirectory",
-     "target": "Subdirectory"
+     "target": "Subdirectory",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[^\\u0000\\u0085\\u2028\\u2029\\r\\n]{1,4096}$)$",
+       "cloudformation": "^[a-zA-Z0-9_\\-\\+\\./\\(\\)\\$\\p{Zs}]+$"
+      }
+     }
     }
    ],
    "operation": "CreateLocationFsxOpenZfs",
@@ -11836,11 +12483,23 @@
    "mappings": [
     {
      "source": "Domain",
-     "target": "Domain"
+     "target": "Domain",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[A-Za-z0-9]((\\.|-+)?[A-Za-z0-9]){0,252}$)$",
+       "cloudformation": "^([A-Za-z0-9]+[A-Za-z0-9-.]*)*[A-Za-z0-9-]*[A-Za-z0-9]$"
+      }
+     }
     },
     {
      "source": "FsxFilesystemArn",
-     "target": "FsxFilesystemArn"
+     "target": "FsxFilesystemArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):fsx:[a-z\\-0-9]+:[0-9]{12}:file-system/fs-[0-9a-f]+$)$",
+       "cloudformation": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):fsx:[a-z\\-0-9]*:[0-9]{12}:file-system/fs-.*$"
+      }
+     }
     },
     {
      "source": "Password",
@@ -11848,7 +12507,15 @@
     },
     {
      "source": "SecurityGroupArns",
-     "target": "SecurityGroupArns"
+     "target": "SecurityGroupArns",
+     "unrepresentable": {
+      "items": {
+       "pattern": {
+        "api": "^(?:^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):ec2:[a-z\\-0-9]*:[0-9]{12}:security-group/sg-[a-f0-9]+$)$",
+        "cloudformation": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):ec2:[a-z\\-0-9]*:[0-9]{12}:security-group/.*$"
+       }
+      }
+     }
     },
     {
      "source": "Subdirectory",
@@ -11856,7 +12523,13 @@
     },
     {
      "source": "User",
-     "target": "User"
+     "target": "User",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[^\\x22\\x5B\\x5D/\\\\:;|=,+*?\\x3C\\x3E]{1,104}$)$",
+       "cloudformation": "^[^\\x5B\\x5D\\\\/:;|=,+*?]{1,104}$"
+      }
+     }
     }
    ],
    "operation": "CreateLocationFsxWindows",
@@ -11908,7 +12581,13 @@
    "mappings": [
     {
      "source": "ServerHostname",
-     "target": "ServerHostname"
+     "target": "ServerHostname",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^(([a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*([A-Za-z0-9\\-:]*[A-Za-z0-9])$)$",
+       "cloudformation": "^(([a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*([A-Za-z0-9\\-]*[A-Za-z0-9])$"
+      }
+     }
     },
     {
      "source": "Subdirectory",
@@ -11926,7 +12605,11 @@
      "source": "AccessKey",
      "target": "AccessKey",
      "unrepresentable": {
-      "min_length": 1
+      "min_length": 1,
+      "pattern": {
+       "api": "^(?:^.*$)$",
+       "cloudformation": "^.+$"
+      }
      }
     },
     {
@@ -11941,12 +12624,22 @@
      "source": "SecretKey",
      "target": "SecretKey",
      "unrepresentable": {
-      "min_length": 8
+      "min_length": 8,
+      "pattern": {
+       "api": "^(?:^.*$)$",
+       "cloudformation": "^.+$"
+      }
      }
     },
     {
      "source": "ServerHostname",
-     "target": "ServerHostname"
+     "target": "ServerHostname",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^(([a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*([A-Za-z0-9\\-:]*[A-Za-z0-9])$)$",
+       "cloudformation": "^(([a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*([A-Za-z0-9\\-]*[A-Za-z0-9])$"
+      }
+     }
     },
     {
      "source": "ServerPort",
@@ -11972,7 +12665,11 @@
      "source": "S3BucketArn",
      "target": "S3BucketArn",
      "unrepresentable": {
-      "max_length": 156
+      "max_length": 156,
+      "pattern": {
+       "api": "^(?:^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):s3:[a-z\\-0-9]*:[0-9]{12}:accesspoint[/:][a-zA-Z0-9\\-.]{1,63}$|^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):s3-outposts:[a-z\\-0-9]+:[0-9]{12}:outpost[/:][a-zA-Z0-9\\-]{1,63}[/:]accesspoint[/:][a-zA-Z0-9\\-]{1,63}$|^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):s3:::[a-zA-Z0-9.\\-_]{1,255}$)$",
+       "cloudformation": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):s3:[a-z\\-0-9]*:[0-9]*:.*$"
+      }
      }
     },
     {
@@ -12018,7 +12715,13 @@
     },
     {
      "source": "Domain",
-     "target": "Domain"
+     "target": "Domain",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[A-Za-z0-9]((\\.|-+)?[A-Za-z0-9]){0,252}$)$",
+       "cloudformation": "^([A-Za-z0-9]+[A-Za-z0-9-.]*)*[A-Za-z0-9-]*[A-Za-z0-9]$"
+      }
+     }
     },
     {
      "source": "KerberosPrincipal",
@@ -12030,7 +12733,13 @@
     },
     {
      "source": "ServerHostname",
-     "target": "ServerHostname"
+     "target": "ServerHostname",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^(([a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*([A-Za-z0-9\\-:]*[A-Za-z0-9])$)$",
+       "cloudformation": "^(([a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*([A-Za-z0-9\\-]*[A-Za-z0-9])$"
+      }
+     }
     },
     {
      "source": "Subdirectory",
@@ -12038,7 +12747,13 @@
     },
     {
      "source": "User",
-     "target": "User"
+     "target": "User",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[^\\x22\\x5B\\x5D/\\\\:;|=,+*?\\x3C\\x3E]{1,104}$)$",
+       "cloudformation": "^[^\\x5B\\x5D\\\\/:;|=,+*?]{1,104}$"
+      }
+     }
     }
    ],
    "operation": "CreateLocationSmb",
@@ -12050,7 +12765,13 @@
    "mappings": [
     {
      "source": "CloudWatchLogGroupArn",
-     "target": "CloudWatchLogGroupArn"
+     "target": "CloudWatchLogGroupArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):logs:[a-z\\-0-9]+:[0-9]{12}:log-group:([^:\\*]*)(:\\*)?$)$",
+       "cloudformation": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):logs:[a-z\\-0-9]*:[0-9]{12}:log-group:([^:\\*]*)(:\\*)?$"
+      }
+     }
     },
     {
      "source": "DestinationLocationArn",
@@ -12095,7 +12816,13 @@
     },
     {
      "source": "domainIdentifier",
-     "target": "DomainIdentifier"
+     "target": "DomainIdentifier",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:dzd[-_][a-zA-Z0-9_-]{1,36})$",
+       "cloudformation": "^dzd[_-][a-zA-Z0-9_-]{1,36}$"
+      }
+     }
     },
     {
      "source": "enableTrustedIdentityPropagation",
@@ -12123,7 +12850,13 @@
    "mappings": [
     {
      "source": "domainIdentifier",
-     "target": "DomainIdentifier"
+     "target": "DomainIdentifier",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:dzd[-_][a-zA-Z0-9_-]{1,36})$",
+       "cloudformation": "^dzd[_-][a-zA-Z0-9_-]{1,36}$"
+      }
+     }
     }
    ],
    "operation": "DeleteConnection",
@@ -12261,7 +12994,13 @@
     },
     {
      "source": "parentDomainUnitIdentifier",
-     "target": "ParentDomainUnitIdentifier"
+     "target": "ParentDomainUnitIdentifier",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-z0-9_\\-]+)$",
+       "cloudformation": "^[a-z0-9_-]+$"
+      }
+     }
     }
    ],
    "operation": "CreateDomainUnit",
@@ -12497,7 +13236,13 @@
     },
     {
      "source": "name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:(amazon.datazone.)?(?![0-9_])\\w+$|^_\\w*[a-zA-Z0-9]\\w*)$",
+       "cloudformation": "^(?![0-9_])\\w+$|^_\\w*[a-zA-Z0-9]\\w*$"
+      }
+     }
     },
     {
      "source": "owningProjectIdentifier",
@@ -12686,7 +13431,13 @@
     },
     {
      "source": "projectExecutionRole",
-     "target": "ProjectExecutionRole"
+     "target": "ProjectExecutionRole",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:aws[^:]*:iam::\\d{12}:role(/[a-zA-Z0-9+=,.@_-]+)*/[a-zA-Z0-9+=,.@_-]+)$",
+       "cloudformation": "^arn:aws[^:]*:iam::\\d{12}:role/[\\w+=,.@/-]+$"
+      }
+     }
     },
     {
      "source": "projectProfileId",
@@ -12758,7 +13509,13 @@
     },
     {
      "source": "domainIdentifier",
-     "target": "DomainIdentifier"
+     "target": "DomainIdentifier",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:dzd[-_][a-zA-Z0-9_-]{1,36})$",
+       "cloudformation": "^dzd[_-][a-zA-Z0-9_-]{1,36}$"
+      }
+     }
     },
     {
      "source": "domainUnitIdentifier",
@@ -12786,7 +13543,13 @@
    "mappings": [
     {
      "source": "domainIdentifier",
-     "target": "DomainIdentifier"
+     "target": "DomainIdentifier",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:dzd[-_][a-zA-Z0-9_-]{1,36})$",
+       "cloudformation": "^dzd[_-][a-zA-Z0-9_-]{1,36}$"
+      }
+     }
     }
    ],
    "operation": "DeleteProjectProfile",
@@ -12801,12 +13564,26 @@
    "mappings": [
     {
      "source": "applicableAssetTypes",
-     "target": "ApplicableAssetTypes"
+     "target": "ApplicableAssetTypes",
+     "unrepresentable": {
+      "items": {
+       "pattern": {
+        "api": "^(?:[^\\.]*.*)$",
+        "cloudformation": "^[^\\.]*"
+       }
+      }
+     }
     },
     {
      "source": "authorizedPrincipals",
      "target": "AuthorizedPrincipals",
      "unrepresentable": {
+      "items": {
+       "pattern": {
+        "api": "^(?:[a-zA-Z0-9:/._-]*)$",
+        "cloudformation": "^[a-zA-Z0-9:/_-]*$"
+       }
+      },
       "max_length": 10
      }
     },
@@ -12871,7 +13648,13 @@
     },
     {
      "source": "userIdentifier",
-     "target": "UserIdentifier"
+     "target": "UserIdentifier",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:.*(^([0-9a-f]{10}-|)[A-Fa-f0-9]{8}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{12}$|^[a-zA-Z_0-9+=,.@-]+$|^arn:aws:iam::\\d{12}:.+$).*)$",
+       "cloudformation": "(^([0-9a-f]{10}-|)[A-Fa-f0-9]{8}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{12}$|^[a-zA-Z_0-9+=,.@-]+$|^arn:aws:iam::\\d{12}:.+$)"
+      }
+     }
     },
     {
      "source": "userType",
@@ -12945,7 +13728,13 @@
     },
     {
      "source": "kmsKeyArn",
-     "target": "KmsKeyArn"
+     "target": "KmsKeyArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:(aws[a-zA-Z-]*):kms:[a-z]{2}((-gov)|(-iso(b?)))?-[a-z]+-\\d{1}:\\d{12}:key/[\\w-]{1,120})$",
+       "cloudformation": "^arn:aws[-a-z]*:kms:.*:key/.*"
+      }
+     }
     },
     {
      "source": "tags",
@@ -13452,7 +14241,13 @@
     },
     {
      "source": "GraphArn",
-     "target": "GraphArn"
+     "target": "GraphArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^arn:aws[-\\w]{0,10}?:detective:[-\\w]{2,20}?:\\d{12}?:graph:[abcdef\\d]{32}?$)$",
+       "cloudformation": "arn:aws(-[\\w]+)*:detective:(([a-z]+-)+[0-9]+):[0-9]{12}:graph:[0-9a-f]{32}"
+      }
+     }
     },
     {
      "source": "Message",
@@ -13676,7 +14471,13 @@
     },
     {
      "source": "projectArn",
-     "target": "ProjectArn"
+     "target": "ProjectArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^arn:aws:devicefarm:.+)$",
+       "cloudformation": "^arn:.+"
+      }
+     }
     }
    ],
    "operation": "CreateDevicePool",
@@ -13766,7 +14567,13 @@
     },
     {
      "source": "projectArn",
-     "target": "ProjectArn"
+     "target": "ProjectArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^arn:aws:devicefarm:.+)$",
+       "cloudformation": "^arn:.+"
+      }
+     }
     },
     {
      "source": "uplinkBandwidthBits",
@@ -13805,7 +14612,13 @@
     },
     {
      "source": "executionRoleArn",
-     "target": "ExecutionRoleArn"
+     "target": "ExecutionRoleArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^arn:aws:iam::[0-9]{12}:role/.+)$",
+       "cloudformation": "^arn:[^:]*:iam::[0-9]{12}:role/.+"
+      }
+     }
     },
     {
      "source": "name",
@@ -13862,7 +14675,13 @@
     },
     {
      "source": "projectArn",
-     "target": "ProjectArn"
+     "target": "ProjectArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^arn:aws:devicefarm:.+)$",
+       "cloudformation": "^arn:.+:devicefarm:.+"
+      }
+     }
     },
     {
      "source": "type",
@@ -14089,7 +14908,13 @@
     },
     {
      "source": "Password",
-     "target": "Password"
+     "target": "Password",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:(?=^.{8,64}$)((?=.*\\d)(?=.*[A-Z])(?=.*[a-z])|(?=.*\\d)(?=.*[^A-Za-z0-9\\s])(?=.*[a-z])|(?=.*[^A-Za-z0-9\\s])(?=.*[A-Z])(?=.*[a-z])|(?=.*\\d)(?=.*[A-Z])(?=.*[^A-Za-z0-9\\s]))^.*)$",
+       "cloudformation": "^(?=^.{8,64}$)((?=.*\\d)(?=.*[A-Z])(?=.*[a-z])|(?=.*\\d)(?=.*[^A-Za-z0-9\\s])(?=.*[a-z])|(?=.*[^A-Za-z0-9\\s])(?=.*[A-Z])(?=.*[a-z])|(?=.*\\d)(?=.*[A-Z])(?=.*[^A-Za-z0-9\\s]))^"
+      }
+     }
     },
     {
      "source": "ShortName",
@@ -14218,7 +15043,11 @@
      "source": "GlobalClusterIdentifier",
      "target": "GlobalClusterIdentifier",
      "unrepresentable": {
-      "max_length": 63
+      "max_length": 63,
+      "pattern": {
+       "api": "^(?:[A-Za-z][0-9A-Za-z-:._]*)$",
+       "cloudformation": "^[a-zA-Z]{1}(?:-?[a-zA-Z0-9]){0,62}$"
+      }
      }
     },
     {
@@ -14241,7 +15070,11 @@
      "source": "GlobalClusterIdentifier",
      "target": "GlobalClusterIdentifier",
      "unrepresentable": {
-      "max_length": 63
+      "max_length": 63,
+      "pattern": {
+       "api": "^(?:[A-Za-z][0-9A-Za-z-:._]*)$",
+       "cloudformation": "^[a-zA-Z]{1}(?:-?[a-zA-Z0-9]){0,62}$"
+      }
      }
     }
    ],
@@ -18295,7 +19128,13 @@
    "mappings": [
     {
      "source": "credentialArn",
-     "target": "CredentialArn"
+     "target": "CredentialArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^arn:aws(-\\w+)*:secretsmanager:[a-zA-Z0-9-:]+:secret:ecr\\-pullthroughcache\\/[a-zA-Z0-9\\/_+=.@-]+$)$",
+       "cloudformation": "^arn:[a-zA-Z-]+:secretsmanager:[a-zA-Z0-9-:]+:secret:ecr\\-pullthroughcache\\/[a-zA-Z0-9\\/_+=.@-]+$"
+      }
+     }
     },
     {
      "source": "customRoleArn",
@@ -18398,7 +19237,13 @@
     },
     {
      "source": "repositoryName",
-     "target": "RepositoryName"
+     "target": "RepositoryName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-z0-9]+((\\.|_|__|-+)[a-z0-9]+)*(\\/[a-z0-9]+((\\.|_|__|-+)[a-z0-9]+)*)*)$",
+       "cloudformation": "^(?=.{2,256}$)([a-z0-9]+((\\.|_|__|-+)[a-z0-9]+)*(\\/[a-z0-9]+((\\.|_|__|-+)[a-z0-9]+)*)*)$"
+      }
+     }
     }
    ],
    "operation": "CreateRepository",
@@ -18410,7 +19255,13 @@
    "mappings": [
     {
      "source": "repositoryName",
-     "target": "RepositoryName"
+     "target": "RepositoryName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-z0-9]+((\\.|_|__|-+)[a-z0-9]+)*(\\/[a-z0-9]+((\\.|_|__|-+)[a-z0-9]+)*)*)$",
+       "cloudformation": "^(?=.{2,256}$)([a-z0-9]+((\\.|_|__|-+)[a-z0-9]+)*(\\/[a-z0-9]+((\\.|_|__|-+)[a-z0-9]+)*)*)$"
+      }
+     }
     }
    ],
    "operation": "DeleteRepository",
@@ -19602,11 +20453,23 @@
     },
     {
      "source": "name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[\\.\\-_/#A-Za-z0-9]+)$",
+       "cloudformation": "[0-9A-Za-z][A-Za-z0-9\\-_]*"
+      }
+     }
     },
     {
      "source": "releaseLabel",
-     "target": "ReleaseLabel"
+     "target": "ReleaseLabel",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[\\.\\-_/A-Za-z0-9]+)$",
+       "cloudformation": "[A-Za-z0-9._/-]+"
+      }
+     }
     },
     {
      "source": "sessionIdleTimeoutInMinutes",
@@ -19618,7 +20481,13 @@
     },
     {
      "source": "type",
-     "target": "Type"
+     "target": "Type",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:.*\\S.*)$",
+       "cloudformation": "\\S"
+      }
+     }
     },
     {
      "source": "virtualClusterId",
@@ -19649,7 +20518,13 @@
    "mappings": [
     {
      "source": "name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[\\.\\-_/#A-Za-z0-9]+)$",
+       "cloudformation": "^[a-zA-Z0-9\\-_]+$"
+      }
+     }
     },
     {
      "source": "tags",
@@ -19713,7 +20588,13 @@
     },
     {
      "source": "name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[A-Za-z0-9._/#-]+)$",
+       "cloudformation": "^[A-Za-z0-9._\\/#-]+$"
+      }
+     }
     },
     {
      "source": "releaseLabel",
@@ -19747,7 +20628,13 @@
    "mappings": [
     {
      "source": "environmentName",
-     "target": "EnvironmentName"
+     "target": "EnvironmentName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9_-]+)$",
+       "cloudformation": "^[a-zA-Z0-9_-]{1,100}$"
+      }
+     }
     },
     {
      "source": "kmsKeyId",
@@ -20234,7 +21121,13 @@
    "mappings": [
     {
      "source": "AccessString",
-     "target": "AccessString"
+     "target": "AccessString",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:.*\\S.*)$",
+       "cloudformation": "\\S"
+      }
+     }
     },
     {
      "source": "Engine",
@@ -20250,7 +21143,13 @@
     },
     {
      "source": "UserId",
-     "target": "UserId"
+     "target": "UserId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z][a-zA-Z0-9\\-]*)$",
+       "cloudformation": "[a-z][a-z0-9\\\\-]*"
+      }
+     }
     },
     {
      "source": "UserName",
@@ -20266,7 +21165,13 @@
    "mappings": [
     {
      "source": "UserId",
-     "target": "UserId"
+     "target": "UserId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z][a-zA-Z0-9\\-]*)$",
+       "cloudformation": "[a-z][a-z0-9\\\\-]*"
+      }
+     }
     }
    ],
    "operation": "DeleteUser",
@@ -20777,7 +21682,13 @@
     },
     {
      "source": "roleArn",
-     "target": "RoleArn"
+     "target": "RoleArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:$|^arn:aws:iam::\\d{12}:role/?[a-zA-Z_0-9+=,.@\\-_/]+)$",
+       "cloudformation": "^arn:(aws|aws-us-gov|aws-cn):iam::\\d{12}:role/?[a-zA-Z_0-9+=,.@\\-_/]+$"
+      }
+     }
     },
     {
      "source": "tags",
@@ -20817,7 +21728,13 @@
     },
     {
      "source": "roleArn",
-     "target": "RoleArn"
+     "target": "RoleArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:aws:iam::\\d{12}:role/?[a-zA-Z_0-9+=,.@\\-_/]+)$",
+       "cloudformation": "^arn:(aws|aws-us-gov|aws-cn):iam::\\d{12}:role/?[a-zA-Z_0-9+=,.@\\-_/]+$"
+      }
+     }
     },
     {
      "source": "tags",
@@ -20901,7 +21818,15 @@
     },
     {
      "source": "principal",
-     "target": "Principal"
+     "target": "Principal",
+     "unrepresentable": {
+      "items": {
+       "pattern": {
+        "api": "^(?:(\\d{12})|([a-z0-9\\.]+))$",
+        "cloudformation": "^(\\\\d{12})|([a-z0-9\\\\.]+)$"
+       }
+      }
+     }
     },
     {
      "source": "statementId",
@@ -21096,7 +22021,13 @@
    "mappings": [
     {
      "source": "ConnectionArn",
-     "target": "ConnectionArn"
+     "target": "ConnectionArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^arn:aws([a-z]|\\-)*:events:([a-z]|\\d|\\-)*:([0-9]{12})?:connection\\/[\\.\\-_A-Za-z0-9]+\\/[\\-A-Za-z0-9]+$)$",
+       "cloudformation": "^arn:aws([a-z]|\\-)*:events:([a-z]|\\d|\\-)*:([0-9]{12})?:connection/[\\.\\-_A-Za-z0-9]+/[\\-A-Za-z0-9]+$"
+      }
+     }
     },
     {
      "source": "Description",
@@ -21328,7 +22259,13 @@
     },
     {
      "source": "EventBusName",
-     "target": "EventBusName"
+     "target": "EventBusName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:(arn:aws[\\w-]*:events:[a-z]+-[a-z]+-[\\w-]+:[0-9]{12}:event-bus\\/)?[/\\.\\-_A-Za-z0-9]+)$",
+       "cloudformation": "^(arn:aws[\\w-]*:events:[a-z]{2}-[a-z]+-[\\w-]+:[0-9]{12}:event-bus\\/)?[/\\.\\-_A-Za-z0-9]+$"
+      }
+     }
     },
     {
      "source": "EventPattern",
@@ -21360,7 +22297,13 @@
    "mappings": [
     {
      "source": "EventBusName",
-     "target": "EventBusName"
+     "target": "EventBusName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:(arn:aws[\\w-]*:events:[a-z]+-[a-z]+-[\\w-]+:[0-9]{12}:event-bus\\/)?[/\\.\\-_A-Za-z0-9]+)$",
+       "cloudformation": "^(arn:aws[\\w-]*:events:[a-z]{2}-[a-z]+-[\\w-]+:[0-9]{12}:event-bus\\/)?[/\\.\\-_A-Za-z0-9]+$"
+      }
+     }
     },
     {
      "source": "Name",
@@ -21565,11 +22508,23 @@
     },
     {
      "source": "kmsKeyId",
-     "target": "KmsKeyId"
+     "target": "KmsKeyId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[a-zA-Z-0-9-:\\/]*$)$",
+       "cloudformation": "^[a-zA-Z-0-9-:\\/]{1,1000}$"
+      }
+     }
     },
     {
      "source": "name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]$)$",
+       "cloudformation": "^[a-zA-Z0-9]+[a-zA-Z0-9-]*[a-zA-Z0-9]{1,255}$"
+      }
+     }
     },
     {
      "source": "tags",
@@ -21623,7 +22578,15 @@
    "mappings": [
     {
      "source": "DatasetArns",
-     "target": "DatasetArns"
+     "target": "DatasetArns",
+     "unrepresentable": {
+      "items": {
+       "pattern": {
+        "api": "^(?:arn:([a-z\\d-]+):forecast:.*:.*:.+)$",
+        "cloudformation": "^[a-zA-Z0-9\\-\\_\\.\\/\\:]+$"
+       }
+      }
+     }
     },
     {
      "source": "DatasetGroupName",
@@ -21947,7 +22910,13 @@
     },
     {
      "source": "FleetRoleArn",
-     "target": "FleetRoleArn"
+     "target": "FleetRoleArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^arn:.*:role\\/[\\w+=,.@-]+)$",
+       "cloudformation": "^arn:aws(-.*)?:[a-z-]+:(([a-z]+-)+[0-9])?:([0-9]{12})?:[^.]+$"
+      }
+     }
     },
     {
      "source": "GameServerContainerGroupDefinitionName",
@@ -21998,7 +22967,13 @@
     },
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[a-zA-Z0-9\\-]+$)$",
+       "cloudformation": "^[a-zA-Z0-9-]+$"
+      }
+     }
     },
     {
      "source": "OperatingSystem",
@@ -22028,7 +23003,11 @@
      "source": "Name",
      "target": "Name",
      "unrepresentable": {
-      "max_length": 128
+      "max_length": 128,
+      "pattern": {
+       "api": "^(?:^[a-zA-Z0-9\\-]+$|^arn:.*:containergroupdefinition\\/[a-zA-Z0-9\\-]+(:[0-9]+)?$)$",
+       "cloudformation": "^[a-zA-Z0-9-]+$"
+      }
      }
     }
    ],
@@ -22041,7 +23020,13 @@
    "mappings": [
     {
      "source": "BuildId",
-     "target": "BuildId"
+     "target": "BuildId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^(build-\\S+|arn:.*:build\\/build-\\S+)$)$",
+       "cloudformation": "^build-\\S+|^arn:.*:build/build-\\S+"
+      }
+     }
     },
     {
      "source": "ComputeType",
@@ -22097,7 +23082,13 @@
     },
     {
      "source": "ScriptId",
-     "target": "ScriptId"
+     "target": "ScriptId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^(script-\\S+|arn:.*:script\\/script-\\S+)$)$",
+       "cloudformation": "^script-\\S+|^arn:.*:script/script-\\S+"
+      }
+     }
     },
     {
      "source": "ServerLaunchParameters",
@@ -22166,7 +23157,11 @@
      "source": "GameServerGroupName",
      "target": "GameServerGroupName",
      "unrepresentable": {
-      "max_length": 128
+      "max_length": 128,
+      "pattern": {
+       "api": "^(?:^([a-zA-Z0-9-\\.]+|arn:.*:gameservergroup\\/[a-zA-Z0-9-\\.]+)$)$",
+       "cloudformation": "[a-zA-Z0-9-\\.]+"
+      }
      }
     }
    ],
@@ -22211,7 +23206,11 @@
      "source": "Name",
      "target": "Name",
      "unrepresentable": {
-      "max_length": 128
+      "max_length": 128,
+      "pattern": {
+       "api": "^(?:^([a-zA-Z0-9-]+|arn:.*:gamesessionqueue\\/[a-zA-Z0-9-]+)$)$",
+       "cloudformation": "[a-zA-Z0-9-]+"
+      }
      }
     }
    ],
@@ -22239,7 +23238,11 @@
      "target": "LocationName",
      "unrepresentable": {
       "max_length": 64,
-      "min_length": 8
+      "min_length": 8,
+      "pattern": {
+       "api": "^(?:^(custom-[A-Za-z0-9\\-]+|arn:.*:location\\/custom-\\S+)$)$",
+       "cloudformation": "^custom-[A-Za-z0-9\\-]+"
+      }
      }
     }
    ],
@@ -22297,7 +23300,13 @@
     },
     {
      "source": "NotificationTarget",
-     "target": "NotificationTarget"
+     "target": "NotificationTarget",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[a-zA-Z0-9:_/-]*(\\.fifo)?$)$",
+       "cloudformation": "[a-zA-Z0-9:_/-]*(.fifo)?"
+      }
+     }
     },
     {
      "source": "RequestTimeoutSeconds",
@@ -22307,7 +23316,11 @@
      "source": "RuleSetName",
      "target": "RuleSetName",
      "unrepresentable": {
-      "max_length": 128
+      "max_length": 128,
+      "pattern": {
+       "api": "^(?:^([a-zA-Z0-9-\\.]*|arn:.*:matchmakingruleset\\/[a-zA-Z0-9-\\.]*)$)$",
+       "cloudformation": "[a-zA-Z0-9-\\.]*"
+      }
      }
     }
    ],
@@ -22322,7 +23335,11 @@
      "source": "Name",
      "target": "Name",
      "unrepresentable": {
-      "max_length": 128
+      "max_length": 128,
+      "pattern": {
+       "api": "^(?:^([a-zA-Z0-9-\\.]*|arn:.*:matchmakingconfiguration\\/[a-zA-Z0-9-\\.]*)$)$",
+       "cloudformation": "[a-zA-Z0-9-\\.]*"
+      }
      }
     }
    ],
@@ -22353,7 +23370,11 @@
      "source": "Name",
      "target": "Name",
      "unrepresentable": {
-      "max_length": 128
+      "max_length": 128,
+      "pattern": {
+       "api": "^(?:^([a-zA-Z0-9-\\.]*|arn:.*:matchmakingruleset\\/[a-zA-Z0-9-\\.]*)$)$",
+       "cloudformation": "[a-zA-Z0-9-\\.]*"
+      }
      }
     }
    ],
@@ -22370,7 +23391,13 @@
     },
     {
      "source": "NodeJsVersion",
-     "target": "NodeJsVersion"
+     "target": "NodeJsVersion",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[0-9]+\\.(?:x|[0-9]+)$)$",
+       "cloudformation": "^\\d+\\.[x0-9]+$"
+      }
+     }
     },
     {
      "source": "Version",
@@ -22497,7 +23524,13 @@
    "mappings": [
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[\\S\\s]+)$",
+       "cloudformation": "^[a-zA-Z0-9_-]{0,64}$"
+      }
+     }
     },
     {
      "source": "Principals",
@@ -23117,7 +24150,13 @@
     },
     {
      "source": "SchemaDefinition",
-     "target": "SchemaDefinition"
+     "target": "SchemaDefinition",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:.*\\S.*)$",
+       "cloudformation": "\\S"
+      }
+     }
     },
     {
      "source": "Tags",
@@ -23140,7 +24179,13 @@
    "mappings": [
     {
      "source": "SchemaDefinition",
-     "target": "SchemaDefinition"
+     "target": "SchemaDefinition",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:.*\\S.*)$",
+       "cloudformation": "\\S"
+      }
+     }
     }
    ],
    "operation": "RegisterSchemaVersion",
@@ -23231,7 +24276,13 @@
     },
     {
      "source": "RequestOrigin",
-     "target": "RequestOrigin"
+     "target": "RequestOrigin",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[\\.\\-_A-Za-z0-9]+)$",
+       "cloudformation": "^[.\\-_A-Za-z0-9]+$"
+      }
+     }
     },
     {
      "source": "Role",
@@ -23267,7 +24318,13 @@
     },
     {
      "source": "RequestOrigin",
-     "target": "RequestOrigin"
+     "target": "RequestOrigin",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[\\.\\-_A-Za-z0-9]+)$",
+       "cloudformation": "^[.\\-_A-Za-z0-9]+$"
+      }
+     }
     }
    ],
    "operation": "DeleteSession",
@@ -23649,11 +24706,23 @@
     },
     {
      "source": "telemetrySinkConfigArn",
-     "target": "TelemetrySinkConfigArn"
+     "target": "TelemetrySinkConfigArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:aws:groundstation:[-a-z0-9]{1,50}:[0-9]{12}:config/[a-z0-9]+(-[a-z0-9]+){0,4}/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}(/.{1,256})?)$",
+       "cloudformation": "^(arn:(aws[a-zA-Z-]*)?:[a-z0-9-.]+:.*)|()$"
+      }
+     }
     },
     {
      "source": "trackingConfigArn",
-     "target": "TrackingConfigArn"
+     "target": "TrackingConfigArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:aws:groundstation:[-a-z0-9]{1,50}:[0-9]{12}:config/[a-z0-9]+(-[a-z0-9]+){0,4}/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}(/.{1,256})?)$",
+       "cloudformation": "^(arn:(aws[a-zA-Z-]*)?:[a-z0-9-.]+:.*)|()$"
+      }
+     }
     }
    ],
    "operation": "CreateMissionProfile",
@@ -24184,7 +25253,13 @@
    "mappings": [
     {
      "source": "InstanceProfileName",
-     "target": "InstanceProfileName"
+     "target": "InstanceProfileName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[\\w+=,.@-]+)$",
+       "cloudformation": "^([\\w+=,.@-]+)?$"
+      }
+     }
     },
     {
      "source": "Path",
@@ -24200,7 +25275,13 @@
    "mappings": [
     {
      "source": "InstanceProfileName",
-     "target": "InstanceProfileName"
+     "target": "InstanceProfileName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[\\w+=,.@-]+)$",
+       "cloudformation": "^([\\w+=,.@-]+)?$"
+      }
+     }
     }
    ],
    "operation": "DeleteInstanceProfile",
@@ -24469,7 +25550,13 @@
    "mappings": [
     {
      "source": "Path",
-     "target": "Path"
+     "target": "Path",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:(\\u002F)|(\\u002F[\\u0021-\\u007E]+\\u002F))$",
+       "cloudformation": "(\\u002F)|(\\u002F[\\u0021-\\u007F]+\\u002F)"
+      }
+     }
     },
     {
      "source": "VirtualMFADeviceName",
@@ -24516,7 +25603,13 @@
     },
     {
      "source": "recordingConfigurationArn",
-     "target": "RecordingConfigurationArn"
+     "target": "RecordingConfigurationArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^$|^arn:aws:ivs:[a-z0-9-]+:[0-9]+:recording-configuration/[a-zA-Z0-9-]+$)$",
+       "cloudformation": "^$|arn:aws:ivs:[a-z0-9-]+:[0-9]+:recording-configuration/[a-zA-Z0-9-]+$"
+      }
+     }
     },
     {
      "source": "tags",
@@ -24578,7 +25671,13 @@
     },
     {
      "source": "stageArn",
-     "target": "StageArn"
+     "target": "StageArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^$|^arn:aws:ivs:[a-z0-9-]+:[0-9]+:stage/[a-zA-Z0-9-]+$)$",
+       "cloudformation": "^arn:aws:ivs:[a-z0-9-]+:[0-9]+:stage/[a-zA-Z0-9-]+$"
+      }
+     }
     },
     {
      "source": "tags",
@@ -24671,7 +25770,13 @@
     },
     {
      "source": "publicKeyMaterial",
-     "target": "PublicKeyMaterial"
+     "target": "PublicKeyMaterial",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:.*-----BEGIN PUBLIC KEY-----\\r?\\n([a-zA-Z0-9+/=\\r\\n]+)\\r?\\n-----END PUBLIC KEY-----(\\r?\\n)?.*)$",
+       "cloudformation": "-----BEGIN PUBLIC KEY-----\\r?\\n([a-zA-Z0-9+/=\\r\\n]+)\\r?\\n-----END PUBLIC KEY-----(\\r?\\n)?"
+      }
+     }
     },
     {
      "source": "tags",
@@ -26122,7 +27227,13 @@
    "mappings": [
     {
      "source": "actionName",
-     "target": "ActionName"
+     "target": "ActionName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9_-]+)$",
+       "cloudformation": "[a-zA-Z0-9:_-]+"
+      }
+     }
     },
     {
      "source": "roleArn",
@@ -26138,7 +27249,13 @@
    "mappings": [
     {
      "source": "actionName",
-     "target": "ActionName"
+     "target": "ActionName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9_-]+)$",
+       "cloudformation": "[a-zA-Z0-9:_-]+"
+      }
+     }
     }
    ],
    "operation": "DeleteMitigationAction",
@@ -26274,7 +27391,13 @@
    "mappings": [
     {
      "source": "dayOfMonth",
-     "target": "DayOfMonth"
+     "target": "DayOfMonth",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^([1-9]|[12][0-9]|3[01])$|^LAST$)$",
+       "cloudformation": "^([1-9]|[12][0-9]|3[01])$|^LAST$|^UNSET_VALUE$"
+      }
+     }
     },
     {
      "source": "dayOfWeek",
@@ -26286,7 +27409,13 @@
     },
     {
      "source": "scheduledAuditName",
-     "target": "ScheduledAuditName"
+     "target": "ScheduledAuditName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9_-]+)$",
+       "cloudformation": "[a-zA-Z0-9:_-]+"
+      }
+     }
     },
     {
      "source": "targetCheckNames",
@@ -26302,7 +27431,13 @@
    "mappings": [
     {
      "source": "scheduledAuditName",
-     "target": "ScheduledAuditName"
+     "target": "ScheduledAuditName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9_-]+)$",
+       "cloudformation": "[a-zA-Z0-9:_-]+"
+      }
+     }
     }
    ],
    "operation": "DeleteScheduledAudit",
@@ -26829,7 +27964,13 @@
    "mappings": [
     {
      "source": "AuthenticationMaterial",
-     "target": "AuthenticationMaterial"
+     "target": "AuthenticationMaterial",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[0-9A-Za-z!#$%&()*\\+\\-;<=>?@^_`{|}~\\/: {},\\\\\"]+)$",
+       "cloudformation": "^[0-9A-Za-z!#$%&()*\\+\\-;<=>?@^_`{|}~\\/: ]+$"
+      }
+     }
     },
     {
      "source": "AuthenticationMaterialType",
@@ -26894,7 +28035,13 @@
    "mappings": [
     {
      "source": "CaCertificate",
-     "target": "CaCertificate"
+     "target": "CaCertificate",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:-----BEGIN CERTIFICATE-----.*(.|\\n)*-----END CERTIFICATE-----\\n?)$",
+       "cloudformation": "^-----BEGIN CERTIFICATE-----.*(.|\\\n)*-----END CERTIFICATE-----\\n?$"
+      }
+     }
     },
     {
      "source": "ClaimCertificate",
@@ -27039,7 +28186,13 @@
     },
     {
      "source": "computationModelName",
-     "target": "ComputationModelName"
+     "target": "ComputationModelName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[a-zA-Z0-9 _\\-#$*!@.]+$)$",
+       "cloudformation": "^[a-zA-Z0-9 _\\-#$*!@]+$"
+      }
+     }
     },
     {
      "source": "tags",
@@ -27438,7 +28591,13 @@
     },
     {
      "source": "entityName",
-     "target": "EntityName"
+     "target": "EntityName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[^\\u0000-\\u001F\\u007F]+)$",
+       "cloudformation": "[a-zA-Z_0-9-.][a-zA-Z_0-9-. ]*[a-zA-Z0-9]+"
+      }
+     }
     },
     {
      "source": "parentEntityId",
@@ -27568,7 +28727,13 @@
     },
     {
      "source": "s3Location",
-     "target": "S3Location"
+     "target": "S3Location",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:.*(^arn:((aws)|(aws-cn)|(aws-us-gov)):s3:::)([a-zA-Z0-9_-]+$).*)$",
+       "cloudformation": "(^arn:((aws)|(aws-cn)|(aws-us-gov)):s3:::)([a-zA-Z0-9_-]+$)"
+      }
+     }
     },
     {
      "source": "workspaceId",
@@ -27611,7 +28776,13 @@
     },
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9-_]+)$",
+       "cloudformation": "[a-zA-Z0-9:_-]+"
+      }
+     }
     },
     {
      "source": "RoleArn",
@@ -27627,7 +28798,13 @@
    "mappings": [
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9-_]+)$",
+       "cloudformation": "[a-zA-Z0-9:_-]+"
+      }
+     }
     }
    ],
    "operation": "DeleteDestination",
@@ -27914,7 +29091,13 @@
    "mappings": [
     {
      "source": "AliasName",
-     "target": "AliasName"
+     "target": "AliasName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[a-zA-Z0-9:/_-]+$)$",
+       "cloudformation": "^(alias/)[a-zA-Z0-9:/_-]+$"
+      }
+     }
     },
     {
      "source": "TargetKeyId",
@@ -27933,7 +29116,13 @@
    "mappings": [
     {
      "source": "AliasName",
-     "target": "AliasName"
+     "target": "AliasName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[a-zA-Z0-9:/_-]+$)$",
+       "cloudformation": "^(alias/)[a-zA-Z0-9:/_-]+$"
+      }
+     }
     }
    ],
    "operation": "DeleteAlias",
@@ -28350,7 +29539,13 @@
    "mappings": [
     {
      "source": "ResourceARN",
-     "target": "ResourceArn"
+     "target": "ResourceArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:aws.*:kinesis:.*:\\d{12}:.*stream/\\S+)$",
+       "cloudformation": "arn:aws.*:kinesis:.*:\\d{12}:stream/\\S+"
+      }
+     }
     }
    ],
    "operation": "PutResourcePolicy",
@@ -28362,7 +29557,13 @@
    "mappings": [
     {
      "source": "ResourceARN",
-     "target": "ResourceArn"
+     "target": "ResourceArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:aws.*:kinesis:.*:\\d{12}:.*stream/\\S+)$",
+       "cloudformation": "arn:aws.*:kinesis:.*:\\d{12}:stream/\\S+"
+      }
+     }
     }
    ],
    "operation": "DeleteResourcePolicy",
@@ -28491,7 +29692,13 @@
    "mappings": [
     {
      "source": "DeliveryStreamName",
-     "target": "DeliveryStreamName"
+     "target": "DeliveryStreamName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9_.-]+)$",
+       "cloudformation": "[a-zA-Z0-9._-]+"
+      }
+     }
     },
     {
      "source": "DeliveryStreamType",
@@ -28507,7 +29714,13 @@
    "mappings": [
     {
      "source": "DeliveryStreamName",
-     "target": "DeliveryStreamName"
+     "target": "DeliveryStreamName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9_.-]+)$",
+       "cloudformation": "[a-zA-Z0-9._-]+"
+      }
+     }
     }
    ],
    "operation": "DeleteDeliveryStream",
@@ -28709,7 +29922,13 @@
     },
     {
      "source": "FunctionVersion",
-     "target": "FunctionVersion"
+     "target": "FunctionVersion",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:(\\$LATEST(\\.PUBLISHED)?|[0-9]+))$",
+       "cloudformation": "^(\\$LATEST(\\.PUBLISHED)?|[0-9]*)$"
+      }
+     }
     },
     {
      "source": "Name",
@@ -28745,7 +29964,13 @@
     },
     {
      "source": "KmsKeyArn",
-     "target": "KmsKeyArn"
+     "target": "KmsKeyArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:(aws[a-zA-Z-]*)?:[a-z0-9-.]+:.*)$",
+       "cloudformation": "^(arn:(aws[a-zA-Z-]*)?:[a-z0-9-.]+:.*)|()$"
+      }
+     }
     },
     {
      "source": "Tags",
@@ -28796,7 +30021,13 @@
    "mappings": [
     {
      "source": "FunctionName",
-     "target": "FunctionName"
+     "target": "FunctionName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:(arn:(aws[a-zA-Z-]*)?:lambda:(eusc-)?[a-z]{2}((-gov)|(-iso([a-z]?)))?-[a-z]+-\\d{1}:\\d{12}:|(((eusc-)?[a-z]{2}((-gov)|(-iso([a-z]?)))?-[a-z]+-\\d{1}:)?(\\d{12}:)?))(function:)?([a-zA-Z0-9-_\\.]+)(:(\\$LATEST(\\.PUBLISHED)?|[a-zA-Z0-9-_]+))?)$",
+       "cloudformation": "^(arn:(aws[a-zA-Z-]*)?:lambda:)?([a-z]+(-[a-z]+)+-\\d{1}:)?(\\d{12}:)?(function:)?([a-zA-Z0-9-_]+)(:(\\$LATEST(\\.PUBLISHED)?|[a-zA-Z0-9-_]+))?$"
+      }
+     }
     },
     {
      "source": "MaximumEventAgeInSeconds",
@@ -28808,7 +30039,13 @@
     },
     {
      "source": "Qualifier",
-     "target": "Qualifier"
+     "target": "Qualifier",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:\\$(LATEST(\\.PUBLISHED)?)|[a-zA-Z0-9-_$]+)$",
+       "cloudformation": "^\\$(LATEST(\\.PUBLISHED)?)|[a-zA-Z0-9$_-]{1,129}$"
+      }
+     }
     }
    ],
    "operation": "PutFunctionEventInvokeConfig",
@@ -28820,11 +30057,23 @@
    "mappings": [
     {
      "source": "FunctionName",
-     "target": "FunctionName"
+     "target": "FunctionName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:(arn:(aws[a-zA-Z-]*)?:lambda:(eusc-)?[a-z]{2}((-gov)|(-iso([a-z]?)))?-[a-z]+-\\d{1}:\\d{12}:|(((eusc-)?[a-z]{2}((-gov)|(-iso([a-z]?)))?-[a-z]+-\\d{1}:)?(\\d{12}:)?))(function:)?([a-zA-Z0-9-_\\.]+)(:(\\$LATEST(\\.PUBLISHED)?|[a-zA-Z0-9-_]+))?)$",
+       "cloudformation": "^(arn:(aws[a-zA-Z-]*)?:lambda:)?([a-z]+(-[a-z]+)+-\\d{1}:)?(\\d{12}:)?(function:)?([a-zA-Z0-9-_]+)(:(\\$LATEST(\\.PUBLISHED)?|[a-zA-Z0-9-_]+))?$"
+      }
+     }
     },
     {
      "source": "Qualifier",
-     "target": "Qualifier"
+     "target": "Qualifier",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:\\$(LATEST(\\.PUBLISHED)?)|[a-zA-Z0-9-_$]+)$",
+       "cloudformation": "^\\$(LATEST(\\.PUBLISHED)?)|[a-zA-Z0-9$_-]{1,129}$"
+      }
+     }
     }
    ],
    "operation": "DeleteFunctionEventInvokeConfig",
@@ -28858,7 +30107,11 @@
      "source": "FunctionName",
      "target": "FunctionName",
      "unrepresentable": {
-      "max_length": 140
+      "max_length": 140,
+      "pattern": {
+       "api": "^(?:(arn:(aws[a-zA-Z-]*)?:lambda:(eusc-)?[a-z]{2}((-gov)|(-iso([a-z]?)))?-[a-z]+-\\d{1}:\\d{12}:|(((eusc-)?[a-z]{2}((-gov)|(-iso([a-z]?)))?-[a-z]+-\\d{1}:)?(\\d{12}:)?))(function:)?([a-zA-Z0-9-_\\.]+)(:(\\$LATEST(\\.PUBLISHED)?|[a-zA-Z0-9-_]+))?)$",
+       "cloudformation": "(arn:(aws[a-zA-Z-]*)?:lambda:)?((eusc-)?[a-z]{2}((-gov)|(-iso([a-z]?)))?-[a-z]+-\\d{1}:)?(\\d{12}:)?(function:)?([a-zA-Z0-9-_]+)(:(\\$LATEST(\\.PUBLISHED)?|[a-zA-Z0-9-_]+))?"
+      }
      }
     },
     {
@@ -28938,7 +30191,13 @@
     },
     {
      "source": "FunctionName",
-     "target": "FunctionName"
+     "target": "FunctionName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:(arn:(aws[a-zA-Z-]*)?:lambda:)?((eusc-)?[a-z]{2}((-gov)|(-iso([a-z]?)))?-[a-z]+-\\d{1}:)?(\\d{12}:)?(function:)?([a-zA-Z0-9-_]+)(:(\\$LATEST|[a-zA-Z0-9-_]+))?)$",
+       "cloudformation": "^([a-zA-Z0-9_-]{1,64}|arn:[a-zA-Z0-9-]+:lambda:[a-zA-Z0-9-]+:\\d{12}:function:[a-zA-Z0-9_-]{1,64})$"
+      }
+     }
     },
     {
      "source": "Handler",
@@ -28950,7 +30209,15 @@
     },
     {
      "source": "Layers",
-     "target": "Layers"
+     "target": "Layers",
+     "unrepresentable": {
+      "items": {
+       "pattern": {
+        "api": "^(?:((arn:(aws[a-zA-Z-]*)?:lambda:(eusc-)?[a-z]{2}((-gov)|(-iso([a-z]?)))?-[a-z]+-\\d{1}:\\d{12}:layer:[a-zA-Z0-9-_]+:[0-9]+)|(arn:[a-zA-Z0-9-]+:lambda:::awslayer:[a-zA-Z0-9-_]+)))$",
+        "cloudformation": "^(arn:[a-zA-Z0-9-]+:lambda:[a-zA-Z0-9-]+:\\d{12}:layer:[a-zA-Z0-9-_]+:[0-9]+|arn:[a-zA-Z0-9-]+:lambda:::awslayer:[a-zA-Z0-9-_]+)$"
+       }
+      }
+     }
     },
     {
      "source": "MemorySize",
@@ -28986,7 +30253,13 @@
    "mappings": [
     {
      "source": "FunctionName",
-     "target": "FunctionName"
+     "target": "FunctionName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:(arn:(aws[a-zA-Z-]*)?:lambda:(eusc-)?[a-z]{2}((-gov)|(-iso([a-z]?)))?-[a-z]+-\\d{1}:\\d{12}:|(((eusc-)?[a-z]{2}((-gov)|(-iso([a-z]?)))?-[a-z]+-\\d{1}:)?(\\d{12}:)?))(function:)?([a-zA-Z0-9-_\\.]+)(:(\\$LATEST(\\.PUBLISHED)?|[a-zA-Z0-9-_]+))?)$",
+       "cloudformation": "^([a-zA-Z0-9_-]{1,64}|arn:[a-zA-Z0-9-]+:lambda:[a-zA-Z0-9-]+:\\d{12}:function:[a-zA-Z0-9_-]{1,64})$"
+      }
+     }
     }
    ],
    "operation": "DeleteFunction",
@@ -29115,7 +30388,13 @@
     },
     {
      "source": "buildRoleArn",
-     "target": "BuildRoleArn"
+     "target": "BuildRoleArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:aws[a-z\\-]*:iam::[0-9]{12}:role/?[a-zA-Z_0-9+=,.@\\-_/]+)$",
+       "cloudformation": "^arn:aws[a-zA-Z-]*:iam::\\d{12}:role/?[a-zA-Z_0-9+=,.@\\-_/]+$"
+      }
+     }
     },
     {
      "source": "description",
@@ -29197,7 +30476,11 @@
      "source": "FunctionName",
      "target": "FunctionName",
      "unrepresentable": {
-      "max_length": 140
+      "max_length": 140,
+      "pattern": {
+       "api": "^(?:(arn:(aws[a-zA-Z-]*)?:lambda:(eusc-)?[a-z]{2}((-gov)|(-iso([a-z]?)))?-[a-z]+-\\d{1}:\\d{12}:|(((eusc-)?[a-z]{2}((-gov)|(-iso([a-z]?)))?-[a-z]+-\\d{1}:)?(\\d{12}:)?))(function:)?([a-zA-Z0-9-_\\.]+)(:(\\$LATEST(\\.PUBLISHED)?|[a-zA-Z0-9-_]+))?)$",
+       "cloudformation": "^(arn:(aws[a-zA-Z-]*)?:lambda:)?((eusc-)?[a-z]{2}((-gov)|(-iso([a-z]?)))?-[a-z]+-\\d{1}:)?(\\d{12}:)?(function:)?([a-zA-Z0-9-_]+)(:(\\$LATEST(\\.PUBLISHED)?|[a-zA-Z0-9-_]+))?$"
+      }
      }
     },
     {
@@ -29213,7 +30496,11 @@
      "target": "Principal",
      "unrepresentable": {
       "max_length": 256,
-      "min_length": 1
+      "min_length": 1,
+      "pattern": {
+       "api": "^(?:[^\\s]+)$",
+       "cloudformation": "^.*$"
+      }
      }
     },
     {
@@ -29247,7 +30534,11 @@
      "source": "FunctionName",
      "target": "FunctionName",
      "unrepresentable": {
-      "max_length": 140
+      "max_length": 140,
+      "pattern": {
+       "api": "^(?:(arn:(aws[a-zA-Z-]*)?:lambda:(eusc-)?[a-z]{2}((-gov)|(-iso([a-z]?)))?-[a-z]+-\\d{1}:\\d{12}:|(((eusc-)?[a-z]{2}((-gov)|(-iso([a-z]?)))?-[a-z]+-\\d{1}:)?(\\d{12}:)?))(function:)?([a-zA-Z0-9-_\\.]+)(:(\\$LATEST(\\.PUBLISHED)?|[a-zA-Z0-9-_]+))?)$",
+       "cloudformation": "^(arn:(aws[a-zA-Z-]*)?:lambda:)?((eusc-)?[a-z]{2}((-gov)|(-iso([a-z]?)))?-[a-z]+-\\d{1}:)?(\\d{12}:)?(function:)?([a-zA-Z0-9-_]+)(:(\\$LATEST(\\.PUBLISHED)?|[a-zA-Z0-9-_]+))?$"
+      }
      }
     }
    ],
@@ -29268,7 +30559,13 @@
     },
     {
      "source": "Qualifier",
-     "target": "Qualifier"
+     "target": "Qualifier",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:((?!^\\d+$)^[0-9a-zA-Z-_]+$))$",
+       "cloudformation": "((?!^[0-9]+$)([a-zA-Z0-9-_]+))"
+      }
+     }
     }
    ],
    "operation": "CreateFunctionUrlConfig",
@@ -29304,11 +30601,25 @@
     },
     {
      "source": "name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[A-Za-z0-9_\\.-]+)$",
+       "cloudformation": "^[A-Za-z0-9_\\s\\.-]+$"
+      }
+     }
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_key": {
+       "pattern": {
+        "api": "^(?:(?!aws:)[a-zA-Z+-=._:/]+)$",
+        "cloudformation": "^[a-zA-Z+-=._:/]+$"
+       }
+      }
+     }
     },
     {
      "source": "workloadName",
@@ -29343,7 +30654,13 @@
     },
     {
      "source": "roleArn",
-     "target": "RoleArn"
+     "target": "RoleArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^arn:aws:iam::[0-9]{12}:role/.*$)$",
+       "cloudformation": "^arn:aws[a-zA-Z-]*:iam::[0-9]{12}:role/.*$"
+      }
+     }
     }
    ],
    "operation": "CreateBot",
@@ -29355,7 +30672,13 @@
    "mappings": [
     {
      "source": "name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^([A-Za-z]_?)+$)$",
+       "cloudformation": "^([0-9a-zA-Z][_-]?)+$"
+      }
+     }
     }
    ],
    "operation": "DeleteBot",
@@ -29367,7 +30690,13 @@
    "mappings": [
     {
      "source": "botAliasName",
-     "target": "BotAliasName"
+     "target": "BotAliasName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^([0-9a-zA-Z][_-]?){1,100}$)$",
+       "cloudformation": "^([0-9a-zA-Z][_-]?)+$"
+      }
+     }
     },
     {
      "source": "botId",
@@ -29375,7 +30704,13 @@
     },
     {
      "source": "botVersion",
-     "target": "BotVersion"
+     "target": "BotVersion",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[0-9]+$)$",
+       "cloudformation": "^(DRAFT|[0-9]+)$"
+      }
+     }
     },
     {
      "source": "description",
@@ -29394,7 +30729,13 @@
    "mappings": [
     {
      "source": "name",
-     "target": "BotAliasName"
+     "target": "BotAliasName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^([A-Za-z]_?)+$)$",
+       "cloudformation": "^([0-9a-zA-Z][_-]?)+$"
+      }
+     }
     }
    ],
    "operation": "DeleteBotAlias",
@@ -29635,7 +30976,13 @@
     },
     {
      "source": "bundleId",
-     "target": "BundleId"
+     "target": "BundleId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:.*\\S.*)$",
+       "cloudformation": "\\S"
+      }
+     }
     }
    ],
    "operation": "CreateBucket",
@@ -29827,11 +31174,23 @@
    "mappings": [
     {
      "source": "availabilityZone",
-     "target": "AvailabilityZone"
+     "target": "AvailabilityZone",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:.*\\S.*)$",
+       "cloudformation": "\\S"
+      }
+     }
     },
     {
      "source": "diskName",
-     "target": "DiskName"
+     "target": "DiskName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:\\w[\\w\\-]*\\w)$",
+       "cloudformation": "^[a-zA-Z0-9][\\w\\-.]*[a-zA-Z0-9]$"
+      }
+     }
     },
     {
      "source": "sizeInGb",
@@ -29847,7 +31206,13 @@
    "mappings": [
     {
      "source": "diskName",
-     "target": "DiskName"
+     "target": "DiskName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:\\w[\\w\\-]*\\w)$",
+       "cloudformation": "^[a-zA-Z0-9][\\w\\-.]*[a-zA-Z0-9]$"
+      }
+     }
     }
    ],
    "operation": "DeleteDisk",
@@ -29951,11 +31316,23 @@
     },
     {
      "source": "blueprintId",
-     "target": "BlueprintId"
+     "target": "BlueprintId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:.*\\S.*)$",
+       "cloudformation": "\\S"
+      }
+     }
     },
     {
      "source": "bundleId",
-     "target": "BundleId"
+     "target": "BundleId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:.*\\S.*)$",
+       "cloudformation": "\\S"
+      }
+     }
     },
     {
      "source": "keyPairName",
@@ -29975,7 +31352,13 @@
    "mappings": [
     {
      "source": "instanceName",
-     "target": "InstanceName"
+     "target": "InstanceName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:\\w[\\w\\-]*\\w)$",
+       "cloudformation": "^[a-zA-Z0-9][\\w\\-.]*[a-zA-Z0-9]$"
+      }
+     }
     }
    ],
    "operation": "DeleteInstance",
@@ -30560,7 +31943,13 @@
    "mappings": [
     {
      "source": "logType",
-     "target": "LogType"
+     "target": "LogType",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[\\w]*)$",
+       "cloudformation": "[\\w-]*$"
+      }
+     }
     },
     {
      "source": "name",
@@ -30596,7 +31985,13 @@
    "mappings": [
     {
      "source": "destinationName",
-     "target": "DestinationName"
+     "target": "DestinationName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[^:*]*)$",
+       "cloudformation": "^[^:*]{1,512}$"
+      }
+     }
     },
     {
      "source": "roleArn",
@@ -30620,7 +32015,13 @@
    "mappings": [
     {
      "source": "destinationName",
-     "target": "DestinationName"
+     "target": "DestinationName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[^:*]*)$",
+       "cloudformation": "^[^:*]{1,512}$"
+      }
+     }
     }
    ],
    "operation": "DeleteDestination",
@@ -30688,7 +32089,11 @@
      "target": "LogGroupArnList",
      "unrepresentable": {
       "items": {
-       "min_length": 20
+       "min_length": 20,
+       "pattern": {
+        "api": "^(?:[\\w#+=/:,.@-]*)$",
+        "cloudformation": "^[\\w#+=/:,.@*-]*$"
+       }
       }
      }
     }
@@ -30721,7 +32126,13 @@
     },
     {
      "source": "logGroupName",
-     "target": "LogGroupName"
+     "target": "LogGroupName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[\\.\\-_/#A-Za-z0-9]+)$",
+       "cloudformation": "^[.\\-_/#A-Za-z0-9]{1,512}\\Z"
+      }
+     }
     },
     {
      "source": "tags",
@@ -30737,7 +32148,13 @@
    "mappings": [
     {
      "source": "logGroupName",
-     "target": "LogGroupName"
+     "target": "LogGroupName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[\\.\\-_/#A-Za-z0-9]+)$",
+       "cloudformation": "^[.\\-_/#A-Za-z0-9]{1,512}\\Z"
+      }
+     }
     }
    ],
    "operation": "DeleteLogGroup",
@@ -30793,7 +32210,13 @@
     },
     {
      "source": "filterName",
-     "target": "FilterName"
+     "target": "FilterName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[^:*]*)$",
+       "cloudformation": "^[^:*]{1,512}"
+      }
+     }
     },
     {
      "source": "filterPattern",
@@ -30801,7 +32224,13 @@
     },
     {
      "source": "logGroupName",
-     "target": "LogGroupName"
+     "target": "LogGroupName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[\\.\\-_/#A-Za-z0-9]+)$",
+       "cloudformation": "^[.\\-_/#A-Za-z0-9]{1,512}"
+      }
+     }
     }
    ],
    "operation": "PutMetricFilter",
@@ -30813,11 +32242,23 @@
    "mappings": [
     {
      "source": "filterName",
-     "target": "FilterName"
+     "target": "FilterName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[^:*]*)$",
+       "cloudformation": "^[^:*]{1,512}"
+      }
+     }
     },
     {
      "source": "logGroupName",
-     "target": "LogGroupName"
+     "target": "LogGroupName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[\\.\\-_/#A-Za-z0-9]+)$",
+       "cloudformation": "^[.\\-_/#A-Za-z0-9]{1,512}"
+      }
+     }
     }
    ],
    "operation": "DeleteMetricFilter",
@@ -31564,11 +33005,23 @@
     },
     {
      "source": "ExecutionRoleArn",
-     "target": "ExecutionRoleArn"
+     "target": "ExecutionRoleArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:aws(-[a-z]+)?:iam::\\d{12}:role/?[a-zA-Z_0-9+=,.@\\-_/]+)$",
+       "cloudformation": "^arn:(aws|aws-us-gov|aws-cn|aws-iso|aws-iso-b)(-[a-z]+)?:iam::\\d{12}:role/?[a-zA-Z_0-9+=,.@\\-_/]+$"
+      }
+     }
     },
     {
      "source": "KmsKey",
-     "target": "KmsKey"
+     "target": "KmsKey",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:(((arn:aws(-[a-z]+)?:kms:[a-z]{2}-[a-z]+-\\d:\\d+:)?key\\/)?[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}|(arn:aws(-[a-z]+)?:kms:[a-z]{2}-[a-z]+-\\d:\\d+:)?alias/.+))$",
+       "cloudformation": "^(((arn:(aws|aws-us-gov|aws-cn|aws-iso|aws-iso-b)(-[a-z]+)?:kms:[a-z]{2}-[a-z]+-\\d:\\d+:)?key\\/)?[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}|(arn:(aws|aws-us-gov|aws-cn|aws-iso|aws-iso-b):kms:[a-z]{2}-[a-z]+-\\d:\\d+:)?alias/.+)$"
+      }
+     }
     },
     {
      "source": "MaxWebservers",
@@ -31588,7 +33041,13 @@
     },
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z][0-9a-zA-Z-_]*)$",
+       "cloudformation": "^[a-zA-Z][0-9a-zA-Z\\-_]*$"
+      }
+     }
     },
     {
      "source": "PluginsS3ObjectVersion",
@@ -31612,7 +33071,13 @@
     },
     {
      "source": "SourceBucketArn",
-     "target": "SourceBucketArn"
+     "target": "SourceBucketArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:aws(-[a-z]+)?:s3:::[a-z0-9.\\-]+)$",
+       "cloudformation": "^arn:(aws|aws-us-gov|aws-cn|aws-iso|aws-iso-b)(-[a-z]+)?:s3:::[a-z0-9.\\-]+$"
+      }
+     }
     },
     {
      "source": "StartupScriptS3ObjectVersion",
@@ -31628,7 +33093,13 @@
     },
     {
      "source": "WeeklyMaintenanceWindowStart",
-     "target": "WeeklyMaintenanceWindowStart"
+     "target": "WeeklyMaintenanceWindowStart",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:.*(MON|TUE|WED|THU|FRI|SAT|SUN):([01]\\d|2[0-3]):(00|30).*)$",
+       "cloudformation": "(MON|TUE|WED|THU|FRI|SAT|SUN):([01]\\d|2[0-3]):(00|30)"
+      }
+     }
     }
    ],
    "operation": "CreateEnvironment",
@@ -31640,7 +33111,13 @@
    "mappings": [
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z][0-9a-zA-Z-_]*)$",
+       "cloudformation": "^[a-zA-Z][0-9a-zA-Z\\-_]*$"
+      }
+     }
     }
    ],
    "operation": "DeleteEnvironment",
@@ -31663,7 +33140,13 @@
     },
     {
      "source": "RoleArn",
-     "target": "RoleArn"
+     "target": "RoleArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:aws(?:-(?:cn|us-gov|iso|iso-b|iso-e|iso-f))?:iam::[0-9]{12}:role(/[a-zA-Z0-9+=,.@_\\-]{1,512})*?/[a-zA-Z0-9+=,.@_\\-]{1,64})$",
+       "cloudformation": "^arn:aws(?:-(?:cn|us-gov|iso|iso-b|iso-e|iso-f))?:iam::[0-9]{12}:role(/[a-zA-Z0-9+=,.@_-]{1,512})*?/[a-zA-Z0-9+=,.@_-]{1,64}$"
+      }
+     }
     },
     {
      "source": "TriggerMode",
@@ -31980,7 +33463,13 @@
    "mappings": [
     {
      "source": "FlowArn",
-     "target": "FlowArn"
+     "target": "FlowArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:.+:mediaconnect.+:flow:.+)$",
+       "cloudformation": "^arn:(aws[a-zA-Z-]*):mediaconnect:[a-z0-9-]+:[0-9]{12}:flow:[a-zA-Z0-9-]+:[a-zA-Z0-9_-]+$"
+      }
+     }
     }
    ],
    "operation": "AddFlowOutputs",
@@ -31992,7 +33481,13 @@
    "mappings": [
     {
      "source": "FlowArn",
-     "target": "FlowArn"
+     "target": "FlowArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:.+:mediaconnect.+:flow:.+)$",
+       "cloudformation": "^arn:(aws[a-zA-Z-]*):mediaconnect:[a-z0-9-]+:[0-9]{12}:flow:[a-zA-Z0-9-]+:[a-zA-Z0-9_-]+$"
+      }
+     }
     }
    ],
    "operation": "RemoveFlowOutput",
@@ -32004,7 +33499,13 @@
    "mappings": [
     {
      "source": "FlowArn",
-     "target": "FlowArn"
+     "target": "FlowArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:.+:mediaconnect.+:flow:.+)$",
+       "cloudformation": "^arn:(aws[a-zA-Z-]*):mediaconnect:[a-z0-9-]+:[0-9]{12}:flow:[a-zA-Z0-9-]+:[a-zA-Z0-9_-]+$"
+      }
+     }
     }
    ],
    "operation": "AddFlowSources",
@@ -32016,7 +33517,13 @@
    "mappings": [
     {
      "source": "FlowArn",
-     "target": "FlowArn"
+     "target": "FlowArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:.+:mediaconnect.+:flow:.+)$",
+       "cloudformation": "^arn:(aws[a-zA-Z-]*):mediaconnect:[a-z0-9-]+:[0-9]{12}:flow:[a-zA-Z0-9-]+:[a-zA-Z0-9_-]+$"
+      }
+     }
     }
    ],
    "operation": "RemoveFlowSource",
@@ -32028,7 +33535,13 @@
    "mappings": [
     {
      "source": "FlowArn",
-     "target": "FlowArn"
+     "target": "FlowArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:.+:mediaconnect.+:flow:.+)$",
+       "cloudformation": "^arn:(aws[a-zA-Z-]*):mediaconnect:[a-z0-9-]+:[0-9]{12}:flow:[a-zA-Z0-9-]+:[a-zA-Z0-9_-]+$"
+      }
+     }
     }
    ],
    "operation": "AddFlowVpcInterfaces",
@@ -32040,7 +33553,13 @@
    "mappings": [
     {
      "source": "FlowArn",
-     "target": "FlowArn"
+     "target": "FlowArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:.+:mediaconnect.+:flow:.+)$",
+       "cloudformation": "^arn:(aws[a-zA-Z-]*):mediaconnect:[a-z0-9-]+:[0-9]{12}:flow:[a-zA-Z0-9-]+:[a-zA-Z0-9_-]+$"
+      }
+     }
     }
    ],
    "operation": "RemoveFlowVpcInterface",
@@ -33649,11 +35168,23 @@
    "mappings": [
     {
      "source": "AccessString",
-     "target": "AccessString"
+     "target": "AccessString",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:.*\\S.*)$",
+       "cloudformation": "\\S"
+      }
+     }
     },
     {
      "source": "UserName",
-     "target": "UserName"
+     "target": "UserName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z][a-zA-Z0-9\\-]*)$",
+       "cloudformation": "[a-z][a-z0-9\\\\-]*"
+      }
+     }
     }
    ],
    "operation": "CreateUser",
@@ -33665,7 +35196,13 @@
    "mappings": [
     {
      "source": "UserName",
-     "target": "UserName"
+     "target": "UserName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z][a-zA-Z0-9\\-]*)$",
+       "cloudformation": "[a-z][a-z0-9\\\\-]*"
+      }
+     }
     }
    ],
    "operation": "DeleteUser",
@@ -33979,11 +35516,23 @@
     },
     {
      "source": "graphName",
-     "target": "GraphName"
+     "target": "GraphName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:(?!g-)[a-z][a-z0-9]*(-[a-z0-9]+)*)$",
+       "cloudformation": "^[a-zA-z][a-zA-Z0-9]*(-[a-zA-Z0-9]+)*$"
+      }
+     }
     },
     {
      "source": "kmsKeyIdentifier",
-     "target": "KmsKeyIdentifier"
+     "target": "KmsKeyIdentifier",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:aws[^:]*:kms:[a-zA-Z0-9-]*:[0-9]{12}:key/[a-zA-Z0-9-]{36})$",
+       "cloudformation": "arn:aws(|-cn|-us-gov|-iso|-iso-b|-iso-e|-iso-f|-eusc):kms:[a-zA-Z0-9-]*:[0-9]{12}:key/[a-zA-Z0-9-]{36}"
+      }
+     }
     },
     {
      "source": "provisionedMemory",
@@ -34257,7 +35806,13 @@
     },
     {
      "source": "FirewallArn",
-     "target": "FirewallArn"
+     "target": "FirewallArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^arn:aws.*)$",
+       "cloudformation": "^(arn:aws.*)$"
+      }
+     }
     },
     {
      "source": "VpcId",
@@ -34815,11 +36370,23 @@
    "mappings": [
     {
      "source": "arn",
-     "target": "Arn"
+     "target": "Arn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:aws:(chatbot|consoleapp|notifications-contacts):[a-zA-Z0-9-]*:[0-9]{12}:[a-zA-Z0-9-_.@]+/[a-zA-Z0-9/_.@:-]+)$",
+       "cloudformation": "^arn:[a-z-]{3,10}:(chatbot|consoleapp|notifications-contacts):[a-zA-Z0-9-]*:[0-9]{12}:[a-zA-Z0-9-_.@]+/[a-zA-Z0-9/_.@:-]+$"
+      }
+     }
     },
     {
      "source": "notificationConfigurationArn",
-     "target": "NotificationConfigurationArn"
+     "target": "NotificationConfigurationArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:aws:notifications::[0-9]{12}:configuration/[a-z0-9]{27})$",
+       "cloudformation": "^arn:[a-z-]{3,10}:notifications::[0-9]{12}:configuration/[a-z0-9]{27}$"
+      }
+     }
     }
    ],
    "operation": "AssociateChannel",
@@ -34831,11 +36398,23 @@
    "mappings": [
     {
      "source": "arn",
-     "target": "Arn"
+     "target": "Arn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:aws:(chatbot|consoleapp|notifications-contacts):[a-zA-Z0-9-]*:[0-9]{12}:[a-zA-Z0-9-_.@]+/[a-zA-Z0-9/_.@:-]+)$",
+       "cloudformation": "^arn:[a-z-]{3,10}:(chatbot|consoleapp|notifications-contacts):[a-zA-Z0-9-]*:[0-9]{12}:[a-zA-Z0-9-_.@]+/[a-zA-Z0-9/_.@:-]+$"
+      }
+     }
     },
     {
      "source": "notificationConfigurationArn",
-     "target": "NotificationConfigurationArn"
+     "target": "NotificationConfigurationArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:aws:notifications::[0-9]{12}:configuration/[a-z0-9]{27})$",
+       "cloudformation": "^arn:[a-z-]{3,10}:notifications::[0-9]{12}:configuration/[a-z0-9]{27}$"
+      }
+     }
     }
    ],
    "operation": "DisassociateChannel",
@@ -34855,7 +36434,13 @@
     },
     {
      "source": "notificationConfigurationArn",
-     "target": "NotificationConfigurationArn"
+     "target": "NotificationConfigurationArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:aws:notifications::[0-9]{12}:configuration/[a-z0-9]{27})$",
+       "cloudformation": "^arn:[a-z-]{3,10}:notifications::[0-9]{12}:configuration/[a-z0-9]{27}$"
+      }
+     }
     },
     {
      "source": "regions",
@@ -34886,7 +36471,13 @@
     },
     {
      "source": "managedNotificationConfigurationArn",
-     "target": "ManagedNotificationConfigurationArn"
+     "target": "ManagedNotificationConfigurationArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:[-.a-z0-9]{1,63}:notifications::[0-9]{12}:managed-notification-configuration/category/[a-zA-Z0-9\\-]{3,64}/sub-category/[a-zA-Z0-9\\-]{3,64})$",
+       "cloudformation": "^arn:[a-z-]{3,10}:notifications::([0-9]{12}|):managed-notification-configuration/category/[a-zA-Z0-9\\-]{3,64}/sub-category/[a-zA-Z0-9\\-]{3,64}$"
+      }
+     }
     }
    ],
    "operation": "AssociateManagedNotificationAccountContact",
@@ -34902,7 +36493,13 @@
     },
     {
      "source": "managedNotificationConfigurationArn",
-     "target": "ManagedNotificationConfigurationArn"
+     "target": "ManagedNotificationConfigurationArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:[-.a-z0-9]{1,63}:notifications::[0-9]{12}:managed-notification-configuration/category/[a-zA-Z0-9\\-]{3,64}/sub-category/[a-zA-Z0-9\\-]{3,64})$",
+       "cloudformation": "^arn:[a-z-]{3,10}:notifications::([0-9]{12}|):managed-notification-configuration/category/[a-zA-Z0-9\\-]{3,64}/sub-category/[a-zA-Z0-9\\-]{3,64}$"
+      }
+     }
     }
    ],
    "operation": "DisassociateManagedNotificationAccountContact",
@@ -34914,11 +36511,23 @@
    "mappings": [
     {
      "source": "channelArn",
-     "target": "ChannelArn"
+     "target": "ChannelArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:aws:(chatbot|consoleapp|notifications-contacts):[a-zA-Z0-9-]*:[0-9]{12}:[a-zA-Z0-9-_.@]+/[a-zA-Z0-9/_.@:-]+)$",
+       "cloudformation": "^arn:[a-z-]{3,10}:(chatbot|consoleapp|notifications-contacts):[a-zA-Z0-9-]*:[0-9]{12}:[a-zA-Z0-9-_.@]+/[a-zA-Z0-9/_.@:-]+$"
+      }
+     }
     },
     {
      "source": "managedNotificationConfigurationArn",
-     "target": "ManagedNotificationConfigurationArn"
+     "target": "ManagedNotificationConfigurationArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:[-.a-z0-9]{1,63}:notifications::[0-9]{12}:managed-notification-configuration/category/[a-zA-Z0-9\\-]{3,64}/sub-category/[a-zA-Z0-9\\-]{3,64})$",
+       "cloudformation": "^arn:[a-z-]{3,10}:notifications::([0-9]{12}|):managed-notification-configuration/category/[a-zA-Z0-9\\-]{3,64}/sub-category/[a-zA-Z0-9\\-]{3,64}$"
+      }
+     }
     }
    ],
    "operation": "AssociateManagedNotificationAdditionalChannel",
@@ -34930,11 +36539,23 @@
    "mappings": [
     {
      "source": "channelArn",
-     "target": "ChannelArn"
+     "target": "ChannelArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:aws:(chatbot|consoleapp|notifications-contacts):[a-zA-Z0-9-]*:[0-9]{12}:[a-zA-Z0-9-_.@]+/[a-zA-Z0-9/_.@:-]+)$",
+       "cloudformation": "^arn:[a-z-]{3,10}:(chatbot|consoleapp|notifications-contacts):[a-zA-Z0-9-]*:[0-9]{12}:[a-zA-Z0-9-_.@]+/[a-zA-Z0-9/_.@:-]+$"
+      }
+     }
     },
     {
      "source": "managedNotificationConfigurationArn",
-     "target": "ManagedNotificationConfigurationArn"
+     "target": "ManagedNotificationConfigurationArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:[-.a-z0-9]{1,63}:notifications::[0-9]{12}:managed-notification-configuration/category/[a-zA-Z0-9\\-]{3,64}/sub-category/[a-zA-Z0-9\\-]{3,64})$",
+       "cloudformation": "^arn:[a-z-]{3,10}:notifications::([0-9]{12}|):managed-notification-configuration/category/[a-zA-Z0-9\\-]{3,64}/sub-category/[a-zA-Z0-9\\-]{3,64}$"
+      }
+     }
     }
    ],
    "operation": "DisassociateManagedNotificationAdditionalChannel",
@@ -34984,11 +36605,23 @@
    "mappings": [
     {
      "source": "notificationConfigurationArn",
-     "target": "NotificationConfigurationArn"
+     "target": "NotificationConfigurationArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:aws:notifications::[0-9]{12}:configuration/[a-z0-9]{27})$",
+       "cloudformation": "^arn:[a-z-]{3,10}:notifications::[0-9]{12}:configuration/[a-z0-9]{27}$"
+      }
+     }
     },
     {
      "source": "organizationalUnitId",
-     "target": "OrganizationalUnitId"
+     "target": "OrganizationalUnitId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:(Root|r-[0-9a-z]{4,32}|ou-[0-9a-z]{4,32}-[a-z0-9]{8,32}))$",
+       "cloudformation": "^(r-[0-9a-z]{4,32})|(ou-[0-9a-z]{4,32}-[a-z0-9]{8,32})$"
+      }
+     }
     }
    ],
    "operation": "AssociateOrganizationalUnit",
@@ -35000,11 +36633,23 @@
    "mappings": [
     {
      "source": "notificationConfigurationArn",
-     "target": "NotificationConfigurationArn"
+     "target": "NotificationConfigurationArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:aws:notifications::[0-9]{12}:configuration/[a-z0-9]{27})$",
+       "cloudformation": "^arn:[a-z-]{3,10}:notifications::[0-9]{12}:configuration/[a-z0-9]{27}$"
+      }
+     }
     },
     {
      "source": "organizationalUnitId",
-     "target": "OrganizationalUnitId"
+     "target": "OrganizationalUnitId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:(Root|r-[0-9a-z]{4,32}|ou-[0-9a-z]{4,32}-[a-z0-9]{8,32}))$",
+       "cloudformation": "^(r-[0-9a-z]{4,32})|(ou-[0-9a-z]{4,32}-[a-z0-9]{8,32})$"
+      }
+     }
     }
    ],
    "operation": "DisassociateOrganizationalUnit",
@@ -35486,7 +37131,13 @@
    "mappings": [
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[a-zA-Z0-9_\\.\\-]{1,255}$)$",
+       "cloudformation": "^[a-zA-Z0-9_.-]+$"
+      }
+     }
     }
    ],
    "operation": "CreateSink",
@@ -35505,7 +37156,13 @@
    "mappings": [
     {
      "source": "RuleName",
-     "target": "RuleName"
+     "target": "RuleName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[0-9A-Za-z-_.#/]+)$",
+       "cloudformation": "^[0-9A-Za-z-]+$"
+      }
+     }
     },
     {
      "source": "Tags",
@@ -35521,7 +37178,13 @@
    "mappings": [
     {
      "source": "RuleName",
-     "target": "RuleName"
+     "target": "RuleName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[0-9A-Za-z-_.#/]+)$",
+       "cloudformation": "^[0-9A-Za-z-]+$"
+      }
+     }
     },
     {
      "source": "Tags",
@@ -35560,7 +37223,13 @@
    "mappings": [
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:.*[a-z][a-z0-9\\-]+.*)$",
+       "cloudformation": "[a-z][a-z0-9\\-]+"
+      }
+     }
     },
     {
      "source": "Tags",
@@ -35576,7 +37245,13 @@
    "mappings": [
     {
      "source": "RuleName",
-     "target": "RuleName"
+     "target": "RuleName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[0-9A-Za-z-_.#/]+)$",
+       "cloudformation": "^[0-9A-Za-z-]+$"
+      }
+     }
     },
     {
      "source": "Tags",
@@ -36048,11 +37723,23 @@
     },
     {
      "source": "name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-z][a-z0-9-]+)$",
+       "cloudformation": "^[a-z][a-z0-9-]{2,31}$"
+      }
+     }
     },
     {
      "source": "policy",
-     "target": "Policy"
+     "target": "Policy",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:.*[\\u0009\\u000A\\u000D\\u0020-\\u007E\\u00A1-\\u00FF]+.*)$",
+       "cloudformation": "[\\u0009\\u000A\\u000D\\u0020-\\u007E\\u00A1-\\u00FF]+"
+      }
+     }
     },
     {
      "source": "type",
@@ -36071,7 +37758,13 @@
    "mappings": [
     {
      "source": "name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-z][a-z0-9-]+)$",
+       "cloudformation": "^[a-z][a-z0-9-]{2,31}$"
+      }
+     }
     },
     {
      "source": "type",
@@ -36102,7 +37795,13 @@
     },
     {
      "source": "name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-z][a-z0-9-]+)$",
+       "cloudformation": "^[a-z][a-z0-9-]{2,63}$"
+      }
+     }
     },
     {
      "source": "standbyReplicas",
@@ -36143,7 +37842,13 @@
     },
     {
      "source": "name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-z][a-z0-9-]+)$",
+       "cloudformation": "^[a-z][a-z0-9-]{2,31}$"
+      }
+     }
     },
     {
      "source": "standbyReplicas",
@@ -36212,7 +37917,13 @@
     },
     {
      "source": "policy",
-     "target": "Policy"
+     "target": "Policy",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:.*[\\u0009\\u000A\\u000D\\u0020-\\u007E\\u00A1-\\u00FF]+.*)$",
+       "cloudformation": "[\\u0009\\u000A\\u000D\\u0020-\\u007E\\u00A1-\\u00FF]+"
+      }
+     }
     },
     {
      "source": "type",
@@ -36254,7 +37965,13 @@
     },
     {
      "source": "name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-z][a-z0-9-]+)$",
+       "cloudformation": "^[a-z][a-z0-9-]{2,31}$"
+      }
+     }
     },
     {
      "source": "type",
@@ -36290,11 +38007,23 @@
     },
     {
      "source": "name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-z][a-z0-9-]+)$",
+       "cloudformation": "^[a-z][a-z0-9-]{2,31}$"
+      }
+     }
     },
     {
      "source": "policy",
-     "target": "Policy"
+     "target": "Policy",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:.*[\\u0009\\u000A\\u000D\\u0020-\\u007E\\u00A1-\\u00FF]+.*)$",
+       "cloudformation": "[\\u0009\\u000A\\u000D\\u0020-\\u007E\\u00A1-\\u00FF]+"
+      }
+     }
     },
     {
      "source": "type",
@@ -36313,7 +38042,13 @@
    "mappings": [
     {
      "source": "name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-z][a-z0-9-]+)$",
+       "cloudformation": "^[a-z][a-z0-9-]{2,31}$"
+      }
+     }
     },
     {
      "source": "type",
@@ -36332,7 +38067,13 @@
    "mappings": [
     {
      "source": "name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-z][a-z0-9-]+)$",
+       "cloudformation": "^[a-z][a-z0-9-]{2,31}$"
+      }
+     }
     },
     {
      "source": "securityGroupIds",
@@ -36579,11 +38320,23 @@
    "mappings": [
     {
      "source": "ConnectorArn",
-     "target": "ConnectorArn"
+     "target": "ConnectorArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^arn:[\\w-]+:pca-connector-ad:[\\w-]+:[0-9]+:connector\\/[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$)$",
+       "cloudformation": "^arn:[\\w-]+:pca-connector-ad:[\\w-]+:[0-9]+:connector(\\/[\\w-]+)$"
+      }
+     }
     },
     {
      "source": "DirectoryRegistrationArn",
-     "target": "DirectoryRegistrationArn"
+     "target": "DirectoryRegistrationArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^arn:[\\w-]+:pca-connector-ad:[\\w-]+:[0-9]+:directory-registration\\/d-[0-9a-f]{10}$)$",
+       "cloudformation": "^arn:[\\w-]+:pca-connector-ad:[\\w-]+:[0-9]+:directory-registration(\\/[\\w-]+)$"
+      }
+     }
     }
    ],
    "operation": "CreateServicePrincipalName",
@@ -36595,11 +38348,23 @@
    "mappings": [
     {
      "source": "ConnectorArn",
-     "target": "ConnectorArn"
+     "target": "ConnectorArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^arn:[\\w-]+:pca-connector-ad:[\\w-]+:[0-9]+:connector\\/[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$)$",
+       "cloudformation": "^arn:[\\w-]+:pca-connector-ad:[\\w-]+:[0-9]+:connector(\\/[\\w-]+)$"
+      }
+     }
     },
     {
      "source": "DirectoryRegistrationArn",
-     "target": "DirectoryRegistrationArn"
+     "target": "DirectoryRegistrationArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^arn:[\\w-]+:pca-connector-ad:[\\w-]+:[0-9]+:directory-registration\\/d-[0-9a-f]{10}$)$",
+       "cloudformation": "^arn:[\\w-]+:pca-connector-ad:[\\w-]+:[0-9]+:directory-registration(\\/[\\w-]+)$"
+      }
+     }
     }
    ],
    "operation": "DeleteServicePrincipalName",
@@ -36648,7 +38413,13 @@
     },
     {
      "source": "TemplateArn",
-     "target": "TemplateArn"
+     "target": "TemplateArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^arn:[\\w-]+:pca-connector-ad:[\\w-]+:[0-9]+:connector\\/[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}\\/template\\/[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$)$",
+       "cloudformation": "^arn:[\\w-]+:pca-connector-ad:[\\w-]+:[0-9]+:connector(\\/[\\w-]+)\\/template(\\/[\\w-]+)$"
+      }
+     }
     }
    ],
    "operation": "CreateTemplateGroupAccessControlEntry",
@@ -36664,7 +38435,13 @@
     },
     {
      "source": "TemplateArn",
-     "target": "TemplateArn"
+     "target": "TemplateArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^arn:[\\w-]+:pca-connector-ad:[\\w-]+:[0-9]+:connector\\/[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}\\/template\\/[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$)$",
+       "cloudformation": "^arn:[\\w-]+:pca-connector-ad:[\\w-]+:[0-9]+:connector(\\/[\\w-]+)\\/template(\\/[\\w-]+)$"
+      }
+     }
     }
    ],
    "operation": "DeleteTemplateGroupAccessControlEntry",
@@ -36756,7 +38533,13 @@
     },
     {
      "source": "iamInstanceProfileArn",
-     "target": "IamInstanceProfileArn"
+     "target": "IamInstanceProfileArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:aws([a-zA-Z-]{0,10})?:iam::[0-9]{12}:instance-profile/([!-~]{1,510}/)?([\\w+=,.@-]{1,128}))$",
+       "cloudformation": "^arn:aws([a-zA-Z-]{0,10})?:iam::[0-9]{12}:instance-profile/.{1,128}$"
+      }
+     }
     },
     {
      "source": "purchaseOption",
@@ -37068,7 +38851,13 @@
     },
     {
      "source": "Enrichment",
-     "target": "Enrichment"
+     "target": "Enrichment",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:$|arn:(aws[a-zA-Z0-9-]*):([a-zA-Z0-9\\-]+):([a-z]{2,4}((-gov)|(-de)|(-iso([a-z]?)))?-[a-z]+(-\\d{1})?)?:(\\d{12})?:(.+))$",
+       "cloudformation": "^$|arn:(aws[a-zA-Z0-9-]*):([a-zA-Z0-9\\-]+):([a-z]{2}((-gov)|(-iso([a-z]?)))?-[a-z]+-\\d{1})?:(\\d{12})?:(.+)$"
+      }
+     }
     },
     {
      "source": "KmsKeyIdentifier",
@@ -37084,11 +38873,23 @@
     },
     {
      "source": "Source",
-     "target": "Source"
+     "target": "Source",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:smk://(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\\-]*[A-Za-z0-9]):[0-9]{1,5}|arn:(aws[a-zA-Z0-9-]*):([a-zA-Z0-9\\-]+):([a-z]{2,4}((-gov)|(-de)|(-iso([a-z]?)))?-[a-z]+(-\\d{1})?)?:(\\d{12})?:(.+))$",
+       "cloudformation": "^smk://(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\\-]*[A-Za-z0-9]):[0-9]{1,5}|arn:(aws[a-zA-Z0-9-]*):([a-zA-Z0-9\\-]+):([a-z]{2}((-gov)|(-iso([a-z]?)))?-[a-z]+-\\d{1})?:(\\d{12})?:(.+)$"
+      }
+     }
     },
     {
      "source": "Target",
-     "target": "Target"
+     "target": "Target",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:(aws[a-zA-Z0-9-]*):([a-zA-Z0-9\\-]+):([a-z]{2,4}((-gov)|(-de)|(-iso([a-z]?)))?-[a-z]+(-\\d{1})?)?:(\\d{12})?:(.+))$",
+       "cloudformation": "^arn:(aws[a-zA-Z0-9-]*):([a-zA-Z0-9\\-]+):([a-z]{2}((-gov)|(-iso([a-z]?)))?-[a-z]+-\\d{1})?:(\\d{12})?:(.+)$"
+      }
+     }
     }
    ],
    "operation": "CreatePipe",
@@ -37291,11 +39092,23 @@
     },
     {
      "source": "iamIdentityProviderArn",
-     "target": "IamIdentityProviderArn"
+     "target": "IamIdentityProviderArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:[a-z0-9-\\.]{1,63}:iam::\\d{12}:(oidc-provider|saml-provider)/[a-zA-Z0-9_\\.\\/@\\-]+)$",
+       "cloudformation": "^arn:(aws|aws-us-gov|aws-cn|aws-iso|aws-iso-b):iam::\\d{12}:(oidc-provider|saml-provider)/[a-zA-Z0-9_\\.\\/@\\-]+$"
+      }
+     }
     },
     {
      "source": "identityCenterInstanceArn",
-     "target": "IdentityCenterInstanceArn"
+     "target": "IdentityCenterInstanceArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:[a-z0-9-\\.]{1,63}:sso:::instance/(sso)?ins-[a-zA-Z0-9-.]{16})$",
+       "cloudformation": "^arn:(aws|aws-us-gov|aws-cn|aws-iso|aws-iso-b):sso:::instance/(sso)?ins-[a-zA-Z0-9-.]{16}$"
+      }
+     }
     },
     {
      "source": "identityType",
@@ -37333,7 +39146,13 @@
     },
     {
      "source": "principal",
-     "target": "Principal"
+     "target": "Principal",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:[a-z0-9-\\.]{1,63}:iam::[0-9]{12}:role/[a-zA-Z0-9_/+=,.@-]+)$",
+       "cloudformation": "^arn:aws:iam::[0-9]{12}:role/[a-zA-Z0-9_/+=,.@-]+$"
+      }
+     }
     }
    ],
    "operation": "CreateDataAccessor",
@@ -37455,7 +39274,13 @@
     },
     {
      "source": "principal",
-     "target": "Principal"
+     "target": "Principal",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:[a-z0-9-\\.]{1,63}:iam::[0-9]{12}:role/[a-zA-Z0-9_/+=,.@-]+)$",
+       "cloudformation": "^arn:aws:iam::[0-9]{12}:role/[a-zA-Z0-9_/+=,.@-]+$"
+      }
+     }
     },
     {
      "source": "statementId",
@@ -37578,7 +39403,11 @@
      "target": "Origins",
      "unrepresentable": {
       "items": {
-       "max_length": 64
+       "max_length": 64,
+       "pattern": {
+        "api": "^(?:(http://|https://)[a-zA-Z0-9-_.]+(?::[0-9]{1,5})?)$",
+        "cloudformation": "^(http:\\/\\/|https:\\/\\/)[a-zA-Z0-9-_.]+(?::[0-9]{1,5})?$"
+       }
       }
      }
     },
@@ -38625,7 +40454,11 @@
      "source": "GlobalClusterIdentifier",
      "target": "GlobalClusterIdentifier",
      "unrepresentable": {
-      "max_length": 63
+      "max_length": 63,
+      "pattern": {
+       "api": "^(?:[A-Za-z][0-9A-Za-z-:._]*)$",
+       "cloudformation": "^$|^[a-zA-Z]{1}(?:-?[a-zA-Z0-9]){0,62}$"
+      }
      }
     },
     {
@@ -39042,7 +40875,13 @@
    "mappings": [
     {
      "source": "DBProxyName",
-     "target": "DBProxyName"
+     "target": "DBProxyName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z](?:-?[a-zA-Z0-9]+)*)$",
+       "cloudformation": "[0-z]*"
+      }
+     }
     },
     {
      "source": "DebugLogging",
@@ -39094,7 +40933,13 @@
    "mappings": [
     {
      "source": "DBProxyName",
-     "target": "DBProxyName"
+     "target": "DBProxyName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z](?:-?[a-zA-Z0-9]+)*)$",
+       "cloudformation": "[0-z]*"
+      }
+     }
     }
    ],
    "operation": "DeleteDBProxy",
@@ -39106,11 +40951,23 @@
    "mappings": [
     {
      "source": "DBProxyEndpointName",
-     "target": "DBProxyEndpointName"
+     "target": "DBProxyEndpointName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z](?:-?[a-zA-Z0-9]+)*)$",
+       "cloudformation": "[0-z]*"
+      }
+     }
     },
     {
      "source": "DBProxyName",
-     "target": "DBProxyName"
+     "target": "DBProxyName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z](?:-?[a-zA-Z0-9]+)*)$",
+       "cloudformation": "[0-z]*"
+      }
+     }
     },
     {
      "source": "EndpointNetworkType",
@@ -39138,7 +40995,13 @@
    "mappings": [
     {
      "source": "DBProxyEndpointName",
-     "target": "DBProxyEndpointName"
+     "target": "DBProxyEndpointName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z](?:-?[a-zA-Z0-9]+)*)$",
+       "cloudformation": "[0-z]*"
+      }
+     }
     }
    ],
    "operation": "DeleteDBProxyEndpoint",
@@ -39158,7 +41021,13 @@
     },
     {
      "source": "DBProxyName",
-     "target": "DBProxyName"
+     "target": "DBProxyName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z](?:-?[a-zA-Z0-9]+)*)$",
+       "cloudformation": "[A-z][0-z]*"
+      }
+     }
     },
     {
      "source": "TargetGroupName",
@@ -39182,7 +41051,13 @@
     },
     {
      "source": "DBProxyName",
-     "target": "DBProxyName"
+     "target": "DBProxyName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z](?:-?[a-zA-Z0-9]+)*)$",
+       "cloudformation": "[A-z][0-z]*"
+      }
+     }
     },
     {
      "source": "TargetGroupName",
@@ -39364,7 +41239,11 @@
      "source": "GlobalClusterIdentifier",
      "target": "GlobalClusterIdentifier",
      "unrepresentable": {
-      "max_length": 63
+      "max_length": 63,
+      "pattern": {
+       "api": "^(?:[A-Za-z][0-9A-Za-z-:._]*)$",
+       "cloudformation": "^[a-zA-Z]{1}(?:-?[a-zA-Z0-9]){0,62}$"
+      }
      }
     },
     {
@@ -39387,7 +41266,11 @@
      "source": "GlobalClusterIdentifier",
      "target": "GlobalClusterIdentifier",
      "unrepresentable": {
-      "max_length": 63
+      "max_length": 63,
+      "pattern": {
+       "api": "^(?:[A-Za-z][0-9A-Za-z-:._]*)$",
+       "cloudformation": "^[a-zA-Z]{1}(?:-?[a-zA-Z0-9]){0,62}$"
+      }
      }
     }
    ],
@@ -39688,7 +41571,13 @@
     },
     {
      "source": "domainName",
-     "target": "DomainName"
+     "target": "DomainName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)(?:\\.(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?))+)$",
+       "cloudformation": "^(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)(?:\\.(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?))+$"
+      }
+     }
     },
     {
      "source": "gatewayType",
@@ -39752,7 +41641,13 @@
     },
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:(?!\\.)[\\.\\-_#A-Za-z0-9]+)$",
+       "cloudformation": "[\\.\\-_/#A-Za-z0-9]+"
+      }
+     }
     },
     {
      "source": "Platform",
@@ -39772,7 +41667,13 @@
    "mappings": [
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:(?!\\.)[\\.\\-_#A-Za-z0-9]+)$",
+       "cloudformation": "[\\.\\-_/#A-Za-z0-9]+"
+      }
+     }
     }
    ],
    "operation": "DeleteAppMonitor",
@@ -40338,7 +42239,13 @@
     },
     {
      "source": "namespaceName",
-     "target": "NamespaceName"
+     "target": "NamespaceName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[a-z0-9-]+$)$",
+       "cloudformation": "^(?=^[a-z0-9-]+$).{3,64}$"
+      }
+     }
     },
     {
      "source": "port",
@@ -40362,7 +42269,13 @@
     },
     {
      "source": "workgroupName",
-     "target": "WorkgroupName"
+     "target": "WorkgroupName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[a-z0-9-]+$)$",
+       "cloudformation": "^(?=^[a-z0-9-]+$).{3,64}$"
+      }
+     }
     }
    ],
    "operation": "CreateWorkgroup",
@@ -40374,7 +42287,13 @@
    "mappings": [
     {
      "source": "workgroupName",
-     "target": "WorkgroupName"
+     "target": "WorkgroupName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[a-z0-9-]+$)$",
+       "cloudformation": "^(?=^[a-z0-9-]+$).{3,64}$"
+      }
+     }
     }
    ],
    "operation": "DeleteWorkgroup",
@@ -40389,7 +42308,13 @@
    "mappings": [
     {
      "source": "EnvironmentIdentifier",
-     "target": "EnvironmentIdentifier"
+     "target": "EnvironmentIdentifier",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^env-[0-9A-Za-z]{10}$)$",
+       "cloudformation": "^env-([0-9A-Za-z]{10}$)"
+      }
+     }
     },
     {
      "source": "Name",
@@ -40417,7 +42342,13 @@
    "mappings": [
     {
      "source": "EnvironmentIdentifier",
-     "target": "EnvironmentIdentifier"
+     "target": "EnvironmentIdentifier",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^env-[0-9A-Za-z]{10}$)$",
+       "cloudformation": "^env-([0-9A-Za-z]{10}$)"
+      }
+     }
     }
    ],
    "operation": "DeleteApplication",
@@ -40466,11 +42397,23 @@
    "mappings": [
     {
      "source": "ApplicationIdentifier",
-     "target": "ApplicationIdentifier"
+     "target": "ApplicationIdentifier",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^app-[0-9A-Za-z]{10}$)$",
+       "cloudformation": "^app-([0-9A-Za-z]{10}$)"
+      }
+     }
     },
     {
      "source": "EnvironmentIdentifier",
-     "target": "EnvironmentIdentifier"
+     "target": "EnvironmentIdentifier",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^env-[0-9A-Za-z]{10}$)$",
+       "cloudformation": "^env-([0-9A-Za-z]{10}$)"
+      }
+     }
     },
     {
      "source": "RouteType",
@@ -40478,7 +42421,13 @@
     },
     {
      "source": "ServiceIdentifier",
-     "target": "ServiceIdentifier"
+     "target": "ServiceIdentifier",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^svc-[0-9A-Za-z]{10}$)$",
+       "cloudformation": "^svc-([0-9A-Za-z]{10}$)"
+      }
+     }
     },
     {
      "source": "Tags",
@@ -40494,11 +42443,23 @@
    "mappings": [
     {
      "source": "ApplicationIdentifier",
-     "target": "ApplicationIdentifier"
+     "target": "ApplicationIdentifier",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^app-[0-9A-Za-z]{10}$)$",
+       "cloudformation": "^app-([0-9A-Za-z]{10}$)"
+      }
+     }
     },
     {
      "source": "EnvironmentIdentifier",
-     "target": "EnvironmentIdentifier"
+     "target": "EnvironmentIdentifier",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^env-[0-9A-Za-z]{10}$)$",
+       "cloudformation": "^env-([0-9A-Za-z]{10}$)"
+      }
+     }
     }
    ],
    "operation": "DeleteRoute",
@@ -40513,7 +42474,13 @@
    "mappings": [
     {
      "source": "ApplicationIdentifier",
-     "target": "ApplicationIdentifier"
+     "target": "ApplicationIdentifier",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^app-[0-9A-Za-z]{10}$)$",
+       "cloudformation": "^app-([0-9A-Za-z]{10}$)"
+      }
+     }
     },
     {
      "source": "Description",
@@ -40525,7 +42492,13 @@
     },
     {
      "source": "EnvironmentIdentifier",
-     "target": "EnvironmentIdentifier"
+     "target": "EnvironmentIdentifier",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^env-[0-9A-Za-z]{10}$)$",
+       "cloudformation": "^env-([0-9A-Za-z]{10}$)"
+      }
+     }
     },
     {
      "source": "Name",
@@ -40549,11 +42522,23 @@
    "mappings": [
     {
      "source": "ApplicationIdentifier",
-     "target": "ApplicationIdentifier"
+     "target": "ApplicationIdentifier",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^app-[0-9A-Za-z]{10}$)$",
+       "cloudformation": "^app-([0-9A-Za-z]{10}$)"
+      }
+     }
     },
     {
      "source": "EnvironmentIdentifier",
-     "target": "EnvironmentIdentifier"
+     "target": "EnvironmentIdentifier",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^env-[0-9A-Za-z]{10}$)$",
+       "cloudformation": "^env-([0-9A-Za-z]{10}$)"
+      }
+     }
     }
    ],
    "operation": "DeleteService",
@@ -40565,7 +42550,13 @@
    "mappings": [
     {
      "source": "CollectionId",
-     "target": "CollectionId"
+     "target": "CollectionId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9_.\\-]+)$",
+       "cloudformation": "\\A[a-zA-Z0-9_\\.\\-]+$"
+      }
+     }
     },
     {
      "source": "Tags",
@@ -40581,7 +42572,13 @@
    "mappings": [
     {
      "source": "CollectionId",
-     "target": "CollectionId"
+     "target": "CollectionId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9_.\\-]+)$",
+       "cloudformation": "\\A[a-zA-Z0-9_\\.\\-]+$"
+      }
+     }
     }
    ],
    "operation": "DeleteCollection",
@@ -40620,7 +42617,13 @@
    "mappings": [
     {
      "source": "ProjectName",
-     "target": "ProjectName"
+     "target": "ProjectName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9_.\\-]+)$",
+       "cloudformation": "[a-zA-Z0-9][a-zA-Z0-9_\\-]*"
+      }
+     }
     },
     {
      "source": "Tags",
@@ -40651,7 +42654,13 @@
     },
     {
      "source": "RoleArn",
-     "target": "RoleArn"
+     "target": "RoleArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:aws:iam::\\d{12}:role/?[a-zA-Z_0-9+=,.@\\-_/]+)$",
+       "cloudformation": "arn:aws(-[\\w]+)*:iam::[0-9]{12}:role/.*"
+      }
+     }
     },
     {
      "source": "Tags",
@@ -40841,7 +42850,13 @@
     },
     {
      "source": "name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[A-Za-z0-9][A-Za-z0-9 _\\-]{1,59})$",
+       "cloudformation": "^[A-Za-z0-9][A-Za-z0-9_\\-]{1,59}$"
+      }
+     }
     },
     {
      "source": "serviceArn",
@@ -41005,7 +43020,11 @@
      "source": "Group",
      "target": "Group",
      "unrepresentable": {
-      "min_length": 12
+      "min_length": 12,
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9_\\.-]{1,300}|[a-zA-Z0-9_\\.-]{1,150}/[a-z0-9]{26}|arn:aws(-[a-z]+)*:resource-groups:[a-z]{2}(-[a-z]+)+-\\d{1}:[0-9]{12}:group/([a-zA-Z0-9_\\.-]{1,300}|[a-zA-Z0-9_\\.-]{1,150}/[a-z0-9]{26}))$",
+       "cloudformation": "([a-zA-Z0-9_\\\\.-]{1,150}/[a-z0-9]{26})|(arn:aws(-[a-z]+)*:resource-groups(-(test|beta|gamma))?:[a-z]{2}(-[a-z]+)+-\\d{1}:[0-9]{12}:group/[a-zA-Z0-9_\\\\.-]{1,150}/[a-z0-9]{26})"
+      }
      }
     },
     {
@@ -41253,7 +43272,13 @@
     },
     {
      "source": "name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:(?!^[0-9]+$)([a-zA-Z0-9-_/' ']+))$",
+       "cloudformation": "(?!^[0-9]+$)([a-zA-Z0-9-_' ']+)"
+      }
+     }
     },
     {
      "source": "protocol",
@@ -41291,7 +43316,13 @@
     },
     {
      "source": "name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:(?!^[0-9]+$)([a-zA-Z0-9-_/' ']+))$",
+       "cloudformation": "(?!^[0-9]+$)([a-zA-Z0-9-_' ']+)"
+      }
+     }
     },
     {
      "source": "tags",
@@ -41341,7 +43372,13 @@
     },
     {
      "source": "name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:(?!^[0-9]+$)([a-zA-Z0-9-_/' ']+))$",
+       "cloudformation": "(?!^[0-9]+$)([a-zA-Z0-9-_' ']+)"
+      }
+     }
     },
     {
      "source": "tags",
@@ -41379,7 +43416,13 @@
     },
     {
      "source": "name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:(?!^[0-9]+$)([a-zA-Z0-9-_/' ']+))$",
+       "cloudformation": "(?!^[0-9]+$)([a-zA-Z0-9-_' ']+)"
+      }
+     }
     },
     {
      "source": "tags",
@@ -41413,7 +43456,13 @@
     },
     {
      "source": "blockOverrideDomain",
-     "target": "BlockOverrideDomain"
+     "target": "BlockOverrideDomain",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:\\*?[a-zA-Z0-9!\"#$%&'()*+,./:;<=>?@\\[\\\\\\]^_`{|}~-]+)$",
+       "cloudformation": "\\*?[-a-zA-Z0-9.]+"
+      }
+     }
     },
     {
      "source": "blockOverrideTtl",
@@ -41449,7 +43498,13 @@
     },
     {
      "source": "name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:(?!^[0-9]+$)([a-zA-Z0-9-_/' ']+))$",
+       "cloudformation": "(?!^[0-9]+$)([a-zA-Z0-9-_' ']+)"
+      }
+     }
     },
     {
      "source": "priority",
@@ -41491,7 +43546,13 @@
     },
     {
      "source": "name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:(?!^[0-9]+$)([a-zA-Z0-9-_/' ']+))$",
+       "cloudformation": "(?!^[0-9]+$)([a-zA-Z0-9-_' ']+)"
+      }
+     }
     },
     {
      "source": "observabilityRegion",
@@ -41534,7 +43595,13 @@
     },
     {
      "source": "name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:(?!^[0-9]+$)([a-zA-Z0-9-_/' ']+))$",
+       "cloudformation": "(?!^[0-9]+$)([a-zA-Z0-9-_' ']+)"
+      }
+     }
     },
     {
      "source": "resourceArn",
@@ -42317,7 +44384,13 @@
    "mappings": [
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9\\-\\_]+)$",
+       "cloudformation": "^[a-zA-Z0-9\\-_]+$"
+      }
+     }
     }
    ],
    "operation": "DeleteStorageLensGroup",
@@ -43250,7 +45323,11 @@
      "source": "OptOutListName",
      "target": "OptOutListName",
      "unrepresentable": {
-      "max_length": 64
+      "max_length": 64,
+      "pattern": {
+       "api": "^(?:[A-Za-z0-9_:/-]+)$",
+       "cloudformation": "^[A-Za-z0-9_-]+$"
+      }
      }
     }
    ],
@@ -43374,7 +45451,13 @@
    "mappings": [
     {
      "source": "ResourceArn",
-     "target": "ResourceArn"
+     "target": "ResourceArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:[A-Za-z0-9_:/-]+)$",
+       "cloudformation": "^arn:\\S+$"
+      }
+     }
     }
    ],
    "operation": "PutResourcePolicy",
@@ -43386,7 +45469,13 @@
    "mappings": [
     {
      "source": "ResourceArn",
-     "target": "ResourceArn"
+     "target": "ResourceArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:[A-Za-z0-9_:/-]+)$",
+       "cloudformation": "^arn:\\S+$"
+      }
+     }
     }
    ],
    "operation": "DeleteResourcePolicy",
@@ -43409,7 +45498,13 @@
     },
     {
      "source": "SenderId",
-     "target": "SenderId"
+     "target": "SenderId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[A-Za-z0-9_-]+)$",
+       "cloudformation": "^[A-Z0-9_-]+$"
+      }
+     }
     }
    ],
    "operation": "RequestSenderId",
@@ -43425,7 +45520,13 @@
     },
     {
      "source": "SenderId",
-     "target": "SenderId"
+     "target": "SenderId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[A-Za-z0-9_:/-]+)$",
+       "cloudformation": "^[A-Z0-9_-]+$"
+      }
+     }
     }
    ],
    "operation": "ReleaseSenderId",
@@ -43535,15 +45636,33 @@
     },
     {
      "source": "MaxConcurrency",
-     "target": "MaxConcurrency"
+     "target": "MaxConcurrency",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^([1-9][0-9]*|[1-9][0-9]%|[1-9]%|100%)$)$",
+       "cloudformation": "^([1-9][0-9]{0,6}|[1-9][0-9]%|[1-9]%|100%)$"
+      }
+     }
     },
     {
      "source": "MaxErrors",
-     "target": "MaxErrors"
+     "target": "MaxErrors",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^([1-9][0-9]*|[0]|[1-9][0-9]%|[0-9]%|100%)$)$",
+       "cloudformation": "^([1-9][0-9]{0,6}|[0]|[1-9][0-9]%|[0-9]%|100%)$"
+      }
+     }
     },
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[a-zA-Z0-9_\\-.:/]{3,128}$)$",
+       "cloudformation": "^[a-zA-Z0-9_\\-.:/]{3,200}$"
+      }
+     }
     },
     {
      "source": "ScheduleExpression",
@@ -43571,7 +45690,13 @@
     },
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[a-zA-Z0-9_\\-.:/]{3,128}$)$",
+       "cloudformation": "^[a-zA-Z0-9_\\-.:/]{3,200}$"
+      }
+     }
     }
    ],
    "operation": "DeleteAssociation",
@@ -43583,7 +45708,13 @@
    "mappings": [
     {
      "source": "ConfigConnectorArn",
-     "target": "ConfigConnectorArn"
+     "target": "ConfigConnectorArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^arn:aws(-cn|-us-gov)?:config:([^:]+):\\d{12}:connector/.+$)$",
+       "cloudformation": "^arn:aws(-cn|-us-gov)?:config:[a-z0-9-]+:\\d{12}:connector/.+$"
+      }
+     }
     },
     {
      "source": "Description",
@@ -44024,7 +46155,13 @@
    "mappings": [
     {
      "source": "Alias",
-     "target": "Alias"
+     "target": "Alias",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[a-z0-9_\\-]*$)$",
+       "cloudformation": "^[a-z0-9_\\-\\.]*$"
+      }
+     }
     },
     {
      "source": "DisplayName",
@@ -44057,7 +46194,13 @@
    "mappings": [
     {
      "source": "ContactId",
-     "target": "ContactId"
+     "target": "ContactId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:(aws|aws-cn|aws-us-gov):ssm-contacts:[-\\w+=\\/,.@]*:[0-9]+:([\\w+=\\/,.@:-]+)*)$",
+       "cloudformation": "arn:[-\\w+=\\/,.@]+:[-\\w+=\\/,.@]+:[-\\w+=\\/,.@]*:[0-9]+:([\\w+=\\/,.@:-]+)*"
+      }
+     }
     },
     {
      "source": "DeferActivation",
@@ -44087,7 +46230,13 @@
     },
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[a-zA-Z0-9_\\-\\s\\.]*$)$",
+       "cloudformation": "^[a-zA-Z0-9_]*$"
+      }
+     }
     },
     {
      "source": "TimeZoneId",
@@ -44125,6 +46274,12 @@
      "source": "tags",
      "target": "Tags",
      "unrepresentable": {
+      "tag_key": {
+       "pattern": {
+        "api": "^(?:^(?!aws:)[A-Za-z0-9 _=@:.+-/]+$)$",
+        "cloudformation": "^(?!aws:)[a-zA-Z+-=._:/]+$"
+       }
+      },
       "tag_value": {
        "min_length": 1
       }
@@ -44160,18 +46315,34 @@
      "target": "Engagements",
      "unrepresentable": {
       "items": {
-       "max_length": 1000
+       "max_length": 1000,
+       "pattern": {
+        "api": "^(?:^arn:aws(-cn|-us-gov)?:ssm-contacts:[a-z0-9-]*:([0-9]{12}):contact/[a-z0-9_-]+$)$",
+        "cloudformation": "^arn:aws(-(cn|us-gov))?:ssm-contacts:(([a-z]+-)+[0-9])?:([0-9]{12})?:[^.]+$"
+       }
       }
      }
     },
     {
      "source": "name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[a-zA-Z0-9-_]*$)$",
+       "cloudformation": "^[a-zA-Z0-9_-]*$"
+      }
+     }
     },
     {
      "source": "tags",
      "target": "Tags",
      "unrepresentable": {
+      "tag_key": {
+       "pattern": {
+        "api": "^(?:^(?!aws:)[A-Za-z0-9 _=@:.+-/]+$)$",
+        "cloudformation": "^(?!aws:)[a-zA-Z+-=._:/]+$"
+       }
+      },
       "tag_value": {
        "min_length": 1
       }
@@ -44198,7 +46369,13 @@
     },
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[ A-Za-z0-9._-]{0,120}$)$",
+       "cloudformation": "^[ A-Za-z0-9_-]{1,50}$"
+      }
+     }
     }
    ],
    "operation": "CreateConfigurationManager",
@@ -44232,7 +46409,13 @@
     },
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[\\S\\s]*)$",
+       "cloudformation": "^[\\w+=,.@-]+$"
+      }
+     }
     },
     {
      "source": "Status",
@@ -44652,7 +46835,13 @@
    "mappings": [
     {
      "source": "ClusterName",
-     "target": "ClusterName"
+     "target": "ClusterName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9](-*[a-zA-Z0-9])*)$",
+       "cloudformation": "^[a-zA-Z0-9](-*[a-zA-Z0-9]){0,62}$"
+      }
+     }
     },
     {
      "source": "ClusterRole",
@@ -44679,7 +46868,11 @@
      "target": "ClusterName",
      "unrepresentable": {
       "max_length": 63,
-      "min_length": 1
+      "min_length": 1,
+      "pattern": {
+       "api": "^(?:(arn:aws[a-z\\-]*:sagemaker:[a-z0-9\\-]*:[0-9]{12}:cluster/[a-z0-9]{12})|([a-zA-Z0-9](-*[a-zA-Z0-9]){0,62}))$",
+       "cloudformation": "^[a-zA-Z0-9](-*[a-zA-Z0-9]){0,62}$"
+      }
      }
     }
    ],
@@ -44724,7 +46917,13 @@
    "mappings": [
     {
      "source": "JobDefinitionName",
-     "target": "JobDefinitionName"
+     "target": "JobDefinitionName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9](-*[a-zA-Z0-9]){0,62})$",
+       "cloudformation": "^[a-zA-Z0-9](-*[a-zA-Z0-9])*$"
+      }
+     }
     },
     {
      "source": "RoleArn",
@@ -44740,7 +46939,13 @@
    "mappings": [
     {
      "source": "JobDefinitionName",
-     "target": "JobDefinitionName"
+     "target": "JobDefinitionName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9](-*[a-zA-Z0-9]){0,62})$",
+       "cloudformation": "^[a-zA-Z0-9](-*[a-zA-Z0-9])*$"
+      }
+     }
     }
    ],
    "operation": "DeleteDataQualityJobDefinition",
@@ -44752,7 +46957,13 @@
    "mappings": [
     {
      "source": "DeviceFleetName",
-     "target": "DeviceFleetName"
+     "target": "DeviceFleetName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9](-*[a-zA-Z0-9]){0,62})$",
+       "cloudformation": "^[a-zA-Z0-9](-*_*[a-zA-Z0-9])*$"
+      }
+     }
     }
    ],
    "operation": "RegisterDevices",
@@ -44764,7 +46975,13 @@
    "mappings": [
     {
      "source": "DeviceFleetName",
-     "target": "DeviceFleetName"
+     "target": "DeviceFleetName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9](-*[a-zA-Z0-9]){0,62})$",
+       "cloudformation": "^[a-zA-Z0-9](-*_*[a-zA-Z0-9])*$"
+      }
+     }
     }
    ],
    "operation": "DeregisterDevices",
@@ -44776,11 +46993,23 @@
    "mappings": [
     {
      "source": "Description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[-a-zA-Z0-9_.,;:! ]*)$",
+       "cloudformation": "[\\S\\s]+"
+      }
+     }
     },
     {
      "source": "DeviceFleetName",
-     "target": "DeviceFleetName"
+     "target": "DeviceFleetName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9](-*[a-zA-Z0-9]){0,62})$",
+       "cloudformation": "^[a-zA-Z0-9](-*_*[a-zA-Z0-9])*$"
+      }
+     }
     },
     {
      "source": "RoleArn",
@@ -44796,7 +47025,13 @@
    "mappings": [
     {
      "source": "DeviceFleetName",
-     "target": "DeviceFleetName"
+     "target": "DeviceFleetName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9](-*[a-zA-Z0-9]){0,62})$",
+       "cloudformation": "^[a-zA-Z0-9](-*_*[a-zA-Z0-9])*$"
+      }
+     }
     }
    ],
    "operation": "DeleteDeviceFleet",
@@ -44828,7 +47063,13 @@
     },
     {
      "source": "KmsKeyId",
-     "target": "KmsKeyId"
+     "target": "KmsKeyId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9:/_-]*)$",
+       "cloudformation": ".*"
+      }
+     }
     },
     {
      "source": "SubnetIds",
@@ -44974,15 +47215,33 @@
     },
     {
      "source": "EventTimeFeatureName",
-     "target": "EventTimeFeatureName"
+     "target": "EventTimeFeatureName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9]([-_]*[a-zA-Z0-9]){0,63})$",
+       "cloudformation": "^[a-zA-Z0-9](-*[a-zA-Z0-9]){0,63}"
+      }
+     }
     },
     {
      "source": "FeatureGroupName",
-     "target": "FeatureGroupName"
+     "target": "FeatureGroupName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9]([_-]*[a-zA-Z0-9]){0,63})$",
+       "cloudformation": "^[a-zA-Z0-9](-*[a-zA-Z0-9]){0,63}"
+      }
+     }
     },
     {
      "source": "RecordIdentifierFeatureName",
-     "target": "RecordIdentifierFeatureName"
+     "target": "RecordIdentifierFeatureName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9]([-_]*[a-zA-Z0-9]){0,63})$",
+       "cloudformation": "^[a-zA-Z0-9](-*[a-zA-Z0-9]){0,63}"
+      }
+     }
     },
     {
      "source": "RoleArn",
@@ -44998,7 +47257,13 @@
    "mappings": [
     {
      "source": "FeatureGroupName",
-     "target": "FeatureGroupName"
+     "target": "FeatureGroupName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9]([_-]*[a-zA-Z0-9]){0,63})$",
+       "cloudformation": "^[a-zA-Z0-9](-*[a-zA-Z0-9]){0,63}"
+      }
+     }
     }
    ],
    "operation": "DeleteFeatureGroup",
@@ -45034,7 +47299,13 @@
    "mappings": [
     {
      "source": "HubName",
-     "target": "HubName"
+     "target": "HubName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:(arn:[a-z0-9-\\.]{1,63}:sagemaker:\\w+(?:-\\w+)+:(\\d{12}|aws):hub\\/)?[a-zA-Z0-9](-*[a-zA-Z0-9]){0,62})$",
+       "cloudformation": "^[a-zA-Z0-9](-*[a-zA-Z0-9]){0,62}$"
+      }
+     }
     }
    ],
    "operation": "DeleteHub",
@@ -45070,7 +47341,13 @@
    "mappings": [
     {
      "source": "ImageName",
-     "target": "ImageName"
+     "target": "ImageName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9]([-.]?[a-zA-Z0-9]){0,62})$",
+       "cloudformation": "^[a-zA-Z0-9]([-.]?[a-zA-Z0-9])*$"
+      }
+     }
     }
    ],
    "operation": "CreateImage",
@@ -45082,7 +47359,13 @@
    "mappings": [
     {
      "source": "ImageName",
-     "target": "ImageName"
+     "target": "ImageName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9]([-.]?[a-zA-Z0-9]){0,62})$",
+       "cloudformation": "^[a-zA-Z0-9]([-.]?[a-zA-Z0-9])*$"
+      }
+     }
     }
    ],
    "operation": "DeleteImage",
@@ -45101,7 +47384,13 @@
     },
     {
      "source": "BaseImage",
-     "target": "BaseImage"
+     "target": "BaseImage",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:.*)$",
+       "cloudformation": ".+"
+      }
+     }
     },
     {
      "source": "Horovod",
@@ -45109,7 +47398,13 @@
     },
     {
      "source": "ImageName",
-     "target": "ImageName"
+     "target": "ImageName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9]([-.]?[a-zA-Z0-9]){0,62})$",
+       "cloudformation": "^[A-Za-z0-9]([-.]?[A-Za-z0-9])*$"
+      }
+     }
     },
     {
      "source": "JobType",
@@ -45149,7 +47444,13 @@
     },
     {
      "source": "ImageName",
-     "target": "ImageName"
+     "target": "ImageName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9]([-.]?[a-zA-Z0-9]){0,62})$",
+       "cloudformation": "^[A-Za-z0-9]([-.]?[A-Za-z0-9])*$"
+      }
+     }
     }
    ],
    "operation": "DeleteImageVersion",
@@ -45161,15 +47462,33 @@
    "mappings": [
     {
      "source": "EndpointName",
-     "target": "EndpointName"
+     "target": "EndpointName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9](-*[a-zA-Z0-9]){0,62})$",
+       "cloudformation": "^[a-zA-Z0-9](-*[a-zA-Z0-9])*$"
+      }
+     }
     },
     {
      "source": "InferenceComponentName",
-     "target": "InferenceComponentName"
+     "target": "InferenceComponentName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9]([\\-a-zA-Z0-9]*[a-zA-Z0-9])?)$",
+       "cloudformation": "^[a-zA-Z0-9](-*[a-zA-Z0-9])*$"
+      }
+     }
     },
     {
      "source": "VariantName",
-     "target": "VariantName"
+     "target": "VariantName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9](-*[a-zA-Z0-9]){0,62})$",
+       "cloudformation": "^[a-zA-Z0-9](-*[a-zA-Z0-9])*$"
+      }
+     }
     }
    ],
    "operation": "CreateInferenceComponent",
@@ -45181,7 +47500,13 @@
    "mappings": [
     {
      "source": "InferenceComponentName",
-     "target": "InferenceComponentName"
+     "target": "InferenceComponentName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9]([\\-a-zA-Z0-9]*[a-zA-Z0-9])?)$",
+       "cloudformation": "^[a-zA-Z0-9](-*[a-zA-Z0-9])*$"
+      }
+     }
     }
    ],
    "operation": "DeleteInferenceComponent",
@@ -45200,11 +47525,23 @@
     },
     {
      "source": "EndpointName",
-     "target": "EndpointName"
+     "target": "EndpointName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9](-*[a-zA-Z0-9]){0,62})$",
+       "cloudformation": "^[a-zA-Z0-9](-*[a-zA-Z0-9])*"
+      }
+     }
     },
     {
      "source": "KmsKey",
-     "target": "KmsKey"
+     "target": "KmsKey",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9:/_-]*)$",
+       "cloudformation": ".*"
+      }
+     }
     },
     {
      "source": "Name",
@@ -45277,7 +47614,11 @@
      "source": "ArtifactStoreUri",
      "target": "ArtifactStoreUri",
      "unrepresentable": {
-      "min_length": 1
+      "min_length": 1,
+      "pattern": {
+       "api": "^(?:(https|s3)://([^/]+)/?(.*))$",
+       "cloudformation": "^s3:\\/\\/([^\\/]+)\\/?(.*)$"
+      }
      }
     },
     {
@@ -45288,12 +47629,22 @@
      "source": "MlflowVersion",
      "target": "MlflowVersion",
      "unrepresentable": {
-      "min_length": 1
+      "min_length": 1,
+      "pattern": {
+       "api": "^(?:[0-9]*.[0-9]*.[0-9]*)$",
+       "cloudformation": "^\\d+(\\.\\d+)+$"
+      }
      }
     },
     {
      "source": "RoleArn",
-     "target": "RoleArn"
+     "target": "RoleArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:aws[a-z\\-]*:iam::\\d{12}:role/?[a-zA-Z_0-9+=,.@\\-_/]+)$",
+       "cloudformation": "^arn:aws[a-z\\-]*:iam::\\d{12}:role\\/?[a-zA-Z_0-9+=,.@\\-_\\/]+$"
+      }
+     }
     },
     {
      "source": "TrackingServerName",
@@ -45361,7 +47712,13 @@
    "mappings": [
     {
      "source": "JobDefinitionName",
-     "target": "JobDefinitionName"
+     "target": "JobDefinitionName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9](-*[a-zA-Z0-9]){0,62})$",
+       "cloudformation": "^[a-zA-Z0-9](-*[a-zA-Z0-9])*$"
+      }
+     }
     },
     {
      "source": "RoleArn",
@@ -45377,7 +47734,13 @@
    "mappings": [
     {
      "source": "JobDefinitionName",
-     "target": "JobDefinitionName"
+     "target": "JobDefinitionName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9](-*[a-zA-Z0-9]){0,62})$",
+       "cloudformation": "^[a-zA-Z0-9](-*[a-zA-Z0-9])*$"
+      }
+     }
     }
    ],
    "operation": "DeleteModelBiasJobDefinition",
@@ -45417,7 +47780,13 @@
    "mappings": [
     {
      "source": "JobDefinitionName",
-     "target": "JobDefinitionName"
+     "target": "JobDefinitionName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9](-*[a-zA-Z0-9]){0,62})$",
+       "cloudformation": "^[a-zA-Z0-9](-*[a-zA-Z0-9])*$"
+      }
+     }
     },
     {
      "source": "RoleArn",
@@ -45433,7 +47802,13 @@
    "mappings": [
     {
      "source": "JobDefinitionName",
-     "target": "JobDefinitionName"
+     "target": "JobDefinitionName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9](-*[a-zA-Z0-9]){0,62})$",
+       "cloudformation": "^[a-zA-Z0-9](-*[a-zA-Z0-9])*$"
+      }
+     }
     }
    ],
    "operation": "DeleteModelExplainabilityJobDefinition",
@@ -45502,7 +47877,11 @@
      "source": "ModelPackageName",
      "target": "ModelPackageName",
      "unrepresentable": {
-      "max_length": 63
+      "max_length": 63,
+      "pattern": {
+       "api": "^(?:(arn:aws[a-z\\-]*:sagemaker:[a-z0-9\\-]*:[0-9]{12}:[a-z\\-]*\\/)?([a-zA-Z0-9]([a-zA-Z0-9-]){0,62})(?<!-)(\\/[0-9]{1,9})?)$",
+       "cloudformation": "^[a-zA-Z0-9](-*[a-zA-Z0-9]){0,62}$"
+      }
      }
     }
    ],
@@ -45519,7 +47898,13 @@
     },
     {
      "source": "ModelPackageGroupName",
-     "target": "ModelPackageGroupName"
+     "target": "ModelPackageGroupName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9](-*[a-zA-Z0-9]){0,62})$",
+       "cloudformation": "^[a-zA-Z0-9](-*[a-zA-Z0-9])*$"
+      }
+     }
     }
    ],
    "operation": "CreateModelPackageGroup",
@@ -45533,7 +47918,11 @@
      "source": "ModelPackageGroupName",
      "target": "ModelPackageGroupName",
      "unrepresentable": {
-      "max_length": 63
+      "max_length": 63,
+      "pattern": {
+       "api": "^(?:(arn:aws[a-z\\-]*:sagemaker:[a-z0-9\\-]*:[0-9]{12}:[a-z\\-]*\\/)?([a-zA-Z0-9]([a-zA-Z0-9-]){0,62})(?<!-))$",
+       "cloudformation": "^[a-zA-Z0-9](-*[a-zA-Z0-9])*$"
+      }
      }
     }
    ],
@@ -45546,7 +47935,13 @@
    "mappings": [
     {
      "source": "JobDefinitionName",
-     "target": "JobDefinitionName"
+     "target": "JobDefinitionName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9](-*[a-zA-Z0-9]){0,62})$",
+       "cloudformation": "^[a-zA-Z0-9](-*[a-zA-Z0-9])*$"
+      }
+     }
     },
     {
      "source": "RoleArn",
@@ -45562,7 +47957,13 @@
    "mappings": [
     {
      "source": "JobDefinitionName",
-     "target": "JobDefinitionName"
+     "target": "JobDefinitionName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9](-*[a-zA-Z0-9]){0,62})$",
+       "cloudformation": "^[a-zA-Z0-9](-*[a-zA-Z0-9])*$"
+      }
+     }
     }
    ],
    "operation": "DeleteModelQualityJobDefinition",
@@ -45574,7 +47975,13 @@
    "mappings": [
     {
      "source": "MonitoringScheduleName",
-     "target": "MonitoringScheduleName"
+     "target": "MonitoringScheduleName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9](-*[a-zA-Z0-9]){0,62})$",
+       "cloudformation": "^[a-zA-Z0-9](-*[a-zA-Z0-9])*$"
+      }
+     }
     }
    ],
    "operation": "CreateMonitoringSchedule",
@@ -45586,7 +47993,13 @@
    "mappings": [
     {
      "source": "MonitoringScheduleName",
-     "target": "MonitoringScheduleName"
+     "target": "MonitoringScheduleName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9](-*[a-zA-Z0-9]){0,62})$",
+       "cloudformation": "^[a-zA-Z0-9](-*[a-zA-Z0-9])*$"
+      }
+     }
     }
    ],
    "operation": "DeleteMonitoringSchedule",
@@ -45703,7 +48116,13 @@
     },
     {
      "source": "KmsKeyId",
-     "target": "KmsKeyId"
+     "target": "KmsKeyId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9:/_-]*)$",
+       "cloudformation": ".*"
+      }
+     }
     },
     {
      "source": "Name",
@@ -45752,11 +48171,23 @@
     },
     {
      "source": "PipelineDisplayName",
-     "target": "PipelineDisplayName"
+     "target": "PipelineDisplayName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9](-*[a-zA-Z0-9]){0,255})$",
+       "cloudformation": "^[a-zA-Z0-9](-*[a-zA-Z0-9])*"
+      }
+     }
     },
     {
      "source": "PipelineName",
-     "target": "PipelineName"
+     "target": "PipelineName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9](-*[a-zA-Z0-9]){0,255})$",
+       "cloudformation": "^[a-zA-Z0-9](-*[a-zA-Z0-9])*"
+      }
+     }
     },
     {
      "source": "RoleArn",
@@ -45775,7 +48206,13 @@
    "mappings": [
     {
      "source": "PipelineName",
-     "target": "PipelineName"
+     "target": "PipelineName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9](-*[a-zA-Z0-9]){0,255})$",
+       "cloudformation": "^[a-zA-Z0-9](-*[a-zA-Z0-9])*"
+      }
+     }
     }
    ],
    "operation": "DeletePipeline",
@@ -45819,7 +48256,13 @@
     },
     {
      "source": "ProjectName",
-     "target": "ProjectName"
+     "target": "ProjectName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9](-*[a-zA-Z0-9]){0,31})$",
+       "cloudformation": "^[a-zA-Z0-9](-*[a-zA-Z0-9])*$"
+      }
+     }
     }
    ],
    "operation": "CreateProject",
@@ -45831,7 +48274,13 @@
    "mappings": [
     {
      "source": "ProjectName",
-     "target": "ProjectName"
+     "target": "ProjectName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9](-*[a-zA-Z0-9]){0,31})$",
+       "cloudformation": "^[a-zA-Z0-9](-*[a-zA-Z0-9])*$"
+      }
+     }
     }
    ],
    "operation": "DeleteProject",
@@ -46051,7 +48500,13 @@
     },
     {
      "source": "KmsKeyArn",
-     "target": "KmsKeyArn"
+     "target": "KmsKeyArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^arn:aws(-[a-z]+)?:kms:[a-z0-9\\-]+:\\d{12}:(key|alias)\\/[0-9a-zA-Z-_]*$)$",
+       "cloudformation": "^arn:aws[a-z-]*:kms:[a-z0-9\\-]+:\\d{12}:(key|alias)\\/[0-9a-zA-Z-_]*$"
+      }
+     }
     },
     {
      "source": "Name",
@@ -46389,7 +48844,15 @@
    "mappings": [
     {
      "source": "LinkedRegions",
-     "target": "LinkedRegions"
+     "target": "LinkedRegions",
+     "unrepresentable": {
+      "items": {
+       "pattern": {
+        "api": "^(?:.*\\S.*)$",
+        "cloudformation": "^[a-zA-Z0-9-]{1,32}$"
+       }
+      }
+     }
     },
     {
      "source": "RegionLinkingMode",
@@ -46412,7 +48875,13 @@
    "mappings": [
     {
      "source": "Description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:.*\\S.*)$",
+       "cloudformation": "\\S"
+      }
+     }
     },
     {
      "source": "IsTerminal",
@@ -46420,7 +48889,13 @@
     },
     {
      "source": "RuleName",
-     "target": "RuleName"
+     "target": "RuleName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:.*\\S.*)$",
+       "cloudformation": "\\S"
+      }
+     }
     },
     {
      "source": "RuleOrder",
@@ -46474,11 +48949,23 @@
    "mappings": [
     {
      "source": "Description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:.*\\S.*)$",
+       "cloudformation": "\\S"
+      }
+     }
     },
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:.*\\S.*)$",
+       "cloudformation": "\\S"
+      }
+     }
     }
    ],
    "operation": "CreateConfigurationPolicy",
@@ -46500,11 +48987,23 @@
    "mappings": [
     {
      "source": "Description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:.*\\S.*)$",
+       "cloudformation": "\\S"
+      }
+     }
     },
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:.*\\S.*)$",
+       "cloudformation": "\\S"
+      }
+     }
     }
    ],
    "operation": "CreateConnector",
@@ -46557,7 +49056,15 @@
     },
     {
      "source": "Regions",
-     "target": "Regions"
+     "target": "Regions",
+     "unrepresentable": {
+      "items": {
+       "pattern": {
+        "api": "^(?:.*\\S.*)$",
+        "cloudformation": "^[a-zA-Z0-9-]{1,32}$"
+       }
+      }
+     }
     }
    ],
    "operation": "CreateFindingAggregator",
@@ -46592,11 +49099,23 @@
    "mappings": [
     {
      "source": "GroupByAttribute",
-     "target": "GroupByAttribute"
+     "target": "GroupByAttribute",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:.*\\S.*)$",
+       "cloudformation": "\\S"
+      }
+     }
     },
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:.*\\S.*)$",
+       "cloudformation": "\\S"
+      }
+     }
     }
    ],
    "operation": "CreateInsight",
@@ -46622,7 +49141,13 @@
    "mappings": [
     {
      "source": "metaStoreManagerRoleArn",
-     "target": "MetaStoreManagerRoleArn"
+     "target": "MetaStoreManagerRoleArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^arn:(aws[a-zA-Z-]*)?:iam::\\d{12}:role/?[a-zA-Z_0-9+=,.@\\-_/]+$)$",
+       "cloudformation": "^arn:.*$"
+      }
+     }
     }
    ],
    "operation": "CreateDataLake",
@@ -47081,15 +49606,33 @@
    "mappings": [
     {
      "source": "ProductId",
-     "target": "ProductId"
+     "target": "ProductId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[a-zA-Z0-9_\\-]*)$",
+       "cloudformation": "^[a-zA-Z0-9][a-zA-Z0-9_-]{1,99}\\Z"
+      }
+     }
     },
     {
      "source": "ProvisioningArtifactId",
-     "target": "ProvisioningArtifactId"
+     "target": "ProvisioningArtifactId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[a-zA-Z0-9_\\-]*)$",
+       "cloudformation": "^[a-zA-Z0-9][a-zA-Z0-9_-]{1,99}\\Z"
+      }
+     }
     },
     {
      "source": "ServiceActionId",
-     "target": "ServiceActionId"
+     "target": "ServiceActionId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[a-zA-Z0-9_\\-]*)$",
+       "cloudformation": "^[a-zA-Z0-9][a-zA-Z0-9_-]{1,99}\\Z"
+      }
+     }
     }
    ],
    "operation": "AssociateServiceActionWithProvisioningArtifact",
@@ -47104,15 +49647,33 @@
    "mappings": [
     {
      "source": "ProductId",
-     "target": "ProductId"
+     "target": "ProductId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[a-zA-Z0-9_\\-]*)$",
+       "cloudformation": "^[a-zA-Z0-9][a-zA-Z0-9_-]{1,99}\\Z"
+      }
+     }
     },
     {
      "source": "ProvisioningArtifactId",
-     "target": "ProvisioningArtifactId"
+     "target": "ProvisioningArtifactId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[a-zA-Z0-9_\\-]*)$",
+       "cloudformation": "^[a-zA-Z0-9][a-zA-Z0-9_-]{1,99}\\Z"
+      }
+     }
     },
     {
      "source": "ServiceActionId",
-     "target": "ServiceActionId"
+     "target": "ServiceActionId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[a-zA-Z0-9_\\-]*)$",
+       "cloudformation": "^[a-zA-Z0-9][a-zA-Z0-9_-]{1,99}\\Z"
+      }
+     }
     }
    ],
    "operation": "DisassociateServiceActionFromProvisioningArtifact",
@@ -47186,7 +49747,13 @@
     },
     {
      "source": "name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[-.\\w]+)$",
+       "cloudformation": "\\w+"
+      }
+     }
     }
    ],
    "operation": "CreateApplication",
@@ -47216,7 +49783,13 @@
     },
     {
      "source": "name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[-.\\w]+)$",
+       "cloudformation": "\\w+"
+      }
+     }
     }
    ],
    "operation": "CreateAttributeGroup",
@@ -47235,13 +49808,23 @@
    "mappings": [
     {
      "source": "application",
-     "target": "Application"
+     "target": "Application",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:([-.\\w]+)|(arn:aws[-a-z]*:servicecatalog:[a-z]{2}(-gov)?-[a-z]+-\\d:\\d{12}:/applications/[-.\\w]+))$",
+       "cloudformation": "\\w+|[a-z0-9]{12}"
+      }
+     }
     },
     {
      "source": "attributeGroup",
      "target": "AttributeGroup",
      "unrepresentable": {
-      "max_length": 256
+      "max_length": 256,
+      "pattern": {
+       "api": "^(?:([-.\\w]+)|(arn:aws[-a-z]*:servicecatalog:[a-z]{2}(-gov)?-[a-z]+-\\d:\\d{12}:/attribute-groups/[-.\\w]+))$",
+       "cloudformation": "\\w+|[a-z0-9]{12}"
+      }
      }
     }
    ],
@@ -47254,13 +49837,23 @@
    "mappings": [
     {
      "source": "application",
-     "target": "Application"
+     "target": "Application",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:([-.\\w]+)|(arn:aws[-a-z]*:servicecatalog:[a-z]{2}(-gov)?-[a-z]+-\\d:\\d{12}:/applications/[-.\\w]+))$",
+       "cloudformation": "\\w+|[a-z0-9]{12}"
+      }
+     }
     },
     {
      "source": "attributeGroup",
      "target": "AttributeGroup",
      "unrepresentable": {
-      "max_length": 256
+      "max_length": 256,
+      "pattern": {
+       "api": "^(?:([-.\\w]+)|(arn:aws[-a-z]*:servicecatalog:[a-z]{2}(-gov)?-[a-z]+-\\d:\\d{12}:/attribute-groups/[-.\\w]+))$",
+       "cloudformation": "\\w+|[a-z0-9]{12}"
+      }
      }
     }
    ],
@@ -47273,11 +49866,23 @@
    "mappings": [
     {
      "source": "application",
-     "target": "Application"
+     "target": "Application",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:([-.\\w]+)|(arn:aws[-a-z]*:servicecatalog:[a-z]{2}(-gov)?-[a-z]+-\\d:\\d{12}:/applications/[-.\\w]+))$",
+       "cloudformation": "\\w+|[a-z0-9]{12}"
+      }
+     }
     },
     {
      "source": "resource",
-     "target": "Resource"
+     "target": "Resource",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:\\S+)$",
+       "cloudformation": "\\w+|arn:aws[-a-z]*:cloudformation:[a-z]{2}(-gov)?-[a-z]+-\\d:\\d{12}:stack/[a-zA-Z][-A-Za-z0-9]{0,127}/[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}"
+      }
+     }
     },
     {
      "source": "resourceType",
@@ -47298,11 +49903,23 @@
    "mappings": [
     {
      "source": "application",
-     "target": "Application"
+     "target": "Application",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:([-.\\w]+)|(arn:aws[-a-z]*:servicecatalog:[a-z]{2}(-gov)?-[a-z]+-\\d:\\d{12}:/applications/[-.\\w]+))$",
+       "cloudformation": "\\w+|[a-z0-9]{12}"
+      }
+     }
     },
     {
      "source": "resource",
-     "target": "Resource"
+     "target": "Resource",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:\\S+)$",
+       "cloudformation": "\\w+|arn:aws[-a-z]*:cloudformation:[a-z]{2}(-gov)?-[a-z]+-\\d:\\d{12}:stack/[a-zA-Z][-A-Za-z0-9]{0,127}/[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}"
+      }
+     }
     },
     {
      "source": "resourceType",
@@ -47453,11 +50070,23 @@
    "mappings": [
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[ a-zA-Z0-9_\\\\.\\\\-]*)$",
+       "cloudformation": "[ a-zA-Z0-9_\\.\\-]*"
+      }
+     }
     },
     {
      "source": "ResourceArn",
-     "target": "ResourceArn"
+     "target": "ResourceArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^arn:aws.*)$",
+       "cloudformation": "^arn:aws"
+      }
+     }
     }
    ],
    "operation": "CreateProtection",
@@ -47480,7 +50109,15 @@
     },
     {
      "source": "Members",
-     "target": "Members"
+     "target": "Members",
+     "unrepresentable": {
+      "items": {
+       "pattern": {
+        "api": "^(?:^arn:aws.*)$",
+        "cloudformation": "^arn:aws"
+       }
+      }
+     }
     },
     {
      "source": "Pattern",
@@ -47488,7 +50125,13 @@
     },
     {
      "source": "ProtectionGroupId",
-     "target": "ProtectionGroupId"
+     "target": "ProtectionGroupId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9\\\\-]*)$",
+       "cloudformation": "[a-zA-Z0-9\\-]*"
+      }
+     }
     },
     {
      "source": "ResourceType",
@@ -47504,7 +50147,13 @@
    "mappings": [
     {
      "source": "ProtectionGroupId",
-     "target": "ProtectionGroupId"
+     "target": "ProtectionGroupId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9\\\\-]*)$",
+       "cloudformation": "[a-zA-Z0-9\\-]*"
+      }
+     }
     }
    ],
    "operation": "DeleteProtectionGroup",
@@ -47524,11 +50173,23 @@
     },
     {
      "source": "profileName",
-     "target": "ProfileName"
+     "target": "ProfileName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[a-zA-Z0-9_]{2,})$",
+       "cloudformation": "^[0-9a-zA-Z_]{2,64}$"
+      }
+     }
     },
     {
      "source": "profileVersion",
-     "target": "ProfileVersion"
+     "target": "ProfileVersion",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[a-zA-Z0-9]{10}$)$",
+       "cloudformation": "^[0-9a-zA-Z]{10}$"
+      }
+     }
     },
     {
      "source": "statementId",
@@ -47544,7 +50205,13 @@
    "mappings": [
     {
      "source": "profileName",
-     "target": "ProfileName"
+     "target": "ProfileName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[a-zA-Z0-9_]{2,})$",
+       "cloudformation": "^[0-9a-zA-Z_]{2,64}$"
+      }
+     }
     },
     {
      "source": "statementId",
@@ -47737,7 +50404,13 @@
     },
     {
      "source": "channelRoleArn",
-     "target": "ChannelRoleArn"
+     "target": "ChannelRoleArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^arn:aws:iam::[0-9]{12}:role/(.+)$)$",
+       "cloudformation": "^arn:aws[-a-z0-9]*:iam::[0-9]{12}:role\\/(.+)$"
+      }
+     }
     },
     {
      "source": "notifyOnAddCorrespondenceToCase",
@@ -47839,11 +50512,23 @@
     },
     {
      "source": "KmsKeyArn",
-     "target": "KmsKeyArn"
+     "target": "KmsKeyArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:(aws[a-zA-Z-]*)?:kms:[a-z]{2,4}(-[a-z]{2,4})?-[a-z]+-\\d{1}:\\d{12}:key/[\\w\\-\\/]+)$",
+       "cloudformation": "^arn:[a-z0-9-]+:kms:[a-z0-9-]+:[0-9]{12}:(key/([a-f0-9-]{36}|mrk-[a-f0-9]{32})|alias/[a-zA-Z0-9:/_.-]+)$"
+      }
+     }
     },
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[0-9a-z_\\-]+$)$",
+       "cloudformation": "^[0-9a-z_\\-]{1,255}$"
+      }
+     }
     },
     {
      "source": "ProvisionedResourceCleanup",
@@ -47871,7 +50556,13 @@
    "mappings": [
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[0-9a-z_\\-]+$)$",
+       "cloudformation": "^[0-9a-z_\\-]{1,255}$"
+      }
+     }
     }
    ],
    "operation": "DeleteCanary",
@@ -47887,7 +50578,15 @@
     },
     {
      "source": "Tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_key": {
+       "pattern": {
+        "api": "^(?:^(?!aws:)[a-zA-Z+-=._:/]+$)$",
+        "cloudformation": "^(?!aws:)([a-zA-Z\\d\\s_.:/=+\\-@]+)$"
+       }
+      }
+     }
     }
    ],
    "operation": "CreateGroup",
@@ -47954,7 +50653,13 @@
    "mappings": [
     {
      "source": "DatabaseName",
-     "target": "DatabaseName"
+     "target": "DatabaseName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9_.-]+)$",
+       "cloudformation": "^[a-zA-Z0-9_.-]{3,256}$"
+      }
+     }
     },
     {
      "source": "KmsKeyId",
@@ -47986,7 +50691,13 @@
     },
     {
      "source": "bucket",
-     "target": "Bucket"
+     "target": "Bucket",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[^_\"][^\"]*)$",
+       "cloudformation": "^[^_][^\"]*$"
+      }
+     }
     },
     {
      "source": "dbInstanceType",
@@ -48065,7 +50776,13 @@
     },
     {
      "source": "bucket",
-     "target": "Bucket"
+     "target": "Bucket",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[^_\"][^\"]*)$",
+       "cloudformation": "^[^_][^\"]*$"
+      }
+     }
     },
     {
      "source": "dbInstanceType",
@@ -48147,7 +50864,13 @@
     },
     {
      "source": "Name",
-     "target": "ScheduledQueryName"
+     "target": "ScheduledQueryName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9|!\\-_*'\\(\\)]([a-zA-Z0-9]|[!\\-_*'\\(\\)\\/.])+)$",
+       "cloudformation": "[a-zA-Z0-9_.-]+"
+      }
+     }
     },
     {
      "source": "QueryString",
@@ -48174,11 +50897,23 @@
    "mappings": [
     {
      "source": "DatabaseName",
-     "target": "DatabaseName"
+     "target": "DatabaseName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9_.-]+)$",
+       "cloudformation": "^[a-zA-Z0-9_.-]{3,256}$"
+      }
+     }
     },
     {
      "source": "TableName",
-     "target": "TableName"
+     "target": "TableName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9_.-]+)$",
+       "cloudformation": "^[a-zA-Z0-9_.-]{3,256}$"
+      }
+     }
     }
    ],
    "operation": "CreateTable",
@@ -48246,7 +50981,13 @@
    "mappings": [
     {
      "source": "AccessRole",
-     "target": "AccessRole"
+     "target": "AccessRole",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:.*role/\\S+)$",
+       "cloudformation": "arn:.*role/.*"
+      }
+     }
     },
     {
      "source": "BaseDirectory",
@@ -48337,7 +51078,13 @@
    "mappings": [
     {
      "source": "AccessRole",
-     "target": "AccessRole"
+     "target": "AccessRole",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:.*role/\\S+)$",
+       "cloudformation": "arn:.*role/.*"
+      }
+     }
     },
     {
      "source": "IpAddressType",
@@ -48345,7 +51092,13 @@
     },
     {
      "source": "LoggingRole",
-     "target": "LoggingRole"
+     "target": "LoggingRole",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:.*role/\\S+)$",
+       "cloudformation": "arn:.*role/.*"
+      }
+     }
     },
     {
      "source": "SecurityPolicyName",
@@ -48470,7 +51223,13 @@
     },
     {
      "source": "SecurityPolicyName",
-     "target": "SecurityPolicyName"
+     "target": "SecurityPolicyName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:Transfer[A-Za-z0-9]*SecurityPolicy-[A-Za-z0-9-]+)$",
+       "cloudformation": "^TransferSecurityPolicy-.+$"
+      }
+     }
     },
     {
      "source": "StructuredLogDestinations",
@@ -48617,7 +51376,13 @@
    "mappings": [
     {
      "source": "policyStoreId",
-     "target": "PolicyStoreId"
+     "target": "PolicyStoreId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9-/_]*)$",
+       "cloudformation": "^[a-zA-Z0-9-]*$"
+      }
+     }
     },
     {
      "source": "principalEntityType",
@@ -48633,7 +51398,13 @@
    "mappings": [
     {
      "source": "policyStoreId",
-     "target": "PolicyStoreId"
+     "target": "PolicyStoreId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9-/_]*)$",
+       "cloudformation": "^[a-zA-Z0-9-]*$"
+      }
+     }
     }
    ],
    "operation": "DeleteIdentitySource",
@@ -48652,7 +51423,13 @@
     },
     {
      "source": "policyStoreId",
-     "target": "PolicyStoreId"
+     "target": "PolicyStoreId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9-/_]*)$",
+       "cloudformation": "^[a-zA-Z0-9-]*$"
+      }
+     }
     }
    ],
    "operation": "CreatePolicy",
@@ -48664,7 +51441,13 @@
    "mappings": [
     {
      "source": "policyStoreId",
-     "target": "PolicyStoreId"
+     "target": "PolicyStoreId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9-/_]*)$",
+       "cloudformation": "^[a-zA-Z0-9-]*$"
+      }
+     }
     }
    ],
    "operation": "DeletePolicy",
@@ -48704,12 +51487,22 @@
      "source": "aliasName",
      "target": "AliasName",
      "unrepresentable": {
-      "min_length": 1
+      "min_length": 1,
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9-/_]*)$",
+       "cloudformation": "^[a-zA-Z0-9-_/]*$"
+      }
      }
     },
     {
      "source": "policyStoreId",
-     "target": "PolicyStoreId"
+     "target": "PolicyStoreId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9-/_]*)$",
+       "cloudformation": "^[a-zA-Z0-9-]*$"
+      }
+     }
     }
    ],
    "operation": "CreatePolicyStoreAlias",
@@ -48723,7 +51516,11 @@
      "source": "aliasName",
      "target": "AliasName",
      "unrepresentable": {
-      "min_length": 1
+      "min_length": 1,
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9-/_]*)$",
+       "cloudformation": "^[a-zA-Z0-9-_/]*$"
+      }
      }
     }
    ],
@@ -48747,7 +51544,13 @@
     },
     {
      "source": "policyStoreId",
-     "target": "PolicyStoreId"
+     "target": "PolicyStoreId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9-/_]*)$",
+       "cloudformation": "^[a-zA-Z0-9-]*$"
+      }
+     }
     },
     {
      "source": "statement",
@@ -48763,7 +51566,13 @@
    "mappings": [
     {
      "source": "policyStoreId",
-     "target": "PolicyStoreId"
+     "target": "PolicyStoreId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9-/_]*)$",
+       "cloudformation": "^[a-zA-Z0-9-]*$"
+      }
+     }
     }
    ],
    "operation": "DeletePolicyTemplate",
@@ -48844,7 +51653,13 @@
     },
     {
      "source": "resourceIdentifier",
-     "target": "ResourceIdentifier"
+     "target": "ResourceIdentifier",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:((((sn)|(svc)|(rcfg))-[0-9a-z]{17})|(arn(:[a-z0-9]+([.-][a-z0-9]+)*){2}(:([a-z0-9]+([.-][a-z0-9]+)*)?){2}:((servicenetwork/sn)|(resourceconfiguration/rcfg)|(service/svc))-[0-9a-z]{17})))$",
+       "cloudformation": "^((((sn)|(svc))-[0-9a-z]{17})|(arn(:[a-z0-9]+([.-][a-z0-9]+)*){2}(:([a-z0-9]+([.-][a-z0-9]+)*)?){2}:((servicenetwork/sn)|(service/svc))-[0-9a-z]{17}))$"
+      }
+     }
     }
    ],
    "operation": "PutAuthPolicy",
@@ -48856,7 +51671,13 @@
    "mappings": [
     {
      "source": "resourceIdentifier",
-     "target": "ResourceIdentifier"
+     "target": "ResourceIdentifier",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:((((sn)|(svc)|(rcfg))-[0-9a-z]{17})|(arn(:[a-z0-9]+([.-][a-z0-9]+)*){2}(:([a-z0-9]+([.-][a-z0-9]+)*)?){2}:((servicenetwork/sn)|(resourceconfiguration/rcfg)|(service/svc))-[0-9a-z]{17})))$",
+       "cloudformation": "^((((sn)|(svc))-[0-9a-z]{17})|(arn(:[a-z0-9]+([.-][a-z0-9]+)*){2}(:([a-z0-9]+([.-][a-z0-9]+)*)?){2}:((servicenetwork/sn)|(service/svc))-[0-9a-z]{17}))$"
+      }
+     }
     }
    ],
    "operation": "DeleteAuthPolicy",
@@ -49082,7 +51903,13 @@
    "mappings": [
     {
      "source": "listenerIdentifier",
-     "target": "ListenerIdentifier"
+     "target": "ListenerIdentifier",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:((listener-[0-9a-z]{17})|(^arn:[a-z0-9\\-]+:vpc-lattice:[a-zA-Z0-9\\-]+:\\d{12}:service/svc-[0-9a-z]{17}/listener/listener-[0-9a-z]{17}$)))$",
+       "cloudformation": "^((listener-[0-9a-z]{17})|(arn(:[a-z0-9]+([.-][a-z0-9]+)*){2}(:([a-z0-9]+([.-][a-z0-9]+)*)?){2}:service/svc-[0-9a-z]{17}/listener/listener-[0-9a-z]{17}))$"
+      }
+     }
     },
     {
      "source": "name",
@@ -49099,7 +51926,11 @@
      "source": "serviceIdentifier",
      "target": "ServiceIdentifier",
      "unrepresentable": {
-      "min_length": 20
+      "min_length": 20,
+      "pattern": {
+       "api": "^(?:((svc-[0-9a-z]{17})|(arn:[a-z0-9\\-]+:vpc-lattice:[a-zA-Z0-9\\-]+:\\d{12}:service/svc-[0-9a-z]{17})))$",
+       "cloudformation": "^((svc-[0-9a-z]{17})|(arn(:[a-z0-9]+([.-][a-z0-9]+)*){2}(:([a-z0-9]+([.-][a-z0-9]+)*)?){2}:service/svc-[0-9a-z]{17}))$"
+      }
      }
     },
     {
@@ -49121,13 +51952,23 @@
    "mappings": [
     {
      "source": "listenerIdentifier",
-     "target": "ListenerIdentifier"
+     "target": "ListenerIdentifier",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:((listener-[0-9a-z]{17})|(^arn:[a-z0-9\\-]+:vpc-lattice:[a-zA-Z0-9\\-]+:\\d{12}:service/svc-[0-9a-z]{17}/listener/listener-[0-9a-z]{17}$)))$",
+       "cloudformation": "^((listener-[0-9a-z]{17})|(arn(:[a-z0-9]+([.-][a-z0-9]+)*){2}(:([a-z0-9]+([.-][a-z0-9]+)*)?){2}:service/svc-[0-9a-z]{17}/listener/listener-[0-9a-z]{17}))$"
+      }
+     }
     },
     {
      "source": "serviceIdentifier",
      "target": "ServiceIdentifier",
      "unrepresentable": {
-      "min_length": 20
+      "min_length": 20,
+      "pattern": {
+       "api": "^(?:((svc-[0-9a-z]{17})|(arn:[a-z0-9\\-]+:vpc-lattice:[a-zA-Z0-9\\-]+:\\d{12}:service/svc-[0-9a-z]{17})))$",
+       "cloudformation": "^((svc-[0-9a-z]{17})|(arn(:[a-z0-9]+([.-][a-z0-9]+)*){2}(:([a-z0-9]+([.-][a-z0-9]+)*)?){2}:service/svc-[0-9a-z]{17}))$"
+      }
      }
     }
    ],
@@ -49194,7 +52035,13 @@
     },
     {
      "source": "name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:(?![-])(?!.*[-]$)(?!.*[-]{2})[a-z0-9-]+)$",
+       "cloudformation": "^(?!servicenetwork-)(?![-])(?!.*[-]$)(?!.*[-]{2})[a-z0-9-]+$"
+      }
+     }
     },
     {
      "source": "tags",
@@ -49375,11 +52222,25 @@
    "mappings": [
     {
      "source": "Addresses",
-     "target": "Addresses"
+     "target": "Addresses",
+     "unrepresentable": {
+      "items": {
+       "pattern": {
+        "api": "^(?:.*\\S.*)$",
+        "cloudformation": "\\S"
+       }
+      }
+     }
     },
     {
      "source": "Description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[\\w+=:#@/\\-,\\.][\\w+=:#@/\\-,\\.\\s]+[\\w+=:#@/\\-,\\.]$)$",
+       "cloudformation": "^[a-zA-Z0-9=:#@/\\-,.][a-zA-Z0-9+=:#@/\\-,.\\s]+[a-zA-Z0-9+=:#@/\\-,.]{1,256}$"
+      }
+     }
     },
     {
      "source": "IPAddressVersion",
@@ -49387,7 +52248,13 @@
     },
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[\\w\\-]+$)$",
+       "cloudformation": "^[0-9A-Za-z_-]{1,128}$"
+      }
+     }
     },
     {
      "source": "Scope",
@@ -49403,7 +52270,13 @@
    "mappings": [
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[\\w\\-]+$)$",
+       "cloudformation": "^[0-9A-Za-z_-]{1,128}$"
+      }
+     }
     },
     {
      "source": "Scope",
@@ -49431,11 +52304,23 @@
    "mappings": [
     {
      "source": "Description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[\\w+=:#@/\\-,\\.][\\w+=:#@/\\-,\\.\\s]+[\\w+=:#@/\\-,\\.]$)$",
+       "cloudformation": "^[a-zA-Z0-9=:#@/\\-,.][a-zA-Z0-9+=:#@/\\-,.\\s]+[a-zA-Z0-9+=:#@/\\-,.]{1,256}$"
+      }
+     }
     },
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[\\w\\-]+$)$",
+       "cloudformation": "^[0-9A-Za-z_-]{1,128}$"
+      }
+     }
     },
     {
      "source": "Scope",
@@ -49451,7 +52336,13 @@
    "mappings": [
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[\\w\\-]+$)$",
+       "cloudformation": "^[0-9A-Za-z_-]{1,128}$"
+      }
+     }
     },
     {
      "source": "Scope",
@@ -49471,11 +52362,23 @@
     },
     {
      "source": "Description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[\\w+=:#@/\\-,\\.][\\w+=:#@/\\-,\\.\\s]+[\\w+=:#@/\\-,\\.]$)$",
+       "cloudformation": "^[a-zA-Z0-9=:#@/\\-,.][a-zA-Z0-9+=:#@/\\-,.\\s]+[a-zA-Z0-9+=:#@/\\-,.]{1,256}$"
+      }
+     }
     },
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[\\w\\-]+$)$",
+       "cloudformation": "^[0-9A-Za-z_-]{1,128}$"
+      }
+     }
     },
     {
      "source": "Scope",
@@ -49491,7 +52394,13 @@
    "mappings": [
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[\\w\\-]+$)$",
+       "cloudformation": "^[0-9A-Za-z_-]{1,128}$"
+      }
+     }
     },
     {
      "source": "Scope",
@@ -49507,11 +52416,23 @@
    "mappings": [
     {
      "source": "Description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[\\w+=:#@/\\-,\\.][\\w+=:#@/\\-,\\.\\s]+[\\w+=:#@/\\-,\\.]$)$",
+       "cloudformation": "^[a-zA-Z0-9=:#@/\\-,.][a-zA-Z0-9+=:#@/\\-,.\\s]+[a-zA-Z0-9+=:#@/\\-,.]{1,256}$"
+      }
+     }
     },
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[\\w\\-]+$)$",
+       "cloudformation": "^[0-9A-Za-z_-]{1,128}$"
+      }
+     }
     },
     {
      "source": "Scope",
@@ -49531,7 +52452,13 @@
    "mappings": [
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[\\w\\-]+$)$",
+       "cloudformation": "^[0-9A-Za-z_-]{1,128}$"
+      }
+     }
     },
     {
      "source": "Scope",
@@ -49612,7 +52539,13 @@
    "mappings": [
     {
      "source": "Description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[A-Za-z0-9-_.,:/()@!&?#+'\u2019\\s]+$)$",
+       "cloudformation": "^[A-Za-z0-9-_.,:/()@!&?#+''\\s]+$"
+      }
+     }
     },
     {
      "source": "Lenses",
@@ -49628,7 +52561,13 @@
     },
     {
      "source": "TemplateName",
-     "target": "TemplateName"
+     "target": "TemplateName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[A-Za-z0-9-_.,:/()@!&?#+'\u2019\\s]+$)$",
+       "cloudformation": "^[A-Za-z0-9-_.,:/()@!&?#+''\\s]+$"
+      }
+     }
     }
    ],
    "operation": "CreateReviewTemplate",
@@ -49756,11 +52695,23 @@
     },
     {
      "source": "description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9\\s_.,-]+.*)$",
+       "cloudformation": "^[a-zA-Z0-9\\s_.,-]+"
+      }
+     }
     },
     {
      "source": "name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9\\s_.,-]+.*)$",
+       "cloudformation": "^[a-zA-Z0-9\\s_.,-]+"
+      }
+     }
     },
     {
      "source": "type",
@@ -49791,11 +52742,23 @@
    "mappings": [
     {
      "source": "aiAgentId",
-     "target": "AIAgentId"
+     "target": "AIAgentId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}(:[A-Z0-9_$]+){0,1}$|^arn:[a-z-]*?:wisdom:[a-z0-9-]*?:[0-9]{12}:[a-z-]*?/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}(?:/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}){0,2}(:[A-Z0-9_$]+){0,1})$",
+       "cloudformation": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
+      }
+     }
     },
     {
      "source": "assistantId",
-     "target": "AssistantId"
+     "target": "AssistantId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$|^arn:[a-z-]*?:wisdom:[a-z0-9-]*?:[0-9]{12}:[a-z-]*?/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}(?:/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}){0,2})$",
+       "cloudformation": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
+      }
+     }
     }
    ],
    "operation": "CreateAIAgentVersion",
@@ -49807,11 +52770,23 @@
    "mappings": [
     {
      "source": "aiAgentId",
-     "target": "AIAgentId"
+     "target": "AIAgentId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}(:[A-Z0-9_$]+){0,1}$|^arn:[a-z-]*?:wisdom:[a-z0-9-]*?:[0-9]{12}:[a-z-]*?/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}(?:/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}){0,2}(:[A-Z0-9_$]+){0,1})$",
+       "cloudformation": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
+      }
+     }
     },
     {
      "source": "assistantId",
-     "target": "AssistantId"
+     "target": "AssistantId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$|^arn:[a-z-]*?:wisdom:[a-z0-9-]*?:[0-9]{12}:[a-z-]*?/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}(?:/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}){0,2})$",
+       "cloudformation": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
+      }
+     }
     }
    ],
    "operation": "DeleteAIAgentVersion",
@@ -49842,7 +52817,13 @@
     },
     {
      "source": "name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9\\s_.,-]+.*)$",
+       "cloudformation": "^[a-zA-Z0-9\\s_.,-]+"
+      }
+     }
     }
    ],
    "operation": "CreateAIGuardrail",
@@ -49869,11 +52850,23 @@
    "mappings": [
     {
      "source": "aiGuardrailId",
-     "target": "AIGuardrailId"
+     "target": "AIGuardrailId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}(:[A-Z0-9_$]+){0,1}$|^arn:[a-z-]*?:wisdom:[a-z0-9-]*?:[0-9]{12}:[a-z-]*?/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}(?:/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}){0,2}(:[A-Z0-9_$]+){0,1})$",
+       "cloudformation": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
+      }
+     }
     },
     {
      "source": "assistantId",
-     "target": "AssistantId"
+     "target": "AssistantId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$|^arn:[a-z-]*?:wisdom:[a-z0-9-]*?:[0-9]{12}:[a-z-]*?/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}(?:/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}){0,2})$",
+       "cloudformation": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
+      }
+     }
     }
    ],
    "operation": "CreateAIGuardrailVersion",
@@ -49885,11 +52878,23 @@
    "mappings": [
     {
      "source": "aiGuardrailId",
-     "target": "AIGuardrailId"
+     "target": "AIGuardrailId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}(:[A-Z0-9_$]+){0,1}$|^arn:[a-z-]*?:wisdom:[a-z0-9-]*?:[0-9]{12}:[a-z-]*?/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}(?:/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}){0,2}(:[A-Z0-9_$]+){0,1})$",
+       "cloudformation": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
+      }
+     }
     },
     {
      "source": "assistantId",
-     "target": "AssistantId"
+     "target": "AssistantId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$|^arn:[a-z-]*?:wisdom:[a-z0-9-]*?:[0-9]{12}:[a-z-]*?/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}(?:/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}){0,2})$",
+       "cloudformation": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
+      }
+     }
     }
    ],
    "operation": "DeleteAIGuardrailVersion",
@@ -49912,7 +52917,13 @@
     },
     {
      "source": "description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9\\s_.,-]+.*)$",
+       "cloudformation": "^[a-zA-Z0-9\\s_.,-]+"
+      }
+     }
     },
     {
      "source": "modelId",
@@ -49920,7 +52931,13 @@
     },
     {
      "source": "name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9\\s_.,-]+.*)$",
+       "cloudformation": "^[a-zA-Z0-9\\s_.,-]+"
+      }
+     }
     },
     {
      "source": "templateType",
@@ -49955,11 +52972,23 @@
    "mappings": [
     {
      "source": "aiPromptId",
-     "target": "AIPromptId"
+     "target": "AIPromptId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}(:[A-Z0-9_$]+){0,1}$|^arn:[a-z-]*?:wisdom:[a-z0-9-]*?:[0-9]{12}:[a-z-]*?/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}(?:/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}){0,2}(:[A-Z0-9_$]+){0,1})$",
+       "cloudformation": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
+      }
+     }
     },
     {
      "source": "assistantId",
-     "target": "AssistantId"
+     "target": "AssistantId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$|^arn:[a-z-]*?:wisdom:[a-z0-9-]*?:[0-9]{12}:[a-z-]*?/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}(?:/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}){0,2})$",
+       "cloudformation": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
+      }
+     }
     }
    ],
    "operation": "CreateAIPromptVersion",
@@ -49971,11 +53000,23 @@
    "mappings": [
     {
      "source": "aiPromptId",
-     "target": "AIPromptId"
+     "target": "AIPromptId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}(:[A-Z0-9_$]+){0,1}$|^arn:[a-z-]*?:wisdom:[a-z0-9-]*?:[0-9]{12}:[a-z-]*?/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}(?:/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}){0,2}(:[A-Z0-9_$]+){0,1})$",
+       "cloudformation": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
+      }
+     }
     },
     {
      "source": "assistantId",
-     "target": "AssistantId"
+     "target": "AssistantId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$|^arn:[a-z-]*?:wisdom:[a-z0-9-]*?:[0-9]{12}:[a-z-]*?/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}(?:/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}){0,2})$",
+       "cloudformation": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
+      }
+     }
     }
    ],
    "operation": "DeleteAIPromptVersion",
@@ -50024,7 +53065,13 @@
    "mappings": [
     {
      "source": "assistantId",
-     "target": "AssistantId"
+     "target": "AssistantId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$|^arn:[a-z-]*?:wisdom:[a-z0-9-]*?:[0-9]{12}:[a-z-]*?/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}(?:/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})?$)$",
+       "cloudformation": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
+      }
+     }
     },
     {
      "source": "associationType",
@@ -50044,7 +53091,13 @@
    "mappings": [
     {
      "source": "assistantId",
-     "target": "AssistantId"
+     "target": "AssistantId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$|^arn:[a-z-]*?:wisdom:[a-z0-9-]*?:[0-9]{12}:[a-z-]*?/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}(?:/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})?$)$",
+       "cloudformation": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
+      }
+     }
     }
    ],
    "operation": "DeleteAssistantAssociation",
@@ -50103,7 +53156,13 @@
     },
     {
      "source": "description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9\\s_.,-]+.*)$",
+       "cloudformation": "^[a-zA-Z0-9\\\\s_.,-]+"
+      }
+     }
     },
     {
      "source": "language",
@@ -50111,7 +53170,13 @@
     },
     {
      "source": "name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9\\s_.,-]+.*)$",
+       "cloudformation": "^[a-zA-Z0-9\\\\s_.,-]+"
+      }
+     }
     },
     {
      "source": "tags",
@@ -50246,7 +53311,13 @@
     },
     {
      "source": "DirectoryId",
-     "target": "DirectoryId"
+     "target": "DirectoryId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^(d-[0-9a-f]{8,63}$)|(wsd-[0-9a-z]{8,63}$))$",
+       "cloudformation": "^wsd-[0-9a-z]{8,63}$"
+      }
+     }
     },
     {
      "source": "PoolName",
@@ -50501,7 +53572,13 @@
     },
     {
      "source": "portalCustomDomain",
-     "target": "PortalCustomDomain"
+     "target": "PortalCustomDomain",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:(|[a-zA-Z0-9]?((?!-)([A-Za-z0-9-]*[A-Za-z0-9])\\.)+[a-zA-Z0-9]+))$",
+       "cloudformation": "^[a-zA-Z0-9]?((?!-)([A-Za-z0-9-]*[A-Za-z0-9])\\.)+[a-zA-Z0-9]+$"
+      }
+     }
     }
    ],
    "operation": "CreatePortal",
@@ -50807,9 +53884,9 @@
   "aws_cli_version": "2.36.19",
   "botocore_service_count": 431,
   "botocore_version": "2.0.0dev155",
-  "compiled_schemas_sha256": "9eeedf63ea8537503ad5b34b119ab7bb35ec75c8f731e64e5a4376158ee639d7",
-  "compiled_type_count": 1767,
-  "provider_schemas_sha256": "ca88d997e27ec3a357a817c0466dd2ac1ba604bbf8985667432af312c2274d9a",
-  "provider_type_count": 1765
+  "compiled_schemas_sha256": "67b049a4ab1d12af31716dc9bf01130187c265fc70da7c2827d7d807a5c8b4d5",
+  "compiled_type_count": 1768,
+  "provider_schemas_sha256": "cfa6250efdf23a1b2c0d557da95cfb80d42ea27acfbd58b617d2c24f64f06c25",
+  "provider_type_count": 1766
  }
 }
