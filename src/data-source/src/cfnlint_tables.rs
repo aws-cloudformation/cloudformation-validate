@@ -4,15 +4,19 @@ use log::info;
 use std::path::Path;
 use std::process::Command;
 
-/// Data files emitted by the cfn-lint table extractor. These originate as Python
-/// dicts inside cfn-lint rule code, so a Python helper imports cfn-lint and
-/// writes them as JSON rather than us re-parsing Python or hand-copying values.
-const EXTRACTED_FILES: &[&str] = &[
-    "getatt_additions.json",
-    "retention_period_requirements.json",
-    "codepipeline_action_artifact_counts.json",
-    "cfnlint_rule_tables.json",
-];
+/// Data files emitted by the cfn-lint table extractor into the generated data
+/// directory. These originate as Python dicts inside cfn-lint rule code, so a
+/// Python helper imports cfn-lint and writes them as JSON rather than us
+/// re-parsing Python or hand-copying values. Every file listed here is embedded
+/// into the binary.
+const EXTRACTED_FILES: &[&str] =
+    &["retention_period_requirements.json", "codepipeline_action_artifact_counts.json", "cfnlint_rule_tables.json"];
+
+/// File stem of the raw GetAtt additions the extractor writes into the upstream
+/// directory. Unlike [`EXTRACTED_FILES`], this is an intermediate: the generate
+/// phase folds it into `getatt_attributes.json`, so it is never embedded and
+/// lives alongside the other raw synced sources rather than in `generated/`.
+pub const GETATT_ADDITIONS_NAME: &str = "getatt_additions";
 
 /// Read the version exported by the exact cfn-lint checkout used for extraction.
 fn extract_cfn_lint_version(rule_source_dir: &Path) -> anyhow::Result<String> {
@@ -43,8 +47,13 @@ fn parse_cfn_lint_version(stdout: &[u8]) -> anyhow::Result<String> {
 }
 
 /// Run `scripts/sync_cfnlint_data.py` to extract data tables embedded in
-/// cfn-lint's Python rule code into `data_output_dir`.
-pub fn sync_cfnlint_tables(rule_source_dir: &Path, data_output_dir: &Path) -> anyhow::Result<(SyncStats, String)> {
+/// cfn-lint's Python rule code. Embedded tables go to `data_output_dir`; the raw
+/// GetAtt additions intermediate goes to `upstream_dir`.
+pub fn sync_cfnlint_tables(
+    rule_source_dir: &Path,
+    data_output_dir: &Path,
+    upstream_dir: &Path,
+) -> anyhow::Result<(SyncStats, String)> {
     let mut stats = SyncStats::default();
     let cfn_lint_version = extract_cfn_lint_version(rule_source_dir)?;
 
@@ -59,6 +68,8 @@ pub fn sync_cfnlint_tables(rule_source_dir: &Path, data_output_dir: &Path) -> an
         .arg(rule_source_dir)
         .arg("--out")
         .arg(data_output_dir)
+        .arg("--upstream-out")
+        .arg(upstream_dir)
         .output()?;
 
     if !output.status.success() {
@@ -79,6 +90,13 @@ pub fn sync_cfnlint_tables(rule_source_dir: &Path, data_output_dir: &Path) -> an
         anyhow::ensure!(path.exists(), "extractor did not produce expected file: {}", path.display());
         stats.files_written += 1;
     }
+    let getatt_additions = upstream_dir.join(format!("{GETATT_ADDITIONS_NAME}.json"));
+    anyhow::ensure!(
+        getatt_additions.exists(),
+        "extractor did not produce expected file: {}",
+        getatt_additions.display()
+    );
+    stats.files_written += 1;
 
     info!("Extracted {} cfn-lint data tables", stats.files_written);
     Ok((stats, cfn_lint_version))

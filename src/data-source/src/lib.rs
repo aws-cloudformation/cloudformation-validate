@@ -123,10 +123,12 @@ pub fn sync_upstream(upstream_dir: &Path, rule_source_root: &str) -> anyhow::Res
         .fail_on_errors("AdditionalSpecs")?;
 
     info!("Step 5: Extracting data tables embedded in cfn-lint rule code");
-    let (table_stats, cfn_lint_version) = cfnlint_tables::sync_cfnlint_tables(&rule_source_dir, &generated_data)?;
+    let (table_stats, cfn_lint_version) =
+        cfnlint_tables::sync_cfnlint_tables(&rule_source_dir, &generated_data, upstream_dir)?;
     table_stats.fail_on_errors("CfnLintTables")?;
 
     verify_files_exist_and_populated(REQUIRED_SYNC_FILES, &generated_data, "Sync")?;
+    verify_files_exist_and_populated(REQUIRED_UPSTREAM_FILES, upstream_dir, "Sync")?;
     let source_versions =
         source_versions::SourceVersions::new(cfn_lint_version, resource_schema_version).map_err(anyhow::Error::msg)?;
     write_source_versions(&source_versions_path, source_versions)?;
@@ -149,7 +151,7 @@ pub fn generate_all(upstream_dir: &Path, generated_dir: &Path, handwritten_dir: 
     codegen_schema_validator::generate(generated_dir, upstream_dir)?;
 
     info!("Step 4: Verifying all expected output files");
-    verify_outputs(generated_dir, handwritten_dir)?;
+    verify_outputs(upstream_dir, generated_dir, handwritten_dir)?;
 
     Ok(())
 }
@@ -187,11 +189,16 @@ const REQUIRED_SYNC_FILES: &[&str] = &[
     "region_resource_types",
     "stateful_resource_types",
     // Tables extracted from cfn-lint rule code
-    "getatt_additions",
     "retention_period_requirements",
     "codepipeline_action_artifact_counts",
     "cfnlint_rule_tables",
 ];
+
+/// Raw intermediates produced by sync_upstream into the upstream directory. They
+/// are consumed only by generate_all and are never embedded, so they are not
+/// committed with the generated data.
+#[cfg(feature = "maintenance")]
+const REQUIRED_UPSTREAM_FILES: &[&str] = &[cfnlint_tables::GETATT_ADDITIONS_NAME];
 
 /// Data files produced by generate_all schema processing.
 #[cfg(feature = "maintenance")]
@@ -215,25 +222,27 @@ const REQUIRED_HANDWRITTEN_FILES: &[&str] = &[
 ];
 
 #[cfg(feature = "maintenance")]
-fn verify_sync_outputs(data_dir: &Path) -> anyhow::Result<()> {
+fn verify_sync_outputs(upstream_dir: &Path, data_dir: &Path) -> anyhow::Result<()> {
     source_versions::SourceVersions::read(&data_dir.join(source_versions::SOURCE_VERSIONS_FILE))
         .map_err(anyhow::Error::msg)?;
-    verify_files_exist_and_populated(REQUIRED_SYNC_FILES, data_dir, "Sync")
+    verify_files_exist_and_populated(REQUIRED_SYNC_FILES, data_dir, "Sync")?;
+    verify_files_exist_and_populated(REQUIRED_UPSTREAM_FILES, upstream_dir, "Sync")
 }
 
 #[cfg(feature = "maintenance")]
-fn verify_outputs(generated_dir: &Path, handwritten_dir: &Path) -> anyhow::Result<()> {
+fn verify_outputs(upstream_dir: &Path, generated_dir: &Path, handwritten_dir: &Path) -> anyhow::Result<()> {
     let data_dir = generated_dir.join("data");
     let schema_validator_dir = generated_dir.join("schema-validator");
     let cel_rules_dir = generated_dir.join("cel-rules");
 
-    verify_sync_outputs(&data_dir)?;
+    verify_sync_outputs(upstream_dir, &data_dir)?;
     verify_files_exist_and_populated(REQUIRED_GENERATE_DATA_FILES, &data_dir, "Generate data")?;
     verify_files_exist_and_populated(REQUIRED_SCHEMA_VALIDATOR_FILES, &schema_validator_dir, "Schema validator")?;
     verify_files_exist_and_populated(REQUIRED_CEL_RULE_FILES, &cel_rules_dir, "Generated CEL rules")?;
     verify_files_exist_and_populated(REQUIRED_HANDWRITTEN_FILES, handwritten_dir, "Handwritten")?;
 
     let total = REQUIRED_SYNC_FILES.len()
+        + REQUIRED_UPSTREAM_FILES.len()
         + REQUIRED_GENERATE_DATA_FILES.len()
         + REQUIRED_SCHEMA_VALIDATOR_FILES.len()
         + REQUIRED_CEL_RULE_FILES.len()
