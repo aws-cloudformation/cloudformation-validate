@@ -674,6 +674,41 @@ export interface RelatedResource {
 }
 
 /**
+ * Configuration for a composite engine that evaluates the built-in rules with
+ * one engine and caller-supplied external rules with another.
+ *
+ * The built-in rules are always evaluated, so this config only carries the
+ * external rules layered on top plus the shared schema configuration. Custom
+ * rules can be supplied in all three formats: Rego and Guard are evaluated by
+ * the external engine, while CEL custom rules are evaluated by the engine that
+ * owns the built-ins. It has no field for engine-native built-in custom rules
+ * because the composite fixes which engine owns the built-ins.
+ */
+export interface CompositeEngineConfig {
+    /**
+     * Custom Rego rules layered on top of the built-in rules.
+     */
+    regoRules?: ExternalRuleSource[];
+    /**
+     * Custom CEL rules layered on top of the built-in rules. They are evaluated
+     * by the same engine that owns the built-ins, since CEL custom rules are a
+     * CEL-engine feature.
+     */
+    celRules?: ExternalRuleSource[];
+    /**
+     * Guard DSL rules as raw source text, layered on top of the built-in rules.
+     */
+    guardRules?: ExternalRuleSource[];
+    /**
+     * Optional schema validator configuration. A standalone engine derives its
+     * schema-aware rule metadata from this config. Language APIs also use it to
+     * construct the schema validator bundled with the engine, so both components
+     * observe the same additional schemas.
+     */
+    schemaValidatorConfig?: SchemaValidatorConfig;
+}
+
+/**
  * Configuration for constructing a [`SchemaValidator`] with optional overlay
  * schemas. Bindings and the CLI use this to build the validator separately from
  * the rule engine.
@@ -823,7 +858,7 @@ export interface ResolutionSource {
 /**
  * Selects which validation engine evaluates rules.
  */
-export type EngineType = 'REGO' | 'CEL';
+export type EngineType = 'REGO' | 'CEL' | 'COMPOSITE';
 
 /**
  * Suppress a rule for a specific logical resource ID. An absent `rule_id`
@@ -1094,6 +1129,15 @@ export class WasmCelEngine {
     engineName(): string;
     listRules(): any;
     constructor(config: EngineConfig);
+    validateTemplate(template: Uint8Array, options: ValidateConfig, file_path: string): any;
+}
+
+export class WasmCompositeEngine {
+    free(): void;
+    [Symbol.dispose](): void;
+    engineName(): string;
+    listRules(): any;
+    constructor(config: CompositeEngineConfig);
     validateTemplate(template: Uint8Array, options: ValidateConfig, file_path: string): any;
 }
 

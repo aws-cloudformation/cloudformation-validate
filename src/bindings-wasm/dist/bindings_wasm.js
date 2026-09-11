@@ -69,6 +69,75 @@ class WasmCelEngine {
 if (Symbol.dispose) WasmCelEngine.prototype[Symbol.dispose] = WasmCelEngine.prototype.free;
 exports.WasmCelEngine = WasmCelEngine;
 
+class WasmCompositeEngine {
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        WasmCompositeEngineFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_wasmcompositeengine_free(ptr, 0);
+    }
+    /**
+     * @returns {string}
+     */
+    engineName() {
+        let deferred1_0;
+        let deferred1_1;
+        try {
+            const ret = wasm.wasmcompositeengine_engineName(this.__wbg_ptr);
+            deferred1_0 = ret[0];
+            deferred1_1 = ret[1];
+            return getStringFromWasm0(ret[0], ret[1]);
+        } finally {
+            wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+        }
+    }
+    /**
+     * @returns {any}
+     */
+    listRules() {
+        const ret = wasm.wasmcompositeengine_listRules(this.__wbg_ptr);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return takeFromExternrefTable0(ret[0]);
+    }
+    /**
+     * @param {CompositeEngineConfig} config
+     */
+    constructor(config) {
+        const ret = wasm.wasmcompositeengine_new(config);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        this.__wbg_ptr = ret[0];
+        WasmCompositeEngineFinalization.register(this, this.__wbg_ptr, this);
+        return this;
+    }
+    /**
+     * @param {Uint8Array} template
+     * @param {ValidateConfig} options
+     * @param {string} file_path
+     * @returns {any}
+     */
+    validateTemplate(template, options, file_path) {
+        const ptr0 = passArray8ToWasm0(template, wasm.__wbindgen_malloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(file_path, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ret = wasm.wasmcompositeengine_validateTemplate(this.__wbg_ptr, ptr0, len0, options, ptr1, len1);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return takeFromExternrefTable0(ret[0]);
+    }
+}
+if (Symbol.dispose) WasmCompositeEngine.prototype[Symbol.dispose] = WasmCompositeEngine.prototype.free;
+exports.WasmCompositeEngine = WasmCompositeEngine;
+
 class WasmRegoEngine {
     __destroy_into_raw() {
         const ptr = this.__wbg_ptr;
@@ -627,6 +696,10 @@ const WasmCelEngineFinalization =
     typeof FinalizationRegistry === 'undefined'
         ? { register: () => {}, unregister: () => {} }
         : new FinalizationRegistry((ptr) => wasm.__wbg_wasmcelengine_free(ptr, 1));
+const WasmCompositeEngineFinalization =
+    typeof FinalizationRegistry === 'undefined'
+        ? { register: () => {}, unregister: () => {} }
+        : new FinalizationRegistry((ptr) => wasm.__wbg_wasmcompositeengine_free(ptr, 1));
 const WasmRegoEngineFinalization =
     typeof FinalizationRegistry === 'undefined'
         ? { register: () => {}, unregister: () => {} }
