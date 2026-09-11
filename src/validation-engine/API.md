@@ -103,12 +103,14 @@ represent the full caller-supplied state: no parameter is ever silently omitted 
 
 **API-valid values are never reported as CloudFormation violations.** A same-named API input and CloudFormation
 property can differ in value domain: the service may accept an enum member, numeric bound, string length, list size,
-or tag key/value length that the CloudFormation schema rejects. The generator records that API-only domain on each
-mapping as `unrepresentable`, and the runtime skips synthesis — again naming the parameter and the value — whenever a
-supplied value falls inside it, so a command the service would accept is never modeled as a template that
-CloudFormation would reject. Same-named inputs whose meaning differs from the property (for example an API resource ID
-where the CloudFormation property carries the resource ARN) are removed from the catalog by a reviewed denylist and
-therefore skip synthesis as unmapped parameters.
+or tag key/value length that the CloudFormation schema rejects, or its `pattern` may differ from the CloudFormation
+`pattern`. The generator records that API-only domain on each mapping as `unrepresentable` (a differing regex is
+recorded as the API/CloudFormation pattern pair and settled per value: a value the API pattern accepts and the
+CloudFormation pattern rejects is unrepresentable), and the runtime skips synthesis — again naming the parameter and
+the value — whenever a supplied value falls inside it, so a command the service would accept is never modeled as a
+template that CloudFormation would reject. Same-named inputs whose meaning differs from the property (for example an
+API resource ID where the CloudFormation property carries the resource ARN) are removed from the catalog by a reviewed
+denylist and therefore skip synthesis as unmapped parameters.
 
 **Template-authoring advice is not reported for modeled state.** Synthesized templates and wrapped Cloud Control
 desired state never had a template author, so rules whose only remediation is a template construct — replace a literal

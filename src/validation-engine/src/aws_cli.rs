@@ -4,6 +4,7 @@ use schema_validator::{PropertyValueType, ResourceSchemaMetadata, SchemaValidato
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::sync::LazyLock;
+use template_model::compile_pattern;
 
 use crate::{ValidateConfig, ValidationEngine, ValidationError, validate_bytes_with_path};
 
@@ -294,40 +295,104 @@ struct UnrepresentableDomain {
     maximum: Option<f64>,
     min_length: Option<u64>,
     max_length: Option<u64>,
+    pattern: Option<PatternDivergence>,
     items: Option<Box<UnrepresentableDomain>>,
     tag_key: Option<Box<UnrepresentableDomain>>,
     tag_value: Option<Box<UnrepresentableDomain>>,
 }
 
+/// An API `pattern` and the CloudFormation `pattern` for the same value that
+/// differ textually. Whether the two admit different values cannot be decided
+/// from the regexes alone, so the divergence is settled per request value: a
+/// value the API pattern accepts and the CloudFormation pattern rejects has no
+/// CloudFormation representation.
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+struct PatternDivergence {
+    /// The botocore pattern anchored to the whole value, as the service applies it.
+    api: String,
+    /// The compiled-schema pattern, applied as the schema validator applies it.
+    cloudformation: String,
+}
+
+impl PatternDivergence {
+    /// Whether `value` is inside the API pattern but outside the CloudFormation
+    /// pattern. Errs when either pattern is not a regex this tool can evaluate,
+    /// because a divergence that cannot be settled must not be silently ignored.
+    fn rejects(&self, value: &str) -> Result<bool, String> {
+        let api = compile_pattern(&self.api).ok_or_else(|| format!("API pattern '{}' cannot be compiled", self.api))?;
+        let cloudformation = compile_pattern(&self.cloudformation)
+            .ok_or_else(|| format!("CloudFormation pattern '{}' cannot be compiled", self.cloudformation))?;
+        Ok(api.is_match(value) && !cloudformation.is_match(value))
+    }
+}
+
 impl UnrepresentableDomain {
     /// Describes why `value` has no CloudFormation representation, or `None`
-    /// when every part of it is representable.
-    fn rejection(&self, value: &AwsCliValue) -> Option<String> {
+    /// when every part of it is representable. Errs only when the domain itself
+    /// cannot be evaluated, which is a defect in the generated catalog.
+    fn rejection(&self, value: &AwsCliValue) -> Result<Option<String>, String> {
         if let Some(json_value) = value.json_value()
             && self.rejected_values.contains(&json_value)
         {
-            return Some(format!("value {json_value} is valid for the API but not for CloudFormation"));
+            return Ok(Some(format!("value {json_value} is valid for the API but not for CloudFormation")));
         }
         match value {
-            AwsCliValue::String { value } => self.length_rejection(value.chars().count() as u64, "length"),
-            AwsCliValue::Integer { value } => self.numeric_rejection(*value as f64),
-            AwsCliValue::UnsignedInteger { value } => self.numeric_rejection(*value as f64),
-            AwsCliValue::Number { value } => self.numeric_rejection(*value),
-            AwsCliValue::Array { items } => self.length_rejection(items.len() as u64, "item count").or_else(|| {
-                self.items.as_ref().and_then(|domain| items.iter().find_map(|item| domain.rejection(item)))
-            }),
-            AwsCliValue::Object { entries } => entries.iter().find_map(|(key, entry)| {
-                let key_rejection = self
-                    .tag_key
-                    .as_ref()
-                    .and_then(|domain| domain.rejection(&AwsCliValue::String { value: key.clone() }));
-                key_rejection.or_else(|| self.tag_value.as_ref().and_then(|domain| domain.rejection(entry)))
-            }),
+            AwsCliValue::String { value } => {
+                if let Some(rejection) = self.length_rejection(value.chars().count() as u64, "length") {
+                    return Ok(Some(rejection));
+                }
+                self.pattern_rejection(value)
+            }
+            AwsCliValue::Integer { value } => Ok(self.numeric_rejection(*value as f64)),
+            AwsCliValue::UnsignedInteger { value } => Ok(self.numeric_rejection(*value as f64)),
+            AwsCliValue::Number { value } => Ok(self.numeric_rejection(*value)),
+            AwsCliValue::Array { items } => {
+                if let Some(rejection) = self.length_rejection(items.len() as u64, "item count") {
+                    return Ok(Some(rejection));
+                }
+                let Some(domain) = self.items.as_ref() else {
+                    return Ok(None);
+                };
+                for item in items {
+                    if let Some(rejection) = domain.rejection(item)? {
+                        return Ok(Some(rejection));
+                    }
+                }
+                Ok(None)
+            }
+            AwsCliValue::Object { entries } => {
+                for (key, entry) in entries {
+                    if let Some(domain) = self.tag_key.as_ref()
+                        && let Some(rejection) = domain.rejection(&AwsCliValue::String { value: key.clone() })?
+                    {
+                        return Ok(Some(rejection));
+                    }
+                    if let Some(domain) = self.tag_value.as_ref()
+                        && let Some(rejection) = domain.rejection(entry)?
+                    {
+                        return Ok(Some(rejection));
+                    }
+                }
+                Ok(None)
+            }
             AwsCliValue::Null
             | AwsCliValue::Boolean { .. }
             | AwsCliValue::Bytes { .. }
-            | AwsCliValue::Unsupported { .. } => None,
+            | AwsCliValue::Unsupported { .. } => Ok(None),
         }
+    }
+
+    fn pattern_rejection(&self, value: &str) -> Result<Option<String>, String> {
+        let Some(divergence) = self.pattern.as_ref() else {
+            return Ok(None);
+        };
+        if divergence.rejects(value)? {
+            return Ok(Some(format!(
+                "value {value:?} is valid for the API but does not match the CloudFormation pattern '{}'",
+                divergence.cloudformation
+            )));
+        }
+        Ok(None)
     }
 
     fn numeric_rejection(&self, value: f64) -> Option<String> {
@@ -388,8 +453,9 @@ struct OperationCatalog {
 /// derived from the resource type's own provider handler metadata, resolved
 /// against botocore service models, and structurally verified against the
 /// compiled CloudFormation schemas. Each mapping also records the API value
-/// domain the schema cannot represent, so a value that is valid for the service
-/// but not for CloudFormation skips synthesis instead of producing a finding.
+/// domain the schema cannot represent (enum members, bounds, lengths, and a
+/// diverging regex pattern pair), so a value that is valid for the service but
+/// not for CloudFormation skips synthesis instead of producing a finding.
 /// Only exact service+operation keys resolve; unregistered operations stay
 /// unmapped.
 static ADAPTER_REGISTRY: LazyLock<Result<HashMap<(String, String), OperationAdapter>, String>> =
@@ -994,13 +1060,19 @@ fn map_adapter_properties(
             continue;
         };
         mapped_sources.insert(&mapping.source);
-        if let Some(domain) = mapping.unrepresentable.as_ref()
-            && let Some(rejection) = domain.rejection(value)
-        {
-            return Ok(AdapterMappingResult::Skip(format!(
-                "parameter '{}' {rejection}, so it has no representation as property '{}' on {}",
-                mapping.source, mapping.target, adapter.cfn_type
-            )));
+        if let Some(domain) = mapping.unrepresentable.as_ref() {
+            let rejection = domain.rejection(value).map_err(|error| {
+                ValidationError::Engine(format!(
+                    "adapter {}:{} mapping '{}' -> '{}' has an unevaluable unrepresentable domain: {error}",
+                    adapter.service, adapter.operation, mapping.source, mapping.target
+                ))
+            })?;
+            if let Some(rejection) = rejection {
+                return Ok(AdapterMappingResult::Skip(format!(
+                    "parameter '{}' {rejection}, so it has no representation as property '{}' on {}",
+                    mapping.source, mapping.target, adapter.cfn_type
+                )));
+            }
         }
         match mapped_value(value, accepted_types, &mapping.target) {
             Some(json_value) => {
@@ -1023,8 +1095,9 @@ fn map_adapter_properties(
     }
 
     // All-or-nothing: every supplied parameter must either be mapped or
-    // in the ignored set.
-    for param_name in parameters.keys() {
+    // in the ignored set. Parameters are visited in name order so the skip
+    // reason names the same parameter on every run.
+    for param_name in parameters.keys().collect::<BTreeSet<_>>() {
         if mapped_sources.contains(param_name.as_str()) {
             continue;
         }
@@ -1291,7 +1364,9 @@ mod tests {
                     {"source": "Bucket", "target": "BucketName",
                      "unrepresentable": {"rejected_values": ["legacy"], "min_length": 3, "max_length": 63}},
                     {"source": "Tags", "target": "Tags",
-                     "unrepresentable": {"tag_value": {"min_length": 1}, "items": {"maximum": 10.0}}}
+                     "unrepresentable": {"tag_value": {"min_length": 1}, "items": {"maximum": 10.0}}},
+                    {"source": "Region", "target": "Region",
+                     "unrepresentable": {"pattern": {"api": "^[a-z]{2,4}$", "cloudformation": "^[a-z]{2}$"}}}
                 ]
             }]
         }"#;
@@ -1309,6 +1384,132 @@ mod tests {
         let tags = adapter.mappings[1].unrepresentable.as_ref().expect("tags domain parses");
         assert_eq!(tags.tag_value.as_deref().and_then(|domain| domain.min_length), Some(1));
         assert_eq!(tags.items.as_deref().and_then(|domain| domain.maximum), Some(10.0));
+        assert_eq!(
+            adapter.mappings[2].unrepresentable.as_ref().and_then(|domain| domain.pattern.clone()),
+            Some(PatternDivergence { api: "^[a-z]{2,4}$".into(), cloudformation: "^[a-z]{2}$".into() })
+        );
+    }
+
+    #[test]
+    fn pattern_divergence_rejects_only_values_the_api_accepts_and_cloudformation_rejects() {
+        let sqs_arn = UnrepresentableDomain {
+            pattern: Some(PatternDivergence {
+                api: r"^arn:aws[a-z-]*:sqs:[a-z]{2,4}(-[a-z]+)+-\d:\d{12}:.+$".into(),
+                cloudformation: r"^arn:aws[a-z-]*:sqs:[a-z]{2}(-[a-z]+)+-\d:\d{12}:.+$".into(),
+            }),
+            ..UnrepresentableDomain::default()
+        };
+        let sovereign = value(serde_json::json!("arn:aws-eusc:sqs:eusc-de-east-1:123456789012:queue"));
+        let rejection = sqs_arn.rejection(&sovereign).expect("domain evaluates").expect("value is unrepresentable");
+        assert!(rejection.contains("valid for the API"), "{rejection}");
+        assert!(rejection.contains("CloudFormation pattern"), "{rejection}");
+        assert!(
+            sqs_arn
+                .rejection(&value(serde_json::json!("arn:aws:sqs:us-east-1:123456789012:queue")))
+                .expect("domain evaluates")
+                .is_none(),
+            "a value both patterns accept is representable"
+        );
+        assert!(
+            sqs_arn.rejection(&value(serde_json::json!("not-an-arn"))).expect("domain evaluates").is_none(),
+            "a value both patterns reject keeps its CloudFormation finding"
+        );
+        assert!(
+            sqs_arn
+                .rejection(&value(serde_json::json!(" arn:aws:sqs:eusc-de-east-1:123456789012:q")))
+                .expect("domain evaluates")
+                .is_none(),
+            "the API pattern applies to the whole value"
+        );
+
+        let nested = UnrepresentableDomain {
+            items: Some(Box::new(sqs_arn.clone())),
+            tag_value: Some(Box::new(sqs_arn)),
+            ..UnrepresentableDomain::default()
+        };
+        assert!(
+            nested
+                .rejection(&value(serde_json::json!([sovereign.json_value().unwrap()])))
+                .expect("domain evaluates")
+                .is_some()
+        );
+        assert!(
+            nested
+                .rejection(&value(serde_json::json!({"Queue": sovereign.json_value().unwrap()})))
+                .expect("domain evaluates")
+                .is_some()
+        );
+    }
+
+    #[test]
+    fn uncompilable_pattern_divergence_is_a_catalog_error_not_a_silent_skip() {
+        let broken = UnrepresentableDomain {
+            pattern: Some(PatternDivergence { api: "^(unclosed$".into(), cloudformation: "^[a-z]+$".into() }),
+            ..UnrepresentableDomain::default()
+        };
+        let error = broken.rejection(&value(serde_json::json!("abc"))).expect_err("broken pattern must error");
+        assert!(error.contains("cannot be compiled"), "{error}");
+
+        let adapter = s3_create_bucket_adapter(vec![PropertyMapping {
+            source: "Bucket".into(),
+            target: "BucketName".into(),
+            unrepresentable: Some(broken),
+        }]);
+        let schema_validator = SchemaValidator::default();
+        let schema = schema_validator.resource_schema_metadata("AWS::S3::Bucket").expect("S3 bucket schema must exist");
+        let parameters = HashMap::from([("Bucket".to_string(), value(serde_json::json!("abc")))]);
+        match map_adapter_properties(&parameters, &schema, &adapter).expect_err("unevaluable domain must error") {
+            ValidationError::Engine(message) => {
+                assert!(message.contains("unevaluable unrepresentable domain"), "{message}")
+            }
+            error => panic!("expected engine error, got {error:?}"),
+        }
+    }
+
+    #[test]
+    fn adapter_skips_when_supplied_value_diverges_from_the_cloudformation_pattern() {
+        let adapter = s3_create_bucket_adapter(vec![PropertyMapping {
+            source: "Bucket".into(),
+            target: "BucketName".into(),
+            unrepresentable: Some(UnrepresentableDomain {
+                pattern: Some(PatternDivergence { api: "^[a-z0-9.-]+$".into(), cloudformation: "^[a-z0-9-]+$".into() }),
+                ..UnrepresentableDomain::default()
+            }),
+        }]);
+        let reason = skip_reason(map_s3_create_bucket(&adapter, serde_json::json!({"Bucket": "my.bucket"})));
+        assert!(reason.contains("parameter 'Bucket'"), "{reason}");
+        assert!(reason.contains("does not match the CloudFormation pattern"), "{reason}");
+        match map_s3_create_bucket(&adapter, serde_json::json!({"Bucket": "my-bucket"})) {
+            AdapterMappingResult::Mapped(properties) => {
+                assert_eq!(properties.get("BucketName"), Some(&serde_json::json!("my-bucket")));
+            }
+            AdapterMappingResult::Skip(reason) => panic!("value inside both patterns must map: {reason}"),
+        }
+    }
+
+    fn collect_patterns<'a>(domain: &'a UnrepresentableDomain, patterns: &mut Vec<&'a str>) {
+        if let Some(divergence) = domain.pattern.as_ref() {
+            patterns.push(divergence.api.as_str());
+            patterns.push(divergence.cloudformation.as_str());
+        }
+        for nested in [&domain.items, &domain.tag_key, &domain.tag_value].into_iter().flatten() {
+            collect_patterns(nested, patterns);
+        }
+    }
+
+    #[test]
+    fn every_pattern_in_the_embedded_catalog_compiles() {
+        let mut patterns = Vec::new();
+        for adapter in adapter_registry().expect("embedded catalog parses").values() {
+            for mapping in &adapter.mappings {
+                if let Some(domain) = mapping.unrepresentable.as_ref() {
+                    collect_patterns(domain, &mut patterns);
+                }
+            }
+        }
+        let uncompilable: Vec<&str> =
+            patterns.iter().copied().filter(|pattern| compile_pattern(pattern).is_none()).collect();
+        assert!(uncompilable.is_empty(), "catalog patterns must compile: {uncompilable:?}");
     }
 
     #[test]
@@ -1317,24 +1518,29 @@ mod tests {
             rejected_values: vec![serde_json::json!("MANAGED_INSTANCES")],
             ..UnrepresentableDomain::default()
         };
-        assert!(enumeration.rejection(&value(serde_json::json!("MANAGED_INSTANCES"))).is_some());
-        assert!(enumeration.rejection(&value(serde_json::json!("FARGATE"))).is_none());
+        assert!(
+            enumeration.rejection(&value(serde_json::json!("MANAGED_INSTANCES"))).expect("domain evaluates").is_some()
+        );
+        assert!(enumeration.rejection(&value(serde_json::json!("FARGATE"))).expect("domain evaluates").is_none());
 
         let numeric =
             UnrepresentableDomain { minimum: Some(1.0), maximum: Some(10.0), ..UnrepresentableDomain::default() };
-        assert!(numeric.rejection(&value(serde_json::json!(0))).is_some());
-        assert!(numeric.rejection(&value(serde_json::json!(50))).is_some());
-        assert!(numeric.rejection(&value(serde_json::json!(10))).is_none());
-        assert!(numeric.rejection(&value(serde_json::json!(1))).is_none());
-        assert!(numeric.rejection(&AwsCliValue::UnsignedInteger { value: 11 }).is_some());
-        assert!(numeric.rejection(&AwsCliValue::Number { value: 0.5 }).is_some());
+        assert!(numeric.rejection(&value(serde_json::json!(0))).expect("domain evaluates").is_some());
+        assert!(numeric.rejection(&value(serde_json::json!(50))).expect("domain evaluates").is_some());
+        assert!(numeric.rejection(&value(serde_json::json!(10))).expect("domain evaluates").is_none());
+        assert!(numeric.rejection(&value(serde_json::json!(1))).expect("domain evaluates").is_none());
+        assert!(numeric.rejection(&AwsCliValue::UnsignedInteger { value: 11 }).expect("domain evaluates").is_some());
+        assert!(numeric.rejection(&AwsCliValue::Number { value: 0.5 }).expect("domain evaluates").is_some());
 
         let text_length =
             UnrepresentableDomain { min_length: Some(5), max_length: Some(6), ..UnrepresentableDomain::default() };
-        assert!(text_length.rejection(&value(serde_json::json!("abc"))).is_some());
-        assert!(text_length.rejection(&value(serde_json::json!("abcdefg"))).is_some());
-        assert!(text_length.rejection(&value(serde_json::json!("abcde"))).is_none());
-        assert!(text_length.rejection(&value(serde_json::json!("ééééé"))).is_none(), "length counts characters");
+        assert!(text_length.rejection(&value(serde_json::json!("abc"))).expect("domain evaluates").is_some());
+        assert!(text_length.rejection(&value(serde_json::json!("abcdefg"))).expect("domain evaluates").is_some());
+        assert!(text_length.rejection(&value(serde_json::json!("abcde"))).expect("domain evaluates").is_none());
+        assert!(
+            text_length.rejection(&value(serde_json::json!("ééééé"))).expect("domain evaluates").is_none(),
+            "length counts characters"
+        );
 
         let list = UnrepresentableDomain {
             max_length: Some(2),
@@ -1344,9 +1550,15 @@ mod tests {
             })),
             ..UnrepresentableDomain::default()
         };
-        assert!(list.rejection(&value(serde_json::json!(["a", "b", "c"]))).is_some(), "item count above maximum");
-        assert!(list.rejection(&value(serde_json::json!(["SELECT", "SUPER_USER"]))).is_some(), "rejected item");
-        assert!(list.rejection(&value(serde_json::json!(["SELECT", "ALTER"]))).is_none());
+        assert!(
+            list.rejection(&value(serde_json::json!(["a", "b", "c"]))).expect("domain evaluates").is_some(),
+            "item count above maximum"
+        );
+        assert!(
+            list.rejection(&value(serde_json::json!(["SELECT", "SUPER_USER"]))).expect("domain evaluates").is_some(),
+            "rejected item"
+        );
+        assert!(list.rejection(&value(serde_json::json!(["SELECT", "ALTER"]))).expect("domain evaluates").is_none());
 
         let tags = UnrepresentableDomain {
             tag_key: Some(Box::new(UnrepresentableDomain { max_length: Some(3), ..UnrepresentableDomain::default() })),
@@ -1356,13 +1568,19 @@ mod tests {
             })),
             ..UnrepresentableDomain::default()
         };
-        assert!(tags.rejection(&value(serde_json::json!({"Team": "cli"}))).is_some(), "key too long");
-        assert!(tags.rejection(&value(serde_json::json!({"Env": ""}))).is_some(), "empty value");
-        assert!(tags.rejection(&value(serde_json::json!({"Env": "prod"}))).is_none());
+        assert!(
+            tags.rejection(&value(serde_json::json!({"Team": "cli"}))).expect("domain evaluates").is_some(),
+            "key too long"
+        );
+        assert!(
+            tags.rejection(&value(serde_json::json!({"Env": ""}))).expect("domain evaluates").is_some(),
+            "empty value"
+        );
+        assert!(tags.rejection(&value(serde_json::json!({"Env": "prod"}))).expect("domain evaluates").is_none());
 
         let empty = UnrepresentableDomain::default();
-        assert!(empty.rejection(&value(serde_json::json!(true))).is_none());
-        assert!(empty.rejection(&value(serde_json::json!(null))).is_none());
+        assert!(empty.rejection(&value(serde_json::json!(true))).expect("domain evaluates").is_none());
+        assert!(empty.rejection(&value(serde_json::json!(null))).expect("domain evaluates").is_none());
     }
 
     #[test]

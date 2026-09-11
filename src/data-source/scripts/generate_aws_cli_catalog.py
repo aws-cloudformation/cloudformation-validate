@@ -39,9 +39,11 @@ unsafe and is never used. Every candidate must pass all of:
   (``PROPERTY_SEMANTIC_DENYLIST``) never maps
 - value-domain verification: an API input value that the service accepts but
   the CloudFormation schema rejects (enum members, numeric bounds, string
-  lengths, list sizes, tag key/value lengths) is recorded per mapping as an
-  ``unrepresentable`` domain so the runtime skips synthesis for such a value
-  instead of reporting a CloudFormation finding against a valid API call
+  lengths, list sizes, tag key/value lengths, and values inside a botocore
+  ``pattern`` that the CloudFormation ``pattern`` rejects) is recorded per
+  mapping as an ``unrepresentable`` domain so the runtime skips synthesis for
+  such a value instead of reporting a CloudFormation finding against a valid
+  API call
 - noun agreement or property-overlap thresholds; ties are dropped entirely
 - global reverse uniqueness: one (service, operation) key maps to exactly one
   catalog entry; unresolvable collisions are dropped entirely
@@ -696,6 +698,59 @@ def _cfn_pattern_rejects(pattern, value):
         return False
 
 
+def _anchor_pattern(pattern):
+    """``pattern`` wrapped so it must match a whole value.
+
+    Services validate a botocore ``pattern`` against the entire input, so this
+    is the form in which an API pattern describes the values the service
+    accepts. Wrapping in a non-capturing group keeps a top-level alternation
+    (``^$|arn:.+``) anchored as a whole.
+    """
+    return f'^(?:{pattern})$'
+
+
+def _strip_anchors(pattern):
+    """``pattern`` without a leading ``^`` or trailing unescaped ``$``.
+
+    Two patterns that differ only in these anchors describe the same whole
+    values, because both the service and the schema validator apply them to
+    the complete string.
+    """
+    if pattern.startswith('^'):
+        pattern = pattern[1:]
+    if pattern.endswith('$') and not pattern.endswith('\\$'):
+        pattern = pattern[:-1]
+    return pattern
+
+
+def _pattern_divergence(source_shape, node):
+    """The API/CloudFormation ``pattern`` pair when the two regexes differ.
+
+    Regex inclusion is undecidable in general, so a textual difference (beyond
+    the ``^``/``$`` anchors, which the schema validator and the service both
+    apply to whole values) is recorded as a candidate divergence and settled
+    per value at runtime: a value the API pattern accepts and the CloudFormation
+    pattern rejects skips synthesis. The API pattern is recorded anchored to the
+    whole value, as the service applies it; the CloudFormation pattern is
+    recorded as written, as the schema validator applies it. Returns ``None``
+    when either side has no pattern, when the two are the same pattern, or when
+    the API pattern is not a regex Python can compile, so a mapping is never
+    restricted on evidence the generator cannot read.
+    """
+    api_pattern = (getattr(source_shape, 'metadata', None) or {}).get('pattern')
+    cfn_pattern = node.get('pattern')
+    if not api_pattern or not cfn_pattern:
+        return None
+    if _strip_anchors(api_pattern) == _strip_anchors(cfn_pattern):
+        return None
+    anchored_api_pattern = _anchor_pattern(api_pattern)
+    try:
+        re.compile(anchored_api_pattern)
+    except re.error:
+        return None
+    return {'api': anchored_api_pattern, 'cloudformation': cfn_pattern}
+
+
 def _string_unrepresentable(source_shape, target_schema, definitions):
     node = (
         _schema_node_for_type(target_schema, definitions, 'string')
@@ -723,6 +778,9 @@ def _string_unrepresentable(source_shape, target_schema, definitions):
         domain['max_length'] = cfn_max
     if api_min is not None and cfn_min is not None and api_min < cfn_min:
         domain['min_length'] = cfn_min
+    pattern_divergence = _pattern_divergence(source_shape, node)
+    if pattern_divergence:
+        domain['pattern'] = pattern_divergence
     return domain
 
 
@@ -767,8 +825,10 @@ def _unrepresentable_domain(source_shape, target_schema, definitions, target):
     Keys name the CloudFormation constraint the API range exceeds:
     ``rejected_values`` (API enum members CloudFormation rejects),
     ``minimum``/``maximum`` (numeric bounds), ``min_length``/``max_length``
-    (string length or list size), ``items`` (nested domain of list elements),
-    ``tag_key``/``tag_value`` (nested string domains for tag maps).
+    (string length or list size), ``pattern`` (the anchored API regex and the
+    CloudFormation regex when they differ; settled per value at runtime),
+    ``items`` (nested domain of list elements), ``tag_key``/``tag_value``
+    (nested string domains for tag maps).
     """
     source_type = source_shape.type_name
     if source_type == 'string':
@@ -1079,6 +1139,15 @@ def _verify_curated_updates(compiled_schemas, index):
     return verified_adapters
 
 
+def _count_pattern_pairs(domain):
+    """Number of API/CloudFormation ``pattern`` pairs in ``domain`` and its nested domains."""
+    count = 1 if domain.get('pattern') else 0
+    for nested in ('items', 'tag_key', 'tag_value'):
+        if domain.get(nested):
+            count += _count_pattern_pairs(domain[nested])
+    return count
+
+
 def _compute_coverage(unique_adapters, index, compiled_schemas):
     """Compute catalog and state-validation coverage metrics.
 
@@ -1120,7 +1189,18 @@ def _compute_coverage(unique_adapters, index, compiled_schemas):
     for adapter in unique_adapters:
         phases[adapter['phase']] += 1
 
+    guarded_mappings = 0
+    pattern_pairs = 0
+    for adapter in unique_adapters:
+        for mapping in adapter.get('mappings', []):
+            domain = mapping.get('unrepresentable')
+            if domain:
+                guarded_mappings += 1
+                pattern_pairs += _count_pattern_pairs(domain)
+
     return {
+        'guarded_mappings': guarded_mappings,
+        'pattern_pairs': pattern_pairs,
         'catalog_services': {
             'covered': len({a['service'] for a in unique_adapters}),
             'total': botocore_services,
@@ -1153,21 +1233,24 @@ def _compute_coverage(unique_adapters, index, compiled_schemas):
     }
 
 
-def _render_derivation(role, counters):
-    """Explain how provider resource types were matched to API operations."""
+def _render_matching(role, counters):
+    """Explain, in plain terms, how resource types were matched to one API operation."""
     rejection_reasons = (
-        ('type_not_compiled', 'Missing from compiled CloudFormation schemas'),
-        ('no_handler', f'No {role} handler declared in the provider schema'),
-        ('excluded_service', 'Service excluded from catalog generation'),
+        ('type_not_compiled', 'not present in the compiled CloudFormation schemas'),
+        ('no_handler', f'the provider schema declares no {role} handler'),
+        (
+            'excluded_service',
+            'CloudFormation and Cloud Control types are validated directly, not through adapters',
+        ),
         (
             'no_candidates',
-            'Handler permissions contained no usable botocore API operation',
+            f'the {role} handler permissions name no operation in this AWS CLI release',
         ),
         (
             'rejected',
-            'Best candidate failed resource-name/property matching safety checks',
+            'the best candidate operation failed the resource-name / property-overlap checks',
         ),
-        ('tied_rejected', 'Multiple API operations tied for best candidate'),
+        ('tied_rejected', 'several operations tied for best candidate'),
     )
     known_outcomes = {
         'verified',
@@ -1177,36 +1260,29 @@ def _render_derivation(role, counters):
     unknown_outcomes = set(counters) - known_outcomes
     if unknown_outcomes:
         names = ', '.join(sorted(unknown_outcomes))
-        raise ValueError(f'no reader-facing description for derivation outcomes: {names}')
+        raise ValueError(f'no reader-facing description for matching outcomes: {names}')
 
-    selected = counters.get('verified', 0)
-    not_selected = sum(
-        counters.get(outcome, 0) for outcome, _ in rejection_reasons
-    )
+    matched = counters.get('verified', 0)
+    unmatched = sum(counters.get(outcome, 0) for outcome, _ in rejection_reasons)
     stale_model_rejected = counters.get('stale_model_rejected', 0)
-    rejected = counters.get('rejected', 0)
-    if stale_model_rejected > rejected:
-        raise ValueError(
-            'stale-model rejection count exceeds total candidate rejections'
-        )
+    if stale_model_rejected > counters.get('rejected', 0):
+        raise ValueError('stale-model rejection count exceeds total candidate rejections')
 
-    title = role.capitalize()
     lines = [
-        f'{title} API operation matching:',
-        f'  Resource types evaluated from provider schemas: {selected + not_selected:,}',
-        f'  Resource types with one API operation selected: {selected:,}',
-        f'  Resource types without an operation selection: {not_selected:,}',
+        f'{role.capitalize()} operations: {matched:,} of {matched + unmatched:,} resource types '
+        f'matched to exactly one {role} API operation',
     ]
+    if unmatched:
+        lines.append(f'  The other {unmatched:,} resource types were not matched because:')
     for outcome, description in rejection_reasons:
         count = counters.get(outcome, 0)
         if count == 0:
             continue
-        lines.append(f'    {description}: {count:,}')
+        lines.append(f'    {count:>5,}  {description}')
         if outcome == 'rejected' and stale_model_rejected:
             lines.append(
-                f'      Of those, the exact {role} operation from handler '
-                'permissions was absent from the loaded botocore models: '
-                f'{stale_model_rejected:,}'
+                f'    {"":>5}  ({stale_model_rejected:,} of these because the exact {role} '
+                'operation named by the handler is missing from this AWS CLI release)'
             )
     return lines
 
@@ -1215,51 +1291,62 @@ def _render_fraction(description, entry):
     covered = entry['covered']
     total = entry['total']
     percent = (covered / total * 100) if total > 0 else 0.0
-    return f'  {description}: {covered:,} of {total:,} ({percent:.1f}%)'
+    return f'  {covered:>6,} of {total:>6,} ({percent:5.1f}%)  {description}'
 
 
-def _render_coverage(coverage):
-    """Render coverage metrics with explicit populations and denominators."""
+def _render_coverage(coverage, dropped_count):
+    """Describe what the final catalog covers, with every denominator named."""
+    lifecycle = coverage.get('lifecycle_adapters', {})
+    adapter_count = sum(lifecycle.values())
+    by_phase = ', '.join(
+        f'{lifecycle.get(phase, 0):,} {phase}'
+        for phase in ('create', 'update', 'delete')
+        if lifecycle.get(phase, 0)
+    )
+    for phase in sorted(set(lifecycle) - {'create', 'update', 'delete'}):
+        by_phase += f', {lifecycle[phase]:,} {phase}'
     lines = [
-        'Catalog coverage (all final create, update, and delete adapters):',
-        _render_fraction(
-            'botocore services represented', coverage['catalog_services']
+        f'Catalog contents: {adapter_count:,} adapters ({by_phase})',
+        (
+            f'  {dropped_count:,} candidate adapters were dropped so that each API operation '
+            'maps to exactly one resource type'
         ),
-        _render_fraction(
-            'Compiled CloudFormation resource types represented',
-            coverage['catalog_resources'],
-        ),
-        _render_fraction(
-            'botocore API operations represented', coverage['catalog_commands']
+        (
+            f"  {coverage['guarded_mappings']:,} property mappings record values the API accepts but "
+            f"CloudFormation rejects ({coverage['pattern_pairs']:,} as regex pattern pairs settled per value); "
+            'such a value skips validation instead of producing a finding'
         ),
         '',
+        'What an AWS CLI call can be checked against',
         (
-            'State validation coverage (create/update adapters with at least '
-            'one writable-property mapping):'
+            '  A create or update call whose adapter maps at least one writable property is modeled as '
+            'CloudFormation resource state and validated; every other call is classified and skipped.'
         ),
         _render_fraction(
-            'botocore services with state validation', coverage['state_services']
-        ),
-        _render_fraction(
-            'Compiled CloudFormation resource types with state validation',
+            'compiled CloudFormation resource types whose create/update call is validated',
             coverage['state_resources'],
         ),
         _render_fraction(
-            'botocore API operations used for state validation',
-            coverage['state_commands'],
-        ),
-        _render_fraction(
-            'Writable CloudFormation properties mapped for state validation',
+            'writable properties of those types that a call can populate',
             coverage['writable_properties'],
         ),
+        _render_fraction(
+            'AWS CLI services with at least one validated create/update operation',
+            coverage['state_services'],
+        ),
+        _render_fraction(
+            'AWS CLI operations that are validated (most operations are reads or data-plane calls)',
+            coverage['state_commands'],
+        ),
         '',
-        'Final adapters by lifecycle phase:',
+        'What the catalog classifies (create, update, or delete of a known resource type)',
+        _render_fraction(
+            'compiled CloudFormation resource types with at least one adapter',
+            coverage['catalog_resources'],
+        ),
+        _render_fraction('AWS CLI services with at least one adapter', coverage['catalog_services']),
+        _render_fraction('AWS CLI operations with an adapter', coverage['catalog_commands']),
     ]
-    lifecycle = coverage.get('lifecycle_adapters', {})
-    for phase in ('create', 'update', 'delete'):
-        lines.append(f'  {phase.capitalize()} adapters: {lifecycle.get(phase, 0):,}')
-    for phase in sorted(set(lifecycle) - {'create', 'update', 'delete'}):
-        lines.append(f'  {phase.capitalize()} adapters: {lifecycle[phase]:,}')
     return lines
 
 
@@ -1268,37 +1355,33 @@ def _render_generation_report(
     delete_counters,
     dropped_count,
     coverage,
-    adapter_count,
+    source,
     output_path,
 ):
     """Render the complete catalog generation report."""
     lines = [
-        'AWS API catalog generation summary',
+        'AWS CLI operation catalog',
+        f'  Written to: {output_path}',
         (
-            'An adapter links one CloudFormation resource type and lifecycle '
-            'action to one botocore API operation.'
+            f"  Derived from: AWS CLI {source['aws_cli_version']} "
+            f"(botocore {source['botocore_version']}, {source['botocore_service_count']:,} services), "
+            f"{source['provider_type_count']:,} provider schemas with handler metadata, "
+            f"{source['compiled_type_count']:,} compiled CloudFormation resource types"
+        ),
+        (
+            '  An adapter links one CloudFormation resource type and lifecycle phase '
+            '(create, update, delete) to the one AWS CLI operation that performs it.'
         ),
         '',
+        'How resource types were matched to API operations',
     ]
-    lines.extend(_render_derivation('create', create_counters))
+    lines.extend(_render_matching('create', create_counters))
+    lines.extend(_render_matching('delete', delete_counters))
+    lines.append(
+        '  Update operations: hand-reviewed adapters only, because update APIs carry partial state'
+    )
     lines.append('')
-    lines.extend(_render_derivation('delete', delete_counters))
-    lines.extend([
-        '',
-        'API operation uniqueness check:',
-        (
-            '  Adapters removed so each botocore API operation appears only '
-            f'once: {dropped_count:,}'
-        ),
-        '',
-    ])
-    lines.extend(_render_coverage(coverage))
-    lines.extend([
-        '',
-        'Catalog output:',
-        f'  Adapters written: {adapter_count:,}',
-        f'  File: {output_path}',
-    ])
+    lines.extend(_render_coverage(coverage, dropped_count))
     return lines
 
 
@@ -1380,7 +1463,7 @@ def main():
         delete_counters,
         len(dropped),
         coverage,
-        len(unique_adapters),
+        document['source'],
         args.output,
     ):
         print(line)

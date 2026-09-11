@@ -32,7 +32,10 @@ pub mod types;
 
 pub use additional_schema_source::{AdditionalSchemaSource, SchemaSourceError};
 #[cfg(feature = "maintenance")]
-pub use aws_cli_catalog::generate_aws_cli_catalog;
+pub use aws_cli_catalog::{
+    AWS_CLI_OPERATION_CATALOG_FILE, PreservedAwsCliCatalog, generate_aws_cli_catalog, preserve_aws_cli_catalog,
+    restore_aws_cli_catalog,
+};
 
 #[cfg(feature = "maintenance")]
 use log::{error, info};
@@ -152,8 +155,8 @@ pub fn sync_upstream(upstream_dir: &Path, rule_source_root: &str) -> anyhow::Res
     verify_files_exist_and_populated(REQUIRED_SYNC_FILES, &generated_data, "Sync")?;
     verify_files_exist_and_populated(REQUIRED_UPSTREAM_FILES, upstream_dir, "Sync")?;
     // `generated/data` was cleared ahead of this sync, so the manifest is written
-    // fresh; the AWS CLI entry is recorded by the catalog generator, which must
-    // run after every sync because the catalog is cleared with it.
+    // fresh; the AWS CLI entry is recorded by the final `sync` step, which either
+    // regenerates the catalog or restores the preserved one.
     let source_versions = source_versions::SourceVersions::new(cfn_lint_version, resource_schema_version, None)
         .map_err(anyhow::Error::msg)?;
     write_source_versions(&source_versions_path, source_versions)?;

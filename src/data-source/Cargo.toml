@@ -25,11 +25,6 @@ path = "src/generate.rs"
 required-features = ["maintenance"]
 
 [[example]]
-name = "generate_aws_cli_catalog"
-path = "examples/generate_aws_cli_catalog.rs"
-required-features = ["maintenance"]
-
-[[example]]
 name = "embedding_format_bench"
 path = "src/embedding_format_bench.rs"
 required-features = ["bench"]

@@ -11,12 +11,9 @@ compile time. Everything compiles into the binary - no runtime fetching.
 # Generate schema and rule artifacts from existing upstream data
 cargo run -p cloudformation-validate-data-source --features maintenance --example generate
 
-# Refresh all upstream sources, then generate every output (cfn-lint root is required)
-cargo run -p cloudformation-validate-data-source --features maintenance --example sync -- --cfn-lint-root <DIR>
-
-# Regenerate the AWS CLI operation catalog (standalone; independent of sync/generate).
-# --aws-cli-root points at a local aws-cli checkout.
-cargo run -p cloudformation-validate-data-source --features maintenance --example generate_aws_cli_catalog -- --aws-cli-root <DIR>
+# Refresh all upstream sources, then generate every output (cfn-lint root is required;
+# --aws-cli-root, a local aws-cli checkout, also regenerates the AWS CLI operation catalog)
+cargo run -p cloudformation-validate-data-source --features maintenance --example sync -- --cfn-lint-root <DIR> [--aws-cli-root <DIR>]
 ```
 
 The examples require the `maintenance` feature, which enables dependencies used only by the data maintenance
@@ -29,23 +26,24 @@ its source-qualified versions only after all source processing succeeds.
 
 ### AWS CLI operation catalog
 
-`generate_aws_cli_catalog` is a separate command that (re)builds
-`generated/data/aws_cli_operation_catalog.json`, the adapter catalog that maps AWS CLI operations to CloudFormation
-resource types for `validateAwsCliCommand`. It is intentionally decoupled from `sync`/`generate` because it derives
-from AWS CLI botocore service models plus CloudFormation provider handler metadata and is regenerated on its own
-cadence. It only generates the catalog and never downloads or processes schemas: it reads the provider schemas
-already present under `upstream/schemas` (written by `sync`) and the committed compiled schemas under
-`generated/schema-validator`, and fails with a clear message if either is missing. Because `sync` clears
-`generated/data/`, the catalog must be regenerated after every sync; the command also records the AWS CLI release it
-used as `aws_cli_version` in `generated/data/source_versions.json`.
+`generated/data/aws_cli_operation_catalog.json` is the adapter catalog that maps AWS CLI operations to CloudFormation
+resource types for `validateAwsCliCommand`. It derives from AWS CLI botocore service models plus CloudFormation
+provider handler metadata, so `sync` produces it as its final step, after the provider schemas and compiled schemas
+exist. With `--aws-cli-root <DIR>` (a local aws-cli checkout whose `awscli/` supplies botocore), `sync` runs
+`scripts/generate_aws_cli_catalog.py` and records the AWS CLI release it used as `aws_cli_version` in
+`generated/data/source_versions.json`. Without it, `sync` keeps the committed catalog and re-verifies its mappings
+against the refreshed compiled schemas, failing with a request for `--aws-cli-root` if any mapped property no longer
+exists or became read-only. A repository that has never generated a catalog must pass `--aws-cli-root`, because the
+build script embeds the catalog.
 
 Besides the operation-to-type and parameter-to-property pairs, each mapping records the API value domain that the
 compiled CloudFormation schema cannot represent (`unrepresentable`: enum members, numeric bounds, string lengths, list
-sizes, tag key/value lengths), derived by comparing the botocore input shape against the compiled property schema. The
+sizes, tag key/value lengths, and the API/CloudFormation regex `pattern` pair when the two differ), derived by comparing
+the botocore input shape against the compiled property schema. The
 runtime uses it to skip synthesis for a command whose values the service accepts but CloudFormation would reject.
 Same-named inputs whose meaning differs from the CloudFormation property are excluded by the reviewed
-`PROPERTY_SEMANTIC_DENYLIST` in the script. Re-run the command after `sync`, after changing the generator's mapping
-rules, or after updating the AWS CLI checkout.
+`PROPERTY_SEMANTIC_DENYLIST` in the script. Pass `--aws-cli-root` after changing the generator's mapping rules or after
+updating the AWS CLI checkout.
 
 
 ## Directory Structure
