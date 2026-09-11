@@ -44,13 +44,12 @@ Guard rules on top of the built-in rules - see [`CompositeEngine`](#compositeeng
 
 ### `Engine` interface
 
-| Method                                    | Returns                   | Description                                                                                                      |
-|-------------------------------------------|---------------------------|------------------------------------------------------------------------------------------------------------------|
-| `validateTemplate(template, config?)`     | `ValidationReport`        | Validates and returns diagnostics. `config.detailLevel` (default `DETAILED`) sets how much per-diagnostic context is attached: `DETAILED` adds documentation URLs, rule descriptions, phase tags, and `ViolationContext`; `STANDARD` omits those enrichment fields |
-| `validateAwsCliCommand(request, config?)` | `AwsCliCommandValidation` | Classifies, models, and validates one AWS CLI command entirely offline                                           |
-| `listRules()`                             | `RuleInfo[]`              | Returns metadata for every built-in and loaded custom rule                                                       |
-| `engineName()`                            | `string`                  | `"rego"`, `"cel"`, or `"composite"`                                                                              |
-| `free()`                                  | `void`                    | Releases the engine's off-heap memory                                                                            |
+| Method                                | Returns          | Description                                                                                                      |
+|---------------------------------------|------------------|------------------------------------------------------------------------------------------------------------------|
+| `validateTemplate(template, config?)` | `ValidationReport` | Validates and returns diagnostics. `config.detailLevel` (default `DETAILED`) sets how much per-diagnostic context is attached: `DETAILED` adds documentation URLs, rule descriptions, phase tags, and `ViolationContext`; `STANDARD` omits those enrichment fields |
+| `listRules()`                         | `RuleInfo[]`     | Returns metadata for every built-in and loaded custom rule                                                       |
+| `engineName()`                        | `string`         | `"rego"`, `"cel"`, or `"composite"`                                                                              |
+| `free()`                              | `void`           | Releases the engine's off-heap memory                                                                            |
 
 ### `EngineConfig`
 
@@ -137,44 +136,6 @@ try {
     engine.free();
 }
 ```
-
-## AWS CLI command validation
-
-`validateAwsCliCommand` classifies and validates an AWS CLI command against the same bundled CloudFormation schemas and
-rules, without credentials or network access. It is available on every engine, including `CompositeEngine`:
-
-```typescript
-import { AwsCliCommand, RegoEngine } from "@aws/cloudformation-validate";
-
-const engine = new RegoEngine();
-try {
-    const request = new AwsCliCommand("s3", "CreateBucket", {
-        Bucket: "my-bucket",
-    });
-    const validation = engine.validateAwsCliCommand(request);
-    console.log(validation.status, validation.resourceTypes);
-    if (validation.template !== null) {
-        console.log(Buffer.from(validation.template).toString("utf8"));
-    }
-} finally {
-    engine.free();
-}
-```
-
-`serviceName` is the exact canonical botocore service name (for example, `"s3"`, `"cloudwatch"`, or
-`"cloudformation"`) and is normalized for ASCII case only. `servicePrefix` is optional context and never overrides
-`serviceName`. The core does not guess endpoint prefixes, signing names, punctuation variants, or other aliases. A
-future SDK adapter in any language must translate its native SDK identity to this canonical name before calling the
-API.
-
-Request parameters accept JavaScript strings, booleans, finite numbers, 64-bit `bigint` values, `null`, `Date`, nested
-arrays and plain objects, and `Uint8Array` (including Node.js `Buffer`) for byte strings. Unsupported values are marked
-explicitly rather than coerced. Synthesis is all-or-nothing: if any supplied resource-state field cannot be represented
-or has no proven mapping, the result is `SKIPPED` with no report or template.
-
-`AwsCliCommandValidation.template` is a `Uint8Array | null`. For CloudFormation `TemplateBody`, it contains the exact
-caller-provided bytes; synthesized requests contain the generated JSON template bytes. A `VALIDATED` result includes a
-standard report, while a `SKIPPED` result explains why validation was not attempted.
 
 ## ValidateConfig
 

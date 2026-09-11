@@ -45,6 +45,9 @@ JVM library (Kotlin/Java) - all backed by the same validation core.
   (`--additional-schema`, or `EngineConfig.schema_validator_config.additional_schemas` when embedding).
 - **Custom rules.** Extend validation with your own rules in CEL (JSON), Rego, or
   [CloudFormation Guard](https://docs.aws.amazon.com/cfn-guard/latest/ug/what-is-guard.html) DSL.
+- **AWS CLI command validation.** Model a create or update API call as CloudFormation resource state and validate it
+  offline before it is sent; any call that cannot be modeled exactly is skipped, never guessed (see
+  [validation-engine/API.md](src/validation-engine/API.md#validating-an-aws-cli-command)).
 - **Embeddable everywhere.** Use it from the CLI, Rust, Node.js, Python, Go, or the JVM.
 - **Sub-second** validation for typical templates.
 

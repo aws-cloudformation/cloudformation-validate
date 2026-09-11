@@ -42,9 +42,7 @@ mapping, and diagnostic scoping to explicitly modeled properties:
 ```rust
 use rego_engine::RegoEngine;
 use schema_validator::SchemaValidator;
-use validation_engine::{
-    AwsCliCommand, AwsCliValue, EngineConfig, ValidateConfig, validate_aws_cli_command,
-};
+use validation_engine::{AwsCliCommand, AwsCliValue, EngineConfig, validate_aws_cli_command};
 
 let engine = RegoEngine::new(EngineConfig::default())?;
 let schema_validator = SchemaValidator::default();
@@ -58,12 +56,7 @@ let request = AwsCliCommand::new(
 .with_service_prefix("s3")
 .with_http_method("PUT");
 
-let result = validate_aws_cli_command(
-    &engine,
-    &schema_validator,
-    &request,
-    ValidateConfig::default(),
-)?;
+let result = validate_aws_cli_command(&engine, &schema_validator, &request)?;
 if let Some(report) = &result.report {
     for diagnostic in &report.diagnostics {
         println!("{}: {}", diagnostic.rule_id, diagnostic.message);
@@ -77,9 +70,13 @@ if let Some(report) = &result.report {
 bytes are validated without rewriting; `TemplateURL` is skipped because validation is offline. Every result includes
 an operation kind, validation status, optional template source, resource candidates, and reason. `Validated` means the
 modeled template reached the normal validation pipeline; `Skipped` has no report and explains why.
-`AwsCliCommandValidation` carries an `Option<diagnostics::output::ValidationReport>` projected at the `STANDARD` detail
-level — detailed enrichment is not supported for synthesized API-request templates because there is no user-authored
-source to annotate with context.
+The modeled template runs through the normal template-validation pipeline (`validate_bytes_with_path`) with a fixed
+configuration that callers cannot tune, so every embedding reports the same findings for the same command: the default
+`ValidateConfig` at the `STANDARD` detail level — detailed enrichment is not supported for synthesized API-request
+templates because there is no user-authored source to annotate with context — gated at `Warn` severity, because a
+command is a deployment action rather than template authoring and Info-level guidance (best practices,
+replacement-on-update notes) has nothing for the caller to act on. `AwsCliCommandValidation` carries the resulting
+`Option<diagnostics::output::ValidationReport>`.
 The `template` field carries the exact bytes that were validated — the caller's original `TemplateBody` without
 reserializing, or the synthesized JSON template for adapter-mapped requests — so consumers can display the modeled
 template that produced the diagnostics. It is `None` when the request was skipped.
@@ -101,16 +98,19 @@ fails both conditions — because it has no mapping, or its value cannot be type
 synthesis is SKIPPED and the reason names the offending parameter. This guarantees that validated templates faithfully
 represent the full caller-supplied state: no parameter is ever silently omitted from the synthesized template.
 
-**API-valid values are never reported as CloudFormation violations.** A same-named API input and CloudFormation
-property can differ in value domain: the service may accept an enum member, numeric bound, string length, list size,
-or tag key/value length that the CloudFormation schema rejects, or its `pattern` may differ from the CloudFormation
-`pattern`. The generator records that API-only domain on each mapping as `unrepresentable` (a differing regex is
-recorded as the API/CloudFormation pattern pair and settled per value: a value the API pattern accepts and the
-CloudFormation pattern rejects is unrepresentable), and the runtime skips synthesis — again naming the parameter and
-the value — whenever a supplied value falls inside it, so a command the service would accept is never modeled as a
-template that CloudFormation would reject. Same-named inputs whose meaning differs from the property (for example an
-API resource ID where the CloudFormation property carries the resource ARN) are removed from the catalog by a reviewed
-denylist and therefore skip synthesis as unmapped parameters.
+**A CloudFormation constraint the API does not enforce is never reported against a command.** A same-named API input
+and CloudFormation property can differ in value domain: the botocore model may declare a wider domain than the
+CloudFormation schema (an extra enum member, a looser numeric bound, string length, list or tag-map size, or a
+different `pattern`), or it may declare no corresponding constraint at all, in which case nothing proves that the
+service rejects what CloudFormation rejects. The generator records every such constraint on the mapping as
+`unrepresentable` — the CloudFormation enum, bounds, sizes, and `pattern` (paired with the anchored API pattern when
+the API declares a different one) — and the runtime settles it per value: a value outside the CloudFormation
+constraint skips synthesis, naming the parameter, the value, and the constraint the API does not enforce, so a command
+the service may accept is never modeled as a template that CloudFormation would reject. A value inside every
+CloudFormation constraint validates fully, and a constraint the API enforces at least as strictly keeps its
+CloudFormation finding. Same-named inputs whose meaning differs from the property (for example an API resource ID
+where the CloudFormation property carries the resource ARN) are removed from the catalog by a reviewed denylist and
+therefore skip synthesis as unmapped parameters.
 
 **Template-authoring advice is not reported for modeled state.** Synthesized templates and wrapped Cloud Control
 desired state never had a template author, so rules whose only remediation is a template construct — replace a literal

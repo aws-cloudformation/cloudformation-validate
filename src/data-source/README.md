@@ -36,11 +36,13 @@ against the refreshed compiled schemas, failing with a request for `--aws-cli-ro
 exists or became read-only. A repository that has never generated a catalog must pass `--aws-cli-root`, because the
 build script embeds the catalog.
 
-Besides the operation-to-type and parameter-to-property pairs, each mapping records the API value domain that the
-compiled CloudFormation schema cannot represent (`unrepresentable`: enum members, numeric bounds, string lengths, list
-sizes, tag key/value lengths, and the API/CloudFormation regex `pattern` pair when the two differ), derived by comparing
-the botocore input shape against the compiled property schema. The
-runtime uses it to skip synthesis for a command whose values the service accepts but CloudFormation would reject.
+Besides the operation-to-type and parameter-to-property pairs, each mapping records the CloudFormation constraints
+the API does not enforce at least as strictly (`unrepresentable`: API enum members CloudFormation rejects or the
+CloudFormation enum when the API declares none, numeric bounds, string lengths, list and tag-map sizes, tag key/value
+lengths, and the CloudFormation regex `pattern` paired with the anchored API pattern when the API declares a different
+one), derived by comparing the botocore input shape against the compiled property schema. The runtime settles them per
+value and skips synthesis for a command whose value CloudFormation would reject without the service being known to
+reject it too.
 Same-named inputs whose meaning differs from the CloudFormation property are excluded by the reviewed
 `PROPERTY_SEMANTIC_DENYLIST` in the script. Pass `--aws-cli-root` after changing the generator's mapping rules or after
 updating the AWS CLI checkout.
