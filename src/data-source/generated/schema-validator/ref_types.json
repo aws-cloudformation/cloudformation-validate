@@ -443,6 +443,7 @@
     "AWS::DMS::ReplicationInstance": "string",
     "AWS::DMS::ReplicationSubnetGroup": "string",
     "AWS::DMS::ReplicationTask": "string",
+    "AWS::DRS::LaunchConfigurationTemplate": "string",
     "AWS::DRS::SourceNetwork": "string",
     "AWS::DSQL::Cluster": "string",
     "AWS::DataBrew::Dataset": "string",
@@ -5934,6 +5935,18 @@
       "Tags": "array",
       "TargetEndpointArn": "string",
       "TaskData": "string"
+    },
+    "AWS::DRS::LaunchConfigurationTemplate": {
+      "Arn": "string",
+      "CopyPrivateIp": "boolean",
+      "CopyTags": "boolean",
+      "ExportBucketArn": "string",
+      "LaunchConfigurationTemplateID": "string",
+      "LaunchDisposition": "string",
+      "LaunchIntoSourceInstance": "boolean",
+      "PostLaunchEnabled": "boolean",
+      "Tags": "array",
+      "TargetInstanceTypeRightSizingMethod": "string"
     },
     "AWS::DRS::SourceNetwork": {
       "Arn": "string",

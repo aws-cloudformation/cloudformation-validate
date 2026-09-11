@@ -600,6 +600,116 @@ class SmokeTest {
         }
     }
 
+    // ── AWS CLI command validation ────────────────────────────────────────────
+
+    private val awsCliEngines: List<Pair<String, Engine>> = listOf("rego" to REGO, "cel" to CEL, "composite" to COMPOSITE)
+
+    private fun diagnosticKeys(report: ValidationReport): List<String> =
+        report.diagnostics.map { "${it.ruleId}|${it.severity}|${it.startLine}|${it.startColumn}" }.sorted()
+
+    @Suppress("UNCHECKED_CAST")
+    private fun synthesizedBucketName(template: ByteArray?): String {
+        assertNotNull(template, "a validated request must carry the synthesized template bytes")
+        val document = JsonParser(String(template!!)).parseValue() as Map<String, Any?>
+        val resource = (document["Resources"] as Map<String, Any?>)["Resource"] as Map<String, Any?>
+        assertEquals("AWS::S3::Bucket", resource["Type"], "synthesized resource type")
+        return (resource["Properties"] as Map<String, Any?>)["BucketName"] as String
+    }
+
+    @Test
+    fun awsCliS3CreateBucketSynthesizesOnAllEngines() {
+        val request = AwsCliCommand("s3", "CreateBucket", mapOf("Bucket" to "synthetic-bucket"))
+        val perEngine = LinkedHashMap<String, AwsCliCommandValidation>()
+        for ((name, engine) in awsCliEngines) {
+            val validation = engine.validateAwsCliCommand(request)
+            assertEquals(AwsCliCommandValidationStatus.VALIDATED, validation.status, "$name: status")
+            assertEquals(AwsCliOperationKind.CLOUD_FORMATION_CREATE, validation.operationKind, "$name: operation kind")
+            assertEquals(listOf("AWS::S3::Bucket"), validation.resourceTypes, "$name: resource types")
+            assertEquals(AwsCliTemplateSource.SYNTHESIZED_CREATE, validation.templateSource, "$name: template source")
+            assertNotNull(validation.report, "$name: report must be present for a validated request")
+            assertEquals("synthetic-bucket", synthesizedBucketName(validation.template), "$name: synthesized bucket name")
+            perEngine[name] = validation
+        }
+        // Rego/CEL parity on the modeled template and diagnostics, not timings.
+        assertTrue(
+            perEngine.getValue("rego").template.contentEquals(perEngine.getValue("cel").template),
+            "engines must synthesize identical templates",
+        )
+        val rego = perEngine.getValue("rego")
+        for ((name, other) in perEngine) {
+            if (name == "rego") continue
+            assertArrayEquals(rego.template, other.template, "$name must synthesize the same template as rego")
+            assertEquals(
+                diagnosticKeys(rego.report!!),
+                diagnosticKeys(other.report!!),
+                "$name must agree with rego on diagnostics",
+            )
+        }
+    }
+
+    @Test
+    fun awsCliValidateTemplatePreservesExactBytes() {
+        // Distinctive whitespace and key order a reserialization would not reproduce.
+        val templateBody = "{\n    \"Resources\": {\n        \"Bucket\": { \"Type\": \"AWS::S3::Bucket\" }\n    }\n}".toByteArray()
+        val request = AwsCliCommand("cloudformation", "ValidateTemplate", mapOf("TemplateBody" to templateBody))
+        for ((name, engine) in awsCliEngines) {
+            val validation = engine.validateAwsCliCommand(request)
+            assertEquals(AwsCliCommandValidationStatus.VALIDATED, validation.status, "$name: status")
+            assertEquals(AwsCliTemplateSource.TEMPLATE_BODY, validation.templateSource, "$name: template source")
+            assertTrue(
+                templateBody.contentEquals(validation.template),
+                "$name: TemplateBody must be preserved byte-for-byte",
+            )
+        }
+    }
+
+    @Test
+    fun awsCliConservativelySkipsNestedDynamoDbFields() {
+        val request = AwsCliCommand(
+            "dynamodb",
+            "CreateTable",
+            mapOf(
+                "TableName" to "Synthetic",
+                "KeySchema" to listOf(mapOf("AttributeName" to "id", "KeyType" to "HASH")),
+                "AttributeDefinitions" to listOf(mapOf("AttributeName" to "id", "AttributeType" to "S")),
+                "BillingMode" to "PAY_PER_REQUEST",
+            ),
+        )
+        for ((name, engine) in awsCliEngines) {
+            val validation = engine.validateAwsCliCommand(request)
+            assertEquals(AwsCliCommandValidationStatus.SKIPPED, validation.status, "$name: status")
+            assertNull(validation.report, "$name: a skipped request must have no report")
+            assertNull(validation.template, "$name: a skipped request must have no template")
+            assertEquals(listOf("AWS::DynamoDB::Table"), validation.resourceTypes, "$name: resource type still identified")
+            assertTrue(
+                validation.reason.contains("has no mapping"),
+                "$name: reason must explain the unmapped nested field: ${validation.reason}",
+            )
+        }
+    }
+
+    @Test
+    fun awsCliDoesNotGuessNoncanonicalServiceAlias() {
+        // CloudWatch's canonical botocore name is "cloudwatch"; "monitoring" is its
+        // signing name. The core resolves the canonical name but never the alias.
+        val canonical = AwsCliCommand("cloudwatch", "PutMetricAlarm", mapOf("AlarmName" to "synthetic"))
+        val alias = AwsCliCommand("monitoring", "PutMetricAlarm", mapOf("AlarmName" to "synthetic"))
+        for ((name, engine) in awsCliEngines) {
+            val canonicalValidation = engine.validateAwsCliCommand(canonical)
+            assertTrue(
+                canonicalValidation.resourceTypes.contains("AWS::CloudWatch::Alarm"),
+                "$name: canonical cloudwatch:PutMetricAlarm must identify AWS::CloudWatch::Alarm",
+            )
+            val aliasValidation = engine.validateAwsCliCommand(alias)
+            assertEquals(AwsCliCommandValidationStatus.SKIPPED, aliasValidation.status, "$name: alias status")
+            assertFalse(
+                aliasValidation.resourceTypes.contains("AWS::CloudWatch::Alarm"),
+                "$name: signing alias 'monitoring' must not resolve to AWS::CloudWatch::Alarm",
+            )
+            assertNull(aliasValidation.template, "$name: an unresolved alias must not synthesize a template")
+        }
+    }
+
     companion object {
         private val resourcesRoot: File = listOf(
             File("${System.getProperty("user.dir")}/../../resources"),

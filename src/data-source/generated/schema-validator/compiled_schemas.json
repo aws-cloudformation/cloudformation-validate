@@ -104040,6 +104040,125 @@
     ],
     "description": "Resource Type definition for AWS::DMS::ReplicationTask"
   },
+  "AWS::DRS::LaunchConfigurationTemplate": {
+    "type_name": "AWS::DRS::LaunchConfigurationTemplate",
+    "properties": {
+      "Arn": {
+        "type": "string",
+        "pattern": "^arn:.{16,2044}$",
+        "min_length": 20,
+        "max_length": 2048,
+        "description": "ARN of the Launch Configuration Template."
+      },
+      "CopyPrivateIp": {
+        "type": "boolean",
+        "description": "Copy private IP."
+      },
+      "CopyTags": {
+        "type": "boolean",
+        "description": "Copy tags."
+      },
+      "ExportBucketArn": {
+        "type": "string",
+        "pattern": "^arn:.{16,2044}$",
+        "min_length": 20,
+        "max_length": 2048,
+        "description": "S3 bucket ARN to export Source Network templates."
+      },
+      "LaunchConfigurationTemplateID": {
+        "type": "string",
+        "pattern": "^lct-[0-9a-zA-Z]{17}$",
+        "min_length": 21,
+        "max_length": 21,
+        "description": "ID of the Launch Configuration Template."
+      },
+      "LaunchDisposition": {
+        "type": "string",
+        "enum": [
+          "STOPPED",
+          "STARTED"
+        ],
+        "description": "Launch disposition."
+      },
+      "LaunchIntoSourceInstance": {
+        "type": "boolean",
+        "description": "DRS will set the 'launch into instance ID' of any source server when performing a drill, recovery or failback to the previous region or availability zone, using the instance ID of the source instance."
+      },
+      "Licensing": {
+        "ref_name": "Licensing"
+      },
+      "PostLaunchEnabled": {
+        "type": "boolean",
+        "description": "Whether we want to activate post-launch actions."
+      },
+      "Tags": {
+        "type": "array",
+        "description": "A set of tags associated with the Launch Configuration Template.",
+        "items": {
+          "ref_name": "Tag"
+        }
+      },
+      "TargetInstanceTypeRightSizingMethod": {
+        "type": "string",
+        "enum": [
+          "NONE",
+          "BASIC",
+          "IN_AWS"
+        ],
+        "description": "Target instance type right-sizing method."
+      }
+    },
+    "definitions": {
+      "Licensing": {
+        "type": "object",
+        "description": "Configuration of a machine's license.",
+        "properties": {
+          "OsByol": {
+            "type": "boolean",
+            "description": "Whether to enable Bring your own license or not."
+          }
+        },
+        "additional_properties": false
+      },
+      "Tag": {
+        "type": "object",
+        "description": "A key-value pair to associate with the Launch Configuration Template.",
+        "properties": {
+          "Key": {
+            "type": "string",
+            "min_length": 0,
+            "max_length": 256,
+            "description": "The key name of the tag."
+          },
+          "Value": {
+            "type": "string",
+            "min_length": 0,
+            "max_length": 256,
+            "description": "The value for the tag."
+          }
+        },
+        "required": [
+          "Key",
+          "Value"
+        ],
+        "additional_properties": false
+      }
+    },
+    "required": [],
+    "additional_properties": false,
+    "read_only_properties": [
+      "Arn",
+      "LaunchConfigurationTemplateID"
+    ],
+    "create_only_properties": [
+      "Tags"
+    ],
+    "primary_identifier": [
+      "Arn"
+    ],
+    "replacement_strategy": "delete_then_create",
+    "description": "Account level Launch Configuration Template for AWS Elastic Disaster Recovery."
+  },
   "AWS::DRS::SourceNetwork": {
     "type_name": "AWS::DRS::SourceNetwork",
     "properties": {

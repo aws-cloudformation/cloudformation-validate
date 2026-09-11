@@ -5,6 +5,12 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 BINDINGS_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 WHEEL_DIR="$BINDINGS_DIR/generated/dist"
 VENV_DIR="$SCRIPT_DIR/.venv"
+PYTHON="${PYTHON:-python3}"
+
+if ! command -v "$PYTHON" &>/dev/null; then
+    echo "Error: $PYTHON not found on PATH" >&2
+    exit 1
+fi
 
 if ! compgen -G "$WHEEL_DIR/cloudformation_validate-*.whl" >/dev/null; then
     echo "Error: no wheel in $WHEEL_DIR - run build.sh first" >&2
@@ -15,7 +21,7 @@ fi
 # consumers install, not the loose build tree.
 echo "Installing the compatible wheel from $WHEEL_DIR into test venv..."
 rm -rf "$VENV_DIR"
-python3 -m venv "$VENV_DIR"
+"$PYTHON" -m venv "$VENV_DIR"
 if [ -x "$VENV_DIR/bin/python" ]; then
     VENV_PYTHON="$VENV_DIR/bin/python"
 else

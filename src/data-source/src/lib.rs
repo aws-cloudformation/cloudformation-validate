@@ -9,6 +9,8 @@ pub mod additional_schema_source;
 #[cfg(feature = "maintenance")]
 pub mod additional_specs;
 #[cfg(feature = "maintenance")]
+pub mod aws_cli_catalog;
+#[cfg(feature = "maintenance")]
 pub mod cfnlint_tables;
 #[cfg(feature = "maintenance")]
 pub mod codegen_cel;
@@ -29,6 +31,11 @@ mod source_versions;
 pub mod types;
 
 pub use additional_schema_source::{AdditionalSchemaSource, SchemaSourceError};
+#[cfg(feature = "maintenance")]
+pub use aws_cli_catalog::{
+    AWS_CLI_OPERATION_CATALOG_FILE, PreservedAwsCliCatalog, generate_aws_cli_catalog, preserve_aws_cli_catalog,
+    restore_aws_cli_catalog,
+};
 
 #[cfg(feature = "maintenance")]
 use log::{error, info};
@@ -85,10 +92,28 @@ impl SyncStats {
     }
 }
 
+/// Manifest writers. They live here rather than in `source_versions.rs` because
+/// the build script compiles that file too and only ever reads the manifest.
 #[cfg(feature = "maintenance")]
-fn write_source_versions(path: &Path, versions: source_versions::SourceVersions) -> anyhow::Result<()> {
-    let versions = source_versions::SourceVersions::new(versions.cfn_lint_version, versions.resource_schema_version)
-        .map_err(anyhow::Error::msg)?;
+impl source_versions::SourceVersions {
+    pub(crate) fn new(
+        cfn_lint_version: String,
+        resource_schema_version: String,
+        aws_cli_version: Option<String>,
+    ) -> Result<Self, String> {
+        let versions = Self { cfn_lint_version, resource_schema_version, aws_cli_version };
+        versions.validate()?;
+        Ok(versions)
+    }
+
+    /// The manifest with the AWS CLI entry recorded and the `sync`-owned entries kept.
+    pub(crate) fn with_aws_cli_version(self, aws_cli_version: String) -> Result<Self, String> {
+        Self::new(self.cfn_lint_version, self.resource_schema_version, Some(aws_cli_version))
+    }
+}
+
+#[cfg(feature = "maintenance")]
+pub(crate) fn write_source_versions(path: &Path, versions: source_versions::SourceVersions) -> anyhow::Result<()> {
     let mut contents = serde_json::to_string_pretty(&versions)?;
     contents.push('\n');
     fs::write(path, contents)?;
@@ -129,8 +154,11 @@ pub fn sync_upstream(upstream_dir: &Path, rule_source_root: &str) -> anyhow::Res
 
     verify_files_exist_and_populated(REQUIRED_SYNC_FILES, &generated_data, "Sync")?;
     verify_files_exist_and_populated(REQUIRED_UPSTREAM_FILES, upstream_dir, "Sync")?;
-    let source_versions =
-        source_versions::SourceVersions::new(cfn_lint_version, resource_schema_version).map_err(anyhow::Error::msg)?;
+    // `generated/data` was cleared ahead of this sync, so the manifest is written
+    // fresh; the AWS CLI entry is recorded by the final `sync` step, which either
+    // regenerates the catalog or restores the preserved one.
+    let source_versions = source_versions::SourceVersions::new(cfn_lint_version, resource_schema_version, None)
+        .map_err(anyhow::Error::msg)?;
     write_source_versions(&source_versions_path, source_versions)?;
     info!("Recorded complete data source provenance in {}", source_versions_path.display());
 
@@ -295,5 +323,32 @@ fn is_stub(path: &Path) -> bool {
             trimmed == "{}" || trimmed == "[]"
         }
         Err(_) => true,
+    }
+}
+
+#[cfg(all(test, feature = "maintenance"))]
+mod source_version_writer_tests {
+    use crate::source_versions::{AWS_CLI_SOURCE, CFN_LINT_SOURCE, RESOURCE_SCHEMA_SOURCE, SourceVersions};
+
+    const SYNC_ONLY_MANIFEST: &str = r#"{
+        "cfn_lint_version":"https://github.com/aws-cloudformation/cfn-lint@1.54.0",
+        "resource_schema_version":"https://github.com/aws-cloudformation/resource-provider-enhanced-schemas@2026-08-07T18:20:13Z"
+    }"#;
+
+    #[test]
+    fn catalog_generator_records_the_aws_cli_entry_and_keeps_sync_entries() {
+        let recorded = SourceVersions::from_json(SYNC_ONLY_MANIFEST)
+            .expect("manifest should parse")
+            .with_aws_cli_version(format!("{AWS_CLI_SOURCE}@2.36.43"))
+            .expect("catalog update should be valid");
+        assert_eq!(recorded.aws_cli_version.as_deref(), Some("https://github.com/aws/aws-cli@2.36.43"));
+        assert_eq!(recorded.cfn_lint_version, format!("{CFN_LINT_SOURCE}@1.54.0"));
+        assert_eq!(recorded.resource_schema_version, format!("{RESOURCE_SCHEMA_SOURCE}@2026-08-07T18:20:13Z"));
+
+        let error = SourceVersions::from_json(SYNC_ONLY_MANIFEST)
+            .expect("manifest should parse")
+            .with_aws_cli_version("2.36.43".to_string())
+            .expect_err("unqualified version must fail");
+        assert!(error.contains(AWS_CLI_SOURCE));
     }
 }

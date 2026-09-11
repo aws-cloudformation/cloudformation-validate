@@ -23,7 +23,10 @@ pub use template_model::model::{
 };
 pub use template_model::resolver::{MapEntry, ParameterInfo, RefKind, ResolvedValue};
 pub use template_model::{JsonValue, PseudoParameterOverrides, SourceSpan};
-pub use validation_engine::{CompositeEngineConfig, EngineConfig, EngineType, ExternalRuleSource};
+pub use validation_engine::{
+    AwsCliCommand, AwsCliCommandValidation, AwsCliCommandValidationStatus, AwsCliOperationKind, AwsCliTemplateSource,
+    AwsCliValue, CompositeEngineConfig, EngineConfig, EngineType, ExternalRuleSource,
+};
 
 pub use schema_validator::SchemaValidatorConfig;
 
@@ -173,6 +176,21 @@ macro_rules! impl_py_engine {
                         )
                         .map_err(|e| ValidationError::Engine { msg: e.to_string() })?;
                         Ok(report.to_report(detail_level))
+                    },
+                    panic_to_error,
+                )
+            }
+
+            pub fn validate_aws_cli_command(
+                &self,
+                request: AwsCliCommand,
+            ) -> Result<AwsCliCommandValidation, ValidationError> {
+                validation_engine::catch_panics(
+                    || {
+                        let validation =
+                            validation_engine::validate_aws_cli_command(&self.engine, &self.schema_validator, &request)
+                                .map_err(|e| ValidationError::Engine { msg: e.to_string() })?;
+                        Ok(validation)
                     },
                     panic_to_error,
                 )

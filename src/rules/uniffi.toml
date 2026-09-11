@@ -1,3 +1,4 @@
 [bindings.kotlin]
 package_name = "software.amazon.cloudformation.validate.rules"
 generate_immutable_records = true
+disable_java_cleaner = true
