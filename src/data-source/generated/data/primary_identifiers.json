@@ -288,6 +288,9 @@
     "AWS::Config::ConformancePack": [
       "ConformancePackName"
     ],
+    "AWS::Config::DeliveryChannel": [
+      "Name"
+    ],
     "AWS::Config::OrganizationConformancePack": [
       "OrganizationConformancePackName"
     ],
@@ -1617,6 +1620,10 @@
     "AWS::ServiceCatalog::TagOptionAssociation": [
       "TagOptionId",
       "ResourceId"
+    ],
+    "AWS::ServiceDiscovery::Instance": [
+      "ServiceId",
+      "InstanceId"
     ],
     "AWS::Signer::ProfilePermission": [
       "StatementId",

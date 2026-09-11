@@ -63706,6 +63706,7 @@
       "EndpointUrl"
     ],
     "create_only_properties": [
+      "AuthorizationBehavior",
       "CertificateTags"
     ],
     "primary_identifier": [
@@ -65044,6 +65045,122 @@
       "Arn"
     ],
     "description": "Resource Type definition for an Amazon Chime SDK Media Pipeline Kinesis Video Stream Pool"
+  },
+  "AWS::Chime::VoiceConnector": {
+    "type_name": "AWS::Chime::VoiceConnector",
+    "properties": {
+      "AwsRegion": {
+        "type": "string",
+        "enum": [
+          "us-east-1",
+          "us-west-2",
+          "ca-central-1",
+          "eu-central-1",
+          "eu-west-1",
+          "eu-west-2",
+          "ap-northeast-2",
+          "ap-northeast-1",
+          "ap-southeast-1",
+          "ap-southeast-2"
+        ],
+        "description": "The AWS Region in which the Voice Connector is created."
+      },
+      "CreatedTimestamp": {
+        "type": "string",
+        "format": "date-time",
+        "description": "The Voice Connector creation timestamp, in ISO 8601 format."
+      },
+      "Name": {
+        "type": "string",
+        "pattern": "^[a-zA-Z0-9 _.-]+$",
+        "min_length": 1,
+        "max_length": 256,
+        "description": "The name of the Voice Connector."
+      },
+      "NetworkType": {
+        "type": "string",
+        "enum": [
+          "IPV4_ONLY",
+          "DUAL_STACK"
+        ],
+        "description": "The type of network for the Voice Connector."
+      },
+      "OutboundHostName": {
+        "type": "string",
+        "description": "The outbound host name for the Voice Connector."
+      },
+      "RequireEncryption": {
+        "type": "boolean",
+        "description": "Enables or disables encryption for the Voice Connector."
+      },
+      "Tags": {
+        "type": "array",
+        "min_items": 1,
+        "max_items": 50,
+        "unique_items": true,
+        "description": "The tags assigned to the Voice Connector.",
+        "items": {
+          "ref_name": "Tag"
+        }
+      },
+      "UpdatedTimestamp": {
+        "type": "string",
+        "format": "date-time",
+        "description": "The Voice Connector updated timestamp, in ISO 8601 format."
+      },
+      "VoiceConnectorArn": {
+        "type": "string",
+        "description": "The ARN of the Voice Connector."
+      },
+      "VoiceConnectorId": {
+        "type": "string",
+        "description": "The Voice Connector ID."
+      }
+    },
+    "definitions": {
+      "Tag": {
+        "type": "object",
+        "properties": {
+          "Key": {
+            "type": "string",
+            "min_length": 1,
+            "max_length": 128,
+            "description": "The tag key."
+          },
+          "Value": {
+            "type": "string",
+            "min_length": 0,
+            "max_length": 256,
+            "description": "The tag value."
+          }
+        },
+        "required": [
+          "Key",
+          "Value"
+        ],
+        "additional_properties": false
+      }
+    },
+    "required": [
+      "Name",
+      "RequireEncryption"
+    ],
+    "additional_properties": false,
+    "read_only_properties": [
+      "VoiceConnectorArn",
+      "VoiceConnectorId",
+      "OutboundHostName",
+      "CreatedTimestamp",
+      "UpdatedTimestamp"
+    ],
+    "create_only_properties": [
+      "AwsRegion",
+      "NetworkType"
+    ],
+    "primary_identifier": [
+      "VoiceConnectorArn"
+    ],
+    "description": "An Amazon Chime SDK Voice Connector configuration, including outbound host name and encryption settings."
   },
   "AWS::CleanRooms::AnalysisTemplate": {
     "type_name": "AWS::CleanRooms::AnalysisTemplate",
@@ -79753,25 +79870,20 @@
       "ExportConfig": {
         "ref_name": "ReportExportConfig"
       },
+      "Id": {
+        "type": "string"
+      },
       "Name": {
-        "type": "string",
-        "min_length": 2,
-        "max_length": 128
+        "type": "string"
       },
       "Tags": {
         "type": "array",
-        "min_items": 0,
-        "max_items": 50,
         "items": {
           "ref_name": "Tag"
         }
       },
       "Type": {
-        "type": "string",
-        "enum": [
-          "TEST",
-          "CODE_COVERAGE"
-        ]
+        "type": "string"
       }
     },
     "definitions": {
@@ -79779,11 +79891,7 @@
         "type": "object",
         "properties": {
           "ExportConfigType": {
-            "type": "string",
-            "enum": [
-              "S3",
-              "NO_EXPORT"
-            ]
+            "type": "string"
           },
           "S3Destination": {
             "ref_name": "S3ReportExportConfig"
@@ -79798,8 +79906,7 @@
         "type": "object",
         "properties": {
           "Bucket": {
-            "type": "string",
-            "min_length": 1
+            "type": "string"
           },
           "BucketOwner": {
             "type": "string"
@@ -79808,15 +79915,10 @@
             "type": "boolean"
           },
           "EncryptionKey": {
-            "type": "string",
-            "min_length": 1
+            "type": "string"
           },
           "Packaging": {
-            "type": "string",
-            "enum": [
-              "NONE",
-              "ZIP"
-            ]
+            "type": "string"
           },
           "Path": {
             "type": "string"
@@ -79831,16 +79933,10 @@
         "type": "object",
         "properties": {
           "Key": {
-            "type": "string",
-            "pattern": "^([\\p{L}\\p{Z}\\p{N}_.:/=@+\\-]*)$",
-            "min_length": 1,
-            "max_length": 127
+            "type": "string"
           },
           "Value": {
-            "type": "string",
-            "pattern": "^([\\p{L}\\p{Z}\\p{N}_.:/=@+\\-]*)$",
-            "min_length": 0,
-            "max_length": 255
+            "type": "string"
           }
         },
         "required": [
@@ -79856,17 +79952,15 @@
     ],
     "additional_properties": false,
     "read_only_properties": [
+      "Id",
       "Arn"
-    ],
-    "write_only_properties": [
-      "DeleteReports"
     ],
     "create_only_properties": [
       "Name",
       "Type"
     ],
     "primary_identifier": [
-      "Arn"
+      "Id"
     ],
     "description": "Resource Type definition for AWS::CodeBuild::ReportGroup"
   },
@@ -87541,25 +87635,27 @@
       "ConfigSnapshotDeliveryProperties": {
         "ref_name": "ConfigSnapshotDeliveryProperties"
       },
-      "Id": {
-        "type": "string"
-      },
       "Name": {
-        "type": "string"
+        "type": "string",
+        "description": "The name of the delivery channel. By default, AWS Config assigns the name \"default\" when creating the delivery channel. To change the delivery channel name, you must use the DeleteDeliveryChannel action to delete your current delivery channel, and then you must use the PutDeliveryChannel command to create a delivery channel that has the desired name."
       },
       "S3BucketName": {
         "type": "string",
-        "format": "AWS::S3::Bucket.Name"
+        "format": "AWS::S3::Bucket.Name",
+        "description": "The name of the Amazon S3 bucket to which AWS Config delivers configuration snapshots and configuration history files."
       },
       "S3KeyPrefix": {
-        "type": "string"
+        "type": "string",
+        "description": "The prefix for the specified Amazon S3 bucket."
       },
       "S3KmsKeyArn": {
-        "type": "string"
+        "type": "string",
+        "description": "The Amazon Resource Name (ARN) of the AWS Key Management Service (AWS KMS ) AWS KMS key (KMS key) used to encrypt objects delivered by AWS Config. Must belong to the same Region as the destination S3 bucket."
       },
       "SnsTopicARN": {
         "type": "string",
-        "format": "AWS::SNS::Topic.Arn"
+        "format": "AWS::SNS::Topic.Arn",
+        "description": "The Amazon Resource Name (ARN) of the Amazon SNS topic to which AWS Config sends notifications about configuration changes."
       }
     },
     "definitions": {
@@ -87567,7 +87663,15 @@
         "type": "object",
         "properties": {
           "DeliveryFrequency": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "One_Hour",
+              "Three_Hours",
+              "Six_Hours",
+              "Twelve_Hours",
+              "TwentyFour_Hours"
+            ],
+            "description": "The frequency with which AWS Config delivers configuration snapshots."
           }
         },
         "additional_properties": false
@@ -87577,16 +87681,14 @@
       "S3BucketName"
     ],
     "additional_properties": false,
-    "read_only_properties": [
-      "Id"
-    ],
+    "read_only_properties": [],
     "create_only_properties": [
       "Name"
     ],
     "primary_identifier": [
-      "Id"
+      "Name"
     ],
-    "description": "Resource Type definition for AWS::Config::DeliveryChannel"
+    "description": "Resource type definition for AWS::Config::DeliveryChannel"
   },
   "AWS::Config::OrganizationConfigRule": {
     "type_name": "AWS::Config::OrganizationConfigRule",
@@ -91532,7 +91634,11 @@
       }
     },
     "required": [
-      "InstanceArn"
+      "InstanceArn",
+      "Name",
+      "MetricCalculation",
+      "Unit",
+      "Status"
     ],
     "additional_properties": false,
     "read_only_properties": [
@@ -100226,50 +100332,71 @@
     "type_name": "AWS::DLM::LifecyclePolicy",
     "properties": {
       "Arn": {
-        "type": "string"
+        "type": "string",
+        "pattern": "^arn:.*",
+        "description": "The Amazon Resource Name (ARN) of the lifecycle policy."
       },
       "CopyTags": {
-        "type": "boolean"
+        "type": "boolean",
+        "description": "**[Default policies only]** Indicates whether the policy should copy tags from the source resource to the snapshot or AMI. If you do not specify a value, the default is false."
       },
       "CreateInterval": {
-        "type": "integer"
+        "type": "integer",
+        "minimum": 1.0,
+        "description": "**[Default policies only]** Specifies how often the policy should run and create snapshots or AMIs. The creation frequency can range from 1 to 7 days."
       },
       "CrossRegionCopyTargets": {
-        "type": "array",
-        "items": {
-          "ref_name": "CrossRegionCopyTarget"
-        }
+        "ref_name": "CrossRegionCopyTargets"
       },
       "DefaultPolicy": {
-        "type": "string"
+        "type": "string",
+        "enum": [
+          "INSTANCE",
+          "VOLUME"
+        ],
+        "description": "**[Default policies only]** Specify the type of default policy to create."
       },
       "Description": {
-        "type": "string"
+        "type": "string",
+        "pattern": "^[0-9A-Za-z _-]+$",
+        "min_length": 0,
+        "max_length": 500,
+        "description": "A description of the lifecycle policy. The characters ^[0-9A-Za-z _-]+$ are supported."
       },
       "Exclusions": {
         "ref_name": "Exclusions"
       },
       "ExecutionRoleArn": {
         "type": "string",
-        "format": "AWS::IAM::Role.Arn"
+        "pattern": "^arn:aws(-[a-z]{1,3}){0,2}:iam::\\d+:role/",
+        "min_length": 0,
+        "max_length": 2048,
+        "format": "AWS::IAM::Role.Arn",
+        "description": "The Amazon Resource Name (ARN) of the IAM role used to run the operations specified by the lifecycle policy."
       },
       "ExtendDeletion": {
-        "type": "boolean"
-      },
-      "Id": {
-        "type": "string"
+        "type": "boolean",
+        "description": "**[Default policies only]** Defines the snapshot or AMI retention behavior for the policy if the source volume or instance is deleted, or if the policy enters the error, disabled, or deleted state."
       },
       "PolicyDetails": {
         "ref_name": "PolicyDetails"
       },
+      "PolicyId": {
+        "type": "string",
+        "description": "The identifier of the lifecycle policy."
+      },
       "RetainInterval": {
-        "type": "integer"
+        "type": "integer",
+        "minimum": 1.0,
+        "description": "**[Default policies only]** Specifies how long the policy should retain snapshots or AMIs before deleting them. The retention period can range from 2 to 14 days, but it must be greater than the creation frequency to ensure that the policy retains at least 1 snapshot or AMI at any given time."
       },
       "State": {
-        "type": "string"
+        "type": "string",
+        "description": "The activation state of the lifecycle policy."
       },
       "Tags": {
         "type": "array",
+        "description": "The tags to apply to the lifecycle policy during creation.",
         "items": {
           "ref_name": "Tag"
         }
@@ -100281,12 +100408,19 @@
         "properties": {
           "CrossRegionCopy": {
             "type": "array",
+            "min_items": 0,
+            "max_items": 3,
+            "description": "The rule for copying shared snapshots across Regions.",
             "items": {
               "ref_name": "CrossRegionCopyAction"
             }
           },
           "Name": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^[0-9A-Za-z _-]+$",
+            "min_length": 0,
+            "max_length": 120,
+            "description": "A descriptive name for the action."
           }
         },
         "required": [
@@ -100297,6 +100431,7 @@
       },
       "ArchiveRetainRule": {
         "type": "object",
+        "description": "Information about the retention period for the snapshot archiving rule.",
         "properties": {
           "RetentionArchiveTier": {
             "ref_name": "RetentionArchiveTier"
@@ -100309,6 +100444,7 @@
       },
       "ArchiveRule": {
         "type": "object",
+        "description": "**[Custom snapshot policies that target volumes only]** The snapshot archiving rule for the schedule. When you specify an archiving rule, snapshots are automatically moved from the standard tier to the archive tier once the schedule's retention threshold is met. Snapshots are then retained in the archive tier for the archive retention period that you specify.",
         "properties": {
           "RetainRule": {
             "ref_name": "ArchiveRetainRule"
@@ -100321,29 +100457,55 @@
       },
       "CreateRule": {
         "type": "object",
+        "description": "The creation rule.",
         "properties": {
           "CronExpression": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^cron\\([^\\n]{11,100}\\)$",
+            "min_length": 17,
+            "max_length": 106,
+            "description": "The schedule, as a Cron expression. The schedule interval must be between 1 hour and 1 year."
           },
           "Interval": {
-            "type": "integer"
+            "type": "integer",
+            "minimum": 1.0,
+            "description": "The interval between snapshots. The supported values are 1, 2, 3, 4, 6, 8, 12, and 24."
           },
           "IntervalUnit": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "HOURS"
+            ],
+            "description": "The interval unit."
           },
           "Location": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "CLOUD",
+              "LOCAL_ZONE",
+              "OUTPOST_LOCAL"
+            ],
+            "description": "**[Custom snapshot policies only]** Specifies the destination for snapshots created by the policy. The allowed destinations depend on the location of the targeted resources.\n\n- If the policy targets resources in a Region, then you must create snapshots in the same Region as the source resource.\n- If the policy targets resources in a Local Zone, you can create snapshots in the same Local Zone or in its parent Region.\n- If the policy targets resources on an Outpost, then you can create snapshots on the same Outpost or in its parent Region.\n\nDefault: `CLOUD`"
           },
           "Scripts": {
             "type": "array",
+            "min_items": 0,
+            "max_items": 1,
+            "description": "**[Custom snapshot policies that target instances only]** Specifies pre and/or post scripts for a snapshot lifecycle policy that targets instances. This is useful for creating application-consistent snapshots, or for performing specific administrative tasks before or after Amazon Data Lifecycle Manager initiates snapshot creation.",
             "items": {
               "ref_name": "Script"
             }
           },
           "Times": {
             "type": "array",
+            "min_items": 0,
+            "max_items": 1,
+            "description": "The time, in UTC, to start the operation. The supported format is hh:mm.\n\nThe operation occurs within a one-hour window following the specified time. If you do not specify a time, Amazon Data Lifecycle Manager selects a time within the next 24 hours.",
             "items": {
-              "type": "string"
+              "type": "string",
+              "pattern": "^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$",
+              "min_length": 5,
+              "max_length": 5
             }
           }
         },
@@ -100359,7 +100521,11 @@
             "ref_name": "CrossRegionCopyRetainRule"
           },
           "Target": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^[\\w:\\-\\/\\*]+$",
+            "min_length": 0,
+            "max_length": 2048,
+            "description": "The target Region."
           }
         },
         "required": [
@@ -100370,12 +100536,22 @@
       },
       "CrossRegionCopyDeprecateRule": {
         "type": "object",
+        "description": "**[Custom AMI policies only]** The AMI deprecation rule for cross-Region AMI copies created by the rule.",
         "properties": {
           "Interval": {
-            "type": "integer"
+            "type": "integer",
+            "minimum": 1.0,
+            "description": "The period after which to deprecate the cross-Region AMI copies. The period must be less than or equal to the cross-Region AMI copy retention period, and it can't be greater than 10 years. This is equivalent to 120 months, 520 weeks, or 3650 days."
           },
           "IntervalUnit": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "DAYS",
+              "MONTHS",
+              "WEEKS",
+              "YEARS"
+            ],
+            "description": "The unit of time in which to measure the **Interval**. For example, to deprecate a cross-Region AMI copy after 3 months, specify `Interval=3` and `IntervalUnit=MONTHS`."
           }
         },
         "required": [
@@ -100386,12 +100562,22 @@
       },
       "CrossRegionCopyRetainRule": {
         "type": "object",
+        "description": "The retention rule that indicates how long the cross-Region snapshot or AMI copies are to be retained in the destination Region.",
         "properties": {
           "Interval": {
-            "type": "integer"
+            "type": "integer",
+            "minimum": 1.0,
+            "description": "The amount of time to retain a cross-Region snapshot or AMI copy. The maximum is 100 years. This is equivalent to 1200 months, 5200 weeks, or 36500 days."
           },
           "IntervalUnit": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "DAYS",
+              "MONTHS",
+              "WEEKS",
+              "YEARS"
+            ],
+            "description": "The unit of time for time-based retention. For example, to retain a cross-Region copy for 3 months, specify `Interval=3` and `IntervalUnit=MONTHS`."
           }
         },
         "required": [
@@ -100404,25 +100590,39 @@
         "type": "object",
         "properties": {
           "CmkArn": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^arn:aws(-[a-z]{1,3}){0,2}:kms:([a-z]+-){2,3}\\d:\\d+:key/",
+            "min_length": 0,
+            "max_length": 2048,
+            "description": "The Amazon Resource Name (ARN) of the AWS KMS key to use for EBS encryption. If this parameter is not specified, the default KMS key for the account is used."
           },
           "CopyTags": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Indicates whether to copy all user-defined tags from the source snapshot or AMI to the cross-Region copy."
           },
           "DeprecateRule": {
             "ref_name": "CrossRegionCopyDeprecateRule"
           },
           "Encrypted": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "To encrypt a copy of an unencrypted snapshot if encryption by default is not enabled, enable encryption using this parameter. Copies of encrypted snapshots are encrypted, even if this parameter is `false` or if encryption by default is not enabled."
           },
           "RetainRule": {
             "ref_name": "CrossRegionCopyRetainRule"
           },
           "Target": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^[\\w:\\-\\/\\*]+$",
+            "min_length": 0,
+            "max_length": 2048,
+            "description": "**[Custom snapshot policies only]** The target Region or the Amazon Resource Name (ARN) of the target Outpost for the snapshot copies."
           },
           "TargetRegion": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^([a-z]+-){2,3}\\d$",
+            "min_length": 0,
+            "max_length": 16,
+            "description": "**[Custom AMI policies only]** The target Region or the Amazon Resource Name (ARN) of the target Outpost for the AMI copies."
           }
         },
         "required": [
@@ -100434,34 +100634,66 @@
         "type": "object",
         "properties": {
           "TargetRegion": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^([a-z]+-){2,3}\\d$",
+            "min_length": 0,
+            "max_length": 16,
+            "description": "The target Region, for example `us-east-1`."
           }
         },
         "additional_properties": false
       },
+      "CrossRegionCopyTargets": {
+        "type": "array",
+        "min_items": 0,
+        "max_items": 3,
+        "description": "**[Default policies only]** Specifies destination Regions for snapshot or AMI copies. You can specify up to 3 destination Regions. If you do not want to create cross-Region copies, omit this parameter.",
+        "items": {
+          "ref_name": "CrossRegionCopyTarget"
+        }
+      },
       "DeprecateRule": {
         "type": "object",
+        "description": "**[Custom AMI policies only]** The AMI deprecation rule for the schedule.",
         "properties": {
           "Count": {
-            "type": "integer"
+            "type": "integer",
+            "minimum": 1.0,
+            "maximum": 1000.0,
+            "description": "If the schedule has a count-based retention rule, this parameter specifies the number of oldest AMIs to deprecate. The count must be less than or equal to the schedule's retention count, and it can't be greater than 1000."
           },
           "Interval": {
-            "type": "integer"
+            "type": "integer",
+            "minimum": 1.0,
+            "description": "If the schedule has an age-based retention rule, this parameter specifies the period after which to deprecate AMIs created by the schedule. The period must be less than or equal to the schedule's retention period, and it can't be greater than 10 years. This is equivalent to 120 months, 520 weeks, or 3650 days."
           },
           "IntervalUnit": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "DAYS",
+              "MONTHS",
+              "WEEKS",
+              "YEARS"
+            ],
+            "description": "The unit of time in which to measure the **Interval**."
           }
         },
         "additional_properties": false
       },
       "EncryptionConfiguration": {
         "type": "object",
+        "description": "The encryption settings for the copied snapshot.",
         "properties": {
           "CmkArn": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^arn:aws(-[a-z]{1,3}){0,2}:kms:([a-z]+-){2,3}\\d:\\d+:key/",
+            "min_length": 0,
+            "max_length": 2048,
+            "description": "The Amazon Resource Name (ARN) of the AWS KMS key to use for EBS encryption. If this parameter is not specified, the default KMS key for the account is used."
           },
           "Encrypted": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "To encrypt a copy of an unencrypted snapshot when encryption by default is not enabled, enable encryption using this parameter. Copies of encrypted snapshots are encrypted, even if this parameter is `false` or when encryption by default is not enabled."
           }
         },
         "required": [
@@ -100471,17 +100703,31 @@
       },
       "EventParameters": {
         "type": "object",
+        "description": "Information about the event.",
         "properties": {
           "DescriptionRegex": {
-            "type": "string"
+            "type": "string",
+            "min_length": 0,
+            "max_length": 1000,
+            "description": "The snapshot description that can trigger the policy. The description pattern is specified using a regular expression. The policy runs only if a snapshot with a description that matches the specified pattern is shared with your account."
           },
           "EventType": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "shareSnapshot"
+            ],
+            "description": "The type of event. Currently, only snapshot sharing events are supported."
           },
           "SnapshotOwner": {
             "type": "array",
+            "min_items": 0,
+            "max_items": 50,
+            "description": "The IDs of the AWS accounts that can trigger policy by sharing snapshots with your account. The policy only runs if one of the specified AWS accounts shares a snapshot with your account.",
             "items": {
-              "type": "string"
+              "type": "string",
+              "pattern": "^[0-9]{12}$",
+              "min_length": 12,
+              "max_length": 12
             }
           }
         },
@@ -100493,12 +100739,17 @@
       },
       "EventSource": {
         "type": "object",
+        "description": "**[Event-based policies only]** The event that activates the event-based policy.",
         "properties": {
           "Parameters": {
             "ref_name": "EventParameters"
           },
           "Type": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "MANAGED_CWE"
+            ],
+            "description": "The source of the event. Currently only managed Amazon EventBridge events are supported."
           }
         },
         "required": [
@@ -100506,92 +100757,138 @@
         ],
         "additional_properties": false
       },
+      "ExcludeVolumeTypesList": {
+        "type": "array",
+        "min_items": 0,
+        "max_items": 6,
+        "description": "**[Default policies for EBS snapshots only]** Specifies the volume types to exclude. Volumes of the specified types will not be targeted by the policy.",
+        "items": {
+          "type": "string"
+        }
+      },
       "Exclusions": {
         "type": "object",
+        "description": "**[Default policies only]** Specifies exclusion parameters for volumes or instances for which you do not want to create snapshots or AMIs. The policy will not create snapshots or AMIs for target resources that match any of the specified exclusion parameters.",
         "properties": {
           "ExcludeBootVolumes": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "**[Default policies for EBS snapshots only]** Indicates whether to exclude volumes that are attached to instances as the boot volume. If you exclude boot volumes, only volumes attached as data (non-boot) volumes will be backed up by the policy. To exclude boot volumes, specify `true`."
           },
           "ExcludeTags": {
             "type": "array",
+            "min_items": 0,
+            "max_items": 50,
+            "description": "**[Default policies for EBS-backed AMIs only]** Specifies whether to exclude volumes that have specific tags.",
             "items": {
               "ref_name": "Tag"
             }
           },
           "ExcludeVolumeTypes": {
-            "type": "array",
-            "items": {
-              "ref_name": "VolumeTypeValues"
-            }
+            "ref_name": "ExcludeVolumeTypesList"
           }
         },
         "additional_properties": false
       },
       "FastRestoreRule": {
         "type": "object",
+        "description": "**[Custom snapshot policies only]** The rule for enabling fast snapshot restore.",
         "properties": {
           "AvailabilityZoneIds": {
             "type": "array",
+            "min_items": 1,
+            "max_items": 10,
+            "description": "The Availability Zone IDs in which to enable fast snapshot restore.",
             "items": {
-              "type": "string"
+              "type": "string",
+              "pattern": "^[a-z]{3,4}\\d-az\\d+$",
+              "min_length": 0,
+              "max_length": 16
             }
           },
           "AvailabilityZones": {
             "type": "array",
+            "min_items": 1,
+            "max_items": 10,
+            "description": "The Availability Zones in which to enable fast snapshot restore.",
             "items": {
-              "type": "string"
+              "type": "string",
+              "pattern": "^([a-z]+-){2,3}\\d[a-z]$",
+              "min_length": 0,
+              "max_length": 16
             }
           },
           "Count": {
-            "type": "integer"
+            "type": "integer",
+            "minimum": 1.0,
+            "maximum": 1000.0,
+            "description": "The number of snapshots to be enabled with fast snapshot restore."
           },
           "Interval": {
-            "type": "integer"
+            "type": "integer",
+            "minimum": 1.0,
+            "description": "The amount of time to enable fast snapshot restore. The maximum is 100 years. This is equivalent to 1200 months, 5200 weeks, or 36500 days."
           },
           "IntervalUnit": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "DAYS",
+              "MONTHS",
+              "WEEKS",
+              "YEARS"
+            ],
+            "description": "The unit of time for enabling fast snapshot restore."
           }
         },
         "additional_properties": false
       },
       "Parameters": {
         "type": "object",
+        "description": "**[Custom snapshot and AMI policies only]** A set of optional parameters for snapshot and AMI lifecycle policies.",
         "properties": {
           "ExcludeBootVolume": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "**[Custom snapshot policies that target instances only]** Indicates whether to exclude the root volume from multi-volume snapshot sets. The default is `false`. If you specify `true`, then the root volumes attached to targeted instances will be excluded from the multi-volume snapshot sets created by the policy."
           },
           "ExcludeDataVolumeTags": {
             "type": "array",
+            "min_items": 0,
+            "max_items": 50,
+            "description": "**[Custom snapshot policies that target instances only]** The tags used to identify data (non-root) volumes to exclude from multi-volume snapshot sets. If you create a snapshot lifecycle policy that targets instances and you specify tags for this parameter, then data volumes with the specified tags that are attached to targeted instances will be excluded from the multi-volume snapshot sets created by the policy.",
             "items": {
               "ref_name": "Tag"
             }
           },
           "NoReboot": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "**[Custom AMI policies only]** Indicates whether targeted instances are rebooted when the lifecycle policy runs. `true` indicates that targeted instances are not rebooted when the policy runs. `false` indicates that target instances are rebooted when the policy runs.\n\nThe default is `true` (instances are not rebooted)."
           }
         },
         "additional_properties": false
       },
       "PolicyDetails": {
         "type": "object",
+        "description": "The configuration details of the lifecycle policy.",
         "properties": {
           "Actions": {
             "type": "array",
+            "min_items": 1,
+            "max_items": 1,
+            "description": "**[Event-based policies only]** The actions to be performed when the event-based policy is activated. You can specify only one action per policy.",
             "items": {
               "ref_name": "Action"
             }
           },
           "CopyTags": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "**[Default policies only]** Indicates whether the policy should copy tags from the source resource to the snapshot or AMI. If you do not specify a value, the default is `false`.\n\nDefault: `false`"
           },
           "CreateInterval": {
-            "type": "integer"
+            "type": "integer",
+            "minimum": 1.0,
+            "description": "**[Default policies only]** Specifies how often the policy should run and create snapshots or AMIs. The creation frequency can range from 1 to 7 days. If you do not specify a value, the default is 1.\n\nDefault: 1"
           },
           "CrossRegionCopyTargets": {
-            "type": "array",
-            "items": {
-              "ref_name": "CrossRegionCopyTarget"
-            }
+            "ref_name": "CrossRegionCopyTargets"
           },
           "EventSource": {
             "ref_name": "EventSource"
@@ -100600,43 +100897,83 @@
             "ref_name": "Exclusions"
           },
           "ExtendDeletion": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "**[Default policies only]** Defines the snapshot or AMI retention behavior for the policy if the source volume or instance is deleted, or if the policy enters the error, disabled, or deleted state.\n\nDefault: `false`"
           },
           "Parameters": {
             "ref_name": "Parameters"
           },
           "PolicyLanguage": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "SIMPLIFIED",
+              "STANDARD"
+            ],
+            "description": "The type of policy to create. Specify one of the following:\n\n- `SIMPLIFIED` -- To create a default policy.\n- `STANDARD` -- To create a custom policy."
           },
           "PolicyType": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "EBS_SNAPSHOT_MANAGEMENT",
+              "EVENT_BASED_POLICY",
+              "IMAGE_MANAGEMENT"
+            ],
+            "description": "The type of policy. Specify `EBS_SNAPSHOT_MANAGEMENT` to create a lifecycle policy that manages the lifecycle of Amazon EBS snapshots. Specify `IMAGE_MANAGEMENT` to create a lifecycle policy that manages the lifecycle of EBS-backed AMIs. Specify `EVENT_BASED_POLICY` to create an event-based policy that performs specific actions when a defined event occurs in your AWS account.\n\nThe default is `EBS_SNAPSHOT_MANAGEMENT`."
           },
           "ResourceLocations": {
             "type": "array",
+            "min_items": 1,
+            "max_items": 1,
+            "description": "**[Custom snapshot and AMI policies only]** The location of the resources to backup. If the source resources are located in a Region, specify `CLOUD`.",
             "items": {
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "CLOUD",
+                "LOCAL_ZONE",
+                "OUTPOST"
+              ]
             }
           },
           "ResourceType": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "INSTANCE",
+              "VOLUME"
+            ],
+            "description": "**[Default policies only]** Specify the type of default policy to create.\n\n- To create a default policy for EBS snapshots, that creates snapshots of all volumes in the Region that do not have recent backups, specify `VOLUME`.\n- To create a default policy for EBS-backed AMIs, that creates EBS-backed AMIs from all instances in the Region that do not have recent backups, specify `INSTANCE`."
           },
           "ResourceTypes": {
             "type": "array",
+            "min_items": 1,
+            "max_items": 1,
+            "description": "**[Custom snapshot policies only]** The target resource type for snapshot and AMI lifecycle policies. Use `VOLUME` to create snapshots of individual volumes or use `INSTANCE` to create multi-volume snapshots from the volumes for an instance.",
             "items": {
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "INSTANCE",
+                "VOLUME"
+              ]
             }
           },
           "RetainInterval": {
-            "type": "integer"
+            "type": "integer",
+            "minimum": 1.0,
+            "description": "**[Default policies only]** Specifies how long the policy should retain snapshots or AMIs before deleting them. The retention period can range from 2 to 14 days, but it must be greater than the creation frequency to ensure that the policy retains at least 1 snapshot or AMI at any given time. If you do not specify a value, the default is 7.\n\nDefault: 7"
           },
           "Schedules": {
             "type": "array",
+            "min_items": 1,
+            "max_items": 4,
+            "description": "**[Custom snapshot and AMI policies only]** The schedules of policy-defined actions for snapshot and AMI lifecycle policies. A policy can have up to four schedules -- one mandatory schedule and up to three optional schedules.",
             "items": {
               "ref_name": "Schedule"
             }
           },
           "TargetTags": {
             "type": "array",
+            "min_items": 1,
+            "max_items": 50,
+            "description": "**[Custom snapshot and AMI policies only]** The single tag that identifies targeted resources for this policy.",
             "items": {
               "ref_name": "Tag"
             }
@@ -100646,30 +100983,56 @@
       },
       "RetainRule": {
         "type": "object",
+        "description": "The retention rule for snapshots or AMIs created by the policy.",
         "properties": {
           "Count": {
-            "type": "integer"
+            "type": "integer",
+            "minimum": 0.0,
+            "maximum": 1000.0,
+            "description": "The number of snapshots to retain for each volume, up to a maximum of 1000. For example if you want to retain a maximum of three snapshots, specify `3`. When the fourth snapshot is created, the oldest retained snapshot is deleted, or it is moved to the archive tier if you have specified an `ArchiveRule`."
           },
           "Interval": {
-            "type": "integer"
+            "type": "integer",
+            "minimum": 0.0,
+            "description": "The amount of time to retain each snapshot. The maximum is 100 years. This is equivalent to 1200 months, 5200 weeks, or 36500 days."
           },
           "IntervalUnit": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "DAYS",
+              "MONTHS",
+              "WEEKS",
+              "YEARS"
+            ],
+            "description": "The unit of time for time-based retention. For example, to retain snapshots for 3 months, specify `Interval=3` and `IntervalUnit=MONTHS`. Once the snapshot has been retained for 3 months, it is deleted, or it is moved to the archive tier if you have specified an `ArchiveRule`."
           }
         },
         "additional_properties": false
       },
       "RetentionArchiveTier": {
         "type": "object",
+        "description": "Information about retention period in the Amazon EBS Snapshots Archive.",
         "properties": {
           "Count": {
-            "type": "integer"
+            "type": "integer",
+            "minimum": 1.0,
+            "maximum": 1000.0,
+            "description": "The maximum number of snapshots to retain in the archive storage tier for each volume. The count must ensure that each snapshot remains in the archive tier for at least 90 days."
           },
           "Interval": {
-            "type": "integer"
+            "type": "integer",
+            "minimum": 1.0,
+            "description": "Specifies the period of time to retain snapshots in the archive tier. After this period expires, the snapshot is permanently deleted."
           },
           "IntervalUnit": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "DAYS",
+              "MONTHS",
+              "WEEKS",
+              "YEARS"
+            ],
+            "description": "The unit of time in which to measure the **Interval**. For example, to retain snapshots in the archive tier for 6 months, specify `Interval=6` and `IntervalUnit=MONTHS`."
           }
         },
         "additional_properties": false
@@ -100681,13 +101044,17 @@
             "ref_name": "ArchiveRule"
           },
           "CopyTags": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Copy all user-defined tags on a source volume to snapshots of the volume created by this policy."
           },
           "CreateRule": {
             "ref_name": "CreateRule"
           },
           "CrossRegionCopyRules": {
             "type": "array",
+            "min_items": 0,
+            "max_items": 3,
+            "description": "Specifies a rule for copying snapshots or AMIs across Regions.",
             "items": {
               "ref_name": "CrossRegionCopyRule"
             }
@@ -100699,25 +101066,38 @@
             "ref_name": "FastRestoreRule"
           },
           "Name": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^[0-9A-Za-z _-]+$",
+            "min_length": 0,
+            "max_length": 120,
+            "description": "The name of the schedule."
           },
           "RetainRule": {
             "ref_name": "RetainRule"
           },
           "ShareRules": {
             "type": "array",
+            "min_items": 0,
+            "max_items": 1,
+            "description": "**[Custom snapshot policies only]** The rule for sharing snapshots with other AWS accounts.",
             "items": {
               "ref_name": "ShareRule"
             }
           },
           "TagsToAdd": {
             "type": "array",
+            "min_items": 0,
+            "max_items": 45,
+            "description": "The tags to apply to policy-created resources. These user-defined tags are in addition to the AWS-added lifecycle tags.",
             "items": {
               "ref_name": "Tag"
             }
           },
           "VariableTags": {
             "type": "array",
+            "min_items": 0,
+            "max_items": 45,
+            "description": "**[AMI policies and snapshot policies that target instances only]** A collection of key/value pairs with values determined dynamically when the policy is executed. Keys may be any valid Amazon EC2 tag key. Values must be in one of the two following formats: `$(instance-id)` or `$(timestamp)`. Variable tags are only valid for EBS Snapshot Management -- Instance policies.",
             "items": {
               "ref_name": "Tag"
             }
@@ -100729,24 +101109,46 @@
         "type": "object",
         "properties": {
           "ExecuteOperationOnScriptFailure": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Indicates whether Amazon Data Lifecycle Manager should default to crash-consistent snapshots if the pre script fails.\n\n- To default to crash consistent snapshot if the pre script fails, specify `true`.\n- To skip the instance for snapshot creation if the pre script fails, specify `false`.\n\nThis parameter is supported only if you run a pre script. If you run a post script only, omit this parameter.\n\nDefault: `true`"
           },
           "ExecutionHandler": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^([a-zA-Z0-9_\\-.]{3,128}|[a-zA-Z0-9_\\-.:/]{3,200}|[A-Z0-9_]+)$",
+            "min_length": 0,
+            "max_length": 200,
+            "description": "The SSM document that includes the pre and/or post scripts to run.\n\nIf you are automating VSS backups, specify `AWS_VSS_BACKUP`. In this case, Amazon Data Lifecycle Manager automatically uses the `AWSEC2-CreateVssSnapshot` SSM document.\n\nIf you are using a custom SSM document that you own, specify either the name or ARN of the SSM document. If you are using a custom SSM document that is shared with you, specify the ARN of the SSM document."
           },
           "ExecutionHandlerService": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "AWS_SYSTEMS_MANAGER"
+            ],
+            "description": "Indicates the service used to execute the pre and/or post scripts.\n\nDefault: `AWS_SYSTEMS_MANAGER`"
           },
           "ExecutionTimeout": {
-            "type": "integer"
+            "type": "integer",
+            "minimum": 10.0,
+            "maximum": 120.0,
+            "description": "Specifies a timeout period, in seconds, after which Amazon Data Lifecycle Manager fails the script run attempt if it has not completed. If a script does not complete within its timeout period, Amazon Data Lifecycle Manager fails the attempt. The timeout period applies to the pre and post scripts individually.\n\nDefault: 10"
           },
           "MaximumRetryCount": {
-            "type": "integer"
+            "type": "integer",
+            "minimum": 0.0,
+            "maximum": 3.0,
+            "description": "Specifies the number of times Amazon Data Lifecycle Manager should retry scripts that fail.\n\nIf the pre script fails, Amazon Data Lifecycle Manager retries the entire snapshot creation process, including running the pre and post scripts.\n\nIf the post script fails, Amazon Data Lifecycle Manager retries the post script only; in this case, the pre script will have completed and the snapshot might have been created.\n\nIf you do not want Amazon Data Lifecycle Manager to retry failed scripts, specify `0`.\n\nDefault: 0"
           },
           "Stages": {
             "type": "array",
+            "min_items": 1,
+            "max_items": 2,
+            "description": "Indicate which scripts Amazon Data Lifecycle Manager should run on target instances. Pre scripts run before Amazon Data Lifecycle Manager initiates snapshot creation. Post scripts run after Amazon Data Lifecycle Manager initiates snapshot creation.\n\n- To run a pre script only, specify `PRE`.\n- To run a post script only, specify `POST`.\n- To run both pre and post scripts, specify both `PRE` and `POST`.\n\nDefault: PRE and POST",
             "items": {
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "POST",
+                "PRE"
+              ]
             }
           }
         },
@@ -100757,15 +101159,29 @@
         "properties": {
           "TargetAccounts": {
             "type": "array",
+            "min_items": 1,
+            "description": "The IDs of the AWS accounts with which to share the snapshots.",
             "items": {
-              "type": "string"
+              "type": "string",
+              "pattern": "^[0-9]{12}$",
+              "min_length": 12,
+              "max_length": 12
             }
           },
           "UnshareInterval": {
-            "type": "integer"
+            "type": "integer",
+            "minimum": 1.0,
+            "description": "The period after which snapshots that are shared with other AWS accounts are automatically unshared."
           },
           "UnshareIntervalUnit": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "DAYS",
+              "MONTHS",
+              "WEEKS",
+              "YEARS"
+            ],
+            "description": "The unit of time for the automatic unsharing interval."
           }
         },
         "additional_properties": false
@@ -100774,10 +101190,16 @@
         "type": "object",
         "properties": {
           "Key": {
-            "type": "string"
+            "type": "string",
+            "min_length": 0,
+            "max_length": 500,
+            "description": "The tag key."
           },
           "Value": {
-            "type": "string"
+            "type": "string",
+            "min_length": 0,
+            "max_length": 500,
+            "description": "The tag value."
           }
         },
         "required": [
@@ -100785,20 +101207,16 @@
           "Key"
         ],
         "additional_properties": false
-      },
-      "VolumeTypeValues": {
-        "type": "object",
-        "additional_properties": false
       }
     },
     "required": [],
     "additional_properties": false,
     "read_only_properties": [
-      "Id",
+      "PolicyId",
       "Arn"
     ],
     "primary_identifier": [
-      "Id"
+      "PolicyId"
     ],
     "description": "Resource Type definition for AWS::DLM::LifecyclePolicy"
   },
@@ -122147,7 +122565,7 @@
       "AttributeDefinitions": {
         "type": "array",
         "unique_items": true,
-        "description": "A list of attributes that describe the key schema for the table and indexes.\n This property is required to create a DDB table.\n Update requires: [Some interruptions](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-some-interrupt). Replacement if you edit an existing AttributeDefinition.",
+        "description": "A list of attributes that describe the key schema for the table and indexes.\n This property is required to create a DDB table.\n You can add an ``AttributeDefinition`` without interruption. Changing the type of an existing ``AttributeDefinition`` requires replacement of the table.",
         "items": {
           "ref_name": "AttributeDefinition"
         }
@@ -122577,7 +122995,7 @@
               "INCLUDE",
               "KEYS_ONLY"
             ],
-            "description": "The set of attributes that are projected into the index:\n  +  ``KEYS_ONLY`` - Only the index and primary keys are projected into the index.\n  +  ``INCLUDE`` - In addition to the attributes described in ``KEYS_ONLY``, the secondary index will include other non-key attributes that you specify.\n  +  ``ALL`` - All of the table attributes are projected into the index.\n  \n When using the DynamoDB console, ``ALL`` is selected by default."
+            "description": "The set of attributes that are projected into the index:\n  +  ``KEYS_ONLY`` - Only the index and primary keys are projected into the index.\n  +  ``INCLUDE`` - In addition to the attributes described in ``KEYS_ONLY``, the secondary index will include other non-key attributes that you specify.\n  +  ``ALL`` - All of the table attributes are projected into the index.\n  \n When using the DynamoDB console, ``ALL`` is selected by default.\n You can't modify the projection of an existing index. To change the projected attributes, you must delete the index and create a new one with the projection that you want."
           }
         },
         "additional_properties": false
@@ -122698,6 +123116,7 @@
           "Tags": {
             "type": "array",
             "unique_items": true,
+            "description": "Specifies the tags to apply to the DDB stream. Stream tags are independent of table tags.\n For an overview on tagging DynamoDB resources, see [Tagging for DynamoDB](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Tagging.html) in the *Amazon DynamoDB Developer Guide*.",
             "items": {
               "ref_name": "Tag"
             }
@@ -124635,6 +125054,9 @@
               }
             ]
           },
+          "MultiAvailabilityZoneConfiguration": {
+            "ref_name": "MultiAvailabilityZoneConfiguration"
+          },
           "SnapshotId": {
             "type": "string"
           },
@@ -125010,6 +125432,22 @@
         },
         "additional_properties": false
       },
+      "MultiAvailabilityZoneConfiguration": {
+        "type": "object",
+        "properties": {
+          "ConfigurationType": {
+            "type": "string"
+          },
+          "StandbyAvailabilityZones": {
+            "type": "array",
+            "unique_items": true,
+            "items": {
+              "ref_name": "StandbyAvailabilityZone"
+            }
+          }
+        },
+        "additional_properties": false
+      },
       "NetworkBandwidthGbpsRequest": {
         "type": "object",
         "properties": {
@@ -125264,6 +125702,18 @@
           },
           "SingleInstanceType": {
             "type": "boolean"
+          }
+        },
+        "additional_properties": false
+      },
+      "StandbyAvailabilityZone": {
+        "type": "object",
+        "properties": {
+          "AvailabilityZone": {
+            "type": "string"
+          },
+          "AvailabilityZoneId": {
+            "type": "string"
           }
         },
         "additional_properties": false
@@ -145540,7 +145990,7 @@
               "tcp",
               "udp"
             ],
-            "description": "The protocol used for the port mapping. Valid values are ``tcp`` and ``udp``. The default is ``tcp``. ``protocol`` is immutable in a Service Connect service. Updating this field requires a service deletion and redeployment."
+            "description": "The protocol that's used for the port mapping. Valid values are ``tcp`` and ``udp`` (case-sensitive). The default is ``tcp``. Amazon ECS treats any other specified value as ``tcp``. ``protocol`` is immutable in a Service Connect service. To update this field, you must delete and redeploy the service."
           }
         },
         "additional_properties": false
@@ -165114,18 +165564,10 @@
     "type_name": "AWS::FSx::Volume",
     "properties": {
       "BackupId": {
-        "type": "string",
-        "pattern": "^(backup-[0-9a-f]{8,})$",
-        "min_length": 12,
-        "max_length": 128,
-        "description": "Specifies the ID of the volume backup to use to create a new volume."
+        "type": "string"
       },
       "Name": {
-        "type": "string",
-        "pattern": "^[^\\u0000\\u0085\\u2028\\u2029\\r\\n]{1,203}$",
-        "min_length": 1,
-        "max_length": 203,
-        "description": "The name of the volume."
+        "type": "string"
       },
       "OntapConfiguration": {
         "ref_name": "OntapConfiguration"
@@ -165134,33 +165576,22 @@
         "ref_name": "OpenZFSConfiguration"
       },
       "ResourceARN": {
-        "type": "string",
-        "description": "Returns the volume's Amazon Resource Name (ARN)."
+        "type": "string"
       },
       "Tags": {
         "type": "array",
-        "min_items": 1,
-        "max_items": 50,
-        "description": "One or more tags.",
         "items": {
           "ref_name": "Tag"
         }
       },
       "UUID": {
-        "type": "string",
-        "description": "Returns the volume's ID."
+        "type": "string"
       },
       "VolumeId": {
-        "type": "string",
-        "description": "Returns the volume's universally unique identifier (UUID)."
+        "type": "string"
       },
       "VolumeType": {
-        "type": "string",
-        "enum": [
-          "ONTAP",
-          "OPENZFS"
-        ],
-        "description": "The type of the volume."
+        "type": "string"
       }
     },
     "definitions": {
@@ -165169,21 +165600,12 @@
         "properties": {
           "Aggregates": {
             "type": "array",
-            "min_items": 0,
-            "max_items": 6,
-            "description": "The list of aggregates that this volume resides on. Aggregates are storage pools which make up your primary storage tier.",
             "items": {
-              "type": "string",
-              "pattern": "^(aggr[0-9]{1,2})$",
-              "min_length": 5,
-              "max_length": 6
+              "type": "string"
             }
           },
           "ConstituentsPerAggregate": {
-            "type": "integer",
-            "minimum": 1.0,
-            "maximum": 200.0,
-            "description": "Used to explicitly set the number of constituents within the FlexGroup per storage aggregate. This field is optional when creating a FlexGroup volume. If unspecified, the default value will be 8. This field cannot be provided when creating a FlexVol volume."
+            "type": "integer"
           }
         },
         "additional_properties": false
@@ -165192,22 +165614,10 @@
         "type": "object",
         "properties": {
           "Type": {
-            "type": "string",
-            "enum": [
-              "DAYS",
-              "HOURS",
-              "MINUTES",
-              "MONTHS",
-              "NONE",
-              "YEARS"
-            ],
-            "description": "Defines the type of time for the autocommit period of a file in an FSx for ONTAP SnapLock volume. Setting this value to NONE disables autocommit. The default value is NONE."
+            "type": "string"
           },
           "Value": {
-            "type": "integer",
-            "minimum": 1.0,
-            "maximum": 65535.0,
-            "description": "Defines the amount of time for the autocommit period of a file in an FSx for ONTAP SnapLock volume."
+            "type": "integer"
           }
         },
         "required": [
@@ -165219,22 +165629,12 @@
         "type": "object",
         "properties": {
           "Clients": {
-            "type": "string",
-            "pattern": "^[ -~]{1,128}$",
-            "min_length": 1,
-            "max_length": 128,
-            "description": "A value that specifies who can mount the file system. You can provide a wildcard character (*), an IP address (0.0.0.0), or a CIDR address (192.0.2.0/24). By default, Amazon FSx uses the wildcard character when specifying the client."
+            "type": "string"
           },
           "Options": {
             "type": "array",
-            "min_items": 1,
-            "max_items": 20,
-            "description": "The configuration object for mounting a Network File System (NFS) file system.",
             "items": {
-              "type": "string",
-              "pattern": "^[ -~]{1,128}$",
-              "min_length": 1,
-              "max_length": 128
+              "type": "string"
             }
           }
         },
@@ -165249,9 +165649,6 @@
         "properties": {
           "ClientConfigurations": {
             "type": "array",
-            "min_items": 0,
-            "max_items": 25,
-            "description": "The configuration object for mounting a Network File System (NFS) file system.",
             "items": {
               "ref_name": "ClientConfigurations"
             }
@@ -165269,75 +165666,40 @@
             "ref_name": "AggregateConfiguration"
           },
           "CopyTagsToBackups": {
-            "type": "string",
-            "description": "A boolean flag indicating whether tags for the volume should be copied to backups."
+            "type": "string"
           },
           "JunctionPath": {
-            "type": "string",
-            "pattern": "^[^\\u0000\\u0085\\u2028\\u2029\\r\\n]{1,255}$",
-            "min_length": 1,
-            "max_length": 255,
-            "description": "Specifies the location in the SVM's namespace where the volume is mounted. This parameter is required. The JunctionPath must have a leading forward slash, such as /vol3."
+            "type": "string"
           },
           "OntapVolumeType": {
-            "type": "string",
-            "enum": [
-              "DP",
-              "RW"
-            ],
-            "description": "Specifies the type of volume you are creating. Valid values are the following: RW or DP"
+            "type": "string"
           },
           "SecurityStyle": {
-            "type": "string",
-            "enum": [
-              "MIXED",
-              "NTFS",
-              "UNIX"
-            ],
-            "description": "Specifies the security style for the volume. If a volume's security style is not specified, it is automatically set to the root volume's security style."
+            "type": "string"
           },
           "SizeInBytes": {
-            "type": "string",
-            "minimum": 0.0,
-            "maximum": 2.2517998e+16,
-            "description": "Specifies the configured size of the volume, in bytes."
+            "type": "string"
           },
           "SizeInMegabytes": {
-            "type": "string",
-            "minimum": 0.0,
-            "maximum": 2147483647.0,
-            "description": "Use SizeInBytes instead. Specifies the size of the volume, in megabytes (MB), that you are creating"
+            "type": "string"
           },
           "SnaplockConfiguration": {
             "ref_name": "SnaplockConfiguration"
           },
           "SnapshotPolicy": {
-            "type": "string",
-            "min_length": 1,
-            "max_length": 255,
-            "description": "Specifies the snapshot policy for the volume. There are three built-in snapshot policies: default, default-1weekly, none."
+            "type": "string"
           },
           "StorageEfficiencyEnabled": {
-            "type": "string",
-            "description": "Set to true to enable deduplication, compression, and compaction storage efficiency features on the volume, or set to false to disable them."
+            "type": "string"
           },
           "StorageVirtualMachineId": {
-            "type": "string",
-            "pattern": "^(svm-[0-9a-f]{17,})$",
-            "min_length": 21,
-            "max_length": 21,
-            "description": "Specifies the ONTAP SVM in which to create the volume."
+            "type": "string"
           },
           "TieringPolicy": {
             "ref_name": "TieringPolicy"
           },
           "VolumeStyle": {
-            "type": "string",
-            "enum": [
-              "FLEXGROUP",
-              "FLEXVOL"
-            ],
-            "description": "Use to specify the style of an ONTAP volume."
+            "type": "string"
           }
         },
         "required": [
@@ -165349,30 +165711,19 @@
         "type": "object",
         "properties": {
           "CopyTagsToSnapshots": {
-            "type": "boolean",
-            "description": "A Boolean value indicating whether tags for the volume should be copied to snapshots. This value defaults to false. If this value is set to true, and you do not specify any tags, all tags for the original volume are copied over to snapshots. If this value is set to true, and you do specify one or more tags, only the specified tags for the original volume are copied over to snapshots. If you specify one or more tags when creating a new snapshot, no tags are copied over from the original volume, regardless of this value."
+            "type": "boolean"
           },
           "DataCompressionType": {
-            "type": "string",
-            "enum": [
-              "LZ4",
-              "NONE",
-              "ZSTD"
-            ],
-            "description": "Specifies the method used to compress the data on the volume"
+            "type": "string"
           },
           "NfsExports": {
             "type": "array",
-            "min_items": 0,
-            "max_items": 1,
-            "description": "The configuration object for mounting a Network File System (NFS) file system.",
             "items": {
               "ref_name": "NfsExports"
             }
           },
           "Options": {
             "type": "array",
-            "description": "The configuration object for mounting a Network File System (NFS) file system.",
             "items": {
               "type": "string"
             }
@@ -165381,39 +165732,22 @@
             "ref_name": "OriginSnapshot"
           },
           "ParentVolumeId": {
-            "type": "string",
-            "pattern": "^(fsvol-[0-9a-f]{17,})$",
-            "min_length": 23,
-            "max_length": 23,
-            "description": "The ID of the volume to use as the parent volume of the volume that you are creating."
+            "type": "string"
           },
           "ReadOnly": {
-            "type": "boolean",
-            "description": "A Boolean value indicating whether the volume is read-only."
+            "type": "boolean"
           },
           "RecordSizeKiB": {
-            "type": "integer",
-            "minimum": 4.0,
-            "maximum": 4096.0,
-            "description": "Specifies the suggested block size for a volume in a ZFS dataset, in kibibytes (KiB)."
+            "type": "integer"
           },
           "StorageCapacityQuotaGiB": {
-            "type": "integer",
-            "minimum": -1.0,
-            "maximum": 2147483647.0,
-            "description": "Sets the maximum storage size in gibibytes (GiB) for the volume. You can specify a quota that is larger than the storage on the parent volume. A volume quota limits the amount of storage that the volume can consume to the configured amount, but does not guarantee the space will be available on the parent volume. To guarantee quota space, you must also set StorageCapacityReservationGiB. To not specify a storage capacity quota, set this to -1."
+            "type": "integer"
           },
           "StorageCapacityReservationGiB": {
-            "type": "integer",
-            "minimum": -1.0,
-            "maximum": 2147483647.0,
-            "description": "Specifies the amount of storage in gibibytes (GiB) to reserve from the parent volume. Setting StorageCapacityReservationGiB guarantees that the specified amount of storage space on the parent volume will always be available for the volume. You can't reserve more storage than the parent volume has. To not specify a storage capacity reservation, set this to 0 or -1. For more information, see Volume properties in the Amazon FSx for OpenZFS User Guide."
+            "type": "integer"
           },
           "UserAndGroupQuotas": {
             "type": "array",
-            "min_items": 0,
-            "max_items": 500,
-            "description": "Configures how much storage users and groups can use on the volume.",
             "items": {
               "ref_name": "UserAndGroupQuotas"
             }
@@ -165428,20 +165762,10 @@
         "type": "object",
         "properties": {
           "CopyStrategy": {
-            "type": "string",
-            "enum": [
-              "CLONE",
-              "FULL_COPY",
-              "INCREMENTAL_COPY"
-            ],
-            "description": "The configuration object for mounting a Network File System (NFS) file system."
+            "type": "string"
           },
           "SnapshotARN": {
-            "type": "string",
-            "pattern": "^arn:(?=[^:]+:fsx:[^:]+:\\d{12}:)((|(?=[a-z0-9-.]{1,63})(?!\\d{1,3}(\\.\\d{1,3}){3})(?![^:]*-{2})(?![^:]*-\\.)(?![^:]*\\.-)[a-z0-9].*(?<!-)):){4}(?!/).{0,1024}$",
-            "min_length": 8,
-            "max_length": 512,
-            "description": "Specifies the snapshot to use when creating an OpenZFS volume from a snapshot."
+            "type": "string"
           }
         },
         "required": [
@@ -165454,24 +165778,10 @@
         "type": "object",
         "properties": {
           "Type": {
-            "type": "string",
-            "enum": [
-              "DAYS",
-              "HOURS",
-              "INFINITE",
-              "MINUTES",
-              "MONTHS",
-              "SECONDS",
-              "UNSPECIFIED",
-              "YEARS"
-            ],
-            "description": "Defines the type of time for the retention period of an FSx for ONTAP SnapLock volume. Set it to one of the valid types. If you set it to INFINITE, the files are retained forever. If you set it to UNSPECIFIED, the files are retained until you set an explicit retention period."
+            "type": "string"
           },
           "Value": {
-            "type": "integer",
-            "minimum": 0.0,
-            "maximum": 65535.0,
-            "description": "Defines the amount of time for the retention period of an FSx for ONTAP SnapLock volume. You can't set a value for INFINITE or UNSPECIFIED."
+            "type": "integer"
           }
         },
         "required": [
@@ -165483,35 +165793,22 @@
         "type": "object",
         "properties": {
           "AuditLogVolume": {
-            "type": "string",
-            "description": "Enables or disables the audit log volume for an FSx for ONTAP SnapLock volume"
+            "type": "string"
           },
           "AutocommitPeriod": {
             "ref_name": "AutocommitPeriod"
           },
           "PrivilegedDelete": {
-            "type": "string",
-            "enum": [
-              "DISABLED",
-              "ENABLED",
-              "PERMANENTLY_DISABLED"
-            ],
-            "description": "Enables, disables, or permanently disables privileged delete on an FSx for ONTAP SnapLock Enterprise volume."
+            "type": "string"
           },
           "RetentionPeriod": {
             "ref_name": "SnaplockRetentionPeriod"
           },
           "SnaplockType": {
-            "type": "string",
-            "enum": [
-              "COMPLIANCE",
-              "ENTERPRISE"
-            ],
-            "description": "Specifies the retention mode of an FSx for ONTAP SnapLock volume. After it is set, it can't be changed."
+            "type": "string"
           },
           "VolumeAppendModeEnabled": {
-            "type": "string",
-            "description": "Enables or disables volume-append mode on an FSx for ONTAP SnapLock volume."
+            "type": "string"
           }
         },
         "required": [
@@ -165543,18 +165840,10 @@
         "type": "object",
         "properties": {
           "Key": {
-            "type": "string",
-            "pattern": "^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$",
-            "min_length": 1,
-            "max_length": 128,
-            "description": "A value that specifies the TagKey, the name of the tag. Tag keys must be unique for the resource to which they are attached."
+            "type": "string"
           },
           "Value": {
-            "type": "string",
-            "pattern": "^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$",
-            "min_length": 0,
-            "max_length": 256,
-            "description": "A value that specifies the TagValue, the value assigned to the corresponding tag key. Tag values can be null and don't have to be unique in a tag set. For example, you can have a key-value pair in a tag set of finances : April and also of payroll : April."
+            "type": "string"
           }
         },
         "required": [
@@ -165565,23 +165854,12 @@
       },
       "TieringPolicy": {
         "type": "object",
-        "description": "Describes the data tiering policy for an ONTAP volume. When enabled, Amazon FSx for ONTAP's intelligent tiering automatically transitions a volume's data between the file system's primary storage and capacity pool storage based on your access patterns.",
         "properties": {
           "CoolingPeriod": {
-            "type": "integer",
-            "minimum": 2.0,
-            "maximum": 183.0,
-            "description": "Specifies the number of days that user data in a volume must remain inactive before it is considered \"cold\" and moved to the capacity pool."
+            "type": "integer"
           },
           "Name": {
-            "type": "string",
-            "enum": [
-              "ALL",
-              "AUTO",
-              "NONE",
-              "SNAPSHOT_ONLY"
-            ],
-            "description": "Specifies the tiering policy used to transition data. Default value is SNAPSHOT_ONLY."
+            "type": "string"
           }
         },
         "additional_properties": false
@@ -165590,24 +165868,13 @@
         "type": "object",
         "properties": {
           "Id": {
-            "type": "integer",
-            "minimum": 0.0,
-            "maximum": 2147483647.0,
-            "description": "The ID of the user or group that the quota applies to."
+            "type": "integer"
           },
           "StorageCapacityQuotaGiB": {
-            "type": "integer",
-            "minimum": 0.0,
-            "maximum": 2147483647.0,
-            "description": "The user or group's storage quota, in gibibytes (GiB)."
+            "type": "integer"
           },
           "Type": {
-            "type": "string",
-            "enum": [
-              "GROUP",
-              "USER"
-            ],
-            "description": "Specifies whether the quota applies to a user or group."
+            "type": "string"
           }
         },
         "required": [
@@ -165627,30 +165894,13 @@
       "VolumeId",
       "UUID"
     ],
-    "write_only_properties": [
-      "BackupId",
-      "OpenZFSConfiguration.Options",
-      "OntapConfiguration.AggregateConfiguration.ConstituentsPerAggregate"
-    ],
     "create_only_properties": [
       "BackupId",
-      "VolumeType",
-      "OntapConfiguration.OntapVolumeType",
-      "OntapConfiguration.StorageVirtualMachineId",
-      "OntapConfiguration.VolumeStyle",
-      "OntapConfiguration.AggregateConfiguration",
-      "OntapConfiguration.AggregateConfiguration.Aggregates",
-      "OntapConfiguration.AggregateConfiguration.ConstituentsPerAggregate",
-      "OntapConfiguration.SnaplockConfiguration.SnaplockType",
-      "OpenZFSConfiguration.OriginSnapshot",
-      "OpenZFSConfiguration.OriginSnapshot.CopyStrategy",
-      "OpenZFSConfiguration.OriginSnapshot.SnapshotARN",
-      "OpenZFSConfiguration.ParentVolumeId"
+      "VolumeType"
     ],
     "primary_identifier": [
       "VolumeId"
     ],
-    "source_url": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
     "description": "Resource Type definition for AWS::FSx::Volume"
   },
   "AWS::FinSpace::Environment": {
@@ -219353,13 +219603,23 @@
       },
       "ResourceArn": {
         "type": "string",
-        "pattern": "^(arn:(aws[a-zA-Z-]*)?:lambda:)?([a-z]{2}((-gov)|(-iso([a-z]?)))?-[a-z]+-\\d{1}:)?(\\d{12}:)?(function:)?([a-zA-Z0-9-_]+)(:(\\$LATEST(\\.PUBLISHED)?|[a-zA-Z0-9-_]+))?$",
+        "pattern": "^arn:(aws[a-zA-Z-]*)?:lambda:(eusc-)?[a-z]{2}((-gov)|(-iso([a-z]?)))?-[a-z]+-\\d{1}:\\d{12}:function:[a-zA-Z0-9-_]+(:(\\$LATEST(\\.PUBLISHED)?|[a-zA-Z0-9-_])+)?$",
         "min_length": 12,
         "max_length": 1024,
-        "description": "The Amazon Resource Name (ARN) of the LAM resource you want to add the policy to. For a function, you can use a qualified or an unqualified ARN. The value must be a complete ARN, and the operation does not accept wildcard characters."
+        "description": "The Amazon Resource Name (ARN) of the LAM resource you want to add the policy to. For a function, you can use a qualified or an unqualified ARN. The value must be a complete ARN, and the operation does not accept wildcard characters.",
+        "any_of": [
+          {
+            "ref_name": "FunctionResourceArn"
+          }
+        ]
       }
     },
-    "definitions": {},
+    "definitions": {
+      "FunctionResourceArn": {
+        "type": "string",
+        "pattern": "^(arn:(aws[a-zA-Z-]*)?:lambda:)?([a-z]{2}((-gov)|(-iso([a-z]?)))?-[a-z]+-\\d{1}:)?(\\d{12}:)?(function:)?([a-zA-Z0-9-_]+)(:(\\$LATEST(\\.PUBLISHED)?|[a-zA-Z0-9-_]+))?$"
+      }
+    },
     "required": [
       "ResourceArn",
       "PolicyDocument"
@@ -233304,7 +233564,7 @@
     "definitions": {
       "Arn": {
         "type": "string",
-        "pattern": "^arn:aws(?:-(?:cn|us-gov|iso|iso-b|iso-e|iso-f))?:airflow-serverless:([a-z]{2}-[a-z]+-[0-9]{1}):([0-9]{12}):workflow/([a-zA-Z0-9][a-zA-Z0-9\\.\\-_]{0,254}-[a-zA-z0-9]{10})$",
+        "pattern": "^arn:aws(?:-(?:cn|us-gov|iso|iso-b|iso-e|iso-f))?:airflow-serverless:([a-z]{2}-(?:[a-z]+-)+[0-9]{1}):([0-9]{12}):workflow/([a-zA-Z0-9][a-zA-Z0-9\\.\\-_]{0,254}-[a-zA-Z0-9]{10})$",
         "min_length": 1,
         "max_length": 2048
       },
@@ -251212,9 +251472,12 @@
         "max_length": 63,
         "description": "Contains a user-supplied name for the Graph. \n\nIf you don't specify a name, we generate a unique Graph Name using a combination of Stack Name and a UUID comprising of 4 characters.\n\n_Important_: If you specify a name, you cannot perform updates that require replacement of this resource. You can perform updates that require no or some interruption. If you must replace the resource, specify a new name."
       },
+      "ImportTask": {
+        "ref_name": "ImportTask"
+      },
       "KmsKeyIdentifier": {
         "type": "string",
-        "pattern": "arn:aws(|-cn|-us-gov):kms:[a-zA-Z0-9-]*:[0-9]{12}:key/[a-zA-Z0-9-]{36}",
+        "pattern": "arn:aws(|-cn|-us-gov|-iso|-iso-b|-iso-e|-iso-f|-eusc):kms:[a-zA-Z0-9-]*:[0-9]{12}:key/[a-zA-Z0-9-]{36}",
         "min_length": 1,
         "max_length": 1024,
         "description": "The ARN of the KMS key used to encrypt data in the Neptune Analytics graph. If not specified, the graph is encrypted with an AWS managed key."
@@ -251249,6 +251512,113 @@
       }
     },
     "definitions": {
+      "ImportOptions": {
+        "type": "object",
+        "description": "Contains options for controlling the import process. For example, if the failOnError key is set to false, the import skips the data that caused the error and continues if possible (whereas if set to true, the default, or if omitted, the import operation halts immediately when an error is encountered).",
+        "properties": {
+          "Neptune": {
+            "ref_name": "NeptuneImportOptions"
+          }
+        },
+        "additional_properties": false
+      },
+      "ImportTask": {
+        "type": "object",
+        "description": "The import task details to import data into the graph at creation time.",
+        "properties": {
+          "BlankNodeHandling": {
+            "type": "string",
+            "enum": [
+              "convertToIri"
+            ],
+            "description": "The method to handle blank nodes in the dataset. Currently, only convertToIri is supported, meaning blank nodes are converted to unique IRIs at load time. Must be provided when format is NTRIPLES"
+          },
+          "FailOnError": {
+            "type": "boolean",
+            "description": "If set to true, the task halts when an import error is encountered. If set to false, the task skips the data that caused the error and continues if possible."
+          },
+          "Format": {
+            "type": "string",
+            "enum": [
+              "CSV",
+              "OPEN_CYPHER",
+              "PARQUET",
+              "NTRIPLES"
+            ],
+            "description": "Specifies the format of S3 data to be imported. Valid values are CSV, which identifies the Gremlin CSV format, OPEN_CYPHER, which identifies the openCypher load format, or NTRIPLES, which identifies the RDF n-triples format."
+          },
+          "ImportOptions": {
+            "ref_name": "ImportOptions"
+          },
+          "MaxProvisionedMemory": {
+            "type": "integer",
+            "minimum": 16.0,
+            "maximum": 24576.0,
+            "description": "The maximum provisioned memory-optimized Neptune Capacity Units (m-NCUs) to use for the graph. Default: 1024, or the approved upper limit for your account. If both the minimum and maximum values are specified, the final provisioned-memory will be chosen per the actual size of your imported data. If neither value is specified, 128 m-NCUs are used."
+          },
+          "MinProvisionedMemory": {
+            "type": "integer",
+            "minimum": 16.0,
+            "maximum": 24576.0,
+            "description": "The minimum provisioned memory-optimized Neptune Capacity Units (m-NCUs) to use for the graph. Default: 16"
+          },
+          "ParquetType": {
+            "type": "string",
+            "enum": [
+              "COLUMNAR"
+            ],
+            "description": "The parquet type of the import task. Required when Format is PARQUET."
+          },
+          "RoleArn": {
+            "type": "string",
+            "pattern": "arn:aws[^:]*:iam::[0-9]{12}:(role|role/service-role)(/[\\w+=,.@-]+)+",
+            "min_length": 1,
+            "max_length": 1024,
+            "format": "AWS::IAM::Role.Arn",
+            "description": "The ARN of the IAM role that will allow access to the data that is to be imported."
+          },
+          "Source": {
+            "type": "string",
+            "description": "A URL identifying to the location of the data to be imported. This can be an Amazon S3 path, or can point to a Neptune database endpoint or snapshot."
+          }
+        },
+        "required": [
+          "Source",
+          "RoleArn"
+        ],
+        "additional_properties": false
+      },
+      "NeptuneImportOptions": {
+        "type": "object",
+        "description": "Options for importing data from a Neptune database.",
+        "properties": {
+          "PreserveDefaultVertexLabels": {
+            "type": "boolean",
+            "description": "Neptune Analytics supports label-less vertices and no labels are assigned unless one is explicitly provided. Neptune assigns default labels when none is explicitly provided. When importing the data into Neptune Analytics, the default vertex labels can be omitted by setting preserveDefaultVertexLabels to false. Note that if the vertex only has default labels, and has no other properties or edges, then the vertex will effectively not get imported into Neptune Analytics when preserveDefaultVertexLabels is set to false."
+          },
+          "PreserveEdgeIds": {
+            "type": "boolean",
+            "description": "Neptune Analytics currently does not support user defined edge ids. The edge ids are not imported by default. They are imported if preserveEdgeIds is set to true, and ids are stored as properties on the relationships with the property name neptuneEdgeId."
+          },
+          "S3ExportKmsKeyId": {
+            "type": "string",
+            "min_length": 1,
+            "max_length": 1024,
+            "description": "The KMS key to use to encrypt data in the S3 bucket where the graph data is exported."
+          },
+          "S3ExportPath": {
+            "type": "string",
+            "min_length": 1,
+            "max_length": 1024,
+            "description": "The path to an S3 bucket from which to import data."
+          }
+        },
+        "required": [
+          "S3ExportPath",
+          "S3ExportKmsKeyId"
+        ],
+        "additional_properties": false
+      },
       "Tag": {
         "type": "object",
         "description": "A key-value pair to associate with a resource.",
@@ -251295,9 +251665,13 @@
       "GraphId",
       "Endpoint"
     ],
+    "write_only_properties": [
+      "ImportTask"
+    ],
     "create_only_properties": [
       "GraphName",
       "ReplicaCount",
+      "ImportTask",
       "VectorSearchConfiguration",
       "KmsKeyIdentifier"
     ],
@@ -253510,7 +253884,9 @@
       "OwnerAccountId",
       "AttachmentPolicyRuleNumber",
       "SegmentName",
-      "LastModificationErrors"
+      "LastModificationErrors",
+      "ProposedSegmentChange",
+      "ProposedNetworkFunctionGroupChange"
     ],
     "write_only_properties": [
       "RoutingPolicyLabel"
@@ -253519,8 +253895,7 @@
       "CoreNetworkId",
       "EdgeLocation",
       "TransportAttachmentId",
-      "Options",
-      "RoutingPolicyLabel"
+      "Options"
     ],
     "primary_identifier": [
       "AttachmentId"
@@ -253966,7 +254341,7 @@
       },
       "PrefixListArn": {
         "type": "string",
-        "pattern": "^arn:[a-z0-9-]+:ec2:[a-z]+-[a-z]+-[0-9]:([0-9]{12}):prefix-list/pl-[a-z0-9]+$",
+        "pattern": "^[\\s\\S]*$",
         "min_length": 0,
         "max_length": 500,
         "description": "The Amazon Resource Name (ARN) of the prefix list."
@@ -254403,15 +254778,16 @@
       "SegmentName",
       "NetworkFunctionGroupName",
       "ResourceArn",
-      "LastModificationErrors"
+      "LastModificationErrors",
+      "ProposedSegmentChange",
+      "ProposedNetworkFunctionGroupChange"
     ],
     "write_only_properties": [
       "RoutingPolicyLabel"
     ],
     "create_only_properties": [
       "CoreNetworkId",
-      "DirectConnectGatewayArn",
-      "RoutingPolicyLabel"
+      "DirectConnectGatewayArn"
     ],
     "primary_identifier": [
       "AttachmentId"
@@ -254965,15 +255341,16 @@
       "EdgeLocation",
       "AttachmentPolicyRuleNumber",
       "SegmentName",
-      "LastModificationErrors"
+      "LastModificationErrors",
+      "ProposedSegmentChange",
+      "ProposedNetworkFunctionGroupChange"
     ],
     "write_only_properties": [
       "RoutingPolicyLabel"
     ],
     "create_only_properties": [
       "CoreNetworkId",
-      "VpnConnectionArn",
-      "RoutingPolicyLabel"
+      "VpnConnectionArn"
     ],
     "primary_identifier": [
       "AttachmentId"
@@ -255329,15 +255706,16 @@
       "EdgeLocation",
       "AttachmentPolicyRuleNumber",
       "SegmentName",
-      "LastModificationErrors"
+      "LastModificationErrors",
+      "ProposedSegmentChange",
+      "ProposedNetworkFunctionGroupChange"
     ],
     "write_only_properties": [
       "RoutingPolicyLabel"
     ],
     "create_only_properties": [
       "PeeringId",
-      "TransitGatewayRouteTableArn",
-      "RoutingPolicyLabel"
+      "TransitGatewayRouteTableArn"
     ],
     "primary_identifier": [
       "AttachmentId"
@@ -255567,15 +255945,16 @@
       "SegmentName",
       "NetworkFunctionGroupName",
       "ResourceArn",
-      "LastModificationErrors"
+      "LastModificationErrors",
+      "ProposedSegmentChange",
+      "ProposedNetworkFunctionGroupChange"
     ],
     "write_only_properties": [
       "RoutingPolicyLabel"
     ],
     "create_only_properties": [
       "CoreNetworkId",
-      "VpcArn",
-      "RoutingPolicyLabel"
+      "VpcArn"
     ],
     "primary_identifier": [
       "AttachmentId"
@@ -255849,6 +256228,9 @@
       "ContactIdentifier": {
         "ref_name": "ContactIdentifier"
       },
+      "IsSensitiveEventsSubscribed": {
+        "ref_name": "IsSensitiveEventsSubscribed"
+      },
       "ManagedNotificationConfigurationArn": {
         "ref_name": "ManagedNotificationConfigurationArn"
       }
@@ -255863,6 +256245,10 @@
           "ACCOUNT_ALTERNATE_BILLING"
         ],
         "description": "This unique identifier for Contact"
+      },
+      "IsSensitiveEventsSubscribed": {
+        "type": "boolean",
+        "description": "Whether the account contact association is subscribed to sensitive events. Access to sensitive events is gated by the SubscribeSensitiveEvents virtual IAM action."
       },
       "ManagedNotificationConfigurationArn": {
         "type": "string",
@@ -255894,6 +256280,10 @@
         "type": "string",
         "pattern": "^arn:[a-z-]{3,10}:(chatbot|consoleapp|notifications-contacts):[a-zA-Z0-9-]*:[0-9]{12}:[a-zA-Z0-9-_.@]+/[a-zA-Z0-9/_.@:-]+$",
         "description": "ARN identifier of the channel.\nExample: arn:aws:chatbot::123456789012:chat-configuration/slack-channel/security-ops"
+      },
+      "IsSensitiveEventsSubscribed": {
+        "type": "boolean",
+        "description": "Whether the channel association is subscribed to sensitive events. Access to sensitive events is gated by the SubscribeSensitiveEvents virtual IAM action."
       },
       "ManagedNotificationConfigurationArn": {
         "type": "string",
@@ -259175,7 +259565,10 @@
                 "items": {
                   "type": "string",
                   "enum": [
-                    "SECURITY_FINDING_LOGS"
+                    "SECURITY_FINDING_LOGS",
+                    "ALB_ACCESS_LOGS",
+                    "ALB_CONNECTION_LOGS",
+                    "ALB_HEALTH_CHECK_LOGS"
                   ]
                 }
               }
@@ -260112,7 +260505,10 @@
                   "enum": [
                     "APPLICATION_LOGS",
                     "USAGE_LOGS",
-                    "SECURITY_FINDING_LOGS"
+                    "SECURITY_FINDING_LOGS",
+                    "ALB_ACCESS_LOGS",
+                    "ALB_CONNECTION_LOGS",
+                    "ALB_HEALTH_CHECK_LOGS"
                   ]
                 }
               }
@@ -267671,6 +268067,13 @@
         "type": "object",
         "description": "Additional options related to the Slurm scheduler.",
         "properties": {
+          "GresCustomSettings": {
+            "type": "array",
+            "description": "Additional Slurm gres.conf records for the compute node group. Each item is a map of gres.conf attribute names to values describing one gres.conf record (for example a GPU topology, MIG, MPS, or custom GRES entry). AWS PCS adds the NodeName= prefix and merges these records with the GPU record it derives from the instance type.",
+            "items": {
+              "ref_name": "GresCustomSetting"
+            }
+          },
           "ScaleDownIdleTimeInSeconds": {
             "type": "integer",
             "minimum": 1.0,
@@ -326890,7 +327293,7 @@
       },
       "EngineVersion": {
         "type": "string",
-        "description": "The version number of the database engine to use.\n For a list of valid engine versions, use the ``DescribeDBEngineVersions`` action.\n The following are the database engines and links to information about the major and minor versions that are available with Amazon RDS. Not every database engine is available for every AWS Region.\n  *Amazon Aurora* \n Not applicable. The version number of the database engine to be used by the DB instance is managed by the DB cluster.\n  *Db2* \n See [Amazon RDS for Db2](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Db2.html#Db2.Concepts.VersionMgmt) in the *Amazon RDS User Guide.*\n  *MariaDB* \n See [MariaDB on Amazon RDS Versions](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_MariaDB.html#MariaDB.Concepts.VersionMgmt) in the *Amazon RDS User Guide.*\n  *Microsoft SQL Server* \n See [Microsoft SQL Server Versions on Amazon RDS](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_SQLServer.html#SQLServer.Concepts.General.VersionSupport) in the *Amazon RDS User Guide.*\n  *MySQL* \n See [MySQL on Amazon RDS Versions](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_MySQL.html#MySQL.Concepts.VersionMgmt) in the *Amazon RDS User Guide.*\n  *Oracle* \n See [Oracle Database Engine Release Notes](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Appendix.Oracle.PatchComposition.html) in the *Amazon RDS User Guide.*\n  *PostgreSQL* \n See [Supported PostgreSQL Database Versions](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_PostgreSQL.html#PostgreSQL.Concepts.General.DBVersions) in the *Amazon RDS User Guide.*"
+        "description": "The version number of the database engine to use.\n For a list of valid engine versions, use the ``DescribeDBEngineVersions`` action.\n The following are the database engines and links to information about the major and minor versions that are available with Amazon RDS. Not every database engine is available for every AWS Region.\n  *Amazon Aurora* \n Not applicable. The version number of the database engine to be used by the DB instance is managed by the DB cluster.\n  *Db2* \n See [Amazon RDS for Db2](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Db2.html#Db2.Concepts.VersionMgmt) in the *Amazon RDS User Guide.*\n  *MariaDB* \n See [MariaDB on Amazon RDS Versions](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_MariaDB.html#MariaDB.Concepts.VersionMgmt) in the *Amazon RDS User Guide.*\n  *Microsoft SQL Server* \n See [Microsoft SQL Server Versions on Amazon RDS](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_SQLServer.html#SQLServer.Concepts.General.VersionSupport) in the *Amazon RDS User Guide.*\n  *MySQL* \n See [MySQL on Amazon RDS Versions](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_MySQL.html#MySQL.Concepts.VersionMgmt) in the *Amazon RDS User Guide.*\n  *Oracle* \n See [Oracle Database Engine Release Notes](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Appendix.Oracle.PatchComposition.html) in the *Amazon RDS User Guide.*\n  *PostgreSQL* \n See [Supported PostgreSQL Database Versions](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_PostgreSQL.html#PostgreSQL.Concepts.General.DBVersions) in the *Amazon RDS User Guide.*\n  If you specify a version prefix rather than a full version number, AWS CloudFormation uses prefix matching during drift detection.\n For example, ``\"8.0\"`` for MySQL or ``\"16\"`` for PostgreSQL matches any version that starts with that prefix."
       },
       "InstanceCreateTime": {
         "type": "string",
@@ -327436,7 +327839,7 @@
       "DBInstanceIdentifier"
     ],
     "source_url": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
-    "description": "The ``AWS::RDS::DBInstance`` resource creates an Amazon DB instance. The new DB instance can be an RDS DB instance, or it can be a DB instance in an Aurora DB cluster.\n For more information about creating an RDS DB instance, see [Creating an Amazon RDS DB instance](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_CreateDBInstance.html) in the *Amazon RDS User Guide*.\n For more information about creating a DB instance in an Aurora DB cluster, see [Creating an Amazon Aurora DB cluster](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/Aurora.CreateInstance.html) in the *Amazon Aurora User Guide*.\n If you import an existing DB instance, and the template configuration doesn't match the actual configuration of the DB instance, AWS CloudFormation applies the changes in the template during the import operation.\n  If a DB instance is deleted or replaced during an update, AWS CloudFormation deletes all automated snapshots. However, it retains manual DB snapshots. During an update that requires replacement, you can apply a stack policy to prevent DB instances from being replaced. For more information, see [Prevent Updates to Stack Resources](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/protect-stack-resources.html).\n   *Updating DB instances* \n When properties labeled \"*Update requires:*[Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)\" are updated, AWS CloudFormation first creates a replacement DB instance, then changes references from other dependent resources to point to the replacement DB instance, and finally deletes the old DB instance.\n  We highly recommend that you take a snapshot of the database before updating the stack. If you don't, you lose the data when AWS CloudFormation replaces your DB instance. To preserve your data, perform the following procedure:\n  1.  Deactivate any applications that are using the DB instance so that there's no activity on the DB instance.\n  1.  Create a snapshot of the DB instance. For more information, see [Creating a DB Snapshot](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_CreateSnapshot.html).\n  1.  If you want to restore your instance using a DB snapshot, modify the updated template with your DB instance changes and add the ``DBSnapshotIdentifier`` property with the ID of the DB snapshot that you want to use.\n After you restore a DB instance with a ``DBSnapshotIdentifier`` property, you can delete the ``DBSnapshotIdentifier`` property. When you specify this property for an update, the DB instance is not restored from the DB snapshot again, and the data in the database is not changed. However, if you don't specify the ``DBSnapshotIdentifier`` property, an empty DB instance is created, and the original DB instance is deleted. If you specify a property that is different from the previous snapshot restore property, a new DB instance is restored from the specified ``DBSnapshotIdentifier`` property, and the original DB instance is deleted.\n  1.  Update the stack.\n  \n  For more information about updating other properties of this resource, see ``ModifyDBInstance``. For more information about updating stacks, see [CloudFormation Stacks Updates](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks.html).\n  *Deleting DB instances* \n For DB instances that are part of an Aurora DB cluster, you can set a deletion policy for your DB instance to control how AWS CloudFormation handles the DB instance when the stack is deleted. For Amazon RDS DB instances, you can choose to *retain* the DB instance, to *delete* the DB instance, or to *create a snapshot* of the DB instance. The default AWS CloudFormation behavior depends on the ``DBClusterIdentifier`` property:\n  1.  For ``AWS::RDS::DBInstance`` resources that don't specify the ``DBClusterIdentifier`` property, AWS CloudFormation saves a snapshot of the DB instance.\n  1.   For ``AWS::RDS::DBInstance`` resources that do specify the ``DBClusterIdentifier`` property, AWS CloudFormation deletes the DB instance.\n  \n  For more information, see [DeletionPolicy Attribute](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-attribute-deletionpolicy.html).",
+    "description": "The ``AWS::RDS::DBInstance`` resource creates an Amazon DB instance. The new DB instance can be an RDS DB instance, or it can be a DB instance in an Aurora DB cluster.\n For more information about creating an RDS DB instance, see [Creating an Amazon RDS DB instance](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_CreateDBInstance.html) in the *Amazon RDS User Guide*.\n For more information about creating a DB instance in an Aurora DB cluster, see [Creating an Amazon Aurora DB cluster](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/Aurora.CreateInstance.html) in the *Amazon Aurora User Guide*.\n If you import an existing DB instance, and the template configuration doesn't match the actual configuration of the DB instance, AWS CloudFormation applies the changes in the template during the import operation.\n  If a DB instance is deleted or replaced during an update, AWS CloudFormation deletes all automated snapshots. However, it retains manual DB snapshots. During an update that requires replacement, you can apply a stack policy to prevent DB instances from being replaced. For more information, see [Prevent Updates to Stack Resources](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/protect-stack-resources.html).\n   *Updating DB instances* \n When properties labeled \"*Update requires:*[Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)\" are updated, AWS CloudFormation first creates a replacement DB instance, then changes references from other dependent resources to point to the replacement DB instance, and finally deletes the old DB instance.\n  We highly recommend that you take a snapshot of the database before updating the stack. If you don't, you lose the data when AWS CloudFormation replaces your DB instance. To preserve your data, perform the following procedure:\n  1.  Deactivate any applications that are using the DB instance so that there's no activity on the DB instance.\n  1.  Create a snapshot of the DB instance. For more information, see [Creating a DB Snapshot](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_CreateSnapshot.html).\n  1.  If you want to restore your instance using a DB snapshot, modify the updated template with your DB instance changes and add the ``DBSnapshotIdentifier`` property with the ID of the DB snapshot that you want to use.\n After you restore a DB instance with a ``DBSnapshotIdentifier`` property, you can delete the ``DBSnapshotIdentifier`` property. When you specify this property for an update, the DB instance is not restored from the DB snapshot again, and the data in the database is not changed. If you specify a different ``DBSnapshotIdentifier`` value, a new DB instance is restored from the specified snapshot, and the original DB instance is deleted.\n  1.  Update the stack.\n  \n  For more information about updating other properties of this resource, see ``ModifyDBInstance``. For more information about updating stacks, see [CloudFormation Stacks Updates](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks.html).\n  *Deleting DB instances* \n For DB instances that are part of an Aurora DB cluster, you can set a deletion policy for your DB instance to control how AWS CloudFormation handles the DB instance when the stack is deleted. For Amazon RDS DB instances, you can choose to *retain* the DB instance, to *delete* the DB instance, or to *create a snapshot* of the DB instance. The default AWS CloudFormation behavior depends on the ``DBClusterIdentifier`` property:\n  1.  For ``AWS::RDS::DBInstance`` resources that don't specify the ``DBClusterIdentifier`` property, AWS CloudFormation saves a snapshot of the DB instance.\n  1.   For ``AWS::RDS::DBInstance`` resources that do specify the ``DBClusterIdentifier`` property, AWS CloudFormation deletes the DB instance.\n  \n  For more information, see [DeletionPolicy Attribute](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-attribute-deletionpolicy.html).",
     "all_of": [
       {
         "if_then_else": [
@@ -345153,6 +345556,18 @@
         ],
         "additional_properties": false
       },
+      "DefaultEventHold": {
+        "type": "object",
+        "properties": {
+          "Days": {
+            "type": "integer"
+          },
+          "Years": {
+            "type": "integer"
+          }
+        },
+        "additional_properties": false
+      },
       "DefaultRetention": {
         "type": "object",
         "description": "The container element for optionally specifying the default Object Lock retention settings for new objects placed in the specified bucket.\n   +  The ``DefaultRetention`` settings require both a mode and a period.\n  +  The ``DefaultRetention`` period can be either ``Days`` or ``Years`` but you must select one. You cannot specify ``Days`` and ``Years`` at the same time.",
@@ -345160,6 +345575,9 @@
           "Days": {
             "type": "integer",
             "description": "The number of days that you want to specify for the default retention period. If Object Lock is turned on, you must specify ``Mode`` and specify either ``Days`` or ``Years``."
+          },
+          "DefaultEventHold": {
+            "ref_name": "DefaultEventHold"
           },
           "Mode": {
             "type": "string",
@@ -345355,6 +345773,8 @@
                 "ObjectLockRetainUntilDate",
                 "ObjectLockMode",
                 "ObjectLockLegalHoldStatus",
+                "ObjectLockEventHoldStatus",
+                "ObjectLockEventHoldDuration",
                 "IntelligentTieringAccessTier",
                 "BucketKeyStatus",
                 "ChecksumAlgorithm",
@@ -375228,33 +375648,250 @@
     "properties": {
       "AcceleratorTypes": {
         "type": "array",
+        "description": "A list of Amazon Elastic Inference (EI) instance types to associate with the notebook instance. Currently, only one instance type can be associated with a notebook instance.",
         "items": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "ml.eia1.large",
+            "ml.eia1.medium",
+            "ml.eia1.xlarge",
+            "ml.eia2.large",
+            "ml.eia2.medium",
+            "ml.eia2.xlarge"
+          ]
         }
       },
       "AdditionalCodeRepositories": {
         "type": "array",
+        "min_items": 0,
+        "max_items": 3,
+        "description": "An array of up to three Git repositories associated with the notebook instance. These can be either the names of Git repositories stored as resources in your account, or the URL of Git repositories in AWS CodeCommit or in any other Git repository. These repositories are cloned at the same level as the default repository of your notebook instance.",
         "items": {
-          "type": "string"
+          "type": "string",
+          "pattern": "^https://([^/]+)/?(.*)$|^[a-zA-Z0-9](-*[a-zA-Z0-9])*$",
+          "min_length": 1,
+          "max_length": 1024
         }
       },
       "DefaultCodeRepository": {
-        "type": "string"
+        "type": "string",
+        "pattern": "^https://([^/]+)/?(.*)$|^[a-zA-Z0-9](-*[a-zA-Z0-9])*$",
+        "min_length": 1,
+        "max_length": 1024,
+        "description": "The Git repository associated with the notebook instance as its default code repository. This can be either the name of a Git repository stored as a resource in your account, or the URL of a Git repository in AWS CodeCommit or in any other Git repository. When you open a notebook instance, it opens in the directory that contains this repository."
       },
       "DirectInternetAccess": {
-        "type": "string"
-      },
-      "Id": {
-        "type": "string"
+        "type": "string",
+        "enum": [
+          "Disabled",
+          "Enabled"
+        ],
+        "description": "Sets whether SageMaker AI provides internet access to the notebook instance. If you set this to Disabled this notebook instance is able to access resources only in your VPC, and is not be able to connect to SageMaker AI training and endpoint services unless you configure a NAT Gateway in your VPC. You can set the value of this parameter to Disabled only if you set a value for the SubnetId parameter."
       },
       "InstanceMetadataServiceConfiguration": {
         "ref_name": "InstanceMetadataServiceConfiguration"
       },
       "InstanceType": {
-        "type": "string"
+        "type": "string",
+        "enum": [
+          "ml.c4.2xlarge",
+          "ml.c4.4xlarge",
+          "ml.c4.8xlarge",
+          "ml.c4.xlarge",
+          "ml.c5.18xlarge",
+          "ml.c5.2xlarge",
+          "ml.c5.4xlarge",
+          "ml.c5.9xlarge",
+          "ml.c5.xlarge",
+          "ml.c5d.18xlarge",
+          "ml.c5d.2xlarge",
+          "ml.c5d.4xlarge",
+          "ml.c5d.9xlarge",
+          "ml.c5d.xlarge",
+          "ml.c6i.12xlarge",
+          "ml.c6i.16xlarge",
+          "ml.c6i.24xlarge",
+          "ml.c6i.2xlarge",
+          "ml.c6i.32xlarge",
+          "ml.c6i.4xlarge",
+          "ml.c6i.8xlarge",
+          "ml.c6i.large",
+          "ml.c6i.xlarge",
+          "ml.c6id.12xlarge",
+          "ml.c6id.16xlarge",
+          "ml.c6id.24xlarge",
+          "ml.c6id.2xlarge",
+          "ml.c6id.32xlarge",
+          "ml.c6id.4xlarge",
+          "ml.c6id.8xlarge",
+          "ml.c6id.large",
+          "ml.c6id.xlarge",
+          "ml.c7i.12xlarge",
+          "ml.c7i.16xlarge",
+          "ml.c7i.24xlarge",
+          "ml.c7i.2xlarge",
+          "ml.c7i.48xlarge",
+          "ml.c7i.4xlarge",
+          "ml.c7i.8xlarge",
+          "ml.c7i.large",
+          "ml.c7i.xlarge",
+          "ml.g4dn.12xlarge",
+          "ml.g4dn.16xlarge",
+          "ml.g4dn.2xlarge",
+          "ml.g4dn.4xlarge",
+          "ml.g4dn.8xlarge",
+          "ml.g4dn.xlarge",
+          "ml.g5.12xlarge",
+          "ml.g5.16xlarge",
+          "ml.g5.24xlarge",
+          "ml.g5.2xlarge",
+          "ml.g5.48xlarge",
+          "ml.g5.4xlarge",
+          "ml.g5.8xlarge",
+          "ml.g5.xlarge",
+          "ml.g6.12xlarge",
+          "ml.g6.16xlarge",
+          "ml.g6.24xlarge",
+          "ml.g6.2xlarge",
+          "ml.g6.48xlarge",
+          "ml.g6.4xlarge",
+          "ml.g6.8xlarge",
+          "ml.g6.xlarge",
+          "ml.g6e.12xlarge",
+          "ml.g6e.16xlarge",
+          "ml.g6e.24xlarge",
+          "ml.g6e.2xlarge",
+          "ml.g6e.48xlarge",
+          "ml.g6e.4xlarge",
+          "ml.g6e.8xlarge",
+          "ml.g6e.xlarge",
+          "ml.g7e.12xlarge",
+          "ml.g7e.24xlarge",
+          "ml.g7e.2xlarge",
+          "ml.g7e.48xlarge",
+          "ml.g7e.4xlarge",
+          "ml.g7e.8xlarge",
+          "ml.inf1.24xlarge",
+          "ml.inf1.2xlarge",
+          "ml.inf1.6xlarge",
+          "ml.inf1.xlarge",
+          "ml.inf2.24xlarge",
+          "ml.inf2.48xlarge",
+          "ml.inf2.8xlarge",
+          "ml.inf2.xlarge",
+          "ml.m4.10xlarge",
+          "ml.m4.16xlarge",
+          "ml.m4.2xlarge",
+          "ml.m4.4xlarge",
+          "ml.m4.xlarge",
+          "ml.m5.12xlarge",
+          "ml.m5.24xlarge",
+          "ml.m5.2xlarge",
+          "ml.m5.4xlarge",
+          "ml.m5.xlarge",
+          "ml.m5d.12xlarge",
+          "ml.m5d.16xlarge",
+          "ml.m5d.24xlarge",
+          "ml.m5d.2xlarge",
+          "ml.m5d.4xlarge",
+          "ml.m5d.8xlarge",
+          "ml.m5d.large",
+          "ml.m5d.xlarge",
+          "ml.m6i.12xlarge",
+          "ml.m6i.16xlarge",
+          "ml.m6i.24xlarge",
+          "ml.m6i.2xlarge",
+          "ml.m6i.32xlarge",
+          "ml.m6i.4xlarge",
+          "ml.m6i.8xlarge",
+          "ml.m6i.large",
+          "ml.m6i.xlarge",
+          "ml.m6id.12xlarge",
+          "ml.m6id.16xlarge",
+          "ml.m6id.24xlarge",
+          "ml.m6id.2xlarge",
+          "ml.m6id.32xlarge",
+          "ml.m6id.4xlarge",
+          "ml.m6id.8xlarge",
+          "ml.m6id.large",
+          "ml.m6id.xlarge",
+          "ml.m7i.12xlarge",
+          "ml.m7i.16xlarge",
+          "ml.m7i.24xlarge",
+          "ml.m7i.2xlarge",
+          "ml.m7i.48xlarge",
+          "ml.m7i.4xlarge",
+          "ml.m7i.8xlarge",
+          "ml.m7i.large",
+          "ml.m7i.xlarge",
+          "ml.p2.16xlarge",
+          "ml.p2.8xlarge",
+          "ml.p2.xlarge",
+          "ml.p3.16xlarge",
+          "ml.p3.2xlarge",
+          "ml.p3.8xlarge",
+          "ml.p3dn.24xlarge",
+          "ml.p4d.24xlarge",
+          "ml.p4de.24xlarge",
+          "ml.p5.48xlarge",
+          "ml.p5.4xlarge",
+          "ml.p5en.48xlarge",
+          "ml.p6-b200.48xlarge",
+          "ml.r5.12xlarge",
+          "ml.r5.16xlarge",
+          "ml.r5.24xlarge",
+          "ml.r5.2xlarge",
+          "ml.r5.4xlarge",
+          "ml.r5.8xlarge",
+          "ml.r5.large",
+          "ml.r5.xlarge",
+          "ml.r6i.12xlarge",
+          "ml.r6i.16xlarge",
+          "ml.r6i.24xlarge",
+          "ml.r6i.2xlarge",
+          "ml.r6i.32xlarge",
+          "ml.r6i.4xlarge",
+          "ml.r6i.8xlarge",
+          "ml.r6i.large",
+          "ml.r6i.xlarge",
+          "ml.r6id.12xlarge",
+          "ml.r6id.16xlarge",
+          "ml.r6id.24xlarge",
+          "ml.r6id.2xlarge",
+          "ml.r6id.32xlarge",
+          "ml.r6id.4xlarge",
+          "ml.r6id.8xlarge",
+          "ml.r6id.large",
+          "ml.r6id.xlarge",
+          "ml.r7i.12xlarge",
+          "ml.r7i.16xlarge",
+          "ml.r7i.24xlarge",
+          "ml.r7i.2xlarge",
+          "ml.r7i.48xlarge",
+          "ml.r7i.4xlarge",
+          "ml.r7i.8xlarge",
+          "ml.r7i.large",
+          "ml.r7i.xlarge",
+          "ml.t2.2xlarge",
+          "ml.t2.large",
+          "ml.t2.medium",
+          "ml.t2.xlarge",
+          "ml.t3.2xlarge",
+          "ml.t3.large",
+          "ml.t3.medium",
+          "ml.t3.xlarge",
+          "ml.trn1.2xlarge",
+          "ml.trn1.32xlarge",
+          "ml.trn1n.32xlarge"
+        ],
+        "description": "The type of ML compute instance to launch for the notebook instance. Expect some interruption of service if this parameter is changed as CloudFormation stops a notebook instance and starts it up again to update it."
       },
       "KmsKeyId": {
         "type": "string",
+        "pattern": "^[a-zA-Z0-9:/_-]*$",
+        "min_length": 0,
+        "max_length": 2048,
+        "description": "The Amazon Resource Name (ARN) of a AWS Key Management Service key that SageMaker AI uses to encrypt data on the storage volume attached to your notebook instance. The KMS key you provide must be enabled.",
         "any_of": [
           {
             "format": "AWS::KMS::Key.Arn"
@@ -375268,35 +375905,73 @@
         ]
       },
       "LifecycleConfigName": {
-        "type": "string"
+        "type": "string",
+        "pattern": "^[a-zA-Z0-9](-*[a-zA-Z0-9])*$",
+        "min_length": 0,
+        "max_length": 63,
+        "description": "The name of a lifecycle configuration to associate with the notebook instance."
+      },
+      "NotebookInstanceArn": {
+        "type": "string",
+        "description": "The Amazon Resource Name (ARN) of the notebook instance."
       },
       "NotebookInstanceName": {
-        "type": "string"
+        "type": "string",
+        "pattern": "^[a-zA-Z0-9](-*[a-zA-Z0-9])*$",
+        "min_length": 1,
+        "max_length": 64,
+        "description": "The name of the new notebook instance."
       },
       "PlatformIdentifier": {
-        "type": "string"
+        "type": "string",
+        "pattern": "^(notebook-al1-v1|notebook-al2-v1|notebook-al2-v2|notebook-al2-v3|notebook-al2023-v1)$",
+        "min_length": 0,
+        "max_length": 20,
+        "description": "The platform identifier of the notebook instance runtime environment. The default value is notebook-al2023-v1."
       },
       "RoleArn": {
         "type": "string",
-        "format": "AWS::IAM::Role.Arn"
+        "pattern": "^arn:aws[a-z\\-]*:iam::\\d{12}:role/?[a-zA-Z_0-9+=,.@\\-_/]+$",
+        "min_length": 20,
+        "max_length": 2048,
+        "format": "AWS::IAM::Role.Arn",
+        "description": "When you send any requests to AWS resources from the notebook instance, SageMaker AI assumes this role to perform tasks on your behalf. You must grant this role necessary permissions so SageMaker AI can perform these tasks. The policy must allow the SageMaker AI service principal (sagemaker.amazonaws.com) permissions to assume this role. To be able to pass this role to SageMaker AI, the caller of this API must have the iam:PassRole permission."
       },
       "RootAccess": {
-        "type": "string"
+        "type": "string",
+        "enum": [
+          "Disabled",
+          "Enabled"
+        ],
+        "description": "Whether root access is enabled or disabled for users of the notebook instance. The default value is Enabled. Lifecycle configurations need root access to be able to set up a notebook instance. Because of this, lifecycle configurations associated with a notebook instance always run with root access even if you disable root access for users."
       },
       "SecurityGroupIds": {
         "type": "array",
+        "min_items": 0,
+        "max_items": 5,
         "format": "AWS::EC2::SecurityGroup.Ids",
+        "description": "The VPC security group IDs, in the form sg-xxxxxxxx. The security groups must be for the same VPC as specified in the subnet.",
         "items": {
           "type": "string",
+          "pattern": "^[-0-9a-zA-Z]+$",
+          "min_length": 0,
+          "max_length": 32,
           "format": "AWS::EC2::SecurityGroup.Id"
         }
       },
       "SubnetId": {
         "type": "string",
-        "format": "AWS::EC2::Subnet.Id"
+        "pattern": "^[-0-9a-zA-Z]+$",
+        "min_length": 0,
+        "max_length": 32,
+        "format": "AWS::EC2::Subnet.Id",
+        "description": "The ID of the subnet in a VPC to which you would like to have a connectivity from your ML compute instance."
       },
       "Tags": {
         "type": "array",
+        "min_items": 0,
+        "max_items": 50,
+        "description": "A list of key-value pairs to apply to this resource.",
         "items": {
           "ref_name": "Tag"
         }
@@ -375304,15 +375979,21 @@
       "VolumeSizeInGB": {
         "type": "integer",
         "minimum": 5.0,
-        "maximum": 16384.0
+        "maximum": 16384.0,
+        "description": "The size, in GB, of the ML storage volume to attach to the notebook instance. The default value is 5 GB. Expect some interruption of service if this parameter is changed as CloudFormation stops a notebook instance and starts it up again to update it."
       }
     },
     "definitions": {
       "InstanceMetadataServiceConfiguration": {
         "type": "object",
+        "description": "Information on the IMDS configuration of the notebook instance",
         "properties": {
           "MinimumInstanceMetadataServiceVersion": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^1|2$",
+            "min_length": 0,
+            "max_length": 1,
+            "description": "Indicates the minimum IMDS version that the notebook instance supports. When passed as part of CreateNotebookInstance, if no value is selected, then it defaults to IMDSv1. This means that both IMDSv1 and IMDSv2 are supported. If passed as part of UpdateNotebookInstance, there is no default."
           }
         },
         "required": [
@@ -375322,12 +376003,21 @@
       },
       "Tag": {
         "type": "object",
+        "description": "A tag object that consists of a key and an optional value, used to manage metadata for SageMaker AWS resources.",
         "properties": {
           "Key": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$",
+            "min_length": 1,
+            "max_length": 128,
+            "description": "The tag key. Tag keys must be unique per resource."
           },
           "Value": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$",
+            "min_length": 0,
+            "max_length": 256,
+            "description": "The tag value."
           }
         },
         "required": [
@@ -375343,18 +376033,21 @@
     ],
     "additional_properties": false,
     "read_only_properties": [
-      "Id"
+      "NotebookInstanceArn"
     ],
     "create_only_properties": [
+      "DirectInternetAccess",
       "KmsKeyId",
       "NotebookInstanceName",
+      "PlatformIdentifier",
       "SecurityGroupIds",
-      "SubnetId",
-      "DirectInternetAccess",
-      "PlatformIdentifier"
+      "SubnetId"
+    ],
+    "deprecated_properties": [
+      "AcceleratorTypes"
     ],
     "primary_identifier": [
-      "Id"
+      "NotebookInstanceArn"
     ],
     "description": "Resource Type definition for AWS::SageMaker::NotebookInstance"
   },
@@ -383910,6 +384603,9 @@
         "pattern": "arn:aws(?:-[a-z]+)*:securityhub:[a-z0-9-]+:\\d{12}:hubv2/[^/](.{0,1022}[^/:])?$",
         "description": "The Amazon Resource Name of the Security Hub V2 resource."
       },
+      "NetworkScanning": {
+        "ref_name": "NetworkScanning"
+      },
       "SubscribedAt": {
         "ref_name": "ISO8601DateString"
       },
@@ -383921,6 +384617,24 @@
       "ISO8601DateString": {
         "type": "string",
         "pattern": "^(\\d\\d\\d\\d)-([0][1-9]|[1][0-2])-([0][1-9]|[1-2](\\d)|[3][0-1])[T](?:([0-1](\\d)|[2][0-3]):[0-5](\\d):[0-5](\\d)|23:59:60)(?:\\.(\\d)+)?([Z]|[+-](\\d\\d)(:?(\\d\\d))?)$"
+      },
+      "NetworkScanning": {
+        "type": "object",
+        "description": "Configuration for the Network Scanning opt-in feature of Security Hub V2. Network Scanning is available in the AWS commercial partition only; specifying this property in another partition, such as AWS GovCloud (US) or China, fails. This property is desired state: if you remove it from a stack that previously set it, the feature is disabled. If a stack has never set it, the feature is left as-is, so a stack that does not manage Network Scanning will not disable it. Network Scanning requires Security Hub V2 to be enabled in the same account and Region.",
+        "properties": {
+          "Status": {
+            "type": "string",
+            "enum": [
+              "ENABLED",
+              "DISABLED"
+            ],
+            "description": "Whether the Network Scanning feature is enabled for this account and Region."
+          }
+        },
+        "required": [
+          "Status"
+        ],
+        "additional_properties": false
       },
       "Tags": {
         "type": "object",
@@ -394733,10 +395447,17 @@
         "format": "json"
       },
       "InstanceId": {
-        "type": "string"
+        "type": "string",
+        "pattern": "^[0-9a-zA-Z_/:.@-]+$",
+        "min_length": 1,
+        "max_length": 64,
+        "description": "An identifier that you want to associate with the instance."
       },
       "ServiceId": {
-        "type": "string"
+        "type": "string",
+        "min_length": 1,
+        "max_length": 255,
+        "description": "The ID or Amazon Resource Name (ARN) of the service that you want to use for settings for the instance."
       }
     },
     "definitions": {},
@@ -394745,14 +395466,13 @@
       "ServiceId"
     ],
     "additional_properties": false,
-    "read_only_properties": [
-      "InstanceId"
-    ],
+    "read_only_properties": [],
     "create_only_properties": [
       "InstanceId",
       "ServiceId"
     ],
     "primary_identifier": [
+      "ServiceId",
       "InstanceId"
     ],
     "description": "Resource Type definition for AWS::ServiceDiscovery::Instance"
