@@ -1,10 +1,10 @@
 # cloudformation-validate vs cfn-lint - Parity Report
 
-> Generated: 2026-09-11 11:10:47  
+> Generated: 2026-09-14 09:21:38  
 > Engine: **composite**  
 > Detail level: **detailed**  
 > Matching: `(rule_id, resource_id, path)` two-pass with `(rule_id, resource_id)` fallback + aliases  
-> Templates compared: **665**  
+> Templates compared: **680**  
 
 ## Terminology
 
@@ -22,27 +22,27 @@
 
 | Metric | Value |
 |--------|------:|
-| True Positives | 4053 |
-| False Positives (engine bugs) | 87 |
-| Engine Extra (correct, cfn-lint gap) | 8257 |
-| False Negatives (engine misses) | 356 |
-| Precision | 97.90% |
-| Recall | 91.93% |
-| F1 | 94.82% |
-| Unique rules detected | 238 |
-| Perfect templates | 495/665 |
+| True Positives | 4104 |
+| False Positives (engine bugs) | 81 |
+| Engine Extra (correct, cfn-lint gap) | 8375 |
+| False Negatives (engine misses) | 360 |
+| Precision | 98.06% |
+| Recall | 91.94% |
+| F1 | 94.90% |
+| Unique rules detected | 240 |
+| Perfect templates | 513/680 |
 | Location mismatches (matched pairs) | 9 |
 
 ### By Severity
 
 | Severity | TP | FP | EE | FN | Precision | Recall |
 |----------|---:|---:|---:|---:|----------:|-------:|
-| Fatal | 447 | 13 | 81 | 145 | 97.17% | 75.51% |
-| Error | 856 | 62 | 12 | 140 | 93.25% | 85.94% |
-| Warning | 2080 | 0 | 371 | 61 | 100.00% | 97.15% |
-| Info | 670 | 12 | 7793 | 10 | 98.24% | 98.53% |
+| Fatal | 452 | 14 | 82 | 146 | 97.00% | 75.59% |
+| Error | 881 | 55 | 12 | 146 | 94.12% | 85.78% |
+| Warning | 2093 | 0 | 375 | 62 | 100.00% | 97.12% |
+| Info | 678 | 12 | 7906 | 6 | 98.26% | 99.12% |
 
-## False Negatives - 356 missed findings across 93 rules
+## False Negatives - 360 missed findings across 92 rules
 
 These are diagnostics cfn-lint expects but the engine does not report.
 
@@ -392,6 +392,40 @@ but found another document
 - **E1021** `LaunchConfiguration` → `Properties.UserData.Fn::Base64.Fn::Sub` L27 in `good_parameters_used_transforms_yaml`
   > {'Fn::Transform': {'Name': 'DynamicUserData'}} is not of type 'array', 'string'
 
+### E3047 - 7 missed - Validate ECS Fargate tasks have the right combination of CPU and memory
+
+- **E3047** `DecimalEquivalent` → `Properties` L29 in `good_ecs_fargate_decimal_units_yaml`
+  > Cpu '2.0 vCPU' is not compatible with memory '4.0 GB'
+- **E3047** `HalfVcpuDecimal` → `Properties` L17 in `good_ecs_fargate_decimal_units_yaml`
+  > Cpu '0.5 vCPU' is not compatible with memory '1 GB'
+- **E3047** `LeadingDecimalPointEquivalent` → `Properties` L65 in `good_ecs_fargate_decimal_units_yaml`
+  > Cpu '.250 vCPU' is not compatible with memory '512'
+- **E3047** `LeadingZeroEquivalent` → `Properties` L53 in `good_ecs_fargate_decimal_units_yaml`
+  > Cpu '02 vCPU' is not compatible with memory '04 GB'
+- **E3047** `PlusDecimalEquivalent` → `Properties` L41 in `good_ecs_fargate_decimal_units_yaml`
+  > Cpu '+2.0 vCPU' is not compatible with memory '+4.0 GB'
+- **E3047** `QuarterVcpuDecimal` → `Properties` L5 in `good_ecs_fargate_decimal_units_yaml`
+  > Cpu '0.25 vCPU' is not compatible with memory '512'
+- **E3047** `TrailingDecimalPointEquivalent` → `Properties` L77 in `good_ecs_fargate_decimal_units_yaml`
+  > Cpu '2. vCPU' is not compatible with memory '4. GB'
+
+### E3048 - 7 missed - Validate ECS Fargate tasks have required properties and values
+
+- **E3048** `DecimalEquivalent` → `Properties.Cpu` L32 in `good_ecs_fargate_decimal_units_yaml`
+  > '2.0 vCPU' does not match '^(\\.25|\\.5|1|2|4|8|16|32)\\s*(?i)vCpu$'
+- **E3048** `HalfVcpuDecimal` → `Properties.Cpu` L20 in `good_ecs_fargate_decimal_units_yaml`
+  > '0.5 vCPU' does not match '^(\\.25|\\.5|1|2|4|8|16|32)\\s*(?i)vCpu$'
+- **E3048** `LeadingDecimalPointEquivalent` → `Properties.Cpu` L68 in `good_ecs_fargate_decimal_units_yaml`
+  > '.250 vCPU' does not match '^(\\.25|\\.5|1|2|4|8|16|32)\\s*(?i)vCpu$'
+- **E3048** `LeadingZeroEquivalent` → `Properties.Cpu` L56 in `good_ecs_fargate_decimal_units_yaml`
+  > '02 vCPU' does not match '^(\\.25|\\.5|1|2|4|8|16|32)\\s*(?i)vCpu$'
+- **E3048** `PlusDecimalEquivalent` → `Properties.Cpu` L44 in `good_ecs_fargate_decimal_units_yaml`
+  > '+2.0 vCPU' does not match '^(\\.25|\\.5|1|2|4|8|16|32)\\s*(?i)vCpu$'
+- **E3048** `QuarterVcpuDecimal` → `Properties.Cpu` L8 in `good_ecs_fargate_decimal_units_yaml`
+  > '0.25 vCPU' does not match '^(\\.25|\\.5|1|2|4|8|16|32)\\s*(?i)vCpu$'
+- **E3048** `TrailingDecimalPointEquivalent` → `Properties.Cpu` L80 in `good_ecs_fargate_decimal_units_yaml`
+  > '2. vCPU' does not match '^(\\.25|\\.5|1|2|4|8|16|32)\\s*(?i)vCpu$'
+
 ### F3014 - 7 missed - Validate only one of a set of required properties are specified
 
 - **F3014** (cfn-lint: E3014) `myInstance2` → `Properties.BlockDeviceMappings.Fn::If.2.0.Fn::If.1.VirtualName` L46 in `bad_core_conditions_yaml`
@@ -494,19 +528,6 @@ but found another document
   > "NumCacheClusters" must be greater than one when creating a cluster when when condition "isCluster" is False at Resources/SecondReplicationGroup/Properties/CacheParameterGroupName/Fn::If/2/Ref/NumCach
 - **E3026** `ThirdReplicationGroup` → `Properties.CacheParameterGroupName.Ref.NumCacheClusters` L77 in `bad_resources_elasticache_cache_cluster_failover_yaml`
   > "NumCacheClusters" must be greater than one when creating a cluster at Resources/ThirdReplicationGroup/Properties/CacheParameterGroupName/Ref/NumCacheClusters
-
-### E3048 - 5 missed - Validate ECS Fargate tasks have required properties and values
-
-- **E3048** `ThirtyTwoVcpuUnsupportedSixtyFourGb` → `Properties.Cpu` L37 in `bad_resources_ecs_fargate_task_sizes_e3047_yaml`
-  > '32 vCPU' does not match '^(\\.25|\\.5|1|2|4|8|16)\\s*(?i)vCpu$'
-- **E3048** `ThirtyTwoVcpuUnsupportedTwoFortyGb` → `Properties.Cpu` L50 in `bad_resources_ecs_fargate_task_sizes_e3047_yaml`
-  > 32768 is not one of ['256', '512', '1024', '2048', '4096', '8192', '16384']
-- **E3048** `ThirtyTwoVcpuOneTwentyGb` → `Properties.Cpu` L75 in `good_ecs_fargate_units_and_sizes_yaml`
-  > '32768' is not one of ['256', '512', '1024', '2048', '4096', '8192', '16384']
-- **E3048** `ThirtyTwoVcpuSixtyGb` → `Properties.Cpu` L59 in `good_ecs_fargate_units_and_sizes_yaml`
-  > '32 vCPU' does not match '^(\\.25|\\.5|1|2|4|8|16)\\s*(?i)vCpu$'
-- **E3048** `ThirtyTwoVcpuTwoFortyFourGb` → `Properties.Cpu` L91 in `good_ecs_fargate_units_and_sizes_yaml`
-  > '32768' is not one of ['256', '512', '1024', '2048', '4096', '8192', '16384']
 
 ### F0013 - 5 missed - Conditions have appropriate properties
 
@@ -637,6 +658,17 @@ but found another document
 - **E3724** → `Globals.Function.CodeUri` L9 in `good_parameters_used_transforms_yaml`
   > {'Bucket': 'somebucket', 'Key': {'Fn::Sub': 'lambda/code/lambda-${Version}-shaded.jar'}} is not of type 'string'
 
+### F3030 - 4 missed - Check if properties have a valid value
+
+- **F3030** (cfn-lint: E3030) `LoadBalancer` → `Properties.Listeners.1.Protocol` L12 in `bad_E3679_classic_elb_listener_index_yaml`
+  > 'http' is not one of ['HTTP', 'HTTPS', 'TCP', 'SSL']
+- **F3030** (cfn-lint: E3030) `Fn` → `Properties.PackageType` L6 in `bad_sam_function_packagetype_invalid_yaml`
+  > 'Banana' is not one of ['Image', 'Zip']
+- **F3030** (cfn-lint: E3030) `LB8A12904C` → `Properties.Listeners.0.Protocol` L679 in `cdk_classic-load-balancer--LoadBalancerStack.template_json`
+  > 'http' is not one of ['HTTP', 'HTTPS', 'TCP', 'SSL']
+- **F3030** (cfn-lint: E3030) `CLBA83A883E` → `Properties.Listeners.0.Protocol` L12 in `gh-issues_issue-186-clb_json`
+  > 'tcp' is not one of ['HTTP', 'HTTPS', 'TCP', 'SSL']
+
 ### F6101 - 4 missed - Validate that outputs values are a string
 
 - **F6101** (cfn-lint: E6101) → `Outputs.EdgeCaseOutput.Value.Fn::If.0` L251-256 in `lsp_condition-usage_yaml`
@@ -648,17 +680,6 @@ but found another document
 - **F6101** (cfn-lint: E6101) → `Outputs.LogicalConditionalOutput.Value.Fn::If.0` L236-239 in `lsp_condition-usage_yaml`
   > {'Fn::And': [{'Condition': 'IsDevelopment'}, {'Condition': 'ShouldCreateDatabase'}]} is not one of ['IsProduction', 'IsDevelopment', 'ShouldCreateDatabase', 'IsProductionAndCreateDB', 'IsDevOrCreateDB
 
-### I3010 - 4 missed - Resource limit
-
-- **I3010** `Memory` → `Properties.MemoryStrategies.0` L9-17 in `gh-issues_issue-38_json`
-  > 'Resources/Memory/Properties/MemoryStrategies/0' is approaching the limit of 1 properties
-- **I3010** `Memory` → `Properties.MemoryStrategies.1` L18-26 in `gh-issues_issue-38_json`
-  > 'Resources/Memory/Properties/MemoryStrategies/1' is approaching the limit of 1 properties
-- **I3010** `Memory` → `Properties.MemoryStrategies.2` L27-35 in `gh-issues_issue-38_json`
-  > 'Resources/Memory/Properties/MemoryStrategies/2' is approaching the limit of 1 properties
-- **I3010** `Memory` → `Properties.MemoryStrategies.3` L36-49 in `gh-issues_issue-38_json`
-  > 'Resources/Memory/Properties/MemoryStrategies/3' is approaching the limit of 1 properties
-
 ### E1011 - 3 missed - FindInMap validation of configuration
 
 - **E1011** `Bucket` → `Properties.Tags.0.Value.Fn::FindInMap.0` L9 in `bad_findinmap_bad_yaml`
@@ -667,15 +688,6 @@ but found another document
   > {'Fn::FindInMap': ['runtime', {'Ref': 'AWS::Region'}, 'production']} is not of type 'object'
 - **E1011** `CreationRootFindInMap` → `CreationPolicy` L34 in `bad_lifecycle_policy_shapes_yaml`
   > {'Fn::FindInMap': ['CreationValues', 'Primary', 'Policy']} is not of type 'object'
-
-### E3047 - 3 missed - Validate ECS Fargate tasks have the right combination of CPU and memory
-
-- **E3047** `ThirtyTwoVcpuOneTwentyGb` → `Properties` L71 in `good_ecs_fargate_units_and_sizes_yaml`
-  > Cpu '32768' is not compatible with memory '122880'
-- **E3047** `ThirtyTwoVcpuSixtyGb` → `Properties` L55 in `good_ecs_fargate_units_and_sizes_yaml`
-  > Cpu '32 vCPU' is not compatible with memory '60 GB'
-- **E3047** `ThirtyTwoVcpuTwoFortyFourGb` → `Properties` L87 in `good_ecs_fargate_units_and_sizes_yaml`
-  > Cpu '32768' is not compatible with memory '244 GB'
 
 ### E3692 - 3 missed - Validate Multi-AZ DB cluster configuration
 
@@ -721,15 +733,6 @@ but found another document
   > Additional properties are not allowed ('NotARealProperty' was unexpected)
 - **F3002** (cfn-lint: E3002) `myFunctionRole` → `Properties.KeySchema.0.KeyType` L73 in `bad_transform_serverless_template_yaml`
   > 'HASH' was expected
-
-### F3030 - 3 missed - Check if properties have a valid value
-
-- **F3030** (cfn-lint: E3030) `Fn` → `Properties.PackageType` L6 in `bad_sam_function_packagetype_invalid_yaml`
-  > 'Banana' is not one of ['Image', 'Zip']
-- **F3030** (cfn-lint: E3030) `LB8A12904C` → `Properties.Listeners.0.Protocol` L679 in `cdk_classic-load-balancer--LoadBalancerStack.template_json`
-  > 'http' is not one of ['HTTP', 'HTTPS', 'TCP', 'SSL']
-- **F3030** (cfn-lint: E3030) `CLBA83A883E` → `Properties.Listeners.0.Protocol` L12 in `gh-issues_issue-186-clb_json`
-  > 'tcp' is not one of ['HTTP', 'HTTPS', 'TCP', 'SSL']
 
 ### I3013 - 3 missed - Check resources with auto expiring content have explicit retention period
 
@@ -849,6 +852,13 @@ but found another document
 - **F3037** (cfn-lint: E3037) `IamGroupWithConditions` → `Properties.ManagedPolicyArns` L22 in `bad_resources_properties_list_duplicates_yaml`
   > ['arn:aws:iam::aws:policy/AdministratorPolicy', 'arn:aws:iam::aws:policy/AdministratorPolicy', {'Ref': 'IamPolicy'}, {'Ref': 'IamPolicy'}] has non-unique elements
 
+### W2002 - 2 missed - Parameter type is not officially supported by CloudFormation
+
+- **W2002** → `Parameters.Unsupported.Type` L4 in `bad_F2002_unsupported_ssm_parameter_type_yaml`
+  > 'AWS::SSM::Parameter::Value<Boolean>' is not an officially documented CloudFormation parameter type. While CloudFormation may accept this type, it will not validate the parameter value.
+- **W2002** → `Parameters.mySsmParam.Type` L30 in `bad_parameters_configuration_yaml`
+  > 'AWS::SSM::Parameter::Value<Test>' is not an officially documented CloudFormation parameter type. While CloudFormation may accept this type, it will not validate the parameter value.
+
 ### W2533 - 2 missed - Check required properties for Lambda if the deployment package is a .zip file
 
 - **W2533** `Fn` → `Properties.CodeUri` L6 in `bad_sam_function_zip_missing_runtime_handler_yaml`
@@ -900,10 +910,10 @@ but found another document
 - **E1150** `Ingress` → `Properties.GroupId` L8 in `good_resources_properties_exclusive_yaml`
   > 'sg-abc1234567' is not a 'AWS::EC2::SecurityGroup.Id' with pattern '^sg-([a-fA-F0-9]{8}|[a-fA-F0-9]{17})$'
 
-### E2529 - 1 missed - Check for SubscriptionFilters have beyond 2 attachments to a CloudWatch Log Group
+### E2529 - 1 missed - Check for SubscriptionFilters have beyond 5 attachments to a CloudWatch Log Group
 
-- **E2529** `LogSubscriptionFunction` → `Properties.Events.FunctionDLogGroup.Properties.LogGroupName` L76 in `bad_some_logs_stream_lambda_yaml`
-  > You can only have 2 Subscription Filters per CloudWatch Log Group
+- **E2529** `LogSubscriptionFunction` → `Properties.Events.SubscriptionA3.Properties.LogGroupName` L71 in `bad_some_logs_stream_lambda_yaml`
+  > You can only have 5 Subscription Filters per CloudWatch Log Group
 
 ### E2533 - 1 missed - Check if Lambda Function Runtimes are updatable
 
@@ -1025,11 +1035,6 @@ but found another document
 - **W2001** → `Parameters.NullParameter` L34 in `bad_parameters_configuration_yaml`
   > Parameter NullParameter not used.
 
-### W2002 - 1 missed - Parameter type is not officially supported by CloudFormation
-
-- **W2002** → `Parameters.mySsmParam.Type` L30 in `bad_parameters_configuration_yaml`
-  > 'AWS::SSM::Parameter::Value<Test>' is not an officially documented CloudFormation parameter type. While CloudFormation may accept this type, it will not validate the parameter value.
-
 ### W3691 - 1 missed - Validate DB Instance Engine Version is not deprecated
 
 - **W3691** `RDSE0E96D00` → `Properties` L93 in `cdk_py-docker-app-with-asg-alb--RDSStack.template_json`
@@ -1040,7 +1045,7 @@ but found another document
 - **W6001** → `Outputs.ImportedValue.Value.Fn::ImportValue` L39 in `good_output_value_string_yaml`
   > The output value {'Fn::ImportValue': 'SomeExportedName'} is an import from another output
 
-## False Positives - 87 extra findings across 15 rules
+## False Positives - 81 extra findings across 15 rules
 
 These are diagnostics the engine reports but cfn-lint does not expect (potential bugs).
 
@@ -1142,29 +1147,6 @@ These are diagnostics the engine reports but cfn-lint does not expect (potential
 - **I3011** `AppName` (AWS::Serverless::Application) L18 in `good_transform_yaml`
   > 'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
 
-### E3639 - 10 extra - When BillingMode is Provisioned you must specify ProvisionedThroughput
-
-- **E3639** `DDBTableTransformAttributeDefinitions` (AWS::DynamoDB::Table) → `Properties.ProvisionedThroughput` L9 in `bad_resources_dynamodb_attributes_transform_e3639_yaml`
-  > ProvisionedThroughput is required when BillingMode defaults to 'PROVISIONED'
-- **E3639** `DDBTableTransformBoth` (AWS::DynamoDB::Table) → `Properties.ProvisionedThroughput` L31 in `bad_resources_dynamodb_attributes_transform_e3639_yaml`
-  > ProvisionedThroughput is required when BillingMode defaults to 'PROVISIONED'
-- **E3639** `DDBTableTransformKeySchema` (AWS::DynamoDB::Table) → `Properties.ProvisionedThroughput` L20 in `bad_resources_dynamodb_attributes_transform_e3639_yaml`
-  > ProvisionedThroughput is required when BillingMode defaults to 'PROVISIONED'
-- **E3639** `MissingDefaultThroughput` (AWS::DynamoDB::Table) → `Properties.ProvisionedThroughput` L12 in `bad_resources_dynamodb_conditional_scenarios_yaml`
-  > ProvisionedThroughput is required when BillingMode defaults to 'PROVISIONED'
-- **E3639** `DefaultProvisioned` (AWS::DynamoDB::Table) → `Properties.ProvisionedThroughput` L23 in `bad_resources_dynamodb_provisioned_throughput_e3639_yaml`
-  > ProvisionedThroughput is required when BillingMode defaults to 'PROVISIONED'
-- **E3639** `DefaultRemovedThenValue` (AWS::DynamoDB::Table) → `Properties.ProvisionedThroughput` L85 in `bad_resources_dynamodb_provisioned_throughput_e3639_yaml`
-  > ProvisionedThroughput is required when BillingMode defaults to 'PROVISIONED'
-- **E3639** `DefaultValueThenRemoved` (AWS::DynamoDB::Table) → `Properties.ProvisionedThroughput` L75 in `bad_resources_dynamodb_provisioned_throughput_e3639_yaml`
-  > ProvisionedThroughput is required when BillingMode defaults to 'PROVISIONED'
-- **E3639** `DDBTableTransformAttributeDefinitions` (AWS::DynamoDB::Table) → `Properties.ProvisionedThroughput` L9 in `good_resources_dynamodb_attributes_transform_yaml`
-  > ProvisionedThroughput is required when BillingMode defaults to 'PROVISIONED'
-- **E3639** `DDBTableTransformBoth` (AWS::DynamoDB::Table) → `Properties.ProvisionedThroughput` L31 in `good_resources_dynamodb_attributes_transform_yaml`
-  > ProvisionedThroughput is required when BillingMode defaults to 'PROVISIONED'
-- **E3639** `DDBTableTransformKeySchema` (AWS::DynamoDB::Table) → `Properties.ProvisionedThroughput` L20 in `good_resources_dynamodb_attributes_transform_yaml`
-  > ProvisionedThroughput is required when BillingMode defaults to 'PROVISIONED'
-
 ### E3019 - 4 extra - Validate that all resources have unique primary identifiers
 
 - **E3019** `ExplicitSubBucket` (AWS::S3::Bucket) → `Properties.BucketName` L18 in `bad_E3019_identity_reference_forms_yaml`
@@ -1220,6 +1202,15 @@ These are diagnostics the engine reports but cfn-lint does not expect (potential
 - **F3016** `NoValuePoliciesWithoutTransform` (AWS::SQS::Queue) → `DeletionPolicy` L64 in `bad_lifecycle_policy_shapes_yaml`
   > DeletionPolicy must be one of Delete, Retain, RetainExceptOnCreate, got null
 
+### E3639 - 3 extra - When BillingMode is Provisioned you must specify ProvisionedThroughput
+
+- **E3639** `DDBTableTransformAttributeDefinitions` (AWS::DynamoDB::Table) → `Properties.ProvisionedThroughput` L9 in `good_resources_dynamodb_attributes_transform_yaml`
+  > ProvisionedThroughput is required when BillingMode defaults to 'PROVISIONED'
+- **E3639** `DDBTableTransformBoth` (AWS::DynamoDB::Table) → `Properties.ProvisionedThroughput` L31 in `good_resources_dynamodb_attributes_transform_yaml`
+  > ProvisionedThroughput is required when BillingMode defaults to 'PROVISIONED'
+- **E3639** `DDBTableTransformKeySchema` (AWS::DynamoDB::Table) → `Properties.ProvisionedThroughput` L20 in `good_resources_dynamodb_attributes_transform_yaml`
+  > ProvisionedThroughput is required when BillingMode defaults to 'PROVISIONED'
+
 ### E3029 - 2 extra - Validate Route53 record set aliases
 
 - **E3029** `ConditionalInvalidAliasTypes` (AWS::Route53::RecordSet) → `Properties.AliasTarget` L48 in `bad_route53_conditional_scenarios_yaml`
@@ -1233,6 +1224,13 @@ These are diagnostics the engine reports but cfn-lint does not expect (potential
   > Additional properties are not allowed ('Id' was unexpected)
 - **E3510** `WildcardServicePolicy` (AWS::IAM::ManagedPolicy) → `Properties.PolicyDocument.Statement.0.Resource` L13 in `bad_resources_iam_identity_policy_wildcard_service_yaml`
   > 'arn:aws:*:::example-bucket/*' does not match '^(arn:(aws[A-Za-z\-]*?|[A-Za-z?*\-]*[?*][A-Za-z?*\-]*):[^:*?]+:[^:]*(:(?:\d{12}|\*|aws)?:.+|)|\*)$'
+
+### F2002 - 2 extra - Parameters have appropriate type
+
+- **F2002** → `Parameters.Unsupported.Type` L4 in `bad_F2002_unsupported_ssm_parameter_type_yaml`
+  > Parameter 'Unsupported' has invalid Type 'AWS::SSM::Parameter::Value<Boolean>'
+- **F2002** → `Parameters.mySsmParam.Type` L30 in `bad_parameters_configuration_yaml`
+  > Parameter 'mySsmParam' has invalid Type 'AWS::SSM::Parameter::Value<Test>'
 
 ### F3017 - 2 extra - Check Properties that need at least one of a list of properties
 
@@ -1258,16 +1256,11 @@ These are diagnostics the engine reports but cfn-lint does not expect (potential
 - **E3001** `myBucketFirstAndLastPass` (AWS::S3::Bucket) L19 in `bad_core_directives_yaml`
   > Resource 'myBucketFirstAndLastPass' has invalid property 'BadProperty'. Valid resource attributes: Type, Properties, DependsOn, Condition, Metadata, DeletionPolicy, UpdateReplacePolicy, UpdatePolicy, 
 
-### F2002 - 1 extra - Parameters have appropriate type
-
-- **F2002** → `Parameters.mySsmParam.Type` L30 in `bad_parameters_configuration_yaml`
-  > Parameter 'mySsmParam' has invalid Type 'AWS::SSM::Parameter::Value<Test>'
-
-## Engine Extra - 8257 correct findings across 43 rules
+## Engine Extra - 8375 correct findings across 43 rules
 
 These are correct diagnostics the engine reports that cfn-lint does not cover.
 
-### I9001 - 5434 findings
+### I9001 - 5520 findings
 
 - **I9001** `MyBucket` (AWS::S3::Bucket) → `Properties.BucketName` L7 in `bad_E1050_dynamic_ref_malformed_yaml`
   > Property 'BucketName' is create-only; updating it will cause resource replacement
@@ -1351,6 +1344,12 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'StackSetName' is create-only; updating it will cause resource replacement
 - **I9001** `InvalidLiteralName` (AWS::Logs::LogGroup) → `Properties.LogGroupName` L8 in `bad_F3031_log_group_name_dollar_brace_yaml`
   > Property 'LogGroupName' is create-only; updating it will cause resource replacement
+- **I9001** `Fleet` (AWS::EC2::EC2Fleet) → `Properties.TargetCapacitySpecification.DefaultTargetCapacityType` L14 in `bad_I3100_previous_generation_sourced_routes_yaml`
+  > Property 'TargetCapacitySpecification.DefaultTargetCapacityType' is create-only; updating it will cause resource replacement
+- **I9001** `Fleet` (AWS::EC2::EC2Fleet) → `Properties.Type` L11 in `bad_I3100_previous_generation_sourced_routes_yaml`
+  > Property 'Type' is create-only; updating it will cause resource replacement
+- **I9001** `SpotFleet` (AWS::EC2::SpotFleet) → `Properties.SpotFleetRequestConfigData.IamFleetRole` L21 in `bad_I3100_previous_generation_sourced_routes_yaml`
+  > Property 'SpotFleetRequestConfigData.IamFleetRole' is create-only; updating it will cause resource replacement
 - **I9001** `VpcControl` (AWS::EC2::VPC) → `Properties.CidrBlock` L17 in `bad_I9001_conditional_create_only_yaml`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
 - **I9001** `VpcWithConditionalCreateOnly` (AWS::EC2::VPC) → `Properties.CidrBlock` L8 in `bad_I9001_conditional_create_only_yaml`
@@ -1365,6 +1364,8 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'BucketName' is create-only; updating it will cause resource replacement
 - **I9001** `MyFunction` (AWS::Lambda::Function) → `Properties.FunctionName` L6 in `bad_W1054_raw_pseudo_param_yaml`
   > Property 'FunctionName' is create-only; updating it will cause resource replacement
+- **I9001** `Directory` (AWS::AppStream::DirectoryConfig) → `Properties.DirectoryName` L10 in `bad_W2501_nested_password_W1011_exact_path_yaml`
+  > Property 'DirectoryName' is create-only; updating it will cause resource replacement
 - **I9001** `Asg` (AWS::AutoScaling::AutoScalingGroup) → `Properties.LaunchConfigurationName` L13 in `bad_W3010_full_coverage_yaml`
   > Property 'LaunchConfigurationName' is conditionally create-only; updating it may cause resource replacement
 - **I9001** `Elb` (AWS::ElasticLoadBalancing::LoadBalancer) → `Properties.AvailabilityZones` L45 in `bad_W3010_full_coverage_yaml`
@@ -1399,6 +1400,34 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'Tags' is create-only; updating it will cause resource replacement
 - **I9001** `ComputeEnvironment` (AWS::Batch::ComputeEnvironment) → `Properties.Type` L13 in `bad_W3030_enum_case_insensitive_mismatch_yaml`
   > Property 'Type' is create-only; updating it will cause resource replacement
+- **I9001** `Authorizer` (AWS::ApiGateway::Authorizer) → `Properties.RestApiId` L41 in `bad_W3660_api_gateway_body_mixing_yaml`
+  > Property 'RestApiId' is create-only; updating it will cause resource replacement
+- **I9001** `Method` (AWS::ApiGateway::Method) → `Properties.HttpMethod` L16 in `bad_W3660_api_gateway_body_mixing_yaml`
+  > Property 'HttpMethod' is create-only; updating it will cause resource replacement
+- **I9001** `Method` (AWS::ApiGateway::Method) → `Properties.ResourceId` L15 in `bad_W3660_api_gateway_body_mixing_yaml`
+  > Property 'ResourceId' is create-only; updating it will cause resource replacement
+- **I9001** `Method` (AWS::ApiGateway::Method) → `Properties.RestApiId` L14 in `bad_W3660_api_gateway_body_mixing_yaml`
+  > Property 'RestApiId' is create-only; updating it will cause resource replacement
+- **I9001** `Model` (AWS::ApiGateway::Model) → `Properties.ContentType` L22 in `bad_W3660_api_gateway_body_mixing_yaml`
+  > Property 'ContentType' is create-only; updating it will cause resource replacement
+- **I9001** `Model` (AWS::ApiGateway::Model) → `Properties.RestApiId` L21 in `bad_W3660_api_gateway_body_mixing_yaml`
+  > Property 'RestApiId' is create-only; updating it will cause resource replacement
+- **I9001** `Resource` (AWS::ApiGateway::Resource) → `Properties.ParentId` L27 in `bad_W3660_api_gateway_body_mixing_yaml`
+  > Property 'ParentId' is create-only; updating it will cause resource replacement
+- **I9001** `Resource` (AWS::ApiGateway::Resource) → `Properties.PathPart` L28 in `bad_W3660_api_gateway_body_mixing_yaml`
+  > Property 'PathPart' is create-only; updating it will cause resource replacement
+- **I9001** `Resource` (AWS::ApiGateway::Resource) → `Properties.RestApiId` L26 in `bad_W3660_api_gateway_body_mixing_yaml`
+  > Property 'RestApiId' is create-only; updating it will cause resource replacement
+- **I9001** `Response` (AWS::ApiGateway::GatewayResponse) → `Properties.ResponseType` L33 in `bad_W3660_api_gateway_body_mixing_yaml`
+  > Property 'ResponseType' is create-only; updating it will cause resource replacement
+- **I9001** `Response` (AWS::ApiGateway::GatewayResponse) → `Properties.RestApiId` L32 in `bad_W3660_api_gateway_body_mixing_yaml`
+  > Property 'RestApiId' is create-only; updating it will cause resource replacement
+- **I9001** `Validator` (AWS::ApiGateway::RequestValidator) → `Properties.RestApiId` L37 in `bad_W3660_api_gateway_body_mixing_yaml`
+  > Property 'RestApiId' is create-only; updating it will cause resource replacement
+- **I9001** `Fleet` (AWS::EC2::SpotFleet) → `Properties.SpotFleetRequestConfigData.IamFleetRole` L7 in `bad_W3671_spotfleet_ebs_iops_yaml`
+  > Property 'SpotFleetRequestConfigData.IamFleetRole' is create-only; updating it will cause resource replacement
+- **I9001** `Fleet` (AWS::EC2::SpotFleet) → `Properties.SpotFleetRequestConfigData.LaunchSpecifications` L9 in `bad_W3671_spotfleet_ebs_iops_yaml`
+  > Property 'SpotFleetRequestConfigData.LaunchSpecifications' is create-only; updating it will cause resource replacement
 - **I9001** `Bucket` (AWS::S3::Bucket) → `Properties.BucketName` L14 in `bad_W9006_every_allowed_value_too_long_json`
   > Property 'BucketName' is create-only; updating it will cause resource replacement
 - **I9001** `Task` (AWS::ECS::TaskDefinition) → `Properties.ContainerDefinitions` L6 in `bad_W9007_duplicate_objects_different_key_order_yaml`
@@ -3801,6 +3830,66 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'KeySchema' is conditionally create-only; updating it may cause resource replacement
 - **I9001** `dynamoDBTable` (AWS::DynamoDB::Table) → `Properties.KeySchema` L14 in `bad_resources_dynamodb_unused_attribute_definition_2_yaml`
   > Property 'KeySchema' is conditionally create-only; updating it may cause resource replacement
+- **I9001** `LeadingCpuWhitespace` (AWS::ECS::TaskDefinition) → `Properties.ContainerDefinitions` L34 in `bad_resources_ecs_fargate_numeric_spellings_e3047_yaml`
+  > Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement
+- **I9001** `LeadingCpuWhitespace` (AWS::ECS::TaskDefinition) → `Properties.Cpu` L32 in `bad_resources_ecs_fargate_numeric_spellings_e3047_yaml`
+  > Property 'Cpu' is create-only; updating it will cause resource replacement
+- **I9001** `LeadingCpuWhitespace` (AWS::ECS::TaskDefinition) → `Properties.Memory` L33 in `bad_resources_ecs_fargate_numeric_spellings_e3047_yaml`
+  > Property 'Memory' is create-only; updating it will cause resource replacement
+- **I9001** `LeadingCpuWhitespace` (AWS::ECS::TaskDefinition) → `Properties.NetworkMode` L31 in `bad_resources_ecs_fargate_numeric_spellings_e3047_yaml`
+  > Property 'NetworkMode' is create-only; updating it will cause resource replacement
+- **I9001** `LeadingCpuWhitespace` (AWS::ECS::TaskDefinition) → `Properties.RequiresCompatibilities` L30 in `bad_resources_ecs_fargate_numeric_spellings_e3047_yaml`
+  > Property 'RequiresCompatibilities' is create-only; updating it will cause resource replacement
+- **I9001** `LeadingMemoryWhitespace` (AWS::ECS::TaskDefinition) → `Properties.ContainerDefinitions` L58 in `bad_resources_ecs_fargate_numeric_spellings_e3047_yaml`
+  > Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement
+- **I9001** `LeadingMemoryWhitespace` (AWS::ECS::TaskDefinition) → `Properties.Cpu` L56 in `bad_resources_ecs_fargate_numeric_spellings_e3047_yaml`
+  > Property 'Cpu' is create-only; updating it will cause resource replacement
+- **I9001** `LeadingMemoryWhitespace` (AWS::ECS::TaskDefinition) → `Properties.Memory` L57 in `bad_resources_ecs_fargate_numeric_spellings_e3047_yaml`
+  > Property 'Memory' is create-only; updating it will cause resource replacement
+- **I9001** `LeadingMemoryWhitespace` (AWS::ECS::TaskDefinition) → `Properties.NetworkMode` L55 in `bad_resources_ecs_fargate_numeric_spellings_e3047_yaml`
+  > Property 'NetworkMode' is create-only; updating it will cause resource replacement
+- **I9001** `LeadingMemoryWhitespace` (AWS::ECS::TaskDefinition) → `Properties.RequiresCompatibilities` L54 in `bad_resources_ecs_fargate_numeric_spellings_e3047_yaml`
+  > Property 'RequiresCompatibilities' is create-only; updating it will cause resource replacement
+- **I9001** `ScientificCpuNotation` (AWS::ECS::TaskDefinition) → `Properties.ContainerDefinitions` L10 in `bad_resources_ecs_fargate_numeric_spellings_e3047_yaml`
+  > Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement
+- **I9001** `ScientificCpuNotation` (AWS::ECS::TaskDefinition) → `Properties.Cpu` L8 in `bad_resources_ecs_fargate_numeric_spellings_e3047_yaml`
+  > Property 'Cpu' is create-only; updating it will cause resource replacement
+- **I9001** `ScientificCpuNotation` (AWS::ECS::TaskDefinition) → `Properties.Memory` L9 in `bad_resources_ecs_fargate_numeric_spellings_e3047_yaml`
+  > Property 'Memory' is create-only; updating it will cause resource replacement
+- **I9001** `ScientificCpuNotation` (AWS::ECS::TaskDefinition) → `Properties.NetworkMode` L7 in `bad_resources_ecs_fargate_numeric_spellings_e3047_yaml`
+  > Property 'NetworkMode' is create-only; updating it will cause resource replacement
+- **I9001** `ScientificCpuNotation` (AWS::ECS::TaskDefinition) → `Properties.RequiresCompatibilities` L6 in `bad_resources_ecs_fargate_numeric_spellings_e3047_yaml`
+  > Property 'RequiresCompatibilities' is create-only; updating it will cause resource replacement
+- **I9001** `ScientificMemoryNotation` (AWS::ECS::TaskDefinition) → `Properties.ContainerDefinitions` L22 in `bad_resources_ecs_fargate_numeric_spellings_e3047_yaml`
+  > Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement
+- **I9001** `ScientificMemoryNotation` (AWS::ECS::TaskDefinition) → `Properties.Cpu` L20 in `bad_resources_ecs_fargate_numeric_spellings_e3047_yaml`
+  > Property 'Cpu' is create-only; updating it will cause resource replacement
+- **I9001** `ScientificMemoryNotation` (AWS::ECS::TaskDefinition) → `Properties.Memory` L21 in `bad_resources_ecs_fargate_numeric_spellings_e3047_yaml`
+  > Property 'Memory' is create-only; updating it will cause resource replacement
+- **I9001** `ScientificMemoryNotation` (AWS::ECS::TaskDefinition) → `Properties.NetworkMode` L19 in `bad_resources_ecs_fargate_numeric_spellings_e3047_yaml`
+  > Property 'NetworkMode' is create-only; updating it will cause resource replacement
+- **I9001** `ScientificMemoryNotation` (AWS::ECS::TaskDefinition) → `Properties.RequiresCompatibilities` L18 in `bad_resources_ecs_fargate_numeric_spellings_e3047_yaml`
+  > Property 'RequiresCompatibilities' is create-only; updating it will cause resource replacement
+- **I9001** `TrailingCpuWhitespace` (AWS::ECS::TaskDefinition) → `Properties.ContainerDefinitions` L46 in `bad_resources_ecs_fargate_numeric_spellings_e3047_yaml`
+  > Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement
+- **I9001** `TrailingCpuWhitespace` (AWS::ECS::TaskDefinition) → `Properties.Cpu` L44 in `bad_resources_ecs_fargate_numeric_spellings_e3047_yaml`
+  > Property 'Cpu' is create-only; updating it will cause resource replacement
+- **I9001** `TrailingCpuWhitespace` (AWS::ECS::TaskDefinition) → `Properties.Memory` L45 in `bad_resources_ecs_fargate_numeric_spellings_e3047_yaml`
+  > Property 'Memory' is create-only; updating it will cause resource replacement
+- **I9001** `TrailingCpuWhitespace` (AWS::ECS::TaskDefinition) → `Properties.NetworkMode` L43 in `bad_resources_ecs_fargate_numeric_spellings_e3047_yaml`
+  > Property 'NetworkMode' is create-only; updating it will cause resource replacement
+- **I9001** `TrailingCpuWhitespace` (AWS::ECS::TaskDefinition) → `Properties.RequiresCompatibilities` L42 in `bad_resources_ecs_fargate_numeric_spellings_e3047_yaml`
+  > Property 'RequiresCompatibilities' is create-only; updating it will cause resource replacement
+- **I9001** `TrailingMemoryWhitespace` (AWS::ECS::TaskDefinition) → `Properties.ContainerDefinitions` L70 in `bad_resources_ecs_fargate_numeric_spellings_e3047_yaml`
+  > Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement
+- **I9001** `TrailingMemoryWhitespace` (AWS::ECS::TaskDefinition) → `Properties.Cpu` L68 in `bad_resources_ecs_fargate_numeric_spellings_e3047_yaml`
+  > Property 'Cpu' is create-only; updating it will cause resource replacement
+- **I9001** `TrailingMemoryWhitespace` (AWS::ECS::TaskDefinition) → `Properties.Memory` L69 in `bad_resources_ecs_fargate_numeric_spellings_e3047_yaml`
+  > Property 'Memory' is create-only; updating it will cause resource replacement
+- **I9001** `TrailingMemoryWhitespace` (AWS::ECS::TaskDefinition) → `Properties.NetworkMode` L67 in `bad_resources_ecs_fargate_numeric_spellings_e3047_yaml`
+  > Property 'NetworkMode' is create-only; updating it will cause resource replacement
+- **I9001** `TrailingMemoryWhitespace` (AWS::ECS::TaskDefinition) → `Properties.RequiresCompatibilities` L66 in `bad_resources_ecs_fargate_numeric_spellings_e3047_yaml`
+  > Property 'RequiresCompatibilities' is create-only; updating it will cause resource replacement
 - **I9001** `ConditionalEc2ThenFargateMissingNetworkMode` (AWS::ECS::TaskDefinition) → `Properties.ContainerDefinitions` L206 in `bad_resources_ecs_fargate_properties_e3048_yaml`
   > Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement
 - **I9001** `ConditionalEc2ThenFargateMissingNetworkMode` (AWS::ECS::TaskDefinition) → `Properties.Cpu` L204 in `bad_resources_ecs_fargate_properties_e3048_yaml`
@@ -9047,6 +9136,8 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'Principal' is create-only; updating it will cause resource replacement
 - **I9001** `PermissionWithAccountId` (AWS::Lambda::Permission) → `Properties.SourceArn` L25 in `gh-issues_issue-183_yaml`
   > Property 'SourceArn' is create-only; updating it will cause resource replacement
+- **I9001** `AuroraInstance` (AWS::RDS::DBInstance) → `Properties.Engine` L6 in `gh-issues_issue-184_yaml`
+  > Property 'Engine' is conditionally create-only; updating it may cause resource replacement
 - **I9001** `CLBA83A883E` (AWS::ElasticLoadBalancing::LoadBalancer) → `Properties.Scheme` L15 in `gh-issues_issue-186-clb_json`
   > Property 'Scheme' is create-only; updating it will cause resource replacement
 - **I9001** `CLBA83A883E` (AWS::ElasticLoadBalancing::LoadBalancer) → `Properties.Subnets` L19 in `gh-issues_issue-186-clb_json`
@@ -9215,6 +9306,10 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'ImageId' is create-only; updating it will cause resource replacement
 - **I9001** `Instance2` (AWS::EC2::Instance) → `Properties.InstanceType` L24 in `gh-issues_issue-34_json`
   > Property 'InstanceType' is conditionally create-only; updating it may cause resource replacement
+- **I9001** `FirstBucketPolicy` (AWS::S3::BucketPolicy) → `Properties.Bucket` L7 in `gh-issues_issue-357_yaml`
+  > Property 'Bucket' is create-only; updating it will cause resource replacement
+- **I9001** `SecondBucketPolicy` (AWS::S3::BucketPolicy) → `Properties.Bucket` L18 in `gh-issues_issue-357_yaml`
+  > Property 'Bucket' is create-only; updating it will cause resource replacement
 - **I9001** `TaskDef` (AWS::ECS::TaskDefinition) → `Properties.ExecutionRoleArn` L11 in `gh-issues_issue-36_yaml`
   > Property 'ExecutionRoleArn' is create-only; updating it will cause resource replacement
 - **I9001** `MyAsg` (AWS::AutoScaling::AutoScalingGroup) → `Properties.LaunchConfigurationName` L11 in `gh-issues_issue-37_yaml`
@@ -9660,6 +9755,76 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **I9001** `ValidFargateSplunk` (AWS::ECS::TaskDefinition) → `Properties.NetworkMode` L34 in `good_ecs_fargate_ddb_valid_yaml`
   > Property 'NetworkMode' is create-only; updating it will cause resource replacement
 - **I9001** `ValidFargateSplunk` (AWS::ECS::TaskDefinition) → `Properties.RequiresCompatibilities` L32 in `good_ecs_fargate_ddb_valid_yaml`
+  > Property 'RequiresCompatibilities' is create-only; updating it will cause resource replacement
+- **I9001** `DecimalEquivalent` (AWS::ECS::TaskDefinition) → `Properties.ContainerDefinitions` L34 in `good_ecs_fargate_decimal_units_yaml`
+  > Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement
+- **I9001** `DecimalEquivalent` (AWS::ECS::TaskDefinition) → `Properties.Cpu` L32 in `good_ecs_fargate_decimal_units_yaml`
+  > Property 'Cpu' is create-only; updating it will cause resource replacement
+- **I9001** `DecimalEquivalent` (AWS::ECS::TaskDefinition) → `Properties.Memory` L33 in `good_ecs_fargate_decimal_units_yaml`
+  > Property 'Memory' is create-only; updating it will cause resource replacement
+- **I9001** `DecimalEquivalent` (AWS::ECS::TaskDefinition) → `Properties.NetworkMode` L31 in `good_ecs_fargate_decimal_units_yaml`
+  > Property 'NetworkMode' is create-only; updating it will cause resource replacement
+- **I9001** `DecimalEquivalent` (AWS::ECS::TaskDefinition) → `Properties.RequiresCompatibilities` L30 in `good_ecs_fargate_decimal_units_yaml`
+  > Property 'RequiresCompatibilities' is create-only; updating it will cause resource replacement
+- **I9001** `HalfVcpuDecimal` (AWS::ECS::TaskDefinition) → `Properties.ContainerDefinitions` L22 in `good_ecs_fargate_decimal_units_yaml`
+  > Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement
+- **I9001** `HalfVcpuDecimal` (AWS::ECS::TaskDefinition) → `Properties.Cpu` L20 in `good_ecs_fargate_decimal_units_yaml`
+  > Property 'Cpu' is create-only; updating it will cause resource replacement
+- **I9001** `HalfVcpuDecimal` (AWS::ECS::TaskDefinition) → `Properties.Memory` L21 in `good_ecs_fargate_decimal_units_yaml`
+  > Property 'Memory' is create-only; updating it will cause resource replacement
+- **I9001** `HalfVcpuDecimal` (AWS::ECS::TaskDefinition) → `Properties.NetworkMode` L19 in `good_ecs_fargate_decimal_units_yaml`
+  > Property 'NetworkMode' is create-only; updating it will cause resource replacement
+- **I9001** `HalfVcpuDecimal` (AWS::ECS::TaskDefinition) → `Properties.RequiresCompatibilities` L18 in `good_ecs_fargate_decimal_units_yaml`
+  > Property 'RequiresCompatibilities' is create-only; updating it will cause resource replacement
+- **I9001** `LeadingDecimalPointEquivalent` (AWS::ECS::TaskDefinition) → `Properties.ContainerDefinitions` L70 in `good_ecs_fargate_decimal_units_yaml`
+  > Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement
+- **I9001** `LeadingDecimalPointEquivalent` (AWS::ECS::TaskDefinition) → `Properties.Cpu` L68 in `good_ecs_fargate_decimal_units_yaml`
+  > Property 'Cpu' is create-only; updating it will cause resource replacement
+- **I9001** `LeadingDecimalPointEquivalent` (AWS::ECS::TaskDefinition) → `Properties.Memory` L69 in `good_ecs_fargate_decimal_units_yaml`
+  > Property 'Memory' is create-only; updating it will cause resource replacement
+- **I9001** `LeadingDecimalPointEquivalent` (AWS::ECS::TaskDefinition) → `Properties.NetworkMode` L67 in `good_ecs_fargate_decimal_units_yaml`
+  > Property 'NetworkMode' is create-only; updating it will cause resource replacement
+- **I9001** `LeadingDecimalPointEquivalent` (AWS::ECS::TaskDefinition) → `Properties.RequiresCompatibilities` L66 in `good_ecs_fargate_decimal_units_yaml`
+  > Property 'RequiresCompatibilities' is create-only; updating it will cause resource replacement
+- **I9001** `LeadingZeroEquivalent` (AWS::ECS::TaskDefinition) → `Properties.ContainerDefinitions` L58 in `good_ecs_fargate_decimal_units_yaml`
+  > Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement
+- **I9001** `LeadingZeroEquivalent` (AWS::ECS::TaskDefinition) → `Properties.Cpu` L56 in `good_ecs_fargate_decimal_units_yaml`
+  > Property 'Cpu' is create-only; updating it will cause resource replacement
+- **I9001** `LeadingZeroEquivalent` (AWS::ECS::TaskDefinition) → `Properties.Memory` L57 in `good_ecs_fargate_decimal_units_yaml`
+  > Property 'Memory' is create-only; updating it will cause resource replacement
+- **I9001** `LeadingZeroEquivalent` (AWS::ECS::TaskDefinition) → `Properties.NetworkMode` L55 in `good_ecs_fargate_decimal_units_yaml`
+  > Property 'NetworkMode' is create-only; updating it will cause resource replacement
+- **I9001** `LeadingZeroEquivalent` (AWS::ECS::TaskDefinition) → `Properties.RequiresCompatibilities` L54 in `good_ecs_fargate_decimal_units_yaml`
+  > Property 'RequiresCompatibilities' is create-only; updating it will cause resource replacement
+- **I9001** `PlusDecimalEquivalent` (AWS::ECS::TaskDefinition) → `Properties.ContainerDefinitions` L46 in `good_ecs_fargate_decimal_units_yaml`
+  > Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement
+- **I9001** `PlusDecimalEquivalent` (AWS::ECS::TaskDefinition) → `Properties.Cpu` L44 in `good_ecs_fargate_decimal_units_yaml`
+  > Property 'Cpu' is create-only; updating it will cause resource replacement
+- **I9001** `PlusDecimalEquivalent` (AWS::ECS::TaskDefinition) → `Properties.Memory` L45 in `good_ecs_fargate_decimal_units_yaml`
+  > Property 'Memory' is create-only; updating it will cause resource replacement
+- **I9001** `PlusDecimalEquivalent` (AWS::ECS::TaskDefinition) → `Properties.NetworkMode` L43 in `good_ecs_fargate_decimal_units_yaml`
+  > Property 'NetworkMode' is create-only; updating it will cause resource replacement
+- **I9001** `PlusDecimalEquivalent` (AWS::ECS::TaskDefinition) → `Properties.RequiresCompatibilities` L42 in `good_ecs_fargate_decimal_units_yaml`
+  > Property 'RequiresCompatibilities' is create-only; updating it will cause resource replacement
+- **I9001** `QuarterVcpuDecimal` (AWS::ECS::TaskDefinition) → `Properties.ContainerDefinitions` L10 in `good_ecs_fargate_decimal_units_yaml`
+  > Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement
+- **I9001** `QuarterVcpuDecimal` (AWS::ECS::TaskDefinition) → `Properties.Cpu` L8 in `good_ecs_fargate_decimal_units_yaml`
+  > Property 'Cpu' is create-only; updating it will cause resource replacement
+- **I9001** `QuarterVcpuDecimal` (AWS::ECS::TaskDefinition) → `Properties.Memory` L9 in `good_ecs_fargate_decimal_units_yaml`
+  > Property 'Memory' is create-only; updating it will cause resource replacement
+- **I9001** `QuarterVcpuDecimal` (AWS::ECS::TaskDefinition) → `Properties.NetworkMode` L7 in `good_ecs_fargate_decimal_units_yaml`
+  > Property 'NetworkMode' is create-only; updating it will cause resource replacement
+- **I9001** `QuarterVcpuDecimal` (AWS::ECS::TaskDefinition) → `Properties.RequiresCompatibilities` L6 in `good_ecs_fargate_decimal_units_yaml`
+  > Property 'RequiresCompatibilities' is create-only; updating it will cause resource replacement
+- **I9001** `TrailingDecimalPointEquivalent` (AWS::ECS::TaskDefinition) → `Properties.ContainerDefinitions` L82 in `good_ecs_fargate_decimal_units_yaml`
+  > Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement
+- **I9001** `TrailingDecimalPointEquivalent` (AWS::ECS::TaskDefinition) → `Properties.Cpu` L80 in `good_ecs_fargate_decimal_units_yaml`
+  > Property 'Cpu' is create-only; updating it will cause resource replacement
+- **I9001** `TrailingDecimalPointEquivalent` (AWS::ECS::TaskDefinition) → `Properties.Memory` L81 in `good_ecs_fargate_decimal_units_yaml`
+  > Property 'Memory' is create-only; updating it will cause resource replacement
+- **I9001** `TrailingDecimalPointEquivalent` (AWS::ECS::TaskDefinition) → `Properties.NetworkMode` L79 in `good_ecs_fargate_decimal_units_yaml`
+  > Property 'NetworkMode' is create-only; updating it will cause resource replacement
+- **I9001** `TrailingDecimalPointEquivalent` (AWS::ECS::TaskDefinition) → `Properties.RequiresCompatibilities` L78 in `good_ecs_fargate_decimal_units_yaml`
   > Property 'RequiresCompatibilities' is create-only; updating it will cause resource replacement
 - **I9001** `ConditionalRequiredProperties` (AWS::ECS::TaskDefinition) → `Properties.ContainerDefinitions` L114 in `good_ecs_fargate_units_and_sizes_yaml`
   > Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement
@@ -12138,10 +12303,20 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **I9001** `VPCGatewayAttachment` (AWS::EC2::VPCGatewayAttachment) → `Properties.VpcId` L558 in `quickstart_vpc_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
 
-### I9040 - 2298 findings
+### I9040 - 2324 findings
 
 - **I9040** `Instance` (AWS::EC2::Instance) → `Properties.Tags` L8 in `bad_E1150_network_interfaces_groupset_multi_yaml`
   > Resource 'Instance' of type 'AWS::EC2::Instance' supports Tags but none are configured
+- **I9040** `ExcludedJava8` (AWS::Lambda::Function) → `Properties.Tags` L14 in `bad_E2530_I2530_snapstart_sourced_tables_yaml`
+  > Resource 'ExcludedJava8' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `NotRecommendedDotNet` (AWS::Lambda::Function) → `Properties.Tags` L23 in `bad_E2530_I2530_snapstart_sourced_tables_yaml`
+  > Resource 'NotRecommendedDotNet' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `RecommendedJava` (AWS::Lambda::Function) → `Properties.Tags` L5 in `bad_E2530_I2530_snapstart_sourced_tables_yaml`
+  > Resource 'RecommendedJava' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `RegionLimitedJava` (AWS::Lambda::Function) → `Properties.Tags` L43 in `bad_E2530_I2530_snapstart_sourced_tables_yaml`
+  > Resource 'RegionLimitedJava' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `UnsupportedPython` (AWS::Lambda::Function) → `Properties.Tags` L32 in `bad_E2530_I2530_snapstart_sourced_tables_yaml`
+  > Resource 'UnsupportedPython' of type 'AWS::Lambda::Function' supports Tags but none are configured
 - **I9040** `A` (AWS::S3::Bucket) → `Properties.Tags` L8 in `bad_E3019_four_way_group_yaml`
   > Resource 'A' of type 'AWS::S3::Bucket' supports Tags but none are configured
 - **I9040** `B` (AWS::S3::Bucket) → `Properties.Tags` L12 in `bad_E3019_four_way_group_yaml`
@@ -12162,6 +12337,10 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'RefBucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
 - **I9040** `SubBucket` (AWS::S3::Bucket) → `Properties.Tags` L14 in `bad_E3019_identity_reference_forms_yaml`
   > Resource 'SubBucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
+- **I9040** `Domain` (AWS::OpenSearchService::Domain) → `Properties.Tags` L5 in `bad_E3512_opensearch_access_policy_yaml`
+  > Resource 'Domain' of type 'AWS::OpenSearchService::Domain' supports Tags but none are configured
+- **I9040** `LoadBalancer` (AWS::ElasticLoadBalancing::LoadBalancer) → `Properties.Tags` L5 in `bad_E3679_classic_elb_listener_index_yaml`
+  > Resource 'LoadBalancer' of type 'AWS::ElasticLoadBalancing::LoadBalancer' supports Tags but none are configured
 - **I9040** `RestApi1` (AWS::ApiGateway::RestApi) → `Properties.Tags` L14 in `bad_E3699_authorizer_literal_and_param_rest_api_yaml`
   > Resource 'RestApi1' of type 'AWS::ApiGateway::RestApi' supports Tags but none are configured
 - **I9040** `RestApiA` (AWS::ApiGateway::RestApi) → `Properties.Tags` L10 in `bad_E3699_method_authorizer_rest_api_mismatch_yaml`
@@ -12180,6 +12359,8 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'MissingTemplateSourceInOneWorld' of type 'AWS::CloudFormation::StackSet' supports Tags but none are configured
 - **I9040** `InvalidLiteralName` (AWS::Logs::LogGroup) → `Properties.Tags` L7 in `bad_F3031_log_group_name_dollar_brace_yaml`
   > Resource 'InvalidLiteralName' of type 'AWS::Logs::LogGroup' supports Tags but none are configured
+- **I9040** `SpotFleet` (AWS::EC2::SpotFleet) → `Properties.Tags` L19 in `bad_I3100_previous_generation_sourced_routes_yaml`
+  > Resource 'SpotFleet' of type 'AWS::EC2::SpotFleet' supports Tags but none are configured
 - **I9040** `MyBucket` (AWS::S3::Bucket) → `Properties.Tags` L5 in `bad_W1019_sub_unused_key_yaml`
   > Resource 'MyBucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
 - **I9040** `Bucket` (AWS::S3::Bucket) → `Properties.Tags` L26 in `bad_W1028_allowedvalues_excludes_literal_yaml`
@@ -12190,6 +12371,8 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'MyBucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
 - **I9040** `MyFunction` (AWS::Lambda::Function) → `Properties.Tags` L5 in `bad_W1054_raw_pseudo_param_yaml`
   > Resource 'MyFunction' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `User` (AWS::IAM::User) → `Properties.Tags` L18 in `bad_W2501_nested_password_W1011_exact_path_yaml`
+  > Resource 'User' of type 'AWS::IAM::User' supports Tags but none are configured
 - **I9040** `Asg` (AWS::AutoScaling::AutoScalingGroup) → `Properties.Tags` L7 in `bad_W3010_full_coverage_yaml`
   > Resource 'Asg' of type 'AWS::AutoScaling::AutoScalingGroup' supports Tags but none are configured
 - **I9040** `Elb` (AWS::ElasticLoadBalancing::LoadBalancer) → `Properties.Tags` L44 in `bad_W3010_full_coverage_yaml`
@@ -12206,6 +12389,10 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'Tg' of type 'AWS::ElasticLoadBalancingV2::TargetGroup' supports Tags but none are configured
 - **I9040** `Volume` (AWS::EC2::Volume) → `Properties.Tags` L39 in `bad_W3010_full_coverage_yaml`
   > Resource 'Volume' of type 'AWS::EC2::Volume' supports Tags but none are configured
+- **I9040** `Api` (AWS::ApiGateway::RestApi) → `Properties.Tags` L5 in `bad_W3660_api_gateway_body_mixing_yaml`
+  > Resource 'Api' of type 'AWS::ApiGateway::RestApi' supports Tags but none are configured
+- **I9040** `Fleet` (AWS::EC2::SpotFleet) → `Properties.Tags` L5 in `bad_W3671_spotfleet_ebs_iops_yaml`
+  > Resource 'Fleet' of type 'AWS::EC2::SpotFleet' supports Tags but none are configured
 - **I9040** `Bucket` (AWS::S3::Bucket) → `Properties.Tags` L14 in `bad_W9006_every_allowed_value_too_long_json`
   > Resource 'Bucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
 - **I9040** `Task` (AWS::ECS::TaskDefinition) → `Properties.Tags` L5 in `bad_W9007_duplicate_objects_different_key_order_yaml`
@@ -13710,6 +13897,18 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'InvalidDriverInFargateBranch' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured
 - **I9040** `PlacementInFargateBranch` (AWS::ECS::TaskDefinition) → `Properties.Tags` L15 in `bad_resources_ecs_fargate_conditional_properties_yaml`
   > Resource 'PlacementInFargateBranch' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured
+- **I9040** `LeadingCpuWhitespace` (AWS::ECS::TaskDefinition) → `Properties.Tags` L29 in `bad_resources_ecs_fargate_numeric_spellings_e3047_yaml`
+  > Resource 'LeadingCpuWhitespace' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured
+- **I9040** `LeadingMemoryWhitespace` (AWS::ECS::TaskDefinition) → `Properties.Tags` L53 in `bad_resources_ecs_fargate_numeric_spellings_e3047_yaml`
+  > Resource 'LeadingMemoryWhitespace' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured
+- **I9040** `ScientificCpuNotation` (AWS::ECS::TaskDefinition) → `Properties.Tags` L5 in `bad_resources_ecs_fargate_numeric_spellings_e3047_yaml`
+  > Resource 'ScientificCpuNotation' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured
+- **I9040** `ScientificMemoryNotation` (AWS::ECS::TaskDefinition) → `Properties.Tags` L17 in `bad_resources_ecs_fargate_numeric_spellings_e3047_yaml`
+  > Resource 'ScientificMemoryNotation' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured
+- **I9040** `TrailingCpuWhitespace` (AWS::ECS::TaskDefinition) → `Properties.Tags` L41 in `bad_resources_ecs_fargate_numeric_spellings_e3047_yaml`
+  > Resource 'TrailingCpuWhitespace' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured
+- **I9040** `TrailingMemoryWhitespace` (AWS::ECS::TaskDefinition) → `Properties.Tags` L65 in `bad_resources_ecs_fargate_numeric_spellings_e3047_yaml`
+  > Resource 'TrailingMemoryWhitespace' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured
 - **I9040** `ConditionalEc2ThenFargateMissingNetworkMode` (AWS::ECS::TaskDefinition) → `Properties.Tags` L202 in `bad_resources_ecs_fargate_properties_e3048_yaml`
   > Resource 'ConditionalEc2ThenFargateMissingNetworkMode' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured
 - **I9040** `ConditionalFargateThenEc2MissingNetworkMode` (AWS::ECS::TaskDefinition) → `Properties.Tags` L191 in `bad_resources_ecs_fargate_properties_e3048_yaml`
@@ -15392,6 +15591,8 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'Flow' of type 'AWS::MediaConnect::Flow' supports Tags but none are configured
 - **I9040** `MyLambda` (AWS::Lambda::Function) → `Properties.Tags` L12 in `gh-issues_issue-183_yaml`
   > Resource 'MyLambda' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `AuroraInstance` (AWS::RDS::DBInstance) → `Properties.Tags` L4 in `gh-issues_issue-184_yaml`
+  > Resource 'AuroraInstance' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
 - **I9040** `InvertedRangeSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.Tags` L23 in `gh-issues_issue-226_yaml`
   > Resource 'InvertedRangeSecurityGroup' of type 'AWS::EC2::SecurityGroup' supports Tags but none are configured
 - **I9040** `PingSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.Tags` L10 in `gh-issues_issue-226_yaml`
@@ -15484,6 +15685,8 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'Instance' of type 'AWS::EC2::Instance' supports Tags but none are configured
 - **I9040** `Instance2` (AWS::EC2::Instance) → `Properties.Tags` L22 in `gh-issues_issue-34_json`
   > Resource 'Instance2' of type 'AWS::EC2::Instance' supports Tags but none are configured
+- **I9040** `CfnBucket` (AWS::S3::Bucket) → `Properties.Tags` L2 in `gh-issues_issue-357_yaml`
+  > Resource 'CfnBucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
 - **I9040** `ScheduledRule` (AWS::Events::Rule) → `Properties.Tags` L4 in `gh-issues_issue-35_yaml`
   > Resource 'ScheduledRule' of type 'AWS::Events::Rule' supports Tags but none are configured
 - **I9040** `TaskDef` (AWS::ECS::TaskDefinition) → `Properties.Tags` L10 in `gh-issues_issue-36_yaml`
@@ -15730,6 +15933,20 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'ValidFargate' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured
 - **I9040** `ValidFargateSplunk` (AWS::ECS::TaskDefinition) → `Properties.Tags` L30 in `good_ecs_fargate_ddb_valid_yaml`
   > Resource 'ValidFargateSplunk' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured
+- **I9040** `DecimalEquivalent` (AWS::ECS::TaskDefinition) → `Properties.Tags` L29 in `good_ecs_fargate_decimal_units_yaml`
+  > Resource 'DecimalEquivalent' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured
+- **I9040** `HalfVcpuDecimal` (AWS::ECS::TaskDefinition) → `Properties.Tags` L17 in `good_ecs_fargate_decimal_units_yaml`
+  > Resource 'HalfVcpuDecimal' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured
+- **I9040** `LeadingDecimalPointEquivalent` (AWS::ECS::TaskDefinition) → `Properties.Tags` L65 in `good_ecs_fargate_decimal_units_yaml`
+  > Resource 'LeadingDecimalPointEquivalent' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured
+- **I9040** `LeadingZeroEquivalent` (AWS::ECS::TaskDefinition) → `Properties.Tags` L53 in `good_ecs_fargate_decimal_units_yaml`
+  > Resource 'LeadingZeroEquivalent' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured
+- **I9040** `PlusDecimalEquivalent` (AWS::ECS::TaskDefinition) → `Properties.Tags` L41 in `good_ecs_fargate_decimal_units_yaml`
+  > Resource 'PlusDecimalEquivalent' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured
+- **I9040** `QuarterVcpuDecimal` (AWS::ECS::TaskDefinition) → `Properties.Tags` L5 in `good_ecs_fargate_decimal_units_yaml`
+  > Resource 'QuarterVcpuDecimal' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured
+- **I9040** `TrailingDecimalPointEquivalent` (AWS::ECS::TaskDefinition) → `Properties.Tags` L77 in `good_ecs_fargate_decimal_units_yaml`
+  > Resource 'TrailingDecimalPointEquivalent' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured
 - **I9040** `TaskDef` (AWS::ECS::TaskDefinition) → `Properties.Tags` L5 in `good_ecs_fargate_valid_yaml`
   > Resource 'TaskDef' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured
 - **I9040** `Service` (AWS::ECS::Service) → `Properties.Tags` L18 in `good_ecs_fargate_yaml`
@@ -16737,8 +16954,16 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **I9040** `S3VPCEndpoint` (AWS::EC2::VPCEndpoint) → `Properties.Tags` L2116 in `quickstart_vpc_json`
   > Resource 'S3VPCEndpoint' of type 'AWS::EC2::VPCEndpoint' supports Tags but none are configured
 
-### W9003 - 168 findings
+### W9003 - 172 findings
 
+- **W9003** `LoadBalancer` (AWS::ElasticLoadBalancing::LoadBalancer) → `Properties.Listeners.0.InstancePort` L8 in `bad_E3679_classic_elb_listener_index_yaml`
+  > 80 is not of type 'string' - automatically coerced (number to string)
+- **W9003** `LoadBalancer` (AWS::ElasticLoadBalancing::LoadBalancer) → `Properties.Listeners.0.LoadBalancerPort` L7 in `bad_E3679_classic_elb_listener_index_yaml`
+  > 443 is not of type 'string' - automatically coerced (number to string)
+- **W9003** `LoadBalancer` (AWS::ElasticLoadBalancing::LoadBalancer) → `Properties.Listeners.1.InstancePort` L11 in `bad_E3679_classic_elb_listener_index_yaml`
+  > 80 is not of type 'string' - automatically coerced (number to string)
+- **W9003** `LoadBalancer` (AWS::ElasticLoadBalancing::LoadBalancer) → `Properties.Listeners.1.LoadBalancerPort` L10 in `bad_E3679_classic_elb_listener_index_yaml`
+  > 80 is not of type 'string' - automatically coerced (number to string)
 - **W9003** `AuroraDB` (AWS::RDS::DBInstance) → `Properties.AllocatedStorage` L9 in `bad_aurora_with_allocated_storage_yaml`
   > 100 is not of type 'string' - automatically coerced (number to string)
 - **W9003** `BadASG` (AWS::AutoScaling::AutoScalingGroup) → `Properties.MaxSize` L9 in `bad_cross_resource_task10_yaml`
@@ -17076,7 +17301,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **W9003** `VPC` (AWS::EC2::VPC) → `Properties.EnableDnsSupport` L515 in `quickstart_vpc_json`
   > 'true' is not of type 'boolean' - automatically coerced (string to boolean)
 
-### I9003 - 56 findings
+### I9003 - 57 findings
 
 - **I9003** in `bad_E1150_network_interfaces_groupset_multi_yaml`
   > No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against
@@ -17129,6 +17354,8 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **I9003** in `cdk_py-ec2-cloudwatch--ec2-cloudwatch.template_json`
   > No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against
 - **I9003** in `cdk_ssm-document-association--SsmDocumentAssociationStack.template_json`
+  > No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against
+- **I9003** in `gh-issues_issue-184_yaml`
   > No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against
 - **I9003** in `gh-issues_issue-34_json`
   > No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against
@@ -17511,8 +17738,10 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **W9010** `AnsibleConfigServer` (AWS::EC2::Instance) → `Properties.ImageId` L355 in `quickstart_openshift_yaml`
   > Hardcoded AMI ID - use a parameter or mapping for portability
 
-### F0001 - 24 findings
+### F0001 - 25 findings
 
+- **F0001** L5 in `bad_F2002_unsupported_ssm_parameter_type_yaml`
+  > Resources section must exist and be non-empty
 - **F0001** L23 in `bad_conditions_and_yaml`
   > Resources section must exist and be non-empty
 - **F0001** L11 in `bad_conditions_equals_not_useful_yaml`
@@ -17910,11 +18139,16 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **W9054** `CertAuth` (AWS::ACMPCA::CertificateAuthorityActivation) → `Properties.Certificate` L8 in `bad_schema_write_only_yaml`
   > Write-only property 'Certificate' of 'CertAuth' is referenced in output 'WriteOnlyOutput'
 
-## Per-Template Breakdown - 170 templates with mismatches
+## Per-Template Breakdown - 167 templates with mismatches
 
 ### `good_lifecycle_intrinsic_scenarios_yaml` - 16 mismatches (0 TP, 0 FP, 0 EE, 16 FN)
 
 - FN: `F0018` ×5, `F3016` ×5, `W1028` ×3, `E3055` ×2, `E3001`
+
+### `good_ecs_fargate_decimal_units_yaml` - 14 mismatches (0 TP, 0 FP, 42 EE, 14 FN)
+
+- FN: `E3047` ×7, `E3048` ×7
+- EE: `I9001` ×35, `I9040` ×7
 
 ### `bad_lifecycle_policy_shapes_yaml` - 11 mismatches (6 TP, 3 FP, 10 EE, 8 FN)
 
@@ -17996,11 +18230,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FP: `E3055`
 - EE: `I9040` ×4, `W9013`
 
-### `good_ecs_fargate_units_and_sizes_yaml` - 6 mismatches (0 TP, 0 FP, 43 EE, 6 FN)
-
-- FN: `E3047` ×3, `E3048` ×3
-- EE: `I9001` ×43
-
 ### `good_functions_sub_needed_custom_excludes_yaml` - 6 mismatches (3 TP, 0 FP, 2 EE, 6 FN)
 
 - FN: `E3530` ×6
@@ -18065,11 +18294,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `E2531` ×2
 - FP: `E0001` ×2
 
-### `gh-issues_issue-38_json` - 4 mismatches (0 TP, 0 FP, 2 EE, 4 FN)
-
-- FN: `I3010` ×4
-- EE: `I9001`, `I9040`
-
 ### `quickstart_nat-instance_json` - 4 mismatches (5 TP, 0 FP, 12 EE, 4 FN)
 
 - FN: `W1030` ×4
@@ -18114,16 +18338,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 - FN: `F3016` ×3
 - EE: `I9001` ×4, `I9040` ×4, `W9008` ×3, `I9003`
-
-### `bad_resources_dynamodb_attributes_transform_e3639_yaml` - 3 mismatches (6 TP, 3 FP, 10 EE, 0 FN)
-
-- FP: `E3639` ×3
-- EE: `F1101` ×4, `I9001` ×3, `I9040` ×3
-
-### `bad_resources_dynamodb_provisioned_throughput_e3639_yaml` - 3 mismatches (18 TP, 3 FP, 18 EE, 0 FN)
-
-- FP: `E3639` ×3
-- EE: `I9001` ×10, `I9040` ×7, `F3003`
 
 ### `bad_resources_iam_iam_policy_yaml` - 3 mismatches (20 TP, 0 FP, 4 EE, 3 FN)
 
@@ -18195,6 +18409,12 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `W1030` ×3
 - EE: `W9003` ×53, `I9001` ×50, `I9040` ×10
 
+### `bad_F2002_unsupported_ssm_parameter_type_yaml` - 2 mismatches (1 TP, 1 FP, 1 EE, 1 FN)
+
+- FN: `W2002`
+- FP: `F2002`
+- EE: `F0001`
+
 ### `bad_F3018_conditional_required_novalue_yaml` - 2 mismatches (1 TP, 0 FP, 3 EE, 2 FN)
 
 - FN: `F3003` ×2
@@ -18253,11 +18473,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 - FN: `F3014` ×2
 - EE: `I9001` ×18, `W9003` ×7, `I9040` ×3
-
-### `bad_resources_ecs_fargate_task_sizes_e3047_yaml` - 2 mismatches (11 TP, 0 FP, 67 EE, 2 FN)
-
-- FN: `E3048` ×2
-- EE: `I9001` ×54, `I9040` ×9, `W9003` ×4
 
 ### `bad_resources_properties_list_duplicates_yaml` - 2 mismatches (1 TP, 0 FP, 0 EE, 2 FN)
 
@@ -18410,6 +18625,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `F3003`, `W2533`
 - EE: `I9040` ×2
 
+### `bad_E3679_classic_elb_listener_index_yaml` - 1 mismatches (1 TP, 0 FP, 5 EE, 1 FN)
+
+- FN: `F3030`
+- EE: `W9003` ×4, `I9040`
+
 ### `bad_F2002_ssm_parameter_type_invalid_yaml` - 1 mismatches (1 TP, 0 FP, 2 EE, 1 FN)
 
 - FN: `F1020`
@@ -18518,11 +18738,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 - FP: `E3055`
 - EE: `I9001`, `I9040`
-
-### `bad_resources_dynamodb_conditional_scenarios_yaml` - 1 mismatches (8 TP, 1 FP, 5 EE, 0 FN)
-
-- FP: `E3639`
-- EE: `I9040` ×3, `I9001` ×2
 
 ### `bad_resources_iam_iam_policy_conditional_policies_yaml` - 1 mismatches (2 TP, 0 FP, 4 EE, 1 FN)
 
@@ -18740,7 +18955,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 These templates cannot be compared because no counterpart exists in the
 other tool's output. They are excluded from precision/recall scoring.
 
-### cfn-lint results with no engine report — 11 templates, 34 diagnostics
+### cfn-lint results with no engine report — 13 templates, 36 diagnostics
 
 - `bad_resources_cloudformation_sam_app_nested_yaml` (3 diagnostics)
 - `bad_resources_cloudformation_sam_stacks_yaml` (12 diagnostics)
@@ -18753,25 +18968,12 @@ other tool's output. They are excluded from precision/recall scoring.
 - `good_resources_serverless_ignore_globals_valid_yaml` (1 diagnostics)
 - `integration_creationpolicy_yaml` (4 diagnostics)
 - `integration_updatepolicy_yaml` (1 diagnostics)
+- `integration_yaml-alias-amplification_yaml` (1 diagnostics)
+- `integration_yaml-alias_yaml` (1 diagnostics)
 
-### Engine reports with no cfn-lint result — 17 templates, 163 diagnostics
+### Engine reports with no cfn-lint result — 2 templates, 0 diagnostics
 
-- `bad_E2530_I2530_snapstart_sourced_tables_yaml` (11 diagnostics)
-- `bad_E3512_opensearch_access_policy_yaml` (4 diagnostics)
-- `bad_E3663_reserved_environment_keys_yaml` (2 diagnostics)
-- `bad_E3679_classic_elb_listener_index_yaml` (6 diagnostics)
-- `bad_F2002_unsupported_ssm_parameter_type_yaml` (3 diagnostics)
-- `bad_I3100_previous_generation_sourced_routes_yaml` (12 diagnostics)
-- `bad_W2501_nested_password_W1011_exact_path_yaml` (4 diagnostics)
-- `bad_W3660_api_gateway_body_mixing_yaml` (19 diagnostics)
-- `bad_W3671_spotfleet_ebs_iops_yaml` (4 diagnostics)
-- `bad_resources_ecs_fargate_numeric_spellings_e3047_yaml` (45 diagnostics)
 - `empty_yaml` (0 diagnostics)
-- `gh-issues_issue-184_yaml` (6 diagnostics)
-- `gh-issues_issue-339_yaml` (0 diagnostics)
-- `gh-issues_issue-357_yaml` (5 diagnostics)
-- `good_E3663_custom_environment_key_yaml` (0 diagnostics)
-- `good_ecs_fargate_decimal_units_yaml` (42 diagnostics)
 - `malformed_yaml` (0 diagnostics)
 
 ## Root-Cause Analysis
@@ -18780,19 +18982,19 @@ other tool's output. They are excluded from precision/recall scoring.
 
 | Cause | Count | % of FN | Rules |
 |-------|------:|--------:|-------|
-| Other | 177 | 49.72% | E0002, E2001, E2529, E2531, E2533, E5001, E6001, E6010, E7001, E7010, E8003, E8004, E8005, E9004, F0000, F0013, F0018, F1018, F1020, F2015, F3002, F3003, F3006, F3012, F3014, F3016, F3017, F3018, F3030, F3037, F6101 |
-| Resource property validation | 81 | 22.75% | E3001, E3005, E3010, E3023, E3024, E3026, E3039, E3043, E3047, E3048, E3055, E3065, E3066, E3504, E3510, E3512, E3513, E3514, E3530, E3673, E3678, E3682, E3685, E3692, E3698, E3699, E3700, E3701, E3707, E3712, E3719, E3720, E3724 |
-| Warning-level checks | 61 | 17.13% | W1001, W1028, W1030, W1031, W1032, W1034, W1036, W2001, W2002, W2533, W3037, W3691, W3698, W6001 |
-| Intrinsic function validation | 27 | 7.58% | E1001, E1002, E1003, E1005, E1011, E1016, E1017, E1021, E1041, E1150, E1161, E1701 |
-| Informational checks | 10 | 2.81% | I3010, I3013, I3510 |
+| Other | 178 | 49.44% | E0002, E2001, E2529, E2531, E2533, E5001, E6001, E6010, E7001, E7010, E8003, E8004, E8005, E9004, F0000, F0013, F0018, F1018, F1020, F2015, F3002, F3003, F3006, F3012, F3014, F3016, F3017, F3018, F3030, F3037, F6101 |
+| Resource property validation | 87 | 24.17% | E3001, E3005, E3010, E3023, E3024, E3026, E3039, E3043, E3047, E3048, E3055, E3065, E3066, E3504, E3510, E3512, E3513, E3514, E3530, E3673, E3678, E3682, E3685, E3692, E3698, E3699, E3700, E3701, E3707, E3712, E3719, E3720, E3724 |
+| Warning-level checks | 62 | 17.22% | W1001, W1028, W1030, W1031, W1032, W1034, W1036, W2001, W2002, W2533, W3037, W3691, W3698, W6001 |
+| Intrinsic function validation | 27 | 7.50% | E1001, E1002, E1003, E1005, E1011, E1016, E1017, E1021, E1041, E1150, E1161, E1701 |
+| Informational checks | 6 | 1.67% | I3013, I3510 |
 
 ### False Positive Root Causes
 
 | Cause | Count | % of FP | Rules |
 |-------|------:|--------:|-------|
-| Other | 47 | 54.02% | E0001, F0018, F2002, F3016, F3017, F3033 |
-| Over-reporting property/intrinsic errors | 28 | 32.18% | E1155, E3001, E3019, E3022, E3029, E3055, E3510, E3639 |
-| Stricter than cfn-lint (informational) | 12 | 13.79% | I3011 |
+| Other | 48 | 59.26% | E0001, F0018, F2002, F3016, F3017, F3033 |
+| Over-reporting property/intrinsic errors | 21 | 25.93% | E1155, E3001, E3019, E3022, E3029, E3055, E3510, E3639 |
+| Stricter than cfn-lint (informational) | 12 | 14.81% | I3011 |
 
 ## Location Mismatches - 9 matched pairs disagree on line
 
