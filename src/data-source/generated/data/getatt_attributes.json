@@ -2193,6 +2193,10 @@
     "AWS::DMS::ReplicationTask": [
       "ReplicationTaskArn"
     ],
+    "AWS::DRS::LaunchConfigurationTemplate": [
+      "Arn",
+      "LaunchConfigurationTemplateID"
+    ],
     "AWS::DRS::SourceNetwork": [
       "Arn",
       "SourceNetworkID"
@@ -13389,6 +13393,18 @@
       "Tags": "array",
       "TargetEndpointArn": "string",
       "TaskData": "string"
+    },
+    "AWS::DRS::LaunchConfigurationTemplate": {
+      "Arn": "string",
+      "CopyPrivateIp": "boolean",
+      "CopyTags": "boolean",
+      "ExportBucketArn": "string",
+      "LaunchConfigurationTemplateID": "string",
+      "LaunchDisposition": "string",
+      "LaunchIntoSourceInstance": "boolean",
+      "PostLaunchEnabled": "boolean",
+      "Tags": "array",
+      "TargetInstanceTypeRightSizingMethod": "string"
     },
     "AWS::DRS::SourceNetwork": {
       "Arn": "string",

@@ -74,8 +74,262 @@ export type {
 } from '../dist/bindings_wasm';
 
 export type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
+
+export type AwsCliOperationKind =
+    | 'READ_ONLY'
+    | 'CLOUD_FORMATION_CREATE'
+    | 'CLOUD_FORMATION_UPDATE'
+    | 'CLOUD_FORMATION_DELETE'
+    | 'DATA_PLANE_MUTATION'
+    | 'UNMAPPED_MUTATION';
+export type AwsCliCommandValidationStatus = 'VALIDATED' | 'SKIPPED';
+export type AwsCliTemplateSource =
+    'TEMPLATE_BODY' | 'CLOUD_CONTROL_DESIRED_STATE' | 'SYNTHESIZED_CREATE' | 'SYNTHESIZED_UPDATE';
+
+export interface AwsCliCommandOptions {
+    servicePrefix?: string;
+    httpMethod?: string;
+    isReadOnly?: boolean;
+}
+
+/**
+ * Service, operation, and input values for one AWS CLI command.
+ *
+ * `serviceName` is the canonical botocore service name and is normalized only
+ * for ASCII case. Callers adapting an SDK request must translate its native
+ * service identity before constructing this request; endpoint and signing-name
+ * aliases are never guessed by the validation core.
+ */
+export class AwsCliCommand {
+    public readonly parameters: Record<string, unknown>;
+    public readonly servicePrefix?: string;
+    public readonly httpMethod?: string;
+    public readonly isReadOnly?: boolean;
+
+    constructor(
+        public readonly serviceName: string,
+        public readonly operationName: string,
+        parameters: Record<string, unknown>,
+        options: AwsCliCommandOptions = {},
+    ) {
+        if (!isPlainRecord(parameters)) {
+            throw new TypeError('parameters must be a plain object with string keys');
+        }
+        const copiedParameters = Object.create(null) as Record<string, unknown>;
+        for (const key of Reflect.ownKeys(parameters)) {
+            if (typeof key !== 'string') {
+                throw new TypeError('request parameter names must be strings');
+            }
+            const descriptor = Object.getOwnPropertyDescriptor(parameters, key);
+            if (descriptor === undefined || !('value' in descriptor)) {
+                throw new TypeError(`request parameter ${JSON.stringify(key)} must be a value property`);
+            }
+            copiedParameters[key] = descriptor.value;
+        }
+        this.parameters = copiedParameters;
+        this.servicePrefix = options.servicePrefix;
+        this.httpMethod = options.httpMethod;
+        this.isReadOnly = options.isReadOnly;
+    }
+}
+
+export interface AwsCliCommandValidation {
+    operationKind: AwsCliOperationKind;
+    status: AwsCliCommandValidationStatus;
+    templateSource: AwsCliTemplateSource | null;
+    resourceTypes: string[];
+    reason: string;
+    report: ValidationReport | null;
+    template: Uint8Array | null;
+}
+
+type WireAwsCliValue =
+    | { type: 'NULL' }
+    | { type: 'BOOLEAN'; value: boolean }
+    | { type: 'INTEGER'; value: number | bigint }
+    | { type: 'UNSIGNED_INTEGER'; value: bigint }
+    | { type: 'NUMBER'; value: number }
+    | { type: 'STRING'; value: string }
+    | { type: 'BYTES'; value: number[] }
+    | { type: 'ARRAY'; items: WireAwsCliValue[] }
+    | { type: 'OBJECT'; entries: Record<string, WireAwsCliValue> }
+    | { type: 'UNSUPPORTED'; type_name: string };
+
+interface WireAwsCliCommand {
+    serviceName: string;
+    operationName: string;
+    parameters: Record<string, WireAwsCliValue>;
+    servicePrefix?: string;
+    httpMethod?: string;
+    isReadOnly?: boolean;
+}
+
+interface WireAwsCliCommandValidation extends Omit<AwsCliCommandValidation, 'template'> {
+    template?: number[] | Uint8Array | null;
+}
+
+const MIN_SIGNED_64 = -(1n << 63n);
+const MAX_SIGNED_64 = (1n << 63n) - 1n;
+const MAX_UNSIGNED_64 = (1n << 64n) - 1n;
+const MAX_REQUEST_VALUE_DEPTH = 64;
+const DATE_GET_TIME = Date.prototype.getTime;
+const DATE_TO_ISO_STRING = Date.prototype.toISOString;
+const UINT8_ARRAY_FOR_EACH = Uint8Array.prototype.forEach;
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+    if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+        return false;
+    }
+    const prototype = Object.getPrototypeOf(value);
+    return prototype === Object.prototype || prototype === null;
+}
+
+function unsupportedValue(typeName: string): WireAwsCliValue {
+    return { type: 'UNSUPPORTED', type_name: typeName };
+}
+
+function encodeAwsCliValue(value: unknown, depth = 0, ancestors = new Set<object>()): WireAwsCliValue {
+    if (depth > MAX_REQUEST_VALUE_DEPTH) {
+        return unsupportedValue('recursion depth exceeded');
+    }
+    if (value === null) {
+        return { type: 'NULL' };
+    }
+    if (typeof value === 'boolean') {
+        return { type: 'BOOLEAN', value };
+    }
+    if (typeof value === 'number') {
+        if (!Number.isFinite(value)) {
+            return unsupportedValue('non-finite floating-point number');
+        }
+        if (Number.isInteger(value)) {
+            return Number.isSafeInteger(value)
+                ? { type: 'INTEGER', value }
+                : unsupportedValue('integer outside the JavaScript safe range');
+        }
+        return { type: 'NUMBER', value };
+    }
+    if (typeof value === 'bigint') {
+        if (value >= MIN_SIGNED_64 && value <= MAX_SIGNED_64) {
+            return { type: 'INTEGER', value };
+        }
+        if (value >= 0n && value <= MAX_UNSIGNED_64) {
+            return { type: 'UNSIGNED_INTEGER', value };
+        }
+        return unsupportedValue('integer outside the 64-bit request range');
+    }
+    if (typeof value === 'string') {
+        return { type: 'STRING', value };
+    }
+    if (value instanceof Uint8Array) {
+        const bytes: number[] = [];
+        try {
+            UINT8_ARRAY_FOR_EACH.call(value, (byte: number) => {
+                bytes.push(byte);
+            });
+        } catch {
+            return unsupportedValue('invalid Uint8Array');
+        }
+        return { type: 'BYTES', value: bytes };
+    }
+    if (value instanceof Date) {
+        try {
+            const timestamp = DATE_GET_TIME.call(value);
+            return Number.isFinite(timestamp)
+                ? { type: 'STRING', value: DATE_TO_ISO_STRING.call(value) }
+                : unsupportedValue('invalid Date');
+        } catch {
+            return unsupportedValue('invalid Date');
+        }
+    }
+    if (Array.isArray(value)) {
+        if (ancestors.has(value)) {
+            return unsupportedValue('cyclic array');
+        }
+        ancestors.add(value);
+        try {
+            const lengthDescriptor = Object.getOwnPropertyDescriptor(value, 'length');
+            if (
+                lengthDescriptor === undefined ||
+                !('value' in lengthDescriptor) ||
+                !Number.isSafeInteger(lengthDescriptor.value) ||
+                lengthDescriptor.value < 0
+            ) {
+                return unsupportedValue('array with invalid length');
+            }
+            const items: WireAwsCliValue[] = [];
+            for (let index = 0; index < lengthDescriptor.value; index += 1) {
+                const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
+                if (descriptor === undefined) {
+                    return unsupportedValue('sparse array');
+                }
+                if (!('value' in descriptor)) {
+                    return unsupportedValue('array with accessor elements');
+                }
+                items.push(encodeAwsCliValue(descriptor.value, depth + 1, ancestors));
+            }
+            return { type: 'ARRAY', items };
+        } finally {
+            ancestors.delete(value);
+        }
+    }
+    if (isPlainRecord(value)) {
+        if (ancestors.has(value)) {
+            return unsupportedValue('cyclic object');
+        }
+        ancestors.add(value);
+        try {
+            const entries = Object.create(null) as Record<string, WireAwsCliValue>;
+            for (const key of Reflect.ownKeys(value)) {
+                if (typeof key !== 'string') {
+                    return unsupportedValue('mapping with non-string keys');
+                }
+                const descriptor = Object.getOwnPropertyDescriptor(value, key);
+                if (descriptor === undefined || !('value' in descriptor)) {
+                    return unsupportedValue('mapping with accessor properties');
+                }
+                entries[key] = encodeAwsCliValue(descriptor.value, depth + 1, ancestors);
+            }
+            return { type: 'OBJECT', entries };
+        } finally {
+            ancestors.delete(value);
+        }
+    }
+    return unsupportedValue(typeof value);
+}
+
+function toWireAwsCliCommand(request: AwsCliCommand): WireAwsCliCommand {
+    const parameters = Object.create(null) as Record<string, WireAwsCliValue>;
+    for (const [name, value] of Object.entries(request.parameters)) {
+        try {
+            parameters[name] = encodeAwsCliValue(value);
+        } catch {
+            parameters[name] = unsupportedValue('request value inspection failed');
+        }
+    }
+    return {
+        serviceName: request.serviceName,
+        operationName: request.operationName,
+        parameters,
+        ...(request.servicePrefix === undefined ? {} : { servicePrefix: request.servicePrefix }),
+        ...(request.httpMethod === undefined ? {} : { httpMethod: request.httpMethod }),
+        ...(request.isReadOnly === undefined ? {} : { isReadOnly: request.isReadOnly }),
+    };
+}
+
+function fromWireAwsCliCommandValidation(validation: WireAwsCliCommandValidation): AwsCliCommandValidation {
+    const template = validation.template;
+    return {
+        ...validation,
+        templateSource: validation.templateSource ?? null,
+        report: validation.report ?? null,
+        template: template == null ? null : Uint8Array.from(template),
+    };
+}
+
 export interface Engine {
     validateTemplate(template: TemplateFile, config?: ValidateConfig): ValidationReport;
+    validateAwsCliCommand(request: AwsCliCommand): AwsCliCommandValidation;
     listRules(): RuleInfo[];
     engineName(): string;
     free(): void;
@@ -272,6 +526,7 @@ export class SchemaValidator {
 
 interface WasmEngineInstance {
     validateTemplate(template: Uint8Array, options: ValidateConfig, filePath: string): ValidationReport;
+    validateAwsCliCommand(request: WireAwsCliCommand): WireAwsCliCommandValidation;
     listRules(): RuleInfo[];
     engineName(): string;
     free(): void;
@@ -290,6 +545,13 @@ function createEngineClass<TConfig, TWasmConfig>(
 
         validateTemplate(template: TemplateFile, config?: ValidateConfig): ValidationReport {
             return this.inner.validateTemplate(template.readBytes(), config ?? {}, template.path);
+        }
+
+        validateAwsCliCommand(request: AwsCliCommand): AwsCliCommandValidation {
+            if (!(request instanceof AwsCliCommand)) {
+                throw new TypeError('request must be an AwsCliCommand');
+            }
+            return fromWireAwsCliCommandValidation(this.inner.validateAwsCliCommand(toWireAwsCliCommand(request)));
         }
 
         listRules(): RuleInfo[] {

@@ -443,6 +443,7 @@
     "AWS::DMS::ReplicationInstance",
     "AWS::DMS::ReplicationSubnetGroup",
     "AWS::DMS::ReplicationTask",
+    "AWS::DRS::LaunchConfigurationTemplate",
     "AWS::DRS::SourceNetwork",
     "AWS::DSQL::Cluster",
     "AWS::DataBrew::Dataset",

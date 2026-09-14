@@ -15,8 +15,11 @@ Example:
 
 from __future__ import annotations
 
+import datetime
+import math
 import os
 import typing
+from collections.abc import Mapping
 
 from .bindings_python import (
     PyCelEngine as _PyCelEngine,
@@ -89,10 +92,26 @@ from .template_model import (
 )
 from .data_source import AdditionalSchemaSource
 from .schema_validator import SchemaValidatorConfig
-from .validation_engine import CompositeEngineConfig, EngineConfig, EngineType, ExternalRuleSource
+from .validation_engine import (
+    AwsCliCommandContext as _NativeAwsCliCommand,
+    AwsCliCommandValidation,
+    AwsCliCommandValidationStatus,
+    AwsCliOperationKind,
+    AwsCliTemplateSource,
+    AwsCliValue as _NativeAwsCliValue,
+    CompositeEngineConfig,
+    EngineConfig,
+    EngineType,
+    ExternalRuleSource,
+)
 
 __all__ = [
     "AdditionalSchemaSource",
+    "AwsCliCommand",
+    "AwsCliCommandValidation",
+    "AwsCliCommandValidationStatus",
+    "AwsCliOperationKind",
+    "AwsCliTemplateSource",
     "CelEngine",
     "CompositeEngine",
     "CompositeEngineConfig",
@@ -202,6 +221,90 @@ def file_to_external_rule_source(path: typing.Union[str, os.PathLike]) -> Extern
         return ExternalRuleSource(name=str(resolved), content=f.read())
 
 
+class AwsCliCommand:
+    """Service, operation, and request values for CloudFormation validation.
+
+    ``service_name`` is the canonical botocore service name (for example ``"s3"``
+    or ``"cloudformation"``) and is the authoritative mapping identity, normalized
+    only for ASCII case - never a signing name, ARN prefix, or endpoint alias. A
+    future AWS SDK adapter, in any language, must translate its native service
+    identity to the canonical botocore ``service_name`` before calling; the core
+    does not guess aliases.
+
+    ``parameters`` accepts the same Python values used by botocore request
+    dictionaries, including nested mappings/sequences, ``bytes``, and
+    ``datetime.datetime``. Values that cannot be represented are carried as an
+    explicit unsupported marker. Synthesis enforces all-or-nothing semantics:
+    if any supplied non-control resource-state field lacks a lossless mapping,
+    the entire synthesis/validation is skipped with a reason naming the
+    offending parameter — no parameter is ever silently omitted.
+    """
+
+    def __init__(
+        self,
+        service_name: str,
+        operation_name: str,
+        parameters: Mapping[str, object],
+        *,
+        service_prefix: typing.Optional[str] = None,
+        http_method: typing.Optional[str] = None,
+        is_read_only: typing.Optional[bool] = None,
+    ):
+        if not isinstance(parameters, Mapping):
+            raise TypeError("parameters must be a mapping")
+        if not all(isinstance(name, str) for name in parameters):
+            raise TypeError("request parameter names must be strings")
+        self.service_name = service_name
+        self.operation_name = operation_name
+        self.parameters = dict(parameters)
+        self.service_prefix = service_prefix
+        self.http_method = http_method
+        self.is_read_only = is_read_only
+
+    def _to_native(self) -> _NativeAwsCliCommand:
+        return _NativeAwsCliCommand(
+            service_name=self.service_name,
+            operation_name=self.operation_name,
+            parameters={name: _to_native_aws_cli_value(value) for name, value in self.parameters.items()},
+            service_prefix=self.service_prefix,
+            http_method=self.http_method,
+            is_read_only=self.is_read_only,
+        )
+
+
+def _to_native_aws_cli_value(value: object) -> _NativeAwsCliValue:
+    if value is None:
+        return _NativeAwsCliValue.NULL()
+    if isinstance(value, bool):
+        return _NativeAwsCliValue.BOOLEAN(value=value)
+    if isinstance(value, int):
+        if -(2**63) <= value < 2**63:
+            return _NativeAwsCliValue.INTEGER(value=value)
+        if 0 <= value < 2**64:
+            return _NativeAwsCliValue.UNSIGNED_INTEGER(value=value)
+        return _NativeAwsCliValue.UNSUPPORTED(type_name="integer outside the 64-bit request range")
+    if isinstance(value, float):
+        if math.isfinite(value):
+            return _NativeAwsCliValue.NUMBER(value=value)
+        return _NativeAwsCliValue.UNSUPPORTED(type_name="non-finite floating-point number")
+    if isinstance(value, str):
+        return _NativeAwsCliValue.STRING(value=value)
+    if isinstance(value, (bytes, bytearray, memoryview)):
+        return _NativeAwsCliValue.BYTES(value=bytes(value))
+    if isinstance(value, datetime.datetime):
+        return _NativeAwsCliValue.STRING(value=value.isoformat())
+    if isinstance(value, Mapping):
+        if not all(isinstance(name, str) for name in value):
+            return _NativeAwsCliValue.UNSUPPORTED(type_name="mapping with non-string keys")
+        return _NativeAwsCliValue.OBJECT(
+            entries={name: _to_native_aws_cli_value(item) for name, item in value.items()}
+        )
+    if isinstance(value, (list, tuple)):
+        return _NativeAwsCliValue.ARRAY(items=[_to_native_aws_cli_value(item) for item in value])
+    value_type = type(value)
+    return _NativeAwsCliValue.UNSUPPORTED(type_name=f"{value_type.__module__}.{value_type.__qualname__}")
+
+
 class Engine:
     """Validates CloudFormation templates against the built-in rule set.
 
@@ -234,6 +337,18 @@ class Engine:
         """
         content, path = _template_bytes(template)
         return self._inner.validate_template(content, config if config is not None else ValidateConfig(), path)
+
+    def validate_aws_cli_command(self, request: AwsCliCommand) -> AwsCliCommandValidation:
+        """Classifies, models, and validates an AWS CLI command.
+
+        The validation configuration is fixed by the library. A skipped command
+        has ``report is None`` and an explicit status and reason. The ``template``
+        field carries the exact bytes validated (the caller's original
+        ``TemplateBody`` or the synthesized JSON), or ``None`` when skipped.
+        """
+        if not isinstance(request, AwsCliCommand):
+            raise TypeError("request must be an AwsCliCommand")
+        return self._inner.validate_aws_cli_command(request._to_native())
 
     def list_rules(self) -> typing.List[RuleInfo]:
         """Lists every rule this engine evaluates, sorted by rule ID."""

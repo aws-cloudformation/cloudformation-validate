@@ -71,7 +71,7 @@ See the [Node.js API and examples](src/bindings-wasm/README.md).
 ### Python
 
 Production versions are published to [PyPI](https://pypi.org/project/cloudformation-validate/); prereleases are
-published to [TestPyPI](https://test.pypi.org/project/cloudformation-validate/). The package requires Python 3.10 or
+published to [TestPyPI](https://test.pypi.org/project/cloudformation-validate/). The package requires Python 3.9 or
 later, and its platform-specific wheels have no runtime package dependencies.
 
 ```bash

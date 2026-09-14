@@ -7,6 +7,7 @@ const {
     RegoEngine,
     CelEngine,
     CompositeEngine,
+    AwsCliCommand,
     SchemaValidator,
     SchemaFile,
     TemplateModel,
@@ -390,6 +391,241 @@ describe('valid template', () => {
         expect(rego.status).toBe('OK');
         expect(CEL.validateTemplate(loadTemplate(GOOD_TEMPLATE)).diagnostics).toEqual(rego.diagnostics);
         expect(COMPOSITE.validateTemplate(loadTemplate(GOOD_TEMPLATE)).diagnostics).toEqual(rego.diagnostics);
+    });
+});
+
+// ── AWS CLI command validation ──────────────────────────────────────────────
+
+describe('AWS CLI command validation', () => {
+    const engines = [
+        ['rego', REGO],
+        ['cel', CEL],
+        ['composite', COMPOSITE],
+    ] as const;
+
+    function diagnosticKeys(report: any): string[] {
+        return (report?.diagnostics ?? []).map(
+            (diagnostic: any) =>
+                `${diagnostic.ruleId}|${diagnostic.entity?.logicalId ?? ''}|${diagnostic.propertyPath ?? ''}`,
+        );
+    }
+
+    it('synthesizes canonical S3 CreateBucket state on all engines', () => {
+        const request = new AwsCliCommand('s3', 'CreateBucket', { Bucket: 'synthetic-bucket' });
+        const validations: Record<string, any> = {};
+
+        for (const [name, engine] of engines) {
+            const validation = engine.validateAwsCliCommand(request);
+            expect(validation.status, name).toBe('VALIDATED');
+            expect(validation.operationKind, name).toBe('CLOUD_FORMATION_CREATE');
+            expect(validation.resourceTypes, name).toEqual(['AWS::S3::Bucket']);
+            expect(validation.templateSource, name).toBe('SYNTHESIZED_CREATE');
+            expect(validation.report, name).not.toBeNull();
+            expect(validation.template, name).toBeInstanceOf(Uint8Array);
+            const document = JSON.parse(Buffer.from(validation.template).toString('utf8'));
+            expect(document.Resources.Resource.Type, name).toBe('AWS::S3::Bucket');
+            expect(document.Resources.Resource.Properties.BucketName, name).toBe('synthetic-bucket');
+            validations[name] = validation;
+        }
+
+        for (const [name, validation] of Object.entries(validations)) {
+            if (name === 'rego') continue;
+            expect(Array.from(validation.template), name).toEqual(Array.from(validations.rego.template));
+            expect(diagnosticKeys(validation.report), name).toEqual(diagnosticKeys(validations.rego.report));
+        }
+    });
+
+    it('preserves CloudFormation TemplateBody bytes exactly on both engines', () => {
+        const templateBody = Buffer.from(
+            '{\n    "Resources": {\n        "Bucket": { "Type": "AWS::S3::Bucket" }\n    }\n}',
+        );
+        const request = new AwsCliCommand('cloudformation', 'ValidateTemplate', {
+            TemplateBody: templateBody,
+        });
+
+        for (const [name, engine] of engines) {
+            const validation = engine.validateAwsCliCommand(request);
+            expect(validation.status, name).toBe('VALIDATED');
+            expect(validation.templateSource, name).toBe('TEMPLATE_BODY');
+            expect(validation.template, name).toBeInstanceOf(Uint8Array);
+            expect(Buffer.from(validation.template), name).toEqual(templateBody);
+        }
+    });
+
+    it('conservatively skips unmapped nested DynamoDB state on both engines', () => {
+        const request = new AwsCliCommand('dynamodb', 'CreateTable', {
+            TableName: 'Synthetic',
+            KeySchema: [{ AttributeName: 'id', KeyType: 'HASH' }],
+            AttributeDefinitions: [{ AttributeName: 'id', AttributeType: 'S' }],
+            BillingMode: 'PAY_PER_REQUEST',
+        });
+
+        for (const [name, engine] of engines) {
+            const validation = engine.validateAwsCliCommand(request);
+            expect(validation.status, name).toBe('SKIPPED');
+            expect(validation.report, name).toBeNull();
+            expect(validation.template, name).toBeNull();
+            expect(validation.resourceTypes, name).toEqual(['AWS::DynamoDB::Table']);
+            expect(validation.reason, name).toContain('has no mapping');
+        }
+    });
+
+    it('never guesses the noncanonical CloudWatch signing alias', () => {
+        const canonical = new AwsCliCommand('cloudwatch', 'PutMetricAlarm', {
+            AlarmName: 'synthetic',
+        });
+        const alias = new AwsCliCommand('monitoring', 'PutMetricAlarm', {
+            AlarmName: 'synthetic',
+        });
+
+        for (const [name, engine] of engines) {
+            const canonicalValidation = engine.validateAwsCliCommand(canonical);
+            expect(canonicalValidation.resourceTypes, name).toContain('AWS::CloudWatch::Alarm');
+            const aliasValidation = engine.validateAwsCliCommand(alias);
+            expect(aliasValidation.status, name).toBe('SKIPPED');
+            expect(aliasValidation.resourceTypes, name).not.toContain('AWS::CloudWatch::Alarm');
+            expect(aliasValidation.template, name).toBeNull();
+        }
+    });
+
+    it('preserves signed and unsigned 64-bit bigint values across the WASM boundary', () => {
+        const request = new AwsCliCommand('lambda', 'CreateFunction', {
+            MemorySize: 18446744073709551615n,
+            Timeout: -9223372036854775808n,
+        });
+
+        for (const [name, engine] of engines) {
+            const validation = engine.validateAwsCliCommand(request);
+            expect(validation.status, name).toBe('VALIDATED');
+            expect(validation.template, name).toBeInstanceOf(Uint8Array);
+            const template = Buffer.from(validation.template).toString('utf8');
+            expect(template, name).toContain('"MemorySize":18446744073709551615');
+            expect(template, name).toContain('"Timeout":-9223372036854775808');
+        }
+    });
+
+    it('marks unsupported request values conservatively instead of coercing them', () => {
+        const request = new AwsCliCommand('s3', 'CreateBucket', {
+            Bucket: Symbol('not-a-bucket-name'),
+        });
+
+        for (const [name, engine] of engines) {
+            const validation = engine.validateAwsCliCommand(request);
+            expect(validation.status, name).toBe('SKIPPED');
+            expect(validation.report, name).toBeNull();
+            expect(validation.template, name).toBeNull();
+        }
+    });
+
+    it('does not invoke object accessors', () => {
+        let accessorInvoked = false;
+        const state: Record<string, unknown> = Object.create(null);
+        Object.defineProperty(state, 'accessor', {
+            enumerable: true,
+            get() {
+                accessorInvoked = true;
+                throw new Error('request accessors must not run');
+            },
+        });
+        const request = new AwsCliCommand('s3', 'CreateBucket', { Bucket: state });
+
+        for (const [name, engine] of engines) {
+            const validation = engine.validateAwsCliCommand(request);
+            expect(validation.status, name).toBe('SKIPPED');
+            expect(validation.template, name).toBeNull();
+        }
+        expect(accessorInvoked).toBe(false);
+    });
+
+    it('does not invoke indexed array accessors', () => {
+        let accessorInvoked = false;
+        const state: unknown[] = [];
+        Object.defineProperty(state, '0', {
+            enumerable: true,
+            get() {
+                accessorInvoked = true;
+                throw new Error('request accessors must not run');
+            },
+        });
+        const request = new AwsCliCommand('s3', 'CreateBucket', { Bucket: state });
+
+        for (const [name, engine] of engines) {
+            const validation = engine.validateAwsCliCommand(request);
+            expect(validation.status, name).toBe('SKIPPED');
+            expect(validation.template, name).toBeNull();
+        }
+        expect(accessorInvoked).toBe(false);
+    });
+
+    it('skips cyclic request state conservatively', () => {
+        const state: Record<string, unknown> = Object.create(null);
+        state.cycle = state;
+        const request = new AwsCliCommand('s3', 'CreateBucket', { Bucket: state });
+
+        for (const [name, engine] of engines) {
+            const validation = engine.validateAwsCliCommand(request);
+            expect(validation.status, name).toBe('SKIPPED');
+            expect(validation.template, name).toBeNull();
+        }
+    });
+
+    it('bypasses caller-overridden Date and Uint8Array methods', () => {
+        let overrideInvoked = false;
+        const date = new Date('2024-01-02T03:04:05.000Z');
+        Object.defineProperty(date, 'getTime', {
+            get() {
+                overrideInvoked = true;
+                throw new Error('request overrides must not run');
+            },
+        });
+        Object.defineProperty(date, 'toISOString', {
+            get() {
+                overrideInvoked = true;
+                throw new Error('request overrides must not run');
+            },
+        });
+
+        const expectedTemplateBody = Buffer.from('{"Resources":{"Bucket":{"Type":"AWS::S3::Bucket"}}}');
+        const templateBody = new Uint8Array(expectedTemplateBody);
+        Object.defineProperty(templateBody, Symbol.iterator, {
+            get() {
+                overrideInvoked = true;
+                throw new Error('request overrides must not run');
+            },
+        });
+        Object.defineProperty(templateBody, 'forEach', {
+            get() {
+                overrideInvoked = true;
+                throw new Error('request overrides must not run');
+            },
+        });
+
+        const dateRequest = new AwsCliCommand('s3', 'CreateBucket', { Bucket: date });
+        const bytesRequest = new AwsCliCommand('cloudformation', 'ValidateTemplate', {
+            TemplateBody: templateBody,
+        });
+        for (const [name, engine] of engines) {
+            const dateValidation = engine.validateAwsCliCommand(dateRequest);
+            expect(dateValidation.status, name).toBe('VALIDATED');
+            expect(Buffer.from(dateValidation.template).toString('utf8'), name).toContain('2024-01-02T03:04:05.000Z');
+
+            const bytesValidation = engine.validateAwsCliCommand(bytesRequest);
+            expect(bytesValidation.status, name).toBe('VALIDATED');
+            expect(Buffer.from(bytesValidation.template), name).toEqual(expectedTemplateBody);
+        }
+        expect(overrideInvoked).toBe(false);
+    });
+
+    it('rejects invalid top-level parameter dictionaries without dropping keys', () => {
+        expect(() => new AwsCliCommand('s3', 'CreateBucket', [] as unknown as Record<string, unknown>)).toThrow(
+            'parameters must be a plain object',
+        );
+
+        const symbolParameters: Record<PropertyKey, unknown> = Object.create(null);
+        symbolParameters[Symbol('Bucket')] = 'synthetic-bucket';
+        expect(() => new AwsCliCommand('s3', 'CreateBucket', symbolParameters as Record<string, unknown>)).toThrow(
+            'request parameter names must be strings',
+        );
     });
 });
 
