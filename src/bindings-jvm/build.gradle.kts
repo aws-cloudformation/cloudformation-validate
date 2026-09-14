@@ -1,4 +1,3 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.util.Properties
 
 plugins {
@@ -45,14 +44,6 @@ dependencies {
 
 kotlin {
     jvmToolchain(21) // keep in sync with configs.yml java-version
-    compilerOptions {
-        jvmTarget.set(JvmTarget.JVM_1_8)
-    }
-}
-
-java {
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
 }
 
 // ── Source layout ───────────────────────────────────────────────────────────────
