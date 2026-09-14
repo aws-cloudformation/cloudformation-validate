@@ -353,7 +353,17 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "max_length": 50,
+      "tag_key": {
+       "max_length": 127,
+       "min_length": 1
+      },
+      "tag_value": {
+       "max_length": 255
+      }
+     }
     },
     {
      "source": "type",
@@ -428,6 +438,59 @@
    "operation": "DeleteArchiveRule",
    "phase": "delete",
    "service": "accessanalyzer"
+  },
+  {
+   "cfn_type": "AWS::AccountAccess::Application",
+   "mappings": [
+    {
+     "source": "tags",
+     "target": "Tags",
+     "unrepresentable": {
+      "max_length": 50,
+      "tag_key": {
+       "max_length": 127,
+       "min_length": 1
+      },
+      "tag_value": {
+       "max_length": 255
+      }
+     }
+    }
+   ],
+   "operation": "CreateApplication",
+   "phase": "create",
+   "service": "account-access"
+  },
+  {
+   "cfn_type": "AWS::AccountAccess::Application",
+   "mappings": [],
+   "operation": "DeleteApplication",
+   "phase": "delete",
+   "service": "account-access"
+  },
+  {
+   "cfn_type": "AWS::AccountAccess::Entitlement",
+   "mappings": [
+    {
+     "source": "applicationArn",
+     "target": "ApplicationArn"
+    }
+   ],
+   "operation": "CreateEntitlement",
+   "phase": "create",
+   "service": "account-access"
+  },
+  {
+   "cfn_type": "AWS::AccountAccess::Entitlement",
+   "mappings": [
+    {
+     "source": "applicationArn",
+     "target": "ApplicationArn"
+    }
+   ],
+   "operation": "DeleteEntitlement",
+   "phase": "delete",
+   "service": "account-access"
   },
   {
    "cfn_type": "AWS::AgentRegistry::Registry",
@@ -526,7 +589,12 @@
     },
     {
      "source": "BrokerName",
-     "target": "BrokerName"
+     "target": "BrokerName",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^[0-9A-Za-z_-]{1,50}$"
+      }
+     }
     },
     {
      "source": "DataReplicationMode",
@@ -534,7 +602,12 @@
     },
     {
      "source": "DataReplicationPrimaryBrokerArn",
-     "target": "DataReplicationPrimaryBrokerArn"
+     "target": "DataReplicationPrimaryBrokerArn",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^arn:.*"
+      }
+     }
     },
     {
      "source": "DeploymentMode",
@@ -558,7 +631,11 @@
     },
     {
      "source": "SecurityGroups",
-     "target": "SecurityGroups"
+     "target": "SecurityGroups",
+     "unrepresentable": {
+      "max_length": 5,
+      "min_length": 1
+     }
     },
     {
      "source": "StorageSize",
@@ -953,7 +1030,16 @@
     },
     {
      "source": "Tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_key": {
+       "max_length": 128,
+       "min_length": 1
+      },
+      "tag_value": {
+       "max_length": 256
+      }
+     }
     }
    ],
    "operation": "CreatePortalProduct",
@@ -1018,7 +1104,12 @@
    "mappings": [
     {
      "source": "ApplicationId",
-     "target": "ApplicationId"
+     "target": "ApplicationId",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "[a-z0-9]{4,7}"
+      }
+     }
     },
     {
      "source": "Description",
@@ -1064,7 +1155,12 @@
    "mappings": [
     {
      "source": "ApplicationId",
-     "target": "ApplicationId"
+     "target": "ApplicationId",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "[a-z0-9]{4,7}"
+      }
+     }
     },
     {
      "source": "DeletionProtectionCheck",
@@ -1167,7 +1263,12 @@
    "mappings": [
     {
      "source": "ApplicationId",
-     "target": "ApplicationId"
+     "target": "ApplicationId",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "[a-z0-9]{4,7}"
+      }
+     }
     },
     {
      "source": "Description",
@@ -1191,7 +1292,12 @@
    "mappings": [
     {
      "source": "ApplicationId",
-     "target": "ApplicationId"
+     "target": "ApplicationId",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "[a-z0-9]{4,7}"
+      }
+     }
     },
     {
      "source": "DeletionProtectionCheck",
@@ -1227,7 +1333,11 @@
     },
     {
      "source": "FlagKey",
-     "target": "FlagKey"
+     "target": "FlagKey",
+     "unrepresentable": {
+      "max_length": 64,
+      "min_length": 1
+     }
     },
     {
      "source": "Hypothesis",
@@ -1239,7 +1349,11 @@
     },
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "max_length": 64,
+      "min_length": 1
+     }
     },
     {
      "source": "Tags",
@@ -1357,11 +1471,21 @@
    "mappings": [
     {
      "source": "ApplicationId",
-     "target": "ApplicationId"
+     "target": "ApplicationId",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "[a-z0-9]{4,7}"
+      }
+     }
     },
     {
      "source": "ConfigurationProfileId",
-     "target": "ConfigurationProfileId"
+     "target": "ConfigurationProfileId",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "[a-z0-9]{4,7}"
+      }
+     }
     },
     {
      "source": "ContentType",
@@ -1395,11 +1519,21 @@
    "mappings": [
     {
      "source": "ApplicationId",
-     "target": "ApplicationId"
+     "target": "ApplicationId",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "[a-z0-9]{4,7}"
+      }
+     }
     },
     {
      "source": "ConfigurationProfileId",
-     "target": "ConfigurationProfileId"
+     "target": "ConfigurationProfileId",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "[a-z0-9]{4,7}"
+      }
+     }
     }
    ],
    "operation": "DeleteHostedConfigurationVersion",
@@ -1500,7 +1634,10 @@
     },
     {
      "source": "flowName",
-     "target": "FlowName"
+     "target": "FlowName",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "kmsArn",
@@ -1520,7 +1657,10 @@
    "mappings": [
     {
      "source": "flowName",
-     "target": "FlowName"
+     "target": "FlowName",
+     "unrepresentable": {
+      "min_length": 1
+     }
     }
    ],
    "operation": "DeleteFlow",
@@ -1775,7 +1915,10 @@
     },
     {
      "source": "Subnets",
-     "target": "Subnets"
+     "target": "Subnets",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "VpcConnectorName",
@@ -2157,7 +2300,10 @@
     },
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "SoftwaresToInstall",
@@ -2181,7 +2327,10 @@
    "mappings": [
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "min_length": 1
+     }
     }
    ],
    "operation": "DeleteImageBuilder",
@@ -2229,7 +2378,12 @@
    "mappings": [
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,100}$"
+      }
+     }
     }
    ],
    "operation": "DeleteStack",
@@ -2289,7 +2443,14 @@
     },
     {
      "source": "ownerContact",
-     "target": "OwnerContact"
+     "target": "OwnerContact",
+     "unrepresentable": {
+      "max_length": 250,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "[A-Za-z0-9_\\-\\ \\.]+"
+      }
+     }
     },
     {
      "source": "tags",
@@ -2979,7 +3140,11 @@
     },
     {
      "source": "WorkGroup",
-     "target": "WorkGroup"
+     "target": "WorkGroup",
+     "unrepresentable": {
+      "max_length": 128,
+      "min_length": 1
+     }
     }
    ],
    "operation": "CreateNamedQuery",
@@ -3013,7 +3178,11 @@
     },
     {
      "source": "WorkGroup",
-     "target": "WorkGroup"
+     "target": "WorkGroup",
+     "unrepresentable": {
+      "max_length": 128,
+      "min_length": 1
+     }
     }
    ],
    "operation": "CreatePreparedStatement",
@@ -3029,7 +3198,11 @@
     },
     {
      "source": "WorkGroup",
-     "target": "WorkGroup"
+     "target": "WorkGroup",
+     "unrepresentable": {
+      "max_length": 128,
+      "min_length": 1
+     }
     }
    ],
    "operation": "DeletePreparedStatement",
@@ -3371,7 +3544,13 @@
     },
     {
      "source": "DefaultResult",
-     "target": "DefaultResult"
+     "target": "DefaultResult",
+     "unrepresentable": {
+      "allowed_values": [
+       "ABANDON",
+       "CONTINUE"
+      ]
+     }
     },
     {
      "source": "HeartbeatTimeout",
@@ -3383,7 +3562,13 @@
     },
     {
      "source": "LifecycleTransition",
-     "target": "LifecycleTransition"
+     "target": "LifecycleTransition",
+     "unrepresentable": {
+      "allowed_values": [
+       "autoscaling:EC2_INSTANCE_LAUNCHING",
+       "autoscaling:EC2_INSTANCE_TERMINATING"
+      ]
+     }
     },
     {
      "source": "NotificationMetadata",
@@ -3426,7 +3611,14 @@
    "mappings": [
     {
      "source": "AdjustmentType",
-     "target": "AdjustmentType"
+     "target": "AdjustmentType",
+     "unrepresentable": {
+      "allowed_values": [
+       "ChangeInCapacity",
+       "ExactCapacity",
+       "PercentChangeInCapacity"
+      ]
+     }
     },
     {
      "source": "AutoScalingGroupName",
@@ -3438,7 +3630,14 @@
     },
     {
      "source": "MetricAggregationType",
-     "target": "MetricAggregationType"
+     "target": "MetricAggregationType",
+     "unrepresentable": {
+      "allowed_values": [
+       "Average",
+       "Maximum",
+       "Minimum"
+      ]
+     }
     },
     {
      "source": "MinAdjustmentMagnitude",
@@ -3446,7 +3645,15 @@
     },
     {
      "source": "PolicyType",
-     "target": "PolicyType"
+     "target": "PolicyType",
+     "unrepresentable": {
+      "allowed_values": [
+       "PredictiveScaling",
+       "SimpleScaling",
+       "StepScaling",
+       "TargetTrackingScaling"
+      ]
+     }
     },
     {
      "source": "ScalingAdjustment",
@@ -3761,7 +3968,12 @@
    "mappings": [
     {
      "source": "BackupVaultName",
-     "target": "BackupVaultName"
+     "target": "BackupVaultName",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^[a-zA-Z0-9\\-\\_]{2,50}$"
+      }
+     }
     }
    ],
    "operation": "DeleteBackupVault",
@@ -3898,7 +4110,16 @@
    "mappings": [
     {
      "source": "Tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_key": {
+       "max_length": 128,
+       "min_length": 1
+      },
+      "tag_value": {
+       "max_length": 256
+      }
+     }
     }
    ],
    "operation": "CreateRestoreTestingPlan",
@@ -4045,7 +4266,13 @@
     },
     {
      "source": "resourceType",
-     "target": "ResourceType"
+     "target": "ResourceType",
+     "unrepresentable": {
+      "allowed_values": [
+       "REPLENISHABLE",
+       "NON_REPLENISHABLE"
+      ]
+     }
     },
     {
      "source": "totalQuantity",
@@ -4073,7 +4300,10 @@
    "mappings": [
     {
      "source": "jobDefinitionName",
-     "target": "JobDefinitionName"
+     "target": "JobDefinitionName",
+     "unrepresentable": {
+      "max_length": 128
+     }
     },
     {
      "source": "platformCapabilities",
@@ -4101,7 +4331,10 @@
    "mappings": [
     {
      "source": "jobDefinition",
-     "target": "JobDefinitionName"
+     "target": "JobDefinitionName",
+     "unrepresentable": {
+      "max_length": 128
+     }
     }
    ],
    "operation": "DeregisterJobDefinition",
@@ -4113,7 +4346,11 @@
    "mappings": [
     {
      "source": "jobQueueName",
-     "target": "JobQueueName"
+     "target": "JobQueueName",
+     "unrepresentable": {
+      "max_length": 128,
+      "min_length": 1
+     }
     },
     {
      "source": "jobQueueType",
@@ -4121,11 +4358,20 @@
     },
     {
      "source": "priority",
-     "target": "Priority"
+     "target": "Priority",
+     "unrepresentable": {
+      "maximum": 1000.0,
+      "minimum": 0.0
+     }
     },
     {
      "source": "schedulingPolicyArn",
-     "target": "SchedulingPolicyArn"
+     "target": "SchedulingPolicyArn",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "arn:[a-z0-9-\\.]{1,63}:[a-z0-9-\\.]{0,63}:[a-z0-9-\\.]{0,63}:[a-z0-9-\\.]{0,63}:[^/].{0,1023}"
+      }
+     }
     },
     {
      "source": "state",
@@ -4141,7 +4387,11 @@
    "mappings": [
     {
      "source": "jobQueue",
-     "target": "JobQueueName"
+     "target": "JobQueueName",
+     "unrepresentable": {
+      "max_length": 128,
+      "min_length": 1
+     }
     }
    ],
    "operation": "DeleteJobQueue",
@@ -4157,7 +4407,11 @@
     },
     {
      "source": "quotaShareName",
-     "target": "QuotaShareName"
+     "target": "QuotaShareName",
+     "unrepresentable": {
+      "max_length": 128,
+      "min_length": 1
+     }
     },
     {
      "source": "state",
@@ -4903,7 +5157,12 @@
     },
     {
      "source": "schemaType",
-     "target": "SchemaType"
+     "target": "SchemaType",
+     "unrepresentable": {
+      "rejected_values": [
+       "THIRD_PARTY_EVALUATION_V1"
+      ]
+     }
     },
     {
      "source": "tags",
@@ -5393,6 +5652,10 @@
     {
      "source": "paymentManagerId",
      "target": "PaymentManagerId"
+    },
+    {
+     "source": "provisionMode",
+     "target": "ProvisionMode"
     }
    ],
    "operation": "CreatePaymentConnector",
@@ -5573,7 +5836,12 @@
     },
     {
      "source": "resourceArn",
-     "target": "ResourceArn"
+     "target": "ResourceArn",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^arn:[a-z0-9-]+:bedrock-agentcore:[a-z0-9-]*:[0-9]{12}:.+$"
+      }
+     }
     }
    ],
    "operation": "PutResourcePolicy",
@@ -5585,7 +5853,12 @@
    "mappings": [
     {
      "source": "resourceArn",
-     "target": "ResourceArn"
+     "target": "ResourceArn",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^arn:[a-z0-9-]+:bedrock-agentcore:[a-z0-9-]*:[0-9]{12}:.+$"
+      }
+     }
     }
    ],
    "operation": "DeleteResourcePolicy",
@@ -5648,7 +5921,11 @@
     },
     {
      "source": "name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "max_length": 48,
+      "min_length": 1
+     }
     }
    ],
    "operation": "CreateAgentRuntimeEndpoint",
@@ -5909,7 +6186,14 @@
    "mappings": [
     {
      "source": "BillingEntity",
-     "target": "BillingEntity"
+     "target": "BillingEntity",
+     "unrepresentable": {
+      "allowed_values": [
+       "AWS",
+       "AWS Marketplace",
+       "AISPL"
+      ]
+     }
     },
     {
      "source": "Description",
@@ -5986,7 +6270,16 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_key": {
+       "max_length": 128,
+       "min_length": 1
+      },
+      "tag_value": {
+       "max_length": 256
+      }
+     }
     }
    ],
    "operation": "CreateSpendingLimit",
@@ -6067,7 +6360,10 @@
    "mappings": [
     {
      "source": "ReportName",
-     "target": "ReportName"
+     "target": "ReportName",
+     "unrepresentable": {
+      "min_length": 1
+     }
     }
    ],
    "operation": "DeleteReportDefinition",
@@ -6706,7 +7002,14 @@
     },
     {
      "source": "creatorMemberAbilities",
-     "target": "CreatorMemberAbilities"
+     "target": "CreatorMemberAbilities",
+     "unrepresentable": {
+      "items": {
+       "rejected_values": [
+        "CAN_EXPORT_QUERY_ANALYSIS_LOG"
+       ]
+      }
+     }
     },
     {
      "source": "description",
@@ -6761,7 +7064,10 @@
    "mappings": [
     {
      "source": "allowedColumns",
-     "target": "AllowedColumns"
+     "target": "AllowedColumns",
+     "unrepresentable": {
+      "max_length": 100
+     }
     },
     {
      "source": "analysisMethod",
@@ -7432,7 +7738,10 @@
    "mappings": [
     {
      "source": "Fields",
-     "target": "Fields"
+     "target": "Fields",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "Name",
@@ -7440,7 +7749,11 @@
     },
     {
      "source": "SamplingRate",
-     "target": "SamplingRate"
+     "target": "SamplingRate",
+     "unrepresentable": {
+      "maximum": 100.0,
+      "minimum": 1.0
+     }
     }
    ],
    "operation": "CreateRealtimeLogConfig",
@@ -7689,7 +8002,14 @@
     },
     {
      "source": "Name",
-     "target": "TrailName"
+     "target": "TrailName",
+     "unrepresentable": {
+      "max_length": 128,
+      "min_length": 3,
+      "pattern": {
+       "cloudformation": "(^[a-zA-Z0-9]$)|(^[a-zA-Z0-9]([a-zA-Z0-9\\._-])*[a-zA-Z0-9]$)"
+      }
+     }
     },
     {
      "source": "S3BucketName",
@@ -7697,11 +8017,17 @@
     },
     {
      "source": "S3KeyPrefix",
-     "target": "S3KeyPrefix"
+     "target": "S3KeyPrefix",
+     "unrepresentable": {
+      "max_length": 200
+     }
     },
     {
      "source": "SnsTopicName",
-     "target": "SnsTopicName"
+     "target": "SnsTopicName",
+     "unrepresentable": {
+      "max_length": 256
+     }
     }
    ],
    "operation": "CreateTrail",
@@ -7713,7 +8039,14 @@
    "mappings": [
     {
      "source": "Name",
-     "target": "TrailName"
+     "target": "TrailName",
+     "unrepresentable": {
+      "max_length": 128,
+      "min_length": 3,
+      "pattern": {
+       "cloudformation": "(^[a-zA-Z0-9]$)|(^[a-zA-Z0-9]([a-zA-Z0-9\\._-])*[a-zA-Z0-9]$)"
+      }
+     }
     }
    ],
    "operation": "DeleteTrail",
@@ -7803,7 +8136,15 @@
     },
     {
      "source": "TreatMissingData",
-     "target": "TreatMissingData"
+     "target": "TreatMissingData",
+     "unrepresentable": {
+      "allowed_values": [
+       "breaching",
+       "ignore",
+       "missing",
+       "notBreaching"
+      ]
+     }
     },
     {
      "source": "Unit",
@@ -7857,11 +8198,17 @@
     },
     {
      "source": "ActionsSuppressorExtensionPeriod",
-     "target": "ActionsSuppressorExtensionPeriod"
+     "target": "ActionsSuppressorExtensionPeriod",
+     "unrepresentable": {
+      "minimum": 0.0
+     }
     },
     {
      "source": "ActionsSuppressorWaitPeriod",
-     "target": "ActionsSuppressorWaitPeriod"
+     "target": "ActionsSuppressorWaitPeriod",
+     "unrepresentable": {
+      "minimum": 0.0
+     }
     },
     {
      "source": "AlarmActions",
@@ -7928,7 +8275,13 @@
     },
     {
      "source": "RuleState",
-     "target": "RuleState"
+     "target": "RuleState",
+     "unrepresentable": {
+      "allowed_values": [
+       "ENABLED",
+       "DISABLED"
+      ]
+     }
     }
    ],
    "operation": "PutInsightRule",
@@ -7947,7 +8300,11 @@
    "mappings": [
     {
      "source": "ActionLogLineCount",
-     "target": "ActionLogLineCount"
+     "target": "ActionLogLineCount",
+     "unrepresentable": {
+      "maximum": 50.0,
+      "minimum": 0.0
+     }
     },
     {
      "source": "ActionLogLineRoleArn",
@@ -8201,7 +8558,10 @@
    "mappings": [
     {
      "source": "baseCapacity",
-     "target": "BaseCapacity"
+     "target": "BaseCapacity",
+     "unrepresentable": {
+      "minimum": 0.0
+     }
     },
     {
      "source": "computeType",
@@ -8229,11 +8589,21 @@
     },
     {
      "source": "fleetServiceRole",
-     "target": "FleetServiceRole"
+     "target": "FleetServiceRole",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^(?:arn:)[a-zA-Z+-=,._:/@]+$"
+      }
+     }
     },
     {
      "source": "imageId",
-     "target": "ImageId"
+     "target": "ImageId",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^((aws/codebuild/([A-Za-z0-9._-]+|ami/[A-Za-z0-9._-]+):[A-Za-z0-9._-]+)|ami-[a-z0-9]{1,1020})$"
+      }
+     }
     },
     {
      "source": "name",
@@ -8291,11 +8661,18 @@
    "mappings": [
     {
      "source": "kmsKeyId",
-     "target": "KmsKeyId"
+     "target": "KmsKeyId",
+     "unrepresentable": {
+      "max_length": 100,
+      "min_length": 1
+     }
     },
     {
      "source": "repositoryDescription",
-     "target": "RepositoryDescription"
+     "target": "RepositoryDescription",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "repositoryName",
@@ -8518,7 +8895,17 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "max_length": 50,
+      "tag_key": {
+       "max_length": 128,
+       "min_length": 1
+      },
+      "tag_value": {
+       "max_length": 256
+      }
+     }
     }
    ],
    "operation": "CreateProfilingGroup",
@@ -9350,7 +9737,10 @@
     },
     {
      "source": "DocumentClassifierName",
-     "target": "DocumentClassifierName"
+     "target": "DocumentClassifierName",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "LanguageCode",
@@ -9372,7 +9762,10 @@
     },
     {
      "source": "ModelKmsKeyId",
-     "target": "ModelKmsKeyId"
+     "target": "ModelKmsKeyId",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "ModelPolicy",
@@ -9380,11 +9773,17 @@
     },
     {
      "source": "VersionName",
-     "target": "VersionName"
+     "target": "VersionName",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "VolumeKmsKeyId",
-     "target": "VolumeKmsKeyId"
+     "target": "VolumeKmsKeyId",
+     "unrepresentable": {
+      "min_length": 1
+     }
     }
    ],
    "operation": "CreateDocumentClassifier",
@@ -9418,7 +9817,10 @@
     },
     {
      "source": "FlywheelName",
-     "target": "FlywheelName"
+     "target": "FlywheelName",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "ModelType",
@@ -9681,7 +10083,12 @@
    "mappings": [
     {
      "source": "InstanceId",
-     "target": "InstanceId"
+     "target": "InstanceId",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^arn:aws[-a-z0-9]*:connect:[-a-z0-9]*:[0-9]{12}:instance/[-a-zA-Z0-9]*$"
+      }
+     }
     },
     {
      "source": "Origin",
@@ -9697,15 +10104,25 @@
    "mappings": [
     {
      "source": "Content",
-     "target": "Content"
+     "target": "Content",
+     "unrepresentable": {
+      "max_length": 256000,
+      "min_length": 1
+     }
     },
     {
      "source": "Description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "max_length": 500
+     }
     },
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "max_length": 127
+     }
     },
     {
      "source": "Tags",
@@ -9747,7 +10164,10 @@
     },
     {
      "source": "Settings",
-     "target": "Settings"
+     "target": "Settings",
+     "unrepresentable": {
+      "max_length": 256000
+     }
     },
     {
      "source": "Tags",
@@ -9774,7 +10194,10 @@
     },
     {
      "source": "Description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "max_length": 500
+     }
     }
    ],
    "operation": "CreateContactFlowModuleAlias",
@@ -9786,7 +10209,12 @@
    "mappings": [
     {
      "source": "ContactFlowModuleId",
-     "target": "ContactFlowModuleId"
+     "target": "ContactFlowModuleId",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^arn:aws[-a-z0-9]*:connect:[-a-z0-9]+:[0-9]{12}:instance/[-a-zA-Z0-9]+/flow-module/[-a-zA-Z0-9]+$"
+      }
+     }
     }
    ],
    "operation": "DeleteContactFlowModuleAlias",
@@ -9816,7 +10244,14 @@
    "mappings": [
     {
      "source": "ContactFlowModuleId",
-     "target": "ContactFlowModuleId"
+     "target": "ContactFlowModuleId",
+     "unrepresentable": {
+      "max_length": 500,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "^arn:aws[-a-z0-9]*:connect:[-a-z0-9]+:[0-9]{12}:instance/[-a-zA-Z0-9]+/flow-module/[-a-zA-Z0-9]+$"
+      }
+     }
     }
    ],
    "operation": "DeleteContactFlowModuleVersion",
@@ -9828,7 +10263,10 @@
    "mappings": [
     {
      "source": "Description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "max_length": 500
+     }
     }
    ],
    "operation": "CreateContactFlowVersion",
@@ -9840,7 +10278,14 @@
    "mappings": [
     {
      "source": "ContactFlowId",
-     "target": "ContactFlowId"
+     "target": "ContactFlowId",
+     "unrepresentable": {
+      "max_length": 500,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "^arn:aws[-a-z0-9]*:connect:[-a-z0-9]+:[0-9]{12}:instance/[-a-zA-Z0-9]+/contact-flow/[-a-zA-Z0-9]+$"
+      }
+     }
     }
    ],
    "operation": "DeleteContactFlowVersion",
@@ -9856,11 +10301,23 @@
     },
     {
      "source": "InstanceId",
-     "target": "InstanceId"
+     "target": "InstanceId",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^[-a-zA-Z0-9]*$"
+      }
+     }
     },
     {
      "source": "TargetAccountId",
-     "target": "TargetAccountId"
+     "target": "TargetAccountId",
+     "unrepresentable": {
+      "max_length": 12,
+      "min_length": 12,
+      "pattern": {
+       "cloudformation": "^\\d+$"
+      }
+     }
     }
    ],
    "operation": "AssociateAnalyticsDataSet",
@@ -9876,11 +10333,23 @@
     },
     {
      "source": "InstanceId",
-     "target": "InstanceId"
+     "target": "InstanceId",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^[-a-zA-Z0-9]*$"
+      }
+     }
     },
     {
      "source": "TargetAccountId",
-     "target": "TargetAccountId"
+     "target": "TargetAccountId",
+     "unrepresentable": {
+      "max_length": 12,
+      "min_length": 12,
+      "pattern": {
+       "cloudformation": "^\\d+$"
+      }
+     }
     }
    ],
    "operation": "DisassociateAnalyticsDataSet",
@@ -9980,12 +10449,20 @@
      "target": "Description",
      "unrepresentable": {
       "max_length": 250,
-      "min_length": 1
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "(^[\\S].*[\\S]$)|(^[\\S]$)"
+      }
      }
     },
     {
      "source": "DisplayName",
-     "target": "DisplayName"
+     "target": "DisplayName",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "(^[\\S].*[\\S]$)|(^[\\S]$)"
+      }
+     }
     },
     {
      "source": "EmailAddress",
@@ -10021,7 +10498,10 @@
    "mappings": [
     {
      "source": "Description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "max_length": 1024
+     }
     },
     {
      "source": "Tags",
@@ -10029,7 +10509,11 @@
     },
     {
      "source": "Title",
-     "target": "Title"
+     "target": "Title",
+     "unrepresentable": {
+      "max_length": 128,
+      "min_length": 1
+     }
     }
    ],
    "operation": "CreateEvaluationForm",
@@ -10048,11 +10532,21 @@
    "mappings": [
     {
      "source": "Description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^[\\P{C}\\r\\n\\t]{1,250}$"
+      }
+     }
     },
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^[\\P{C}\\r\\n\\t]{1,127}$"
+      }
+     }
     },
     {
      "source": "Tags",
@@ -10146,7 +10640,11 @@
    "mappings": [
     {
      "source": "IntegrationArn",
-     "target": "IntegrationArn"
+     "target": "IntegrationArn",
+     "unrepresentable": {
+      "max_length": 140,
+      "min_length": 1
+     }
     },
     {
      "source": "IntegrationType",
@@ -10176,10 +10674,57 @@
    "mappings": [
     {
      "source": "InstanceId",
-     "target": "InstanceId"
+     "target": "InstanceId",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^arn:aws[-a-z0-9]*:connect:[-a-z0-9]*:[0-9]{12}:instance/[-a-zA-Z0-9]*$"
+      }
+     }
     }
    ],
    "operation": "DeleteIntegrationAssociation",
+   "phase": "delete",
+   "service": "connect"
+  },
+  {
+   "cfn_type": "AWS::Connect::Metric",
+   "ignored_inputs": [
+    "ClientToken"
+   ],
+   "mappings": [
+    {
+     "source": "Description",
+     "target": "Description"
+    },
+    {
+     "source": "Name",
+     "target": "Name"
+    },
+    {
+     "source": "PositiveTrendIndicator",
+     "target": "PositiveTrendIndicator"
+    },
+    {
+     "source": "Status",
+     "target": "Status"
+    },
+    {
+     "source": "Tags",
+     "target": "Tags"
+    },
+    {
+     "source": "Unit",
+     "target": "Unit"
+    }
+   ],
+   "operation": "CreateMetric",
+   "phase": "create",
+   "service": "connect"
+  },
+  {
+   "cfn_type": "AWS::Connect::Metric",
+   "mappings": [],
+   "operation": "DeleteMetric",
    "phase": "delete",
    "service": "connect"
   },
@@ -10195,7 +10740,14 @@
     },
     {
      "source": "Recipients",
-     "target": "Recipients"
+     "target": "Recipients",
+     "unrepresentable": {
+      "items": {
+       "pattern": {
+        "cloudformation": "^.{0,2048}$"
+       }
+      }
+     }
     },
     {
      "source": "Tags",
@@ -10422,6 +10974,10 @@
     {
      "source": "PublishStatus",
      "target": "PublishStatus"
+    },
+    {
+     "source": "Tags",
+     "target": "Tags"
     }
    ],
    "operation": "CreateRule",
@@ -10458,7 +11014,12 @@
    "mappings": [
     {
      "source": "InstanceId",
-     "target": "InstanceId"
+     "target": "InstanceId",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^arn:aws[-a-z0-9]*:connect:[-a-z0-9]*:[0-9]{12}:instance/[-a-zA-Z0-9]*$"
+      }
+     }
     }
    ],
    "operation": "DisassociateSecurityKey",
@@ -10470,7 +11031,13 @@
    "mappings": [
     {
      "source": "AllowedAccessControlHierarchyGroupId",
-     "target": "AllowedAccessControlHierarchyGroupId"
+     "target": "AllowedAccessControlHierarchyGroupId",
+     "unrepresentable": {
+      "max_length": 127,
+      "pattern": {
+       "cloudformation": "^[a-zA-Z0-9-]+$"
+      }
+     }
     },
     {
      "source": "Description",
@@ -10478,7 +11045,10 @@
     },
     {
      "source": "HierarchyRestrictedResources",
-     "target": "HierarchyRestrictedResources"
+     "target": "HierarchyRestrictedResources",
+     "unrepresentable": {
+      "max_length": 10
+     }
     },
     {
      "source": "Permissions",
@@ -10516,7 +11086,12 @@
    "mappings": [
     {
      "source": "ClientToken",
-     "target": "ClientToken"
+     "target": "ClientToken",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^$|[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}$"
+      }
+     }
     },
     {
      "source": "Description",
@@ -10547,19 +11122,39 @@
    "mappings": [
     {
      "source": "Content",
-     "target": "Content"
+     "target": "Content",
+     "unrepresentable": {
+      "max_length": 256000,
+      "min_length": 1
+     }
     },
     {
      "source": "Description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "max_length": 500,
+      "pattern": {
+       "cloudformation": ".*\\S.*"
+      }
+     }
     },
     {
      "source": "InitializationData",
-     "target": "InitializationData"
+     "target": "InitializationData",
+     "unrepresentable": {
+      "max_length": 256000,
+      "min_length": 1
+     }
     },
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "max_length": 127,
+      "pattern": {
+       "cloudformation": ".*\\S.*"
+      }
+     }
     },
     {
      "source": "Status",
@@ -10597,7 +11192,12 @@
     },
     {
      "source": "Tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_value": {
+       "min_length": 1
+      }
+     }
     }
    ],
    "operation": "CreateTrafficDistributionGroup",
@@ -10636,7 +11236,10 @@
      "source": "Username",
      "target": "Username",
      "unrepresentable": {
-      "max_length": 64
+      "max_length": 64,
+      "pattern": {
+       "cloudformation": "[a-zA-Z0-9\\_\\-\\.\\@]+"
+      }
      }
     }
    ],
@@ -10656,7 +11259,11 @@
    "mappings": [
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "max_length": 100,
+      "min_length": 1
+     }
     },
     {
      "source": "Tags",
@@ -10793,6 +11400,7 @@
      "source": "tags",
      "target": "Tags",
      "unrepresentable": {
+      "max_length": 50,
       "tag_value": {
        "min_length": 1
       }
@@ -10839,7 +11447,10 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "max_length": 50
+     }
     },
     {
      "source": "type",
@@ -10890,7 +11501,11 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "max_length": 50,
+      "min_length": 1
+     }
     },
     {
      "source": "targetIdentifier",
@@ -10949,7 +11564,12 @@
     },
     {
      "source": "Statistic",
-     "target": "Statistic"
+     "target": "Statistic",
+     "unrepresentable": {
+      "rejected_values": [
+       "RECENT_OCCURRENCES"
+      ]
+     }
     },
     {
      "source": "Tags",
@@ -11473,7 +12093,11 @@
    "mappings": [
     {
      "source": "DataMigrationName",
-     "target": "DataMigrationName"
+     "target": "DataMigrationName",
+     "unrepresentable": {
+      "max_length": 300,
+      "min_length": 1
+     }
     },
     {
      "source": "DataMigrationType",
@@ -11481,11 +12105,19 @@
     },
     {
      "source": "MigrationProjectIdentifier",
-     "target": "MigrationProjectIdentifier"
+     "target": "MigrationProjectIdentifier",
+     "unrepresentable": {
+      "max_length": 255,
+      "min_length": 1
+     }
     },
     {
      "source": "ServiceAccessRoleArn",
-     "target": "ServiceAccessRoleArn"
+     "target": "ServiceAccessRoleArn",
+     "unrepresentable": {
+      "max_length": 300,
+      "min_length": 1
+     }
     }
    ],
    "operation": "CreateDataMigration",
@@ -11497,7 +12129,11 @@
    "mappings": [
     {
      "source": "DataMigrationIdentifier",
-     "target": "DataMigrationIdentifier"
+     "target": "DataMigrationIdentifier",
+     "unrepresentable": {
+      "max_length": 300,
+      "min_length": 1
+     }
     }
    ],
    "operation": "DeleteDataMigration",
@@ -11509,15 +12145,40 @@
    "mappings": [
     {
      "source": "DataProviderName",
-     "target": "DataProviderName"
+     "target": "DataProviderName",
+     "unrepresentable": {
+      "max_length": 255,
+      "min_length": 1
+     }
     },
     {
      "source": "Description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "max_length": 255,
+      "min_length": 1
+     }
     },
     {
      "source": "Engine",
-     "target": "Engine"
+     "target": "Engine",
+     "unrepresentable": {
+      "allowed_values": [
+       "aurora",
+       "aurora_postgresql",
+       "mysql",
+       "oracle",
+       "postgres",
+       "sqlserver",
+       "redshift",
+       "mariadb",
+       "mongodb",
+       "docdb",
+       "db2",
+       "db2_zos",
+       "sybase"
+      ]
+     }
     }
    ],
    "operation": "CreateDataProvider",
@@ -11529,7 +12190,11 @@
    "mappings": [
     {
      "source": "DataProviderIdentifier",
-     "target": "DataProviderIdentifier"
+     "target": "DataProviderIdentifier",
+     "unrepresentable": {
+      "max_length": 255,
+      "min_length": 1
+     }
     }
    ],
    "operation": "DeleteDataProvider",
@@ -11652,23 +12317,45 @@
    "mappings": [
     {
      "source": "AvailabilityZone",
-     "target": "AvailabilityZone"
+     "target": "AvailabilityZone",
+     "unrepresentable": {
+      "max_length": 255,
+      "min_length": 1
+     }
     },
     {
      "source": "Description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "max_length": 255,
+      "min_length": 1
+     }
     },
     {
      "source": "InstanceProfileName",
-     "target": "InstanceProfileName"
+     "target": "InstanceProfileName",
+     "unrepresentable": {
+      "max_length": 255,
+      "min_length": 1
+     }
     },
     {
      "source": "KmsKeyArn",
-     "target": "KmsKeyArn"
+     "target": "KmsKeyArn",
+     "unrepresentable": {
+      "max_length": 255,
+      "min_length": 1
+     }
     },
     {
      "source": "NetworkType",
-     "target": "NetworkType"
+     "target": "NetworkType",
+     "unrepresentable": {
+      "allowed_values": [
+       "IPV4",
+       "DUAL"
+      ]
+     }
     },
     {
      "source": "PubliclyAccessible",
@@ -11676,7 +12363,11 @@
     },
     {
      "source": "SubnetGroupIdentifier",
-     "target": "SubnetGroupIdentifier"
+     "target": "SubnetGroupIdentifier",
+     "unrepresentable": {
+      "max_length": 255,
+      "min_length": 1
+     }
     },
     {
      "source": "VpcSecurityGroups",
@@ -11692,7 +12383,11 @@
    "mappings": [
     {
      "source": "InstanceProfileIdentifier",
-     "target": "InstanceProfileIdentifier"
+     "target": "InstanceProfileIdentifier",
+     "unrepresentable": {
+      "max_length": 255,
+      "min_length": 1
+     }
     }
    ],
    "operation": "DeleteInstanceProfile",
@@ -11704,15 +12399,27 @@
    "mappings": [
     {
      "source": "Description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "max_length": 255,
+      "min_length": 1
+     }
     },
     {
      "source": "InstanceProfileIdentifier",
-     "target": "InstanceProfileIdentifier"
+     "target": "InstanceProfileIdentifier",
+     "unrepresentable": {
+      "max_length": 255,
+      "min_length": 1
+     }
     },
     {
      "source": "MigrationProjectName",
-     "target": "MigrationProjectName"
+     "target": "MigrationProjectName",
+     "unrepresentable": {
+      "max_length": 255,
+      "min_length": 1
+     }
     },
     {
      "source": "TransformationRules",
@@ -11728,7 +12435,11 @@
    "mappings": [
     {
      "source": "MigrationProjectIdentifier",
-     "target": "MigrationProjectIdentifier"
+     "target": "MigrationProjectIdentifier",
+     "unrepresentable": {
+      "max_length": 255,
+      "min_length": 1
+     }
     }
    ],
    "operation": "DeleteMigrationProject",
@@ -11835,7 +12546,12 @@
     },
     {
      "source": "ReplicationTaskIdentifier",
-     "target": "ReplicationTaskIdentifier"
+     "target": "ReplicationTaskIdentifier",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^[a-zA-Z][a-zA-Z0-9]*(?:-[a-zA-Z0-9]+)*$"
+      }
+     }
     },
     {
      "source": "ReplicationTaskSettings",
@@ -12812,7 +13528,12 @@
    "mappings": [
     {
      "source": "description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^[\\S\\s]*$"
+      }
+     }
     },
     {
      "source": "domainIdentifier",
@@ -12834,7 +13555,12 @@
     },
     {
      "source": "name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^[\\w][\\w\\.\\-\\_]*$"
+      }
+     }
     },
     {
      "source": "scope",
@@ -13028,7 +13754,10 @@
     },
     {
      "source": "description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "max_length": 2048
+     }
     },
     {
      "source": "domainIdentifier",
@@ -13036,11 +13765,21 @@
     },
     {
      "source": "environmentAccountIdentifier",
-     "target": "EnvironmentAccountIdentifier"
+     "target": "EnvironmentAccountIdentifier",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^\\d{12}$"
+      }
+     }
     },
     {
      "source": "environmentAccountRegion",
-     "target": "EnvironmentAccountRegion"
+     "target": "EnvironmentAccountRegion",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^[a-z]{2}-[a-z]{4,10}-\\d$"
+      }
+     }
     },
     {
      "source": "environmentBlueprintIdentifier",
@@ -13060,7 +13799,11 @@
     },
     {
      "source": "name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "max_length": 64,
+      "min_length": 1
+     }
     },
     {
      "source": "projectIdentifier",
@@ -13088,7 +13831,10 @@
    "mappings": [
     {
      "source": "description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "max_length": 2048
+     }
     },
     {
      "source": "domainIdentifier",
@@ -13096,11 +13842,22 @@
     },
     {
      "source": "environmentIdentifier",
-     "target": "EnvironmentIdentifier"
+     "target": "EnvironmentIdentifier",
+     "unrepresentable": {
+      "max_length": 36,
+      "min_length": 1
+     }
     },
     {
      "source": "name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "max_length": 64,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "^[\\w -]+$"
+      }
+     }
     }
    ],
    "operation": "CreateEnvironmentAction",
@@ -13116,11 +13873,22 @@
     },
     {
      "source": "environmentIdentifier",
-     "target": "EnvironmentIdentifier"
+     "target": "EnvironmentIdentifier",
+     "unrepresentable": {
+      "max_length": 36,
+      "min_length": 1
+     }
     },
     {
      "source": "identifier",
-     "target": "Identifier"
+     "target": "Identifier",
+     "unrepresentable": {
+      "max_length": 36,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "^[a-zA-Z0-9_-]{1,36}$"
+      }
+     }
     }
    ],
    "operation": "DeleteEnvironmentAction",
@@ -13689,7 +14457,17 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "max_length": 50,
+      "tag_key": {
+       "max_length": 128,
+       "min_length": 1
+      },
+      "tag_value": {
+       "max_length": 256
+      }
+     }
     }
    ],
    "operation": "CreateBudget",
@@ -13738,7 +14516,18 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "max_length": 50,
+      "tag_key": {
+       "max_length": 127,
+       "min_length": 1
+      },
+      "tag_value": {
+       "max_length": 255,
+       "min_length": 1
+      }
+     }
     }
    ],
    "operation": "CreateFarm",
@@ -13784,7 +14573,18 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "max_length": 50,
+      "tag_key": {
+       "max_length": 127,
+       "min_length": 1
+      },
+      "tag_value": {
+       "max_length": 255,
+       "min_length": 1
+      }
+     }
     }
    ],
    "operation": "CreateFleet",
@@ -13822,7 +14622,18 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "max_length": 50,
+      "tag_key": {
+       "max_length": 127,
+       "min_length": 1
+      },
+      "tag_value": {
+       "max_length": 255,
+       "min_length": 1
+      }
+     }
     },
     {
      "source": "vpcId",
@@ -13943,7 +14754,18 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "max_length": 50,
+      "tag_key": {
+       "max_length": 127,
+       "min_length": 1
+      },
+      "tag_value": {
+       "max_length": 255,
+       "min_length": 1
+      }
+     }
     }
    ],
    "operation": "CreateMonitor",
@@ -13993,7 +14815,18 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "max_length": 50,
+      "tag_key": {
+       "max_length": 127,
+       "min_length": 1
+      },
+      "tag_value": {
+       "max_length": 255,
+       "min_length": 1
+      }
+     }
     }
    ],
    "operation": "CreateQueue",
@@ -14190,7 +15023,17 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "max_length": 50,
+      "tag_key": {
+       "max_length": 128,
+       "min_length": 1
+      },
+      "tag_value": {
+       "max_length": 256
+      }
+     }
     }
    ],
    "operation": "CreateWorker",
@@ -14270,7 +15113,10 @@
     },
     {
      "source": "kmsKeyArn",
-     "target": "KmsKeyArn"
+     "target": "KmsKeyArn",
+     "unrepresentable": {
+      "max_length": 2048
+     }
     },
     {
      "source": "locale",
@@ -14304,11 +15150,19 @@
    "mappings": [
     {
      "source": "agentSpaceId",
-     "target": "AgentSpaceId"
+     "target": "AgentSpaceId",
+     "unrepresentable": {
+      "max_length": 255
+     }
     },
     {
      "source": "assetType",
-     "target": "AssetType"
+     "target": "AssetType",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^[a-z][a-z0-9_]*$"
+      }
+     }
     }
    ],
    "operation": "CreateAsset",
@@ -14320,7 +15174,10 @@
    "mappings": [
     {
      "source": "agentSpaceId",
-     "target": "AgentSpaceId"
+     "target": "AgentSpaceId",
+     "unrepresentable": {
+      "max_length": 255
+     }
     }
    ],
    "operation": "DeleteAsset",
@@ -14332,7 +15189,11 @@
    "mappings": [
     {
      "source": "agentSpaceId",
-     "target": "AgentSpaceId"
+     "target": "AgentSpaceId",
+     "unrepresentable": {
+      "max_length": 255,
+      "min_length": 1
+     }
     },
     {
      "source": "serviceId",
@@ -14380,7 +15241,10 @@
     },
     {
      "source": "kmsKeyArn",
-     "target": "KmsKeyArn"
+     "target": "KmsKeyArn",
+     "unrepresentable": {
+      "max_length": 2048
+     }
     },
     {
      "source": "privateConnectionName",
@@ -14414,15 +15278,29 @@
    "mappings": [
     {
      "source": "agentSpaceId",
-     "target": "AgentSpaceId"
+     "target": "AgentSpaceId",
+     "unrepresentable": {
+      "max_length": 255
+     }
     },
     {
      "source": "status",
-     "target": "Status"
+     "target": "Status",
+     "unrepresentable": {
+      "allowed_values": [
+       "Active",
+       "Inactive"
+      ]
+     }
     },
     {
      "source": "type",
-     "target": "Type"
+     "target": "Type",
+     "unrepresentable": {
+      "allowed_values": [
+       "TIME_BASED"
+      ]
+     }
     }
    ],
    "operation": "CreateTrigger",
@@ -14434,7 +15312,10 @@
    "mappings": [
     {
      "source": "agentSpaceId",
-     "target": "AgentSpaceId"
+     "target": "AgentSpaceId",
+     "unrepresentable": {
+      "max_length": 255
+     }
     }
    ],
    "operation": "DeleteTrigger",
@@ -14503,7 +15384,13 @@
     },
     {
      "source": "excludeAppPackagesFromCleanup",
-     "target": "ExcludeAppPackagesFromCleanup"
+     "target": "ExcludeAppPackagesFromCleanup",
+     "unrepresentable": {
+      "items": {
+       "max_length": 256,
+       "min_length": 1
+      }
+     }
     },
     {
      "source": "name",
@@ -14544,15 +15431,27 @@
     },
     {
      "source": "downlinkBandwidthBits",
-     "target": "DownlinkBandwidthBits"
+     "target": "DownlinkBandwidthBits",
+     "unrepresentable": {
+      "maximum": 104857600.0,
+      "minimum": 0.0
+     }
     },
     {
      "source": "downlinkDelayMs",
-     "target": "DownlinkDelayMs"
+     "target": "DownlinkDelayMs",
+     "unrepresentable": {
+      "maximum": 2000.0,
+      "minimum": 0.0
+     }
     },
     {
      "source": "downlinkJitterMs",
-     "target": "DownlinkJitterMs"
+     "target": "DownlinkJitterMs",
+     "unrepresentable": {
+      "maximum": 2000.0,
+      "minimum": 0.0
+     }
     },
     {
      "source": "downlinkLossPercent",
@@ -14577,15 +15476,27 @@
     },
     {
      "source": "uplinkBandwidthBits",
-     "target": "UplinkBandwidthBits"
+     "target": "UplinkBandwidthBits",
+     "unrepresentable": {
+      "maximum": 104857600.0,
+      "minimum": 0.0
+     }
     },
     {
      "source": "uplinkDelayMs",
-     "target": "UplinkDelayMs"
+     "target": "UplinkDelayMs",
+     "unrepresentable": {
+      "maximum": 2000.0,
+      "minimum": 0.0
+     }
     },
     {
      "source": "uplinkJitterMs",
-     "target": "UplinkJitterMs"
+     "target": "UplinkJitterMs",
+     "unrepresentable": {
+      "maximum": 2000.0,
+      "minimum": 0.0
+     }
     },
     {
      "source": "uplinkLossPercent",
@@ -14608,7 +15519,11 @@
    "mappings": [
     {
      "source": "defaultJobTimeoutMinutes",
-     "target": "DefaultJobTimeoutMinutes"
+     "target": "DefaultJobTimeoutMinutes",
+     "unrepresentable": {
+      "maximum": 150.0,
+      "minimum": 5.0
+     }
     },
     {
      "source": "executionRoleArn",
@@ -14747,19 +15662,39 @@
    "mappings": [
     {
      "source": "bandwidth",
-     "target": "Bandwidth"
+     "target": "Bandwidth",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^[1-9][0-9]*(M|G)bps$"
+      }
+     }
     },
     {
      "source": "connectionName",
-     "target": "ConnectionName"
+     "target": "ConnectionName",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^[\\w \\-_,\\/]{1,200}$"
+      }
+     }
     },
     {
      "source": "lagId",
-     "target": "LagId"
+     "target": "LagId",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^(arn:aws[a-z-]*:directconnect:[a-z0-9-]+:[0-9]{12}:dxlag/)?dxlag-[a-zA-Z0-9]{8,21}$"
+      }
+     }
     },
     {
      "source": "location",
-     "target": "Location"
+     "target": "Location",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^[a-zA-Z0-9-]+$"
+      }
+     }
     },
     {
      "source": "providerName",
@@ -14786,7 +15721,12 @@
    "mappings": [
     {
      "source": "directConnectGatewayName",
-     "target": "DirectConnectGatewayName"
+     "target": "DirectConnectGatewayName",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^[\\w \\-_,\\/]{1,100}$"
+      }
+     }
     }
    ],
    "operation": "CreateDirectConnectGateway",
@@ -14805,7 +15745,12 @@
    "mappings": [
     {
      "source": "directConnectGatewayId",
-     "target": "DirectConnectGatewayId"
+     "target": "DirectConnectGatewayId",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^(arn:aws[a-z-]*:directconnect::[0-9]{12}:dx-gateway/)?[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+      }
+     }
     }
    ],
    "operation": "CreateDirectConnectGatewayAssociation",
@@ -14817,7 +15762,12 @@
    "mappings": [
     {
      "source": "directConnectGatewayId",
-     "target": "DirectConnectGatewayId"
+     "target": "DirectConnectGatewayId",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^(arn:aws[a-z-]*:directconnect::[0-9]{12}:dx-gateway/)?[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+      }
+     }
     }
    ],
    "operation": "DeleteDirectConnectGatewayAssociation",
@@ -14829,15 +15779,30 @@
    "mappings": [
     {
      "source": "connectionsBandwidth",
-     "target": "ConnectionsBandwidth"
+     "target": "ConnectionsBandwidth",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^[1-9][0-9]*(M|G)bps$"
+      }
+     }
     },
     {
      "source": "lagName",
-     "target": "LagName"
+     "target": "LagName",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^[\\w \\-_,\\/]{1,200}$"
+      }
+     }
     },
     {
      "source": "location",
-     "target": "Location"
+     "target": "Location",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^[a-zA-Z0-9-]+$"
+      }
+     }
     },
     {
      "source": "providerName",
@@ -14864,7 +15829,12 @@
    "mappings": [
     {
      "source": "connectionId",
-     "target": "ConnectionId"
+     "target": "ConnectionId",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^((arn:aws[a-z-]*:directconnect:[a-z0-9-]+:[0-9]{12}:(dxcon/dxcon|dxlag/dxlag))|dx(con|lag))-[a-z0-9A-Z]{8,21}$"
+      }
+     }
     }
    ],
    "operation": "CreatePrivateVirtualInterface",
@@ -14876,7 +15846,12 @@
    "mappings": [
     {
      "source": "connectionId",
-     "target": "ConnectionId"
+     "target": "ConnectionId",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^((arn:aws[a-z-]*:directconnect:[a-z0-9-]+:[0-9]{12}:(dxcon/dxcon|dxlag/dxlag))|dx(con|lag))-[a-z0-9A-Z]{8,21}$"
+      }
+     }
     }
    ],
    "operation": "CreatePublicVirtualInterface",
@@ -14888,7 +15863,12 @@
    "mappings": [
     {
      "source": "connectionId",
-     "target": "ConnectionId"
+     "target": "ConnectionId",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^((arn:aws[a-z-]*:directconnect:[a-z0-9-]+:[0-9]{12}:(dxcon/dxcon|dxlag/dxlag))|dx(con|lag))-[a-z0-9A-Z]{8,21}$"
+      }
+     }
     }
    ],
    "operation": "CreateTransitVirtualInterface",
@@ -14934,7 +15914,11 @@
    "mappings": [
     {
      "source": "Description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "max_length": 255,
+      "min_length": 1
+     }
     }
    ],
    "operation": "CreateDBClusterParameterGroup",
@@ -14953,15 +15937,30 @@
    "mappings": [
     {
      "source": "DBSubnetGroupDescription",
-     "target": "DBSubnetGroupDescription"
+     "target": "DBSubnetGroupDescription",
+     "unrepresentable": {
+      "max_length": 100,
+      "min_length": 1
+     }
     },
     {
      "source": "DBSubnetGroupName",
-     "target": "DBSubnetGroupName"
+     "target": "DBSubnetGroupName",
+     "unrepresentable": {
+      "max_length": 255,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "[a-zA-Z][0-9a-zA-Z-:._ ]*"
+      }
+     }
     },
     {
      "source": "SubnetIds",
-     "target": "SubnetIds"
+     "target": "SubnetIds",
+     "unrepresentable": {
+      "max_length": 20,
+      "min_length": 1
+     }
     }
    ],
    "operation": "CreateDBSubnetGroup",
@@ -14973,7 +15972,14 @@
    "mappings": [
     {
      "source": "DBSubnetGroupName",
-     "target": "DBSubnetGroupName"
+     "target": "DBSubnetGroupName",
+     "unrepresentable": {
+      "max_length": 255,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "[a-zA-Z][0-9a-zA-Z-:._ ]*"
+      }
+     }
     }
    ],
    "operation": "DeleteDBSubnetGroup",
@@ -14997,15 +16003,34 @@
     },
     {
      "source": "SourceIds",
-     "target": "SourceIds"
+     "target": "SourceIds",
+     "unrepresentable": {
+      "items": {
+       "pattern": {
+        "cloudformation": "^[a-zA-Z][a-zA-Z0-9-]*[a-zA-Z0-9]$|^[a-zA-Z]$"
+       }
+      }
+     }
     },
     {
      "source": "SourceType",
-     "target": "SourceType"
+     "target": "SourceType",
+     "unrepresentable": {
+      "allowed_values": [
+       "db-instance",
+       "db-cluster",
+       "db-parameter-group",
+       "db-security-group",
+       "db-cluster-snapshot"
+      ]
+     }
     },
     {
      "source": "SubscriptionName",
-     "target": "SubscriptionName"
+     "target": "SubscriptionName",
+     "unrepresentable": {
+      "max_length": 255
+     }
     }
    ],
    "operation": "CreateEventSubscription",
@@ -15017,7 +16042,10 @@
    "mappings": [
     {
      "source": "SubscriptionName",
-     "target": "SubscriptionName"
+     "target": "SubscriptionName",
+     "unrepresentable": {
+      "max_length": 255
+     }
     }
    ],
    "operation": "DeleteEventSubscription",
@@ -15033,7 +16061,12 @@
     },
     {
      "source": "Engine",
-     "target": "Engine"
+     "target": "Engine",
+     "unrepresentable": {
+      "allowed_values": [
+       "docdb"
+      ]
+     }
     },
     {
      "source": "EngineVersion",
@@ -15106,7 +16139,14 @@
     },
     {
      "source": "clusterName",
-     "target": "ClusterName"
+     "target": "ClusterName",
+     "unrepresentable": {
+      "max_length": 50,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "[a-zA-z][a-zA-Z0-9]*(-[a-zA-Z0-9]+)*"
+      }
+     }
     },
     {
      "source": "kmsKeyId",
@@ -15138,7 +16178,10 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "max_length": 50
+     }
     },
     {
      "source": "vpcSecurityGroupIds",
@@ -15168,7 +16211,10 @@
      "target": "TableName",
      "unrepresentable": {
       "max_length": 255,
-      "min_length": 3
+      "min_length": 3,
+      "pattern": {
+       "cloudformation": "^[a-zA-Z0-9_.-]+$"
+      }
      }
     }
    ],
@@ -15423,7 +16469,11 @@
     },
     {
      "source": "TotalTargetCapacity",
-     "target": "TotalTargetCapacity"
+     "target": "TotalTargetCapacity",
+     "unrepresentable": {
+      "maximum": 25000.0,
+      "minimum": 1.0
+     }
     }
    ],
    "operation": "CreateCapacityReservationFleet",
@@ -15478,11 +16528,20 @@
     },
     {
      "source": "BgpAsnExtended",
-     "target": "BgpAsnExtended"
+     "target": "BgpAsnExtended",
+     "unrepresentable": {
+      "maximum": 4294967294.0,
+      "minimum": 2147483648.0
+     }
     },
     {
      "source": "CertificateArn",
-     "target": "CertificateArn"
+     "target": "CertificateArn",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^arn:(aws[a-zA-Z-]*)?:acm:[a-z]{2}((-gov)|(-iso([a-z]{1})?))?-[a-z]+-\\d{1}:\\d{12}:certificate\\/[a-zA-Z0-9-_]+$"
+      }
+     }
     },
     {
      "source": "DeviceName",
@@ -15614,11 +16673,25 @@
    "mappings": [
     {
      "source": "CertificateArn",
-     "target": "CertificateArn"
+     "target": "CertificateArn",
+     "unrepresentable": {
+      "max_length": 1283,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "^arn:aws[A-Za-z0-9-]{0,64}:acm:[A-Za-z0-9-]{1,64}:([0-9]{12})?:certificate/.+$"
+      }
+     }
     },
     {
      "source": "RoleArn",
-     "target": "RoleArn"
+     "target": "RoleArn",
+     "unrepresentable": {
+      "max_length": 1283,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "^arn:aws[A-Za-z0-9-]{0,64}:iam:.*:([0-9]{12})?:role/.+$"
+      }
+     }
     }
    ],
    "operation": "AssociateEnclaveCertificateIamRole",
@@ -15633,11 +16706,25 @@
    "mappings": [
     {
      "source": "CertificateArn",
-     "target": "CertificateArn"
+     "target": "CertificateArn",
+     "unrepresentable": {
+      "max_length": 1283,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "^arn:aws[A-Za-z0-9-]{0,64}:acm:[A-Za-z0-9-]{1,64}:([0-9]{12})?:certificate/.+$"
+      }
+     }
     },
     {
      "source": "RoleArn",
-     "target": "RoleArn"
+     "target": "RoleArn",
+     "unrepresentable": {
+      "max_length": 1283,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "^arn:aws[A-Za-z0-9-]{0,64}:iam:.*:([0-9]{12})?:role/.+$"
+      }
+     }
     }
    ],
    "operation": "DisassociateEnclaveCertificateIamRole",
@@ -16968,15 +18055,28 @@
    "mappings": [
     {
      "source": "AddressFamily",
-     "target": "AddressFamily"
+     "target": "AddressFamily",
+     "unrepresentable": {
+      "allowed_values": [
+       "IPv4",
+       "IPv6"
+      ]
+     }
     },
     {
      "source": "MaxEntries",
-     "target": "MaxEntries"
+     "target": "MaxEntries",
+     "unrepresentable": {
+      "minimum": 1.0
+     }
     },
     {
      "source": "PrefixListName",
-     "target": "PrefixListName"
+     "target": "PrefixListName",
+     "unrepresentable": {
+      "max_length": 255,
+      "min_length": 1
+     }
     }
    ],
    "operation": "CreateManagedPrefixList",
@@ -17104,7 +18204,11 @@
    "mappings": [
     {
      "source": "AmazonSideAsn",
-     "target": "AmazonSideAsn"
+     "target": "AmazonSideAsn",
+     "unrepresentable": {
+      "maximum": 4294967294.0,
+      "minimum": 1.0
+     }
     },
     {
      "source": "PersistRoutes",
@@ -17117,7 +18221,11 @@
     },
     {
      "source": "PersistRoutesDuration",
-     "target": "PersistRoutesDuration"
+     "target": "PersistRoutesDuration",
+     "unrepresentable": {
+      "maximum": 5.0,
+      "minimum": 0.0
+     }
     },
     {
      "source": "SnsNotificationsEnabled",
@@ -17326,7 +18434,10 @@
     },
     {
      "source": "FromPort",
-     "target": "FromPort"
+     "target": "FromPort",
+     "unrepresentable": {
+      "minimum": -1.0
+     }
     },
     {
      "source": "GroupId",
@@ -17338,7 +18449,10 @@
     },
     {
      "source": "ToPort",
-     "target": "ToPort"
+     "target": "ToPort",
+     "unrepresentable": {
+      "minimum": -1.0
+     }
     }
    ],
    "operation": "RevokeSecurityGroupEgress",
@@ -17357,7 +18471,10 @@
     },
     {
      "source": "FromPort",
-     "target": "FromPort"
+     "target": "FromPort",
+     "unrepresentable": {
+      "minimum": -1.0
+     }
     },
     {
      "source": "GroupId",
@@ -17381,7 +18498,10 @@
     },
     {
      "source": "ToPort",
-     "target": "ToPort"
+     "target": "ToPort",
+     "unrepresentable": {
+      "minimum": -1.0
+     }
     }
    ],
    "operation": "RevokeSecurityGroupIngress",
@@ -17516,7 +18636,10 @@
    "mappings": [
     {
      "source": "Ipv6CidrBlock",
-     "target": "Ipv6CidrBlock"
+     "target": "Ipv6CidrBlock",
+     "unrepresentable": {
+      "max_length": 42
+     }
     },
     {
      "source": "Ipv6IpamPoolId",
@@ -17524,7 +18647,11 @@
     },
     {
      "source": "Ipv6NetmaskLength",
-     "target": "Ipv6NetmaskLength"
+     "target": "Ipv6NetmaskLength",
+     "unrepresentable": {
+      "maximum": 128.0,
+      "minimum": 0.0
+     }
     },
     {
      "source": "SubnetId",
@@ -18648,7 +19775,15 @@
     },
     {
      "source": "SupportedIpAddressTypes",
-     "target": "SupportedIpAddressTypes"
+     "target": "SupportedIpAddressTypes",
+     "unrepresentable": {
+      "items": {
+       "allowed_values": [
+        "ipv4",
+        "ipv6"
+       ]
+      }
+     }
     },
     {
      "source": "SupportedRegions",
@@ -18737,7 +19872,13 @@
     },
     {
      "source": "PreSharedKeyStorage",
-     "target": "PreSharedKeyStorage"
+     "target": "PreSharedKeyStorage",
+     "unrepresentable": {
+      "allowed_values": [
+       "Standard",
+       "SecretsManager"
+      ]
+     }
     },
     {
      "source": "TransitGatewayId",
@@ -19277,7 +20418,12 @@
     },
     {
      "source": "customRoleArn",
-     "target": "CustomRoleArn"
+     "target": "CustomRoleArn",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^arn:aws[-a-z0-9]*:iam::[0-9]{12}:role/[A-Za-z0-9+=,-.@_]*$"
+      }
+     }
     },
     {
      "source": "description",
@@ -19391,7 +20537,11 @@
     },
     {
      "source": "cluster",
-     "target": "Cluster"
+     "target": "Cluster",
+     "unrepresentable": {
+      "max_length": 2048,
+      "min_length": 1
+     }
     }
    ],
    "operation": "PutClusterCapacityProviders",
@@ -19403,7 +20553,10 @@
    "mappings": [
     {
      "source": "capacityProviderArns",
-     "target": "CapacityProviderArns"
+     "target": "CapacityProviderArns",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "clusterArn",
@@ -19845,7 +20998,10 @@
    "mappings": [
     {
      "source": "clusterName",
-     "target": "ClusterName"
+     "target": "ClusterName",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "kubernetesGroups",
@@ -19853,7 +21009,10 @@
     },
     {
      "source": "principalArn",
-     "target": "PrincipalArn"
+     "target": "PrincipalArn",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "tags",
@@ -19877,11 +21036,17 @@
    "mappings": [
     {
      "source": "clusterName",
-     "target": "ClusterName"
+     "target": "ClusterName",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "principalArn",
-     "target": "PrincipalArn"
+     "target": "PrincipalArn",
+     "unrepresentable": {
+      "min_length": 1
+     }
     }
    ],
    "operation": "DeleteAccessEntry",
@@ -19896,11 +21061,17 @@
    "mappings": [
     {
      "source": "addonName",
-     "target": "AddonName"
+     "target": "AddonName",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "addonVersion",
-     "target": "AddonVersion"
+     "target": "AddonVersion",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "clusterName",
@@ -19908,7 +21079,10 @@
     },
     {
      "source": "configurationValues",
-     "target": "ConfigurationValues"
+     "target": "ConfigurationValues",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "resolveConflicts",
@@ -19926,7 +21100,8 @@
        "max_length": 127
       },
       "tag_value": {
-       "max_length": 255
+       "max_length": 255,
+       "min_length": 1
       }
      }
     }
@@ -19940,7 +21115,10 @@
    "mappings": [
     {
      "source": "addonName",
-     "target": "AddonName"
+     "target": "AddonName",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "clusterName",
@@ -19959,11 +21137,19 @@
    "mappings": [
     {
      "source": "capabilityName",
-     "target": "CapabilityName"
+     "target": "CapabilityName",
+     "unrepresentable": {
+      "max_length": 100,
+      "min_length": 1
+     }
     },
     {
      "source": "clusterName",
-     "target": "ClusterName"
+     "target": "ClusterName",
+     "unrepresentable": {
+      "max_length": 100,
+      "min_length": 1
+     }
     },
     {
      "source": "deletePropagationPolicy",
@@ -19971,7 +21157,12 @@
     },
     {
      "source": "roleArn",
-     "target": "RoleArn"
+     "target": "RoleArn",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^arn:aws[a-z-]*:iam::[0-9]+:role/[a-zA-Z0-9+=,.@_-]+$"
+      }
+     }
     },
     {
      "source": "tags",
@@ -19991,14 +21182,60 @@
    "mappings": [
     {
      "source": "capabilityName",
-     "target": "CapabilityName"
+     "target": "CapabilityName",
+     "unrepresentable": {
+      "max_length": 100,
+      "min_length": 1
+     }
     },
     {
      "source": "clusterName",
-     "target": "ClusterName"
+     "target": "ClusterName",
+     "unrepresentable": {
+      "max_length": 100,
+      "min_length": 1
+     }
     }
    ],
    "operation": "DeleteCapability",
+   "phase": "delete",
+   "service": "eks"
+  },
+  {
+   "cfn_type": "AWS::EKS::CertificateAuthority",
+   "ignored_inputs": [
+    "clientRequestToken"
+   ],
+   "mappings": [
+    {
+     "source": "clusterName",
+     "target": "ClusterName",
+     "unrepresentable": {
+      "max_length": 100,
+      "min_length": 1
+     }
+    }
+   ],
+   "operation": "CreateCertificateAuthority",
+   "phase": "create",
+   "service": "eks"
+  },
+  {
+   "cfn_type": "AWS::EKS::CertificateAuthority",
+   "ignored_inputs": [
+    "clientRequestToken"
+   ],
+   "mappings": [
+    {
+     "source": "clusterName",
+     "target": "ClusterName",
+     "unrepresentable": {
+      "max_length": 100,
+      "min_length": 1
+     }
+    }
+   ],
+   "operation": "DeleteCertificateAuthority",
    "phase": "delete",
    "service": "eks"
   },
@@ -20030,7 +21267,12 @@
     },
     {
      "source": "version",
-     "target": "Version"
+     "target": "Version",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "1\\.\\d\\d"
+      }
+     }
     }
    ],
    "operation": "CreateCluster",
@@ -20042,7 +21284,14 @@
    "mappings": [
     {
      "source": "name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "max_length": 100,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "^[0-9A-Za-z][A-Za-z0-9\\-_]*"
+      }
+     }
     }
    ],
    "operation": "DeleteCluster",
@@ -20057,15 +21306,24 @@
    "mappings": [
     {
      "source": "clusterName",
-     "target": "ClusterName"
+     "target": "ClusterName",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "fargateProfileName",
-     "target": "FargateProfileName"
+     "target": "FargateProfileName",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "podExecutionRoleArn",
-     "target": "PodExecutionRoleArn"
+     "target": "PodExecutionRoleArn",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "subnets",
@@ -20079,7 +21337,8 @@
        "max_length": 127
       },
       "tag_value": {
-       "max_length": 255
+       "max_length": 255,
+       "min_length": 1
       }
      }
     }
@@ -20093,11 +21352,17 @@
    "mappings": [
     {
      "source": "clusterName",
-     "target": "ClusterName"
+     "target": "ClusterName",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "fargateProfileName",
-     "target": "FargateProfileName"
+     "target": "FargateProfileName",
+     "unrepresentable": {
+      "min_length": 1
+     }
     }
    ],
    "operation": "DeleteFargateProfile",
@@ -20154,7 +21419,10 @@
     },
     {
      "source": "clusterName",
-     "target": "ClusterName"
+     "target": "ClusterName",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "diskSize",
@@ -20170,7 +21438,10 @@
     },
     {
      "source": "nodegroupName",
-     "target": "NodegroupName"
+     "target": "NodegroupName",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "releaseVersion",
@@ -20194,11 +21465,17 @@
    "mappings": [
     {
      "source": "clusterName",
-     "target": "ClusterName"
+     "target": "ClusterName",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "nodegroupName",
-     "target": "NodegroupName"
+     "target": "NodegroupName",
+     "unrepresentable": {
+      "min_length": 1
+     }
     }
    ],
    "operation": "DeleteNodegroup",
@@ -20213,7 +21490,10 @@
    "mappings": [
     {
      "source": "clusterName",
-     "target": "ClusterName"
+     "target": "ClusterName",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "disableSessionTags",
@@ -20225,7 +21505,10 @@
     },
     {
      "source": "policy",
-     "target": "Policy"
+     "target": "Policy",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "roleArn",
@@ -20241,7 +21524,10 @@
     },
     {
      "source": "targetRoleArn",
-     "target": "TargetRoleArn"
+     "target": "TargetRoleArn",
+     "unrepresentable": {
+      "min_length": 1
+     }
     }
    ],
    "operation": "CreatePodIdentityAssociation",
@@ -20253,7 +21539,10 @@
    "mappings": [
     {
      "source": "clusterName",
-     "target": "ClusterName"
+     "target": "ClusterName",
+     "unrepresentable": {
+      "min_length": 1
+     }
     }
    ],
    "operation": "DeletePodIdentityAssociation",
@@ -20361,7 +21650,15 @@
     },
     {
      "source": "SubnetIds",
-     "target": "SubnetIds"
+     "target": "SubnetIds",
+     "unrepresentable": {
+      "items": {
+       "pattern": {
+        "cloudformation": "^(subnet-[a-f0-9]{13})|(subnet-[a-f0-9]{8})\\Z"
+       }
+      },
+      "min_length": 1
+     }
     },
     {
      "source": "TrustedIdentityPropagationEnabled",
@@ -20473,7 +21770,11 @@
     },
     {
      "source": "sessionIdleTimeoutInMinutes",
-     "target": "SessionIdleTimeoutInMinutes"
+     "target": "SessionIdleTimeoutInMinutes",
+     "unrepresentable": {
+      "maximum": 1440.0,
+      "minimum": 1.0
+     }
     },
     {
      "source": "tags",
@@ -20905,7 +22206,11 @@
     },
     {
      "source": "NumCacheClusters",
-     "target": "NumCacheClusters"
+     "target": "NumCacheClusters",
+     "unrepresentable": {
+      "maximum": 6.0,
+      "minimum": 1.0
+     }
     },
     {
      "source": "NumNodeGroups",
@@ -20929,7 +22234,11 @@
     },
     {
      "source": "ReplicasPerNodeGroup",
-     "target": "ReplicasPerNodeGroup"
+     "target": "ReplicasPerNodeGroup",
+     "unrepresentable": {
+      "maximum": 5.0,
+      "minimum": 0.0
+     }
     },
     {
      "source": "ReplicationGroupDescription",
@@ -21061,15 +22370,32 @@
    "mappings": [
     {
      "source": "KmsKeyId",
-     "target": "KmsKeyId"
+     "target": "KmsKeyId",
+     "unrepresentable": {
+      "max_length": 2048
+     }
     },
     {
      "source": "ServerlessCacheName",
-     "target": "ServerlessCacheName"
+     "target": "ServerlessCacheName",
+     "unrepresentable": {
+      "max_length": 255,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$"
+      }
+     }
     },
     {
      "source": "ServerlessCacheSnapshotName",
-     "target": "ServerlessCacheSnapshotName"
+     "target": "ServerlessCacheSnapshotName",
+     "unrepresentable": {
+      "max_length": 255,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$"
+      }
+     }
     }
    ],
    "operation": "CreateServerlessCacheSnapshot",
@@ -21081,7 +22407,14 @@
    "mappings": [
     {
      "source": "ServerlessCacheSnapshotName",
-     "target": "ServerlessCacheSnapshotName"
+     "target": "ServerlessCacheSnapshotName",
+     "unrepresentable": {
+      "max_length": 255,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$"
+      }
+     }
     }
    ],
    "operation": "DeleteServerlessCacheSnapshot",
@@ -21131,7 +22464,13 @@
     },
     {
      "source": "Engine",
-     "target": "Engine"
+     "target": "Engine",
+     "unrepresentable": {
+      "allowed_values": [
+       "redis",
+       "valkey"
+      ]
+     }
     },
     {
      "source": "NoPasswordRequired",
@@ -21183,11 +22522,22 @@
    "mappings": [
     {
      "source": "Engine",
-     "target": "Engine"
+     "target": "Engine",
+     "unrepresentable": {
+      "allowed_values": [
+       "redis",
+       "valkey"
+      ]
+     }
     },
     {
      "source": "UserGroupId",
-     "target": "UserGroupId"
+     "target": "UserGroupId",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "[a-z][a-z0-9\\\\-]*"
+      }
+     }
     },
     {
      "source": "UserIds",
@@ -21203,7 +22553,12 @@
    "mappings": [
     {
      "source": "UserGroupId",
-     "target": "UserGroupId"
+     "target": "UserGroupId",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "[a-z][a-z0-9\\\\-]*"
+      }
+     }
     }
    ],
    "operation": "DeleteUserGroup",
@@ -21770,7 +23125,12 @@
     },
     {
      "source": "roleArn",
-     "target": "RoleArn"
+     "target": "RoleArn",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^arn:(aws|aws-us-gov|aws-cn):iam::\\d{12}:role/?[a-zA-Z_0-9+=,.@\\-_/]+$"
+      }
+     }
     },
     {
      "source": "tags",
@@ -21822,7 +23182,7 @@
      "unrepresentable": {
       "items": {
        "pattern": {
-        "api": "^(?:(\\d{12})|([a-z0-9\\.]+))$",
+        "api": "^(?:((\\d{12})|([a-z0-9\\.]+)))$",
         "cloudformation": "^(\\\\d{12})|([a-z0-9\\\\.]+)$"
        }
       }
@@ -22215,7 +23575,12 @@
    "mappings": [
     {
      "source": "Action",
-     "target": "Action"
+     "target": "Action",
+     "unrepresentable": {
+      "allowed_values": [
+       "events:PutEvents"
+      ]
+     }
     },
     {
      "source": "EventBusName",
@@ -22816,15 +24181,61 @@
     },
     {
      "source": "description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "max_length": 256,
+      "min_length": 1
+     }
     },
     {
      "source": "name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^[a-z_][a-z0-9_]{0,99}?$"
+      }
+     }
     },
     {
      "source": "variableType",
-     "target": "VariableType"
+     "target": "VariableType",
+     "unrepresentable": {
+      "allowed_values": [
+       "AUTH_CODE",
+       "AVS",
+       "BILLING_ADDRESS_L1",
+       "BILLING_ADDRESS_L2",
+       "BILLING_CITY",
+       "BILLING_COUNTRY",
+       "BILLING_NAME",
+       "BILLING_PHONE",
+       "BILLING_STATE",
+       "BILLING_ZIP",
+       "CARD_BIN",
+       "CATEGORICAL",
+       "CURRENCY_CODE",
+       "EMAIL_ADDRESS",
+       "FINGERPRINT",
+       "FRAUD_LABEL",
+       "FREE_FORM_TEXT",
+       "IP_ADDRESS",
+       "NUMERIC",
+       "ORDER_ID",
+       "PAYMENT_TYPE",
+       "PHONE_NUMBER",
+       "PRICE",
+       "PRODUCT_CATEGORY",
+       "SHIPPING_ADDRESS_L1",
+       "SHIPPING_ADDRESS_L2",
+       "SHIPPING_CITY",
+       "SHIPPING_COUNTRY",
+       "SHIPPING_NAME",
+       "SHIPPING_PHONE",
+       "SHIPPING_STATE",
+       "SHIPPING_ZIP",
+       "USERAGENT"
+      ]
+     }
     }
    ],
    "operation": "CreateVariable",
@@ -22836,7 +24247,12 @@
    "mappings": [
     {
      "source": "name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^[a-z_][a-z0-9_]{0,99}?$"
+      }
+     }
     }
    ],
    "operation": "DeleteVariable",
@@ -23046,7 +24462,12 @@
     },
     {
      "source": "InstanceRoleArn",
-     "target": "InstanceRoleARN"
+     "target": "InstanceRoleARN",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^arn:aws(-.*)?:[a-z-]+:(([a-z]+-)+[0-9])?:([0-9]{12})?:[^.]+$"
+      }
+     }
     },
     {
      "source": "InstanceRoleCredentialsProvider",
@@ -23070,11 +24491,21 @@
     },
     {
      "source": "PeerVpcAwsAccountId",
-     "target": "PeerVpcAwsAccountId"
+     "target": "PeerVpcAwsAccountId",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^[0-9]{12}$"
+      }
+     }
     },
     {
      "source": "PeerVpcId",
-     "target": "PeerVpcId"
+     "target": "PeerVpcId",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^vpc-\\S+"
+      }
+     }
     },
     {
      "source": "PlayerGatewayMode",
@@ -23495,13 +24926,24 @@
     },
     {
      "source": "IpAddresses",
-     "target": "IpAddresses"
+     "target": "IpAddresses",
+     "unrepresentable": {
+      "items": {
+       "pattern": {
+        "cloudformation": "^(?:[0-9]{1,3}\\.){3}[0-9]{1,3}$"
+       }
+      }
+     }
     },
     {
      "source": "Name",
      "target": "Name",
      "unrepresentable": {
-      "max_length": 64
+      "max_length": 64,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "^[a-zA-Z0-9_-]{0,64}$"
+      }
      }
     }
    ],
@@ -23526,6 +24968,7 @@
      "source": "Name",
      "target": "Name",
      "unrepresentable": {
+      "min_length": 1,
       "pattern": {
        "api": "^(?:[\\S\\s]+)$",
        "cloudformation": "^[a-zA-Z0-9_-]{0,64}$"
@@ -23889,7 +25332,12 @@
    "mappings": [
     {
      "source": "InstanceArn",
-     "target": "InstanceArn"
+     "target": "InstanceArn",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^arn:(aws|aws-us-gov|aws-cn|aws-iso|aws-iso-b):sso:::instance/(sso)?ins-[a-zA-Z0-9-.]{16}$"
+      }
+     }
     },
     {
      "source": "Scopes",
@@ -23932,11 +25380,21 @@
     },
     {
      "source": "SourceArn",
-     "target": "SourceArn"
+     "target": "SourceArn",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "arn:aws:.*:.*:[0-9]+:.*"
+      }
+     }
     },
     {
      "source": "TargetArn",
-     "target": "TargetArn"
+     "target": "TargetArn",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "arn:aws:.*:.*:[0-9]+:.*"
+      }
+     }
     }
    ],
    "operation": "CreateIntegration",
@@ -23955,7 +25413,12 @@
    "mappings": [
     {
      "source": "ResourceArn",
-     "target": "ResourceArn"
+     "target": "ResourceArn",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "arn:aws:.*:.*:[0-9]+:.*"
+      }
+     }
     }
    ],
    "operation": "CreateIntegrationResourceProperty",
@@ -23967,7 +25430,12 @@
    "mappings": [
     {
      "source": "ResourceArn",
-     "target": "ResourceArn"
+     "target": "ResourceArn",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "arn:aws:.*:.*:[0-9]+:.*"
+      }
+     }
     }
    ],
    "operation": "DeleteIntegrationResourceProperty",
@@ -24023,7 +25491,10 @@
     },
     {
      "source": "NumberOfWorkers",
-     "target": "NumberOfWorkers"
+     "target": "NumberOfWorkers",
+     "unrepresentable": {
+      "minimum": 0.0
+     }
     },
     {
      "source": "Role",
@@ -24066,7 +25537,11 @@
     },
     {
      "source": "MaxCapacity",
-     "target": "MaxCapacity"
+     "target": "MaxCapacity",
+     "unrepresentable": {
+      "maximum": 100.0,
+      "minimum": 1.0
+     }
     },
     {
      "source": "MaxRetries",
@@ -24160,7 +25635,10 @@
     },
     {
      "source": "Tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "max_length": 10
+     }
     }
    ],
    "operation": "CreateSchema",
@@ -24539,7 +26017,10 @@
     },
     {
      "source": "authenticationProviders",
-     "target": "AuthenticationProviders"
+     "target": "AuthenticationProviders",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "clientToken",
@@ -24616,7 +26097,19 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_key": {
+       "pattern": {
+        "cloudformation": "^[ a-zA-Z0-9\\+\\-=._:/@]{1,128}$"
+       }
+      },
+      "tag_value": {
+       "pattern": {
+        "cloudformation": "^[ a-zA-Z0-9\\+\\-=._:/@]{1,256}$"
+       }
+      }
+     }
     }
    ],
    "operation": "CreateConfig",
@@ -24643,7 +26136,19 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_key": {
+       "pattern": {
+        "cloudformation": "^[ a-zA-Z0-9\\+\\-=._:/@]{1,128}$"
+       }
+      },
+      "tag_value": {
+       "pattern": {
+        "cloudformation": "^[ a-zA-Z0-9\\+\\-=._:/@]{1,256}$"
+       }
+      }
+     }
     }
    ],
    "operation": "CreateDataflowEndpointGroup",
@@ -24670,7 +26175,19 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_key": {
+       "pattern": {
+        "cloudformation": "^[ a-zA-Z0-9\\+\\-=._:/@]{1,128}$"
+       }
+      },
+      "tag_value": {
+       "pattern": {
+        "cloudformation": "^[ a-zA-Z0-9\\+\\-=._:/@]{1,256}$"
+       }
+      }
+     }
     }
    ],
    "operation": "CreateDataflowEndpointGroupV2",
@@ -24702,7 +26219,19 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_key": {
+       "pattern": {
+        "cloudformation": "^[ a-zA-Z0-9\\+\\-=._:/@]{1,128}$"
+       }
+      },
+      "tag_value": {
+       "pattern": {
+        "cloudformation": "^[ a-zA-Z0-9\\+\\-=._:/@]{1,256}$"
+       }
+      }
+     }
     },
     {
      "source": "telemetrySinkConfigArn",
@@ -24735,6 +26264,41 @@
    "operation": "DeleteMissionProfile",
    "phase": "delete",
    "service": "groundstation"
+  },
+  {
+   "cfn_type": "AWS::GuardDuty::CustomDetectionRuleAssociation",
+   "ignored_inputs": [
+    "ClientToken"
+   ],
+   "mappings": [
+    {
+     "source": "Mode",
+     "target": "Mode"
+    },
+    {
+     "source": "RuleId",
+     "target": "RuleId"
+    },
+    {
+     "source": "Tags",
+     "target": "Tags"
+    }
+   ],
+   "operation": "CreateCustomDetectionRuleAssociation",
+   "phase": "create",
+   "service": "guardduty"
+  },
+  {
+   "cfn_type": "AWS::GuardDuty::CustomDetectionRuleAssociation",
+   "mappings": [
+    {
+     "source": "RuleId",
+     "target": "RuleId"
+    }
+   ],
+   "operation": "DeleteCustomDetectionRuleAssociation",
+   "phase": "delete",
+   "service": "guardduty"
   },
   {
    "cfn_type": "AWS::GuardDuty::Detector",
@@ -25313,7 +26877,15 @@
     },
     {
      "source": "ThumbprintList",
-     "target": "ThumbprintList"
+     "target": "ThumbprintList",
+     "unrepresentable": {
+      "items": {
+       "pattern": {
+        "cloudformation": "[0-9A-Fa-f]{40}"
+       }
+      },
+      "max_length": 5
+     }
     },
     {
      "source": "Url",
@@ -25560,7 +27132,10 @@
     },
     {
      "source": "VirtualMFADeviceName",
-     "target": "VirtualMfaDeviceName"
+     "target": "VirtualMfaDeviceName",
+     "unrepresentable": {
+      "max_length": 226
+     }
     }
    ],
    "operation": "CreateVirtualMFADevice",
@@ -26644,7 +28219,11 @@
     },
     {
      "source": "InvoiceReceiver",
-     "target": "InvoiceReceiver"
+     "target": "InvoiceReceiver",
+     "unrepresentable": {
+      "max_length": 12,
+      "min_length": 12
+     }
     },
     {
      "source": "Name",
@@ -26870,7 +28449,8 @@
      "source": "lambdaFunctionArn",
      "target": "LambdaFunctionArn",
      "unrepresentable": {
-      "max_length": 170
+      "max_length": 170,
+      "min_length": 1
      }
     }
    ],
@@ -27115,7 +28695,10 @@
    "mappings": [
     {
      "source": "description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "destinationPackageVersions",
@@ -27215,7 +28798,11 @@
     },
     {
      "source": "roleArn",
-     "target": "RoleArn"
+     "target": "RoleArn",
+     "unrepresentable": {
+      "max_length": 2048,
+      "min_length": 20
+     }
     }
    ],
    "operation": "SetV2LoggingOptions",
@@ -27229,6 +28816,7 @@
      "source": "actionName",
      "target": "ActionName",
      "unrepresentable": {
+      "min_length": 1,
       "pattern": {
        "api": "^(?:[a-zA-Z0-9_-]+)$",
        "cloudformation": "[a-zA-Z0-9:_-]+"
@@ -27251,6 +28839,7 @@
      "source": "actionName",
      "target": "ActionName",
      "unrepresentable": {
+      "min_length": 1,
       "pattern": {
        "api": "^(?:[a-zA-Z0-9_-]+)$",
        "cloudformation": "[a-zA-Z0-9:_-]+"
@@ -27338,7 +28927,14 @@
    "mappings": [
     {
      "source": "targetName",
-     "target": "TargetName"
+     "target": "TargetName",
+     "unrepresentable": {
+      "max_length": 128,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "[a-zA-Z0-9.:\\s_\\-]+"
+      }
+     }
     },
     {
      "source": "targetType",
@@ -27367,7 +28963,12 @@
     },
     {
      "source": "roleArn",
-     "target": "RoleArn"
+     "target": "RoleArn",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "arn:(aws[a-zA-Z-]*)?:iam::\\d{12}:role/?[a-zA-Z_0-9+=,.@\\-_/]+"
+      }
+     }
     }
    ],
    "operation": "CreateRoleAlias",
@@ -28544,7 +30145,11 @@
     },
     {
      "source": "extendsFrom",
-     "target": "ExtendsFrom"
+     "target": "ExtendsFrom",
+     "unrepresentable": {
+      "max_length": 256,
+      "min_length": 1
+     }
     },
     {
      "source": "isSingleton",
@@ -28684,7 +30289,11 @@
     },
     {
      "source": "syncSource",
-     "target": "SyncSource"
+     "target": "SyncSource",
+     "unrepresentable": {
+      "max_length": 128,
+      "min_length": 1
+     }
     },
     {
      "source": "workspaceId",
@@ -28700,7 +30309,11 @@
    "mappings": [
     {
      "source": "syncSource",
-     "target": "SyncSource"
+     "target": "SyncSource",
+     "unrepresentable": {
+      "max_length": 128,
+      "min_length": 1
+     }
     },
     {
      "source": "workspaceId",
@@ -28919,7 +30532,10 @@
     },
     {
      "source": "WirelessGateways",
-     "target": "WirelessGateways"
+     "target": "WirelessGateways",
+     "unrepresentable": {
+      "max_length": 250
+     }
     }
    ],
    "operation": "CreateNetworkAnalyzerConfiguration",
@@ -29188,7 +30804,12 @@
     },
     {
      "source": "serviceExecutionRoleArn",
-     "target": "ServiceExecutionRoleArn"
+     "target": "ServiceExecutionRoleArn",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "arn:(aws|aws-us-gov|aws-cn):iam:.*"
+      }
+     }
     },
     {
      "source": "tags",
@@ -29302,7 +30923,10 @@
     },
     {
      "source": "Schedule",
-     "target": "Schedule"
+     "target": "Schedule",
+     "unrepresentable": {
+      "max_length": 1000
+     }
     },
     {
      "source": "Type",
@@ -29535,6 +31159,39 @@
    "service": "kendra-ranking"
   },
   {
+   "cfn_type": "AWS::Kinesis::Channel",
+   "mappings": [
+    {
+     "source": "ChannelName",
+     "target": "ChannelName"
+    },
+    {
+     "source": "ServiceExecutionRoleARN",
+     "target": "ServiceExecutionRoleARN"
+    },
+    {
+     "source": "Tags",
+     "target": "Tags",
+     "unrepresentable": {
+      "max_length": 50,
+      "tag_value": {
+       "max_length": 255
+      }
+     }
+    }
+   ],
+   "operation": "CreateChannel",
+   "phase": "create",
+   "service": "kinesis"
+  },
+  {
+   "cfn_type": "AWS::Kinesis::Channel",
+   "mappings": [],
+   "operation": "DeleteChannel",
+   "phase": "delete",
+   "service": "kinesis"
+  },
+  {
    "cfn_type": "AWS::Kinesis::ResourcePolicy",
    "mappings": [
     {
@@ -29542,7 +31199,7 @@
      "target": "ResourceArn",
      "unrepresentable": {
       "pattern": {
-       "api": "^(?:arn:aws.*:kinesis:.*:\\d{12}:.*stream/\\S+)$",
+       "api": "^(?:arn:aws.*:kinesis:.*:\\d{12}:.*(stream|channel)/\\S+)$",
        "cloudformation": "arn:aws.*:kinesis:.*:\\d{12}:stream/\\S+"
       }
      }
@@ -29560,7 +31217,7 @@
      "target": "ResourceArn",
      "unrepresentable": {
       "pattern": {
-       "api": "^(?:arn:aws.*:kinesis:.*:\\d{12}:.*stream/\\S+)$",
+       "api": "^(?:arn:aws.*:kinesis:.*:\\d{12}:.*(stream|channel)/\\S+)$",
        "cloudformation": "arn:aws.*:kinesis:.*:\\d{12}:stream/\\S+"
       }
      }
@@ -29579,12 +31236,16 @@
     },
     {
      "source": "ShardCount",
-     "target": "ShardCount"
+     "target": "ShardCount",
+     "unrepresentable": {
+      "maximum": 100000.0
+     }
     },
     {
      "source": "Tags",
      "target": "Tags",
      "unrepresentable": {
+      "max_length": 50,
       "tag_value": {
        "max_length": 255
       }
@@ -29621,6 +31282,7 @@
      "source": "Tags",
      "target": "Tags",
      "unrepresentable": {
+      "max_length": 50,
       "tag_value": {
        "max_length": 255
       }
@@ -29739,7 +31401,10 @@
    "mappings": [
     {
      "source": "DataRetentionInHours",
-     "target": "DataRetentionInHours"
+     "target": "DataRetentionInHours",
+     "unrepresentable": {
+      "maximum": 87600.0
+     }
     },
     {
      "source": "DeviceName",
@@ -30024,7 +31689,7 @@
      "target": "FunctionName",
      "unrepresentable": {
       "pattern": {
-       "api": "^(?:(arn:(aws[a-zA-Z-]*)?:lambda:(eusc-)?[a-z]{2}((-gov)|(-iso([a-z]?)))?-[a-z]+-\\d{1}:\\d{12}:|(((eusc-)?[a-z]{2}((-gov)|(-iso([a-z]?)))?-[a-z]+-\\d{1}:)?(\\d{12}:)?))(function:)?([a-zA-Z0-9-_\\.]+)(:(\\$LATEST(\\.PUBLISHED)?|[a-zA-Z0-9-_]+))?)$",
+       "api": "^(?:(arn:(aws[a-zA-Z-]*)?:lambda:)?((eusc-)?[a-z]{2}((-gov)|(-iso([a-z]?)))?-[a-z]+-\\d{1}:)?(\\d{12}:)?(function:)?([a-zA-Z0-9-_\\.]+)(:(\\$LATEST(\\.PUBLISHED)?|[a-zA-Z0-9-_]+))?)$",
        "cloudformation": "^(arn:(aws[a-zA-Z-]*)?:lambda:)?([a-z]+(-[a-z]+)+-\\d{1}:)?(\\d{12}:)?(function:)?([a-zA-Z0-9-_]+)(:(\\$LATEST(\\.PUBLISHED)?|[a-zA-Z0-9-_]+))?$"
       }
      }
@@ -30060,7 +31725,7 @@
      "target": "FunctionName",
      "unrepresentable": {
       "pattern": {
-       "api": "^(?:(arn:(aws[a-zA-Z-]*)?:lambda:(eusc-)?[a-z]{2}((-gov)|(-iso([a-z]?)))?-[a-z]+-\\d{1}:\\d{12}:|(((eusc-)?[a-z]{2}((-gov)|(-iso([a-z]?)))?-[a-z]+-\\d{1}:)?(\\d{12}:)?))(function:)?([a-zA-Z0-9-_\\.]+)(:(\\$LATEST(\\.PUBLISHED)?|[a-zA-Z0-9-_]+))?)$",
+       "api": "^(?:(arn:(aws[a-zA-Z-]*)?:lambda:)?((eusc-)?[a-z]{2}((-gov)|(-iso([a-z]?)))?-[a-z]+-\\d{1}:)?(\\d{12}:)?(function:)?([a-zA-Z0-9-_\\.]+)(:(\\$LATEST(\\.PUBLISHED)?|[a-zA-Z0-9-_]+))?)$",
        "cloudformation": "^(arn:(aws[a-zA-Z-]*)?:lambda:)?([a-z]+(-[a-z]+)+-\\d{1}:)?(\\d{12}:)?(function:)?([a-zA-Z0-9-_]+)(:(\\$LATEST(\\.PUBLISHED)?|[a-zA-Z0-9-_]+))?$"
       }
      }
@@ -30109,7 +31774,7 @@
      "unrepresentable": {
       "max_length": 140,
       "pattern": {
-       "api": "^(?:(arn:(aws[a-zA-Z-]*)?:lambda:(eusc-)?[a-z]{2}((-gov)|(-iso([a-z]?)))?-[a-z]+-\\d{1}:\\d{12}:|(((eusc-)?[a-z]{2}((-gov)|(-iso([a-z]?)))?-[a-z]+-\\d{1}:)?(\\d{12}:)?))(function:)?([a-zA-Z0-9-_\\.]+)(:(\\$LATEST(\\.PUBLISHED)?|[a-zA-Z0-9-_]+))?)$",
+       "api": "^(?:(arn:(aws[a-zA-Z-]*)?:lambda:)?((eusc-)?[a-z]{2}((-gov)|(-iso([a-z]?)))?-[a-z]+-\\d{1}:)?(\\d{12}:)?(function:)?([a-zA-Z0-9-_\\.]+)(:(\\$LATEST(\\.PUBLISHED)?|[a-zA-Z0-9-_]+))?)$",
        "cloudformation": "(arn:(aws[a-zA-Z-]*)?:lambda:)?((eusc-)?[a-z]{2}((-gov)|(-iso([a-z]?)))?-[a-z]+-\\d{1}:)?(\\d{12}:)?(function:)?([a-zA-Z0-9-_]+)(:(\\$LATEST(\\.PUBLISHED)?|[a-zA-Z0-9-_]+))?"
       }
      }
@@ -30216,7 +31881,8 @@
         "api": "^(?:((arn:(aws[a-zA-Z-]*)?:lambda:(eusc-)?[a-z]{2}((-gov)|(-iso([a-z]?)))?-[a-z]+-\\d{1}:\\d{12}:layer:[a-zA-Z0-9-_]+:[0-9]+)|(arn:[a-zA-Z0-9-]+:lambda:::awslayer:[a-zA-Z0-9-_]+)))$",
         "cloudformation": "^(arn:[a-zA-Z0-9-]+:lambda:[a-zA-Z0-9-]+:\\d{12}:layer:[a-zA-Z0-9-_]+:[0-9]+|arn:[a-zA-Z0-9-]+:lambda:::awslayer:[a-zA-Z0-9-_]+)$"
        }
-      }
+      },
+      "max_length": 5
      }
     },
     {
@@ -30256,7 +31922,7 @@
      "target": "FunctionName",
      "unrepresentable": {
       "pattern": {
-       "api": "^(?:(arn:(aws[a-zA-Z-]*)?:lambda:(eusc-)?[a-z]{2}((-gov)|(-iso([a-z]?)))?-[a-z]+-\\d{1}:\\d{12}:|(((eusc-)?[a-z]{2}((-gov)|(-iso([a-z]?)))?-[a-z]+-\\d{1}:)?(\\d{12}:)?))(function:)?([a-zA-Z0-9-_\\.]+)(:(\\$LATEST(\\.PUBLISHED)?|[a-zA-Z0-9-_]+))?)$",
+       "api": "^(?:(arn:(aws[a-zA-Z-]*)?:lambda:)?((eusc-)?[a-z]{2}((-gov)|(-iso([a-z]?)))?-[a-z]+-\\d{1}:)?(\\d{12}:)?(function:)?([a-zA-Z0-9-_\\.]+)(:(\\$LATEST(\\.PUBLISHED)?|[a-zA-Z0-9-_]+))?)$",
        "cloudformation": "^([a-zA-Z0-9_-]{1,64}|arn:[a-zA-Z0-9-]+:lambda:[a-zA-Z0-9-]+:\\d{12}:function:[a-zA-Z0-9_-]{1,64})$"
       }
      }
@@ -30478,7 +32144,7 @@
      "unrepresentable": {
       "max_length": 140,
       "pattern": {
-       "api": "^(?:(arn:(aws[a-zA-Z-]*)?:lambda:(eusc-)?[a-z]{2}((-gov)|(-iso([a-z]?)))?-[a-z]+-\\d{1}:\\d{12}:|(((eusc-)?[a-z]{2}((-gov)|(-iso([a-z]?)))?-[a-z]+-\\d{1}:)?(\\d{12}:)?))(function:)?([a-zA-Z0-9-_\\.]+)(:(\\$LATEST(\\.PUBLISHED)?|[a-zA-Z0-9-_]+))?)$",
+       "api": "^(?:(arn:(aws[a-zA-Z-]*)?:lambda:)?((eusc-)?[a-z]{2}((-gov)|(-iso([a-z]?)))?-[a-z]+-\\d{1}:)?(\\d{12}:)?(function:)?([a-zA-Z0-9-_\\.]+)(:(\\$LATEST(\\.PUBLISHED)?|[a-zA-Z0-9-_]+))?)$",
        "cloudformation": "^(arn:(aws[a-zA-Z-]*)?:lambda:)?((eusc-)?[a-z]{2}((-gov)|(-iso([a-z]?)))?-[a-z]+-\\d{1}:)?(\\d{12}:)?(function:)?([a-zA-Z0-9-_]+)(:(\\$LATEST(\\.PUBLISHED)?|[a-zA-Z0-9-_]+))?$"
       }
      }
@@ -30536,13 +32202,43 @@
      "unrepresentable": {
       "max_length": 140,
       "pattern": {
-       "api": "^(?:(arn:(aws[a-zA-Z-]*)?:lambda:(eusc-)?[a-z]{2}((-gov)|(-iso([a-z]?)))?-[a-z]+-\\d{1}:\\d{12}:|(((eusc-)?[a-z]{2}((-gov)|(-iso([a-z]?)))?-[a-z]+-\\d{1}:)?(\\d{12}:)?))(function:)?([a-zA-Z0-9-_\\.]+)(:(\\$LATEST(\\.PUBLISHED)?|[a-zA-Z0-9-_]+))?)$",
+       "api": "^(?:(arn:(aws[a-zA-Z-]*)?:lambda:)?((eusc-)?[a-z]{2}((-gov)|(-iso([a-z]?)))?-[a-z]+-\\d{1}:)?(\\d{12}:)?(function:)?([a-zA-Z0-9-_\\.]+)(:(\\$LATEST(\\.PUBLISHED)?|[a-zA-Z0-9-_]+))?)$",
        "cloudformation": "^(arn:(aws[a-zA-Z-]*)?:lambda:)?((eusc-)?[a-z]{2}((-gov)|(-iso([a-z]?)))?-[a-z]+-\\d{1}:)?(\\d{12}:)?(function:)?([a-zA-Z0-9-_]+)(:(\\$LATEST(\\.PUBLISHED)?|[a-zA-Z0-9-_]+))?$"
       }
      }
     }
    ],
    "operation": "RemovePermission",
+   "phase": "delete",
+   "service": "lambda"
+  },
+  {
+   "cfn_type": "AWS::Lambda::ResourcePolicy",
+   "mappings": [
+    {
+     "source": "ResourceArn",
+     "target": "ResourceArn",
+     "unrepresentable": {
+      "min_length": 12
+     }
+    }
+   ],
+   "operation": "PutResourcePolicy",
+   "phase": "create",
+   "service": "lambda"
+  },
+  {
+   "cfn_type": "AWS::Lambda::ResourcePolicy",
+   "mappings": [
+    {
+     "source": "ResourceArn",
+     "target": "ResourceArn",
+     "unrepresentable": {
+      "min_length": 12
+     }
+    }
+   ],
+   "operation": "DeleteResourcePolicy",
    "phase": "delete",
    "service": "lambda"
   },
@@ -30615,7 +32311,7 @@
      "unrepresentable": {
       "tag_key": {
        "pattern": {
-        "api": "^(?:(?!aws:)[a-zA-Z+-=._:/]+)$",
+        "api": "^(?:[a-zA-Z0-9 _.:/=+@-]+)$",
         "cloudformation": "^[a-zA-Z+-=._:/]+$"
        }
       }
@@ -30863,7 +32559,11 @@
     },
     {
      "source": "ProductSKU",
-     "target": "ProductSKU"
+     "target": "ProductSKU",
+     "unrepresentable": {
+      "max_length": 1024,
+      "min_length": 1
+     }
     }
    ],
    "operation": "CreateLicense",
@@ -31086,19 +32786,35 @@
    "mappings": [
     {
      "source": "availabilityZone",
-     "target": "AvailabilityZone"
+     "target": "AvailabilityZone",
+     "unrepresentable": {
+      "max_length": 255,
+      "min_length": 1
+     }
     },
     {
      "source": "masterDatabaseName",
-     "target": "MasterDatabaseName"
+     "target": "MasterDatabaseName",
+     "unrepresentable": {
+      "max_length": 255,
+      "min_length": 1
+     }
     },
     {
      "source": "masterUserPassword",
-     "target": "MasterUserPassword"
+     "target": "MasterUserPassword",
+     "unrepresentable": {
+      "max_length": 63,
+      "min_length": 1
+     }
     },
     {
      "source": "masterUsername",
-     "target": "MasterUsername"
+     "target": "MasterUsername",
+     "unrepresentable": {
+      "max_length": 63,
+      "min_length": 1
+     }
     },
     {
      "source": "preferredBackupWindow",
@@ -31114,15 +32830,27 @@
     },
     {
      "source": "relationalDatabaseBlueprintId",
-     "target": "RelationalDatabaseBlueprintId"
+     "target": "RelationalDatabaseBlueprintId",
+     "unrepresentable": {
+      "max_length": 255,
+      "min_length": 1
+     }
     },
     {
      "source": "relationalDatabaseBundleId",
-     "target": "RelationalDatabaseBundleId"
+     "target": "RelationalDatabaseBundleId",
+     "unrepresentable": {
+      "max_length": 255,
+      "min_length": 1
+     }
     },
     {
      "source": "relationalDatabaseName",
-     "target": "RelationalDatabaseName"
+     "target": "RelationalDatabaseName",
+     "unrepresentable": {
+      "max_length": 255,
+      "min_length": 2
+     }
     }
    ],
    "operation": "CreateRelationalDatabase",
@@ -31134,7 +32862,11 @@
    "mappings": [
     {
      "source": "relationalDatabaseName",
-     "target": "RelationalDatabaseName"
+     "target": "RelationalDatabaseName",
+     "unrepresentable": {
+      "max_length": 255,
+      "min_length": 2
+     }
     }
    ],
    "operation": "DeleteRelationalDatabase",
@@ -31150,7 +32882,11 @@
     },
     {
      "source": "relationalDatabaseSnapshotName",
-     "target": "RelationalDatabaseSnapshotName"
+     "target": "RelationalDatabaseSnapshotName",
+     "unrepresentable": {
+      "max_length": 255,
+      "min_length": 2
+     }
     }
    ],
    "operation": "CreateRelationalDatabaseSnapshot",
@@ -31162,7 +32898,11 @@
    "mappings": [
     {
      "source": "relationalDatabaseSnapshotName",
-     "target": "RelationalDatabaseSnapshotName"
+     "target": "RelationalDatabaseSnapshotName",
+     "unrepresentable": {
+      "max_length": 255,
+      "min_length": 2
+     }
     }
    ],
    "operation": "DeleteRelationalDatabaseSnapshot",
@@ -31176,6 +32916,8 @@
      "source": "availabilityZone",
      "target": "AvailabilityZone",
      "unrepresentable": {
+      "max_length": 255,
+      "min_length": 1,
       "pattern": {
        "api": "^(?:.*\\S.*)$",
        "cloudformation": "\\S"
@@ -31186,6 +32928,8 @@
      "source": "diskName",
      "target": "DiskName",
      "unrepresentable": {
+      "max_length": 254,
+      "min_length": 1,
       "pattern": {
        "api": "^(?:\\w[\\w\\-]*\\w)$",
        "cloudformation": "^[a-zA-Z0-9][\\w\\-.]*[a-zA-Z0-9]$"
@@ -31208,6 +32952,8 @@
      "source": "diskName",
      "target": "DiskName",
      "unrepresentable": {
+      "max_length": 254,
+      "min_length": 1,
       "pattern": {
        "api": "^(?:\\w[\\w\\-]*\\w)$",
        "cloudformation": "^[a-zA-Z0-9][\\w\\-.]*[a-zA-Z0-9]$"
@@ -31224,11 +32970,19 @@
    "mappings": [
     {
      "source": "diskName",
-     "target": "DiskName"
+     "target": "DiskName",
+     "unrepresentable": {
+      "max_length": 255,
+      "min_length": 2
+     }
     },
     {
      "source": "diskSnapshotName",
-     "target": "DiskSnapshotName"
+     "target": "DiskSnapshotName",
+     "unrepresentable": {
+      "max_length": 255,
+      "min_length": 2
+     }
     }
    ],
    "operation": "CreateDiskSnapshot",
@@ -31240,7 +32994,11 @@
    "mappings": [
     {
      "source": "diskSnapshotName",
-     "target": "DiskSnapshotName"
+     "target": "DiskSnapshotName",
+     "unrepresentable": {
+      "max_length": 255,
+      "min_length": 2
+     }
     }
    ],
    "operation": "DeleteDiskSnapshot",
@@ -31312,12 +33070,18 @@
    "mappings": [
     {
      "source": "availabilityZone",
-     "target": "AvailabilityZone"
+     "target": "AvailabilityZone",
+     "unrepresentable": {
+      "max_length": 255,
+      "min_length": 1
+     }
     },
     {
      "source": "blueprintId",
      "target": "BlueprintId",
      "unrepresentable": {
+      "max_length": 255,
+      "min_length": 1,
       "pattern": {
        "api": "^(?:.*\\S.*)$",
        "cloudformation": "\\S"
@@ -31328,6 +33092,8 @@
      "source": "bundleId",
      "target": "BundleId",
      "unrepresentable": {
+      "max_length": 255,
+      "min_length": 1,
       "pattern": {
        "api": "^(?:.*\\S.*)$",
        "cloudformation": "\\S"
@@ -31354,6 +33120,8 @@
      "source": "instanceName",
      "target": "InstanceName",
      "unrepresentable": {
+      "max_length": 254,
+      "min_length": 1,
       "pattern": {
        "api": "^(?:\\w[\\w\\-]*\\w)$",
        "cloudformation": "^[a-zA-Z0-9][\\w\\-.]*[a-zA-Z0-9]$"
@@ -31820,11 +33588,22 @@
    "mappings": [
     {
      "source": "policyDocument",
-     "target": "PolicyDocument"
+     "target": "PolicyDocument",
+     "unrepresentable": {
+      "max_length": 30720,
+      "min_length": 1
+     }
     },
     {
      "source": "policyName",
-     "target": "PolicyName"
+     "target": "PolicyName",
+     "unrepresentable": {
+      "max_length": 256,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "^[^:*]{1,256}$"
+      }
+     }
     },
     {
      "source": "policyType",
@@ -31848,7 +33627,14 @@
    "mappings": [
     {
      "source": "policyName",
-     "target": "PolicyName"
+     "target": "PolicyName",
+     "unrepresentable": {
+      "max_length": 256,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "^[^:*]{1,256}$"
+      }
+     }
     },
     {
      "source": "policyType",
@@ -31864,7 +33650,14 @@
    "mappings": [
     {
      "source": "deliveryDestinationArn",
-     "target": "DeliveryDestinationArn"
+     "target": "DeliveryDestinationArn",
+     "unrepresentable": {
+      "max_length": 2048,
+      "min_length": 16,
+      "pattern": {
+       "cloudformation": "[\\w#+=/:,.@-]*\\*?"
+      }
+     }
     },
     {
      "source": "deliverySourceName",
@@ -31957,7 +33750,14 @@
     },
     {
      "source": "resourceArn",
-     "target": "ResourceArn"
+     "target": "ResourceArn",
+     "unrepresentable": {
+      "max_length": 2048,
+      "min_length": 16,
+      "pattern": {
+       "cloudformation": "[\\w#+=/:,.@-]*\\*?"
+      }
+     }
     },
     {
      "source": "tags",
@@ -32118,7 +33918,12 @@
     },
     {
      "source": "kmsKeyId",
-     "target": "KmsKeyId"
+     "target": "KmsKeyId",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^arn:[a-z0-9-]+:kms:[a-z0-9-]+:\\d{12}:(key|alias)/.+\\Z"
+      }
+     }
     },
     {
      "source": "logGroupClass",
@@ -32304,11 +34109,23 @@
    "mappings": [
     {
      "source": "policyDocument",
-     "target": "PolicyDocument"
+     "target": "PolicyDocument",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "[\\u0009\\u000A\\u000D\\u0020-\\u00FF]+"
+      }
+     }
     },
     {
      "source": "policyName",
-     "target": "PolicyName"
+     "target": "PolicyName",
+     "unrepresentable": {
+      "max_length": 255,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "^([^:*\\/]+\\/?)*[^:*\\/]+$"
+      }
+     }
     }
    ],
    "operation": "PutResourcePolicy",
@@ -32320,7 +34137,14 @@
    "mappings": [
     {
      "source": "policyName",
-     "target": "PolicyName"
+     "target": "PolicyName",
+     "unrepresentable": {
+      "max_length": 255,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "^([^:*\\/]+\\/?)*[^:*\\/]+$"
+      }
+     }
     }
    ],
    "operation": "DeleteResourcePolicy",
@@ -32346,7 +34170,10 @@
      "source": "name",
      "target": "Name",
      "unrepresentable": {
-      "max_length": 255
+      "max_length": 255,
+      "pattern": {
+       "cloudformation": "^[a-zA-Z0-9_\\-/.#]+$"
+      }
      }
     },
     {
@@ -32561,7 +34388,10 @@
     },
     {
      "source": "kmsKeyId",
-     "target": "KmsKeyId"
+     "target": "KmsKeyId",
+     "unrepresentable": {
+      "max_length": 2048
+     }
     },
     {
      "source": "name",
@@ -32646,7 +34476,10 @@
     },
     {
      "source": "kmsKeyId",
-     "target": "KmsKeyId"
+     "target": "KmsKeyId",
+     "unrepresentable": {
+      "max_length": 2048
+     }
     },
     {
      "source": "name",
@@ -32765,11 +34598,23 @@
    "mappings": [
     {
      "source": "ChannelName",
-     "target": "ChannelName"
+     "target": "ChannelName",
+     "unrepresentable": {
+      "max_length": 64,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "^[a-zA-Z0-9._-]+$"
+      }
+     }
     },
     {
      "source": "ClusterArn",
-     "target": "ClusterArn"
+     "target": "ClusterArn",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^arn:[\\w-]+:kafka:[\\w-]+:\\d+:cluster.*\\Z"
+      }
+     }
     }
    ],
    "operation": "CreateChannel",
@@ -32781,7 +34626,12 @@
    "mappings": [
     {
      "source": "ClusterArn",
-     "target": "ClusterArn"
+     "target": "ClusterArn",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^arn:[\\w-]+:kafka:[\\w-]+:\\d+:cluster.*\\Z"
+      }
+     }
     }
    ],
    "operation": "DeleteChannel",
@@ -32828,7 +34678,12 @@
    "mappings": [
     {
      "source": "ClusterArn",
-     "target": "ClusterArn"
+     "target": "ClusterArn",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^arn:[\\w-]+:kafka:[\\w-]+:\\d+:cluster.*\\Z"
+      }
+     }
     },
     {
      "source": "Policy",
@@ -32844,7 +34699,12 @@
    "mappings": [
     {
      "source": "ClusterArn",
-     "target": "ClusterArn"
+     "target": "ClusterArn",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^arn:[\\w-]+:kafka:[\\w-]+:\\d+:cluster.*\\Z"
+      }
+     }
     }
    ],
    "operation": "DeleteClusterPolicy",
@@ -32887,11 +34747,25 @@
     },
     {
      "source": "ServiceExecutionRoleArn",
-     "target": "ServiceExecutionRoleArn"
+     "target": "ServiceExecutionRoleArn",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "arn:(aws|aws-us-gov|aws-cn):iam:.*"
+      }
+     }
     },
     {
      "source": "Tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_key": {
+       "max_length": 128,
+       "min_length": 1
+      },
+      "tag_value": {
+       "max_length": 256
+      }
+     }
     }
    ],
    "operation": "CreateReplicator",
@@ -32954,23 +34828,56 @@
    "mappings": [
     {
      "source": "Authentication",
-     "target": "Authentication"
+     "target": "Authentication",
+     "unrepresentable": {
+      "allowed_values": [
+       "SASL_IAM",
+       "SASL_SCRAM",
+       "TLS"
+      ],
+      "max_length": 10,
+      "min_length": 3
+     }
     },
     {
      "source": "ClientSubnets",
-     "target": "ClientSubnets"
+     "target": "ClientSubnets",
+     "unrepresentable": {
+      "items": {
+       "pattern": {
+        "cloudformation": "^(subnet-)([a-z0-9]+)\\Z"
+       }
+      }
+     }
     },
     {
      "source": "SecurityGroups",
-     "target": "SecurityGroups"
+     "target": "SecurityGroups",
+     "unrepresentable": {
+      "items": {
+       "pattern": {
+        "cloudformation": "^(sg-)([a-z0-9]+)\\Z"
+       }
+      }
+     }
     },
     {
      "source": "TargetClusterArn",
-     "target": "TargetClusterArn"
+     "target": "TargetClusterArn",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^arn:[\\w-]+:kafka:[\\w-]+:\\d+:cluster.*\\Z"
+      }
+     }
     },
     {
      "source": "VpcId",
-     "target": "VpcId"
+     "target": "VpcId",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^(vpc-)([a-z0-9]+)\\Z"
+      }
+     }
     }
    ],
    "operation": "CreateVpcConnection",
@@ -33067,7 +34974,10 @@
     },
     {
      "source": "Schedulers",
-     "target": "Schedulers"
+     "target": "Schedulers",
+     "unrepresentable": {
+      "minimum": 1.0
+     }
     },
     {
      "source": "SourceBucketArn",
@@ -33794,31 +35704,59 @@
     },
     {
      "source": "DatapointsToAlarm",
-     "target": "DatapointsToAlarm"
+     "target": "DatapointsToAlarm",
+     "unrepresentable": {
+      "minimum": 1.0
+     }
     },
     {
      "source": "Description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "max_length": 1024
+     }
     },
     {
      "source": "EvaluationPeriods",
-     "target": "EvaluationPeriods"
+     "target": "EvaluationPeriods",
+     "unrepresentable": {
+      "minimum": 1.0
+     }
     },
     {
      "source": "GroupIdentifier",
-     "target": "GroupIdentifier"
+     "target": "GroupIdentifier",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^[^\\s]+$"
+      }
+     }
     },
     {
      "source": "MetricName",
-     "target": "MetricName"
+     "target": "MetricName",
+     "unrepresentable": {
+      "max_length": 64
+     }
     },
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "max_length": 255,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "^[^\\s]+$"
+      }
+     }
     },
     {
      "source": "Period",
-     "target": "Period"
+     "target": "Period",
+     "unrepresentable": {
+      "maximum": 86400.0,
+      "minimum": 10.0
+     }
     },
     {
      "source": "Statistic",
@@ -33856,11 +35794,21 @@
    "mappings": [
     {
      "source": "Description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "max_length": 1024
+     }
     },
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "max_length": 255,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "^[^\\s]+$"
+      }
+     }
     }
    ],
    "operation": "CreateCloudWatchAlarmTemplateGroup",
@@ -33886,7 +35834,12 @@
     },
     {
      "source": "InstanceRoleArn",
-     "target": "InstanceRoleArn"
+     "target": "InstanceRoleArn",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^arn:.+:iam:.+:role/.+$"
+      }
+     }
     },
     {
      "source": "Name",
@@ -33916,7 +35869,10 @@
    "mappings": [
     {
      "source": "Description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "max_length": 1024
+     }
     },
     {
      "source": "EventType",
@@ -33924,11 +35880,23 @@
     },
     {
      "source": "GroupIdentifier",
-     "target": "GroupIdentifier"
+     "target": "GroupIdentifier",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^[^\\s]+$"
+      }
+     }
     },
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "max_length": 255,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "^[^\\s]+$"
+      }
+     }
     }
    ],
    "operation": "CreateEventBridgeRuleTemplate",
@@ -33950,11 +35918,21 @@
    "mappings": [
     {
      "source": "Description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "max_length": 1024
+     }
     },
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "max_length": 255,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "^[^\\s]+$"
+      }
+     }
     }
    ],
    "operation": "CreateEventBridgeRuleTemplateGroup",
@@ -34140,23 +36118,51 @@
    "mappings": [
     {
      "source": "CloudWatchAlarmTemplateGroupIdentifiers",
-     "target": "CloudWatchAlarmTemplateGroupIdentifiers"
+     "target": "CloudWatchAlarmTemplateGroupIdentifiers",
+     "unrepresentable": {
+      "items": {
+       "pattern": {
+        "cloudformation": "^[^\\s]+$"
+       }
+      }
+     }
     },
     {
      "source": "Description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "max_length": 1024
+     }
     },
     {
      "source": "DiscoveryEntryPointArn",
-     "target": "DiscoveryEntryPointArn"
+     "target": "DiscoveryEntryPointArn",
+     "unrepresentable": {
+      "max_length": 2048,
+      "min_length": 1
+     }
     },
     {
      "source": "EventBridgeRuleTemplateGroupIdentifiers",
-     "target": "EventBridgeRuleTemplateGroupIdentifiers"
+     "target": "EventBridgeRuleTemplateGroupIdentifiers",
+     "unrepresentable": {
+      "items": {
+       "pattern": {
+        "cloudformation": "^[^\\s]+$"
+       }
+      }
+     }
     },
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "max_length": 255,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "^[^\\s]+$"
+      }
+     }
     }
    ],
    "operation": "CreateSignalMap",
@@ -34223,7 +36229,14 @@
     },
     {
      "source": "Id",
-     "target": "Id"
+     "target": "Id",
+     "unrepresentable": {
+      "max_length": 256,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "\\A[0-9a-zA-Z-_]+\\Z"
+      }
+     }
     },
     {
      "source": "Tags",
@@ -34239,7 +36252,14 @@
    "mappings": [
     {
      "source": "Id",
-     "target": "Id"
+     "target": "Id",
+     "unrepresentable": {
+      "max_length": 256,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "\\A[0-9a-zA-Z-_]+\\Z"
+      }
+     }
     }
    ],
    "operation": "DeleteChannel",
@@ -34259,7 +36279,14 @@
     },
     {
      "source": "Id",
-     "target": "Id"
+     "target": "Id",
+     "unrepresentable": {
+      "max_length": 256,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "\\A[0-9a-zA-Z-_]+\\Z"
+      }
+     }
     },
     {
      "source": "ManifestName",
@@ -34295,7 +36322,14 @@
    "mappings": [
     {
      "source": "Id",
-     "target": "Id"
+     "target": "Id",
+     "unrepresentable": {
+      "max_length": 256,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "\\A[0-9a-zA-Z-_]+\\Z"
+      }
+     }
     }
    ],
    "operation": "DeleteOriginEndpoint",
@@ -34339,7 +36373,14 @@
    "mappings": [
     {
      "source": "Id",
-     "target": "Id"
+     "target": "Id",
+     "unrepresentable": {
+      "max_length": 256,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "\\A[0-9a-zA-Z-_]+\\Z"
+      }
+     }
     },
     {
      "source": "Tags",
@@ -34355,7 +36396,14 @@
    "mappings": [
     {
      "source": "Id",
-     "target": "Id"
+     "target": "Id",
+     "unrepresentable": {
+      "max_length": 256,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "\\A[0-9a-zA-Z-_]+\\Z"
+      }
+     }
     }
    ],
    "operation": "DeletePackagingGroup",
@@ -34382,7 +36430,12 @@
     },
     {
      "source": "InputType",
-     "target": "InputType"
+     "target": "InputType",
+     "unrepresentable": {
+      "rejected_values": [
+       "MULTIVIEW"
+      ]
+     }
     },
     {
      "source": "OutputLockingMode",
@@ -34679,7 +36732,9 @@
      "target": "FunctionType",
      "unrepresentable": {
       "rejected_values": [
-       "CONCURRENT_EXECUTOR"
+       "AWS_SERVICE_REQUEST",
+       "CONCURRENT_EXECUTOR",
+       "VAST_REQUEST"
       ]
      }
     },
@@ -34753,7 +36808,14 @@
     },
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "max_length": 64,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "^[a-zA-Z0-9_-]+$"
+      }
+     }
     },
     {
      "source": "PersonalizationThresholdSeconds",
@@ -34785,7 +36847,14 @@
    "mappings": [
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "max_length": 64,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "^[a-zA-Z0-9_-]+$"
+      }
+     }
     }
    ],
    "operation": "DeletePlaybackConfiguration",
@@ -34905,7 +36974,12 @@
    "mappings": [
     {
      "source": "ACLName",
-     "target": "ACLName"
+     "target": "ACLName",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "[a-z][a-z0-9\\\\-]*"
+      }
+     }
     },
     {
      "source": "UserNames",
@@ -34921,7 +36995,12 @@
    "mappings": [
     {
      "source": "ACLName",
-     "target": "ACLName"
+     "target": "ACLName",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "[a-z][a-z0-9\\\\-]*"
+      }
+     }
     }
    ],
    "operation": "DeleteACL",
@@ -34941,7 +37020,12 @@
     },
     {
      "source": "ClusterName",
-     "target": "ClusterName"
+     "target": "ClusterName",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "[a-z][a-z0-9\\-]*"
+      }
+     }
     },
     {
      "source": "Description",
@@ -35037,7 +37121,12 @@
    "mappings": [
     {
      "source": "ClusterName",
-     "target": "ClusterName"
+     "target": "ClusterName",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "[a-z][a-z0-9\\-]*"
+      }
+     }
     },
     {
      "source": "FinalSnapshotName",
@@ -35069,7 +37158,12 @@
     },
     {
      "source": "MultiRegionClusterNameSuffix",
-     "target": "MultiRegionClusterNameSuffix"
+     "target": "MultiRegionClusterNameSuffix",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "[a-z][a-z0-9\\-]*"
+      }
+     }
     },
     {
      "source": "MultiRegionParameterGroupName",
@@ -35140,7 +37234,12 @@
     },
     {
      "source": "SubnetGroupName",
-     "target": "SubnetGroupName"
+     "target": "SubnetGroupName",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "[a-z][a-z0-9\\-]*"
+      }
+     }
     },
     {
      "source": "SubnetIds",
@@ -35156,7 +37255,12 @@
    "mappings": [
     {
      "source": "SubnetGroupName",
-     "target": "SubnetGroupName"
+     "target": "SubnetGroupName",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "[a-z][a-z0-9\\-]*"
+      }
+     }
     }
    ],
    "operation": "DeleteSubnetGroup",
@@ -35218,7 +37322,10 @@
     },
     {
      "source": "BackupRetentionPeriod",
-     "target": "BackupRetentionPeriod"
+     "target": "BackupRetentionPeriod",
+     "unrepresentable": {
+      "minimum": 1.0
+     }
     },
     {
      "source": "CopyTagsToSnapshot",
@@ -35226,7 +37333,14 @@
     },
     {
      "source": "DBClusterIdentifier",
-     "target": "DBClusterIdentifier"
+     "target": "DBClusterIdentifier",
+     "unrepresentable": {
+      "max_length": 63,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "^[a-zA-Z]{1}(?:-?[a-zA-Z0-9]){0,62}$"
+      }
+     }
     },
     {
      "source": "DBClusterParameterGroupName",
@@ -35258,7 +37372,13 @@
     },
     {
      "source": "NetworkType",
-     "target": "NetworkType"
+     "target": "NetworkType",
+     "unrepresentable": {
+      "allowed_values": [
+       "IPV4",
+       "DUAL"
+      ]
+     }
     },
     {
      "source": "PreferredBackupWindow",
@@ -35286,7 +37406,14 @@
    "mappings": [
     {
      "source": "DBClusterIdentifier",
-     "target": "DBClusterIdentifier"
+     "target": "DBClusterIdentifier",
+     "unrepresentable": {
+      "max_length": 63,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "^[a-zA-Z]{1}(?:-?[a-zA-Z0-9]){0,62}$"
+      }
+     }
     }
    ],
    "operation": "DeleteDBCluster",
@@ -35444,7 +37571,10 @@
     },
     {
      "source": "SubscriptionName",
-     "target": "SubscriptionName"
+     "target": "SubscriptionName",
+     "unrepresentable": {
+      "max_length": 255
+     }
     }
    ],
    "operation": "CreateEventSubscription",
@@ -35456,7 +37586,10 @@
    "mappings": [
     {
      "source": "SubscriptionName",
-     "target": "SubscriptionName"
+     "target": "SubscriptionName",
+     "unrepresentable": {
+      "max_length": 255
+     }
     }
    ],
    "operation": "DeleteEventSubscription",
@@ -35472,7 +37605,12 @@
     },
     {
      "source": "Engine",
-     "target": "Engine"
+     "target": "Engine",
+     "unrepresentable": {
+      "allowed_values": [
+       "neptune"
+      ]
+     }
     },
     {
      "source": "EngineVersion",
@@ -35693,7 +37831,10 @@
    "mappings": [
     {
      "source": "Description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "FirewallPolicyName",
@@ -35728,7 +37869,10 @@
     },
     {
      "source": "Description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "RuleGroupName",
@@ -35774,7 +37918,10 @@
    "mappings": [
     {
      "source": "Description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "TLSInspectionConfigurationName",
@@ -36579,7 +38726,13 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_key": {
+       "max_length": 128,
+       "min_length": 1
+      }
+     }
     }
    ],
    "operation": "CreateNotificationConfiguration",
@@ -36669,7 +38822,13 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_key": {
+       "max_length": 128,
+       "min_length": 1
+      }
+     }
     }
    ],
    "operation": "CreateEmailContact",
@@ -37064,11 +39223,17 @@
    "mappings": [
     {
      "source": "MaxUnits",
-     "target": "MaxUnits"
+     "target": "MaxUnits",
+     "unrepresentable": {
+      "maximum": 384.0
+     }
     },
     {
      "source": "MinUnits",
-     "target": "MinUnits"
+     "target": "MinUnits",
+     "unrepresentable": {
+      "maximum": 384.0
+     }
     },
     {
      "source": "PipelineConfigurationBody",
@@ -37112,7 +39277,11 @@
     },
     {
      "source": "SinkIdentifier",
-     "target": "SinkIdentifier"
+     "target": "SinkIdentifier",
+     "unrepresentable": {
+      "max_length": 2048,
+      "min_length": 1
+     }
     }
    ],
    "operation": "CreateLink",
@@ -37133,6 +39302,8 @@
      "source": "Name",
      "target": "Name",
      "unrepresentable": {
+      "max_length": 255,
+      "min_length": 1,
       "pattern": {
        "api": "^(?:^[a-zA-Z0-9_\\.\\-]{1,255}$)$",
        "cloudformation": "^[a-zA-Z0-9_.-]+$"
@@ -37294,7 +39465,12 @@
    "mappings": [
     {
      "source": "name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^([a-z]){1}([a-z0-9_]){2,254}"
+      }
+     }
     }
    ],
    "operation": "DeleteAnnotationStore",
@@ -37494,7 +39670,12 @@
    "mappings": [
     {
      "source": "name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^([a-z]){1}([a-z0-9_]){2,254}"
+      }
+     }
     }
    ],
    "operation": "DeleteVariantStore",
@@ -37645,7 +39826,11 @@
     },
     {
      "source": "workflowBucketOwnerId",
-     "target": "WorkflowBucketOwnerId"
+     "target": "WorkflowBucketOwnerId",
+     "unrepresentable": {
+      "max_length": 12,
+      "min_length": 1
+     }
     },
     {
      "source": "workflowId",
@@ -37878,7 +40063,14 @@
     },
     {
      "source": "indexName",
-     "target": "IndexName"
+     "target": "IndexName",
+     "unrepresentable": {
+      "max_length": 255,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "^(?![_-])[a-z][a-z0-9_-]*$"
+      }
+     }
     }
    ],
    "operation": "CreateIndex",
@@ -37894,7 +40086,14 @@
     },
     {
      "source": "indexName",
-     "target": "IndexName"
+     "target": "IndexName",
+     "unrepresentable": {
+      "max_length": 255,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "^(?![_-])[a-z][a-z0-9_-]*$"
+      }
+     }
     }
    ],
    "operation": "DeleteIndex",
@@ -38081,7 +40280,10 @@
     },
     {
      "source": "subnetIds",
-     "target": "SubnetIds"
+     "target": "SubnetIds",
+     "unrepresentable": {
+      "max_length": 6
+     }
     },
     {
      "source": "vpcId",
@@ -38134,7 +40336,10 @@
     },
     {
      "source": "RoleName",
-     "target": "RoleName"
+     "target": "RoleName",
+     "unrepresentable": {
+      "min_length": 1
+     }
     }
    ],
    "operation": "CreateAccount",
@@ -38188,7 +40393,10 @@
    "mappings": [
     {
      "source": "Content",
-     "target": "Content"
+     "target": "Content",
+     "unrepresentable": {
+      "max_length": 1000000
+     }
     },
     {
      "source": "Description",
@@ -38646,7 +40854,14 @@
     },
     {
      "source": "datasetType",
-     "target": "DatasetType"
+     "target": "DatasetType",
+     "unrepresentable": {
+      "allowed_values": [
+       "Interactions",
+       "Items",
+       "Users"
+      ]
+     }
     },
     {
      "source": "name",
@@ -38916,7 +41131,12 @@
    "mappings": [
     {
      "source": "planFamily",
-     "target": "PlanFamily"
+     "target": "PlanFamily",
+     "unrepresentable": {
+      "allowed_values": [
+       "CloudFront"
+      ]
+     }
     },
     {
      "source": "planTier",
@@ -38928,7 +41148,18 @@
     },
     {
      "source": "usageLevel",
-     "target": "UsageLevel"
+     "target": "UsageLevel",
+     "unrepresentable": {
+      "allowed_values": [
+       "DEFAULT",
+       "CF_PREMIUM_L2",
+       "CF_PREMIUM_L3",
+       "CF_PREMIUM_L4",
+       "CF_PREMIUM_L5",
+       "CF_PREMIUM_L6",
+       "CF_PREMIUM_L7"
+      ]
+     }
     }
    ],
    "operation": "CreateSubscription",
@@ -39302,7 +41533,10 @@
      "source": "statementId",
      "target": "StatementId",
      "unrepresentable": {
-      "max_length": 100
+      "max_length": 100,
+      "pattern": {
+       "cloudformation": "^[a-zA-Z0-9_-]+$"
+      }
      }
     }
    ],
@@ -39549,11 +41783,25 @@
    "mappings": [
     {
      "source": "AgentId",
-     "target": "AgentId"
+     "target": "AgentId",
+     "unrepresentable": {
+      "max_length": 256,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "^[0-9a-zA-Z-_.+]+$"
+      }
+     }
     },
     {
      "source": "AwsAccountId",
-     "target": "AwsAccountId"
+     "target": "AwsAccountId",
+     "unrepresentable": {
+      "max_length": 12,
+      "min_length": 12,
+      "pattern": {
+       "cloudformation": "^[0-9]{12}$"
+      }
+     }
     }
    ],
    "operation": "DeleteAgent",
@@ -39605,6 +41853,42 @@
    "service": "quicksight"
   },
   {
+   "cfn_type": "AWS::QuickSight::ApprovalPolicy",
+   "mappings": [
+    {
+     "source": "ApprovalGroups",
+     "target": "ApprovalGroups"
+    },
+    {
+     "source": "Description",
+     "target": "Description"
+    },
+    {
+     "source": "Name",
+     "target": "Name"
+    },
+    {
+     "source": "PolicyId",
+     "target": "PolicyId"
+    }
+   ],
+   "operation": "CreateApprovalPolicy",
+   "phase": "create",
+   "service": "quicksight"
+  },
+  {
+   "cfn_type": "AWS::QuickSight::ApprovalPolicy",
+   "mappings": [
+    {
+     "source": "PolicyId",
+     "target": "PolicyId"
+    }
+   ],
+   "operation": "DeleteApprovalPolicy",
+   "phase": "delete",
+   "service": "quicksight"
+  },
+  {
    "cfn_type": "AWS::QuickSight::CustomPermissions",
    "mappings": [
     {
@@ -39633,6 +41917,54 @@
     }
    ],
    "operation": "DeleteCustomPermissions",
+   "phase": "delete",
+   "service": "quicksight"
+  },
+  {
+   "cfn_type": "AWS::QuickSight::DLPSetting",
+   "mappings": [
+    {
+     "source": "AwsAccountId",
+     "target": "AwsAccountId"
+    },
+    {
+     "source": "DlpSettingId",
+     "target": "DlpSettingId"
+    },
+    {
+     "source": "Enabled",
+     "target": "Enabled"
+    },
+    {
+     "source": "Name",
+     "target": "Name"
+    },
+    {
+     "source": "ProviderOutageAction",
+     "target": "ProviderOutageAction"
+    },
+    {
+     "source": "ProviderType",
+     "target": "ProviderType"
+    }
+   ],
+   "operation": "CreateDlpSetting",
+   "phase": "create",
+   "service": "quicksight"
+  },
+  {
+   "cfn_type": "AWS::QuickSight::DLPSetting",
+   "mappings": [
+    {
+     "source": "AwsAccountId",
+     "target": "AwsAccountId"
+    },
+    {
+     "source": "DlpSettingId",
+     "target": "DlpSettingId"
+    }
+   ],
+   "operation": "DeleteDlpSetting",
    "phase": "delete",
    "service": "quicksight"
   },
@@ -39912,6 +42244,38 @@
    "service": "quicksight"
   },
   {
+   "cfn_type": "AWS::QuickSight::LimitsProfile",
+   "mappings": [
+    {
+     "source": "accountId",
+     "target": "AccountId"
+    },
+    {
+     "source": "description",
+     "target": "Description"
+    },
+    {
+     "source": "profileName",
+     "target": "ProfileName"
+    }
+   ],
+   "operation": "CreateLimitsProfile",
+   "phase": "create",
+   "service": "quicksight"
+  },
+  {
+   "cfn_type": "AWS::QuickSight::LimitsProfile",
+   "mappings": [
+    {
+     "source": "accountId",
+     "target": "AccountId"
+    }
+   ],
+   "operation": "DeleteLimitsProfile",
+   "phase": "delete",
+   "service": "quicksight"
+  },
+  {
    "cfn_type": "AWS::QuickSight::OAuthClientApplication",
    "mappings": [
     {
@@ -40174,7 +42538,12 @@
     },
     {
      "source": "VPCConnectionId",
-     "target": "VPCConnectionId"
+     "target": "VPCConnectionId",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "[\\w\\-]+"
+      }
+     }
     }
    ],
    "operation": "DeleteVPCConnection",
@@ -40256,7 +42625,14 @@
     },
     {
      "source": "DBClusterSnapshotIdentifier",
-     "target": "DBClusterSnapshotIdentifier"
+     "target": "DBClusterSnapshotIdentifier",
+     "unrepresentable": {
+      "max_length": 63,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "^[a-zA-Z][a-zA-Z0-9]*(-[a-zA-Z0-9]+)*$"
+      }
+     }
     }
    ],
    "operation": "CreateDBClusterSnapshot",
@@ -40268,7 +42644,14 @@
    "mappings": [
     {
      "source": "DBClusterSnapshotIdentifier",
-     "target": "DBClusterSnapshotIdentifier"
+     "target": "DBClusterSnapshotIdentifier",
+     "unrepresentable": {
+      "max_length": 63,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "^[a-zA-Z][a-zA-Z0-9]*(-[a-zA-Z0-9]+)*$"
+      }
+     }
     }
    ],
    "operation": "DeleteDBClusterSnapshot",
@@ -40360,11 +42743,18 @@
     },
     {
      "source": "BacktrackWindow",
-     "target": "BacktrackWindow"
+     "target": "BacktrackWindow",
+     "unrepresentable": {
+      "minimum": 0.0
+     }
     },
     {
      "source": "BackupRetentionPeriod",
-     "target": "BackupRetentionPeriod"
+     "target": "BackupRetentionPeriod",
+     "unrepresentable": {
+      "maximum": 35.0,
+      "minimum": 1.0
+     }
     },
     {
      "source": "ClusterScalabilityType",
@@ -40376,7 +42766,14 @@
     },
     {
      "source": "DBClusterIdentifier",
-     "target": "DBClusterIdentifier"
+     "target": "DBClusterIdentifier",
+     "unrepresentable": {
+      "max_length": 63,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "^[a-zA-Z]{1}(?:-?[a-zA-Z0-9]){0,62}$"
+      }
+     }
     },
     {
      "source": "DBClusterInstanceClass",
@@ -40483,7 +42880,13 @@
     },
     {
      "source": "MasterUsername",
-     "target": "MasterUsername"
+     "target": "MasterUsername",
+     "unrepresentable": {
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "^[a-zA-Z]{1}[a-zA-Z0-9_]*$"
+      }
+     }
     },
     {
      "source": "MonitoringInterval",
@@ -40551,7 +42954,14 @@
    "mappings": [
     {
      "source": "DBClusterIdentifier",
-     "target": "DBClusterIdentifier"
+     "target": "DBClusterIdentifier",
+     "unrepresentable": {
+      "max_length": 63,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "^[a-zA-Z]{1}(?:-?[a-zA-Z0-9]){0,62}$"
+      }
+     }
     },
     {
      "source": "DeleteAutomatedBackups",
@@ -40567,7 +42977,13 @@
    "mappings": [
     {
      "source": "DBClusterParameterGroupName",
-     "target": "DBClusterParameterGroupName"
+     "target": "DBClusterParameterGroupName",
+     "unrepresentable": {
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "^[a-zA-Z]{1}(?:-?[a-zA-Z0-9])*$"
+      }
+     }
     },
     {
      "source": "Description",
@@ -40583,7 +42999,13 @@
    "mappings": [
     {
      "source": "DBClusterParameterGroupName",
-     "target": "DBClusterParameterGroupName"
+     "target": "DBClusterParameterGroupName",
+     "unrepresentable": {
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "^[a-zA-Z]{1}(?:-?[a-zA-Z0-9])*$"
+      }
+     }
     }
    ],
    "operation": "DeleteDBClusterParameterGroup",
@@ -40603,7 +43025,10 @@
     },
     {
      "source": "BackupRetentionPeriod",
-     "target": "BackupRetentionPeriod"
+     "target": "BackupRetentionPeriod",
+     "unrepresentable": {
+      "minimum": 0.0
+     }
     },
     {
      "source": "BackupTarget",
@@ -40635,7 +43060,14 @@
     },
     {
      "source": "DBInstanceIdentifier",
-     "target": "DBInstanceIdentifier"
+     "target": "DBInstanceIdentifier",
+     "unrepresentable": {
+      "max_length": 63,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "^$|^[a-zA-Z]{1}(?:-?[a-zA-Z0-9]){0,62}$"
+      }
+     }
     },
     {
      "source": "DBName",
@@ -40743,7 +43175,14 @@
     },
     {
      "source": "MasterUsername",
-     "target": "MasterUsername"
+     "target": "MasterUsername",
+     "unrepresentable": {
+      "max_length": 128,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "^[a-zA-Z][a-zA-Z0-9_]{0,127}$"
+      }
+     }
     },
     {
      "source": "MaxAllocatedStorage",
@@ -40791,7 +43230,11 @@
     },
     {
      "source": "PromotionTier",
-     "target": "PromotionTier"
+     "target": "PromotionTier",
+     "unrepresentable": {
+      "maximum": 15.0,
+      "minimum": 0.0
+     }
     },
     {
      "source": "PubliclyAccessible",
@@ -40831,7 +43274,14 @@
    "mappings": [
     {
      "source": "DBInstanceIdentifier",
-     "target": "DBInstanceIdentifier"
+     "target": "DBInstanceIdentifier",
+     "unrepresentable": {
+      "max_length": 63,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "^$|^[a-zA-Z]{1}(?:-?[a-zA-Z0-9]){0,62}$"
+      }
+     }
     },
     {
      "source": "DeleteAutomatedBackups",
@@ -40847,7 +43297,12 @@
    "mappings": [
     {
      "source": "DBParameterGroupName",
-     "target": "DBParameterGroupName"
+     "target": "DBParameterGroupName",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^[a-zA-Z]{1}(?:-?[a-zA-Z0-9])*$"
+      }
+     }
     },
     {
      "source": "Description",
@@ -40863,7 +43318,12 @@
    "mappings": [
     {
      "source": "DBParameterGroupName",
-     "target": "DBParameterGroupName"
+     "target": "DBParameterGroupName",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^[a-zA-Z]{1}(?:-?[a-zA-Z0-9])*$"
+      }
+     }
     }
    ],
    "operation": "DeleteDBParameterGroup",
@@ -40917,11 +43377,17 @@
     },
     {
      "source": "VpcSecurityGroupIds",
-     "target": "VpcSecurityGroupIds"
+     "target": "VpcSecurityGroupIds",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "VpcSubnetIds",
-     "target": "VpcSubnetIds"
+     "target": "VpcSubnetIds",
+     "unrepresentable": {
+      "min_length": 2
+     }
     }
    ],
    "operation": "CreateDBProxy",
@@ -40979,11 +43445,17 @@
     },
     {
      "source": "VpcSecurityGroupIds",
-     "target": "VpcSecurityGroupIds"
+     "target": "VpcSecurityGroupIds",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "VpcSubnetIds",
-     "target": "VpcSubnetIds"
+     "target": "VpcSubnetIds",
+     "unrepresentable": {
+      "min_length": 2
+     }
     }
    ],
    "operation": "CreateDBProxyEndpoint",
@@ -41031,7 +43503,12 @@
     },
     {
      "source": "TargetGroupName",
-     "target": "TargetGroupName"
+     "target": "TargetGroupName",
+     "unrepresentable": {
+      "allowed_values": [
+       "default"
+      ]
+     }
     }
    ],
    "operation": "RegisterDBProxyTargets",
@@ -41061,7 +43538,12 @@
     },
     {
      "source": "TargetGroupName",
-     "target": "TargetGroupName"
+     "target": "TargetGroupName",
+     "unrepresentable": {
+      "allowed_values": [
+       "default"
+      ]
+     }
     }
    ],
    "operation": "DeregisterDBProxyTargets",
@@ -41073,15 +43555,26 @@
    "mappings": [
     {
      "source": "ComputeRedundancy",
-     "target": "ComputeRedundancy"
+     "target": "ComputeRedundancy",
+     "unrepresentable": {
+      "minimum": 0.0
+     }
     },
     {
      "source": "DBClusterIdentifier",
-     "target": "DBClusterIdentifier"
+     "target": "DBClusterIdentifier",
+     "unrepresentable": {
+      "max_length": 63,
+      "min_length": 1
+     }
     },
     {
      "source": "DBShardGroupIdentifier",
-     "target": "DBShardGroupIdentifier"
+     "target": "DBShardGroupIdentifier",
+     "unrepresentable": {
+      "max_length": 63,
+      "min_length": 1
+     }
     },
     {
      "source": "MaxACU",
@@ -41121,7 +43614,14 @@
     },
     {
      "source": "DBSnapshotIdentifier",
-     "target": "DBSnapshotIdentifier"
+     "target": "DBSnapshotIdentifier",
+     "unrepresentable": {
+      "max_length": 255,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "^[a-zA-Z][a-zA-Z0-9]*(-[a-zA-Z0-9]+)*$"
+      }
+     }
     }
    ],
    "operation": "CreateDBSnapshot",
@@ -41133,7 +43633,14 @@
    "mappings": [
     {
      "source": "DBSnapshotIdentifier",
-     "target": "DBSnapshotIdentifier"
+     "target": "DBSnapshotIdentifier",
+     "unrepresentable": {
+      "max_length": 255,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "^[a-zA-Z][a-zA-Z0-9]*(-[a-zA-Z0-9]+)*$"
+      }
+     }
     }
    ],
    "operation": "DeleteDBSnapshot",
@@ -41197,7 +43704,10 @@
     },
     {
      "source": "SubscriptionName",
-     "target": "SubscriptionName"
+     "target": "SubscriptionName",
+     "unrepresentable": {
+      "max_length": 255
+     }
     }
    ],
    "operation": "CreateEventSubscription",
@@ -41209,7 +43719,10 @@
    "mappings": [
     {
      "source": "SubscriptionName",
-     "target": "SubscriptionName"
+     "target": "SubscriptionName",
+     "unrepresentable": {
+      "max_length": 255
+     }
     }
    ],
    "operation": "DeleteEventSubscription",
@@ -41225,7 +43738,14 @@
     },
     {
      "source": "Engine",
-     "target": "Engine"
+     "target": "Engine",
+     "unrepresentable": {
+      "allowed_values": [
+       "aurora",
+       "aurora-mysql",
+       "aurora-postgresql"
+      ]
+     }
     },
     {
      "source": "EngineLifecycleSupport",
@@ -41370,6 +43890,7 @@
      "source": "tags",
      "target": "Tags",
      "unrepresentable": {
+      "max_length": 50,
       "tag_value": {
        "max_length": 256
       }
@@ -41411,6 +43932,7 @@
      "source": "tags",
      "target": "Tags",
      "unrepresentable": {
+      "max_length": 50,
       "tag_value": {
        "max_length": 256
       }
@@ -41455,6 +43977,7 @@
      "source": "tags",
      "target": "Tags",
      "unrepresentable": {
+      "max_length": 50,
       "tag_value": {
        "max_length": 256
       }
@@ -41499,6 +44022,7 @@
      "source": "tags",
      "target": "Tags",
      "unrepresentable": {
+      "max_length": 50,
       "tag_value": {
        "max_length": 256
       }
@@ -41541,7 +44065,10 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "max_length": 50
+     }
     },
     {
      "source": "vpcId",
@@ -41603,6 +44130,7 @@
      "source": "tags",
      "target": "Tags",
      "unrepresentable": {
+      "max_length": 50,
       "tag_value": {
        "max_length": 256
       }
@@ -41685,7 +44213,10 @@
    "mappings": [
     {
      "source": "Description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "max_length": 255
+     }
     },
     {
      "source": "ResourceType",
@@ -41782,7 +44313,10 @@
     },
     {
      "source": "IamRoles",
-     "target": "IamRoles"
+     "target": "IamRoles",
+     "unrepresentable": {
+      "max_length": 50
+     }
     },
     {
      "source": "KmsKeyId",
@@ -41806,7 +44340,10 @@
     },
     {
      "source": "MasterUserPassword",
-     "target": "MasterUserPassword"
+     "target": "MasterUserPassword",
+     "unrepresentable": {
+      "max_length": 64
+     }
     },
     {
      "source": "MasterUsername",
@@ -41825,7 +44362,11 @@
     },
     {
      "source": "NumberOfNodes",
-     "target": "NumberOfNodes"
+     "target": "NumberOfNodes",
+     "unrepresentable": {
+      "maximum": 100.0,
+      "minimum": 1.0
+     }
     },
     {
      "source": "Port",
@@ -41910,7 +44451,10 @@
     },
     {
      "source": "SubnetIds",
-     "target": "SubnetIds"
+     "target": "SubnetIds",
+     "unrepresentable": {
+      "max_length": 20
+     }
     }
    ],
    "operation": "CreateClusterSubnetGroup",
@@ -41933,15 +44477,30 @@
     },
     {
      "source": "EndpointName",
-     "target": "EndpointName"
+     "target": "EndpointName",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^(?=^[a-z][a-z0-9]*(-[a-z0-9]+)*$).{1,30}$"
+      }
+     }
     },
     {
      "source": "ResourceOwner",
-     "target": "ResourceOwner"
+     "target": "ResourceOwner",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^\\d{12}$"
+      }
+     }
     },
     {
      "source": "SubnetGroupName",
-     "target": "SubnetGroupName"
+     "target": "SubnetGroupName",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^(?=^[a-zA-Z0-9-]+$).{1,255}$"
+      }
+     }
     },
     {
      "source": "VpcSecurityGroupIds",
@@ -41957,7 +44516,12 @@
    "mappings": [
     {
      "source": "EndpointName",
-     "target": "EndpointName"
+     "target": "EndpointName",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^(?=^[a-z][a-z0-9]*(-[a-z0-9]+)*$).{1,30}$"
+      }
+     }
     }
    ],
    "operation": "DeleteEndpointAccess",
@@ -41973,11 +44537,28 @@
     },
     {
      "source": "EventCategories",
-     "target": "EventCategories"
+     "target": "EventCategories",
+     "unrepresentable": {
+      "items": {
+       "allowed_values": [
+        "configuration",
+        "management",
+        "monitoring",
+        "security",
+        "pending"
+       ]
+      }
+     }
     },
     {
      "source": "Severity",
-     "target": "Severity"
+     "target": "Severity",
+     "unrepresentable": {
+      "allowed_values": [
+       "ERROR",
+       "INFO"
+      ]
+     }
     },
     {
      "source": "SnsTopicArn",
@@ -41989,11 +44570,25 @@
     },
     {
      "source": "SourceType",
-     "target": "SourceType"
+     "target": "SourceType",
+     "unrepresentable": {
+      "allowed_values": [
+       "cluster",
+       "cluster-parameter-group",
+       "cluster-security-group",
+       "cluster-snapshot",
+       "scheduled-action"
+      ]
+     }
     },
     {
      "source": "SubscriptionName",
-     "target": "SubscriptionName"
+     "target": "SubscriptionName",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^(?=^[a-zA-Z][a-zA-Z0-9]*(-[a-zA-Z0-9]+)*$).{1,255}$"
+      }
+     }
     }
    ],
    "operation": "CreateEventSubscription",
@@ -42005,7 +44600,12 @@
    "mappings": [
     {
      "source": "SubscriptionName",
-     "target": "SubscriptionName"
+     "target": "SubscriptionName",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^(?=^[a-zA-Z][a-zA-Z0-9]*(-[a-zA-Z0-9]+)*$).{1,255}$"
+      }
+     }
     }
    ],
    "operation": "DeleteEventSubscription",
@@ -42127,15 +44727,33 @@
     },
     {
      "source": "adminUserPassword",
-     "target": "AdminUserPassword"
+     "target": "AdminUserPassword",
+     "unrepresentable": {
+      "max_length": 64,
+      "min_length": 8,
+      "pattern": {
+       "cloudformation": "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)[^\\x00-\\x20\\x22\\x27\\x2f\\x40\\x5c\\x7f-\\uffff]+"
+      }
+     }
     },
     {
      "source": "adminUsername",
-     "target": "AdminUsername"
+     "target": "AdminUsername",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "[a-zA-Z][a-zA-Z_0-9+.@-]*"
+      }
+     }
     },
     {
      "source": "dbName",
-     "target": "DbName"
+     "target": "DbName",
+     "unrepresentable": {
+      "max_length": 127,
+      "pattern": {
+       "cloudformation": "[a-zA-Z][a-zA-Z_0-9+.@-]*"
+      }
+     }
     },
     {
      "source": "defaultIamRoleArn",
@@ -42143,7 +44761,12 @@
     },
     {
      "source": "iamRoles",
-     "target": "IamRoles"
+     "target": "IamRoles",
+     "unrepresentable": {
+      "items": {
+       "max_length": 512
+      }
+     }
     },
     {
      "source": "kmsKeyId",
@@ -42175,7 +44798,13 @@
    "mappings": [
     {
      "source": "finalSnapshotName",
-     "target": "FinalSnapshotName"
+     "target": "FinalSnapshotName",
+     "unrepresentable": {
+      "max_length": 255,
+      "pattern": {
+       "cloudformation": "[a-z][a-z0-9]*(-[a-z0-9]+)*"
+      }
+     }
     },
     {
      "source": "finalSnapshotRetentionPeriod",
@@ -42195,7 +44824,14 @@
    "mappings": [
     {
      "source": "namespaceName",
-     "target": "NamespaceName"
+     "target": "NamespaceName",
+     "unrepresentable": {
+      "max_length": 64,
+      "min_length": 3,
+      "pattern": {
+       "cloudformation": "^(?=^[a-z0-9-]+$).{3,64}$"
+      }
+     }
     },
     {
      "source": "retentionPeriod",
@@ -42203,7 +44839,14 @@
     },
     {
      "source": "snapshotName",
-     "target": "SnapshotName"
+     "target": "SnapshotName",
+     "unrepresentable": {
+      "max_length": 64,
+      "min_length": 3,
+      "pattern": {
+       "cloudformation": "^(?=^[a-z0-9-]+$).{3,64}$"
+      }
+     }
     }
    ],
    "operation": "CreateSnapshot",
@@ -42215,7 +44858,14 @@
    "mappings": [
     {
      "source": "snapshotName",
-     "target": "SnapshotName"
+     "target": "SnapshotName",
+     "unrepresentable": {
+      "max_length": 64,
+      "min_length": 3,
+      "pattern": {
+       "cloudformation": "^(?=^[a-z0-9-]+$).{3,64}$"
+      }
+     }
     }
    ],
    "operation": "DeleteSnapshot",
@@ -42257,11 +44907,31 @@
     },
     {
      "source": "securityGroupIds",
-     "target": "SecurityGroupIds"
+     "target": "SecurityGroupIds",
+     "unrepresentable": {
+      "items": {
+       "max_length": 255,
+       "pattern": {
+        "cloudformation": "^sg-[0-9a-fA-F]{8,}$"
+       }
+      },
+      "max_length": 32,
+      "min_length": 1
+     }
     },
     {
      "source": "subnetIds",
-     "target": "SubnetIds"
+     "target": "SubnetIds",
+     "unrepresentable": {
+      "items": {
+       "max_length": 255,
+       "pattern": {
+        "cloudformation": "^subnet-[0-9a-fA-F]{8,}$"
+       }
+      },
+      "max_length": 32,
+      "min_length": 1
+     }
     },
     {
      "source": "trackName",
@@ -42656,6 +45326,7 @@
      "source": "RoleArn",
      "target": "RoleArn",
      "unrepresentable": {
+      "max_length": 2048,
       "pattern": {
        "api": "^(?:arn:aws:iam::\\d{12}:role/?[a-zA-Z_0-9+=,.@\\-_/]+)$",
        "cloudformation": "arn:aws(-[\\w]+)*:iam::[0-9]{12}:role/.*"
@@ -42766,7 +45437,12 @@
     },
     {
      "source": "kmsKeyId",
-     "target": "KmsKeyId"
+     "target": "KmsKeyId",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^((arn:aws(-[^:]+)?:kms:[a-zA-Z0-9-]*:[0-9]{12}:((key/[a-zA-Z0-9-]{36})|(alias/[a-zA-Z0-9-_/]+)))|([a-zA-Z0-9-]{36})|(alias/[a-zA-Z0-9-_/]+))$"
+      }
+     }
     },
     {
      "source": "name",
@@ -42804,7 +45480,12 @@
     },
     {
      "source": "kmsKeyId",
-     "target": "KmsKeyId"
+     "target": "KmsKeyId",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^((arn:aws(-[^:]+)?:kms:[a-zA-Z0-9-]*:[0-9]{12}:((key/[a-zA-Z0-9-]{36})|(alias/[a-zA-Z0-9-_/]+)))|([a-zA-Z0-9-]{36})|(alias/[a-zA-Z0-9-_/]+))$"
+      }
+     }
     },
     {
      "source": "name",
@@ -42891,7 +45572,12 @@
     },
     {
      "source": "kmsKeyId",
-     "target": "KmsKeyId"
+     "target": "KmsKeyId",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^((arn:aws(-[^:]+)?:kms:[a-zA-Z0-9-]*:[0-9]{12}:((key/[a-zA-Z0-9-]{36})|(alias/[a-zA-Z0-9-_/]+)))|([a-zA-Z0-9-]{36})|(alias/[a-zA-Z0-9-_/]+))$"
+      }
+     }
     },
     {
      "source": "name",
@@ -43172,7 +45858,12 @@
    "mappings": [
     {
      "source": "HostedZoneId",
-     "target": "HostedZoneId"
+     "target": "HostedZoneId",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^[A-Z0-9]{1,32}$"
+      }
+     }
     }
    ],
    "operation": "EnableHostedZoneDNSSEC",
@@ -43210,19 +45901,39 @@
    "mappings": [
     {
      "source": "HostedZoneId",
-     "target": "HostedZoneId"
+     "target": "HostedZoneId",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^[A-Z0-9]{1,32}$"
+      }
+     }
     },
     {
      "source": "KeyManagementServiceArn",
-     "target": "KeyManagementServiceArn"
+     "target": "KeyManagementServiceArn",
+     "unrepresentable": {
+      "max_length": 256,
+      "min_length": 1
+     }
     },
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^[a-zA-Z0-9_]{3,128}$"
+      }
+     }
     },
     {
      "source": "Status",
-     "target": "Status"
+     "target": "Status",
+     "unrepresentable": {
+      "allowed_values": [
+       "ACTIVE",
+       "INACTIVE"
+      ]
+     }
     }
    ],
    "operation": "CreateKeySigningKey",
@@ -43234,11 +45945,21 @@
    "mappings": [
     {
      "source": "HostedZoneId",
-     "target": "HostedZoneId"
+     "target": "HostedZoneId",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^[A-Z0-9]{1,32}$"
+      }
+     }
     },
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^[a-zA-Z0-9_]{3,128}$"
+      }
+     }
     }
    ],
    "operation": "DeleteKeySigningKey",
@@ -43741,7 +46462,13 @@
     },
     {
      "source": "Tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_key": {
+       "max_length": 128,
+       "min_length": 1
+      }
+     }
     }
    ],
    "operation": "CreateCluster",
@@ -43767,7 +46494,13 @@
     },
     {
      "source": "Tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_key": {
+       "max_length": 128,
+       "min_length": 1
+      }
+     }
     }
    ],
    "operation": "CreateControlPanel",
@@ -43815,7 +46548,13 @@
    "mappings": [
     {
      "source": "Tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_key": {
+       "max_length": 128,
+       "min_length": 1
+      }
+     }
     }
    ],
    "operation": "CreateSafetyRule",
@@ -43834,11 +46573,20 @@
    "mappings": [
     {
      "source": "CellName",
-     "target": "CellName"
+     "target": "CellName",
+     "unrepresentable": {
+      "max_length": 64,
+      "pattern": {
+       "cloudformation": "[a-zA-Z0-9_]+"
+      }
+     }
     },
     {
      "source": "Cells",
-     "target": "Cells"
+     "target": "Cells",
+     "unrepresentable": {
+      "max_length": 5
+     }
     },
     {
      "source": "Tags",
@@ -43854,7 +46602,13 @@
    "mappings": [
     {
      "source": "CellName",
-     "target": "CellName"
+     "target": "CellName",
+     "unrepresentable": {
+      "max_length": 64,
+      "pattern": {
+       "cloudformation": "[a-zA-Z0-9_]+"
+      }
+     }
     }
    ],
    "operation": "DeleteCell",
@@ -43866,11 +46620,25 @@
    "mappings": [
     {
      "source": "ReadinessCheckName",
-     "target": "ReadinessCheckName"
+     "target": "ReadinessCheckName",
+     "unrepresentable": {
+      "max_length": 64,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "[a-zA-Z0-9_]+"
+      }
+     }
     },
     {
      "source": "ResourceSetName",
-     "target": "ResourceSetName"
+     "target": "ResourceSetName",
+     "unrepresentable": {
+      "max_length": 64,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "[a-zA-Z0-9_]+"
+      }
+     }
     },
     {
      "source": "Tags",
@@ -43886,7 +46654,14 @@
    "mappings": [
     {
      "source": "ReadinessCheckName",
-     "target": "ReadinessCheckName"
+     "target": "ReadinessCheckName",
+     "unrepresentable": {
+      "max_length": 64,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "[a-zA-Z0-9_]+"
+      }
+     }
     }
    ],
    "operation": "DeleteReadinessCheck",
@@ -43898,11 +46673,25 @@
    "mappings": [
     {
      "source": "Cells",
-     "target": "Cells"
+     "target": "Cells",
+     "unrepresentable": {
+      "items": {
+       "max_length": 256,
+       "min_length": 1
+      },
+      "max_length": 5
+     }
     },
     {
      "source": "RecoveryGroupName",
-     "target": "RecoveryGroupName"
+     "target": "RecoveryGroupName",
+     "unrepresentable": {
+      "max_length": 64,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "[a-zA-Z0-9_]+"
+      }
+     }
     },
     {
      "source": "Tags",
@@ -43918,7 +46707,14 @@
    "mappings": [
     {
      "source": "RecoveryGroupName",
-     "target": "RecoveryGroupName"
+     "target": "RecoveryGroupName",
+     "unrepresentable": {
+      "max_length": 64,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "[a-zA-Z0-9_]+"
+      }
+     }
     }
    ],
    "operation": "DeleteRecoveryGroup",
@@ -43965,7 +46761,10 @@
    "mappings": [
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "min_length": 1
+     }
     }
    ],
    "operation": "CreateFirewallDomainList",
@@ -43987,7 +46786,10 @@
    "mappings": [
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "min_length": 1
+     }
     }
    ],
    "operation": "CreateFirewallRuleGroup",
@@ -44037,7 +46839,11 @@
    "mappings": [
     {
      "source": "InstanceCount",
-     "target": "InstanceCount"
+     "target": "InstanceCount",
+     "unrepresentable": {
+      "maximum": 256.0,
+      "minimum": 4.0
+     }
     },
     {
      "source": "Name",
@@ -44322,7 +47128,13 @@
    "mappings": [
     {
      "source": "Bucket",
-     "target": "BucketName"
+     "target": "BucketName",
+     "unrepresentable": {
+      "max_length": 63,
+      "pattern": {
+       "cloudformation": "^([a-z0-9][a-z0-9.-]*[a-z0-9])?$"
+      }
+     }
     },
     {
      "source": "BucketNamespace",
@@ -44338,7 +47150,13 @@
    "mappings": [
     {
      "source": "Bucket",
-     "target": "BucketName"
+     "target": "BucketName",
+     "unrepresentable": {
+      "max_length": 63,
+      "pattern": {
+       "cloudformation": "^([a-z0-9][a-z0-9.-]*[a-z0-9])?$"
+      }
+     }
     }
    ],
    "operation": "DeleteBucket",
@@ -44535,12 +47353,20 @@
      "source": "Bucket",
      "target": "BucketName",
      "unrepresentable": {
-      "max_length": 63
+      "max_length": 63,
+      "pattern": {
+       "cloudformation": "(?=^.{3,63}$)(?!^(\\d+\\.)+\\d+$)(^(([a-z0-9]|[a-z0-9][a-z0-9\\-]*[a-z0-9])\\.)*([a-z0-9]|[a-z0-9][a-z0-9\\-]*[a-z0-9])$)"
+      }
      }
     },
     {
      "source": "OutpostId",
-     "target": "OutpostId"
+     "target": "OutpostId",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^(op-[a-f0-9]{17}|\\d{12}|ec2)$"
+      }
+     }
     }
    ],
    "operation": "CreateBucket",
@@ -44561,7 +47387,10 @@
      "source": "Bucket",
      "target": "Bucket",
      "unrepresentable": {
-      "min_length": 20
+      "min_length": 20,
+      "pattern": {
+       "cloudformation": "^arn:[^:]+:s3-outposts:[a-zA-Z0-9\\-]+:\\d{12}:outpost\\/[^:]+\\/bucket\\/[^:]+$"
+      }
      }
     }
    ],
@@ -44586,11 +47415,19 @@
     },
     {
      "source": "SecurityGroupId",
-     "target": "SecurityGroupId"
+     "target": "SecurityGroupId",
+     "unrepresentable": {
+      "max_length": 100,
+      "min_length": 1
+     }
     },
     {
      "source": "SubnetId",
-     "target": "SubnetId"
+     "target": "SubnetId",
+     "unrepresentable": {
+      "max_length": 100,
+      "min_length": 1
+     }
     }
    ],
    "operation": "CreateEndpoint",
@@ -44979,11 +47816,19 @@
    "mappings": [
     {
      "source": "ContactListName",
-     "target": "ContactListName"
+     "target": "ContactListName",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^[a-zA-Z0-9_-]{1,64}$"
+      }
+     }
     },
     {
      "source": "Description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "max_length": 500
+     }
     }
    ],
    "operation": "CreateContactList",
@@ -44995,7 +47840,12 @@
    "mappings": [
     {
      "source": "ContactListName",
-     "target": "ContactListName"
+     "target": "ContactListName",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^[a-zA-Z0-9_-]{1,64}$"
+      }
+     }
     }
    ],
    "operation": "DeleteContactList",
@@ -45023,7 +47873,11 @@
     },
     {
      "source": "TemplateName",
-     "target": "TemplateName"
+     "target": "TemplateName",
+     "unrepresentable": {
+      "max_length": 64,
+      "min_length": 1
+     }
     },
     {
      "source": "TemplateSubject",
@@ -45039,7 +47893,12 @@
    "mappings": [
     {
      "source": "PoolName",
-     "target": "PoolName"
+     "target": "PoolName",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^[a-z0-9_-]{0,64}$"
+      }
+     }
     },
     {
      "source": "ScalingMode",
@@ -45055,7 +47914,12 @@
    "mappings": [
     {
      "source": "PoolName",
-     "target": "PoolName"
+     "target": "PoolName",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^[a-z0-9_-]{0,64}$"
+      }
+     }
     }
    ],
    "operation": "DeleteDedicatedIpPool",
@@ -45270,7 +48134,13 @@
    "mappings": [
     {
      "source": "TenantName",
-     "target": "TenantName"
+     "target": "TenantName",
+     "unrepresentable": {
+      "max_length": 64,
+      "pattern": {
+       "cloudformation": "^[\\w\\-_]+$"
+      }
+     }
     }
    ],
    "operation": "CreateTenant",
@@ -45282,7 +48152,13 @@
    "mappings": [
     {
      "source": "TenantName",
-     "target": "TenantName"
+     "target": "TenantName",
+     "unrepresentable": {
+      "max_length": 64,
+      "pattern": {
+       "cloudformation": "^[\\w\\-_]+$"
+      }
+     }
     }
    ],
    "operation": "DeleteTenant",
@@ -45294,7 +48170,14 @@
    "mappings": [
     {
      "source": "ConfigurationSetName",
-     "target": "ConfigurationSetName"
+     "target": "ConfigurationSetName",
+     "unrepresentable": {
+      "max_length": 64,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "^[A-Za-z0-9_-]+$"
+      }
+     }
     }
    ],
    "operation": "CreateConfigurationSet",
@@ -45562,7 +48445,10 @@
     },
     {
      "source": "Name",
-     "target": "TopicName"
+     "target": "TopicName",
+     "unrepresentable": {
+      "max_length": 256
+     }
     }
    ],
    "operation": "CreateTopic",
@@ -45985,7 +48871,13 @@
     },
     {
      "source": "DataType",
-     "target": "DataType"
+     "target": "DataType",
+     "unrepresentable": {
+      "allowed_values": [
+       "text",
+       "aws:ec2:image"
+      ]
+     }
     },
     {
      "source": "Description",
@@ -47301,6 +50193,7 @@
      "source": "HubName",
      "target": "HubName",
      "unrepresentable": {
+      "max_length": 63,
       "pattern": {
        "api": "^(?:(arn:[a-z0-9-\\.]{1,63}:sagemaker:\\w+(?:-\\w+)+:(\\d{12}|aws):hub\\/)?[a-zA-Z0-9](-*[a-zA-Z0-9]){0,62})$",
        "cloudformation": "^[a-zA-Z0-9](-*[a-zA-Z0-9]){0,62}$"
@@ -48096,7 +50989,12 @@
    "mappings": [
     {
      "source": "AuthType",
-     "target": "AuthType"
+     "target": "AuthType",
+     "unrepresentable": {
+      "rejected_values": [
+       "IDC"
+      ]
+     }
     },
     {
      "source": "ClientToken",
@@ -48657,7 +51555,11 @@
     },
     {
      "source": "kmsKeyId",
-     "target": "KmsKeyId"
+     "target": "KmsKeyId",
+     "unrepresentable": {
+      "max_length": 2048,
+      "min_length": 1
+     }
     },
     {
      "source": "name",
@@ -48665,7 +51567,16 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_key": {
+       "max_length": 128,
+       "min_length": 1
+      },
+      "tag_value": {
+       "max_length": 256
+      }
+     }
     },
     {
      "source": "targetDomainIds",
@@ -48688,7 +51599,10 @@
    "mappings": [
     {
      "source": "defaultKmsKeyId",
-     "target": "DefaultKmsKeyId"
+     "target": "DefaultKmsKeyId",
+     "unrepresentable": {
+      "max_length": 2048
+     }
     },
     {
      "source": "roleArn",
@@ -48696,7 +51610,16 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_key": {
+       "max_length": 128,
+       "min_length": 1
+      },
+      "tag_value": {
+       "max_length": 256
+      }
+     }
     }
    ],
    "operation": "CreateApplication",
@@ -48779,15 +51702,25 @@
    "mappings": [
     {
      "source": "description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "max_length": 500
+     }
     },
     {
      "source": "kmsKeyId",
-     "target": "KmsKeyId"
+     "target": "KmsKeyId",
+     "unrepresentable": {
+      "max_length": 2048
+     }
     },
     {
      "source": "name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "max_length": 120,
+      "min_length": 1
+     }
     },
     {
      "source": "status",
@@ -48795,7 +51728,16 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_key": {
+       "max_length": 128,
+       "min_length": 1
+      },
+      "tag_value": {
+       "max_length": 256
+      }
+     }
     }
    ],
    "operation": "CreateSecurityRequirementPack",
@@ -48814,7 +51756,16 @@
    "mappings": [
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_key": {
+       "max_length": 128,
+       "min_length": 1
+      },
+      "tag_value": {
+       "max_length": 256
+      }
+     }
     },
     {
      "source": "targetDomainName",
@@ -48851,12 +51802,19 @@
         "api": "^(?:.*\\S.*)$",
         "cloudformation": "^[a-zA-Z0-9-]{1,32}$"
        }
-      }
+      },
+      "max_length": 50,
+      "min_length": 1
      }
     },
     {
      "source": "RegionLinkingMode",
-     "target": "RegionLinkingMode"
+     "target": "RegionLinkingMode",
+     "unrepresentable": {
+      "allowed_values": [
+       "SPECIFIED_REGIONS"
+      ]
+     }
     }
    ],
    "operation": "CreateAggregatorV2",
@@ -48877,6 +51835,8 @@
      "source": "Description",
      "target": "Description",
      "unrepresentable": {
+      "max_length": 1024,
+      "min_length": 1,
       "pattern": {
        "api": "^(?:.*\\S.*)$",
        "cloudformation": "\\S"
@@ -48891,6 +51851,8 @@
      "source": "RuleName",
      "target": "RuleName",
      "unrepresentable": {
+      "max_length": 256,
+      "min_length": 1,
       "pattern": {
        "api": "^(?:.*\\S.*)$",
        "cloudformation": "\\S"
@@ -48918,11 +51880,19 @@
    "mappings": [
     {
      "source": "Description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "max_length": 256,
+      "min_length": 1
+     }
     },
     {
      "source": "RuleName",
-     "target": "RuleName"
+     "target": "RuleName",
+     "unrepresentable": {
+      "max_length": 256,
+      "min_length": 1
+     }
     },
     {
      "source": "RuleOrder",
@@ -48951,6 +51921,7 @@
      "source": "Description",
      "target": "Description",
      "unrepresentable": {
+      "max_length": 512,
       "pattern": {
        "api": "^(?:.*\\S.*)$",
        "cloudformation": "\\S"
@@ -48961,6 +51932,8 @@
      "source": "Name",
      "target": "Name",
      "unrepresentable": {
+      "max_length": 128,
+      "min_length": 1,
       "pattern": {
        "api": "^(?:.*\\S.*)$",
        "cloudformation": "\\S"
@@ -49025,15 +51998,26 @@
    "mappings": [
     {
      "source": "Description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "max_length": 256
+     }
     },
     {
      "source": "KmsKeyArn",
-     "target": "KmsKeyArn"
+     "target": "KmsKeyArn",
+     "unrepresentable": {
+      "max_length": 2048,
+      "min_length": 20
+     }
     },
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "max_length": 64,
+      "min_length": 1
+     }
     }
    ],
    "operation": "CreateConnectorV2",
@@ -49052,7 +52036,14 @@
    "mappings": [
     {
      "source": "RegionLinkingMode",
-     "target": "RegionLinkingMode"
+     "target": "RegionLinkingMode",
+     "unrepresentable": {
+      "allowed_values": [
+       "ALL_REGIONS",
+       "ALL_REGIONS_EXCEPT_SPECIFIED",
+       "SPECIFIED_REGIONS"
+      ]
+     }
     },
     {
      "source": "Regions",
@@ -49063,7 +52054,9 @@
         "api": "^(?:.*\\S.*)$",
         "cloudformation": "^[a-zA-Z0-9-]{1,32}$"
        }
-      }
+      },
+      "max_length": 50,
+      "min_length": 1
      }
     }
    ],
@@ -49101,6 +52094,7 @@
      "source": "GroupByAttribute",
      "target": "GroupByAttribute",
      "unrepresentable": {
+      "min_length": 1,
       "pattern": {
        "api": "^(?:.*\\S.*)$",
        "cloudformation": "\\S"
@@ -49111,6 +52105,8 @@
      "source": "Name",
      "target": "Name",
      "unrepresentable": {
+      "max_length": 128,
+      "min_length": 1,
       "pattern": {
        "api": "^(?:.*\\S.*)$",
        "cloudformation": "\\S"
@@ -49166,7 +52162,10 @@
    "mappings": [
     {
      "source": "accessTypes",
-     "target": "AccessTypes"
+     "target": "AccessTypes",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "subscriberDescription",
@@ -49176,7 +52175,10 @@
      "source": "subscriberName",
      "target": "SubscriberName",
      "unrepresentable": {
-      "min_length": 1
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "^[\\\\\\w\\s\\-_:/,.@=+]*$"
+      }
      }
     }
    ],
@@ -49203,11 +52205,19 @@
    "mappings": [
     {
      "source": "Author",
-     "target": "Author"
+     "target": "Author",
+     "unrepresentable": {
+      "max_length": 127,
+      "min_length": 1
+     }
     },
     {
      "source": "Description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "max_length": 256,
+      "min_length": 1
+     }
     },
     {
      "source": "HomePageUrl",
@@ -49215,7 +52225,10 @@
     },
     {
      "source": "Labels",
-     "target": "Labels"
+     "target": "Labels",
+     "unrepresentable": {
+      "max_length": 10
+     }
     },
     {
      "source": "LicenseBody",
@@ -49223,7 +52236,14 @@
     },
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "max_length": 140,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "[a-zA-Z0-9\\-]+"
+      }
+     }
     },
     {
      "source": "ReadmeBody",
@@ -49317,7 +52337,14 @@
    "mappings": [
     {
      "source": "AcceptLanguage",
-     "target": "AcceptLanguage"
+     "target": "AcceptLanguage",
+     "unrepresentable": {
+      "allowed_values": [
+       "en",
+       "jp",
+       "zh"
+      ]
+     }
     },
     {
      "source": "NotificationArns",
@@ -49339,7 +52366,8 @@
      "source": "ProductName",
      "target": "ProductName",
      "unrepresentable": {
-      "max_length": 128
+      "max_length": 128,
+      "min_length": 1
      }
     },
     {
@@ -49367,7 +52395,14 @@
    "mappings": [
     {
      "source": "AcceptLanguage",
-     "target": "AcceptLanguage"
+     "target": "AcceptLanguage",
+     "unrepresentable": {
+      "allowed_values": [
+       "en",
+       "jp",
+       "zh"
+      ]
+     }
     },
     {
      "source": "ProvisionedProductName",
@@ -49433,7 +52468,12 @@
     },
     {
      "source": "PrincipalARN",
-     "target": "PrincipalARN"
+     "target": "PrincipalARN",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "arn:(aws|aws-cn|aws-us-gov):iam::[0-9]*:(role|user|group)\\/.*"
+      }
+     }
     },
     {
      "source": "PrincipalType",
@@ -49457,7 +52497,12 @@
     },
     {
      "source": "PrincipalARN",
-     "target": "PrincipalARN"
+     "target": "PrincipalARN",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "arn:(aws|aws-cn|aws-us-gov):iam::[0-9]*:(role|user|group)\\/.*"
+      }
+     }
     },
     {
      "source": "PrincipalType",
@@ -49564,7 +52609,14 @@
    "mappings": [
     {
      "source": "AcceptLanguage",
-     "target": "AcceptLanguage"
+     "target": "AcceptLanguage",
+     "unrepresentable": {
+      "allowed_values": [
+       "en",
+       "jp",
+       "zh"
+      ]
+     }
     },
     {
      "source": "DefinitionType",
@@ -49591,7 +52643,14 @@
    "mappings": [
     {
      "source": "AcceptLanguage",
-     "target": "AcceptLanguage"
+     "target": "AcceptLanguage",
+     "unrepresentable": {
+      "allowed_values": [
+       "en",
+       "jp",
+       "zh"
+      ]
+     }
     }
    ],
    "operation": "DeleteServiceAction",
@@ -49947,7 +53006,10 @@
     },
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "min_length": 1
+     }
     }
    ],
    "operation": "CreateHttpNamespace",
@@ -49962,11 +53024,17 @@
    "mappings": [
     {
      "source": "InstanceId",
-     "target": "InstanceId"
+     "target": "InstanceId",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "ServiceId",
-     "target": "ServiceId"
+     "target": "ServiceId",
+     "unrepresentable": {
+      "min_length": 1
+     }
     }
    ],
    "operation": "RegisterInstance",
@@ -49978,11 +53046,20 @@
    "mappings": [
     {
      "source": "InstanceId",
-     "target": "InstanceId"
+     "target": "InstanceId",
+     "unrepresentable": {
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "^[0-9a-zA-Z_/:.@-]+$"
+      }
+     }
     },
     {
      "source": "ServiceId",
-     "target": "ServiceId"
+     "target": "ServiceId",
+     "unrepresentable": {
+      "min_length": 1
+     }
     }
    ],
    "operation": "DeregisterInstance",
@@ -50001,7 +53078,10 @@
     },
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "Vpc",
@@ -50024,7 +53104,10 @@
     },
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "min_length": 1
+     }
     }
    ],
    "operation": "CreatePublicDnsNamespace",
@@ -50227,7 +53310,13 @@
    "mappings": [
     {
      "source": "platformId",
-     "target": "PlatformId"
+     "target": "PlatformId",
+     "unrepresentable": {
+      "allowed_values": [
+       "AWSLambda-SHA384-ECDSA",
+       "Notation-OCI-SHA384-ECDSA"
+      ]
+     }
     },
     {
      "source": "tags",
@@ -50237,7 +53326,8 @@
        "max_length": 127
       },
       "tag_value": {
-       "max_length": 255
+       "max_length": 255,
+       "min_length": 1
       }
      }
     }
@@ -50300,7 +53390,10 @@
    "mappings": [
     {
      "source": "description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "name",
@@ -50323,7 +53416,10 @@
    "mappings": [
     {
      "source": "description",
-     "target": "Description"
+     "target": "Description",
+     "unrepresentable": {
+      "min_length": 1
+     }
     },
     {
      "source": "stateMachineArn",
@@ -50485,7 +53581,19 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_key": {
+       "pattern": {
+        "cloudformation": "^[\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*$"
+       }
+      },
+      "tag_value": {
+       "pattern": {
+        "cloudformation": "^[\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*$"
+       }
+      }
+     }
     }
    ],
    "operation": "CreateSupportPermit",
@@ -50504,7 +53612,12 @@
    "mappings": [
     {
      "source": "ArtifactS3Location",
-     "target": "ArtifactS3Location"
+     "target": "ArtifactS3Location",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^(s3|S3)://"
+      }
+     }
     },
     {
      "source": "ExecutionRoleArn",
@@ -50574,7 +53687,12 @@
    "mappings": [
     {
      "source": "Name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^[0-9a-z_\\-]{1,64}$"
+      }
+     }
     },
     {
      "source": "Tags",
@@ -50584,6 +53702,11 @@
        "pattern": {
         "api": "^(?:^(?!aws:)[a-zA-Z+-=._:/]+$)$",
         "cloudformation": "^(?!aws:)([a-zA-Z\\d\\s_.:/=+\\-@]+)$"
+       }
+      },
+      "tag_value": {
+       "pattern": {
+        "cloudformation": "^([a-zA-Z\\d\\s_.:/=+\\-@]*)$"
        }
       }
      }
@@ -50629,7 +53752,8 @@
         "SIGNATURES",
         "TABLES"
        ]
-      }
+      },
+      "min_length": 1
      }
     },
     {
@@ -50675,7 +53799,12 @@
    "mappings": [
     {
      "source": "DatabaseName",
-     "target": "DatabaseName"
+     "target": "DatabaseName",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^[a-zA-Z0-9_.-]{3,256}$"
+      }
+     }
     }
    ],
    "operation": "DeleteDatabase",
@@ -50925,11 +54054,21 @@
    "mappings": [
     {
      "source": "DatabaseName",
-     "target": "DatabaseName"
+     "target": "DatabaseName",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^[a-zA-Z0-9_.-]{3,256}$"
+      }
+     }
     },
     {
      "source": "TableName",
-     "target": "TableName"
+     "target": "TableName",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^[a-zA-Z0-9_.-]{3,256}$"
+      }
+     }
     }
    ],
    "operation": "DeleteTable",
@@ -51554,7 +54693,10 @@
     },
     {
      "source": "statement",
-     "target": "Statement"
+     "target": "Statement",
+     "unrepresentable": {
+      "max_length": 10000
+     }
     }
    ],
    "operation": "CreatePolicyTemplate",
@@ -51627,6 +54769,7 @@
      "source": "tags",
      "target": "Tags",
      "unrepresentable": {
+      "max_length": 50,
       "tag_value": {
        "min_length": 1
       }
@@ -51698,6 +54841,7 @@
      "source": "tags",
      "target": "Tags",
      "unrepresentable": {
+      "max_length": 50,
       "tag_value": {
        "min_length": 1
       }
@@ -51744,6 +54888,7 @@
      "source": "tags",
      "target": "Tags",
      "unrepresentable": {
+      "max_length": 50,
       "tag_value": {
        "min_length": 1
       }
@@ -51795,6 +54940,7 @@
      "source": "tags",
      "target": "Tags",
      "unrepresentable": {
+      "max_length": 50,
       "tag_value": {
        "min_length": 1
       }
@@ -51846,6 +54992,7 @@
      "source": "tags",
      "target": "Tags",
      "unrepresentable": {
+      "max_length": 50,
       "tag_value": {
        "min_length": 1
       }
@@ -51937,6 +55084,7 @@
      "source": "tags",
      "target": "Tags",
      "unrepresentable": {
+      "max_length": 50,
       "tag_value": {
        "min_length": 1
       }
@@ -52006,6 +55154,7 @@
      "source": "tags",
      "target": "Tags",
      "unrepresentable": {
+      "max_length": 50,
       "tag_value": {
        "min_length": 1
       }
@@ -52047,6 +55196,7 @@
      "source": "tags",
      "target": "Tags",
      "unrepresentable": {
+      "max_length": 50,
       "tag_value": {
        "min_length": 1
       }
@@ -52078,6 +55228,7 @@
      "source": "tags",
      "target": "Tags",
      "unrepresentable": {
+      "max_length": 50,
       "tag_value": {
        "min_length": 1
       }
@@ -52119,6 +55270,7 @@
      "source": "tags",
      "target": "Tags",
      "unrepresentable": {
+      "max_length": 50,
       "tag_value": {
        "min_length": 1
       }
@@ -52154,13 +55306,17 @@
      "source": "serviceNetworkIdentifier",
      "target": "ServiceNetworkIdentifier",
      "unrepresentable": {
-      "min_length": 20
+      "min_length": 20,
+      "pattern": {
+       "cloudformation": "^((sn-[0-9a-z]{17})|(arn:[a-z0-9\\-]+:vpc-lattice:[a-zA-Z0-9\\-]+:\\d{12}:servicenetwork/sn-[0-9a-z]{17}))$"
+      }
      }
     },
     {
      "source": "tags",
      "target": "Tags",
      "unrepresentable": {
+      "max_length": 50,
       "tag_value": {
        "min_length": 1
       }
@@ -52196,6 +55352,7 @@
      "source": "tags",
      "target": "Tags",
      "unrepresentable": {
+      "max_length": 50,
       "tag_value": {
        "min_length": 1
       }
@@ -52542,7 +55699,7 @@
      "target": "Description",
      "unrepresentable": {
       "pattern": {
-       "api": "^(?:^[A-Za-z0-9-_.,:/()@!&?#+'\u2019\\s]+$)$",
+       "api": "^(?:[A-Za-z0-9-_.,:/()@!&?#+'\u2019\\s]+)$",
        "cloudformation": "^[A-Za-z0-9-_.,:/()@!&?#+''\\s]+$"
       }
      }
@@ -52564,7 +55721,7 @@
      "target": "TemplateName",
      "unrepresentable": {
       "pattern": {
-       "api": "^(?:^[A-Za-z0-9-_.,:/()@!&?#+'\u2019\\s]+$)$",
+       "api": "^(?:[A-Za-z0-9-_.,:/()@!&?#+'\u2019\\s]+)$",
        "cloudformation": "^[A-Za-z0-9-_.,:/()@!&?#+''\\s]+$"
       }
      }
@@ -53214,7 +56371,15 @@
    "mappings": [
     {
      "source": "channels",
-     "target": "Channels"
+     "target": "Channels",
+     "unrepresentable": {
+      "items": {
+       "allowed_values": [
+        "Chat",
+        "Email"
+       ]
+      }
+     }
     },
     {
      "source": "contentType",
@@ -53378,7 +56543,20 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "max_length": 50,
+      "tag_key": {
+       "max_length": 128,
+       "min_length": 1,
+       "pattern": {
+        "cloudformation": "^(?!aws:)[a-zA-Z+-=._:/]+$"
+       }
+      },
+      "tag_value": {
+       "max_length": 256
+      }
+     }
     }
    ],
    "operation": "CreateEnvironment",
@@ -53713,7 +56891,12 @@
    "mappings": [
     {
      "source": "AvailabilityZone",
-     "target": "AvailabilityZone"
+     "target": "AvailabilityZone",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^[a-z]{2}-[a-z]+-\\d[a-z](-[a-z0-9]+)?$"
+      }
+     }
     },
     {
      "source": "Encrypted",
@@ -53843,7 +57026,11 @@
     },
     {
      "source": "PolicyDocument",
-     "target": "PolicyDocument"
+     "target": "PolicyDocument",
+     "unrepresentable": {
+      "max_length": 5120,
+      "min_length": 1
+     }
     },
     {
      "source": "PolicyName",
@@ -53871,7 +57058,11 @@
    "mappings": [
     {
      "source": "RuleName",
-     "target": "RuleName"
+     "target": "RuleName",
+     "unrepresentable": {
+      "max_length": 32,
+      "min_length": 1
+     }
     }
    ],
    "operation": "DeleteSamplingRule",
@@ -53881,12 +57072,12 @@
  ],
  "format_version": 1,
  "source": {
-  "aws_cli_version": "2.36.19",
-  "botocore_service_count": 431,
+  "aws_cli_version": "2.36.44",
+  "botocore_service_count": 433,
   "botocore_version": "2.0.0dev155",
-  "compiled_schemas_sha256": "67b049a4ab1d12af31716dc9bf01130187c265fc70da7c2827d7d807a5c8b4d5",
-  "compiled_type_count": 1768,
-  "provider_schemas_sha256": "cfa6250efdf23a1b2c0d557da95cfb80d42ea27acfbd58b617d2c24f64f06c25",
-  "provider_type_count": 1766
+  "compiled_schemas_sha256": "9b941b24f8c08f5eb4bd9e2e30317e59d5eb476388ad0e012398ceca8806fe3b",
+  "compiled_type_count": 1769,
+  "provider_schemas_sha256": "68e93ce8270e74fd9f6fa43fdb77b88335963553a2b7740af1913434f0f0ab28",
+  "provider_type_count": 1767
  }
 }

@@ -994,6 +994,7 @@
     "AWS::Kendra::QuerySuggestionsBlockList",
     "AWS::Kendra::Thesaurus",
     "AWS::KendraRanking::ExecutionPlan",
+    "AWS::Kinesis::Channel",
     "AWS::Kinesis::ResourcePolicy",
     "AWS::Kinesis::Stream",
     "AWS::Kinesis::StreamConsumer",

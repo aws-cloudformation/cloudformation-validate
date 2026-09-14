@@ -5126,6 +5126,12 @@
       "Arn",
       "Id"
     ],
+    "AWS::Kinesis::Channel": [
+      "ChannelARN",
+      "ChannelCreationTimestamp",
+      "ChannelId",
+      "ChannelStatus"
+    ],
     "AWS::Kinesis::Stream": [
       "Arn",
       "WarmThroughputObject"
@@ -18730,6 +18736,16 @@
       "IndexId": "string",
       "Name": "string",
       "RoleArn": "string",
+      "Tags": "array"
+    },
+    "AWS::Kinesis::Channel": {
+      "ChannelARN": "string",
+      "ChannelCreationTimestamp": "string",
+      "ChannelId": "string",
+      "ChannelName": "string",
+      "ChannelStatus": "string",
+      "ServiceExecutionRoleARN": "string",
+      "StreamConfigurationList": "array",
       "Tags": "array"
     },
     "AWS::Kinesis::ResourcePolicy": {

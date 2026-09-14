@@ -994,6 +994,7 @@
     "AWS::Kendra::QuerySuggestionsBlockList": "string",
     "AWS::Kendra::Thesaurus": "string",
     "AWS::KendraRanking::ExecutionPlan": "string",
+    "AWS::Kinesis::Channel": "string",
     "AWS::Kinesis::ResourcePolicy": "string",
     "AWS::Kinesis::Stream": "string",
     "AWS::Kinesis::StreamConsumer": "string",
@@ -11272,6 +11273,16 @@
       "IndexId": "string",
       "Name": "string",
       "RoleArn": "string",
+      "Tags": "array"
+    },
+    "AWS::Kinesis::Channel": {
+      "ChannelARN": "string",
+      "ChannelCreationTimestamp": "string",
+      "ChannelId": "string",
+      "ChannelName": "string",
+      "ChannelStatus": "string",
+      "ServiceExecutionRoleARN": "string",
+      "StreamConfigurationList": "array",
       "Tags": "array"
     },
     "AWS::Kinesis::ResourcePolicy": {
