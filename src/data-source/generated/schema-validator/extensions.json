@@ -464,15 +464,15 @@
       }
     },
     {
+      "description": "When 'BillingMode' is 'PROVISIONED' or omitted (the default) 'ProvisionedThroughput' is required",
       "if": {
         "properties": {
           "BillingMode": {
-            "const": "PROVISIONED"
+            "not": {
+              "const": "PAY_PER_REQUEST"
+            }
           }
-        },
-        "required": [
-          "BillingMode"
-        ]
+        }
       },
       "then": {
         "properties": {
@@ -1472,6 +1472,46 @@
                 }
               }
             }
+          },
+          {
+            "properties": {
+              "Cpu": {
+                "else": {
+                  "pattern": "^32\\s*(?i)vCpu$"
+                },
+                "if": {
+                  "pattern": "^\\d+$",
+                  "type": [
+                    "integer",
+                    "string"
+                  ]
+                },
+                "then": {
+                  "enum": [
+                    "32768"
+                  ]
+                }
+              },
+              "Memory": {
+                "else": {
+                  "pattern": "^(60|120|244)\\s*(?i)GB$"
+                },
+                "if": {
+                  "pattern": "^\\d+$",
+                  "type": [
+                    "integer",
+                    "string"
+                  ]
+                },
+                "then": {
+                  "enum": [
+                    61440,
+                    122880,
+                    249856
+                  ]
+                }
+              }
+            }
           }
         ]
       }
@@ -1583,7 +1623,7 @@
               "properties": {
                 "Cpu": {
                   "else": {
-                    "pattern": "^(\\.25|\\.5|1|2|4|8|16)\\s*(?i)vCpu$"
+                    "pattern": "^(\\.25|\\.5|1|2|4|8|16|32)\\s*(?i)vCpu$"
                   },
                   "if": {
                     "pattern": "^\\d+$",
@@ -1600,7 +1640,8 @@
                       "2048",
                       "4096",
                       "8192",
-                      "16384"
+                      "16384",
+                      "32768"
                     ]
                   }
                 }
@@ -2225,6 +2266,22 @@
       "pattern": "^(?!arn:[a-zA-Z0-9-]+:lambda:::awslayer:)"
     },
     {
+      "if": {
+        "not": {
+          "required": [
+            "CapacityProviderConfig"
+          ]
+        }
+      },
+      "then": {
+        "properties": {
+          "Timeout": {
+            "maximum": 900
+          }
+        }
+      }
+    },
+    {
       "propertyNames": {
         "not": {
           "enum": [
@@ -2686,7 +2743,8 @@
                   "8.0.mysql_aurora.3.12.0",
                   "8.0.mysql_aurora.3.13.0",
                   "8.4",
-                  "8.4.mysql_aurora.8.4.7"
+                  "8.4.mysql_aurora.8.4.7",
+                  "8.4.mysql_aurora.8.4.8"
                 ]
               }
             }
@@ -4155,7 +4213,8 @@
                   "8.0.mysql_aurora.3.12.0",
                   "8.0.mysql_aurora.3.13.0",
                   "8.4",
-                  "8.4.mysql_aurora.8.4.7"
+                  "8.4.mysql_aurora.8.4.7",
+                  "8.4.mysql_aurora.8.4.8"
                 ]
               }
             }
@@ -4601,6 +4660,7 @@
                   "10.11.15",
                   "10.11.16",
                   "10.11.18",
+                  "10.11.19",
                   "10.11.4",
                   "10.11.5",
                   "10.11.6",
@@ -4665,12 +4725,14 @@
                   "10.6.24",
                   "10.6.25",
                   "10.6.27",
+                  "10.6.28",
                   "10.6.5",
                   "10.6.7",
                   "10.6.8",
                   "10.6.9",
                   "11.4.10",
                   "11.4.12",
+                  "11.4.13",
                   "11.4.3",
                   "11.4.4",
                   "11.4.5",
@@ -4682,7 +4744,9 @@
                   "11.8.5",
                   "11.8.6",
                   "11.8.8",
-                  "12.3.2"
+                  "11.8.9",
+                  "12.3.2",
+                  "12.3.3"
                 ]
               }
             }

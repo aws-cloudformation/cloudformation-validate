@@ -2193,6 +2193,10 @@
     "AWS::DMS::ReplicationTask": [
       "ReplicationTaskArn"
     ],
+    "AWS::DRS::LaunchConfigurationTemplate": [
+      "Arn",
+      "LaunchConfigurationTemplateID"
+    ],
     "AWS::DRS::SourceNetwork": [
       "Arn",
       "SourceNetworkID"
@@ -5121,6 +5125,12 @@
     "AWS::KendraRanking::ExecutionPlan": [
       "Arn",
       "Id"
+    ],
+    "AWS::Kinesis::Channel": [
+      "ChannelARN",
+      "ChannelCreationTimestamp",
+      "ChannelId",
+      "ChannelStatus"
     ],
     "AWS::Kinesis::Stream": [
       "Arn",
@@ -13390,6 +13400,18 @@
       "TargetEndpointArn": "string",
       "TaskData": "string"
     },
+    "AWS::DRS::LaunchConfigurationTemplate": {
+      "Arn": "string",
+      "CopyPrivateIp": "boolean",
+      "CopyTags": "boolean",
+      "ExportBucketArn": "string",
+      "LaunchConfigurationTemplateID": "string",
+      "LaunchDisposition": "string",
+      "LaunchIntoSourceInstance": "boolean",
+      "PostLaunchEnabled": "boolean",
+      "Tags": "array",
+      "TargetInstanceTypeRightSizingMethod": "string"
+    },
     "AWS::DRS::SourceNetwork": {
       "Arn": "string",
       "OriginAccountID": "string",
@@ -18714,6 +18736,16 @@
       "IndexId": "string",
       "Name": "string",
       "RoleArn": "string",
+      "Tags": "array"
+    },
+    "AWS::Kinesis::Channel": {
+      "ChannelARN": "string",
+      "ChannelCreationTimestamp": "string",
+      "ChannelId": "string",
+      "ChannelName": "string",
+      "ChannelStatus": "string",
+      "ServiceExecutionRoleARN": "string",
+      "StreamConfigurationList": "array",
       "Tags": "array"
     },
     "AWS::Kinesis::ResourcePolicy": {

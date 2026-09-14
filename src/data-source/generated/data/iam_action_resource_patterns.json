@@ -10096,6 +10096,9 @@
     "cognito-idp:admincreateuser": [
       "arn:${Partition}:cognito-idp:${Region}:${Account}:userpool/.*"
     ],
+    "cognito-idp:admindeletesoftwaretoken": [
+      "arn:${Partition}:cognito-idp:${Region}:${Account}:userpool/.*"
+    ],
     "cognito-idp:admindeleteuser": [
       "arn:${Partition}:cognito-idp:${Region}:${Account}:userpool/.*"
     ],
@@ -11080,6 +11083,9 @@
     "connect:createevaluationform": [
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
     ],
+    "connect:createextractiondefinition": [
+      "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
+    ],
     "connect:createhoursofoperation": [
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
     ],
@@ -11194,6 +11200,9 @@
     "connect:deleteevaluationform": [
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
     ],
+    "connect:deleteextractiondefinition": [
+      "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
+    ],
     "connect:deletehoursofoperation": [
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
     ],
@@ -11303,6 +11312,9 @@
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
     ],
     "connect:describeevaluationform": [
+      "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
+    ],
+    "connect:describeextractiondefinition": [
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
     ],
     "connect:describeforecastingplanningschedulingintegration": [
@@ -11449,6 +11461,9 @@
     "connect:getcontactmetrics": [
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
     ],
+    "connect:getcrossregionrouting": [
+      "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
+    ],
     "connect:getcurrentmetricdata": [
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
     ],
@@ -11557,6 +11572,9 @@
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
     ],
     "connect:listevaluationformversions": [
+      "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
+    ],
+    "connect:listextractiondefinitions": [
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
     ],
     "connect:listflowassociations": [
@@ -11934,6 +11952,9 @@
     "connect:updatecontactschedule": [
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
     ],
+    "connect:updatecrossregionrouting": [
+      "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
+    ],
     "connect:updatedatatableattribute": [
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
     ],
@@ -11947,6 +11968,9 @@
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
     ],
     "connect:updateevaluationform": [
+      "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
+    ],
+    "connect:updateextractiondefinition": [
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
     ],
     "connect:updatehoursofoperation": [
@@ -14991,6 +15015,9 @@
       "arn:${Partition}:ec2:${Region}:${Account}:security-group/.*",
       "arn:${Partition}:ec2:${Region}:${Account}:security-group-rule/.*"
     ],
+    "ec2:batchmodifyipamroutingpolicyregistrations": [
+      "arn:${Partition}:ec2::${Account}:ipam-internet-registry-association/.*"
+    ],
     "ec2:cancelcapacityreservation": [
       "arn:${Partition}:ec2:${Region}:${Account}:capacity-reservation/.*",
       "arn:${Partition}:ec2:${Region}:${Account}:capacity-reservation-cancellation-quote/.*"
@@ -15145,6 +15172,10 @@
       "arn:${Partition}:ec2::${Account}:ipam/.*",
       "arn:${Partition}:ec2::${Account}:ipam-external-resource-verification-token/.*"
     ],
+    "ec2:createipaminternetregistryassociation": [
+      "arn:${Partition}:ec2::${Account}:ipam/.*",
+      "arn:${Partition}:ec2::${Account}:ipam-internet-registry-association/.*"
+    ],
     "ec2:createipampolicy": [
       "arn:${Partition}:ec2::${Account}:ipam/.*",
       "arn:${Partition}:ec2::${Account}:ipam-policy/.*"
@@ -15164,6 +15195,9 @@
     ],
     "ec2:createipamresourcediscovery": [
       "arn:${Partition}:ec2::${Account}:ipam-resource-discovery/.*"
+    ],
+    "ec2:createipamroutingpolicyregistration": [
+      "arn:${Partition}:ec2::${Account}:ipam-internet-registry-association/.*"
     ],
     "ec2:createipamscope": [
       "arn:${Partition}:ec2::${Account}:ipam/.*",
@@ -15353,6 +15387,7 @@
       "arn:${Partition}:ec2:${Region}:${Account}:internet-gateway/.*",
       "arn:${Partition}:ec2::${Account}:ipam/.*",
       "arn:${Partition}:ec2::${Account}:ipam-external-resource-verification-token/.*",
+      "arn:${Partition}:ec2::${Account}:ipam-internet-registry-association/.*",
       "arn:${Partition}:ec2::${Account}:ipam-policy/.*",
       "arn:${Partition}:ec2::${Account}:ipam-pool/.*",
       "arn:${Partition}:ec2:${Region}:${Account}:ipam-pool-allocation/.*",
@@ -15637,6 +15672,9 @@
     "ec2:deleteipamexternalresourceverificationtoken": [
       "arn:${Partition}:ec2::${Account}:ipam-external-resource-verification-token/.*"
     ],
+    "ec2:deleteipaminternetregistryassociation": [
+      "arn:${Partition}:ec2::${Account}:ipam-internet-registry-association/.*"
+    ],
     "ec2:deleteipampolicy": [
       "arn:${Partition}:ec2::${Account}:ipam-policy/.*"
     ],
@@ -15651,6 +15689,9 @@
     ],
     "ec2:deleteipamresourcediscovery": [
       "arn:${Partition}:ec2::${Account}:ipam-resource-discovery/.*"
+    ],
+    "ec2:deleteipamroutingpolicyregistration": [
+      "arn:${Partition}:ec2::${Account}:ipam-internet-registry-association/.*"
     ],
     "ec2:deleteipamscope": [
       "arn:${Partition}:ec2::${Account}:ipam-scope/.*"
@@ -15795,6 +15836,7 @@
       "arn:${Partition}:ec2:${Region}:${Account}:internet-gateway/.*",
       "arn:${Partition}:ec2::${Account}:ipam/.*",
       "arn:${Partition}:ec2::${Account}:ipam-external-resource-verification-token/.*",
+      "arn:${Partition}:ec2::${Account}:ipam-internet-registry-association/.*",
       "arn:${Partition}:ec2::${Account}:ipam-policy/.*",
       "arn:${Partition}:ec2::${Account}:ipam-pool/.*",
       "arn:${Partition}:ec2:${Region}:${Account}:ipam-pool-allocation/.*",
@@ -16223,6 +16265,9 @@
     "ec2:enableinstancesqlhastandbydetections": [
       "arn:${Partition}:ec2:${Region}:${Account}:instance/.*"
     ],
+    "ec2:enableipaminternetregistryassociation": [
+      "arn:${Partition}:ec2::${Account}:ipam-internet-registry-association/.*"
+    ],
     "ec2:enableipampolicy": [
       "arn:${Partition}:ec2::${Account}:ipam-policy/.*"
     ],
@@ -16312,6 +16357,15 @@
     "ec2:getipamdiscoveredresourcecidrs": [
       "arn:${Partition}:ec2::${Account}:ipam-resource-discovery/.*"
     ],
+    "ec2:getipamdiscoveredroutes": [
+      "arn:${Partition}:ec2::${Account}:ipam-resource-discovery/.*"
+    ],
+    "ec2:getipaminternetregistryassociationasns": [
+      "arn:${Partition}:ec2::${Account}:ipam-internet-registry-association/.*"
+    ],
+    "ec2:getipaminternetregistryassociationcidrs": [
+      "arn:${Partition}:ec2::${Account}:ipam-internet-registry-association/.*"
+    ],
     "ec2:getipampolicyallocationrules": [
       "arn:${Partition}:ec2::${Account}:ipam-policy/.*"
     ],
@@ -16336,6 +16390,18 @@
     "ec2:getipamresourcecidrs": [
       "arn:${Partition}:ec2::${Account}:ipam-pool/.*",
       "arn:${Partition}:ec2::${Account}:ipam-scope/.*"
+    ],
+    "ec2:getipamrouteoriginauthorizations": [
+      "arn:${Partition}:ec2::${Account}:ipam-internet-registry-association/.*"
+    ],
+    "ec2:getipamrouteprotectionfindings": [
+      "arn:${Partition}:ec2::${Account}:ipam/.*"
+    ],
+    "ec2:getipamroutingpolicyregistrationdeltas": [
+      "arn:${Partition}:ec2::${Account}:ipam-internet-registry-association/.*"
+    ],
+    "ec2:getipamroutingpolicyregistrations": [
+      "arn:${Partition}:ec2::${Account}:ipam-internet-registry-association/.*"
     ],
     "ec2:getlaunchtemplatedata": [
       "arn:${Partition}:ec2:${Region}:${Account}:instance/.*"
@@ -16542,6 +16608,9 @@
     ],
     "ec2:modifyipamresourcediscovery": [
       "arn:${Partition}:ec2::${Account}:ipam-resource-discovery/.*"
+    ],
+    "ec2:modifyipamroutingpolicyregistration": [
+      "arn:${Partition}:ec2::${Account}:ipam-internet-registry-association/.*"
     ],
     "ec2:modifyipamscope": [
       "arn:${Partition}:ec2::${Account}:ipam-scope/.*"
@@ -22681,6 +22750,9 @@
     "guardduty:createfilter": [
       "arn:${Partition}:guardduty:${Region}:${Account}:detector/.*"
     ],
+    "guardduty:deletecustomdetectionruleassociation": [
+      "arn:${Partition}:guardduty:${Region}:${Account}:detection-rule/custom/.*"
+    ],
     "guardduty:deletedetector": [
       "arn:${Partition}:guardduty:${Region}:${Account}:detector/.*"
     ],
@@ -22711,6 +22783,12 @@
     "guardduty:getcoveragestatistics": [
       "arn:${Partition}:guardduty:${Region}:${Account}:detector/.*"
     ],
+    "guardduty:getcustomdetectionrule": [
+      "arn:${Partition}:guardduty::aws:detection-rule/custom/.*"
+    ],
+    "guardduty:getcustomdetectionruleassociation": [
+      "arn:${Partition}:guardduty:${Region}:${Account}:detection-rule/custom/.*"
+    ],
     "guardduty:getdetector": [
       "arn:${Partition}:guardduty:${Region}:${Account}:detector/.*"
     ],
@@ -22736,16 +22814,22 @@
       "arn:${Partition}:guardduty:${Region}:${Account}:detector/.*"
     ],
     "guardduty:listtagsforresource": [
+      "arn:${Partition}:guardduty:${Region}:${Account}:detection-rule/custom/.*",
       "arn:${Partition}:guardduty:${Region}:${Account}:detector/.*",
       "arn:${Partition}:guardduty:${Region}:${Account}:malware-protection-plan/.*"
     ],
     "guardduty:tagresource": [
+      "arn:${Partition}:guardduty:${Region}:${Account}:detection-rule/custom/.*",
       "arn:${Partition}:guardduty:${Region}:${Account}:detector/.*",
       "arn:${Partition}:guardduty:${Region}:${Account}:malware-protection-plan/.*"
     ],
     "guardduty:untagresource": [
+      "arn:${Partition}:guardduty:${Region}:${Account}:detection-rule/custom/.*",
       "arn:${Partition}:guardduty:${Region}:${Account}:detector/.*",
       "arn:${Partition}:guardduty:${Region}:${Account}:malware-protection-plan/.*"
+    ],
+    "guardduty:updatecustomdetectionruleassociation": [
+      "arn:${Partition}:guardduty:${Region}:${Account}:detection-rule/custom/.*"
     ],
     "guardduty:updatedetector": [
       "arn:${Partition}:guardduty:${Region}:${Account}:detector/.*"
@@ -27109,11 +27193,21 @@
     "kinesis:addtagstostream": [
       "arn:${Partition}:kinesis:${Region}:${Account}:stream/.*"
     ],
+    "kinesis:associatestreamswithchannel": [
+      "arn:${Partition}:kinesis:${Region}:${Account}:channel/.*",
+      "arn:${Partition}:kinesis:${Region}:${Account}:stream/.*"
+    ],
+    "kinesis:createchannel": [
+      "arn:${Partition}:kinesis:${Region}:${Account}:channel/.*"
+    ],
     "kinesis:createstream": [
       "arn:${Partition}:kinesis:${Region}:${Account}:stream/.*"
     ],
     "kinesis:decreasestreamretentionperiod": [
       "arn:${Partition}:kinesis:${Region}:${Account}:stream/.*"
+    ],
+    "kinesis:deletechannel": [
+      "arn:${Partition}:kinesis:${Region}:${Account}:channel/.*"
     ],
     "kinesis:deleteresourcepolicy": [
       "arn:${Partition}:kinesis:${Region}:${Account}:.*",
@@ -27124,6 +27218,9 @@
     ],
     "kinesis:deregisterstreamconsumer": [
       "arn:${Partition}:kinesis:${Region}:${Account}:.*"
+    ],
+    "kinesis:describechannel": [
+      "arn:${Partition}:kinesis:${Region}:${Account}:channel/.*"
     ],
     "kinesis:describestream": [
       "arn:${Partition}:kinesis:${Region}:${Account}:stream/.*"
@@ -27154,6 +27251,7 @@
       "arn:${Partition}:kinesis:${Region}:${Account}:stream/.*"
     ],
     "kinesis:listtagsforresource": [
+      "arn:${Partition}:kinesis:${Region}:${Account}:channel/.*",
       "arn:${Partition}:kinesis:${Region}:${Account}:.*",
       "arn:${Partition}:kinesis:${Region}:${Account}:stream/.*"
     ],
@@ -27194,12 +27292,17 @@
       "arn:${Partition}:kinesis:${Region}:${Account}:.*"
     ],
     "kinesis:tagresource": [
+      "arn:${Partition}:kinesis:${Region}:${Account}:channel/.*",
       "arn:${Partition}:kinesis:${Region}:${Account}:.*",
       "arn:${Partition}:kinesis:${Region}:${Account}:stream/.*"
     ],
     "kinesis:untagresource": [
+      "arn:${Partition}:kinesis:${Region}:${Account}:channel/.*",
       "arn:${Partition}:kinesis:${Region}:${Account}:.*",
       "arn:${Partition}:kinesis:${Region}:${Account}:stream/.*"
+    ],
+    "kinesis:updatechannel": [
+      "arn:${Partition}:kinesis:${Region}:${Account}:channel/.*"
     ],
     "kinesis:updatemaxrecordsize": [
       "arn:${Partition}:kinesis:${Region}:${Account}:stream/.*"
@@ -34698,6 +34801,10 @@
       "arn:${Partition}:payment-cryptography:${Region}:${Account}:alias/.*",
       "arn:${Partition}:payment-cryptography:${Region}:${Account}:key/.*"
     ],
+    "payment-cryptography:generateauthrequestcryptogram": [
+      "arn:${Partition}:payment-cryptography:${Region}:${Account}:alias/.*",
+      "arn:${Partition}:payment-cryptography:${Region}:${Account}:key/.*"
+    ],
     "payment-cryptography:generatecardvalidationdata": [
       "arn:${Partition}:payment-cryptography:${Region}:${Account}:alias/.*",
       "arn:${Partition}:payment-cryptography:${Region}:${Account}:key/.*"
@@ -36616,6 +36723,9 @@
     "quicksight:createemailcustomizationtemplate": [
       "arn:${Partition}:quicksight:${Region}:${Account}:email-customization-template/.*"
     ],
+    "quicksight:createextension": [
+      "arn:${Partition}:quicksight:${Region}:${Account}:extension/.*"
+    ],
     "quicksight:createextensionaccess": [
       "arn:${Partition}:quicksight:${Region}:${Account}:extension-access/.*"
     ],
@@ -36724,6 +36834,9 @@
     ],
     "quicksight:deleteemailcustomizationtemplate": [
       "arn:${Partition}:quicksight:${Region}:${Account}:email-customization-template/.*"
+    ],
+    "quicksight:deleteextension": [
+      "arn:${Partition}:quicksight:${Region}:${Account}:extension/.*"
     ],
     "quicksight:deleteextensionaccess": [
       "arn:${Partition}:quicksight:${Region}:${Account}:extension-access/.*"
@@ -36884,8 +36997,14 @@
     "quicksight:describeemailcustomizationtemplate": [
       "arn:${Partition}:quicksight:${Region}:${Account}:email-customization-template/.*"
     ],
+    "quicksight:describeextension": [
+      "arn:${Partition}:quicksight:${Region}:${Account}:extension/.*"
+    ],
     "quicksight:describeextensionaccess": [
       "arn:${Partition}:quicksight:${Region}:${Account}:extension-access/.*"
+    ],
+    "quicksight:describeextensionpermissions": [
+      "arn:${Partition}:quicksight:${Region}:${Account}:extension/.*"
     ],
     "quicksight:describeflow": [
       "arn:${Partition}:quicksight:${Region}:${Account}:flow/.*"
@@ -37175,6 +37294,9 @@
     "quicksight:startdlpjob": [
       "arn:${Partition}:quicksight:${Region}:${Account}:dlpsetting/.*"
     ],
+    "quicksight:startextensioninstallation": [
+      "arn:${Partition}:quicksight:${Region}:${Account}:extension/.*"
+    ],
     "quicksight:tagresource": [
       "arn:${Partition}:quicksight:${Region}:${Account}:action-connector/.*",
       "arn:${Partition}:quicksight:${Region}:${Account}:analysis/.*",
@@ -37289,8 +37411,14 @@
     "quicksight:updateemailcustomizationtemplate": [
       "arn:${Partition}:quicksight:${Region}:${Account}:email-customization-template/.*"
     ],
+    "quicksight:updateextension": [
+      "arn:${Partition}:quicksight:${Region}:${Account}:extension/.*"
+    ],
     "quicksight:updateextensionaccess": [
       "arn:${Partition}:quicksight:${Region}:${Account}:extension-access/.*"
+    ],
+    "quicksight:updateextensionpermissions": [
+      "arn:${Partition}:quicksight:${Region}:${Account}:extension/.*"
     ],
     "quicksight:updateflow": [
       "arn:${Partition}:quicksight:${Region}:${Account}:flow/.*"
