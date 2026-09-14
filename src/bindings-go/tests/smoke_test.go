@@ -7,6 +7,7 @@
 package cfnvalidate_test
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -616,5 +617,184 @@ func TestErrorsSurfaceAsGoErrors(t *testing.T) {
 	}
 	if _, err := cfnvalidate.NewRegoEngine(config); err == nil {
 		t.Error("invalid custom rule must fail engine construction")
+	}
+}
+
+func synthesizedBucketName(t *testing.T, template []byte) string {
+	t.Helper()
+	if template == nil {
+		t.Fatal("a validated request must carry the synthesized template bytes")
+	}
+	var document struct {
+		Resources struct {
+			Resource struct {
+				Type       string `json:"Type"`
+				Properties struct {
+					BucketName string `json:"BucketName"`
+				} `json:"Properties"`
+			} `json:"Resource"`
+		} `json:"Resources"`
+	}
+	if err := json.Unmarshal(template, &document); err != nil {
+		t.Fatalf("decoding synthesized template JSON: %v", err)
+	}
+	if document.Resources.Resource.Type != "AWS::S3::Bucket" {
+		t.Errorf("synthesized resource type = %q, want AWS::S3::Bucket", document.Resources.Resource.Type)
+	}
+	return document.Resources.Resource.Properties.BucketName
+}
+
+func TestValidateAWSCLICommandSynthesizesS3CreateBucketOnAllEngines(t *testing.T) {
+	const bucketName = "synthetic-bucket"
+	request := cfnvalidate.AWSCLICommand{
+		ServiceName:   "s3",
+		OperationName: "CreateBucket",
+		Parameters:    map[string]any{"Bucket": bucketName},
+	}
+
+	perEngine := map[string]*cfnvalidate.AWSCLICommandValidation{}
+	for name, engine := range allEngines(t) {
+		validation, err := engine.ValidateAWSCLICommand(request)
+		if err != nil {
+			t.Fatalf("%s: ValidateAWSCLICommand failed: %v", name, err)
+		}
+		if validation.Status != cfnvalidate.AWSCLICommandValidationStatusValidated {
+			t.Errorf("%s: status = %s, want VALIDATED", name, validation.Status)
+		}
+		if validation.OperationKind != cfnvalidate.AWSCLIOperationKindCloudFormationCreate {
+			t.Errorf("%s: operationKind = %s, want CLOUD_FORMATION_CREATE", name, validation.OperationKind)
+		}
+		if len(validation.ResourceTypes) != 1 || validation.ResourceTypes[0] != "AWS::S3::Bucket" {
+			t.Errorf("%s: resourceTypes = %v, want [AWS::S3::Bucket]", name, validation.ResourceTypes)
+		}
+		if validation.TemplateSource == nil || *validation.TemplateSource != cfnvalidate.AWSCLITemplateSourceSynthesizedCreate {
+			t.Errorf("%s: templateSource = %v, want SYNTHESIZED_CREATE", name, validation.TemplateSource)
+		}
+		if validation.Report == nil {
+			t.Fatalf("%s: report must be present for a validated request", name)
+		}
+		if bucket := synthesizedBucketName(t, validation.Template); bucket != bucketName {
+			t.Errorf("%s: synthesized BucketName = %q, want %q", name, bucket, bucketName)
+		}
+		perEngine[name] = validation
+	}
+
+	// Every engine must model the request identically; performance timings are
+	// intentionally excluded from the comparison.
+	rego := perEngine["rego"]
+	for name, other := range perEngine {
+		if name == "rego" {
+			continue
+		}
+		if !bytes.Equal(rego.Template, other.Template) {
+			t.Errorf("engines synthesized different templates:\nrego: %s\n%s: %s", rego.Template, name, other.Template)
+		}
+		if !equalStrings(diagnosticKeys(rego.Report), diagnosticKeys(other.Report)) {
+			t.Errorf("engines disagree on diagnostics:\nrego: %v\n%s: %v", diagnosticKeys(rego.Report), name, diagnosticKeys(other.Report))
+		}
+	}
+}
+
+func TestValidateAWSCLICommandPreservesExactTemplateBodyBytes(t *testing.T) {
+	// Distinctive whitespace and key order that a reserialization would not
+	// reproduce, so an exact match proves the original bytes are returned.
+	templateBody := []byte("{\n    \"Resources\": {\n        \"Bucket\": { \"Type\": \"AWS::S3::Bucket\" }\n    }\n}")
+	request := cfnvalidate.AWSCLICommand{
+		ServiceName:   "cloudformation",
+		OperationName: "ValidateTemplate",
+		Parameters:    map[string]any{"TemplateBody": templateBody},
+	}
+
+	for name, engine := range allEngines(t) {
+		validation, err := engine.ValidateAWSCLICommand(request)
+		if err != nil {
+			t.Fatalf("%s: ValidateAWSCLICommand failed: %v", name, err)
+		}
+		if validation.Status != cfnvalidate.AWSCLICommandValidationStatusValidated {
+			t.Errorf("%s: status = %s, want VALIDATED", name, validation.Status)
+		}
+		if validation.TemplateSource == nil || *validation.TemplateSource != cfnvalidate.AWSCLITemplateSourceTemplateBody {
+			t.Errorf("%s: templateSource = %v, want TEMPLATE_BODY", name, validation.TemplateSource)
+		}
+		if !bytes.Equal(validation.Template, templateBody) {
+			t.Errorf("%s: returned template = %q, want exact request bytes %q", name, validation.Template, templateBody)
+		}
+	}
+}
+
+func TestValidateAWSCLICommandConservativelySkipsNestedDynamoDbFields(t *testing.T) {
+	request := cfnvalidate.AWSCLICommand{
+		ServiceName:   "dynamodb",
+		OperationName: "CreateTable",
+		Parameters: map[string]any{
+			"TableName":            "Synthetic",
+			"KeySchema":            []any{map[string]any{"AttributeName": "id", "KeyType": "HASH"}},
+			"AttributeDefinitions": []any{map[string]any{"AttributeName": "id", "AttributeType": "S"}},
+			"BillingMode":          "PAY_PER_REQUEST",
+		},
+	}
+
+	for name, engine := range allEngines(t) {
+		validation, err := engine.ValidateAWSCLICommand(request)
+		if err != nil {
+			t.Fatalf("%s: ValidateAWSCLICommand failed: %v", name, err)
+		}
+		if validation.Status != cfnvalidate.AWSCLICommandValidationStatusSkipped {
+			t.Errorf("%s: status = %s, want SKIPPED for unrepresentable nested fields", name, validation.Status)
+		}
+		if validation.Report != nil {
+			t.Errorf("%s: a skipped request must have no report", name)
+		}
+		if validation.Template != nil {
+			t.Errorf("%s: a skipped request must have a nil template, got %q", name, validation.Template)
+		}
+		if len(validation.ResourceTypes) != 1 || validation.ResourceTypes[0] != "AWS::DynamoDB::Table" {
+			t.Errorf("%s: resourceTypes = %v, want the type still identified as [AWS::DynamoDB::Table]", name, validation.ResourceTypes)
+		}
+		if !strings.Contains(validation.Reason, "has no mapping") {
+			t.Errorf("%s: reason must explain the unmapped nested parameter, got %q", name, validation.Reason)
+		}
+	}
+}
+
+func TestValidateAWSCLICommandDoesNotGuessNoncanonicalServiceAlias(t *testing.T) {
+	// CloudWatch's canonical botocore service name is "cloudwatch"; "monitoring"
+	// is its signing name. The core must resolve the operation under the
+	// canonical name but never guess the signing alias.
+	canonical := cfnvalidate.AWSCLICommand{
+		ServiceName:   "cloudwatch",
+		OperationName: "PutMetricAlarm",
+		Parameters:    map[string]any{"AlarmName": "synthetic"},
+	}
+	alias := cfnvalidate.AWSCLICommand{
+		ServiceName:   "monitoring",
+		OperationName: "PutMetricAlarm",
+		Parameters:    map[string]any{"AlarmName": "synthetic"},
+	}
+
+	for name, engine := range allEngines(t) {
+		canonicalValidation, err := engine.ValidateAWSCLICommand(canonical)
+		if err != nil {
+			t.Fatalf("%s: canonical ValidateAWSCLICommand failed: %v", name, err)
+		}
+		if !containsString(canonicalValidation.ResourceTypes, "AWS::CloudWatch::Alarm") {
+			t.Errorf("%s: canonical cloudwatch:PutMetricAlarm must identify AWS::CloudWatch::Alarm, got %v",
+				name, canonicalValidation.ResourceTypes)
+		}
+
+		aliasValidation, err := engine.ValidateAWSCLICommand(alias)
+		if err != nil {
+			t.Fatalf("%s: alias ValidateAWSCLICommand failed: %v", name, err)
+		}
+		if aliasValidation.Status != cfnvalidate.AWSCLICommandValidationStatusSkipped {
+			t.Errorf("%s: signing alias must not classify as a CloudFormation operation, status = %s", name, aliasValidation.Status)
+		}
+		if containsString(aliasValidation.ResourceTypes, "AWS::CloudWatch::Alarm") {
+			t.Errorf("%s: signing alias 'monitoring' must not resolve to AWS::CloudWatch::Alarm, got %v",
+				name, aliasValidation.ResourceTypes)
+		}
+		if aliasValidation.Template != nil {
+			t.Errorf("%s: an unresolved alias must not synthesize a template", name)
+		}
 	}
 }

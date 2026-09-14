@@ -322,3 +322,70 @@ type ValidateConfig struct {
 	Strict                   *bool                     `json:"strict,omitempty"`
 	DisableBuiltinRules      *bool                     `json:"disableBuiltinRules,omitempty"`
 }
+
+// AWSCLICommand holds an AWS CLI command for offline CloudFormation
+// validation. ServiceName and OperationName identify the API; Parameters carry
+// the request values (maps, strings, numbers, booleans, byte slices, etc.).
+//
+// ServiceName is the canonical botocore service name (for example "s3" or
+// "cloudformation") and is the authoritative mapping identity, normalized only
+// for ASCII case - never a signing name, ARN prefix, or endpoint alias. A
+// future AWS SDK adapter, in any language, must translate its native service
+// identity to the canonical botocore ServiceName before calling; the core does
+// not guess aliases.
+type AWSCLICommand struct {
+	ServiceName   string         `json:"serviceName"`
+	OperationName string         `json:"operationName"`
+	Parameters    map[string]any `json:"parameters"`
+	ServicePrefix string         `json:"servicePrefix,omitempty"`
+	HTTPMethod    string         `json:"httpMethod,omitempty"`
+	IsReadOnly    *bool          `json:"isReadOnly,omitempty"`
+}
+
+// AWSCLIOperationKind classifies an AWS CLI operation.
+type AWSCLIOperationKind string
+
+const (
+	AWSCLIOperationKindReadOnly             AWSCLIOperationKind = "READ_ONLY"
+	AWSCLIOperationKindCloudFormationCreate AWSCLIOperationKind = "CLOUD_FORMATION_CREATE"
+	AWSCLIOperationKindCloudFormationUpdate AWSCLIOperationKind = "CLOUD_FORMATION_UPDATE"
+	AWSCLIOperationKindCloudFormationDelete AWSCLIOperationKind = "CLOUD_FORMATION_DELETE"
+	AWSCLIOperationKindDataPlaneMutation    AWSCLIOperationKind = "DATA_PLANE_MUTATION"
+	AWSCLIOperationKindUnmappedMutation     AWSCLIOperationKind = "UNMAPPED_MUTATION"
+)
+
+// AWSCLICommandValidationStatus indicates whether validation ran or was skipped.
+type AWSCLICommandValidationStatus string
+
+const (
+	AWSCLICommandValidationStatusValidated AWSCLICommandValidationStatus = "VALIDATED"
+	AWSCLICommandValidationStatusSkipped   AWSCLICommandValidationStatus = "SKIPPED"
+)
+
+// AWSCLITemplateSource identifies the provenance of the template validated for
+// an AWS CLI command.
+type AWSCLITemplateSource string
+
+const (
+	AWSCLITemplateSourceTemplateBody             AWSCLITemplateSource = "TEMPLATE_BODY"
+	AWSCLITemplateSourceCloudControlDesiredState AWSCLITemplateSource = "CLOUD_CONTROL_DESIRED_STATE"
+	AWSCLITemplateSourceSynthesizedCreate        AWSCLITemplateSource = "SYNTHESIZED_CREATE"
+	AWSCLITemplateSourceSynthesizedUpdate        AWSCLITemplateSource = "SYNTHESIZED_UPDATE"
+)
+
+// AWSCLICommandValidation is the canonical result of validating an AWS CLI
+// command. Report is present only when Status is VALIDATED.
+type AWSCLICommandValidation struct {
+	OperationKind  AWSCLIOperationKind           `json:"operationKind"`
+	Status         AWSCLICommandValidationStatus `json:"status"`
+	TemplateSource *AWSCLITemplateSource         `json:"templateSource,omitempty"`
+	ResourceTypes  []string                      `json:"resourceTypes"`
+	Reason         string                        `json:"reason"`
+	Report         *ValidationReport             `json:"report,omitempty"`
+	// Template is the exact template bytes that were validated: the caller's
+	// original TemplateBody without reserializing, or the synthesized JSON
+	// template for adapter-mapped requests. It is nil when the request was
+	// skipped. The core serializes these bytes as a JSON integer array, which
+	// UnmarshalJSON decodes back into a byte slice.
+	Template []byte `json:"template,omitempty"`
+}
