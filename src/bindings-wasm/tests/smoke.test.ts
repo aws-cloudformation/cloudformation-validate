@@ -600,7 +600,7 @@ describe('AWS CLI command validation', () => {
             },
         });
 
-        const dateRequest = new AwsCliCommand('s3', 'CreateBucket', { Bucket: date });
+        const dateRequest = new AwsCliCommand('lambda', 'CreateFunction', { Description: date });
         const bytesRequest = new AwsCliCommand('cloudformation', 'ValidateTemplate', {
             TemplateBody: templateBody,
         });
