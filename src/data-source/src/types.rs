@@ -28,6 +28,25 @@ pub struct PrimaryIdentifiers {
     pub primary_identifiers: HashMap<String, Vec<String>>,
 }
 
+/// Primary-identifier properties that do not follow from the provider schema.
+///
+/// The schema-derived rule excludes a type whose `primaryIdentifier` is
+/// service-generated (readOnly), because such an identifier cannot collide
+/// between two resources in a template. `AWS::CodeBuild::Project` identifies
+/// itself by its read-only `Arn`, yet its customer-supplied `Name` must still be
+/// unique, so `Name` is treated as the identifier for uniqueness checks. Applied
+/// by the build pipeline to the bundled artifact and by the runtime derivation to
+/// overlaid types, so an overlay cannot drop the correction.
+pub const PRIMARY_IDENTIFIER_OVERRIDES: &[(&str, &[&str])] = &[("AWS::CodeBuild::Project", &["Name"])];
+
+/// The overriding primary-identifier properties for `type_name`, if it has any.
+pub fn primary_identifier_override(type_name: &str) -> Option<Vec<String>> {
+    PRIMARY_IDENTIFIER_OVERRIDES
+        .iter()
+        .find(|(overridden, _)| *overridden == type_name)
+        .map(|(_, properties)| properties.iter().map(|property| (*property).to_string()).collect())
+}
+
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct IamActionResourcePatterns {
     pub iam_action_resource_patterns: HashMap<String, Vec<String>>,
@@ -64,11 +83,11 @@ pub struct SecretsManagerArnFields {
 /// The committed `schema_metadata` artifact: a wrapper whose single
 /// `schema_metadata` field maps each resource type name to its metadata.
 ///
-/// This is the authoritative, recursively typed model consumed by the schema
-/// validator and both rule engines. It is lossless: every field the artifact
-/// carries has a typed home, and any field the current code does not model is
-/// preserved verbatim in the per-level `additional` extension maps, so a future
-/// artifact deserializes and reserializes without code changes.
+/// This is the authoritative typed model consumed by the schema validator and
+/// both rule engines. It is lossless: every field the artifact carries has a
+/// typed home, and any field the current code does not model is preserved
+/// verbatim in the per-level `additional` extension maps, so a future artifact
+/// deserializes and reserializes without code changes.
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct SchemaMetadataDocument {
     pub schema_metadata: SchemaMetadataCatalog,
@@ -77,14 +96,15 @@ pub struct SchemaMetadataDocument {
 /// Resource type name to its typed schema metadata.
 pub type SchemaMetadataCatalog = HashMap<String, SchemaMetadataEntry>;
 
-/// Per-resource-type schema metadata, also used for every nested object level.
+/// Per-resource-type schema metadata describing the type's top-level properties.
 ///
-/// The model is recursive: a nested object reappears as a `SchemaMetadataEntry`
-/// under [`SchemaPropertyConstraints::sub_properties`], and an array element
-/// object reappears under [`SchemaItemsMetadata::schema`].
+/// The nested shape of object and array properties is not repeated here: the
+/// schema validator enforces it from the compiled schemas, which keep shared
+/// definitions by reference. What the engines need per property is its primary
+/// type, its allowed values, and the scalar constraints on its own value.
 ///
 /// `properties`, `required`, `property_types`, and `property_enums` always
-/// serialize, even when empty, because the generator emits them at every level;
+/// serialize, even when empty, because the generator emits them for every type;
 /// preserving that presence is required for lossless round-tripping. Fields the
 /// current code does not model are retained in [`Self::additional`].
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
@@ -93,8 +113,12 @@ pub struct SchemaMetadataEntry {
     pub properties: Vec<String>,
     #[serde(default)]
     pub required: Vec<String>,
+    /// Each property's primary type: the declared type, or the first non-null
+    /// member when the schema lists several.
     #[serde(default)]
     pub property_types: HashMap<String, String>,
+    /// Each property's allowed values: its `enum`, or its `enumCaseInsensitive`
+    /// values when the service compares them case-insensitively.
     #[serde(default)]
     pub property_enums: HashMap<String, Vec<serde_json::Value>>,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
@@ -111,13 +135,14 @@ pub struct SchemaMetadataEntry {
     pub additional: BTreeMap<String, serde_json::Value>,
 }
 
-/// The constraints attached to a single property: scalar bounds, format, nested
-/// object sub-properties, array item schema, and inter-property dependencies.
+/// The scalar constraints a single top-level property states about its own
+/// value: pattern, numeric bounds, length and item-count bounds, format, and
+/// `uniqueItems`.
 ///
-/// `minimum`/`maximum` keep the authored JSON number verbatim as a
-/// [`serde_json::Number`], so an integer bound stays an integer and a decimal or
-/// exponent bound keeps its precision. Length and item bounds are non-negative
-/// integers and use `u64`. Unknown fields are preserved in [`Self::additional`].
+/// `minimum`/`maximum` keep the JSON number as a [`serde_json::Number`], so an
+/// integral bound stays an integer and a decimal or exponent bound keeps its
+/// precision. Length and item bounds are non-negative integers and use `u64`.
+/// Unknown fields are preserved in [`Self::additional`].
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct SchemaPropertyConstraints {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -138,31 +163,6 @@ pub struct SchemaPropertyConstraints {
     pub format: Option<String>,
     #[serde(rename = "uniqueItems", default, skip_serializing_if = "Option::is_none")]
     pub unique_items: Option<bool>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub sub_properties: Option<Box<SchemaMetadataEntry>>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub items: Option<Box<SchemaItemsMetadata>>,
-    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    pub dependent_required: HashMap<String, Vec<String>>,
-    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    pub dependent_excluded: HashMap<String, Vec<String>>,
-    #[serde(flatten, default)]
-    pub additional: BTreeMap<String, serde_json::Value>,
-}
-
-/// Array element metadata: the element type, a nested object schema when the
-/// elements are objects, and any element-level dependencies. Recursive through
-/// [`Self::schema`]. Unknown fields are preserved in [`Self::additional`].
-#[derive(Debug, Default, Clone, Serialize, Deserialize)]
-pub struct SchemaItemsMetadata {
-    #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
-    pub item_type: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub schema: Option<Box<SchemaMetadataEntry>>,
-    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    pub dependent_required: HashMap<String, Vec<String>>,
-    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    pub dependent_excluded: HashMap<String, Vec<String>>,
     #[serde(flatten, default)]
     pub additional: BTreeMap<String, serde_json::Value>,
 }
@@ -263,44 +263,18 @@ mod tests {
                 entry.additional.keys().collect::<Vec<_>>()
             );
             for (prop, constraints) in &entry.property_constraints {
-                assert_constraints_fully_modeled(type_name, prop, constraints);
+                assert!(
+                    constraints.additional.is_empty(),
+                    "{type_name}.{prop}: constraint carries unmodeled fields {:?}",
+                    constraints.additional.keys().collect::<Vec<_>>()
+                );
             }
         }
     }
 
-    fn assert_constraints_fully_modeled(type_name: &str, prop: &str, constraints: &SchemaPropertyConstraints) {
-        assert!(
-            constraints.additional.is_empty(),
-            "{type_name}.{prop}: constraint carries unmodeled fields {:?}",
-            constraints.additional.keys().collect::<Vec<_>>()
-        );
-        if let Some(sub) = &constraints.sub_properties {
-            assert!(
-                sub.additional.is_empty(),
-                "{type_name}.{prop}: sub_properties carries unmodeled fields {:?}",
-                sub.additional.keys().collect::<Vec<_>>()
-            );
-            for (nested_prop, nested) in &sub.property_constraints {
-                assert_constraints_fully_modeled(type_name, &format!("{prop}.{nested_prop}"), nested);
-            }
-        }
-        if let Some(items) = &constraints.items {
-            assert!(
-                items.additional.is_empty(),
-                "{type_name}.{prop}: items carries unmodeled fields {:?}",
-                items.additional.keys().collect::<Vec<_>>()
-            );
-            if let Some(schema) = &items.schema {
-                for (nested_prop, nested) in &schema.property_constraints {
-                    assert_constraints_fully_modeled(type_name, &format!("{prop}[].{nested_prop}"), nested);
-                }
-            }
-        }
-    }
-
-    /// Unknown fields at the entry, constraint, and item levels are preserved
-    /// verbatim, and numbers keep their integer, decimal, and exponent JSON
-    /// semantics through the flattened extension maps.
+    /// Unknown fields at the entry and constraint levels are preserved verbatim,
+    /// and numbers keep their integer, decimal, and exponent JSON semantics
+    /// through the flattened extension maps.
     #[test]
     fn unknown_fields_and_number_forms_survive_round_trip() {
         let synthetic = serde_json::json!({
@@ -322,17 +296,9 @@ mod tests {
                             "future_exponent": 1e10
                         },
                         "B": {
-                            "items": {
-                                "type": "object",
-                                "schema": {
-                                    "properties": ["K"],
-                                    "required": [],
-                                    "property_types": {"K": "string"},
-                                    "property_enums": {},
-                                    "future_item_field": 7
-                                },
-                                "future_items_int": 99
-                            }
+                            "minItems": 1,
+                            "uniqueItems": true,
+                            "future_items_int": 99
                         }
                     },
                     "future_entry_field": {"nested": [1, 2, 3]},
@@ -353,40 +319,22 @@ mod tests {
         assert_eq!(a.additional["future_int"], serde_json::json!(42));
         assert_eq!(a.additional["future_exponent"], serde_json::json!(1e10));
         assert_eq!(a.minimum, Some(serde_json::Number::from(0)));
+        let b = &entry.property_constraints["B"];
+        assert_eq!(b.min_items, Some(1));
+        assert_eq!(b.unique_items, Some(true));
+        assert_eq!(b.additional["future_items_int"], serde_json::json!(99));
     }
 
-    /// The four always-present entry fields serialize even when empty, at the
-    /// top level and at every nested level (`sub_properties`, `items.schema`).
+    /// The four always-present entry fields serialize even when empty.
     #[test]
-    fn present_empty_base_fields_are_retained_at_every_level() {
+    fn present_empty_base_fields_are_retained() {
         let source = serde_json::json!({
             "schema_metadata": {
                 "AWS::Test::Empty": {
                     "properties": [],
                     "required": [],
                     "property_types": {},
-                    "property_enums": {},
-                    "property_constraints": {
-                        "Nested": {
-                            "sub_properties": {
-                                "properties": [],
-                                "required": [],
-                                "property_types": {},
-                                "property_enums": {}
-                            }
-                        },
-                        "Arr": {
-                            "items": {
-                                "type": "array",
-                                "schema": {
-                                    "properties": [],
-                                    "required": [],
-                                    "property_types": {},
-                                    "property_enums": {}
-                                }
-                            }
-                        }
-                    }
+                    "property_enums": {}
                 }
             }
         });
@@ -396,14 +344,12 @@ mod tests {
         assert_eq!(source, reserialized, "a present-empty base field was dropped during round-trip");
 
         let entry = &reserialized["schema_metadata"]["AWS::Test::Empty"];
-        for level in [
-            entry,
-            &entry["property_constraints"]["Nested"]["sub_properties"],
-            &entry["property_constraints"]["Arr"]["items"]["schema"],
-        ] {
-            for field in ["properties", "required", "property_types", "property_enums"] {
-                assert!(level.get(field).is_some(), "expected present-empty '{field}' at this level: {level}");
-            }
+        for field in ["properties", "required", "property_types", "property_enums"] {
+            assert!(entry.get(field).is_some(), "expected present-empty '{field}': {entry}");
+        }
+        for field in ["property_constraints", "dependent_required", "dependent_excluded", "required_or", "required_xor"]
+        {
+            assert!(entry.get(field).is_none(), "an absent optional field must stay absent: '{field}': {entry}");
         }
     }
 }

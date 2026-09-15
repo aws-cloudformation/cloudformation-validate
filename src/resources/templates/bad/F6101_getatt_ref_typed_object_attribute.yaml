@@ -1,0 +1,33 @@
+AWSTemplateFormatVersion: "2010-09-09"
+# `AWS::RDS::DBInstance.Endpoint` is declared through a `$ref` to an object
+# definition; CloudFormation documents only its leaf members (`Endpoint.Address`,
+# `Endpoint.Port`, `Endpoint.HostedZoneId`) as return values. `Fn::GetAtt` on the
+# object itself yields no string: an output value must be a string, and a string
+# property cannot take an object. Both must be flagged exactly like an attribute
+# whose object type is declared inline, on every engine.
+# CloudFormation: "Template format error: Every Value member must be a string."
+Resources:
+  Database:
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      Engine: mysql
+      DBInstanceClass: db.t3.micro
+      AllocatedStorage: "20"
+      MasterUsername: admin
+      ManageMasterUserPassword: true
+      StorageEncrypted: true
+      BackupRetentionPeriod: 7
+      DeletionProtection: true
+      PubliclyAccessible: false
+  Parameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Value: !GetAtt Database.Endpoint
+Outputs:
+  EndpointObject:
+    Value: !GetAtt Database.Endpoint
+  EndpointAddress:
+    Value: !GetAtt Database.Endpoint.Address

@@ -960,6 +960,9 @@
     "AWS::Lightsail::InstanceSnapshot": [
       "InstanceSnapshotName"
     ],
+    "AWS::Lightsail::KeyPair": [
+      "KeyPairName"
+    ],
     "AWS::Lightsail::LoadBalancer": [
       "LoadBalancerName"
     ],

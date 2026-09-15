@@ -41,8 +41,6 @@ pub struct CompiledSchema {
     pub documentation_url: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub source_url: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
     #[serde(default)]
     pub all_of: Vec<SubSchema>,
     #[serde(default)]
@@ -149,8 +147,6 @@ pub struct PropSchema {
     pub max_properties: Option<u64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub format: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub properties: HashMap<String, PropSchema>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -271,8 +267,7 @@ impl PropSchema {
     /// value against. Destructured exhaustively so a newly added constraint
     /// field cannot be omitted and silently skip branch value matching.
     ///
-    /// `description` never constrains; a `ref_name` counts because a dangling
-    /// reference makes matching fail.
+    /// A `ref_name` counts because a dangling reference makes matching fail.
     pub(crate) fn constrains_value(&self) -> bool {
         let PropSchema {
             ref_name,
@@ -295,7 +290,6 @@ impl PropSchema {
             min_properties,
             max_properties,
             format,
-            description: _,
             properties,
             required,
             required_present: _,
@@ -368,7 +362,6 @@ impl PropSchema {
             min_properties,
             max_properties,
             format,
-            description,
             properties,
             required,
             required_present: _,
@@ -403,7 +396,6 @@ impl PropSchema {
             || min_properties.is_some()
             || max_properties.is_some()
             || format.is_some()
-            || description.is_some()
             || !properties.is_empty()
             || !required.is_empty()
             || additional_properties.is_some()

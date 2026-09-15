@@ -314,9 +314,9 @@ condition assignment and should be emitted with `make_diag_conditional`.
 |--------------------------------|--------------------------------------------------------------|-----------------------------------------------------------------------------------------|
 | `schema_properties`            | `(resource_type) -> [string]`                                | Schema-defined property names; unknown types return `[]`.                               |
 | `schema_required`              | `(resource_type) -> [string]`                                | Required property names; unknown types return `[]`.                                     |
-| `schema_type`                  | `(resource_type, property_name) -> string`                   | Schema type, or undefined.                                                              |
-| `schema_enum`                  | `(resource_type, property_name) -> [value]`                  | Allowed enum values; absent enum metadata returns `[]`.                                 |
-| `attribute_type`               | `(resource_type, attribute_name) -> string`                  | Schema metadata type for an attribute, or undefined.                                    |
+| `schema_type`                  | `(resource_type, property_name) -> string`                   | Primary schema type (the first declared type when the schema lists several), or undefined. |
+| `schema_enum`                  | `(resource_type, property_name) -> [value]`                  | Allowed values, including those the service matches case-insensitively; absent enum metadata returns `[]`. |
+| `attribute_type`               | `(resource_type, attribute_name) -> string`                  | Primary schema type for a top-level attribute, or undefined.                            |
 | `getatt_return_type`           | `(resource_type, attribute_name) -> string`                  | Known `Fn::GetAtt` return type; defaults to `string`.                                   |
 | `schema_string_length`         | `(resource_type, property_name) -> {minLength?, maxLength?}` | String length constraints, or undefined when none are known.                            |
 | `schema_requires_unique_items` | `(resource_type, property_name) -> bool`                     | Whether the property schema sets `uniqueItems: true`; missing metadata returns `false`. |

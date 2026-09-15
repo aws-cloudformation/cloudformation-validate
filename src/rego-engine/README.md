@@ -87,8 +87,8 @@ namespace prefix. For example, a policy calls `resolve(name, "Properties.BucketN
 |------------------------|--------------------------------------------|--------------------------------|
 | `schema_properties`    | `(resource_type) → [property_names]`       | List schema-defined properties |
 | `schema_required`      | `(resource_type) → [required_names]`       | List required properties       |
-| `schema_type`          | `(resource_type, property) → type_string`  | Get schema type for a property |
-| `schema_enum`          | `(resource_type, property) → [values]`     | Get allowed enum values        |
+| `schema_type`          | `(resource_type, property) → type_string`  | Primary schema type (first declared when several) |
+| `schema_enum`          | `(resource_type, property) → [values]`     | Allowed values (incl. case-insensitive enums) |
 | `attribute_type`       | `(resource_type, property) → type_string`  | Get schema attribute type      |
 | `getatt_return_type`   | `(resource_type, attribute) → type_string` | Get GetAtt return type         |
 | `schema_string_length` | `(resource_type, property) → {min, max}`   | Get string length constraints  |
