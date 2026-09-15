@@ -76,8 +76,55 @@ export type JsonValue =
     | {
           [key: string]: JsonValue;
       };
+export type AwsCliOperationKind =
+    | 'READ_ONLY'
+    | 'CLOUD_FORMATION_CREATE'
+    | 'CLOUD_FORMATION_UPDATE'
+    | 'CLOUD_FORMATION_DELETE'
+    | 'DATA_PLANE_MUTATION'
+    | 'UNMAPPED_MUTATION';
+export type AwsCliCommandValidationStatus = 'VALIDATED' | 'SKIPPED';
+export type AwsCliTemplateSource =
+    'TEMPLATE_BODY' | 'CLOUD_CONTROL_DESIRED_STATE' | 'SYNTHESIZED_CREATE' | 'SYNTHESIZED_UPDATE';
+export interface AwsCliCommandOptions {
+    servicePrefix?: string;
+    httpMethod?: string;
+    isReadOnly?: boolean;
+}
+/**
+ * Service, operation, and input values for one AWS CLI command.
+ *
+ * `serviceName` is the canonical botocore service name and is normalized only
+ * for ASCII case. Callers adapting an SDK request must translate its native
+ * service identity before constructing this request; endpoint and signing-name
+ * aliases are never guessed by the validation core.
+ */
+export declare class AwsCliCommand {
+    readonly serviceName: string;
+    readonly operationName: string;
+    readonly parameters: Record<string, unknown>;
+    readonly servicePrefix?: string;
+    readonly httpMethod?: string;
+    readonly isReadOnly?: boolean;
+    constructor(
+        serviceName: string,
+        operationName: string,
+        parameters: Record<string, unknown>,
+        options?: AwsCliCommandOptions,
+    );
+}
+export interface AwsCliCommandValidation {
+    operationKind: AwsCliOperationKind;
+    status: AwsCliCommandValidationStatus;
+    templateSource: AwsCliTemplateSource | null;
+    resourceTypes: string[];
+    reason: string;
+    report: ValidationReport | null;
+    template: Uint8Array | null;
+}
 export interface Engine {
     validateTemplate(template: TemplateFile, config?: ValidateConfig): ValidationReport;
+    validateAwsCliCommand(request: AwsCliCommand): AwsCliCommandValidation;
     listRules(): RuleInfo[];
     engineName(): string;
     free(): void;

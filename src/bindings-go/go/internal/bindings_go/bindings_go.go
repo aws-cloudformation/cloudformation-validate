@@ -398,6 +398,15 @@ func uniffiCheckChecksums() {
 	}
 	{
 		checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
+			return C.uniffi_bindings_go_checksum_method_gocelengine_validate_aws_cli_command_json()
+		})
+		if checksum != 11678 {
+			// If this happens try cleaning and rebuilding your project
+			panic("bindings_go: uniffi_bindings_go_checksum_method_gocelengine_validate_aws_cli_command_json: UniFFI API checksum mismatch")
+		}
+	}
+	{
+		checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 			return C.uniffi_bindings_go_checksum_method_gocelengine_validate_template_json()
 		})
 		if checksum != 56745 {
@@ -425,6 +434,15 @@ func uniffiCheckChecksums() {
 	}
 	{
 		checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
+			return C.uniffi_bindings_go_checksum_method_gocompositeengine_validate_aws_cli_command_json()
+		})
+		if checksum != 47646 {
+			// If this happens try cleaning and rebuilding your project
+			panic("bindings_go: uniffi_bindings_go_checksum_method_gocompositeengine_validate_aws_cli_command_json: UniFFI API checksum mismatch")
+		}
+	}
+	{
+		checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 			return C.uniffi_bindings_go_checksum_method_gocompositeengine_validate_template_json()
 		})
 		if checksum != 63196 {
@@ -448,6 +466,15 @@ func uniffiCheckChecksums() {
 		if checksum != 21491 {
 			// If this happens try cleaning and rebuilding your project
 			panic("bindings_go: uniffi_bindings_go_checksum_method_goregoengine_list_rules_json: UniFFI API checksum mismatch")
+		}
+	}
+	{
+		checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
+			return C.uniffi_bindings_go_checksum_method_goregoengine_validate_aws_cli_command_json()
+		})
+		if checksum != 3061 {
+			// If this happens try cleaning and rebuilding your project
+			panic("bindings_go: uniffi_bindings_go_checksum_method_goregoengine_validate_aws_cli_command_json: UniFFI API checksum mismatch")
 		}
 	}
 	{
@@ -810,6 +837,8 @@ type GoCelEngineInterface interface {
 	EngineName() string
 	// Returns the engine's rules as a JSON array of rule infos.
 	ListRulesJson() (string, error)
+	// Validates an AWS CLI command and returns the canonical result as JSON.
+	ValidateAwsCliCommandJson(requestJson string) (string, error)
 	// Validates a template and returns the report as JSON.
 	//
 	// The detail level carried by `options_json` controls enrichment:
@@ -856,6 +885,24 @@ func (_self *GoCelEngine) ListRulesJson() (string, error) {
 		return GoRustBuffer{
 			inner: C.uniffi_bindings_go_fn_method_gocelengine_list_rules_json(
 				_pointer, _uniffiStatus),
+		}
+	})
+	if _uniffiErr != nil {
+		var _uniffiDefaultValue string
+		return _uniffiDefaultValue, _uniffiErr
+	} else {
+		return FfiConverterStringINSTANCE.Lift(_uniffiRV), nil
+	}
+}
+
+// Validates an AWS CLI command and returns the canonical result as JSON.
+func (_self *GoCelEngine) ValidateAwsCliCommandJson(requestJson string) (string, error) {
+	_pointer := _self.ffiObject.incrementPointer("*GoCelEngine")
+	defer _self.ffiObject.decrementPointer()
+	_uniffiRV, _uniffiErr := rustCallWithError[*ValidationError](FfiConverterValidationError{}, func(_uniffiStatus *C.RustCallStatus) RustBufferI {
+		return GoRustBuffer{
+			inner: C.uniffi_bindings_go_fn_method_gocelengine_validate_aws_cli_command_json(
+				_pointer, FfiConverterStringINSTANCE.Lower(requestJson), _uniffiStatus),
 		}
 	})
 	if _uniffiErr != nil {
@@ -947,6 +994,8 @@ type GoCompositeEngineInterface interface {
 	EngineName() string
 	// Returns the engine's rules as a JSON array of rule infos.
 	ListRulesJson() (string, error)
+	// Validates an AWS CLI command and returns the canonical result as JSON.
+	ValidateAwsCliCommandJson(requestJson string) (string, error)
 	// Validates a template and returns the report as JSON.
 	//
 	// The detail level carried by `options_json` controls enrichment:
@@ -993,6 +1042,24 @@ func (_self *GoCompositeEngine) ListRulesJson() (string, error) {
 		return GoRustBuffer{
 			inner: C.uniffi_bindings_go_fn_method_gocompositeengine_list_rules_json(
 				_pointer, _uniffiStatus),
+		}
+	})
+	if _uniffiErr != nil {
+		var _uniffiDefaultValue string
+		return _uniffiDefaultValue, _uniffiErr
+	} else {
+		return FfiConverterStringINSTANCE.Lift(_uniffiRV), nil
+	}
+}
+
+// Validates an AWS CLI command and returns the canonical result as JSON.
+func (_self *GoCompositeEngine) ValidateAwsCliCommandJson(requestJson string) (string, error) {
+	_pointer := _self.ffiObject.incrementPointer("*GoCompositeEngine")
+	defer _self.ffiObject.decrementPointer()
+	_uniffiRV, _uniffiErr := rustCallWithError[*ValidationError](FfiConverterValidationError{}, func(_uniffiStatus *C.RustCallStatus) RustBufferI {
+		return GoRustBuffer{
+			inner: C.uniffi_bindings_go_fn_method_gocompositeengine_validate_aws_cli_command_json(
+				_pointer, FfiConverterStringINSTANCE.Lower(requestJson), _uniffiStatus),
 		}
 	})
 	if _uniffiErr != nil {
@@ -1084,6 +1151,8 @@ type GoRegoEngineInterface interface {
 	EngineName() string
 	// Returns the engine's rules as a JSON array of rule infos.
 	ListRulesJson() (string, error)
+	// Validates an AWS CLI command and returns the canonical result as JSON.
+	ValidateAwsCliCommandJson(requestJson string) (string, error)
 	// Validates a template and returns the report as JSON.
 	//
 	// The detail level carried by `options_json` controls enrichment:
@@ -1130,6 +1199,24 @@ func (_self *GoRegoEngine) ListRulesJson() (string, error) {
 		return GoRustBuffer{
 			inner: C.uniffi_bindings_go_fn_method_goregoengine_list_rules_json(
 				_pointer, _uniffiStatus),
+		}
+	})
+	if _uniffiErr != nil {
+		var _uniffiDefaultValue string
+		return _uniffiDefaultValue, _uniffiErr
+	} else {
+		return FfiConverterStringINSTANCE.Lift(_uniffiRV), nil
+	}
+}
+
+// Validates an AWS CLI command and returns the canonical result as JSON.
+func (_self *GoRegoEngine) ValidateAwsCliCommandJson(requestJson string) (string, error) {
+	_pointer := _self.ffiObject.incrementPointer("*GoRegoEngine")
+	defer _self.ffiObject.decrementPointer()
+	_uniffiRV, _uniffiErr := rustCallWithError[*ValidationError](FfiConverterValidationError{}, func(_uniffiStatus *C.RustCallStatus) RustBufferI {
+		return GoRustBuffer{
+			inner: C.uniffi_bindings_go_fn_method_goregoengine_validate_aws_cli_command_json(
+				_pointer, FfiConverterStringINSTANCE.Lower(requestJson), _uniffiStatus),
 		}
 	})
 	if _uniffiErr != nil {
