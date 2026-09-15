@@ -49,6 +49,17 @@ class WasmCelEngine {
         return this;
     }
     /**
+     * @param {any} request
+     * @returns {any}
+     */
+    validateAwsCliCommand(request) {
+        const ret = wasm.wasmcelengine_validateAwsCliCommand(this.__wbg_ptr, request);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return takeFromExternrefTable0(ret[0]);
+    }
+    /**
      * @param {Uint8Array} template
      * @param {ValidateConfig} options
      * @param {string} file_path
@@ -118,6 +129,17 @@ class WasmCompositeEngine {
         return this;
     }
     /**
+     * @param {any} request
+     * @returns {any}
+     */
+    validateAwsCliCommand(request) {
+        const ret = wasm.wasmcompositeengine_validateAwsCliCommand(this.__wbg_ptr, request);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return takeFromExternrefTable0(ret[0]);
+    }
+    /**
      * @param {Uint8Array} template
      * @param {ValidateConfig} options
      * @param {string} file_path
@@ -185,6 +207,17 @@ class WasmRegoEngine {
         this.__wbg_ptr = ret[0];
         WasmRegoEngineFinalization.register(this, this.__wbg_ptr, this);
         return this;
+    }
+    /**
+     * @param {any} request
+     * @returns {any}
+     */
+    validateAwsCliCommand(request) {
+        const ret = wasm.wasmregoengine_validateAwsCliCommand(this.__wbg_ptr, request);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return takeFromExternrefTable0(ret[0]);
     }
     /**
      * @param {Uint8Array} template
@@ -436,6 +469,12 @@ function __wbg_get_imports() {
             getDataViewMemory0().setInt32(arg0 + 4 * 1, len1, true);
             getDataViewMemory0().setInt32(arg0 + 4 * 0, ptr1, true);
         },
+        __wbg___wbindgen_bigint_get_as_i64_d968e41184ae354f: function (arg0, arg1) {
+            const v = arg1;
+            const ret = typeof v === 'bigint' ? v : undefined;
+            getDataViewMemory0().setBigInt64(arg0 + 8 * 1, isLikeNone(ret) ? BigInt(0) : ret, true);
+            getDataViewMemory0().setInt32(arg0 + 4 * 0, !isLikeNone(ret), true);
+        },
         __wbg___wbindgen_boolean_get_fa956cfa2d1bd751: function (arg0) {
             const v = arg0;
             const ret = typeof v === 'boolean' ? v : undefined;
@@ -450,6 +489,10 @@ function __wbg_get_imports() {
         },
         __wbg___wbindgen_in_aca499c5de7ff5e5: function (arg0, arg1) {
             const ret = arg0 in arg1;
+            return ret;
+        },
+        __wbg___wbindgen_is_bigint_2f76dc55065b4273: function (arg0) {
+            const ret = typeof arg0 === 'bigint';
             return ret;
         },
         __wbg___wbindgen_is_function_1ff95bcc5517c252: function (arg0) {
@@ -467,6 +510,10 @@ function __wbg_get_imports() {
         },
         __wbg___wbindgen_is_undefined_c05833b95a3cf397: function (arg0) {
             const ret = arg0 === undefined;
+            return ret;
+        },
+        __wbg___wbindgen_jsval_eq_e659fcf7b0e32763: function (arg0, arg1) {
+            const ret = arg0 === arg1;
             return ret;
         },
         __wbg___wbindgen_jsval_loose_eq_db4c3b15f63fc170: function (arg0, arg1) {
@@ -542,6 +589,16 @@ function __wbg_get_imports() {
             let result;
             try {
                 result = arg0 instanceof ArrayBuffer;
+            } catch (_) {
+                result = false;
+            }
+            const ret = result;
+            return ret;
+        },
+        __wbg_instanceof_Map_e5b5e3db98422fcc: function (arg0) {
+            let result;
+            try {
+                result = arg0 instanceof Map;
             } catch (_) {
                 result = false;
             }

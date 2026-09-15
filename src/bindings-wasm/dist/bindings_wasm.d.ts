@@ -1129,6 +1129,7 @@ export class WasmCelEngine {
     engineName(): string;
     listRules(): any;
     constructor(config: EngineConfig);
+    validateAwsCliCommand(request: any): any;
     validateTemplate(template: Uint8Array, options: ValidateConfig, file_path: string): any;
 }
 
@@ -1138,6 +1139,7 @@ export class WasmCompositeEngine {
     engineName(): string;
     listRules(): any;
     constructor(config: CompositeEngineConfig);
+    validateAwsCliCommand(request: any): any;
     validateTemplate(template: Uint8Array, options: ValidateConfig, file_path: string): any;
 }
 
@@ -1147,6 +1149,7 @@ export class WasmRegoEngine {
     engineName(): string;
     listRules(): any;
     constructor(config: EngineConfig);
+    validateAwsCliCommand(request: any): any;
     validateTemplate(template: Uint8Array, options: ValidateConfig, file_path: string): any;
 }
 

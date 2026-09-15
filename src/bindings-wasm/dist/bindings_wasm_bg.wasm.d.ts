@@ -11,6 +11,7 @@ export const version: () => [number, number];
 export const wasmcelengine_engineName: (a: number) => [number, number];
 export const wasmcelengine_listRules: (a: number) => [number, number, number];
 export const wasmcelengine_new: (a: any) => [number, number, number];
+export const wasmcelengine_validateAwsCliCommand: (a: number, b: any) => [number, number, number];
 export const wasmcelengine_validateTemplate: (
     a: number,
     b: number,
@@ -22,6 +23,7 @@ export const wasmcelengine_validateTemplate: (
 export const wasmcompositeengine_engineName: (a: number) => [number, number];
 export const wasmcompositeengine_listRules: (a: number) => [number, number, number];
 export const wasmcompositeengine_new: (a: any) => [number, number, number];
+export const wasmcompositeengine_validateAwsCliCommand: (a: number, b: any) => [number, number, number];
 export const wasmcompositeengine_validateTemplate: (
     a: number,
     b: number,
@@ -33,6 +35,7 @@ export const wasmcompositeengine_validateTemplate: (
 export const wasmregoengine_engineName: (a: number) => [number, number];
 export const wasmregoengine_listRules: (a: number) => [number, number, number];
 export const wasmregoengine_new: (a: any) => [number, number, number];
+export const wasmregoengine_validateAwsCliCommand: (a: number, b: any) => [number, number, number];
 export const wasmregoengine_validateTemplate: (
     a: number,
     b: number,
