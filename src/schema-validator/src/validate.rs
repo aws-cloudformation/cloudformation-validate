@@ -2698,8 +2698,7 @@ fn scenario_consistent_with_filter(m: &Arc<SemanticModel>, conds: &HashMap<Strin
 /// `pattern_properties`, and the dependency maps - are deliberately excluded:
 /// `validate_sub` enforces them directly with their own rule IDs, and running
 /// the value matcher for them here would double-report. `ref_name` is excluded
-/// because the caller resolves the branch before the self-check, and
-/// `description` never constrains.
+/// because the caller resolves the branch before the self-check.
 fn sub_self_constrains_value(sub: &PropSchema) -> bool {
     let PropSchema {
         ref_name: _,
@@ -2722,7 +2721,6 @@ fn sub_self_constrains_value(sub: &PropSchema) -> bool {
         min_properties,
         max_properties,
         format,
-        description: _,
         properties: _,
         required: _,
         required_present: _,

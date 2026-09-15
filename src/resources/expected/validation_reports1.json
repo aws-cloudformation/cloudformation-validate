@@ -3066,6 +3066,207 @@
       }
     ]
   },
+  "bad/F6101_getatt_ref_typed_object_attribute.yaml": {
+    "filePath": "bad/F6101_getatt_ref_typed_object_attribute.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 2,
+      "counts": {
+        "fatal": 2,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 7,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "F3012",
+        "severity": "FATAL",
+        "message": "GetAtt Database.Endpoint (AWS::RDS::DBInstance) returns 'object', but property expects 'string'",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "Parameter",
+          "entityType": "Resource",
+          "resourceType": "AWS::SSM::Parameter"
+        },
+        "propertyPath": "Properties.Value",
+        "category": "Schema",
+        "startLine": 28,
+        "startColumn": 7,
+        "endLine": 28,
+        "endColumn": 12,
+        "ruleDescription": "Property type mismatch",
+        "phase": "SCHEMA",
+        "context": {
+          "expectedConstraint": "string",
+          "resolutionSource": "GetAtt Database.Endpoint"
+        }
+      },
+      {
+        "ruleId": "F6101",
+        "severity": "FATAL",
+        "message": "Output 'EndpointObject': GetAtt 'Database.Endpoint' returns type 'object', not 'string'",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "EndpointObject",
+          "entityType": "Output"
+        },
+        "propertyPath": "Outputs/EndpointObject/Value.Fn::GetAtt",
+        "category": "Structure",
+        "startLine": 30,
+        "startColumn": 3,
+        "endLine": 30,
+        "endColumn": 17,
+        "ruleDescription": "Output value must be a string",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Engine' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Database",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.Engine",
+        "category": "Best Practice",
+        "startLine": 15,
+        "startColumn": 7,
+        "endLine": 15,
+        "endColumn": 13,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'MasterUsername' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Database",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.MasterUsername",
+        "category": "Best Practice",
+        "startLine": 18,
+        "startColumn": 7,
+        "endLine": 18,
+        "endColumn": 21,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'StorageEncrypted' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Database",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.StorageEncrypted",
+        "category": "Best Practice",
+        "startLine": 20,
+        "startColumn": 7,
+        "endLine": 20,
+        "endColumn": 23,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'BackupRetentionPeriod' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Database",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.BackupRetentionPeriod",
+        "category": "Best Practice",
+        "startLine": 21,
+        "startColumn": 7,
+        "endLine": 21,
+        "endColumn": 28,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Database' of type 'AWS::RDS::DBInstance' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Database",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 14,
+        "startColumn": 5,
+        "endLine": 14,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Parameter' of type 'AWS::SSM::Parameter' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Parameter",
+          "entityType": "Resource",
+          "resourceType": "AWS::SSM::Parameter"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 26,
+        "startColumn": 5,
+        "endLine": 26,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
   "bad/I3100_previous_generation_sourced_routes.yaml": {
     "filePath": "bad/I3100_previous_generation_sourced_routes.yaml",
     "status": "OK",
@@ -20412,85 +20613,6 @@
         "startLine": 218,
         "startColumn": 5,
         "endLine": 218,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      }
-    ]
-  },
-  "bad/getatt_object_attribute_member.yaml": {
-    "filePath": "bad/getatt_object_attribute_member.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 2,
-      "counts": {
-        "fatal": 0,
-        "errors": 1,
-        "warnings": 0,
-        "informational": 2,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "E9004",
-        "severity": "ERROR",
-        "message": "'Tags.0' is not one of ['Arn', 'DomainName', 'DualStackDomainName', 'MetadataConfiguration.AnnotationTableConfiguration.TableArn', 'MetadataConfiguration.AnnotationTableConfiguration.TableName', 'MetadataConfiguration.Destination', 'MetadataConfiguration.InventoryTableConfiguration.TableArn', 'MetadataConfiguration.InventoryTableConfiguration.TableName', 'MetadataConfiguration.JournalTableConfiguration.TableArn', 'MetadataConfiguration.JournalTableConfiguration.TableName', 'MetadataTableConfiguration.S3TablesDestination.TableArn', 'MetadataTableConfiguration.S3TablesDestination.TableNamespace', 'RegionalDomainName', 'WebsiteURL']",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "Param",
-          "entityType": "Resource",
-          "resourceType": "AWS::SSM::Parameter"
-        },
-        "propertyPath": "Properties.Value",
-        "suggestedFix": "Check the resource type documentation for valid GetAtt attributes",
-        "category": "Intrinsic Function",
-        "startLine": 15,
-        "startColumn": 7,
-        "endLine": 15,
-        "endColumn": 12,
-        "ruleDescription": "GetAtt attribute must exist on target resource type",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'Bucket' of type 'AWS::S3::Bucket' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Bucket",
-          "entityType": "Resource",
-          "resourceType": "AWS::S3::Bucket"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 9,
-        "startColumn": 3,
-        "endLine": 9,
-        "endColumn": 9,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'Param' of type 'AWS::SSM::Parameter' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Param",
-          "entityType": "Resource",
-          "resourceType": "AWS::SSM::Parameter"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 13,
-        "startColumn": 5,
-        "endLine": 13,
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"

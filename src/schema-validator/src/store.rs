@@ -1,6 +1,7 @@
 use crate::compiled::CompiledSchema;
 use crate::overlay::{self, SchemaOverlayError};
 use data_source::embedded::*;
+use data_source::types::GetattData;
 use std::collections::{BTreeSet, HashMap};
 use template_model::regions::AWS_REGIONS;
 
@@ -38,7 +39,7 @@ impl CompiledSchemaStore {
         let schemas: HashMap<String, CompiledSchema> =
             serde_json::from_slice(&COMPILED_SCHEMAS_BYTES).expect("Embedded compiled schemas must be valid JSON");
         assert!(!schemas.is_empty(), "Embedded compiled schemas must not be empty");
-        let ref_types = RefTypeStore::load(&REF_TYPES_BYTES);
+        let ref_types = RefTypeStore::load(&REF_TYPES_BYTES, &GETATT_ATTRIBUTES_BYTES);
         let lifecycle = LifecycleStore::load(&RESOURCE_LIFECYCLE_BYTES, &LAMBDA_RUNTIMES_BYTES);
         let mut extensions = ExtensionStore::load(&EXTENSIONS_BYTES);
         extensions.remap_keys(&schemas);
@@ -197,22 +198,25 @@ pub struct RefTypeStore {
 }
 
 impl RefTypeStore {
-    fn load(bytes: &[u8]) -> Self {
-        let json: serde_json::Value = serde_json::from_slice(bytes).expect("Embedded ref_types must be valid JSON");
+    /// Loads Ref return types and format compatibility from the `ref_types`
+    /// artifact, and GetAtt return types from the `getatt_attributes` artifact
+    /// that the rule engines read too, so both see one set of attribute types.
+    fn load(ref_types_bytes: &[u8], getatt_bytes: &[u8]) -> Self {
+        let json: serde_json::Value =
+            serde_json::from_slice(ref_types_bytes).expect("Embedded ref_types must be valid JSON");
         let ref_returns: HashMap<String, String> = json
             .get("ref_returns")
             .and_then(|v| serde_json::from_value(v.clone()).ok())
             .expect("Embedded ref_types must contain ref_returns");
-        let getatt_returns: HashMap<String, HashMap<String, String>> = json
-            .get("getatt_returns")
-            .and_then(|v| serde_json::from_value(v.clone()).ok())
-            .expect("Embedded ref_types must contain getatt_returns");
         let format_compatible_types: HashMap<String, Vec<String>> = json
             .get("format_compatible_types")
             .and_then(|v| serde_json::from_value(v.clone()).ok())
             .expect("Embedded ref_types must contain format_compatible_types");
+        let getatt: GetattData =
+            serde_json::from_slice(getatt_bytes).expect("Embedded getatt_attributes must be valid JSON");
+        let getatt_returns = getatt.getatt_attribute_types;
         assert!(!ref_returns.is_empty(), "Embedded ref_returns must not be empty");
-        assert!(!getatt_returns.is_empty(), "Embedded getatt_returns must not be empty");
+        assert!(!getatt_returns.is_empty(), "Embedded getatt_attribute_types must not be empty");
         assert!(!format_compatible_types.is_empty(), "Embedded format_compatible_types must not be empty");
         RefTypeStore { ref_returns, getatt_returns, format_compatible_types }
     }
@@ -230,48 +234,18 @@ impl RefTypeStore {
         let read_only_set: std::collections::HashSet<&str> =
             schema.read_only_properties.iter().map(|s| s.as_str()).collect();
 
-        // Ref return type: match catalog derivation semantics.
-        // Remove stale entry first in case an overlay removed or changed
-        // the primary identifier.
+        // Stale entries are removed first in case an overlay removed or changed
+        // the primary identifier or the attributes.
         self.ref_returns.remove(type_name);
-        if !schema.primary_identifier.is_empty() {
-            let ref_type = if schema.primary_identifier.len() > 1 {
-                "string".to_string()
-            } else {
-                let id_prop = &schema.primary_identifier[0];
-                if read_only_set.contains(id_prop.as_str()) {
-                    "string".to_string()
-                } else {
-                    crate::catalog::resolve_property_type(schema, id_prop).unwrap_or_else(|| "string".to_string())
-                }
-            };
+        if let Some(ref_type) = crate::catalog::derive_ref_return_type(schema, &read_only_set) {
             self.ref_returns.insert(type_name.clone(), ref_type);
         }
 
-        // GetAtt return types: ALL top-level properties plus full-path readOnly
-        // attributes. Replace the whole entry so stale attributes from a
-        // previous overlay are removed.
-        let mut attr_map: HashMap<String, String> = HashMap::new();
-        for (name, prop) in &schema.properties {
-            let resolved = prop.resolve(&schema.definitions);
-            if let Some(pt) = resolved.prop_type.as_ref().and_then(|p| p.primary()) {
-                attr_map.insert(name.clone(), pt.to_string());
-            }
-        }
-        for attr in &schema.read_only_properties {
-            if attr.contains('.')
-                && let Some(prop_type) = crate::catalog::resolve_property_type(schema, attr)
-            {
-                attr_map.insert(attr.clone(), prop_type);
-            }
-        }
-        // Hand-maintained GetAtt return-type corrections win over the derived
-        // property types, exactly as they do in the build pipeline.
-        crate::catalog::apply_getatt_return_type_overrides(type_name, &mut attr_map);
-        if !attr_map.is_empty() {
-            self.getatt_returns.insert(type_name.clone(), attr_map);
-        } else {
+        let attr_map = crate::catalog::derive_getatt_attribute_types(schema);
+        if attr_map.is_empty() {
             self.getatt_returns.remove(type_name);
+        } else {
+            self.getatt_returns.insert(type_name.clone(), attr_map);
         }
     }
 

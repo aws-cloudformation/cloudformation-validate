@@ -175,14 +175,15 @@ pub mod keywords {
 
     pub const PATTERN: &str = "pattern";
     pub const FORMAT: &str = "format";
-    pub const DESCRIPTION: &str = "description";
     pub const REPLACEMENT_STRATEGY: &str = "replacementStrategy";
     pub const DOCUMENTATION_URL: &str = "documentationUrl";
     pub const SOURCE_URL: &str = "sourceUrl";
 
-    /// Keywords compiled into `Option<String>` string values.
-    pub const STRING_CONSTRAINTS: &[&str] =
-        &[PATTERN, FORMAT, DESCRIPTION, REPLACEMENT_STRATEGY, DOCUMENTATION_URL, SOURCE_URL];
+    /// Keywords compiled into `Option<String>` string values. `description` is
+    /// deliberately absent: it is an annotation with no validation meaning and no
+    /// reader in the validator or the engines, so it is not compiled at all (see
+    /// [`REF_ANNOTATION_KEYWORDS`]).
+    pub const STRING_CONSTRAINTS: &[&str] = &[PATTERN, FORMAT, REPLACEMENT_STRATEGY, DOCUMENTATION_URL, SOURCE_URL];
 
     // ─── Other compiled keywords ────────────────────────────────────────────
 
@@ -282,8 +283,6 @@ pub struct CompiledSchema {
     pub documentation_url: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub source_url: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub all_of: Vec<SubSchema>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -373,8 +372,6 @@ pub struct PropSchema {
     pub max_properties: Option<u64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub format: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub properties: BTreeMap<String, PropSchema>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -529,11 +526,6 @@ pub fn compile_schema_with(type_name: &str, raw: &serde_json::Value, ref_sibling
             .filter(|s| !s.is_empty())
             .map(String::from),
         source_url: raw.get(keywords::SOURCE_URL).and_then(|v| v.as_str()).filter(|s| !s.is_empty()).map(String::from),
-        description: raw
-            .get(keywords::DESCRIPTION)
-            .and_then(|v| v.as_str())
-            .filter(|s| !s.is_empty())
-            .map(String::from),
         all_of,
         any_of: compile_subs(raw.get(keywords::ANY_OF), ref_siblings),
         one_of: compile_subs(raw.get(keywords::ONE_OF), ref_siblings),
@@ -723,11 +715,6 @@ fn compile_prop_with(raw: &serde_json::Value, ref_siblings: RefSiblings) -> Prop
         min_properties: obj.get(keywords::MIN_PROPERTIES).and_then(|v| v.as_u64()),
         max_properties: obj.get(keywords::MAX_PROPERTIES).and_then(|v| v.as_u64()),
         format: obj.get(keywords::FORMAT).and_then(|v| v.as_str()).map(String::from),
-        description: obj
-            .get(keywords::DESCRIPTION)
-            .and_then(|v| v.as_str())
-            .filter(|s| !s.is_empty())
-            .map(String::from),
         properties: sub_props,
         required: str_arr(obj.get(keywords::REQUIRED).cloned().as_ref()),
         additional_properties: obj.get(keywords::ADDITIONAL_PROPERTIES).and_then(|v| v.as_bool()),
@@ -1054,6 +1041,7 @@ mod tests {
         let compiled = compile_schema(
             "AWS::Test::T",
             &json!({
+                "description": "resource documentation",
                 "properties": {
                     "P": { "type": "string", "pattern": "^x$", "format": "uri", "description": "desc" }
                 },
@@ -1065,10 +1053,13 @@ mod tests {
         let p = &compiled.properties["P"];
         assert_eq!(p.pattern.as_deref(), Some("^x$"));
         assert_eq!(p.format.as_deref(), Some("uri"));
-        assert_eq!(p.description.as_deref(), Some("desc"));
         assert_eq!(compiled.replacement_strategy.as_deref(), Some("delete_then_create"));
         assert_eq!(compiled.documentation_url.as_deref(), Some("https://docs"));
         assert_eq!(compiled.source_url.as_deref(), Some("https://src"));
+        // `description` is an annotation: it is neither compiled nor serialized,
+        // so the bundled artifact does not carry documentation prose.
+        let serialized = serde_json::to_string(&compiled).expect("compiled schema serializes");
+        assert!(!serialized.contains("description"), "description must not reach the compiled schema: {serialized}");
     }
 
     #[test]

@@ -1,5 +1,4 @@
 use crate::compiled_schema::{CompiledSchema, RefSiblings, compile_schema_with};
-use crate::types::GetattData;
 use log::info;
 use std::collections::BTreeMap;
 use std::collections::HashSet;
@@ -48,22 +47,18 @@ pub fn generate(generated_dir: &Path, upstream_dir: &Path) -> anyhow::Result<()>
     fs::write(output_dir.join("compiled_schemas.json"), json_bytes.as_bytes())?;
     info!("Compiled {} schemas ({} bytes) -> compiled_schemas.json", compiled.len(), json_bytes.len());
 
-    generate_ref_types(generated_dir, &raw, &output_dir)?;
+    generate_ref_types(&raw, &output_dir)?;
     generate_region_enums(generated_dir, &output_dir)?;
     generate_extension_data(upstream_dir, &output_dir)?;
 
     Ok(())
 }
 
-/// Compile Ref return types and GetAtt attribute types into ref_types.json.
-/// Uses primaryIdentifier → property type resolution and getatt_attribute_types data.
-fn generate_ref_types(
-    generated_dir: &Path,
-    raw_schemas: &BTreeMap<String, serde_json::Value>,
-    output_dir: &Path,
-) -> anyhow::Result<()> {
+/// Compile Ref return types (primaryIdentifier → property type resolution) and
+/// the format-compatibility table into ref_types.json. GetAtt return types are
+/// not repeated here: the runtime reads them from `data/getatt_attributes.json`.
+fn generate_ref_types(raw_schemas: &BTreeMap<String, serde_json::Value>, output_dir: &Path) -> anyhow::Result<()> {
     let mut ref_returns: BTreeMap<String, String> = BTreeMap::new();
-    let mut getatt_returns: BTreeMap<String, BTreeMap<String, String>> = BTreeMap::new();
 
     for (type_name, schema) in raw_schemas {
         let primary_ids = schema.get("primaryIdentifier").and_then(|v| v.as_array()).unwrap_or(&Vec::new()).clone();
@@ -88,26 +83,6 @@ fn generate_ref_types(
         }
     }
 
-    let getatt_path = generated_dir.join("data").join("getatt_attributes.json");
-    let content = fs::read_to_string(&getatt_path)
-        .map_err(|source| anyhow::anyhow!("failed to read required {}: {}", getatt_path.display(), source))?;
-    let getatt_data: GetattData = serde_json::from_str(&content)
-        .map_err(|source| anyhow::anyhow!("failed to parse required {}: {}", getatt_path.display(), source))?;
-    anyhow::ensure!(
-        !getatt_data.getatt_attribute_types.is_empty(),
-        "{}: getatt_attribute_types must not be empty",
-        getatt_path.display()
-    );
-    for (type_name, attrs) in getatt_data.getatt_attribute_types {
-        anyhow::ensure!(
-            !attrs.is_empty(),
-            "{}: GetAtt types for '{}' must not be empty",
-            getatt_path.display(),
-            type_name
-        );
-        getatt_returns.insert(type_name, attrs.into_iter().collect());
-    }
-
     let format_compatible: BTreeMap<String, Vec<String>> = [
         ("AWS::EC2::VPC.Id", vec!["AWS::EC2::VPC"]),
         ("AWS::EC2::Subnet.Id", vec!["AWS::EC2::Subnet"]),
@@ -124,16 +99,11 @@ fn generate_ref_types(
 
     let ref_types = serde_json::json!({
         "ref_returns": ref_returns,
-        "getatt_returns": getatt_returns,
         "format_compatible_types": format_compatible,
     });
     let bytes = serde_json::to_string_pretty(&ref_types)?;
     fs::write(output_dir.join("ref_types.json"), bytes.as_bytes())?;
-    info!(
-        "Compiled ref types: {} Ref returns, {} GetAtt types -> ref_types.json",
-        ref_returns.len(),
-        getatt_returns.len()
-    );
+    info!("Compiled ref types: {} Ref returns -> ref_types.json", ref_returns.len());
     Ok(())
 }
 

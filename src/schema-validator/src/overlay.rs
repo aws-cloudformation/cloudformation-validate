@@ -23,7 +23,7 @@
 //! | Keyed collections - `properties`, `definitions`, `patternProperties` | deep-merged by key: new keys are added, shared keys recurse |
 //! | `required` | replaced when the overlay states the keyword (even as `[]` - that is how a requirement is cleared, and a removal is logged); unioned into the base when the keyword is omitted |
 //! | Independent-fact collections - the `/properties/...` lifecycle metadata lists, and each key of `dependentRequired`/`dependentExcluded` | unioned, order-preserving, deduplicated |
-//! | Single-valued constraints - `type`, `pattern`, `const`, numeric bounds, lengths, item and property counts, `uniqueItems`, `format`, `description`, `additionalProperties`, `not.enum` | replaced when the overlay supplies them, inherited otherwise |
+//! | Single-valued constraints - `type`, `pattern`, `const`, numeric bounds, lengths, item and property counts, `uniqueItems`, `format`, `additionalProperties`, `not.enum` | replaced when the overlay supplies them, inherited otherwise |
 //! | Logical groups - `requiredOr`, `requiredXor`, `primaryIdentifier` | replaced as a whole when supplied. Each is *one* group ("at least one of", "exactly one of", "these properties identify the resource"), so unioning two groups would fabricate a third constraint that neither schema states |
 //! | Composition - `allOf`/`anyOf`/`oneOf`/`if`-`then`-`else` | replaced when supplied, because a complete overlay restates the whole composition and appending would duplicate branches. `allOf` splits into plain and conditional entries during compilation, so an overlay supplying `allOf` replaces both halves together |
 //! | Singleton subschemas - `items` (the schema every array element must satisfy) | deep-merged, like one keyed entry: an overlay stating only `pattern` narrows the element schema without discarding the rest of it |
@@ -86,10 +86,13 @@
 //! - Conditional constraints the build pipeline contributes as extension
 //!   fragments are validated from a separate embedded artifact that overlays do
 //!   not merge into, so an overlay cannot suppress a finding originating there.
-//! - Schema-level metadata (`description`, `documentationUrl`, `sourceUrl`,
-//!   `replacementStrategy`) alone is not sufficient - the overlay must carry at
-//!   least one validatable constraint. Metadata enriches diagnostic context only
-//!   when combined with properties, required, or other constraints.
+//! - Schema-level metadata (`documentationUrl`, `sourceUrl`, `replacementStrategy`)
+//!   alone is not sufficient - the overlay must carry at least one validatable
+//!   constraint. Metadata enriches diagnostic context only when combined with
+//!   properties, required, or other constraints. Annotations such as
+//!   `description` are accepted anywhere and compiled to nothing: they have no
+//!   validation meaning and no reader, so an overlay stating only a description
+//!   changes nothing.
 //! - Overlay-derived resource types, GetAtt attributes and types, Ref return
 //!   types, primary identifiers, and schema metadata are propagated to both rule
 //!   engines. Region-specific availability and enum snapshots remain bundled.
@@ -412,9 +415,9 @@ fn mark_prop_conditionals(prop: &mut PropSchema) {
 /// Destructured exhaustively so a new field cannot be omitted from the check.
 ///
 /// Schema-level metadata that enriches reporting but constrains nothing
-/// (`description`, `documentationUrl`, `sourceUrl`, `replacementStrategy`) is
-/// not sufficient on its own. These fields enrich diagnostic context when another
-/// constraint fires, but alone they state nothing validatable.
+/// (`documentationUrl`, `sourceUrl`, `replacementStrategy`) is not sufficient on
+/// its own. These fields enrich diagnostic context when another constraint
+/// fires, but alone they state nothing validatable.
 fn states_nothing(schema: &CompiledSchema) -> bool {
     let CompiledSchema {
         type_name: _,
@@ -432,7 +435,6 @@ fn states_nothing(schema: &CompiledSchema) -> bool {
         replacement_strategy: _,
         documentation_url: _,
         source_url: _,
-        description: _,
         all_of,
         any_of,
         one_of,
@@ -863,11 +865,7 @@ fn validate_composition_entries(
         let unsupported: Vec<&str> = entry_members
             .keys()
             .map(String::as_str)
-            .filter(|key| {
-                !COMPOSITION_ALLOWED_FIELDS.contains(key)
-                    && !REF_ANNOTATION_KEYWORDS.contains(key)
-                    && *key != keywords::DESCRIPTION
-            })
+            .filter(|key| !COMPOSITION_ALLOWED_FIELDS.contains(key) && !REF_ANNOTATION_KEYWORDS.contains(key))
             .collect();
         if !unsupported.is_empty() {
             return Err(reject(&format!(
@@ -958,11 +956,7 @@ fn validate_conditional_allof_entry(
         let unsupported: Vec<&str> = branch
             .keys()
             .map(String::as_str)
-            .filter(|key| {
-                !CONDITIONAL_THEN_ELSE_ALLOWED_FIELDS.contains(key)
-                    && !REF_ANNOTATION_KEYWORDS.contains(key)
-                    && *key != keywords::DESCRIPTION
-            })
+            .filter(|key| !CONDITIONAL_THEN_ELSE_ALLOWED_FIELDS.contains(key) && !REF_ANNOTATION_KEYWORDS.contains(key))
             .collect();
         if !unsupported.is_empty() {
             return Err(reject(&format!(
@@ -1352,7 +1346,6 @@ pub(crate) fn merge_into(base: &mut CompiledSchema, overlay: CompiledSchema) {
     replace_if_some(&mut base.replacement_strategy, overlay.replacement_strategy);
     replace_if_some(&mut base.documentation_url, overlay.documentation_url);
     replace_if_some(&mut base.source_url, overlay.source_url);
-    replace_if_some(&mut base.description, overlay.description);
 
     // Property-path metadata lists only ever grow: an overlay that names one
     // more deprecated property must not delete the bundled deprecations.
@@ -1449,7 +1442,6 @@ pub(crate) fn merge_prop(base: &mut PropSchema, overlay: PropSchema) {
     replace_if_some(&mut base.min_properties, overlay.min_properties);
     replace_if_some(&mut base.max_properties, overlay.max_properties);
     replace_if_some(&mut base.format, overlay.format);
-    replace_if_some(&mut base.description, overlay.description);
     replace_if_some(&mut base.additional_properties, overlay.additional_properties);
 
     merge_prop_map(&mut base.properties, overlay.properties);
@@ -1547,7 +1539,6 @@ fn is_no_op(prop: &PropSchema) -> bool {
         min_properties,
         max_properties,
         format,
-        description,
         properties,
         required,
         required_present,
@@ -1583,7 +1574,6 @@ fn is_no_op(prop: &PropSchema) -> bool {
         && min_properties.is_none()
         && max_properties.is_none()
         && format.is_none()
-        && description.is_none()
         && properties.is_empty()
         && required.is_empty()
         && !required_present
@@ -2027,7 +2017,6 @@ mod tests {
                         "uniqueItems": true,
                         "minProperties": 1, "maxProperties": 3,
                         "format": "uri",
-                        "description": "desc",
                         "const": "a",
                         "not": { "enum": ["bad"] },
                         "additionalProperties": false
@@ -2049,7 +2038,6 @@ mod tests {
         assert_eq!(p.min_properties, Some(1));
         assert_eq!(p.max_properties, Some(3));
         assert_eq!(p.format.as_deref(), Some("uri"));
-        assert_eq!(p.description.as_deref(), Some("desc"));
         assert_eq!(p.const_value, Some(json!("a")));
         assert_eq!(p.not_enum, vec![json!("bad")]);
         assert_eq!(p.additional_properties, Some(false));
@@ -2220,7 +2208,7 @@ mod tests {
             "properties": { "P": { "$ref": "#/definitions/D" } },
             "definitions": { "D": { "type": "string", "enum": ["alpha", "beta"] } }
         }));
-        merge_into(&mut base, compiled(json!({ "properties": { "P": { "description": "documented" } } })));
+        merge_into(&mut base, compiled(json!({ "properties": { "P": { "maxLength": 16 } } })));
         merge_into(&mut base, compiled(json!({ "definitions": { "D": { "enum": ["alpha", "beta", "gamma"] } } })));
         let p = effective(&base, "P");
         assert_eq!(
@@ -2229,27 +2217,25 @@ mod tests {
             "the later definition update must reach the property, got {:?}",
             p.enum_values
         );
-        assert_eq!(p.description.as_deref(), Some("documented"), "the earlier property extension must survive");
+        assert_eq!(p.max_length, Some(16), "the earlier property extension must survive");
     }
 
     #[test]
     fn merge_into_overrides_schema_metadata() {
-        let mut base = compiled(json!({ "additionalProperties": true, "description": "old" }));
+        let mut base = compiled(json!({ "additionalProperties": true }));
         merge_into(
             &mut base,
             compiled(json!({
                 "additionalProperties": false,
                 "replacementStrategy": "delete",
                 "documentationUrl": "http://docs",
-                "sourceUrl": "http://src",
-                "description": "new"
+                "sourceUrl": "http://src"
             })),
         );
         assert_eq!(base.additional_properties, Some(false));
         assert_eq!(base.replacement_strategy.as_deref(), Some("delete"));
         assert_eq!(base.documentation_url.as_deref(), Some("http://docs"));
         assert_eq!(base.source_url.as_deref(), Some("http://src"));
-        assert_eq!(base.description.as_deref(), Some("new"));
     }
 
     #[test]
@@ -2349,7 +2335,7 @@ mod tests {
         base_raw.insert("Target".into(), json!({ "type": "object" }));
         let mut overlay_raw = serde_json::Map::new();
         for i in 0..32 {
-            overlay_raw.insert(format!("D{i}"), json!({ "description": "touched" }));
+            overlay_raw.insert(format!("D{i}"), json!({ "maxProperties": 64 }));
         }
         overlay_raw.insert("Target".into(), json!({ "required": ["Late"] }));
         overlay_raw.insert("Holder".into(), json!({ "properties": { "X": { "type": "string" } } }));
