@@ -1,6 +1,7 @@
 [bindings.kotlin]
 package_name = "software.amazon.cloudformation.validate"
 generate_immutable_records = true
+disable_java_cleaner = true # java.lang.ref.Cleaner is JDK 9+; the jar targets Java 8
 
 [bindings.kotlin.external_packages]
 diagnostics = "software.amazon.cloudformation.validate.diagnostics"

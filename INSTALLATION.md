@@ -92,8 +92,8 @@ See the [Python API and examples](src/bindings-python/README.md).
 ### Go
 
 The published [Go module](https://pkg.go.dev/github.com/aws-cloudformation/cloudformation-validate/src/bindings-go/go)
-requires Go 1.26 or later, cgo, and a C linker. It currently contains native libraries for Linux x86-64, macOS Apple
-silicon, and Windows x86-64; Windows uses the MinGW-w64 GNU ABI.
+requires Go 1.26 or later, cgo, and a C linker. It currently contains native libraries for Linux x86-64, Linux ARM64,
+macOS Apple silicon, macOS Intel, and Windows x86-64; Windows uses the MinGW-w64 GNU ABI.
 
 ```bash
 # Latest release
@@ -113,7 +113,7 @@ See the [Go API and examples](src/bindings-go/README.md).
 
 The JVM library is published to
 [Maven Central as `software.amazon.cloudformation:cloudformation-validate`](https://central.sonatype.com/artifact/software.amazon.cloudformation/cloudformation-validate)
-and requires JDK 21 or later. The jar includes native libraries for all supported platforms; Maven or Gradle resolves
+and requires Java 8 or later. The jar includes native libraries for all supported platforms; Maven or Gradle resolves
 JNA, Gson, and the Kotlin standard library.
 
 Gradle (Kotlin DSL):

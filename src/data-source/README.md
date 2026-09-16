@@ -52,6 +52,8 @@ updating the AWS CLI checkout.
 
 ```
 data-source/
+├── src/                               # Pipeline crate: sync, process, codegen, and the embedded-data API
+├── scripts/                           # Maintainer-run Python generators (AWS CLI operation catalog, cfn-lint data sync)
 ├── handwritten/                       # Manually authored data, checked in
 ├── upstream/                          # Raw data synced from external sources (not committed)
 │   ├── schemas/                       # Downloaded CFN + SAM schemas (per resource type)
