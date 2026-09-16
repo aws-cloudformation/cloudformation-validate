@@ -1,3 +1,4 @@
+use crate::authored_template::render_authored_json;
 use crate::budget::{BudgetKind, BudgetTracker};
 use crate::conditions::{ConditionModel, Satisfiability};
 use crate::consts::*;
@@ -17,6 +18,7 @@ use std::cmp::Reverse;
 use std::collections::{BTreeMap, BTreeSet, BinaryHeap, HashMap, HashSet};
 use std::sync::Arc;
 use std::sync::Mutex;
+use std::sync::OnceLock;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
 /// A resource property path paired with a string value found at it, such as a substitution variable or literal.
@@ -262,6 +264,11 @@ pub struct RuleAssertion {
 
 pub struct SemanticModel {
     pub arena: Arena,
+    /// The template's top-level map in `arena`; the authored view is rendered from it.
+    root: NodeRef,
+    /// The template as CloudFormation JSON, rendered from `arena` on first request
+    /// and shared by every consumer that evaluates the authored template.
+    authored_template: OnceLock<serde_json::Value>,
     pub span_index: SourceSpanIndex,
     pub format_version: Option<String>,
     pub description: Option<String>,
@@ -1089,6 +1096,8 @@ impl SemanticModel {
         Ok(ParseResult {
             model: SemanticModel {
                 arena: ir.arena,
+                root: ir.root,
+                authored_template: OnceLock::new(),
                 span_index: ir.span_index,
                 format_version: ir.format_version,
                 description: ir.description,
@@ -1137,6 +1146,14 @@ impl SemanticModel {
 
     pub fn resource(&self, id: &str) -> Option<&ResolvedResource> {
         self.resources.get(id)
+    }
+
+    /// The template as the author wrote it, as CloudFormation JSON with every
+    /// intrinsic function in long form. This is the view an external evaluator
+    /// that understands CloudFormation syntax - rather than this crate's resolved
+    /// model - operates on. Rendered once and cached for the model's lifetime.
+    pub fn authored_template_json(&self) -> &serde_json::Value {
+        self.authored_template.get_or_init(|| render_authored_json(&self.arena, self.root))
     }
 
     /// Reports whether a lifecycle attribute can legally survive condition

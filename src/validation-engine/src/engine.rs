@@ -80,9 +80,9 @@ pub enum EngineType {
     Rego,
     Cel,
     /// Evaluates the built-in rules with one engine and layers caller-supplied
-    /// external Rego and Guard rules on top. With no external rules it produces
-    /// the same diagnostics as the standalone engines, which is why it is the
-    /// default selector.
+    /// external CEL, Rego, and Guard rules on top. With no external rules it
+    /// produces the same diagnostics as the standalone engines, which is why it is
+    /// the default selector.
     #[default]
     Composite,
 }
@@ -207,10 +207,10 @@ impl EngineConfig {
 ///
 /// The built-in rules are always evaluated, so this config only carries the
 /// external rules layered on top plus the shared schema configuration. Custom
-/// rules can be supplied in all three formats: Rego and Guard are evaluated by
-/// the external engine, while CEL custom rules are evaluated by the engine that
-/// owns the built-ins. It has no field for engine-native built-in custom rules
-/// because the composite fixes which engine owns the built-ins.
+/// rules can be supplied in all three formats: Rego rules are evaluated by the
+/// external engine, while CEL custom rules and Guard rules are evaluated by the
+/// engine that owns the built-ins. It has no field for engine-native built-in
+/// custom rules because the composite fixes which engine owns the built-ins.
 #[derive(Default, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
 #[cfg_attr(feature = "wasm-bindings", tsify(from_wasm_abi))]
@@ -302,7 +302,7 @@ pub trait ValidationEngine {
     /// Built-in rule metadata from the rules registry only.
     fn rule_metadata(&self) -> &HashMap<String, RuleMetadataEntry>;
 
-    /// Metadata for rules not in the registry: custom user rules and translated guard rules.
+    /// Metadata for rules not in the registry: custom user rules and Guard rules.
     fn external_rule_metadata(&self) -> HashMap<String, RuleMetadataEntry>;
 
     fn init_metric(&self) -> &PhaseMetric;

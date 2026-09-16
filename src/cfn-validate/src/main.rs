@@ -291,7 +291,8 @@ fn main() {
                     // own dialect, but the composite fixes which engine owns which
                     // format: CEL custom rules (.json) go to the built-in CEL
                     // engine, Rego custom rules (.rego) to the external engine.
-                    // Guard rules are translated and evaluated externally.
+                    // Guard rules evaluate identically in every engine and go to
+                    // the built-in one.
                     let (cel_rules, rego_rules): (Vec<ExternalRuleSource>, Vec<ExternalRuleSource>) =
                         custom_rules.into_iter().partition(|rule| {
                             rule.name.rsplit('.').next().is_some_and(|ext| ext.eq_ignore_ascii_case("json"))

@@ -316,6 +316,108 @@ fn guard_rule_list_rules_and_validate_match_between_engines() {
         assert_eq!(d.resource_logical_id(), Some("Bucket"), "{name}: resource_id");
     }
 }
+/// Guard rules are evaluated by one shared evaluator regardless of engine, so the
+/// three engines must agree on every Guard finding - which resources fire, where
+/// each finding is anchored, and what it says - and equally on which resources do
+/// not fire. The template mixes compliant and non-compliant buckets so an
+/// implementation that fires everywhere, or nowhere, cannot pass.
+#[test]
+fn guard_findings_are_identical_across_engines_including_non_firing_resources() {
+    let guard =
+        || ExternalRuleSource { name: "guard_semantics.guard".into(), content: load_rule("guard_semantics.guard") };
+    let cel = CelEngine::new(EngineConfig { guard_rules: vec![guard()], ..Default::default() }).unwrap();
+    let rego = RegoEngine::new(EngineConfig { guard_rules: vec![guard()], ..Default::default() }).unwrap();
+    let composite = CompositeEngine::new(CompositeEngineConfig::new().with_guard_rules([guard()])).unwrap();
+
+    let template = br#"
+AWSTemplateFormatVersion: "2010-09-09"
+Parameters:
+  NameParam:
+    Type: String
+Resources:
+  Compliant:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: expected-bucket
+      Tags:
+        - Key: Owner
+          Value: platform
+      VersioningConfiguration:
+        Status: Enabled
+  SharedName:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: shared-assets
+  WrongName:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: other-bucket
+      Tags:
+        - Key: Team
+          Value: x
+      VersioningConfiguration:
+        Status: Suspended
+  ParameterName:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref NameParam
+  NoProperties:
+    Type: AWS::S3::Bucket
+"#;
+    type Fingerprint = (String, Severity, Option<String>, Option<String>, Option<(u32, u32, u32, u32)>, String);
+    let guard_fingerprints = |engine: &dyn ValidationEngine| -> Vec<Fingerprint> {
+        let sv = SchemaValidator::default();
+        let mut fingerprints: Vec<Fingerprint> = validate_bytes(engine, &sv, template, Default::default())
+            .unwrap()
+            .diagnostics
+            .into_iter()
+            .filter(|d| d.source == RuleOrigin::Guard)
+            .map(|d| {
+                let span = d.location.map(|s| (s.start_line, s.start_column, s.end_line, s.end_column));
+                let resource = d.resource_logical_id().map(str::to_string);
+                (d.rule_id, d.severity, resource, d.property_path, span, d.message)
+            })
+            .collect();
+        fingerprints.sort();
+        fingerprints
+    };
+
+    let cel_findings = guard_fingerprints(&cel);
+    assert_eq!(cel_findings, guard_fingerprints(&rego), "Guard findings differ between the CEL and Rego engines");
+    assert_eq!(cel_findings, guard_fingerprints(&composite), "Guard findings differ between CEL and composite");
+
+    let fired: Vec<(&str, &str)> =
+        cel_findings.iter().map(|(rule, _, resource, ..)| (rule.as_str(), resource.as_deref().unwrap_or(""))).collect();
+    assert_eq!(
+        fired,
+        vec![
+            ("bucket_name_exists", "NoProperties"),
+            ("bucket_name_is_expected", "NoProperties"),
+            ("bucket_name_is_expected", "ParameterName"),
+            ("bucket_name_is_expected", "WrongName"),
+            ("name_absent_is_fine", "Compliant"),
+            ("name_absent_is_fine", "ParameterName"),
+            ("name_absent_is_fine", "SharedName"),
+            ("name_absent_is_fine", "WrongName"),
+            ("tags_owned", "NoProperties"),
+            ("tags_owned", "ParameterName"),
+            ("tags_owned", "SharedName"),
+            ("tags_owned", "WrongName"),
+            ("versioning_enabled_when_configured", "WrongName"),
+        ],
+        "each rule fires exactly on the resources that violate it, as cfn-guard reports them"
+    );
+    assert!(cel_findings.iter().all(|(_, severity, ..)| *severity == Severity::Error));
+    assert!(
+        cel_findings.iter().filter(|(_, _, resource, ..)| resource.is_some()).all(|(.., span, _)| span.is_some()),
+        "every resource-anchored Guard finding carries a source span"
+    );
+    assert_eq!(
+        cel_findings.iter().find(|(rule, ..)| rule == "bucket_name_is_expected").map(|f| f.5.as_str()),
+        Some("BucketName must be the expected name or start with shared-"),
+        "the author's message is used even when the failed clause sits in an OR group"
+    );
+}
 
 #[test]
 fn single_combined_list_rules_and_validate_match_between_engines() {

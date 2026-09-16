@@ -16,6 +16,7 @@ pub use engine::{
     extract_diagnostics_from_value, make_resource_diagnostic, make_resource_diagnostic_at_source,
     semantic_model_to_input_json, validate_bytes_with_path, validate_catching_panics,
 };
+pub use guard::{GUARD_CATEGORY_PREFIX, GuardRuleSet};
 
 #[cfg(any(test, feature = "test"))]
 pub use engine::validate_bytes;
