@@ -2,6 +2,7 @@ use guard_translator::*;
 use serde_json::{Value, json};
 use std::env;
 use std::fs;
+use std::path::Path;
 
 /// Two buckets with no name, one named `bar`, and one whose name is a parameter
 /// reference - the shapes a check on `Properties.BucketName` must distinguish.
@@ -104,6 +105,13 @@ fn pack_name_from_path_strips_directory_and_extension() {
     assert_eq!(pack_name_from_path("rules/pack.ruleset"), "pack");
 }
 
+#[cfg(windows)]
+#[test]
+fn pack_name_from_path_strips_windows_directory_separators() {
+    assert_eq!(pack_name_from_path(r"..\fixtures\pack\elb_https.guard"), "elb_https");
+    assert_eq!(pack_name_from_path(r"../fixtures/pack\s3_versioning.guard"), "s3_versioning");
+}
+
 #[test]
 fn load_guard_sources_recursive_finds_files_in_subdirectories_sorted_by_path() {
     let dir = env::temp_dir().join("guard_translator_recursive_test");
@@ -115,7 +123,8 @@ fn load_guard_sources_recursive_finds_files_in_subdirectories_sorted_by_path() {
 
     let sources = load_guard_sources_recursive(dir.to_str().unwrap()).unwrap();
 
-    let names: Vec<&str> = sources.iter().map(|(path, _)| path.rsplit('/').next().unwrap()).collect();
+    let names: Vec<&str> =
+        sources.iter().map(|(path, _)| Path::new(path).file_name().and_then(|name| name.to_str()).unwrap()).collect();
     assert_eq!(names, vec!["b.guard", "a.guard"], "only .guard files, in path order");
     let _ = fs::remove_dir_all(&dir);
 }

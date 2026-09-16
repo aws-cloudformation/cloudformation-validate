@@ -297,7 +297,11 @@ fn collect_guard_files_recursive(dir: &Path, out: &mut Vec<(String, String)>) ->
 /// non-alphanumeric characters with `_`.
 ///
 /// e.g. `"security-policies/elb-listener.guard"` → `"elb_listener"`
+///
+/// The file name is taken with platform path semantics so a directory walk on Windows
+/// (`pack\elb_https.guard`) yields the same name as on Unix (`pack/elb_https.guard`).
 pub fn pack_name_from_path(path: &str) -> String {
-    let stem = path.rsplit('/').next().unwrap_or(path).trim_end_matches(".guard").trim_end_matches(".ruleset");
+    let file_name = Path::new(path).file_name().and_then(|name| name.to_str()).unwrap_or(path);
+    let stem = file_name.trim_end_matches(".guard").trim_end_matches(".ruleset");
     stem.chars().map(|c| if c.is_alphanumeric() || c == '_' { c } else { '_' }).collect()
 }
