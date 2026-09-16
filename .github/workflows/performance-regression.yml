@@ -1,19 +1,15 @@
 name: Performance
 
+# Checks out `inputs.ref` when a caller supplies one, otherwise the commit the run was triggered for (github.sha).
+# A manual run measures the branch it is dispatched from; no input selects code from another ref.
 on:
   workflow_call:
     inputs:
       ref:
-        description: Git ref to test
-        required: true
+        description: Commit to test; defaults to the commit the calling run was triggered for
+        required: false
         type: string
   workflow_dispatch:
-    inputs:
-      ref:
-        description: Git ref to test
-        required: false
-        default: main
-        type: string
 
 permissions:
   contents: read

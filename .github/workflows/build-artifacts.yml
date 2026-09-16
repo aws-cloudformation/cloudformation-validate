@@ -1,19 +1,17 @@
 name: Build Artifacts
-run-name: Build Artifacts ${{ github.actor }} ${{ github.event_name }} (${{ inputs.branch || github.sha }})
+run-name: Build Artifacts ${{ github.actor }} ${{ github.event_name }} (${{ github.ref_name }} @ ${{ github.sha }})
 
+# Every job checks out the commit the run was triggered for (github.sha). To build a hotfix branch, dispatch
+# the workflow from that branch ("Use workflow from" / `gh workflow run build-artifacts.yml --ref <branch>`);
+# the artifacts PR then targets it. Nothing in this workflow checks out a ref chosen by an input, so the code
+# that runs is always the code of the branch whose cache scope and permissions the run has.
 on:
   push:
     branches: [ main ]
   workflow_dispatch:
-    inputs:
-      branch:
-        description: "Branch to build artifacts from - main for regular builds, a hotfix branch for patch releases. The artifacts PR targets this branch."
-        required: false
-        type: string
-        default: 'main'
 
 concurrency:
-  group: build-artifacts-${{ inputs.branch || 'main' }}
+  group: build-artifacts-${{ github.ref_name }}
   cancel-in-progress: true
 
 permissions:
@@ -28,13 +26,8 @@ jobs:
       pull-requests: read
     outputs:
       relevant: ${{ steps.decision.outputs.relevant }}
-      sha: ${{ steps.head.outputs.sha }}
-      branch: ${{ steps.head.outputs.branch }}
-      pr-branch: ${{ steps.head.outputs.pr-branch }}
     steps:
     - uses: actions/checkout@v6
-      with:
-        ref: ${{ inputs.branch || github.sha }}
 
     - name: Detect relevant paths
       if: ${{ github.event_name == 'push' }}
@@ -81,24 +74,6 @@ jobs:
           echo "relevant=false" >> "$GITHUB_OUTPUT"
           echo "No changed path requires an artifact build; skipping"
         fi
-
-    - name: Pin the build commit and PR target
-      id: head
-      env:
-        BRANCH: ${{ inputs.branch || 'main' }}
-        INPUT_BRANCH: ${{ inputs.branch }}
-      run: |
-        set -euo pipefail
-        PR_BRANCH="automated/build-artifacts"
-        if [ -n "$INPUT_BRANCH" ]; then
-          PR_BRANCH="$PR_BRANCH-${INPUT_BRANCH//\//-}"
-        fi
-        {
-          echo "sha=$(git rev-parse HEAD)"
-          echo "branch=$BRANCH"
-          echo "pr-branch=$PR_BRANCH"
-        } >> "$GITHUB_OUTPUT"
-        echo "Building from branch $BRANCH, commit $(git rev-parse HEAD); PR branch $PR_BRANCH"
 
     - name: Load build configs
       if: ${{ steps.decision.outputs.relevant == 'true' }}
@@ -158,8 +133,6 @@ jobs:
         shell: bash
     steps:
     - uses: actions/checkout@v6
-      with:
-        ref: ${{ needs.prepare.outputs.sha }}
 
     - name: Load build configs
       id: configs
@@ -219,8 +192,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v6
-      with:
-        ref: ${{ needs.prepare.outputs.sha }}
 
     - name: Load build configs
       id: configs
@@ -235,6 +206,7 @@ jobs:
       uses: actions/setup-node@v6
       with:
         node-version: ${{ steps.configs.outputs.node-version }}
+        package-manager-cache: false
 
     - name: Install wasm-pack ${{ steps.configs.outputs.wasm-pack-version }}
       uses: taiki-e/install-action@v2.86.7
@@ -288,8 +260,6 @@ jobs:
         shell: bash
     steps:
     - uses: actions/checkout@v6
-      with:
-        ref: ${{ needs.prepare.outputs.sha }}
 
     - name: Load build configs
       id: configs
@@ -333,8 +303,6 @@ jobs:
         shell: bash
     steps:
     - uses: actions/checkout@v6
-      with:
-        ref: ${{ needs.prepare.outputs.sha }}
 
     - name: Load build configs
       id: configs
@@ -389,8 +357,6 @@ jobs:
         shell: bash
     steps:
     - uses: actions/checkout@v6
-      with:
-        ref: ${{ needs.prepare.outputs.sha }}
 
     - name: Load build configs
       id: configs
@@ -406,6 +372,7 @@ jobs:
       uses: actions/setup-go@v6
       with:
         go-version: ${{ steps.configs.outputs.go-version }}
+        cache: false
 
     - name: Install uniffi-bindgen-go ${{ steps.configs.outputs.uniffi-bindgen-go-tag }}
       run: cargo install uniffi-bindgen-go --git https://github.com/NordSecurity/uniffi-bindgen-go --tag '${{ steps.configs.outputs.uniffi-bindgen-go-tag }}'
@@ -439,8 +406,6 @@ jobs:
       pull-requests: write
     steps:
     - uses: actions/checkout@v6
-      with:
-        ref: ${{ needs.prepare.outputs.sha }}
 
     - name: Load build configs
       id: configs
@@ -549,14 +514,27 @@ jobs:
 
         echo "Merged JVM jar:"; ls -1 bindings-jvm/generated
 
+    - name: Name the artifacts PR branch
+      id: pr
+      env:
+        SOURCE_BRANCH: ${{ github.ref_name }}
+      run: |
+        set -euo pipefail
+        PR_BRANCH="automated/build-artifacts"
+        if [ "$SOURCE_BRANCH" != "main" ]; then
+          PR_BRANCH="$PR_BRANCH-${SOURCE_BRANCH//\//-}"
+        fi
+        echo "branch=$PR_BRANCH" >> "$GITHUB_OUTPUT"
+        echo "Artifacts built from $SOURCE_BRANCH @ $GITHUB_SHA; PR branch $PR_BRANCH"
+
     - name: Create Pull Request
       uses: peter-evans/create-pull-request@v8.1.1
       with:
         commit-message: 'chore: Update bindings'
-        branch: ${{ needs.prepare.outputs.pr-branch }}
+        branch: ${{ steps.pr.outputs.branch }}
         delete-branch: true
-        title: 'chore: Update Bindings (from ${{ needs.prepare.outputs.branch }})'
-        base: ${{ needs.prepare.outputs.branch }}
+        title: 'chore: Update Bindings (from ${{ github.ref_name }})'
+        base: ${{ github.ref_name }}
         body: |
           Automated update of the binding bundles and CLI binaries.
 

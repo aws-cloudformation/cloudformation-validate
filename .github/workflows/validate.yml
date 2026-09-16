@@ -1,11 +1,15 @@
 name: Validate
 
+# Every job checks out `inputs.ref` when a caller supplies one (the release workflow pins its source commit),
+# otherwise the commit the run was triggered for (github.sha). A manual run therefore validates the branch it is
+# dispatched from ("Use workflow from" / `gh workflow run validate.yml --ref <branch>`), so the code that runs is
+# always the code of the branch whose cache scope and permissions the run has.
 on:
   workflow_call:
     inputs:
       ref:
-        description: 'Git ref to check out'
-        required: true
+        description: 'Commit to validate; defaults to the commit the calling run was triggered for'
+        required: false
         type: string
       fail-fast:
         description: 'Cancel remaining matrix jobs as soon as one fails'
@@ -20,10 +24,6 @@ on:
 
   workflow_dispatch:
     inputs:
-      ref:
-        description: 'Git ref to check out'
-        required: true
-        type: string
       fail-fast:
         description: 'Cancel remaining matrix jobs as soon as one fails'
         required: false
@@ -50,7 +50,7 @@ jobs:
     - if: ${{ !inputs.release-run && github.event_name == 'push' }}
       uses: actions/checkout@v6
       with:
-        ref: ${{ inputs.ref }}
+        ref: ${{ inputs.ref || github.sha }}
 
     - name: Detect changed release assets
       if: ${{ !inputs.release-run && (github.event_name == 'pull_request' || github.event_name == 'push') }}
@@ -72,7 +72,7 @@ jobs:
     steps:
     - uses: actions/checkout@v6
       with:
-        ref: ${{ inputs.ref }}
+        ref: ${{ inputs.ref || github.sha }}
 
     - name: Load build configs
       id: configs
@@ -95,7 +95,7 @@ jobs:
     steps:
     - uses: actions/checkout@v6
       with:
-        ref: ${{ inputs.ref }}
+        ref: ${{ inputs.ref || github.sha }}
 
     - name: Load build configs
       id: configs
@@ -119,7 +119,7 @@ jobs:
     steps:
     - uses: actions/checkout@v6
       with:
-        ref: ${{ inputs.ref }}
+        ref: ${{ inputs.ref || github.sha }}
 
     - name: Load build configs
       id: configs
@@ -156,7 +156,7 @@ jobs:
     steps:
     - uses: actions/checkout@v6
       with:
-        ref: ${{ inputs.ref }}
+        ref: ${{ inputs.ref || github.sha }}
 
     - name: Load build configs
       id: configs
@@ -196,7 +196,7 @@ jobs:
     permissions:
       contents: read
     with:
-      ref: ${{ inputs.ref }}
+      ref: ${{ inputs.ref || github.sha }}
 
   test-jvm:
     if: ${{ needs.release-assets.outputs.run_tests == 'true' }}
@@ -218,7 +218,7 @@ jobs:
     steps:
     - uses: actions/checkout@v6
       with:
-        ref: ${{ inputs.ref }}
+        ref: ${{ inputs.ref || github.sha }}
 
     - name: Load build configs
       id: configs
@@ -267,7 +267,7 @@ jobs:
     steps:
     - uses: actions/checkout@v6
       with:
-        ref: ${{ inputs.ref }}
+        ref: ${{ inputs.ref || github.sha }}
 
     - name: Load build configs
       id: configs
@@ -282,6 +282,7 @@ jobs:
       uses: actions/setup-node@v6
       with:
         node-version: ${{ steps.configs.outputs.node-version }}
+        package-manager-cache: false
 
     - name: Install wasm-pack ${{ steps.configs.outputs.wasm-pack-version }}
       uses: taiki-e/install-action@v2.86.7
@@ -314,7 +315,7 @@ jobs:
     steps:
     - uses: actions/checkout@v6
       with:
-        ref: ${{ inputs.ref }}
+        ref: ${{ inputs.ref || github.sha }}
 
     - name: Load build configs
       id: configs
@@ -356,7 +357,7 @@ jobs:
     steps:
     - uses: actions/checkout@v6
       with:
-        ref: ${{ inputs.ref }}
+        ref: ${{ inputs.ref || github.sha }}
 
     - name: Load build configs
       id: configs
@@ -371,6 +372,7 @@ jobs:
       uses: actions/setup-go@v6
       with:
         go-version: ${{ steps.configs.outputs.go-version }}
+        cache: false
 
     - name: Log tool versions
       uses: ./.github/actions/print-build-versions

@@ -64,6 +64,7 @@ jobs:
         uses: actions/setup-go@v6
         with:
           go-version: ${{ steps.configs.outputs.go-version }}
+          cache: false
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4

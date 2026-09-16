@@ -19,5 +19,4 @@ jobs:
       contents: read
       pull-requests: read
     with:
-      ref: ${{ github.sha }}
       release-run: false
