@@ -234,8 +234,8 @@ type CompositeEngineConfig struct {
 	// CelRules are custom CEL rules evaluated by the built-in CEL engine, layered
 	// on top of the built-in rules.
 	CelRules []ExternalRuleSource `json:"celRules,omitempty"`
-	// GuardRules are Guard DSL rules, translated and evaluated by the external
-	// engine, layered on top of the built-in rules.
+	// GuardRules are Guard DSL rules evaluated by the built-in engine, layered on
+	// top of the built-in rules.
 	GuardRules []ExternalRuleSource `json:"guardRules,omitempty"`
 	// SchemaValidatorConfig optionally configures the validator shared by both the
 	// built-in and external evaluation, so both observe the same additional schemas.

@@ -16,9 +16,7 @@ path = "src/lib.rs"
 
 [dependencies]
 guard-lang = { package = "cloudformation-guard-lang", version = "=1.0.0" }
-serde = { version = "1", features = ["derive"] }
-indexmap = "2"
-rules = { workspace = true }
+serde_json = "1"
 
 [lints]
 workspace = true

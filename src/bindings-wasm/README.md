@@ -59,7 +59,7 @@ Passed to the constructor. All fields are optional; omitted rule arrays are empt
 ```typescript
 interface EngineConfig {
     customRules?: RuleSource[];                       // engine-native rules (Rego for RegoEngine, CEL for CelEngine)
-    guardRules?: RuleSource[];                        // CloudFormation Guard DSL rules - translated internally
+    guardRules?: RuleSource[];                        // CloudFormation Guard DSL rules - evaluated by the built-in engine
     schemaValidatorConfig?: SchemaValidatorConfig;   // schema validation and overlay configuration
 }
 

@@ -19,14 +19,14 @@ src/
 │                               # severity, category, descriptions), filter, category/severity enums
 │                               # (depends on template-model)
 ├── schema-validator/           # Compiled JSON Schema validation against provider schemas
-├── rego-engine/                # Rego evaluation via Regorus + custom builtins + Guard→Rego translation;
+├── rego-engine/                # Rego evaluation via Regorus + custom builtins;
 │   └── handwritten/rego/       # hand-written policies embedded by rego-engine/build.rs
-├── cel-engine/                 # Native Rust rules + CEL interpreter + Guard→CEL translation
+├── cel-engine/                 # Native Rust rules + CEL interpreter for custom rules
 │   └── src/rules/              # Native rules: structure, intrinsics, references, conditions,
 │                               # resources, resources_extra, best_practices, patterns
-├── composite-engine/           # CompositeEngine (default --engine selector) — CEL evaluates the built-in rules;
-│                               # an external-only Rego engine (custom Rego + translated Guard) layers on top,
-│                               # built only when external rules are supplied
+├── composite-engine/           # CompositeEngine (default --engine selector) — CEL evaluates the built-in rules
+│                               # plus custom CEL and Guard rules; an external-only Rego engine (custom Rego)
+│                               # layers on top, built only when Rego rules are supplied
 ├── data-source/                # BUILD-TIME — downloads schemas, syncs cfn-lint data, generates
 │   ├── src/                    # schema-validator artifacts and CEL rules; build.rs embeds generated
 │   │                           # and hand-maintained shared data into the binary (zstd)
@@ -35,7 +35,9 @@ src/
 │   │                           # sensitive ports, GetAtt return-type overrides, schema-dependent
 │   │                           # exclusion overrides)
 │   └── upstream/               # Upstream schema sources (provider schemas, extensions)
-├── guard-translator/           # Guard DSL → engine-agnostic IR
+├── guard-translator/           # Guard DSL evaluation via the Guard evaluator (cloudformation-guard-lang) against the
+│                               # authored template; produces engine-agnostic findings that validation-engine maps to
+│                               # diagnostics through one GuardRuleSet every engine calls
 ├── bindings-wasm/              # WASM bindings (wasm-bindgen) for Node.js embedding
 │   ├── ts/                     # TypeScript wrapper + type definitions
 │   ├── tests/                  # Node test suite (vitest, run.sh)
@@ -126,9 +128,13 @@ src/
   because the other engine misses it. A finding may be removed only when first-principles evidence proves that it is a
   false positive, with focused regression coverage for the corrected behavior.
 - `rego-engine` and `cel-engine` are the two independent built-in implementations; `composite-engine` is not a third.
-  The default `--engine composite` selector evaluates the built-in rules with CEL and layers an optional external-only
-  Rego engine (custom Rego + translated Guard) on top, so `rego`, `cel`, and `composite` all agree when no custom rules
-  are supplied. Diagnose and fix a built-in-rule mismatch in the Rego or CEL implementation, never by editing composite.
+  The default `--engine composite` selector evaluates the built-in rules with CEL (plus custom CEL and Guard rules) and
+  layers an optional external-only Rego engine (custom Rego) on top, so `rego`, `cel`, and `composite` all agree when
+  no custom rules are supplied. Diagnose and fix a built-in-rule mismatch in the Rego or CEL implementation, never by
+  editing composite.
+- Guard rules are never translated into an engine's language. Every engine evaluates them through the one
+  `GuardRuleSet` in `validation-engine`, which runs the Guard evaluator against the authored template, so Guard findings
+  are identical across engines by construction and match `cfn-guard validate`.
 
 ### Diagnostics
 

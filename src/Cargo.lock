@@ -606,7 +606,6 @@ dependencies = [
  "cel-interpreter",
  "cloudformation-validate-data-source",
  "cloudformation-validate-diagnostics",
- "cloudformation-validate-guard-translator",
  "cloudformation-validate-rules",
  "cloudformation-validate-schema-validator",
  "cloudformation-validate-template-model",
@@ -675,9 +674,7 @@ name = "cloudformation-validate-guard-translator"
 version = "1.10.0"
 dependencies = [
  "cloudformation-guard-lang",
- "cloudformation-validate-rules",
- "indexmap 2.14.0",
- "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -687,7 +684,6 @@ dependencies = [
  "anyhow",
  "cloudformation-validate-data-source",
  "cloudformation-validate-diagnostics",
- "cloudformation-validate-guard-translator",
  "cloudformation-validate-rules",
  "cloudformation-validate-schema-validator",
  "cloudformation-validate-template-model",

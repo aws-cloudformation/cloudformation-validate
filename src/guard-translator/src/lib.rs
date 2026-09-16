@@ -1,143 +1,265 @@
-//! Parses Guard DSL files into an engine-agnostic IR.
+//! Guard DSL support shared by every rule engine.
 //!
-//! Engine-specific translation (IR → Rego, IR → CEL) lives in each engine crate.
+//! A Guard rule file is parsed once when it is loaded and evaluated by the
+//! CloudFormation Guard evaluator itself (`cloudformation-guard-lang`) against the
+//! template as the author wrote it. Every engine therefore reports exactly the
+//! checks `cfn-guard validate` reports, and none of them re-implements Guard
+//! semantics. This crate turns the evaluator's report into engine-agnostic
+//! [`GuardFinding`]s; the validation pipeline maps those onto diagnostics.
 
-pub mod ir;
-pub(crate) mod lower;
-
+use guard_lang::Status;
+use guard_lang::UnResolved;
+use guard_lang::eval::eval_rules_file;
+use guard_lang::eval_context::{
+    BinaryCheck, ClauseReport, GuardClauseReport, Messages, UnaryCheck, root_scope, simplified_json_from_root,
+};
+use guard_lang::exprs::{Block, GuardClause, Rule, RuleClause, RulesFile};
+use guard_lang::parser::{Span, rules_file};
+use guard_lang::path_value::{Path as GuardPath, PathAwareValue};
 use std::fs;
 use std::path::Path;
+use std::rc::Rc;
 
-use ir::{BlockIR, ConjunctionsIR, GuardClauseIR, GuardFile, RuleClauseIR, WhenClauseIR};
-
-pub fn parse_guard(source: &str, file_name: &str) -> Result<GuardFile, String> {
-    let span = guard_lang::parser::Span::new_extra(source, file_name);
-    match guard_lang::parser::rules_file(span) {
-        Ok(Some(rules_file)) => Ok(lower::lower_rules_file(&rules_file)),
-        Ok(None) => Ok(GuardFile { assignments: Vec::new(), rules: Vec::new(), parameterized_rules: Vec::new() }),
-        Err(e) => Err(format!("Failed to parse Guard file '{}': {}", file_name, e)),
-    }
+/// A Guard rule declared in a rule file, with the metadata the rule listing shows.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct GuardRuleInfo {
+    pub name: String,
+    /// The first `<<message>>` the rule carries, which is the best available
+    /// one-line description of what the rule checks.
+    pub custom_message: Option<String>,
 }
 
-/// Rejects a Guard file that uses a construct with no faithful translation, so it
-/// fails fast at load time instead of being silently mistranslated or crashing a
-/// downstream expression parser.
+/// One failed Guard check, located by the template path the evaluator reached.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct GuardFinding {
+    /// The top-level rule the failed check belongs to.
+    pub rule_name: String,
+    /// Slash-separated path from the template root to the value the check was
+    /// evaluated against (`Resources/Bucket/Properties/BucketName`), or to the
+    /// deepest value that exists when the checked property is missing. `None`
+    /// when the failure has no template location, such as a failed dependency
+    /// on another rule.
+    pub path: Option<String>,
+    /// The remainder of the query the evaluator could not resolve from `path`,
+    /// present exactly when the check failed because a property is missing.
+    pub missing_query: Option<String>,
+    /// The author's `<<message>>` for the failed check, when one was written.
+    pub custom_message: Option<String>,
+    /// The failed check as the evaluator describes it, whitespace-normalized
+    /// (`Properties.BucketName EQUALS "foo"`).
+    pub check: String,
+}
+
+/// A parsed Guard rule file, ready to be evaluated against any template.
 ///
-/// Each Guard rule is translated to a self-contained expression evaluated once per
-/// resource, with no shared namespace holding other rules' results. Cross-rule
-/// references (one rule invoking another by name, or a parameterized rule that
-/// exists only to be called) therefore have nothing to resolve to and cannot be
-/// translated. Such a file is refused with a message naming the rule and the remedy
-/// (inline the referenced checks).
-pub fn ensure_translatable(file: &GuardFile) -> Result<(), String> {
-    if let Some(parameterized) = file.parameterized_rules.first() {
-        return Err(format!(
-            "Guard rule '{}' is a parameterized rule, which is not supported: a parameterized rule \
-             is defined only to be called by other rules, and rules are translated as self-contained \
-             per-resource checks that cannot invoke one another. Inline its checks into the calling rule.",
-            parameterized.rule.name
-        ));
-    }
-    for rule in &file.rules {
-        if let Some(conditions) = &rule.conditions {
-            ensure_when_conditions_translatable(&rule.name, conditions)?;
-        }
-        ensure_rule_block_translatable(&rule.name, &rule.block)?;
-    }
-    Ok(())
+/// The Guard parser borrows from the source text, so the file keeps the text
+/// and re-parses it per evaluation; a syntax error is still caught once, here,
+/// at load time.
+#[derive(Debug, Clone)]
+pub struct GuardRuleFile {
+    name: String,
+    pack: String,
+    source: String,
+    rules: Vec<GuardRuleInfo>,
 }
 
-fn ensure_rule_block_translatable(rule_name: &str, block: &BlockIR<RuleClauseIR>) -> Result<(), String> {
-    for clause in block.conjunctions.iter().flatten() {
-        match clause {
-            RuleClauseIR::Guard(clause) => ensure_guard_clause_translatable(rule_name, clause)?,
-            RuleClauseIR::WhenBlock(conditions, body) => {
-                ensure_when_conditions_translatable(rule_name, conditions)?;
-                ensure_guard_block_translatable(rule_name, body)?;
-            }
-            RuleClauseIR::TypeBlock(type_block) => {
-                if let Some(conditions) = &type_block.conditions {
-                    ensure_when_conditions_translatable(rule_name, conditions)?;
+impl GuardRuleFile {
+    /// Parses `source`, reporting a syntax error with the file name, and records
+    /// each declared rule's name and first custom message.
+    pub fn parse(name: impl Into<String>, source: impl Into<String>) -> Result<Self, String> {
+        let name = name.into();
+        let source = source.into();
+        let rules = match parse_rules(&source, &name)? {
+            Some(rules_file) => rules_file
+                .guard_rules
+                .iter()
+                .map(|rule| GuardRuleInfo { name: rule.rule_name.clone(), custom_message: first_custom_message(rule) })
+                .collect(),
+            None => Vec::new(),
+        };
+        let pack = pack_name_from_path(&name);
+        Ok(Self { name, pack, source, rules })
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// The pack the file's rules belong to, derived from the file name.
+    pub fn pack(&self) -> &str {
+        &self.pack
+    }
+
+    pub fn rules(&self) -> &[GuardRuleInfo] {
+        &self.rules
+    }
+
+    /// Evaluates every rule in the file against `template`, the authored template
+    /// as CloudFormation JSON, and returns one finding per failed check. Rules that
+    /// pass or are skipped by their `when` conditions produce nothing.
+    pub fn evaluate(&self, template: &serde_json::Value) -> Result<Vec<GuardFinding>, String> {
+        let Some(rules_file) = parse_rules(&self.source, &self.name)? else {
+            return Ok(Vec::new());
+        };
+        let root = PathAwareValue::try_from((template, GuardPath::root()))
+            .map_err(|error| format!("Failed to load the template for Guard file '{}': {}", self.name, error))?;
+        let mut scope = root_scope(&rules_file, Rc::new(root));
+        let status = eval_rules_file(&rules_file, &mut scope, Some(&self.name))
+            .map_err(|error| format!("Guard file '{}' failed to evaluate: {}", self.name, error))?;
+        if status != Status::FAIL {
+            return Ok(Vec::new());
+        }
+        let mut recorder = scope.reset_recorder();
+        let record = recorder
+            .final_event
+            .take()
+            .ok_or_else(|| format!("Guard file '{}' produced no evaluation record", self.name))?;
+        let report = simplified_json_from_root(&record).map_err(|error| {
+            format!("Guard file '{}' produced an unreadable evaluation record: {}", self.name, error)
+        })?;
+
+        let mut findings = Vec::new();
+        for failed_rule in &report.not_compliant {
+            if let ClauseReport::Rule(rule) = failed_rule {
+                for check in &rule.checks {
+                    collect_findings(check, rule.name, &mut findings);
                 }
-                ensure_guard_block_translatable(rule_name, &type_block.block)?;
             }
         }
+        Ok(findings)
     }
-    Ok(())
 }
 
-fn ensure_guard_block_translatable(rule_name: &str, block: &BlockIR<GuardClauseIR>) -> Result<(), String> {
-    for clause in block.conjunctions.iter().flatten() {
-        ensure_guard_clause_translatable(rule_name, clause)?;
-    }
-    Ok(())
+fn parse_rules<'source>(source: &'source str, name: &'source str) -> Result<Option<RulesFile<'source>>, String> {
+    rules_file(Span::new_extra(source, name))
+        .map_err(|error| format!("Failed to parse Guard file '{}': {}", name, error))
 }
 
-fn ensure_guard_clause_translatable(rule_name: &str, clause: &GuardClauseIR) -> Result<(), String> {
+fn first_custom_message(rule: &Rule<'_>) -> Option<String> {
+    rule.block.conjunctions.iter().flatten().find_map(|clause| match clause {
+        RuleClause::Clause(guard_clause) => guard_clause_custom_message(guard_clause),
+        RuleClause::WhenBlock(_, block) => block_custom_message(block),
+        RuleClause::TypeBlock(type_block) => block_custom_message(&type_block.block),
+    })
+}
+
+fn block_custom_message(block: &Block<'_, GuardClause<'_>>) -> Option<String> {
+    block.conjunctions.iter().flatten().find_map(guard_clause_custom_message)
+}
+
+fn guard_clause_custom_message(clause: &GuardClause<'_>) -> Option<String> {
     match clause {
-        GuardClauseIR::Access(_) => Ok(()),
-        GuardClauseIR::NamedRule(reference) => Err(cross_rule_reference_error(rule_name, &reference.rule_name)),
-        GuardClauseIR::ParameterizedNamedRule(reference) => {
-            Err(cross_rule_reference_error(rule_name, &reference.rule_name))
-        }
-        GuardClauseIR::Block(block) => ensure_guard_block_translatable(rule_name, &block.block),
-        GuardClauseIR::WhenBlock(conditions, body) => {
-            ensure_when_conditions_translatable(rule_name, conditions)?;
-            ensure_guard_block_translatable(rule_name, body)
-        }
+        GuardClause::Clause(access) => access.access_clause.custom_message.clone(),
+        GuardClause::NamedRule(named) => named.custom_message.clone(),
+        GuardClause::ParameterizedNamedRule(parameterized) => parameterized.named_rule.custom_message.clone(),
+        GuardClause::BlockClause(block) => block_custom_message(&block.block),
+        GuardClause::WhenBlock(_, block) => block_custom_message(block),
     }
 }
 
-fn ensure_when_conditions_translatable(
-    rule_name: &str,
-    conditions: &ConjunctionsIR<WhenClauseIR>,
-) -> Result<(), String> {
-    for condition in conditions.iter().flatten() {
-        match condition {
-            WhenClauseIR::Access(_) => {}
-            WhenClauseIR::NamedRule(reference) => {
-                return Err(cross_rule_reference_error(rule_name, &reference.rule_name));
-            }
-            WhenClauseIR::ParameterizedNamedRule(reference) => {
-                return Err(cross_rule_reference_error(rule_name, &reference.rule_name));
+/// Flattens the evaluator's report tree for one rule into findings. A group of
+/// alternatives (`A OR B`) fails as a whole, so it yields a single finding that
+/// names every alternative and is located at the first alternative that has a
+/// location; nested rule reports are attributed to the top-level rule that
+/// invoked them.
+fn collect_findings(report: &ClauseReport<'_>, rule_name: &str, findings: &mut Vec<GuardFinding>) {
+    match report {
+        ClauseReport::Rule(nested) => {
+            for check in &nested.checks {
+                collect_findings(check, rule_name, findings);
             }
         }
-    }
-    Ok(())
-}
-
-fn cross_rule_reference_error(rule_name: &str, referenced_rule: &str) -> String {
-    format!(
-        "Guard rule '{rule_name}' references another rule ('{referenced_rule}'), which is not supported: \
-         each rule is translated to a self-contained per-resource check with no access to another rule's \
-         result, so the reference has nothing to resolve to. Inline the checks from '{referenced_rule}' \
-         into '{rule_name}' instead."
-    )
-}
-
-/// Load all `.guard` files from a single directory (non-recursive).
-pub fn load_pack_directory(dir: &str) -> Result<Vec<(String, String)>, String> {
-    let path = Path::new(dir);
-    if !path.is_dir() {
-        return Err(format!("Guard rule pack directory not found: {}", dir));
-    }
-    let mut sources = Vec::new();
-    let entries = fs::read_dir(path).map_err(|e| format!("Failed to read pack directory '{}': {}", dir, e))?;
-    for entry in entries {
-        let entry = entry.map_err(|e| format!("Failed to read entry in '{}': {}", dir, e))?;
-        let file_path = entry.path();
-        if file_path.extension().and_then(|e| e.to_str()) == Some("guard") {
-            let path_str = file_path.display().to_string();
-            let content =
-                fs::read_to_string(&file_path).map_err(|e| format!("Failed to read '{}': {}", path_str, e))?;
-            sources.push((path_str, content));
+        ClauseReport::Disjunctions(alternatives) => {
+            let mut alternative_findings = Vec::new();
+            for alternative in &alternatives.checks {
+                collect_findings(alternative, rule_name, &mut alternative_findings);
+            }
+            if let Some(merged) = merge_alternatives(alternative_findings) {
+                findings.push(merged);
+            }
+        }
+        ClauseReport::Block(block) => {
+            let (path, missing_query) = match &block.unresolved {
+                Some(unresolved) => unresolved_location(unresolved),
+                None => (None, None),
+            };
+            let check = match &block.unresolved {
+                Some(unresolved) => unresolved.remaining_query.clone(),
+                None => normalize_whitespace(&block.context),
+            };
+            findings.push(GuardFinding {
+                rule_name: rule_name.to_string(),
+                path,
+                missing_query,
+                custom_message: custom_message(&block.messages),
+                check,
+            });
+        }
+        ClauseReport::Clause(GuardClauseReport::Unary(unary)) => {
+            let (path, missing_query) = match &unary.check {
+                UnaryCheck::Resolved(comparison) => (Some(template_path(&comparison.value)), None),
+                UnaryCheck::UnResolved(unresolved) => unresolved_location(&unresolved.value),
+                UnaryCheck::UnResolvedContext(_) => (None, None),
+            };
+            findings.push(GuardFinding {
+                rule_name: rule_name.to_string(),
+                path,
+                missing_query,
+                custom_message: custom_message(&unary.messages),
+                check: normalize_whitespace(&unary.context),
+            });
+        }
+        ClauseReport::Clause(GuardClauseReport::Binary(binary)) => {
+            let (path, missing_query) = match &binary.check {
+                BinaryCheck::Resolved(comparison) => (Some(template_path(&comparison.from)), None),
+                BinaryCheck::InResolved(comparison) => (Some(template_path(&comparison.from)), None),
+                BinaryCheck::UnResolved(unresolved) => unresolved_location(&unresolved.value),
+            };
+            findings.push(GuardFinding {
+                rule_name: rule_name.to_string(),
+                path,
+                missing_query,
+                custom_message: custom_message(&binary.messages),
+                check: normalize_whitespace(&binary.context),
+            });
         }
     }
-    if sources.is_empty() {
-        return Err(format!("No .guard files found in pack directory: {}", dir));
+}
+
+fn merge_alternatives(alternatives: Vec<GuardFinding>) -> Option<GuardFinding> {
+    let mut alternatives = alternatives.into_iter();
+    let mut merged = alternatives.next()?;
+    for alternative in alternatives {
+        if merged.path.is_none() {
+            merged.path = alternative.path;
+            merged.missing_query = alternative.missing_query;
+        }
+        if merged.custom_message.is_none() {
+            merged.custom_message = alternative.custom_message;
+        }
+        merged.check.push_str(" OR ");
+        merged.check.push_str(&alternative.check);
     }
-    sources.sort_by(|a, b| a.0.cmp(&b.0));
-    Ok(sources)
+    Some(merged)
+}
+
+fn unresolved_location(unresolved: &UnResolved) -> (Option<String>, Option<String>) {
+    (Some(template_path(&unresolved.traversed_to)), Some(unresolved.remaining_query.clone()))
+}
+
+/// The evaluator addresses values with a leading slash (`/Resources/Bucket`); the
+/// template root is the empty path.
+fn template_path(value: &PathAwareValue) -> String {
+    value.self_path().0.trim_start_matches('/').to_string()
+}
+
+/// The evaluator records an empty custom message when the author wrote none.
+fn custom_message(messages: &Messages) -> Option<String> {
+    messages.custom_message.as_deref().map(str::trim).filter(|message| !message.is_empty()).map(str::to_string)
+}
+
+fn normalize_whitespace(text: &str) -> String {
+    text.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
 /// Load all `.guard` files from a directory tree (recursive).
@@ -178,94 +300,4 @@ fn collect_guard_files_recursive(dir: &Path, out: &mut Vec<(String, String)>) ->
 pub fn pack_name_from_path(path: &str) -> String {
     let stem = path.rsplit('/').next().unwrap_or(path).trim_end_matches(".guard").trim_end_matches(".ruleset");
     stem.chars().map(|c| if c.is_alphanumeric() || c == '_' { c } else { '_' }).collect()
-}
-
-#[cfg(test)]
-mod translatable_tests {
-    use super::*;
-
-    #[test]
-    fn plain_type_block_rule_is_translatable() {
-        let file = parse_guard(
-            r#"
-rule check_bucket {
-    AWS::S3::Bucket {
-        Properties.BucketName EXISTS
-        <<BucketName required>>
-    }
-}
-"#,
-            "t.guard",
-        )
-        .unwrap();
-        ensure_translatable(&file).expect("a self-contained type-block rule must be translatable");
-    }
-
-    #[test]
-    fn named_rule_reference_in_body_is_rejected() {
-        let file = parse_guard(
-            r#"
-rule base_check {
-    AWS::S3::Bucket {
-        Properties.BucketName EXISTS
-    }
-}
-rule dependent_check {
-    base_check
-    AWS::S3::Bucket {
-        Properties.VersioningConfiguration EXISTS
-    }
-}
-"#,
-            "t.guard",
-        )
-        .unwrap();
-        let err = ensure_translatable(&file).expect_err("a rule that references another rule must be rejected");
-        assert!(err.contains("dependent_check"), "error should name the referencing rule, got: {err}");
-        assert!(err.contains("base_check"), "error should name the referenced rule, got: {err}");
-    }
-
-    #[test]
-    fn named_rule_reference_in_when_condition_is_rejected() {
-        // `when base_check` is a cross-rule reference in the rule's guard condition.
-        let file = parse_guard(
-            r#"
-rule base_check {
-    AWS::S3::Bucket {
-        Properties.BucketName EXISTS
-    }
-}
-rule derived when base_check {
-    AWS::S3::Bucket {
-        Properties.Tags EXISTS
-    }
-}
-"#,
-            "t.guard",
-        )
-        .unwrap();
-        let err = ensure_translatable(&file).expect_err("a when-condition rule reference must be rejected");
-        assert!(err.contains("base_check"), "error should name the referenced rule, got: {err}");
-    }
-
-    #[test]
-    fn parameterized_rule_is_rejected() {
-        let file = parse_guard(
-            r#"
-rule check_type(expected) {
-    Properties.Type == %expected
-}
-"#,
-            "t.guard",
-        )
-        .unwrap();
-        let err = ensure_translatable(&file).expect_err("a parameterized rule must be rejected");
-        assert!(err.contains("check_type"), "error should name the parameterized rule, got: {err}");
-    }
-
-    #[test]
-    fn empty_file_is_translatable() {
-        let file = parse_guard("", "empty.guard").unwrap();
-        ensure_translatable(&file).expect("an empty guard file has nothing untranslatable");
-    }
 }

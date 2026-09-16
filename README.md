@@ -36,9 +36,9 @@ JVM library (Kotlin/Java) - all backed by the same validation core.
   resource path, and an optional suggested fix - designed for IDEs, CI, and agents, not just humans.
 - **Standalone engines.** The [Rego](https://www.openpolicyagent.org/docs/latest/policy-language/) and
   [CEL](https://cel.dev/) engines independently evaluate the same built-in rule set and produce identical results.
-- **Composite engine (default).** CEL evaluates every built-in rule while a separate external-only Rego engine
-  evaluates your custom Rego and translated Guard rules, layered on top. It is additive - with no custom rules it
-  produces the same diagnostics as the standalone Rego and CEL engines - and it is the default engine. Select a
+- **Composite engine (default).** CEL evaluates every built-in rule plus your custom CEL and Guard rules, while a
+  separate external-only Rego engine evaluates your custom Rego rules, layered on top. It is additive - with no custom
+  rules it produces the same diagnostics as the standalone Rego and CEL engines - and it is the default engine. Select a
   standalone engine with `--engine rego`/`--engine cel`, or build `RegoEngine`/`CelEngine` directly when embedding.
 - **Additional schemas.** Merge your own CloudFormation resource provider schemas on top of the bundled ones, so
   templates using properties or values CloudFormation has not published yet validate cleanly
@@ -146,9 +146,9 @@ for d in &report.diagnostics {
 ```
 
 The `RegoEngine` and `CelEngine` are interchangeable. For an additive setup, `CompositeEngine` evaluates the built-in
-rules with CEL and layers your own custom rules on top through its own `CompositeEngineConfig`: custom CEL rules run in
-the CEL engine that owns the built-ins, while custom Rego and translated Guard rules run in a separate external-only
-Rego engine that is built only when such rules are supplied:
+rules with CEL and layers your own custom rules on top through its own `CompositeEngineConfig`: custom CEL rules and
+Guard rules run in the CEL engine that owns the built-ins, while custom Rego rules run in a separate external-only Rego
+engine that is built only when Rego rules are supplied:
 
 ```rust
 use cloudformation_validate::{CompositeEngine, CompositeEngineConfig, ExternalRuleSource};
@@ -227,9 +227,9 @@ Bring your own rules in any of three formats - all loadable from the CLI and the
 
 - **CEL** (`.json`) - property and data-driven checks, evaluated by the CEL engine.
 - **Rego** (`.rego`) - complex cross-resource logic, evaluated by the Rego engine.
-- **Guard DSL** (`.guard`) - declarative compliance rules. A supported subset of the Guard language is translated
-  automatically and runs with either engine or the composite engine; unsupported constructs are rejected at load time
-  rather than silently ignored.
+- **Guard DSL** (`.guard`) - declarative compliance rules. Rules are evaluated by the CloudFormation Guard evaluator
+  itself against the template as written, so every engine reports exactly what `cfn-guard validate` reports; a file
+  that does not parse is rejected at load time.
 
 See [RULES](src/rules/README.md) and [CUSTOM_RULES.md](src/CUSTOM_RULES.md) for the formats, available context, and
 examples.
@@ -248,8 +248,8 @@ This is a Cargo workspace. The main crates:
 | [schema-validator](src/schema-validator/README.md)   | JSON Schema validation against compiled CloudFormation provider schemas                                                       |
 | [rego-engine](src/rego-engine/README.md)             | Rego-based rule evaluation with custom builtins                                                                               |
 | [cel-engine](src/cel-engine/README.md)               | Native Rust rules plus a CEL interpreter for custom rules                                                                     |
-| [composite-engine](src/composite-engine/README.md)   | `CompositeEngine` - CEL evaluates the built-in rules; an optional external-only Rego engine evaluates custom Rego and Guard   |
-| [guard-translator](src/guard-translator/README.md)   | Parses Guard DSL into an engine-agnostic intermediate representation                                                          |
+| [composite-engine](src/composite-engine/README.md)   | `CompositeEngine` - CEL evaluates the built-in, custom CEL, and Guard rules; an optional external-only Rego engine evaluates custom Rego |
+| [guard-translator](src/guard-translator/README.md)   | Evaluates Guard DSL with the Guard evaluator against the authored template and maps its report to findings                    |
 | [data-source](src/data-source/README.md)             | Build-time pipeline: downloads and processes CloudFormation schemas, generates the validation artifacts baked into the binary |
 
 ## Security

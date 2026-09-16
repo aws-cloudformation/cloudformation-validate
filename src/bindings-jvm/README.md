@@ -87,7 +87,7 @@ val engine = CelEngine(EngineConfig(guardRules = listOf(myRule)))  // with Guard
 | Field                   | Default       | Description                                                                          |
 |-------------------------|---------------|--------------------------------------------------------------------------------------|
 | `customRules`           | `emptyList()` | Engine-native rules (Rego for `RegoEngine`, CEL for `CelEngine`)                     |
-| `guardRules`            | `emptyList()` | CloudFormation Guard DSL rules - translated internally by each engine                |
+| `guardRules`            | `emptyList()` | CloudFormation Guard DSL rules - evaluated identically by every engine               |
 | `schemaValidatorConfig` | `null`        | Optional `SchemaValidatorConfig` with additional schemas merged over bundled schemas |
 
 Load an additional schema with `fileToAdditionalSchemaSource(file, typeName = null)`, or construct an

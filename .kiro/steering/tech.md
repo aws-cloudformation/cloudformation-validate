@@ -87,8 +87,10 @@ A mismatch must be investigated; it does not by itself prove which implementatio
   comparison as compatibility evidence: cfn-lint can be incorrect, so never copy its behavior solely to make a
   comparison pass. An intentional divergence requires stronger CloudFormation evidence and focused regression coverage
   for both accepted and rejected cases (messages may be more descriptive — see `product.md`).
-- **cloudformation-guard** (Guard DSL): `cfn-guard validate -d <template> -r <rules.guard>` — `guard-translator`
-  output must match Guard's evaluation.
+- **cloudformation-guard** (Guard DSL): `cfn-guard validate -d <template> -r <rules.guard>` — Guard findings must
+  match Guard's evaluation. `guard-translator` runs the Guard evaluator (`cloudformation-guard-lang`) against the
+  authored template, so a mismatch points at the authored-template rendering in `template-model` or the finding-to-
+  diagnostic mapping in `validation-engine`, never at an engine.
 
 Fatal rules are validated against the compiled CloudFormation resource schemas — they must reflect what
 CloudFormation itself rejects, not the behavior of any external linter.
@@ -110,8 +112,9 @@ cargo run -p cfn-validate -- --list-rules
 ```
 
 Run all three selectors (`rego`, `cel`, `composite`) and verify their outputs agree. `composite` (the default) reuses
-the CEL built-ins and layers an external-only Rego engine for custom/Guard rules, so it is not a third built-in
-implementation — diagnose any built-in-rule mismatch in the Rego or CEL implementation and fix it there.
+the CEL built-ins (which also host custom CEL and Guard rules) and layers an external-only Rego engine for custom Rego
+rules, so it is not a third built-in implementation — diagnose any built-in-rule mismatch in the Rego or CEL
+implementation and fix it there.
 
 ### Python scripts in `scripts/`
 
@@ -165,7 +168,7 @@ unrelated changes such as documentation or workflow-only edits.
    is correct. Fatal rules are checked against the compiled schemas.
 5. Run `cfn-validate` with `--engine rego`, `--engine cel`, and `--engine composite` on the repro template. All three
    outputs must be identical on rule ID, severity, location, and message. `composite` reuses the CEL built-ins and
-   layers an external-only Rego engine for custom/Guard rules, so it is not a third built-in implementation — diagnose
+   layers an external-only Rego engine for custom Rego rules, so it is not a third built-in implementation — diagnose
    any built-in-rule mismatch in the Rego or CEL implementation.
 6. Run the full test corpus with all three engines. Zero new false positives on `templates/good/`. Regenerate the
    snapshot file if diagnostics legitimately changed.

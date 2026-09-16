@@ -1,9 +1,9 @@
 # Custom Rules Reference
 
 Custom rules can be written as CEL JSON, Rego, or CloudFormation Guard. CEL rules run in `CelEngine`, Rego rules
-run in `RegoEngine`, and Guard rules are translated for either engine. The composite engine accepts all three: it
-layers custom CEL rules on the built-in rules through the CEL engine that owns the built-ins, and layers custom Rego
-and translated Guard rules through a separate external-only Rego engine.
+run in `RegoEngine`, and Guard rules run in either engine through one shared Guard evaluator. The composite engine
+accepts all three: it layers custom CEL rules and Guard rules on the built-in rules through the CEL engine that owns
+the built-ins, and layers custom Rego rules through a separate external-only Rego engine.
 
 ## Rule IDs and Severity
 
@@ -402,48 +402,47 @@ violation contains v if {
 
 ## Guard DSL Rules
 
-[CloudFormation Guard](https://docs.aws.amazon.com/cfn-guard/latest/ug/what-is-guard.html) rules are translated
-internally and can run with either engine or the composite engine. The Guard rule name becomes the diagnostic ID. Guard
-names begin with an ASCII letter and continue with letters, digits, or `_`, which is within the custom-ID character set.
-Every Guard finding reports `ERROR`. Only the subset of the Guard language documented below is supported; unsupported
-constructs are rejected at load time rather than silently ignored or partially evaluated.
+[CloudFormation Guard](https://docs.aws.amazon.com/cfn-guard/latest/ug/what-is-guard.html) rules are evaluated by
+the Guard evaluator itself (the `cloudformation-guard-lang` crate that `cfn-guard` is built on), so every engine - Rego,
+CEL, or composite - reports exactly the checks `cfn-guard validate` reports for the same template and rules. The full
+Guard language is supported: type blocks, `when` conditions, `let` assignments and `%variable` queries, filters such
+as `Resources.*[ Type == 'AWS::S3::Bucket' ]`, `[*]` and `some` queries, block clauses, `OR` groups, regex literals,
+named-rule dependencies, parameterized rules, and Guard's built-in functions (`count`, `join`, `regex_replace`, ...).
+A file that does not parse is rejected when the engine is constructed, with the file name in the error.
 
-### Structure
+### What is evaluated
 
-```text
-rule <rule_name> [when <condition>] {
-    <ResourceType> [when <condition>] {
-        <property_check>
-        <<error message>>
-    }
-}
-```
+Guard rules run against the template as you wrote it, with every intrinsic function in its long form (`!Ref X` is
+`{"Ref": "X"}`, `!GetAtt A.B` is `{"Fn::GetAtt": ["A", "B"]}`), which is the view `cfn-guard` has. Intrinsic
+functions are therefore structs, exactly as in `cfn-guard`: `Properties.BucketName == "foo"` fails for
+`BucketName: !Ref Name`, `Properties.BucketName EXISTS` passes for it, and a rule can inspect the intrinsic
+(`Properties.KmsKeyId.Ref EXISTS`). Resolved parameter defaults, mappings, and conditions are not substituted.
 
-Access-check `when` conditions and nested `when` blocks are supported. Parameterized rule definitions and references
-to another named rule, including references inside `when`, are rejected at load time because translated rules must be
-self-contained; inline the referenced checks instead.
+### Findings
 
-### Operators
+Each failed check becomes one diagnostic:
 
-| Operator                                    | Meaning                      |
-|---------------------------------------------|------------------------------|
-| `==`, `!=`                                  | Equality and inequality      |
-| `>`, `>=`, `<`, `<=`                        | Numeric comparison           |
-| `IN`                                        | Value in list                |
-| `EXISTS`, `NOT EXISTS`                      | Property presence or absence |
-| `EMPTY`, `NOT EMPTY`                        | Empty or non-empty value     |
-| `IS_STRING`, `IS_LIST`, `IS_MAP`, `IS_BOOL` | Type checks                  |
-| `IS_INT`, `IS_FLOAT`, `IS_NULL`             | Numeric and null type checks |
-| `NOT`                                       | Negates a supported check    |
+- **Rule ID** - the Guard rule name. Guard names begin with an ASCII letter and continue with letters, digits, or
+  `_`, which is within the custom-ID character set.
+- **Severity** - always `ERROR`; the Guard language has no severity.
+- **Category** - `guard:<file stem>` (`policies/s3-checks.guard` gives `guard:s3_checks`), so a whole file can be
+  excluded with `--exclude-category`.
+- **Message** - the check's `<<custom message>>` when it has one; otherwise `Guard check `<clause>` failed`, with
+  `: property `<path>` is missing` appended when the check failed because the property was absent. An `OR` group
+  yields one diagnostic naming every alternative.
+- **Location** - the template value the check was evaluated against: a resource, the property path (`Properties.Tags.0.Key`),
+  or the deepest node that exists when the property is missing. A finding in another section (for example
+  `Parameters.*.Type == "String"`) is attributed to that parameter, and a failed named-rule dependency has no
+  template location.
 
 ### Example
 
 ```text
-rule s3_encryption {
-    AWS::S3::Bucket {
-        Properties.BucketEncryption EXISTS
-        <<S3 bucket must have encryption configured>>
-    }
+let buckets = Resources.*[ Type == 'AWS::S3::Bucket' ]
+
+rule s3_encryption when %buckets !empty {
+    %buckets.Properties.BucketEncryption EXISTS
+    <<S3 bucket must have encryption configured>>
 }
 
 rule s3_versioning {
@@ -452,7 +451,19 @@ rule s3_versioning {
         <<S3 bucket must have versioning enabled>>
     }
 }
+
+rule s3_tags_owned {
+    AWS::S3::Bucket {
+        Properties.Tags[*] {
+            Key == "Owner" OR Key == "Team"
+            <<Every tag key must be Owner or Team>>
+        }
+    }
+}
 ```
+
+`cfn-guard validate -d template.yaml -r rules.guard` reports the same failures for the same input, which makes it the
+reference when a Guard finding looks wrong.
 
 ---
 
@@ -462,9 +473,9 @@ rule s3_versioning {
 |----------------------------|---------------------------------------------|----------------------------------------------|-------------------------------|
 | **Best for**               | Property checks and data-driven predicates  | Complex resolution and cross-resource logic  | Declarative compliance checks |
 | **Engine**                 | `CelEngine` or composite                    | `RegoEngine` or composite                    | Either engine, or composite   |
-| **Template introspection** | Shared model variables plus CEL functions   | Shared model plus all 67 custom builtins     | Translated property checks    |
-| **Cross-resource checks**  | Via `resources`, `edges`, and other globals | Via `input`, graph builtins, and SAT helpers | No cross-rule references      |
+| **Template introspection** | Shared model variables plus CEL functions   | Shared model plus all 67 custom builtins     | The authored template, as `cfn-guard` sees it |
+| **Cross-resource checks**  | Via `resources`, `edges`, and other globals | Via `input`, graph builtins, and SAT helpers | Guard queries over `Resources.*` |
 
 The composite engine evaluates the built-in rules with CEL and layers custom rules from all three formats on top:
-custom CEL rules run in the same CEL engine that owns the built-ins, while custom Rego and translated Guard rules run
-in a separate external-only Rego engine, constructed only when such rules are supplied.
+custom CEL rules and Guard rules run in the same CEL engine that owns the built-ins, while custom Rego rules run in a
+separate external-only Rego engine, constructed only when Rego rules are supplied.
