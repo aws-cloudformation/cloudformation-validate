@@ -39,7 +39,7 @@ cargo build -p cfn-validate                   # CLI -> target/debug/cfn-validate
 # Core Rust tests - only when they cover the changed behavior
 cargo test -p cloudformation-validate-cel-engine <name>               # single crate / filtered test - preferred while iterating
 cargo test --workspace 2>&1 | tee ../tmp/test-output.txt   # broad core changes only; at most once at completion
-# CI runs coverage, not plain test: cargo llvm-cov --locked --release --workspace --no-fail-fast
+# CI runs coverage, not plain test: cargo llvm-cov --locked --profile ci --workspace --no-fail-fast
 
 # Required after every Rust source change
 cargo fmt --all

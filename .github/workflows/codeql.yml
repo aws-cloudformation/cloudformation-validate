@@ -16,12 +16,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  get-configs:
-    uses: ./.github/workflows/configs.yml
-
   analyze:
     name: Analyze (${{ matrix.language }})
-    needs: [ get-configs ]
     runs-on: ubuntu-latest
     permissions:
       security-events: write
@@ -50,20 +46,24 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      - name: Load build configs
+        id: configs
+        uses: ./.github/actions/load-configs
+
       - name: Setup JVM toolchain
         if: matrix.language == 'java-kotlin'
         uses: ./.github/actions/setup-jvm-toolchain
         with:
-          java-version: ${{ needs.get-configs.outputs.java-version }}
-          java-distribution: ${{ needs.get-configs.outputs.java-distribution }}
-          kotlin-version: ${{ needs.get-configs.outputs.kotlin-version }}
-          ktlint-version: ${{ needs.get-configs.outputs.ktlint-version }}
+          java-version: ${{ steps.configs.outputs.java-version }}
+          java-distribution: ${{ steps.configs.outputs.java-distribution }}
+          kotlin-version: ${{ steps.configs.outputs.kotlin-version }}
+          ktlint-version: ${{ steps.configs.outputs.ktlint-version }}
 
       - name: Setup Go
         if: matrix.language == 'go'
         uses: actions/setup-go@v6
         with:
-          go-version: ${{ needs.get-configs.outputs.go-version }}
+          go-version: ${{ steps.configs.outputs.go-version }}
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
@@ -76,8 +76,8 @@ jobs:
         if: matrix.language == 'java-kotlin'
         shell: bash
         env:
-          JNA_VERSION: ${{ needs.get-configs.outputs.jna-version }}
-          GSON_VERSION: ${{ needs.get-configs.outputs.gson-version }}
+          JNA_VERSION: ${{ steps.configs.outputs.jna-version }}
+          GSON_VERSION: ${{ steps.configs.outputs.gson-version }}
         run: |
           set -euo pipefail
           JAR="$GITHUB_WORKSPACE/src/bindings-jvm/generated/cloudformation-validate.jar"
@@ -98,7 +98,7 @@ jobs:
 
       - name: Compile Go bindings for CodeQL extraction
         if: matrix.language == 'go'
-        working-directory: ${{ needs.get-configs.outputs.working-dir }}/bindings-go/go
+        working-directory: ${{ env.WORKING_DIR }}/bindings-go/go
         run: go build ./...
 
       - name: Perform CodeQL Analysis

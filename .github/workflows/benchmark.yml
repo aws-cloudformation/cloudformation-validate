@@ -31,45 +31,43 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  get-configs:
-    uses: ./.github/workflows/configs.yml
-
   benchmark:
-    needs: [ get-configs ]
     runs-on: ubuntu-latest
-    env:
-      WORKING_DIR: ${{ needs.get-configs.outputs.working-dir }}
     steps:
     - uses: actions/checkout@v6
+
+    - name: Load build configs
+      id: configs
+      uses: ./.github/actions/load-configs
 
     - name: Setup JVM toolchain
       uses: ./.github/actions/setup-jvm-toolchain
       with:
-        java-version: ${{ needs.get-configs.outputs.java-version }}
-        java-distribution: ${{ needs.get-configs.outputs.java-distribution }}
-        kotlin-version: ${{ needs.get-configs.outputs.kotlin-version }}
-        ktlint-version: ${{ needs.get-configs.outputs.ktlint-version }}
-        gradle-version: ${{ needs.get-configs.outputs.gradle-version }}
+        java-version: ${{ steps.configs.outputs.java-version }}
+        java-distribution: ${{ steps.configs.outputs.java-distribution }}
+        kotlin-version: ${{ steps.configs.outputs.kotlin-version }}
+        ktlint-version: ${{ steps.configs.outputs.ktlint-version }}
+        gradle-version: ${{ steps.configs.outputs.gradle-version }}
 
-    - name: Install Rust ${{ needs.get-configs.outputs.rust-toolchain }}
+    - name: Install Rust ${{ steps.configs.outputs.rust-toolchain }}
       uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c
       with:
-        toolchain: ${{ needs.get-configs.outputs.rust-toolchain }}
+        toolchain: ${{ steps.configs.outputs.rust-toolchain }}
 
-    - name: Setup Node.js ${{ needs.get-configs.outputs.node-version }}
+    - name: Setup Node.js ${{ steps.configs.outputs.node-version }}
       uses: actions/setup-node@v6
       with:
-        node-version: ${{ needs.get-configs.outputs.node-version }}
+        node-version: ${{ steps.configs.outputs.node-version }}
 
-    - name: Setup Python ${{ needs.get-configs.outputs.python-version }}
+    - name: Setup Python ${{ steps.configs.outputs.python-version }}
       uses: actions/setup-python@v6
       with:
-        python-version: ${{ needs.get-configs.outputs.python-version }}
+        python-version: ${{ steps.configs.outputs.python-version }}
 
-    - name: Setup Go ${{ needs.get-configs.outputs.go-version }}
+    - name: Setup Go ${{ steps.configs.outputs.go-version }}
       uses: actions/setup-go@v6
       with:
-        go-version: ${{ needs.get-configs.outputs.go-version }}
+        go-version: ${{ steps.configs.outputs.go-version }}
 
     - name: Log tool versions
       uses: ./.github/actions/print-build-versions
@@ -77,9 +75,9 @@ jobs:
     - name: Verify tool versions match configuration
       shell: bash
       env:
-        EXPECTED_PYTHON_VERSION: ${{ needs.get-configs.outputs.python-version }}
-        EXPECTED_GO_VERSION: ${{ needs.get-configs.outputs.go-version }}
-        EXPECTED_JAVA_VERSION: ${{ needs.get-configs.outputs.java-version }}
+        EXPECTED_PYTHON_VERSION: ${{ steps.configs.outputs.python-version }}
+        EXPECTED_GO_VERSION: ${{ steps.configs.outputs.go-version }}
+        EXPECTED_JAVA_VERSION: ${{ steps.configs.outputs.java-version }}
       run: |
         set -euo pipefail
 

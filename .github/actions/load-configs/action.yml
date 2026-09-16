@@ -1,0 +1,172 @@
+name: Load build configs
+description: >
+  Exposes each KEY in .github/versions.env as the output `key` (lower-cased,
+  `_` -> `-`) and exports WORKING_DIR into the job environment.
+
+outputs:
+  app-name:
+    description: "Application name"
+    value: ${{ steps.load.outputs.app-name }}
+  working-dir:
+    description: "Cargo workspace root (relative to repo root)"
+    value: ${{ steps.load.outputs.working-dir }}
+  rust-toolchain:
+    description: "Rust toolchain channel (must match src/rust-toolchain.toml)"
+    value: ${{ steps.load.outputs.rust-toolchain }}
+  node-version:
+    description: "Node.js version"
+    value: ${{ steps.load.outputs.node-version }}
+  python-version:
+    description: "Python version"
+    value: ${{ steps.load.outputs.python-version }}
+  go-version:
+    description: "Go version"
+    value: ${{ steps.load.outputs.go-version }}
+  uniffi-bindgen-go-tag:
+    description: "uniffi-bindgen-go git tag (Go binding generation)"
+    value: ${{ steps.load.outputs.uniffi-bindgen-go-tag }}
+  java-version:
+    description: "JDK major version"
+    value: ${{ steps.load.outputs.java-version }}
+  java-distribution:
+    description: "JDK distribution for actions/setup-java"
+    value: ${{ steps.load.outputs.java-distribution }}
+  kotlin-version:
+    description: "Kotlin compiler (kotlinc) version"
+    value: ${{ steps.load.outputs.kotlin-version }}
+  dokka-version:
+    description: "Dokka version for the JVM binding Javadoc jar"
+    value: ${{ steps.load.outputs.dokka-version }}
+  ktlint-version:
+    description: "ktlint version"
+    value: ${{ steps.load.outputs.ktlint-version }}
+  gradle-version:
+    description: "Gradle version for the JVM binding tests"
+    value: ${{ steps.load.outputs.gradle-version }}
+  jna-version:
+    description: "JNA (Java Native Access) version for the JVM bindings"
+    value: ${{ steps.load.outputs.jna-version }}
+  gson-version:
+    description: "Gson version for the JVM bindings"
+    value: ${{ steps.load.outputs.gson-version }}
+  wasm-pack-version:
+    description: "wasm-pack version"
+    value: ${{ steps.load.outputs.wasm-pack-version }}
+  cargo-about-version:
+    description: "cargo-about version"
+    value: ${{ steps.load.outputs.cargo-about-version }}
+  cargo-audit-version:
+    description: "cargo-audit version"
+    value: ${{ steps.load.outputs.cargo-audit-version }}
+  cargo-llvm-cov-version:
+    description: "cargo-llvm-cov version"
+    value: ${{ steps.load.outputs.cargo-llvm-cov-version }}
+  jacoco-version:
+    description: "JaCoCo version for the JVM binding coverage report"
+    value: ${{ steps.load.outputs.jacoco-version }}
+
+runs:
+  using: composite
+  steps:
+    - name: Load versions.env
+      id: load
+      shell: bash
+      run: |
+        set -euo pipefail
+        file="$GITHUB_ACTION_PATH/../../versions.env"
+        if [ ! -f "$file" ]; then
+          echo "::error::$file not found; the repository must be checked out before load-configs runs."
+          exit 1
+        fi
+
+        expected_keys=(
+          APP_NAME
+          WORKING_DIR
+          RUST_TOOLCHAIN
+          NODE_VERSION
+          PYTHON_VERSION
+          GO_VERSION
+          UNIFFI_BINDGEN_GO_TAG
+          JAVA_VERSION
+          JAVA_DISTRIBUTION
+          KOTLIN_VERSION
+          DOKKA_VERSION
+          KTLINT_VERSION
+          GRADLE_VERSION
+          JNA_VERSION
+          GSON_VERSION
+          WASM_PACK_VERSION
+          CARGO_ABOUT_VERSION
+          CARGO_AUDIT_VERSION
+          CARGO_LLVM_COV_VERSION
+          JACOCO_VERSION
+        )
+
+        found_keys=()
+        found_values=()
+        lookup() {
+          local i
+          for i in "${!found_keys[@]}"; do
+            if [ "${found_keys[$i]}" = "$1" ]; then
+              printf '%s' "${found_values[$i]}"
+              return 0
+            fi
+          done
+          return 1
+        }
+
+        line_number=0
+        while IFS= read -r line || [ -n "$line" ]; do
+          line_number=$((line_number + 1))
+          line="${line%$'\r'}"
+          case "$line" in
+            ''|'#'*) continue ;;
+          esac
+          if [[ ! "$line" =~ ^([A-Z][A-Z0-9_]*)=([A-Za-z0-9._+-]+)$ ]]; then
+            echo "::error file=.github/versions.env,line=$line_number::Malformed entry; expected KEY=VALUE with a value made of letters, digits, '.', '_', '+', or '-'."
+            exit 1
+          fi
+          key="${BASH_REMATCH[1]}"
+          value="${BASH_REMATCH[2]}"
+          if lookup "$key" >/dev/null; then
+            echo "::error file=.github/versions.env,line=$line_number::Duplicate key $key."
+            exit 1
+          fi
+          found_keys+=("$key")
+          found_values+=("$value")
+        done < "$file"
+
+        failed=0
+        for key in "${expected_keys[@]}"; do
+          if ! lookup "$key" >/dev/null; then
+            echo "::error file=.github/versions.env::Missing required key $key."
+            failed=1
+          fi
+        done
+        for key in "${found_keys[@]}"; do
+          known=0
+          for expected in "${expected_keys[@]}"; do
+            if [ "$key" = "$expected" ]; then
+              known=1
+              break
+            fi
+          done
+          if [ "$known" -eq 0 ]; then
+            echo "::error file=.github/versions.env::Unknown key $key; declare it in load-configs/action.yml or remove it."
+            failed=1
+          fi
+        done
+        if [ "$failed" -ne 0 ]; then
+          exit 1
+        fi
+
+        echo "::group::Build configs"
+        for key in "${expected_keys[@]}"; do
+          value="$(lookup "$key")"
+          output_name="$(printf '%s' "$key" | tr '[:upper:]_' '[:lower:]-')"
+          printf '%s=%s\n' "$output_name" "$value" >> "$GITHUB_OUTPUT"
+          printf '%-24s= %s\n' "$output_name" "$value"
+        done
+        echo "::endgroup::"
+
+        printf 'WORKING_DIR=%s\n' "$(lookup WORKING_DIR)" >> "$GITHUB_ENV"
