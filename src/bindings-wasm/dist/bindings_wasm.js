@@ -567,6 +567,10 @@ function __wbg_get_imports() {
                 globalThis.crypto.getRandomValues(getArrayU8FromWasm0(arg0, arg1));
             }, arguments);
         },
+        __wbg_getTime_d6f070c088c9b5ed: function (arg0) {
+            const ret = arg0.getTime();
+            return ret;
+        },
         __wbg_get_507a50627bffa49b: function (arg0, arg1) {
             const ret = arg0[arg1 >>> 0];
             return ret;
@@ -633,6 +637,10 @@ function __wbg_get_imports() {
         },
         __wbg_length_370319915dc99107: function (arg0) {
             const ret = arg0.length;
+            return ret;
+        },
+        __wbg_new_0_3da9e97f24fc69be: function () {
+            const ret = new Date();
             return ret;
         },
         __wbg_new_227d7c05414eb861: function () {
