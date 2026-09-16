@@ -679,10 +679,10 @@ export interface RelatedResource {
  *
  * The built-in rules are always evaluated, so this config only carries the
  * external rules layered on top plus the shared schema configuration. Custom
- * rules can be supplied in all three formats: Rego and Guard are evaluated by
- * the external engine, while CEL custom rules are evaluated by the engine that
- * owns the built-ins. It has no field for engine-native built-in custom rules
- * because the composite fixes which engine owns the built-ins.
+ * rules can be supplied in all three formats: Rego rules are evaluated by the
+ * external engine, while CEL custom rules and Guard rules are evaluated by the
+ * engine that owns the built-ins. It has no field for engine-native built-in
+ * custom rules because the composite fixes which engine owns the built-ins.
  */
 export interface CompositeEngineConfig {
     /**
