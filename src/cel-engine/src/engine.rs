@@ -3,12 +3,12 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use diagnostics::{Diagnostic, Entity, PhaseMetric, phase_metric};
-use guard_translator::{ensure_translatable, pack_name_from_path, parse_guard};
 use rules::{RuleInfo, RuleMetadataEntry, RuleOrigin, Severity, build_rule_metadata_map, is_valid_custom_rule_id};
 use schema_validator::{OverlayCatalog, SchemaMetadataCatalog, SchemaValidator, schema_metadata_catalog_with_overlays};
 use template_model::{SemanticModel, UNKNOWN_SPAN};
 use validation_engine::{
-    EngineConfig, ValidateConfig, ValidationEngine, ValidationError, build_rule_list, semantic_model_to_input_json,
+    EngineConfig, GuardRuleSet, ValidateConfig, ValidationEngine, ValidationError, build_rule_list,
+    semantic_model_to_input_json,
 };
 
 use crate::rule_evaluator::GeneratedRuleRegistry;
@@ -44,8 +44,11 @@ pub struct CelEngine {
     custom_rules: Vec<CustomRule>,
     /// Built-in rule metadata from the rules registry only.
     registry_metadata: HashMap<String, RuleMetadataEntry>,
-    /// Metadata for custom user rules and translated guard rules.
+    /// Metadata for custom user rules.
     external_rule_metadata: HashMap<String, RuleMetadataEntry>,
+    /// Guard rules are evaluated by the shared Guard evaluator, not by CEL, so
+    /// every engine reports the same Guard findings.
+    guard_rules: Option<GuardRuleSet>,
     cached_data: CachedData,
     init_metric: PhaseMetric,
 }
@@ -102,18 +105,7 @@ impl CelEngine {
         let registry_metadata = build_rule_metadata_map();
         let mut external_rule_metadata: HashMap<String, RuleMetadataEntry> = HashMap::new();
 
-        let mut translated_guard_sources = Vec::new();
-        for entry in &config.guard_rules {
-            let guard_file = parse_guard(&entry.content, &entry.name)
-                .map_err(|e| anyhow::anyhow!("Failed to parse guard file '{}': {}", entry.name, e))?;
-            ensure_translatable(&guard_file)
-                .map_err(|e| anyhow::anyhow!("Unsupported guard rule in '{}': {}", entry.name, e))?;
-            let pack = pack_name_from_path(&entry.name);
-            let translated = crate::guard_to_cel::translate_to_cel(&guard_file, &pack, &[]);
-            let json = crate::guard_to_cel::to_custom_rule_json(&translated)
-                .map_err(|e| anyhow::anyhow!("Failed to translate guard file '{}' to CEL: {}", entry.name, e))?;
-            translated_guard_sources.push((entry.name.clone(), json));
-        }
+        let guard_rules = GuardRuleSet::compile(&config.guard_rules).map_err(|error| anyhow::anyhow!(error))?;
 
         let mut custom_rules = Vec::new();
         for entry in &config.custom_rules {
@@ -135,30 +127,13 @@ impl CelEngine {
                 }
             }
         }
-        for (path, source) in &translated_guard_sources {
-            match load_custom_rules(source, RuleOrigin::Guard) {
-                Ok(rules) => {
-                    info!("Loaded {} guard rules from {}", rules.len(), path);
-                    for r in &rules {
-                        external_rule_metadata.entry(r.rule_id.clone()).or_insert_with(|| RuleMetadataEntry {
-                            category: r.category.clone(),
-                            description: r.message.clone(),
-                            severity: r.severity,
-                            origin: RuleOrigin::Guard,
-                        });
-                    }
-                    custom_rules.extend(rules);
-                }
-                Err(e) => {
-                    return Err(anyhow::anyhow!("Failed to load guard rules from {}: {}", path, e));
-                }
-            }
-        }
 
         info!(
-            "CelEngine initialized: {} native rule fns, {} custom rules, {} registry + {} external metadata entries",
+            "CelEngine initialized: {} native rule fns, {} custom rules, {} Guard rules, {} registry + {} external \
+             metadata entries",
             native_rules.rules.len(),
             custom_rules.len(),
+            guard_rules.as_ref().map_or(0, |guard| guard.rule_metadata().len()),
             registry_metadata.len(),
             external_rule_metadata.len()
         );
@@ -177,6 +152,7 @@ impl CelEngine {
             custom_rules,
             registry_metadata,
             external_rule_metadata,
+            guard_rules,
             cached_data,
             init_metric,
         })
@@ -227,19 +203,32 @@ impl ValidationEngine for CelEngine {
             }
         }
 
+        if let Some(guard_rules) = &self.guard_rules {
+            diagnostics.extend(guard_rules.evaluate(model)?);
+        }
+
         Ok(diagnostics)
     }
 
     fn list_rules(&self) -> Vec<RuleInfo> {
-        build_rule_list(&self.registry_metadata, &self.external_rule_metadata)
+        build_rule_list(&self.registry_metadata, &self.external_rule_metadata())
     }
 
     fn rule_metadata(&self) -> &HashMap<String, RuleMetadataEntry> {
         &self.registry_metadata
     }
 
+    /// Custom CEL rules and Guard rules have disjoint rule IDs only by
+    /// convention; a Guard rule that reuses a custom rule's ID keeps the custom
+    /// entry, matching how each set resolves its own duplicates.
     fn external_rule_metadata(&self) -> HashMap<String, RuleMetadataEntry> {
-        self.external_rule_metadata.clone()
+        let mut merged = self.external_rule_metadata.clone();
+        if let Some(guard_rules) = &self.guard_rules {
+            for (rule_id, entry) in guard_rules.rule_metadata() {
+                merged.entry(rule_id.clone()).or_insert_with(|| entry.clone());
+            }
+        }
+        merged
     }
 
     fn init_metric(&self) -> &PhaseMetric {
@@ -258,22 +247,14 @@ fn execute_custom_rule(rule: &CustomRule, cel_ctx: &Context<'static>) -> Result<
             "Custom rule '{}' expression must evaluate to a boolean, but produced a non-boolean value",
             rule.rule_id
         ))),
-        // A translated Guard clause reads properties that may be absent, so evaluation
-        // errors on the missing key. Guard's semantics treat an absent property as a
-        // check that simply does not pass, so tolerate the error as "did not fire"
-        // rather than surfacing it.
-        Err(error) if matches!(rule.source, RuleOrigin::Guard) => {
-            log::error!("Guard rule '{}' failed to evaluate (tolerated): {error}", rule.rule_id);
-            Ok(false)
-        }
         Err(error) => {
             Err(ValidationError::Engine(format!("Custom rule '{}' failed to evaluate: {error}", rule.rule_id)))
         }
     }
 }
 
-// Custom and Guard rules are not in the rule registry, so their severity,
-// category, and origin come from the parsed rule rather than the registry-driven
+// Custom rules are not in the rule registry, so their severity, category, and
+// origin come from the parsed rule rather than the registry-driven
 // `RegisteredDiagnostic` builder used for built-in rules.
 fn emit_custom_diagnostic(
     out: &mut Vec<Diagnostic>,
@@ -554,8 +535,8 @@ mod tests {
 
     #[test]
     fn load_custom_rules_type_function_is_accepted() {
-        // `type` is registered by build_custom_context so Guard type-check operators
-        // translate to a runnable expression; it must pass the load-time check.
+        // `type` is registered by build_custom_context for custom rules that
+        // inspect a value's kind; it must pass the load-time check.
         let json = r#"{"rules": [{
             "rule_id": "R1",
             "severity": "ERROR",
@@ -631,18 +612,6 @@ mod tests {
         );
         let ctx = crate::functions::build_custom_context(&serde_json::json!({"resources": {}}), Some("Bucket"), None);
         execute_custom_rule(&rule, &ctx).expect_err("a custom-rule evaluation error must be fatal");
-    }
-
-    #[test]
-    fn execute_custom_rule_evaluation_error_is_tolerated_for_guard_origin() {
-        // The same missing-key error is tolerated for Guard-origin rules: Guard treats an
-        // absent property as a check that does not pass, so the rule simply does not fire.
-        let rule = single_rule(
-            r#"{"rules": [{"rule_id": "G1", "severity": "ERROR", "expression": "resource.Missing.Deep == \"x\"", "message": "m"}]}"#,
-            RuleOrigin::Guard,
-        );
-        let ctx = crate::functions::build_custom_context(&serde_json::json!({"resources": {}}), Some("Bucket"), None);
-        assert!(!execute_custom_rule(&rule, &ctx).expect("guard evaluation error is tolerated as non-firing"));
     }
 
     #[test]
