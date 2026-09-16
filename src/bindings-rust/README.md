@@ -94,7 +94,7 @@ The `ValidationEngine` trait also exposes `list_rules`, built-in and external ru
 | Field                     | Default | Description                                                                  |
 |---------------------------|---------|------------------------------------------------------------------------------|
 | `custom_rules`            | empty   | Engine-native rules: Rego source for `RegoEngine`, CEL JSON for `CelEngine`. |
-| `guard_rules`             | empty   | CloudFormation Guard DSL source translated by either engine.                 |
+| `guard_rules`             | empty   | CloudFormation Guard DSL source, evaluated identically by either engine.      |
 | `schema_validator_config` | `None`  | Additional resource provider schemas used for schema-aware metadata.         |
 
 Rule sources are supplied as `ExternalRuleSource { name, content }`. `name` identifies the source in errors and
@@ -116,21 +116,22 @@ See [Custom Rules](../CUSTOM_RULES.md) for Rego, CEL, and Guard formats.
 ### Composite engine
 
 `CompositeEngine`, re-exported at the crate root, is an additive engine. It evaluates every built-in rule with CEL and
-layers your own rules on top: custom CEL rules run in the same CEL engine that owns the built-ins, while a separate
-external-only Rego engine evaluates custom Rego and translated Guard rules. That external engine is constructed only
-when the configuration supplies custom Rego or Guard rules, and it still runs when built-in rules are disabled.
+layers your own rules on top: custom CEL rules and Guard rules run in the same CEL engine that owns the built-ins, while
+a separate external-only Rego engine evaluates custom Rego rules. That external engine is constructed only when the
+configuration supplies custom Rego rules, and it still runs when built-in rules are disabled.
 
 It takes its own `CompositeEngineConfig` rather than `EngineConfig`. The config carries `rego_rules`, `cel_rules`,
 `guard_rules`, and `schema_validator_config`; it has no field for engine-native built-in custom rules because the
 composite fixes which engine owns the built-ins. `RegoEngine`, `CelEngine`, and `EngineConfig` are unchanged.
-`EngineType` now selects `Rego`, `Cel`, or `Composite`, with `Composite` as its default. Only the documented subset of
-the Guard language is translated; unsupported constructs are rejected at load time.
+`EngineType` now selects `Rego`, `Cel`, or `Composite`, with `Composite` as its default. Guard rules are evaluated by
+the Guard evaluator itself, so they report what `cfn-guard validate` reports; a file that does not parse is rejected
+at construction.
 
 ```rust
 use cloudformation_validate::{CompositeEngine, CompositeEngineConfig, ExternalRuleSource, ValidationEngine};
 
-// CEL owns the built-ins; the external-only Rego engine is built only because a
-// Guard rule is supplied here.
+// CEL owns the built-ins and evaluates the Guard rule; no external Rego engine
+// is built because no Rego rules are supplied.
 let engine = CompositeEngine::new(CompositeEngineConfig::new().with_guard_rules([ExternalRuleSource {
     name: "s3.guard".to_string(),
     content: "rule bucket_name { AWS::S3::Bucket { Properties.BucketName EXISTS } }".to_string(),

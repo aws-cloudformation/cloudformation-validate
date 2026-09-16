@@ -1,0 +1,37 @@
+let buckets = Resources.*[ Type == 'AWS::S3::Bucket' ]
+
+rule bucket_name_exists {
+    AWS::S3::Bucket {
+        Properties.BucketName EXISTS
+        <<BucketName must be specified>>
+    }
+}
+
+rule bucket_name_is_expected {
+    AWS::S3::Bucket {
+        Properties.BucketName == "expected-bucket" OR Properties.BucketName == /^shared-/
+        <<BucketName must be the expected name or start with shared->>
+    }
+}
+
+rule tags_owned when %buckets !empty {
+    %buckets.Properties.Tags[*] {
+        Key == "Owner"
+        <<Every tag key must be Owner>>
+    }
+}
+
+rule versioning_enabled_when_configured {
+    AWS::S3::Bucket {
+        when Properties.VersioningConfiguration EXISTS {
+            Properties.VersioningConfiguration.Status == "Enabled"
+            <<Configured versioning must be enabled>>
+        }
+    }
+}
+
+rule name_absent_is_fine {
+    AWS::S3::Bucket {
+        Properties.BucketName !EXISTS
+    }
+}

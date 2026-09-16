@@ -19,8 +19,9 @@ Rules are organized into Rego packages by category:
 | `all_violations` | `data.all_violations.violation` | All packages at once |
 
 Rules come from four sources: handwritten Rego policies embedded by this crate's build script, generated shared data
-embedded by data-source, user-provided custom Rego policies, and Guard DSL files translated to Rego at engine
-initialization.
+embedded by data-source, user-provided custom Rego policies, and Guard DSL files. Guard files are not translated to
+Rego: they are evaluated by the shared Guard evaluator in [validation-engine](../validation-engine/README.md), which
+every engine calls, so the same Guard rule yields the same findings in every engine.
 
 ## Custom Builtins
 

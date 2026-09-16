@@ -2,17 +2,16 @@ use crate::policies;
 use data_source::embedded;
 use data_source::types::KnownResourceTypes;
 use diagnostics::{Diagnostic, PhaseMetric, phase_metric};
-use guard_translator::{ensure_translatable, pack_name_from_path, parse_guard};
 use log::{debug, info, warn};
-use rules::{Category, RuleInfo, RuleMetadataEntry, RuleOrigin, Severity, build_rule_metadata_map};
+use rules::{Category, RuleInfo, RuleMetadataEntry, RuleOrigin, build_rule_metadata_map};
 use schema_validator::{OverlayCatalog, SchemaMetadataCatalog, SchemaValidator, schema_metadata_catalog_with_overlays};
 use std::collections::{HashMap, HashSet};
 use std::str::from_utf8;
 use std::sync::{Arc, LazyLock, Mutex};
 use template_model::SemanticModel;
 use validation_engine::{
-    EngineConfig, ValidateConfig, ValidationEngine, ValidationError, build_rule_list, extract_diagnostics_from_value,
-    semantic_model_to_input_json,
+    EngineConfig, GuardRuleSet, ValidateConfig, ValidationEngine, ValidationError, build_rule_list,
+    extract_diagnostics_from_value, semantic_model_to_input_json,
 };
 
 static REGORUS_DATA: LazyLock<Vec<(&str, &[u8])>> = LazyLock::new(|| {
@@ -177,8 +176,8 @@ fn extend_primary_identifiers_data(catalog: &OverlayCatalog) -> anyhow::Result<O
 ///
 /// In [`BuiltinRuleMode::ExternalOnly`] the built-in policies are neither loaded
 /// nor advertised through registry metadata, so the engine evaluates only custom
-/// and translated Guard rules. Embedded data tables, custom builtins, and
-/// external-rule metadata are retained in both modes.
+/// and Guard rules. Embedded data tables, custom builtins, and external-rule
+/// metadata are retained in both modes.
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum BuiltinRuleMode {
     Enabled,
@@ -192,14 +191,14 @@ pub struct RegoEngine {
     builtin_mode: BuiltinRuleMode,
     /// Built-in rule metadata from the rules registry only.
     registry_metadata: HashMap<String, RuleMetadataEntry>,
-    /// Metadata for custom user rules and translated guard rules.
-    external_rule_metadata: HashMap<String, RuleMetadataEntry>,
     /// Custom rego rule metadata discovered from evaluation output.
     /// Rego rules embed metadata in their output objects, so it can only
     /// be extracted after evaluation. May be incomplete if not all rules fired.
     discovered_custom_metadata: Mutex<HashMap<String, RuleMetadataEntry>>,
     custom_packages: Vec<String>,
-    guard_packages: Vec<String>,
+    /// Guard rules are evaluated by the shared Guard evaluator, not by Rego, so
+    /// every engine reports the same Guard findings.
+    guard_rules: Option<GuardRuleSet>,
     init_metric: PhaseMetric,
 }
 
@@ -230,9 +229,9 @@ impl RegoEngine {
     }
 
     /// Constructs an engine that evaluates only the caller-supplied custom and
-    /// translated Guard rules, without loading or advertising the handwritten
-    /// built-in policies. Embedded data tables and custom builtins remain
-    /// available so external rules can call them.
+    /// Guard rules, without loading or advertising the handwritten built-in
+    /// policies. Embedded data tables and custom builtins remain available so
+    /// external rules can call them.
     ///
     /// This backs the composite engine, whose built-in rules are owned by a
     /// separate engine; loading them here too would double-evaluate them.
@@ -318,8 +317,8 @@ impl RegoEngine {
 
         // In external-only mode the built-in policies are owned by a separate
         // engine, so they are neither loaded nor evaluated here. Embedded data,
-        // custom builtins, custom Rego, and translated Guard are still loaded
-        // below regardless of mode.
+        // custom builtins, custom Rego, and Guard rules are still loaded below
+        // regardless of mode.
         let handwritten_rule_count = match builtin_mode {
             BuiltinRuleMode::Enabled => {
                 for (path, source) in policies::HANDWRITTEN_REGO_POLICIES {
@@ -331,31 +330,10 @@ impl RegoEngine {
         };
         debug!("Loaded {} data files, {} handwritten rules", REGORUS_DATA.len(), handwritten_rule_count);
 
-        let mut translated_guard_sources = Vec::new();
-        let mut guard_rule_metadata: Vec<(String, Option<String>, String, Severity, RuleOrigin)> = Vec::new();
-        for entry in &config.guard_rules {
-            let guard_file = parse_guard(&entry.content, &entry.name)
-                .map_err(|e| anyhow::anyhow!("Failed to parse guard file '{}': {}", entry.name, e))?;
-            ensure_translatable(&guard_file)
-                .map_err(|e| anyhow::anyhow!("Unsupported guard rule in '{}': {}", entry.name, e))?;
-            let pack = pack_name_from_path(&entry.name);
-            for tr in crate::guard_to_rego::translate_to_rego(&guard_file, &pack, &[]) {
-                guard_rule_metadata.push((
-                    tr.rule_id.clone(),
-                    tr.category.clone(),
-                    tr.description.clone(),
-                    Severity::Error,
-                    RuleOrigin::Guard,
-                ));
-                translated_guard_sources.push((tr.path, tr.source));
-            }
-        }
+        let guard_rules = GuardRuleSet::compile(&config.guard_rules).map_err(|error| anyhow::anyhow!(error))?;
 
         for entry in &config.custom_rules {
             rego.add_policy(entry.name.clone(), entry.content.clone())?;
-        }
-        for (path, source) in &translated_guard_sources {
-            rego.add_policy(path.clone(), source.clone())?;
         }
         let mut custom_packages = Vec::new();
         for entry in &config.custom_rules {
@@ -369,18 +347,6 @@ impl RegoEngine {
                 }
             }
         }
-        let mut guard_packages = Vec::new();
-        for (_, source) in &translated_guard_sources {
-            for line in source.lines() {
-                let trimmed = line.trim();
-                if let Some(pkg) = trimmed.strip_prefix("package ") {
-                    let eval_path = format!("data.{}.violation", pkg.trim());
-                    if !guard_packages.contains(&eval_path) {
-                        guard_packages.push(eval_path);
-                    }
-                }
-            }
-        }
 
         crate::builtins::register_all(&mut rego, overlay_catalog, schema_metadata)?;
 
@@ -390,15 +356,6 @@ impl RegoEngine {
             BuiltinRuleMode::Enabled => build_rule_metadata_map(),
             BuiltinRuleMode::ExternalOnly => HashMap::new(),
         };
-        let mut external_rule_metadata: HashMap<String, RuleMetadataEntry> = HashMap::new();
-        for (id, cat, desc, severity, origin) in guard_rule_metadata {
-            external_rule_metadata.entry(id).or_insert(RuleMetadataEntry {
-                category: cat,
-                description: desc,
-                severity,
-                origin,
-            });
-        }
 
         // Warming up the aggregate compiles the built-in policies once so the
         // first real evaluation is not charged that cost. The aggregate only
@@ -409,21 +366,20 @@ impl RegoEngine {
         }
 
         info!(
-            "RegoEngine initialized: {} handwritten rules, {} data files, {} registry + {} external metadata entries",
+            "RegoEngine initialized: {} handwritten rules, {} data files, {} registry + {} Guard metadata entries",
             handwritten_rule_count,
             REGORUS_DATA.len(),
             registry_metadata.len(),
-            external_rule_metadata.len()
+            guard_rules.as_ref().map_or(0, |guard| guard.rule_metadata().len())
         );
         let init_metric = phase_metric(start);
         Ok(RegoEngine {
             base_rego: rego,
             builtin_mode,
             registry_metadata,
-            external_rule_metadata,
             discovered_custom_metadata: Mutex::new(HashMap::new()),
             custom_packages,
-            guard_packages,
+            guard_rules,
             init_metric,
         })
     }
@@ -504,8 +460,8 @@ impl ValidationEngine for RegoEngine {
         let mut diagnostics = Vec::new();
 
         // Core built-in policies run only when this engine owns them and the
-        // caller has not disabled built-ins. The custom and Guard loops below run
-        // unconditionally so external rules are always evaluated.
+        // caller has not disabled built-ins. The custom and Guard evaluation
+        // below runs unconditionally so external rules are always evaluated.
         let evaluate_builtins = matches!(self.builtin_mode, BuiltinRuleMode::Enabled) && !config.disable_builtin_rules;
         if evaluate_builtins {
             let excluded_cats = config.filters.excluded_categories();
@@ -547,8 +503,8 @@ impl ValidationEngine for RegoEngine {
             self.eval_package_into(&mut rego, pkg, "Custom", model, Some(&RuleOrigin::Custom), &mut diagnostics)?;
         }
 
-        for pkg in &self.guard_packages {
-            self.eval_package_into(&mut rego, pkg, "Guard", model, Some(&RuleOrigin::Guard), &mut diagnostics)?;
+        if let Some(guard_rules) = &self.guard_rules {
+            diagnostics.extend(guard_rules.evaluate(model)?);
         }
 
         if !self.custom_packages.is_empty() {
@@ -569,24 +525,19 @@ impl ValidationEngine for RegoEngine {
     }
 
     fn list_rules(&self) -> Vec<RuleInfo> {
-        let mut merged = self.external_rule_metadata.clone();
-        if !self.custom_packages.is_empty() {
-            let discovered = self.discovered_custom_metadata.lock().unwrap_or_else(|e| e.into_inner());
-            merged.extend(discovered.iter().map(|(k, v)| (k.clone(), v.clone())));
-        }
-        build_rule_list(&self.registry_metadata, &merged)
+        build_rule_list(&self.registry_metadata, &self.external_rule_metadata())
     }
 
     fn rule_metadata(&self) -> &HashMap<String, RuleMetadataEntry> {
         &self.registry_metadata
     }
 
-    /// Returns guard metadata merged with any custom Rego rule metadata
+    /// Returns Guard rule metadata merged with any custom Rego rule metadata
     /// discovered from prior evaluations. Custom diagnostics already carry their
     /// current evaluation's rule description, so this accumulated metadata cannot
     /// overwrite a later report.
     fn external_rule_metadata(&self) -> HashMap<String, RuleMetadataEntry> {
-        let mut merged = self.external_rule_metadata.clone();
+        let mut merged = self.guard_rules.as_ref().map(|guard| guard.rule_metadata().clone()).unwrap_or_default();
         if !self.custom_packages.is_empty() {
             let discovered = self.discovered_custom_metadata.lock().unwrap_or_else(|e| e.into_inner());
             merged.extend(discovered.iter().map(|(k, v)| (k.clone(), v.clone())));
@@ -603,7 +554,7 @@ impl ValidationEngine for RegoEngine {
 mod tests {
     use super::*;
     use diagnostics::DetailLevel;
-    use rules::{FilterConfig, RuleFilterConfig};
+    use rules::{FilterConfig, RuleFilterConfig, Severity};
     use std::sync::Barrier;
     use std::thread;
     use template_model::SemanticModel;
@@ -766,16 +717,15 @@ Resources:
 "#,
         );
         let diags = engine.evaluate_rules(&model, &ValidateConfig::default()).unwrap();
-        let guard_diag = diags.iter().find(|d| d.rule_id == "check_bucket_name");
-        assert!(guard_diag.is_some(), "guard rule should fire when BucketName is missing");
+        let guard_diag = diags.iter().find(|d| d.rule_id == "check_bucket_name").expect("guard rule fires");
+        assert_eq!(guard_diag.source, RuleOrigin::Guard);
+        assert_eq!(guard_diag.category.as_deref(), Some("guard:test"));
+        assert_eq!(guard_diag.message, "BucketName must be specified");
+        assert_eq!(guard_diag.resource_logical_id(), Some("MyBucket"));
     }
 
     #[test]
-    fn guard_rule_exists_check_accepts_properties_prefix() {
-        // A Guard `Properties.BucketName EXISTS` clause translates to
-        // `has_property(name, "Properties.BucketName")`. has_property accepts the
-        // leading `Properties.` prefix, so when BucketName is present the existence
-        // check is satisfied and the rule does not fire.
+    fn guard_rule_exists_check_does_not_fire_when_property_is_present() {
         let guard_source = r#"
 rule check_bucket_name {
     AWS::S3::Bucket {

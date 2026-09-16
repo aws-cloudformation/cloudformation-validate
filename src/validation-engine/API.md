@@ -159,25 +159,28 @@ let config = EngineConfig::new()
     .with_guard_rules([ExternalRuleSource { name: "policy.guard".into(), content: guard_source }]);
 ```
 
-| Engine                                 | `custom_rules` format     | `guard_rules` handling                   |
-|----------------------------------------|---------------------------|------------------------------------------|
-| [RegoEngine](../rego-engine/README.md) | Native Rego source        | Parsed and translated to Rego internally |
-| [CelEngine](../cel-engine/README.md)   | JSON with CEL expressions | Parsed and translated to CEL internally  |
+| Engine                                 | `custom_rules` format     | `guard_rules` handling                                      |
+|----------------------------------------|---------------------------|-------------------------------------------------------------|
+| [RegoEngine](../rego-engine/README.md) | Native Rego source        | Evaluated by the shared Guard evaluator, same as every engine |
+| [CelEngine](../cel-engine/README.md)   | JSON with CEL expressions | Evaluated by the shared Guard evaluator, same as every engine |
 
-Both engines parse and translate `guard_rules` from raw Guard DSL source text - no pre-parsing needed.
+Both engines take `guard_rules` as raw Guard DSL source text - no pre-parsing needed. A file that does not parse fails
+engine construction with the file name in the error. Guard rules are evaluated by the Guard evaluator itself against
+the authored template, so every engine reports the checks `cfn-guard validate` reports (see
+[CUSTOM_RULES.md](../CUSTOM_RULES.md#guard-dsl-rules)).
 
 ## Composite Engine
 
 `CompositeEngine` (in the [composite-engine](../composite-engine/README.md) crate) is an additive engine that
-composes two inner engines: CEL evaluates every built-in rule, and a separate external-only Rego engine evaluates the
-caller-supplied custom Rego and translated Guard rules. The external engine is constructed only when the configuration
-supplies such rules, and it still runs when built-in rules are disabled. Findings from both are concatenated; this
-pipeline performs the single finalize pass.
+composes two inner engines: CEL evaluates every built-in rule along with custom CEL and Guard rules, and a separate
+external-only Rego engine evaluates the caller-supplied custom Rego rules. The external engine is constructed only when
+the configuration supplies Rego rules, and it still runs when built-in rules are disabled. Findings from both are
+concatenated; this pipeline performs the single finalize pass.
 
 It is constructed from a `CompositeEngineConfig`, a type distinct from `EngineConfig`. The composite fixes which engine
 owns the built-ins, so the config has no field for engine-native built-in custom rules; it does accept caller-supplied
-custom rules in all three formats, layered on the built-ins. Custom CEL rules are evaluated by the engine that owns the
-built-ins (CEL), while custom Rego and translated Guard rules are evaluated by the external engine. `RegoEngine`,
+custom rules in all three formats, layered on the built-ins. Custom CEL rules and Guard rules are evaluated by the
+engine that owns the built-ins (CEL), while custom Rego rules are evaluated by the external engine. `RegoEngine`,
 `CelEngine`, and `EngineConfig` are unchanged. `EngineType` now selects `Rego`, `Cel`, or `Composite`, with `Composite`
 as its default. `EngineType` is only a selector, so construct `CompositeEngine` directly when embedding, or select it
 in the CLI with `--engine composite` (the default).
@@ -186,11 +189,10 @@ in the CLI with `--engine composite` (the default).
 |------------------------------------------------------|---------------------------------|-------------------------------------------------------------------------|
 | `rego_rules` / `regoRules`                           | `Vec<ExternalRuleSource>`       | Custom Rego rules layered on the built-ins, run by the external engine. |
 | `cel_rules` / `celRules`                             | `Vec<ExternalRuleSource>`       | Custom CEL rules layered on the built-ins, run by the built-in engine.  |
-| `guard_rules` / `guardRules`                         | `Vec<ExternalRuleSource>`       | Guard DSL rules, translated and run by the external engine.             |
+| `guard_rules` / `guardRules`                         | `Vec<ExternalRuleSource>`       | Guard DSL rules, run by the built-in engine's shared Guard evaluator.   |
 | `schema_validator_config` / `schemaValidatorConfig`  | `Option<SchemaValidatorConfig>` | Additional schemas observed by both inner engines.                      |
 
-Only the documented subset of the Guard language is translated; unsupported constructs are rejected at load time rather
-than silently ignored. `CompositeEngineConfig::new()` and its `with_*` methods set only the options you name:
+`CompositeEngineConfig::new()` and its `with_*` methods set only the options you name:
 
 ```rust
 use composite_engine::CompositeEngine;
@@ -199,8 +201,8 @@ use validation_engine::{
     CompositeEngineConfig, ExternalRuleSource, ValidateConfig, validate_bytes_with_path,
 };
 
-// CEL owns the built-ins and any custom CEL rules; the external-only Rego engine
-// is built only because external Rego or Guard rules are supplied here.
+// CEL owns the built-ins, the custom CEL rules, and the Guard rules; the
+// external-only Rego engine is built only because Rego rules are supplied here.
 let engine = CompositeEngine::new(
     CompositeEngineConfig::new()
         .with_cel_rules([ExternalRuleSource { name: "extra.json".into(), content: cel_source }])

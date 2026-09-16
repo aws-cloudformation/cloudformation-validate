@@ -205,6 +205,8 @@ pub struct TemplateIR {
     pub(crate) arena: Arena,
     pub(crate) global_index: GlobalIndex,
     pub(crate) span_index: SourceSpanIndex,
+    /// The template's top-level map, from which every section below hangs.
+    pub(crate) root: NodeRef,
     pub(crate) parameters: NodeRef,
     pub(crate) mappings: NodeRef,
     pub(crate) conditions: NodeRef,

@@ -91,8 +91,8 @@ the tree.
   behavior. Every rule exists in both engines or in neither; add/fix it in both in the same change. Rego rules are
   hand-written policies in `rego-engine/handwritten/rego/`; CEL rules are native Rust in `cel-engine/src/rules/` (the
   CEL interpreter is only for user-supplied custom rules). `EngineType::Composite` is the default `--engine` selector:
-  it evaluates the built-in rules with CEL and layers an optional external-only Rego engine (custom Rego + translated
-  Guard) on top, built only when external rules are supplied. It is additive, not a third implementation of the
+  it evaluates the built-in rules with CEL (plus custom CEL and Guard rules) and layers an optional external-only Rego
+  engine (custom Rego) on top, built only when Rego rules are supplied. It is additive, not a third implementation of the
   built-in rules - with no custom rules `rego`, `cel`, and `composite` all produce the same diagnostics, so a
   built-in-rule mismatch is still diagnosed and fixed in the Rego or CEL implementation. The CLI exposes all three as
   `--engine rego|cel|composite`.
@@ -106,8 +106,10 @@ the tree.
 - **Generated binding artifacts are workflow-owned.** The `build-artifacts` workflow commits them. Local generation
   is permitted only when needed to test a hand-maintained change, and every generated artifact must be reverted after
   the affected binding tests pass.
-- **Custom rules** load from CLI/library as CEL (`.json`), Rego (`.rego`), or Guard DSL (`.guard`, translated
-  to engine-agnostic IR by `guard-translator`). See `src/CUSTOM_RULES.md`.
+- **Custom rules** load from CLI/library as CEL (`.json`), Rego (`.rego`), or Guard DSL (`.guard`). Guard rules are
+  evaluated by the Guard evaluator itself (`guard-translator` wraps `cloudformation-guard-lang`) against the authored
+  template, through one `GuardRuleSet` in `validation-engine` that every engine calls - never translated into Rego or
+  CEL. See `src/CUSTOM_RULES.md`.
 
 ## Correctness rules - non-negotiable
 

@@ -1,337 +1,439 @@
-use guard_translator::ir::*;
 use guard_translator::*;
+use serde_json::{Value, json};
 use std::env;
 use std::fs;
 
-const S3_GUARD: &str = r#"
-let s3_buckets = Resources.*[ Type == 'AWS::S3::Bucket' ]
-
-rule s3_bucket_encryption when %s3_buckets !empty {
-    %s3_buckets.Properties.BucketEncryption exists
-        <<S3 bucket must have encryption configured>>
+/// Two buckets with no name, one named `bar`, and one whose name is a parameter
+/// reference - the shapes a check on `Properties.BucketName` must distinguish.
+fn bucket_template() -> Value {
+    json!({
+        "Parameters": {"NameParam": {"Type": "String"}},
+        "Resources": {
+            "NoProps": {"Type": "AWS::S3::Bucket"},
+            "Missing": {"Type": "AWS::S3::Bucket", "Properties": {"Tags": [{"Key": "Team", "Value": "x"}]}},
+            "Present": {
+                "Type": "AWS::S3::Bucket",
+                "Properties": {"BucketName": "bar", "Port": "abc", "Tags": [{"Key": "Owner", "Value": "y"}]}
+            },
+            "RefValue": {"Type": "AWS::S3::Bucket", "Properties": {"BucketName": {"Ref": "NameParam"}}}
+        }
+    })
 }
-"#;
 
-const ELB_GUARD: &str = r#"
-let allowed_protocols = [ "HTTPS", "TLS" ]
+fn evaluate(source: &str) -> Vec<GuardFinding> {
+    GuardRuleFile::parse("checks.guard", source)
+        .expect("rule file parses")
+        .evaluate(&bucket_template())
+        .expect("evaluates")
+}
+
+fn paths(findings: &[GuardFinding]) -> Vec<Option<&str>> {
+    findings.iter().map(|finding| finding.path.as_deref()).collect()
+}
+
+#[test]
+fn parse_records_rule_names_and_first_custom_message() {
+    let file = GuardRuleFile::parse(
+        "security-policies/elb-listener.guard",
+        r#"
 let elbs = Resources.*[ Type == 'AWS::ElasticLoadBalancingV2::Listener' ]
 
 rule ensure_all_elbs_are_secure when %elbs !empty {
     %elbs.Properties {
-        Protocol in %allowed_protocols
+        Protocol in ["HTTPS", "TLS"]
+        <<listeners must use a secure protocol>>
         Certificates !empty
     }
 }
 
 rule ensure_elbs_are_internal when %elbs !empty {
-    ensure_all_elbs_are_secure
     %elbs.Properties.Scheme == 'internal'
 }
-"#;
-
-#[test]
-fn parse_guard_extracts_single_rule_with_assignment() {
-    let file = parse_guard(S3_GUARD, "s3.guard").unwrap();
-    assert_eq!(file.rules.len(), 1);
-    assert_eq!(file.rules[0].name, "s3_bucket_encryption");
-    assert_eq!(file.assignments.len(), 1);
-    assert_eq!(file.assignments[0].var, "s3_buckets");
+"#,
+    )
+    .unwrap();
+    assert_eq!(file.name(), "security-policies/elb-listener.guard");
+    assert_eq!(file.pack(), "elb_listener");
+    assert_eq!(
+        file.rules(),
+        &[
+            GuardRuleInfo {
+                name: "ensure_all_elbs_are_secure".into(),
+                custom_message: Some("listeners must use a secure protocol".into()),
+            },
+            GuardRuleInfo { name: "ensure_elbs_are_internal".into(), custom_message: None },
+        ]
+    );
 }
 
 #[test]
-fn parse_guard_extracts_multiple_rules_and_assignments() {
-    let file = parse_guard(ELB_GUARD, "elb.guard").unwrap();
-    assert_eq!(file.rules.len(), 2);
-    assert_eq!(file.rules[0].name, "ensure_all_elbs_are_secure");
-    assert_eq!(file.rules[1].name, "ensure_elbs_are_internal");
-    assert_eq!(file.assignments.len(), 2);
-    assert_eq!(file.assignments[0].var, "allowed_protocols");
-    assert_eq!(file.assignments[1].var, "elbs");
+fn parse_records_the_custom_message_of_a_type_block_check() {
+    let file = GuardRuleFile::parse(
+        "s3.guard",
+        r#"
+rule check_bucket_name {
+    AWS::S3::Bucket {
+        Properties.BucketName EXISTS
+        <<BucketName must be specified>>
+    }
+}
+"#,
+    )
+    .unwrap();
+    assert_eq!(file.rules()[0].custom_message.as_deref(), Some("BucketName must be specified"));
 }
 
 #[test]
-fn parse_guard_returns_empty_file_for_empty_source() {
-    let file = parse_guard("", "empty.guard").unwrap();
-    assert!(file.rules.is_empty());
-    assert!(file.assignments.is_empty());
-    assert!(file.parameterized_rules.is_empty());
+fn parse_accepts_an_empty_file_with_no_rules() {
+    let file = GuardRuleFile::parse("empty.guard", "").unwrap();
+    assert!(file.rules().is_empty());
+    assert!(file.evaluate(&bucket_template()).unwrap().is_empty());
 }
 
 #[test]
-fn parse_guard_returns_error_with_filename_on_invalid_syntax() {
-    let result = parse_guard("rule { invalid syntax !!!", "bad.guard");
-    let err = result.unwrap_err();
-    assert!(err.contains("bad.guard"), "error should mention filename, got: {err}");
+fn parse_reports_a_syntax_error_with_the_file_name() {
+    let error = GuardRuleFile::parse("broken.guard", "rule { this is not guard").unwrap_err();
+    assert!(error.contains("broken.guard"), "error must name the file, got: {error}");
+    assert!(error.contains("Failed to parse"), "error must say parsing failed, got: {error}");
 }
 
 #[test]
 fn pack_name_from_path_strips_directory_and_extension() {
     assert_eq!(pack_name_from_path("security-policies/elb-listener.guard"), "elb_listener");
-    assert_eq!(pack_name_from_path("/a/b/my-rule.ruleset"), "my_rule");
+    assert_eq!(pack_name_from_path("s3.guard"), "s3");
+    assert_eq!(pack_name_from_path("rules/pack.ruleset"), "pack");
 }
 
 #[test]
-fn load_pack_directory_returns_sorted_guard_files() {
-    let sources = load_pack_directory("tests/fixtures/pack").unwrap();
-    assert_eq!(sources.len(), 2);
-    assert!(sources[0].0.contains("elb_https.guard"));
-    assert!(sources[1].0.contains("s3_versioning.guard"));
-    assert!(sources[0].1.contains("elb_https_only"));
-    assert!(sources[1].1.contains("s3_versioning"));
-}
+fn load_guard_sources_recursive_finds_files_in_subdirectories_sorted_by_path() {
+    let dir = env::temp_dir().join("guard_translator_recursive_test");
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(dir.join("nested")).unwrap();
+    fs::write(dir.join("b.guard"), "rule b { true }").unwrap();
+    fs::write(dir.join("nested/a.guard"), "rule a { true }").unwrap();
+    fs::write(dir.join("ignored.txt"), "not a rule").unwrap();
 
-#[test]
-fn load_pack_directory_errors_on_nonexistent_path() {
-    let err = load_pack_directory("tests/fixtures/nonexistent").unwrap_err();
-    assert!(err.contains("not found"));
-}
+    let sources = load_guard_sources_recursive(dir.to_str().unwrap()).unwrap();
 
-#[test]
-fn load_pack_directory_errors_when_no_guard_files_found() {
-    let dir = env::temp_dir().join("guard_test_empty_pack");
-    let _ = fs::create_dir_all(&dir);
-    let err = load_pack_directory(dir.to_str().unwrap()).unwrap_err();
-    assert!(err.contains("No .guard files"));
+    let names: Vec<&str> = sources.iter().map(|(path, _)| path.rsplit('/').next().unwrap()).collect();
+    assert_eq!(names, vec!["b.guard", "a.guard"], "only .guard files, in path order");
     let _ = fs::remove_dir_all(&dir);
 }
 
 #[test]
-fn load_guard_sources_recursive_finds_files_in_subdirectories() {
-    let sources = load_guard_sources_recursive("tests/fixtures").unwrap();
-    assert!(sources.len() >= 3, "expected at least 3 files, got {}", sources.len());
-}
-
-#[test]
 fn load_guard_sources_recursive_errors_on_nonexistent_path() {
-    let result = load_guard_sources_recursive("tests/fixtures/nonexistent");
-    result.unwrap_err();
+    let error = load_guard_sources_recursive("/nonexistent/guard/rules").unwrap_err();
+    assert!(error.contains("not found"), "got: {error}");
 }
 
 #[test]
-fn lower_type_block_extracts_type_name_operator_and_custom_message() {
-    let source = r#"
-AWS::S3::Bucket {
-    Properties.BucketEncryption exists
-        <<Encryption required>>
-}
-"#;
-    let file = parse_guard(source, "test.guard").unwrap();
-    let tb = match &file.rules[0].block.conjunctions[0][0] {
-        RuleClauseIR::TypeBlock(tb) => tb,
-        other => panic!("Expected TypeBlock, got {:?}", other),
-    };
-    assert_eq!(tb.type_name, "AWS::S3::Bucket");
-    let ac = match &tb.block.conjunctions[0][0] {
-        GuardClauseIR::Access(ac) => ac,
-        other => panic!("Expected Access, got {:?}", other),
-    };
-    assert_eq!(ac.operator, Operator::Exists);
-    assert!(!ac.negated, "EXISTS should not be negated");
-    assert_eq!(ac.custom_message.as_deref(), Some("Encryption required"));
-}
-
-#[test]
-fn lower_negated_eq_sets_negated_flag_on_access_clause() {
-    let source = r#"
-rule check {
-    AWS::EC2::Instance {
-        Properties.InstanceType != "t2.micro"
+fn exists_fails_only_where_the_property_is_missing() {
+    let findings = evaluate(
+        r#"
+rule bucket_name {
+    AWS::S3::Bucket {
+        Properties.BucketName EXISTS
+        <<BucketName must be specified>>
     }
 }
-"#;
-    let file = parse_guard(source, "test.guard").unwrap();
-    let tb = match &file.rules[0].block.conjunctions[0][0] {
-        RuleClauseIR::TypeBlock(tb) => tb,
-        other => panic!("Expected TypeBlock, got {:?}", other),
-    };
-    let ac = match &tb.block.conjunctions[0][0] {
-        GuardClauseIR::Access(ac) => ac,
-        other => panic!("Expected Access, got {:?}", other),
-    };
-    assert_eq!(ac.operator, Operator::Eq);
-    assert!(ac.negated, "NOT_EQUALS should be negated");
-}
-
-#[test]
-fn lower_negated_empty_sets_negated_flag_on_access_clause() {
-    let source = r#"
-rule check {
-    AWS::EC2::Instance {
-        Properties.Tags !empty
+"#,
+    );
+    assert_eq!(paths(&findings), vec![Some("Resources/NoProps"), Some("Resources/Missing/Properties")]);
+    assert_eq!(findings[0].missing_query.as_deref(), Some("Properties.BucketName"));
+    assert_eq!(findings[1].missing_query.as_deref(), Some("BucketName"));
+    for finding in &findings {
+        assert_eq!(finding.rule_name, "bucket_name");
+        assert_eq!(finding.custom_message.as_deref(), Some("BucketName must be specified"));
+        assert_eq!(finding.check, "Properties.BucketName EXISTS");
     }
 }
-"#;
-    let file = parse_guard(source, "test.guard").unwrap();
-    let tb = match &file.rules[0].block.conjunctions[0][0] {
-        RuleClauseIR::TypeBlock(tb) => tb,
-        other => panic!("Expected TypeBlock, got {:?}", other),
-    };
-    let ac = match &tb.block.conjunctions[0][0] {
-        GuardClauseIR::Access(ac) => ac,
-        other => panic!("Expected Access, got {:?}", other),
-    };
-    assert_eq!(ac.operator, Operator::Empty);
-    assert!(ac.negated, "NOT_EMPTY should be negated");
-}
 
 #[test]
-fn lower_in_operator_preserves_list_compare_value() {
-    let source = r#"
-rule check {
-    AWS::EC2::Instance {
-        Properties.SubnetId in ["subnet-1", "subnet-2"]
+fn equality_fails_for_missing_mismatched_and_intrinsic_values_with_the_value_path() {
+    let findings = evaluate(
+        r#"
+rule bucket_name_is_foo {
+    AWS::S3::Bucket {
+        Properties.BucketName == "foo"
     }
 }
-"#;
-    let file = parse_guard(source, "test.guard").unwrap();
-    let tb = match &file.rules[0].block.conjunctions[0][0] {
-        RuleClauseIR::TypeBlock(tb) => tb,
-        other => panic!("Expected TypeBlock, got {:?}", other),
-    };
-    let ac = match &tb.block.conjunctions[0][0] {
-        GuardClauseIR::Access(ac) => ac,
-        other => panic!("Expected Access, got {:?}", other),
-    };
-    assert_eq!(ac.operator, Operator::In);
-    assert!(!ac.negated, "IN operator should not be negated");
-    assert!(ac.compare_with.is_some(), "IN clause should have compare_with");
+"#,
+    );
+    assert_eq!(
+        paths(&findings),
+        vec![
+            Some("Resources/NoProps"),
+            Some("Resources/Missing/Properties"),
+            Some("Resources/Present/Properties/BucketName"),
+            Some("Resources/RefValue/Properties/BucketName"),
+        ]
+    );
+    assert_eq!(findings[2].missing_query, None, "a present value has no missing remainder");
+    assert_eq!(findings[2].custom_message, None);
+    assert_eq!(findings[2].check, r#"Properties.BucketName EQUALS "foo""#);
 }
 
 #[test]
-fn lower_when_condition_produces_negated_empty_access() {
-    let source = r#"
+fn negated_type_and_existence_checks_pass_for_missing_properties() {
+    let findings = evaluate(
+        r#"
+rule absent_is_fine {
+    AWS::S3::Bucket {
+        Properties.BucketName !EXISTS
+        Properties.BucketName EMPTY
+        Properties.BucketName !IS_STRING
+    }
+}
+"#,
+    );
+    let mut failing = paths(&findings);
+    failing.sort();
+    assert_eq!(
+        failing,
+        vec![
+            Some("Resources/Present/Properties/BucketName"),
+            Some("Resources/Present/Properties/BucketName"),
+            Some("Resources/Present/Properties/BucketName"),
+            Some("Resources/RefValue/Properties/BucketName"),
+            Some("Resources/RefValue/Properties/BucketName"),
+        ],
+        "only buckets that have a name fail; the literal fails all three checks while the \
+         parameter reference is a struct and so satisfies `!IS_STRING`"
+    );
+}
+
+#[test]
+fn list_wildcard_checks_every_element_and_the_some_keyword_needs_one() {
+    let every = evaluate(
+        r#"
+rule tags_all_owner {
+    AWS::S3::Bucket {
+        Properties.Tags[*].Key == "Owner"
+    }
+}
+"#,
+    );
+    assert_eq!(
+        paths(&every),
+        vec![
+            Some("Resources/NoProps"),
+            Some("Resources/Missing/Properties/Tags/0/Key"),
+            Some("Resources/RefValue/Properties")
+        ]
+    );
+
+    let some = evaluate(
+        r#"
+rule some_tag_is_owner {
+    AWS::S3::Bucket {
+        some Properties.Tags[*].Key == "Owner"
+    }
+}
+"#,
+    );
+    assert_eq!(
+        paths(&some),
+        vec![
+            Some("Resources/NoProps"),
+            Some("Resources/Missing/Properties/Tags/0/Key"),
+            Some("Resources/RefValue/Properties")
+        ]
+    );
+}
+
+#[test]
+fn regex_and_type_mismatch_follow_guard_semantics() {
+    let findings = evaluate(
+        r#"
+rule name_prefix {
+    AWS::S3::Bucket {
+        Properties.BucketName == /^ba/
+    }
+}
+rule port_is_large {
+    AWS::S3::Bucket {
+        Properties.Port > 1024
+    }
+}
+"#,
+    );
+    let prefix: Vec<_> = findings.iter().filter(|f| f.rule_name == "name_prefix").collect();
+    assert_eq!(
+        paths(&prefix.iter().map(|f| (*f).clone()).collect::<Vec<_>>()),
+        vec![
+            Some("Resources/NoProps"),
+            Some("Resources/Missing/Properties"),
+            Some("Resources/RefValue/Properties/BucketName")
+        ],
+        "the literal name `bar` matches the regex; missing and intrinsic values fail"
+    );
+    let port: Vec<_> = findings.iter().filter(|f| f.rule_name == "port_is_large").collect();
+    assert!(
+        port.iter().any(|f| f.path.as_deref() == Some("Resources/Present/Properties/Port")),
+        "comparing the string `abc` with a number must fail rather than be skipped"
+    );
+}
+
+#[test]
+fn when_condition_that_does_not_match_skips_the_check() {
+    let findings = evaluate(
+        r#"
+rule port_required_for_bar {
+    AWS::S3::Bucket {
+        when Properties.BucketName == "bar" {
+            Properties.Port EXISTS
+        }
+    }
+}
+rule owner_required_for_bar {
+    AWS::S3::Bucket {
+        when Properties.BucketName == "bar" {
+            Properties.Owner EXISTS
+        }
+    }
+}
+"#,
+    );
+    assert_eq!(
+        paths(&findings),
+        vec![Some("Resources/Present/Properties")],
+        "only the bucket named `bar` is checked, and only for the property it lacks"
+    );
+    assert_eq!(findings[0].rule_name, "owner_required_for_bar");
+    assert_eq!(findings[0].missing_query.as_deref(), Some("Owner"));
+}
+
+#[test]
+fn or_alternatives_yield_one_finding_naming_every_alternative() {
+    let findings = evaluate(
+        r#"
+rule foo_or_bar {
+    AWS::S3::Bucket {
+        Properties.BucketName == "foo" OR Properties.BucketName == "baz"
+        <<name must be foo or baz>>
+    }
+}
+"#,
+    );
+    assert_eq!(
+        paths(&findings),
+        vec![
+            Some("Resources/NoProps"),
+            Some("Resources/Missing/Properties"),
+            Some("Resources/Present/Properties/BucketName"),
+            Some("Resources/RefValue/Properties/BucketName"),
+        ],
+        "one finding per resource, not one per alternative"
+    );
+    assert_eq!(findings[2].check, r#"Properties.BucketName EQUALS "foo" OR Properties.BucketName EQUALS "baz""#);
+    assert_eq!(findings[2].custom_message.as_deref(), Some("name must be foo or baz"));
+}
+
+#[test]
+fn block_clause_reports_the_missing_block_query_and_failing_elements() {
+    let findings = evaluate(
+        r#"
+rule tag_keys {
+    AWS::S3::Bucket {
+        Properties.Tags[*] {
+            Key == "Owner"
+            <<tag key must be Owner>>
+        }
+    }
+}
+"#,
+    );
+    assert_eq!(
+        paths(&findings),
+        vec![
+            Some("Resources/NoProps"),
+            Some("Resources/Missing/Properties/Tags/0/Key"),
+            Some("Resources/RefValue/Properties")
+        ]
+    );
+    assert_eq!(findings[0].missing_query.as_deref(), Some("Properties.Tags[*]"));
+    assert_eq!(findings[0].check, "Properties.Tags[*]");
+    assert_eq!(findings[1].custom_message.as_deref(), Some("tag key must be Owner"));
+    assert_eq!(findings[1].check, r#"Key EQUALS "Owner""#);
+}
+
+#[test]
+fn variable_scoped_rules_and_named_rule_dependencies_are_evaluated() {
+    let findings = evaluate(
+        r#"
 let buckets = Resources.*[ Type == 'AWS::S3::Bucket' ]
-rule check when %buckets !empty {
-    %buckets.Properties.BucketName exists
+
+rule named_buckets when %buckets !empty {
+    %buckets.Properties.BucketName EXISTS
+    <<via variable>>
 }
-"#;
-    let file = parse_guard(source, "test.guard").unwrap();
-    let conds = file.rules[0].conditions.as_ref().unwrap();
-    assert_eq!(conds.len(), 1);
-    assert_eq!(conds[0].len(), 1);
-    match &conds[0][0] {
-        WhenClauseIR::Access(ac) => {
-            assert_eq!(ac.operator, Operator::Empty);
-            assert!(ac.negated, "when clause NOT_EMPTY should be negated");
-        }
-        other => panic!("Expected WhenClauseIR::Access, got {:?}", other),
-    }
+
+rule depends_on_named_buckets {
+    named_buckets <<depends on named_buckets>>
+}
+"#,
+    );
+    let via_variable: Vec<_> = findings.iter().filter(|f| f.rule_name == "named_buckets").collect();
+    assert_eq!(via_variable.len(), 2, "the two unnamed buckets fail the variable-scoped rule");
+    assert!(via_variable.iter().all(|f| f.custom_message.as_deref() == Some("via variable")));
+
+    let dependent: Vec<_> = findings.iter().filter(|f| f.rule_name == "depends_on_named_buckets").collect();
+    assert_eq!(dependent.len(), 1);
+    assert_eq!(dependent[0].path, None, "a failed rule dependency has no template location");
+    assert_eq!(dependent[0].custom_message.as_deref(), Some("depends on named_buckets"));
 }
 
 #[test]
-fn lower_when_condition_with_named_rule_preserves_rule_name() {
-    let source = r#"
-rule base_check {
-    AWS::S3::Bucket { Properties.BucketName exists }
-}
-rule derived when base_check {
-    AWS::S3::Bucket { Properties.Tags !empty }
-}
-"#;
-    let file = parse_guard(source, "test.guard").unwrap();
-    let conds = file.rules[1].conditions.as_ref().unwrap();
-    assert_eq!(conds.len(), 1);
-    match &conds[0][0] {
-        WhenClauseIR::NamedRule(nr) => {
-            assert_eq!(nr.rule_name, "base_check");
-            assert!(!nr.negated);
-        }
-        other => panic!("Expected WhenClauseIR::NamedRule, got {:?}", other),
-    }
-}
-
-#[test]
-fn lower_integer_comparison_preserves_operator_and_value() {
-    let source = r#"
-let s3 = Resources.*[ Type == 'AWS::S3::Bucket' ]
-rule r { %s3.Properties.X == 42 }
-"#;
-    let file = parse_guard(source, "test.guard").unwrap();
-    assert_eq!(file.assignments[0].var, "s3");
-    let ac = match &file.rules[0].block.conjunctions[0][0] {
-        RuleClauseIR::Guard(GuardClauseIR::Access(ac)) => ac,
-        other => panic!("Expected Guard(Access), got {:?}", other),
-    };
-    assert_eq!(ac.operator, Operator::Eq);
-    match &ac.compare_with {
-        Some(LetValueIR::Value(ValueIR::Int(42))) => {}
-        other => panic!("Expected Int(42), got {:?}", other),
-    }
-}
-
-#[test]
-fn lower_nested_block_preserves_multiple_checks_and_gt_operator() {
-    let source = r#"
-rule r {
-    AWS::ECS::TaskDefinition {
-        Properties.ContainerDefinitions.* {
-            Image exists
-            Memory > 128
+fn guard_functions_and_let_bindings_inside_blocks_evaluate() {
+    let findings = evaluate(
+        r#"
+rule at_least_two_tags {
+    AWS::S3::Bucket {
+        when Properties.Tags EXISTS {
+            let tag_count = count(Properties.Tags[*])
+            %tag_count >= 2
+            <<buckets need at least two tags>>
         }
     }
 }
-"#;
-    let file = parse_guard(source, "test.guard").unwrap();
-    let tb = match &file.rules[0].block.conjunctions[0][0] {
-        RuleClauseIR::TypeBlock(tb) => tb,
-        other => panic!("Expected TypeBlock, got {:?}", other),
-    };
-    let bc = match &tb.block.conjunctions[0][0] {
-        GuardClauseIR::Block(bc) => bc,
-        other => panic!("Expected Block, got {:?}", other),
-    };
-    assert_eq!(bc.block.conjunctions.len(), 2);
-
-    let memory_check = match &bc.block.conjunctions[1][0] {
-        GuardClauseIR::Access(ac) => ac,
-        other => panic!("Expected Access, got {:?}", other),
-    };
-    assert_eq!(memory_check.operator, Operator::Gt);
-    match &memory_check.compare_with {
-        Some(LetValueIR::Value(ValueIR::Int(128))) => {}
-        other => panic!("Expected Int(128), got {:?}", other),
-    }
+"#,
+    );
+    assert_eq!(findings.len(), 2, "both tagged buckets have a single tag");
+    assert!(findings.iter().all(|f| f.custom_message.as_deref() == Some("buckets need at least two tags")));
 }
 
 #[test]
-fn lower_named_rule_reference_in_body_preserves_rule_name() {
-    let file = parse_guard(ELB_GUARD, "elb.guard").unwrap();
-    // ensure_elbs_are_internal references ensure_all_elbs_are_secure in its body
-    let clause = &file.rules[1].block.conjunctions[0][0];
-    match clause {
-        RuleClauseIR::Guard(GuardClauseIR::NamedRule(nr)) => {
-            assert_eq!(nr.rule_name, "ensure_all_elbs_are_secure");
-            assert!(!nr.negated);
-        }
-        other => panic!("Expected Guard(NamedRule), got {:?}", other),
+fn compliant_template_produces_no_findings() {
+    let findings = GuardRuleFile::parse(
+        "checks.guard",
+        r#"
+rule bucket_name {
+    AWS::S3::Bucket {
+        Properties.BucketName EXISTS
     }
+}
+"#,
+    )
+    .unwrap()
+    .evaluate(&json!({"Resources": {"B": {"Type": "AWS::S3::Bucket", "Properties": {"BucketName": "x"}}}}))
+    .unwrap();
+    assert!(findings.is_empty(), "got: {findings:?}");
 }
 
 #[test]
-fn lower_parameterized_rule_preserves_parameter_names() {
-    let source = r#"
-rule check_prop(prop, expected) {
-    %prop == %expected
-}
-"#;
-    let file = parse_guard(source, "test.guard").unwrap();
-    assert_eq!(file.parameterized_rules.len(), 1);
-    let pr = &file.parameterized_rules[0];
-    assert_eq!(pr.parameter_names, vec!["prop", "expected"]);
-    assert_eq!(pr.rule.name, "check_prop");
-}
-
-#[test]
-fn lower_list_literal_assignment_preserves_elements() {
-    let source = r#"
-let allowed = ["a", "b", "c"]
-rule r { Properties.X in %allowed }
-"#;
-    let file = parse_guard(source, "test.guard").unwrap();
-    match &file.assignments[0].value {
-        LetValueIR::Value(ValueIR::List(items)) => {
-            assert_eq!(items.len(), 3);
-        }
-        other => panic!("Expected Value(List), got {:?}", other),
+fn template_without_matching_resources_produces_no_findings() {
+    let findings = GuardRuleFile::parse(
+        "checks.guard",
+        r#"
+rule bucket_name {
+    AWS::S3::Bucket {
+        Properties.BucketName EXISTS
     }
+}
+"#,
+    )
+    .unwrap()
+    .evaluate(&json!({"Resources": {"Q": {"Type": "AWS::SQS::Queue"}}}))
+    .unwrap();
+    assert!(findings.is_empty(), "a type block over an absent type is skipped, got: {findings:?}");
 }

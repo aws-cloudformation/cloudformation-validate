@@ -1,6 +1,7 @@
 #[cfg(feature = "uniffi-bindings")]
 uniffi::setup_scaffolding!();
 
+pub(crate) mod authored_template;
 pub mod budget;
 pub mod coercion;
 pub mod conditions;

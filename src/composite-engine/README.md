@@ -1,7 +1,7 @@
 # composite-engine
 
 Validates CloudFormation templates by composing two engines: one owns the built-in rules and the other evaluates the
-caller-supplied external rules. Implements the [ValidationEngine](../validation-engine/README.md) trait, so it is a
+caller-supplied Rego rules. Implements the [ValidationEngine](../validation-engine/README.md) trait, so it is a
 drop-in engine for the shared validation pipeline.
 
 ## Architecture
@@ -9,25 +9,24 @@ drop-in engine for the shared validation pipeline.
 ```
   CompositeEngine::evaluate_rules(model, config)
        │
-       ├── Built-in engine (CEL): all built-in rules + custom CEL rules
-       └── External engine (Rego, external-only): custom Rego + translated Guard rules
+       ├── Built-in engine (CEL): all built-in rules + custom CEL rules + Guard rules
+       └── External engine (Rego, external-only): custom Rego rules
        │
        ▼
   Vec<Diagnostic>   (concatenated; the pipeline finalizes once)
 ```
 
-- **Built-in engine** - a [cel-engine](../cel-engine/README.md) constructed with no external rules, so it evaluates
-  only the built-in rules it owns. It always runs, and honors `disable_builtin_rules`.
 - **Built-in engine** - a [cel-engine](../cel-engine/README.md) constructed with the built-in rules it owns plus any
-  custom CEL rules from the configuration. It always runs, and honors `disable_builtin_rules` (which suppresses the
-  built-in rules only, not custom CEL rules).
+  custom CEL rules and Guard rules from the configuration. It always runs, and honors `disable_builtin_rules` (which
+  suppresses the built-in rules only, not custom or Guard rules). Guard rules are evaluated by the shared Guard
+  evaluator in [validation-engine](../validation-engine/README.md), which every engine calls, so hosting them here
+  costs nothing and changes nothing.
 - **External engine** - a [rego-engine](../rego-engine/README.md) constructed in external-only mode: it neither loads
-  nor advertises the built-in policies, so it contributes only custom Rego and translated Guard findings. It retains
-  every documented Rego custom builtin and embedded data table; only the product's handwritten built-in policy packages
-  are omitted. It is constructed only when the configuration supplies external Rego or Guard rules, and it runs even
-  when built-ins are disabled.
+  nor advertises the built-in policies, so it contributes only custom Rego findings. It retains every documented Rego
+  custom builtin and embedded data table; only the product's handwritten built-in policy packages are omitted. It is
+  constructed only when the configuration supplies Rego rules, and it runs even when built-ins are disabled.
 
-The two engines produce disjoint findings - built-ins and custom CEL from one, custom Rego and Guard from the other -
+The two engines produce disjoint findings - built-ins, custom CEL, and Guard from one, custom Rego from the other -
 so `evaluate_rules` concatenates them without deduplication. The surrounding pipeline performs the single finalize pass
 (dedup, sort, filter, enrich).
 
@@ -39,7 +38,7 @@ built-ins plus the shared schema configuration:
 
 - `rego_rules` - custom Rego rules for the external engine.
 - `cel_rules` - custom CEL rules, evaluated by the built-in CEL engine.
-- `guard_rules` - Guard DSL rules, translated and evaluated by the external engine.
+- `guard_rules` - Guard DSL rules, evaluated by the built-in CEL engine through the shared Guard evaluator.
 - `schema_validator_config` - optional additional schemas, observed by both engines.
 
 There is no field for engine-native built-in custom rules, because the composite fixes which engine owns the built-ins.

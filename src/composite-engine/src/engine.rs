@@ -12,16 +12,16 @@ use validation_engine::{
 use web_time::Instant;
 
 /// A validation engine that composes two engines: one owns the built-in rules,
-/// the other evaluates the caller-supplied external rules.
+/// the other evaluates the caller-supplied Rego rules.
 ///
 /// The built-in rules are always evaluated by the CEL engine, which also
-/// evaluates any custom CEL rules since those are a CEL-engine feature. Custom
-/// Rego rules and translated Guard rules are evaluated by a Rego engine built in
-/// external-only mode, so it contributes no built-in findings of its own. That
-/// external engine is constructed only when the configuration supplies custom
-/// Rego or Guard rules. Findings from both are concatenated; the surrounding
-/// validation pipeline performs the single finalize pass (dedup, sort, filter,
-/// enrich).
+/// evaluates custom CEL rules (a CEL-engine feature) and Guard rules (which every
+/// engine evaluates through the shared Guard evaluator, so the built-in engine is
+/// as good a host as any). Custom Rego rules need a Rego engine, so one is built
+/// in external-only mode - contributing no built-in findings of its own - and
+/// only when the configuration supplies Rego rules. Findings from both are
+/// concatenated; the surrounding validation pipeline performs the single finalize
+/// pass (dedup, sort, filter, enrich).
 pub struct CompositeEngine {
     builtin_engine: CelEngine,
     external_engine: Option<RegoEngine>,
@@ -31,7 +31,7 @@ pub struct CompositeEngine {
 impl CompositeEngine {
     /// Builds the composite engine from a [`CompositeEngineConfig`]. The built-in
     /// engine is always constructed; the external engine is constructed only when
-    /// the configuration supplies custom Rego or Guard rules.
+    /// the configuration supplies custom Rego rules.
     pub fn new(config: CompositeEngineConfig) -> anyhow::Result<Self> {
         let start = Instant::now();
         let (builtin_config, external_config) = split_configs(config);
@@ -65,17 +65,18 @@ impl CompositeEngine {
 /// Splits a composite configuration into the built-in engine's config and an
 /// optional external-engine config. Rule sources are moved rather than cloned;
 /// the schema config is cloned only when both engines need it. Custom CEL rules
-/// go to the built-in CEL engine, since CEL custom rules are a CEL-engine
-/// feature; custom Rego and translated Guard rules go to the external engine.
+/// and Guard rules go to the built-in CEL engine - CEL custom rules are a
+/// CEL-engine feature, and Guard rules evaluate identically in every engine, so
+/// they never justify constructing a second engine. Only custom Rego rules go to
+/// the external engine.
 fn split_configs(config: CompositeEngineConfig) -> (EngineConfig, Option<EngineConfig>) {
     let CompositeEngineConfig { rego_rules, cel_rules, guard_rules, schema_validator_config } = config;
-    let has_external_rules = !rego_rules.is_empty() || !guard_rules.is_empty();
-    let external_config = has_external_rules.then(|| EngineConfig {
+    let external_config = (!rego_rules.is_empty()).then(|| EngineConfig {
         custom_rules: rego_rules,
-        guard_rules,
+        guard_rules: Vec::new(),
         schema_validator_config: schema_validator_config.clone(),
     });
-    let builtin_config = EngineConfig { custom_rules: cel_rules, guard_rules: Vec::new(), schema_validator_config };
+    let builtin_config = EngineConfig { custom_rules: cel_rules, guard_rules, schema_validator_config };
     (builtin_config, external_config)
 }
 
@@ -89,10 +90,11 @@ impl ValidationEngine for CompositeEngine {
         model: &Arc<SemanticModel>,
         config: &ValidateConfig,
     ) -> Result<Vec<Diagnostic>, ValidationError> {
-        // The built-in engine runs first and owns every built-in rule. The
-        // external engine runs second and contributes only custom and Guard
-        // findings, so it is evaluated even when built-ins are disabled. Findings
-        // are concatenated only; the surrounding pipeline finalizes them once.
+        // The built-in engine runs first and owns every built-in rule along with
+        // the custom CEL and Guard rules. The external engine runs second and
+        // contributes only custom Rego findings, so it is evaluated even when
+        // built-ins are disabled. Findings are concatenated only; the surrounding
+        // pipeline finalizes them once.
         let mut diagnostics = self.builtin_engine.evaluate_rules(model, config)?;
         if let Some(external_engine) = &self.external_engine {
             diagnostics.extend(external_engine.evaluate_rules(model, config)?);
@@ -109,9 +111,9 @@ impl ValidationEngine for CompositeEngine {
     }
 
     /// The external rule metadata is the union of both engines' external rules:
-    /// custom CEL rules from the built-in engine and custom Rego plus translated
-    /// Guard rules from the external engine. The two sets have disjoint rule IDs,
-    /// so a plain merge cannot drop or overwrite a rule.
+    /// custom CEL and Guard rules from the built-in engine and custom Rego rules
+    /// from the external engine. The two sets have disjoint rule IDs, so a plain
+    /// merge cannot drop or overwrite a rule.
     fn external_rule_metadata(&self) -> HashMap<String, RuleMetadataEntry> {
         let mut merged = self.builtin_engine.external_rule_metadata();
         if let Some(external_engine) = &self.external_engine {
@@ -316,7 +318,7 @@ rule check_bucket_name {
                 .with_guard_rules([bucket_name_exists_guard()]),
         )
         .expect("composite builds");
-        assert!(composite.external_engine.is_some(), "Rego and Guard rules must construct the external engine");
+        assert!(composite.external_engine.is_some(), "custom Rego rules must construct the external engine");
 
         // BUCKET_WITHOUT_NAME_TEMPLATE has no BucketName, so the guard EXISTS
         // check fires while the CEL and Rego rules match any S3 bucket.
@@ -336,7 +338,7 @@ rule check_bucket_name {
         assert_eq!(
             diags.iter().filter(|d| d.rule_id == "check_bucket_name").count(),
             1,
-            "the translated Guard rule must fire once"
+            "the Guard rule must fire once"
         );
     }
 
@@ -353,6 +355,10 @@ rule check_bucket_name {
         let composite =
             CompositeEngine::new(CompositeEngineConfig::new().with_guard_rules([bucket_name_exists_guard()]))
                 .expect("composite builds");
+        assert!(
+            composite.external_engine.is_none(),
+            "Guard rules are evaluated by the built-in engine and must not construct the external engine"
+        );
         let diags = composite.evaluate_rules(&model(BUCKET_TEMPLATE), &ValidateConfig::default()).expect("evaluates");
         assert!(
             !diags.iter().any(|d| d.rule_id == "check_bucket_name"),

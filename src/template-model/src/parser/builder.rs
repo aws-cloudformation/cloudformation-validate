@@ -854,6 +854,7 @@ impl TemplateSections {
             arena: builder.arena,
             global_index: builder.global_index,
             span_index: builder.span_index,
+            root: self.root,
             parameters: self.parameters,
             mappings: self.mappings,
             conditions: self.conditions,

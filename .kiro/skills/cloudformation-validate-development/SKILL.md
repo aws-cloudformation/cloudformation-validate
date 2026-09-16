@@ -93,10 +93,10 @@ Prefer LSP operations (goto definition, find references, symbol search) over tex
   change. Rego rules are hand-written policies in `rego-engine/handwritten/rego/`; CEL rules are native Rust in
   `cel-engine/src/rules/` (the CEL interpreter is only for user-supplied custom rules).
 - **`EngineType::Composite` is the default selector, not a third implementation.** It evaluates the built-in rules with
-  CEL and layers an optional external-only Rego engine (custom Rego + translated Guard) on top, built only when
-  external rules are supplied. With no custom rules `rego`, `cel`, and `composite` produce the same diagnostics; the
-  CLI exposes all three as `--engine rego|cel|composite`. A built-in-rule mismatch is still diagnosed and fixed in the
-  Rego or CEL implementation.
+  CEL (plus custom CEL and Guard rules) and layers an optional external-only Rego engine (custom Rego) on top, built
+  only when Rego rules are supplied. With no custom rules `rego`, `cel`, and `composite` produce the same diagnostics;
+  the CLI exposes all three as `--engine rego|cel|composite`. A built-in-rule mismatch is still diagnosed and fixed in
+  the Rego or CEL implementation.
 - **`rules/src/registry.rs` (`RULE_REGISTRY`) is the single source of truth** for every rule's ID, severity, category,
   and description. A rule that evaluates but isn't registered is a bug. IDs match `[FEWID]\d{4}` (F=Fatal, E=Error,
   W=Warn, I=Info, D=Debug; enum variant `Warn`, serialized `WARN`).
@@ -106,8 +106,10 @@ Prefer LSP operations (goto definition, find references, symbol search) over tex
   a rule needs a data table.
 - **Generated binding artifacts are workflow-owned.** The `build-artifacts` workflow commits them. Local generation
   is temporary and permitted only when needed to test a hand-maintained change; revert all generated output afterward.
-- **Custom rules** load from CLI/library as CEL (`.json`), Rego (`.rego`), or Guard DSL (`.guard`, translated to an
-  engine-agnostic IR by `guard-translator`). See `src/CUSTOM_RULES.md`.
+- **Custom rules** load from CLI/library as CEL (`.json`), Rego (`.rego`), or Guard DSL (`.guard`). Guard rules are
+  evaluated by the Guard evaluator itself (`guard-translator` wraps `cloudformation-guard-lang`) against the authored
+  template, through one `GuardRuleSet` in `validation-engine` that every engine calls - never translated into Rego or
+  CEL. See `src/CUSTOM_RULES.md`.
 
 ## Correctness rules - non-negotiable
 

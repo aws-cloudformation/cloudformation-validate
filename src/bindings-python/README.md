@@ -68,7 +68,7 @@ engine = CelEngine(EngineConfig(guard_rules=[my_rule]))  # with Guard rules
 | Field                     | Default | Description                                                                      |
 |---------------------------|---------|----------------------------------------------------------------------------------|
 | `custom_rules`            | `[]`    | Engine-native rules (Rego for `RegoEngine`, CEL for `CelEngine`)                 |
-| `guard_rules`             | `[]`    | CloudFormation Guard DSL rules - translated internally by each engine            |
+| `guard_rules`             | `[]`    | CloudFormation Guard DSL rules - evaluated identically by every engine           |
 | `schema_validator_config` | `None`  | Optional `SchemaValidatorConfig`; configures the validator bundled by the engine |
 
 The optional `schema_validator_config` field accepts a `SchemaValidatorConfig` containing additional schemas. Each
@@ -124,7 +124,7 @@ report = engine.validate_standard("template.yaml")
 |---------------------------|---------|------------------------------------------------------------------|
 | `rego_rules`              | `[]`    | Custom Rego rules layered on top of the built-in rules           |
 | `cel_rules`               | `[]`    | Custom CEL rules layered on top of the built-in rules            |
-| `guard_rules`             | `[]`    | CloudFormation Guard DSL rules - translated internally           |
+| `guard_rules`             | `[]`    | CloudFormation Guard DSL rules - evaluated by the built-in engine |
 | `schema_validator_config` | `None`  | Optional `SchemaValidatorConfig`; observed by both inner engines |
 
 ## ValidateConfig

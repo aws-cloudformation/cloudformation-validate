@@ -1,6 +1,6 @@
 use diagnostics::{DetailLevel, Diagnostic, ValidationReport};
 use rego_engine::RegoEngine;
-use rules::{FilterConfig, IdRange, RuleFilterConfig, Severity, rule_number};
+use rules::{FilterConfig, IdRange, RuleFilterConfig, RuleOrigin, Severity, rule_number};
 use schema_validator::SchemaValidator;
 use std::sync::LazyLock;
 use template_model::{PseudoParameterOverrides, SemanticModel};
@@ -1185,6 +1185,22 @@ rule s3_versioning_check {
 }
 "#;
 
+const VERSIONED_AND_UNVERSIONED_BUCKETS: &[u8] = b"AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+  Versioned:
+    Type: AWS::S3::Bucket
+    Properties:
+      VersioningConfiguration:
+        Status: Enabled
+  Suspended:
+    Type: AWS::S3::Bucket
+    Properties:
+      VersioningConfiguration:
+        Status: Suspended
+  Unconfigured:
+    Type: AWS::S3::Bucket
+";
+
 #[test]
 fn e2e_guard_rule_source() {
     let config = EngineConfig {
@@ -1195,43 +1211,50 @@ fn e2e_guard_rule_source() {
         ..Default::default()
     };
     let engine = RegoEngine::new(config).unwrap();
-    // Template with versioning NOT enabled - guard check `Status == "Enabled"` will not match,
-    // but the translator emits this as a violation condition (fires when condition is true).
-    // Use a template where the condition IS true to verify the plumbing works.
-    let template = b"AWSTemplateFormatVersion: '2010-09-09'\nResources:\n  Bucket:\n    Type: AWS::S3::Bucket\n    Properties:\n      VersioningConfiguration:\n        Status: Enabled\n";
-    let report = validate_bytes(&engine, &SHARED_SV, template, ValidateConfig::default()).unwrap();
-    let guard_diags: Vec<_> = report.diagnostics.iter().filter(|d| d.rule_id == "s3_versioning_check").collect();
-    // Verify category and severity are correct on any guard diagnostics
-    for d in &guard_diags {
-        assert_eq!(d.severity, Severity::Error, "Guard rules should have Error severity");
-        assert!(
-            d.category.as_deref().map(|c| c.starts_with("guard:")).unwrap_or(false),
-            "Guard rule category should start with 'guard:', got '{:?}'",
-            d.category
-        );
-        assert_eq!(d.category.as_deref(), Some("guard:s3_versioning"), "Category should be guard:<filename>");
+    let report =
+        validate_bytes(&engine, &SHARED_SV, VERSIONED_AND_UNVERSIONED_BUCKETS, ValidateConfig::default()).unwrap();
+
+    let mut failing: Vec<(&str, &str)> = report
+        .diagnostics
+        .iter()
+        .filter(|d| d.rule_id == "s3_versioning_check")
+        .map(|d| (d.resource_logical_id().unwrap_or_default(), d.property_path.as_deref().unwrap_or_default()))
+        .collect();
+    failing.sort();
+    assert_eq!(
+        failing,
+        vec![("Suspended", "Properties.VersioningConfiguration.Status"), ("Unconfigured", "")],
+        "the versioned bucket passes; the other two fail at the deepest node the check reached - the \
+         mismatched value, and the resource itself when it has no Properties at all"
+    );
+    for d in report.diagnostics.iter().filter(|d| d.rule_id == "s3_versioning_check") {
+        assert_eq!(d.severity, Severity::Error, "Guard rules report Error severity");
+        assert_eq!(d.category.as_deref(), Some("guard:s3_versioning"), "category is guard:<file stem>");
+        assert_eq!(d.message, "S3 bucket must have versioning enabled");
+        assert!(d.location.is_some(), "a Guard finding on a resource carries a source span");
     }
-    // Also verify the rule is registered in list_rules with correct metadata
+
     let rules = engine.list_rules();
-    let guard_rule = rules.iter().find(|r| r.id == "s3_versioning_check");
-    assert!(guard_rule.is_some(), "Guard rule should appear in list_rules");
-    let guard_rule = guard_rule.unwrap();
+    let guard_rule = rules.iter().find(|r| r.id == "s3_versioning_check").expect("Guard rule appears in list_rules");
     assert_eq!(guard_rule.category.as_deref(), Some("guard:s3_versioning"));
+    assert_eq!(guard_rule.description, "S3 bucket must have versioning enabled");
 }
 
 #[test]
 fn e2e_guard_rule_pack() {
-    let guard_rules = resolve_guard_config(&["../guard-translator/tests/fixtures/pack".into()]).unwrap_or_default();
-    let config = EngineConfig { guard_rules, ..Default::default() };
-    let engine = RegoEngine::new(config);
-    // Pack loading may fail if translated rego has syntax issues from wildcard let assignments.
-    // This tests that the pack name derivation uses the directory name.
-    if let Ok(engine) = engine {
-        let rules = engine.list_rules();
-        let guard_rules: Vec<_> =
-            rules.iter().filter(|r| r.category.as_deref().is_some_and(|c| c.starts_with("guard:"))).collect();
-        assert!(!guard_rules.is_empty(), "Should have loaded guard rules from pack directory");
-    }
+    let guard_rules = resolve_guard_config(&["../guard-translator/tests/fixtures/pack".into()])
+        .expect("the pack directory resolves to its .guard files");
+    let engine = RegoEngine::new(EngineConfig { guard_rules, ..Default::default() }).expect("pack loads");
+
+    let mut guard_categories: Vec<String> =
+        engine.list_rules().into_iter().filter(|r| r.origin == RuleOrigin::Guard).filter_map(|r| r.category).collect();
+    guard_categories.sort();
+    guard_categories.dedup();
+    assert_eq!(
+        guard_categories,
+        vec!["guard:elb_https", "guard:s3_versioning"],
+        "every file in the pack contributes its own guard:<file stem> category"
+    );
 }
 
 #[test]
@@ -1244,7 +1267,13 @@ fn e2e_guard_rule_filtering() {
         ..Default::default()
     };
     let engine = RegoEngine::new(config).unwrap();
-    let template = b"AWSTemplateFormatVersion: '2010-09-09'\nResources:\n  Bucket:\n    Type: AWS::S3::Bucket\n    Properties:\n      VersioningConfiguration:\n        Status: Enabled\n";
+    let unfiltered =
+        validate_bytes(&engine, &SHARED_SV, VERSIONED_AND_UNVERSIONED_BUCKETS, ValidateConfig::default()).unwrap();
+    assert!(
+        unfiltered.diagnostics.iter().any(|d| d.rule_id == "s3_versioning_check"),
+        "sanity: the Guard rule fires before the category filter is applied"
+    );
+
     let validate_config = ValidateConfig {
         filters: FilterConfig::new(
             RuleFilterConfig::default(),
@@ -1252,7 +1281,7 @@ fn e2e_guard_rule_filtering() {
         ),
         ..Default::default()
     };
-    let report = validate_bytes(&engine, &SHARED_SV, template, validate_config).unwrap();
+    let report = validate_bytes(&engine, &SHARED_SV, VERSIONED_AND_UNVERSIONED_BUCKETS, validate_config).unwrap();
     assert!(
         !report.diagnostics.iter().any(|d| d.rule_id == "s3_versioning_check"),
         "Guard rule should be filtered out by category exclusion"
