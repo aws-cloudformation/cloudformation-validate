@@ -132,7 +132,8 @@ done
 JAVA8_CLASS_MAJOR=52
 CLASS_SCRATCH="$(mktemp -d)"
 trap 'rm -rf "$CLASS_SCRATCH"' EXIT
-unzip -q "$JAR_FILE" '*.class' -d "$CLASS_SCRATCH"
+
+( cd "$CLASS_SCRATCH" && jar xf "$JAR_FILE" )
 NEWER_CLASSES=$(find "$CLASS_SCRATCH" -name '*.class' -type f | while IFS= read -r class_file; do
     # some od implementations print one byte per line, so join before the arithmetic
     major=$(od -An -tu1 -j6 -N2 "$class_file" | tr -s ' \n' ' ' | awk '{ print $1 * 256 + $2 }')
