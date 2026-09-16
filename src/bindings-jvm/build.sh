@@ -129,6 +129,23 @@ for required_metadata in LICENSE NOTICE README.md THIRD-PARTY-LICENSES.txt; do
     fi
 done
 
+JAVA8_CLASS_MAJOR=52
+CLASS_SCRATCH="$(mktemp -d)"
+trap 'rm -rf "$CLASS_SCRATCH"' EXIT
+unzip -q "$JAR_FILE" '*.class' -d "$CLASS_SCRATCH"
+NEWER_CLASSES=$(find "$CLASS_SCRATCH" -name '*.class' -type f | while IFS= read -r class_file; do
+    # some od implementations print one byte per line, so join before the arithmetic
+    major=$(od -An -tu1 -j6 -N2 "$class_file" | tr -s ' \n' ' ' | awk '{ print $1 * 256 + $2 }')
+    if [ "${major:-0}" -ne "$JAVA8_CLASS_MAJOR" ]; then
+        echo "${class_file#"$CLASS_SCRATCH"/} (major ${major:-unknown})"
+    fi
+done)
+if [ -n "$NEWER_CLASSES" ]; then
+    echo "Error: $JAR_FILE contains classes compiled above Java 8 (class-file major $JAVA8_CLASS_MAJOR):" >&2
+    echo "$NEWER_CLASSES" | sed 's/^/  /' >&2
+    exit 1
+fi
+
 # ── Summary ───────────────────────────────────────────────────────────────────
 KT_SIZE=$(find "$GENERATED_DIR" -name '*.kt' -type f -exec cat {} + | wc -c | awk '{printf "%.1fM", $1/1048576}')
 LIB_SIZE=$(du -sh "$RELEASE_DIR/$LIB_NAME" | cut -f1)

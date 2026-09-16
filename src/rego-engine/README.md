@@ -120,4 +120,4 @@ namespace prefix. For example, a policy calls `resolve(name, "Properties.BucketN
 | `coerce_to_number`       | `(value) → number`              | CloudFormation-style number coercion          |
 | `coerce_to_string`       | `(value) → string`              | CloudFormation-style string coercion          |
 | `cfn_type_compatible`    | `(value, expected_type) → bool` | Check CFN type compatibility with coercion    |
-| `estimate_string_length` | `(resource_id, path) → number`  | Estimate resolved string length               |
+| `estimated_string_length_bounds` | `(resource_id, path) → {shortest, longest}` | Shortest and longest resolved string length; undefined when the length cannot be pinned for every possibility |

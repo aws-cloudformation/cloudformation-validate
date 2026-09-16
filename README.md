@@ -17,7 +17,7 @@
 [![Node.js](https://img.shields.io/node/v/%40aws%2Fcloudformation-validate?logo=nodedotjs)](src/bindings-wasm/README.md)
 [![Python](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Ftest.pypi.org%2Fpypi%2Fcloudformation-validate%2Fjson&query=%24.info.requires_python&label=Python&logo=python)](src/bindings-python/README.md)
 [![Go](https://img.shields.io/badge/Go-%3E%3D1.26-00ADD8?logo=go)](src/bindings-go/README.md)
-[![JVM](https://img.shields.io/badge/JVM-21%2B-orange?logo=openjdk)](src/bindings-jvm/README.md)
+[![JVM](https://img.shields.io/badge/JVM-8%2B-orange?logo=openjdk)](src/bindings-jvm/README.md)
 
 Fast, offline, embeddable validation for AWS CloudFormation templates.
 
@@ -46,9 +46,12 @@ JVM library (Kotlin/Java) - all backed by the same validation core.
 - **Custom rules.** Extend validation with your own rules in CEL (JSON), Rego, or
   [CloudFormation Guard](https://docs.aws.amazon.com/cfn-guard/latest/ug/what-is-guard.html) DSL.
 - **AWS CLI command validation.** Model a create or update API call as CloudFormation resource state and validate it
-  offline before it is sent; any call that cannot be modeled exactly is skipped, never guessed (see
-  [validation-engine/API.md](src/validation-engine/API.md#validating-an-aws-cli-command)).
+  offline before it is sent; any call that cannot be modeled exactly is skipped, never guessed. Available from the
+  Rust library and every language binding (see
+  [validation-engine/API.md](src/validation-engine/API.md#validating-an-aws-cli-command) and the binding READMEs).
 - **Embeddable everywhere.** Use it from the CLI, Rust, Node.js, Python, Go, or the JVM.
+- **Built into the AWS CDK.** `aws-cdk-lib` validates every synthesized template with this library by default through
+  its `CloudFormationValidatePlugin` - no setup required.
 - **Sub-second** validation for typical templates.
 
 ## How it works

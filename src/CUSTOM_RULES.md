@@ -364,7 +364,7 @@ do not fetch regional data themselves.
 | `hardcoded_azs`                  | `(resource_id, resource_type) -> [{path, zone}]` | Hardcoded Availability Zones found in the resource.                                                                      |
 | `pipeline_artifacts`             | `(resource_id) -> {issues: [{message}]}`         | Finds duplicate CodePipeline outputs and inputs that do not reference a previously defined output.                       |
 | `pipeline_artifact_count_issues` | `(resource_id) -> {issues: [{message}]}`         | Checks CodePipeline action input/output artifact counts, including conditional branches, against embedded action bounds. |
-| `estimate_string_length`         | `(resource_id, path) -> integer`                 | Estimated resolved length for literals and supported string intrinsics, or undefined.                                    |
+| `estimated_string_length_bounds` | `(resource_id, path) -> {shortest, longest}`     | Shortest and longest resolved length for literals and supported string intrinsics; undefined when the length cannot be pinned for every possibility. |
 
 ### Rego Example
 

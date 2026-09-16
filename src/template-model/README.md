@@ -87,7 +87,7 @@ let model = result.model;
 | `is_from_intrinsic(resource_id, path)`      | Check if a property originates from an intrinsic function    |
 | `source_location(path)`                     | Source span for a template path                              |
 | `resource_span(resource_id, prop_path)`     | Source span for a resource property                          |
-| `estimate_string_length(resource_id, path)` | Estimate resolved string length for constraint checking      |
+| `estimated_string_length_bounds(resource_id, path)` | Shortest and longest resolved string length for constraint checking, or `None` when the length cannot be pinned for every possibility |
 
 ### Key Fields
 

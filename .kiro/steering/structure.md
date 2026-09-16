@@ -34,10 +34,13 @@ src/
 │   ├── handwritten/            # Hand-maintained JSON reference tables (deprecated resource types,
 │   │                           # sensitive ports, GetAtt return-type overrides, schema-dependent
 │   │                           # exclusion overrides)
+│   ├── scripts/                # Maintainer-run Python generators (AWS CLI operation catalog, cfn-lint data sync)
 │   └── upstream/               # Upstream schema sources (provider schemas, extensions)
 ├── guard-translator/           # Guard DSL evaluation via the Guard evaluator (cloudformation-guard-lang) against the
 │                               # authored template; produces engine-agnostic findings that validation-engine maps to
 │                               # diagnostics through one GuardRuleSet every engine calls
+├── performance-harness/        # Performance regression harness (`check`/`update`) with per-environment
+│   └── expected/               # baseline profiles for GitHub x64 runners and the reference Apple Silicon Mac
 ├── bindings-wasm/              # WASM bindings (wasm-bindgen) for Node.js embedding
 │   ├── ts/                     # TypeScript wrapper + type definitions
 │   ├── tests/                  # Node test suite (vitest, run.sh)
@@ -150,7 +153,7 @@ src/
   are reserved for problems in the template under validation — a parse error is the only failure that surfaces as a
   diagnostic instead of an `Err`.
 - **No panics, no hard crashes.** Errors are propagated as `Result`s through the language boundary layers and surface
-  to embedders as catchable errors (Kotlin/Java `ValidationError` exceptions and Python `ValidationError` via UniFFI,
+  to embedders as catchable errors (Kotlin/Java `ValidationException` and Python `ValidationError` via UniFFI,
   returned Go `error` values, thrown JS errors via wasm-bindgen) — never a process abort. Every fallible FFI entry
   point in `bindings-jvm`, `bindings-python`, `bindings-go`, and `bindings-wasm` is wrapped in
   `validation_engine::catch_panics` with a panic-to-error mapper as a last-resort backstop; new entry points must

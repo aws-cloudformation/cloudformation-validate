@@ -341,8 +341,8 @@ report.performance          // PerformanceMetrics with per-phase timings
 ```
 
 Each record's `analysis_incomplete` value reports whether that specific exhausted budget can cause findings to be
-omitted. `RequiredPropertyCombinations` is context-only, so its value is `false` and the report can remain `Ok`; the
-report becomes `AnalysisIncomplete` when any exhausted budget has a `true` value.
+omitted. The `requiredPropertyCombinations` kind is context-only, so its value is `false` and the report can remain
+`Ok`; the report becomes `AnalysisIncomplete` when any exhausted budget has a `true` value.
 
 Convert to output format:
 
@@ -394,8 +394,8 @@ For engines that produce JSON diagnostics:
 |--------------------|-----------------------------------------------------------------------------|
 | `ValidationEngine` | Trait that engines implement - provides `evaluate_rules` and rule metadata  |
 | `EngineType`       | `Composite` (default), `Rego`, or `Cel` - selects which validation engine evaluates rules |
-| `EngineConfig`     | Engine construction config: `custom_rules` and `guard_rules` as `ExternalRuleSource` |
+| `EngineConfig`     | Engine construction config: `custom_rules` and `guard_rules` as `ExternalRuleSource`, plus optional `schema_validator_config` |
 | `CompositeEngineConfig` | Composite engine construction config: `rego_rules`, `cel_rules`, and `guard_rules` as `ExternalRuleSource`, plus optional `schema_validator_config` |
-| `ValidateConfig`   | Per-call config: filters, detail level, severity level, parameter overrides, strict, disable_builtin_rules |
+| `ValidateConfig`   | Per-call config: filters, detail level, severity level, parameter overrides, pseudo-parameter overrides, strict, disable_builtin_rules |
 | `ExternalRuleSource` | `{ name: String, content: String }` - a pre-read rule file's identifier and raw content |
 | `ValidationError`  | `Parse(ParseError)` or `Engine(String)`                                     |
