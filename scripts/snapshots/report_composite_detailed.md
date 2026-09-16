@@ -1,6 +1,6 @@
 # cloudformation-validate vs cfn-lint - Parity Report
 
-> Generated: 2026-09-14 09:35:29  
+> Generated: 2026-09-16 11:51:52  
 > Engine: **composite**  
 > Detail level: **detailed**  
 > Matching: `(rule_id, resource_id, path)` two-pass with `(rule_id, resource_id)` fallback + aliases  
@@ -18971,9 +18971,11 @@ other tool's output. They are excluded from precision/recall scoring.
 - `integration_yaml-alias-amplification_yaml` (1 diagnostics)
 - `integration_yaml-alias_yaml` (1 diagnostics)
 
-### Engine reports with no cfn-lint result — 2 templates, 0 diagnostics
+### Engine reports with no cfn-lint result — 4 templates, 16 diagnostics
 
+- `bad_F6101_getatt_ref_typed_object_attribute_yaml` (9 diagnostics)
 - `empty_yaml` (0 diagnostics)
+- `good_getatt_ref_typed_nested_attribute_yaml` (7 diagnostics)
 - `malformed_yaml` (0 diagnostics)
 
 ## Root-Cause Analysis
