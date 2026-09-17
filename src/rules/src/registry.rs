@@ -1952,6 +1952,30 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         description: "VirtualName is ignored when Ebs is specified",
         origin: RuleOrigin::CfnLint,
     },
+    RuleDefinition {
+        id: "E3717",
+        category: Category::Resource,
+        description: "Lambda function Timeout may exceed 900 seconds only with CapacityProviderConfig",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
+        id: "E3718",
+        category: Category::Resource,
+        description: "API Gateway TOKEN and REQUEST authorizers must keep AuthorizerResultTtlInSeconds within 0 to 3600",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
+        id: "E3719",
+        category: Category::Resource,
+        description: "RDS DB instances on non-Aurora engines must keep BackupRetentionPeriod at most 35 days",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
+        id: "E3723",
+        category: Category::Resource,
+        description: "API Gateway Stage method setting ResourcePath must start with '/' when a setting is configured",
+        origin: RuleOrigin::CfnLint,
+    },
 ];
 
 #[cfg(test)]

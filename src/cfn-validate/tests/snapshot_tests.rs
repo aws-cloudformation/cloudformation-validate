@@ -191,7 +191,7 @@ fn composite_standard_matches_snapshot() {
     check_standard("composite", &engine);
 }
 
-const EXPECTED_RULES_EVALUATED: u64 = 303;
+const EXPECTED_RULES_EVALUATED: u64 = 307;
 
 #[test]
 fn rules_evaluated_is_full_rule_count() {

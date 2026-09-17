@@ -251,7 +251,7 @@ pub mod keywords {
 
     /// Fields read by `compile_condition_schema`: what a conditional `if` block
     /// may contain.
-    pub const COMPILE_CONDITION_SCHEMA_FIELDS: &[&str] = &[PROPERTIES, REQUIRED, TYPE, ANY_OF];
+    pub const COMPILE_CONDITION_SCHEMA_FIELDS: &[&str] = &[PROPERTIES, REQUIRED, TYPE, ANY_OF, ONE_OF, NOT];
 }
 
 #[derive(Serialize, Deserialize)]
@@ -316,6 +316,11 @@ pub struct ConditionSchema {
     pub properties: BTreeMap<String, PropSchema>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub required: Vec<String>,
+    /// Properties the condition requires to be absent (`properties.X: false`
+    /// in JSON Schema rejects every value, so the instance can only satisfy the
+    /// condition by omitting the property).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub absent: Vec<String>,
     /// The instance type the condition requires (`if: {"type": ...}`). A
     /// condition stating a type only matches an instance of that type; resource
     /// roots are always objects, so `"object"` is a no-op there while any other
@@ -324,6 +329,12 @@ pub struct ConditionSchema {
     pub prop_type: Option<PropType>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub any_of: Vec<ConditionSchema>,
+    /// When non-empty, exactly one of these sub-conditions must match.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub one_of: Vec<ConditionSchema>,
+    /// When set, the condition matches only if this sub-condition does not.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub not: Option<Box<ConditionSchema>>,
 }
 
 #[derive(Serialize, Deserialize, Default)]
@@ -575,18 +586,84 @@ fn compile_condition_schema(raw: &serde_json::Value, ref_siblings: RefSiblings) 
         None => return ConditionSchema::default(),
     };
     let mut props = BTreeMap::new();
+    let mut absent = Vec::new();
     if let Some(p) = obj.get(keywords::PROPERTIES).and_then(|v| v.as_object()) {
         for (k, v) in p {
-            props.insert(k.clone(), compile_prop_with(v, ref_siblings));
+            if v == &serde_json::Value::Bool(false) {
+                absent.push(k.clone());
+            } else {
+                props.insert(k.clone(), compile_prop_with(v, ref_siblings));
+            }
         }
     }
-    let any_of = obj
-        .get(keywords::ANY_OF)
-        .and_then(|v| v.as_array())
-        .map(|arr| arr.iter().map(|entry| compile_condition_schema(entry, ref_siblings)).collect())
-        .unwrap_or_default();
+    let compile_sub_conditions = |keyword: &str| -> Vec<ConditionSchema> {
+        obj.get(keyword)
+            .and_then(|v| v.as_array())
+            .map(|arr| arr.iter().map(|entry| compile_condition_schema(entry, ref_siblings)).collect())
+            .unwrap_or_default()
+    };
     let prop_type = obj.get(keywords::TYPE).map(compile_prop_type);
-    ConditionSchema { properties: props, required: str_arr(obj.get(keywords::REQUIRED)), prop_type, any_of }
+    ConditionSchema {
+        properties: props,
+        required: str_arr(obj.get(keywords::REQUIRED)),
+        absent,
+        prop_type,
+        any_of: compile_sub_conditions(keywords::ANY_OF),
+        one_of: compile_sub_conditions(keywords::ONE_OF),
+        not: obj.get(keywords::NOT).map(|negated| Box::new(compile_condition_schema(negated, ref_siblings))),
+    }
+}
+
+/// Describes every resource-root conditional whose `if` schema the compiler
+/// cannot represent faithfully: a keyword outside
+/// [`keywords::COMPILE_CONDITION_SCHEMA_FIELDS`], or an `if` that states no
+/// condition at all. Such a condition would compile to one that always (or
+/// never) matches, silently changing what the `then` branch applies to, so the
+/// build pipeline refuses to emit it. Sub-conditions under `anyOf`, `oneOf` and
+/// `not` follow the same grammar and are audited recursively.
+pub fn unsupported_root_conditionals(type_name: &str, raw: &serde_json::Value) -> Vec<String> {
+    let Some(all_of) = raw.get(keywords::ALL_OF).and_then(|v| v.as_array()) else {
+        return Vec::new();
+    };
+    let mut findings = Vec::new();
+    for (index, entry) in all_of.iter().enumerate() {
+        if let Some(condition) = entry.get(keywords::IF) {
+            audit_condition(condition, &format!("{type_name} allOf[{index}].if"), &mut findings);
+        }
+    }
+    findings
+}
+
+fn audit_condition(condition: &serde_json::Value, location: &str, findings: &mut Vec<String>) {
+    let Some(members) = condition.as_object() else {
+        findings.push(format!("{location} must be a JSON object"));
+        return;
+    };
+    let unsupported: Vec<&str> = members
+        .keys()
+        .map(String::as_str)
+        .filter(|key| {
+            !keywords::COMPILE_CONDITION_SCHEMA_FIELDS.contains(key) && !keywords::REF_ANNOTATION_KEYWORDS.contains(key)
+        })
+        .collect();
+    if !unsupported.is_empty() {
+        findings.push(format!("{location} uses keywords the condition compiler does not represent: {unsupported:?}"));
+    }
+    let states_a_condition =
+        members.keys().any(|key| keywords::COMPILE_CONDITION_SCHEMA_FIELDS.contains(&key.as_str()));
+    if !states_a_condition {
+        findings.push(format!("{location} states no condition"));
+    }
+    for keyword in [keywords::ANY_OF, keywords::ONE_OF] {
+        if let Some(sub_conditions) = members.get(keyword).and_then(|v| v.as_array()) {
+            for (index, sub_condition) in sub_conditions.iter().enumerate() {
+                audit_condition(sub_condition, &format!("{location}.{keyword}[{index}]"), findings);
+            }
+        }
+    }
+    if let Some(negated) = members.get(keywords::NOT) {
+        audit_condition(negated, &format!("{location}.not"), findings);
+    }
 }
 
 /// Compiles a raw `type` keyword value into the [`PropType`] representation:
@@ -967,18 +1044,95 @@ mod tests {
                 "properties": { "A": { "enum": ["x"] } },
                 "required": ["A"],
                 "type": "object",
-                "anyOf": [{ "properties": { "B": { "enum": ["y"] } } }]
+                "anyOf": [{ "properties": { "B": { "enum": ["y"] } } }],
+                "oneOf": [{ "required": ["C"] }, { "properties": { "C": false } }],
+                "not": { "required": ["D"] }
             }),
             RefSiblings::Enforce,
         );
         assert!(cond.properties.contains_key("A"));
         assert_eq!(cond.required, vec!["A".to_string()]);
         assert_eq!(cond.any_of.len(), 1);
+        assert_eq!(cond.one_of.len(), 2);
+        assert_eq!(
+            cond.one_of[1].absent,
+            vec!["C".to_string()],
+            "a `false` property schema means the property is absent"
+        );
+        assert_eq!(cond.not.as_ref().map(|negated| negated.required.clone()), Some(vec!["D".to_string()]));
         assert!(cond.prop_type.is_some(), "the condition's type must be compiled");
         assert_eq!(
             keywords::COMPILE_CONDITION_SCHEMA_FIELDS,
-            &[keywords::PROPERTIES, keywords::REQUIRED, keywords::TYPE, keywords::ANY_OF]
+            &[
+                keywords::PROPERTIES,
+                keywords::REQUIRED,
+                keywords::TYPE,
+                keywords::ANY_OF,
+                keywords::ONE_OF,
+                keywords::NOT
+            ]
         );
+    }
+
+    #[test]
+    fn negated_and_exclusive_conditions_survive_compilation() {
+        let compiled = compile_schema(
+            "AWS::Test::Domain",
+            &json!({
+                "properties": { "Domain": { "type": "string" }, "CustomDomainConfig": { "type": "object" } },
+                "allOf": [
+                    {
+                        "if": { "not": { "required": ["CustomDomainConfig"] } },
+                        "then": { "properties": { "Domain": { "pattern": "^[a-z0-9-]+$" } } }
+                    },
+                    {
+                        "if": { "oneOf": [
+                            { "properties": { "Type": { "const": "application" } }, "required": ["Type"] },
+                            { "properties": { "Type": false } }
+                        ] },
+                        "then": { "properties": { "Subnets": { "minItems": 2 } } }
+                    }
+                ]
+            }),
+        );
+        let negated = compiled.if_then_else[0].condition.not.as_ref().expect("`not` is compiled");
+        assert_eq!(negated.required, vec!["CustomDomainConfig".to_string()]);
+        let exclusive = &compiled.if_then_else[1].condition.one_of;
+        assert_eq!(exclusive.len(), 2);
+        assert!(exclusive[0].properties.contains_key("Type"));
+        assert_eq!(exclusive[1].absent, vec!["Type".to_string()]);
+    }
+
+    #[test]
+    fn root_conditional_audit_accepts_the_supported_grammar() {
+        let schema = json!({
+            "allOf": [
+                { "if": { "required": ["A"] }, "then": {} },
+                { "if": { "not": { "required": ["B"] } }, "then": {} },
+                { "if": { "oneOf": [{ "properties": { "T": { "const": "x" } }, "required": ["T"] }, { "properties": { "T": false } }] }, "then": {} },
+                { "if": { "anyOf": [{ "required": ["C"] }], "description": "annotation" }, "then": {} },
+                { "properties": { "Plain": { "type": "string" } } }
+            ]
+        });
+        assert!(unsupported_root_conditionals("AWS::Test::T", &schema).is_empty());
+    }
+
+    #[test]
+    fn root_conditional_audit_rejects_unrepresented_keywords_and_empty_conditions() {
+        let schema = json!({
+            "allOf": [
+                { "if": { "allOf": [{ "required": ["A"] }] }, "then": {} },
+                { "if": { "description": "says nothing" }, "then": {} },
+                { "if": { "oneOf": [{ "maximum": 60 }] }, "then": {} }
+            ]
+        });
+        let findings = unsupported_root_conditionals("AWS::Test::T", &schema);
+        assert_eq!(findings.len(), 5, "{findings:?}");
+        assert!(findings[0].contains("allOf[0].if") && findings[0].contains("\"allOf\""));
+        assert!(findings[1].contains("allOf[0].if states no condition"));
+        assert!(findings[2].contains("allOf[1].if states no condition"));
+        assert!(findings[3].contains("allOf[2].if.oneOf[0]") && findings[3].contains("\"maximum\""));
+        assert!(findings[4].contains("allOf[2].if.oneOf[0] states no condition"));
     }
 
     #[test]

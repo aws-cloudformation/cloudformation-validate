@@ -32,12 +32,15 @@ impl From<build::PropType> for PropType {
 
 impl From<build::ConditionSchema> for ConditionSchema {
     fn from(source: build::ConditionSchema) -> Self {
-        let build::ConditionSchema { properties, required, prop_type, any_of } = source;
+        let build::ConditionSchema { properties, required, absent, prop_type, any_of, one_of, not } = source;
         ConditionSchema {
             properties: props(properties),
             required,
+            absent,
             prop_type: prop_type.map(Into::into),
             any_of: any_of.into_iter().map(Into::into).collect(),
+            one_of: one_of.into_iter().map(Into::into).collect(),
+            not: not.map(|negated| Box::new((*negated).into())),
         }
     }
 }
