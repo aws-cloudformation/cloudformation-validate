@@ -261,6 +261,86 @@ fn resolve_concrete(m: &SemanticModel, rid: &str, path: &str) -> Option<serde_js
     scenarios.into_iter().next().map(|(v, _)| v)
 }
 
+/// Number of items in a list-valued property. Known even when the items are
+/// references to other resources, which concrete resolution cannot produce;
+/// unknown (`None`) when the whole list is a reference or conditional.
+fn resolved_item_count(m: &SemanticModel, rid: &str, path: &str) -> Option<usize> {
+    resolved_list_items(m, rid, path).map(|items| items.len())
+}
+
+/// The items of a list-valued property, rendered best-effort so that items
+/// containing references are still visible to rules that only read their
+/// literal members. `None` when the whole list is a reference or conditional.
+fn resolved_list_items(m: &SemanticModel, rid: &str, path: &str) -> Option<Vec<serde_json::Value>> {
+    match m.resolve_deep(rid, path).or_else(|| m.resolve(rid, path).cloned())? {
+        ResolvedValue::Concrete { value } => value.as_array().cloned(),
+        ResolvedValue::List { items } => Some(items.iter().map(resolved_to_json_best_effort).collect()),
+        _ => None,
+    }
+}
+
+fn resource_has_property(m: &SemanticModel, rid: &str, property_name: &str) -> bool {
+    let is_top_level = m.resources.get(rid).is_some_and(|resource| resource.properties.contains_key(property_name));
+    // `Properties` wrapped in `Fn::If` stores values only under the synthetic
+    // branch path, where only path resolution finds them.
+    is_top_level || m.resolve_deep(rid, &format!("Properties.{}", property_name)).is_some()
+}
+
+const ALB_MINIMUM_SUBNETS: usize = 2;
+
+const ALB_SUBNET_MINIMUM_MESSAGES: [(&str, &str); 2] = [
+    ("Subnets", "Application load balancer requires at least 2 subnets"),
+    ("SubnetMappings", "Application load balancer requires at least 2 subnet mappings"),
+];
+
+/// A load balancer without a Type is an application load balancer. A Type that
+/// is present but does not resolve to a string (a parameter reference) is left
+/// alone rather than assumed.
+fn alb_is_application_type(m: &SemanticModel, rid: &str) -> bool {
+    if !resource_has_property(m, rid, "Type") {
+        return true;
+    }
+    resolve_concrete(m, rid, "Properties.Type").as_ref().and_then(|v| v.as_str()) == Some("application")
+}
+
+/// The keys of a Stage method setting that configure caching, logging, metrics
+/// or throttling. Once any of them is present, API Gateway resolves the
+/// setting's ResourcePath as an absolute path, so it must start with '/'.
+const STAGE_METHOD_SETTING_KEYS: [&str; 8] = [
+    "CacheDataEncrypted",
+    "CacheTtlInSeconds",
+    "CachingEnabled",
+    "DataTraceEnabled",
+    "LoggingLevel",
+    "MetricsEnabled",
+    "ThrottlingBurstLimit",
+    "ThrottlingRateLimit",
+];
+
+fn stage_method_setting_configures_something(setting: &serde_json::Value) -> bool {
+    STAGE_METHOD_SETTING_KEYS.iter().any(|key| setting.get(key).is_some_and(|value| !value.is_null()))
+}
+
+/// Enhanced Monitoring on a DB cluster is configured by two properties that
+/// only work together: a MonitoringRoleArn is used only when MonitoringInterval
+/// is greater than 0, and a non-zero interval needs a role to publish with.
+const DBCLUSTER_MONITORING_MESSAGE: &str =
+    "MonitoringRoleArn and a MonitoringInterval greater than 0 must be specified together";
+
+/// The property path an inconsistent monitoring configuration is reported at,
+/// or `None` when the configuration is consistent or not decidable.
+fn dbcluster_monitoring_mismatch_path(m: &SemanticModel, rid: &str) -> Option<&'static str> {
+    let has_role = resource_has_property(m, rid, "MonitoringRoleArn");
+    let has_interval = resource_has_property(m, rid, "MonitoringInterval");
+    let interval = resolve_concrete(m, rid, "Properties.MonitoringInterval").as_ref().and_then(coerce_to_integer);
+    match (has_role, has_interval, interval) {
+        (true, false, _) => Some(KEY_PROPERTIES),
+        (true, true, Some(interval)) if interval <= 0 => Some("Properties.MonitoringInterval"),
+        (false, true, Some(interval)) if interval > 0 => Some(KEY_PROPERTIES),
+        _ => None,
+    }
+}
+
 /// Runs the shared identity-policy structural validator against a resolved
 /// document and converts its findings into engine diagnostics. The `substituted`
 /// set is derived from the reference graph: any outgoing edge whose source_path
@@ -577,6 +657,69 @@ fn sg_protocol_has_ordered_port_range(protocol: Option<&serde_json::Value>) -> b
     }
 }
 
+const SG_INVERTED_PORT_RANGE_FIX: &str = "Set FromPort to a value less than or equal to ToPort";
+
+fn sg_inverted_port_range_message(from_port: i64, to_port: i64) -> String {
+    format!("FromPort {} is greater than ToPort {}", from_port, to_port)
+}
+
+/// The `(FromPort, ToPort)` pair when the protocol's ports form an ordered
+/// range, both resolve to integers, and the range is inverted.
+fn sg_inverted_port_range(
+    protocol: Option<&serde_json::Value>,
+    from_port: Option<&serde_json::Value>,
+    to_port: Option<&serde_json::Value>,
+) -> Option<(i64, i64)> {
+    if !sg_protocol_has_ordered_port_range(protocol) {
+        return None;
+    }
+    let from_port = from_port.and_then(coerce_to_integer)?;
+    let to_port = to_port.and_then(coerce_to_integer)?;
+    (from_port > to_port).then_some((from_port, to_port))
+}
+
+/// Protocols whose FromPort/ToPort must be present: TCP and UDP take a port
+/// range and ICMP takes a type/code pair. ICMPv6 is deliberately absent - its
+/// type/code are optional, and omitting them allows every type and code.
+const SG_PORT_REQUIRED_PROTOCOL_NAMES: [&str; 9] = ["1", "icmp", "6", "tcp", "17", "udp", "TCP", "UDP", "ICMP"];
+const SG_PORT_REQUIRED_PROTOCOL_NUMBERS: [i64; 3] = [1, 6, 17];
+
+/// Protocols for which FromPort/ToPort carry meaning: a port range for
+/// TCP/UDP, an ICMP type/code for ICMP and ICMPv6. Any other protocol -
+/// including the all-protocols wildcard -1 - allows traffic on every port
+/// regardless of the range given, so the ports are ignored.
+const SG_PORT_MEANINGFUL_PROTOCOL_NAMES: [&str; 13] =
+    ["1", "icmp", "6", "tcp", "17", "udp", "TCP", "UDP", "ICMP", "58", "icmpv6", "ICMPv6", "ICMPV6"];
+const SG_PORT_MEANINGFUL_PROTOCOL_NUMBERS: [i64; 4] = [1, 6, 17, 58];
+
+/// `None` when the protocol is not a resolved scalar (absent, still a
+/// reference, or a non-integral number), so callers can neither require nor
+/// flag ports for a value they cannot classify.
+fn sg_protocol_is_listed(protocol: &serde_json::Value, names: &[&str], numbers: &[i64]) -> Option<bool> {
+    match protocol {
+        serde_json::Value::String(name) => Some(names.contains(&name.as_str())),
+        serde_json::Value::Number(number) => number.as_i64().map(|value| numbers.contains(&value)),
+        _ => None,
+    }
+}
+
+fn sg_protocol_requires_ports(protocol: Option<&serde_json::Value>) -> bool {
+    protocol
+        .and_then(|value| {
+            sg_protocol_is_listed(value, &SG_PORT_REQUIRED_PROTOCOL_NAMES, &SG_PORT_REQUIRED_PROTOCOL_NUMBERS)
+        })
+        .unwrap_or(false)
+}
+
+fn sg_protocol_ignores_ports(protocol: Option<&serde_json::Value>) -> bool {
+    protocol
+        .and_then(|value| {
+            sg_protocol_is_listed(value, &SG_PORT_MEANINGFUL_PROTOCOL_NAMES, &SG_PORT_MEANINGFUL_PROTOCOL_NUMBERS)
+        })
+        .map(|is_meaningful| !is_meaningful)
+        .unwrap_or(false)
+}
+
 pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     let mut out = Vec::new();
     let m = ctx.model;
@@ -660,61 +803,58 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    if let Some(resources) = input.get(FIELD_RESOURCES).and_then(|r| r.as_object()) {
-        for (name, res) in resources {
-            if res.get(FIELD_RESOURCE_TYPE).and_then(|t| t.as_str()) != Some("AWS::EC2::SecurityGroup") {
+    for name in m.resources_of_type("AWS::EC2::SecurityGroup") {
+        // Raw properties are used so that rule arrays containing dynamic Refs
+        // (which concrete resolution skips) still have their scalar ports read.
+        let Some(properties) = input
+            .get(FIELD_RESOURCES)
+            .and_then(|resources| resources.get(name.as_str()))
+            .and_then(|r| r.get(FIELD_PROPERTIES))
+        else {
+            continue;
+        };
+        for direction in ["SecurityGroupIngress", "SecurityGroupEgress"] {
+            let Some(rules) = properties.get(direction).and_then(|s| s.as_array()) else {
                 continue;
-            }
-            if let Some(rules) =
-                res.get(FIELD_PROPERTIES).and_then(|p| p.get("SecurityGroupIngress")).and_then(|s| s.as_array())
-            {
-                for rule in rules {
-                    if !sg_protocol_has_ordered_port_range(rule.get("IpProtocol")) {
-                        continue;
-                    }
-                    let from = rule.get("FromPort").and_then(coerce_to_integer);
-                    let to = rule.get("ToPort").and_then(coerce_to_integer);
-                    if let (Some(f), Some(t)) = (from, to)
-                        && f > t
-                    {
-                        out.push(make_resource_diagnostic(
-                            "E9002",
-                            &format!("FromPort {} is greater than ToPort {}", f, t),
-                            m,
-                            name,
-                            "Properties.SecurityGroupIngress",
-                            Some("Set FromPort to a value less than or equal to ToPort"),
-                        ));
-                    }
+            };
+            for (idx, rule) in rules.iter().enumerate() {
+                if let Some((from_port, to_port)) =
+                    sg_inverted_port_range(rule.get("IpProtocol"), rule.get("FromPort"), rule.get("ToPort"))
+                {
+                    out.push(make_resource_diagnostic(
+                        "E9002",
+                        &sg_inverted_port_range_message(from_port, to_port),
+                        m,
+                        name,
+                        &format!("Properties.{}.{}", direction, idx),
+                        Some(SG_INVERTED_PORT_RANGE_FIX),
+                    ));
                 }
             }
         }
     }
 
+    for rule_type in ["AWS::EC2::SecurityGroupIngress", "AWS::EC2::SecurityGroupEgress"] {
+        for name in m.resources_of_type(rule_type) {
+            let protocol = resolve_concrete(m, name, "Properties.IpProtocol");
+            let from_port = resolve_concrete(m, name, "Properties.FromPort");
+            let to_port = resolve_concrete(m, name, "Properties.ToPort");
+            if let Some((from_port, to_port)) =
+                sg_inverted_port_range(protocol.as_ref(), from_port.as_ref(), to_port.as_ref())
+            {
+                out.push(make_resource_diagnostic(
+                    "E9002",
+                    &sg_inverted_port_range_message(from_port, to_port),
+                    m,
+                    name,
+                    "Properties.FromPort",
+                    Some(SG_INVERTED_PORT_RANGE_FIX),
+                ));
+            }
+        }
+    }
+
     {
-        let port_relevant_protocols: HashSet<&str> =
-            ["1", "icmp", "6", "tcp", "17", "udp", "TCP", "UDP", "ICMP"].into_iter().collect();
-        let port_relevant_numbers: HashSet<i64> = [1, 6, 17].into_iter().collect();
-
-        let protocol_requires_ports = |proto: Option<&serde_json::Value>| -> bool {
-            match proto {
-                Some(serde_json::Value::String(s)) => port_relevant_protocols.contains(s.as_str()),
-                Some(serde_json::Value::Number(n)) => {
-                    n.as_i64().map(|n| port_relevant_numbers.contains(&n)).unwrap_or(false)
-                }
-                _ => false,
-            }
-        };
-        let protocol_ignores_ports = |proto: Option<&serde_json::Value>| -> bool {
-            match proto {
-                Some(serde_json::Value::String(s)) => !port_relevant_protocols.contains(s.as_str()),
-                Some(serde_json::Value::Number(n)) => {
-                    n.as_i64().map(|n| !port_relevant_numbers.contains(&n)).unwrap_or(false)
-                }
-                _ => false,
-            }
-        };
-
         // Inline SecurityGroup ingress/egress rules - access raw properties
         // to handle arrays containing dynamic Refs that resolve_concrete skips
         for name in m.resources_of_type("AWS::EC2::SecurityGroup") {
@@ -738,7 +878,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                     let has_port = rule.get("FromPort").is_some() || rule.get("ToPort").is_some();
                     let val = proto.map(|p| p.to_string()).unwrap_or_default();
                     let val_display = val.trim_matches('"');
-                    if protocol_requires_ports(proto) && !has_port {
+                    if sg_protocol_requires_ports(proto) && !has_port {
                         out.push(make_resource_diagnostic(
                             "E3687",
                             &format!(
@@ -751,7 +891,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                             None,
                         ));
                     }
-                    if protocol_ignores_ports(proto) && has_port {
+                    if sg_protocol_ignores_ports(proto) && has_port {
                         out.push(make_resource_diagnostic(
                             "W3687",
                             &format!(
@@ -776,7 +916,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                     || resolve_concrete(m, name, "Properties.ToPort").is_some();
                 let val = proto.as_ref().map(|p| p.to_string()).unwrap_or_default();
                 let val_display = val.trim_matches('"');
-                if protocol_requires_ports(proto.as_ref()) && !has_port {
+                if sg_protocol_requires_ports(proto.as_ref()) && !has_port {
                     out.push(make_resource_diagnostic(
                         "E3687",
                         &format!(
@@ -789,7 +929,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                         None,
                     ));
                 }
-                if protocol_ignores_ports(proto.as_ref()) && has_port {
+                if sg_protocol_ignores_ports(proto.as_ref()) && has_port {
                     out.push(make_resource_diagnostic(
                         "W3687",
                         &format!("['FromPort', 'ToPort'] are ignored when using 'IpProtocol' value '{}'", val_display),
@@ -3222,21 +3362,46 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     for name in m.resources_of_type("AWS::ElasticLoadBalancingV2::LoadBalancer") {
-        let lb_type = resolve_concrete(m, name, "Properties.Type")
-            .and_then(|v| v.as_str().map(|s| s.to_string()))
-            .unwrap_or_else(|| "application".to_string());
-        if lb_type == "application"
-            && let Some(serde_json::Value::Array(subnets)) = resolve_concrete(m, name, "Properties.Subnets")
-            && subnets.len() < 2
-        {
-            out.push(make_resource_diagnostic(
-                "E3680",
-                "Application load balancer requires at least 2 subnets",
-                m,
-                name,
-                "Properties.Subnets",
-                None,
-            ));
+        if !alb_is_application_type(m, name) {
+            continue;
+        }
+        for (subnet_property, message) in ALB_SUBNET_MINIMUM_MESSAGES {
+            let path = format!("Properties.{}", subnet_property);
+            if resolved_item_count(m, name, &path).is_some_and(|count| count < ALB_MINIMUM_SUBNETS) {
+                out.push(make_resource_diagnostic("E3680", message, m, name, &path, None));
+            }
+        }
+    }
+
+    for name in m.resources_of_type("AWS::RDS::DBCluster") {
+        if let Some(path) = dbcluster_monitoring_mismatch_path(m, name) {
+            out.push(make_resource_diagnostic("E3689", DBCLUSTER_MONITORING_MESSAGE, m, name, path, None));
+        }
+    }
+
+    for name in m.resources_of_type("AWS::ApiGateway::Stage") {
+        let Some(settings) = resolved_list_items(m, name, "Properties.MethodSettings") else {
+            continue;
+        };
+        for (idx, setting) in settings.iter().enumerate() {
+            if !stage_method_setting_configures_something(setting) {
+                continue;
+            }
+            if let Some(resource_path) = setting.get("ResourcePath").and_then(|v| v.as_str())
+                && !resource_path.starts_with('/')
+            {
+                out.push(make_resource_diagnostic(
+                    "E3723",
+                    &format!(
+                        "ResourcePath '{}' must start with '/' when a method setting is configured",
+                        resource_path
+                    ),
+                    m,
+                    name,
+                    &format!("Properties.MethodSettings.{}.ResourcePath", idx),
+                    None,
+                ));
+            }
         }
     }
 
@@ -4562,6 +4727,63 @@ mod tests {
             !sg_protocol_has_ordered_port_range(Some(&unresolved_ref)),
             "unresolved protocol should not have an ordered port range"
         );
+    }
+
+    #[test]
+    fn ports_are_meaningful_for_icmpv6_in_every_spelling() {
+        for proto in [
+            serde_json::json!("icmpv6"),
+            serde_json::json!("ICMPv6"),
+            serde_json::json!("ICMPV6"),
+            serde_json::json!("58"),
+            serde_json::json!(58),
+        ] {
+            assert!(
+                !sg_protocol_ignores_ports(Some(&proto)),
+                "{} carries an ICMP type/code, ports are not ignored",
+                proto
+            );
+        }
+    }
+
+    #[test]
+    fn ports_are_optional_for_icmpv6_but_required_for_tcp_udp_icmp() {
+        for proto in
+            [serde_json::json!("icmpv6"), serde_json::json!("ICMPv6"), serde_json::json!("58"), serde_json::json!(58)]
+        {
+            assert!(!sg_protocol_requires_ports(Some(&proto)), "{} may omit its type/code", proto);
+        }
+        for proto in [
+            serde_json::json!("tcp"),
+            serde_json::json!("UDP"),
+            serde_json::json!("icmp"),
+            serde_json::json!("6"),
+            serde_json::json!(17),
+            serde_json::json!(1),
+        ] {
+            assert!(sg_protocol_requires_ports(Some(&proto)), "{} must state its ports", proto);
+        }
+    }
+
+    #[test]
+    fn ports_are_ignored_for_wildcard_and_other_protocols_only() {
+        for proto in [serde_json::json!("-1"), serde_json::json!(-1), serde_json::json!("esp"), serde_json::json!(50)] {
+            assert!(sg_protocol_ignores_ports(Some(&proto)), "{} allows every port, so a range is ignored", proto);
+        }
+        for proto in
+            [serde_json::json!("tcp"), serde_json::json!("ICMP"), serde_json::json!(6), serde_json::json!("17")]
+        {
+            assert!(!sg_protocol_ignores_ports(Some(&proto)), "{} uses its ports", proto);
+        }
+    }
+
+    #[test]
+    fn unresolved_protocol_neither_requires_nor_ignores_ports() {
+        let unresolved_ref = serde_json::json!({"Ref": "ProtocolParam"});
+        assert!(!sg_protocol_requires_ports(None));
+        assert!(!sg_protocol_ignores_ports(None));
+        assert!(!sg_protocol_requires_ports(Some(&unresolved_ref)));
+        assert!(!sg_protocol_ignores_ports(Some(&unresolved_ref)));
     }
 
     #[test]

@@ -644,23 +644,77 @@ fn validate_resource(
 
     let actual_keys: Vec<String> = res.properties.keys().cloned().collect();
     for ite in &schema.if_then_else {
-        let matches = condition_matches(&ite.condition, &actual_keys, m, rid, defs);
-        let sub = if matches { &ite.then_schema } else { &ite.else_schema };
-        if let Some(sub) = sub {
+        // A condition stating nothing is the trace of a source `if` the compiler
+        // could not represent; read as always-true it would apply the branch to
+        // every resource of the type.
+        if ite.condition.states_nothing() {
+            continue;
+        }
+        // A condition over a property whose presence depends on template
+        // conditions is decided separately in each reachable world, so a
+        // property present in one `Fn::If` branch selects that world's
+        // constraints only there. Exceeding the enumeration budget omits the
+        // conditional rather than deciding it from an incomplete set of worlds.
+        let Some(assignments) = conditional_scenario_assignments(m, rid, &ite.condition, base) else {
+            continue;
+        };
+        for assignment in assignments {
+            let _scenario_filter_scope = ScenarioFilterScope::enter(assignment.clone());
+            let effective_keys: Vec<String> = actual_keys
+                .iter()
+                .filter(|key| property_present_under(m, rid, base, key, &assignment))
+                .cloned()
+                .collect();
+            let matches = condition_matches(&ite.condition, &effective_keys, m, rid, defs);
+            let sub = if matches { &ite.then_schema } else { &ite.else_schema };
+            let Some(sub) = sub else {
+                continue;
+            };
             if ite.enforce_full_branch {
                 // An overlay-stated conditional is enforced in full - its
                 // `required` list, `additionalProperties`, dependency maps, and
                 // property value constraints - so nothing the author wrote is
                 // silently dropped.
-                validate_sub(out, m, rid, &res.resource_type, &actual_keys, sub, defs, base, 0);
+                validate_sub(out, m, rid, &res.resource_type, &effective_keys, sub, defs, base, 0);
             } else {
                 // Bundled conditionals enforce co-dependencies only: their
                 // richer semantics are owned by dedicated resource-specific
                 // rules, and enforcing them generically would double-report
-                // (see `IfThenElse::enforce_full_branch`).
-                validate_sub_dependencies(out, m, rid, &actual_keys, sub, base);
+                // (see `IfThenElse::enforce_full_branch`). Value constraints
+                // with a named owning rule are the exception.
+                validate_sub_dependencies(out, m, rid, &effective_keys, sub, base);
+                validate_owned_conditional_value_constraints(out, m, rid, &res.resource_type, sub, defs, base);
             }
         }
+    }
+}
+
+/// The distinct template-condition assignments under which a conditional must
+/// be decided: one per reachable combination of the properties its condition
+/// inspects. A condition over unconditional properties yields the single
+/// ambient assignment.
+fn conditional_scenario_assignments(
+    m: &Arc<SemanticModel>,
+    rid: &str,
+    condition: &ConditionSchema,
+    base_path: &str,
+) -> Option<Vec<HashMap<String, bool>>> {
+    let mut property_names = BTreeSet::new();
+    collect_condition_property_names(condition, &mut property_names);
+    let paths: Vec<String> = property_names.into_iter().map(|name| format!("{}.{}", base_path, name)).collect();
+    let refs: Vec<&str> = paths.iter().map(String::as_str).collect();
+    property_scenario_assignments(m, rid, &refs)
+}
+
+fn collect_condition_property_names(condition: &ConditionSchema, names: &mut BTreeSet<String>) {
+    names.extend(condition.properties.keys().cloned());
+    names.extend(condition.required.iter().cloned());
+    names.extend(condition.absent.iter().cloned());
+    for sub_condition in condition.any_of.iter().chain(condition.one_of.iter()) {
+        collect_condition_property_names(sub_condition, names);
+    }
+    if let Some(negated) = &condition.not {
+        collect_condition_property_names(negated, names);
     }
 }
 
@@ -2904,6 +2958,172 @@ fn validate_sub_dependencies(
     }
 }
 
+/// A conditional value constraint in the bundled schemas together with the rule
+/// that reports it.
+///
+/// Bundled conditionals are dependencies-only in general (see
+/// `IfThenElse::enforce_full_branch`), so a `then`/`else` value constraint is
+/// enforced only when this table names its rule. That keeps every enforced
+/// constraint with exactly one owner: a constraint listed here, a dedicated
+/// native rule (the application load balancer subnet minimum, the ephemeral
+/// device name pattern, the ZipFile runtime pattern), or the extension enum
+/// path - never two of them for the same property.
+struct ConditionalConstraintRule {
+    resource_type: &'static str,
+    property_name: &'static str,
+    rule_id: &'static str,
+    /// Names the configuration under which the constraint applies, so the
+    /// finding does not read as contradicting the unconditional schema bounds
+    /// (a Lambda `Timeout` of 901 is valid in general, just not for a function
+    /// without `CapacityProviderConfig`). `None` when the constraint itself
+    /// says enough, as a pattern does.
+    context: Option<&'static str>,
+}
+
+const CONDITIONAL_CONSTRAINT_RULES: [ConditionalConstraintRule; 9] = [
+    ConditionalConstraintRule {
+        resource_type: "AWS::Cognito::UserPoolDomain",
+        property_name: "Domain",
+        rule_id: "E3031",
+        context: None,
+    },
+    ConditionalConstraintRule {
+        resource_type: "AWS::DynamoDB::GlobalTable",
+        property_name: "AttributeDefinitions",
+        rule_id: "E3032",
+        context: Some("for a table with local secondary indexes"),
+    },
+    ConditionalConstraintRule {
+        resource_type: "AWS::DynamoDB::GlobalTable",
+        property_name: "KeySchema",
+        rule_id: "E3032",
+        context: Some("for a table with local secondary indexes"),
+    },
+    ConditionalConstraintRule {
+        resource_type: "AWS::DynamoDB::Table",
+        property_name: "AttributeDefinitions",
+        rule_id: "E3032",
+        context: Some("for a table with local secondary indexes"),
+    },
+    ConditionalConstraintRule {
+        resource_type: "AWS::DynamoDB::Table",
+        property_name: "KeySchema",
+        rule_id: "E3032",
+        context: Some("for a table with local secondary indexes"),
+    },
+    ConditionalConstraintRule {
+        resource_type: "AWS::Lambda::Function",
+        property_name: "Timeout",
+        rule_id: "E3717",
+        context: Some("for a function without CapacityProviderConfig"),
+    },
+    ConditionalConstraintRule {
+        resource_type: "AWS::ApiGateway::Authorizer",
+        property_name: "AuthorizerResultTtlInSeconds",
+        rule_id: "E3718",
+        context: Some("for a TOKEN or REQUEST authorizer"),
+    },
+    ConditionalConstraintRule {
+        resource_type: "AWS::RDS::DBCluster",
+        property_name: "MasterUsername",
+        rule_id: "E3002",
+        context: Some("for a PostgreSQL-compatible engine, where it is a reserved word"),
+    },
+    ConditionalConstraintRule {
+        resource_type: "AWS::RDS::DBInstance",
+        property_name: "BackupRetentionPeriod",
+        rule_id: "E3719",
+        context: Some("for a non-Aurora engine"),
+    },
+];
+
+fn conditional_constraint_rule(resource_type: &str, property_name: &str) -> Option<&'static ConditionalConstraintRule> {
+    CONDITIONAL_CONSTRAINT_RULES
+        .iter()
+        .find(|rule| rule.resource_type == resource_type && rule.property_name == property_name)
+}
+
+/// The value constraints of a conditional branch property that the owning rule
+/// reports. Type is left to the unconditional schema check and enumerations to
+/// the extension enum path, so neither is reported twice under a second ID.
+fn schema_for_conditional_value_constraints(resolved: &PropSchema) -> PropSchema {
+    PropSchema {
+        pattern: resolved.pattern.clone(),
+        format: resolved.format.clone(),
+        const_value: resolved.const_value.clone(),
+        not_enum: resolved.not_enum.clone(),
+        minimum: resolved.minimum,
+        maximum: resolved.maximum,
+        exclusive_minimum: resolved.exclusive_minimum,
+        exclusive_maximum: resolved.exclusive_maximum,
+        multiple_of: resolved.multiple_of,
+        min_length: resolved.min_length,
+        max_length: resolved.max_length,
+        min_items: resolved.min_items,
+        max_items: resolved.max_items,
+        unique_items: resolved.unique_items,
+        min_properties: resolved.min_properties,
+        max_properties: resolved.max_properties,
+        ..Default::default()
+    }
+}
+
+/// Enforces the value constraints of a selected conditional branch whose
+/// properties have an owning rule in [`CONDITIONAL_CONSTRAINT_RULES`]. Every
+/// reachable scenario value must satisfy the constraint; each failing value is
+/// reported once, tagged with the template conditions that reach it.
+fn validate_owned_conditional_value_constraints(
+    out: &mut Vec<Diagnostic>,
+    m: &Arc<SemanticModel>,
+    rid: &str,
+    resource_type: &str,
+    branch: &SubSchema,
+    defs: &HashMap<String, PropSchema>,
+    base_path: &str,
+) {
+    for (property_name, property_schema) in &branch.properties {
+        let Some(rule) = conditional_constraint_rule(resource_type, property_name) else {
+            continue;
+        };
+        let constraint = schema_for_conditional_value_constraints(&property_schema.resolve(defs));
+        if !constraint.constrains_value() {
+            continue;
+        }
+        let property_path = format!("{}.{}", base_path, property_name);
+        let mut reported_messages: HashSet<String> = HashSet::new();
+        for (value, conditions) in m.resolve_scenarios_json_shared(rid, &property_path).iter() {
+            if value.is_null()
+                || !is_satisfiable(m, conditions)
+                || !scenario_consistent_with_filter(m, conditions)
+                || defer_value_constraints(m, rid, &property_path, value, conditions)
+                || schema_value_matches(value, &constraint, defs, 0)
+            {
+                continue;
+            }
+            let reasons = schema_value_failure_reasons(value, &constraint, defs, 0, &property_path);
+            let failure = render_composition_reasons(&reasons, &property_path);
+            let message = match rule.context {
+                Some(context) => format!("{failure} {context}"),
+                None => failure,
+            };
+            if reported_messages.insert(message.clone()) {
+                // The finding belongs to the world being decided, not only to the
+                // conditions on the value itself (a fixed value has none).
+                let world = merged_scenario_filter(conditions).unwrap_or_else(|| conditions.clone());
+                out.push(build_diagnostic_conditional(
+                    rule.rule_id,
+                    &message,
+                    m,
+                    rid,
+                    &property_path,
+                    None,
+                    condition_map(&world),
+                ));
+            }
+        }
+    }
+}
+
 fn collect_outer_resolved_scenarios(
     value: &ResolvedValue,
     assumptions: &HashMap<String, bool>,
@@ -3801,6 +4021,9 @@ fn condition_matches(
 /// `base_path` is the model path prefix for resolving property values (e.g.
 /// `"Properties"` at the resource level, or `"Properties.Config"` for a nested
 /// object property).
+///
+/// Every keyword the condition states must hold (JSON Schema keywords in one
+/// schema object are a conjunction).
 fn condition_matches_at(
     cond: &ConditionSchema,
     actual_keys: &[String],
@@ -3809,8 +4032,20 @@ fn condition_matches_at(
     defs: &HashMap<String, PropSchema>,
     base_path: &str,
 ) -> bool {
-    if !cond.any_of.is_empty() {
-        return cond.any_of.iter().any(|sub| condition_matches_at(sub, actual_keys, m, rid, defs, base_path));
+    if !cond.any_of.is_empty()
+        && !cond.any_of.iter().any(|sub| condition_matches_at(sub, actual_keys, m, rid, defs, base_path))
+    {
+        return false;
+    }
+    if !cond.one_of.is_empty()
+        && cond.one_of.iter().filter(|sub| condition_matches_at(sub, actual_keys, m, rid, defs, base_path)).count() != 1
+    {
+        return false;
+    }
+    if let Some(negated) = &cond.not
+        && condition_matches_at(negated, actual_keys, m, rid, defs, base_path)
+    {
+        return false;
     }
     if let Some(ref required_type) = cond.prop_type
         && !required_type.names().any(|name| name == "object")
@@ -3820,6 +4055,16 @@ fn condition_matches_at(
     for required_property in &cond.required {
         if !actual_keys.iter().any(|key| key == required_property)
             || !property_present_under(m, rid, base_path, required_property, &HashMap::new())
+        {
+            return false;
+        }
+    }
+    // A property is absent only when no reachable scenario supplies it; a
+    // property present in some `Fn::If` branch keeps the condition from
+    // holding rather than letting a branch-specific constraint apply.
+    for absent_property in &cond.absent {
+        if actual_keys.iter().any(|key| key == absent_property)
+            && property_present_under(m, rid, base_path, absent_property, &HashMap::new())
         {
             return false;
         }
@@ -5021,6 +5266,8 @@ fn build_diagnostic_conditional(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::compiled::IfThenElse;
+    use data_source::compiled_schema::{RefSiblings, compile_schema_with};
     use serde_json::json;
 
     fn current_scenario_filter() -> Option<HashMap<String, bool>> {
@@ -5249,6 +5496,296 @@ mod tests {
         assert_eq!(w3030.severity, rules::Severity::Warn);
         assert_eq!(w3030.property_path.as_deref(), Some("Properties.Mode"));
         assert_eq!(w3030.message, "'BOGUS' is not one of ['managed', 'unmanaged'] (case-insensitive)");
+    }
+
+    /// A store holding one schema compiled the way the build pipeline compiles
+    /// bundled schemas, so its conditionals are dependencies-only plus the
+    /// owned value constraints.
+    fn store_with_bundled_schema(type_name: &str, raw_schema: serde_json::Value) -> CompiledSchemaStore {
+        let mut store = CompiledSchemaStore::new();
+        store.insert_schema(compile_schema_with(type_name, &raw_schema, RefSiblings::Ignore).into());
+        store
+    }
+
+    fn diagnostics_for_template(store: &CompiledSchemaStore, template: serde_json::Value) -> Vec<Diagnostic> {
+        let model = Arc::new(SemanticModel::from_bytes(template.to_string().as_bytes()).expect("template parses"));
+        validate_all_resources(store, &model, None)
+    }
+
+    fn findings_by_resource(diagnostics: &[Diagnostic], rule_id: &str) -> Vec<(String, String)> {
+        let mut findings: Vec<(String, String)> = diagnostics
+            .iter()
+            .filter(|d| d.rule_id == rule_id)
+            .map(|d| (d.resource_logical_id().unwrap_or("").to_string(), d.message.clone()))
+            .collect();
+        findings.sort();
+        findings
+    }
+
+    const COGNITO_PREFIX_PATTERN: &str = "^[a-z0-9](?:[a-z0-9\\-]{0,61}[a-z0-9])?$";
+    const COGNITO_CUSTOM_DOMAIN_PATTERN: &str =
+        "^[a-z0-9](?:[a-z0-9\\-]*[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9\\-]*[a-z0-9])?)+$";
+
+    fn cognito_user_pool_domain_schema() -> serde_json::Value {
+        json!({
+            "typeName": "AWS::Cognito::UserPoolDomain",
+            "properties": {
+                "Domain": { "type": "string", "minLength": 1, "maxLength": 63 },
+                "UserPoolId": { "type": "string" },
+                "CustomDomainConfig": { "type": "object", "properties": { "CertificateArn": { "type": "string" } } }
+            },
+            "allOf": [
+                {
+                    "if": { "required": ["CustomDomainConfig"] },
+                    "then": { "properties": { "Domain": { "pattern": COGNITO_CUSTOM_DOMAIN_PATTERN } } }
+                },
+                {
+                    "if": { "not": { "required": ["CustomDomainConfig"] } },
+                    "then": { "properties": { "Domain": { "pattern": COGNITO_PREFIX_PATTERN } } }
+                }
+            ]
+        })
+    }
+
+    fn user_pool_domain(domain: &str, custom_domain_config: Option<serde_json::Value>) -> serde_json::Value {
+        let mut properties = json!({ "UserPoolId": "us-east-1_example", "Domain": domain });
+        if let Some(config) = custom_domain_config {
+            properties["CustomDomainConfig"] = config;
+        }
+        json!({ "Type": "AWS::Cognito::UserPoolDomain", "Properties": properties })
+    }
+
+    #[test]
+    fn negated_condition_selects_the_domain_prefix_pattern_only_without_a_custom_domain() {
+        let certificate = json!({ "CertificateArn": "arn:aws:acm:us-east-1:123456789012:certificate/abc" });
+        let conditional_certificate = json!({ "Fn::If": ["UseCustomDomain", certificate, { "Ref": "AWS::NoValue" }] });
+        let template = json!({
+            "Conditions": { "UseCustomDomain": { "Fn::Equals": [{ "Ref": "AWS::Region" }, "us-east-1"] } },
+            "Resources": {
+                "PrefixLeadingHyphen": user_pool_domain("-myprefix", None),
+                "PrefixValid": user_pool_domain("my-prefix1", None),
+                "CustomWithoutDots": user_pool_domain("nodots", Some(certificate.clone())),
+                "CustomValid": user_pool_domain("auth.example.com", Some(certificate.clone())),
+                "ConditionalWithMatchingDomain": {
+                    "Type": "AWS::Cognito::UserPoolDomain",
+                    "Properties": {
+                        "UserPoolId": "us-east-1_example",
+                        "Domain": { "Fn::If": ["UseCustomDomain", "login.example.com", "login-prefix"] },
+                        "CustomDomainConfig": conditional_certificate
+                    }
+                },
+                "ConditionalWithFixedDomain": user_pool_domain("id.example.com", Some(conditional_certificate))
+            }
+        });
+        let diagnostics = diagnostics_for_template(
+            &store_with_bundled_schema("AWS::Cognito::UserPoolDomain", cognito_user_pool_domain_schema()),
+            template,
+        );
+
+        assert_eq!(
+            findings_by_resource(&diagnostics, "E3031"),
+            vec![
+                (
+                    "ConditionalWithFixedDomain".to_string(),
+                    format!("'id.example.com' does not match pattern '{COGNITO_PREFIX_PATTERN}'")
+                ),
+                (
+                    "CustomWithoutDots".to_string(),
+                    format!("'nodots' does not match pattern '{COGNITO_CUSTOM_DOMAIN_PATTERN}'")
+                ),
+                (
+                    "PrefixLeadingHyphen".to_string(),
+                    format!("'-myprefix' does not match pattern '{COGNITO_PREFIX_PATTERN}'")
+                ),
+            ],
+            "each branch applies its own pattern; a conditional custom domain config is decided per world, so a \
+             fixed domain name is checked as a prefix in the world without it while a matching conditional domain passes"
+        );
+        let fixed_domain_finding = diagnostics
+            .iter()
+            .find(|d| d.rule_id == "E3031" && d.resource_logical_id() == Some("ConditionalWithFixedDomain"))
+            .expect("the fixed domain is reported in the world without a custom domain");
+        assert_eq!(
+            fixed_domain_finding.condition_scenario,
+            Some(HashMap::from([("UseCustomDomain".to_string(), false)]))
+        );
+        assert_eq!(fixed_domain_finding.severity, rules::Severity::Error);
+        assert_eq!(fixed_domain_finding.property_path.as_deref(), Some("Properties.Domain"));
+    }
+
+    fn lambda_function_schema() -> serde_json::Value {
+        json!({
+            "typeName": "AWS::Lambda::Function",
+            "properties": {
+                "Timeout": { "type": "integer", "minimum": 1, "maximum": 5400 },
+                "CapacityProviderConfig": { "type": "object", "properties": { "CapacityProviderArn": { "type": "string" } } }
+            },
+            "allOf": [
+                {
+                    "if": { "not": { "required": ["CapacityProviderConfig"] } },
+                    "then": { "properties": { "Timeout": { "maximum": 900 } } }
+                }
+            ]
+        })
+    }
+
+    #[test]
+    fn lambda_timeout_above_900_is_reported_only_without_a_capacity_provider() {
+        let template = json!({
+            "Resources": {
+                "TooLong": { "Type": "AWS::Lambda::Function", "Properties": { "Timeout": 901 } },
+                "AtTheLimit": { "Type": "AWS::Lambda::Function", "Properties": { "Timeout": 900 } },
+                "ManagedInstances": {
+                    "Type": "AWS::Lambda::Function",
+                    "Properties": { "Timeout": 901, "CapacityProviderConfig": { "CapacityProviderArn": "arn:aws:lambda:us-east-1:123456789012:capacity-provider/x" } }
+                }
+            }
+        });
+        let diagnostics = diagnostics_for_template(
+            &store_with_bundled_schema("AWS::Lambda::Function", lambda_function_schema()),
+            template,
+        );
+
+        assert_eq!(
+            findings_by_resource(&diagnostics, "E3717"),
+            vec![(
+                "TooLong".to_string(),
+                "901 exceeds maximum 900 for a function without CapacityProviderConfig".to_string()
+            )]
+        );
+        assert!(
+            diagnostics.iter().all(|d| d.rule_id != "F3034"),
+            "the unconditional 5400 bound is not exceeded, so no Fatal bound finding: {diagnostics:?}"
+        );
+    }
+
+    fn load_balancer_schema_with_dependency_under_exclusive_condition() -> serde_json::Value {
+        json!({
+            "typeName": "AWS::Test::LoadBalancer",
+            "properties": {
+                "Type": { "type": "string" },
+                "Subnets": { "type": "array", "items": { "type": "string" } },
+                "SecurityGroups": { "type": "array", "items": { "type": "string" } }
+            },
+            "allOf": [
+                {
+                    "if": { "oneOf": [
+                        { "properties": { "Type": { "const": "application" } }, "required": ["Type"] },
+                        { "properties": { "Type": false } }
+                    ] },
+                    "then": { "dependentRequired": { "Subnets": ["SecurityGroups"] } }
+                }
+            ]
+        })
+    }
+
+    #[test]
+    fn exclusive_condition_with_an_absent_property_branch_matches_default_and_explicit_application_types() {
+        let template = json!({
+            "Resources": {
+                "DefaultType": { "Type": "AWS::Test::LoadBalancer", "Properties": { "Subnets": ["subnet-a"] } },
+                "Application": { "Type": "AWS::Test::LoadBalancer", "Properties": { "Type": "application", "Subnets": ["subnet-a"] } },
+                "Network": { "Type": "AWS::Test::LoadBalancer", "Properties": { "Type": "network", "Subnets": ["subnet-a"] } }
+            }
+        });
+        let store = store_with_bundled_schema(
+            "AWS::Test::LoadBalancer",
+            load_balancer_schema_with_dependency_under_exclusive_condition(),
+        );
+        let diagnostics = diagnostics_for_template(&store, template);
+
+        let dependency_findings: Vec<&str> = {
+            let mut resources: Vec<&str> =
+                diagnostics.iter().filter(|d| d.rule_id == "F3021").filter_map(|d| d.resource_logical_id()).collect();
+            resources.sort();
+            resources
+        };
+        assert_eq!(dependency_findings, vec!["Application", "DefaultType"], "{diagnostics:?}");
+    }
+
+    /// Root conditional value constraints a dedicated native rule already
+    /// reports under its own ID, so the conditional must stay silent. The Stage
+    /// method-setting path constraint is bundled at the resource root, where its
+    /// per-setting condition can never hold, and the DB cluster monitoring
+    /// interval is one half of a two-way co-dependency; both are evaluated by
+    /// native rules instead.
+    const CONSTRAINTS_OWNED_BY_DEDICATED_RULES: [(&str, &str); 7] = [
+        ("AWS::ApiGateway::Stage", "ResourcePath"),
+        ("AWS::EC2::Instance", "VirtualName"),
+        ("AWS::ECS::Service", "SchedulingStrategy"),
+        ("AWS::ElasticLoadBalancingV2::LoadBalancer", "SubnetMappings"),
+        ("AWS::ElasticLoadBalancingV2::LoadBalancer", "Subnets"),
+        ("AWS::Lambda::Function", "Runtime"),
+        ("AWS::RDS::DBCluster", "MonitoringInterval"),
+    ];
+
+    /// The scalar value constraints of a branch property, ignoring type (the
+    /// unconditional schema's job), enumerations (the extension enum path) and
+    /// nested structure (not enforced by the owning-rule path).
+    fn branch_property_states_a_scalar_constraint(property: &PropSchema) -> bool {
+        schema_for_conditional_value_constraints(property).constrains_value()
+    }
+
+    /// Every bundled conditional value constraint is reported by exactly one
+    /// rule: the owning-rule table or a dedicated native rule. A data sync that
+    /// introduces a new constraint must assign it an owner before it can land.
+    #[test]
+    fn every_bundled_conditional_value_constraint_has_an_owner() {
+        let store = CompiledSchemaStore::new();
+        let mut unowned = Vec::new();
+        for type_name in store.type_names() {
+            let Some(schema) = store.get(type_name) else {
+                continue;
+            };
+            for conditional in &schema.if_then_else {
+                for branch in conditional.then_schema.iter().chain(conditional.else_schema.iter()) {
+                    for (property_name, property) in &branch.properties {
+                        if !branch_property_states_a_scalar_constraint(&property.resolve(&schema.definitions)) {
+                            continue;
+                        }
+                        let key = (type_name, property_name.as_str());
+                        let is_owned = conditional_constraint_rule(type_name, property_name).is_some()
+                            || CONSTRAINTS_OWNED_BY_DEDICATED_RULES.contains(&key);
+                        if !is_owned {
+                            unowned.push(format!("{type_name}.{property_name}"));
+                        }
+                    }
+                }
+            }
+        }
+        unowned.sort();
+        assert!(
+            unowned.is_empty(),
+            "bundled conditional value constraints without an owning rule (add one to CONDITIONAL_CONSTRAINT_RULES or implement a native rule): {unowned:?}"
+        );
+    }
+
+    #[test]
+    fn a_condition_stating_nothing_never_selects_its_branch() {
+        let mut properties = HashMap::new();
+        properties.insert("Subnets".to_string(), PropSchema::default());
+        properties.insert("SecurityGroups".to_string(), PropSchema::default());
+        let mut store = CompiledSchemaStore::new();
+        store.insert_schema(CompiledSchema {
+            type_name: "AWS::Test::Stale".to_string(),
+            properties,
+            if_then_else: vec![IfThenElse {
+                condition: ConditionSchema::default(),
+                then_schema: Some(SubSchema {
+                    dependent_required: HashMap::from([("Subnets".to_string(), vec!["SecurityGroups".to_string()])]),
+                    ..Default::default()
+                }),
+                else_schema: None,
+                enforce_full_branch: false,
+            }],
+            ..Default::default()
+        });
+        let template = json!({
+            "Resources": { "Stale": { "Type": "AWS::Test::Stale", "Properties": { "Subnets": ["subnet-a"] } } }
+        });
+
+        let diagnostics = diagnostics_for_template(&store, template);
+        assert!(diagnostics.iter().all(|d| d.rule_id != "F3021"), "{diagnostics:?}");
     }
 
     #[test]

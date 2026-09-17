@@ -1844,3 +1844,183 @@ fn snapstart_support_and_recommendations_respect_the_configured_region() {
     assert!(rego_findings.iter().any(|finding| finding.contains("not supported with runtime 'python3.8'")));
     assert!(rego_findings.iter().any(|finding| finding.contains("|RegionLimitedJava|Properties.SnapStart.ApplyOn|")));
 }
+
+#[test]
+fn icmpv6_type_code_is_neither_ignored_nor_required() {
+    let template = include_str!("../../resources/templates/good/sg_icmpv6_type_code.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["W3687", "E3687"]);
+    let cel_findings = selected_findings(&cel, template, &["W3687", "E3687"]);
+    assert_eq!(rego_findings, cel_findings);
+    assert!(rego_findings.is_empty(), "ICMPv6 type/code must not be reported as ignored or missing: {rego_findings:?}");
+}
+
+#[test]
+fn ports_are_ignored_only_for_protocols_other_than_tcp_udp_icmp_icmpv6() {
+    let template = include_str!("../../resources/templates/bad/W3687_ports_ignored_by_protocol.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["W3687", "E3687"]);
+    let cel_findings = selected_findings(&cel, template, &["W3687", "E3687"]);
+    assert_eq!(rego_findings, cel_findings, "protocol/port diagnostics must be identical");
+    let ignored: Vec<_> = rego_findings.iter().filter(|finding| finding.starts_with("W3687|")).collect();
+    let required: Vec<_> = rego_findings.iter().filter(|finding| finding.starts_with("E3687|")).collect();
+    assert_eq!(ignored.len(), 5, "esp, 50, -1, gre and the standalone esp rule ignore their ports: {ignored:?}");
+    assert_eq!(required.len(), 3, "icmp, udp and the standalone tcp rule must state ports: {required:?}");
+}
+
+#[test]
+fn application_load_balancer_subnet_minimum_covers_default_type_refs_and_mappings() {
+    let template = include_str!("../../resources/templates/bad/E3680_alb_fewer_than_two_subnets.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E3680"]);
+    let cel_findings = selected_findings(&cel, template, &["E3680"]);
+    assert_eq!(rego_findings, cel_findings, "subnet minimum diagnostics must be identical");
+    assert_eq!(rego_findings.len(), 3, "one finding per under-provisioned load balancer: {rego_findings:?}");
+    assert!(rego_findings.iter().any(|finding| finding.contains("|AlbDefaultTypeOneSubnet|Properties.Subnets|")));
+    assert!(rego_findings.iter().any(|finding| finding.contains("|AlbExplicitTypeOneSubnet|Properties.Subnets|")));
+    assert!(rego_findings.iter().any(|finding| finding.contains("|AlbOneSubnetMapping|Properties.SubnetMappings|")));
+}
+
+#[test]
+fn subnet_minimum_skips_other_types_unknown_types_and_parameter_lists() {
+    let template = include_str!("../../resources/templates/good/E3680_alb_subnet_counts.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E3680"]);
+    let cel_findings = selected_findings(&cel, template, &["E3680"]);
+    assert_eq!(rego_findings, cel_findings);
+    assert!(rego_findings.is_empty(), "no load balancer here is a provably under-provisioned ALB: {rego_findings:?}");
+}
+
+#[test]
+fn inverted_port_range_is_reported_on_every_rule_form() {
+    let template = include_str!("../../resources/templates/bad/E9002_inverted_port_range_egress_and_standalone.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E9002"]);
+    let cel_findings = selected_findings(&cel, template, &["E9002"]);
+    assert_eq!(rego_findings, cel_findings, "inverted range diagnostics must be identical");
+    assert_eq!(rego_findings.len(), 3, "inline egress plus both standalone resources: {rego_findings:?}");
+    assert!(rego_findings.iter().any(|finding| finding.contains("|SecurityGroup|Properties.SecurityGroupEgress.0|")));
+    assert!(rego_findings.iter().any(|finding| finding.contains("|StandaloneIngressInverted|Properties.FromPort|")));
+    assert!(rego_findings.iter().any(|finding| finding.contains("|StandaloneEgressInverted|Properties.FromPort|")));
+}
+
+#[test]
+fn icmp_type_code_pairs_and_ascending_ranges_are_not_inverted() {
+    let template = include_str!("../../resources/templates/good/E9002_port_range_exemptions.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E9002"]);
+    let cel_findings = selected_findings(&cel, template, &["E9002"]);
+    assert_eq!(rego_findings, cel_findings);
+    assert!(rego_findings.is_empty(), "type/code pairs are not port ranges: {rego_findings:?}");
+}
+
+#[test]
+fn conditional_value_constraints_report_under_their_owning_rules() {
+    let template = include_str!("../../resources/templates/bad/E3717_E3718_E3719_E3723_conditional_constraints.yaml");
+    let (rego, cel) = engines();
+    let rule_ids = ["E3717", "E3718", "E3719", "E3723"];
+    let rego_findings = selected_findings(&rego, template, &rule_ids);
+    let cel_findings = selected_findings(&cel, template, &rule_ids);
+    assert_eq!(rego_findings, cel_findings, "conditional constraint diagnostics must be identical");
+    assert!(
+        rego_findings.iter().any(|finding| {
+            finding.starts_with("E3718|")
+                && finding.contains("|TokenAuthorizerTtlTooLong|Properties.AuthorizerResultTtlInSeconds|")
+                && finding.contains("4000 exceeds maximum 3600 for a TOKEN or REQUEST authorizer")
+        }),
+        "{rego_findings:?}"
+    );
+    assert!(
+        rego_findings.iter().any(|finding| {
+            finding.starts_with("E3719|")
+                && finding.contains("|MysqlBackupRetentionTooLong|Properties.BackupRetentionPeriod|")
+                && finding.contains("40 exceeds maximum 35 for a non-Aurora engine")
+        }),
+        "{rego_findings:?}"
+    );
+    assert!(
+        rego_findings.iter().any(|finding| {
+            finding.starts_with("E3723|")
+                && finding.contains("|StageWithRelativeResourcePath|Properties.MethodSettings.0.ResourcePath|")
+                && finding.contains("ResourcePath 'orders' must start with '/'")
+        }),
+        "{rego_findings:?}"
+    );
+    assert!(
+        rego_findings.iter().all(|finding| !finding.contains("MethodSettings.1")),
+        "an absolute path is valid: {rego_findings:?}"
+    );
+}
+
+#[test]
+fn conditional_value_constraints_stay_silent_within_limits_and_outside_their_condition() {
+    let template = include_str!("../../resources/templates/good/conditional_constraints_within_limits.yaml");
+    let (rego, cel) = engines();
+    let rule_ids = ["E3717", "E3718", "E3719", "E3723", "E3031"];
+    let rego_findings = selected_findings(&rego, template, &rule_ids);
+    let cel_findings = selected_findings(&cel, template, &rule_ids);
+    assert_eq!(rego_findings, cel_findings);
+    assert!(rego_findings.is_empty(), "values within the conditional limits must not be reported: {rego_findings:?}");
+}
+
+#[test]
+fn custom_cognito_domain_must_be_a_fully_qualified_lowercase_name() {
+    let template = include_str!("../../resources/templates/bad/E3031_cognito_user_pool_domain_pattern.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E3031"]);
+    let cel_findings = selected_findings(&cel, template, &["E3031"]);
+    assert_eq!(rego_findings, cel_findings, "domain pattern diagnostics must be identical");
+    assert!(rego_findings.iter().any(|finding| finding.contains("|CustomDomainWithoutDots|Properties.Domain|")));
+    assert!(rego_findings.iter().any(|finding| finding.contains("|CustomDomainLeadingHyphen|Properties.Domain|")));
+}
+
+#[test]
+fn valid_cognito_domains_of_either_kind_are_not_reported() {
+    let template = include_str!("../../resources/templates/good/E3031_cognito_user_pool_domain_pattern.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E3031"]);
+    let cel_findings = selected_findings(&cel, template, &["E3031"]);
+    assert_eq!(rego_findings, cel_findings);
+    assert!(rego_findings.is_empty(), "{rego_findings:?}");
+}
+
+#[test]
+fn composite_key_reserved_username_and_monitoring_constraints_report_under_their_owners() {
+    let template = include_str!("../../resources/templates/bad/E3032_E3002_E3689_conditional_constraints.yaml");
+    let (rego, cel) = engines();
+    let rule_ids = ["E3032", "E3002", "E3689"];
+    let rego_findings = selected_findings(&rego, template, &rule_ids);
+    let cel_findings = selected_findings(&cel, template, &rule_ids);
+    assert_eq!(rego_findings, cel_findings, "conditional constraint diagnostics must be identical");
+    let item_count: Vec<_> = rego_findings.iter().filter(|finding| finding.starts_with("E3032|")).collect();
+    assert_eq!(item_count.len(), 4, "key schema and attribute definitions of both table kinds: {item_count:?}");
+    assert!(item_count.iter().all(|finding| finding.contains("Array length 1 is below minimum 2")));
+    assert!(
+        rego_findings.iter().any(|finding| {
+            finding.starts_with("E3002|")
+                && finding.contains("|ClusterReservedMasterUsername|Properties.MasterUsername|")
+                && finding.contains("'admin' must not be one of ['admin']")
+        }),
+        "{rego_findings:?}"
+    );
+    let monitoring: Vec<_> = rego_findings.iter().filter(|finding| finding.starts_with("E3689|")).collect();
+    assert_eq!(monitoring.len(), 2, "a role without an interval and an interval without a role: {monitoring:?}");
+    assert!(
+        monitoring
+            .iter()
+            .any(|finding| finding.contains("|ClusterMonitoringRoleWithoutInterval|Properties.MonitoringInterval|"))
+    );
+    assert!(monitoring.iter().any(|finding| finding.contains("|ClusterIntervalWithoutMonitoringRole|Properties|")));
+}
+
+#[test]
+fn composite_keys_other_engines_and_consistent_monitoring_are_not_reported() {
+    let template =
+        include_str!("../../resources/templates/good/conditional_constraints_composite_keys_and_monitoring.yaml");
+    let (rego, cel) = engines();
+    let rule_ids = ["E3032", "E3002", "E3689"];
+    let rego_findings = selected_findings(&rego, template, &rule_ids);
+    let cel_findings = selected_findings(&cel, template, &rule_ids);
+    assert_eq!(rego_findings, cel_findings);
+    assert!(rego_findings.is_empty(), "{rego_findings:?}");
+}

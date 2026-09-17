@@ -1,4 +1,3770 @@
 {
+  "bad/functions_findinmap_enhanced_invalid_key.yaml": {
+    "filePath": "bad/functions_findinmap_enhanced_invalid_key.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 1,
+        "warnings": 0,
+        "informational": 2,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E7001",
+        "severity": "ERROR",
+        "message": "Mapping 'MapName'.'TopKey1' key '{\"To\":\"Json\",\"String\":\"Function\"}' does not match format '^[a-zA-Z0-9]+$'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "MapName",
+          "entityType": "Mapping"
+        },
+        "propertyPath": "Mappings/MapName/TopKey1/{\"To\":\"Json\",\"String\":\"Function\"}",
+        "category": "Structure",
+        "startLine": 6,
+        "startColumn": 7,
+        "endLine": 6,
+        "endColumn": 40,
+        "ruleDescription": "Mappings are appropriately configured",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'ClusterName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Cluster",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::Cluster"
+        },
+        "propertyPath": "Properties.ClusterName",
+        "category": "Best Practice",
+        "startLine": 11,
+        "startColumn": 7,
+        "endLine": 11,
+        "endColumn": 18,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Cluster' of type 'AWS::ECS::Cluster' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Cluster",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::Cluster"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 10,
+        "startColumn": 5,
+        "endLine": 10,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
+  "bad/functions_getaz.yaml": {
+    "filePath": "bad/functions_getaz.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 3,
+      "counts": {
+        "fatal": 1,
+        "errors": 4,
+        "warnings": 3,
+        "informational": 12,
+        "debug": 0
+      },
+      "suppressed": 1,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "F3004",
+        "severity": "FATAL",
+        "message": "Circular Dependencies for resource mySubnet1. Circular dependency with [mySubnet1 -> mySubnet1]",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "mySubnet1",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Subnet"
+        },
+        "propertyPath": "Resources/mySubnet1",
+        "category": "Reference",
+        "startLine": 10,
+        "startColumn": 3,
+        "endLine": 10,
+        "endColumn": 12,
+        "ruleDescription": "Circular dependency detected",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E1017",
+        "severity": "ERROR",
+        "message": "'us-east-1a' is not a valid region for Fn::GetAZs (use '' for the current region)",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "mySubnet2",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Subnet"
+        },
+        "propertyPath": "Properties.AvailabilityZone.Fn::Select.1.Fn::GetAZs",
+        "category": "Intrinsic Function",
+        "startLine": 27,
+        "startColumn": 13,
+        "endLine": 27,
+        "endColumn": 23,
+        "ruleDescription": "Fn::Select requires exactly two operands and a list source",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "E3060",
+        "severity": "ERROR",
+        "message": "'10.0.0.0/24' overlaps with '10.0.0.0/24'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "mySubnet2",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Subnet"
+        },
+        "propertyPath": "Properties.CidrBlock",
+        "category": "Resource",
+        "startLine": 23,
+        "startColumn": 7,
+        "endLine": 23,
+        "endColumn": 16,
+        "relatedResources": [
+          {
+            "resource": {
+              "id": "mySubnet1",
+              "resourceType": "AWS::EC2::Subnet"
+            },
+            "location": {
+              "startLine": 10,
+              "startColumn": 3,
+              "endLine": 10,
+              "endColumn": 12
+            },
+            "message": "Overlapping subnet CIDR 10.0.0.0/24"
+          }
+        ],
+        "ruleDescription": "Validate subnet CIDRs do not overlap with other subnets",
+        "phase": "LINT",
+        "context": {
+          "extra": {
+            "cidr": "10.0.0.0/24"
+          }
+        }
+      },
+      {
+        "ruleId": "E3060",
+        "severity": "ERROR",
+        "message": "'10.0.0.0/24' overlaps with '10.0.0.0/24'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "mySubnet3",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Subnet"
+        },
+        "propertyPath": "Properties.CidrBlock",
+        "category": "Resource",
+        "startLine": 32,
+        "startColumn": 7,
+        "endLine": 32,
+        "endColumn": 16,
+        "relatedResources": [
+          {
+            "resource": {
+              "id": "mySubnet1",
+              "resourceType": "AWS::EC2::Subnet"
+            },
+            "location": {
+              "startLine": 10,
+              "startColumn": 3,
+              "endLine": 10,
+              "endColumn": 12
+            },
+            "message": "Overlapping subnet CIDR 10.0.0.0/24"
+          }
+        ],
+        "ruleDescription": "Validate subnet CIDRs do not overlap with other subnets",
+        "phase": "LINT",
+        "context": {
+          "extra": {
+            "cidr": "10.0.0.0/24"
+          }
+        }
+      },
+      {
+        "ruleId": "E9004",
+        "severity": "ERROR",
+        "message": "'AvailbilityZone' is not one of ['AssignIpv6AddressOnCreation', 'AvailabilityZone', 'AvailabilityZoneId', 'BlockPublicAccessStates', 'BlockPublicAccessStates.InternetGatewayBlockMode', 'CidrBlock', 'EnableDns64', 'EnableLniAtDeviceIndex', 'Ipv4IpamPoolId', 'Ipv4NetmaskLength', 'Ipv6CidrBlock', 'Ipv6CidrBlocks', 'Ipv6IpamPoolId', 'Ipv6Native', 'Ipv6NetmaskLength', 'MapPublicIpOnLaunch', 'NetworkAclAssociationId', 'OutpostArn', 'PrivateDnsNameOptionsOnLaunch.EnableResourceNameDnsAAAARecord', 'PrivateDnsNameOptionsOnLaunch.EnableResourceNameDnsARecord', 'PrivateDnsNameOptionsOnLaunch.HostnameType', 'SubnetId', 'Tags', 'VpcId']",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "mySubnet3",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Subnet"
+        },
+        "propertyPath": "Properties.AvailabilityZone",
+        "suggestedFix": "Check the resource type documentation for valid GetAtt attributes",
+        "category": "Intrinsic Function",
+        "startLine": 33,
+        "startColumn": 7,
+        "endLine": 33,
+        "endColumn": 23,
+        "ruleDescription": "GetAtt attribute must exist on target resource type",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1030",
+        "severity": "WARN",
+        "message": "{'Ref': 'VPC'} is not a 'AWS::EC2::VPC.Id' with pattern '^vpc-(([0-9A-Fa-f]{8})|([0-9A-Fa-f]{17}))$' when 'Ref' is resolved",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "mySubnet1",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Subnet"
+        },
+        "propertyPath": "Properties.VpcId",
+        "category": "Best Practice",
+        "startLine": 13,
+        "startColumn": 7,
+        "endLine": 13,
+        "endColumn": 12,
+        "ruleDescription": "Validate the values that come from a Ref function",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1030",
+        "severity": "WARN",
+        "message": "{'Ref': 'VPC'} is not a 'AWS::EC2::VPC.Id' with pattern '^vpc-(([0-9A-Fa-f]{8})|([0-9A-Fa-f]{17}))$' when 'Ref' is resolved",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "mySubnet2",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Subnet"
+        },
+        "propertyPath": "Properties.VpcId",
+        "category": "Best Practice",
+        "startLine": 22,
+        "startColumn": 7,
+        "endLine": 22,
+        "endColumn": 12,
+        "ruleDescription": "Validate the values that come from a Ref function",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1030",
+        "severity": "WARN",
+        "message": "{'Ref': 'VPC'} is not a 'AWS::EC2::VPC.Id' with pattern '^vpc-(([0-9A-Fa-f]{8})|([0-9A-Fa-f]{17}))$' when 'Ref' is resolved",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "mySubnet3",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Subnet"
+        },
+        "propertyPath": "Properties.VpcId",
+        "category": "Best Practice",
+        "startLine": 31,
+        "startColumn": 7,
+        "endLine": 31,
+        "endColumn": 12,
+        "ruleDescription": "Validate the values that come from a Ref function",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'VpcId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "mySubnet1",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Subnet"
+        },
+        "propertyPath": "Properties.VpcId",
+        "category": "Best Practice",
+        "startLine": 13,
+        "startColumn": 7,
+        "endLine": 13,
+        "endColumn": 12,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'CidrBlock' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "mySubnet1",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Subnet"
+        },
+        "propertyPath": "Properties.CidrBlock",
+        "category": "Best Practice",
+        "startLine": 14,
+        "startColumn": 7,
+        "endLine": 14,
+        "endColumn": 16,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'AvailabilityZone' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "mySubnet1",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Subnet"
+        },
+        "propertyPath": "Properties.AvailabilityZone",
+        "category": "Best Practice",
+        "startLine": 15,
+        "startColumn": 7,
+        "endLine": 15,
+        "endColumn": 23,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "dynamic (Select with unresolvable arguments)"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'VpcId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "mySubnet2",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Subnet"
+        },
+        "propertyPath": "Properties.VpcId",
+        "category": "Best Practice",
+        "startLine": 22,
+        "startColumn": 7,
+        "endLine": 22,
+        "endColumn": 12,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'CidrBlock' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "mySubnet2",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Subnet"
+        },
+        "propertyPath": "Properties.CidrBlock",
+        "category": "Best Practice",
+        "startLine": 23,
+        "startColumn": 7,
+        "endLine": 23,
+        "endColumn": 16,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'AvailabilityZone' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "mySubnet2",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Subnet"
+        },
+        "propertyPath": "Properties.AvailabilityZone",
+        "category": "Best Practice",
+        "startLine": 24,
+        "startColumn": 7,
+        "endLine": 24,
+        "endColumn": 23,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "dynamic (Select with unresolvable arguments)"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'VpcId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "mySubnet3",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Subnet"
+        },
+        "propertyPath": "Properties.VpcId",
+        "category": "Best Practice",
+        "startLine": 31,
+        "startColumn": 7,
+        "endLine": 31,
+        "endColumn": 12,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'CidrBlock' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "mySubnet3",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Subnet"
+        },
+        "propertyPath": "Properties.CidrBlock",
+        "category": "Best Practice",
+        "startLine": 32,
+        "startColumn": 7,
+        "endLine": 32,
+        "endColumn": 16,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'AvailabilityZone' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "mySubnet3",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Subnet"
+        },
+        "propertyPath": "Properties.AvailabilityZone",
+        "category": "Best Practice",
+        "startLine": 33,
+        "startColumn": 7,
+        "endLine": 33,
+        "endColumn": 23,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "dynamic (Select with unresolvable arguments)"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'mySubnet1' of type 'AWS::EC2::Subnet' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "mySubnet1",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Subnet"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 12,
+        "startColumn": 5,
+        "endLine": 12,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'mySubnet2' of type 'AWS::EC2::Subnet' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "mySubnet2",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Subnet"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 21,
+        "startColumn": 5,
+        "endLine": 21,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'mySubnet3' of type 'AWS::EC2::Subnet' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "mySubnet3",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Subnet"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 30,
+        "startColumn": 5,
+        "endLine": 30,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
+  "bad/functions_join.yaml": {
+    "filePath": "bad/functions_join.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 2,
+      "counts": {
+        "fatal": 0,
+        "errors": 2,
+        "warnings": 0,
+        "informational": 6,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E1152",
+        "severity": "ERROR",
+        "message": "'ami-1234' does not match format 'AWS::EC2::Image.Id'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "myInstance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.ImageId",
+        "category": "Intrinsic Function",
+        "startLine": 9,
+        "startColumn": 7,
+        "endLine": 9,
+        "endColumn": 14,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Validate AMI id format",
+        "phase": "SCHEMA",
+        "context": {
+          "actualValue": "ami-1234"
+        }
+      },
+      {
+        "ruleId": "E1152",
+        "severity": "ERROR",
+        "message": "'ami-1234' does not match format 'AWS::EC2::Image.Id'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "myInstance2",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.ImageId",
+        "category": "Intrinsic Function",
+        "startLine": 19,
+        "startColumn": 7,
+        "endLine": 19,
+        "endColumn": 14,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Validate AMI id format",
+        "phase": "SCHEMA",
+        "context": {
+          "actualValue": "ami-1234"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'ImageId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "myInstance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.ImageId",
+        "category": "Best Practice",
+        "startLine": 9,
+        "startColumn": 7,
+        "endLine": 9,
+        "endColumn": 14,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'UserData' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "myInstance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.UserData",
+        "category": "Best Practice",
+        "startLine": 10,
+        "startColumn": 7,
+        "endLine": 10,
+        "endColumn": 15,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only",
+          "resolutionSource": "dynamic (Base64 with non-string argument)"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'ImageId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "myInstance2",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.ImageId",
+        "category": "Best Practice",
+        "startLine": 19,
+        "startColumn": 7,
+        "endLine": 19,
+        "endColumn": 14,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'UserData' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "myInstance2",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.UserData",
+        "category": "Best Practice",
+        "startLine": 20,
+        "startColumn": 7,
+        "endLine": 20,
+        "endColumn": 15,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only",
+          "resolutionSource": "dynamic (Base64 with unresolvable argument)"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'myInstance' of type 'AWS::EC2::Instance' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "myInstance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 8,
+        "startColumn": 5,
+        "endLine": 8,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'myInstance2' of type 'AWS::EC2::Instance' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "myInstance2",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 18,
+        "startColumn": 5,
+        "endLine": 18,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
+  "bad/functions_ref.yaml": {
+    "filePath": "bad/functions_ref.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 4,
+      "counts": {
+        "fatal": 6,
+        "errors": 4,
+        "warnings": 5,
+        "informational": 23,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "F1018",
+        "severity": "FATAL",
+        "message": "Fn::Sub variable '${Package}' does not reference a valid resource, parameter, or pseudo-parameter",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "MyEC2Instance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.UserData",
+        "category": "Intrinsic Function",
+        "startLine": 46,
+        "startColumn": 7,
+        "endLine": 46,
+        "endColumn": 15,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Sub variables must resolve",
+        "phase": "SCHEMA",
+        "context": {
+          "resolutionSource": "dynamic (Sub:yum install ${Package}\n)"
+        }
+      },
+      {
+        "ruleId": "F1020",
+        "severity": "FATAL",
+        "message": "'pIops' is not one of ['AWS::AccountId', 'AWS::NoValue', 'AWS::NotificationARNs', 'AWS::Partition', 'AWS::Region', 'AWS::StackId', 'AWS::StackName', 'AWS::URLSuffix', 'AnotherInstance', 'MyEC2Instance', 'mySecurityGroupVpc1', 'mySecurityGroupVpc2', 'myVpcId']",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "MyEC2Instance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.BlockDeviceMappings.0.Ebs.Iops",
+        "suggestedFix": "Check that the Ref target exists as a resource, parameter, or pseudo-parameter",
+        "category": "Intrinsic Function",
+        "startLine": 40,
+        "startColumn": 13,
+        "endLine": 40,
+        "endColumn": 17,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Ref/GetAtt target must exist",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F1020",
+        "severity": "FATAL",
+        "message": "'pIops' is not one of ['AWS::AccountId', 'AWS::NoValue', 'AWS::NotificationARNs', 'AWS::Partition', 'AWS::Region', 'AWS::StackId', 'AWS::StackName', 'AWS::URLSuffix', 'AnotherInstance', 'MyEC2Instance', 'mySecurityGroupVpc1', 'mySecurityGroupVpc2', 'myVpcId']",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "AnotherInstance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.BlockDeviceMappings.0.Ebs.Iops",
+        "suggestedFix": "Check that the Ref target exists as a resource, parameter, or pseudo-parameter",
+        "category": "Intrinsic Function",
+        "startLine": 59,
+        "startColumn": 13,
+        "endLine": 59,
+        "endColumn": 17,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Ref/GetAtt target must exist",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F1020",
+        "severity": "FATAL",
+        "message": "'httpdPackage' is not one of ['AWS::AccountId', 'AWS::NoValue', 'AWS::NotificationARNs', 'AWS::Partition', 'AWS::Region', 'AWS::StackId', 'AWS::StackName', 'AWS::URLSuffix', 'AnotherInstance', 'MyEC2Instance', 'mySecurityGroupVpc1', 'mySecurityGroupVpc2', 'myVpcId']",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "AnotherInstance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.UserData",
+        "suggestedFix": "Check that the Ref target exists as a resource, parameter, or pseudo-parameter",
+        "category": "Intrinsic Function",
+        "startLine": 65,
+        "startColumn": 7,
+        "endLine": 65,
+        "endColumn": 15,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Ref/GetAtt target must exist",
+        "phase": "SCHEMA",
+        "context": {
+          "resolutionSource": "dynamic (Sub:yum install ${myPackage} ${Package})"
+        }
+      },
+      {
+        "ruleId": "F3004",
+        "severity": "FATAL",
+        "message": "Circular Dependencies for resource mySecurityGroupVpc1. Circular dependency with [mySecurityGroupVpc1 -> mySecurityGroupVpc2 -> mySecurityGroupVpc1]",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "mySecurityGroupVpc1",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Resources/mySecurityGroupVpc1",
+        "category": "Reference",
+        "startLine": 8,
+        "startColumn": 3,
+        "endLine": 8,
+        "endColumn": 22,
+        "ruleDescription": "Circular dependency detected",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "F3004",
+        "severity": "FATAL",
+        "message": "Circular Dependencies for resource mySecurityGroupVpc2. Circular dependency with [mySecurityGroupVpc2 -> mySecurityGroupVpc1 -> mySecurityGroupVpc2]",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "mySecurityGroupVpc2",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Resources/mySecurityGroupVpc2",
+        "category": "Reference",
+        "startLine": 20,
+        "startColumn": 3,
+        "endLine": 20,
+        "endColumn": 22,
+        "ruleDescription": "Circular dependency detected",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E1150",
+        "severity": "ERROR",
+        "message": "'sg-1234567' does not match format 'AWS::EC2::SecurityGroup.Id'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "mySecurityGroupVpc1",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.SecurityGroupIngress.0.SourceSecurityGroupId",
+        "category": "Intrinsic Function",
+        "startLine": 16,
+        "startColumn": 9,
+        "endLine": 16,
+        "endColumn": 30,
+        "ruleDescription": "Validate security group format",
+        "phase": "SCHEMA",
+        "context": {
+          "actualValue": "sg-1234567"
+        }
+      },
+      {
+        "ruleId": "E3687",
+        "severity": "ERROR",
+        "message": "['FromPort', 'ToPort'] are required properties when using 'IpProtocol' value 1",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "mySecurityGroupVpc1",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.SecurityGroupIngress.0",
+        "category": "Resource",
+        "startLine": 15,
+        "startColumn": 19,
+        "endLine": 15,
+        "endColumn": 20,
+        "ruleDescription": "Validate to and from ports based on the protocol",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3687",
+        "severity": "ERROR",
+        "message": "['FromPort', 'ToPort'] are required properties when using 'IpProtocol' value 1",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "mySecurityGroupVpc1",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.SecurityGroupIngress.1",
+        "category": "Resource",
+        "startLine": 18,
+        "startColumn": 19,
+        "endLine": 18,
+        "endColumn": 20,
+        "ruleDescription": "Validate to and from ports based on the protocol",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3687",
+        "severity": "ERROR",
+        "message": "['FromPort', 'ToPort'] are required properties when using 'IpProtocol' value 1",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "mySecurityGroupVpc2",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.SecurityGroupIngress.0",
+        "category": "Resource",
+        "startLine": 27,
+        "startColumn": 19,
+        "endLine": 27,
+        "endColumn": 20,
+        "ruleDescription": "Validate to and from ports based on the protocol",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "1 is not of type 'string' - automatically coerced (number to string)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "mySecurityGroupVpc1",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.SecurityGroupIngress.0.IpProtocol",
+        "category": "Best Practice",
+        "startLine": 15,
+        "startColumn": 9,
+        "endLine": 15,
+        "endColumn": 19,
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "1 is not of type 'string' - automatically coerced (number to string)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "mySecurityGroupVpc1",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.SecurityGroupIngress.1.IpProtocol",
+        "category": "Best Practice",
+        "startLine": 18,
+        "startColumn": 9,
+        "endLine": 18,
+        "endColumn": 19,
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "1 is not of type 'string' - automatically coerced (number to string)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "mySecurityGroupVpc2",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.SecurityGroupIngress.0.IpProtocol",
+        "category": "Best Practice",
+        "startLine": 27,
+        "startColumn": 9,
+        "endLine": 27,
+        "endColumn": 19,
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9010",
+        "severity": "WARN",
+        "message": "Hardcoded AMI ID - use a parameter or mapping for portability",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "MyEC2Instance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.ImageId",
+        "category": "Security",
+        "startLine": 32,
+        "startColumn": 7,
+        "endLine": 32,
+        "endColumn": 14,
+        "ruleDescription": "Hardcoded AMI ID",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W9010",
+        "severity": "WARN",
+        "message": "Hardcoded AMI ID - use a parameter or mapping for portability",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "AnotherInstance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.ImageId",
+        "category": "Security",
+        "startLine": 51,
+        "startColumn": 7,
+        "endLine": 51,
+        "endColumn": 14,
+        "ruleDescription": "Hardcoded AMI ID",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3100",
+        "severity": "INFO",
+        "message": "Previous generation instance type 't1.micro' - consider upgrading",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "MyEC2Instance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.InstanceType",
+        "suggestedFix": "Upgrade to a current generation instance type",
+        "category": "Best Practice",
+        "startLine": 33,
+        "startColumn": 7,
+        "endLine": 33,
+        "endColumn": 19,
+        "ruleDescription": "Checks for legacy instance type generations",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3100",
+        "severity": "INFO",
+        "message": "Previous generation instance type 't1.micro' - consider upgrading",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "AnotherInstance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.InstanceType",
+        "suggestedFix": "Upgrade to a current generation instance type",
+        "category": "Best Practice",
+        "startLine": 52,
+        "startColumn": 7,
+        "endLine": 52,
+        "endColumn": 19,
+        "ruleDescription": "Checks for legacy instance type generations",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'GroupDescription' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "mySecurityGroupVpc1",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.GroupDescription",
+        "category": "Best Practice",
+        "startLine": 11,
+        "startColumn": 7,
+        "endLine": 11,
+        "endColumn": 23,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'VpcId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "mySecurityGroupVpc1",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.VpcId",
+        "category": "Best Practice",
+        "startLine": 12,
+        "startColumn": 7,
+        "endLine": 12,
+        "endColumn": 12,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "parameter 'myVpcId' (type AWS::EC2::VPC::Id)"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'GroupDescription' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "mySecurityGroupVpc2",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.GroupDescription",
+        "category": "Best Practice",
+        "startLine": 23,
+        "startColumn": 7,
+        "endLine": 23,
+        "endColumn": 23,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'VpcId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "mySecurityGroupVpc2",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.VpcId",
+        "category": "Best Practice",
+        "startLine": 24,
+        "startColumn": 7,
+        "endLine": 24,
+        "endColumn": 12,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "parameter 'myVpcId' (type AWS::EC2::VPC::Id)"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'ImageId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "MyEC2Instance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.ImageId",
+        "category": "Best Practice",
+        "startLine": 32,
+        "startColumn": 7,
+        "endLine": 32,
+        "endColumn": 14,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'InstanceType' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "MyEC2Instance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.InstanceType",
+        "category": "Best Practice",
+        "startLine": 33,
+        "startColumn": 7,
+        "endLine": 33,
+        "endColumn": 19,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'KeyName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "MyEC2Instance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.KeyName",
+        "category": "Best Practice",
+        "startLine": 34,
+        "startColumn": 7,
+        "endLine": 34,
+        "endColumn": 14,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'BlockDeviceMappings' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "MyEC2Instance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.BlockDeviceMappings",
+        "category": "Best Practice",
+        "startLine": 35,
+        "startColumn": 7,
+        "endLine": 35,
+        "endColumn": 26,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'NetworkInterfaces' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "MyEC2Instance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.NetworkInterfaces",
+        "category": "Best Practice",
+        "startLine": 43,
+        "startColumn": 7,
+        "endLine": 43,
+        "endColumn": 24,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'UserData' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "MyEC2Instance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.UserData",
+        "category": "Best Practice",
+        "startLine": 46,
+        "startColumn": 7,
+        "endLine": 46,
+        "endColumn": 15,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only",
+          "resolutionSource": "dynamic (Sub:yum install ${Package}\n)"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'ImageId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "AnotherInstance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.ImageId",
+        "category": "Best Practice",
+        "startLine": 51,
+        "startColumn": 7,
+        "endLine": 51,
+        "endColumn": 14,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'InstanceType' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "AnotherInstance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.InstanceType",
+        "category": "Best Practice",
+        "startLine": 52,
+        "startColumn": 7,
+        "endLine": 52,
+        "endColumn": 19,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'KeyName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "AnotherInstance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.KeyName",
+        "category": "Best Practice",
+        "startLine": 53,
+        "startColumn": 7,
+        "endLine": 53,
+        "endColumn": 14,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'BlockDeviceMappings' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "AnotherInstance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.BlockDeviceMappings",
+        "category": "Best Practice",
+        "startLine": 54,
+        "startColumn": 7,
+        "endLine": 54,
+        "endColumn": 26,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'NetworkInterfaces' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "AnotherInstance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.NetworkInterfaces",
+        "category": "Best Practice",
+        "startLine": 62,
+        "startColumn": 7,
+        "endLine": 62,
+        "endColumn": 24,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'UserData' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "AnotherInstance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.UserData",
+        "category": "Best Practice",
+        "startLine": 65,
+        "startColumn": 7,
+        "endLine": 65,
+        "endColumn": 15,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only",
+          "resolutionSource": "dynamic (Sub:yum install ${myPackage} ${Package})"
+        }
+      },
+      {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'mySecurityGroupVpc1' of type 'AWS::EC2::SecurityGroup' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "mySecurityGroupVpc1",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 10,
+        "startColumn": 5,
+        "endLine": 10,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'mySecurityGroupVpc2' of type 'AWS::EC2::SecurityGroup' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "mySecurityGroupVpc2",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 22,
+        "startColumn": 5,
+        "endLine": 22,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'MyEC2Instance' of type 'AWS::EC2::Instance' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "MyEC2Instance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 31,
+        "startColumn": 5,
+        "endLine": 31,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'AnotherInstance' of type 'AWS::EC2::Instance' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "AnotherInstance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 50,
+        "startColumn": 5,
+        "endLine": 50,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
+  "bad/functions_select.yaml": {
+    "filePath": "bad/functions_select.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 4,
+      "counts": {
+        "fatal": 0,
+        "errors": 8,
+        "warnings": 0,
+        "informational": 12,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E1017",
+        "severity": "ERROR",
+        "message": "'a' is not of type 'integer'",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "myInstance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.AvailabilityZone.Fn::Select.0",
+        "category": "Intrinsic Function",
+        "startLine": 11,
+        "startColumn": 9,
+        "endLine": 11,
+        "endColumn": 10,
+        "ruleDescription": "Fn::Select requires exactly two operands and a list source",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "E1017",
+        "severity": "ERROR",
+        "message": "expected maximum item count: 2, found: 3",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "myInstance1",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.AvailabilityZone.Fn::Select",
+        "category": "Intrinsic Function",
+        "startLine": 19,
+        "startColumn": 9,
+        "endLine": 19,
+        "endColumn": 19,
+        "ruleDescription": "Fn::Select requires exactly two operands and a list source",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "E1017",
+        "severity": "ERROR",
+        "message": "'Fn::Join' is not supported as an argument to 'Fn::Select'",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "myInstance2",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.AvailabilityZone.Fn::Select.1",
+        "category": "Intrinsic Function",
+        "startLine": 30,
+        "startColumn": 17,
+        "endLine": 30,
+        "endColumn": 18,
+        "ruleDescription": "Fn::Select requires exactly two operands and a list source",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "E1017",
+        "severity": "ERROR",
+        "message": "'foo' is not of type 'array'",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "myInstance3",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.AvailabilityZone.Fn::Select",
+        "category": "Intrinsic Function",
+        "startLine": 36,
+        "startColumn": 9,
+        "endLine": 36,
+        "endColumn": 19,
+        "ruleDescription": "Fn::Select requires exactly two operands and a list source",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "E1152",
+        "severity": "ERROR",
+        "message": "'String' does not match format 'AWS::EC2::Image.Id'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "myInstance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.ImageId",
+        "category": "Intrinsic Function",
+        "startLine": 9,
+        "startColumn": 7,
+        "endLine": 9,
+        "endColumn": 14,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Validate AMI id format",
+        "phase": "SCHEMA",
+        "context": {
+          "actualValue": "String"
+        }
+      },
+      {
+        "ruleId": "E1152",
+        "severity": "ERROR",
+        "message": "'String' does not match format 'AWS::EC2::Image.Id'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "myInstance1",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.ImageId",
+        "category": "Intrinsic Function",
+        "startLine": 17,
+        "startColumn": 7,
+        "endLine": 17,
+        "endColumn": 14,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Validate AMI id format",
+        "phase": "SCHEMA",
+        "context": {
+          "actualValue": "String"
+        }
+      },
+      {
+        "ruleId": "E1152",
+        "severity": "ERROR",
+        "message": "'String' does not match format 'AWS::EC2::Image.Id'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "myInstance2",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.ImageId",
+        "category": "Intrinsic Function",
+        "startLine": 26,
+        "startColumn": 7,
+        "endLine": 26,
+        "endColumn": 14,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Validate AMI id format",
+        "phase": "SCHEMA",
+        "context": {
+          "actualValue": "String"
+        }
+      },
+      {
+        "ruleId": "E1152",
+        "severity": "ERROR",
+        "message": "'String' does not match format 'AWS::EC2::Image.Id'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "myInstance3",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.ImageId",
+        "category": "Intrinsic Function",
+        "startLine": 34,
+        "startColumn": 7,
+        "endLine": 34,
+        "endColumn": 14,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Validate AMI id format",
+        "phase": "SCHEMA",
+        "context": {
+          "actualValue": "String"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'ImageId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "myInstance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.ImageId",
+        "category": "Best Practice",
+        "startLine": 9,
+        "startColumn": 7,
+        "endLine": 9,
+        "endColumn": 14,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'AvailabilityZone' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "myInstance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.AvailabilityZone",
+        "category": "Best Practice",
+        "startLine": 10,
+        "startColumn": 7,
+        "endLine": 10,
+        "endColumn": 23,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "dynamic (Select on non-list value)"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'ImageId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "myInstance1",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.ImageId",
+        "category": "Best Practice",
+        "startLine": 17,
+        "startColumn": 7,
+        "endLine": 17,
+        "endColumn": 14,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'AvailabilityZone' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "myInstance1",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.AvailabilityZone",
+        "category": "Best Practice",
+        "startLine": 18,
+        "startColumn": 7,
+        "endLine": 18,
+        "endColumn": 23,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'ImageId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "myInstance2",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.ImageId",
+        "category": "Best Practice",
+        "startLine": 26,
+        "startColumn": 7,
+        "endLine": 26,
+        "endColumn": 14,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'AvailabilityZone' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "myInstance2",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.AvailabilityZone",
+        "category": "Best Practice",
+        "startLine": 27,
+        "startColumn": 7,
+        "endLine": 27,
+        "endColumn": 23,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "dynamic (Select on non-list value)"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'ImageId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "myInstance3",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.ImageId",
+        "category": "Best Practice",
+        "startLine": 34,
+        "startColumn": 7,
+        "endLine": 34,
+        "endColumn": 14,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'AvailabilityZone' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "myInstance3",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.AvailabilityZone",
+        "category": "Best Practice",
+        "startLine": 35,
+        "startColumn": 7,
+        "endLine": 35,
+        "endColumn": 23,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'myInstance' of type 'AWS::EC2::Instance' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "myInstance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 8,
+        "startColumn": 5,
+        "endLine": 8,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'myInstance1' of type 'AWS::EC2::Instance' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "myInstance1",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 16,
+        "startColumn": 5,
+        "endLine": 16,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'myInstance2' of type 'AWS::EC2::Instance' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "myInstance2",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 25,
+        "startColumn": 5,
+        "endLine": 25,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'myInstance3' of type 'AWS::EC2::Instance' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "myInstance3",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 33,
+        "startColumn": 5,
+        "endLine": 33,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
+  "bad/generic.yaml": {
+    "filePath": "bad/generic.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 19,
+      "counts": {
+        "fatal": 23,
+        "errors": 1,
+        "warnings": 11,
+        "informational": 37,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "F0005",
+        "severity": "FATAL",
+        "message": "'Errors' is not a valid top-level template section",
+        "source": "SCHEMA",
+        "propertyPath": "Errors",
+        "category": "Structure",
+        "startLine": 4,
+        "startColumn": 1,
+        "endLine": 4,
+        "endColumn": 7,
+        "ruleDescription": "Top-level keys must be valid section names",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F1020",
+        "severity": "FATAL",
+        "message": "'pIops' is not one of ['AWS::AccountId', 'AWS::NoValue', 'AWS::NotificationARNs', 'AWS::Partition', 'AWS::Region', 'AWS::StackId', 'AWS::StackName', 'AWS::URLSuffix', 'ElasticLoadBalancer', 'MyEC2Instance', 'MyEC2Instance1', 'MyEC2Instance3', 'MyEc2BlockDevice', 'PermitAllInbound', 'RolePolicies', 'RootInstanceProfile', 'RootRole', 'SecurityGroup', 'conditionLoadBalancer', 'lambdaMap1', 'lambdaMap2', 'myAcl', 'myEc2Instance4', 'myIamProfile', 'myIamProfile2', 'myIamProfile3', 'myLambdaTwo', 'myParam']",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "MyEC2Instance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.BlockDeviceMappings.0.Ebs.Iops",
+        "suggestedFix": "Check that the Ref target exists as a resource, parameter, or pseudo-parameter",
+        "category": "Intrinsic Function",
+        "startLine": 52,
+        "startColumn": 13,
+        "endLine": 52,
+        "endColumn": 17,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Ref/GetAtt target must exist",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F1020",
+        "severity": "FATAL",
+        "message": "'WebServerPort' is not one of ['AWS::AccountId', 'AWS::NoValue', 'AWS::NotificationARNs', 'AWS::Partition', 'AWS::Region', 'AWS::StackId', 'AWS::StackName', 'AWS::URLSuffix', 'ElasticLoadBalancer', 'MyEC2Instance', 'MyEC2Instance1', 'MyEC2Instance3', 'MyEc2BlockDevice', 'PermitAllInbound', 'RolePolicies', 'RootInstanceProfile', 'RootRole', 'SecurityGroup', 'conditionLoadBalancer', 'lambdaMap1', 'lambdaMap2', 'myAcl', 'myEc2Instance4', 'myIamProfile', 'myIamProfile2', 'myIamProfile3', 'myLambdaTwo', 'myParam']",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "ElasticLoadBalancer",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElasticLoadBalancing::LoadBalancer"
+        },
+        "propertyPath": "Properties.Listeners.0.InstancePort",
+        "suggestedFix": "Check that the Ref target exists as a resource, parameter, or pseudo-parameter",
+        "category": "Intrinsic Function",
+        "startLine": 119,
+        "startColumn": 11,
+        "endLine": 119,
+        "endColumn": 23,
+        "documentationUrl": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-elb.html",
+        "ruleDescription": "Ref/GetAtt target must exist",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F1020",
+        "severity": "FATAL",
+        "message": "'WebServerPort' is not one of ['AWS::AccountId', 'AWS::NoValue', 'AWS::NotificationARNs', 'AWS::Partition', 'AWS::Region', 'AWS::StackId', 'AWS::StackName', 'AWS::URLSuffix', 'ElasticLoadBalancer', 'MyEC2Instance', 'MyEC2Instance1', 'MyEC2Instance3', 'MyEc2BlockDevice', 'PermitAllInbound', 'RolePolicies', 'RootInstanceProfile', 'RootRole', 'SecurityGroup', 'conditionLoadBalancer', 'lambdaMap1', 'lambdaMap2', 'myAcl', 'myEc2Instance4', 'myIamProfile', 'myIamProfile2', 'myIamProfile3', 'myLambdaTwo', 'myParam']",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "ElasticLoadBalancer",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElasticLoadBalancing::LoadBalancer"
+        },
+        "propertyPath": "Properties.HealthCheck.Target.Fn::Join.1.1",
+        "suggestedFix": "Check that the Ref target exists as a resource, parameter, or pseudo-parameter",
+        "category": "Intrinsic Function",
+        "startLine": 128,
+        "startColumn": 20,
+        "endLine": 128,
+        "endColumn": 21,
+        "documentationUrl": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-elb.html",
+        "ruleDescription": "Ref/GetAtt target must exist",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F3002",
+        "severity": "FATAL",
+        "message": "Additional properties are not allowed ('Fn::If' was unexpected)",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "myIamProfile3",
+          "entityType": "Resource",
+          "resourceType": "AWS::IAM::Role"
+        },
+        "propertyPath": "Properties.Fn::If",
+        "category": "Schema",
+        "startLine": 34,
+        "startColumn": 7,
+        "endLine": 34,
+        "endColumn": 13,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-iam.git",
+        "ruleDescription": "Additional properties are not allowed",
+        "phase": "SCHEMA",
+        "context": {
+          "property": "Fn::If",
+          "extra": {
+            "allowed_properties": [
+              "Arn",
+              "AssumeRolePolicyDocument",
+              "Description",
+              "ManagedPolicyArns",
+              "MaxSessionDuration",
+              "Path",
+              "PermissionsBoundary",
+              "Policies",
+              "RoleId",
+              "RoleName",
+              "Tags"
+            ]
+          }
+        }
+      },
+      {
+        "ruleId": "F3002",
+        "severity": "FATAL",
+        "message": "Additional properties are not allowed ('FakeKey' was unexpected)",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "MyEC2Instance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.FakeKey",
+        "category": "Schema",
+        "startLine": 46,
+        "startColumn": 7,
+        "endLine": 46,
+        "endColumn": 14,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Additional properties are not allowed",
+        "phase": "SCHEMA",
+        "context": {
+          "property": "FakeKey",
+          "extra": {
+            "allowed_properties": [
+              "AdditionalInfo",
+              "Affinity",
+              "AvailabilityZone",
+              "BlockDeviceMappings",
+              "CpuOptions",
+              "CreditSpecification",
+              "DisableApiTermination",
+              "EbsOptimized",
+              "ElasticGpuSpecifications",
+              "ElasticInferenceAccelerators",
+              "EnclaveOptions",
+              "HibernationOptions",
+              "HostId",
+              "HostResourceGroupArn",
+              "IamInstanceProfile",
+              "ImageId",
+              "InstanceId",
+              "InstanceInitiatedShutdownBehavior",
+              "InstanceType",
+              "Ipv6AddressCount",
+              "Ipv6Addresses",
+              "KernelId",
+              "KeyName",
+              "LaunchTemplate",
+              "LicenseSpecifications",
+              "MetadataOptions",
+              "Monitoring",
+              "NetworkInterfaces",
+              "PlacementGroupName",
+              "PrivateDnsName",
+              "PrivateDnsNameOptions",
+              "PrivateIp",
+              "PrivateIpAddress",
+              "PropagateTagsToVolumeOnCreation",
+              "PublicDnsName",
+              "PublicIp",
+              "RamdiskId",
+              "SecurityGroupIds",
+              "SecurityGroups",
+              "SourceDestCheck",
+              "SsmAssociations",
+              "State",
+              "SubnetId",
+              "Tags",
+              "Tenancy",
+              "UserData",
+              "Volumes",
+              "VpcId"
+            ]
+          }
+        }
+      },
+      {
+        "ruleId": "F3002",
+        "severity": "FATAL",
+        "message": "Additional properties are not allowed ('BadSubX2Key' was unexpected)",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "MyEC2Instance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.BlockDeviceMappings.0.Ebs.BadSubX2Key",
+        "category": "Schema",
+        "startLine": 55,
+        "startColumn": 13,
+        "endLine": 55,
+        "endColumn": 24,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Additional properties are not allowed",
+        "phase": "SCHEMA",
+        "context": {
+          "property": "BadSubX2Key",
+          "extra": {
+            "allowed_properties": [
+              "AdditionalInfo",
+              "Affinity",
+              "AvailabilityZone",
+              "BlockDeviceMappings",
+              "CpuOptions",
+              "CreditSpecification",
+              "DisableApiTermination",
+              "EbsOptimized",
+              "ElasticGpuSpecifications",
+              "ElasticInferenceAccelerators",
+              "EnclaveOptions",
+              "HibernationOptions",
+              "HostId",
+              "HostResourceGroupArn",
+              "IamInstanceProfile",
+              "ImageId",
+              "InstanceId",
+              "InstanceInitiatedShutdownBehavior",
+              "InstanceType",
+              "Ipv6AddressCount",
+              "Ipv6Addresses",
+              "KernelId",
+              "KeyName",
+              "LaunchTemplate",
+              "LicenseSpecifications",
+              "MetadataOptions",
+              "Monitoring",
+              "NetworkInterfaces",
+              "PlacementGroupName",
+              "PrivateDnsName",
+              "PrivateDnsNameOptions",
+              "PrivateIp",
+              "PrivateIpAddress",
+              "PropagateTagsToVolumeOnCreation",
+              "PublicDnsName",
+              "PublicIp",
+              "RamdiskId",
+              "SecurityGroupIds",
+              "SecurityGroups",
+              "SourceDestCheck",
+              "SsmAssociations",
+              "State",
+              "SubnetId",
+              "Tags",
+              "Tenancy",
+              "UserData",
+              "Volumes",
+              "VpcId"
+            ]
+          }
+        }
+      },
+      {
+        "ruleId": "F3002",
+        "severity": "FATAL",
+        "message": "Additional properties are not allowed ('BadKey' was unexpected)",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "MyEC2Instance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.NetworkInterfaces.0.BadKey",
+        "category": "Schema",
+        "startLine": 59,
+        "startColumn": 11,
+        "endLine": 59,
+        "endColumn": 17,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Additional properties are not allowed",
+        "phase": "SCHEMA",
+        "context": {
+          "property": "BadKey",
+          "extra": {
+            "allowed_properties": [
+              "AdditionalInfo",
+              "Affinity",
+              "AvailabilityZone",
+              "BlockDeviceMappings",
+              "CpuOptions",
+              "CreditSpecification",
+              "DisableApiTermination",
+              "EbsOptimized",
+              "ElasticGpuSpecifications",
+              "ElasticInferenceAccelerators",
+              "EnclaveOptions",
+              "HibernationOptions",
+              "HostId",
+              "HostResourceGroupArn",
+              "IamInstanceProfile",
+              "ImageId",
+              "InstanceId",
+              "InstanceInitiatedShutdownBehavior",
+              "InstanceType",
+              "Ipv6AddressCount",
+              "Ipv6Addresses",
+              "KernelId",
+              "KeyName",
+              "LaunchTemplate",
+              "LicenseSpecifications",
+              "MetadataOptions",
+              "Monitoring",
+              "NetworkInterfaces",
+              "PlacementGroupName",
+              "PrivateDnsName",
+              "PrivateDnsNameOptions",
+              "PrivateIp",
+              "PrivateIpAddress",
+              "PropagateTagsToVolumeOnCreation",
+              "PublicDnsName",
+              "PublicIp",
+              "RamdiskId",
+              "SecurityGroupIds",
+              "SecurityGroups",
+              "SourceDestCheck",
+              "SsmAssociations",
+              "State",
+              "SubnetId",
+              "Tags",
+              "Tenancy",
+              "UserData",
+              "Volumes",
+              "VpcId"
+            ]
+          }
+        }
+      },
+      {
+        "ruleId": "F3002",
+        "severity": "FATAL",
+        "message": "Additional properties are not allowed ('PolicyDocument1' was unexpected. Did you mean 'PolicyDocument'?)",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "RootRole",
+          "entityType": "Resource",
+          "resourceType": "AWS::IAM::Role"
+        },
+        "propertyPath": "Properties.Policies.0.PolicyDocument1",
+        "category": "Schema",
+        "startLine": 84,
+        "startColumn": 11,
+        "endLine": 84,
+        "endColumn": 26,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-iam.git",
+        "ruleDescription": "Additional properties are not allowed",
+        "phase": "SCHEMA",
+        "context": {
+          "property": "PolicyDocument1",
+          "extra": {
+            "allowed_properties": [
+              "Arn",
+              "AssumeRolePolicyDocument",
+              "Description",
+              "ManagedPolicyArns",
+              "MaxSessionDuration",
+              "Path",
+              "PermissionsBoundary",
+              "Policies",
+              "RoleId",
+              "RoleName",
+              "Tags"
+            ]
+          }
+        }
+      },
+      {
+        "ruleId": "F3002",
+        "severity": "FATAL",
+        "message": "Additional properties are not allowed ('FakeKey' was unexpected)",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "ElasticLoadBalancer",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElasticLoadBalancing::LoadBalancer"
+        },
+        "propertyPath": "Properties.HealthCheck.FakeKey",
+        "category": "Schema",
+        "startLine": 123,
+        "startColumn": 9,
+        "endLine": 123,
+        "endColumn": 16,
+        "documentationUrl": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-elb.html",
+        "ruleDescription": "Additional properties are not allowed",
+        "phase": "SCHEMA",
+        "context": {
+          "property": "FakeKey",
+          "extra": {
+            "allowed_properties": [
+              "AccessLoggingPolicy",
+              "AppCookieStickinessPolicy",
+              "AvailabilityZones",
+              "CanonicalHostedZoneName",
+              "CanonicalHostedZoneNameID",
+              "ConnectionDrainingPolicy",
+              "ConnectionSettings",
+              "CrossZone",
+              "DNSName",
+              "HealthCheck",
+              "Instances",
+              "LBCookieStickinessPolicy",
+              "Listeners",
+              "LoadBalancerName",
+              "Policies",
+              "Scheme",
+              "SecurityGroups",
+              "SourceSecurityGroup",
+              "Subnets",
+              "Tags"
+            ]
+          }
+        }
+      },
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'AssumeRolePolicyDocument' is a required property",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "myIamProfile",
+          "entityType": "Resource",
+          "resourceType": "AWS::IAM::Role"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add the required property 'AssumeRolePolicyDocument'",
+        "category": "Schema",
+        "startLine": 25,
+        "startColumn": 3,
+        "endLine": 25,
+        "endColumn": 15,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-iam.git",
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'AssumeRolePolicyDocument' is a required property",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "myIamProfile2",
+          "entityType": "Resource",
+          "resourceType": "AWS::IAM::Role"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add the required property 'AssumeRolePolicyDocument'",
+        "category": "Schema",
+        "startLine": 29,
+        "startColumn": 5,
+        "endLine": 29,
+        "endColumn": 15,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-iam.git",
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'PolicyDocument' is a required property",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "RootRole",
+          "entityType": "Resource",
+          "resourceType": "AWS::IAM::Role"
+        },
+        "propertyPath": "Properties.Policies.0",
+        "suggestedFix": "Add the required property 'PolicyDocument'",
+        "category": "Schema",
+        "startLine": 83,
+        "startColumn": 21,
+        "endLine": 83,
+        "endColumn": 22,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-iam.git",
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'IpProtocol' is a required property",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "SecurityGroup",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroupIngress"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add the required property 'IpProtocol'",
+        "category": "Schema",
+        "startLine": 138,
+        "startColumn": 5,
+        "endLine": 138,
+        "endColumn": 15,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'DefaultAction' is a required property",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "myAcl",
+          "entityType": "Resource",
+          "resourceType": "AWS::WAFRegional::WebACL"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add the required property 'DefaultAction'",
+        "category": "Schema",
+        "startLine": 142,
+        "startColumn": 5,
+        "endLine": 142,
+        "endColumn": 15,
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'MetricName' is a required property",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "myAcl",
+          "entityType": "Resource",
+          "resourceType": "AWS::WAFRegional::WebACL"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add the required property 'MetricName'",
+        "category": "Schema",
+        "startLine": 142,
+        "startColumn": 5,
+        "endLine": 142,
+        "endColumn": 15,
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'Code' is a required property",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "myLambdaTwo",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add the required property 'Code'",
+        "category": "Schema",
+        "startLine": 146,
+        "startColumn": 5,
+        "endLine": 146,
+        "endColumn": 15,
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'Role' is a required property",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "myLambdaTwo",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add the required property 'Role'",
+        "category": "Schema",
+        "startLine": 146,
+        "startColumn": 5,
+        "endLine": 146,
+        "endColumn": 15,
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F3006",
+        "severity": "FATAL",
+        "message": "Unknown resource type 'AWS::EC2::Instance1'",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "MyEC2Instance1",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance1"
+        },
+        "category": "Schema",
+        "startLine": 23,
+        "startColumn": 3,
+        "endLine": 23,
+        "endColumn": 17,
+        "ruleDescription": "AWS resource type must be recognized and available in the configured region",
+        "phase": "SCHEMA",
+        "context": {
+          "extra": {
+            "resource_type": "AWS::EC2::Instance1"
+          }
+        }
+      },
+      {
+        "ruleId": "F3012",
+        "severity": "FATAL",
+        "message": "['1'] is not of type 'string'",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "MyEC2Instance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.NetworkInterfaces.0.DeviceIndex",
+        "category": "Schema",
+        "startLine": 57,
+        "startColumn": 11,
+        "endLine": 57,
+        "endColumn": 22,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Property type mismatch",
+        "phase": "SCHEMA",
+        "context": {
+          "actualValue": [
+            "1"
+          ]
+        }
+      },
+      {
+        "ruleId": "F3012",
+        "severity": "FATAL",
+        "message": "'Test' is not of type 'integer'",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "SecurityGroup",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroupIngress"
+        },
+        "propertyPath": "Properties.FromPort",
+        "category": "Schema",
+        "startLine": 139,
+        "startColumn": 7,
+        "endLine": 139,
+        "endColumn": 15,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Property type mismatch",
+        "phase": "SCHEMA",
+        "context": {
+          "actualValue": "Test",
+          "expectedConstraint": "integer"
+        }
+      },
+      {
+        "ruleId": "F3014",
+        "severity": "FATAL",
+        "message": "Exactly one of ['CidrIp', 'CidrIpv6', 'SourcePrefixListId', 'SourceSecurityGroupId', 'SourceSecurityGroupName'] must be specified",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "SecurityGroup",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroupIngress"
+        },
+        "propertyPath": "Properties",
+        "category": "Schema",
+        "startLine": 138,
+        "startColumn": 5,
+        "endLine": 138,
+        "endColumn": 15,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Exactly one of properties required (requiredXor)",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F6101",
+        "severity": "FATAL",
+        "message": "'DNE' is not one of ['CanonicalHostedZoneName', 'CanonicalHostedZoneNameID', 'DNSName', 'SourceSecurityGroup', 'SourceSecurityGroup.GroupName', 'SourceSecurityGroup.OwnerAlias']",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "myErrorOutput",
+          "entityType": "Output"
+        },
+        "propertyPath": "Outputs/myErrorOutput/Value.Fn::GetAtt.1",
+        "category": "Structure",
+        "startLine": 228,
+        "startColumn": 3,
+        "endLine": 228,
+        "endColumn": 16,
+        "ruleDescription": "Output value must be a string",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "E3530",
+        "severity": "ERROR",
+        "message": "'Statement' is a required property",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "myIamProfile3",
+          "entityType": "Resource",
+          "resourceType": "AWS::IAM::Role"
+        },
+        "propertyPath": "Properties.AssumeRolePolicyDocument",
+        "suggestedFix": "Add a Statement array to the AssumeRolePolicyDocument",
+        "category": "Resource",
+        "startLine": 33,
+        "startColumn": 7,
+        "endLine": 33,
+        "endColumn": 31,
+        "ruleDescription": "Validate IAM trust policies",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W2001",
+        "severity": "WARN",
+        "message": "Parameter 'myParam' is not referenced anywhere in the template",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "myParam",
+          "entityType": "Parameter"
+        },
+        "propertyPath": "Parameters/myParam",
+        "category": "Best Practice",
+        "startLine": 15,
+        "startColumn": 3,
+        "endLine": 15,
+        "endColumn": 10,
+        "ruleDescription": "Check if Parameters are Used",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W3696",
+        "severity": "WARN",
+        "message": "Resource type 'AWS::WAFRegional::WebACL' is from a service that is sunsetting",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "myAcl",
+          "entityType": "Resource",
+          "resourceType": "AWS::WAFRegional::WebACL"
+        },
+        "category": "Deprecation",
+        "startLine": 140,
+        "startColumn": 3,
+        "endLine": 140,
+        "endColumn": 8,
+        "ruleDescription": "Resource type is from a service that is sunsetting",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W8003",
+        "severity": "WARN",
+        "message": "Fn::Equals in condition 'IsProduction' will always return True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "IsProduction",
+          "entityType": "Condition"
+        },
+        "propertyPath": "Conditions/IsProduction",
+        "category": "Best Practice",
+        "startLine": 20,
+        "startColumn": 3,
+        "endLine": 20,
+        "endColumn": 15,
+        "ruleDescription": "Fn::Equals will always return true or false",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "1 is not of type 'string' - automatically coerced (number to string)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "MyEC2Instance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.KeyName",
+        "category": "Best Practice",
+        "startLine": 45,
+        "startColumn": 7,
+        "endLine": 45,
+        "endColumn": 14,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "5 is not of type 'string' - automatically coerced (number to string)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ElasticLoadBalancer",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElasticLoadBalancing::LoadBalancer"
+        },
+        "propertyPath": "Properties.HealthCheck.UnhealthyThreshold",
+        "category": "Best Practice",
+        "startLine": 132,
+        "startColumn": 9,
+        "endLine": 132,
+        "endColumn": 27,
+        "documentationUrl": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-elb.html",
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'true' is not of type 'boolean' - automatically coerced (string to boolean)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "conditionLoadBalancer",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElasticLoadBalancing::LoadBalancer"
+        },
+        "propertyPath": "Properties.ConnectionDrainingPolicy.Enabled",
+        "category": "Best Practice",
+        "startLine": 150,
+        "startColumn": 5,
+        "endLine": 150,
+        "endColumn": 15,
+        "conditionScenario": {
+          "IsProduction": true
+        },
+        "documentationUrl": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-elb.html",
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'60' is not of type 'integer' - automatically coerced (string to integer)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "conditionLoadBalancer",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElasticLoadBalancing::LoadBalancer"
+        },
+        "propertyPath": "Properties.ConnectionDrainingPolicy.Timeout",
+        "category": "Best Practice",
+        "startLine": 150,
+        "startColumn": 5,
+        "endLine": 150,
+        "endColumn": 15,
+        "conditionScenario": {
+          "IsProduction": true
+        },
+        "documentationUrl": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-elb.html",
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "true is not of type 'string' - automatically coerced (boolean to string)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "conditionLoadBalancer",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElasticLoadBalancing::LoadBalancer"
+        },
+        "propertyPath": "Properties.Tags.{}.Value",
+        "category": "Best Practice",
+        "startLine": 150,
+        "startColumn": 5,
+        "endLine": 150,
+        "endColumn": 15,
+        "conditionScenario": {
+          "IsProduction": true
+        },
+        "documentationUrl": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-elb.html",
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9010",
+        "severity": "WARN",
+        "message": "Hardcoded AMI ID - use a parameter or mapping for portability",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "MyEC2Instance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.ImageId",
+        "category": "Security",
+        "startLine": 43,
+        "startColumn": 7,
+        "endLine": 43,
+        "endColumn": 14,
+        "ruleDescription": "Hardcoded AMI ID",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W9010",
+        "severity": "WARN",
+        "message": "Hardcoded AMI ID - use a parameter or mapping for portability",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "MyEC2Instance3",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.ImageId",
+        "category": "Security",
+        "startLine": 63,
+        "startColumn": 7,
+        "endLine": 63,
+        "endColumn": 14,
+        "ruleDescription": "Hardcoded AMI ID",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W9010",
+        "severity": "WARN",
+        "message": "Hardcoded AMI ID - use a parameter or mapping for portability",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "MyEc2BlockDevice",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.ImageId",
+        "category": "Security",
+        "startLine": 219,
+        "startColumn": 7,
+        "endLine": 219,
+        "endColumn": 14,
+        "ruleDescription": "Hardcoded AMI ID",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I1022",
+        "severity": "INFO",
+        "message": "Prefer using Fn::Sub over Fn::Join with an empty delimiter",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ElasticLoadBalancer",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElasticLoadBalancing::LoadBalancer"
+        },
+        "propertyPath": "Properties.HealthCheck.Target.Fn::Join",
+        "category": "Intrinsic Function",
+        "startLine": 125,
+        "startColumn": 11,
+        "endLine": 125,
+        "endColumn": 19,
+        "ruleDescription": "Use Sub instead of Join",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3100",
+        "severity": "INFO",
+        "message": "Previous generation instance type 't1.micro' - consider upgrading",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "MyEC2Instance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.InstanceType",
+        "suggestedFix": "Upgrade to a current generation instance type",
+        "category": "Best Practice",
+        "startLine": 44,
+        "startColumn": 7,
+        "endLine": 44,
+        "endColumn": 19,
+        "ruleDescription": "Checks for legacy instance type generations",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3100",
+        "severity": "INFO",
+        "message": "Previous generation instance type 't1.micro' - consider upgrading",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "MyEc2BlockDevice",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.InstanceType",
+        "suggestedFix": "Upgrade to a current generation instance type",
+        "category": "Best Practice",
+        "startLine": 220,
+        "startColumn": 7,
+        "endLine": 220,
+        "endColumn": 19,
+        "ruleDescription": "Checks for legacy instance type generations",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'ImageId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "MyEC2Instance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.ImageId",
+        "category": "Best Practice",
+        "startLine": 43,
+        "startColumn": 7,
+        "endLine": 43,
+        "endColumn": 14,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'InstanceType' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "MyEC2Instance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.InstanceType",
+        "category": "Best Practice",
+        "startLine": 44,
+        "startColumn": 7,
+        "endLine": 44,
+        "endColumn": 19,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'KeyName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "MyEC2Instance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.KeyName",
+        "category": "Best Practice",
+        "startLine": 45,
+        "startColumn": 7,
+        "endLine": 45,
+        "endColumn": 14,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'BlockDeviceMappings' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "MyEC2Instance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.BlockDeviceMappings",
+        "category": "Best Practice",
+        "startLine": 48,
+        "startColumn": 7,
+        "endLine": 48,
+        "endColumn": 26,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'NetworkInterfaces' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "MyEC2Instance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.NetworkInterfaces",
+        "category": "Best Practice",
+        "startLine": 56,
+        "startColumn": 7,
+        "endLine": 56,
+        "endColumn": 24,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'ImageId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "MyEC2Instance3",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.ImageId",
+        "category": "Best Practice",
+        "startLine": 63,
+        "startColumn": 7,
+        "endLine": 63,
+        "endColumn": 14,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Path' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "RootRole",
+          "entityType": "Resource",
+          "resourceType": "AWS::IAM::Role"
+        },
+        "propertyPath": "Properties.Path",
+        "category": "Best Practice",
+        "startLine": 81,
+        "startColumn": 7,
+        "endLine": 81,
+        "endColumn": 11,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-iam.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Path' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "RootInstanceProfile",
+          "entityType": "Resource",
+          "resourceType": "AWS::IAM::InstanceProfile"
+        },
+        "propertyPath": "Properties.Path",
+        "category": "Best Practice",
+        "startLine": 105,
+        "startColumn": 7,
+        "endLine": 105,
+        "endColumn": 11,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'AvailabilityZones' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ElasticLoadBalancer",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElasticLoadBalancing::LoadBalancer"
+        },
+        "propertyPath": "Properties.AvailabilityZones",
+        "category": "Best Practice",
+        "startLine": 113,
+        "startColumn": 7,
+        "endLine": 113,
+        "endColumn": 24,
+        "documentationUrl": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-elb.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'HealthCheck' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ElasticLoadBalancer",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElasticLoadBalancing::LoadBalancer"
+        },
+        "propertyPath": "Properties.HealthCheck",
+        "category": "Best Practice",
+        "startLine": 122,
+        "startColumn": 7,
+        "endLine": 122,
+        "endColumn": 18,
+        "documentationUrl": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-elb.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'FromPort' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "SecurityGroup",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroupIngress"
+        },
+        "propertyPath": "Properties.FromPort",
+        "category": "Best Practice",
+        "startLine": 139,
+        "startColumn": 7,
+        "endLine": 139,
+        "endColumn": 15,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Name' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "myAcl",
+          "entityType": "Resource",
+          "resourceType": "AWS::WAFRegional::WebACL"
+        },
+        "propertyPath": "Properties.Name",
+        "category": "Best Practice",
+        "startLine": 143,
+        "startColumn": 7,
+        "endLine": 143,
+        "endColumn": 11,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'GroupDescription' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "lambdaMap1",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.GroupDescription",
+        "category": "Best Practice",
+        "startLine": 196,
+        "startColumn": 7,
+        "endLine": 196,
+        "endColumn": 23,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'GroupDescription' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "lambdaMap2",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.GroupDescription",
+        "category": "Best Practice",
+        "startLine": 204,
+        "startColumn": 7,
+        "endLine": 204,
+        "endColumn": 23,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'NetworkAclId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "PermitAllInbound",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::NetworkAclEntry"
+        },
+        "propertyPath": "Properties.NetworkAclId",
+        "category": "Best Practice",
+        "startLine": 212,
+        "startColumn": 7,
+        "endLine": 212,
+        "endColumn": 19,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'RuleNumber' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "PermitAllInbound",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::NetworkAclEntry"
+        },
+        "propertyPath": "Properties.RuleNumber",
+        "category": "Best Practice",
+        "startLine": 213,
+        "startColumn": 7,
+        "endLine": 213,
+        "endColumn": 17,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'ImageId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "MyEc2BlockDevice",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.ImageId",
+        "category": "Best Practice",
+        "startLine": 219,
+        "startColumn": 7,
+        "endLine": 219,
+        "endColumn": 14,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'InstanceType' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "MyEc2BlockDevice",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.InstanceType",
+        "category": "Best Practice",
+        "startLine": 220,
+        "startColumn": 7,
+        "endLine": 220,
+        "endColumn": 19,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'KeyName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "MyEc2BlockDevice",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.KeyName",
+        "category": "Best Practice",
+        "startLine": 221,
+        "startColumn": 7,
+        "endLine": 221,
+        "endColumn": 14,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'BlockDeviceMappings' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "MyEc2BlockDevice",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.BlockDeviceMappings",
+        "category": "Best Practice",
+        "startLine": 222,
+        "startColumn": 7,
+        "endLine": 222,
+        "endColumn": 26,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'NetworkInterfaces' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "MyEc2BlockDevice",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.NetworkInterfaces",
+        "category": "Best Practice",
+        "startLine": 223,
+        "startColumn": 7,
+        "endLine": 223,
+        "endColumn": 24,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'myIamProfile' of type 'AWS::IAM::Role' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "myIamProfile",
+          "entityType": "Resource",
+          "resourceType": "AWS::IAM::Role"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 25,
+        "startColumn": 3,
+        "endLine": 25,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'myIamProfile2' of type 'AWS::IAM::Role' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "myIamProfile2",
+          "entityType": "Resource",
+          "resourceType": "AWS::IAM::Role"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 29,
+        "startColumn": 5,
+        "endLine": 29,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'myIamProfile3' of type 'AWS::IAM::Role' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "myIamProfile3",
+          "entityType": "Resource",
+          "resourceType": "AWS::IAM::Role"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 32,
+        "startColumn": 5,
+        "endLine": 32,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'MyEC2Instance' of type 'AWS::EC2::Instance' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "MyEC2Instance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 42,
+        "startColumn": 5,
+        "endLine": 42,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'MyEC2Instance3' of type 'AWS::EC2::Instance' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "MyEC2Instance3",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 62,
+        "startColumn": 5,
+        "endLine": 62,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'myEc2Instance4' of type 'AWS::EC2::Instance' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "myEc2Instance4",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 67,
+        "startColumn": 5,
+        "endLine": 67,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'RootRole' of type 'AWS::IAM::Role' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "RootRole",
+          "entityType": "Resource",
+          "resourceType": "AWS::IAM::Role"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 71,
+        "startColumn": 5,
+        "endLine": 71,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'ElasticLoadBalancer' of type 'AWS::ElasticLoadBalancing::LoadBalancer' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ElasticLoadBalancer",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElasticLoadBalancing::LoadBalancer"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 112,
+        "startColumn": 5,
+        "endLine": 112,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'myLambdaTwo' of type 'AWS::Lambda::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "myLambdaTwo",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 146,
+        "startColumn": 5,
+        "endLine": 146,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'lambdaMap1' of type 'AWS::EC2::SecurityGroup' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "lambdaMap1",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 195,
+        "startColumn": 5,
+        "endLine": 195,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'lambdaMap2' of type 'AWS::EC2::SecurityGroup' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "lambdaMap2",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 203,
+        "startColumn": 5,
+        "endLine": 203,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'MyEc2BlockDevice' of type 'AWS::EC2::Instance' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "MyEc2BlockDevice",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 218,
+        "startColumn": 5,
+        "endLine": 218,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
   "bad/getatt_object_attribute_member.yaml": {
     "filePath": "bad/getatt_object_attribute_member.yaml",
     "status": "OK",
@@ -86336,640 +90102,6 @@
         "startLine": 58,
         "startColumn": 5,
         "endLine": 58,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      }
-    ]
-  },
-  "bad/resources/rds/not_enum_master_username.yaml": {
-    "filePath": "bad/resources/rds/not_enum_master_username.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 1,
-      "counts": {
-        "fatal": 1,
-        "errors": 0,
-        "warnings": 1,
-        "informational": 6,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "F3017",
-        "severity": "FATAL",
-        "message": "'rdsadmin' at 'MasterUsername' does not satisfy the composition branch constraint (none of ['rdsadmin']): 'rdsadmin' must not be one of ['rdsadmin']",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "MyDB",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBCluster"
-        },
-        "propertyPath": "Properties.MasterUsername",
-        "category": "Schema",
-        "startLine": 7,
-        "startColumn": 7,
-        "endLine": 7,
-        "endColumn": 21,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-rds",
-        "ruleDescription": "Value not valid under anyOf",
-        "phase": "SCHEMA"
-      },
-      {
-        "ruleId": "W2501",
-        "severity": "WARN",
-        "message": "Property 'MasterUserPassword' should not be a hardcoded string - use a parameter with NoEcho or a dynamic reference",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "MyDB",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBCluster"
-        },
-        "propertyPath": "Properties.MasterUserPassword",
-        "category": "Security",
-        "startLine": 8,
-        "startColumn": 7,
-        "endLine": 8,
-        "endColumn": 25,
-        "ruleDescription": "Check if Password Properties are correctly configured",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3011",
-        "severity": "INFO",
-        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "MyDB",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBCluster"
-        },
-        "category": "Best Practice",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 7,
-        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3011",
-        "severity": "INFO",
-        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "MyDB",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBCluster"
-        },
-        "category": "Best Practice",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 7,
-        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3013",
-        "severity": "INFO",
-        "message": "'BackupRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "MyDB",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBCluster"
-        },
-        "propertyPath": "Properties",
-        "category": "Best Practice",
-        "startLine": 5,
-        "startColumn": 5,
-        "endLine": 5,
-        "endColumn": 15,
-        "ruleDescription": "Check resources with auto expiring content have explicit retention period",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Engine' is conditionally create-only; updating it may cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "MyDB",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBCluster"
-        },
-        "propertyPath": "Properties.Engine",
-        "category": "Best Practice",
-        "startLine": 6,
-        "startColumn": 7,
-        "endLine": 6,
-        "endColumn": 13,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-rds",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "conditional-create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'MasterUsername' is conditionally create-only; updating it may cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "MyDB",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBCluster"
-        },
-        "propertyPath": "Properties.MasterUsername",
-        "category": "Best Practice",
-        "startLine": 7,
-        "startColumn": 7,
-        "endLine": 7,
-        "endColumn": 21,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-rds",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "conditional-create-only"
-        }
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'MyDB' of type 'AWS::RDS::DBCluster' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "MyDB",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBCluster"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 5,
-        "startColumn": 5,
-        "endLine": 5,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      }
-    ]
-  },
-  "bad/resources/rds/not_enum_master_username_join.yaml": {
-    "filePath": "bad/resources/rds/not_enum_master_username_join.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 1,
-      "counts": {
-        "fatal": 1,
-        "errors": 0,
-        "warnings": 0,
-        "informational": 3,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "F3017",
-        "severity": "FATAL",
-        "message": "'rdsadmin' at 'MasterUsername' does not satisfy the composition branch constraint (none of ['rdsadmin']): 'rdsadmin' must not be one of ['rdsadmin']",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "JoinedUsername",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBCluster"
-        },
-        "propertyPath": "Properties.MasterUsername",
-        "category": "Schema",
-        "startLine": 9,
-        "startColumn": 7,
-        "endLine": 9,
-        "endColumn": 21,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-rds",
-        "ruleDescription": "Value not valid under anyOf",
-        "phase": "SCHEMA"
-      },
-      {
-        "ruleId": "I1022",
-        "severity": "INFO",
-        "message": "Prefer using Fn::Sub over Fn::Join with an empty delimiter",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "JoinedUsername",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBCluster"
-        },
-        "propertyPath": "Properties.MasterUsername.Fn::Join",
-        "category": "Intrinsic Function",
-        "startLine": 9,
-        "startColumn": 7,
-        "endLine": 9,
-        "endColumn": 15,
-        "ruleDescription": "Use Sub instead of Join",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Engine' is conditionally create-only; updating it may cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "JoinedUsername",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBCluster"
-        },
-        "propertyPath": "Properties.Engine",
-        "category": "Best Practice",
-        "startLine": 8,
-        "startColumn": 7,
-        "endLine": 8,
-        "endColumn": 13,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-rds",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "conditional-create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'MasterUsername' is conditionally create-only; updating it may cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "JoinedUsername",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBCluster"
-        },
-        "propertyPath": "Properties.MasterUsername",
-        "category": "Best Practice",
-        "startLine": 9,
-        "startColumn": 7,
-        "endLine": 9,
-        "endColumn": 21,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-rds",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "conditional-create-only"
-        }
-      }
-    ]
-  },
-  "bad/resources/s3/access-control-obsolete.yaml": {
-    "filePath": "bad/resources/s3/access-control-obsolete.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 2,
-      "counts": {
-        "fatal": 0,
-        "errors": 0,
-        "warnings": 2,
-        "informational": 2,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "W3045",
-        "severity": "WARN",
-        "message": "AccessControl property is deprecated. Use bucket policies instead",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "Bucket1",
-          "entityType": "Resource",
-          "resourceType": "AWS::S3::Bucket"
-        },
-        "propertyPath": "Properties.AccessControl",
-        "suggestedFix": "Remove AccessControl and use an AWS::S3::BucketPolicy resource",
-        "category": "Deprecation",
-        "startLine": 6,
-        "startColumn": 7,
-        "endLine": 6,
-        "endColumn": 20,
-        "ruleDescription": "Controlling access to an S3 bucket should be done with bucket policies",
-        "phase": "LINT",
-        "context": {
-          "actualValue": "Private"
-        }
-      },
-      {
-        "ruleId": "W3045",
-        "severity": "WARN",
-        "message": "AccessControl property is deprecated. Use bucket policies instead",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "Bucket2",
-          "entityType": "Resource",
-          "resourceType": "AWS::S3::Bucket"
-        },
-        "propertyPath": "Properties.AccessControl",
-        "suggestedFix": "Remove AccessControl and use an AWS::S3::BucketPolicy resource",
-        "category": "Deprecation",
-        "startLine": 11,
-        "startColumn": 7,
-        "endLine": 11,
-        "endColumn": 20,
-        "ruleDescription": "Controlling access to an S3 bucket should be done with bucket policies",
-        "phase": "LINT",
-        "context": {
-          "actualValue": "BucketOwnerFullControl"
-        }
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'Bucket1' of type 'AWS::S3::Bucket' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Bucket1",
-          "entityType": "Resource",
-          "resourceType": "AWS::S3::Bucket"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 5,
-        "startColumn": 5,
-        "endLine": 5,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'Bucket2' of type 'AWS::S3::Bucket' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Bucket2",
-          "entityType": "Resource",
-          "resourceType": "AWS::S3::Bucket"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 10,
-        "startColumn": 5,
-        "endLine": 10,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      }
-    ]
-  },
-  "bad/resources/sns/topic_name.yaml": {
-    "filePath": "bad/resources/sns/topic_name.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 1,
-      "counts": {
-        "fatal": 1,
-        "errors": 0,
-        "warnings": 0,
-        "informational": 2,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "F3033",
-        "severity": "FATAL",
-        "message": "length 362 exceeds maximum 256",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "MyTopic",
-          "entityType": "Resource",
-          "resourceType": "AWS::SNS::Topic"
-        },
-        "propertyPath": "Properties.TopicName",
-        "category": "Schema",
-        "startLine": 7,
-        "startColumn": 7,
-        "endLine": 7,
-        "endColumn": 16,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-sns",
-        "ruleDescription": "String length out of bounds",
-        "phase": "SCHEMA",
-        "context": {
-          "actualValue": "DXPPuqwhVLODAIIVeagGODxciscAVDptCqTYUlDZCNoFchzHdsWBvtQVHjLldJSLrjgbheDXPPuqwhVLODAIIVeagGODxciscAVDptCqTYUlDZCNoFchzHdsWBvtQVHjLldJSLrjgbheDXPPuqwhVLODAIIVeagGODxciscAVDptCqTYUlDZCNoFchzHdsWBvtQVHjLldJSLrjgbheDXPPuqwhVLODAIIVeagGODxciscAVDptCqTYUlDZCNoFchzHdsWBvtQVHjLldJSLrjgbheDXPPuqwhVLODAIIVeagGODxciscAVDptCqTYUlDZCNoFchzHdsWBvtQVHjLldJSLrjgbheSNSTopicName",
-          "extra": {
-            "actual_length": 362,
-            "max_length": 256
-          }
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'TopicName' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "MyTopic",
-          "entityType": "Resource",
-          "resourceType": "AWS::SNS::Topic"
-        },
-        "propertyPath": "Properties.TopicName",
-        "category": "Best Practice",
-        "startLine": 7,
-        "startColumn": 7,
-        "endLine": 7,
-        "endColumn": 16,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-sns",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'MyTopic' of type 'AWS::SNS::Topic' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "MyTopic",
-          "entityType": "Resource",
-          "resourceType": "AWS::SNS::Topic"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 6,
-        "startColumn": 5,
-        "endLine": 6,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      }
-    ]
-  },
-  "bad/resources/uniqueNames.yaml": {
-    "filePath": "bad/resources/uniqueNames.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 1,
-      "counts": {
-        "fatal": 1,
-        "errors": 0,
-        "warnings": 1,
-        "informational": 1,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "F3007",
-        "severity": "FATAL",
-        "message": "'Name' is used as both a parameter and resource logical ID",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "Name",
-          "entityType": "Resource",
-          "resourceType": "AWS::SNS::Topic"
-        },
-        "category": "Structure",
-        "startLine": 5,
-        "startColumn": 3,
-        "endLine": 5,
-        "endColumn": 7,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-sns",
-        "ruleDescription": "Logical ID used as both parameter and resource",
-        "phase": "SCHEMA"
-      },
-      {
-        "ruleId": "W2001",
-        "severity": "WARN",
-        "message": "Parameter 'Name' is not referenced anywhere in the template",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "Name",
-          "entityType": "Parameter"
-        },
-        "propertyPath": "Parameters/Name",
-        "category": "Best Practice",
-        "startLine": 2,
-        "startColumn": 3,
-        "endLine": 2,
-        "endColumn": 7,
-        "ruleDescription": "Check if Parameters are Used",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'Name' of type 'AWS::SNS::Topic' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Name",
-          "entityType": "Resource",
-          "resourceType": "AWS::SNS::Topic"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 5,
-        "startColumn": 3,
-        "endLine": 5,
-        "endColumn": 7,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      }
-    ]
-  },
-  "bad/resources/update_policy_unsupported_e3016.yaml": {
-    "filePath": "bad/resources/update_policy_unsupported_e3016.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 1,
-      "counts": {
-        "fatal": 0,
-        "errors": 1,
-        "warnings": 0,
-        "informational": 2,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "E3016",
-        "severity": "ERROR",
-        "message": "UpdatePolicy is not supported on resource type 'AWS::S3::Bucket'",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "MyBucket",
-          "entityType": "Resource",
-          "resourceType": "AWS::S3::Bucket"
-        },
-        "propertyPath": "UpdatePolicy",
-        "suggestedFix": "Remove UpdatePolicy or change resource type to one of: AWS::AppStream::Fleet, AWS::AutoScaling::AutoScalingGroup, AWS::ElastiCache::ReplicationGroup, AWS::Elasticsearch::Domain, AWS::Lambda::Alias, AWS::OpenSearchService::Domain",
-        "category": "Resource",
-        "startLine": 5,
-        "startColumn": 5,
-        "endLine": 5,
-        "endColumn": 17,
-        "ruleDescription": "Check UpdatePolicy values for Resources",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'BucketName' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "MyBucket",
-          "entityType": "Resource",
-          "resourceType": "AWS::S3::Bucket"
-        },
-        "propertyPath": "Properties.BucketName",
-        "category": "Best Practice",
-        "startLine": 9,
-        "startColumn": 7,
-        "endLine": 9,
-        "endColumn": 17,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'MyBucket' of type 'AWS::S3::Bucket' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "MyBucket",
-          "entityType": "Resource",
-          "resourceType": "AWS::S3::Bucket"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 8,
-        "startColumn": 5,
-        "endLine": 8,
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"

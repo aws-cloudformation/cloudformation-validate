@@ -1,0 +1,40 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  Valid Cognito user pool domains: a hosted-UI prefix, a fully qualified custom
+  domain, and a domain that switches with its CustomDomainConfig so each world
+  satisfies its own pattern.
+Conditions:
+  UseCustomDomain: !Equals [!Ref "AWS::Region", us-east-1]
+Resources:
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+    Properties:
+      UserPoolName: domain-pattern-counter-example
+  HostedUiPrefix:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      UserPoolId: !Ref UserPool
+      Domain: my-app-prefix1
+  SingleCharacterPrefix:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      UserPoolId: !Ref UserPool
+      Domain: a
+  CustomDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      UserPoolId: !Ref UserPool
+      Domain: auth.example.com
+      CustomDomainConfig:
+        CertificateArn: !Sub arn:${AWS::Partition}:acm:us-east-1:${AWS::AccountId}:certificate/11111111-2222-3333-4444-555555555555
+  ConditionallyCustomDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      UserPoolId: !Ref UserPool
+      Domain: !If [UseCustomDomain, login.example.com, login-prefix]
+      CustomDomainConfig: !If
+        - UseCustomDomain
+        - CertificateArn: !Sub arn:${AWS::Partition}:acm:us-east-1:${AWS::AccountId}:certificate/11111111-2222-3333-4444-555555555555
+        - !Ref AWS::NoValue

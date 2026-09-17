@@ -86,6 +86,10 @@ pub struct ConditionSchema {
     pub properties: HashMap<String, PropSchema>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub required: Vec<String>,
+    /// Properties that must be absent for the condition to hold (a `false`
+    /// property schema in the source).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub absent: Vec<String>,
     /// The instance type the condition requires (`if: {"type": ...}`). A
     /// condition stating a type only matches an instance of that type; resource
     /// roots are always objects, so `"object"` is a no-op there while any other
@@ -95,6 +99,29 @@ pub struct ConditionSchema {
     /// When set, the condition matches if ANY of these sub-conditions match.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub any_of: Vec<ConditionSchema>,
+    /// When non-empty, exactly one of these sub-conditions must match.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub one_of: Vec<ConditionSchema>,
+    /// When set, the condition matches only if this sub-condition does not.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub not: Option<Box<ConditionSchema>>,
+}
+
+impl ConditionSchema {
+    /// Whether the condition constrains nothing at all. Such a condition can only
+    /// come from a source `if` the compiler could not represent (older artifacts
+    /// compiled `not`/`oneOf` conditions this way), and evaluating it as
+    /// always-true would apply its branch to every resource of the type.
+    pub fn states_nothing(&self) -> bool {
+        let ConditionSchema { properties, required, absent, prop_type, any_of, one_of, not } = self;
+        properties.is_empty()
+            && required.is_empty()
+            && absent.is_empty()
+            && prop_type.is_none()
+            && any_of.is_empty()
+            && one_of.is_empty()
+            && not.is_none()
+    }
 }
 
 /// `$ref` is stored as `ref_name` and resolved at validation time against the parent schema's `definitions`.

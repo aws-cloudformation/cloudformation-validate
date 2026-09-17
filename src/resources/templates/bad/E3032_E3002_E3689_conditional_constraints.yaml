@@ -1,0 +1,69 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  Conditional constraints with a generic or dedicated owner: a table with local
+  secondary indexes needs a composite key (two key schema elements and their
+  attribute definitions), 'admin' is a reserved master username for
+  PostgreSQL-compatible clusters, and Enhanced Monitoring needs both a role and
+  a non-zero interval.
+Resources:
+  TableWithLsiSingleKey:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+      LocalSecondaryIndexes:
+        - IndexName: by-sk
+          KeySchema:
+            - AttributeName: pk
+              KeyType: HASH
+            - AttributeName: sk
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+  GlobalTableWithLsiSingleKey:
+    Type: AWS::DynamoDB::GlobalTable
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+      LocalSecondaryIndexes:
+        - IndexName: by-sk
+          KeySchema:
+            - AttributeName: pk
+              KeyType: HASH
+            - AttributeName: sk
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      Replicas:
+        - Region: us-east-1
+  ClusterReservedMasterUsername:
+    Type: AWS::RDS::DBCluster
+    Properties:
+      Engine: aurora-postgresql
+      MasterUsername: admin
+      MasterUserPassword: "{{resolve:secretsmanager:db:SecretString:password}}"
+  ClusterMonitoringRoleWithoutInterval:
+    Type: AWS::RDS::DBCluster
+    Properties:
+      Engine: aurora-mysql
+      MasterUsername: dbadmin
+      MasterUserPassword: "{{resolve:secretsmanager:db:SecretString:password}}"
+      MonitoringRoleArn: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/rds-monitoring-role
+      MonitoringInterval: 0
+  ClusterIntervalWithoutMonitoringRole:
+    Type: AWS::RDS::DBCluster
+    Properties:
+      Engine: aurora-mysql
+      MasterUsername: dbadmin
+      MasterUserPassword: "{{resolve:secretsmanager:db:SecretString:password}}"
+      MonitoringInterval: 30

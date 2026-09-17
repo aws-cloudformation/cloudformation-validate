@@ -1,4 +1,4 @@
-use crate::compiled_schema::{CompiledSchema, RefSiblings, compile_schema_with};
+use crate::compiled_schema::{CompiledSchema, RefSiblings, compile_schema_with, unsupported_root_conditionals};
 use log::info;
 use std::collections::BTreeMap;
 use std::collections::HashSet;
@@ -36,12 +36,21 @@ pub fn generate(generated_dir: &Path, upstream_dir: &Path) -> anyhow::Result<()>
     anyhow::ensure!(!raw.is_empty(), "no patched schemas found in {}", schema_dir.display());
 
     let mut compiled: BTreeMap<String, CompiledSchema> = BTreeMap::new();
+    let mut unsupported_conditionals = Vec::new();
     for (tn, schema) in &raw {
+        unsupported_conditionals.extend(unsupported_root_conditionals(tn, schema));
         // Bundled schemas compile with `$ref` evaluation - keywords
         // beside a reference are ignored, matching what the CloudFormation
         // registry itself enforces. Overlay schemas opt into enforcing them.
         compiled.insert(tn.clone(), compile_schema_with(tn, schema, RefSiblings::Ignore));
     }
+    // A condition the compiler cannot represent would be emitted as one that
+    // always or never matches, silently re-scoping its `then` branch.
+    anyhow::ensure!(
+        unsupported_conditionals.is_empty(),
+        "conditional schemas the compiler cannot represent:\n  {}",
+        unsupported_conditionals.join("\n  ")
+    );
 
     let json_bytes = serde_json::to_string_pretty(&compiled)?;
     fs::write(output_dir.join("compiled_schemas.json"), json_bytes.as_bytes())?;

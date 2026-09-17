@@ -1,0 +1,67 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  Conditional value constraints on Lambda Timeout, API Gateway authorizer TTL,
+  RDS backup retention and Stage method-setting paths.
+Resources:
+  FunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+  TimeoutWithoutCapacityProvider:
+    Type: AWS::Lambda::Function
+    Properties:
+      Role: !GetAtt FunctionRole.Arn
+      Runtime: python3.12
+      Handler: index.handler
+      Code:
+        S3Bucket: my-deployment-bucket
+        S3Key: function.zip
+      Timeout: 901
+  RestApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: conditional-constraints
+  TokenAuthorizerTtlTooLong:
+    Type: AWS::ApiGateway::Authorizer
+    Properties:
+      Name: token-authorizer
+      RestApiId: !Ref RestApi
+      Type: TOKEN
+      IdentitySource: method.request.header.Authorization
+      AuthorizerUri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${TimeoutWithoutCapacityProvider.Arn}/invocations
+      AuthorizerResultTtlInSeconds: 4000
+  Deployment:
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId: !Ref RestApi
+  StageWithRelativeResourcePath:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      RestApiId: !Ref RestApi
+      DeploymentId: !Ref Deployment
+      StageName: prod
+      MethodSettings:
+        - ResourcePath: orders
+          HttpMethod: GET
+          MetricsEnabled: true
+        - ResourcePath: "/*"
+          HttpMethod: "*"
+          ThrottlingBurstLimit: 100
+  MysqlBackupRetentionTooLong:
+    Type: AWS::RDS::DBInstance
+    UpdateReplacePolicy: Snapshot
+    DeletionPolicy: Snapshot
+    Properties:
+      Engine: mysql
+      DBInstanceClass: db.t3.micro
+      AllocatedStorage: "20"
+      MasterUsername: admin
+      MasterUserPassword: "{{resolve:secretsmanager:database-secret:SecretString:password}}"
+      StorageEncrypted: true
+      BackupRetentionPeriod: 40
