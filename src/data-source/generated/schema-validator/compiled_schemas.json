@@ -80316,7 +80316,13 @@
         }
       },
       {
-        "condition": {},
+        "condition": {
+          "not": {
+            "required": [
+              "CustomDomainConfig"
+            ]
+          }
+        },
         "then_schema": {
           "properties": {
             "Domain": {
@@ -120644,7 +120650,12 @@
         "condition": {
           "required": [
             "VirtualName"
-          ]
+          ],
+          "not": {
+            "required": [
+              "Ebs"
+            ]
+          }
         },
         "then_schema": {
           "properties": {
@@ -147357,7 +147368,25 @@
     "source_url": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-elasticloadbalancingv2",
     "if_then_else": [
       {
-        "condition": {},
+        "condition": {
+          "one_of": [
+            {
+              "properties": {
+                "Type": {
+                  "const": "application"
+                }
+              },
+              "required": [
+                "Type"
+              ]
+            },
+            {
+              "absent": [
+                "Type"
+              ]
+            }
+          ]
+        },
         "then_schema": {
           "properties": {
             "SubnetMappings": {
@@ -205114,7 +205143,13 @@
     ],
     "if_then_else": [
       {
-        "condition": {},
+        "condition": {
+          "not": {
+            "required": [
+              "CapacityProviderConfig"
+            ]
+          }
+        },
         "then_schema": {
           "properties": {
             "Timeout": {
@@ -309132,9 +309167,9 @@
           },
           {
             "condition": {
-              "properties": {
-                "EngineMode": {}
-              },
+              "absent": [
+                "EngineMode"
+              ],
               "type": "object"
             },
             "then_schema": {
@@ -310120,15 +310155,17 @@
           {
             "condition": {
               "properties": {
-                "DBClusterIdentifier": {},
                 "Engine": {
                   "type": "string",
                   "pattern": "^(?!aurora).*$"
-                },
-                "SourceDBInstanceIdentifier": {}
+                }
               },
               "required": [
                 "Engine"
+              ],
+              "absent": [
+                "DBClusterIdentifier",
+                "SourceDBInstanceIdentifier"
               ],
               "type": "object"
             },
@@ -312345,11 +312382,13 @@
             "Engine": {
               "type": "string",
               "pattern": "^(?!aurora).*$"
-            },
-            "SourceDBInstanceIdentifier": {}
+            }
           },
           "required": [
             "Engine"
+          ],
+          "absent": [
+            "SourceDBInstanceIdentifier"
           ],
           "type": "object"
         },

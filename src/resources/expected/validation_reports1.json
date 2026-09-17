@@ -1653,7 +1653,7 @@
       "resourcesScanned": 7,
       "counts": {
         "fatal": 0,
-        "errors": 2,
+        "errors": 6,
         "warnings": 0,
         "informational": 12,
         "debug": 0
@@ -1663,6 +1663,98 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
+      {
+        "ruleId": "E3031",
+        "severity": "ERROR",
+        "message": "'-myprefix' does not match pattern '^[a-z0-9](?:[a-z0-9\\-]{0,61}[a-z0-9])?$'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "PrefixLeadingHyphen",
+          "entityType": "Resource",
+          "resourceType": "AWS::Cognito::UserPoolDomain"
+        },
+        "propertyPath": "Properties.Domain",
+        "category": "Schema",
+        "startLine": 18,
+        "startColumn": 7,
+        "endLine": 18,
+        "endColumn": 13,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Check if property values adhere to a specific pattern",
+        "phase": "SCHEMA",
+        "context": {
+          "actualValue": "-myprefix"
+        }
+      },
+      {
+        "ruleId": "E3031",
+        "severity": "ERROR",
+        "message": "'myprefix-' does not match pattern '^[a-z0-9](?:[a-z0-9\\-]{0,61}[a-z0-9])?$'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "PrefixTrailingHyphen",
+          "entityType": "Resource",
+          "resourceType": "AWS::Cognito::UserPoolDomain"
+        },
+        "propertyPath": "Properties.Domain",
+        "category": "Schema",
+        "startLine": 23,
+        "startColumn": 7,
+        "endLine": 23,
+        "endColumn": 13,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Check if property values adhere to a specific pattern",
+        "phase": "SCHEMA",
+        "context": {
+          "actualValue": "myprefix-"
+        }
+      },
+      {
+        "ruleId": "E3031",
+        "severity": "ERROR",
+        "message": "'---' does not match pattern '^[a-z0-9](?:[a-z0-9\\-]{0,61}[a-z0-9])?$'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "PrefixOnlyHyphens",
+          "entityType": "Resource",
+          "resourceType": "AWS::Cognito::UserPoolDomain"
+        },
+        "propertyPath": "Properties.Domain",
+        "category": "Schema",
+        "startLine": 28,
+        "startColumn": 7,
+        "endLine": 28,
+        "endColumn": 13,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Check if property values adhere to a specific pattern",
+        "phase": "SCHEMA",
+        "context": {
+          "actualValue": "---"
+        }
+      },
+      {
+        "ruleId": "E3031",
+        "severity": "ERROR",
+        "message": "'MyPrefix' does not match pattern '^[a-z0-9](?:[a-z0-9\\-]{0,61}[a-z0-9])?$'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "PrefixUppercase",
+          "entityType": "Resource",
+          "resourceType": "AWS::Cognito::UserPoolDomain"
+        },
+        "propertyPath": "Properties.Domain",
+        "category": "Schema",
+        "startLine": 33,
+        "startColumn": 7,
+        "endLine": 33,
+        "endColumn": 13,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Check if property values adhere to a specific pattern",
+        "phase": "SCHEMA",
+        "context": {
+          "actualValue": "MyPrefix"
+        }
+      },
       {
         "ruleId": "E3031",
         "severity": "ERROR",
@@ -3018,7 +3110,7 @@
       "resourcesScanned": 7,
       "counts": {
         "fatal": 0,
-        "errors": 3,
+        "errors": 4,
         "warnings": 0,
         "informational": 14,
         "debug": 0
@@ -3028,6 +3120,25 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
+      {
+        "ruleId": "E3717",
+        "severity": "ERROR",
+        "message": "901 exceeds maximum 900 for a function without CapacityProviderConfig",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "TimeoutWithoutCapacityProvider",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.Timeout",
+        "category": "Resource",
+        "startLine": 25,
+        "startColumn": 7,
+        "endLine": 25,
+        "endColumn": 14,
+        "ruleDescription": "Lambda function Timeout may exceed 900 seconds only with CapacityProviderConfig",
+        "phase": "SCHEMA"
+      },
       {
         "ruleId": "E3718",
         "severity": "ERROR",
