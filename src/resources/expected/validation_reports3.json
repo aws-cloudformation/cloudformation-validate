@@ -1,4 +1,183 @@
 {
+  "bad/resources/rds/not_enum_master_username.yaml": {
+    "filePath": "bad/resources/rds/not_enum_master_username.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 1,
+        "errors": 0,
+        "warnings": 1,
+        "informational": 6,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "F3017",
+        "severity": "FATAL",
+        "message": "'rdsadmin' at 'MasterUsername' does not satisfy the composition branch constraint (none of ['rdsadmin']): 'rdsadmin' must not be one of ['rdsadmin']",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "MyDB",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBCluster"
+        },
+        "propertyPath": "Properties.MasterUsername",
+        "category": "Schema",
+        "startLine": 7,
+        "startColumn": 7,
+        "endLine": 7,
+        "endColumn": 21,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-rds",
+        "ruleDescription": "Value not valid under anyOf",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W2501",
+        "severity": "WARN",
+        "message": "Property 'MasterUserPassword' should not be a hardcoded string - use a parameter with NoEcho or a dynamic reference",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "MyDB",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBCluster"
+        },
+        "propertyPath": "Properties.MasterUserPassword",
+        "category": "Security",
+        "startLine": 8,
+        "startColumn": 7,
+        "endLine": 8,
+        "endColumn": 25,
+        "ruleDescription": "Check if Password Properties are correctly configured",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "MyDB",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBCluster"
+        },
+        "category": "Best Practice",
+        "startLine": 3,
+        "startColumn": 3,
+        "endLine": 3,
+        "endColumn": 7,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "MyDB",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBCluster"
+        },
+        "category": "Best Practice",
+        "startLine": 3,
+        "startColumn": 3,
+        "endLine": 3,
+        "endColumn": 7,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3013",
+        "severity": "INFO",
+        "message": "'BackupRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "MyDB",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBCluster"
+        },
+        "propertyPath": "Properties",
+        "category": "Best Practice",
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 15,
+        "ruleDescription": "Check resources with auto expiring content have explicit retention period",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Engine' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "MyDB",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBCluster"
+        },
+        "propertyPath": "Properties.Engine",
+        "category": "Best Practice",
+        "startLine": 6,
+        "startColumn": 7,
+        "endLine": 6,
+        "endColumn": 13,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-rds",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'MasterUsername' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "MyDB",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBCluster"
+        },
+        "propertyPath": "Properties.MasterUsername",
+        "category": "Best Practice",
+        "startLine": 7,
+        "startColumn": 7,
+        "endLine": 7,
+        "endColumn": 21,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-rds",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'MyDB' of type 'AWS::RDS::DBCluster' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "MyDB",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBCluster"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
   "bad/resources/rds/not_enum_master_username_join.yaml": {
     "filePath": "bad/resources/rds/not_enum_master_username_join.yaml",
     "status": "OK",
@@ -21145,566 +21324,6 @@
             "replacement_strategy": "delete_then_create"
           }
         }
-      }
-    ]
-  },
-  "cdk/api-websocket-lambda-dynamodb--chat-app.template.json": {
-    "filePath": "cdk/api-websocket-lambda-dynamodb--chat-app.template.json",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 22,
-      "counts": {
-        "fatal": 0,
-        "errors": 0,
-        "warnings": 3,
-        "informational": 22,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "W3005",
-        "severity": "WARN",
-        "message": "'connectlambdaServiceRole04DCF570' dependency already enforced by a 'GetAtt' at 'Properties.Role'",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "connectlambdaFFAE59F3",
-          "entityType": "Resource",
-          "resourceType": "AWS::Lambda::Function"
-        },
-        "propertyPath": "DependsOn",
-        "suggestedFix": "Remove the DependsOn entry",
-        "category": "Best Practice",
-        "startLine": 157,
-        "startColumn": 4,
-        "endLine": 157,
-        "endColumn": 14,
-        "ruleDescription": "Check obsolete DependsOn configuration for Resources",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "W3005",
-        "severity": "WARN",
-        "message": "'disconnectlambdaServiceRole2779F08C' dependency already enforced by a 'GetAtt' at 'Properties.Role'",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "disconnectlambdaAC22A441",
-          "entityType": "Resource",
-          "resourceType": "AWS::Lambda::Function"
-        },
-        "propertyPath": "DependsOn",
-        "suggestedFix": "Remove the DependsOn entry",
-        "category": "Best Practice",
-        "startLine": 284,
-        "startColumn": 4,
-        "endLine": 284,
-        "endColumn": 14,
-        "ruleDescription": "Check obsolete DependsOn configuration for Resources",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "W3005",
-        "severity": "WARN",
-        "message": "'messagelambdaServiceRole544EC18A' dependency already enforced by a 'GetAtt' at 'Properties.Role'",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "messagelambda16C1C2A3",
-          "entityType": "Resource",
-          "resourceType": "AWS::Lambda::Function"
-        },
-        "propertyPath": "DependsOn",
-        "suggestedFix": "Remove the DependsOn entry",
-        "category": "Best Practice",
-        "startLine": 427,
-        "startColumn": 4,
-        "endLine": 427,
-        "endColumn": 14,
-        "ruleDescription": "Check obsolete DependsOn configuration for Resources",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'ProtocolType' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "chatappapi",
-          "entityType": "Resource",
-          "resourceType": "AWS::ApiGatewayV2::Api"
-        },
-        "propertyPath": "Properties.ProtocolType",
-        "category": "Best Practice",
-        "startLine": 7,
-        "startColumn": 5,
-        "endLine": 7,
-        "endColumn": 18,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'KeySchema' is conditionally create-only; updating it may cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "chatappapitable5244EF8B",
-          "entityType": "Resource",
-          "resourceType": "AWS::DynamoDB::Table"
-        },
-        "propertyPath": "Properties.KeySchema",
-        "category": "Best Practice",
-        "startLine": 23,
-        "startColumn": 5,
-        "endLine": 23,
-        "endColumn": 15,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "conditional-create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'TableName' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "chatappapitable5244EF8B",
-          "entityType": "Resource",
-          "resourceType": "AWS::DynamoDB::Table"
-        },
-        "propertyPath": "Properties.TableName",
-        "category": "Best Practice",
-        "startLine": 33,
-        "startColumn": 5,
-        "endLine": 33,
-        "endColumn": 15,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'ApiId' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "connectlambdaintegration",
-          "entityType": "Resource",
-          "resourceType": "AWS::ApiGatewayV2::Integration"
-        },
-        "propertyPath": "Properties.ApiId",
-        "category": "Best Practice",
-        "startLine": 504,
-        "startColumn": 5,
-        "endLine": 504,
-        "endColumn": 11,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only",
-          "resolutionSource": "Ref to 'chatappapi'"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'ApiId' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "disconnectlambdaintegration",
-          "entityType": "Resource",
-          "resourceType": "AWS::ApiGatewayV2::Integration"
-        },
-        "propertyPath": "Properties.ApiId",
-        "category": "Best Practice",
-        "startLine": 537,
-        "startColumn": 5,
-        "endLine": 537,
-        "endColumn": 11,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only",
-          "resolutionSource": "Ref to 'chatappapi'"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'ApiId' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "messagelambdaintegration",
-          "entityType": "Resource",
-          "resourceType": "AWS::ApiGatewayV2::Integration"
-        },
-        "propertyPath": "Properties.ApiId",
-        "category": "Best Practice",
-        "startLine": 570,
-        "startColumn": 5,
-        "endLine": 570,
-        "endColumn": 11,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only",
-          "resolutionSource": "Ref to 'chatappapi'"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'ApiId' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "connectroute",
-          "entityType": "Resource",
-          "resourceType": "AWS::ApiGatewayV2::Route"
-        },
-        "propertyPath": "Properties.ApiId",
-        "category": "Best Practice",
-        "startLine": 603,
-        "startColumn": 5,
-        "endLine": 603,
-        "endColumn": 11,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-apigatewayv2",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only",
-          "resolutionSource": "Ref to 'chatappapi'"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'ApiId' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "disconnectroute",
-          "entityType": "Resource",
-          "resourceType": "AWS::ApiGatewayV2::Route"
-        },
-        "propertyPath": "Properties.ApiId",
-        "category": "Best Practice",
-        "startLine": 627,
-        "startColumn": 5,
-        "endLine": 627,
-        "endColumn": 11,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-apigatewayv2",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only",
-          "resolutionSource": "Ref to 'chatappapi'"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'ApiId' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "messageroute",
-          "entityType": "Resource",
-          "resourceType": "AWS::ApiGatewayV2::Route"
-        },
-        "propertyPath": "Properties.ApiId",
-        "category": "Best Practice",
-        "startLine": 651,
-        "startColumn": 5,
-        "endLine": 651,
-        "endColumn": 11,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-apigatewayv2",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only",
-          "resolutionSource": "Ref to 'chatappapi'"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'ApiId' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "chatappapideployment",
-          "entityType": "Resource",
-          "resourceType": "AWS::ApiGatewayV2::Deployment"
-        },
-        "propertyPath": "Properties.ApiId",
-        "category": "Best Practice",
-        "startLine": 675,
-        "startColumn": 5,
-        "endLine": 675,
-        "endColumn": 11,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-apigatewayv2",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only",
-          "resolutionSource": "Ref to 'chatappapi'"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'ApiId' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "chatappapistage",
-          "entityType": "Resource",
-          "resourceType": "AWS::ApiGatewayV2::Stage"
-        },
-        "propertyPath": "Properties.ApiId",
-        "category": "Best Practice",
-        "startLine": 691,
-        "startColumn": 5,
-        "endLine": 691,
-        "endColumn": 11,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-apigatewayv2/tree/master/aws-apigatewayv2-stage.git",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only",
-          "resolutionSource": "Ref to 'chatappapi'"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'StageName' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "chatappapistage",
-          "entityType": "Resource",
-          "resourceType": "AWS::ApiGatewayV2::Stage"
-        },
-        "propertyPath": "Properties.StageName",
-        "category": "Best Practice",
-        "startLine": 698,
-        "startColumn": 5,
-        "endLine": 698,
-        "endColumn": 15,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-apigatewayv2/tree/master/aws-apigatewayv2-stage.git",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'chatappapi' of type 'AWS::ApiGatewayV2::Api' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "chatappapi",
-          "entityType": "Resource",
-          "resourceType": "AWS::ApiGatewayV2::Api"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 5,
-        "startColumn": 4,
-        "endLine": 5,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'chatappapitable5244EF8B' of type 'AWS::DynamoDB::Table' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "chatappapitable5244EF8B",
-          "entityType": "Resource",
-          "resourceType": "AWS::DynamoDB::Table"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 16,
-        "startColumn": 4,
-        "endLine": 16,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'connectlambdaServiceRole04DCF570' of type 'AWS::IAM::Role' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "connectlambdaServiceRole04DCF570",
-          "entityType": "Resource",
-          "resourceType": "AWS::IAM::Role"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 43,
-        "startColumn": 4,
-        "endLine": 43,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'connectlambdaFFAE59F3' of type 'AWS::Lambda::Function' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "connectlambdaFFAE59F3",
-          "entityType": "Resource",
-          "resourceType": "AWS::Lambda::Function"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 134,
-        "startColumn": 4,
-        "endLine": 134,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'disconnectlambdaServiceRole2779F08C' of type 'AWS::IAM::Role' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "disconnectlambdaServiceRole2779F08C",
-          "entityType": "Resource",
-          "resourceType": "AWS::IAM::Role"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 170,
-        "startColumn": 4,
-        "endLine": 170,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'disconnectlambdaAC22A441' of type 'AWS::Lambda::Function' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "disconnectlambdaAC22A441",
-          "entityType": "Resource",
-          "resourceType": "AWS::Lambda::Function"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 261,
-        "startColumn": 4,
-        "endLine": 261,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'messagelambdaServiceRole544EC18A' of type 'AWS::IAM::Role' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "messagelambdaServiceRole544EC18A",
-          "entityType": "Resource",
-          "resourceType": "AWS::IAM::Role"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 297,
-        "startColumn": 4,
-        "endLine": 297,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'messagelambda16C1C2A3' of type 'AWS::Lambda::Function' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "messagelambda16C1C2A3",
-          "entityType": "Resource",
-          "resourceType": "AWS::Lambda::Function"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 404,
-        "startColumn": 4,
-        "endLine": 404,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'chatappapiiamrole2977C2A3' of type 'AWS::IAM::Role' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "chatappapiiamrole2977C2A3",
-          "entityType": "Resource",
-          "resourceType": "AWS::IAM::Role"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 440,
-        "startColumn": 4,
-        "endLine": 440,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'chatappapistage' of type 'AWS::ApiGatewayV2::Stage' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "chatappapistage",
-          "entityType": "Resource",
-          "resourceType": "AWS::ApiGatewayV2::Stage"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 690,
-        "startColumn": 4,
-        "endLine": 690,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
       }
     ]
   }

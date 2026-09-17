@@ -2085,6 +2085,741 @@
       }
     ]
   },
+  "bad/E3032_E3002_E3689_conditional_constraints.yaml": {
+    "filePath": "bad/E3032_E3002_E3689_conditional_constraints.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 5,
+      "counts": {
+        "fatal": 0,
+        "errors": 8,
+        "warnings": 1,
+        "informational": 26,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E3002",
+        "severity": "ERROR",
+        "message": "'admin' must not be one of ['admin'] for a PostgreSQL-compatible engine, where it is a reserved word",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ClusterReservedMasterUsername",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBCluster"
+        },
+        "propertyPath": "Properties.MasterUsername",
+        "category": "Schema",
+        "startLine": 53,
+        "startColumn": 7,
+        "endLine": 53,
+        "endColumn": 21,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-rds",
+        "ruleDescription": "Resource properties are invalid",
+        "phase": "SCHEMA",
+        "context": {
+          "property": "MasterUsername"
+        }
+      },
+      {
+        "ruleId": "E3032",
+        "severity": "ERROR",
+        "message": "Array length 1 is below minimum 2 for a table with local secondary indexes",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "TableWithLsiSingleKey",
+          "entityType": "Resource",
+          "resourceType": "AWS::DynamoDB::Table"
+        },
+        "propertyPath": "Properties.AttributeDefinitions",
+        "category": "Schema",
+        "startLine": 12,
+        "startColumn": 7,
+        "endLine": 12,
+        "endColumn": 27,
+        "ruleDescription": "Check if an array has between min and max number of values",
+        "phase": "SCHEMA",
+        "context": {
+          "extra": {
+            "actual_count": 1
+          }
+        }
+      },
+      {
+        "ruleId": "E3032",
+        "severity": "ERROR",
+        "message": "Array length 1 is below minimum 2 for a table with local secondary indexes",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "TableWithLsiSingleKey",
+          "entityType": "Resource",
+          "resourceType": "AWS::DynamoDB::Table"
+        },
+        "propertyPath": "Properties.KeySchema",
+        "category": "Schema",
+        "startLine": 15,
+        "startColumn": 7,
+        "endLine": 15,
+        "endColumn": 16,
+        "ruleDescription": "Check if an array has between min and max number of values",
+        "phase": "SCHEMA",
+        "context": {
+          "extra": {
+            "actual_count": 1
+          }
+        }
+      },
+      {
+        "ruleId": "E3032",
+        "severity": "ERROR",
+        "message": "Array length 1 is below minimum 2 for a table with local secondary indexes",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "GlobalTableWithLsiSingleKey",
+          "entityType": "Resource",
+          "resourceType": "AWS::DynamoDB::GlobalTable"
+        },
+        "propertyPath": "Properties.AttributeDefinitions",
+        "category": "Schema",
+        "startLine": 31,
+        "startColumn": 7,
+        "endLine": 31,
+        "endColumn": 27,
+        "ruleDescription": "Check if an array has between min and max number of values",
+        "phase": "SCHEMA",
+        "context": {
+          "extra": {
+            "actual_count": 1
+          }
+        }
+      },
+      {
+        "ruleId": "E3032",
+        "severity": "ERROR",
+        "message": "Array length 1 is below minimum 2 for a table with local secondary indexes",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "GlobalTableWithLsiSingleKey",
+          "entityType": "Resource",
+          "resourceType": "AWS::DynamoDB::GlobalTable"
+        },
+        "propertyPath": "Properties.KeySchema",
+        "category": "Schema",
+        "startLine": 34,
+        "startColumn": 7,
+        "endLine": 34,
+        "endColumn": 16,
+        "ruleDescription": "Check if an array has between min and max number of values",
+        "phase": "SCHEMA",
+        "context": {
+          "extra": {
+            "actual_count": 1
+          }
+        }
+      },
+      {
+        "ruleId": "E3039",
+        "severity": "ERROR",
+        "message": "AttributeDefinitions does not match KeySchema attributes. missing definitions: [sk]",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "TableWithLsiSingleKey",
+          "entityType": "Resource",
+          "resourceType": "AWS::DynamoDB::Table"
+        },
+        "propertyPath": "Properties",
+        "category": "Resource",
+        "startLine": 11,
+        "startColumn": 5,
+        "endLine": 11,
+        "endColumn": 15,
+        "ruleDescription": "AttributeDefinitions / KeySchemas mismatch",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3689",
+        "severity": "ERROR",
+        "message": "MonitoringRoleArn and a MonitoringInterval greater than 0 must be specified together",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ClusterMonitoringRoleWithoutInterval",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBCluster"
+        },
+        "propertyPath": "Properties.MonitoringInterval",
+        "category": "Resource",
+        "startLine": 62,
+        "startColumn": 7,
+        "endLine": 62,
+        "endColumn": 25,
+        "ruleDescription": "RDS DB cluster MonitoringRoleArn and a MonitoringInterval greater than 0 must be specified together",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3689",
+        "severity": "ERROR",
+        "message": "MonitoringRoleArn and a MonitoringInterval greater than 0 must be specified together",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ClusterIntervalWithoutMonitoringRole",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBCluster"
+        },
+        "propertyPath": "Properties",
+        "category": "Resource",
+        "startLine": 65,
+        "startColumn": 5,
+        "endLine": 65,
+        "endColumn": 15,
+        "ruleDescription": "RDS DB cluster MonitoringRoleArn and a MonitoringInterval greater than 0 must be specified together",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W9002",
+        "severity": "WARN",
+        "message": "Property 'MonitoringRoleArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ClusterMonitoringRoleWithoutInterval",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBCluster"
+        },
+        "propertyPath": "Properties.MonitoringRoleArn",
+        "category": "Best Practice",
+        "startLine": 61,
+        "startColumn": 7,
+        "endLine": 61,
+        "endColumn": 24,
+        "ruleDescription": "Hardcoded ARN property",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "TableWithLsiSingleKey",
+          "entityType": "Resource",
+          "resourceType": "AWS::DynamoDB::Table"
+        },
+        "category": "Best Practice",
+        "startLine": 9,
+        "startColumn": 3,
+        "endLine": 9,
+        "endColumn": 24,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "TableWithLsiSingleKey",
+          "entityType": "Resource",
+          "resourceType": "AWS::DynamoDB::Table"
+        },
+        "category": "Best Practice",
+        "startLine": 9,
+        "startColumn": 3,
+        "endLine": 9,
+        "endColumn": 24,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "GlobalTableWithLsiSingleKey",
+          "entityType": "Resource",
+          "resourceType": "AWS::DynamoDB::GlobalTable"
+        },
+        "category": "Best Practice",
+        "startLine": 28,
+        "startColumn": 3,
+        "endLine": 28,
+        "endColumn": 30,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "GlobalTableWithLsiSingleKey",
+          "entityType": "Resource",
+          "resourceType": "AWS::DynamoDB::GlobalTable"
+        },
+        "category": "Best Practice",
+        "startLine": 28,
+        "startColumn": 3,
+        "endLine": 28,
+        "endColumn": 30,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ClusterReservedMasterUsername",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBCluster"
+        },
+        "category": "Best Practice",
+        "startLine": 49,
+        "startColumn": 3,
+        "endLine": 49,
+        "endColumn": 32,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ClusterReservedMasterUsername",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBCluster"
+        },
+        "category": "Best Practice",
+        "startLine": 49,
+        "startColumn": 3,
+        "endLine": 49,
+        "endColumn": 32,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ClusterMonitoringRoleWithoutInterval",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBCluster"
+        },
+        "category": "Best Practice",
+        "startLine": 55,
+        "startColumn": 3,
+        "endLine": 55,
+        "endColumn": 39,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ClusterMonitoringRoleWithoutInterval",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBCluster"
+        },
+        "category": "Best Practice",
+        "startLine": 55,
+        "startColumn": 3,
+        "endLine": 55,
+        "endColumn": 39,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ClusterIntervalWithoutMonitoringRole",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBCluster"
+        },
+        "category": "Best Practice",
+        "startLine": 63,
+        "startColumn": 3,
+        "endLine": 63,
+        "endColumn": 39,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ClusterIntervalWithoutMonitoringRole",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBCluster"
+        },
+        "category": "Best Practice",
+        "startLine": 63,
+        "startColumn": 3,
+        "endLine": 63,
+        "endColumn": 39,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3013",
+        "severity": "INFO",
+        "message": "'BackupRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ClusterReservedMasterUsername",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBCluster"
+        },
+        "propertyPath": "Properties",
+        "category": "Best Practice",
+        "startLine": 51,
+        "startColumn": 5,
+        "endLine": 51,
+        "endColumn": 15,
+        "ruleDescription": "Check resources with auto expiring content have explicit retention period",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3013",
+        "severity": "INFO",
+        "message": "'BackupRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ClusterMonitoringRoleWithoutInterval",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBCluster"
+        },
+        "propertyPath": "Properties",
+        "category": "Best Practice",
+        "startLine": 57,
+        "startColumn": 5,
+        "endLine": 57,
+        "endColumn": 15,
+        "ruleDescription": "Check resources with auto expiring content have explicit retention period",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3013",
+        "severity": "INFO",
+        "message": "'BackupRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ClusterIntervalWithoutMonitoringRole",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBCluster"
+        },
+        "propertyPath": "Properties",
+        "category": "Best Practice",
+        "startLine": 65,
+        "startColumn": 5,
+        "endLine": 65,
+        "endColumn": 15,
+        "ruleDescription": "Check resources with auto expiring content have explicit retention period",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'KeySchema' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "TableWithLsiSingleKey",
+          "entityType": "Resource",
+          "resourceType": "AWS::DynamoDB::Table"
+        },
+        "propertyPath": "Properties.KeySchema",
+        "category": "Best Practice",
+        "startLine": 15,
+        "startColumn": 7,
+        "endLine": 15,
+        "endColumn": 16,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'KeySchema' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "GlobalTableWithLsiSingleKey",
+          "entityType": "Resource",
+          "resourceType": "AWS::DynamoDB::GlobalTable"
+        },
+        "propertyPath": "Properties.KeySchema",
+        "category": "Best Practice",
+        "startLine": 34,
+        "startColumn": 7,
+        "endLine": 34,
+        "endColumn": 16,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'LocalSecondaryIndexes' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "GlobalTableWithLsiSingleKey",
+          "entityType": "Resource",
+          "resourceType": "AWS::DynamoDB::GlobalTable"
+        },
+        "propertyPath": "Properties.LocalSecondaryIndexes",
+        "category": "Best Practice",
+        "startLine": 38,
+        "startColumn": 7,
+        "endLine": 38,
+        "endColumn": 28,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Engine' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ClusterReservedMasterUsername",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBCluster"
+        },
+        "propertyPath": "Properties.Engine",
+        "category": "Best Practice",
+        "startLine": 52,
+        "startColumn": 7,
+        "endLine": 52,
+        "endColumn": 13,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-rds",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'MasterUsername' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ClusterReservedMasterUsername",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBCluster"
+        },
+        "propertyPath": "Properties.MasterUsername",
+        "category": "Best Practice",
+        "startLine": 53,
+        "startColumn": 7,
+        "endLine": 53,
+        "endColumn": 21,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-rds",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Engine' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ClusterMonitoringRoleWithoutInterval",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBCluster"
+        },
+        "propertyPath": "Properties.Engine",
+        "category": "Best Practice",
+        "startLine": 58,
+        "startColumn": 7,
+        "endLine": 58,
+        "endColumn": 13,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-rds",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'MasterUsername' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ClusterMonitoringRoleWithoutInterval",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBCluster"
+        },
+        "propertyPath": "Properties.MasterUsername",
+        "category": "Best Practice",
+        "startLine": 59,
+        "startColumn": 7,
+        "endLine": 59,
+        "endColumn": 21,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-rds",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Engine' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ClusterIntervalWithoutMonitoringRole",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBCluster"
+        },
+        "propertyPath": "Properties.Engine",
+        "category": "Best Practice",
+        "startLine": 66,
+        "startColumn": 7,
+        "endLine": 66,
+        "endColumn": 13,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-rds",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'MasterUsername' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ClusterIntervalWithoutMonitoringRole",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBCluster"
+        },
+        "propertyPath": "Properties.MasterUsername",
+        "category": "Best Practice",
+        "startLine": 67,
+        "startColumn": 7,
+        "endLine": 67,
+        "endColumn": 21,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-rds",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'TableWithLsiSingleKey' of type 'AWS::DynamoDB::Table' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "TableWithLsiSingleKey",
+          "entityType": "Resource",
+          "resourceType": "AWS::DynamoDB::Table"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 11,
+        "startColumn": 5,
+        "endLine": 11,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'ClusterReservedMasterUsername' of type 'AWS::RDS::DBCluster' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ClusterReservedMasterUsername",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBCluster"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 51,
+        "startColumn": 5,
+        "endLine": 51,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'ClusterMonitoringRoleWithoutInterval' of type 'AWS::RDS::DBCluster' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ClusterMonitoringRoleWithoutInterval",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBCluster"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 57,
+        "startColumn": 5,
+        "endLine": 57,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'ClusterIntervalWithoutMonitoringRole' of type 'AWS::RDS::DBCluster' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ClusterIntervalWithoutMonitoringRole",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBCluster"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 65,
+        "startColumn": 5,
+        "endLine": 65,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
   "bad/E3512_opensearch_access_policy.yaml": {
     "filePath": "bad/E3512_opensearch_access_policy.yaml",
     "status": "OK",
@@ -18869,85 +19604,6 @@
         "startLine": 8,
         "startColumn": 5,
         "endLine": 8,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      }
-    ]
-  },
-  "bad/functions_findinmap_enhanced_invalid_key.yaml": {
-    "filePath": "bad/functions_findinmap_enhanced_invalid_key.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 1,
-      "counts": {
-        "fatal": 0,
-        "errors": 1,
-        "warnings": 0,
-        "informational": 2,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "E7001",
-        "severity": "ERROR",
-        "message": "Mapping 'MapName'.'TopKey1' key '{\"To\":\"Json\",\"String\":\"Function\"}' does not match format '^[a-zA-Z0-9]+$'",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "MapName",
-          "entityType": "Mapping"
-        },
-        "propertyPath": "Mappings/MapName/TopKey1/{\"To\":\"Json\",\"String\":\"Function\"}",
-        "category": "Structure",
-        "startLine": 6,
-        "startColumn": 7,
-        "endLine": 6,
-        "endColumn": 40,
-        "ruleDescription": "Mappings are appropriately configured",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'ClusterName' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Cluster",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::Cluster"
-        },
-        "propertyPath": "Properties.ClusterName",
-        "category": "Best Practice",
-        "startLine": 11,
-        "startColumn": 7,
-        "endLine": 11,
-        "endColumn": 18,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'Cluster' of type 'AWS::ECS::Cluster' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Cluster",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::Cluster"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 10,
-        "startColumn": 5,
-        "endLine": 10,
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"

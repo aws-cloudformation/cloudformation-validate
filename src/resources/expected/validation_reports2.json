@@ -1,4 +1,83 @@
 {
+  "bad/functions_findinmap_enhanced_invalid_key.yaml": {
+    "filePath": "bad/functions_findinmap_enhanced_invalid_key.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 1,
+        "warnings": 0,
+        "informational": 2,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E7001",
+        "severity": "ERROR",
+        "message": "Mapping 'MapName'.'TopKey1' key '{\"To\":\"Json\",\"String\":\"Function\"}' does not match format '^[a-zA-Z0-9]+$'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "MapName",
+          "entityType": "Mapping"
+        },
+        "propertyPath": "Mappings/MapName/TopKey1/{\"To\":\"Json\",\"String\":\"Function\"}",
+        "category": "Structure",
+        "startLine": 6,
+        "startColumn": 7,
+        "endLine": 6,
+        "endColumn": 40,
+        "ruleDescription": "Mappings are appropriately configured",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'ClusterName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Cluster",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::Cluster"
+        },
+        "propertyPath": "Properties.ClusterName",
+        "category": "Best Practice",
+        "startLine": 11,
+        "startColumn": 7,
+        "endLine": 11,
+        "endColumn": 18,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Cluster' of type 'AWS::ECS::Cluster' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Cluster",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::Cluster"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 10,
+        "startColumn": 5,
+        "endLine": 10,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
   "bad/functions_getaz.yaml": {
     "filePath": "bad/functions_getaz.yaml",
     "status": "OK",
@@ -90023,185 +90102,6 @@
         "startLine": 58,
         "startColumn": 5,
         "endLine": 58,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      }
-    ]
-  },
-  "bad/resources/rds/not_enum_master_username.yaml": {
-    "filePath": "bad/resources/rds/not_enum_master_username.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 1,
-      "counts": {
-        "fatal": 1,
-        "errors": 0,
-        "warnings": 1,
-        "informational": 6,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "F3017",
-        "severity": "FATAL",
-        "message": "'rdsadmin' at 'MasterUsername' does not satisfy the composition branch constraint (none of ['rdsadmin']): 'rdsadmin' must not be one of ['rdsadmin']",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "MyDB",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBCluster"
-        },
-        "propertyPath": "Properties.MasterUsername",
-        "category": "Schema",
-        "startLine": 7,
-        "startColumn": 7,
-        "endLine": 7,
-        "endColumn": 21,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-rds",
-        "ruleDescription": "Value not valid under anyOf",
-        "phase": "SCHEMA"
-      },
-      {
-        "ruleId": "W2501",
-        "severity": "WARN",
-        "message": "Property 'MasterUserPassword' should not be a hardcoded string - use a parameter with NoEcho or a dynamic reference",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "MyDB",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBCluster"
-        },
-        "propertyPath": "Properties.MasterUserPassword",
-        "category": "Security",
-        "startLine": 8,
-        "startColumn": 7,
-        "endLine": 8,
-        "endColumn": 25,
-        "ruleDescription": "Check if Password Properties are correctly configured",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3011",
-        "severity": "INFO",
-        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "MyDB",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBCluster"
-        },
-        "category": "Best Practice",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 7,
-        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3011",
-        "severity": "INFO",
-        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "MyDB",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBCluster"
-        },
-        "category": "Best Practice",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 7,
-        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3013",
-        "severity": "INFO",
-        "message": "'BackupRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "MyDB",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBCluster"
-        },
-        "propertyPath": "Properties",
-        "category": "Best Practice",
-        "startLine": 5,
-        "startColumn": 5,
-        "endLine": 5,
-        "endColumn": 15,
-        "ruleDescription": "Check resources with auto expiring content have explicit retention period",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Engine' is conditionally create-only; updating it may cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "MyDB",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBCluster"
-        },
-        "propertyPath": "Properties.Engine",
-        "category": "Best Practice",
-        "startLine": 6,
-        "startColumn": 7,
-        "endLine": 6,
-        "endColumn": 13,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-rds",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "conditional-create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'MasterUsername' is conditionally create-only; updating it may cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "MyDB",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBCluster"
-        },
-        "propertyPath": "Properties.MasterUsername",
-        "category": "Best Practice",
-        "startLine": 7,
-        "startColumn": 7,
-        "endLine": 7,
-        "endColumn": 21,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-rds",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "conditional-create-only"
-        }
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'MyDB' of type 'AWS::RDS::DBCluster' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "MyDB",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBCluster"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 5,
-        "startColumn": 5,
-        "endLine": 5,
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"

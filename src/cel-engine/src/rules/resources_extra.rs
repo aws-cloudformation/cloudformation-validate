@@ -321,6 +321,26 @@ fn stage_method_setting_configures_something(setting: &serde_json::Value) -> boo
     STAGE_METHOD_SETTING_KEYS.iter().any(|key| setting.get(key).is_some_and(|value| !value.is_null()))
 }
 
+/// Enhanced Monitoring on a DB cluster is configured by two properties that
+/// only work together: a MonitoringRoleArn is used only when MonitoringInterval
+/// is greater than 0, and a non-zero interval needs a role to publish with.
+const DBCLUSTER_MONITORING_MESSAGE: &str =
+    "MonitoringRoleArn and a MonitoringInterval greater than 0 must be specified together";
+
+/// The property path an inconsistent monitoring configuration is reported at,
+/// or `None` when the configuration is consistent or not decidable.
+fn dbcluster_monitoring_mismatch_path(m: &SemanticModel, rid: &str) -> Option<&'static str> {
+    let has_role = resource_has_property(m, rid, "MonitoringRoleArn");
+    let has_interval = resource_has_property(m, rid, "MonitoringInterval");
+    let interval = resolve_concrete(m, rid, "Properties.MonitoringInterval").as_ref().and_then(coerce_to_integer);
+    match (has_role, has_interval, interval) {
+        (true, false, _) => Some(KEY_PROPERTIES),
+        (true, true, Some(interval)) if interval <= 0 => Some("Properties.MonitoringInterval"),
+        (false, true, Some(interval)) if interval > 0 => Some(KEY_PROPERTIES),
+        _ => None,
+    }
+}
+
 /// Runs the shared identity-policy structural validator against a resolved
 /// document and converts its findings into engine diagnostics. The `substituted`
 /// set is derived from the reference graph: any outgoing edge whose source_path
@@ -3350,6 +3370,12 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             if resolved_item_count(m, name, &path).is_some_and(|count| count < ALB_MINIMUM_SUBNETS) {
                 out.push(make_resource_diagnostic("E3680", message, m, name, &path, None));
             }
+        }
+    }
+
+    for name in m.resources_of_type("AWS::RDS::DBCluster") {
+        if let Some(path) = dbcluster_monitoring_mismatch_path(m, name) {
+            out.push(make_resource_diagnostic("E3689", DBCLUSTER_MONITORING_MESSAGE, m, name, path, None));
         }
     }
 

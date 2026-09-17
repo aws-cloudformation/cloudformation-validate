@@ -1983,3 +1983,44 @@ fn valid_cognito_domains_of_either_kind_are_not_reported() {
     assert_eq!(rego_findings, cel_findings);
     assert!(rego_findings.is_empty(), "{rego_findings:?}");
 }
+
+#[test]
+fn composite_key_reserved_username_and_monitoring_constraints_report_under_their_owners() {
+    let template = include_str!("../../resources/templates/bad/E3032_E3002_E3689_conditional_constraints.yaml");
+    let (rego, cel) = engines();
+    let rule_ids = ["E3032", "E3002", "E3689"];
+    let rego_findings = selected_findings(&rego, template, &rule_ids);
+    let cel_findings = selected_findings(&cel, template, &rule_ids);
+    assert_eq!(rego_findings, cel_findings, "conditional constraint diagnostics must be identical");
+    let item_count: Vec<_> = rego_findings.iter().filter(|finding| finding.starts_with("E3032|")).collect();
+    assert_eq!(item_count.len(), 4, "key schema and attribute definitions of both table kinds: {item_count:?}");
+    assert!(item_count.iter().all(|finding| finding.contains("Array length 1 is below minimum 2")));
+    assert!(
+        rego_findings.iter().any(|finding| {
+            finding.starts_with("E3002|")
+                && finding.contains("|ClusterReservedMasterUsername|Properties.MasterUsername|")
+                && finding.contains("'admin' must not be one of ['admin']")
+        }),
+        "{rego_findings:?}"
+    );
+    let monitoring: Vec<_> = rego_findings.iter().filter(|finding| finding.starts_with("E3689|")).collect();
+    assert_eq!(monitoring.len(), 2, "a role without an interval and an interval without a role: {monitoring:?}");
+    assert!(
+        monitoring
+            .iter()
+            .any(|finding| finding.contains("|ClusterMonitoringRoleWithoutInterval|Properties.MonitoringInterval|"))
+    );
+    assert!(monitoring.iter().any(|finding| finding.contains("|ClusterIntervalWithoutMonitoringRole|Properties|")));
+}
+
+#[test]
+fn composite_keys_other_engines_and_consistent_monitoring_are_not_reported() {
+    let template =
+        include_str!("../../resources/templates/good/conditional_constraints_composite_keys_and_monitoring.yaml");
+    let (rego, cel) = engines();
+    let rule_ids = ["E3032", "E3002", "E3689"];
+    let rego_findings = selected_findings(&rego, template, &rule_ids);
+    let cel_findings = selected_findings(&cel, template, &rule_ids);
+    assert_eq!(rego_findings, cel_findings);
+    assert!(rego_findings.is_empty(), "{rego_findings:?}");
+}

@@ -1,4 +1,89 @@
 {
+  "gh-issues/issue-144.yaml": {
+    "filePath": "gh-issues/issue-144.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 3,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Name' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Flow",
+          "entityType": "Resource",
+          "resourceType": "AWS::MediaConnect::Flow"
+        },
+        "propertyPath": "Properties.Name",
+        "category": "Best Practice",
+        "startLine": 11,
+        "startColumn": 7,
+        "endLine": 11,
+        "endColumn": 11,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-mediaconnect.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Source.Name' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Flow",
+          "entityType": "Resource",
+          "resourceType": "AWS::MediaConnect::Flow"
+        },
+        "propertyPath": "Properties.Source.Name",
+        "category": "Best Practice",
+        "startLine": 13,
+        "startColumn": 9,
+        "endLine": 13,
+        "endColumn": 13,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-mediaconnect.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Flow' of type 'AWS::MediaConnect::Flow' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Flow",
+          "entityType": "Resource",
+          "resourceType": "AWS::MediaConnect::Flow"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 10,
+        "startColumn": 5,
+        "endLine": 10,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
   "gh-issues/issue-183.yaml": {
     "filePath": "gh-issues/issue-183.yaml",
     "status": "OK",
@@ -14507,6 +14592,436 @@
       }
     ]
   },
+  "good/conditional_constraints_composite_keys_and_monitoring.yaml": {
+    "filePath": "good/conditional_constraints_composite_keys_and_monitoring.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 7,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 1,
+        "informational": 18,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "W9002",
+        "severity": "WARN",
+        "message": "Property 'MonitoringRoleArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ClusterWithEnhancedMonitoring",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBCluster"
+        },
+        "propertyPath": "Properties.MonitoringRoleArn",
+        "category": "Best Practice",
+        "startLine": 103,
+        "startColumn": 7,
+        "endLine": 103,
+        "endColumn": 24,
+        "ruleDescription": "Hardcoded ARN property",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'KeySchema' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "TableWithLsiCompositeKey",
+          "entityType": "Resource",
+          "resourceType": "AWS::DynamoDB::Table"
+        },
+        "propertyPath": "Properties.KeySchema",
+        "category": "Best Practice",
+        "startLine": 20,
+        "startColumn": 7,
+        "endLine": 20,
+        "endColumn": 16,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'KeySchema' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "TableWithoutIndexesSimpleKey",
+          "entityType": "Resource",
+          "resourceType": "AWS::DynamoDB::Table"
+        },
+        "propertyPath": "Properties.KeySchema",
+        "category": "Best Practice",
+        "startLine": 43,
+        "startColumn": 7,
+        "endLine": 43,
+        "endColumn": 16,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'KeySchema' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "GlobalTableWithLsiCompositeKey",
+          "entityType": "Resource",
+          "resourceType": "AWS::DynamoDB::GlobalTable"
+        },
+        "propertyPath": "Properties.KeySchema",
+        "category": "Best Practice",
+        "startLine": 59,
+        "startColumn": 7,
+        "endLine": 59,
+        "endColumn": 16,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'LocalSecondaryIndexes' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "GlobalTableWithLsiCompositeKey",
+          "entityType": "Resource",
+          "resourceType": "AWS::DynamoDB::GlobalTable"
+        },
+        "propertyPath": "Properties.LocalSecondaryIndexes",
+        "category": "Best Practice",
+        "startLine": 65,
+        "startColumn": 7,
+        "endLine": 65,
+        "endColumn": 28,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Engine' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "MysqlClusterAdminUsername",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBCluster"
+        },
+        "propertyPath": "Properties.Engine",
+        "category": "Best Practice",
+        "startLine": 81,
+        "startColumn": 7,
+        "endLine": 81,
+        "endColumn": 13,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-rds",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'MasterUsername' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "MysqlClusterAdminUsername",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBCluster"
+        },
+        "propertyPath": "Properties.MasterUsername",
+        "category": "Best Practice",
+        "startLine": 82,
+        "startColumn": 7,
+        "endLine": 82,
+        "endColumn": 21,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-rds",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Engine' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "PostgresClusterOtherUsername",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBCluster"
+        },
+        "propertyPath": "Properties.Engine",
+        "category": "Best Practice",
+        "startLine": 90,
+        "startColumn": 7,
+        "endLine": 90,
+        "endColumn": 13,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-rds",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'MasterUsername' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "PostgresClusterOtherUsername",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBCluster"
+        },
+        "propertyPath": "Properties.MasterUsername",
+        "category": "Best Practice",
+        "startLine": 91,
+        "startColumn": 7,
+        "endLine": 91,
+        "endColumn": 21,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-rds",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Engine' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ClusterWithEnhancedMonitoring",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBCluster"
+        },
+        "propertyPath": "Properties.Engine",
+        "category": "Best Practice",
+        "startLine": 99,
+        "startColumn": 7,
+        "endLine": 99,
+        "endColumn": 13,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-rds",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'MasterUsername' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ClusterWithEnhancedMonitoring",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBCluster"
+        },
+        "propertyPath": "Properties.MasterUsername",
+        "category": "Best Practice",
+        "startLine": 100,
+        "startColumn": 7,
+        "endLine": 100,
+        "endColumn": 21,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-rds",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Engine' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ClusterWithoutMonitoring",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBCluster"
+        },
+        "propertyPath": "Properties.Engine",
+        "category": "Best Practice",
+        "startLine": 110,
+        "startColumn": 7,
+        "endLine": 110,
+        "endColumn": 13,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-rds",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'MasterUsername' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ClusterWithoutMonitoring",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBCluster"
+        },
+        "propertyPath": "Properties.MasterUsername",
+        "category": "Best Practice",
+        "startLine": 111,
+        "startColumn": 7,
+        "endLine": 111,
+        "endColumn": 21,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-rds",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'TableWithLsiCompositeKey' of type 'AWS::DynamoDB::Table' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "TableWithLsiCompositeKey",
+          "entityType": "Resource",
+          "resourceType": "AWS::DynamoDB::Table"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 12,
+        "startColumn": 5,
+        "endLine": 12,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'TableWithoutIndexesSimpleKey' of type 'AWS::DynamoDB::Table' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "TableWithoutIndexesSimpleKey",
+          "entityType": "Resource",
+          "resourceType": "AWS::DynamoDB::Table"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 39,
+        "startColumn": 5,
+        "endLine": 39,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'MysqlClusterAdminUsername' of type 'AWS::RDS::DBCluster' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "MysqlClusterAdminUsername",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBCluster"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 80,
+        "startColumn": 5,
+        "endLine": 80,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'PostgresClusterOtherUsername' of type 'AWS::RDS::DBCluster' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "PostgresClusterOtherUsername",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBCluster"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 89,
+        "startColumn": 5,
+        "endLine": 89,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'ClusterWithEnhancedMonitoring' of type 'AWS::RDS::DBCluster' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ClusterWithEnhancedMonitoring",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBCluster"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 98,
+        "startColumn": 5,
+        "endLine": 98,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'ClusterWithoutMonitoring' of type 'AWS::RDS::DBCluster' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ClusterWithoutMonitoring",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBCluster"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 109,
+        "startColumn": 5,
+        "endLine": 109,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
   "good/conditional_constraints_within_limits.yaml": {
     "filePath": "good/conditional_constraints_within_limits.yaml",
     "status": "OK",
@@ -23090,369 +23605,6 @@
         "startLine": 36,
         "startColumn": 5,
         "endLine": 36,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      }
-    ]
-  },
-  "good/functions/relationship_conditions_sam.yaml": {
-    "filePath": "good/functions/relationship_conditions_sam.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 3,
-      "counts": {
-        "fatal": 0,
-        "errors": 0,
-        "warnings": 1,
-        "informational": 4,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "W2531",
-        "severity": "WARN",
-        "message": "Runtime 'provided.al2' was deprecated on '2026-07-31'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'provided.al2023'",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "FunctionC",
-          "entityType": "Resource",
-          "resourceType": "AWS::Serverless::Function"
-        },
-        "propertyPath": "Properties.Runtime",
-        "category": "Deprecation",
-        "startLine": 36,
-        "startColumn": 7,
-        "endLine": 36,
-        "endColumn": 14,
-        "ruleDescription": "Check if EOL Lambda Function Runtimes are used",
-        "phase": "SCHEMA",
-        "context": {
-          "actualValue": "provided.al2",
-          "lifecycle": "deprecated"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'ApplicationId' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "ConfigEnvironment",
-          "entityType": "Resource",
-          "resourceType": "AWS::AppConfig::Environment"
-        },
-        "propertyPath": "Properties.ApplicationId",
-        "category": "Best Practice",
-        "startLine": 31,
-        "startColumn": 7,
-        "endLine": 31,
-        "endColumn": 20,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-appconfig.git",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only",
-          "resolutionSource": "Ref to 'ConfigApplication'"
-        }
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'ConfigApplication' of type 'AWS::AppConfig::Application' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "ConfigApplication",
-          "entityType": "Resource",
-          "resourceType": "AWS::AppConfig::Application"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 25,
-        "startColumn": 5,
-        "endLine": 25,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'ConfigEnvironment' of type 'AWS::AppConfig::Environment' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "ConfigEnvironment",
-          "entityType": "Resource",
-          "resourceType": "AWS::AppConfig::Environment"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 30,
-        "startColumn": 5,
-        "endLine": 30,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'FunctionC' of type 'AWS::Serverless::Function' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "FunctionC",
-          "entityType": "Resource",
-          "resourceType": "AWS::Serverless::Function"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 35,
-        "startColumn": 5,
-        "endLine": 35,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      }
-    ]
-  },
-  "good/functions/select_string_index.yaml": {
-    "filePath": "good/functions/select_string_index.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 3,
-      "counts": {
-        "fatal": 0,
-        "errors": 0,
-        "warnings": 0,
-        "informational": 10,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'VpcId' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "SubnetA",
-          "entityType": "Resource",
-          "resourceType": "AWS::EC2::Subnet"
-        },
-        "propertyPath": "Properties.VpcId",
-        "category": "Best Practice",
-        "startLine": 10,
-        "startColumn": 7,
-        "endLine": 10,
-        "endColumn": 12,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only",
-          "resolutionSource": "Ref to 'Vpc'"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'CidrBlock' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "SubnetA",
-          "entityType": "Resource",
-          "resourceType": "AWS::EC2::Subnet"
-        },
-        "propertyPath": "Properties.CidrBlock",
-        "category": "Best Practice",
-        "startLine": 11,
-        "startColumn": 7,
-        "endLine": 11,
-        "endColumn": 16,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'AvailabilityZone' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "SubnetA",
-          "entityType": "Resource",
-          "resourceType": "AWS::EC2::Subnet"
-        },
-        "propertyPath": "Properties.AvailabilityZone",
-        "category": "Best Practice",
-        "startLine": 12,
-        "startColumn": 7,
-        "endLine": 12,
-        "endColumn": 23,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only",
-          "resolutionSource": "dynamic (Select on non-list value)"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'VpcId' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "SubnetB",
-          "entityType": "Resource",
-          "resourceType": "AWS::EC2::Subnet"
-        },
-        "propertyPath": "Properties.VpcId",
-        "category": "Best Practice",
-        "startLine": 19,
-        "startColumn": 7,
-        "endLine": 19,
-        "endColumn": 12,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only",
-          "resolutionSource": "Ref to 'Vpc'"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'CidrBlock' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "SubnetB",
-          "entityType": "Resource",
-          "resourceType": "AWS::EC2::Subnet"
-        },
-        "propertyPath": "Properties.CidrBlock",
-        "category": "Best Practice",
-        "startLine": 20,
-        "startColumn": 7,
-        "endLine": 20,
-        "endColumn": 16,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'AvailabilityZone' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "SubnetB",
-          "entityType": "Resource",
-          "resourceType": "AWS::EC2::Subnet"
-        },
-        "propertyPath": "Properties.AvailabilityZone",
-        "category": "Best Practice",
-        "startLine": 21,
-        "startColumn": 7,
-        "endLine": 21,
-        "endColumn": 23,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only",
-          "resolutionSource": "dynamic (Select on non-list value)"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'CidrBlock' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Vpc",
-          "entityType": "Resource",
-          "resourceType": "AWS::EC2::VPC"
-        },
-        "propertyPath": "Properties.CidrBlock",
-        "category": "Best Practice",
-        "startLine": 28,
-        "startColumn": 7,
-        "endLine": 28,
-        "endColumn": 16,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'SubnetA' of type 'AWS::EC2::Subnet' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "SubnetA",
-          "entityType": "Resource",
-          "resourceType": "AWS::EC2::Subnet"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 9,
-        "startColumn": 5,
-        "endLine": 9,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'SubnetB' of type 'AWS::EC2::Subnet' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "SubnetB",
-          "entityType": "Resource",
-          "resourceType": "AWS::EC2::Subnet"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 18,
-        "startColumn": 5,
-        "endLine": 18,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'Vpc' of type 'AWS::EC2::VPC' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Vpc",
-          "entityType": "Resource",
-          "resourceType": "AWS::EC2::VPC"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 27,
-        "startColumn": 5,
-        "endLine": 27,
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"

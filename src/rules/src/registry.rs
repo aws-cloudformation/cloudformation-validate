@@ -1953,6 +1953,12 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         origin: RuleOrigin::CfnLint,
     },
     RuleDefinition {
+        id: "E3689",
+        category: Category::Resource,
+        description: "RDS DB cluster MonitoringRoleArn and a MonitoringInterval greater than 0 must be specified together",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
         id: "E3717",
         category: Category::Resource,
         description: "Lambda function Timeout may exceed 900 seconds only with CapacityProviderConfig",

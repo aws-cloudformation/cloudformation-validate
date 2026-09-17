@@ -2980,12 +2980,36 @@ struct ConditionalConstraintRule {
     context: Option<&'static str>,
 }
 
-const CONDITIONAL_CONSTRAINT_RULES: [ConditionalConstraintRule; 4] = [
+const CONDITIONAL_CONSTRAINT_RULES: [ConditionalConstraintRule; 9] = [
     ConditionalConstraintRule {
         resource_type: "AWS::Cognito::UserPoolDomain",
         property_name: "Domain",
         rule_id: "E3031",
         context: None,
+    },
+    ConditionalConstraintRule {
+        resource_type: "AWS::DynamoDB::GlobalTable",
+        property_name: "AttributeDefinitions",
+        rule_id: "E3032",
+        context: Some("for a table with local secondary indexes"),
+    },
+    ConditionalConstraintRule {
+        resource_type: "AWS::DynamoDB::GlobalTable",
+        property_name: "KeySchema",
+        rule_id: "E3032",
+        context: Some("for a table with local secondary indexes"),
+    },
+    ConditionalConstraintRule {
+        resource_type: "AWS::DynamoDB::Table",
+        property_name: "AttributeDefinitions",
+        rule_id: "E3032",
+        context: Some("for a table with local secondary indexes"),
+    },
+    ConditionalConstraintRule {
+        resource_type: "AWS::DynamoDB::Table",
+        property_name: "KeySchema",
+        rule_id: "E3032",
+        context: Some("for a table with local secondary indexes"),
     },
     ConditionalConstraintRule {
         resource_type: "AWS::Lambda::Function",
@@ -2998,6 +3022,12 @@ const CONDITIONAL_CONSTRAINT_RULES: [ConditionalConstraintRule; 4] = [
         property_name: "AuthorizerResultTtlInSeconds",
         rule_id: "E3718",
         context: Some("for a TOKEN or REQUEST authorizer"),
+    },
+    ConditionalConstraintRule {
+        resource_type: "AWS::RDS::DBCluster",
+        property_name: "MasterUsername",
+        rule_id: "E3002",
+        context: Some("for a PostgreSQL-compatible engine, where it is a reserved word"),
     },
     ConditionalConstraintRule {
         resource_type: "AWS::RDS::DBInstance",
@@ -5673,34 +5703,20 @@ mod tests {
         assert_eq!(dependency_findings, vec!["Application", "DefaultType"], "{diagnostics:?}");
     }
 
-    /// Root conditional value constraints in the bundled schemas that no rule
-    /// reports yet. They stay inert (as every bundled conditional value
-    /// constraint did before the owning-rule table existed) until a rule is
-    /// assigned - either an entry in `CONDITIONAL_CONSTRAINT_RULES` or a
-    /// dedicated native rule listed in `CONSTRAINTS_OWNED_BY_DEDICATED_RULES`.
-    /// A data sync that introduces a new constraint must extend one of the
-    /// three lists, so the gap can no longer widen silently.
-    const CONSTRAINTS_AWAITING_AN_OWNER: [(&str, &str); 6] = [
-        ("AWS::DynamoDB::GlobalTable", "AttributeDefinitions"),
-        ("AWS::DynamoDB::GlobalTable", "KeySchema"),
-        ("AWS::DynamoDB::Table", "AttributeDefinitions"),
-        ("AWS::DynamoDB::Table", "KeySchema"),
-        ("AWS::RDS::DBCluster", "MasterUsername"),
-        ("AWS::RDS::DBCluster", "MonitoringInterval"),
-    ];
-
     /// Root conditional value constraints a dedicated native rule already
     /// reports under its own ID, so the conditional must stay silent. The Stage
     /// method-setting path constraint is bundled at the resource root, where its
-    /// per-setting condition can never hold; the native rule evaluates it at the
-    /// method-setting level instead.
-    const CONSTRAINTS_OWNED_BY_DEDICATED_RULES: [(&str, &str); 6] = [
+    /// per-setting condition can never hold, and the DB cluster monitoring
+    /// interval is one half of a two-way co-dependency; both are evaluated by
+    /// native rules instead.
+    const CONSTRAINTS_OWNED_BY_DEDICATED_RULES: [(&str, &str); 7] = [
         ("AWS::ApiGateway::Stage", "ResourcePath"),
         ("AWS::EC2::Instance", "VirtualName"),
         ("AWS::ECS::Service", "SchedulingStrategy"),
         ("AWS::ElasticLoadBalancingV2::LoadBalancer", "SubnetMappings"),
         ("AWS::ElasticLoadBalancingV2::LoadBalancer", "Subnets"),
         ("AWS::Lambda::Function", "Runtime"),
+        ("AWS::RDS::DBCluster", "MonitoringInterval"),
     ];
 
     /// The scalar value constraints of a branch property, ignoring type (the
@@ -5710,8 +5726,11 @@ mod tests {
         schema_for_conditional_value_constraints(property).constrains_value()
     }
 
+    /// Every bundled conditional value constraint is reported by exactly one
+    /// rule: the owning-rule table or a dedicated native rule. A data sync that
+    /// introduces a new constraint must assign it an owner before it can land.
     #[test]
-    fn every_bundled_conditional_value_constraint_has_a_declared_owner() {
+    fn every_bundled_conditional_value_constraint_has_an_owner() {
         let store = CompiledSchemaStore::new();
         let mut unowned = Vec::new();
         for type_name in store.type_names() {
@@ -5725,10 +5744,9 @@ mod tests {
                             continue;
                         }
                         let key = (type_name, property_name.as_str());
-                        let is_declared = conditional_constraint_rule(type_name, property_name).is_some()
-                            || CONSTRAINTS_OWNED_BY_DEDICATED_RULES.contains(&key)
-                            || CONSTRAINTS_AWAITING_AN_OWNER.contains(&key);
-                        if !is_declared {
+                        let is_owned = conditional_constraint_rule(type_name, property_name).is_some()
+                            || CONSTRAINTS_OWNED_BY_DEDICATED_RULES.contains(&key);
+                        if !is_owned {
                             unowned.push(format!("{type_name}.{property_name}"));
                         }
                     }
@@ -5738,7 +5756,7 @@ mod tests {
         unowned.sort();
         assert!(
             unowned.is_empty(),
-            "bundled conditional value constraints without a declared owner (assign a rule or list them explicitly): {unowned:?}"
+            "bundled conditional value constraints without an owning rule (add one to CONDITIONAL_CONSTRAINT_RULES or implement a native rule): {unowned:?}"
         );
     }
 
