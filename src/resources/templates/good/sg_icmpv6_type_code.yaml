@@ -1,0 +1,71 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  ICMPv6 rules carry an ICMP type/code in FromPort/ToPort, exactly like ICMP,
+  so stating them is never a "ports are ignored" warning, and omitting them is
+  never a "ports are required" error because the ICMPv6 type/code is optional.
+Resources:
+  Vpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: ICMPv6 type/code in every accepted spelling
+      VpcId: !Ref Vpc
+      SecurityGroupIngress:
+        - IpProtocol: icmpv6
+          FromPort: -1
+          ToPort: -1
+          CidrIpv6: ::/0
+        - IpProtocol: icmpv6
+          FromPort: 128
+          ToPort: 0
+          CidrIpv6: ::/0
+        - IpProtocol: "58"
+          FromPort: 128
+          ToPort: 0
+          CidrIpv6: ::/0
+        - IpProtocol: ICMPv6
+          FromPort: 128
+          ToPort: 0
+          CidrIpv6: ::/0
+        - IpProtocol: ICMPV6
+          FromPort: 128
+          ToPort: 0
+          CidrIpv6: ::/0
+        - IpProtocol: icmpv6
+          CidrIpv6: ::/0
+        - IpProtocol: icmp
+          FromPort: 8
+          ToPort: 0
+          CidrIp: 10.0.0.0/16
+      SecurityGroupEgress:
+        - IpProtocol: icmpv6
+          FromPort: 129
+          ToPort: 0
+          CidrIpv6: ::/0
+        - IpProtocol: "58"
+          CidrIpv6: ::/0
+  StandaloneIngressIcmpv6:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref SecurityGroup
+      IpProtocol: icmpv6
+      FromPort: -1
+      ToPort: -1
+      CidrIpv6: ::/0
+  StandaloneEgressIcmpv6:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref SecurityGroup
+      IpProtocol: icmpv6
+      FromPort: 128
+      ToPort: 0
+      CidrIpv6: ::/0
+  StandaloneEgressIcmpv6WithoutTypeCode:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref SecurityGroup
+      IpProtocol: "58"
+      CidrIpv6: ::/0
