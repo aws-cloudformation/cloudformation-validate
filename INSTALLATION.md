@@ -185,7 +185,7 @@ The SHA-256 values must match.
 
 The installation methods above do not require a source checkout or development toolchain. Contributors building or
 testing the project from source need the tools below. Pinned versions live in
-[`.github/workflows/configs.yml`](.github/workflows/configs.yml) and
+[`.github/versions.env`](.github/versions.env) and
 [`src/rust-toolchain.toml`](src/rust-toolchain.toml); matching them avoids environment drift.
 
 ### Required tools

@@ -5,7 +5,8 @@
 - Rust Cargo workspace under `src/` (edition and resolver are set in `src/Cargo.toml`)
 - Toolchain pinned by `src/rust-toolchain.toml` (includes `rustfmt`, `clippy`, and the `wasm32-unknown-unknown` target)
 - `unsafe_code` is **forbidden** workspace-wide; clippy `correctness`/`suspicious`/`style`/`complexity`/`perf` are deny
-- Release profile: LTO fat, codegen-units 1, opt-level 3, debuginfo stripped
+- Release profile: LTO fat, codegen-units 1, opt-level 3, debuginfo stripped. A `ci` profile inherits it with LTO off
+  and 16 codegen units for CI test builds only; shipped artifacts always use `release`
 - Key deps: `regorus` (Rego), CEL interpreter (custom rules), `serde`/`serde_json`/`yaml-rust2`, `log`/`env_logger`
 
 ## Build-time code generation
@@ -42,7 +43,7 @@ cargo build -p cfn-validate                   # CLI -> target/debug/cfn-validate
 # Core Rust tests — only when these tests exercise the changed behavior
 cargo test -p cloudformation-validate-cel-engine <name>               # single crate / filtered test — preferred while iterating
 cargo test --workspace 2>&1 | tee ../tmp/test-output.txt   # broad core changes only; at most once at completion
-# CI runs coverage, not plain test: cargo llvm-cov --locked --release --workspace --no-fail-fast
+# CI runs coverage, not plain test: cargo llvm-cov --locked --profile ci --workspace --no-fail-fast
 
 # Required after every Rust source change
 cargo fmt --all
