@@ -332,6 +332,12 @@ function createEngineClass(WasmClass, toWasmConfig) {
         validateTemplate(template, config) {
             return this.inner.validateTemplate(template.readBytes(), config ?? {}, template.path);
         }
+        validateStandard(template, config) {
+            return this.validateTemplate(template, { ...config, detailLevel: 'STANDARD' });
+        }
+        validateDetailed(template, config) {
+            return this.validateTemplate(template, { ...config, detailLevel: 'DETAILED' });
+        }
         validateAwsCliCommand(request) {
             if (!(request instanceof AwsCliCommand)) {
                 throw new TypeError('request must be an AwsCliCommand');
