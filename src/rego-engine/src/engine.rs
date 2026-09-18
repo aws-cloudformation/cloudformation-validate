@@ -2,7 +2,7 @@ use crate::policies;
 use data_source::embedded;
 use data_source::types::KnownResourceTypes;
 use diagnostics::{Diagnostic, PhaseMetric, phase_metric};
-use log::{debug, info, warn};
+use log::{debug, info};
 use rules::{Category, RuleInfo, RuleMetadataEntry, RuleOrigin, build_rule_metadata_map};
 use schema_validator::{OverlayCatalog, SchemaMetadataCatalog, SchemaValidator, schema_metadata_catalog_with_overlays};
 use std::collections::{HashMap, HashSet};
@@ -357,13 +357,14 @@ impl RegoEngine {
             BuiltinRuleMode::ExternalOnly => HashMap::new(),
         };
 
-        // Warming up the aggregate compiles the built-in policies once so the
-        // first real evaluation is not charged that cost. The aggregate only
-        // exists when the built-in policies are loaded.
-        if matches!(builtin_mode, BuiltinRuleMode::Enabled) {
-            rego.set_input(regorus::Value::new_object());
-            let _ = rego.eval_rule("data.all_violations.violation".to_string());
-        }
+        // Every evaluation clones `rego`, and a clone inherits the prepared state
+        // (analysis, scheduling, and loop hoisting of every loaded policy). Preparing
+        // once here keeps that cost out of every evaluation; without it an engine
+        // that loads only external rules would re-analyze the whole custom rule set
+        // for each template. A trivial query prepares the engine without evaluating
+        // any rule body, so it applies equally to both built-in modes. A preparation
+        // failure is not swallowed: the first real evaluation reports it.
+        let _ = rego.eval_query("true".to_string(), false);
 
         info!(
             "RegoEngine initialized: {} handwritten rules, {} data files, {} registry + {} Guard metadata entries",
@@ -465,37 +466,18 @@ impl ValidationEngine for RegoEngine {
         let evaluate_builtins = matches!(self.builtin_mode, BuiltinRuleMode::Enabled) && !config.disable_builtin_rules;
         if evaluate_builtins {
             let excluded_cats = config.filters.excluded_categories();
-
-            let needed_core: Vec<&str> = CORE_PACKAGES
-                .iter()
-                .filter(|(cat, _)| !excluded_cats.contains(cat.as_str()))
-                .map(|(_, pkg)| *pkg)
-                .collect();
-
-            if needed_core.len() == CORE_PACKAGES.len() {
-                match rego.eval_rule("data.all_violations.violation".to_string()) {
-                    Ok(val) => {
-                        let diagnostics_json = serde_json::to_value(&val).map_err(|e| {
-                            ValidationError::Engine(format!(
-                                "Aggregated rule evaluation produced a result that could not be \
-                             serialized to JSON: {e}"
-                            ))
-                        })?;
-                        extract_diagnostics_from_value(&diagnostics_json, model, &mut diagnostics, None)
-                            .map_err(ValidationError::from)?;
-                    }
-                    Err(e) => {
-                        warn!("Aggregated eval failed ({}), falling back to individual packages", e);
-                        for pkg in &needed_core {
-                            self.eval_package_into(&mut rego, pkg, "Core", model, None, &mut diagnostics)?;
-                        }
-                    }
-                }
-            } else {
+            if !excluded_cats.is_empty() {
                 debug!("Skipping excluded categories: {:?}", excluded_cats);
-                for pkg in &needed_core {
-                    self.eval_package_into(&mut rego, pkg, "Core", model, None, &mut diagnostics)?;
+            }
+
+            // The category packages share no rules, so evaluating them one query
+            // at a time costs the same as one aggregated query and keeps a single
+            // code path for the filtered and unfiltered cases.
+            for (category, package) in CORE_PACKAGES {
+                if excluded_cats.contains(category.as_str()) {
+                    continue;
                 }
+                self.eval_package_into(&mut rego, package, "Core", model, None, &mut diagnostics)?;
             }
         }
 

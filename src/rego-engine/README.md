@@ -16,7 +16,6 @@ Rules are organized into Rego packages by category:
 | `references`     | `data.references.violation`     | Cross-resource refs  |
 | `best_practices` | `data.best_practices.violation` | Best practices       |
 | `resources`      | `data.resources.violation`      | Resource-specific    |
-| `all_violations` | `data.all_violations.violation` | All packages at once |
 
 Rules come from four sources: handwritten Rego policies embedded by this crate's build script, generated shared data
 embedded by data-source, user-provided custom Rego policies, and Guard DSL files. Guard files are not translated to

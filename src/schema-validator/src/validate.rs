@@ -1,3 +1,4 @@
+use crate::catalog::GETATT_RETURN_TYPE_OVERRIDES;
 use crate::compiled::{CompiledSchema, ConditionSchema, PropSchema, PropType, SubSchema};
 use crate::store::CompiledSchemaStore;
 use diagnostics::{Diagnostic, Phase, RegisteredDiagnostic, ViolationContext, resolve_section_span};
@@ -4026,6 +4027,17 @@ const EC2_IMAGE_ID_FORMAT: &str = "AWS::EC2::Image.Id";
 const EC2_LAUNCH_TEMPLATE_RESOURCE_TYPE: &str = "AWS::EC2::LaunchTemplate";
 const EC2_LAUNCH_TEMPLATE_IMAGE_ID_PATH: &str = "Properties.LaunchTemplateData.ImageId";
 const EC2_SSM_IMAGE_ALIAS_PREFIX: &str = "resolve:ssm:";
+
+/// Compiles the fixed format-pattern tables and the GetAtt return-type
+/// overrides now, so a validator pays for them at construction rather than on
+/// its first template. Per-schema patterns stay cached on first use because
+/// compiling every bundled pattern up front would cost more than most
+/// one-off validations.
+pub(crate) fn prewarm_statics() {
+    LazyLock::force(&FORMAT_PATTERNS);
+    LazyLock::force(&BRANCH_FORMAT_PATTERNS);
+    LazyLock::force(&GETATT_RETURN_TYPE_OVERRIDES);
+}
 
 static FORMAT_PATTERNS: LazyLock<HashMap<&'static str, Arc<CompiledPattern>>> = LazyLock::new(|| {
     let sources: [(&str, &str); 13] = [

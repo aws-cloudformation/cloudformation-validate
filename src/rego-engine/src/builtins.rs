@@ -6,7 +6,7 @@ use regorus::Value;
 use schema_validator::OverlayCatalog;
 use std::cell::RefCell;
 use std::collections::{BTreeSet, HashMap, HashSet, VecDeque};
-use std::sync::{Arc, OnceLock};
+use std::sync::{Arc, LazyLock};
 use template_model::SemanticModel;
 use template_model::coercion::{
     coerce_port_to_string, coerce_to_bool, coerce_to_integer, coerce_to_number, coerce_to_string, type_compatible,
@@ -86,7 +86,7 @@ pub(crate) fn register_all(
     register_pipeline_artifacts(rego);
     register_pipeline_artifact_count_issues(rego)?;
     register_resolve_type(rego);
-    let getatt_registry: LazyGetattRegistry = build_getatt_registry(overlay_catalog);
+    let getatt_registry = build_getatt_registry(overlay_catalog);
     register_schema_properties(rego, schema_metadata.clone());
     register_schema_required(rego, schema_metadata.clone());
     register_schema_type(rego, schema_metadata.clone());
@@ -1953,27 +1953,28 @@ fn register_resolve_type(rego: &mut regorus::Engine) {
         }),
     );
 }
-type LazyGetattRegistry = Arc<OnceLock<HashMap<String, HashMap<String, String>>>>;
-fn getatt_reg(reg: &LazyGetattRegistry) -> &HashMap<String, HashMap<String, String>> {
-    reg.get_or_init(load_getatt_type_registry)
-}
+type GetattRegistry = Arc<HashMap<String, HashMap<String, String>>>;
 
-/// Build a getatt type registry, eagerly merging overlay entries if present.
-fn build_getatt_registry(catalog: &OverlayCatalog) -> LazyGetattRegistry {
+/// The bundled GetAtt return-type table, parsed once per process. Engines without
+/// overlays share this instance, so constructing an engine costs one clone of the
+/// handle rather than a parse, and no engine defers the parse to its first
+/// `getatt_return_type` call.
+static BASE_GETATT_REGISTRY: LazyLock<GetattRegistry> = LazyLock::new(|| Arc::new(load_getatt_type_registry()));
+
+/// Build a getatt type registry, merging overlay entries on top of the shared base
+/// when the catalog has any.
+fn build_getatt_registry(catalog: &OverlayCatalog) -> GetattRegistry {
     if catalog.is_empty() {
-        return Arc::new(OnceLock::new());
+        return BASE_GETATT_REGISTRY.clone();
     }
-    let mut base = load_getatt_type_registry();
+    let mut merged = (**BASE_GETATT_REGISTRY).clone();
     for (type_name, attr_types) in &catalog.getatt_attribute_types {
-        let entry = base.entry(type_name.clone()).or_default();
+        let entry = merged.entry(type_name.clone()).or_default();
         for (attr, atype) in attr_types {
             entry.insert(attr.clone(), atype.clone());
         }
     }
-    let lock = Arc::new(OnceLock::new());
-    // The lock is freshly constructed above so this set cannot fail.
-    lock.get_or_init(|| base);
-    lock
+    Arc::new(merged)
 }
 
 fn register_schema_properties(rego: &mut regorus::Engine, catalog: Arc<SchemaMetadataCatalog>) {
@@ -2065,14 +2066,14 @@ fn load_getatt_type_registry() -> HashMap<String, HashMap<String, String>> {
     data.getatt_attribute_types
 }
 
-fn register_getatt_return_type(rego: &mut regorus::Engine, registry: LazyGetattRegistry) {
+fn register_getatt_return_type(rego: &mut regorus::Engine, registry: GetattRegistry) {
     let _ = rego.add_extension(
         "getatt_return_type".into(),
         2,
         Box::new(move |params: Vec<Value>| {
             let rtype = params[0].as_string()?;
             let attr = params[1].as_string()?;
-            match getatt_reg(&registry).get(rtype.as_ref()).and_then(|m| m.get(attr.as_ref())) {
+            match registry.get(rtype.as_ref()).and_then(|m| m.get(attr.as_ref())) {
                 Some(s) => Ok(Value::from(s.as_str())),
                 None => Ok(Value::from("string")),
             }
