@@ -343,6 +343,9 @@ impl SchemaValidator {
         overlays_applied: usize,
         start: web_time::Instant,
     ) -> Self {
+        // The fixed pattern and override tables are compiled here rather than on
+        // the first template, so first-template latency matches steady state.
+        validate::prewarm_statics();
         let init_metric = phase_metric(start);
         if overlays_applied > 0 {
             info!(
