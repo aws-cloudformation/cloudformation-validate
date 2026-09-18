@@ -1002,3 +1002,70 @@ describe('validateTemplate detail level', () => {
         });
     }
 });
+
+describe('deprecated validateStandard and validateDetailed', () => {
+    const COMPAT_TEMPLATE = 'good/generic.yaml';
+
+    for (const [engineName, engine] of [
+        ['rego', REGO],
+        ['cel', CEL],
+        ['composite', COMPOSITE],
+    ] as const) {
+        it(`${engineName} validateStandard matches validateTemplate at STANDARD`, () => {
+            const compat = engine.validateStandard(loadTemplate(COMPAT_TEMPLATE), { severityLevel: 'DEBUG' });
+            const canonical = engine.validateTemplate(loadTemplate(COMPAT_TEMPLATE), {
+                severityLevel: 'DEBUG',
+                detailLevel: 'STANDARD',
+            });
+            expect(compat.diagnostics.length).toBeGreaterThan(0);
+            expect(stripSnapshotExcludedFields(compat)).toEqual(stripSnapshotExcludedFields(canonical));
+        });
+
+        it(`${engineName} validateDetailed matches validateTemplate at DETAILED`, () => {
+            const compat = engine.validateDetailed(loadTemplate(COMPAT_TEMPLATE), { severityLevel: 'DEBUG' });
+            const canonical = engine.validateTemplate(loadTemplate(COMPAT_TEMPLATE), {
+                severityLevel: 'DEBUG',
+                detailLevel: 'DETAILED',
+            });
+            expect(compat.diagnostics.some((d: any) => d.ruleDescription !== undefined)).toBe(true);
+            expect(stripSnapshotExcludedFields(compat)).toEqual(stripSnapshotExcludedFields(canonical));
+        });
+
+        it(`${engineName} validateStandard overrides a DETAILED detailLevel in config`, () => {
+            const report = engine.validateStandard(loadTemplate(COMPAT_TEMPLATE), {
+                severityLevel: 'DEBUG',
+                detailLevel: 'DETAILED',
+            });
+            expect(report.diagnostics.length).toBeGreaterThan(0);
+            expect(report.diagnostics.every((d: any) => d.ruleDescription === undefined)).toBe(true);
+        });
+
+        it(`${engineName} validateDetailed overrides a STANDARD detailLevel in config`, () => {
+            const report = engine.validateDetailed(loadTemplate(COMPAT_TEMPLATE), {
+                severityLevel: 'DEBUG',
+                detailLevel: 'STANDARD',
+            });
+            expect(report.diagnostics.some((d: any) => d.ruleDescription !== undefined)).toBe(true);
+        });
+
+        it(`${engineName} validateStandard and validateDetailed accept an omitted config`, () => {
+            const standard = engine.validateStandard(loadTemplate(COMPAT_TEMPLATE));
+            const detailed = engine.validateDetailed(loadTemplate(COMPAT_TEMPLATE));
+            expect(stripSnapshotExcludedFields(standard)).toEqual(
+                stripSnapshotExcludedFields(
+                    engine.validateTemplate(loadTemplate(COMPAT_TEMPLATE), { detailLevel: 'STANDARD' }),
+                ),
+            );
+            expect(stripSnapshotExcludedFields(detailed)).toEqual(
+                stripSnapshotExcludedFields(engine.validateTemplate(loadTemplate(COMPAT_TEMPLATE))),
+            );
+        });
+    }
+
+    it('preserves the remaining config options while forcing the detail level', () => {
+        const filtered = REGO.validateStandard(loadTemplate(COMPAT_TEMPLATE), { severityLevel: 'ERROR' });
+        const unfiltered = REGO.validateStandard(loadTemplate(COMPAT_TEMPLATE), { severityLevel: 'DEBUG' });
+        expect(filtered.metadata.severityLevel).toBe('ERROR');
+        expect(filtered.diagnostics.length).toBeLessThan(unfiltered.diagnostics.length);
+    });
+});
