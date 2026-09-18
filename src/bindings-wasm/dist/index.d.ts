@@ -76,6 +76,14 @@ export type JsonValue =
     | {
           [key: string]: JsonValue;
       };
+/** @deprecated Use {@link Diagnostic}; a `STANDARD` report leaves its enrichment fields undefined. */
+export type StandardDiagnostic = Diagnostic;
+/** @deprecated Use {@link Diagnostic}. */
+export type DetailedDiagnostic = Diagnostic;
+/** @deprecated Use {@link ValidationReport} with `detailLevel: 'STANDARD'`. */
+export type StandardReport = ValidationReport;
+/** @deprecated Use {@link ValidationReport}. */
+export type DetailedReport = ValidationReport;
 export type AwsCliOperationKind =
     | 'READ_ONLY'
     | 'CLOUD_FORMATION_CREATE'
@@ -124,6 +132,16 @@ export interface AwsCliCommandValidation {
 }
 export interface Engine {
     validateTemplate(template: TemplateFile, config?: ValidateConfig): ValidationReport;
+    /**
+     * @deprecated Use {@link validateTemplate} with `detailLevel: 'STANDARD'`. Any `detailLevel`
+     * in `config` is overridden by `'STANDARD'`.
+     */
+    validateStandard(template: TemplateFile, config?: ValidateConfig): StandardReport;
+    /**
+     * @deprecated Use {@link validateTemplate}; `DETAILED` is already its default. Any `detailLevel`
+     * in `config` is overridden by `'DETAILED'`.
+     */
+    validateDetailed(template: TemplateFile, config?: ValidateConfig): DetailedReport;
     validateAwsCliCommand(request: AwsCliCommand): AwsCliCommandValidation;
     listRules(): RuleInfo[];
     engineName(): string;
