@@ -777,6 +777,78 @@ fn intrinsic_and_condition_fixtures_fire_identically_on_all_engines() {
     }
 }
 
+/// Excluding a category must remove exactly the diagnostics whose registry
+/// category it is - in every engine, whatever package or module implements the
+/// rule. Each engine groups its rule implementations by area, and those groups
+/// host rules of several categories: the security hardcoded-account-ID rule sits
+/// with the best-practice rules, best-practice condition rules sit with the
+/// reference or resource rules, a structure rule sits with the resource rules.
+/// A group-level skip therefore dropped a different set of unrelated rules in
+/// each engine. The fixtures fire rules from those mixed groups, and every
+/// registry category is excluded in turn - including the categories of the
+/// groups hosting the fired rules, whose findings must all survive.
+#[test]
+fn excluding_a_category_removes_exactly_that_category_in_every_engine() {
+    let sv = SchemaValidator::default();
+    let fixtures = [
+        "bad/codepipeline_bad_artifacts.yaml",
+        "bad/F2002_unsupported_ssm_parameter_type.yaml",
+        "bad/functions/relationship_conditions.yaml",
+        "good/schema_required_xor_resource_condition.yaml",
+        "bad/security_issues.yaml",
+        "bad/module_with_tags.yaml",
+        "bad/deprecated_type.yaml",
+        "bad/lambda_zip_no_handler.yaml",
+        "bad/functions_getaz.yaml",
+    ];
+    let engines: [(&str, &dyn ValidationEngine); 3] = [("rego", &*REGO), ("cel", &*CEL), ("composite", &*COMPOSITE)];
+    let debug_level = ValidateConfig { severity_level: Severity::Debug, ..Default::default() };
+    let keys = |diags: &[Diagnostic]| -> Vec<String> {
+        let mut out: Vec<String> =
+            diags.iter().map(|d| format!("{}|{:?}|{}", d.rule_id, d.location, d.message)).collect();
+        out.sort();
+        out
+    };
+    let mut categories: Vec<&str> = RULE_REGISTRY.iter().map(|rule| rule.category.as_str()).collect();
+    categories.sort_unstable();
+    categories.dedup();
+
+    let mut exclusions_that_kept_findings = 0;
+    for name in fixtures {
+        let bytes = load_template(name);
+        let unfiltered: Vec<Diagnostic> = validate_bytes(&*REGO, &sv, &bytes, debug_level.clone()).unwrap().diagnostics;
+        assert!(!unfiltered.is_empty(), "{name}: fixture must fire at least one rule");
+
+        for category in &categories {
+            let expected = keys(
+                &unfiltered.iter().filter(|d| d.category.as_deref() != Some(category)).cloned().collect::<Vec<_>>(),
+            );
+            let config = ValidateConfig {
+                severity_level: Severity::Debug,
+                filters: FilterConfig::new(
+                    RuleFilterConfig::default(),
+                    RuleFilterConfig { categories: vec![(*category).to_string()], ..Default::default() },
+                ),
+                ..Default::default()
+            };
+            for (engine_name, engine) in engines {
+                let actual = keys(&validate_bytes(engine, &sv, &bytes, config.clone()).unwrap().diagnostics);
+                assert_eq!(
+                    actual, expected,
+                    "[{engine_name}] {name}: excluding '{category}' must remove exactly that category's diagnostics"
+                );
+            }
+            if !expected.is_empty() {
+                exclusions_that_kept_findings += 1;
+            }
+        }
+    }
+    assert!(
+        exclusions_that_kept_findings >= 50,
+        "sanity: only {exclusions_that_kept_findings} exclusions left findings to compare"
+    );
+}
+
 fn walkdir(dir: &std::path::Path) -> Vec<std::path::PathBuf> {
     let mut out = Vec::new();
     walk_recursive(dir, &mut out);

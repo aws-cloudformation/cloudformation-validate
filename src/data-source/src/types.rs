@@ -7,7 +7,7 @@ pub struct KnownResourceTypes {
 }
 
 /// Resource type → valid GetAtt attribute names and their return types.
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct GetattData {
     pub getatt_attributes: HashMap<String, Vec<String>>,
     pub getatt_attribute_types: HashMap<String, HashMap<String, String>>,

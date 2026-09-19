@@ -1,3 +1,4 @@
+use crate::rule_evaluator::is_rule_category_excluded;
 use data_source::embedded;
 use data_source::rule_data::{NormalizedRuleTablesDocument, RuleData, RuleTables};
 use data_source::types::{
@@ -6,8 +7,7 @@ use data_source::types::{
     SecretsManagerArnFields, SensitivePorts, StatefulResourceTypes,
 };
 use diagnostics::Diagnostic;
-use rules::Category;
-use schema_validator::OverlayCatalog;
+use schema_validator::{OverlayCatalog, getatt_data_with_overlays, shared_base_getatt_data};
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, LazyLock};
 use template_model::SemanticModel;
@@ -24,8 +24,9 @@ pub mod structure;
 /// Pre-loaded data from embedded JSON constants, shared across all rule evaluations.
 pub struct CachedData {
     pub known_types: HashSet<String>,
-    pub getatt_attrs: HashMap<String, Vec<String>>,
-    pub getatt_attr_types: HashMap<String, HashMap<String, String>>,
+    /// The process-wide GetAtt attribute table the schema store shares, layered
+    /// with this engine's overlays through [`Self::merge_overlay_catalog`].
+    pub getatt: Arc<GetattData>,
     schema_metadata: Arc<SchemaMetadataCatalog>,
     pub iam_action_resource_patterns: HashMap<String, Vec<String>>,
     pub enum_data: HashMap<String, serde_json::Value>,
@@ -122,12 +123,7 @@ impl CachedData {
         let known_types: HashSet<String> = known_resource_types.known_resource_types.into_iter().collect();
         anyhow::ensure!(!known_types.is_empty(), "Embedded known_resource_types data must not be empty");
 
-        let getatt_data: GetattData = serde_json::from_slice(&embedded::GETATT_ATTRIBUTES_BYTES)
-            .map_err(|e| anyhow::anyhow!("Failed to parse embedded getatt_attributes data: {}", e))?;
-        let getatt_attrs = getatt_data.getatt_attributes;
-        let getatt_attr_types = getatt_data.getatt_attribute_types;
-        anyhow::ensure!(!getatt_attrs.is_empty(), "Embedded getatt_attributes data must not be empty");
-        anyhow::ensure!(!getatt_attr_types.is_empty(), "Embedded getatt_attribute_types data must not be empty");
+        let getatt = shared_base_getatt_data()?;
 
         let stateful_data: StatefulResourceTypes = serde_json::from_slice(&embedded::STATEFUL_RESOURCE_TYPES_BYTES)
             .map_err(|e| anyhow::anyhow!("Failed to parse embedded stateful_resource_types data: {}", e))?;
@@ -261,8 +257,7 @@ impl CachedData {
 
         Ok(CachedData {
             known_types,
-            getatt_attrs,
-            getatt_attr_types,
+            getatt,
             schema_metadata: Arc::new(SchemaMetadataCatalog::new()),
             iam_action_resource_patterns,
             enum_data,
@@ -297,25 +292,9 @@ impl CachedData {
         // Merge known types
         self.known_types.extend(catalog.type_names.iter().cloned());
 
-        // Merge GetAtt attributes (sort/dedup after merging)
-        for (type_name, attrs) in &catalog.getatt_attributes {
-            let entry = self.getatt_attrs.entry(type_name.clone()).or_default();
-            for attr in attrs {
-                if !entry.contains(attr) {
-                    entry.push(attr.clone());
-                }
-            }
-            entry.sort();
-            entry.dedup();
-        }
-
-        // Merge GetAtt attribute types
-        for (type_name, attr_types) in &catalog.getatt_attribute_types {
-            let entry = self.getatt_attr_types.entry(type_name.clone()).or_default();
-            for (attr, atype) in attr_types {
-                entry.insert(attr.clone(), atype.clone());
-            }
-        }
+        // GetAtt attributes and attribute types: the shared base with the
+        // overlay's entries layered on top.
+        self.getatt = getatt_data_with_overlays(catalog)?;
 
         // Merge primary identifiers
         for (type_name, pids) in &catalog.primary_identifiers {
@@ -348,8 +327,16 @@ pub struct EvalContext<'a> {
 
 pub type NativeRuleFn = fn(&EvalContext) -> Vec<Diagnostic>;
 
+/// The native rule functions, grouped by the module that implements them.
+///
+/// Modules group rules by implementation area, not by registry category: a
+/// module that mostly checks resource properties also emits best-practice and
+/// security findings. Category filtering is therefore decided per emitted
+/// diagnostic from the rule's registry category, never per module - skipping a
+/// whole module for one excluded category would silently drop its rules of
+/// every other category.
 pub struct NativeRuleRegistry {
-    pub rules: Vec<(Category, NativeRuleFn)>,
+    pub rules: Vec<NativeRuleFn>,
 }
 
 impl NativeRuleRegistry {
@@ -364,17 +351,17 @@ impl NativeRuleRegistry {
         reg
     }
 
-    pub fn add(&mut self, category: Category, f: NativeRuleFn) {
-        self.rules.push((category, f));
+    pub fn add(&mut self, f: NativeRuleFn) {
+        self.rules.push(f);
     }
 
+    /// Evaluates every native rule and drops the findings of rules whose
+    /// registry category is excluded, so the result matches what the per-rule
+    /// guard in the generated-rule evaluator and the downstream filter accept.
     pub fn evaluate(&self, ctx: &EvalContext, excluded_cats: &HashSet<&str>) -> Vec<Diagnostic> {
-        let mut all = Vec::new();
-        for (cat, f) in &self.rules {
-            if excluded_cats.contains(cat.as_str()) {
-                continue;
-            }
-            all.extend(f(ctx));
+        let mut all: Vec<Diagnostic> = self.rules.iter().flat_map(|f| f(ctx)).collect();
+        if !excluded_cats.is_empty() {
+            all.retain(|d| !is_rule_category_excluded(&d.rule_id, excluded_cats));
         }
         all
     }

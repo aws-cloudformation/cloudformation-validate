@@ -1,6 +1,5 @@
 use super::{EvalContext, NativeRuleRegistry};
 use diagnostics::Diagnostic;
-use rules::Category;
 use std::collections::HashSet;
 use std::sync::Arc;
 use template_model::DefectPhase;
@@ -15,11 +14,11 @@ use template_model::{PSEUDO_PARAMETERS, SemanticModel, is_custom_resource_type, 
 use validation_engine::make_resource_diagnostic;
 
 pub fn register(reg: &mut NativeRuleRegistry) {
-    reg.add(Category::Intrinsic, eval_intrinsics);
-    reg.add(Category::Intrinsic, eval_intrinsic_params);
-    reg.add(Category::Intrinsic, eval_unused_sub_keys);
-    reg.add(Category::Intrinsic, eval_raw_pseudo_params);
-    reg.add(Category::Intrinsic, eval_secretsmanager_arn);
+    reg.add(eval_intrinsics);
+    reg.add(eval_intrinsic_params);
+    reg.add(eval_unused_sub_keys);
+    reg.add(eval_raw_pseudo_params);
+    reg.add(eval_secretsmanager_arn);
 }
 
 fn eval_intrinsics(ctx: &EvalContext) -> Vec<Diagnostic> {
@@ -49,7 +48,7 @@ fn eval_intrinsics(ctx: &EvalContext) -> Vec<Diagnostic> {
     let has_parse_errors = m.diagnostics.iter().any(|d| d.is_fatal() && d.phase == Some(DefectPhase::Parse));
 
     // Load GetAtt attribute data
-    let getatt_attrs = &ctx.cached_data.getatt_attrs;
+    let getatt_attrs = &ctx.cached_data.getatt.getatt_attributes;
 
     for (name, res) in resources {
         let refs = res.get(FIELD_OUTGOING_REFS).and_then(|r| r.as_array());

@@ -1,6 +1,5 @@
 use super::{EvalContext, NativeRuleRegistry};
 use diagnostics::Diagnostic;
-use rules::Category;
 use template_model::consts::{
     EDGE_KIND_GET_ATT, EDGE_KIND_REF, EDGE_KIND_SUB, FIELD_CONDITION_CONTEXT, FIELD_KIND, FIELD_OUTGOING_REFS,
     FIELD_RESOURCES, FIELD_SOURCE_PATH, FIELD_TARGET, KEY_DEPENDS_ON, OUTPUT_PSEUDO_RESOURCE_PREFIX,
@@ -9,7 +8,7 @@ use template_model::resolver::RefKind;
 use validation_engine::make_resource_diagnostic;
 
 pub fn register(reg: &mut NativeRuleRegistry) {
-    reg.add(Category::Reference, eval_references);
+    reg.add(eval_references);
 }
 
 /// Whether a property path points at a value selected by an `Fn::If` branch

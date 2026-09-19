@@ -3,8 +3,11 @@ use data_source::embedded;
 use data_source::types::KnownResourceTypes;
 use diagnostics::{Diagnostic, PhaseMetric, phase_metric};
 use log::{debug, info};
-use rules::{Category, RuleInfo, RuleMetadataEntry, RuleOrigin, build_rule_metadata_map};
-use schema_validator::{OverlayCatalog, SchemaMetadataCatalog, SchemaValidator, schema_metadata_catalog_with_overlays};
+use rules::{RuleInfo, RuleMetadataEntry, RuleOrigin, build_rule_metadata_map};
+use schema_validator::{
+    OverlayCatalog, SchemaMetadataCatalog, SchemaValidator, getatt_data_with_overlays,
+    schema_metadata_catalog_with_overlays,
+};
 use std::collections::{HashMap, HashSet};
 use std::str::from_utf8;
 use std::sync::{Arc, LazyLock, Mutex};
@@ -75,12 +78,14 @@ static REGORUS_DATA: LazyLock<Vec<(&str, &[u8])>> = LazyLock::new(|| {
     ]
 });
 
-const CORE_PACKAGES: &[(Category, &str)] = &[
-    (Category::Structure, "data.structure.violation"),
-    (Category::Intrinsic, "data.intrinsics.violation"),
-    (Category::Reference, "data.references.violation"),
-    (Category::BestPractice, "data.best_practices.violation"),
-    (Category::Resource, "data.resources.violation"),
+/// The built-in rule packages, one query each. A package groups rules by
+/// implementation area; the registry, not the package, decides a rule's category.
+const CORE_PACKAGES: &[&str] = &[
+    "data.structure.violation",
+    "data.intrinsics.violation",
+    "data.references.violation",
+    "data.best_practices.violation",
+    "data.resources.violation",
 ];
 
 /// The [`REGORUS_DATA`] entry holding the catalog of resource types the rules
@@ -348,7 +353,11 @@ impl RegoEngine {
             }
         }
 
-        crate::builtins::register_all(&mut rego, overlay_catalog, schema_metadata)?;
+        // The GetAtt return-type table is the process-wide one the schema store
+        // shares, layered with this engine's overlays; resolving it here keeps the
+        // parse off the first template without giving the engine its own copy.
+        let getatt = getatt_data_with_overlays(overlay_catalog)?;
+        crate::builtins::register_all(&mut rego, schema_metadata, getatt)?;
 
         // External-only construction advertises no built-in rules; their
         // metadata belongs to the engine that owns the built-in policies.
@@ -465,18 +474,16 @@ impl ValidationEngine for RegoEngine {
         // below runs unconditionally so external rules are always evaluated.
         let evaluate_builtins = matches!(self.builtin_mode, BuiltinRuleMode::Enabled) && !config.disable_builtin_rules;
         if evaluate_builtins {
-            let excluded_cats = config.filters.excluded_categories();
-            if !excluded_cats.is_empty() {
-                debug!("Skipping excluded categories: {:?}", excluded_cats);
-            }
-
-            // The category packages share no rules, so evaluating them one query
-            // at a time costs the same as one aggregated query and keeps a single
-            // code path for the filtered and unfiltered cases.
-            for (category, package) in CORE_PACKAGES {
-                if excluded_cats.contains(category.as_str()) {
-                    continue;
-                }
+            // Every package is evaluated whatever the category filters say. The
+            // packages group rules by implementation area, not by registry
+            // category - security and parameter rules live in `best_practices`
+            // and `structure` - so skipping a package for one excluded category
+            // would drop its rules of every other category. Each clause instead
+            // stops at its `cfn_rule_active` guard, which the evaluation context
+            // above feeds from the registry category of every rule, so an
+            // excluded rule costs one builtin call. The packages share no rules,
+            // so one query per package costs the same as one aggregated query.
+            for package in CORE_PACKAGES {
                 self.eval_package_into(&mut rego, package, "Core", model, None, &mut diagnostics)?;
             }
         }
@@ -536,7 +543,7 @@ impl ValidationEngine for RegoEngine {
 mod tests {
     use super::*;
     use diagnostics::DetailLevel;
-    use rules::{FilterConfig, RuleFilterConfig, Severity};
+    use rules::{Category, FilterConfig, RuleFilterConfig, Severity, lookup_rule};
     use std::sync::Barrier;
     use std::thread;
     use template_model::SemanticModel;
@@ -613,6 +620,10 @@ Resources: {}
         );
     }
 
+    /// Excluding a category must remove exactly the rules the registry files
+    /// under it. The `best_practices` package also hosts security rules, so a
+    /// package-level skip would wrongly drop them along with the best-practice
+    /// rules; the template fires one of each from that package.
     #[test]
     fn evaluate_with_excluded_categories() {
         let engine = make_engine();
@@ -620,27 +631,39 @@ Resources: {}
             r#"
 AWSTemplateFormatVersion: "2010-09-09"
 Resources:
-  MyBucket:
-    Type: AWS::S3::Bucket
+  Permission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: my-function
+      Principal: sns.amazonaws.com
+      SourceArn: arn:aws:sns:us-east-1:123456789012:my-topic
 "#,
         );
+        fn rule_ids(diags: &[Diagnostic]) -> HashSet<&str> {
+            diags.iter().map(|d| d.rule_id.as_str()).collect()
+        }
+        let diags_all = engine.evaluate_rules(&model, &ValidateConfig::default()).unwrap();
+        let all_ids = rule_ids(&diags_all);
+        assert!(all_ids.contains("W9002"), "sanity: the best-practice hardcoded-ARN rule fires: {all_ids:?}");
+        assert!(all_ids.contains("W9013"), "sanity: the security hardcoded-account-ID rule fires: {all_ids:?}");
+
+        let excluded = Category::BestPractice;
         let config = ValidateConfig {
             filters: FilterConfig::new(
                 RuleFilterConfig::default(),
-                RuleFilterConfig { categories: vec!["best_practices".to_string()], ..Default::default() },
+                RuleFilterConfig { categories: vec![excluded.as_str().to_string()], ..Default::default() },
             ),
             ..Default::default()
         };
         let diags_filtered = engine.evaluate_rules(&model, &config).unwrap();
+        let filtered_ids = rule_ids(&diags_filtered);
 
-        let diags_all = engine.evaluate_rules(&model, &ValidateConfig::default()).unwrap();
-
-        assert!(
-            diags_filtered.len() <= diags_all.len(),
-            "filtered count {} should be <= unfiltered count {}",
-            diags_filtered.len(),
-            diags_all.len()
-        );
+        let expected_ids: HashSet<&str> =
+            all_ids.iter().copied().filter(|id| lookup_rule(id).is_none_or(|rule| rule.category != excluded)).collect();
+        assert_eq!(filtered_ids, expected_ids, "only rules the registry files under {excluded:?} may disappear");
+        assert!(!filtered_ids.contains("W9002"), "the excluded best-practice rule is gone");
+        assert!(filtered_ids.contains("W9013"), "the security rule hosted in the same package survives");
     }
 
     #[test]

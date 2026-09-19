@@ -3,7 +3,6 @@ use super::resources_extra::{scenario_has_effective_property, scenario_is_reacha
 use super::{EvalContext, NativeRuleRegistry};
 use data_source::rule_data::{PathSegment, ResourcePropertyPath};
 use diagnostics::Diagnostic;
-use rules::Category;
 use std::collections::HashSet;
 use std::sync::{Arc, LazyLock};
 use template_model::SemanticModel;
@@ -21,10 +20,10 @@ static ACCT_RE: LazyLock<regex::Regex> =
     LazyLock::new(|| regex::Regex::new(r"arn:[^:]*:[^:]*:[^:]*:\d{12}:").expect("Invalid ACCT_RE pattern"));
 
 pub fn register(reg: &mut NativeRuleRegistry) {
-    reg.add(Category::BestPractice, eval_best_practices);
-    reg.add(Category::BestPractice, eval_retention_period_rules);
-    reg.add(Category::BestPractice, eval_deprecated_resource_types);
-    reg.add(Category::Security, eval_sensitive_port_rules);
+    reg.add(eval_best_practices);
+    reg.add(eval_retention_period_rules);
+    reg.add(eval_deprecated_resource_types);
+    reg.add(eval_sensitive_port_rules);
 }
 
 fn resolve_concrete(m: &SemanticModel, rid: &str, path: &str) -> Option<serde_json::Value> {
