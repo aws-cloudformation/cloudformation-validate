@@ -22,7 +22,7 @@ pub fn prewarm_embedded_data() {
 }
 
 pub use data_source::types::SchemaMetadataCatalog;
-use data_source::types::SchemaMetadataDocument;
+use data_source::types::{GetattData, SchemaMetadataDocument};
 use diagnostics::{Diagnostic, PhaseMetric, phase_metric};
 use log::{info, warn};
 use rules::{RuleInfo, lookup_rule};
@@ -216,6 +216,84 @@ pub fn schema_metadata_catalog_with_overlays(
     Ok(Arc::new(merged))
 }
 
+/// Error reported when the shared GetAtt attribute table cannot be produced.
+#[derive(Debug)]
+pub enum GetattDataError {
+    /// The embedded `getatt_attributes` artifact is not valid JSON for the model.
+    Parse(serde_json::Error),
+    /// The embedded `getatt_attributes` artifact is present but empty.
+    Empty,
+}
+
+impl std::fmt::Display for GetattDataError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            GetattDataError::Parse(e) => write!(f, "Failed to parse embedded getatt_attributes: {e}"),
+            GetattDataError::Empty => write!(f, "Embedded getatt_attributes must not be empty"),
+        }
+    }
+}
+
+impl std::error::Error for GetattDataError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            GetattDataError::Parse(e) => Some(e),
+            GetattDataError::Empty => None,
+        }
+    }
+}
+
+/// The process-wide base GetAtt attribute table: the bundled `getatt_attributes`
+/// artifact parsed once and handed out by reference.
+///
+/// The schema store's Ref/GetAtt return types and both rule engines' GetAtt
+/// lookups read this one table, so a process holds a single copy however many
+/// validators and engines it constructs. Every consumer parses it at
+/// construction, never on the first template. A corrupt or empty embedded
+/// artifact surfaces as an error rather than a panic.
+pub fn shared_base_getatt_data() -> Result<Arc<GetattData>, GetattDataError> {
+    static BASE: OnceLock<Arc<GetattData>> = OnceLock::new();
+    if let Some(existing) = BASE.get() {
+        return Ok(existing.clone());
+    }
+    let data: GetattData =
+        serde_json::from_slice(&data_source::embedded::GETATT_ATTRIBUTES_BYTES).map_err(GetattDataError::Parse)?;
+    if data.getatt_attributes.is_empty() || data.getatt_attribute_types.is_empty() {
+        return Err(GetattDataError::Empty);
+    }
+    // On a construction race the redundant parse is discarded and every caller
+    // still observes the single shared value the winner installed.
+    Ok(BASE.get_or_init(|| Arc::new(data)).clone())
+}
+
+/// Produce the GetAtt attribute table an engine should use for a given overlay.
+///
+/// With no overlaid types this returns the shared base [`Arc`] itself. With
+/// overlays it clones the base once and layers each overlaid type's attributes
+/// and attribute return types on top, so an overlay can add attributes to a
+/// bundled type or correct a return type without losing the bundled entries.
+#[doc(hidden)]
+pub fn getatt_data_with_overlays(overlay: &OverlayCatalog) -> Result<Arc<GetattData>, GetattDataError> {
+    let base = shared_base_getatt_data()?;
+    if overlay.getatt_attributes.is_empty() && overlay.getatt_attribute_types.is_empty() {
+        return Ok(base);
+    }
+    let mut merged = (*base).clone();
+    for (type_name, attrs) in &overlay.getatt_attributes {
+        let entry = merged.getatt_attributes.entry(type_name.clone()).or_default();
+        entry.extend(attrs.iter().cloned());
+        entry.sort();
+        entry.dedup();
+    }
+    for (type_name, attr_types) in &overlay.getatt_attribute_types {
+        let entry = merged.getatt_attribute_types.entry(type_name.clone()).or_default();
+        for (attr, return_type) in attr_types {
+            entry.insert(attr.clone(), return_type.clone());
+        }
+    }
+    Ok(Arc::new(merged))
+}
+
 pub struct SchemaValidator {
     store: CompiledSchemaStore,
     catalog: OverlayCatalog,
@@ -343,6 +421,9 @@ impl SchemaValidator {
         overlays_applied: usize,
         start: web_time::Instant,
     ) -> Self {
+        // The fixed format-pattern tables are compiled here rather than on the
+        // first template, so first-template latency matches steady state.
+        validate::prewarm_statics();
         let init_metric = phase_metric(start);
         if overlays_applied > 0 {
             info!(
@@ -539,6 +620,56 @@ Resources:
         assert!(
             !base["AWS::S3::Bucket"].properties.contains(&"OverlayProperty".to_string()),
             "the process-wide base catalog must remain unchanged"
+        );
+    }
+
+    #[test]
+    fn default_getatt_table_is_shared_and_overlays_copy_it() {
+        let base = shared_base_getatt_data().expect("base GetAtt table parses");
+        let again = shared_base_getatt_data().expect("base GetAtt table parses");
+        assert!(Arc::ptr_eq(&base, &again), "default consumers must share the process-wide Arc");
+        assert!(
+            Arc::ptr_eq(&base, &getatt_data_with_overlays(&OverlayCatalog::default()).expect("no overlay")),
+            "an empty overlay must hand back the shared base rather than a copy"
+        );
+
+        let validator = SchemaValidator::try_with_additional_schemas([(
+            "AWS::S3::Bucket",
+            serde_json::json!({
+                "properties": {"OverlayAttribute": {"type": "integer"}},
+                "readOnlyProperties": ["/properties/OverlayAttribute"]
+            }),
+        )])
+        .expect("overlay applies");
+        let merged = getatt_data_with_overlays(validator.overlay_catalog()).expect("overlay GetAtt table merges");
+
+        assert!(!Arc::ptr_eq(&base, &merged), "an overlay must not mutate the shared base table");
+        assert_eq!(
+            merged.getatt_attribute_types["AWS::S3::Bucket"].get("OverlayAttribute").map(String::as_str),
+            Some("integer"),
+            "the merged table must carry the overlay-derived attribute type"
+        );
+        assert!(
+            merged.getatt_attributes["AWS::S3::Bucket"].contains(&"OverlayAttribute".to_string()),
+            "the merged table must list the overlay-derived attribute"
+        );
+        assert!(
+            merged.getatt_attribute_types["AWS::S3::Bucket"].contains_key("Arn"),
+            "bundled attributes of an overlaid type must survive the merge"
+        );
+        assert!(
+            !base.getatt_attribute_types["AWS::S3::Bucket"].contains_key("OverlayAttribute"),
+            "the process-wide base table must remain unchanged"
+        );
+        assert_eq!(
+            validator.store.ref_types().getatt_type_for("AWS::S3::Bucket", "OverlayAttribute"),
+            Some("integer"),
+            "the overlay validator's store sees the overlaid attribute type"
+        );
+        assert_eq!(
+            SchemaValidator::default().store.ref_types().getatt_type_for("AWS::S3::Bucket", "OverlayAttribute"),
+            None,
+            "a default validator built afterwards must still see the untouched shared table"
         );
     }
 

@@ -4272,6 +4272,15 @@ const EC2_LAUNCH_TEMPLATE_RESOURCE_TYPE: &str = "AWS::EC2::LaunchTemplate";
 const EC2_LAUNCH_TEMPLATE_IMAGE_ID_PATH: &str = "Properties.LaunchTemplateData.ImageId";
 const EC2_SSM_IMAGE_ALIAS_PREFIX: &str = "resolve:ssm:";
 
+/// Compiles the fixed format-pattern tables now, so a validator pays for them
+/// at construction rather than on its first template. Per-schema patterns stay
+/// cached on first use because compiling every bundled pattern up front would
+/// cost more than most one-off validations.
+pub(crate) fn prewarm_statics() {
+    LazyLock::force(&FORMAT_PATTERNS);
+    LazyLock::force(&BRANCH_FORMAT_PATTERNS);
+}
+
 static FORMAT_PATTERNS: LazyLock<HashMap<&'static str, Arc<CompiledPattern>>> = LazyLock::new(|| {
     let sources: [(&str, &str); 13] = [
         ("AWS::EC2::VPC.Id", r"^vpc-[a-f0-9]{8,17}$"),

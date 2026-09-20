@@ -1,7 +1,6 @@
 use super::intrinsics::getatt_attr_is_map_member;
 use super::{EvalContext, NativeRuleRegistry};
 use diagnostics::Diagnostic;
-use rules::Category;
 use std::collections::HashSet;
 use std::sync::LazyLock;
 use template_model::consts::{
@@ -32,8 +31,8 @@ static MAPPING_TOP_KEY_RE: LazyLock<regex::Regex> =
     LazyLock::new(|| regex::Regex::new(r"^[a-zA-Z0-9.\-]+$").expect("Invalid MAPPING_TOP_KEY_RE pattern"));
 
 pub fn register(reg: &mut NativeRuleRegistry) {
-    reg.add(Category::Structure, eval_structure);
-    reg.add(Category::Structure, eval_template_size_and_transforms);
+    reg.add(eval_structure);
+    reg.add(eval_template_size_and_transforms);
 }
 
 fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
@@ -797,7 +796,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                 }
                 continue;
             };
-            if let Some(valid_attributes) = ctx.cached_data.getatt_attrs.get(&resource.resource_type)
+            if let Some(valid_attributes) = ctx.cached_data.getatt.getatt_attributes.get(&resource.resource_type)
                 && !valid_attributes.iter().any(|valid| valid == attribute)
                 && !getatt_attr_is_map_member(attribute, &resource.resource_type)
                 && !is_custom_resource_type(&resource.resource_type)
@@ -820,8 +819,12 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
             if !output_edge_is_in_string_position(source_path) {
                 continue;
             }
-            if let Some(return_type) =
-                ctx.cached_data.getatt_attr_types.get(&resource.resource_type).and_then(|types| types.get(attribute))
+            if let Some(return_type) = ctx
+                .cached_data
+                .getatt
+                .getatt_attribute_types
+                .get(&resource.resource_type)
+                .and_then(|types| types.get(attribute))
                 && return_type != "string"
                 && return_type != "array"
             {

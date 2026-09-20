@@ -1,8 +1,10 @@
 use crate::compiled::CompiledSchema;
 use crate::overlay::{self, SchemaOverlayError};
+use crate::shared_base_getatt_data;
 use data_source::embedded::*;
 use data_source::types::GetattData;
 use std::collections::{BTreeSet, HashMap};
+use std::sync::Arc;
 use template_model::regions::AWS_REGIONS;
 
 /// What applying an overlay did to the store.
@@ -39,7 +41,7 @@ impl CompiledSchemaStore {
         let schemas: HashMap<String, CompiledSchema> =
             serde_json::from_slice(&COMPILED_SCHEMAS_BYTES).expect("Embedded compiled schemas must be valid JSON");
         assert!(!schemas.is_empty(), "Embedded compiled schemas must not be empty");
-        let ref_types = RefTypeStore::load(&REF_TYPES_BYTES, &GETATT_ATTRIBUTES_BYTES);
+        let ref_types = RefTypeStore::load(&REF_TYPES_BYTES);
         let lifecycle = LifecycleStore::load(&RESOURCE_LIFECYCLE_BYTES, &LAMBDA_RUNTIMES_BYTES);
         let mut extensions = ExtensionStore::load(&EXTENSIONS_BYTES);
         extensions.remap_keys(&schemas);
@@ -193,15 +195,17 @@ impl CompiledSchemaStore {
 
 pub struct RefTypeStore {
     ref_returns: HashMap<String, String>,
-    getatt_returns: HashMap<String, HashMap<String, String>>,
+    /// The shared process-wide GetAtt table, or this store's own copy once an
+    /// overlay has changed a type in it.
+    getatt: Arc<GetattData>,
     format_compatible_types: HashMap<String, Vec<String>>,
 }
 
 impl RefTypeStore {
     /// Loads Ref return types and format compatibility from the `ref_types`
-    /// artifact, and GetAtt return types from the `getatt_attributes` artifact
-    /// that the rule engines read too, so both see one set of attribute types.
-    fn load(ref_types_bytes: &[u8], getatt_bytes: &[u8]) -> Self {
+    /// artifact, and shares the process-wide GetAtt table that the rule engines
+    /// read too, so every consumer sees one set of attribute types.
+    fn load(ref_types_bytes: &[u8]) -> Self {
         let json: serde_json::Value =
             serde_json::from_slice(ref_types_bytes).expect("Embedded ref_types must be valid JSON");
         let ref_returns: HashMap<String, String> = json
@@ -212,13 +216,10 @@ impl RefTypeStore {
             .get("format_compatible_types")
             .and_then(|v| serde_json::from_value(v.clone()).ok())
             .expect("Embedded ref_types must contain format_compatible_types");
-        let getatt: GetattData =
-            serde_json::from_slice(getatt_bytes).expect("Embedded getatt_attributes must be valid JSON");
-        let getatt_returns = getatt.getatt_attribute_types;
+        let getatt = shared_base_getatt_data().expect("Embedded getatt_attributes must be valid and populated");
         assert!(!ref_returns.is_empty(), "Embedded ref_returns must not be empty");
-        assert!(!getatt_returns.is_empty(), "Embedded getatt_attribute_types must not be empty");
         assert!(!format_compatible_types.is_empty(), "Embedded format_compatible_types must not be empty");
-        RefTypeStore { ref_returns, getatt_returns, format_compatible_types }
+        RefTypeStore { ref_returns, getatt, format_compatible_types }
     }
 
     /// Update Ref/GetAtt return type data from a merged overlay schema so
@@ -228,7 +229,8 @@ impl RefTypeStore {
     /// primaryIdentifier is empty; "string" when multiple, readOnly, or
     /// unresolvable; otherwise the resolved single property type. GetAtt types
     /// include ALL top-level properties plus full-path readOnly attributes.
-    /// Stale entries for a type that an overlay changes are replaced.
+    /// Stale entries for a type that an overlay changes are replaced. The first
+    /// change copies the shared GetAtt table, so other consumers keep the base.
     pub fn update_from_schema(&mut self, schema: &crate::compiled::CompiledSchema) {
         let type_name = &schema.type_name;
         let read_only_set: std::collections::HashSet<&str> =
@@ -242,10 +244,15 @@ impl RefTypeStore {
         }
 
         let attr_map = crate::catalog::derive_getatt_attribute_types(schema);
+        let getatt = Arc::make_mut(&mut self.getatt);
         if attr_map.is_empty() {
-            self.getatt_returns.remove(type_name);
+            getatt.getatt_attributes.remove(type_name);
+            getatt.getatt_attribute_types.remove(type_name);
         } else {
-            self.getatt_returns.insert(type_name.clone(), attr_map);
+            let mut attributes: Vec<String> = attr_map.keys().cloned().collect();
+            attributes.sort();
+            getatt.getatt_attributes.insert(type_name.clone(), attributes);
+            getatt.getatt_attribute_types.insert(type_name.clone(), attr_map);
         }
     }
 
@@ -254,7 +261,7 @@ impl RefTypeStore {
     }
 
     pub fn getatt_type_for(&self, resource_type: &str, attribute: &str) -> Option<&str> {
-        self.getatt_returns.get(resource_type).and_then(|attrs| attrs.get(attribute)).map(|s| s.as_str())
+        self.getatt.getatt_attribute_types.get(resource_type).and_then(|attrs| attrs.get(attribute)).map(|s| s.as_str())
     }
 
     pub fn format_compatible_types(&self, format: &str) -> &[String] {

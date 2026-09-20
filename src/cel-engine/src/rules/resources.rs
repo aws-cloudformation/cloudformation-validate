@@ -1,7 +1,6 @@
 use super::resources_extra::{fargate_condition_scenarios, merge_reachable_scenario_conditions};
 use super::{EvalContext, NativeRuleRegistry};
 use diagnostics::{Diagnostic, RelatedResource, ResourceRef};
-use rules::Category;
 use std::collections::BTreeSet;
 use template_model::consts::{
     FIELD_CREATION_POLICY, FIELD_RESOURCE_TYPE, FIELD_RESOURCES, FIELD_UPDATE_POLICY, KEY_CREATION_POLICY,
@@ -13,8 +12,8 @@ use template_model::{SemanticModel, SourceSpan, render_value};
 use validation_engine::make_resource_diagnostic;
 
 pub fn register(reg: &mut NativeRuleRegistry) {
-    reg.add(Category::Resource, eval_resources);
-    reg.add(Category::Resource, crate::rules::resources_extra::eval_extra_resources);
+    reg.add(eval_resources);
+    reg.add(crate::rules::resources_extra::eval_extra_resources);
 }
 
 fn resolve_concrete(m: &SemanticModel, rid: &str, path: &str) -> Option<serde_json::Value> {

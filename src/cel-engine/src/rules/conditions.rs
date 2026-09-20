@@ -1,6 +1,5 @@
 use super::{EvalContext, NativeRuleRegistry};
 use diagnostics::{Diagnostic, RelatedResource, ResourceRef};
-use rules::Category;
 use std::collections::HashMap;
 use std::sync::Arc;
 use template_model::SemanticModel;
@@ -10,8 +9,8 @@ use template_model::resolver::ResolvedValue;
 use validation_engine::make_resource_diagnostic;
 
 pub fn register(reg: &mut NativeRuleRegistry) {
-    reg.add(Category::Resource, eval_condition_dependencies);
-    reg.add(Category::Resource, eval_unreachable_if_branches);
+    reg.add(eval_condition_dependencies);
+    reg.add(eval_unreachable_if_branches);
 }
 
 fn eval_condition_dependencies(ctx: &EvalContext) -> Vec<Diagnostic> {

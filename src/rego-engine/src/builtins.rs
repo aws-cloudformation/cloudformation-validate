@@ -1,12 +1,10 @@
 use crate::eval_context::{current_model, current_region, is_builtin_rule_suppressed};
-use data_source::embedded::GETATT_ATTRIBUTES_BYTES;
 use data_source::types::{ArtifactCountEntry, CodepipelineArtifactCounts, GetattData, SchemaMetadataCatalog};
 use regex::Regex;
 use regorus::Value;
-use schema_validator::OverlayCatalog;
 use std::cell::RefCell;
 use std::collections::{BTreeSet, HashMap, HashSet, VecDeque};
-use std::sync::{Arc, OnceLock};
+use std::sync::Arc;
 use template_model::SemanticModel;
 use template_model::coercion::{
     coerce_port_to_string, coerce_to_bool, coerce_to_integer, coerce_to_number, coerce_to_string, type_compatible,
@@ -33,8 +31,8 @@ pub(crate) fn serde_json_to_rego_value(v: &serde_json::Value) -> Value {
 
 pub(crate) fn register_all(
     rego: &mut regorus::Engine,
-    overlay_catalog: &OverlayCatalog,
     schema_metadata: Arc<SchemaMetadataCatalog>,
+    getatt: Arc<GetattData>,
 ) -> anyhow::Result<()> {
     register_cfn_rule_active(rego)?;
     register_regex_match(rego)?;
@@ -86,13 +84,12 @@ pub(crate) fn register_all(
     register_pipeline_artifacts(rego);
     register_pipeline_artifact_count_issues(rego)?;
     register_resolve_type(rego);
-    let getatt_registry: LazyGetattRegistry = build_getatt_registry(overlay_catalog);
     register_schema_properties(rego, schema_metadata.clone());
     register_schema_required(rego, schema_metadata.clone());
     register_schema_type(rego, schema_metadata.clone());
     register_schema_enum(rego, schema_metadata.clone());
     register_attribute_type(rego, schema_metadata.clone());
-    register_getatt_return_type(rego, getatt_registry);
+    register_getatt_return_type(rego, getatt);
     register_edges_from(rego);
     register_edges_to(rego);
     register_arn_matches(rego);
@@ -1953,29 +1950,6 @@ fn register_resolve_type(rego: &mut regorus::Engine) {
         }),
     );
 }
-type LazyGetattRegistry = Arc<OnceLock<HashMap<String, HashMap<String, String>>>>;
-fn getatt_reg(reg: &LazyGetattRegistry) -> &HashMap<String, HashMap<String, String>> {
-    reg.get_or_init(load_getatt_type_registry)
-}
-
-/// Build a getatt type registry, eagerly merging overlay entries if present.
-fn build_getatt_registry(catalog: &OverlayCatalog) -> LazyGetattRegistry {
-    if catalog.is_empty() {
-        return Arc::new(OnceLock::new());
-    }
-    let mut base = load_getatt_type_registry();
-    for (type_name, attr_types) in &catalog.getatt_attribute_types {
-        let entry = base.entry(type_name.clone()).or_default();
-        for (attr, atype) in attr_types {
-            entry.insert(attr.clone(), atype.clone());
-        }
-    }
-    let lock = Arc::new(OnceLock::new());
-    // The lock is freshly constructed above so this set cannot fail.
-    lock.get_or_init(|| base);
-    lock
-}
-
 fn register_schema_properties(rego: &mut regorus::Engine, catalog: Arc<SchemaMetadataCatalog>) {
     let _ = rego.add_extension(
         "schema_properties".into(),
@@ -2058,21 +2032,17 @@ fn register_attribute_type(rego: &mut regorus::Engine, catalog: Arc<SchemaMetada
     );
 }
 
-fn load_getatt_type_registry() -> HashMap<String, HashMap<String, String>> {
-    let data: GetattData =
-        serde_json::from_slice(&GETATT_ATTRIBUTES_BYTES).expect("Failed to deserialize getatt_attributes JSON data");
-    assert!(!data.getatt_attribute_types.is_empty(), "Embedded getatt_attribute_types must not be empty");
-    data.getatt_attribute_types
-}
-
-fn register_getatt_return_type(rego: &mut regorus::Engine, registry: LazyGetattRegistry) {
+/// `getatt_return_type(type, attribute)` answers from the process-wide GetAtt
+/// table the schema store shares, already layered with any overlay, so an engine
+/// adds no copy of the table and never parses it on the first template.
+fn register_getatt_return_type(rego: &mut regorus::Engine, getatt: Arc<GetattData>) {
     let _ = rego.add_extension(
         "getatt_return_type".into(),
         2,
         Box::new(move |params: Vec<Value>| {
             let rtype = params[0].as_string()?;
             let attr = params[1].as_string()?;
-            match getatt_reg(&registry).get(rtype.as_ref()).and_then(|m| m.get(attr.as_ref())) {
+            match getatt.getatt_attribute_types.get(rtype.as_ref()).and_then(|m| m.get(attr.as_ref())) {
                 Some(s) => Ok(Value::from(s.as_str())),
                 None => Ok(Value::from("string")),
             }
@@ -2686,6 +2656,7 @@ fn register_iam_policy_has_allow_not_action(rego: &mut regorus::Engine) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use schema_validator::shared_base_getatt_data;
     use template_model::resolver::{MapEntry, RefKind, ResolvedValue};
     use template_model::{MARKER_DYNAMIC, MARKER_PARAM_TYPE, MARKER_REF};
 
@@ -3080,7 +3051,7 @@ mod tests {
     fn eval_builtin(expr: &str) -> Value {
         let mut rego = regorus::Engine::new();
         rego.set_strict_builtin_errors(false);
-        register_all(&mut rego, &OverlayCatalog::default(), Arc::new(SchemaMetadataCatalog::new()))
+        register_all(&mut rego, Arc::new(SchemaMetadataCatalog::new()), shared_base_getatt_data().unwrap())
             .expect("register builtins");
         let policy = format!("package test\nimport rego.v1\nresult := {}", expr);
         rego.add_policy("test.rego".into(), policy).unwrap();
@@ -3283,7 +3254,7 @@ mod tests {
     fn input_region_returns_value_when_set() {
         let mut rego = regorus::Engine::new();
         rego.set_strict_builtin_errors(false);
-        register_all(&mut rego, &OverlayCatalog::default(), Arc::new(SchemaMetadataCatalog::new()))
+        register_all(&mut rego, Arc::new(SchemaMetadataCatalog::new()), shared_base_getatt_data().unwrap())
             .expect("register builtins");
         rego.add_policy("test.rego".into(), "package test\nimport rego.v1\nresult := input_region()".into()).unwrap();
         rego.set_input(Value::new_object());
