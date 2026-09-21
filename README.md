@@ -170,6 +170,12 @@ Every language binding exposes one template-validation method. Its optional per-
 `STANDARD` or `DETAILED` detail level; omitting it uses `DETAILED`. Both levels return the same report and diagnostic
 models, with enrichment fields absent at `STANDARD`.
 
+The template can be read from disk or passed as content already in memory - a string or raw bytes - so a template
+produced by a generator, an editor buffer, or an API response is validated without touching the filesystem. In-memory
+templates carry an optional name that labels the report and its diagnostics, defaulting to `template`: Node.js wraps
+the content in `TemplateContent`, Python accepts `bytes` or a `TemplateContent`, the JVM offers `ByteArray` and
+`String` overloads, Go takes `[]byte`, and Rust always validates bytes.
+
 ### Node.js [(bindings-wasm)](src/bindings-wasm/README.md)
 
 ```typescript

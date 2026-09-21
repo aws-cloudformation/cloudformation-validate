@@ -1,4 +1,5 @@
 use std::fs;
+use std::io::{self, Read};
 use std::path::{Path, PathBuf};
 
 use data_source::AdditionalSchemaSource;
@@ -59,6 +60,50 @@ fn read_schema_file(path: &Path) -> Result<AdditionalSchemaSource, ValidationErr
 }
 
 pub const TEMPLATE_EXTENSIONS: &[&str] = &["yaml", "yml", "json"];
+
+/// The template argument that selects standard input instead of a filesystem path.
+pub const STDIN_TEMPLATE_ARG: &str = "-";
+
+/// Path that labels the report of a template read from standard input.
+pub const STDIN_TEMPLATE_PATH: &str = "<stdin>";
+
+/// One template the CLI validates: a file on disk, or the bytes piped to standard input.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TemplateInput {
+    File(PathBuf),
+    Stdin,
+}
+
+impl TemplateInput {
+    /// The path that labels the report and its diagnostics.
+    pub fn display_path(&self) -> String {
+        match self {
+            TemplateInput::File(path) => path.display().to_string(),
+            TemplateInput::Stdin => STDIN_TEMPLATE_PATH.to_string(),
+        }
+    }
+
+    /// Reads the template bytes; standard input is consumed to end of stream.
+    pub fn read(&self) -> io::Result<Vec<u8>> {
+        match self {
+            TemplateInput::File(path) => fs::read(path),
+            TemplateInput::Stdin => {
+                let mut bytes = Vec::new();
+                io::stdin().lock().read_to_end(&mut bytes)?;
+                Ok(bytes)
+            }
+        }
+    }
+}
+
+/// Resolves the CLI template argument: [`STDIN_TEMPLATE_ARG`] selects standard
+/// input, anything else is a file or a directory expanded by [`collect_files`].
+pub fn collect_template_inputs(template_arg: &str) -> Vec<TemplateInput> {
+    if template_arg == STDIN_TEMPLATE_ARG {
+        return vec![TemplateInput::Stdin];
+    }
+    collect_files(Path::new(template_arg)).into_iter().map(TemplateInput::File).collect()
+}
 
 pub fn collect_files(path: &Path) -> Vec<PathBuf> {
     collect_files_with_extensions(path, TEMPLATE_EXTENSIONS)
@@ -320,5 +365,29 @@ mod tests {
     #[test]
     fn collect_files_with_extensions_returns_empty_for_a_missing_path() {
         assert!(collect_files_with_extensions(Path::new("/nonexistent/rules"), &["guard"]).is_empty());
+    }
+
+    #[test]
+    fn collect_template_inputs_selects_stdin_for_the_dash_argument() {
+        assert_eq!(collect_template_inputs(STDIN_TEMPLATE_ARG), vec![TemplateInput::Stdin]);
+        assert_eq!(TemplateInput::Stdin.display_path(), STDIN_TEMPLATE_PATH);
+    }
+
+    #[test]
+    fn collect_template_inputs_expands_a_directory_into_file_inputs() {
+        let dir = tempfile::tempdir().unwrap();
+        let template = dir.path().join("template.yaml");
+        fs::write(&template, "Resources: {}").unwrap();
+        fs::write(dir.path().join("notes.txt"), "ignored").unwrap();
+
+        let inputs = collect_template_inputs(dir.path().to_str().unwrap());
+        assert_eq!(inputs, vec![TemplateInput::File(template.clone())]);
+        assert_eq!(inputs[0].display_path(), template.display().to_string());
+        assert_eq!(inputs[0].read().unwrap(), b"Resources: {}");
+    }
+
+    #[test]
+    fn collect_template_inputs_returns_empty_for_a_missing_path() {
+        assert!(collect_template_inputs("/nonexistent/template.yaml").is_empty());
     }
 }

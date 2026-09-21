@@ -32,7 +32,7 @@ import (
 	bindings "github.com/aws-cloudformation/cloudformation-validate/src/bindings-go/go/internal/bindings_go"
 )
 
-const defaultFilePath = "template"
+const defaultTemplateName = "template"
 
 // Version returns the version of the underlying validation core.
 func Version() string {
@@ -151,17 +151,18 @@ func NewCompositeEngine(config *CompositeEngineConfig) (*Engine, error) {
 // ValidateTemplate validates template bytes and returns a report. The report's
 // detail follows config.DetailLevel: DETAILED (the default when unset) carries
 // per-diagnostic documentation URLs, rule descriptions, phase tags, and
-// violation context, while STANDARD leaves those fields nil. filePath labels
-// the report; pass "" for the default.
-func (e *Engine) ValidateTemplate(template []byte, config *ValidateConfig, filePath string) (*ValidationReport, error) {
+// violation context, while STANDARD leaves those fields nil. name labels the
+// report and its diagnostics exactly like a file path does; pass "" for the
+// default.
+func (e *Engine) ValidateTemplate(template []byte, config *ValidateConfig, name string) (*ValidationReport, error) {
 	optionsJSON, err := validateConfigJSON(config)
 	if err != nil {
 		return nil, err
 	}
-	if filePath == "" {
-		filePath = defaultFilePath
+	if name == "" {
+		name = defaultTemplateName
 	}
-	data, err := e.inner.ValidateTemplateJson(template, optionsJSON, filePath)
+	data, err := e.inner.ValidateTemplateJson(template, optionsJSON, name)
 	if err != nil {
 		return nil, err
 	}

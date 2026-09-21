@@ -264,6 +264,72 @@ class SmokeTest {
         }
     }
 
+    // ── In-memory templates ────────────────────────────────────────────────
+
+    @Test
+    fun inMemoryStringTemplateMatchesFileTemplateOnEveryEngine() {
+        val rel = "bad/invalid_deletion_policy.yaml"
+        val text = templateFile(rel).readText()
+        for ((name, engine) in listOf("cel" to CEL, "rego" to REGO, "composite" to COMPOSITE)) {
+            val fromFile = engine.validateTemplate(templateFile(rel), defaultConfig())
+            val fromString = engine.validateTemplate(text, defaultConfig())
+            assertTrue(fromFile.diagnostics.isNotEmpty(), "$name: fixture must produce diagnostics")
+            assertEquals(fromFile.diagnostics, fromString.diagnostics, "$name: string template diagnostics")
+            assertEquals(fromFile.status, fromString.status, "$name: string template status")
+        }
+    }
+
+    @Test
+    fun inMemoryByteArrayTemplateMatchesFileTemplateOnEveryEngine() {
+        val rel = "bad/invalid_deletion_policy.yaml"
+        for ((name, engine) in listOf("cel" to CEL, "rego" to REGO, "composite" to COMPOSITE)) {
+            val fromFile = engine.validateTemplate(templateFile(rel), defaultConfig())
+            val fromBytes = engine.validateTemplate(templateBytes(rel), defaultConfig())
+            assertEquals(fromFile.diagnostics, fromBytes.diagnostics, "$name: byte array template diagnostics")
+        }
+    }
+
+    @Test
+    fun inMemoryTemplateReportUsesDefaultNameWhenNoneSupplied() {
+        assertEquals("template", DEFAULT_TEMPLATE_NAME)
+        assertEquals(DEFAULT_TEMPLATE_NAME, REGO.validateTemplate("Resources: {}").filePath)
+        assertEquals(DEFAULT_TEMPLATE_NAME, REGO.validateTemplate("Resources: {}".toByteArray()).filePath)
+    }
+
+    @Test
+    fun inMemoryTemplateReportUsesSuppliedName() {
+        val fromString = REGO.validateTemplate("Resources: {}", name = "inline/template.yaml")
+        assertEquals("inline/template.yaml", fromString.filePath)
+        val fromBytes = REGO.validateTemplate("Resources: {}".toByteArray(), defaultConfig(), "generated.json")
+        assertEquals("generated.json", fromBytes.filePath)
+    }
+
+    @Test
+    fun malformedInMemoryTemplateReturnsF1101InsteadOfThrowing() {
+        val report = CEL.validateTemplate("not: a: valid: yaml: [")
+        assertEquals("ERROR", report.status.name)
+        assertEquals("F1101", report.diagnostics[0].ruleId)
+    }
+
+    @Test
+    fun templateModelParsesInMemoryTemplates() {
+        val fromFile = TemplateModel(templateFile("good/generic.yaml"))
+        val fromString = TemplateModel(templateFile("good/generic.yaml").readText())
+        val fromBytes = TemplateModel(templateBytes("good/generic.yaml"))
+        assertEquals("A sample template", fromString.description())
+        assertEquals(fromFile.conditions(), fromString.conditions())
+        assertEquals(fromFile.resources().keys, fromBytes.resources().keys)
+    }
+
+    @Test
+    fun schemaValidatorValidatesInMemoryTemplatesLikeFiles() {
+        val rel = "bad/invalid_deletion_policy.yaml"
+        val validator = SchemaValidator()
+        val fromFile = validator.validate(templateFile(rel), null)
+        assertEquals(fromFile, validator.validate(templateFile(rel).readText(), null))
+        assertEquals(fromFile, validator.validate(templateBytes(rel), null))
+    }
+
     // ── Custom rules: 1 file, 1 rule ──────────────────────────────────────
 
     @Test

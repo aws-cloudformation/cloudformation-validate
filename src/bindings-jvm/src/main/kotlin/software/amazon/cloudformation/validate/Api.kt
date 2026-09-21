@@ -13,10 +13,35 @@ import software.amazon.cloudformation.validate.rules.RuleInfo
 import software.amazon.cloudformation.validate.schemavalidator.SchemaValidatorConfig
 import java.io.File
 
+/** Name reported for an in-memory template when the caller does not supply one. */
+const val DEFAULT_TEMPLATE_NAME = "template"
+
 interface Engine {
-    fun validateTemplate(template: File, config: ValidateConfig = ValidateConfig()): ValidationReport
+    /** Validates a template read from disk; its path labels the report and its diagnostics. */
+    fun validateTemplate(template: File, config: ValidateConfig = ValidateConfig()): ValidationReport =
+        validateTemplate(template.readBytes(), config, template.path)
+
+    /**
+     * Validates template bytes already held in memory, so nothing is read from disk.
+     * [name] labels the report and its diagnostics exactly like a [File] path does.
+     */
+    fun validateTemplate(
+        template: ByteArray,
+        config: ValidateConfig = ValidateConfig(),
+        name: String = DEFAULT_TEMPLATE_NAME,
+    ): ValidationReport
+
+    /** Validates UTF-8 template text already held in memory - see the [ByteArray] overload. */
+    fun validateTemplate(
+        template: String,
+        config: ValidateConfig = ValidateConfig(),
+        name: String = DEFAULT_TEMPLATE_NAME,
+    ): ValidationReport = validateTemplate(template.toByteArray(Charsets.UTF_8), config, name)
+
     fun validateAwsCliCommand(request: AwsCliCommand): AwsCliCommandValidation
+
     fun listRules(): List<RuleInfo>
+
     fun engineName(): String
 }
 
@@ -113,8 +138,16 @@ fun fileToAdditionalSchemaSource(file: File, typeName: String? = null): Addition
 fun fileToExternalRuleSource(file: File): ExternalRuleSource =
     ExternalRuleSource(name = file.path, content = file.readText())
 
-class TemplateModel(template: File) {
-    private val inner = JvmSemanticModel.parse(template.readBytes())
+/**
+ * Parsed semantic model of a template: resources, parameters, outputs, conditions,
+ * reference graph, and source locations. Accepts the template as a [File] read from
+ * disk, as raw [ByteArray] content, or as UTF-8 [String] text already in memory.
+ */
+class TemplateModel(template: ByteArray) {
+    constructor(template: File) : this(template.readBytes())
+    constructor(template: String) : this(template.toByteArray(Charsets.UTF_8))
+
+    private val inner = JvmSemanticModel.parse(template)
 
     fun resources() = inner.resources()
     fun parameters() = inner.parameters()
@@ -133,8 +166,13 @@ class SchemaValidator(config: SchemaValidatorConfig = SchemaValidatorConfig()) {
     fun listRules(): List<RuleInfo> = inner.listRules()
     fun schemaCount(): Int = inner.schemaCount().toInt()
 
-    fun validate(template: File, region: String?): List<Diagnostic> {
-        val model = JvmSemanticModel.parse(template.readBytes())
+    fun validate(template: File, region: String?): List<Diagnostic> = validate(template.readBytes(), region)
+
+    fun validate(template: String, region: String?): List<Diagnostic> =
+        validate(template.toByteArray(Charsets.UTF_8), region)
+
+    fun validate(template: ByteArray, region: String?): List<Diagnostic> {
+        val model = JvmSemanticModel.parse(template)
         return inner.validate(model, region).diagnostics
     }
 }
@@ -144,8 +182,8 @@ class RegoEngine(
 ) : Engine {
     private val inner = JvmRegoEngine(config)
 
-    override fun validateTemplate(template: File, config: ValidateConfig): ValidationReport =
-        inner.validateTemplate(template.readBytes(), config, template.path)
+    override fun validateTemplate(template: ByteArray, config: ValidateConfig, name: String): ValidationReport =
+        inner.validateTemplate(template, config, name)
 
     override fun validateAwsCliCommand(request: AwsCliCommand): AwsCliCommandValidation =
         inner.validateAwsCliCommand(request.toNative())
@@ -159,8 +197,8 @@ class CelEngine(
 ) : Engine {
     private val inner = JvmCelEngine(config)
 
-    override fun validateTemplate(template: File, config: ValidateConfig): ValidationReport =
-        inner.validateTemplate(template.readBytes(), config, template.path)
+    override fun validateTemplate(template: ByteArray, config: ValidateConfig, name: String): ValidationReport =
+        inner.validateTemplate(template, config, name)
 
     override fun validateAwsCliCommand(request: AwsCliCommand): AwsCliCommandValidation =
         inner.validateAwsCliCommand(request.toNative())
@@ -180,8 +218,8 @@ class CompositeEngine(
 ) : Engine {
     private val inner = JvmCompositeEngine(config)
 
-    override fun validateTemplate(template: File, config: ValidateConfig): ValidationReport =
-        inner.validateTemplate(template.readBytes(), config, template.path)
+    override fun validateTemplate(template: ByteArray, config: ValidateConfig, name: String): ValidationReport =
+        inner.validateTemplate(template, config, name)
 
     override fun validateAwsCliCommand(request: AwsCliCommand): AwsCliCommandValidation =
         inner.validateAwsCliCommand(request.toNative())
