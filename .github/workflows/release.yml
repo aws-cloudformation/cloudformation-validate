@@ -553,6 +553,7 @@ jobs:
         cloudformation-validate-validation-engine
         cloudformation-validate-rego-engine
         cloudformation-validate-cel-engine
+        cloudformation-validate-composite-engine
         cloudformation-validate
       RELEASE_KIND: ${{ needs.version-and-tag.outputs.release-kind }}
       RELEASE_VERSION: ${{ needs.version-and-tag.outputs.cargo-version }}
@@ -696,6 +697,7 @@ jobs:
         cloudformation-validate-validation-engine
         cloudformation-validate-rego-engine
         cloudformation-validate-cel-engine
+        cloudformation-validate-composite-engine
         cloudformation-validate
       RELEASE_SOURCE_COMMIT: ${{ needs.resolve-ref.outputs.sha }}
       RELEASE_VERSION: ${{ needs.version-and-tag.outputs.cargo-version }}
