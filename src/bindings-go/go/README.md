@@ -1,4 +1,4 @@
-# AWS CloudFormation Validate for Go
+# AWS CloudFormation Validate
 
 Validate AWS CloudFormation templates from Go and catch schema violations, semantic errors, security risks, and
 best-practice findings before deployment - in your editor, build, service, or CI.
