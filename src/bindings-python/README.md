@@ -1,4 +1,4 @@
-# CloudFormation Validate for Python
+# AWS CloudFormation Validate for Python
 
 Validate AWS CloudFormation templates from Python and catch schema violations, semantic errors, security risks, and
 best-practice findings before deployment - in your editor, build, service, or CI.
