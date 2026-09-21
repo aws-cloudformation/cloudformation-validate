@@ -73,7 +73,8 @@ src/
     │   ├── public/             # Public example templates
     │   └── cdk/                # CDK-synthesized templates
     ├── expected/               # validation_reports*.json — numbered snapshot chunks (rego/cel/composite must agree)
-    ├── rules/                  # Custom rule fixtures for testing (Rego, CEL, Guard)
+    ├── rules/                  # Custom rule fixtures for testing (Rego, CEL, Guard); every .guard and .rego file
+    │                           # here is also the benchmark's Guard / custom Rego rule pack (see resources/README.md)
     └── security/               # Security/stress fixtures (pathological conditions, deep nesting)
 ```
 
@@ -82,7 +83,7 @@ src/
 - `.kiro/steering/` — persistent guidance recursively loaded by Kiro; tracked files contain shared project rules
 - `.kiro/steering/private/` — gitignored machine-local confidential agent context and skills; its filenames and
   contents must never be committed
-- `scripts/` — Python comparison/audit scripts and their `snapshots/` data (see `tech.md` for usage)
+- `scripts/` — Python comparison/audit/benchmark scripts and their `snapshots/` data (see `tech.md` for usage)
 - `.github/workflows/` — CI: format check, clippy, cargo audit, coverage tests on all supported OSes, JVM + WASM +
   Python + Go test jobs
 - `release-bin/` — prebuilt per-platform `cfn-validate` CLI binaries (committed); written by `cfn-validate/build.sh`

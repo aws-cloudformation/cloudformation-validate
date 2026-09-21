@@ -5,6 +5,13 @@
 // Usage:
 //
 //	go run . [TEMPLATE|DIR] --engine rego|cel|composite --iterations N
+//	go run . --engine rego|cel|composite --startup-probe
+//
+// Either form accepts the shared scenario flags: --guard-rules PATH and
+// --rego-rules PATH (repeatable; a file or a directory of .guard / .rego files)
+// load a rule pack into the engine (Rego rules are rejected for --engine cel),
+// and --scenario NAME labels the run and moves its reports from
+// reports/{engine}/ to reports/scenarios/NAME/{engine}/.
 //
 // The default corpus is src/resources/templates (relative to the workspace
 // root). Reports are written to src/bindings-go/reports/{engine}/.
@@ -19,6 +26,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"sort"
 	"strings"
@@ -35,6 +43,10 @@ const (
 	consumerInitScopeEngine = "engine"
 
 	defaultStartupTemplate = "good/minimal.yaml"
+
+	// Recorded when no --scenario is given; its reports keep the historical
+	// reports/{engine}/ layout that other tooling reads.
+	defaultScenario = "builtin"
 
 	goBindingModulePath = "github.com/aws-cloudformation/cloudformation-validate/src/bindings-go/go"
 
@@ -56,6 +68,7 @@ func run() error {
 	args := os.Args[1:]
 	if hasFlag(args, "-h") || hasFlag(args, "--help") {
 		fmt.Fprintln(os.Stderr, "Usage: bench [TEMPLATE|DIR] --engine rego|cel|composite --iterations N [--startup-probe]")
+		fmt.Fprintln(os.Stderr, "             [--guard-rules PATH]... [--rego-rules PATH]... [--scenario NAME]")
 		return usageError("help requested")
 	}
 
@@ -76,19 +89,175 @@ func run() error {
 		return err
 	}
 
+	scenario, err := requiredFlagValue(args, "--scenario", defaultScenario)
+	if err != nil {
+		return err
+	}
+	if !scenarioNamePattern.MatchString(scenario) {
+		return usageError(fmt.Sprintf("--scenario must be a lowercase name of letters, digits, '-' or '_' (max 64), got %q", scenario))
+	}
+	guardPaths := flagValues(args, "--guard-rules")
+	regoPaths := flagValues(args, "--rego-rules")
+	if engineFlag == "cel" && len(regoPaths) > 0 {
+		return usageError("--rego-rules cannot be loaded into the CEL engine; use --engine rego or composite")
+	}
+	// Read before any timer starts so only engine construction is measured.
+	pack, err := loadRulePack(guardPaths, regoPaths)
+	if err != nil {
+		return usageError(err.Error())
+	}
+	factory := engineFactory{engine: engineFlag, pack: pack}
+
 	validateConfig := &cfnvalidate.ValidateConfig{
 		SeverityLevel: cfnvalidate.SeverityDebug,
 		DetailLevel:   cfnvalidate.DetailLevelDetailed,
 	}
 
 	if hasFlag(args, "--startup-probe") {
-		return runStartupProbe(engineFlag, validateConfig)
+		return runStartupProbe(factory, scenario, validateConfig)
 	}
 
-	return runBenchmark(engineFlag, iterations, validateConfig, positionalArg(args))
+	return runBenchmark(factory, scenario, iterations, validateConfig, positionalArg(args))
 }
 
-func runStartupProbe(engineFlag string, validateConfig *cfnvalidate.ValidateConfig) error {
+var scenarioNamePattern = regexp.MustCompile(`^[a-z0-9][a-z0-9_-]{0,63}$`)
+
+// rulePack's fingerprint format - one "<kind>\t<path relative to the argument>\t<sha256
+// of content>\n" line per file, sorted, hashed - is shared by every harness so the
+// comparison can prove all bindings loaded the same rules.
+type rulePack struct {
+	guard      []cfnvalidate.ExternalRuleSource
+	rego       []cfnvalidate.ExternalRuleSource
+	guardBytes int
+	regoBytes  int
+	entries    []string
+}
+
+func loadRulePack(guardPaths, regoPaths []string) (*rulePack, error) {
+	pack := &rulePack{}
+	if err := pack.load("guard", guardPaths); err != nil {
+		return nil, err
+	}
+	if err := pack.load("rego", regoPaths); err != nil {
+		return nil, err
+	}
+	sort.Strings(pack.entries)
+	return pack, nil
+}
+
+func (p *rulePack) load(kind string, rawPaths []string) error {
+	for _, rawPath := range rawPaths {
+		info, err := os.Stat(rawPath)
+		if err != nil {
+			return fmt.Errorf("--%s-rules path not found: %s", kind, rawPath)
+		}
+		files, err := collectRuleFiles(rawPath, info.IsDir(), "."+kind)
+		if err != nil {
+			return err
+		}
+		if len(files) == 0 {
+			return fmt.Errorf("--%s-rules path contains no .%s files: %s", kind, kind, rawPath)
+		}
+		for _, file := range files {
+			content, err := os.ReadFile(file)
+			if err != nil {
+				return fmt.Errorf("reading %s rule file %q: %w", kind, file, err)
+			}
+			relative := filepath.Base(file)
+			if info.IsDir() {
+				relative = filepath.ToSlash(relativePath(rawPath, file))
+			}
+			digest := sha256.Sum256(content)
+			p.entries = append(p.entries, fmt.Sprintf("%s\t%s\t%s\n", kind, relative, hex.EncodeToString(digest[:])))
+			source := cfnvalidate.ExternalRuleSource{Name: file, Content: string(content)}
+			if kind == "guard" {
+				p.guard = append(p.guard, source)
+				p.guardBytes += len(content)
+			} else {
+				p.rego = append(p.rego, source)
+				p.regoBytes += len(content)
+			}
+		}
+	}
+	return nil
+}
+
+func collectRuleFiles(root string, isDir bool, extension string) ([]string, error) {
+	if !isDir {
+		return []string{root}, nil
+	}
+	var files []string
+	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() && strings.HasSuffix(info.Name(), extension) {
+			files = append(files, path)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("walking %s: %w", root, err)
+	}
+	sort.Strings(files)
+	return files, nil
+}
+
+func (p *rulePack) fingerprint() string {
+	h := sha256.Sum256([]byte(strings.Join(p.entries, "")))
+	return hex.EncodeToString(h[:])
+}
+
+func (p *rulePack) json(guardRuleCount int) map[string]interface{} {
+	return map[string]interface{}{
+		"guard": map[string]interface{}{"files": len(p.guard), "rules": guardRuleCount, "bytes": p.guardBytes},
+		"rego":  map[string]interface{}{"files": len(p.rego), "bytes": p.regoBytes},
+	}
+}
+
+// guardRuleCount counts distinct names: a rule name shared by two files counts once.
+func guardRuleCount(engine *cfnvalidate.Engine) (int, error) {
+	rules, err := engine.ListRules()
+	if err != nil {
+		return 0, fmt.Errorf("listing rules: %w", err)
+	}
+	count := 0
+	for _, rule := range rules {
+		if rule.Origin == cfnvalidate.RuleOriginGuard {
+			count++
+		}
+	}
+	return count, nil
+}
+
+type engineFactory struct {
+	engine string
+	pack   *rulePack
+}
+
+func (f engineFactory) newEngine() (*cfnvalidate.Engine, error) {
+	switch f.engine {
+	case "cel":
+		return cfnvalidate.NewCelEngine(&cfnvalidate.EngineConfig{GuardRules: f.pack.guard})
+	case "composite":
+		return cfnvalidate.NewCompositeEngine(&cfnvalidate.CompositeEngineConfig{RegoRules: f.pack.rego, GuardRules: f.pack.guard})
+	default:
+		return cfnvalidate.NewRegoEngine(&cfnvalidate.EngineConfig{CustomRules: f.pack.rego, GuardRules: f.pack.guard})
+	}
+}
+
+func flagValues(args []string, flag string) []string {
+	var values []string
+	for i := 0; i < len(args); i++ {
+		if args[i] == flag && i+1 < len(args) {
+			values = append(values, args[i+1])
+			i++
+		}
+	}
+	return values
+}
+
+func runStartupProbe(factory engineFactory, scenario string, validateConfig *cfnvalidate.ValidateConfig) error {
 	defaultCorpus, err := resolveDefaultCorpus()
 	if err != nil {
 		return fmt.Errorf("resolving default corpus: %w", err)
@@ -101,13 +270,20 @@ func runStartupProbe(engineFlag string, validateConfig *cfnvalidate.ValidateConf
 	}
 	startupLabel := filepath.Base(startupPath)
 
-	engine, startup, err := measureStartup(engineFlag, startupBytes, startupLabel, validateConfig)
+	engine, startup, err := measureStartup(factory, startupBytes, startupLabel, validateConfig)
 	if err != nil {
 		return err
 	}
 	defer engine.Destroy()
 
+	guardRules, err := guardRuleCount(engine)
+	if err != nil {
+		return err
+	}
 	probe := startupProbeJSON(startup, engine.EngineName())
+	probe["scenario"] = scenario
+	probe["custom_rules"] = factory.pack.json(guardRules)
+	probe["rules_fingerprint"] = factory.pack.fingerprint()
 	serialized, err := json.Marshal(probe)
 	if err != nil {
 		return fmt.Errorf("serializing startup probe: %w", err)
@@ -116,7 +292,8 @@ func runStartupProbe(engineFlag string, validateConfig *cfnvalidate.ValidateConf
 	return nil
 }
 
-func runBenchmark(engineFlag string, iterations int, validateConfig *cfnvalidate.ValidateConfig, positional string) error {
+func runBenchmark(factory engineFactory, scenario string, iterations int, validateConfig *cfnvalidate.ValidateConfig, positional string) error {
+	engineFlag := factory.engine
 	defaultTemplateDir, err := resolveDefaultCorpus()
 	if err != nil {
 		return fmt.Errorf("resolving default corpus: %w", err)
@@ -144,11 +321,20 @@ func runBenchmark(engineFlag string, iterations int, validateConfig *cfnvalidate
 	if err != nil {
 		return fmt.Errorf("reading startup template %q: %w", templates[0], err)
 	}
-	engine, startup, err := measureStartup(engineFlag, startupBytes, startupLabel, validateConfig)
+	engine, startup, err := measureStartup(factory, startupBytes, startupLabel, validateConfig)
 	if err != nil {
 		return err
 	}
 	defer engine.Destroy()
+
+	guardRules, err := guardRuleCount(engine)
+	if err != nil {
+		return err
+	}
+	rulesFingerprint := factory.pack.fingerprint()
+	customRules := factory.pack.json(guardRules)
+	fmt.Fprintf(os.Stderr, "Scenario %q: %d Guard file(s), %d Rego file(s), rules fingerprint %s\n",
+		scenario, len(factory.pack.guard), len(factory.pack.rego), rulesFingerprint)
 
 	engineInitSamples := []float64{startup.EngineInitMs}
 	initSamples := []float64{startup.EngineInitMs}
@@ -156,7 +342,7 @@ func runBenchmark(engineFlag string, iterations int, validateConfig *cfnvalidate
 	subsequentInitSamples := []float64{}
 	schemaInitSamples := []float64{}
 
-	reportDir, err := resolveReportDir(engineFlag)
+	reportDir, err := resolveReportDir(engineFlag, scenario)
 	if err != nil {
 		return fmt.Errorf("resolving report dir: %w", err)
 	}
@@ -205,7 +391,7 @@ func runBenchmark(engineFlag string, iterations int, validateConfig *cfnvalidate
 					return fmt.Errorf("creating parse-failure report for %s: %w", rel, reportErr)
 				}
 				normalizeParseFailureReport(parseFailureReport)
-				payload, marshalErr := buildPerTemplatePayload(parseFailureReport, rel, engineFlag, zeroBenchmarkMetrics())
+				payload, marshalErr := buildPerTemplatePayload(parseFailureReport, rel, engineFlag, scenario, zeroBenchmarkMetrics())
 				if marshalErr != nil {
 					return fmt.Errorf("marshaling parse-failure payload for %s: %w", rel, marshalErr)
 				}
@@ -224,6 +410,11 @@ func runBenchmark(engineFlag string, iterations int, validateConfig *cfnvalidate
 			hostValidateMs := elapsed(t0)
 			if valErr != nil {
 				results = append(results, errorResult(rel, "error", valErr.Error()))
+				// Every attempted template gets a report so the comparison script can pair
+				// the same template set across bindings and scenarios.
+				if writeErr := writePerTemplateReport(jsonPath, failedTemplatePayload(rel, engineFlag, scenario, valErr.Error())); writeErr != nil {
+					return writeErr
+				}
 				failed = true
 				break
 			}
@@ -258,7 +449,7 @@ func runBenchmark(engineFlag string, iterations int, validateConfig *cfnvalidate
 		benchmarkMetrics := perTemplateMetricsJSON(iterations, iterHostModel, iterModelBuild,
 			iterSchemaValidate, iterRuleEval, iterFinalize, iterEngineInternal, iterHostValidate, bindingOverheadMs)
 
-		payload, marshalErr := buildPerTemplatePayload(report, rel, engineFlag, benchmarkMetrics)
+		payload, marshalErr := buildPerTemplatePayload(report, rel, engineFlag, scenario, benchmarkMetrics)
 		if marshalErr != nil {
 			return fmt.Errorf("marshaling per-template payload for %s: %w", rel, marshalErr)
 		}
@@ -323,7 +514,7 @@ func runBenchmark(engineFlag string, iterations int, validateConfig *cfnvalidate
 	if fpErr != nil {
 		return fmt.Errorf("computing corpus fingerprint: %w", fpErr)
 	}
-	runFingerprint := computeRunFingerprint(corpusFingerprint, engineFlag, detailLevelName, iterations)
+	runFingerprint := computeRunFingerprint(corpusFingerprint, rulesFingerprint, scenario, engineFlag, detailLevelName, iterations)
 
 	provenance := provenanceJSON()
 
@@ -354,6 +545,9 @@ func runBenchmark(engineFlag string, iterations int, validateConfig *cfnvalidate
 		"iterations_per_template": iterations,
 		"corpus_fingerprint":      corpusFingerprint,
 		"corpus_file_count":       corpusFileCount,
+		"scenario":                scenario,
+		"custom_rules":            customRules,
+		"rules_fingerprint":       rulesFingerprint,
 		"run_fingerprint":         runFingerprint,
 		"performance":             performance,
 		"diagnostics":             buildDiagnosticsBlock(ok),
@@ -397,11 +591,11 @@ type startupMeasurement struct {
 	InternalTimeToFirstResultMs float64
 }
 
-func measureStartup(engineFlag string, startupBytes []byte, startupLabel string, validateConfig *cfnvalidate.ValidateConfig) (*cfnvalidate.Engine, startupMeasurement, error) {
+func measureStartup(factory engineFactory, startupBytes []byte, startupLabel string, validateConfig *cfnvalidate.ValidateConfig) (*cfnvalidate.Engine, startupMeasurement, error) {
 	const moduleLoadMs = 0.0
 
 	engineStart := time.Now()
-	engine, err := newEngine(engineFlag)
+	engine, err := factory.newEngine()
 	if err != nil {
 		return nil, startupMeasurement{}, fmt.Errorf("engine init failed: %w", err)
 	}
@@ -510,12 +704,22 @@ func queryToolVersion(tool string) string {
 }
 
 var knownFlags = map[string]bool{
-	"-h": true, "--help": true,
-	"--engine": true, "--iterations": true, "--startup-probe": true,
+	"-h":              true,
+	"--help":          true,
+	"--engine":        true,
+	"--iterations":    true,
+	"--startup-probe": true,
+	"--guard-rules":   true,
+	"--rego-rules":    true,
+	"--scenario":      true,
 }
 
 var flagsWithValues = map[string]bool{
-	"--engine": true, "--iterations": true,
+	"--engine":      true,
+	"--iterations":  true,
+	"--guard-rules": true,
+	"--rego-rules":  true,
+	"--scenario":    true,
 }
 
 func validateFlags(args []string) error {
@@ -605,17 +809,6 @@ func isUsageError(err error) bool {
 	return ok
 }
 
-func newEngine(name string) (*cfnvalidate.Engine, error) {
-	switch name {
-	case "cel":
-		return cfnvalidate.NewCelEngine(nil)
-	case "composite":
-		return cfnvalidate.NewCompositeEngine(nil)
-	default:
-		return cfnvalidate.NewRegoEngine(nil)
-	}
-}
-
 var templateExtensions = map[string]bool{
 	".yaml": true,
 	".yml":  true,
@@ -702,12 +895,15 @@ func resolveDefaultCorpus() (string, error) {
 	return abs, nil
 }
 
-func resolveReportDir(engine string) (string, error) {
+func resolveReportDir(engine, scenario string) (string, error) {
 	dir, err := sourceFileDir()
 	if err != nil {
 		return "", err
 	}
 	reportDir := filepath.Join(dir, "..", "reports", engine)
+	if scenario != defaultScenario {
+		reportDir = filepath.Join(dir, "..", "reports", "scenarios", scenario, engine)
+	}
 	abs, err := filepath.Abs(reportDir)
 	if err != nil {
 		return "", fmt.Errorf("resolving absolute path for report dir: %w", err)
@@ -828,7 +1024,7 @@ func normalizeParseFailureReport(report *cfnvalidate.ValidationReport) {
 	report.Diagnostics = []cfnvalidate.Diagnostic{}
 }
 
-func buildPerTemplatePayload(report *cfnvalidate.ValidationReport, rel, engine string, benchmarkMetrics map[string]interface{}) (map[string]interface{}, error) {
+func buildPerTemplatePayload(report *cfnvalidate.ValidationReport, rel, engine, scenario string, benchmarkMetrics map[string]interface{}) (map[string]interface{}, error) {
 	data, err := json.Marshal(report)
 	if err != nil {
 		return nil, fmt.Errorf("marshaling report: %w", err)
@@ -840,9 +1036,26 @@ func buildPerTemplatePayload(report *cfnvalidate.ValidationReport, rel, engine s
 	payload["engine"] = engine
 	payload["binding"] = bindingName
 	payload["detailLevel"] = detailLevelName
+	payload["scenario"] = scenario
 	payload["filePath"] = rel
 	payload["benchmarkMetrics"] = benchmarkMetrics
 	return payload, nil
+}
+
+// failedTemplatePayload keeps the envelope of a successful report so consumers can
+// tell a failed template from a clean one without a second schema.
+func failedTemplatePayload(rel, engine, scenario, message string) map[string]interface{} {
+	return map[string]interface{}{
+		"filePath":         rel,
+		"status":           "ERROR",
+		"error":            message,
+		"diagnostics":      []interface{}{},
+		"engine":           engine,
+		"binding":          bindingName,
+		"detailLevel":      detailLevelName,
+		"scenario":         scenario,
+		"benchmarkMetrics": zeroBenchmarkMetrics(),
+	}
 }
 
 func writePerTemplateReport(path string, payload map[string]interface{}) error {
@@ -975,8 +1188,8 @@ func computeCorpusFingerprint(root string) (string, int, error) {
 	return hex.EncodeToString(outer.Sum(nil)), len(files), nil
 }
 
-func computeRunFingerprint(corpusFP, engine, format string, iterations int) string {
-	h := sha256.Sum256([]byte(fmt.Sprintf("%s|%s|%s|%d", corpusFP, engine, format, iterations)))
+func computeRunFingerprint(corpusFP, rulesFP, scenario, engine, format string, iterations int) string {
+	h := sha256.Sum256([]byte(fmt.Sprintf("%s|%s|%s|%s|%s|%d", corpusFP, rulesFP, scenario, engine, format, iterations)))
 	return hex.EncodeToString(h[:])
 }
 

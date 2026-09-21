@@ -8,6 +8,12 @@ Rego, CEL, and composite engines at DETAILED/DEBUG level.
 Usage:
     python -m bench.benchmark [TEMPLATE|DIR] --engine rego|cel|composite --iterations N
     python -m bench.benchmark --engine rego|cel|composite --startup-probe
+
+Either form accepts the shared scenario flags: ``--guard-rules PATH`` and
+``--rego-rules PATH`` (repeatable; a file or a directory of ``.guard`` /
+``.rego`` files) load a rule pack into the engine (Rego rules are rejected for
+``--engine cel``), and ``--scenario NAME`` labels the run and moves its reports
+from ``reports/<engine>/`` to ``reports/scenarios/NAME/<engine>/``.
 """
 
 from __future__ import annotations
@@ -36,6 +42,72 @@ _WORKSPACE = _BINDINGS_DIR.parent
 _DEFAULT_TEMPLATE_DIR = _WORKSPACE / "resources" / "templates"
 
 _DEFAULT_STARTUP_TEMPLATE = "good/minimal.yaml"
+
+# Recorded when no --scenario is given; its reports keep the historical
+# reports/<engine>/ layout that other tooling reads.
+_DEFAULT_SCENARIO = "builtin"
+_SCENARIO_NAME_PATTERN = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")
+
+
+def _collect_rule_files(path: Path, extension: str) -> List[Path]:
+    if path.is_file():
+        return [path]
+    return sorted(p for p in path.rglob(f"*.{extension}") if p.is_file())
+
+
+class RulePack:
+    """The fingerprint format - one ``<kind>\t<path relative to the argument>\t<sha256
+    of content>`` line per file, sorted, hashed - is shared by every harness so the
+    comparison can prove all bindings loaded the same rules."""
+
+    def __init__(self) -> None:
+        self.guard: List[Tuple[str, str]] = []
+        self.rego: List[Tuple[str, str]] = []
+        self.guard_bytes = 0
+        self.rego_bytes = 0
+        self._entries: List[str] = []
+
+    def load(self, kind: str, raw_paths: List[str]) -> None:
+        for raw_path in raw_paths:
+            root = Path(raw_path)
+            if not root.exists():
+                print(f"Error: --{kind}-rules path not found: {raw_path}", file=sys.stderr)
+                sys.exit(2)
+            files = _collect_rule_files(root, kind)
+            if not files:
+                print(f"Error: --{kind}-rules path contains no .{kind} files: {raw_path}", file=sys.stderr)
+                sys.exit(2)
+            for file in files:
+                content = file.read_text(encoding="utf-8")
+                relative = file.name if root.is_file() else file.relative_to(root).as_posix()
+                self._entries.append(f"{kind}\t{relative}\t{_sha256_hex(content.encode('utf-8'))}\n")
+                if kind == "guard":
+                    self.guard.append((str(file), content))
+                    self.guard_bytes += len(content.encode("utf-8"))
+                else:
+                    self.rego.append((str(file), content))
+                    self.rego_bytes += len(content.encode("utf-8"))
+
+    def fingerprint(self) -> str:
+        return _sha256_hex("".join(sorted(self._entries)).encode("utf-8"))
+
+    def json(self, guard_rule_count: int) -> Dict[str, Any]:
+        return {
+            "guard": {"files": len(self.guard), "rules": guard_rule_count, "bytes": self.guard_bytes},
+            "rego": {"files": len(self.rego), "bytes": self.rego_bytes},
+        }
+
+
+def _guard_rule_count(engine: Any) -> int:
+    """Distinct names: a rule name shared by two files counts once."""
+    return sum(1 for rule in engine._inner.list_rules() if getattr(rule.origin, "name", str(rule.origin)) == "GUARD")
+
+
+def _report_output_dir(engine_name: str, scenario: str) -> Path:
+    if scenario == _DEFAULT_SCENARIO:
+        return _BINDINGS_DIR / "reports" / engine_name
+    return _BINDINGS_DIR / "reports" / "scenarios" / scenario / engine_name
+
 
 _CONSUMER_INIT_SCOPE = "engine_includes_schema_validator"
 
@@ -313,14 +385,14 @@ def _startup_section(startup: StartupMeasurement) -> Dict[str, Any]:
 
 
 def _measure_startup(
-    engine_class: Any,
+    engine_factory: Any,
     startup_bytes: bytes,
     startup_label: str,
     benchmark_config: Any,
     module_load_ms: float,
 ) -> Tuple[Any, StartupMeasurement]:
     engine_start = time.perf_counter()
-    engine = engine_class()
+    engine = engine_factory()
     engine_init_ms = (time.perf_counter() - engine_start) * 1000.0
 
     consumer_init_ms = engine_init_ms
@@ -449,8 +521,8 @@ def _compute_corpus_fingerprint(root: Path, files: List[Path]) -> Tuple[str, int
     return outer.hexdigest(), len(relative_and_absolute)
 
 
-def _run_fingerprint(corpus_fp: str, engine: str, fmt: str, iterations: int) -> str:
-    data = f"{corpus_fp}|{engine}|{fmt}|{iterations}"
+def _run_fingerprint(corpus_fp: str, rules_fp: str, scenario: str, engine: str, fmt: str, iterations: int) -> str:
+    data = f"{corpus_fp}|{rules_fp}|{scenario}|{engine}|{fmt}|{iterations}"
     return _sha256_hex(data.encode())
 
 
@@ -561,12 +633,14 @@ def _write_template_report(
     report: Any,
     benchmark_metrics: Dict[str, Any],
     engine_name: str,
+    scenario: str,
 ) -> None:
     try:
         template_json = to_jsonable(report)
         template_json["engine"] = engine_name
         template_json["binding"] = "python"
         template_json["detailLevel"] = "DETAILED"
+        template_json["scenario"] = scenario
         template_json["benchmarkMetrics"] = benchmark_metrics
         serialized = json.dumps(template_json, indent=2)
         with open(json_path, "w", encoding="utf-8") as f:
@@ -577,6 +651,30 @@ def _write_template_report(
             f"(template: {rel_path}): {exc}",
             file=sys.stderr,
         )
+        sys.exit(1)
+
+
+def _write_failed_template_report(
+    json_path: Path, rel_path: str, message: str, engine_name: str, scenario: str
+) -> None:
+    """Keeps the envelope of a successful report so consumers can tell a failed
+    template from a clean one without a second schema."""
+    template_json = {
+        "filePath": rel_path,
+        "status": "ERROR",
+        "error": message,
+        "diagnostics": [],
+        "engine": engine_name,
+        "binding": "python",
+        "detailLevel": "DETAILED",
+        "scenario": scenario,
+        "benchmarkMetrics": _zero_benchmark_metrics(),
+    }
+    try:
+        with open(json_path, "w", encoding="utf-8") as f:
+            f.write(json.dumps(template_json, indent=2))
+    except OSError as exc:
+        print(f"ERROR: failed to write per-template report {json_path} (template: {rel_path}): {exc}", file=sys.stderr)
         sys.exit(1)
 
 
@@ -631,17 +729,45 @@ def _parse_args() -> argparse.Namespace:
             "raw-byte validation), print one JSON object, and exit."
         ),
     )
+    parser.add_argument(
+        "--guard-rules",
+        action="append",
+        default=[],
+        metavar="PATH",
+        help="Guard (.guard) rule file or directory to load into the engine; repeatable.",
+    )
+    parser.add_argument(
+        "--rego-rules",
+        action="append",
+        default=[],
+        metavar="PATH",
+        help="Custom Rego (.rego) rule file or directory to load; repeatable, not valid with --engine cel.",
+    )
+    parser.add_argument(
+        "--scenario",
+        default=_DEFAULT_SCENARIO,
+        help=(
+            "Label the run and write reports to reports/scenarios/NAME/<engine>/ instead of "
+            f"reports/<engine>/ (default: {_DEFAULT_SCENARIO})."
+        ),
+    )
     args = parser.parse_args()
     if args.iterations is not None and args.iterations < 1:
         parser.error("--iterations must be a positive integer")
     if not args.startup_probe and args.iterations is None:
         parser.error("--iterations is required")
+    if not _SCENARIO_NAME_PATTERN.match(args.scenario):
+        parser.error("--scenario must be a lowercase name of letters, digits, '-' or '_' (max 64)")
+    if args.engine == "cel" and args.rego_rules:
+        parser.error("--rego-rules cannot be loaded into the CEL engine; use --engine rego or composite")
     return args
 
 
 def _run_startup_probe(
     engine_name: str,
-    engine_class: Any,
+    engine_factory: Any,
+    pack: RulePack,
+    scenario: str,
     version_fn: Any,
     benchmark_config: Any,
     module_load_ms: float,
@@ -654,13 +780,16 @@ def _run_startup_probe(
         sys.exit(1)
     startup_label = startup_path.name
 
-    _engine, startup = _measure_startup(
-        engine_class, startup_bytes, startup_label, benchmark_config, module_load_ms
+    engine, startup = _measure_startup(
+        engine_factory, startup_bytes, startup_label, benchmark_config, module_load_ms
     )
 
     probe = _startup_section(startup)
     probe["binding"] = "python"
     probe["engine"] = engine_name
+    probe["scenario"] = scenario
+    probe["custom_rules"] = pack.json(_guard_rule_count(engine))
+    probe["rules_fingerprint"] = pack.fingerprint()
     probe["versions"] = _provenance(version_fn)
     print(json.dumps(probe))
 
@@ -677,8 +806,11 @@ def main() -> None:
     from cloudformation_validate import (  # noqa: E402
         CelEngine,
         CompositeEngine,
+        CompositeEngineConfig,
         DetailLevel,
+        EngineConfig,
         EntityType,
+        ExternalRuleSource,
         JsonValue,
         RegoEngine,
         Severity,
@@ -693,14 +825,29 @@ def main() -> None:
     _JsonValue = JsonValue
     _EntityType = EntityType
 
-    engine_class = {"rego": RegoEngine, "cel": CelEngine, "composite": CompositeEngine}[engine_name]
+    # Read before any timer starts so only engine construction is measured.
+    scenario: str = args.scenario
+    pack = RulePack()
+    pack.load("guard", args.guard_rules)
+    pack.load("rego", args.rego_rules)
+    guard_sources = [ExternalRuleSource(name=name, content=content) for name, content in pack.guard]
+    rego_sources = [ExternalRuleSource(name=name, content=content) for name, content in pack.rego]
+
+    def engine_factory() -> Any:
+        if engine_name == "rego":
+            return RegoEngine(EngineConfig(custom_rules=rego_sources, guard_rules=guard_sources))
+        if engine_name == "cel":
+            return CelEngine(EngineConfig(guard_rules=guard_sources))
+        return CompositeEngine(CompositeEngineConfig(rego_rules=rego_sources, guard_rules=guard_sources))
 
     benchmark_config = ValidateConfig(severity_level=Severity.DEBUG, detail_level=DetailLevel.DETAILED)
 
     if startup_probe:
         _run_startup_probe(
             engine_name,
-            engine_class,
+            engine_factory,
+            pack,
+            scenario,
             version,
             benchmark_config,
             import_elapsed_ms,
@@ -712,7 +859,7 @@ def main() -> None:
         Path(args.template_dir).resolve() if args.template_dir is not None else _DEFAULT_TEMPLATE_DIR.resolve()
     )
 
-    output_dir = _BINDINGS_DIR / "reports" / engine_name
+    output_dir = _report_output_dir(engine_name, scenario)
     output_dir.mkdir(parents=True, exist_ok=True)
 
     json_dir = output_dir / "json_detailed"
@@ -743,11 +890,11 @@ def main() -> None:
     if template_data:
         startup_label, startup_bytes = template_data[0]
         engine, startup = _measure_startup(
-            engine_class, startup_bytes, startup_label, benchmark_config, import_elapsed_ms
+            engine_factory, startup_bytes, startup_label, benchmark_config, import_elapsed_ms
         )
     else:
         engine_start = time.perf_counter()
-        engine = engine_class()
+        engine = engine_factory()
         engine_init_ms = (time.perf_counter() - engine_start) * 1000.0
         startup = StartupMeasurement(
             startup_template="",
@@ -801,6 +948,7 @@ def main() -> None:
                     _normalize_parse_failure_report(parse_failure_report),
                     _zero_benchmark_metrics(),
                     engine_name,
+                    scenario,
                 )
                 del parse_failure_report
                 results.append(_error_result(rel_path, 0, "parse_error", str(exc)))
@@ -819,6 +967,7 @@ def main() -> None:
             except Exception as exc:
                 print(f" FAILED: {exc}", file=sys.stderr)
                 results.append(_error_result(rel_path, size_bytes, "error", str(exc)))
+                _write_failed_template_report(json_path, rel_path, str(exc), engine_name, scenario)
                 failed = True
                 break
             host_validate_ms = (time.perf_counter() - t0) * 1000.0
@@ -887,7 +1036,7 @@ def main() -> None:
             binding_overhead_ms,
         )
 
-        _write_template_report(json_path, rel_path, report, benchmark_metrics, engine_name)
+        _write_template_report(json_path, rel_path, report, benchmark_metrics, engine_name, scenario)
 
         template_result = {
             "file": rel_path,
@@ -1000,7 +1149,9 @@ def main() -> None:
     binding_overhead_vec = [r["binding_overhead_ms"] for r in successful_results]
 
     corpus_fingerprint, corpus_file_count = _compute_corpus_fingerprint(template_dir, templates)
-    run_fp = _run_fingerprint(corpus_fingerprint, engine_name, "DETAILED", iterations)
+    rules_fingerprint = pack.fingerprint()
+    custom_rules = pack.json(_guard_rule_count(engine))
+    run_fp = _run_fingerprint(corpus_fingerprint, rules_fingerprint, scenario, engine_name, "DETAILED", iterations)
 
     # Provenance is built after all timed work so the cargo/rustc spawns never
     # contaminate a measurement.
@@ -1021,6 +1172,9 @@ def main() -> None:
         "iterations_per_template": iterations,
         "corpus_fingerprint": corpus_fingerprint,
         "corpus_file_count": corpus_file_count,
+        "scenario": scenario,
+        "custom_rules": custom_rules,
+        "rules_fingerprint": rules_fingerprint,
         "run_fingerprint": run_fp,
         "performance": {
             "module_load_ms": _round4(import_elapsed_ms),
