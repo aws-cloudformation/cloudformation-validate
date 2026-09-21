@@ -28,9 +28,30 @@ const args = process.argv.slice(2);
 if (args.includes('-h') || args.includes('--help')) {
     console.error(
         'Usage: npx ts-node benchmark.ts [TEMPLATE|DIR] [--engine rego|cel|composite] [--iterations N]\n' +
-            '       npx ts-node benchmark.ts --startup-probe [--engine rego|cel|composite]',
+            '       npx ts-node benchmark.ts --startup-probe [--engine rego|cel|composite]\n' +
+            '\n' +
+            'Either form accepts the shared scenario flags:\n' +
+            '  --guard-rules PATH   Load a Guard (.guard) rule file or directory into the engine; repeatable\n' +
+            '  --rego-rules PATH    Load a custom Rego (.rego) rule file or directory; repeatable, not valid with --engine cel\n' +
+            '  --scenario NAME      Label the run and write reports to reports/scenarios/NAME/<engine>/ instead of\n' +
+            '                       reports/<engine>/ (default scenario: builtin)',
     );
     process.exit(2);
+}
+
+function flagValues(flag: string): string[] {
+    const values: string[] = [];
+    for (let i = 0; i < args.length; i++) {
+        if (args[i] !== flag) continue;
+        const value = args[i + 1];
+        if (value === undefined || value.startsWith('-')) {
+            console.error(`Error: ${flag} requires a path value`);
+            process.exit(2);
+        }
+        values.push(value);
+        i++;
+    }
+    return values;
 }
 
 function argValue(flag: string): string | undefined {
@@ -43,7 +64,10 @@ function argValue(flag: string): string | undefined {
 const benchDir = path.basename(__dirname) === 'build' ? path.dirname(__dirname) : __dirname;
 const DEFAULT_STARTUP_TEMPLATE = path.join('good', 'minimal.yaml');
 const DEFAULT_TEMPLATE_DIR = path.resolve(benchDir, '../../resources/templates');
-const FLAGS_WITH_VALUES = new Set(['--engine', '--iterations']);
+const FLAGS_WITH_VALUES = new Set(['--engine', '--iterations', '--guard-rules', '--rego-rules', '--scenario']);
+// Recorded when no --scenario is given; its reports keep the historical reports/<engine>/
+// layout that other tooling reads.
+const DEFAULT_SCENARIO = 'builtin';
 const startupProbe = args.includes('--startup-probe');
 const positionalArg = (() => {
     for (let i = 0; i < args.length; i++) {
@@ -88,6 +112,112 @@ const iterations: number = (() => {
     }
     return parsed;
 })();
+
+const scenario: string = (() => {
+    if (!args.includes('--scenario')) return DEFAULT_SCENARIO;
+    const value = argValue('--scenario');
+    if (value === undefined) {
+        console.error('Error: --scenario requires a value');
+        process.exit(2);
+    }
+    if (!/^[a-z0-9][a-z0-9_-]{0,63}$/.test(value)) {
+        console.error(
+            `Error: --scenario must be a lowercase name of letters, digits, '-' or '_' (max 64), got '${value}'`,
+        );
+        process.exit(2);
+    }
+    return value;
+})();
+const guardRulePaths = flagValues('--guard-rules');
+const regoRulePaths = flagValues('--rego-rules');
+if (engineFlag === 'cel' && regoRulePaths.length > 0) {
+    console.error('Error: --rego-rules cannot be loaded into the CEL engine; use --engine rego or composite');
+    process.exit(2);
+}
+
+function collectRuleFiles(root: string, extension: string): string[] {
+    if (fs.statSync(root).isFile()) return [root];
+    const found: string[] = [];
+    const walk = (dir: string): void => {
+        for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+            const full = path.join(dir, entry.name);
+            if (entry.isDirectory()) walk(full);
+            else if (entry.isFile() && entry.name.endsWith(`.${extension}`)) found.push(full);
+        }
+    };
+    walk(root);
+    return found.sort();
+}
+
+/**
+ * The fingerprint format - one `<kind>\t<path relative to the argument>\t<sha256 of content>`
+ * line per file, sorted, hashed - is shared by every harness so the comparison can prove all
+ * bindings loaded the same rules.
+ */
+class RulePack {
+    readonly guard: { name: string; content: string }[] = [];
+    readonly rego: { name: string; content: string }[] = [];
+    guardBytes = 0;
+    regoBytes = 0;
+    private readonly entries: string[] = [];
+
+    load(kind: 'guard' | 'rego', rawPaths: string[]): void {
+        for (const rawPath of rawPaths) {
+            if (!fs.existsSync(rawPath)) {
+                console.error(`Error: --${kind}-rules path not found: ${rawPath}`);
+                process.exit(2);
+            }
+            const files = collectRuleFiles(rawPath, kind);
+            if (files.length === 0) {
+                console.error(`Error: --${kind}-rules path contains no .${kind} files: ${rawPath}`);
+                process.exit(2);
+            }
+            const isFile = fs.statSync(rawPath).isFile();
+            for (const file of files) {
+                const content = fs.readFileSync(file, 'utf8');
+                const relative = isFile ? path.basename(file) : path.relative(rawPath, file).replace(/\\/g, '/');
+                const digest = crypto.createHash('sha256').update(content, 'utf8').digest('hex');
+                this.entries.push(`${kind}\t${relative}\t${digest}\n`);
+                const bytes = Buffer.byteLength(content, 'utf8');
+                if (kind === 'guard') {
+                    this.guard.push({ name: file, content });
+                    this.guardBytes += bytes;
+                } else {
+                    this.rego.push({ name: file, content });
+                    this.regoBytes += bytes;
+                }
+            }
+        }
+    }
+
+    fingerprint(): string {
+        return crypto.createHash('sha256').update(this.entries.slice().sort().join(''), 'utf8').digest('hex');
+    }
+
+    json(guardRuleCount: number): Record<string, unknown> {
+        return {
+            guard: { files: this.guard.length, rules: guardRuleCount, bytes: this.guardBytes },
+            rego: { files: this.rego.length, bytes: this.regoBytes },
+        };
+    }
+}
+
+// Read before any timer starts so only engine construction is measured.
+const rulePack = new RulePack();
+rulePack.load('guard', guardRulePaths);
+rulePack.load('rego', regoRulePaths);
+
+/** Distinct names: a rule name shared by two files counts once. */
+function guardRuleCount(engine: WasmEngine): number {
+    const rules: { origin?: string }[] = engine.listRules();
+    return rules.filter((rule) => rule.origin === 'GUARD').length;
+}
+
+function reportOutputDir(engineName: string): string {
+    return scenario === DEFAULT_SCENARIO
+        ? path.resolve(benchDir, `../reports/${engineName}`)
+        : path.resolve(benchDir, `../reports/scenarios/${scenario}/${engineName}`);
+}
 
 function round4(v: number): number {
     return Math.round(v * 10000) / 10000;
@@ -391,15 +521,15 @@ function reportPath(jsonDir: string, relativePath: string): string {
 }
 
 const engineConfig: EngineConfig = {
-    customRules: [],
-    guardRules: [],
+    customRules: engineFlag === 'rego' ? rulePack.rego : [],
+    guardRules: rulePack.guard,
 };
 // CompositeEngine takes a CompositeEngineConfig (regoRules + guardRules) rather than an
 // EngineConfig. It is constructed through the raw binding namespace, which shares the
 // same structural instance shape as the Rego and CEL engines.
 const compositeEngineConfig = {
-    regoRules: [],
-    guardRules: [],
+    regoRules: rulePack.rego,
+    guardRules: rulePack.guard,
 };
 function newEngine(): WasmEngine {
     if (engineFlag === 'composite') return new wasmRaw.WasmCompositeEngine(compositeEngineConfig);
@@ -503,7 +633,13 @@ function measureStartup(
     const consumerInitMs = engineInitMs;
 
     const validateStart = performance.now();
-    const report: ValidationReport = engine.validateTemplate(startupBytes, validateConfig, startupLabel);
+    let report: ValidationReport;
+    try {
+        report = engine.validateTemplate(startupBytes, validateConfig, startupLabel);
+    } catch (e: any) {
+        console.error(`Error: startup first validation failed on '${startupLabel}': ${e?.message ?? e}`);
+        process.exit(1);
+    }
     const hostMs = performance.now() - validateStart;
 
     const perf = report.performance;
@@ -566,6 +702,7 @@ function runStartupProbe(): void {
     const startupLabel = path.basename(startupPath);
     const { engine, startup } = measureStartup(startupBytes, startupLabel);
     const engineName = engine.engineName();
+    const customRules = rulePack.json(guardRuleCount(engine));
     try {
         engine.free();
     } catch {}
@@ -573,6 +710,9 @@ function runStartupProbe(): void {
         ...startupSectionJson(startup),
         binding: 'wasm',
         engine: engineName,
+        scenario,
+        custom_rules: customRules,
+        rules_fingerprint: rulePack.fingerprint(),
         versions: provenanceJson(),
     };
     process.stdout.write(`${JSON.stringify(probe)}\n`);
@@ -610,7 +750,14 @@ const initSamples = engineInitSamples.slice();
 const coldInitMs = moduleLoadMs + initSamples[0];
 const subsequentInitSamples: number[] = [];
 
-const reportDir = path.resolve(benchDir, `../reports/${engineFlag}`);
+const rulesFingerprint = rulePack.fingerprint();
+const customRules = rulePack.json(guardRuleCount(engine));
+console.error(
+    `Scenario '${scenario}': ${rulePack.guard.length} Guard file(s), ${rulePack.rego.length} Rego file(s), ` +
+        `rules fingerprint ${rulesFingerprint}`,
+);
+
+const reportDir = reportOutputDir(engineFlag);
 const jsonDir = path.join(reportDir, `json_${formatDir}`);
 // Clean previous output so stale reports from dropped/renamed templates are not left behind.
 if (fs.existsSync(jsonDir)) {
@@ -663,6 +810,7 @@ for (const tpl of templates) {
                         engine: engineFlag,
                         binding: 'wasm',
                         detailLevel: formatFlag,
+                        scenario,
                         benchmarkMetrics: zeroBenchmarkMetrics(),
                     },
                     null,
@@ -691,7 +839,28 @@ for (const tpl of templates) {
             iterWallClock.push(wallMs);
             if (i === iterations - 1) lastReport = report;
         } catch (e: any) {
-            results.push(errorResult(rel, 'error', e.message ?? String(e)));
+            const message = e.message ?? String(e);
+            results.push(errorResult(rel, 'error', message));
+            // Every attempted template gets a report so the comparison script can pair the
+            // same template set across bindings and scenarios.
+            fs.writeFileSync(
+                jsonPath,
+                JSON.stringify(
+                    {
+                        filePath: rel,
+                        status: 'ERROR',
+                        error: message,
+                        diagnostics: [],
+                        engine: engineFlag,
+                        binding: 'wasm',
+                        detailLevel: formatFlag,
+                        scenario,
+                        benchmarkMetrics: zeroBenchmarkMetrics(),
+                    },
+                    null,
+                    2,
+                ),
+            );
             failed = true;
             break;
         }
@@ -720,6 +889,7 @@ for (const tpl of templates) {
                 engine: engineFlag,
                 binding: 'wasm',
                 detailLevel: formatFlag,
+                scenario,
                 benchmarkMetrics: perTemplateMetricsJson(
                     iterations,
                     iterHostModel,
@@ -808,7 +978,7 @@ const throughputPerSec =
 const { fingerprint: corpusFingerprint, fileCount: corpusFileCount } = computeCorpusFingerprint(templateDir);
 const runFingerprint = crypto
     .createHash('sha256')
-    .update(`${corpusFingerprint}|${engineFlag}|${formatFlag}|${iterations}`)
+    .update(`${corpusFingerprint}|${rulesFingerprint}|${scenario}|${engineFlag}|${formatFlag}|${iterations}`)
     .digest('hex');
 
 // Provenance is queried only after every timed measurement above so the
@@ -828,6 +998,9 @@ const aggregate = {
     iterations_per_template: iterations,
     corpus_fingerprint: corpusFingerprint,
     corpus_file_count: corpusFileCount,
+    scenario,
+    custom_rules: customRules,
+    rules_fingerprint: rulesFingerprint,
     run_fingerprint: runFingerprint,
     performance: {
         module_load_ms: round4(moduleLoadMs),

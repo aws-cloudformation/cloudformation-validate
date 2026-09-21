@@ -1,11 +1,29 @@
 #!/usr/bin/env python3
-"""Runs benchmarks for every engine × binding and writes a comparison report.
+"""Runs benchmarks for every scenario × engine × binding and writes comparison reports.
+
+A *scenario* fixes the rules the engine evaluates: ``builtin`` measures the
+built-in rules alone, ``guard`` layers every Guard rule file of
+``src/resources/rules`` on top, ``rego`` layers every custom Rego rule file of
+that directory (the CEL engine cannot evaluate Rego, so that scenario skips
+CEL), and ``all`` layers both packs. The single report
+(``scripts/snapshots/benchmark_comparison.md``) opens with a cross-scenario
+summary of what each rule pack costs per engine and binding, then holds the
+full engine × binding comparison for every scenario.
 
 The native benchmark builds ``cfn-benchmark`` from the workspace. The WASM, JVM,
 Python, and Go benchmarks consume the committed distribution artifacts that the
 ``build-artifacts`` workflow publishes (``bindings-wasm/dist``, the JVM jar, the
 Python wheels, and the Go module's static libraries), so they measure exactly
 what consumers install; only each binding's benchmark harness is built here.
+
+Every harness accepts the same command line: ``[TEMPLATE|DIR] --engine E
+--iterations N`` for a corpus run, ``--engine E --startup-probe`` for a startup
+probe, and for a non-default scenario ``--scenario NAME`` plus
+``--guard-rules DIR`` and/or ``--rego-rules DIR`` naming the rules directory
+(a harness loads every ``.guard`` / ``.rego`` file below a directory argument).
+Its aggregate and per-template reports carry ``scenario``, ``custom_rules``, and
+``rules_fingerprint`` so this script can prove every binding measured the same
+rules.
 
 Subsequent distributions are per-template medians of iterations 2..N; throughput
 divides all timed ``validate()`` calls by the measured wall time.
@@ -30,6 +48,47 @@ SRC_DIR = PROJECT_ROOT / "src"
 
 ENGINES = ["rego", "cel", "composite"]
 FORMATS = ["detailed"]
+
+# Every .guard file here is the Guard rule pack and every .rego file the custom Rego
+# rule pack; harnesses receive the directory rather than a file list.
+RULES_DIR = SRC_DIR / "resources" / "rules"
+
+# Recorded by a harness when no --scenario is given; its reports keep the historical
+# reports/<engine>/ layout that other tooling reads.
+DEFAULT_SCENARIO = "builtin"
+
+# The CEL engine cannot evaluate Rego, so Rego scenarios run Rego and composite only.
+SCENARIOS = [
+    {
+        "id": DEFAULT_SCENARIO,
+        "label": "Built-in rules only",
+        "engines": ENGINES,
+        "guard": False,
+        "rego": False,
+    },
+    {
+        "id": "guard",
+        "label": "Built-in rules + Guard rule pack",
+        "engines": ENGINES,
+        "guard": True,
+        "rego": False,
+    },
+    {
+        "id": "rego",
+        "label": "Built-in rules + custom Rego rule pack",
+        "engines": ["rego", "composite"],
+        "guard": False,
+        "rego": True,
+    },
+    {
+        "id": "all",
+        "label": "Built-in rules + Guard rule pack + custom Rego rule pack",
+        "engines": ["rego", "composite"],
+        "guard": True,
+        "rego": True,
+    },
+]
+SCENARIO_IDS = [scenario["id"] for scenario in SCENARIOS]
 ALL_BINDINGS = [
     ("native", "Native Rust"),
     ("wasm", "WASM (Node.js)"),
@@ -77,8 +136,9 @@ VALID_ENGINES = {"rego", "cel", "composite"}
 
 # External process timer used to measure startup and full-corpus memory. The
 # GNU coreutils build ("-v") and the macOS build ("-l") report different
-# formats and different RSS units, handled by the two parsers below.
-TIME_BIN = "/usr/bin/time"
+# formats and different RSS units, handled by the two parsers below. The
+# environment variable points at a GNU time built elsewhere on hosts without it.
+TIME_BIN = os.environ.get("CFN_BENCHMARK_TIME_BIN", "/usr/bin/time")
 
 NATIVE_BENCH_BIN = SRC_DIR / "target" / "release" / "cfn-benchmark"
 WASM_BENCH_DIR = SRC_DIR / "bindings-wasm" / "bench"
@@ -116,7 +176,7 @@ GO_STATIC_LIB_GLOB = "*/libbindings_go.a"
 
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(
-        description="Run benchmarks for every engine × binding and write a comparison report.",
+        description="Run benchmarks for every scenario × engine × binding and write comparison reports.",
     )
     parser.add_argument(
         "--skip-build",
@@ -128,6 +188,13 @@ def parse_args(argv=None):
         "--report-only",
         action="store_true",
         help="Generate report from existing aggregate files without running benchmarks.",
+    )
+    parser.add_argument(
+        "--scenarios",
+        nargs="+",
+        choices=SCENARIO_IDS,
+        default=None,
+        help="Subset of scenarios to benchmark, in canonical order (default: all).",
     )
     parser.add_argument(
         "--iterations",
@@ -184,80 +251,142 @@ def parse_args(argv=None):
     return args
 
 
-def build_run_plan(engines, bindings):
-    """Pair selected engines per binding and alternate canonical AB/BA order.
+def scenario_by_id(scenario_id):
+    for scenario in SCENARIOS:
+        if scenario["id"] == scenario_id:
+            return scenario
+    raise ValueError(f"unknown scenario: {scenario_id}")
+
+
+def select_scenarios(scenario_ids):
+    if not scenario_ids:
+        return list(SCENARIOS)
+    selected = set(scenario_ids)
+    return [scenario for scenario in SCENARIOS if scenario["id"] in selected]
+
+
+def scenario_engines(scenario, engines):
+    return [engine for engine in engines if engine in scenario["engines"]]
+
+
+def guard_pack_files():
+    return sorted(RULES_DIR.glob("*.guard"))
+
+
+def rego_pack_files():
+    return sorted(RULES_DIR.glob("*.rego"))
+
+
+def scenario_rule_files(scenario):
+    return (
+        guard_pack_files() if scenario["guard"] else [],
+        rego_pack_files() if scenario["rego"] else [],
+    )
+
+
+def scenario_harness_args(scenario):
+    """The default scenario adds nothing so its invocation stays byte-for-byte the
+    historical one."""
+    if scenario["id"] == DEFAULT_SCENARIO:
+        return []
+    guard_files, rego_files = scenario_rule_files(scenario)
+    if scenario["guard"] and not guard_files:
+        sys.exit(f"scenario {scenario['id']}: no .guard files found in {RULES_DIR}")
+    if scenario["rego"] and not rego_files:
+        sys.exit(f"scenario {scenario['id']}: no .rego files found in {RULES_DIR}")
+    extra = ["--scenario", scenario["id"]]
+    if scenario["guard"]:
+        extra += ["--guard-rules", str(RULES_DIR)]
+    if scenario["rego"]:
+        extra += ["--rego-rules", str(RULES_DIR)]
+    return extra
+
+
+def build_run_plan(scenarios, engines, bindings):
+    """Order runs scenario by scenario; within a scenario pair the engines it can
+    run per binding and alternate canonical AB/BA order.
 
     Alternation is based on each binding's position in ``ALL_BINDINGS``, not its
     position in a filtered subset. Thus WASM remains BA even when it is the only
     selected binding, and repeated subset runs retain the same positional bias
     mitigation as the full run.
     """
-    if not engines or not bindings:
+    if not scenarios or not engines or not bindings:
         return []
 
     canonical_positions = {binding: index for index, (binding, _) in enumerate(ALL_BINDINGS)}
     plan = []
-    for selected_index, (binding, _label) in enumerate(bindings):
-        position = canonical_positions.get(binding, selected_index)
-        ordered_engines = engines if position % 2 == 0 else reversed(engines)
-        plan.extend((binding, engine) for engine in ordered_engines)
+    for scenario in scenarios:
+        runnable = scenario_engines(scenario, engines)
+        for selected_index, (binding, _label) in enumerate(bindings):
+            position = canonical_positions.get(binding, selected_index)
+            ordered_engines = runnable if position % 2 == 0 else list(reversed(runnable))
+            plan.extend((scenario["id"], binding, engine) for engine in ordered_engines)
     return plan
 
 
-def corpus_command(binding, engine, iterations, template_dir):
+def corpus_command(binding, engine, iterations, template_dir, scenario=None):
     """The native binary keeps ``--format detailed`` so its invocation stays identical
     to the one ``compare_cfnlint.py`` relies on. The FFI harnesses hardcode DETAILED
-    and reject ``--format``, so it is passed to native only.
+    and reject ``--format``, so it is passed to native only. A non-default scenario
+    appends the same ``--scenario``/rule-file flags to every harness.
     """
     template = str(template_dir)
+    scenario_args = scenario_harness_args(scenario) if scenario else []
     if binding == "native":
         return (
             [str(NATIVE_BENCH_BIN), template, "--engine", engine,
-             "--format", "detailed", "--iterations", str(iterations)],
+             "--format", "detailed", "--iterations", str(iterations)] + scenario_args,
             SRC_DIR,
         )
     if binding == "wasm":
         return (
             ["node", str(WASM_BENCH_JS), template, "--engine", engine,
-             "--iterations", str(iterations)],
+             "--iterations", str(iterations)] + scenario_args,
             WASM_BENCH_DIR,
         )
     if binding == "jvm":
         return (
             [str(JVM_BENCH_BIN), template, "--engine", engine,
-             "--iterations", str(iterations)],
+             "--iterations", str(iterations)] + scenario_args,
             JVM_BENCH_DIR,
         )
     if binding == "python":
         return (
             [str(PYTHON_VENV_PYTHON), str(PYTHON_BENCH_SCRIPT), template, "--engine", engine,
-             "--iterations", str(iterations)],
+             "--iterations", str(iterations)] + scenario_args,
             PYTHON_BENCH_DIR,
         )
     if binding == "go":
         return (
             [str(GO_BENCH_BIN), template, "--engine", engine,
-             "--iterations", str(iterations)],
+             "--iterations", str(iterations)] + scenario_args,
             GO_BENCH_DIR,
         )
     raise ValueError(f"unknown binding: {binding}")
 
 
-def probe_command(binding, engine):
+def probe_command(binding, engine, scenario=None):
+    scenario_args = scenario_harness_args(scenario) if scenario else []
     if binding == "native":
-        return ([str(NATIVE_BENCH_BIN), "--engine", engine, "--startup-probe"], SRC_DIR)
+        return ([str(NATIVE_BENCH_BIN), "--engine", engine, "--startup-probe"] + scenario_args, SRC_DIR)
     if binding == "wasm":
-        return (["node", str(WASM_BENCH_JS), "--engine", engine, "--startup-probe"], WASM_BENCH_DIR)
+        return (["node", str(WASM_BENCH_JS), "--engine", engine, "--startup-probe"] + scenario_args, WASM_BENCH_DIR)
     if binding == "jvm":
-        return ([str(JVM_BENCH_BIN), "--engine", engine, "--startup-probe"], JVM_BENCH_DIR)
+        return ([str(JVM_BENCH_BIN), "--engine", engine, "--startup-probe"] + scenario_args, JVM_BENCH_DIR)
     if binding == "python":
         return (
-            [str(PYTHON_VENV_PYTHON), str(PYTHON_BENCH_SCRIPT), "--engine", engine, "--startup-probe"],
+            [str(PYTHON_VENV_PYTHON), str(PYTHON_BENCH_SCRIPT), "--engine", engine, "--startup-probe"]
+            + scenario_args,
             PYTHON_BENCH_DIR,
         )
     if binding == "go":
-        return ([str(GO_BENCH_BIN), "--engine", engine, "--startup-probe"], GO_BENCH_DIR)
+        return ([str(GO_BENCH_BIN), "--engine", engine, "--startup-probe"] + scenario_args, GO_BENCH_DIR)
     raise ValueError(f"unknown binding: {binding}")
+
+
+def display_command(cmd):
+    return " ".join(str(c) for c in cmd)
 
 
 def executable_path(binding):
@@ -271,7 +400,7 @@ def executable_path(binding):
 
 
 def run_cmd(cmd, cwd, label):
-    print(f"  $ {' '.join(str(c) for c in cmd)}", file=sys.stderr)
+    print(f"  $ {display_command(cmd)}", file=sys.stderr)
     result = subprocess.run([str(c) for c in cmd], cwd=str(cwd))
     if result.returncode != 0:
         sys.exit(f"{label} failed (exit {result.returncode})")
@@ -494,54 +623,65 @@ def run_with_time(cmd, cwd, env, flavor):
     return proc, wall_ms, rss_bytes
 
 
-def _parse_probe_json(stdout, binding, engine):
+def _parse_probe_json(stdout, binding, engine, scenario_id=DEFAULT_SCENARIO):
     lines = [ln for ln in stdout.splitlines() if ln.strip()]
     if not lines:
-        sys.exit(f"startup probe for {binding}/{engine} produced no JSON on stdout")
+        sys.exit(f"startup probe for {scenario_id}/{binding}/{engine} produced no JSON on stdout")
     try:
         data = json.loads(lines[-1])
     except json.JSONDecodeError as exc:
-        sys.exit(f"startup probe for {binding}/{engine} emitted invalid JSON: {exc}")
+        sys.exit(f"startup probe for {scenario_id}/{binding}/{engine} emitted invalid JSON: {exc}")
     if not isinstance(data, dict):
-        sys.exit(f"startup probe for {binding}/{engine} JSON is not an object")
+        sys.exit(f"startup probe for {scenario_id}/{binding}/{engine} JSON is not an object")
     probe_binding = data.get("binding")
     if probe_binding is not None and probe_binding != binding:
         sys.exit(f"startup probe binding mismatch: expected '{binding}', got {probe_binding!r}")
     probe_engine = data.get("engine")
     if probe_engine is not None and probe_engine != engine:
         sys.exit(f"startup probe engine mismatch: expected '{engine}', got {probe_engine!r}")
+    # A rule-pack scenario must prove the harness understood the flags; only the
+    # default scenario tolerates a probe without the label.
+    probe_scenario = data.get("scenario")
+    if probe_scenario != scenario_id and not (probe_scenario is None and scenario_id == DEFAULT_SCENARIO):
+        sys.exit(f"startup probe scenario mismatch: expected '{scenario_id}', got {probe_scenario!r}")
     return data
 
 
-def run_startup_probes(binding, engine, samples, env, flavor):
-    cmd, cwd = probe_command(binding, engine)
-    print(f"=== {binding} startup probe (engine={engine}, samples={samples}) ===", file=sys.stderr)
+def run_startup_probes(binding, engine, samples, env, flavor, scenario):
+    cmd, cwd = probe_command(binding, engine, scenario)
+    print(
+        f"=== {scenario['id']}/{binding} startup probe (engine={engine}, samples={samples}) ===",
+        file=sys.stderr,
+    )
     collected = []
     for index in range(samples):
         proc, wall_ms, rss_bytes = run_with_time(cmd, cwd, env, flavor)
         if proc.returncode != 0:
             sys.exit(
-                f"startup probe failed for {binding}/{engine} "
+                f"startup probe failed for {scenario['id']}/{binding}/{engine} "
                 f"(sample {index + 1}/{samples}, exit {proc.returncode}):\n{proc.stderr.strip()}"
             )
         if wall_ms is None or rss_bytes is None:
-            sys.exit(f"could not parse /usr/bin/time output for {binding}/{engine} startup probe")
-        data = _parse_probe_json(proc.stdout, binding, engine)
+            sys.exit(f"could not parse {TIME_BIN} output for {scenario['id']}/{binding}/{engine} startup probe")
+        data = _parse_probe_json(proc.stdout, binding, engine, scenario["id"])
         collected.append({"json": data, "wall_ms": wall_ms, "rss_bytes": rss_bytes})
     return collected
 
 
-def run_corpus(binding, engine, iterations, template_dir, env, flavor):
-    cmd, cwd = corpus_command(binding, engine, iterations, template_dir)
-    print(f"=== {binding} corpus benchmark (engine={engine}) ===", file=sys.stderr)
-    print(f"  $ {' '.join(cmd)}", file=sys.stderr)
+def run_corpus(binding, engine, iterations, template_dir, env, flavor, scenario):
+    cmd, cwd = corpus_command(binding, engine, iterations, template_dir, scenario)
+    print(f"=== {scenario['id']}/{binding} corpus benchmark (engine={engine}) ===", file=sys.stderr)
+    print(f"  $ {display_command(cmd)}", file=sys.stderr)
     proc, wall_ms, rss_bytes = run_with_time(cmd, cwd, env, flavor)
     if proc.stderr:
         sys.stderr.write(proc.stderr)
     if proc.returncode != 0:
-        sys.exit(f"{binding} corpus benchmark failed (engine={engine}, exit {proc.returncode})")
+        sys.exit(
+            f"{binding} corpus benchmark failed (scenario={scenario['id']}, engine={engine}, "
+            f"exit {proc.returncode})"
+        )
     if rss_bytes is None:
-        sys.exit(f"could not parse /usr/bin/time RSS for {binding}/{engine} corpus run")
+        sys.exit(f"could not parse {TIME_BIN} RSS for {scenario['id']}/{binding}/{engine} corpus run")
     return wall_ms, rss_bytes
 
 
@@ -634,10 +774,27 @@ def enrich_aggregate(path, process_startup, corpus_rss_bytes):
     os.replace(str(tmp_path), str(path))
 
 
-def aggregate_path(engine, fmt, binding):
-    if binding == "native":
-        return SRC_DIR / "cfn-validate" / "reports" / engine / f"aggregate_{fmt}.json"
-    return SRC_DIR / f"bindings-{binding}" / "reports" / engine / f"aggregate_{fmt}.json"
+def reports_dir(engine, binding, scenario_id=DEFAULT_SCENARIO):
+    crate_dir = SRC_DIR / ("cfn-validate" if binding == "native" else f"bindings-{binding}")
+    if scenario_id == DEFAULT_SCENARIO:
+        return crate_dir / "reports" / engine
+    return crate_dir / "reports" / "scenarios" / scenario_id / engine
+
+
+def aggregate_path(engine, fmt, binding, scenario_id=DEFAULT_SCENARIO):
+    return reports_dir(engine, binding, scenario_id) / f"aggregate_{fmt}.json"
+
+
+def expected_aggregate_files(scenarios, engines, bindings):
+    """``(scenario_id, binding, engine, path)`` per run; the workflow validates exactly this list."""
+    expected = []
+    for scenario in scenarios:
+        for binding, _label in bindings:
+            for engine in scenario_engines(scenario, engines):
+                expected.append(
+                    (scenario["id"], binding, engine, aggregate_path(engine, FORMATS[0], binding, scenario["id"]))
+                )
+    return expected
 
 
 def _is_finite_number(val):
@@ -679,6 +836,24 @@ def _validate_aggregate_structure(data, path):
     if not isinstance(fp, str) or not fp:
         sys.exit(f"aggregate {path}: missing or empty 'corpus_fingerprint'")
 
+    scenario = data.get("scenario")
+    if not isinstance(scenario, str) or scenario not in SCENARIO_IDS:
+        sys.exit(f"aggregate {path}: 'scenario' must be one of {SCENARIO_IDS} (got {scenario!r})")
+    rules_fp = data.get("rules_fingerprint")
+    if not isinstance(rules_fp, str) or not rules_fp:
+        sys.exit(f"aggregate {path}: missing or empty 'rules_fingerprint'")
+    custom_rules = data.get("custom_rules")
+    if not isinstance(custom_rules, dict):
+        sys.exit(f"aggregate {path}: missing 'custom_rules' object")
+    for kind, fields in (("guard", ("files", "rules", "bytes")), ("rego", ("files", "bytes"))):
+        section = custom_rules.get(kind)
+        if not isinstance(section, dict):
+            sys.exit(f"aggregate {path}: missing 'custom_rules.{kind}' object")
+        for field in fields:
+            val = section.get(field)
+            if isinstance(val, bool) or not isinstance(val, int) or val < 0:
+                sys.exit(f"aggregate {path}: custom_rules.{kind}.{field} must be a non-negative integer (got {val!r})")
+
     provenance = data.get("provenance")
     if not isinstance(provenance, dict):
         sys.exit(f"aggregate {path}: missing 'provenance' object")
@@ -715,7 +890,7 @@ def _validate_aggregate_structure(data, path):
         sys.exit(f"aggregate {path}: memory.full_corpus_peak_rss_bytes is not a finite number")
 
 
-def load_aggregate(path, run_start_epoch):
+def load_aggregate(path, run_start_epoch, scenario_id=DEFAULT_SCENARIO):
     if not path.exists():
         sys.exit(f"expected aggregate not found: {path}")
     if run_start_epoch > 0:
@@ -725,28 +900,36 @@ def load_aggregate(path, run_start_epoch):
     with open(path) as f:
         data = json.load(f)
     _validate_aggregate_structure(data, path)
+    if data.get("scenario") != scenario_id:
+        sys.exit(f"aggregate {path}: scenario={data.get('scenario')!r} but it was loaded for scenario {scenario_id!r}")
     return data
 
 
-def enforce_corpus_parity(all_loaded, bindings):
-    """Every binding of every engine must have scanned the same bytes."""
-    fps = {}
-    for engine, by_binding in all_loaded.items():
-        for binding, agg in by_binding.items():
-            fp = agg.get("corpus_fingerprint")
-            if not fp:
-                sys.exit(f"{engine}/{binding}: aggregate missing corpus_fingerprint. "
-                         f"Rebuild + rerun benchmarks against current harness.")
-            fps.setdefault(fp, []).append(f"{engine}/{binding}")
-    if len(fps) > 1:
-        lines = [f"  {fp}: {', '.join(who)}" for fp, who in fps.items()]
-        sys.exit("corpus fingerprint mismatch across bindings - cannot compare:\n"
-                 + "\n".join(lines))
+def enforce_corpus_parity(all_loaded, bindings, scenario_id=DEFAULT_SCENARIO):
+    """Every binding of every engine must have scanned the same template bytes and
+    loaded the same rule files."""
+    for field, what in (("corpus_fingerprint", "corpus"), ("rules_fingerprint", "rules")):
+        fps = {}
+        for engine, by_binding in all_loaded.items():
+            for binding, agg in by_binding.items():
+                fp = agg.get(field)
+                if not fp:
+                    sys.exit(f"{scenario_id}/{engine}/{binding}: aggregate missing {field}. "
+                             f"Rebuild + rerun benchmarks against current harness.")
+                fps.setdefault(fp, []).append(f"{engine}/{binding}")
+        if len(fps) > 1:
+            lines = [f"  {fp}: {', '.join(who)}" for fp, who in fps.items()]
+            sys.exit(f"{what} fingerprint mismatch across bindings in scenario {scenario_id} - cannot compare:\n"
+                     + "\n".join(lines))
 
 
-def enforce_run_metadata_parity(all_loaded, bindings):
-    """Every selected run must agree on iteration count, detail level, corpus totals,
-    and failure lists."""
+def failure_set(agg):
+    return sorted((f.get("file"), f.get("status")) for f in (agg.get("failures") or []))
+
+
+def enforce_run_metadata_parity(all_loaded, bindings, scenario_id=DEFAULT_SCENARIO):
+    """Every selected run of a scenario must agree on iteration count, detail level,
+    corpus totals, the rule pack it loaded, and failure lists."""
     reference_key = None
     reference_meta = None
     for engine, by_binding in all_loaded.items():
@@ -755,14 +938,15 @@ def enforce_run_metadata_parity(all_loaded, bindings):
                 "iterations_per_template": agg.get("iterations_per_template"),
                 "detail_level": agg.get("detail_level"),
                 "corpus_fingerprint": agg.get("corpus_fingerprint"),
+                "scenario": agg.get("scenario"),
+                "rules_fingerprint": agg.get("rules_fingerprint"),
+                "custom_rules": agg.get("custom_rules"),
                 "templates_total": agg.get("templates_total"),
                 "templates_ok": agg.get("templates_ok"),
                 "templates_failed": agg.get("templates_failed"),
-                "failures": sorted(
-                    [(f.get("file"), f.get("status")) for f in (agg.get("failures") or [])],
-                ),
+                "failures": failure_set(agg),
             }
-            key = f"{engine}/{binding}"
+            key = f"{scenario_id}/{engine}/{binding}"
             if reference_meta is None:
                 reference_meta = meta
                 reference_key = key
@@ -780,18 +964,40 @@ def enforce_run_metadata_parity(all_loaded, bindings):
                 )
 
 
-def _per_template_dir(engine, binding):
-    if binding == "native":
-        return SRC_DIR / "cfn-validate" / "reports" / engine / "json_detailed"
-    return SRC_DIR / f"bindings-{binding}" / "reports" / engine / "json_detailed"
+def scenario_failure_differences(loaded_by_scenario):
+    """Run-metadata parity already guarantees every binding of a scenario agrees, so
+    one binding's aggregate per engine is representative. Templates a rule pack
+    cannot evaluate (a Guard type block against an empty ``Resources`` section)
+    drop out of that scenario's timings, so the report lists them."""
+    baseline = loaded_by_scenario.get(DEFAULT_SCENARIO)
+    if not baseline:
+        return {}
+    reference = set(failure_set(next(iter(next(iter(baseline.values())).values()))))
+    differences = {}
+    for scenario_id, by_engine in loaded_by_scenario.items():
+        if scenario_id == DEFAULT_SCENARIO:
+            continue
+        for engine, by_binding in by_engine.items():
+            failures = set(failure_set(next(iter(by_binding.values()))))
+            introduced = sorted(failures - reference)
+            removed = sorted(reference - failures)
+            if introduced or removed:
+                differences.setdefault(scenario_id, {})[engine] = {"introduced": introduced, "removed": removed}
+    return differences
 
 
-def load_and_validate_detailed_reports(engines, bindings):
-    """Load per-template detailed-level JSON reports for all engine×binding pairs.
+def _per_template_dir(engine, binding, scenario_id=DEFAULT_SCENARIO):
+    return reports_dir(engine, binding, scenario_id) / "json_detailed"
+
+
+def load_and_validate_detailed_reports(engines, bindings, scenario_id=DEFAULT_SCENARIO):
+    """Load per-template detailed-level JSON reports for all engine×binding pairs of
+    one scenario.
 
     Each report is loaded exactly once and indexed by filePath.  Validation rules:
     1. Directory must exist and be nonempty.
-    2. Root must be a JSON object with engine/binding labels matching the expected pair.
+    2. Root must be a JSON object with engine/binding labels matching the expected pair
+       and, for a rule-pack scenario, the scenario label.
     3. filePath must be a nonempty string, unique within each engine×binding directory.
     4. benchmarkMetrics.subsequent is canonical: sampleCount is a non-negative integer;
        zero requires all REQUIRED_SUBSEQUENT_METRICS null, positive requires them finite.
@@ -806,8 +1012,8 @@ def load_and_validate_detailed_reports(engines, bindings):
     for engine in engines:
         all_detailed[engine] = {}
         for binding, label in bindings:
-            d = _per_template_dir(engine, binding)
-            key = f"{engine}/{label}"
+            d = _per_template_dir(engine, binding, scenario_id)
+            key = f"{scenario_id}/{engine}/{label}"
 
             # Rule 1: nonempty directory
             if not d.exists() or not d.is_dir():
@@ -844,6 +1050,11 @@ def load_and_validate_detailed_reports(engines, bindings):
                 if file_binding != binding:
                     errors.append(
                         f"{key}: {json_file.name} binding='{file_binding}' expected '{binding}'"
+                    )
+                file_scenario = data.get("scenario")
+                if file_scenario != scenario_id and not (file_scenario is None and scenario_id == DEFAULT_SCENARIO):
+                    errors.append(
+                        f"{key}: {json_file.name} scenario={file_scenario!r} expected '{scenario_id}'"
                     )
 
                 # Rule 3: unique nonempty string filePath
@@ -1499,7 +1710,7 @@ def _field_diff(a, b):
     return {k: (a.get(k, "<missing>"), b.get(k, "<missing>")) for k in keys if a.get(k) != b.get(k)}
 
 
-def diagnostics_parity(all_loaded, engine, bindings, all_detailed=None):
+def diagnostics_parity(all_loaded, engine, bindings, all_detailed=None, scenario_id=DEFAULT_SCENARIO):
     """Full parity check across all binding pairs.
 
     If all_detailed is provided (already loaded per-template reports keyed by
@@ -1571,7 +1782,7 @@ def diagnostics_parity(all_loaded, engine, bindings, all_detailed=None):
                         examples))
     else:
         # Fallback: read from disk
-        dirs = {b: _per_template_dir(engine, b) for b, _ in bindings}
+        dirs = {b: _per_template_dir(engine, b, scenario_id) for b, _ in bindings}
 
         missing_dirs = []
         for b, lbl in bindings:
@@ -1703,13 +1914,42 @@ def diagnostics_parity(all_loaded, engine, bindings, all_detailed=None):
     return lines, False
 
 
-def data_sources_section(all_loaded, engines, bindings):
+def data_sources_section(all_loaded, engines, bindings, scenario_id=DEFAULT_SCENARIO):
     lines = ["## Data Sources", ""]
     for engine in engines:
         for b, lbl in bindings:
-            p = aggregate_path(engine, FORMATS[0], b)
+            p = aggregate_path(engine, FORMATS[0], b, scenario_id)
             lines.append(f"- {engine}/{lbl}: `{p.relative_to(PROJECT_ROOT)}`")
     lines.append("")
+    return lines
+
+
+def rule_pack_section(scenario, agg):
+    """Counts come from the aggregate so they describe what was measured, not what
+    this checkout would load."""
+    rules = agg.get("custom_rules") or {}
+    guard = rules.get("guard") or {}
+    rego = rules.get("rego") or {}
+    lines = [
+        "## Rule Pack", "",
+        f"Scenario `{scenario['id']}` - {scenario['label']}.", "",
+        f"- **Guard rules**: {guard.get('files', 0)} file(s), {guard.get('rules', 0)} distinct rule name(s), "
+        f"{fmt_bytes(guard.get('bytes', 0))}",
+        f"- **Custom Rego rules**: {rego.get('files', 0)} file(s), {fmt_bytes(rego.get('bytes', 0))}",
+        f"- **rules fingerprint**: `{agg.get('rules_fingerprint', 'unknown')}` (identical across every binding "
+        "of this scenario, checked before comparing)",
+        "",
+    ]
+    guard_files, rego_files = scenario_rule_files(scenario)
+    if guard_files or rego_files:
+        lines += ["Pack files (from `src/resources/rules/`):", ""]
+        lines += [f"- `{path.name}`" for path in guard_files + rego_files]
+        lines.append("")
+    if scenario["rego"]:
+        lines += [
+            "The CEL engine cannot evaluate Rego, so this scenario compares the Rego and composite "
+            "engines only.", "",
+        ]
     return lines
 
 
@@ -1721,46 +1961,40 @@ def host_metadata():
     }
 
 
-def run_all_benchmarks(engines, bindings, args, flavor):
+def run_all_benchmarks(scenarios, engines, bindings, args, flavor):
     env = benchmark_env()
-    plan = build_run_plan(engines, bindings)
-    for binding, engine in plan:
+    plan = build_run_plan(scenarios, engines, bindings)
+    for scenario_id, binding, engine in plan:
+        scenario = scenario_by_id(scenario_id)
         probes = run_startup_probes(
-            binding, engine, args.startup_samples, env, flavor
+            binding, engine, args.startup_samples, env, flavor, scenario
         )
         _corpus_wall_ms, corpus_rss_bytes = run_corpus(
-            binding, engine, args.iterations, args.template_dir, env, flavor
+            binding, engine, args.iterations, args.template_dir, env, flavor, scenario
         )
         process_startup = aggregate_process_startup(probes)
-        enrich_aggregate(aggregate_path(engine, FORMATS[0], binding), process_startup, corpus_rss_bytes)
+        enrich_aggregate(
+            aggregate_path(engine, FORMATS[0], binding, scenario_id), process_startup, corpus_rss_bytes
+        )
 
 
-def build_report(all_loaded, all_detailed, engines, bindings, args, corpus_fp, corpus_file_count):
-    host = host_metadata()
-    lines = [
-        "# Benchmark Comparison",
-        "",
-        f"Generated: {datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')}",
-        "",
-        "## Host", "",
-        *[f"- **{k}**: {v}" for k, v in host.items()],
-        f"- **iterations/template**: {args.iterations}",
-        f"- **startup samples/binding**: {args.startup_samples} (1 cold + "
-        f"{args.startup_samples - 1} warm)",
-        f"- **corpus fingerprint**: `{corpus_fp}` ({corpus_file_count} files)",
-        f"- **bindings**: {', '.join(lbl for _, lbl in bindings)} ({len(bindings)} total)",
-        f"- **engines**: {', '.join(e.upper() for e in engines)}",
-        "",
-    ]
-
-    lines += provenance_section(all_loaded, engines, bindings)
-
-    lines += [
+def methodology_section():
+    return [
         "## Methodology Notes", "",
+        "### Scenarios - rule packs loaded into the engine", "",
+        "Every scenario is a complete engine × binding run over the same corpus with a different rule "
+        f"set loaded into the engine. `{DEFAULT_SCENARIO}` evaluates the built-in rules alone; the other "
+        "scenarios load the Guard rule pack and/or the custom Rego rule pack of `src/resources/rules` on "
+        "top (the CEL engine cannot evaluate Rego, so Rego scenarios compare the Rego and composite "
+        "engines). Each harness records the scenario label, the rule pack it loaded, and a fingerprint of "
+        "the rule files; every binding of a scenario must report the same fingerprint before it is "
+        "compared. The cross-scenario table reads the rule-evaluation medians as the most robust "
+        "measure of a pack's cost because they exclude process startup and host I/O.", "",
         "### Process startup (cold vs warm) - externally measured", "",
         "Startup is measured by launching independent OS processes of each binding's "
         "benchmark harness in `--startup-probe` mode, each wrapped with `/usr/bin/time`. "
-        "A probe constructs the real consumer validation setup (schema validator + engine) "
+        "A probe constructs the real consumer validation setup (schema validator + engine, "
+        "including the scenario's rule pack) "
         "and performs the first `validate()` call on a single small template, printing a "
         "JSON object with the in-process init and first-validation timings. `/usr/bin/time` "
         "reports that process's external wall time and peak RSS (GNU `-v` reports RSS in "
@@ -1810,51 +2044,203 @@ def build_report(all_loaded, all_detailed, engines, bindings, args, corpus_fp, c
         "are more useful than cross-run absolute numbers. The corpus run pairs engines per "
         "binding and alternates run order (AB/BA) across bindings to distribute warm-up and "
         "load drift; results should be read as directional indicators, not precise "
-        "measurements.", "",
+        "measurements. Scenario runs may execute as separate CI jobs on different runners, so "
+        "cross-scenario ratios are directional as well.", "",
     ]
 
-    # Table of contents
-    engine_anchors = [f"- [{e.upper()} Engine](#{e}-engine)" for e in engines]
-    toc_items = [
-        "- [Provenance](#provenance)",
-        "- [Methodology Notes](#methodology-notes)",
-        "- [Latency & Memory Summary](#latency--memory-summary)",
-        *engine_anchors,
+
+def _ratio(value, base):
+    if not _is_finite_number(value) or not _is_finite_number(base) or base <= 0:
+        return "-"
+    return f"{float(value) / float(base):.2f}×"
+
+
+def scenario_overview_section(loaded_by_scenario, scenarios, engines):
+    lines = ["## Scenarios", ""]
+    header = ["Scenario", "Description", "Engines", "Guard files", "Guard rules", "Rego files", "Rules fingerprint"]
+    rows = []
+    for scenario in scenarios:
+        by_engine = loaded_by_scenario.get(scenario["id"], {})
+        sample = next((agg for by_binding in by_engine.values() for agg in by_binding.values()), None)
+        rules = (sample or {}).get("custom_rules") or {}
+        rows.append([
+            f"[`{scenario['id']}`](#{scenario_anchor(scenario)})", scenario["label"],
+            ", ".join(e.upper() for e in scenario_engines(scenario, engines)),
+            str(get(rules, "guard", "files", default="-")), str(get(rules, "guard", "rules", default="-")),
+            str(get(rules, "rego", "files", default="-")),
+            f"`{(sample or {}).get('rules_fingerprint', '-')[:16]}…`" if sample else "-",
+        ])
+    return lines + table(header, rows) + [""]
+
+
+def rule_pack_cost_section(loaded_by_scenario, scenarios, engines, bindings):
+    lines = [
+        "## Rule Pack Cost per Engine × Binding", "",
+        "Columns: engine init and first validation from the cold startup probe; rule evaluation and "
+        "wall clock are the subsequent per-template medians (iterations 2..N) with p99 in parentheses; "
+        "throughput is ok × iterations / measured validation wall time; RSS is the corpus process peak. "
+        f"Ratios (×) are relative to the `{DEFAULT_SCENARIO}` scenario of the same engine and binding. "
+        "Templates that fail to evaluate under a rule pack are excluded from its timings (see the "
+        "failure list below the table when there are any).", "",
     ]
-    toc_items.append(
-        f"- [Top-{args.top_slowest} Slowest Templates](#top-{args.top_slowest}-slowest-templates-subsequent-wall-clock)"
-    )
-    if "rego" in engines and "cel" in engines:
-        toc_items.append(
-            "- [Paired Engine Comparison](#paired-engine-comparison)"
-        )
-    toc_items.append("- [Data Sources](#data-sources)")
-
-    lines += ["## Table of Contents", "", *toc_items, ""]
-    lines += latency_memory_summary(all_loaded, engines, bindings)
-
-    # Track parity results
-    parity_all_passed = True
-
+    header = ["Scenario", "Templates ok", "Engine init (ms)", "First validation (ms)",
+              "Rule eval median (p99) ms", "Rule eval ×", "Wall median (p99) ms", "Wall ×",
+              "Throughput (val/s)", "Corpus RSS", "Diagnostics (F/E/W/I)"]
+    baseline = loaded_by_scenario.get(DEFAULT_SCENARIO, {})
     for engine in engines:
-        lines += [f"## {engine.upper()} Engine", ""]
-        lines += model_section(all_loaded, engine, bindings)
-        lines += headline_section(all_loaded, engine, bindings)
-        lines += phase_table(all_loaded, engine, bindings)
-        lines += overhead_table(all_loaded, engine, bindings)
+        for binding, label in bindings:
+            rows = []
+            base = get(baseline, engine, binding)
+            for scenario in scenarios:
+                agg = get(loaded_by_scenario, scenario["id"], engine, binding)
+                if agg is None:
+                    continue
+                rule_eval = get(agg, "performance", "rule_evaluation_ms", default={})
+                wall = get(agg, "performance", "subsequent_wall_clock_ms", default={})
+                base_rule = get(base, "performance", "rule_evaluation_ms", "median") if base else None
+                base_wall = get(base, "performance", "subsequent_wall_clock_ms", "median") if base else None
+                diags = agg.get("diagnostics") or {}
+                rows.append([
+                    f"`{scenario['id']}`",
+                    str(agg.get("templates_ok", "-")),
+                    ms(*_present(get(agg, "process_startup", "cold", "engine_init_ms"))),
+                    ms(*_present(get(agg, "process_startup", "cold", "first_validation_host_ms"))),
+                    f"{ms(*_stat_present(rule_eval, 'median'))} ({ms(*_stat_present(rule_eval, 'p99'))})",
+                    _ratio(_stat_value(rule_eval, "median"), base_rule),
+                    f"{ms(*_stat_present(wall, 'median'))} ({ms(*_stat_present(wall, 'p99'))})",
+                    _ratio(_stat_value(wall, "median"), base_wall),
+                    ms(recomputed_throughput(agg), True, 2),
+                    fmt_bytes(get(agg, "memory", "full_corpus_peak_rss_bytes")),
+                    "/".join(str(diags.get(k, "-")) for k in
+                             ("total_fatal", "total_errors", "total_warnings", "total_informational")),
+                ])
+            if rows:
+                lines += [f"### {engine.upper()} - {label}", ""] + table(header, rows) + [""]
+    return lines
+
+
+def failure_difference_section(differences):
+    if not differences:
+        return []
+    lines = [
+        "## Templates Failing Under a Rule Pack", "",
+        f"Templates whose validation fails in a scenario but not in `{DEFAULT_SCENARIO}` (or the reverse). "
+        "Every binding of the scenario agrees on this list. A failing template gets a report with no "
+        "diagnostics and zero timings, so it is excluded from that scenario's latency and throughput "
+        "figures. The usual cause is a Guard type block, which the Guard evaluator cannot apply to a "
+        "template whose `Resources` section is empty.", "",
+    ]
+    grouped = {}
+    for scenario_id, by_engine in differences.items():
+        for engine, diff in by_engine.items():
+            key = (tuple(diff["introduced"]), tuple(diff["removed"]))
+            grouped.setdefault(key, []).append(f"`{scenario_id}` / {engine.upper()}")
+    for (introduced, removed), labels in grouped.items():
+        where = ", ".join(labels)
+        if introduced:
+            lines.append(f"- {where}: {len(introduced)} template(s) fail only here")
+            lines += [f"  - `{file}` ({status})" for file, status in introduced]
+        if removed:
+            lines.append(f"- {where}: {len(removed)} template(s) fail only in `{DEFAULT_SCENARIO}`")
+            lines += [f"  - `{file}` ({status})" for file, status in removed]
+    lines.append("")
+    return lines
+
+
+def scenario_anchor(scenario):
+    return f"scenario-{scenario['id']}"
+
+
+def demote_headings(lines):
+    return [f"#{line}" if line.startswith("#") else line for line in lines]
+
+
+def scenario_section(all_loaded, all_detailed, engines, bindings, args, scenario):
+    scenario_id = scenario["id"]
+    corpus_fp = all_loaded[engines[0]][bindings[0][0]].get("corpus_fingerprint")
+    corpus_file_count = all_loaded[engines[0]][bindings[0][0]].get("corpus_file_count")
+    body = [
+        f"- **corpus fingerprint**: `{corpus_fp}` ({corpus_file_count} files)",
+        f"- **engines**: {', '.join(e.upper() for e in engines)}",
+        "",
+    ]
+    body += rule_pack_section(scenario, all_loaded[engines[0]][bindings[0][0]])
+    body += provenance_section(all_loaded, engines, bindings)
+    body += latency_memory_summary(all_loaded, engines, bindings)
+
+    parity_all_passed = True
+    for engine in engines:
+        body += [f"## {engine.upper()} Engine", ""]
+        body += model_section(all_loaded, engine, bindings)
+        body += headline_section(all_loaded, engine, bindings)
+        body += phase_table(all_loaded, engine, bindings)
+        body += overhead_table(all_loaded, engine, bindings)
         parity_lines, parity_passed = diagnostics_parity(
-            all_loaded, engine, bindings, all_detailed=all_detailed
+            all_loaded, engine, bindings, all_detailed=all_detailed, scenario_id=scenario_id
         )
-        lines += parity_lines
+        body += parity_lines
         if not parity_passed:
             parity_all_passed = False
 
-    lines += top_slowest_section(all_detailed, engines, bindings, args.top_slowest)
-    if "rego" in engines and "cel" in engines:
-        lines += paired_engine_comparison(all_detailed, bindings)
+    body += top_slowest_section(all_detailed, engines, bindings, args.top_slowest)
+    if len(engines) >= 2:
+        body += paired_engine_comparison(all_detailed, bindings)
+    body += data_sources_section(all_loaded, engines, bindings, scenario_id)
 
-    lines += data_sources_section(all_loaded, engines, bindings)
+    heading = [f"## Scenario: `{scenario_id}` - {scenario['label']} <a id=\"{scenario_anchor(scenario)}\"></a>", ""]
+    return heading + demote_headings(body), parity_all_passed
+
+
+def build_report(loaded_by_scenario, detailed_by_scenario, scenarios, engines, bindings, args):
+    host = host_metadata()
+    first = scenarios[0]
+    first_loaded = loaded_by_scenario[first["id"]]
+    first_engines = scenario_engines(first, engines)
+    sample = first_loaded[first_engines[0]][bindings[0][0]]
+    startup_samples = int(get(sample, "process_startup", "samples", default=args.startup_samples))
+    lines = [
+        "# Benchmark Comparison",
+        "",
+        f"Generated: {datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')}",
+        "",
+        "## Host", "",
+        *[f"- **{k}**: {v}" for k, v in host.items()],
+        f"- **iterations/template**: {sample.get('iterations_per_template')}",
+        f"- **startup samples/binding**: {startup_samples} (1 cold + {startup_samples - 1} warm)",
+        f"- **corpus fingerprint**: `{sample.get('corpus_fingerprint')}` ({sample.get('corpus_file_count')} files)",
+        f"- **bindings**: {', '.join(lbl for _, lbl in bindings)} ({len(bindings)} total)",
+        f"- **engines**: {', '.join(e.upper() for e in engines)}",
+        f"- **scenarios**: {', '.join(s['id'] for s in scenarios)} ({len(scenarios)} total)",
+        "",
+        "## Table of Contents", "",
+        "- [Scenarios](#scenarios)",
+        "- [Rule Pack Cost per Engine × Binding](#rule-pack-cost-per-engine--binding)",
+        "- [Methodology Notes](#methodology-notes)",
+        *[f"- [Scenario: {s['id']} - {s['label']}](#{scenario_anchor(s)})" for s in scenarios],
+        "",
+    ]
+    lines += scenario_overview_section(loaded_by_scenario, scenarios, engines)
+    lines += rule_pack_cost_section(loaded_by_scenario, scenarios, engines, bindings)
+    lines += failure_difference_section(scenario_failure_differences(loaded_by_scenario))
+    lines += methodology_section()
+
+    parity_all_passed = True
+    for scenario in scenarios:
+        section, parity_passed = scenario_section(
+            loaded_by_scenario[scenario["id"]],
+            detailed_by_scenario[scenario["id"]],
+            scenario_engines(scenario, engines),
+            bindings,
+            args,
+            scenario,
+        )
+        lines += section
+        if not parity_passed:
+            parity_all_passed = False
     return lines, parity_all_passed
+
+
+REPORT_PATH = SCRIPT_DIR / "snapshots" / "benchmark_comparison.md"
 
 
 def main(argv=None):
@@ -1866,6 +2252,9 @@ def main(argv=None):
         if args.bindings
         else ALL_BINDINGS
     )
+    scenarios = [s for s in select_scenarios(args.scenarios) if scenario_engines(s, engines)]
+    if not scenarios:
+        sys.exit(f"no selected scenario can run with engines {engines}")
 
     if args.report_only:
         print("Report-only mode - using existing aggregate files", file=sys.stderr)
@@ -1881,36 +2270,36 @@ def main(argv=None):
         if flavor is None:
             sys.exit(
                 f"{TIME_BIN} (GNU '-v' or macOS '-l') is required to measure process startup and "
-                f"memory but is unavailable. Install it (Linux: 'time' package) or use "
-                f"--report-only against existing aggregates."
+                f"memory but is unavailable. Install it (Linux: 'time' package), point "
+                f"CFN_BENCHMARK_TIME_BIN at a GNU time binary, or use --report-only against "
+                f"existing aggregates."
             )
 
         run_start_epoch = time.time()
-        run_all_benchmarks(engines, bindings, args, flavor)
+        run_all_benchmarks(scenarios, engines, bindings, args, flavor)
 
-    all_loaded = {
-        e: {b: load_aggregate(aggregate_path(e, FORMATS[0], b), run_start_epoch)
-            for b, _ in bindings}
-        for e in engines
-    }
-
-    enforce_corpus_parity(all_loaded, bindings)
-    enforce_run_metadata_parity(all_loaded, bindings)
-    corpus_fp = all_loaded[engines[0]][bindings[0][0]].get("corpus_fingerprint")
-    corpus_file_count = all_loaded[engines[0]][bindings[0][0]].get("corpus_file_count")
-
-    all_detailed = load_and_validate_detailed_reports(engines, bindings)
-    validate_detailed_counts(all_detailed, all_loaded, engines, bindings)
+    loaded_by_scenario = {}
+    detailed_by_scenario = {}
+    for scenario in scenarios:
+        runnable = scenario_engines(scenario, engines)
+        all_loaded = {
+            e: {b: load_aggregate(aggregate_path(e, FORMATS[0], b, scenario["id"]), run_start_epoch, scenario["id"])
+                for b, _ in bindings}
+            for e in runnable
+        }
+        enforce_corpus_parity(all_loaded, bindings, scenario["id"])
+        enforce_run_metadata_parity(all_loaded, bindings, scenario["id"])
+        all_detailed = load_and_validate_detailed_reports(runnable, bindings, scenario["id"])
+        validate_detailed_counts(all_detailed, all_loaded, runnable, bindings)
+        loaded_by_scenario[scenario["id"]] = all_loaded
+        detailed_by_scenario[scenario["id"]] = all_detailed
 
     lines, parity_all_passed = build_report(
-        all_loaded, all_detailed, engines, bindings, args, corpus_fp, corpus_file_count
+        loaded_by_scenario, detailed_by_scenario, scenarios, engines, bindings, args
     )
-
-    out_dir = SCRIPT_DIR / "snapshots"
-    out_dir.mkdir(parents=True, exist_ok=True)
-    output_path = out_dir / "benchmark_comparison.md"
-    output_path.write_text("\n".join(lines) + "\n")
-    print(f"\nComparison written to {output_path}", file=sys.stderr)
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    REPORT_PATH.write_text("\n".join(lines) + "\n")
+    print(f"\nComparison written to {REPORT_PATH}", file=sys.stderr)
 
     if not parity_all_passed:
         print(

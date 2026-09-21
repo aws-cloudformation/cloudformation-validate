@@ -10,15 +10,131 @@ use composite_engine::CompositeEngine;
 use diagnostics::{DetailLevel, ValidationReport};
 use log::{error, info};
 use rego_engine::RegoEngine;
-use rules::Severity;
+use rules::{RuleOrigin, Severity};
 use schema_validator::SchemaValidator;
 use sha2::{Digest, Sha256};
 use template_model::SemanticModel;
 use validation_engine::{
-    CompositeEngineConfig, EngineConfig, EngineType, ValidateConfig, ValidationEngine, validate_bytes_with_path,
+    CompositeEngineConfig, EngineConfig, EngineType, ExternalRuleSource, ValidateConfig, ValidationEngine,
+    validate_bytes_with_path,
 };
 
 const DEFAULT_STARTUP_TEMPLATE: &str = "good/minimal.yaml";
+
+/// Recorded when no `--scenario` is given. Its reports keep the historical
+/// `reports/<engine>/` layout that other tooling reads.
+const DEFAULT_SCENARIO: &str = "builtin";
+
+const GUARD_RULE_EXTENSION: &str = "guard";
+const REGO_RULE_EXTENSION: &str = "rego";
+
+/// The rule sources a scenario loads, with the provenance every harness records so
+/// the comparison can prove all bindings measured the same rules.
+struct RulePack {
+    guard: Vec<ExternalRuleSource>,
+    rego: Vec<ExternalRuleSource>,
+    guard_bytes: usize,
+    rego_bytes: usize,
+    /// One `<kind>\t<relative path>\t<sha256 of content>` line per loaded file; the
+    /// format is shared by every harness so fingerprints compare byte-for-byte.
+    fingerprint_entries: Vec<String>,
+}
+
+impl RulePack {
+    fn load(guard_paths: &[String], rego_paths: &[String]) -> Result<Self, String> {
+        let mut fingerprint_entries = Vec::new();
+        let (guard, guard_bytes) = load_rule_sources(GUARD_RULE_EXTENSION, guard_paths, &mut fingerprint_entries)?;
+        let (rego, rego_bytes) = load_rule_sources(REGO_RULE_EXTENSION, rego_paths, &mut fingerprint_entries)?;
+        fingerprint_entries.sort();
+        Ok(Self { guard, rego, guard_bytes, rego_bytes, fingerprint_entries })
+    }
+
+    /// Independent of where the files are checked out, because each path is
+    /// relative to the argument that named it.
+    fn fingerprint(&self) -> String {
+        let mut hasher = Sha256::new();
+        for entry in &self.fingerprint_entries {
+            hasher.update(entry.as_bytes());
+        }
+        to_hex(hasher.finalize())
+    }
+
+    /// Only Guard has an engine-side rule count; a Rego pack's rules are discovered
+    /// during evaluation, so it reports files and bytes alone.
+    fn json(&self, guard_rule_count: usize) -> serde_json::Value {
+        serde_json::json!({
+            "guard": {"files": self.guard.len(), "rules": guard_rule_count, "bytes": self.guard_bytes},
+            "rego": {"files": self.rego.len(), "bytes": self.rego_bytes},
+        })
+    }
+}
+
+fn load_rule_sources(
+    kind: &str,
+    paths: &[String],
+    fingerprint_entries: &mut Vec<String>,
+) -> Result<(Vec<ExternalRuleSource>, usize), String> {
+    let mut sources = Vec::new();
+    let mut total_bytes = 0;
+    for raw_path in paths {
+        let root = Path::new(raw_path);
+        if !root.exists() {
+            return Err(format!("--{kind}-rules path not found: {raw_path}"));
+        }
+        let files = cfn_validate::collect_files_with_extensions(root, &[kind]);
+        if files.is_empty() {
+            return Err(format!("--{kind}-rules path contains no .{kind} files: {raw_path}"));
+        }
+        for file in files {
+            let content = fs::read_to_string(&file)
+                .map_err(|e| format!("failed to read {kind} rule file '{}': {e}", file.display()))?;
+            let relative = relative_template_key(raw_path, &file)?;
+            let mut hasher = Sha256::new();
+            hasher.update(content.as_bytes());
+            fingerprint_entries.push(format!("{kind}\t{relative}\t{}\n", to_hex(hasher.finalize())));
+            total_bytes += content.len();
+            sources.push(ExternalRuleSource { name: file.display().to_string(), content });
+        }
+    }
+    Ok((sources, total_bytes))
+}
+
+fn guard_rule_count(engine: &dyn ValidationEngine) -> usize {
+    engine.list_rules().iter().filter(|rule| rule.origin == RuleOrigin::Guard).count()
+}
+
+fn report_output_dir(manifest_dir: &Path, engine_name: &str, scenario: &str) -> PathBuf {
+    let reports = manifest_dir.join("reports");
+    if scenario == DEFAULT_SCENARIO {
+        reports.join(engine_name)
+    } else {
+        reports.join("scenarios").join(scenario).join(engine_name)
+    }
+}
+
+fn valid_scenario_name(name: &str) -> bool {
+    let mut chars = name.chars();
+    matches!(chars.next(), Some(first) if first.is_ascii_lowercase() || first.is_ascii_digit())
+        && chars.all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-' || c == '_')
+        && name.len() <= 64
+}
+
+fn flag_values(args: &[String], flag: &str) -> Result<Vec<String>, String> {
+    let mut values = Vec::new();
+    let mut i = 0;
+    while i < args.len() {
+        if args[i] == flag {
+            match args.get(i + 1) {
+                Some(value) if !value.starts_with('-') => values.push(value.clone()),
+                _ => return Err(format!("{flag} requires a path value")),
+            }
+            i += 2;
+        } else {
+            i += 1;
+        }
+    }
+    Ok(values)
+}
 
 /// Replaces the file-extension suffix of a path string, leaving interior occurrences untouched.
 /// Only the trailing `suffix` is replaced; if the string does not end with `suffix`, it is
@@ -38,18 +154,29 @@ fn main() {
     }
 }
 
-fn build_engine(engine_type: EngineType, config: &EngineConfig) -> Result<Box<dyn ValidationEngine>, String> {
+fn build_engine(engine_type: EngineType, pack: &RulePack) -> Result<Box<dyn ValidationEngine>, String> {
     match engine_type {
         EngineType::Cel => {
-            Ok(Box::new(CelEngine::new(config.clone()).map_err(|e| format!("CEL engine initialization failed: {e}"))?))
+            if !pack.rego.is_empty() {
+                return Err("--rego-rules cannot be loaded into the CEL engine; use --engine rego or composite".into());
+            }
+            let config = EngineConfig::new().with_guard_rules(pack.guard.iter().cloned());
+            Ok(Box::new(CelEngine::new(config).map_err(|e| format!("CEL engine initialization failed: {e}"))?))
         }
-        EngineType::Rego => Ok(Box::new(
-            RegoEngine::new(config.clone()).map_err(|e| format!("Rego engine initialization failed: {e}"))?,
-        )),
-        EngineType::Composite => Ok(Box::new(
-            CompositeEngine::new(CompositeEngineConfig::default())
-                .map_err(|e| format!("Composite engine initialization failed: {e}"))?,
-        )),
+        EngineType::Rego => {
+            let config = EngineConfig::new()
+                .with_custom_rules(pack.rego.iter().cloned())
+                .with_guard_rules(pack.guard.iter().cloned());
+            Ok(Box::new(RegoEngine::new(config).map_err(|e| format!("Rego engine initialization failed: {e}"))?))
+        }
+        EngineType::Composite => {
+            let config = CompositeEngineConfig::new()
+                .with_rego_rules(pack.rego.iter().cloned())
+                .with_guard_rules(pack.guard.iter().cloned());
+            Ok(Box::new(
+                CompositeEngine::new(config).map_err(|e| format!("Composite engine initialization failed: {e}"))?,
+            ))
+        }
     }
 }
 
@@ -75,7 +202,7 @@ struct StartupMeasurement {
 
 fn measure_startup(
     engine_type: EngineType,
-    config: &EngineConfig,
+    pack: &RulePack,
     startup_bytes: &[u8],
     startup_label: &str,
     benchmark_config: &ValidateConfig,
@@ -87,7 +214,7 @@ fn measure_startup(
     let schema_init_ms = schema_start.elapsed().as_secs_f64() * 1000.0;
 
     let engine_start = Instant::now();
-    let engine = build_engine(engine_type, config)?;
+    let engine = build_engine(engine_type, pack)?;
     let engine_init_ms = engine_start.elapsed().as_secs_f64() * 1000.0;
 
     let consumer_init_ms = schema_init_ms + engine_init_ms;
@@ -196,7 +323,13 @@ fn run() -> Result<(), String> {
     let args: Vec<String> = env::args().collect();
     if args.iter().any(|a| a == "-h" || a == "--help") {
         eprintln!(
-            "Usage: cfn-benchmark [TEMPLATE|DIR] [--engine rego|cel|composite] [--iterations N] [--startup-probe]"
+            "Usage: cfn-benchmark [TEMPLATE|DIR] [--engine rego|cel|composite] [--iterations N] [--startup-probe]\n\
+             \x20                    [--guard-rules PATH]... [--rego-rules PATH]... [--scenario NAME]\n\
+             \n\
+             \x20 --guard-rules PATH   Load a Guard (.guard) rule file or directory into the engine; repeatable\n\
+             \x20 --rego-rules PATH    Load a custom Rego (.rego) rule file or directory; repeatable, not valid with --engine cel\n\
+             \x20 --scenario NAME      Label the run and write reports to reports/scenarios/NAME/<engine>/ instead of\n\
+             \x20                      reports/<engine>/ (default scenario: {DEFAULT_SCENARIO})"
         );
         process::exit(2);
     }
@@ -240,16 +373,50 @@ fn run() -> Result<(), String> {
         None => 20,
     };
 
+    let scenario: String = match args.iter().position(|a| a == "--scenario") {
+        Some(i) => match args.get(i + 1) {
+            Some(name) if valid_scenario_name(name) => name.clone(),
+            Some(name) => {
+                eprintln!(
+                    "Error: --scenario must be a lowercase name of letters, digits, '-' or '_' (max 64), got '{}'",
+                    name
+                );
+                process::exit(2);
+            }
+            None => {
+                eprintln!("Error: --scenario requires a value");
+                process::exit(2);
+            }
+        },
+        None => DEFAULT_SCENARIO.to_string(),
+    };
+
+    let guard_paths = flag_values(&args, "--guard-rules").unwrap_or_else(|e| {
+        eprintln!("Error: {e}");
+        process::exit(2);
+    });
+    let rego_paths = flag_values(&args, "--rego-rules").unwrap_or_else(|e| {
+        eprintln!("Error: {e}");
+        process::exit(2);
+    });
+    if engine_type == EngineType::Cel && !rego_paths.is_empty() {
+        eprintln!("Error: --rego-rules cannot be loaded into the CEL engine; use --engine rego or composite");
+        process::exit(2);
+    }
+    let pack = RulePack::load(&guard_paths, &rego_paths).unwrap_or_else(|e| {
+        eprintln!("Error: {e}");
+        process::exit(2);
+    });
+
     // Hardcoded: benchmarks always use DETAILED format and DEBUG severity to capture
     // all diagnostics, so all five binding harnesses (native/wasm/jvm/python/go) measure the same work.
     let detail_level = DetailLevel::Detailed;
     let severity_level = Severity::Debug;
     let format_str = "detailed";
     let benchmark_config = ValidateConfig { detail_level: detail_level.clone(), severity_level, ..Default::default() };
-    let config = EngineConfig::default();
 
     if startup_probe {
-        return run_startup_probe(engine_type, &config, &benchmark_config, &default_template_dir);
+        return run_startup_probe(engine_type, &pack, &scenario, &benchmark_config, &default_template_dir);
     }
 
     let template_dir = match positional.as_deref() {
@@ -278,8 +445,17 @@ fn run() -> Result<(), String> {
     let startup_label = relative_template_key(&template_dir, startup_template_path)?;
 
     let (schema_validator, engine, startup) =
-        measure_startup(engine_type, &config, &startup_bytes, &startup_label, &benchmark_config)?;
+        measure_startup(engine_type, &pack, &startup_bytes, &startup_label, &benchmark_config)?;
     let engine_name = engine.engine_name();
+    let rules_fingerprint = pack.fingerprint();
+    let custom_rules = pack.json(guard_rule_count(engine.as_ref()));
+    info!(
+        "Scenario '{}': {} Guard file(s), {} Rego file(s), rules fingerprint {}",
+        scenario,
+        pack.guard.len(),
+        pack.rego.len(),
+        rules_fingerprint
+    );
 
     let schema_init_samples_ms: Vec<f64> = vec![startup.schema_init_ms.unwrap_or(0.0)];
     let engine_init_samples_ms: Vec<f64> = vec![startup.engine_init_ms];
@@ -289,7 +465,7 @@ fn run() -> Result<(), String> {
     let subsequent_init_samples_ms: Vec<f64> = Vec::new();
 
     let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let output_dir = manifest.join("reports").join(engine_name);
+    let output_dir = report_output_dir(&manifest, engine_name, &scenario);
 
     let json_dir = output_dir.join(format!("json_{}", format_str));
     // Clean previous output so stale reports from dropped/renamed templates are not left behind.
@@ -338,6 +514,7 @@ fn run() -> Result<(), String> {
         let mut iter_host_validate_ms: Vec<f64> = Vec::with_capacity(iterations);
         let mut last_report = None;
         let mut parse_failure_report: Option<ValidationReport> = None;
+        let mut evaluation_failure: Option<String> = None;
         let mut failed = false;
 
         for i in 0..iterations {
@@ -390,12 +567,14 @@ fn run() -> Result<(), String> {
                 Ok(Ok(r)) => r,
                 Ok(Err(e)) => {
                     results.push(TemplateResult::error(&relative_path, "error", &e.to_string()));
+                    evaluation_failure = Some(e.to_string());
                     failed = true;
                     break;
                 }
                 Err(_) => {
                     error!("{} panicked during validation", relative_path);
                     results.push(TemplateResult::error(&relative_path, "panic", "panic during validate"));
+                    evaluation_failure = Some("panic during validate".to_string());
                     failed = true;
                     break;
                 }
@@ -414,8 +593,19 @@ fn run() -> Result<(), String> {
             }
         }
         if failed {
+            // Every attempted template gets a report so the comparison script can pair
+            // the same template set across bindings and scenarios.
             if let Some(report) = parse_failure_report {
-                write_template_report(&json_path, &relative_path, &report, zero_benchmark_metrics(), engine_name)?;
+                write_template_report(
+                    &json_path,
+                    &relative_path,
+                    &report,
+                    zero_benchmark_metrics(),
+                    engine_name,
+                    &scenario,
+                )?;
+            } else if let Some(message) = evaluation_failure {
+                write_failed_template_report(&json_path, &relative_path, &message, engine_name, &scenario)?;
             }
             continue;
         }
@@ -453,7 +643,7 @@ fn run() -> Result<(), String> {
             &iter_host_validate_ms,
             binding_overhead_ms,
         );
-        write_template_report(&json_path, &relative_path, &report, benchmark_metrics, engine_name)?;
+        write_template_report(&json_path, &relative_path, &report, benchmark_metrics, engine_name, &scenario)?;
         drop(report);
 
         let template_result = TemplateResult {
@@ -512,7 +702,8 @@ fn run() -> Result<(), String> {
     };
 
     let (corpus_fingerprint, fingerprint_file_count) = compute_corpus_fingerprint(input_path)?;
-    let run_fingerprint = run_fingerprint(&corpus_fingerprint, engine_name, "DETAILED", iterations);
+    let run_fingerprint =
+        run_fingerprint(&corpus_fingerprint, &rules_fingerprint, &scenario, engine_name, "DETAILED", iterations);
     let provenance = provenance_json();
 
     let aggregate_stats = serde_json::json!({
@@ -528,6 +719,9 @@ fn run() -> Result<(), String> {
         "iterations_per_template": iterations,
         "corpus_fingerprint": corpus_fingerprint,
         "corpus_file_count": fingerprint_file_count,
+        "scenario": scenario,
+        "custom_rules": custom_rules,
+        "rules_fingerprint": rules_fingerprint,
         "run_fingerprint": run_fingerprint,
         "performance": {
             "module_load_ms": round4(startup.module_load_ms),
@@ -592,6 +786,9 @@ fn run() -> Result<(), String> {
         iterations,
         corpus_fingerprint: &corpus_fingerprint,
         corpus_file_count: fingerprint_file_count,
+        scenario: &scenario,
+        rules_fingerprint: &rules_fingerprint,
+        custom_rules: &custom_rules,
     });
     let report_path = output_dir.join(format!("report_{}.md", format_str));
     fs::write(&report_path, &report_markdown)
@@ -625,7 +822,8 @@ fn run() -> Result<(), String> {
 
 fn run_startup_probe(
     engine_type: EngineType,
-    config: &EngineConfig,
+    pack: &RulePack,
+    scenario: &str,
     benchmark_config: &ValidateConfig,
     default_template_dir: &Path,
 ) -> Result<(), String> {
@@ -638,12 +836,15 @@ fn run_startup_probe(
         .unwrap_or_else(|| startup_path.display().to_string());
 
     let (_schema_validator, engine, startup) =
-        measure_startup(engine_type, config, &startup_bytes, &startup_label, benchmark_config)?;
+        measure_startup(engine_type, pack, &startup_bytes, &startup_label, benchmark_config)?;
     let engine_name = engine.engine_name();
 
     let mut probe = startup_section_json(&startup);
     probe["binding"] = serde_json::json!("native");
     probe["engine"] = serde_json::json!(engine_name);
+    probe["scenario"] = serde_json::json!(scenario);
+    probe["custom_rules"] = pack.json(guard_rule_count(engine.as_ref()));
+    probe["rules_fingerprint"] = serde_json::json!(pack.fingerprint());
     probe["versions"] = provenance_json();
     let serialized = serde_json::to_string(&probe).map_err(|e| format!("failed to serialize startup probe: {e}"))?;
     println!("{serialized}");
@@ -770,6 +971,7 @@ fn write_template_report(
     report: &ValidationReport,
     benchmark_metrics: serde_json::Value,
     engine_name: &str,
+    scenario: &str,
 ) -> Result<(), String> {
     let detailed = report.to_report(DetailLevel::Detailed);
     let mut template_json = serde_json::to_value(&detailed)
@@ -777,6 +979,7 @@ fn write_template_report(
     template_json["engine"] = serde_json::json!(engine_name);
     template_json["binding"] = serde_json::json!("native");
     template_json["detailLevel"] = serde_json::json!("DETAILED");
+    template_json["scenario"] = serde_json::json!(scenario);
     template_json["benchmarkMetrics"] = benchmark_metrics;
     let mut f = fs::File::create(json_path)
         .map_err(|e| format!("failed to create report file '{}': {e}", json_path.display()))?;
@@ -785,6 +988,31 @@ fn write_template_report(
     f.write_all(json_bytes.as_bytes())
         .map_err(|e| format!("failed to write report file '{}': {e}", json_path.display()))?;
     Ok(())
+}
+
+/// Keeps the envelope of a successful report so consumers can tell a failed
+/// template from a clean one without a second schema.
+fn write_failed_template_report(
+    json_path: &Path,
+    relative_path: &str,
+    message: &str,
+    engine_name: &str,
+    scenario: &str,
+) -> Result<(), String> {
+    let template_json = serde_json::json!({
+        "filePath": relative_path,
+        "status": "ERROR",
+        "error": message,
+        "diagnostics": [],
+        "engine": engine_name,
+        "binding": "native",
+        "detailLevel": "DETAILED",
+        "scenario": scenario,
+        "benchmarkMetrics": zero_benchmark_metrics(),
+    });
+    let json_bytes = serde_json::to_string_pretty(&template_json)
+        .map_err(|e| format!("failed to serialize failure report for '{relative_path}': {e}"))?;
+    fs::write(json_path, json_bytes).map_err(|e| format!("failed to write report file '{}': {e}", json_path.display()))
 }
 
 fn zero_benchmark_metrics() -> serde_json::Value {
@@ -931,6 +1159,9 @@ struct MarkdownInput<'a> {
     iterations: usize,
     corpus_fingerprint: &'a str,
     corpus_file_count: usize,
+    scenario: &'a str,
+    rules_fingerprint: &'a str,
+    custom_rules: &'a serde_json::Value,
 }
 
 fn provenance_str<'a>(provenance: &'a serde_json::Value, key: &str) -> &'a str {
@@ -945,6 +1176,14 @@ fn generate_markdown(input: &MarkdownInput) -> String {
     report_markdown.push_str(&format!(
         "Corpus fingerprint: `{}` ({} files)\n\n",
         input.corpus_fingerprint, input.corpus_file_count
+    ));
+    report_markdown.push_str(&format!(
+        "Scenario: `{}` - {} Guard file(s) ({} rules), {} custom Rego file(s); rules fingerprint `{}`\n\n",
+        input.scenario,
+        input.custom_rules["guard"]["files"],
+        input.custom_rules["guard"]["rules"],
+        input.custom_rules["rego"]["files"],
+        input.rules_fingerprint
     ));
 
     report_markdown.push_str("## Provenance\n\n");
@@ -1226,9 +1465,146 @@ fn compute_corpus_fingerprint(root: &Path) -> Result<(String, usize), String> {
     Ok((to_hex(outer.finalize()), count))
 }
 
-/// Deterministic across bindings for the same (corpus, engine, format, iterations) tuple.
-fn run_fingerprint(corpus_fp: &str, engine: &str, format: &str, iterations: usize) -> String {
+/// Deterministic across bindings for the same (corpus, rules, scenario, engine, format, iterations) tuple.
+fn run_fingerprint(
+    corpus_fp: &str,
+    rules_fp: &str,
+    scenario: &str,
+    engine: &str,
+    format: &str,
+    iterations: usize,
+) -> String {
     let mut h = Sha256::new();
-    h.update(format!("{}|{}|{}|{}", corpus_fp, engine, format, iterations).as_bytes());
+    h.update(format!("{corpus_fp}|{rules_fp}|{scenario}|{engine}|{format}|{iterations}").as_bytes());
     to_hex(h.finalize())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn strings(values: &[&str]) -> Vec<String> {
+        values.iter().map(|v| v.to_string()).collect()
+    }
+
+    #[test]
+    fn scenario_names_are_single_lowercase_path_components() {
+        for valid in ["builtin", "guard", "rego-pack", "big_rules_2"] {
+            assert!(valid_scenario_name(valid), "{valid} must be accepted");
+        }
+        for invalid in ["", "Guard", "with space", "../escape", "a/b", "-leading", &"x".repeat(65)] {
+            assert!(!valid_scenario_name(invalid), "{invalid:?} must be rejected");
+        }
+    }
+
+    #[test]
+    fn default_scenario_keeps_the_historical_report_layout() {
+        let manifest = Path::new("/crate");
+        assert_eq!(report_output_dir(manifest, "rego", DEFAULT_SCENARIO), PathBuf::from("/crate/reports/rego"));
+        assert_eq!(
+            report_output_dir(manifest, "cel", "guard"),
+            PathBuf::from("/crate/reports/scenarios/guard/cel"),
+            "a named scenario must never overwrite the default reports"
+        );
+    }
+
+    #[test]
+    fn flag_values_collects_every_occurrence_in_order() {
+        let args = strings(&["cfn-benchmark", "--guard-rules", "a.guard", "--engine", "cel", "--guard-rules", "dir"]);
+        assert_eq!(flag_values(&args, "--guard-rules").unwrap(), strings(&["a.guard", "dir"]));
+        assert!(flag_values(&args, "--rego-rules").unwrap().is_empty());
+    }
+
+    #[test]
+    fn flag_values_rejects_a_missing_or_flag_like_value() {
+        let trailing = strings(&["cfn-benchmark", "--rego-rules"]);
+        assert!(flag_values(&trailing, "--rego-rules").is_err());
+        let flag_as_value = strings(&["cfn-benchmark", "--rego-rules", "--engine", "rego"]);
+        assert!(flag_values(&flag_as_value, "--rego-rules").is_err());
+    }
+
+    #[test]
+    fn rule_pack_loads_directories_and_files_and_fingerprints_relative_paths() {
+        let dir = tempfile::tempdir().unwrap();
+        let guard_dir = dir.path().join("guard");
+        fs::create_dir(&guard_dir).unwrap();
+        fs::write(guard_dir.join("b.guard"), "rule b { true }").unwrap();
+        fs::write(guard_dir.join("a.guard"), "rule a { true }").unwrap();
+        fs::write(guard_dir.join("ignored.txt"), "not a rule").unwrap();
+        let rego_file = dir.path().join("custom.rego");
+        fs::write(&rego_file, "package p\n").unwrap();
+
+        let pack =
+            RulePack::load(&[guard_dir.to_string_lossy().into_owned()], &[rego_file.to_string_lossy().into_owned()])
+                .expect("pack loads");
+
+        assert_eq!(pack.guard.len(), 2);
+        assert_eq!(pack.rego.len(), 1);
+        assert_eq!(pack.guard_bytes, "rule b { true }".len() * 2);
+        assert_eq!(pack.rego_bytes, "package p\n".len());
+        let relative: Vec<&str> = pack.fingerprint_entries.iter().map(|e| e.split('\t').nth(1).unwrap()).collect();
+        assert_eq!(relative, vec!["a.guard", "b.guard", "custom.rego"], "sorted, relative to the argument");
+
+        // The same files checked out elsewhere must fingerprint identically.
+        let copy = tempfile::tempdir().unwrap();
+        let copy_guard = copy.path().join("elsewhere");
+        fs::create_dir(&copy_guard).unwrap();
+        fs::write(copy_guard.join("a.guard"), "rule a { true }").unwrap();
+        fs::write(copy_guard.join("b.guard"), "rule b { true }").unwrap();
+        fs::write(copy.path().join("custom.rego"), "package p\n").unwrap();
+        let relocated = RulePack::load(
+            &[copy_guard.to_string_lossy().into_owned()],
+            &[copy.path().join("custom.rego").to_string_lossy().into_owned()],
+        )
+        .expect("pack loads");
+        assert_eq!(relocated.fingerprint(), pack.fingerprint());
+
+        let changed = RulePack::load(&[copy_guard.to_string_lossy().into_owned()], &[]).expect("pack loads");
+        assert_ne!(changed.fingerprint(), pack.fingerprint(), "dropping a file changes the fingerprint");
+    }
+
+    #[test]
+    fn empty_rule_pack_has_a_stable_fingerprint_and_zero_counts() {
+        let pack = RulePack::load(&[], &[]).expect("empty pack loads");
+        assert_eq!(pack.fingerprint(), "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
+        assert_eq!(pack.json(0)["guard"]["files"], 0);
+        assert_eq!(pack.json(0)["rego"]["bytes"], 0);
+    }
+
+    #[test]
+    fn rule_pack_rejects_missing_paths_and_directories_without_rule_files() {
+        let dir = tempfile::tempdir().unwrap();
+        let error = RulePack::load(&["/nonexistent/rules".into()], &[]).err().expect("missing path is rejected");
+        assert!(error.contains("not found"), "got: {error}");
+        let error = RulePack::load(&[], &[dir.path().to_string_lossy().into_owned()])
+            .err()
+            .expect("a directory without rule files is rejected");
+        assert!(error.contains("no .rego files"), "got: {error}");
+    }
+
+    #[test]
+    fn cel_engine_rejects_rego_rules_but_accepts_guard_rules() {
+        let pack = RulePack {
+            guard: vec![],
+            rego: vec![ExternalRuleSource { name: "x.rego".into(), content: "package x\n".into() }],
+            guard_bytes: 0,
+            rego_bytes: 10,
+            fingerprint_entries: vec![],
+        };
+        let error = build_engine(EngineType::Cel, &pack).err().expect("CEL cannot load Rego");
+        assert!(error.contains("--rego-rules"), "got: {error}");
+
+        let guard_only = RulePack {
+            guard: vec![ExternalRuleSource {
+                name: "s3.guard".into(),
+                content: "rule bucket_name { AWS::S3::Bucket { Properties.BucketName EXISTS } }".into(),
+            }],
+            rego: vec![],
+            guard_bytes: 0,
+            rego_bytes: 0,
+            fingerprint_entries: vec![],
+        };
+        let engine = build_engine(EngineType::Cel, &guard_only).expect("CEL loads Guard rules");
+        assert_eq!(guard_rule_count(engine.as_ref()), 1);
+    }
 }

@@ -13,8 +13,10 @@ import software.amazon.cloudformation.validate.ValidateConfig
 import software.amazon.cloudformation.validate.diagnostics.ValidationReport
 import software.amazon.cloudformation.validate.engine.CompositeEngineConfig
 import software.amazon.cloudformation.validate.engine.EngineConfig
+import software.amazon.cloudformation.validate.engine.ExternalRuleSource
 import software.amazon.cloudformation.validate.gson.buildBindingsGson
 import software.amazon.cloudformation.validate.rules.RuleFilterConfig
+import software.amazon.cloudformation.validate.rules.RuleOrigin
 import software.amazon.cloudformation.validate.rules.Severity
 import software.amazon.cloudformation.validate.templatemodel.PseudoParameterOverrides
 import software.amazon.cloudformation.validate.version
@@ -30,11 +32,119 @@ import kotlin.system.exitProcess
 
 const val DEFAULT_STARTUP_TEMPLATE = "good/minimal.yaml"
 
+// Recorded when no --scenario is given; its reports keep the historical reports/<engine>/ layout
+// that other tooling reads.
+const val DEFAULT_SCENARIO = "builtin"
+private val SCENARIO_NAME_PATTERN = Regex("^[a-z0-9][a-z0-9_-]{0,63}$")
+
+/**
+ * The fingerprint format - one "<kind>\t<path relative to the argument>\t<sha256 of content>\n" line
+ * per file, sorted, hashed - is shared by every harness so the comparison can prove all bindings
+ * loaded the same rules.
+ */
+class RulePack {
+    val guard = mutableListOf<ExternalRuleSource>()
+    val rego = mutableListOf<ExternalRuleSource>()
+    var guardBytes = 0L
+    var regoBytes = 0L
+    private val entries = mutableListOf<String>()
+
+    fun load(
+        kind: String,
+        rawPaths: List<String>,
+    ) {
+        for (rawPath in rawPaths) {
+            val root = File(rawPath)
+            if (!root.exists()) {
+                System.err.println("Error: --$kind-rules path not found: $rawPath")
+                exitProcess(2)
+            }
+            val files = collectRuleFiles(root, kind)
+            if (files.isEmpty()) {
+                System.err.println("Error: --$kind-rules path contains no .$kind files: $rawPath")
+                exitProcess(2)
+            }
+            for (file in files) {
+                val bytes = file.readBytes()
+                val content = bytes.toString(Charsets.UTF_8)
+                val relative =
+                    if (root.isFile) file.name else root.toPath().relativize(file.toPath()).toString().replace('\\', '/')
+                entries.add("$kind\t$relative\t${sha256Hex(bytes)}\n")
+                val source = ExternalRuleSource(file.path, content)
+                if (kind == "guard") {
+                    guard.add(source)
+                    guardBytes += bytes.size
+                } else {
+                    rego.add(source)
+                    regoBytes += bytes.size
+                }
+            }
+        }
+    }
+
+    fun fingerprint(): String = sha256Hex(entries.sorted().joinToString(""))
+
+    fun json(guardRuleCount: Int): JsonObject =
+        JsonObject().apply {
+            add(
+                "guard",
+                JsonObject().apply {
+                    addProperty("files", guard.size)
+                    addProperty("rules", guardRuleCount)
+                    addProperty("bytes", guardBytes)
+                },
+            )
+            add(
+                "rego",
+                JsonObject().apply {
+                    addProperty("files", rego.size)
+                    addProperty("bytes", regoBytes)
+                },
+            )
+        }
+}
+
+private fun collectRuleFiles(
+    root: File,
+    extension: String,
+): List<File> {
+    if (root.isFile) return listOf(root)
+    return root.walkTopDown().filter { it.isFile && it.name.endsWith(".$extension") }.sortedBy { it.path }.toList()
+}
+
+private fun flagValues(
+    args: Array<String>,
+    flag: String,
+): List<String> {
+    val values = mutableListOf<String>()
+    var i = 0
+    while (i < args.size) {
+        if (args[i] == flag) {
+            val value = args.getOrNull(i + 1)
+            if (value == null || value.startsWith("-")) {
+                System.err.println("Error: $flag requires a path value")
+                exitProcess(2)
+            }
+            values.add(value)
+            i += 2
+        } else {
+            i++
+        }
+    }
+    return values
+}
+
 fun main(args: Array<String>) {
     if (args.any { it == "-h" || it == "--help" }) {
         System.err.println(
             "Usage: gradle run --args=\"[TEMPLATE|DIR] [--engine rego|cel|composite] [--iterations N]\"\n" +
-                "       gradle run --args=\"--startup-probe [--engine rego|cel|composite]\"",
+                "       gradle run --args=\"--startup-probe [--engine rego|cel|composite]\"\n" +
+                "\n" +
+                "Either form accepts the shared scenario flags:\n" +
+                "  --guard-rules PATH   Load a Guard (.guard) rule file or directory into the engine; repeatable\n" +
+                "  --rego-rules PATH    Load a custom Rego (.rego) rule file or directory; repeatable, not valid with --engine cel\n" +
+                "  --scenario NAME      Label the run and write reports to reports/scenarios/NAME/<engine>/ instead of\n" +
+                "                       reports/<engine>/ (default scenario: $DEFAULT_SCENARIO)",
         )
         return
     }
@@ -74,9 +184,35 @@ fun main(args: Array<String>) {
             parsed
         }
 
+    val scenario =
+        run {
+            val idx = args.indexOf("--scenario")
+            if (idx < 0) return@run DEFAULT_SCENARIO
+            val value = args.getOrNull(idx + 1)
+            if (value == null) {
+                System.err.println("Error: --scenario requires a value")
+                exitProcess(2)
+            }
+            if (!SCENARIO_NAME_PATTERN.matches(value)) {
+                System.err.println("Error: --scenario must be a lowercase name of letters, digits, '-' or '_' (max 64), got '$value'")
+                exitProcess(2)
+            }
+            value
+        }
+    val guardRulePaths = flagValues(args, "--guard-rules")
+    val regoRulePaths = flagValues(args, "--rego-rules")
+    if (engineFlag == "cel" && regoRulePaths.isNotEmpty()) {
+        System.err.println("Error: --rego-rules cannot be loaded into the CEL engine; use --engine rego or composite")
+        exitProcess(2)
+    }
+    // Read before any timer starts so only engine construction is measured.
+    val rulePack = RulePack()
+    rulePack.load("guard", guardRulePaths)
+    rulePack.load("rego", regoRulePaths)
+
     val positionalArg: String? =
         run {
-            val flagsWithValues = setOf("--engine", "--iterations")
+            val flagsWithValues = setOf("--engine", "--iterations", "--guard-rules", "--rego-rules", "--scenario")
             var i = 0
             while (i < args.size) {
                 if (flagsWithValues.contains(args[i])) {
@@ -100,7 +236,7 @@ fun main(args: Array<String>) {
     val benchValidateConfig = validateConfig()
 
     if (startupProbe) {
-        exitProcess(runStartupProbe(engineFlag, coreVersion, moduleLoadMs, defaultTemplateDir, benchValidateConfig))
+        exitProcess(runStartupProbe(engineFlag, rulePack, scenario, coreVersion, moduleLoadMs, defaultTemplateDir, benchValidateConfig))
     }
 
     val templateDir = positionalArg ?: defaultTemplateDir
@@ -122,8 +258,13 @@ fun main(args: Array<String>) {
             .toString()
             .replace('\\', '/')
             .ifEmpty { startupTemplate.name }
-    val startup = measureStartup(engineFlag, moduleLoadMs, startupBytes, startupLabel, benchValidateConfig)
+    val startup = measureStartup(engineFlag, rulePack, moduleLoadMs, startupBytes, startupLabel, benchValidateConfig)
     val engine: Any = startup.engine
+    val rulesFingerprint = rulePack.fingerprint()
+    val customRules = rulePack.json(guardRuleCount(engine))
+    System.err.println(
+        "Scenario '$scenario': ${rulePack.guard.size} Guard file(s), ${rulePack.rego.size} Rego file(s), rules fingerprint $rulesFingerprint",
+    )
 
     val schemaInitSamples = emptyList<Double>()
     val engineInitSamples = listOf(startup.engineInitMs)
@@ -131,7 +272,10 @@ fun main(args: Array<String>) {
     val coldInitMs = moduleLoadMs + initSamples[0]
     val subsequentInitSamples = emptyList<Double>()
 
-    val reportDir = File(System.getProperty("user.dir")).resolve("../reports/$engineFlag").also { it.mkdirs() }
+    val reportDir =
+        File(System.getProperty("user.dir"))
+            .resolve(if (scenario == DEFAULT_SCENARIO) "../reports/$engineFlag" else "../reports/scenarios/$scenario/$engineFlag")
+            .also { it.mkdirs() }
     val jsonDir =
         reportDir.resolve("json_$formatDir").also { dir ->
             // Clean previous output so stale reports from dropped/renamed templates are not left behind.
@@ -199,6 +343,7 @@ fun main(args: Array<String>) {
                     outputGson,
                     parseFailureReport,
                     engineFlag,
+                    scenario,
                     zeroBenchmarkMetrics(),
                     normalizeParseFailure = true,
                 )
@@ -219,7 +364,11 @@ fun main(args: Array<String>) {
                 iterWallClock.add(wallMs)
                 if (i == iterations - 1) lastReport = report
             } catch (e: Exception) {
-                results.add(errorResult(rel, "error", e.message ?: "unknown"))
+                val message = e.message ?: "unknown"
+                results.add(errorResult(rel, "error", message))
+                // Every attempted template gets a report so the comparison script can pair the same
+                // template set across bindings and scenarios.
+                writeFailedReportJson(jsonPath, outputGson, rel, engineFlag, scenario, message)
                 failed = true
             }
         }
@@ -252,7 +401,7 @@ fun main(args: Array<String>) {
                 iterWallClock,
                 bindingOverheadMs,
             )
-        writeReportJson(jsonPath, treeGson, outputGson, report, engineFlag, metrics, normalizeParseFailure = false)
+        writeReportJson(jsonPath, treeGson, outputGson, report, engineFlag, scenario, metrics, normalizeParseFailure = false)
 
         val tr =
             TemplateResult(
@@ -325,7 +474,7 @@ fun main(args: Array<String>) {
     val measuredValidationWallMs = ok.sumOf { it.wallClockTotalMs }
 
     val (corpusFingerprint, corpusFileCount) = computeCorpusFingerprint(File(templateDir))
-    val runFingerprint = sha256Hex("$corpusFingerprint|$engineFlag|$formatFlag|$iterations")
+    val runFingerprint = sha256Hex("$corpusFingerprint|$rulesFingerprint|$scenario|$engineFlag|$formatFlag|$iterations")
 
     // Provenance is assembled after all timed work so its cargo/rustc subprocess spawns never
     // contaminate the measurements.
@@ -402,6 +551,9 @@ fun main(args: Array<String>) {
             addProperty("iterations_per_template", iterations)
             addProperty("corpus_fingerprint", corpusFingerprint)
             addProperty("corpus_file_count", corpusFileCount)
+            addProperty("scenario", scenario)
+            add("custom_rules", customRules)
+            addProperty("rules_fingerprint", rulesFingerprint)
             addProperty("run_fingerprint", runFingerprint)
             add("performance", perfObj)
             add("diagnostics", diagObj)
@@ -502,13 +654,14 @@ private data class StartupMeasurement(
 
 private fun measureStartup(
     engineFlag: String,
+    rulePack: RulePack,
     moduleLoadMs: Double,
     startupBytes: ByteArray,
     startupLabel: String,
     benchmarkConfig: ValidateConfig,
 ): StartupMeasurement {
     val engineStart = System.nanoTime()
-    val engine = newEngine(engineFlag)
+    val engine = newEngine(engineFlag, rulePack)
     val engineInitMs = (System.nanoTime() - engineStart) / 1_000_000.0
     // The JVM engine constructor embeds a SchemaValidator, so consumer init is engine-only.
     val consumerInitMs = engineInitMs
@@ -574,6 +727,8 @@ private fun startupSectionJson(startup: StartupMeasurement): JsonObject =
 
 private fun runStartupProbe(
     engineFlag: String,
+    rulePack: RulePack,
+    scenario: String,
     coreVersion: String,
     moduleLoadMs: Double,
     defaultTemplateDir: String,
@@ -589,12 +744,15 @@ private fun runStartupProbe(
         }
     val startupLabel = startupFile.name
 
-    val startup = measureStartup(engineFlag, moduleLoadMs, startupBytes, startupLabel, benchmarkConfig)
+    val startup = measureStartup(engineFlag, rulePack, moduleLoadMs, startupBytes, startupLabel, benchmarkConfig)
     val engineName = engineName(startup.engine)
 
     val probe = startupSectionJson(startup)
     probe.addProperty("binding", "jvm")
     probe.addProperty("engine", engineName)
+    probe.addProperty("scenario", scenario)
+    probe.add("custom_rules", rulePack.json(guardRuleCount(startup.engine)))
+    probe.addProperty("rules_fingerprint", rulePack.fingerprint())
     probe.add("versions", provenanceJson(coreVersion))
 
     println(GsonBuilder().serializeNulls().create().toJson(probe))
@@ -693,12 +851,24 @@ private fun queryToolVersion(tool: String): String =
         "unknown"
     }
 
-private fun newEngine(engineFlag: String): Any =
+private fun newEngine(
+    engineFlag: String,
+    rulePack: RulePack,
+): Any =
     when (engineFlag) {
-        "cel" -> JvmCelEngine(engineConfig())
-        "composite" -> JvmCompositeEngine(compositeEngineConfig())
-        else -> JvmRegoEngine(engineConfig())
+        "cel" -> JvmCelEngine(engineConfig(rulePack))
+        "composite" -> JvmCompositeEngine(compositeEngineConfig(rulePack))
+        else -> JvmRegoEngine(EngineConfig(customRules = rulePack.rego.toList(), guardRules = rulePack.guard.toList()))
     }
+
+/** Distinct names: a rule name shared by two files counts once. */
+private fun guardRuleCount(engine: Any): Int =
+    when (engine) {
+        is JvmCelEngine -> engine.listRules()
+        is JvmCompositeEngine -> engine.listRules()
+        is JvmRegoEngine -> engine.listRules()
+        else -> throw IllegalArgumentException("Unknown engine type")
+    }.count { it.origin == RuleOrigin.GUARD }
 
 private fun engineName(engine: Any): String =
     when (engine) {
@@ -744,9 +914,9 @@ private fun validateTemplate(
         else -> throw IllegalArgumentException("Unknown engine type")
     }
 
-fun engineConfig() = EngineConfig(customRules = listOf(), guardRules = listOf())
+fun engineConfig(rulePack: RulePack) = EngineConfig(customRules = listOf(), guardRules = rulePack.guard.toList())
 
-fun compositeEngineConfig() = CompositeEngineConfig(regoRules = listOf(), guardRules = listOf())
+fun compositeEngineConfig(rulePack: RulePack) = CompositeEngineConfig(regoRules = rulePack.rego.toList(), guardRules = rulePack.guard.toList())
 
 fun validateConfig() =
     ValidateConfig(
@@ -919,6 +1089,7 @@ private fun writeReportJson(
     outputGson: Gson,
     report: ValidationReport,
     engineFlag: String,
+    scenario: String,
     metrics: JsonObject,
     normalizeParseFailure: Boolean,
 ) {
@@ -927,7 +1098,35 @@ private fun writeReportJson(
     reportElement.addProperty("engine", engineFlag)
     reportElement.addProperty("binding", "jvm")
     reportElement.addProperty("detailLevel", formatFlag)
+    reportElement.addProperty("scenario", scenario)
     reportElement.add("benchmarkMetrics", metrics)
+    dest.writeText(outputGson.toJson(reportElement))
+}
+
+/**
+ * Keeps the envelope of a successful report so consumers can tell a failed template from a clean one
+ * without a second schema.
+ */
+private fun writeFailedReportJson(
+    dest: File,
+    outputGson: Gson,
+    rel: String,
+    engineFlag: String,
+    scenario: String,
+    message: String,
+) {
+    val reportElement =
+        JsonObject().apply {
+            addProperty("filePath", rel)
+            addProperty("status", "ERROR")
+            addProperty("error", message)
+            add("diagnostics", JsonArray())
+            addProperty("engine", engineFlag)
+            addProperty("binding", "jvm")
+            addProperty("detailLevel", formatFlag)
+            addProperty("scenario", scenario)
+            add("benchmarkMetrics", zeroBenchmarkMetrics())
+        }
     dest.writeText(outputGson.toJson(reportElement))
 }
 

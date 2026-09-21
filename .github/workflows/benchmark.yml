@@ -1,5 +1,11 @@
 name: Benchmark
 
+# Every scenario of scripts/compare_benchmarks.py (built-in rules only, built-in +
+# Guard rule pack, built-in + custom Rego rule pack, and both packs) is a full
+# engine × binding benchmark and always runs, in one job so every number in the
+# report comes from the same runner. The per-template and aggregate reports stay
+# on the runner; only the assembled comparison report is uploaded.
+
 on:
   workflow_dispatch:
     inputs:
@@ -33,6 +39,35 @@ concurrency:
 jobs:
   benchmark:
     runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: List scenarios
+      id: plan
+      shell: bash
+      run: |
+        set -euo pipefail
+        # The matrix is the script's own scenario list so the workflow can never
+        # drift from the scenarios the script knows.
+        python3 - <<'PY' >> "$GITHUB_OUTPUT"
+        import json
+        import sys
+
+        sys.path.insert(0, "scripts")
+        import compare_benchmarks as cb
+
+        print(f"scenarios={json.dumps(cb.SCENARIO_IDS)}")
+        PY
+
+  benchmark:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      matrix:
+        scenario: ${{ fromJSON(needs.plan.outputs.scenarios) }}
     steps:
     - uses: actions/checkout@v6
 
@@ -115,6 +150,7 @@ jobs:
       run: |
         set -euo pipefail
 
+        # Every scenario; the iteration count is applied to all of them.
         benchmark_command=(python3 ../scripts/compare_benchmarks.py)
         if [[ -n "$BENCHMARK_ITERATIONS" ]]; then
           benchmark_command+=(--iterations "$BENCHMARK_ITERATIONS")
@@ -131,35 +167,22 @@ jobs:
         "${benchmark_command[@]}"
 
     - name: Validate aggregates
-      working-directory: ${{ env.WORKING_DIR }}
       shell: bash
       run: |
         set -euo pipefail
-        # Validate all 15 aggregate files (5 bindings × 3 engines): JSON parses,
-        # binding/engine labels match, and the enriched provenance/startup/memory
-        # contract produced by compare_benchmarks.py is present.
+        # Validate every aggregate the run must have produced (every scenario × binding
+        # × engine the scenario can run): JSON parses, scenario/binding/engine labels
+        # match, the rule pack and provenance metadata are present, and the
+        # startup/memory enrichment compare_benchmarks.py adds is in place.
         python3 - <<'PY'
         import json
         import sys
         from numbers import Real
 
-        EXPECTED = [
-            ("native", "rego", "cfn-validate/reports/rego/aggregate_detailed.json"),
-            ("native", "cel", "cfn-validate/reports/cel/aggregate_detailed.json"),
-            ("native", "composite", "cfn-validate/reports/composite/aggregate_detailed.json"),
-            ("wasm", "rego", "bindings-wasm/reports/rego/aggregate_detailed.json"),
-            ("wasm", "cel", "bindings-wasm/reports/cel/aggregate_detailed.json"),
-            ("wasm", "composite", "bindings-wasm/reports/composite/aggregate_detailed.json"),
-            ("jvm", "rego", "bindings-jvm/reports/rego/aggregate_detailed.json"),
-            ("jvm", "cel", "bindings-jvm/reports/cel/aggregate_detailed.json"),
-            ("jvm", "composite", "bindings-jvm/reports/composite/aggregate_detailed.json"),
-            ("python", "rego", "bindings-python/reports/rego/aggregate_detailed.json"),
-            ("python", "cel", "bindings-python/reports/cel/aggregate_detailed.json"),
-            ("python", "composite", "bindings-python/reports/composite/aggregate_detailed.json"),
-            ("go", "rego", "bindings-go/reports/rego/aggregate_detailed.json"),
-            ("go", "cel", "bindings-go/reports/cel/aggregate_detailed.json"),
-            ("go", "composite", "bindings-go/reports/composite/aggregate_detailed.json"),
-        ]
+        sys.path.insert(0, "scripts")
+        import compare_benchmarks as cb
+
+        expected = cb.expected_aggregate_files(cb.SCENARIOS, cb.ENGINES, cb.ALL_BINDINGS)
 
         def is_num(value):
             return isinstance(value, Real) and not isinstance(value, bool)
@@ -173,17 +196,30 @@ jobs:
             return cur
 
         errors = []
-        for exp_binding, exp_engine, fpath in EXPECTED:
+        for exp_scenario, exp_binding, exp_engine, fpath in expected:
+            scenario = cb.scenario_by_id(exp_scenario)
             try:
                 with open(fpath) as handle:
                     data = json.load(handle)
             except (OSError, json.JSONDecodeError) as exc:
                 errors.append(f"{fpath}: cannot read/parse ({exc})")
                 continue
+            if data.get("scenario") != exp_scenario:
+                errors.append(f"{fpath}: scenario={data.get('scenario')!r} expected {exp_scenario!r}")
             if data.get("binding") != exp_binding:
                 errors.append(f"{fpath}: binding={data.get('binding')!r} expected {exp_binding!r}")
             if data.get("engine") != exp_engine:
                 errors.append(f"{fpath}: engine={data.get('engine')!r} expected {exp_engine!r}")
+            if not isinstance(data.get("rules_fingerprint"), str) or not data.get("rules_fingerprint"):
+                errors.append(f"{fpath}: missing rules_fingerprint")
+            guard_files = dig(data, "custom_rules", "guard", "files")
+            rego_files = dig(data, "custom_rules", "rego", "files")
+            if not is_num(guard_files) or not is_num(rego_files):
+                errors.append(f"{fpath}: missing custom_rules.guard.files / custom_rules.rego.files")
+            elif scenario["guard"] and guard_files == 0:
+                errors.append(f"{fpath}: scenario loads the Guard pack but custom_rules.guard.files is 0")
+            elif scenario["rego"] and rego_files == 0:
+                errors.append(f"{fpath}: scenario loads the Rego pack but custom_rules.rego.files is 0")
             if not dig(data, "provenance", "cloudformation_validate"):
                 errors.append(f"{fpath}: missing provenance.cloudformation_validate")
             if not is_num(dig(data, "performance", "startup", "consumer_init", "duration_ms")):
@@ -203,8 +239,8 @@ jobs:
             for err in errors:
                 print(f"  - {err}")
             sys.exit(1)
-        print(f"All {len(EXPECTED)} aggregate files validated "
-              "(labels, provenance, startup, memory)")
+        print(f"All {len(expected)} aggregate files validated "
+              "(labels, rule pack, provenance, startup, memory)")
         PY
 
     - name: Upload comparison report

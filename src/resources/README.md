@@ -8,9 +8,45 @@ and snapshot tests, and exposes fixture paths plus discovery used by snapshot ge
 | Directory    | Contents                                                                                       |
 |--------------|------------------------------------------------------------------------------------------------|
 | `templates/` | CloudFormation templates grouped by intent (`bad/`, `good/`, `cdk/`, `public/`, …)             |
-| `rules/`     | Custom-rule fixtures loaded by rule tests                                                      |
+| `rules/`     | Custom-rule fixtures loaded by rule tests, and the benchmark rule packs (see below)             |
 | `security/`  | Security-scenario fixtures used by security tests and snapshot generation                      |
 | `expected/`  | `validation_reports1.json`, `validation_reports2.json`, … numbered chunk snapshots              |
+
+## Benchmark rule packs
+
+`scripts/compare_benchmarks.py` measures every engine under load from custom rules as well as with the built-in
+rules alone. Its `guard` scenario loads every `.guard` file in `rules/` into the engine, its `rego` scenario every
+`.rego` file, and its `all` scenario both; the harnesses receive the directory and load the files themselves. The
+packs are therefore exactly the `.guard` and `.rego` files of this directory - a new fixture joins the next benchmark
+automatically, and one that fails to evaluate on a corpus template shows up in the report's "Templates Failing Under
+a Rule Pack" list rather than silently.
+
+- **Guard pack** (`guard_*.guard`, 19 files, 39 rule declarations under 34 distinct names, which is the count the report shows). Three are the fixtures the rule tests use
+  (`guard_encryption.guard`, `guard_multi.guard`, `guard_semantics.guard`). The other 16 are the security and
+  compliance rules of [cloudformation-guard](https://github.com/aws-cloudformation/cloudformation-guard) at commit
+  `814bd00a4e6d761e8b5c9f615dd510b1a2a7c374`, copied verbatim and renamed `guard_<upstream stem>.guard`: every
+  CloudFormation example under `guard-examples/` (security policies, encryption, deployment safety, cross-account
+  access, tagging, network reachability) plus the compliance rules among the `guard/resources/validate/` fixtures
+  (`workshop`, `db_param_port_rule`, and the three `s3_bucket_*` rules). The remaining upstream fixtures exercise
+  evaluator semantics and built-in functions rather than check anything (`a_first`...`g_seventh`, `count`, `join`,
+  `substring`, ...) and are left out: every Guard file costs roughly the same per template regardless of what it
+  checks (about 0.5 ms on the corpus average), so the pack is limited to rules worth paying for and the benchmark
+  job stays well inside the runner's time limit. Guard type blocks (used by the three test fixtures) are an
+  evaluation error on the 26 corpus templates whose `Resources` section is empty; those templates are reported as
+  failed in the Guard scenarios and excluded from their timings.
+- **Custom Rego pack** (`rego_*.rego`, 10 files). Three are the rule-test fixtures; the other seven are authored
+  here for the benchmark and hold 50 rule IDs across seven packages (`custom_iam`, `custom_network`,
+  `custom_encryption`, `custom_s3`, `custom_compute`, `custom_data`, `custom_graph`). They are deliberately
+  expensive and realistic: policy-document decomposition over every policy-bearing resource type, a whole-template
+  credential scan over serialized properties, table-driven encryption checks resolved per condition scenario,
+  pairwise subnet CIDR overlap under compatible conditions, service-role trust chains followed through references,
+  pairwise duplicate-definition detection, and transitive dependency hubs computed with the graph builtins. Every
+  rule evaluates cleanly on every corpus template. Keep new rules deterministic (no wall-clock or random builtins)
+  and check `cfn-validate resources/templates --engine rego --rule-source <file>` reports no
+  `Custom rule package ... failed to evaluate` errors before adding one.
+
+Both engines see the same packs, so the Guard scenario also verifies that Rego, CEL, and composite report identical
+Guard findings under load.
 
 ## Snapshot generation
 
