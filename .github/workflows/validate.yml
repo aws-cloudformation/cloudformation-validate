@@ -21,6 +21,11 @@ on:
         required: false
         type: boolean
         default: true
+      performance-gate:
+        description: 'Fail validation when the expected-performance check fails'
+        required: false
+        type: boolean
+        default: true
 
   workflow_dispatch:
     inputs:
@@ -31,6 +36,11 @@ on:
         default: false
       release-run:
         description: 'Run every binding test matrix for a release workflow'
+        required: false
+        type: boolean
+        default: true
+      performance-gate:
+        description: 'Fail validation when the expected-performance check fails'
         required: false
         type: boolean
         default: true
@@ -197,6 +207,7 @@ jobs:
       contents: read
     with:
       ref: ${{ inputs.ref || github.sha }}
+      performance-gate: ${{ inputs.performance-gate }}
 
   test-jvm:
     if: ${{ needs.release-assets.outputs.run_tests == 'true' }}

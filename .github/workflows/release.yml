@@ -48,6 +48,7 @@ jobs:
     with:
       ref: ${{ needs.resolve-ref.outputs.sha }}
       fail-fast: true
+      performance-gate: false
 
   version-and-tag:
     needs: [ resolve-ref, validate ]

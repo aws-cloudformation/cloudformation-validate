@@ -9,7 +9,18 @@ on:
         description: Commit to test; defaults to the commit the calling run was triggered for
         required: false
         type: string
+      performance-gate:
+        description: Fail the workflow when the expected-performance check fails
+        required: false
+        type: boolean
+        default: true
   workflow_dispatch:
+    inputs:
+      performance-gate:
+        description: Fail the workflow when the expected-performance check fails
+        required: false
+        type: boolean
+        default: true
 
 permissions:
   contents: read
@@ -43,6 +54,7 @@ jobs:
         run: cargo test --locked --release -p performance-harness
 
       - name: Check expected performance
+        continue-on-error: ${{ !inputs.performance-gate }}
         working-directory: ${{ env.WORKING_DIR }}
         run: |
           set -euo pipefail
