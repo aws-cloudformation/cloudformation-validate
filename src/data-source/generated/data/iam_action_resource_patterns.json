@@ -4491,6 +4491,9 @@
     "bedrock-agentcore:createapikeycredentialprovider": [
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:token-vault/.*"
     ],
+    "bedrock-agentcore:createconsentportal": [
+      "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:consent-portal/.*"
+    ],
     "bedrock-agentcore:createdatasetversion": [
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:dataset/.*"
     ],
@@ -4565,6 +4568,9 @@
     ],
     "bedrock-agentcore:deleteconfigurationbundle": [
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:configuration-bundle/.*"
+    ],
+    "bedrock-agentcore:deleteconsentportal": [
+      "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:consent-portal/.*"
     ],
     "bedrock-agentcore:deletedataset": [
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:dataset/.*"
@@ -4700,6 +4706,9 @@
     ],
     "bedrock-agentcore:getconfigurationbundleversion": [
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:configuration-bundle/.*"
+    ],
+    "bedrock-agentcore:getconsentportal": [
+      "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:consent-portal/.*"
     ],
     "bedrock-agentcore:getdataset": [
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:dataset/.*"
@@ -5064,6 +5073,9 @@
     ],
     "bedrock-agentcore:updateconfigurationbundle": [
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:configuration-bundle/.*"
+    ],
+    "bedrock-agentcore:updateconsentportal": [
+      "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:consent-portal/.*"
     ],
     "bedrock-agentcore:updatedataset": [
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:dataset/.*"
@@ -11568,6 +11580,9 @@
       "arn:${Partition}:wisdom:${Region}:${Account}:.*",
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
     ],
+    "connect:listevaluationformaiversions": [
+      "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
+    ],
     "connect:listevaluationforms": [
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
     ],
@@ -13404,6 +13419,10 @@
       "arn:${Partition}:directconnect:${Region}:${Account}:dxcon/.*",
       "arn:${Partition}:directconnect:${Region}:${Account}:dxlag/.*"
     ],
+    "directconnect:associateconnectionstoresiliencygroup": [
+      "arn:${Partition}:directconnect::${Account}:dx-resiliency-group/.*",
+      "arn:${Partition}:directconnect:${Region}:${Account}:dxcon/.*"
+    ],
     "directconnect:associateconnectionwithlag": [
       "arn:${Partition}:directconnect:${Region}:${Account}:dxcon/.*",
       "arn:${Partition}:directconnect:${Region}:${Account}:dxlag/.*"
@@ -13481,6 +13500,9 @@
     "directconnect:deletelag": [
       "arn:${Partition}:directconnect:${Region}:${Account}:dxlag/.*"
     ],
+    "directconnect:deleteresiliencygroup": [
+      "arn:${Partition}:directconnect::${Account}:dx-resiliency-group/.*"
+    ],
     "directconnect:deletevirtualinterface": [
       "arn:${Partition}:directconnect:${Region}:${Account}:dxvif/.*"
     ],
@@ -13527,6 +13549,7 @@
     ],
     "directconnect:describetags": [
       "arn:${Partition}:directconnect::${Account}:dx-gateway/.*",
+      "arn:${Partition}:directconnect::${Account}:dx-resiliency-group/.*",
       "arn:${Partition}:directconnect:${Region}:${Account}:dxcon/.*",
       "arn:${Partition}:directconnect:${Region}:${Account}:dxlag/.*",
       "arn:${Partition}:directconnect:${Region}:${Account}:dxvif/.*"
@@ -13540,9 +13563,19 @@
       "arn:${Partition}:directconnect:${Region}:${Account}:dxcon/.*",
       "arn:${Partition}:directconnect:${Region}:${Account}:dxlag/.*"
     ],
+    "directconnect:disassociateconnectionsfromresiliencygroup": [
+      "arn:${Partition}:directconnect::${Account}:dx-resiliency-group/.*",
+      "arn:${Partition}:directconnect:${Region}:${Account}:dxcon/.*"
+    ],
     "directconnect:disassociatemacseckey": [
       "arn:${Partition}:directconnect:${Region}:${Account}:dxcon/.*",
       "arn:${Partition}:directconnect:${Region}:${Account}:dxlag/.*"
+    ],
+    "directconnect:getresiliencygroup": [
+      "arn:${Partition}:directconnect::${Account}:dx-resiliency-group/.*"
+    ],
+    "directconnect:listresiliencygroupassociations": [
+      "arn:${Partition}:directconnect::${Account}:dx-resiliency-group/.*"
     ],
     "directconnect:listvirtualinterfaceroutes": [
       "arn:${Partition}:directconnect:${Region}:${Account}:dxvif/.*"
@@ -13558,12 +13591,14 @@
     ],
     "directconnect:tagresource": [
       "arn:${Partition}:directconnect::${Account}:dx-gateway/.*",
+      "arn:${Partition}:directconnect::${Account}:dx-resiliency-group/.*",
       "arn:${Partition}:directconnect:${Region}:${Account}:dxcon/.*",
       "arn:${Partition}:directconnect:${Region}:${Account}:dxlag/.*",
       "arn:${Partition}:directconnect:${Region}:${Account}:dxvif/.*"
     ],
     "directconnect:untagresource": [
       "arn:${Partition}:directconnect::${Account}:dx-gateway/.*",
+      "arn:${Partition}:directconnect::${Account}:dx-resiliency-group/.*",
       "arn:${Partition}:directconnect:${Region}:${Account}:dxcon/.*",
       "arn:${Partition}:directconnect:${Region}:${Account}:dxlag/.*",
       "arn:${Partition}:directconnect:${Region}:${Account}:dxvif/.*"
@@ -13571,11 +13606,17 @@
     "directconnect:updateconnection": [
       "arn:${Partition}:directconnect:${Region}:${Account}:dxcon/.*"
     ],
+    "directconnect:updateconnectionsbillingmode": [
+      "arn:${Partition}:directconnect:${Region}:${Account}:dxcon/.*"
+    ],
     "directconnect:updatedirectconnectgateway": [
       "arn:${Partition}:directconnect::${Account}:dx-gateway/.*"
     ],
     "directconnect:updatelag": [
       "arn:${Partition}:directconnect:${Region}:${Account}:dxlag/.*"
+    ],
+    "directconnect:updateresiliencygroup": [
+      "arn:${Partition}:directconnect::${Account}:dx-resiliency-group/.*"
     ],
     "directconnect:updatevirtualinterfaceattributes": [
       "arn:${Partition}:directconnect:${Region}:${Account}:dxvif/.*"
@@ -23020,6 +23061,9 @@
     "healthlake:describefhirbulkmembermatchjob": [
       "arn:${Partition}:healthlake:${Region}:${Account}:datastore/fhir/.*"
     ],
+    "healthlake:describefhirbulkpatchjob": [
+      "arn:${Partition}:healthlake:${Region}:${Account}:datastore/fhir/.*"
+    ],
     "healthlake:describefhirdatastore": [
       "arn:${Partition}:healthlake:${Region}:${Account}:datastore/fhir/.*"
     ],
@@ -23124,6 +23168,9 @@
       "arn:${Partition}:healthlake:${Region}:${Account}:datastore/fhir/.*"
     ],
     "healthlake:startfhirbulkmembermatchjob": [
+      "arn:${Partition}:healthlake:${Region}:${Account}:datastore/fhir/.*"
+    ],
+    "healthlake:startfhirbulkpatchjob": [
       "arn:${Partition}:healthlake:${Region}:${Account}:datastore/fhir/.*"
     ],
     "healthlake:startfhirexportjob": [
@@ -23690,6 +23737,9 @@
       "arn:${Partition}:identity-sync:${Region}:${Account}:profile/.*",
       "arn:${Partition}:identity-sync:${Region}:${Account}:target/.*"
     ],
+    "identitystore:addregion": [
+      "arn:${Partition}:identitystore::${Account}:identitystore/.*"
+    ],
     "identitystore:creategroup": [
       "arn:${Partition}:identitystore::${Account}:identitystore/.*"
     ],
@@ -23711,6 +23761,9 @@
       "arn:${Partition}:identitystore::${Account}:identitystore/.*",
       "arn:${Partition}:identitystore:::user/.*"
     ],
+    "identitystore:deleteidentitystore": [
+      "arn:${Partition}:identitystore::${Account}:identitystore/.*"
+    ],
     "identitystore:deleteuser": [
       "arn:${Partition}:identitystore::${Account}:identitystore/.*",
       "arn:${Partition}:identitystore:::user/.*"
@@ -23724,6 +23777,9 @@
       "arn:${Partition}:identitystore:::membership/.*",
       "arn:${Partition}:identitystore::${Account}:identitystore/.*",
       "arn:${Partition}:identitystore:::user/.*"
+    ],
+    "identitystore:describeregion": [
+      "arn:${Partition}:identitystore::${Account}:identitystore/.*"
     ],
     "identitystore:describeuser": [
       "arn:${Partition}:identitystore::${Account}:identitystore/.*",
@@ -23763,8 +23819,14 @@
       "arn:${Partition}:identitystore:::group/*",
       "arn:${Partition}:identitystore::${Account}:identitystore/.*"
     ],
+    "identitystore:listregions": [
+      "arn:${Partition}:identitystore::${Account}:identitystore/.*"
+    ],
     "identitystore:listusers": [
       "arn:${Partition}:identitystore:::user/*",
+      "arn:${Partition}:identitystore::${Account}:identitystore/.*"
+    ],
+    "identitystore:removeregion": [
       "arn:${Partition}:identitystore::${Account}:identitystore/.*"
     ],
     "identitystore:reserveuser": [
@@ -23772,6 +23834,9 @@
     ],
     "identitystore:updategroup": [
       "arn:${Partition}:identitystore:::group/.*",
+      "arn:${Partition}:identitystore::${Account}:identitystore/.*"
+    ],
+    "identitystore:updateidentitystore": [
       "arn:${Partition}:identitystore::${Account}:identitystore/.*"
     ],
     "identitystore:updateuser": [
@@ -33173,6 +33238,9 @@
     "notifications:listorganizationalunits": [
       "arn:${Partition}:notifications::${Account}:configuration/.*"
     ],
+    "notifications:subscribesensitiveevents": [
+      "arn:${Partition}:notifications::${Account}:managed-notification-configuration/category/.*"
+    ],
     "notifications:tagresource": [
       "arn:${Partition}:notifications::${Account}:configuration/.*"
     ],
@@ -33181,6 +33249,9 @@
     ],
     "notifications:updateeventrule": [
       "arn:${Partition}:notifications::${Account}:configuration/.*"
+    ],
+    "notifications:updatemanagednotificationchannelassociation": [
+      "arn:${Partition}:notifications::${Account}:managed-notification-configuration/category/.*"
     ],
     "notifications:updatenotificationconfiguration": [
       "arn:${Partition}:notifications::${Account}:configuration/.*"
@@ -39249,10 +39320,16 @@
     "resiliencehub:listtestrecommendations": [
       "arn:${Partition}:resiliencehub:${Region}:${Account}:app/.*"
     ],
+    "resiliencehub:listtestrundependencies": [
+      "arn:${Partition}:resiliencehub:${Region}:${Account}:service/.*"
+    ],
     "resiliencehub:listtestrunevents": [
       "arn:${Partition}:resiliencehub:${Region}:${Account}:service/.*"
     ],
     "resiliencehub:listtestruns": [
+      "arn:${Partition}:resiliencehub:${Region}:${Account}:service/.*"
+    ],
+    "resiliencehub:listtestrunsourceevents": [
       "arn:${Partition}:resiliencehub:${Region}:${Account}:service/.*"
     ],
     "resiliencehub:listtestrunsources": [
@@ -44506,6 +44583,9 @@
       "arn:${Partition}:ses:${Region}:${Account}:mailmanager-ingress-point/.*",
       "arn:${Partition}:ses:${Region}:${Account}:mailmanager-rule-set/.*"
     ],
+    "ses:associateemailidentitycertificate": [
+      "arn:${Partition}:ses:${Region}:${Account}:identity/.*"
+    ],
     "ses:batchgetmetricdata": [
       "arn:${Partition}:ses:${Region}:${Account}:configuration-set/.*",
       "arn:${Partition}:ses:${Region}:${Account}:identity/.*"
@@ -44650,6 +44730,9 @@
     "ses:deregistermemberfromaddresslist": [
       "arn:${Partition}:ses:${Region}:${Account}:mailmanager-address-list/.*"
     ],
+    "ses:disassociateemailidentitycertificate": [
+      "arn:${Partition}:ses:${Region}:${Account}:identity/.*"
+    ],
     "ses:getaddoninstance": [
       "arn:${Partition}:ses:${Region}:${Account}:addon-instance/.*"
     ],
@@ -44754,6 +44837,9 @@
     ],
     "ses:listcontacts": [
       "arn:${Partition}:ses:${Region}:${Account}:contact-list/.*"
+    ],
+    "ses:listemailidentitycertificates": [
+      "arn:${Partition}:ses:${Region}:${Account}:identity/.*"
     ],
     "ses:listmembersofaddresslist": [
       "arn:${Partition}:ses:${Region}:${Account}:mailmanager-address-list/.*"
@@ -44939,6 +45025,9 @@
     ],
     "ses:updatearchive": [
       "arn:${Partition}:ses:${Region}:${Account}:mailmanager-archive/.*"
+    ],
+    "ses:updateconfigurationset": [
+      "arn:${Partition}:ses:${Region}:${Account}:configuration-set/.*"
     ],
     "ses:updateconfigurationseteventdestination": [
       "arn:${Partition}:ses:${Region}:${Account}:configuration-set/.*"
