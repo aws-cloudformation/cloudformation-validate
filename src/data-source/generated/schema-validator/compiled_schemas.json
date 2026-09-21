@@ -19996,6 +19996,9 @@
         "min_length": 0,
         "max_length": 256
       },
+      "DisableIMDSV1": {
+        "type": "boolean"
+      },
       "DisplayName": {
         "type": "string",
         "min_length": 0,
@@ -20991,14 +20994,15 @@
     ],
     "additional_properties": false,
     "read_only_properties": [
-      "ApiKeyId",
       "ApiKey",
+      "ApiKeyId",
       "Arn"
     ],
     "create_only_properties": [
       "ApiId"
     ],
     "primary_identifier": [
+      "ApiId",
       "ApiKeyId"
     ]
   },
@@ -22060,7 +22064,7 @@
       "OpenIDConnectConfig.ClientId"
     ],
     "primary_identifier": [
-      "ApiId"
+      "Arn"
     ]
   },
   "AWS::AppSync::GraphQLSchema": {
@@ -32206,7 +32210,6 @@
             "properties": {
               "ComplianceResourceIds": {
                 "type": "array",
-                "min_items": 1,
                 "max_items": 100,
                 "items": {
                   "type": "string"
@@ -47943,6 +47946,9 @@
               "pattern": "^subnet-[0-9a-zA-Z]{8,17}$"
             }
           },
+          "Tags": {
+            "ref_name": "TagsMap"
+          },
           "VpcIdentifier": {
             "type": "string",
             "pattern": "^vpc-(([0-9a-z]{8})|([0-9a-z]{17}))$"
@@ -48089,6 +48095,9 @@
       "UpdatedAt",
       "WebAclArn",
       "WorkloadIdentityDetails"
+    ],
+    "write_only_properties": [
+      "AuthorizerConfiguration.CustomJWTAuthorizer.PrivateEndpoint.ManagedVpcResource.Tags"
     ],
     "primary_identifier": [
       "GatewayIdentifier"
@@ -51513,6 +51522,9 @@
       "Name": {
         "ref_name": "Name"
       },
+      "NamespaceKeys": {
+        "ref_name": "NamespaceKeysList"
+      },
       "Status": {
         "ref_name": "MemoryStatus"
       },
@@ -52046,7 +52058,64 @@
       },
       "Namespace": {
         "type": "string",
-        "pattern": "^[a-zA-Z0-9\\-_/]*(\\{(actorId|sessionId|memoryStrategyId)\\}[a-zA-Z0-9\\-_/]*)*$"
+        "pattern": "^[a-zA-Z0-9\\-_/]*(\\{[a-zA-Z][a-zA-Z0-9]*\\}[a-zA-Z0-9\\-_/]*)*$"
+      },
+      "NamespaceAllowedValue": {
+        "type": "string",
+        "pattern": "^[a-z0-9][a-z0-9-_]*$",
+        "min_length": 1,
+        "max_length": 64
+      },
+      "NamespaceKeyEntry": {
+        "type": "object",
+        "properties": {
+          "Key": {
+            "ref_name": "NamespaceVariableKey"
+          },
+          "Validation": {
+            "ref_name": "NamespaceKeyValidation"
+          }
+        },
+        "required": [
+          "Key"
+        ],
+        "additional_properties": false
+      },
+      "NamespaceKeyValidation": {
+        "type": "object",
+        "properties": {
+          "AllowedValues": {
+            "type": "array",
+            "min_items": 1,
+            "max_items": 10,
+            "items": {
+              "ref_name": "NamespaceAllowedValue"
+            }
+          },
+          "RegexPattern": {
+            "ref_name": "NamespaceRegexPattern"
+          }
+        },
+        "additional_properties": false
+      },
+      "NamespaceKeysList": {
+        "type": "array",
+        "min_items": 1,
+        "max_items": 5,
+        "items": {
+          "ref_name": "NamespaceKeyEntry"
+        }
+      },
+      "NamespaceRegexPattern": {
+        "type": "string",
+        "min_length": 1,
+        "max_length": 64
+      },
+      "NamespaceVariableKey": {
+        "type": "string",
+        "pattern": "^(?!memoryStrategyId$|actorId$|sessionId$)[a-z][a-z0-9]*$",
+        "min_length": 1,
+        "max_length": 32
       },
       "NamespacesList": {
         "type": "array",
@@ -54880,6 +54949,9 @@
       "NetworkConfiguration": {
         "ref_name": "NetworkConfiguration"
       },
+      "PlatformVersion": {
+        "ref_name": "PlatformVersion"
+      },
       "ProtocolConfiguration": {
         "ref_name": "ProtocolConfiguration"
       },
@@ -54950,7 +55022,8 @@
           "UPDATING",
           "UPDATE_FAILED",
           "READY",
-          "DELETING"
+          "DELETING",
+          "DELETE_FAILED"
         ]
       },
       "AllowedAudience": {
@@ -55422,6 +55495,12 @@
           "VPC"
         ]
       },
+      "PlatformVersion": {
+        "type": "string",
+        "pattern": "^[^\\s]+$",
+        "min_length": 1,
+        "max_length": 128
+      },
       "PrivateEndpoint": {
         "type": "object",
         "one_of": [
@@ -55511,7 +55590,7 @@
       },
       "RuntimeContainerUri": {
         "type": "string",
-        "pattern": "^(([0-9]{12})\\.dkr\\.ecr\\.([a-z0-9-]+)\\.amazonaws\\.com(\\.cn)?|public\\.ecr\\.aws)/((?:[a-z0-9]+(?:[._-][a-z0-9]+)*/)*[a-z0-9]+(?:[._-][a-z0-9]+)*)(?::([^:@]{1,300}))?(?:@(.+))?$",
+        "pattern": "^(([0-9]{12})\\.dkr\\.ecr\\.([a-z0-9-]+)\\.(amazonaws\\.com\\.cn|csp\\.hci\\.ic\\.gov|cloud\\.adc-e\\.uk|cloud\\.adc-g\\.au|sc2s\\.sgov\\.gov|amazonaws\\.com|amazonaws\\.eu|c2s\\.ic\\.gov)|public\\.ecr\\.aws)/((?:[a-z0-9]+(?:[._-][a-z0-9]+)*/)*[a-z0-9]+(?:[._-][a-z0-9]+)*)(?::([^:@]{1,300}))?(?:@(.+))?$",
         "min_length": 1,
         "max_length": 1024
       },
@@ -55766,7 +55845,8 @@
           "UPDATING",
           "UPDATE_FAILED",
           "READY",
-          "DELETING"
+          "DELETING",
+          "DELETE_FAILED"
         ]
       },
       "AgentRuntimeId": {
@@ -74795,6 +74875,9 @@
     "read_only_properties": [
       "Arn"
     ],
+    "create_only_properties": [
+      "Name"
+    ],
     "primary_identifier": [
       "Arn"
     ]
@@ -81433,6 +81516,90 @@
       "Mode",
       "VolumeKmsKeyId",
       "VpcConfig"
+    ],
+    "primary_identifier": [
+      "Arn"
+    ]
+  },
+  "AWS::Comprehend::DocumentClassifierEndpoint": {
+    "type_name": "AWS::Comprehend::DocumentClassifierEndpoint",
+    "properties": {
+      "Arn": {
+        "type": "string",
+        "pattern": "^arn:aws(-[^:]+)?:comprehend:[a-zA-Z0-9-]*:[0-9]{12}:document-classifier-endpoint/[a-zA-Z0-9](-*[a-zA-Z0-9])*$",
+        "max_length": 256
+      },
+      "CreationTime": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "CurrentInferenceUnits": {
+        "type": "integer",
+        "minimum": 1.0
+      },
+      "DesiredInferenceUnits": {
+        "type": "integer",
+        "minimum": 1.0
+      },
+      "EndpointName": {
+        "type": "string",
+        "pattern": "^[a-zA-Z0-9](-*[a-zA-Z0-9])*$",
+        "min_length": 1,
+        "max_length": 40
+      },
+      "LastModifiedTime": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "ModelArn": {
+        "type": "string",
+        "pattern": "^arn:aws(-[^:]+)?:comprehend:[a-zA-Z0-9-]*:[0-9]{12}:document-classifier/[a-zA-Z0-9](-*[a-zA-Z0-9])*(/version/[a-zA-Z0-9](-*[a-zA-Z0-9])*)?$",
+        "min_length": 0,
+        "max_length": 256
+      },
+      "Tags": {
+        "type": "array",
+        "items": {
+          "ref_name": "Tag"
+        }
+      }
+    },
+    "definitions": {
+      "Tag": {
+        "type": "object",
+        "properties": {
+          "Key": {
+            "type": "string",
+            "min_length": 1,
+            "max_length": 128
+          },
+          "Value": {
+            "type": "string",
+            "min_length": 0,
+            "max_length": 256
+          }
+        },
+        "required": [
+          "Key",
+          "Value"
+        ],
+        "additional_properties": false
+      }
+    },
+    "required": [
+      "EndpointName",
+      "ModelArn",
+      "DesiredInferenceUnits"
+    ],
+    "additional_properties": false,
+    "read_only_properties": [
+      "Arn",
+      "CurrentInferenceUnits",
+      "CreationTime",
+      "LastModifiedTime"
+    ],
+    "create_only_properties": [
+      "EndpointName"
     ],
     "primary_identifier": [
       "Arn"
@@ -100327,7 +100494,8 @@
         "type": "string",
         "enum": [
           "SAS",
-          "NONE"
+          "NONE",
+          "OIDC"
         ]
       },
       "AzureBlobContainerUrl": {
@@ -100349,6 +100517,9 @@
       },
       "CustomSecretConfig": {
         "ref_name": "CustomSecretConfig"
+      },
+      "FederatedIdentity": {
+        "ref_name": "AzureFederatedIdentityConfig"
       },
       "LocationArn": {
         "type": "string",
@@ -100392,6 +100563,42 @@
         },
         "required": [
           "AzureBlobSasToken"
+        ],
+        "additional_properties": false
+      },
+      "AzureFederatedIdentityConfig": {
+        "type": "object",
+        "properties": {
+          "AwsIamRole": {
+            "type": "string",
+            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):iam::[0-9]{12}:role/.*|)$",
+            "max_length": 2048
+          },
+          "AzureOidc": {
+            "ref_name": "AzureOidcConfig"
+          }
+        },
+        "additional_properties": false
+      },
+      "AzureOidcConfig": {
+        "type": "object",
+        "properties": {
+          "ClientId": {
+            "type": "string",
+            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+            "min_length": 36,
+            "max_length": 36
+          },
+          "TenantId": {
+            "type": "string",
+            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+            "min_length": 36,
+            "max_length": 36
+          }
+        },
+        "required": [
+          "TenantId",
+          "ClientId"
         ],
         "additional_properties": false
       },
@@ -101027,7 +101234,8 @@
               "AUTOMATIC",
               "NFS3",
               "NFS4_0",
-              "NFS4_1"
+              "NFS4_1",
+              "NFS4_2"
             ]
           }
         },
@@ -101577,7 +101785,8 @@
               "AUTOMATIC",
               "NFS3",
               "NFS4_0",
-              "NFS4_1"
+              "NFS4_1",
+              "NFS4_2"
             ]
           }
         },
@@ -101675,6 +101884,9 @@
       },
       "CustomSecretConfig": {
         "ref_name": "CustomSecretConfig"
+      },
+      "FederatedIdentity": {
+        "ref_name": "ObjectStorageFederatedIdentityConfig"
       },
       "LocationArn": {
         "type": "string",
@@ -101776,6 +101988,42 @@
         ],
         "additional_properties": false
       },
+      "GoogleOidcConfig": {
+        "type": "object",
+        "properties": {
+          "IdentityPoolName": {
+            "type": "string",
+            "pattern": "^(?!gcp-)[a-z][a-z0-9-]{2,30}[a-z0-9]$",
+            "min_length": 4,
+            "max_length": 32
+          },
+          "IdentityProviderName": {
+            "type": "string",
+            "pattern": "^(?!gcp-)[a-z][a-z0-9-]{2,30}[a-z0-9]$",
+            "min_length": 4,
+            "max_length": 32
+          },
+          "ProjectName": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{4,28}[a-z0-9]$",
+            "min_length": 6,
+            "max_length": 30
+          },
+          "ProjectNumber": {
+            "type": "string",
+            "pattern": "^[0-9]+$",
+            "min_length": 1,
+            "max_length": 20
+          }
+        },
+        "required": [
+          "ProjectName",
+          "ProjectNumber",
+          "IdentityPoolName",
+          "IdentityProviderName"
+        ],
+        "additional_properties": false
+      },
       "ManagedSecretConfig": {
         "type": "object",
         "properties": {
@@ -101788,6 +102036,29 @@
         "required": [
           "SecretArn"
         ],
+        "additional_properties": false
+      },
+      "ObjectStorageExternalIdentityConfig": {
+        "type": "object",
+        "properties": {
+          "GoogleOidc": {
+            "ref_name": "GoogleOidcConfig"
+          }
+        },
+        "additional_properties": false
+      },
+      "ObjectStorageFederatedIdentityConfig": {
+        "type": "object",
+        "properties": {
+          "AwsIamRole": {
+            "type": "string",
+            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):iam::[0-9]{12}:role/.*|)$",
+            "max_length": 2048
+          },
+          "ExternalIdentity": {
+            "ref_name": "ObjectStorageExternalIdentityConfig"
+          }
+        },
         "additional_properties": false
       },
       "Tag": {
@@ -102389,6 +102660,13 @@
             "enum": [
               "NONE",
               "PRESERVE"
+            ]
+          },
+          "ObjectMetadata": {
+            "type": "string",
+            "enum": [
+              "PRESERVE",
+              "NONE"
             ]
           },
           "ObjectTags": {
@@ -114002,6 +114280,122 @@
     ],
     "source_url": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-docdbelastic/"
   },
+  "AWS::DocDBElastic::ClusterSnapshot": {
+    "type_name": "AWS::DocDBElastic::ClusterSnapshot",
+    "properties": {
+      "AdminUserName": {
+        "type": "string"
+      },
+      "ClusterArn": {
+        "type": "string"
+      },
+      "ClusterCreationTime": {
+        "type": "string"
+      },
+      "KmsKeyId": {
+        "type": "string",
+        "any_of": [
+          {
+            "format": "AWS::KMS::Key.Arn"
+          },
+          {
+            "format": "AWS::KMS::Key.Id"
+          },
+          {
+            "format": "AWS::KMS::Alias.AliasName"
+          }
+        ]
+      },
+      "SnapshotArn": {
+        "type": "string"
+      },
+      "SnapshotCreationTime": {
+        "type": "string"
+      },
+      "SnapshotName": {
+        "type": "string",
+        "min_length": 1,
+        "max_length": 63
+      },
+      "SnapshotType": {
+        "type": "string",
+        "enum": [
+          "MANUAL",
+          "AUTOMATED"
+        ]
+      },
+      "Status": {
+        "type": "string"
+      },
+      "SubnetIds": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "Tags": {
+        "type": "array",
+        "unique_items": true,
+        "items": {
+          "ref_name": "Tag"
+        }
+      },
+      "VpcSecurityGroupIds": {
+        "type": "array",
+        "format": "AWS::EC2::SecurityGroup.Ids",
+        "items": {
+          "type": "string",
+          "format": "AWS::EC2::SecurityGroup.Id"
+        }
+      }
+    },
+    "definitions": {
+      "Tag": {
+        "type": "object",
+        "properties": {
+          "Key": {
+            "type": "string",
+            "pattern": "^(?!aws:)[a-zA-Z+-=._:/]+$",
+            "min_length": 1,
+            "max_length": 128
+          },
+          "Value": {
+            "type": "string",
+            "min_length": 0,
+            "max_length": 256
+          }
+        },
+        "required": [
+          "Key",
+          "Value"
+        ],
+        "additional_properties": false
+      }
+    },
+    "required": [
+      "ClusterArn",
+      "SnapshotName"
+    ],
+    "additional_properties": false,
+    "read_only_properties": [
+      "SnapshotArn",
+      "Status",
+      "SnapshotType",
+      "SnapshotCreationTime",
+      "ClusterCreationTime",
+      "SubnetIds",
+      "VpcSecurityGroupIds",
+      "AdminUserName",
+      "KmsKeyId"
+    ],
+    "create_only_properties": [
+      "ClusterArn",
+      "SnapshotName"
+    ],
+    "primary_identifier": [
+      "SnapshotArn"
+    ]
+  },
   "AWS::DynamoDB::Backup": {
     "type_name": "AWS::DynamoDB::Backup",
     "properties": {
@@ -114432,7 +114826,6 @@
         "properties": {
           "NonKeyAttributes": {
             "type": "array",
-            "min_items": 1,
             "max_items": 20,
             "unique_items": true,
             "items": {
@@ -114631,7 +115024,6 @@
           "SSEType": {
             "type": "string",
             "enum": [
-              "AES256",
               "KMS"
             ]
           }
@@ -129629,7 +130021,8 @@
           "Gateway",
           "GatewayLoadBalancer",
           "ServiceNetwork",
-          "Resource"
+          "Resource",
+          "Tunnel"
         ]
       },
       "VpcId": {
@@ -134864,6 +135257,9 @@
           "DeploymentCircuitBreaker": {
             "ref_name": "DeploymentCircuitBreaker"
           },
+          "EarlySuccessCriteria": {
+            "ref_name": "DeploymentEarlySuccessCriteria"
+          },
           "LifecycleHooks": {
             "type": "array",
             "items": {
@@ -134900,6 +135296,27 @@
               "CODE_DEPLOY",
               "ECS",
               "EXTERNAL"
+            ]
+          }
+        },
+        "additional_properties": false
+      },
+      "DeploymentEarlySuccessCriteria": {
+        "type": "object",
+        "properties": {
+          "Enable": {
+            "type": "boolean"
+          },
+          "HealthyPercent": {
+            "type": "integer",
+            "minimum": 0.0,
+            "maximum": 100.0
+          },
+          "SourceServiceRevisionCleanup": {
+            "type": "string",
+            "enum": [
+              "BLOCKING",
+              "DEFERRED"
             ]
           }
         },
@@ -139698,7 +140115,7 @@
           "Key": {
             "type": "string",
             "min_length": 1,
-            "max_length": 63
+            "max_length": 317
           },
           "Value": {
             "type": "string",
@@ -140115,6 +140532,13 @@
           "Threshold"
         ],
         "additional_properties": false
+      },
+      "CloudWatchLogConfiguration": {
+        "properties": {
+          "LogGroupName": {
+            "format": "AWS::Logs::LogGroup.Name"
+          }
+        }
       },
       "ComputeLimits": {
         "type": "object",
@@ -144697,6 +145121,9 @@
       "MajorEngineVersion": {
         "type": "string"
       },
+      "NetworkType": {
+        "ref_name": "NetworkType"
+      },
       "ReaderEndpoint": {
         "ref_name": "Endpoint"
       },
@@ -144756,6 +145183,13 @@
         },
         "additional_properties": false
       },
+      "ConnectionType": {
+        "type": "string",
+        "enum": [
+          "vpc",
+          "public"
+        ]
+      },
       "DataStorage": {
         "type": "object",
         "properties": {
@@ -144800,6 +145234,14 @@
           }
         },
         "additional_properties": false
+      },
+      "NetworkType": {
+        "type": "string",
+        "enum_case_insensitive": [
+          "dual_stack",
+          "ipv4",
+          "ipv6"
+        ]
       },
       "Tag": {
         "type": "object",
@@ -144846,7 +145288,8 @@
       "ServerlessCacheName",
       "KmsKeyId",
       "SnapshotArnsToRestore",
-      "SubnetIds"
+      "SubnetIds",
+      "NetworkType"
     ],
     "primary_identifier": [
       "ServerlessCacheName"
@@ -145317,6 +145760,9 @@
         "min_length": 1,
         "max_length": 100
       },
+      "BuildConfiguration": {
+        "ref_name": "BuildConfiguration"
+      },
       "Description": {
         "type": "string",
         "min_length": 0,
@@ -145325,11 +145771,127 @@
       "Id": {
         "type": "string"
       },
+      "ImageConfiguration": {
+        "ref_name": "ImageConfiguration"
+      },
+      "Process": {
+        "type": "boolean"
+      },
       "SourceBundle": {
         "ref_name": "SourceBundle"
       }
     },
     "definitions": {
+      "BuildConfiguration": {
+        "type": "object",
+        "properties": {
+          "ArtifactName": {
+            "type": "string"
+          },
+          "CodeBuildServiceRole": {
+            "type": "string",
+            "pattern": "\\S"
+          },
+          "ComputeType": {
+            "type": "string",
+            "enum": [
+              "BUILD_GENERAL1_SMALL",
+              "BUILD_GENERAL1_MEDIUM",
+              "BUILD_GENERAL1_LARGE"
+            ]
+          },
+          "Image": {
+            "type": "string",
+            "pattern": "\\S"
+          },
+          "TimeoutInMinutes": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "CodeBuildServiceRole",
+          "Image"
+        ],
+        "additional_properties": false
+      },
+      "ImageBuildConfiguration": {
+        "type": "object",
+        "properties": {
+          "Architecture": {
+            "type": "string",
+            "enum": [
+              "amd64",
+              "arm64"
+            ]
+          },
+          "Buildpack": {
+            "type": "string"
+          },
+          "CodeBuildServiceRole": {
+            "type": "string",
+            "pattern": "\\S"
+          },
+          "ComputeType": {
+            "type": "string",
+            "enum": [
+              "BUILD_GENERAL1_SMALL",
+              "BUILD_GENERAL1_MEDIUM",
+              "BUILD_GENERAL1_LARGE"
+            ]
+          },
+          "DockerfileLocation": {
+            "type": "string"
+          },
+          "TimeoutInMinutes": {
+            "type": "integer"
+          },
+          "Type": {
+            "type": "string",
+            "enum": [
+              "docker",
+              "buildpack"
+            ]
+          }
+        },
+        "required": [
+          "Type",
+          "CodeBuildServiceRole"
+        ],
+        "additional_properties": false
+      },
+      "ImageConfiguration": {
+        "type": "object",
+        "properties": {
+          "Build": {
+            "ref_name": "ImageBuildConfiguration"
+          },
+          "Source": {
+            "ref_name": "ImageSource"
+          }
+        },
+        "additional_properties": false,
+        "one_of": [
+          {
+            "required": [
+              "Source"
+            ]
+          },
+          {
+            "required": [
+              "Build"
+            ]
+          }
+        ]
+      },
+      "ImageSource": {
+        "type": "object",
+        "properties": {
+          "Uri": {
+            "type": "string"
+          }
+        },
+        "additional_properties": false
+      },
       "SourceBundle": {
         "type": "object",
         "properties": {
@@ -145353,16 +145915,23 @@
       }
     },
     "required": [
-      "ApplicationName",
-      "SourceBundle"
+      "ApplicationName"
     ],
     "additional_properties": false,
     "read_only_properties": [
       "Id"
     ],
+    "write_only_properties": [
+      "BuildConfiguration",
+      "ImageConfiguration",
+      "Process"
+    ],
     "create_only_properties": [
       "SourceBundle",
-      "ApplicationName"
+      "ApplicationName",
+      "ImageConfiguration",
+      "BuildConfiguration",
+      "Process"
     ],
     "primary_identifier": [
       "ApplicationName",
@@ -152918,6 +153487,118 @@
     ],
     "source_url": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-fis.git"
   },
+  "AWS::FMS::ApplicationsList": {
+    "type_name": "AWS::FMS::ApplicationsList",
+    "properties": {
+      "AppsList": {
+        "type": "array",
+        "items": {
+          "ref_name": "App"
+        }
+      },
+      "Arn": {
+        "type": "string",
+        "pattern": "^arn:aws(-[a-z0-9-]+)?:fms:[a-z0-9-]*:[0-9]{12}:applications-list/[a-z0-9A-Z-]{36}$",
+        "min_length": 1,
+        "max_length": 1024
+      },
+      "CreateTime": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "LastUpdateTime": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "ListId": {
+        "type": "string",
+        "pattern": "^[a-z0-9A-Z-]{36}$",
+        "min_length": 36,
+        "max_length": 36
+      },
+      "ListName": {
+        "type": "string",
+        "pattern": "^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$",
+        "min_length": 1,
+        "max_length": 128
+      },
+      "Tags": {
+        "type": "array",
+        "max_items": 200,
+        "unique_items": true,
+        "items": {
+          "ref_name": "Tag"
+        }
+      }
+    },
+    "definitions": {
+      "App": {
+        "type": "object",
+        "properties": {
+          "AppName": {
+            "type": "string",
+            "pattern": "^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$",
+            "min_length": 1,
+            "max_length": 128
+          },
+          "Port": {
+            "type": "integer",
+            "minimum": 0.0,
+            "maximum": 65535.0
+          },
+          "Protocol": {
+            "type": "string",
+            "pattern": "^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$",
+            "min_length": 1,
+            "max_length": 20
+          }
+        },
+        "required": [
+          "AppName",
+          "Protocol",
+          "Port"
+        ],
+        "additional_properties": false
+      },
+      "Tag": {
+        "type": "object",
+        "properties": {
+          "Key": {
+            "type": "string",
+            "pattern": "^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$",
+            "min_length": 1,
+            "max_length": 128
+          },
+          "Value": {
+            "type": "string",
+            "pattern": "^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$",
+            "min_length": 0,
+            "max_length": 256
+          }
+        },
+        "required": [
+          "Key",
+          "Value"
+        ],
+        "additional_properties": false
+      }
+    },
+    "required": [
+      "ListName",
+      "AppsList"
+    ],
+    "additional_properties": false,
+    "read_only_properties": [
+      "Arn",
+      "ListId",
+      "CreateTime",
+      "LastUpdateTime"
+    ],
+    "primary_identifier": [
+      "Arn"
+    ],
+    "source_url": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-fms.git"
+  },
   "AWS::FMS::NotificationChannel": {
     "type_name": "AWS::FMS::NotificationChannel",
     "properties": {
@@ -153365,6 +154046,93 @@
     ],
     "primary_identifier": [
       "Id"
+    ],
+    "source_url": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-fms.git"
+  },
+  "AWS::FMS::ProtocolsList": {
+    "type_name": "AWS::FMS::ProtocolsList",
+    "properties": {
+      "Arn": {
+        "type": "string",
+        "pattern": "^arn:aws(-[a-z0-9-]+)?:fms:[a-z0-9-]*:[0-9]{12}:protocols-list/[a-z0-9A-Z-]{36}$",
+        "min_length": 1,
+        "max_length": 1024
+      },
+      "CreateTime": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "LastUpdateTime": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "ListId": {
+        "type": "string",
+        "pattern": "^[a-z0-9A-Z-]{36}$",
+        "min_length": 36,
+        "max_length": 36
+      },
+      "ListName": {
+        "type": "string",
+        "pattern": "^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$",
+        "min_length": 1,
+        "max_length": 128
+      },
+      "ProtocolsList": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "pattern": "^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$",
+          "min_length": 1,
+          "max_length": 20
+        }
+      },
+      "Tags": {
+        "type": "array",
+        "max_items": 200,
+        "unique_items": true,
+        "items": {
+          "ref_name": "Tag"
+        }
+      }
+    },
+    "definitions": {
+      "Tag": {
+        "type": "object",
+        "properties": {
+          "Key": {
+            "type": "string",
+            "pattern": "^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$",
+            "min_length": 1,
+            "max_length": 128
+          },
+          "Value": {
+            "type": "string",
+            "pattern": "^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$",
+            "min_length": 0,
+            "max_length": 256
+          }
+        },
+        "required": [
+          "Key",
+          "Value"
+        ],
+        "additional_properties": false
+      }
+    },
+    "required": [
+      "ListName",
+      "ProtocolsList"
+    ],
+    "additional_properties": false,
+    "read_only_properties": [
+      "Arn",
+      "ListId",
+      "CreateTime",
+      "LastUpdateTime"
+    ],
+    "primary_identifier": [
+      "Arn"
     ],
     "source_url": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-fms.git"
   },
@@ -154542,6 +155310,98 @@
     ],
     "primary_identifier": [
       "Id"
+    ],
+    "all_of": [
+      {
+        "if_then_else": [
+          {
+            "condition": {
+              "properties": {
+                "FileSystemType": {
+                  "enum": [
+                    "WINDOWS"
+                  ]
+                }
+              },
+              "required": [
+                "FileSystemType"
+              ]
+            },
+            "then_schema": {
+              "properties": {
+                "StorageCapacity": {
+                  "minimum": 32.0,
+                  "maximum": 65536.0
+                }
+              }
+            }
+          },
+          {
+            "condition": {
+              "properties": {
+                "FileSystemType": {
+                  "enum": [
+                    "LUSTRE"
+                  ]
+                }
+              },
+              "required": [
+                "FileSystemType"
+              ]
+            },
+            "then_schema": {
+              "properties": {
+                "StorageCapacity": {
+                  "minimum": 1200.0
+                }
+              }
+            }
+          },
+          {
+            "condition": {
+              "properties": {
+                "FileSystemType": {
+                  "enum": [
+                    "OPENZFS"
+                  ]
+                }
+              },
+              "required": [
+                "FileSystemType"
+              ]
+            },
+            "then_schema": {
+              "properties": {
+                "StorageCapacity": {
+                  "minimum": 64.0,
+                  "maximum": 524288.0
+                }
+              }
+            }
+          },
+          {
+            "condition": {
+              "properties": {
+                "FileSystemType": {
+                  "enum": [
+                    "ONTAP"
+                  ]
+                }
+              },
+              "required": [
+                "FileSystemType"
+              ]
+            },
+            "then_schema": {
+              "properties": {
+                "StorageCapacity": {
+                  "minimum": 1024.0
+                }
+              }
+            }
+          }
+        ]
+      }
     ]
   },
   "AWS::FSx::S3AccessPointAttachment": {
@@ -162276,6 +163136,755 @@
     "primary_identifier": [
       "CatalogId",
       "Name"
+    ]
+  },
+  "AWS::Glue::ConnectionType": {
+    "type_name": "AWS::Glue::ConnectionType",
+    "properties": {
+      "ConnectionProperties": {
+        "ref_name": "ConnectionPropertiesConfiguration"
+      },
+      "ConnectionType": {
+        "type": "string",
+        "min_length": 1,
+        "max_length": 255
+      },
+      "ConnectionTypeArn": {
+        "type": "string",
+        "pattern": "^arn:aws(-(cn|us-gov|iso(-[bef])?))?:glue:",
+        "min_length": 1,
+        "max_length": 10240
+      },
+      "ConnectorAuthenticationConfiguration": {
+        "ref_name": "ConnectorAuthenticationConfiguration"
+      },
+      "Description": {
+        "type": "string",
+        "min_length": 0,
+        "max_length": 1024
+      },
+      "IntegrationType": {
+        "type": "string",
+        "enum": [
+          "REST"
+        ]
+      },
+      "RestConfiguration": {
+        "ref_name": "RestConfiguration"
+      },
+      "Tags": {
+        "type": "array",
+        "max_items": 50,
+        "items": {
+          "ref_name": "Tag"
+        }
+      }
+    },
+    "definitions": {
+      "BasicAuthenticationProperties": {
+        "type": "object",
+        "properties": {
+          "Password": {
+            "ref_name": "SecretConnectorProperty"
+          },
+          "Username": {
+            "ref_name": "SecretConnectorProperty"
+          }
+        },
+        "additional_properties": false
+      },
+      "BetweenConfiguration": {
+        "type": "object",
+        "properties": {
+          "HighBoundKey": {
+            "type": "string"
+          },
+          "LowBoundKey": {
+            "type": "string"
+          },
+          "Template": {
+            "type": "string"
+          }
+        },
+        "additional_properties": false
+      },
+      "ClientCredentialsProperties": {
+        "type": "object",
+        "properties": {
+          "ClientId": {
+            "ref_name": "SecretConnectorProperty"
+          },
+          "ClientSecret": {
+            "ref_name": "SecretConnectorProperty"
+          },
+          "ContentType": {
+            "type": "string",
+            "enum": [
+              "APPLICATION_JSON",
+              "URL_ENCODED"
+            ]
+          },
+          "RequestMethod": {
+            "type": "string",
+            "enum": [
+              "GET",
+              "POST"
+            ]
+          },
+          "Scope": {
+            "ref_name": "ConnectorProperty"
+          },
+          "TokenUrl": {
+            "ref_name": "ConnectorProperty"
+          },
+          "TokenUrlParameters": {
+            "type": "array",
+            "items": {
+              "ref_name": "ConnectorProperty"
+            }
+          }
+        },
+        "additional_properties": false
+      },
+      "ConnectionPropertiesConfiguration": {
+        "type": "object",
+        "properties": {
+          "AdditionalRequestParameters": {
+            "type": "array",
+            "items": {
+              "ref_name": "ConnectorProperty"
+            }
+          },
+          "Url": {
+            "ref_name": "ConnectorProperty"
+          }
+        },
+        "additional_properties": false
+      },
+      "ConnectorAuthenticationConfiguration": {
+        "type": "object",
+        "properties": {
+          "AuthenticationTypes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "BASIC",
+                "OAUTH2",
+                "CUSTOM",
+                "IAM"
+              ]
+            }
+          },
+          "BasicAuthenticationProperties": {
+            "ref_name": "BasicAuthenticationProperties"
+          },
+          "CustomAuthenticationProperties": {
+            "ref_name": "CustomAuthenticationProperties"
+          },
+          "OAuth2Properties": {
+            "ref_name": "ConnectorOAuth2Properties"
+          }
+        },
+        "required": [
+          "AuthenticationTypes"
+        ],
+        "additional_properties": false
+      },
+      "ConnectorAuthorizationCodeProperties": {
+        "type": "object",
+        "properties": {
+          "AuthorizationCode": {
+            "ref_name": "ConnectorProperty"
+          },
+          "AuthorizationCodeUrl": {
+            "ref_name": "ConnectorProperty"
+          },
+          "ClientId": {
+            "ref_name": "SecretConnectorProperty"
+          },
+          "ClientSecret": {
+            "ref_name": "SecretConnectorProperty"
+          },
+          "ContentType": {
+            "type": "string",
+            "enum": [
+              "APPLICATION_JSON",
+              "URL_ENCODED"
+            ]
+          },
+          "Prompt": {
+            "ref_name": "ConnectorProperty"
+          },
+          "RedirectUri": {
+            "ref_name": "ConnectorProperty"
+          },
+          "RequestMethod": {
+            "type": "string",
+            "enum": [
+              "GET",
+              "POST"
+            ]
+          },
+          "Scope": {
+            "ref_name": "ConnectorProperty"
+          },
+          "TokenUrl": {
+            "ref_name": "ConnectorProperty"
+          },
+          "TokenUrlParameters": {
+            "type": "array",
+            "items": {
+              "ref_name": "ConnectorProperty"
+            }
+          }
+        },
+        "additional_properties": false
+      },
+      "ConnectorOAuth2Properties": {
+        "type": "object",
+        "properties": {
+          "AuthorizationCodeProperties": {
+            "ref_name": "ConnectorAuthorizationCodeProperties"
+          },
+          "ClientCredentialsProperties": {
+            "ref_name": "ClientCredentialsProperties"
+          },
+          "JWTBearerProperties": {
+            "ref_name": "JWTBearerProperties"
+          },
+          "OAuth2GrantType": {
+            "type": "string",
+            "enum": [
+              "CLIENT_CREDENTIALS",
+              "JWT_BEARER",
+              "AUTHORIZATION_CODE"
+            ]
+          }
+        },
+        "required": [
+          "OAuth2GrantType"
+        ],
+        "additional_properties": false
+      },
+      "ConnectorProperty": {
+        "type": "object",
+        "properties": {
+          "AllowedValues": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "DefaultValue": {
+            "type": "string"
+          },
+          "KeyOverride": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9_-]+$",
+            "min_length": 1,
+            "max_length": 128
+          },
+          "Name": {
+            "type": "string",
+            "min_length": 1,
+            "max_length": 128
+          },
+          "PropertyLocation": {
+            "type": "string",
+            "enum": [
+              "HEADER",
+              "BODY",
+              "QUERY_PARAM",
+              "PATH"
+            ]
+          },
+          "PropertyType": {
+            "type": "string",
+            "enum": [
+              "USER_INPUT",
+              "SECRET",
+              "READ_ONLY",
+              "UNUSED",
+              "SECRET_OR_USER_INPUT"
+            ]
+          },
+          "Required": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "Name",
+          "Required",
+          "PropertyType"
+        ],
+        "additional_properties": false
+      },
+      "CursorConfiguration": {
+        "type": "object",
+        "properties": {
+          "LimitParameter": {
+            "ref_name": "ExtractedParameter"
+          },
+          "NextPage": {
+            "ref_name": "ExtractedParameter"
+          }
+        },
+        "required": [
+          "NextPage"
+        ],
+        "additional_properties": false
+      },
+      "CustomAuthenticationProperties": {
+        "type": "object",
+        "properties": {
+          "AuthenticationParameters": {
+            "type": "array",
+            "items": {
+              "ref_name": "SecretConnectorProperty"
+            }
+          }
+        },
+        "required": [
+          "AuthenticationParameters"
+        ],
+        "additional_properties": false
+      },
+      "EntityConfiguration": {
+        "type": "object",
+        "properties": {
+          "Schema": {
+            "type": "object",
+            "additional_properties": false,
+            "pattern_properties": {
+              "^[a-zA-Z0-9_ -]+$": {
+                "ref_name": "FieldDefinition"
+              }
+            }
+          },
+          "SourceConfiguration": {
+            "ref_name": "SourceConfiguration"
+          }
+        },
+        "additional_properties": false
+      },
+      "ExtractedParameter": {
+        "type": "object",
+        "properties": {
+          "DefaultValue": {
+            "type": "string",
+            "pattern": "[^<>&'\"]",
+            "min_length": 1,
+            "max_length": 1024
+          },
+          "Key": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9_-]+$",
+            "min_length": 1,
+            "max_length": 128
+          },
+          "PropertyLocation": {
+            "type": "string",
+            "enum": [
+              "HEADER",
+              "BODY",
+              "QUERY_PARAM",
+              "PATH"
+            ]
+          },
+          "Value": {
+            "ref_name": "ResponseExtractionMapping"
+          }
+        },
+        "additional_properties": false
+      },
+      "FieldDefinition": {
+        "type": "object",
+        "properties": {
+          "FieldDataType": {
+            "type": "string",
+            "enum": [
+              "INT",
+              "SMALLINT",
+              "BIGINT",
+              "FLOAT",
+              "LONG",
+              "DATE",
+              "BOOLEAN",
+              "MAP",
+              "ARRAY",
+              "STRING",
+              "TIMESTAMP",
+              "DECIMAL",
+              "BYTE",
+              "SHORT",
+              "DOUBLE",
+              "STRUCT",
+              "BINARY",
+              "UNION"
+            ]
+          },
+          "FilterOverrides": {
+            "ref_name": "FilterOverrides"
+          },
+          "IsNullable": {
+            "type": "boolean"
+          },
+          "IsOrderable": {
+            "type": "boolean"
+          },
+          "IsPartitionable": {
+            "type": "boolean"
+          },
+          "IsQueryable": {
+            "type": "boolean"
+          },
+          "Name": {
+            "type": "string"
+          },
+          "ResponseDateFormat": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "Name",
+          "FieldDataType"
+        ],
+        "additional_properties": false
+      },
+      "FilterConfiguration": {
+        "type": "object",
+        "properties": {
+          "BetweenConfiguration": {
+            "ref_name": "BetweenConfiguration"
+          },
+          "DateTimeFormat": {
+            "type": "string"
+          },
+          "FilterMode": {
+            "type": "string",
+            "enum": [
+              "QUERY_PARAMS",
+              "FILTER_STRING"
+            ]
+          },
+          "FilterStringConfiguration": {
+            "ref_name": "FilterStringConfiguration"
+          },
+          "OperatorMappings": {
+            "type": "object",
+            "additional_properties": false,
+            "pattern_properties": {
+              "^.+$": {
+                "type": "string"
+              }
+            }
+          },
+          "StripQuotes": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "FilterMode"
+        ],
+        "additional_properties": false
+      },
+      "FilterOverrides": {
+        "type": "object",
+        "properties": {
+          "BetweenConfiguration": {
+            "ref_name": "BetweenConfiguration"
+          },
+          "DateTimeFormat": {
+            "type": "string"
+          },
+          "FieldName": {
+            "type": "string"
+          },
+          "OperatorMappings": {
+            "type": "object",
+            "additional_properties": false,
+            "pattern_properties": {
+              "^.+$": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "additional_properties": false
+      },
+      "FilterStringConfiguration": {
+        "type": "object",
+        "properties": {
+          "QueryParameterName": {
+            "type": "string"
+          },
+          "QuoteCharacter": {
+            "type": "string"
+          },
+          "QuoteStringValues": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "QueryParameterName"
+        ],
+        "additional_properties": false
+      },
+      "JWTBearerProperties": {
+        "type": "object",
+        "properties": {
+          "ContentType": {
+            "type": "string",
+            "enum": [
+              "APPLICATION_JSON",
+              "URL_ENCODED"
+            ]
+          },
+          "JwtToken": {
+            "ref_name": "SecretConnectorProperty"
+          },
+          "RequestMethod": {
+            "type": "string",
+            "enum": [
+              "GET",
+              "POST"
+            ]
+          },
+          "TokenUrl": {
+            "ref_name": "ConnectorProperty"
+          },
+          "TokenUrlParameters": {
+            "type": "array",
+            "items": {
+              "ref_name": "ConnectorProperty"
+            }
+          }
+        },
+        "additional_properties": false
+      },
+      "OffsetConfiguration": {
+        "type": "object",
+        "properties": {
+          "LimitParameter": {
+            "ref_name": "ExtractedParameter"
+          },
+          "OffsetParameter": {
+            "ref_name": "ExtractedParameter"
+          }
+        },
+        "required": [
+          "OffsetParameter",
+          "LimitParameter"
+        ],
+        "additional_properties": false
+      },
+      "PaginationConfiguration": {
+        "type": "object",
+        "properties": {
+          "CursorConfiguration": {
+            "ref_name": "CursorConfiguration"
+          },
+          "OffsetConfiguration": {
+            "ref_name": "OffsetConfiguration"
+          }
+        },
+        "additional_properties": false
+      },
+      "ResponseConfiguration": {
+        "type": "object",
+        "properties": {
+          "ErrorPath": {
+            "type": "string",
+            "pattern": "^\\$(\\.[a-zA-Z0-9_.@\\[\\]\\(\\)-]+)*$",
+            "min_length": 1,
+            "max_length": 512
+          },
+          "ResultPath": {
+            "type": "string",
+            "pattern": "^\\$(\\.[a-zA-Z0-9_.@\\[\\]\\(\\)-]+)*$",
+            "min_length": 1,
+            "max_length": 512
+          }
+        },
+        "required": [
+          "ResultPath"
+        ],
+        "additional_properties": false
+      },
+      "ResponseExtractionMapping": {
+        "type": "object",
+        "properties": {
+          "ContentPath": {
+            "type": "string",
+            "pattern": "^\\$(\\.[a-zA-Z0-9_.@\\[\\]\\(\\)-]+)*$",
+            "min_length": 1,
+            "max_length": 512
+          },
+          "HeaderKey": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9_-]+$",
+            "min_length": 1,
+            "max_length": 128
+          }
+        },
+        "additional_properties": false
+      },
+      "RestConfiguration": {
+        "type": "object",
+        "properties": {
+          "EntityConfigurations": {
+            "type": "object",
+            "additional_properties": false,
+            "pattern_properties": {
+              "^[a-zA-Z0-9_ -]+$": {
+                "ref_name": "EntityConfiguration"
+              }
+            }
+          },
+          "GlobalSourceConfiguration": {
+            "ref_name": "SourceConfiguration"
+          },
+          "ValidationEndpointConfiguration": {
+            "type": "object",
+            "properties": {
+              "RequestMethod": {
+                "type": "string",
+                "enum": [
+                  "GET",
+                  "POST"
+                ]
+              },
+              "RequestPath": {
+                "type": "string",
+                "pattern": "^/[a-zA-Z0-9._~:/?#\\[\\]@!$&'()*+,;={}-]*$",
+                "min_length": 1,
+                "max_length": 512
+              }
+            },
+            "additional_properties": false
+          }
+        },
+        "additional_properties": false
+      },
+      "SecretConnectorProperty": {
+        "type": "object",
+        "properties": {
+          "KeyOverride": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9_-]+$",
+            "min_length": 1,
+            "max_length": 128
+          },
+          "Name": {
+            "type": "string",
+            "min_length": 1,
+            "max_length": 128
+          },
+          "PropertyLocation": {
+            "type": "string",
+            "enum": [
+              "HEADER",
+              "BODY",
+              "QUERY_PARAM",
+              "PATH"
+            ]
+          },
+          "PropertyType": {
+            "type": "string",
+            "enum": [
+              "SECRET"
+            ]
+          },
+          "Required": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "Name",
+          "Required",
+          "PropertyType"
+        ],
+        "additional_properties": false
+      },
+      "SourceConfiguration": {
+        "type": "object",
+        "properties": {
+          "FilterConfiguration": {
+            "ref_name": "FilterConfiguration"
+          },
+          "PaginationConfiguration": {
+            "ref_name": "PaginationConfiguration"
+          },
+          "RequestMethod": {
+            "type": "string",
+            "enum": [
+              "GET",
+              "POST"
+            ]
+          },
+          "RequestParameters": {
+            "type": "array",
+            "items": {
+              "ref_name": "ConnectorProperty"
+            }
+          },
+          "RequestPath": {
+            "type": "string",
+            "pattern": "^/[a-zA-Z0-9._~:/?#\\[\\]@!$&'()*+,;={}-]*$",
+            "min_length": 1,
+            "max_length": 512
+          },
+          "ResponseConfiguration": {
+            "ref_name": "ResponseConfiguration"
+          }
+        },
+        "additional_properties": false
+      },
+      "Tag": {
+        "type": "object",
+        "properties": {
+          "Key": {
+            "type": "string",
+            "min_length": 1,
+            "max_length": 128
+          },
+          "Value": {
+            "type": "string",
+            "min_length": 0,
+            "max_length": 256
+          }
+        },
+        "required": [
+          "Key",
+          "Value"
+        ],
+        "additional_properties": false
+      }
+    },
+    "required": [
+      "ConnectionType",
+      "RestConfiguration"
+    ],
+    "additional_properties": false,
+    "read_only_properties": [
+      "ConnectionTypeArn"
+    ],
+    "write_only_properties": [
+      "ConnectionProperties",
+      "ConnectorAuthenticationConfiguration",
+      "IntegrationType"
+    ],
+    "create_only_properties": [
+      "ConnectionType",
+      "IntegrationType",
+      "Description",
+      "RestConfiguration",
+      "ConnectionProperties",
+      "ConnectorAuthenticationConfiguration"
+    ],
+    "primary_identifier": [
+      "ConnectionTypeArn"
     ]
   },
   "AWS::Glue::Crawler": {
@@ -187916,7 +189525,8 @@
       "LastModificationTime"
     ],
     "create_only_properties": [
-      "Name"
+      "Name",
+      "SignalCatalogArn"
     ],
     "primary_identifier": [
       "Name"
@@ -188563,6 +190173,112 @@
     ],
     "primary_identifier": [
       "Name"
+    ]
+  },
+  "AWS::IoTManagedIntegrations::AccountAssociation": {
+    "type_name": "AWS::IoTManagedIntegrations::AccountAssociation",
+    "properties": {
+      "AccountAssociationId": {
+        "type": "string",
+        "pattern": "^[0-9a-zA-Z]+$",
+        "min_length": 1,
+        "max_length": 64
+      },
+      "Arn": {
+        "type": "string",
+        "pattern": "^arn:[a-z-]+:iotmanagedintegrations:[0-9a-zA-Z-]+:[0-9]+:account-association/[0-9a-zA-Z]+$",
+        "min_length": 67,
+        "max_length": 1011
+      },
+      "AssociationState": {
+        "type": "string",
+        "enum": [
+          "ASSOCIATION_IN_PROGRESS",
+          "ASSOCIATION_FAILED",
+          "ASSOCIATION_SUCCEEDED",
+          "ASSOCIATION_DELETING",
+          "REFRESH_TOKEN_EXPIRED"
+        ]
+      },
+      "ConnectorDestinationId": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9-_]+$",
+        "min_length": 1,
+        "max_length": 64
+      },
+      "Description": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9-_ ]+$",
+        "min_length": 1,
+        "max_length": 4096
+      },
+      "GeneralAuthorization": {
+        "ref_name": "GeneralAuthorization"
+      },
+      "Name": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9-_ ]+$",
+        "min_length": 1,
+        "max_length": 128
+      },
+      "Tags": {
+        "type": "array",
+        "max_items": 50,
+        "unique_items": true,
+        "items": {
+          "ref_name": "Tag"
+        }
+      }
+    },
+    "definitions": {
+      "GeneralAuthorization": {
+        "type": "object",
+        "properties": {
+          "AuthMaterialName": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9=_+/-]+$",
+            "min_length": 1,
+            "max_length": 100
+          }
+        },
+        "additional_properties": false
+      },
+      "Tag": {
+        "type": "object",
+        "properties": {
+          "Key": {
+            "type": "string",
+            "min_length": 1,
+            "max_length": 128
+          },
+          "Value": {
+            "type": "string",
+            "min_length": 0,
+            "max_length": 256
+          }
+        },
+        "required": [
+          "Key",
+          "Value"
+        ],
+        "additional_properties": false
+      }
+    },
+    "required": [
+      "ConnectorDestinationId"
+    ],
+    "additional_properties": false,
+    "read_only_properties": [
+      "Arn",
+      "AccountAssociationId",
+      "AssociationState"
+    ],
+    "create_only_properties": [
+      "ConnectorDestinationId",
+      "GeneralAuthorization"
+    ],
+    "primary_identifier": [
+      "Arn"
     ]
   },
   "AWS::IoTManagedIntegrations::CredentialLocker": {
@@ -189393,6 +191109,131 @@
       "AccessPolicyId"
     ],
     "source_url": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-IoTSiteWise.git"
+  },
+  "AWS::IoTSiteWise::Application": {
+    "type_name": "AWS::IoTSiteWise::Application",
+    "properties": {
+      "ApplicationId": {
+        "type": "string",
+        "pattern": "^[a-z0-9-]{36}$",
+        "min_length": 36,
+        "max_length": 36
+      },
+      "Arn": {
+        "type": "string",
+        "pattern": "^arn:aws(-cn|-us-gov)?:[a-zA-Z0-9-:\\/_\\.]+$",
+        "min_length": 1,
+        "max_length": 1600
+      },
+      "CreatedAt": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "Description": {
+        "type": "string",
+        "pattern": "^[^\\u0000-\\u001F\\u007F]+$",
+        "min_length": 1,
+        "max_length": 2048
+      },
+      "DnsSubdomain": {
+        "type": "string",
+        "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$",
+        "min_length": 1,
+        "max_length": 63
+      },
+      "IdcApplicationArn": {
+        "type": "string",
+        "pattern": "^arn:aws(-cn|-us-gov)?:[a-zA-Z0-9-:\\/_\\.]+$",
+        "min_length": 1,
+        "max_length": 1600
+      },
+      "IdcInstanceArn": {
+        "type": "string",
+        "pattern": "^arn:aws(-cn|-us-gov)?:[a-zA-Z0-9-:\\/_\\.]+$",
+        "min_length": 1,
+        "max_length": 1600
+      },
+      "Name": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9](?:[A-Za-z0-9 ._()\\-]*[A-Za-z0-9._()\\-])?$",
+        "min_length": 1,
+        "max_length": 256
+      },
+      "Status": {
+        "type": "string",
+        "enum": [
+          "CREATING",
+          "ACTIVE",
+          "DELETING"
+        ]
+      },
+      "Tags": {
+        "type": "array",
+        "max_items": 50,
+        "items": {
+          "ref_name": "Tag"
+        }
+      },
+      "UpdatedAt": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "WorkspaceName": {
+        "type": "string",
+        "pattern": "^[a-zA-Z0-9_-]+$",
+        "min_length": 1,
+        "max_length": 64
+      }
+    },
+    "definitions": {
+      "Tag": {
+        "type": "object",
+        "properties": {
+          "Key": {
+            "type": "string",
+            "min_length": 1,
+            "max_length": 128
+          },
+          "Value": {
+            "type": "string",
+            "min_length": 0,
+            "max_length": 256
+          }
+        },
+        "required": [
+          "Key",
+          "Value"
+        ],
+        "additional_properties": false
+      }
+    },
+    "required": [
+      "WorkspaceName",
+      "Name"
+    ],
+    "additional_properties": false,
+    "read_only_properties": [
+      "Arn",
+      "ApplicationId",
+      "IdcApplicationArn",
+      "DnsSubdomain",
+      "Status",
+      "CreatedAt",
+      "UpdatedAt"
+    ],
+    "write_only_properties": [
+      "IdcInstanceArn"
+    ],
+    "create_only_properties": [
+      "WorkspaceName",
+      "Name",
+      "Description",
+      "IdcInstanceArn"
+    ],
+    "primary_identifier": [
+      "Arn"
+    ],
+    "replacement_strategy": "delete_then_create"
   },
   "AWS::IoTSiteWise::Asset": {
     "type_name": "AWS::IoTSiteWise::Asset",
@@ -197007,6 +198848,119 @@
       "IndexId"
     ],
     "source_url": "https://docs.aws.amazon.com/kendra/latest/dg/in-creating-faq.html"
+  },
+  "AWS::Kendra::FeaturedResultsSet": {
+    "type_name": "AWS::Kendra::FeaturedResultsSet",
+    "properties": {
+      "Arn": {
+        "type": "string",
+        "pattern": "^arn:[a-z0-9-]+:kendra:[a-z0-9-]+:[0-9]{12}:index/[a-zA-Z0-9][a-zA-Z0-9-]*/featured-results-set/[a-zA-Z-0-9]+$"
+      },
+      "Description": {
+        "type": "string",
+        "pattern": "^\\P{C}*$",
+        "min_length": 0,
+        "max_length": 1000
+      },
+      "FeaturedDocuments": {
+        "type": "array",
+        "items": {
+          "ref_name": "FeaturedDocument"
+        }
+      },
+      "FeaturedResultsSetId": {
+        "type": "string",
+        "pattern": "^[a-zA-Z-0-9]*$",
+        "min_length": 36,
+        "max_length": 36
+      },
+      "FeaturedResultsSetName": {
+        "type": "string",
+        "pattern": "^[a-zA-Z0-9][ a-zA-Z0-9_-]*$",
+        "min_length": 1,
+        "max_length": 1000
+      },
+      "IndexId": {
+        "type": "string",
+        "pattern": "^[a-zA-Z0-9][a-zA-Z0-9-]*$",
+        "min_length": 36,
+        "max_length": 36
+      },
+      "QueryTexts": {
+        "type": "array",
+        "min_items": 0,
+        "max_items": 49,
+        "items": {
+          "type": "string"
+        }
+      },
+      "Status": {
+        "type": "string",
+        "enum": [
+          "ACTIVE",
+          "INACTIVE"
+        ]
+      },
+      "Tags": {
+        "type": "array",
+        "min_items": 0,
+        "max_items": 200,
+        "items": {
+          "ref_name": "Tag"
+        }
+      }
+    },
+    "definitions": {
+      "FeaturedDocument": {
+        "type": "object",
+        "properties": {
+          "Id": {
+            "type": "string",
+            "min_length": 1,
+            "max_length": 2048
+          }
+        },
+        "additional_properties": false
+      },
+      "Tag": {
+        "type": "object",
+        "properties": {
+          "Key": {
+            "type": "string",
+            "min_length": 1,
+            "max_length": 128
+          },
+          "Value": {
+            "type": "string",
+            "min_length": 0,
+            "max_length": 256
+          }
+        },
+        "required": [
+          "Key",
+          "Value"
+        ],
+        "additional_properties": false
+      }
+    },
+    "required": [
+      "IndexId",
+      "FeaturedResultsSetName"
+    ],
+    "additional_properties": false,
+    "read_only_properties": [
+      "Arn",
+      "FeaturedResultsSetId"
+    ],
+    "write_only_properties": [
+      "FeaturedDocuments"
+    ],
+    "create_only_properties": [
+      "IndexId"
+    ],
+    "primary_identifier": [
+      "Arn"
+    ]
   },
   "AWS::Kendra::Index": {
     "type_name": "AWS::Kendra::Index",
@@ -210001,6 +211955,112 @@
     ],
     "source_url": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-licensemanager.git"
   },
+  "AWS::LicenseManager::LicenseAssetGroup": {
+    "type_name": "AWS::LicenseManager::LicenseAssetGroup",
+    "properties": {
+      "AssociatedLicenseAssetRulesetARNs": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "pattern": "^arn:aws[a-zA-Z-]*:[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9][A-Za-z0-9:_/+=,@.-]{0,1023}$",
+          "max_length": 2048
+        }
+      },
+      "Description": {
+        "type": "string",
+        "min_length": 0,
+        "max_length": 1024
+      },
+      "LicenseAssetGroupArn": {
+        "type": "string",
+        "pattern": "^arn:aws[a-zA-Z-]*:[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9][A-Za-z0-9:_/+=,@.-]{0,1023}$",
+        "max_length": 2048
+      },
+      "LicenseAssetGroupConfigurations": {
+        "type": "array",
+        "items": {
+          "ref_name": "LicenseAssetGroupConfiguration"
+        }
+      },
+      "Name": {
+        "type": "string",
+        "min_length": 0,
+        "max_length": 128
+      },
+      "Properties": {
+        "type": "array",
+        "items": {
+          "ref_name": "LicenseAssetGroupProperty"
+        }
+      },
+      "Tags": {
+        "type": "array",
+        "unique_items": true,
+        "items": {
+          "ref_name": "Tag"
+        }
+      }
+    },
+    "definitions": {
+      "LicenseAssetGroupConfiguration": {
+        "type": "object",
+        "properties": {
+          "UsageDimension": {
+            "type": "string"
+          }
+        },
+        "additional_properties": false
+      },
+      "LicenseAssetGroupProperty": {
+        "type": "object",
+        "properties": {
+          "Key": {
+            "type": "string"
+          },
+          "Value": {
+            "type": "string"
+          }
+        },
+        "additional_properties": false
+      },
+      "Tag": {
+        "type": "object",
+        "properties": {
+          "Key": {
+            "type": "string",
+            "min_length": 1,
+            "max_length": 128
+          },
+          "Value": {
+            "type": "string",
+            "min_length": 0,
+            "max_length": 256
+          }
+        },
+        "required": [
+          "Key",
+          "Value"
+        ],
+        "additional_properties": false
+      }
+    },
+    "required": [
+      "Name",
+      "AssociatedLicenseAssetRulesetARNs",
+      "LicenseAssetGroupConfigurations"
+    ],
+    "additional_properties": false,
+    "read_only_properties": [
+      "LicenseAssetGroupArn"
+    ],
+    "create_only_properties": [
+      "LicenseAssetGroupConfigurations"
+    ],
+    "primary_identifier": [
+      "LicenseAssetGroupArn"
+    ],
+    "source_url": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git"
+  },
   "AWS::LicenseManager::LicenseAssetRuleSet": {
     "type_name": "AWS::LicenseManager::LicenseAssetRuleSet",
     "properties": {
@@ -211524,24 +213584,7 @@
             "type": "array",
             "unique_items": true,
             "items": {
-              "type": "string",
-              "enum": [
-                "Accept",
-                "Accept-Charset",
-                "Accept-Datetime",
-                "Accept-Encoding",
-                "Accept-Language",
-                "Authorization",
-                "CloudFront-Forwarded-Proto",
-                "CloudFront-Is-Desktop-Viewer",
-                "CloudFront-Is-Mobile-Viewer",
-                "CloudFront-Is-SmartTV-Viewer",
-                "CloudFront-Is-Tablet-Viewer",
-                "CloudFront-Viewer-Country",
-                "Host",
-                "Origin",
-                "Referer"
-              ]
+              "type": "string"
             }
           },
           "Option": {
@@ -224229,7 +226272,8 @@
     "type_name": "AWS::MediaConvert::Queue",
     "properties": {
       "Arn": {
-        "type": "string"
+        "type": "string",
+        "pattern": "arn:(aws|aws-cn|aws-us-gov):mediaconvert:\\w+(?:-\\w+)+:[0-9]*(:queues/.*)?"
       },
       "ConcurrentJobs": {
         "type": "integer"
@@ -224237,20 +226281,22 @@
       "Description": {
         "type": "string"
       },
-      "Id": {
-        "type": "string"
-      },
-      "MaximumConcurrentFeeds": {
-        "type": "integer"
-      },
       "Name": {
         "type": "string"
       },
       "PricingPlan": {
-        "type": "string"
+        "type": "string",
+        "enum": [
+          "ON_DEMAND",
+          "RESERVED"
+        ]
       },
       "Status": {
-        "type": "string"
+        "type": "string",
+        "enum": [
+          "ACTIVE",
+          "PAUSED"
+        ]
       },
       "Tags": {
         "type": [
@@ -224264,14 +226310,13 @@
     "required": [],
     "additional_properties": false,
     "read_only_properties": [
-      "Id",
       "Arn"
     ],
     "create_only_properties": [
       "Name"
     ],
     "primary_identifier": [
-      "Id"
+      "Name"
     ]
   },
   "AWS::MediaLive::Channel": {
@@ -224392,6 +226437,21 @@
         },
         "additional_properties": false
       },
+      "AbWatermarkingCustomProfile": {
+        "type": "object",
+        "properties": {
+          "EmbeddingFrequency": {
+            "type": "number"
+          },
+          "SceneCut": {
+            "type": "number"
+          },
+          "TargetPsnr": {
+            "type": "number"
+          }
+        },
+        "additional_properties": false
+      },
       "Ac3Settings": {
         "type": "object",
         "properties": {
@@ -224456,7 +226516,7 @@
         "type": "object",
         "properties": {
           "ArchiveS3Settings": {
-            "ref_name": "ArchiveS3Settings"
+            "ref_name": "ArchiveFrameCaptureHlsS3Settings"
           }
         },
         "additional_properties": false
@@ -224468,7 +226528,16 @@
             "ref_name": "M2tsSettings"
           },
           "RawSettings": {
-            "ref_name": "RawSettings"
+            "ref_name": "EmptyConfigurationSettings"
+          }
+        },
+        "additional_properties": false
+      },
+      "ArchiveFrameCaptureHlsS3Settings": {
+        "type": "object",
+        "properties": {
+          "CannedAcl": {
+            "type": "string"
           }
         },
         "additional_properties": false
@@ -224502,29 +226571,6 @@
           }
         },
         "additional_properties": false
-      },
-      "ArchiveS3Settings": {
-        "type": "object",
-        "properties": {
-          "CannedAcl": {
-            "type": "string"
-          }
-        },
-        "additional_properties": false
-      },
-      "AribDestinationSettings": {
-        "type": [
-          "object",
-          "string"
-        ],
-        "format": "json"
-      },
-      "AribSourceSettings": {
-        "type": [
-          "object",
-          "string"
-        ],
-        "format": "json"
       },
       "AudioChannelMapping": {
         "type": "object",
@@ -224560,7 +226606,7 @@
             "ref_name": "Mp2Settings"
           },
           "PassThroughSettings": {
-            "ref_name": "PassThroughSettings"
+            "ref_name": "EmptyConfigurationSettings"
           },
           "WavSettings": {
             "ref_name": "WavSettings"
@@ -224851,19 +226897,19 @@
         "type": "object",
         "properties": {
           "ColorSpacePassthroughSettings": {
-            "ref_name": "ColorSpacePassthroughSettings"
+            "ref_name": "EmptyConfigurationSettings"
           },
           "Hdr10Settings": {
             "ref_name": "Hdr10Settings"
           },
           "Hlg2020Settings": {
-            "ref_name": "Hlg2020Settings"
+            "ref_name": "EmptyConfigurationSettings"
           },
           "Rec601Settings": {
-            "ref_name": "Rec601Settings"
+            "ref_name": "EmptyConfigurationSettings"
           },
           "Rec709Settings": {
-            "ref_name": "Rec709Settings"
+            "ref_name": "EmptyConfigurationSettings"
           }
         },
         "additional_properties": false
@@ -224977,10 +227023,10 @@
             "ref_name": "Esam"
           },
           "Scte35SpliceInsert": {
-            "ref_name": "Scte35SpliceInsert"
+            "ref_name": "Scte35SpliceInsertTimeSignalAposSettings"
           },
           "Scte35TimeSignalApos": {
-            "ref_name": "Scte35TimeSignalApos"
+            "ref_name": "Scte35SpliceInsertTimeSignalAposSettings"
           }
         },
         "additional_properties": false
@@ -225018,7 +227064,7 @@
         },
         "additional_properties": false
       },
-      "BurnInDestinationSettings": {
+      "BurnInDvbSubDestinationSettings": {
         "type": "object",
         "properties": {
           "Alignment": {
@@ -225115,13 +227161,13 @@
         "type": "object",
         "properties": {
           "AribDestinationSettings": {
-            "ref_name": "AribDestinationSettings"
+            "ref_name": "EmptyConfigurationSettings"
           },
           "BurnInDestinationSettings": {
-            "ref_name": "BurnInDestinationSettings"
+            "ref_name": "BurnInDvbSubDestinationSettings"
           },
           "DvbSubDestinationSettings": {
-            "ref_name": "DvbSubDestinationSettings"
+            "ref_name": "BurnInDvbSubDestinationSettings"
           },
           "EbuTtDDestinationSettings": {
             "ref_name": "EbuTtDDestinationSettings"
@@ -225130,22 +227176,22 @@
             "ref_name": "EmbeddedDestinationSettings"
           },
           "EmbeddedPlusScte20DestinationSettings": {
-            "ref_name": "EmbeddedPlusScte20DestinationSettings"
+            "ref_name": "EmptyConfigurationSettings"
           },
           "RtmpCaptionInfoDestinationSettings": {
-            "ref_name": "RtmpCaptionInfoDestinationSettings"
+            "ref_name": "EmptyConfigurationSettings"
           },
           "Scte20PlusEmbeddedDestinationSettings": {
-            "ref_name": "Scte20PlusEmbeddedDestinationSettings"
+            "ref_name": "EmptyConfigurationSettings"
           },
           "Scte27DestinationSettings": {
-            "ref_name": "Scte27DestinationSettings"
+            "ref_name": "EmptyConfigurationSettings"
           },
           "SmpteTtDestinationSettings": {
-            "ref_name": "SmpteTtDestinationSettings"
+            "ref_name": "EmptyConfigurationSettings"
           },
           "TeletextDestinationSettings": {
-            "ref_name": "TeletextDestinationSettings"
+            "ref_name": "EmptyConfigurationSettings"
           },
           "TtmlDestinationSettings": {
             "ref_name": "TtmlDestinationSettings"
@@ -225211,10 +227257,10 @@
             "ref_name": "AncillarySourceSettings"
           },
           "AribSourceSettings": {
-            "ref_name": "AribSourceSettings"
+            "ref_name": "EmptyConfigurationSettings"
           },
           "DvbSubSourceSettings": {
-            "ref_name": "DvbSubSourceSettings"
+            "ref_name": "Scte27DvbSubSourceSettings"
           },
           "EmbeddedSourceSettings": {
             "ref_name": "EmbeddedSourceSettings"
@@ -225223,7 +227269,7 @@
             "ref_name": "Scte20SourceSettings"
           },
           "Scte27SourceSettings": {
-            "ref_name": "Scte27SourceSettings"
+            "ref_name": "Scte27DvbSubSourceSettings"
           },
           "SmartSubtitleSourceSettings": {
             "ref_name": "SmartSubtitleSourceSettings"
@@ -225259,6 +227305,15 @@
             "type": "integer"
           },
           "LanguageCode": {
+            "type": "string"
+          }
+        },
+        "additional_properties": false
+      },
+      "CmafIngestFrameCaptureOutputSettings": {
+        "type": "object",
+        "properties": {
+          "NameModifier": {
             "type": "string"
           }
         },
@@ -225323,15 +227378,51 @@
           },
           "TimedMetadataPassthrough": {
             "type": "string"
+          },
+          "WatermarkingSettings": {
+            "ref_name": "CmafIngestWatermarkingSettings"
           }
         },
         "additional_properties": false
       },
-      "CmafIngestOutputSettings": {
+      "CmafIngestMediaPackageV2AbWatermarkerIrdetoSettings": {
         "type": "object",
         "properties": {
-          "NameModifier": {
+          "AdditionalDestinationsAlternateDestinations": {
+            "type": "array",
+            "items": {
+              "ref_name": "OutputLocationRef"
+            }
+          },
+          "AlternateDestination": {
+            "ref_name": "OutputLocationRef"
+          },
+          "CustomProfile": {
+            "ref_name": "AbWatermarkingCustomProfile"
+          },
+          "License": {
             "type": "string"
+          },
+          "OperatorId": {
+            "type": "integer"
+          },
+          "PolyPeriod": {
+            "type": "integer"
+          },
+          "Profile": {
+            "type": "string"
+          },
+          "WatermarkIdLength": {
+            "type": "string"
+          }
+        },
+        "additional_properties": false
+      },
+      "CmafIngestWatermarkingSettings": {
+        "type": "object",
+        "properties": {
+          "CmafIngestAbWatermarkerIrdetoSettings": {
+            "ref_name": "CmafIngestMediaPackageV2AbWatermarkerIrdetoSettings"
           }
         },
         "additional_properties": false
@@ -225363,13 +227454,6 @@
         },
         "additional_properties": false
       },
-      "ColorSpacePassthroughSettings": {
-        "type": [
-          "object",
-          "string"
-        ],
-        "format": "json"
-      },
       "DisabledLockingSettings": {
         "type": "object",
         "properties": {
@@ -225378,13 +227462,6 @@
           }
         },
         "additional_properties": false
-      },
-      "DolbyVision81Settings": {
-        "type": [
-          "object",
-          "string"
-        ],
-        "format": "json"
       },
       "DvbNitSettings": {
         "type": "object",
@@ -225415,78 +227492,6 @@
           },
           "ServiceProviderName": {
             "type": "string"
-          }
-        },
-        "additional_properties": false
-      },
-      "DvbSubDestinationSettings": {
-        "type": "object",
-        "properties": {
-          "Alignment": {
-            "type": "string"
-          },
-          "BackgroundColor": {
-            "type": "string"
-          },
-          "BackgroundOpacity": {
-            "type": "integer"
-          },
-          "Font": {
-            "ref_name": "InputLocation"
-          },
-          "FontColor": {
-            "type": "string"
-          },
-          "FontOpacity": {
-            "type": "integer"
-          },
-          "FontResolution": {
-            "type": "integer"
-          },
-          "FontSize": {
-            "type": "string"
-          },
-          "OutlineColor": {
-            "type": "string"
-          },
-          "OutlineSize": {
-            "type": "integer"
-          },
-          "ShadowColor": {
-            "type": "string"
-          },
-          "ShadowOpacity": {
-            "type": "integer"
-          },
-          "ShadowXOffset": {
-            "type": "integer"
-          },
-          "ShadowYOffset": {
-            "type": "integer"
-          },
-          "SubtitleRows": {
-            "type": "string"
-          },
-          "TeletextGridControl": {
-            "type": "string"
-          },
-          "XPosition": {
-            "type": "integer"
-          },
-          "YPosition": {
-            "type": "integer"
-          }
-        },
-        "additional_properties": false
-      },
-      "DvbSubSourceSettings": {
-        "type": "object",
-        "properties": {
-          "OcrLanguage": {
-            "type": "string"
-          },
-          "Pid": {
-            "type": "integer"
           }
         },
         "additional_properties": false
@@ -225617,14 +227622,16 @@
         },
         "additional_properties": false
       },
-      "EmbeddedDestinationSettings": {
-        "type": [
-          "object",
-          "string"
-        ],
-        "format": "json"
+      "EmbeddedCaptionPositionSettings": {
+        "type": "object",
+        "properties": {
+          "YPositionLine": {
+            "type": "integer"
+          }
+        },
+        "additional_properties": false
       },
-      "EmbeddedPlusScte20DestinationSettings": {
+      "EmbeddedDestinationSettings": {
         "type": [
           "object",
           "string"
@@ -225647,6 +227654,10 @@
             "type": "integer"
           }
         },
+        "additional_properties": false
+      },
+      "EmptyConfigurationSettings": {
+        "type": "object",
         "additional_properties": false
       },
       "EncoderSettings": {
@@ -225827,7 +227838,7 @@
         "type": "object",
         "properties": {
           "FrameCaptureS3Settings": {
-            "ref_name": "FrameCaptureS3Settings"
+            "ref_name": "ArchiveFrameCaptureHlsS3Settings"
           }
         },
         "additional_properties": false
@@ -225840,31 +227851,6 @@
           },
           "FrameCaptureCdnSettings": {
             "ref_name": "FrameCaptureCdnSettings"
-          }
-        },
-        "additional_properties": false
-      },
-      "FrameCaptureHlsSettings": {
-        "type": [
-          "object",
-          "string"
-        ],
-        "format": "json"
-      },
-      "FrameCaptureOutputSettings": {
-        "type": "object",
-        "properties": {
-          "NameModifier": {
-            "type": "string"
-          }
-        },
-        "additional_properties": false
-      },
-      "FrameCaptureS3Settings": {
-        "type": "object",
-        "properties": {
-          "CannedAcl": {
-            "type": "string"
           }
         },
         "additional_properties": false
@@ -225915,18 +227901,18 @@
         "type": "object",
         "properties": {
           "ColorSpacePassthroughSettings": {
-            "ref_name": "ColorSpacePassthroughSettings"
+            "ref_name": "EmptyConfigurationSettings"
           },
           "Rec601Settings": {
-            "ref_name": "Rec601Settings"
+            "ref_name": "EmptyConfigurationSettings"
           },
           "Rec709Settings": {
-            "ref_name": "Rec709Settings"
+            "ref_name": "EmptyConfigurationSettings"
           }
         },
         "additional_properties": false
       },
-      "H264FilterSettings": {
+      "H264H265FilterSettings": {
         "type": "object",
         "properties": {
           "BandwidthReductionFilterSettings": {
@@ -225966,7 +227952,7 @@
             "type": "string"
           },
           "FilterSettings": {
-            "ref_name": "H264FilterSettings"
+            "ref_name": "H264H265FilterSettings"
           },
           "FixedAfd": {
             "type": "string"
@@ -226080,34 +228066,22 @@
         "type": "object",
         "properties": {
           "ColorSpacePassthroughSettings": {
-            "ref_name": "ColorSpacePassthroughSettings"
+            "ref_name": "EmptyConfigurationSettings"
           },
           "DolbyVision81Settings": {
-            "ref_name": "DolbyVision81Settings"
+            "ref_name": "EmptyConfigurationSettings"
           },
           "Hdr10Settings": {
             "ref_name": "Hdr10Settings"
           },
           "Hlg2020Settings": {
-            "ref_name": "Hlg2020Settings"
+            "ref_name": "EmptyConfigurationSettings"
           },
           "Rec601Settings": {
-            "ref_name": "Rec601Settings"
+            "ref_name": "EmptyConfigurationSettings"
           },
           "Rec709Settings": {
-            "ref_name": "Rec709Settings"
-          }
-        },
-        "additional_properties": false
-      },
-      "H265FilterSettings": {
-        "type": "object",
-        "properties": {
-          "BandwidthReductionFilterSettings": {
-            "ref_name": "BandwidthReductionFilterSettings"
-          },
-          "TemporalFilterSettings": {
-            "ref_name": "TemporalFilterSettings"
+            "ref_name": "EmptyConfigurationSettings"
           }
         },
         "additional_properties": false
@@ -226140,7 +228114,7 @@
             "type": "string"
           },
           "FilterSettings": {
-            "ref_name": "H265FilterSettings"
+            "ref_name": "H264H265FilterSettings"
           },
           "FixedAfd": {
             "type": "string"
@@ -226256,10 +228230,6 @@
         },
         "additional_properties": false
       },
-      "Hlg2020Settings": {
-        "type": "object",
-        "additional_properties": false
-      },
       "HlsAkamaiSettings": {
         "type": "object",
         "properties": {
@@ -226318,7 +228288,7 @@
             "ref_name": "HlsMediaStoreSettings"
           },
           "HlsS3Settings": {
-            "ref_name": "HlsS3Settings"
+            "ref_name": "ArchiveFrameCaptureHlsS3Settings"
           },
           "HlsWebdavSettings": {
             "ref_name": "HlsWebdavSettings"
@@ -226527,15 +228497,6 @@
         },
         "additional_properties": false
       },
-      "HlsS3Settings": {
-        "type": "object",
-        "properties": {
-          "CannedAcl": {
-            "type": "string"
-          }
-        },
-        "additional_properties": false
-      },
       "HlsSettings": {
         "type": "object",
         "properties": {
@@ -226546,7 +228507,7 @@
             "ref_name": "Fmp4HlsSettings"
           },
           "FrameCaptureHlsSettings": {
-            "ref_name": "FrameCaptureHlsSettings"
+            "ref_name": "EmptyConfigurationSettings"
           },
           "StandardHlsSettings": {
             "ref_name": "StandardHlsSettings"
@@ -226575,13 +228536,6 @@
         },
         "additional_properties": false
       },
-      "HtmlMotionGraphicsSettings": {
-        "type": [
-          "object",
-          "string"
-        ],
-        "format": "json"
-      },
       "InferenceSettings": {
         "type": "object",
         "properties": {
@@ -226589,6 +228543,12 @@
             "type": "array",
             "items": {
               "ref_name": "AudioFeedInput"
+            }
+          },
+          "EnrichmentMethods": {
+            "type": "array",
+            "items": {
+              "type": "string"
             }
           },
           "FeedArn": {
@@ -226984,15 +228944,6 @@
         },
         "additional_properties": false
       },
-      "MediaConnectRouterContainerSettings": {
-        "type": "object",
-        "properties": {
-          "M2tsSettings": {
-            "ref_name": "M2tsSettings"
-          }
-        },
-        "additional_properties": false
-      },
       "MediaConnectRouterGroupSettings": {
         "type": "object",
         "properties": {
@@ -227036,17 +228987,8 @@
             "ref_name": "MediaConnectRouterOutputConnectionMap"
           },
           "ContainerSettings": {
-            "ref_name": "MediaConnectRouterContainerSettings"
+            "ref_name": "UdpMediaConnectRouterContainerSettings"
           },
-          "Destination": {
-            "ref_name": "OutputLocationRef"
-          }
-        },
-        "additional_properties": false
-      },
-      "MediaPackageAdditionalDestinations": {
-        "type": "object",
-        "properties": {
           "Destination": {
             "ref_name": "OutputLocationRef"
           }
@@ -227107,6 +229049,12 @@
           },
           "HlsDefault": {
             "type": "string"
+          },
+          "OutputUsage": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         },
         "additional_properties": false
@@ -227117,7 +229065,7 @@
           "AdditionalDestinations": {
             "type": "array",
             "items": {
-              "ref_name": "MediaPackageAdditionalDestinations"
+              "ref_name": "AdditionalDestinations"
             }
           },
           "CaptionLanguageMappings": {
@@ -227152,6 +229100,18 @@
           },
           "TimedMetadataPassthrough": {
             "type": "string"
+          },
+          "WatermarkingSettings": {
+            "ref_name": "MediaPackageV2WatermarkingSettings"
+          }
+        },
+        "additional_properties": false
+      },
+      "MediaPackageV2WatermarkingSettings": {
+        "type": "object",
+        "properties": {
+          "MediaPackageV2AbWatermarkerIrdetoSettings": {
+            "ref_name": "CmafIngestMediaPackageV2AbWatermarkerIrdetoSettings"
           }
         },
         "additional_properties": false
@@ -227172,7 +229132,7 @@
         "type": "object",
         "properties": {
           "HtmlMotionGraphicsSettings": {
-            "ref_name": "HtmlMotionGraphicsSettings"
+            "ref_name": "EmptyConfigurationSettings"
           }
         },
         "additional_properties": false
@@ -227351,13 +229311,6 @@
         },
         "additional_properties": false
       },
-      "MultiplexGroupSettings": {
-        "type": [
-          "object",
-          "string"
-        ],
-        "format": "json"
-      },
       "MultiplexM2tsSettings": {
         "type": "object",
         "properties": {
@@ -227472,22 +229425,7 @@
         },
         "additional_properties": false
       },
-      "NielsenNaesIiNw": {
-        "type": "object",
-        "properties": {
-          "CheckDigitString": {
-            "type": "string"
-          },
-          "Sid": {
-            "type": "number"
-          },
-          "Timezone": {
-            "type": "string"
-          }
-        },
-        "additional_properties": false
-      },
-      "NielsenNwOnly": {
+      "NielsenNaesIiNwOnlySettings": {
         "type": "object",
         "properties": {
           "CheckDigitString": {
@@ -227512,10 +229450,10 @@
             "type": "string"
           },
           "NielsenNaesIiNwSettings": {
-            "ref_name": "NielsenNaesIiNw"
+            "ref_name": "NielsenNaesIiNwOnlySettings"
           },
           "NielsenNwOnlySettings": {
-            "ref_name": "NielsenNwOnly"
+            "ref_name": "NielsenNaesIiNwOnlySettings"
           }
         },
         "additional_properties": false
@@ -227653,7 +229591,7 @@
             "ref_name": "MsSmoothGroupSettings"
           },
           "MultiplexGroupSettings": {
-            "ref_name": "MultiplexGroupSettings"
+            "ref_name": "EmptyConfigurationSettings"
           },
           "RtmpGroupSettings": {
             "ref_name": "RtmpGroupSettings"
@@ -227698,10 +229636,10 @@
             "ref_name": "ArchiveOutputSettings"
           },
           "CmafIngestOutputSettings": {
-            "ref_name": "CmafIngestOutputSettings"
+            "ref_name": "CmafIngestFrameCaptureOutputSettings"
           },
           "FrameCaptureOutputSettings": {
-            "ref_name": "FrameCaptureOutputSettings"
+            "ref_name": "CmafIngestFrameCaptureOutputSettings"
           },
           "HlsOutputSettings": {
             "ref_name": "HlsOutputSettings"
@@ -227730,13 +229668,6 @@
         },
         "additional_properties": false
       },
-      "PassThroughSettings": {
-        "type": [
-          "object",
-          "string"
-        ],
-        "format": "json"
-      },
       "PipelineLockingSettings": {
         "type": [
           "object",
@@ -227752,27 +229683,6 @@
           }
         },
         "additional_properties": false
-      },
-      "RawSettings": {
-        "type": [
-          "object",
-          "string"
-        ],
-        "format": "json"
-      },
-      "Rec601Settings": {
-        "type": [
-          "object",
-          "string"
-        ],
-        "format": "json"
-      },
-      "Rec709Settings": {
-        "type": [
-          "object",
-          "string"
-        ],
-        "format": "json"
       },
       "RemixSettings": {
         "type": "object",
@@ -227791,13 +229701,6 @@
           }
         },
         "additional_properties": false
-      },
-      "RtmpCaptionInfoDestinationSettings": {
-        "type": [
-          "object",
-          "string"
-        ],
-        "format": "json"
       },
       "RtmpGroupSettings": {
         "type": "object",
@@ -227850,13 +229753,6 @@
         },
         "additional_properties": false
       },
-      "Scte20PlusEmbeddedDestinationSettings": {
-        "type": [
-          "object",
-          "string"
-        ],
-        "format": "json"
-      },
       "Scte20SourceSettings": {
         "type": "object",
         "properties": {
@@ -227869,14 +229765,7 @@
         },
         "additional_properties": false
       },
-      "Scte27DestinationSettings": {
-        "type": [
-          "object",
-          "string"
-        ],
-        "format": "json"
-      },
-      "Scte27SourceSettings": {
+      "Scte27DvbSubSourceSettings": {
         "type": "object",
         "properties": {
           "OcrLanguage": {
@@ -227888,22 +229777,7 @@
         },
         "additional_properties": false
       },
-      "Scte35SpliceInsert": {
-        "type": "object",
-        "properties": {
-          "AdAvailOffset": {
-            "type": "integer"
-          },
-          "NoRegionalBlackoutFlag": {
-            "type": "string"
-          },
-          "WebDeliveryAllowedFlag": {
-            "type": "string"
-          }
-        },
-        "additional_properties": false
-      },
-      "Scte35TimeSignalApos": {
+      "Scte35SpliceInsertTimeSignalAposSettings": {
         "type": "object",
         "properties": {
           "AdAvailOffset": {
@@ -227929,13 +229803,6 @@
           }
         },
         "additional_properties": false
-      },
-      "SmpteTtDestinationSettings": {
-        "type": [
-          "object",
-          "string"
-        ],
-        "format": "json"
       },
       "SrtGroupSettings": {
         "type": "object",
@@ -227974,7 +229841,7 @@
             "type": "integer"
           },
           "ContainerSettings": {
-            "ref_name": "UdpContainerSettings"
+            "ref_name": "UdpMediaConnectRouterContainerSettings"
           },
           "Destination": {
             "ref_name": "OutputLocationRef"
@@ -228012,13 +229879,6 @@
         },
         "additional_properties": false
       },
-      "TeletextDestinationSettings": {
-        "type": [
-          "object",
-          "string"
-        ],
-        "format": "json"
-      },
       "TeletextSourceSettings": {
         "type": "object",
         "properties": {
@@ -228039,6 +229899,15 @@
           },
           "Strength": {
             "type": "string"
+          }
+        },
+        "additional_properties": false
+      },
+      "TextCaptionPositionSettings": {
+        "type": "object",
+        "properties": {
+          "YPositionPercentage": {
+            "type": "integer"
           }
         },
         "additional_properties": false
@@ -228082,17 +229951,11 @@
       "TtmlDestinationSettings": {
         "type": "object",
         "properties": {
+          "Position": {
+            "ref_name": "TextCaptionPositionSettings"
+          },
           "StyleControl": {
             "type": "string"
-          }
-        },
-        "additional_properties": false
-      },
-      "UdpContainerSettings": {
-        "type": "object",
-        "properties": {
-          "M2tsSettings": {
-            "ref_name": "M2tsSettings"
           }
         },
         "additional_properties": false
@@ -228112,6 +229975,15 @@
         },
         "additional_properties": false
       },
+      "UdpMediaConnectRouterContainerSettings": {
+        "type": "object",
+        "properties": {
+          "M2tsSettings": {
+            "ref_name": "M2tsSettings"
+          }
+        },
+        "additional_properties": false
+      },
       "UdpOutputSettings": {
         "type": "object",
         "properties": {
@@ -228119,7 +229991,7 @@
             "type": "integer"
           },
           "ContainerSettings": {
-            "ref_name": "UdpContainerSettings"
+            "ref_name": "UdpMediaConnectRouterContainerSettings"
           },
           "Destination": {
             "ref_name": "OutputLocationRef"
@@ -228166,14 +230038,23 @@
       "VideoDescription": {
         "type": "object",
         "properties": {
+          "Border": {
+            "type": "integer"
+          },
           "CodecSettings": {
             "ref_name": "VideoCodecSettings"
+          },
+          "CropRectangle": {
+            "ref_name": "VideoPositionRectangle"
           },
           "Height": {
             "type": "integer"
           },
           "Name": {
             "type": "string"
+          },
+          "OutputPositionRectangle": {
+            "ref_name": "VideoPositionRectangle"
           },
           "RespondToAfd": {
             "type": "string"
@@ -228185,6 +230066,24 @@
             "type": "integer"
           },
           "Width": {
+            "type": "integer"
+          }
+        },
+        "additional_properties": false
+      },
+      "VideoPositionRectangle": {
+        "type": "object",
+        "properties": {
+          "Height": {
+            "type": "integer"
+          },
+          "Width": {
+            "type": "integer"
+          },
+          "X": {
+            "type": "integer"
+          },
+          "Y": {
             "type": "integer"
           }
         },
@@ -228291,6 +230190,9 @@
       "WebvttDestinationSettings": {
         "type": "object",
         "properties": {
+          "Position": {
+            "ref_name": "TextCaptionPositionSettings"
+          },
           "StyleControl": {
             "type": "string"
           }
@@ -231662,6 +233564,15 @@
       "Arn": {
         "type": "string"
       },
+      "AttachedMultiviewChannels": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]+$",
+          "min_length": 1,
+          "max_length": 256
+        }
+      },
       "ChannelGroupName": {
         "type": "string",
         "pattern": "^[a-zA-Z0-9_-]+$",
@@ -231704,6 +233615,9 @@
       "ModifiedAt": {
         "type": "string",
         "format": "date-time"
+      },
+      "MultiviewConfiguration": {
+        "ref_name": "MultiviewConfiguration"
       },
       "OutputHeaderConfiguration": {
         "ref_name": "OutputHeaderConfiguration"
@@ -231749,7 +233663,48 @@
         "type": "string",
         "enum": [
           "HLS",
-          "CMAF"
+          "CMAF",
+          "MULTIVIEW"
+        ]
+      },
+      "MultiviewConfiguration": {
+        "type": "object",
+        "properties": {
+          "AvailableLayouts": {
+            "type": "array",
+            "min_items": 1,
+            "max_items": 6,
+            "items": {
+              "ref_name": "MultiviewLayoutType"
+            }
+          },
+          "AvailableSources": {
+            "type": "array",
+            "min_items": 1,
+            "max_items": 10,
+            "items": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9_-]+$",
+              "min_length": 1,
+              "max_length": 256
+            }
+          }
+        },
+        "required": [
+          "AvailableLayouts",
+          "AvailableSources"
+        ],
+        "additional_properties": false
+      },
+      "MultiviewLayoutType": {
+        "type": "string",
+        "enum": [
+          "LAYOUT_2EH",
+          "LAYOUT_2PL",
+          "LAYOUT_3EL",
+          "LAYOUT_3PL",
+          "LAYOUT_4E",
+          "LAYOUT_4PL"
         ]
       },
       "OutputHeaderConfiguration": {
@@ -231791,7 +233746,8 @@
       "CreatedAt",
       "IngestEndpoints",
       "IngestEndpointUrls",
-      "ModifiedAt"
+      "ModifiedAt",
+      "AttachedMultiviewChannels"
     ],
     "create_only_properties": [
       "ChannelGroupName",
@@ -236362,6 +238318,153 @@
     ],
     "source_url": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-neptunegraph"
   },
+  "AWS::NetworkFirewall::ContainerAssociation": {
+    "type_name": "AWS::NetworkFirewall::ContainerAssociation",
+    "properties": {
+      "ContainerAssociationArn": {
+        "type": "string",
+        "pattern": "^arn:aws",
+        "min_length": 1,
+        "max_length": 256
+      },
+      "ContainerAssociationName": {
+        "type": "string",
+        "pattern": "^[a-zA-Z0-9-]+$",
+        "min_length": 1,
+        "max_length": 128
+      },
+      "ContainerMonitoringConfigurations": {
+        "type": "array",
+        "unique_items": true,
+        "items": {
+          "ref_name": "ContainerMonitoringConfiguration"
+        }
+      },
+      "Description": {
+        "type": "string",
+        "pattern": "^.*$",
+        "min_length": 0,
+        "max_length": 512
+      },
+      "ResolvedCidrCount": {
+        "type": "integer",
+        "minimum": 0.0,
+        "maximum": 1000000.0
+      },
+      "Status": {
+        "type": "string",
+        "enum": [
+          "ACTIVE",
+          "CREATING",
+          "DELETING",
+          "UPDATING"
+        ]
+      },
+      "Tags": {
+        "type": "array",
+        "min_items": 1,
+        "max_items": 200,
+        "unique_items": true,
+        "items": {
+          "ref_name": "Tag"
+        }
+      },
+      "Type": {
+        "type": "string",
+        "enum": [
+          "ECS",
+          "EKS"
+        ]
+      }
+    },
+    "definitions": {
+      "ContainerAttribute": {
+        "type": "object",
+        "properties": {
+          "Key": {
+            "type": "string",
+            "pattern": "^\\S+$",
+            "min_length": 1,
+            "max_length": 256
+          },
+          "Value": {
+            "type": "string",
+            "pattern": "^\\S+$",
+            "min_length": 1,
+            "max_length": 256
+          }
+        },
+        "required": [
+          "Key",
+          "Value"
+        ],
+        "additional_properties": false
+      },
+      "ContainerMonitoringConfiguration": {
+        "type": "object",
+        "properties": {
+          "AttributeFilters": {
+            "type": "array",
+            "unique_items": true,
+            "items": {
+              "ref_name": "ContainerAttribute"
+            }
+          },
+          "ClusterArn": {
+            "type": "string",
+            "pattern": "^arn:aws",
+            "min_length": 1,
+            "max_length": 256
+          }
+        },
+        "required": [
+          "ClusterArn"
+        ],
+        "additional_properties": false
+      },
+      "Tag": {
+        "type": "object",
+        "properties": {
+          "Key": {
+            "type": "string",
+            "pattern": "^.*$",
+            "min_length": 1,
+            "max_length": 128
+          },
+          "Value": {
+            "type": "string",
+            "pattern": "^.*$",
+            "min_length": 0,
+            "max_length": 256
+          }
+        },
+        "required": [
+          "Key",
+          "Value"
+        ],
+        "additional_properties": false
+      }
+    },
+    "required": [
+      "ContainerAssociationName",
+      "Type",
+      "ContainerMonitoringConfigurations"
+    ],
+    "additional_properties": false,
+    "read_only_properties": [
+      "ContainerAssociationArn",
+      "Status",
+      "ResolvedCidrCount"
+    ],
+    "create_only_properties": [
+      "ContainerAssociationName",
+      "Type"
+    ],
+    "primary_identifier": [
+      "ContainerAssociationArn"
+    ],
+    "source_url": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-networkfirewall.git"
+  },
   "AWS::NetworkFirewall::Firewall": {
     "type_name": "AWS::NetworkFirewall::Firewall",
     "properties": {
@@ -240294,7 +242397,7 @@
         "min_items": 1,
         "items": {
           "type": "string",
-          "pattern": "^([a-z]{1,2})-([a-z]{1,15}-)+([0-9])$",
+          "pattern": "^([a-z]{1,4})-([a-z]{1,15}-)+([0-9])$",
           "min_length": 2,
           "max_length": 25
         }
@@ -274514,6 +276617,74 @@
       "CustomPermissionsName"
     ]
   },
+  "AWS::QuickSight::Customization": {
+    "type_name": "AWS::QuickSight::Customization",
+    "properties": {
+      "Arn": {
+        "type": "string"
+      },
+      "AwsAccountId": {
+        "type": "string",
+        "pattern": "^[0-9]{12}$",
+        "min_length": 12,
+        "max_length": 12
+      },
+      "DefaultTheme": {
+        "type": "string"
+      },
+      "Namespace": {
+        "type": "string",
+        "pattern": "^[a-zA-Z0-9._-]*$",
+        "min_length": 1,
+        "max_length": 64
+      },
+      "Tags": {
+        "type": "array",
+        "min_items": 1,
+        "max_items": 200,
+        "items": {
+          "ref_name": "Tag"
+        }
+      }
+    },
+    "definitions": {
+      "Tag": {
+        "type": "object",
+        "properties": {
+          "Key": {
+            "type": "string",
+            "min_length": 1,
+            "max_length": 128
+          },
+          "Value": {
+            "type": "string",
+            "min_length": 1,
+            "max_length": 256
+          }
+        },
+        "required": [
+          "Key",
+          "Value"
+        ],
+        "additional_properties": false
+      }
+    },
+    "required": [
+      "Namespace",
+      "DefaultTheme"
+    ],
+    "additional_properties": false,
+    "read_only_properties": [
+      "Arn",
+      "AwsAccountId"
+    ],
+    "create_only_properties": [
+      "Namespace"
+    ],
+    "primary_identifier": [
+      "Arn"
+    ]
+  },
   "AWS::QuickSight::DLPSetting": {
     "type_name": "AWS::QuickSight::DLPSetting",
     "properties": {
@@ -308324,6 +310495,7 @@
                     "5.7.44-rds.20260212",
                     "5.7.44-rds.20260521",
                     "5.7.44-rds.20260624",
+                    "5.7.44-rds.20260902",
                     "8.0.11",
                     "8.0.13",
                     "8.0.15",
@@ -310541,7 +312713,8 @@
                     "16.00.4240.4.v1",
                     "16.00.4250.1.v1",
                     "16.00.4255.1.v1",
-                    "16.00.4262.2.v1"
+                    "16.00.4262.2.v1",
+                    "16.00.4265.3.v1"
                   ]
                 }
               }
@@ -310604,7 +312777,8 @@
                     "16.00.4240.4.v1",
                     "16.00.4250.1.v1",
                     "16.00.4255.1.v1",
-                    "16.00.4262.2.v1"
+                    "16.00.4262.2.v1",
+                    "16.00.4265.3.v1"
                   ]
                 }
               }
@@ -310667,7 +312841,8 @@
                     "16.00.4240.4.v1",
                     "16.00.4250.1.v1",
                     "16.00.4255.1.v1",
-                    "16.00.4262.2.v1"
+                    "16.00.4262.2.v1",
+                    "16.00.4265.3.v1"
                   ]
                 }
               }
@@ -310710,7 +312885,8 @@
                     "11.5.9.0.sb00089214.r1",
                     "11.5.9.0.sb00090009.r1",
                     "12.1.4.0.sb00080714.r1",
-                    "12.1.4.0.sb00085812.r1"
+                    "12.1.4.0.sb00085812.r1",
+                    "12.1.5.0.sb00088454.r1"
                   ]
                 }
               }
@@ -310753,7 +312929,8 @@
                     "11.5.9.0.sb00089214.r1",
                     "11.5.9.0.sb00090009.r1",
                     "12.1.4.0.sb00080714.r1",
-                    "12.1.4.0.sb00085812.r1"
+                    "12.1.4.0.sb00085812.r1",
+                    "12.1.5.0.sb00088454.r1"
                   ]
                 }
               }
@@ -310928,6 +313105,7 @@
                     "5.7.44-rds.20260212",
                     "5.7.44-rds.20260521",
                     "5.7.44-rds.20260624",
+                    "5.7.44-rds.20260902",
                     "8.0.11",
                     "8.0.13",
                     "8.0.15",
@@ -317050,6 +319228,85 @@
     ],
     "source_url": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git"
   },
+  "AWS::Redshift::QEV2IdcApplication": {
+    "type_name": "AWS::Redshift::QEV2IdcApplication",
+    "properties": {
+      "IdcDisplayName": {
+        "type": "string",
+        "pattern": "^[\\w+=,.@-]+$",
+        "min_length": 1,
+        "max_length": 127
+      },
+      "IdcInstanceArn": {
+        "type": "string",
+        "min_length": 0,
+        "max_length": 2147483647
+      },
+      "IdcManagedApplicationArn": {
+        "type": "string"
+      },
+      "IdcOnboardStatus": {
+        "type": "string"
+      },
+      "Qev2IdcApplicationArn": {
+        "type": "string"
+      },
+      "Qev2IdcApplicationName": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
+        "min_length": 1,
+        "max_length": 63
+      },
+      "Tags": {
+        "type": "array",
+        "unique_items": true,
+        "items": {
+          "ref_name": "Tag"
+        }
+      }
+    },
+    "definitions": {
+      "Tag": {
+        "type": "object",
+        "properties": {
+          "Key": {
+            "type": "string",
+            "min_length": 1,
+            "max_length": 128
+          },
+          "Value": {
+            "type": "string",
+            "min_length": 0,
+            "max_length": 256
+          }
+        },
+        "required": [
+          "Key",
+          "Value"
+        ],
+        "additional_properties": false
+      }
+    },
+    "required": [
+      "IdcInstanceArn",
+      "Qev2IdcApplicationName",
+      "IdcDisplayName"
+    ],
+    "additional_properties": false,
+    "read_only_properties": [
+      "Qev2IdcApplicationArn",
+      "IdcManagedApplicationArn",
+      "IdcOnboardStatus"
+    ],
+    "create_only_properties": [
+      "IdcInstanceArn",
+      "Qev2IdcApplicationName"
+    ],
+    "primary_identifier": [
+      "Qev2IdcApplicationArn"
+    ],
+    "replacement_strategy": "delete_then_create"
+  },
   "AWS::Redshift::ScheduledAction": {
     "type_name": "AWS::Redshift::ScheduledAction",
     "properties": {
@@ -317197,6 +319454,238 @@
     ],
     "source_url": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-redshift"
   },
+  "AWS::Redshift::Snapshot": {
+    "type_name": "AWS::Redshift::Snapshot",
+    "properties": {
+      "AvailabilityZone": {
+        "type": "string"
+      },
+      "ClusterCreateTime": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "ClusterIdentifier": {
+        "type": "string",
+        "min_length": 1,
+        "max_length": 63
+      },
+      "ClusterVersion": {
+        "type": "string"
+      },
+      "DBName": {
+        "type": "string"
+      },
+      "Encrypted": {
+        "type": "boolean"
+      },
+      "EncryptedWithHSM": {
+        "type": "boolean"
+      },
+      "EngineFullVersion": {
+        "type": "string"
+      },
+      "EnhancedVpcRouting": {
+        "type": "boolean"
+      },
+      "KmsKeyId": {
+        "type": "string",
+        "any_of": [
+          {
+            "format": "AWS::KMS::Key.Arn"
+          },
+          {
+            "format": "AWS::KMS::Key.Id"
+          },
+          {
+            "format": "AWS::KMS::Alias.AliasName"
+          }
+        ]
+      },
+      "MaintenanceTrackName": {
+        "type": "string"
+      },
+      "ManualSnapshotRetentionPeriod": {
+        "type": "integer",
+        "minimum": -1.0,
+        "maximum": 3653.0
+      },
+      "MasterUsername": {
+        "type": "string"
+      },
+      "NodeType": {
+        "type": "string"
+      },
+      "NumberOfNodes": {
+        "type": "integer"
+      },
+      "OwnerAccount": {
+        "type": "string"
+      },
+      "Port": {
+        "type": "integer"
+      },
+      "SnapshotArn": {
+        "type": "string",
+        "pattern": "^arn:aws[a-zA-Z-]*:redshift:[a-z0-9-]+:[0-9]{12}:snapshot:[^:]+/[^:]+$"
+      },
+      "SnapshotCreateTime": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "SnapshotIdentifier": {
+        "type": "string",
+        "min_length": 1,
+        "max_length": 255
+      },
+      "SnapshotType": {
+        "type": "string"
+      },
+      "Status": {
+        "type": "string"
+      },
+      "Tags": {
+        "type": "array",
+        "items": {
+          "ref_name": "Tag"
+        }
+      },
+      "VpcId": {
+        "type": "string",
+        "format": "AWS::EC2::VPC.Id"
+      }
+    },
+    "definitions": {
+      "Tag": {
+        "type": "object",
+        "properties": {
+          "Key": {
+            "type": "string",
+            "min_length": 1,
+            "max_length": 128
+          },
+          "Value": {
+            "type": "string",
+            "min_length": 0,
+            "max_length": 256
+          }
+        },
+        "required": [
+          "Key",
+          "Value"
+        ],
+        "additional_properties": false
+      }
+    },
+    "required": [
+      "SnapshotIdentifier",
+      "ClusterIdentifier"
+    ],
+    "additional_properties": false,
+    "read_only_properties": [
+      "SnapshotArn",
+      "Status",
+      "SnapshotType",
+      "AvailabilityZone",
+      "ClusterCreateTime",
+      "MasterUsername",
+      "ClusterVersion",
+      "EngineFullVersion",
+      "SnapshotCreateTime",
+      "NodeType",
+      "NumberOfNodes",
+      "DBName",
+      "Port",
+      "VpcId",
+      "Encrypted",
+      "EncryptedWithHSM",
+      "KmsKeyId",
+      "EnhancedVpcRouting",
+      "MaintenanceTrackName",
+      "OwnerAccount"
+    ],
+    "create_only_properties": [
+      "SnapshotIdentifier",
+      "ClusterIdentifier"
+    ],
+    "primary_identifier": [
+      "SnapshotArn"
+    ]
+  },
+  "AWS::Redshift::SnapshotCopyGrant": {
+    "type_name": "AWS::Redshift::SnapshotCopyGrant",
+    "properties": {
+      "Arn": {
+        "type": "string"
+      },
+      "KmsKeyId": {
+        "type": "string",
+        "min_length": 0,
+        "max_length": 2147483647,
+        "any_of": [
+          {
+            "format": "AWS::KMS::Key.Arn"
+          },
+          {
+            "format": "AWS::KMS::Key.Id"
+          },
+          {
+            "format": "AWS::KMS::Alias.AliasName"
+          }
+        ]
+      },
+      "SnapshotCopyGrantName": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
+        "min_length": 1,
+        "max_length": 63
+      },
+      "Tags": {
+        "type": "array",
+        "items": {
+          "ref_name": "Tag"
+        }
+      }
+    },
+    "definitions": {
+      "Tag": {
+        "type": "object",
+        "properties": {
+          "Key": {
+            "type": "string",
+            "min_length": 1,
+            "max_length": 127
+          },
+          "Value": {
+            "type": "string",
+            "min_length": 0,
+            "max_length": 255
+          }
+        },
+        "required": [
+          "Key",
+          "Value"
+        ],
+        "additional_properties": false
+      }
+    },
+    "required": [
+      "SnapshotCopyGrantName"
+    ],
+    "additional_properties": false,
+    "read_only_properties": [
+      "Arn"
+    ],
+    "write_only_properties": [
+      "KmsKeyId"
+    ],
+    "create_only_properties": [
+      "SnapshotCopyGrantName",
+      "KmsKeyId"
+    ],
+    "primary_identifier": [
+      "Arn"
+    ]
+  },
   "AWS::Redshift::SnapshotSchedule": {
     "type_name": "AWS::Redshift::SnapshotSchedule",
     "properties": {
@@ -317269,6 +319758,107 @@
     "primary_identifier": [
       "Arn"
     ]
+  },
+  "AWS::Redshift::UsageLimit": {
+    "type_name": "AWS::Redshift::UsageLimit",
+    "properties": {
+      "Amount": {
+        "type": "number"
+      },
+      "Arn": {
+        "type": "string",
+        "pattern": "^arn:aws[a-z0-9-]*:redshift:[a-z0-9-]+:[0-9]{12}:usagelimit:.+$"
+      },
+      "BreachAction": {
+        "type": "string",
+        "enum": [
+          "log",
+          "emit-metric",
+          "disable"
+        ]
+      },
+      "ClusterIdentifier": {
+        "type": "string",
+        "min_length": 0,
+        "max_length": 2147483647
+      },
+      "FeatureType": {
+        "type": "string",
+        "enum": [
+          "spectrum",
+          "concurrency-scaling",
+          "cross-region-datasharing",
+          "extra-compute-for-automatic-optimization"
+        ]
+      },
+      "LimitType": {
+        "type": "string",
+        "enum": [
+          "time",
+          "data-scanned"
+        ]
+      },
+      "Period": {
+        "type": "string",
+        "enum": [
+          "daily",
+          "weekly",
+          "monthly"
+        ]
+      },
+      "Tags": {
+        "type": "array",
+        "items": {
+          "ref_name": "Tag"
+        }
+      },
+      "UsageLimitId": {
+        "type": "string"
+      }
+    },
+    "definitions": {
+      "Tag": {
+        "type": "object",
+        "properties": {
+          "Key": {
+            "type": "string",
+            "min_length": 1,
+            "max_length": 128
+          },
+          "Value": {
+            "type": "string",
+            "min_length": 0,
+            "max_length": 256
+          }
+        },
+        "required": [
+          "Key",
+          "Value"
+        ],
+        "additional_properties": false
+      }
+    },
+    "required": [
+      "ClusterIdentifier",
+      "FeatureType",
+      "LimitType",
+      "Amount"
+    ],
+    "additional_properties": false,
+    "read_only_properties": [
+      "Arn",
+      "UsageLimitId"
+    ],
+    "create_only_properties": [
+      "ClusterIdentifier",
+      "FeatureType",
+      "LimitType",
+      "Period"
+    ],
+    "primary_identifier": [
+      "Arn"
+    ],
+    "replacement_strategy": "delete_then_create"
   },
   "AWS::RedshiftServerless::Namespace": {
     "type_name": "AWS::RedshiftServerless::Namespace",
@@ -322931,6 +325521,94 @@
     "create_only_properties": [
       "Name",
       "Document"
+    ],
+    "primary_identifier": [
+      "Arn"
+    ]
+  },
+  "AWS::Route53::TrafficPolicyInstance": {
+    "type_name": "AWS::Route53::TrafficPolicyInstance",
+    "properties": {
+      "Arn": {
+        "type": "string",
+        "pattern": "^arn:aws[a-zA-Z0-9-]*:route53:::trafficpolicyinstance/[^/\\s]{1,36}$"
+      },
+      "HostedZoneId": {
+        "type": "string",
+        "pattern": "^[A-Z0-9]{1,32}$",
+        "max_length": 32
+      },
+      "Id": {
+        "type": "string",
+        "min_length": 1,
+        "max_length": 36
+      },
+      "Name": {
+        "type": "string",
+        "pattern": "^[^A-Z\\s]+\\.$",
+        "min_length": 0,
+        "max_length": 1024
+      },
+      "State": {
+        "type": "string"
+      },
+      "TTL": {
+        "type": "integer",
+        "minimum": 0.0,
+        "maximum": 2147483647.0
+      },
+      "TrafficPolicyId": {
+        "type": "string",
+        "pattern": "^[0-9a-f-]{1,36}$",
+        "min_length": 1,
+        "max_length": 36
+      },
+      "TrafficPolicyType": {
+        "type": "string",
+        "enum": [
+          "SOA",
+          "A",
+          "TXT",
+          "NS",
+          "CNAME",
+          "MX",
+          "NAPTR",
+          "PTR",
+          "SRV",
+          "SPF",
+          "AAAA",
+          "CAA",
+          "DS",
+          "TLSA",
+          "SSHFP",
+          "SVCB",
+          "HTTPS"
+        ]
+      },
+      "TrafficPolicyVersion": {
+        "type": "integer",
+        "minimum": 1.0,
+        "maximum": 1000.0
+      }
+    },
+    "definitions": {},
+    "required": [
+      "HostedZoneId",
+      "Name",
+      "TTL",
+      "TrafficPolicyId",
+      "TrafficPolicyVersion"
+    ],
+    "additional_properties": false,
+    "read_only_properties": [
+      "Arn",
+      "Id",
+      "State",
+      "TrafficPolicyType"
+    ],
+    "create_only_properties": [
+      "HostedZoneId",
+      "Name"
     ],
     "primary_identifier": [
       "Arn"
@@ -331718,7 +334396,7 @@
     "primary_identifier": [
       "VectorBucketArn"
     ],
-    "one_of": [
+    "any_of": [
       {
         "required": [
           "VectorBucketName"
@@ -336869,6 +339547,11 @@
             "format": "AWS::KMS::Alias.AliasName"
           }
         ]
+      },
+      "MaximumMessageSize": {
+        "type": "integer",
+        "minimum": 1024.0,
+        "maximum": 1048576.0
       },
       "SignatureVersion": {
         "type": "string"
@@ -344047,17 +346730,23 @@
   "AWS::SageMaker::CodeRepository": {
     "type_name": "AWS::SageMaker::CodeRepository",
     "properties": {
+      "CodeRepositoryArn": {
+        "type": "string",
+        "pattern": "^arn:.*"
+      },
       "CodeRepositoryName": {
-        "type": "string"
+        "type": "string",
+        "pattern": "^[a-zA-Z0-9](-*[a-zA-Z0-9]){0,62}$",
+        "min_length": 1,
+        "max_length": 63
       },
       "GitConfig": {
         "ref_name": "GitConfig"
       },
-      "Id": {
-        "type": "string"
-      },
       "Tags": {
         "type": "array",
+        "min_items": 0,
+        "max_items": 50,
         "items": {
           "ref_name": "Tag"
         }
@@ -344068,13 +346757,22 @@
         "type": "object",
         "properties": {
           "Branch": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^[^ ~^:?*\\[]+$",
+            "min_length": 1,
+            "max_length": 1024
           },
           "RepositoryUrl": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^https://([^/]+)/?.{3,1016}$",
+            "min_length": 11,
+            "max_length": 1024
           },
           "SecretArn": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^arn:aws[a-z\\-]*:secretsmanager:[a-z0-9\\-]*:[0-9]{12}:secret:",
+            "min_length": 1,
+            "max_length": 2048
           }
         },
         "required": [
@@ -344086,15 +346784,21 @@
         "type": "object",
         "properties": {
           "Key": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$",
+            "min_length": 1,
+            "max_length": 128
           },
           "Value": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$",
+            "min_length": 0,
+            "max_length": 256
           }
         },
         "required": [
-          "Value",
-          "Key"
+          "Key",
+          "Value"
         ],
         "additional_properties": false
       }
@@ -344104,13 +346808,15 @@
     ],
     "additional_properties": false,
     "read_only_properties": [
-      "Id"
+      "CodeRepositoryArn"
     ],
     "create_only_properties": [
-      "CodeRepositoryName"
+      "CodeRepositoryName",
+      "GitConfig.RepositoryUrl",
+      "GitConfig.Branch"
     ],
     "primary_identifier": [
-      "Id"
+      "CodeRepositoryArn"
     ]
   },
   "AWS::SageMaker::Context": {
@@ -374777,6 +377483,116 @@
     ],
     "source_url": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-stepfunctions.git"
   },
+  "AWS::StorageGateway::Tape": {
+    "type_name": "AWS::StorageGateway::Tape",
+    "properties": {
+      "GatewayARN": {
+        "type": "string",
+        "min_length": 50,
+        "max_length": 500
+      },
+      "KMSEncrypted": {
+        "type": "boolean"
+      },
+      "KMSKey": {
+        "type": "string",
+        "pattern": "^(^arn:(aws(|-cn|-us-gov|-iso[A-Za-z0-9_-]*|-eusc)):kms:([a-zA-Z0-9-]+):([0-9]+):(key|alias)/(\\S+)$)|(^alias/(\\S+)$)$",
+        "min_length": 7,
+        "max_length": 2048
+      },
+      "PoolId": {
+        "type": "string",
+        "min_length": 1,
+        "max_length": 100
+      },
+      "Tags": {
+        "type": "array",
+        "max_items": 50,
+        "unique_items": true,
+        "items": {
+          "ref_name": "Tag"
+        }
+      },
+      "TapeARN": {
+        "type": "string",
+        "pattern": "^arn:(aws(|-cn|-us-gov|-iso[A-Za-z0-9_-]*|-eusc)):storagegateway:[a-z\\-0-9]+:[0-9]+:tape\\/[0-9A-Z]{5,16}$",
+        "min_length": 50,
+        "max_length": 500
+      },
+      "TapeBarcode": {
+        "type": "string",
+        "pattern": "^[A-Z0-9]*$",
+        "min_length": 5,
+        "max_length": 16
+      },
+      "TapeCreatedDate": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "TapeSizeInBytes": {
+        "type": "number",
+        "minimum": 1.0
+      },
+      "TapeStatus": {
+        "type": "string"
+      },
+      "TapeUsedInBytes": {
+        "type": "number"
+      },
+      "Worm": {
+        "type": "boolean"
+      }
+    },
+    "definitions": {
+      "Tag": {
+        "type": "object",
+        "properties": {
+          "Key": {
+            "type": "string",
+            "pattern": "^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$",
+            "min_length": 1,
+            "max_length": 128
+          },
+          "Value": {
+            "type": "string",
+            "min_length": 0,
+            "max_length": 256
+          }
+        },
+        "required": [
+          "Key",
+          "Value"
+        ],
+        "additional_properties": false
+      }
+    },
+    "required": [
+      "GatewayARN",
+      "TapeSizeInBytes"
+    ],
+    "additional_properties": false,
+    "read_only_properties": [
+      "TapeARN",
+      "TapeStatus",
+      "TapeCreatedDate",
+      "TapeUsedInBytes"
+    ],
+    "write_only_properties": [
+      "KMSEncrypted"
+    ],
+    "create_only_properties": [
+      "GatewayARN",
+      "TapeBarcode",
+      "TapeSizeInBytes",
+      "KMSEncrypted",
+      "KMSKey",
+      "PoolId",
+      "Worm"
+    ],
+    "primary_identifier": [
+      "TapeARN"
+    ]
+  },
   "AWS::StorageGateway::TapePool": {
     "type_name": "AWS::StorageGateway::TapePool",
     "properties": {
@@ -377334,6 +380150,516 @@
     ],
     "source_url": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-timestream.git"
   },
+  "AWS::Transcribe::CallAnalyticsCategory": {
+    "type_name": "AWS::Transcribe::CallAnalyticsCategory",
+    "properties": {
+      "Arn": {
+        "type": "string",
+        "pattern": "^arn:aws(-[^:]+)?:transcribe:[a-zA-Z0-9-]*:[0-9]{12}:analytics-category/[0-9a-zA-Z._-]+$",
+        "min_length": 1,
+        "max_length": 1011
+      },
+      "CategoryName": {
+        "type": "string",
+        "pattern": "^[0-9a-zA-Z._-]+$",
+        "min_length": 1,
+        "max_length": 200
+      },
+      "CreateTime": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "InputType": {
+        "type": "string",
+        "enum": [
+          "REAL_TIME",
+          "POST_CALL"
+        ]
+      },
+      "LastUpdateTime": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "Rules": {
+        "type": "array",
+        "min_items": 1,
+        "max_items": 20,
+        "items": {
+          "ref_name": "Rule"
+        }
+      },
+      "Tags": {
+        "type": "array",
+        "min_items": 1,
+        "max_items": 200,
+        "items": {
+          "ref_name": "Tag"
+        }
+      }
+    },
+    "definitions": {
+      "AbsoluteTimeRange": {
+        "type": "object",
+        "properties": {
+          "EndTime": {
+            "type": "integer",
+            "minimum": 0.0,
+            "maximum": 14400000.0
+          },
+          "First": {
+            "type": "integer",
+            "minimum": 0.0,
+            "maximum": 14400000.0
+          },
+          "Last": {
+            "type": "integer",
+            "minimum": 0.0,
+            "maximum": 14400000.0
+          },
+          "StartTime": {
+            "type": "integer",
+            "minimum": 0.0,
+            "maximum": 14400000.0
+          }
+        },
+        "additional_properties": false
+      },
+      "InterruptionFilter": {
+        "type": "object",
+        "properties": {
+          "AbsoluteTimeRange": {
+            "ref_name": "AbsoluteTimeRange"
+          },
+          "Negate": {
+            "type": "boolean"
+          },
+          "ParticipantRole": {
+            "type": "string",
+            "enum": [
+              "AGENT",
+              "CUSTOMER"
+            ]
+          },
+          "RelativeTimeRange": {
+            "ref_name": "RelativeTimeRange"
+          },
+          "Threshold": {
+            "type": "integer",
+            "minimum": 0.0,
+            "maximum": 14400000.0
+          }
+        },
+        "additional_properties": false
+      },
+      "NonTalkTimeFilter": {
+        "type": "object",
+        "properties": {
+          "AbsoluteTimeRange": {
+            "ref_name": "AbsoluteTimeRange"
+          },
+          "Negate": {
+            "type": "boolean"
+          },
+          "RelativeTimeRange": {
+            "ref_name": "RelativeTimeRange"
+          },
+          "Threshold": {
+            "type": "integer",
+            "minimum": 0.0,
+            "maximum": 14400000.0
+          }
+        },
+        "additional_properties": false
+      },
+      "RelativeTimeRange": {
+        "type": "object",
+        "properties": {
+          "EndPercentage": {
+            "type": "integer",
+            "minimum": 0.0,
+            "maximum": 100.0
+          },
+          "First": {
+            "type": "integer",
+            "minimum": 0.0,
+            "maximum": 100.0
+          },
+          "Last": {
+            "type": "integer",
+            "minimum": 0.0,
+            "maximum": 100.0
+          },
+          "StartPercentage": {
+            "type": "integer",
+            "minimum": 0.0,
+            "maximum": 100.0
+          }
+        },
+        "additional_properties": false
+      },
+      "Rule": {
+        "type": "object",
+        "properties": {
+          "InterruptionFilter": {
+            "ref_name": "InterruptionFilter"
+          },
+          "NonTalkTimeFilter": {
+            "ref_name": "NonTalkTimeFilter"
+          },
+          "SentimentFilter": {
+            "ref_name": "SentimentFilter"
+          },
+          "TranscriptFilter": {
+            "ref_name": "TranscriptFilter"
+          }
+        },
+        "additional_properties": false
+      },
+      "SentimentFilter": {
+        "type": "object",
+        "properties": {
+          "AbsoluteTimeRange": {
+            "ref_name": "AbsoluteTimeRange"
+          },
+          "Negate": {
+            "type": "boolean"
+          },
+          "ParticipantRole": {
+            "type": "string",
+            "enum": [
+              "AGENT",
+              "CUSTOMER"
+            ]
+          },
+          "RelativeTimeRange": {
+            "ref_name": "RelativeTimeRange"
+          },
+          "Sentiments": {
+            "type": "array",
+            "min_items": 1,
+            "max_items": 1,
+            "items": {
+              "type": "string",
+              "enum": [
+                "POSITIVE",
+                "NEGATIVE",
+                "NEUTRAL",
+                "MIXED"
+              ]
+            }
+          }
+        },
+        "required": [
+          "Sentiments"
+        ],
+        "additional_properties": false
+      },
+      "Tag": {
+        "type": "object",
+        "properties": {
+          "Key": {
+            "type": "string",
+            "min_length": 1,
+            "max_length": 128
+          },
+          "Value": {
+            "type": "string",
+            "min_length": 0,
+            "max_length": 256
+          }
+        },
+        "required": [
+          "Key",
+          "Value"
+        ],
+        "additional_properties": false
+      },
+      "TranscriptFilter": {
+        "type": "object",
+        "properties": {
+          "AbsoluteTimeRange": {
+            "ref_name": "AbsoluteTimeRange"
+          },
+          "Negate": {
+            "type": "boolean"
+          },
+          "ParticipantRole": {
+            "type": "string",
+            "enum": [
+              "AGENT",
+              "CUSTOMER"
+            ]
+          },
+          "RelativeTimeRange": {
+            "ref_name": "RelativeTimeRange"
+          },
+          "Targets": {
+            "type": "array",
+            "min_items": 1,
+            "items": {
+              "type": "string",
+              "min_length": 1,
+              "max_length": 2000
+            }
+          },
+          "TranscriptFilterType": {
+            "type": "string",
+            "enum": [
+              "EXACT"
+            ]
+          }
+        },
+        "required": [
+          "TranscriptFilterType",
+          "Targets"
+        ],
+        "additional_properties": false
+      }
+    },
+    "required": [
+      "CategoryName",
+      "Rules"
+    ],
+    "additional_properties": false,
+    "read_only_properties": [
+      "Arn",
+      "CreateTime",
+      "LastUpdateTime"
+    ],
+    "create_only_properties": [
+      "CategoryName",
+      "InputType"
+    ],
+    "primary_identifier": [
+      "Arn"
+    ]
+  },
+  "AWS::Transcribe::Vocabulary": {
+    "type_name": "AWS::Transcribe::Vocabulary",
+    "properties": {
+      "Arn": {
+        "type": "string",
+        "pattern": "^arn:aws(-[^:]+)?:transcribe:[a-zA-Z0-9-]*:[0-9]{12}:[a-zA-Z-]*/[0-9a-zA-Z._-]+$",
+        "min_length": 1,
+        "max_length": 1011
+      },
+      "DataAccessRoleArn": {
+        "type": "string",
+        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-iso-{0,1}[a-z]{0,1}):iam::[0-9]{0,63}:role/[A-Za-z0-9:_/+=,@.-]{0,1024}$",
+        "min_length": 20,
+        "max_length": 2048,
+        "format": "AWS::IAM::Role.Arn"
+      },
+      "LanguageCode": {
+        "type": "string",
+        "enum": [
+          "ab-GE",
+          "af-ZA",
+          "am-ET",
+          "ar-AE",
+          "ar-SA",
+          "ast-ES",
+          "az-AZ",
+          "ba-RU",
+          "be-BY",
+          "bg-BG",
+          "bn-IN",
+          "bs-BA",
+          "ca-ES",
+          "ckb-IQ",
+          "ckb-IR",
+          "cs-CZ",
+          "cy-GB",
+          "cy-WL",
+          "da-DK",
+          "de-CH",
+          "de-DE",
+          "el-GR",
+          "en-AB",
+          "en-AU",
+          "en-GB",
+          "en-IE",
+          "en-IN",
+          "en-NZ",
+          "en-US",
+          "en-WL",
+          "en-ZA",
+          "es-ES",
+          "es-MX",
+          "es-US",
+          "et-EE",
+          "et-ET",
+          "eu-ES",
+          "fa-AF",
+          "fa-IR",
+          "fi-FI",
+          "fr-CA",
+          "fr-FR",
+          "ga-IE",
+          "gd-GB",
+          "gl-ES",
+          "gu-IN",
+          "ha-NG",
+          "he-IL",
+          "hi-IN",
+          "hr-HR",
+          "ht-HT",
+          "hu-HU",
+          "hy-AM",
+          "id-ID",
+          "is-IS",
+          "it-IT",
+          "ja-JP",
+          "jv-ID",
+          "ka-GE",
+          "kab-DZ",
+          "kk-KZ",
+          "km-KH",
+          "kn-IN",
+          "ko-KR",
+          "ky-KG",
+          "lg-IN",
+          "lt-LT",
+          "lv-LV",
+          "mhr-RU",
+          "mi-NZ",
+          "mk-MK",
+          "ml-IN",
+          "mn-MN",
+          "mr-IN",
+          "ms-MY",
+          "mt-MT",
+          "my-MM",
+          "ne-NP",
+          "nl-NL",
+          "no-NO",
+          "or-IN",
+          "pa-IN",
+          "pl-PL",
+          "ps-AF",
+          "pt-BR",
+          "pt-PT",
+          "ro-RO",
+          "ru-RU",
+          "rw-RW",
+          "si-LK",
+          "sk-SK",
+          "sl-SI",
+          "so-SO",
+          "sq-AL",
+          "sr-RS",
+          "su-ID",
+          "sv-SE",
+          "sw-BI",
+          "sw-KE",
+          "sw-RW",
+          "sw-TZ",
+          "sw-UG",
+          "ta-IN",
+          "te-IN",
+          "th-TH",
+          "tl-PH",
+          "tr-TR",
+          "tt-RU",
+          "ug-CN",
+          "uk-UA",
+          "uz-UZ",
+          "vi-VN",
+          "wo-SN",
+          "zh-CN",
+          "zh-HK",
+          "zh-TW",
+          "zu-ZA"
+        ]
+      },
+      "LastModifiedTime": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "Phrases": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "pattern": "^.+$",
+          "min_length": 0,
+          "max_length": 256
+        }
+      },
+      "Tags": {
+        "type": "array",
+        "min_items": 1,
+        "max_items": 200,
+        "items": {
+          "ref_name": "Tag"
+        }
+      },
+      "VocabularyFileUri": {
+        "type": "string",
+        "pattern": "^(s3://|http(s*)://).+$",
+        "min_length": 1,
+        "max_length": 2000
+      },
+      "VocabularyName": {
+        "type": "string",
+        "pattern": "^[0-9a-zA-Z._-]+$",
+        "min_length": 1,
+        "max_length": 200
+      },
+      "VocabularyState": {
+        "type": "string",
+        "enum": [
+          "PENDING",
+          "READY",
+          "FAILED"
+        ]
+      }
+    },
+    "definitions": {
+      "Tag": {
+        "type": "object",
+        "properties": {
+          "Key": {
+            "type": "string",
+            "min_length": 1,
+            "max_length": 128
+          },
+          "Value": {
+            "type": "string",
+            "min_length": 0,
+            "max_length": 256
+          }
+        },
+        "required": [
+          "Key",
+          "Value"
+        ],
+        "additional_properties": false
+      }
+    },
+    "required": [
+      "VocabularyName",
+      "LanguageCode"
+    ],
+    "additional_properties": false,
+    "read_only_properties": [
+      "Arn",
+      "VocabularyState",
+      "LastModifiedTime"
+    ],
+    "write_only_properties": [
+      "Phrases",
+      "VocabularyFileUri",
+      "DataAccessRoleArn"
+    ],
+    "create_only_properties": [
+      "VocabularyName",
+      "LanguageCode"
+    ],
+    "primary_identifier": [
+      "Arn"
+    ],
+    "replacement_strategy": "delete_then_create"
+  },
   "AWS::Transcribe::VocabularyFilter": {
     "type_name": "AWS::Transcribe::VocabularyFilter",
     "properties": {
@@ -377991,6 +381317,17 @@
             "type": "integer",
             "minimum": 1.0,
             "maximum": 5.0
+          },
+          "OrderedUserSecretVersionStages": {
+            "type": "array",
+            "min_items": 1,
+            "max_items": 2,
+            "unique_items": true,
+            "items": {
+              "type": "string",
+              "min_length": 1,
+              "max_length": 256
+            }
           },
           "TrustedHostKeys": {
             "type": "array",
@@ -380992,6 +384329,18 @@
               "DnsResource"
             ],
             "additional_properties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "CidrResource": {
+                "ref_name": "CidrResource"
+              }
+            },
+            "required": [
+              "CidrResource"
+            ],
+            "additional_properties": false
           }
         ]
       },
@@ -381004,7 +384353,8 @@
           "GROUP",
           "CHILD",
           "SINGLE",
-          "ARN"
+          "ARN",
+          "CIDR"
         ]
       },
       "ResourceGatewayId": {
@@ -381025,6 +384375,25 @@
         "type": "string",
         "pattern": "^arn.*",
         "max_length": 1224
+      },
+      "CidrResource": {
+        "type": "object",
+        "properties": {
+          "CidrRanges": {
+            "type": "array",
+            "min_items": 1,
+            "max_items": 10,
+            "items": {
+              "type": "string",
+              "min_length": 1,
+              "max_length": 50
+            }
+          }
+        },
+        "required": [
+          "CidrRanges"
+        ],
+        "additional_properties": false
       },
       "DnsResource": {
         "type": "object",
@@ -381308,7 +384677,7 @@
       "Priority": {
         "type": "integer",
         "minimum": 1.0,
-        "maximum": 100.0
+        "maximum": 2000.0
       },
       "ServiceIdentifier": {
         "type": "string",

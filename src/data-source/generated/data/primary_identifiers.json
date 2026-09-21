@@ -1061,6 +1061,9 @@
     "AWS::MediaConvert::Preset": [
       "Name"
     ],
+    "AWS::MediaConvert::Queue": [
+      "Name"
+    ],
     "AWS::MediaLive::Multiplexprogram": [
       "ProgramName",
       "MultiplexId"
