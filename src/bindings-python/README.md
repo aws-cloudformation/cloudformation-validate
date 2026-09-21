@@ -41,12 +41,22 @@ Engines are expensive to construct (rules compile once) and cheap to reuse - cre
 templates. Every fallible call raises `ValidationError` on failure; internal panics are caught at the FFI boundary and
 surface as the same exception, never a process abort. `version()` returns the version of the bundled validation core.
 
-A template is passed either as a file path (`str` or `os.PathLike`, read from disk; the path is used for diagnostic
-source locations) or as raw `bytes`:
+A template is passed as a `Template`: a file path (`str` or `os.PathLike`, read from disk; the path is used for
+diagnostic source locations), raw `bytes`, or a `TemplateContent` carrying `str` text or `bytes` already in memory
+together with an optional `name` that labels the report and its diagnostics exactly like a file path does. An
+in-memory template with no name is labelled `"template"` (`DEFAULT_TEMPLATE_NAME`).
 
 ```python
+Template = str | os.PathLike | bytes | TemplateContent
+
+class TemplateContent:
+    def __init__(self, content: str | bytes, name: str = DEFAULT_TEMPLATE_NAME): ...
+
 report = engine.validate_template(b"Resources: {}")
+report = engine.validate_template(TemplateContent("Resources: {}", "inline.yaml"))
 ```
+
+`TemplateModel` and `SchemaValidator.validate` accept the same `Template` forms.
 
 ## Engine
 
@@ -58,7 +68,7 @@ on top of the built-in rules - see [CompositeEngine](#compositeengine).
 
 ```python
 class Engine:
-    def validate_template(self, template: str | os.PathLike | bytes, config: ValidateConfig | None = None) -> ValidationReport: ...
+    def validate_template(self, template: Template, config: ValidateConfig | None = None) -> ValidationReport: ...
     def validate_aws_cli_command(self, request: AwsCliCommand) -> AwsCliCommandValidation: ...
     def list_rules(self) -> list[RuleInfo]: ...
     def engine_name(self) -> str: ...
@@ -275,7 +285,8 @@ Parses a template into the resolved `SemanticModel` for direct inspection - the 
 against.
 
 ```python
-model = TemplateModel("template.yaml")  # a path or bytes, like the engines
+model = TemplateModel("template.yaml")  # a path, bytes, or TemplateContent, like the engines
+in_memory = TemplateModel(TemplateContent("Resources: {}"))
 ```
 
 | Method                  | Returns                       | Description                                                                                     |

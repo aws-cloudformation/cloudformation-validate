@@ -25,11 +25,15 @@ including [schema-validator](../schema-validator/README.md)), and renders the re
 
 ## `cfn-validate`
 
-Validates a CloudFormation template or all files in a directory. Recursively collects `.yaml`, `.yml`, and `.json` files
-when given a directory path.
+Validates a CloudFormation template, all files in a directory, or a template piped to standard input. Recursively
+collects `.yaml`, `.yml`, and `.json` files when given a directory path. Passing `-` as the template argument reads the
+template from standard input instead of disk; its report is labelled `<stdin>`.
 
 ```
-cfn-validate <TEMPLATE|DIR> [OPTIONS]
+cfn-validate <TEMPLATE|DIR|-> [OPTIONS]
+
+# validate a synthesized template without writing it to disk
+cdk synth MyStack | cfn-validate -
 ```
 
 **Filter options:**

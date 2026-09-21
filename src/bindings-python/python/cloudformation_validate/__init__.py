@@ -106,6 +106,7 @@ from .validation_engine import (
 )
 
 __all__ = [
+    "DEFAULT_TEMPLATE_NAME",
     "AdditionalSchemaSource",
     "AwsCliCommand",
     "AwsCliCommandValidation",
@@ -173,6 +174,8 @@ __all__ = [
     "Severity",
     "SourceSpan",
     "Summary",
+    "Template",
+    "TemplateContent",
     "TemplateModel",
     "ValidateConfig",
     "ValidationError",
@@ -183,16 +186,39 @@ __all__ = [
     "version",
 ]
 
-Template = typing.Union[str, os.PathLike, bytes]
-"""A template to validate: a file path (read from disk) or raw template bytes."""
+DEFAULT_TEMPLATE_NAME = "template"
+"""Name reported for an in-memory template when the caller does not supply one."""
 
-_DEFAULT_FILE_PATH = "template"
+
+class TemplateContent:
+    """A template already held in memory as UTF-8 text or raw bytes, so nothing is read from disk.
+
+    ``name`` labels the report and its diagnostics exactly like a file path does and
+    defaults to :data:`DEFAULT_TEMPLATE_NAME`.
+    """
+
+    __slots__ = ("content", "name")
+
+    def __init__(self, content: typing.Union[str, bytes], name: str = DEFAULT_TEMPLATE_NAME):
+        if not isinstance(content, (str, bytes)):
+            raise TypeError(f"template content must be str or bytes, got {type(content).__name__}")
+        self.content = content
+        self.name = name
+
+    def read_bytes(self) -> bytes:
+        return self.content.encode("utf-8") if isinstance(self.content, str) else self.content
+
+
+Template = typing.Union[str, os.PathLike, bytes, TemplateContent]
+"""A template to validate: a file path (read from disk), raw template bytes, or a :class:`TemplateContent`."""
 
 
 def _template_bytes(template: Template) -> tuple[bytes, str]:
-    """Resolves a template argument to its byte content and display path."""
+    """Resolves a template argument to its byte content and report name."""
+    if isinstance(template, TemplateContent):
+        return template.read_bytes(), template.name
     if isinstance(template, bytes):
-        return template, _DEFAULT_FILE_PATH
+        return template, DEFAULT_TEMPLATE_NAME
     path = os.fspath(template)
     with open(path, "rb") as f:
         return f.read(), str(path)

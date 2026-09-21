@@ -1,4 +1,4 @@
-use std::{collections::HashMap, env, fs, path::Path, process};
+use std::{collections::HashMap, env, fs, process};
 
 use cel_engine::CelEngine;
 use composite_engine::CompositeEngine;
@@ -217,7 +217,7 @@ fn main() {
                     }
                 }
             }
-            s if !s.starts_with('-') => template_path = Some(s.to_string()),
+            s if s == cfn_validate::STDIN_TEMPLATE_ARG || !s.starts_with('-') => template_path = Some(s.to_string()),
             other => {
                 error!("Unknown option: {}", other);
                 process::exit(2);
@@ -343,13 +343,13 @@ fn main() {
         }
     };
 
-    let files = cfn_validate::collect_files(Path::new(&path));
-    if files.is_empty() {
+    let templates = cfn_validate::collect_template_inputs(&path);
+    if templates.is_empty() {
         error!("No files found at {}", path);
         process::exit(2);
     }
 
-    info!("Validating {} file(s) from {}", files.len(), path);
+    info!("Validating {} template(s) from {}", templates.len(), path);
 
     validate_config.filters = FilterConfig::new(
         RuleFilterConfig {
@@ -378,9 +378,9 @@ fn main() {
 
     let detail_level = validate_config.detail_level.clone();
     let mut has_errors = false;
-    for file in &files {
-        let file_str = file.display().to_string();
-        let bytes = match fs::read(file) {
+    for template in &templates {
+        let file_str = template.display_path();
+        let bytes = match template.read() {
             Ok(b) => b,
             Err(e) => {
                 error!("Failed to read {}: {}", file_str, e);
@@ -463,9 +463,10 @@ fn print_report(report: &ValidationReport, format: &DetailLevel) -> Result<(), s
 }
 
 fn print_help() {
-    eprintln!("Usage: cfn-validate <TEMPLATE|DIR> [OPTIONS]");
+    eprintln!("Usage: cfn-validate <TEMPLATE|DIR|-> [OPTIONS]");
     eprintln!();
-    eprintln!("Validate a CloudFormation template or all files in a directory.");
+    eprintln!("Validate a CloudFormation template, all files in a directory, or a template piped to");
+    eprintln!("standard input when the template argument is `-` (reported as <stdin>).");
     eprintln!();
     eprintln!("Filter options:");
     eprintln!("  --include-ids ID,...          Only report these rule IDs");

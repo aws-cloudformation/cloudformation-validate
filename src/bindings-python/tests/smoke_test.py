@@ -14,6 +14,7 @@ from unittest import mock
 
 import cloudformation_validate._native as native_loader
 from cloudformation_validate import (
+    DEFAULT_TEMPLATE_NAME,
     AdditionalSchemaSource,
     AwsCliCommand,
     AwsCliCommandValidationStatus,
@@ -33,6 +34,7 @@ from cloudformation_validate import (
     RuleOrigin,
     SchemaValidator,
     Severity,
+    TemplateContent,
     TemplateModel,
     ValidateConfig,
     ValidationError,
@@ -182,6 +184,65 @@ class ValidateTest(unittest.TestCase):
         report = REGO.validate_template(b"not: a: valid: yaml: [")
         self.assertEqual(ReportStatus.ERROR, report.status)
         self.assertTrue(report.diagnostics, "parse failure must surface as a diagnostic")
+
+
+class TemplateContentTest(unittest.TestCase):
+    """In-memory templates (str or bytes wrapped in TemplateContent) validate exactly
+    like the same template read from disk, with a caller-controlled report path."""
+
+    IN_MEMORY_TEMPLATE = os.path.join(TEMPLATES, "bad", "invalid_deletion_policy.yaml")
+
+    def _template_text(self) -> str:
+        with open(self.IN_MEMORY_TEMPLATE, encoding="utf-8") as f:
+            return f.read()
+
+    def test_str_content_matches_file_on_every_engine(self):
+        for engine in (REGO, CEL, COMPOSITE):
+            from_file = engine.validate_template(self.IN_MEMORY_TEMPLATE)
+            from_str = engine.validate_template(TemplateContent(self._template_text()))
+            self.assertTrue(from_file.diagnostics, f"{engine.engine_name()}: fixture must produce diagnostics")
+            self.assertEqual(from_file.diagnostics, from_str.diagnostics, engine.engine_name())
+            self.assertEqual(from_file.status, from_str.status, engine.engine_name())
+
+    def test_bytes_content_matches_file_on_every_engine(self):
+        with open(self.IN_MEMORY_TEMPLATE, "rb") as f:
+            template_bytes = f.read()
+        for engine in (REGO, CEL, COMPOSITE):
+            from_file = engine.validate_template(self.IN_MEMORY_TEMPLATE)
+            from_bytes = engine.validate_template(TemplateContent(template_bytes))
+            self.assertEqual(from_file.diagnostics, from_bytes.diagnostics, engine.engine_name())
+
+    def test_default_name_labels_in_memory_reports(self):
+        self.assertEqual("template", DEFAULT_TEMPLATE_NAME)
+        self.assertEqual(DEFAULT_TEMPLATE_NAME, REGO.validate_template(TemplateContent("Resources: {}")).file_path)
+        self.assertEqual(DEFAULT_TEMPLATE_NAME, REGO.validate_template(b"Resources: {}").file_path)
+
+    def test_supplied_name_labels_the_report(self):
+        template = TemplateContent("Resources: {}", name="inline/template.yaml")
+        self.assertEqual("inline/template.yaml", template.name)
+        self.assertEqual("inline/template.yaml", REGO.validate_template(template).file_path)
+
+    def test_malformed_str_content_reports_error_status(self):
+        report = CEL.validate_template(TemplateContent("not: a: valid: yaml: ["))
+        self.assertEqual(ReportStatus.ERROR, report.status)
+        self.assertEqual("F1101", report.diagnostics[0].rule_id)
+
+    def test_rejects_content_that_is_neither_str_nor_bytes(self):
+        with self.assertRaises(TypeError):
+            TemplateContent(42)
+        with self.assertRaises(TypeError):
+            TemplateContent({"Resources": {}})
+
+    def test_template_model_parses_str_content(self):
+        from_file = TemplateModel(self.IN_MEMORY_TEMPLATE)
+        from_str = TemplateModel(TemplateContent(self._template_text()))
+        self.assertEqual(list(from_file.resources()), list(from_str.resources()))
+        self.assertEqual(from_file.to_diagnostic_model(), from_str.to_diagnostic_model())
+
+    def test_schema_validator_validates_str_content_like_file(self):
+        validator = SchemaValidator()
+        from_file = validator.validate(self.IN_MEMORY_TEMPLATE)
+        self.assertEqual(from_file, validator.validate(TemplateContent(self._template_text())))
 
 
 class DetailLevelTest(unittest.TestCase):

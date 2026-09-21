@@ -66,8 +66,18 @@ templates. Every fallible call throws `ValidationException` on failure; internal
 and surface as the same exception, never a process abort. `version()` returns the version of the bundled validation
 core.
 
-A template is passed as a `java.io.File`: the engine reads the bytes and uses the file path for diagnostic source
-locations.
+A template is passed either as a `java.io.File` - the engine reads the bytes and uses the file path for diagnostic
+source locations - or as content already in memory, a `ByteArray` or a UTF-8 `String`, so nothing is read from disk.
+The in-memory overloads take an optional `name` that labels the report and its diagnostics exactly like a `File`
+path does; it defaults to `"template"` (`DEFAULT_TEMPLATE_NAME`).
+
+```kotlin
+val fromDisk = engine.validateTemplate(File("template.yaml"))
+val fromString = engine.validateTemplate("Resources: {}", name = "inline.yaml")
+val fromBytes = engine.validateTemplate(templateBytes, ValidateConfig(), "generated.json")
+```
+
+`TemplateModel` and `SchemaValidator.validate` accept the same three template forms.
 
 ## Engine
 
@@ -80,6 +90,8 @@ CEL, and Guard rules on top of the built-in rules - see [CompositeEngine](#compo
 ```kotlin
 interface Engine {
     fun validateTemplate(template: File, config: ValidateConfig = ValidateConfig()): ValidationReport
+    fun validateTemplate(template: ByteArray, config: ValidateConfig = ValidateConfig(), name: String = DEFAULT_TEMPLATE_NAME): ValidationReport
+    fun validateTemplate(template: String, config: ValidateConfig = ValidateConfig(), name: String = DEFAULT_TEMPLATE_NAME): ValidationReport
     fun validateAwsCliCommand(request: AwsCliCommand): AwsCliCommandValidation
     fun listRules(): List<RuleInfo>
     fun engineName(): String
@@ -88,7 +100,7 @@ interface Engine {
 
 | Method                               | Returns                   | Description                                                                                                                                                                                                                       |
 |--------------------------------------|---------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `validateTemplate(template, config)` | `ValidationReport`        | Validates the template and returns a report. `config.detailLevel` (default `DETAILED`) selects how much per-diagnostic context is populated: `DETAILED` adds documentation URLs, rule descriptions, phase tags, and `ViolationContext`; `STANDARD` leaves those enrichment fields absent |
+| `validateTemplate(template, config)` | `ValidationReport`        | Validates the template (a `File`, `ByteArray`, or `String`) and returns a report. `config.detailLevel` (default `DETAILED`) selects how much per-diagnostic context is populated: `DETAILED` adds documentation URLs, rule descriptions, phase tags, and `ViolationContext`; `STANDARD` leaves those enrichment fields absent |
 | `validateAwsCliCommand(request)`     | `AwsCliCommandValidation` | Models an AWS CLI command as CloudFormation resource state and validates it - see [AWS CLI command validation](#aws-cli-command-validation)                                                                                       |
 | `listRules()`                        | `List<RuleInfo>`          | Returns metadata for every built-in and loaded custom rule                                                                                                                                                                        |
 | `engineName()`                       | `String`                  | `"rego"`, `"cel"`, or `"composite"`                                                                                                                                                                                               |
@@ -296,6 +308,7 @@ against.
 
 ```kotlin
 val model = TemplateModel(File("template.yaml"))
+val inMemory = TemplateModel("Resources: {}")
 ```
 
 | Method                 | Returns                         | Description                                                                                     |
@@ -324,7 +337,7 @@ val diagnostics = validator.validate(File("template.yaml"), null)
 | Method                                              | Returns            | Description                                                                                                                             |
 |-----------------------------------------------------|--------------------|-----------------------------------------------------------------------------------------------------------------------------------------|
 | `SchemaValidator(config = SchemaValidatorConfig())` | `SchemaValidator`  | Constructs a validator; the default `SchemaValidatorConfig` uses only the bundled schemas                                               |
-| `validate(template, region)`                        | `List<Diagnostic>` | Schema diagnostics at `STANDARD` detail - the enrichment fields are absent. `region` is a `String?`; `null` defaults to `"us-east-1"`. |
+| `validate(template, region)`                        | `List<Diagnostic>` | Schema diagnostics for a `File`, `ByteArray`, or `String` template at `STANDARD` detail - the enrichment fields are absent. `region` is a `String?`; `null` defaults to `"us-east-1"`. |
 | `listRules()`                                       | `List<RuleInfo>`   | Schema rule metadata                                                                                                                    |
 | `schemaCount()`                                     | `Int`              | Number of compiled provider schemas                                                                                                     |
 

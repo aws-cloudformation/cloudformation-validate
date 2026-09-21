@@ -12,6 +12,8 @@ const {
     SchemaFile,
     TemplateModel,
     TemplateFile,
+    TemplateContent,
+    DEFAULT_TEMPLATE_NAME,
     version,
 } = require('@aws/cloudformation-validate');
 
@@ -391,6 +393,82 @@ describe('valid template', () => {
         expect(rego.status).toBe('OK');
         expect(CEL.validateTemplate(loadTemplate(GOOD_TEMPLATE)).diagnostics).toEqual(rego.diagnostics);
         expect(COMPOSITE.validateTemplate(loadTemplate(GOOD_TEMPLATE)).diagnostics).toEqual(rego.diagnostics);
+    });
+});
+
+// ── In-memory templates ──────────────────────────────────────────────────────
+
+describe('TemplateContent', () => {
+    const IN_MEMORY_TEMPLATE = 'bad/invalid_deletion_policy.yaml';
+    const INLINE_NAME = 'inline/template.yaml';
+
+    function templateText(rel: string): string {
+        return fs.readFileSync(path.join(TEMPLATES_ROOT, rel), 'utf-8');
+    }
+
+    for (const [engineName, engine] of [
+        ['RegoEngine', REGO],
+        ['CelEngine', CEL],
+        ['CompositeEngine', COMPOSITE],
+    ] as const) {
+        it(`${engineName} validates a string template identically to the same template on disk`, () => {
+            const fromDisk = engine.validateTemplate(loadTemplate(IN_MEMORY_TEMPLATE));
+            const fromString = engine.validateTemplate(new TemplateContent(templateText(IN_MEMORY_TEMPLATE)));
+            expect(fromString.diagnostics).toEqual(fromDisk.diagnostics);
+            expect(fromString.status).toBe(fromDisk.status);
+            expect(fromDisk.diagnostics.length).toBeGreaterThan(0);
+        });
+
+        it(`${engineName} validates a Uint8Array template identically to the same template on disk`, () => {
+            const bytes = fs.readFileSync(path.join(TEMPLATES_ROOT, IN_MEMORY_TEMPLATE));
+            const fromDisk = engine.validateTemplate(loadTemplate(IN_MEMORY_TEMPLATE));
+            const fromBytes = engine.validateTemplate(new TemplateContent(new Uint8Array(bytes)));
+            expect(fromBytes.diagnostics).toEqual(fromDisk.diagnostics);
+        });
+    }
+
+    it('labels the report with the default name when none is supplied', () => {
+        const report = REGO.validateTemplate(new TemplateContent('Resources: {}'));
+        expect(report.filePath).toBe(DEFAULT_TEMPLATE_NAME);
+        expect(DEFAULT_TEMPLATE_NAME).toBe('template');
+    });
+
+    it('labels the report with the supplied name', () => {
+        const template = new TemplateContent('Resources: {}', INLINE_NAME);
+        expect(template.name).toBe(INLINE_NAME);
+        expect(REGO.validateTemplate(template).filePath).toBe(INLINE_NAME);
+    });
+
+    it('returns F1101 for malformed in-memory YAML instead of throwing', () => {
+        const report = REGO.validateTemplate(new TemplateContent('not: a: valid: yaml: ['));
+        expect(report.status).toBe('ERROR');
+        expect(report.diagnostics[0].ruleId).toBe('F1101');
+    });
+
+    it('rejects content that is neither a string nor a Uint8Array', () => {
+        expect(() => new TemplateContent(42 as any)).toThrow(TypeError);
+        expect(() => new TemplateContent({ Resources: {} } as any)).toThrow(TypeError);
+    });
+
+    it('TemplateModel parses an in-memory template', () => {
+        const model = new TemplateModel(new TemplateContent(templateText('good/generic.yaml')));
+        try {
+            expect(model.description()).toBe('A sample template');
+            expect(model.conditions()).toContain('ProdVolumeSize');
+        } finally {
+            model.free();
+        }
+    });
+
+    it('SchemaValidator validates an in-memory template identically to the same template on disk', () => {
+        const validator = new SchemaValidator();
+        try {
+            const fromDisk = validator.validate(loadTemplate(IN_MEMORY_TEMPLATE));
+            const fromMemory = validator.validate(new TemplateContent(templateText(IN_MEMORY_TEMPLATE)));
+            expect(fromMemory).toEqual(fromDisk);
+        } finally {
+            validator.free();
+        }
     });
 });
 

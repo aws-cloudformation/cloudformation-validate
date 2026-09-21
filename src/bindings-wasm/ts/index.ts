@@ -337,17 +337,17 @@ function fromWireAwsCliCommandValidation(validation: WireAwsCliCommandValidation
 }
 
 export interface Engine {
-    validateTemplate(template: TemplateFile, config?: ValidateConfig): ValidationReport;
+    validateTemplate(template: Template, config?: ValidateConfig): ValidationReport;
     /**
      * @deprecated Use {@link validateTemplate} with `detailLevel: 'STANDARD'`. Any `detailLevel`
      * in `config` is overridden by `'STANDARD'`.
      */
-    validateStandard(template: TemplateFile, config?: ValidateConfig): StandardReport;
+    validateStandard(template: Template, config?: ValidateConfig): StandardReport;
     /**
      * @deprecated Use {@link validateTemplate}; `DETAILED` is already its default. Any `detailLevel`
      * in `config` is overridden by `'DETAILED'`.
      */
-    validateDetailed(template: TemplateFile, config?: ValidateConfig): DetailedReport;
+    validateDetailed(template: Template, config?: ValidateConfig): DetailedReport;
     validateAwsCliCommand(request: AwsCliCommand): AwsCliCommandValidation;
     listRules(): RuleInfo[];
     engineName(): string;
@@ -356,12 +356,43 @@ export interface Engine {
 
 const bridge = require('../dist/bindings_wasm');
 
+/** Name reported for an in-memory template when the caller does not supply one. */
+export const DEFAULT_TEMPLATE_NAME = 'template';
+
+/** A template read from disk; the path labels the report and its diagnostics. */
 export class TemplateFile {
     constructor(public readonly path: string) {}
 
     readBytes(): Uint8Array {
         return readFileSync(this.path);
     }
+}
+
+/**
+ * A template already held in memory as UTF-8 text or raw bytes, so nothing is
+ * read from disk. `name` labels the report and its diagnostics exactly like a
+ * {@link TemplateFile} path does and defaults to {@link DEFAULT_TEMPLATE_NAME}.
+ */
+export class TemplateContent {
+    constructor(
+        public readonly content: string | Uint8Array,
+        public readonly name: string = DEFAULT_TEMPLATE_NAME,
+    ) {
+        if (typeof content !== 'string' && !(content instanceof Uint8Array)) {
+            throw new TypeError('template content must be a string or a Uint8Array');
+        }
+    }
+
+    readBytes(): Uint8Array {
+        return typeof this.content === 'string' ? new TextEncoder().encode(this.content) : this.content;
+    }
+}
+
+/** A template source accepted by every template-consuming API: on disk or in memory. */
+export type Template = TemplateFile | TemplateContent;
+
+function templateLabel(template: Template): string {
+    return template instanceof TemplateContent ? template.name : template.path;
 }
 
 export class RuleFile {
@@ -477,7 +508,7 @@ function toWasmSchemaValidatorConfig(config?: SchemaValidatorConfig): WasmSchema
 export class TemplateModel {
     private readonly inner: InstanceType<typeof bridge.WasmSemanticModel>;
 
-    constructor(template: TemplateFile) {
+    constructor(template: Template) {
         this.inner = bridge.WasmSemanticModel.parse(template.readBytes());
     }
 
@@ -529,7 +560,7 @@ export class SchemaValidator {
         return this.inner.schemaCount();
     }
 
-    validate(template: TemplateFile, region?: string): Diagnostic[] {
+    validate(template: Template, region?: string): Diagnostic[] {
         const model = bridge.WasmSemanticModel.parse(template.readBytes());
         try {
             return this.inner.validate(model, region).diagnostics;
@@ -562,15 +593,15 @@ function createEngineClass<TConfig, TWasmConfig>(
             this.inner = new WasmClass(toWasmConfig(config));
         }
 
-        validateTemplate(template: TemplateFile, config?: ValidateConfig): ValidationReport {
-            return this.inner.validateTemplate(template.readBytes(), config ?? {}, template.path);
+        validateTemplate(template: Template, config?: ValidateConfig): ValidationReport {
+            return this.inner.validateTemplate(template.readBytes(), config ?? {}, templateLabel(template));
         }
 
-        validateStandard(template: TemplateFile, config?: ValidateConfig): StandardReport {
+        validateStandard(template: Template, config?: ValidateConfig): StandardReport {
             return this.validateTemplate(template, { ...config, detailLevel: 'STANDARD' });
         }
 
-        validateDetailed(template: TemplateFile, config?: ValidateConfig): DetailedReport {
+        validateDetailed(template: Template, config?: ValidateConfig): DetailedReport {
             return this.validateTemplate(template, { ...config, detailLevel: 'DETAILED' });
         }
 

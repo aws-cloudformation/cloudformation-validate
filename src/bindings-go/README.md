@@ -59,8 +59,8 @@ surface the same way, never a process abort. `Version()` returns the version of 
 `PackageVersion()` the Go module version embedded in the running binary (`"(devel)"` for local module replacements).
 
 A template is passed either as a file path with `ValidateTemplateFile(path, config)` (read from disk; the path is used
-for diagnostic source locations) or as raw bytes with `ValidateTemplate(template, config, filePath)`, where `filePath`
-labels the report (an empty `filePath` labels it `"template"`).
+for diagnostic source locations) or as raw bytes with `ValidateTemplate(template, config, name)`, where `name`
+labels the report (an empty `name` labels it `"template"`).
 
 ## Engine
 
@@ -75,7 +75,7 @@ func NewRegoEngine(config *EngineConfig) (*Engine, error)
 func NewCelEngine(config *EngineConfig) (*Engine, error)
 func NewCompositeEngine(config *CompositeEngineConfig) (*Engine, error)
 
-func (e *Engine) ValidateTemplate(template []byte, config *ValidateConfig, filePath string) (*ValidationReport, error)
+func (e *Engine) ValidateTemplate(template []byte, config *ValidateConfig, name string) (*ValidationReport, error)
 func (e *Engine) ValidateTemplateFile(path string, config *ValidateConfig) (*ValidationReport, error)
 func (e *Engine) ValidateAWSCLICommand(request AWSCLICommand) (*AWSCLICommandValidation, error)
 func (e *Engine) ListRules() ([]RuleInfo, error)
@@ -85,7 +85,7 @@ func (e *Engine) Destroy()
 
 | Method                                          | Returns                             | Description                                                                                                                                                                                                                       |
 |-------------------------------------------------|-------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `ValidateTemplate(template, config, filePath)`  | `(*ValidationReport, error)`        | Validates the template and returns a report. `config.DetailLevel` (default `DETAILED`) selects how much per-diagnostic context is populated: `DETAILED` adds documentation URLs, rule descriptions, phase tags, and `ViolationContext`; `STANDARD` leaves those enrichment fields nil |
+| `ValidateTemplate(template, config, name)`      | `(*ValidationReport, error)`        | Validates the template and returns a report. `config.DetailLevel` (default `DETAILED`) selects how much per-diagnostic context is populated: `DETAILED` adds documentation URLs, rule descriptions, phase tags, and `ViolationContext`; `STANDARD` leaves those enrichment fields nil |
 | `ValidateTemplateFile(path, config)`            | `(*ValidationReport, error)`        | Reads a template from disk, then validates it as above                                                                                                                                                                            |
 | `ValidateAWSCLICommand(request)`                | `(*AWSCLICommandValidation, error)` | Models an AWS CLI command as CloudFormation resource state and validates it - see [AWS CLI command validation](#aws-cli-command-validation)                                                                                       |
 | `ListRules()`                                   | `([]RuleInfo, error)`               | Returns metadata for every built-in and loaded custom rule                                                                                                                                                                        |
