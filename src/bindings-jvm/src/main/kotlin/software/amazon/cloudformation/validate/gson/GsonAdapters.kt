@@ -20,6 +20,7 @@ import java.lang.reflect.Type
  * Creates a [Gson] instance configured to serialize all UniFFI-generated bindings types
  * (UInt, JsonValueEnum, ViolationContext, EntityType) in a format matching the Rust serde output.
  */
+@JvmOverloads
 fun buildBindingsGson(prettyPrinting: Boolean = false): Gson =
     GsonBuilder()
         .apply { if (prettyPrinting) setPrettyPrinting() }

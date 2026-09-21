@@ -21,6 +21,8 @@ interface Engine {
     fun validateTemplate(template: File, config: ValidateConfig = ValidateConfig()): ValidationReport =
         validateTemplate(template.readBytes(), config, template.path)
 
+    fun validateTemplate(template: File): ValidationReport = validateTemplate(template, ValidateConfig())
+
     /**
      * Validates template bytes already held in memory, so nothing is read from disk.
      * [name] labels the report and its diagnostics exactly like a [File] path does.
@@ -31,12 +33,24 @@ interface Engine {
         name: String = DEFAULT_TEMPLATE_NAME,
     ): ValidationReport
 
+    fun validateTemplate(template: ByteArray, config: ValidateConfig): ValidationReport =
+        validateTemplate(template, config, DEFAULT_TEMPLATE_NAME)
+
+    fun validateTemplate(template: ByteArray): ValidationReport =
+        validateTemplate(template, ValidateConfig(), DEFAULT_TEMPLATE_NAME)
+
     /** Validates UTF-8 template text already held in memory - see the [ByteArray] overload. */
     fun validateTemplate(
         template: String,
         config: ValidateConfig = ValidateConfig(),
         name: String = DEFAULT_TEMPLATE_NAME,
     ): ValidationReport = validateTemplate(template.toByteArray(Charsets.UTF_8), config, name)
+
+    fun validateTemplate(template: String, config: ValidateConfig): ValidationReport =
+        validateTemplate(template, config, DEFAULT_TEMPLATE_NAME)
+
+    fun validateTemplate(template: String): ValidationReport =
+        validateTemplate(template, ValidateConfig(), DEFAULT_TEMPLATE_NAME)
 
     fun validateAwsCliCommand(request: AwsCliCommand): AwsCliCommandValidation
 
@@ -126,6 +140,7 @@ private fun Any?.toNativeAwsCliValue(): NativeAwsCliValue =
  * [SchemaValidatorConfig.additionalSchemas]. [typeName] may be omitted when the
  * schema file contains its own `typeName` field.
  */
+@JvmOverloads
 fun fileToAdditionalSchemaSource(file: File, typeName: String? = null): AdditionalSchemaSource =
     AdditionalSchemaSource(typeName = typeName, schema = file.readText())
 
