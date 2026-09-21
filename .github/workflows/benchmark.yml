@@ -43,34 +43,6 @@ jobs:
     steps:
     - uses: actions/checkout@v6
 
-    - name: List scenarios
-      id: plan
-      shell: bash
-      run: |
-        set -euo pipefail
-        # The matrix is the script's own scenario list so the workflow can never
-        # drift from the scenarios the script knows.
-        python3 - <<'PY' >> "$GITHUB_OUTPUT"
-        import json
-        import sys
-
-        sys.path.insert(0, "scripts")
-        import compare_benchmarks as cb
-
-        print(f"scenarios={json.dumps(cb.SCENARIO_IDS)}")
-        PY
-
-  benchmark:
-    needs: plan
-    runs-on: ubuntu-latest
-    timeout-minutes: 360
-    strategy:
-      fail-fast: false
-      matrix:
-        scenario: ${{ fromJSON(needs.plan.outputs.scenarios) }}
-    steps:
-    - uses: actions/checkout@v6
-
     - name: Load build configs
       id: configs
       uses: ./.github/actions/load-configs
