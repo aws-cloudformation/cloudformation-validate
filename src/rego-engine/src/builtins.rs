@@ -1,4 +1,6 @@
-use crate::eval_context::{current_model, current_region, is_builtin_rule_suppressed};
+use crate::eval_context::{
+    ReferenceRendering, current_model, current_reference_rendering, current_region, is_builtin_rule_suppressed,
+};
 use data_source::types::{ArtifactCountEntry, CodepipelineArtifactCounts, GetattData, SchemaMetadataCatalog};
 use regex::Regex;
 use regorus::Value;
@@ -211,11 +213,11 @@ fn register_cfn_rule_active(rego: &mut regorus::Engine) -> anyhow::Result<()> {
     )
 }
 
-fn resolved_to_rego(rv: &ResolvedValue) -> Value {
+fn resolved_to_rego(rv: &ResolvedValue, rendering: ReferenceRendering) -> Value {
     match rv {
         ResolvedValue::Concrete { value: v } => json_to_value(v),
         ResolvedValue::List { items } => {
-            let vals: Vec<Value> = items.iter().map(resolved_to_rego).collect();
+            let vals: Vec<Value> = items.iter().map(|item| resolved_to_rego(item, rendering)).collect();
             Value::from(vals)
         }
         ResolvedValue::Map { entries } => {
@@ -233,21 +235,27 @@ fn resolved_to_rego(rv: &ResolvedValue) -> Value {
             }
             Value::Undefined
         }
-        ResolvedValue::Conditional { if_true: t, .. } => resolved_to_rego(t),
-        // A reference has no literal before deployment. Rendering it as the same
-        // marker object the `input` document uses keeps it distinct from an
-        // authored string, so a rule that validates literal content skips it
-        // while a presence check still sees a value.
-        ResolvedValue::Reference { target, .. } => json_to_value(&serde_json::json!({MARKER_REF: target})),
+        ResolvedValue::Conditional { if_true: t, .. } => resolved_to_rego(t, rendering),
+        ResolvedValue::Reference { target, .. } => reference_to_rego(target, rendering),
         ResolvedValue::Dynamic { .. } | ResolvedValue::TypedDynamic { .. } => Value::Undefined,
     }
 }
 
-fn resolved_all_to_rego(rv: &ResolvedValue) -> Vec<Value> {
+/// A reference has no literal before deployment; how it is rendered is the
+/// contract the evaluating package was written against (see
+/// [`ReferenceRendering`]).
+fn reference_to_rego(target: &str, rendering: ReferenceRendering) -> Value {
+    match rendering {
+        ReferenceRendering::Marker => json_to_value(&serde_json::json!({MARKER_REF: target})),
+        ReferenceRendering::TargetId => Value::from(target),
+    }
+}
+
+fn resolved_all_to_rego(rv: &ResolvedValue, rendering: ReferenceRendering) -> Vec<Value> {
     match rv {
         ResolvedValue::Concrete { value: v } => vec![json_to_value(v)],
         ResolvedValue::List { items } => {
-            let vals: Vec<Value> = items.iter().map(resolved_to_rego).collect();
+            let vals: Vec<Value> = items.iter().map(|item| resolved_to_rego(item, rendering)).collect();
             vec![Value::from(vals)]
         }
         ResolvedValue::Map { entries } => {
@@ -257,10 +265,12 @@ fn resolved_all_to_rego(rv: &ResolvedValue) -> Vec<Value> {
             }
             vec![json_to_value(&serde_json::Value::Object(map))]
         }
-        ResolvedValue::Enum { variants: vals } => vals.iter().flat_map(resolved_all_to_rego).collect(),
+        ResolvedValue::Enum { variants: vals } => {
+            vals.iter().flat_map(|v| resolved_all_to_rego(v, rendering)).collect()
+        }
         ResolvedValue::Conditional { if_true: t, if_false: f, .. } => {
-            let mut r = resolved_all_to_rego(t);
-            r.extend(resolved_all_to_rego(f));
+            let mut r = resolved_all_to_rego(t, rendering);
+            r.extend(resolved_all_to_rego(f, rendering));
             r
         }
         // Unresolved references and dynamic values have no concrete literal to return.
@@ -377,11 +387,12 @@ fn register_resolve(rego: &mut regorus::Engine) {
             };
             let rid = params[0].as_string()?;
             let path = params[1].as_string()?;
+            let rendering = current_reference_rendering();
             if let Some(val) = model.resolve_deep(rid, path) {
-                return Ok(resolved_to_rego(&val));
+                return Ok(resolved_to_rego(&val, rendering));
             }
             if let Some(val) = model.resolve(rid, path) {
-                return Ok(resolved_to_rego(val));
+                return Ok(resolved_to_rego(val, rendering));
             }
             // `Properties` wrapped in `Fn::If` stores values only under the
             // synthetic branch path - fall back to scenario resolution so the
@@ -432,11 +443,12 @@ fn register_resolve_all(rego: &mut regorus::Engine) {
             };
             let rid = params[0].as_string()?;
             let path = params[1].as_string()?;
+            let rendering = current_reference_rendering();
             if let Some(val) = model.resolve_deep(rid, path) {
-                return Ok(Value::from(resolved_all_to_rego(&val)));
+                return Ok(Value::from(resolved_all_to_rego(&val, rendering)));
             }
             if let Some(val) = model.resolve(rid, path) {
-                return Ok(Value::from(resolved_all_to_rego(val)));
+                return Ok(Value::from(resolved_all_to_rego(val, rendering)));
             }
             // `Properties` wrapped in `Fn::If` stores values under a synthetic
             // branch path. Fall back to scenario resolution so rules that walk
@@ -2825,13 +2837,13 @@ mod tests {
     #[test]
     fn resolved_to_rego_concrete_string() {
         let rv = ResolvedValue::Concrete { value: serde_json::json!("test").into() };
-        assert_eq!(resolved_to_rego(&rv), Value::from("test"));
+        assert_eq!(resolved_to_rego(&rv, ReferenceRendering::Marker), Value::from("test"));
     }
 
     #[test]
     fn resolved_to_rego_concrete_number() {
         let rv = ResolvedValue::Concrete { value: serde_json::json!(99).into() };
-        assert_eq!(resolved_to_rego(&rv), Value::from(99i64));
+        assert_eq!(resolved_to_rego(&rv, ReferenceRendering::Marker), Value::from(99i64));
     }
 
     #[test]
@@ -2842,7 +2854,7 @@ mod tests {
                 ResolvedValue::Concrete { value: serde_json::json!(2).into() },
             ],
         };
-        let v = resolved_to_rego(&rv);
+        let v = resolved_to_rego(&rv, ReferenceRendering::Marker);
         let arr = v.as_array().expect("should be array");
         assert_eq!(arr.len(), 2);
     }
@@ -2855,7 +2867,7 @@ mod tests {
                 value: ResolvedValue::Concrete { value: serde_json::json!("val").into() },
             }],
         };
-        let v = resolved_to_rego(&rv);
+        let v = resolved_to_rego(&rv, ReferenceRendering::Marker);
         v.as_object().expect("resolved_to_rego should produce a valid object");
     }
 
@@ -2867,13 +2879,13 @@ mod tests {
                 ResolvedValue::Concrete { value: serde_json::json!("second").into() },
             ],
         };
-        assert_eq!(resolved_to_rego(&rv), Value::from("first"));
+        assert_eq!(resolved_to_rego(&rv, ReferenceRendering::Marker), Value::from("first"));
     }
 
     #[test]
     fn resolved_to_rego_enum_empty_returns_undefined() {
         let rv = ResolvedValue::Enum { variants: vec![] };
-        assert_eq!(resolved_to_rego(&rv), Value::Undefined);
+        assert_eq!(resolved_to_rego(&rv, ReferenceRendering::Marker), Value::Undefined);
     }
 
     #[test]
@@ -2883,33 +2895,96 @@ mod tests {
             if_true: Box::new(ResolvedValue::Concrete { value: serde_json::json!("yes").into() }),
             if_false: Box::new(ResolvedValue::Concrete { value: serde_json::json!("no").into() }),
         };
-        assert_eq!(resolved_to_rego(&rv), Value::from("yes"));
+        assert_eq!(resolved_to_rego(&rv, ReferenceRendering::Marker), Value::from("yes"));
     }
 
     #[test]
-    fn resolved_to_rego_reference_is_a_marker_object_not_the_target_string() {
+    fn resolved_to_rego_reference_under_marker_rendering_is_a_marker_object_not_the_target_string() {
         let rv = ResolvedValue::Reference { target: "MyBucket".to_string(), kind: RefKind::Ref };
-        let rendered = resolved_to_rego(&rv);
+        let rendered = resolved_to_rego(&rv, ReferenceRendering::Marker);
         assert_ne!(rendered, Value::from("MyBucket"), "a logical ID must never masquerade as a literal string");
         assert_eq!(rendered, json_to_value(&serde_json::json!({MARKER_REF: "MyBucket"})));
     }
 
     #[test]
+    fn resolved_to_rego_reference_under_target_id_rendering_is_the_target_string() {
+        let rv = ResolvedValue::Reference { target: "MyBucket".to_string(), kind: RefKind::Ref };
+        assert_eq!(resolved_to_rego(&rv, ReferenceRendering::TargetId), Value::from("MyBucket"));
+    }
+
+    #[test]
+    fn resolved_to_rego_getatt_reference_renders_like_a_ref_under_both_renderings() {
+        let rv = ResolvedValue::Reference { target: "Store".to_string(), kind: RefKind::GetAtt { attr: "Arn".into() } };
+        assert_eq!(
+            resolved_to_rego(&rv, ReferenceRendering::Marker),
+            json_to_value(&serde_json::json!({MARKER_REF: "Store"}))
+        );
+        assert_eq!(resolved_to_rego(&rv, ReferenceRendering::TargetId), Value::from("Store"));
+    }
+
+    #[test]
+    fn resolved_to_rego_list_items_follow_the_rendering_of_the_whole_value() {
+        let rv = ResolvedValue::List {
+            items: vec![
+                ResolvedValue::Concrete { value: serde_json::json!("literal.example.com").into() },
+                ResolvedValue::Reference {
+                    target: "Store".to_string(),
+                    kind: RefKind::GetAtt { attr: "Value".into() },
+                },
+            ],
+        };
+        let marker = json_to_value(&serde_json::json!(["literal.example.com", {MARKER_REF: "Store"}]));
+        assert_eq!(resolved_to_rego(&rv, ReferenceRendering::Marker), marker);
+        let target_ids = json_to_value(&serde_json::json!(["literal.example.com", "Store"]));
+        assert_eq!(resolved_to_rego(&rv, ReferenceRendering::TargetId), target_ids);
+    }
+
+    #[test]
+    fn resolved_to_rego_conditional_reference_follows_the_rendering() {
+        let rv = ResolvedValue::Conditional {
+            condition: "UseSharedBucket".to_string(),
+            if_true: Box::new(ResolvedValue::Reference { target: "SharedBucket".to_string(), kind: RefKind::Ref }),
+            if_false: Box::new(ResolvedValue::Concrete { value: serde_json::json!("literal-bucket").into() }),
+        };
+        assert_eq!(
+            resolved_to_rego(&rv, ReferenceRendering::Marker),
+            json_to_value(&serde_json::json!({MARKER_REF: "SharedBucket"}))
+        );
+        assert_eq!(resolved_to_rego(&rv, ReferenceRendering::TargetId), Value::from("SharedBucket"));
+    }
+
+    #[test]
+    fn resolved_to_rego_map_values_keep_the_marker_under_both_renderings() {
+        // A map is rendered as a document fragment, where a reference has always
+        // been the marker; the rendering only decides how a reference that *is*
+        // the resolved value comes back.
+        let rv = ResolvedValue::Map {
+            entries: vec![MapEntry {
+                key: "S3Bucket".to_string(),
+                value: ResolvedValue::Reference { target: "ArtifactsBucket".to_string(), kind: RefKind::Ref },
+            }],
+        };
+        let expected = json_to_value(&serde_json::json!({"S3Bucket": {MARKER_REF: "ArtifactsBucket"}}));
+        assert_eq!(resolved_to_rego(&rv, ReferenceRendering::Marker), expected);
+        assert_eq!(resolved_to_rego(&rv, ReferenceRendering::TargetId), expected);
+    }
+
+    #[test]
     fn resolved_to_rego_dynamic_returns_undefined() {
         let rv = ResolvedValue::Dynamic { reason: "param".to_string() };
-        assert_eq!(resolved_to_rego(&rv), Value::Undefined);
+        assert_eq!(resolved_to_rego(&rv, ReferenceRendering::Marker), Value::Undefined);
     }
 
     #[test]
     fn resolved_to_rego_typed_dynamic_returns_undefined() {
         let rv = ResolvedValue::TypedDynamic { reason: "param".to_string(), param_type: "String".to_string() };
-        assert_eq!(resolved_to_rego(&rv), Value::Undefined);
+        assert_eq!(resolved_to_rego(&rv, ReferenceRendering::Marker), Value::Undefined);
     }
 
     #[test]
     fn resolved_all_concrete_returns_single() {
         let rv = ResolvedValue::Concrete { value: serde_json::json!("x").into() };
-        let vals = resolved_all_to_rego(&rv);
+        let vals = resolved_all_to_rego(&rv, ReferenceRendering::Marker);
         assert_eq!(vals.len(), 1);
         assert_eq!(vals[0], Value::from("x"));
     }
@@ -2922,7 +2997,7 @@ mod tests {
                 ResolvedValue::Concrete { value: serde_json::json!("b").into() },
             ],
         };
-        let vals = resolved_all_to_rego(&rv);
+        let vals = resolved_all_to_rego(&rv, ReferenceRendering::Marker);
         assert_eq!(vals.len(), 2);
     }
 
@@ -2933,14 +3008,14 @@ mod tests {
             if_true: Box::new(ResolvedValue::Concrete { value: serde_json::json!("t").into() }),
             if_false: Box::new(ResolvedValue::Concrete { value: serde_json::json!("f").into() }),
         };
-        let vals = resolved_all_to_rego(&rv);
+        let vals = resolved_all_to_rego(&rv, ReferenceRendering::Marker);
         assert_eq!(vals.len(), 2);
     }
 
     #[test]
     fn resolved_all_dynamic_returns_empty() {
         let rv = ResolvedValue::Dynamic { reason: "x".to_string() };
-        assert!(resolved_all_to_rego(&rv).is_empty());
+        assert!(resolved_all_to_rego(&rv, ReferenceRendering::Marker).is_empty());
     }
 
     #[test]
@@ -3400,7 +3475,7 @@ mod tests {
                 ResolvedValue::Concrete { value: serde_json::json!(2).into() },
             ],
         };
-        let vals = resolved_all_to_rego(&rv);
+        let vals = resolved_all_to_rego(&rv, ReferenceRendering::Marker);
         assert_eq!(vals.len(), 1, "List wraps into a single array value");
         vals[0].as_array().expect("first element should be an array");
     }
@@ -3413,7 +3488,7 @@ mod tests {
                 value: ResolvedValue::Concrete { value: serde_json::json!("v").into() },
             }],
         };
-        let vals = resolved_all_to_rego(&rv);
+        let vals = resolved_all_to_rego(&rv, ReferenceRendering::Marker);
         assert_eq!(vals.len(), 1, "Map wraps into a single object value");
     }
 
@@ -3422,13 +3497,36 @@ mod tests {
         // References are omitted so format-validation rules don't mistake a logical ID
         // for a literal value.
         let rv = ResolvedValue::Reference { target: "Target".to_string(), kind: RefKind::Ref };
-        assert!(resolved_all_to_rego(&rv).is_empty());
+        assert!(resolved_all_to_rego(&rv, ReferenceRendering::Marker).is_empty());
+    }
+
+    #[test]
+    fn resolved_all_reference_stays_omitted_under_target_id_rendering() {
+        // The rendering decides how a reference looks, not whether `resolve_all`
+        // reports one: a bare reference has never contributed a scenario value.
+        let rv = ResolvedValue::Reference { target: "Target".to_string(), kind: RefKind::Ref };
+        assert!(resolved_all_to_rego(&rv, ReferenceRendering::TargetId).is_empty());
+    }
+
+    #[test]
+    fn resolved_all_list_items_follow_the_rendering() {
+        let rv = ResolvedValue::List {
+            items: vec![ResolvedValue::Reference { target: "Cert".to_string(), kind: RefKind::Ref }],
+        };
+        assert_eq!(
+            resolved_all_to_rego(&rv, ReferenceRendering::Marker),
+            vec![json_to_value(&serde_json::json!([{MARKER_REF: "Cert"}]))]
+        );
+        assert_eq!(
+            resolved_all_to_rego(&rv, ReferenceRendering::TargetId),
+            vec![json_to_value(&serde_json::json!(["Cert"]))]
+        );
     }
 
     #[test]
     fn resolved_all_typed_dynamic_returns_empty() {
         let rv = ResolvedValue::TypedDynamic { reason: "p".to_string(), param_type: "String".to_string() };
-        assert!(resolved_all_to_rego(&rv).is_empty());
+        assert!(resolved_all_to_rego(&rv, ReferenceRendering::Marker).is_empty());
     }
 
     #[test]
