@@ -20,6 +20,7 @@ use template_model::iam_policy::{inline_identity_policy_document_paths, validate
 use template_model::message::{primary_identifier_conflict_message, render_str_list, render_value};
 use template_model::resolver::{RefKind, ResolvedValue};
 use template_model::route_table::duplicate_subnet_associations;
+use template_model::vpc_cidr::subnets_outside_vpc;
 use template_model::{
     CAA_RECORD_PATTERN, IAM_ROLE_ARN_RULE_PATTERN, MARKER_DYNAMIC, MARKER_PARAM_TYPE, MX_RECORD_PATTERN, SourceSpan,
 };
@@ -279,13 +280,6 @@ fn resolved_list_items(m: &SemanticModel, rid: &str, path: &str) -> Option<Vec<s
     }
 }
 
-fn resource_has_property(m: &SemanticModel, rid: &str, property_name: &str) -> bool {
-    let is_top_level = m.resources.get(rid).is_some_and(|resource| resource.properties.contains_key(property_name));
-    // `Properties` wrapped in `Fn::If` stores values only under the synthetic
-    // branch path, where only path resolution finds them.
-    is_top_level || m.resolve_deep(rid, &format!("Properties.{}", property_name)).is_some()
-}
-
 const ALB_MINIMUM_SUBNETS: usize = 2;
 
 const ALB_SUBNET_MINIMUM_MESSAGES: [(&str, &str); 2] = [
@@ -297,7 +291,7 @@ const ALB_SUBNET_MINIMUM_MESSAGES: [(&str, &str); 2] = [
 /// is present but does not resolve to a string (a parameter reference) is left
 /// alone rather than assumed.
 fn alb_is_application_type(m: &SemanticModel, rid: &str) -> bool {
-    if !resource_has_property(m, rid, "Type") {
+    if !m.has_property(rid, "Type") {
         return true;
     }
     resolve_concrete(m, rid, "Properties.Type").as_ref().and_then(|v| v.as_str()) == Some("application")
@@ -330,8 +324,8 @@ const DBCLUSTER_MONITORING_MESSAGE: &str =
 /// The property path an inconsistent monitoring configuration is reported at,
 /// or `None` when the configuration is consistent or not decidable.
 fn dbcluster_monitoring_mismatch_path(m: &SemanticModel, rid: &str) -> Option<&'static str> {
-    let has_role = resource_has_property(m, rid, "MonitoringRoleArn");
-    let has_interval = resource_has_property(m, rid, "MonitoringInterval");
+    let has_role = m.has_property(rid, "MonitoringRoleArn");
+    let has_interval = m.has_property(rid, "MonitoringInterval");
     let interval = resolve_concrete(m, rid, "Properties.MonitoringInterval").as_ref().and_then(coerce_to_integer);
     match (has_role, has_interval, interval) {
         (true, false, _) => Some(KEY_PROPERTIES),
@@ -912,8 +906,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         for rtype in &["AWS::EC2::SecurityGroupIngress", "AWS::EC2::SecurityGroupEgress"] {
             for name in m.resources_of_type(rtype) {
                 let proto = resolve_concrete(m, name, "Properties.IpProtocol");
-                let has_port = resolve_concrete(m, name, "Properties.FromPort").is_some()
-                    || resolve_concrete(m, name, "Properties.ToPort").is_some();
+                let has_port = m.has_property(name, "Properties.FromPort") || m.has_property(name, "Properties.ToPort");
                 let val = proto.as_ref().map(|p| p.to_string()).unwrap_or_default();
                 let val_display = val.trim_matches('"');
                 if sg_protocol_requires_ports(proto.as_ref()) && !has_port {
@@ -2549,36 +2542,15 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         check_iam_action_resources(&mut out, m, name, &doc, &ctx.cached_data.iam_action_resource_patterns);
     }
 
-    let mut vpc_cidrs: HashMap<&str, (String, Ipv4Cidr)> = HashMap::new();
-    for vpc_name in m.resources_of_type("AWS::EC2::VPC") {
-        let Some(serde_json::Value::String(vpc_cidr)) = resolve_concrete(m, vpc_name, "Properties.CidrBlock") else {
-            continue;
-        };
-        if let Some(vpc_network) = parse_ipv4_cidr(&vpc_cidr) {
-            vpc_cidrs.insert(vpc_name, (vpc_cidr, vpc_network));
-        }
-    }
-    for subnet_name in m.resources_of_type("AWS::EC2::Subnet") {
-        let subnet_vpc = resolve_concrete(m, subnet_name, "Properties.VpcId");
-        let referenced_vpc = m
-            .follow_ref(subnet_name, "Properties.VpcId")
-            .or_else(|| subnet_vpc.as_ref().and_then(|value| value.as_str()));
-        let Some((vpc_cidr, vpc_network)) = referenced_vpc.and_then(|vpc_name| vpc_cidrs.get(vpc_name)) else {
-            continue;
-        };
-        if let Some(serde_json::Value::String(subnet_cidr)) = resolve_concrete(m, subnet_name, "Properties.CidrBlock")
-            && let Some(subnet_network) = parse_ipv4_cidr(&subnet_cidr)
-            && !is_subnet_of(subnet_network, *vpc_network)
-        {
-            out.push(make_resource_diagnostic(
-                "E3059",
-                &format!("Subnet CIDR '{}' is not within VPC CIDR '{}'", subnet_cidr, vpc_cidr),
-                m,
-                subnet_name,
-                "Properties.CidrBlock",
-                None,
-            ));
-        }
+    for finding in subnets_outside_vpc(m) {
+        out.push(make_resource_diagnostic(
+            "E3059",
+            &finding.message,
+            m,
+            &finding.subnet_id,
+            "Properties.CidrBlock",
+            None,
+        ));
     }
 
     {
@@ -2834,7 +2806,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     for name in m.resources_of_type("AWS::ElasticLoadBalancingV2::Listener") {
         if let Some(serde_json::Value::String(proto)) = resolve_concrete(m, name, "Properties.Protocol")
             && ctx.cached_data.load_balancer_v2_certificate_protocols.contains(&proto)
-            && resolve_concrete(m, name, "Properties.Certificates").is_none()
+            && !m.has_property(name, "Properties.Certificates")
         {
             out.push(make_resource_diagnostic(
                 "E3676",
@@ -2848,7 +2820,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     for name in m.resources_of_type("AWS::ElasticLoadBalancing::LoadBalancer") {
-        if let Some(serde_json::Value::Array(listeners)) = resolve_concrete(m, name, "Properties.Listeners") {
+        if let Some(listeners) = resolved_list_items(m, name, "Properties.Listeners") {
             for (i, listener) in listeners.iter().enumerate() {
                 let proto = listener.get("Protocol").and_then(|p| p.as_str()).unwrap_or("");
                 if ctx.cached_data.classic_load_balancer_certificate_protocols.contains(proto)
@@ -2914,9 +2886,8 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     for name in m.resources_of_type("AWS::ApiGateway::RestApi") {
-        let has_body = resolve_concrete(m, name, "Properties.Body").is_some()
-            || resolve_concrete(m, name, "Properties.BodyS3Location").is_some();
-        if !has_body && resolve_concrete(m, name, "Properties.Name").is_none() {
+        let has_body = m.has_property(name, "Properties.Body") || m.has_property(name, "Properties.BodyS3Location");
+        if !has_body && !m.has_property(name, "Properties.Name") {
             out.push(make_resource_diagnostic(
                 "E3660",
                 "'Name' is required when 'Body' or 'BodyS3Location' is not provided",
@@ -3054,7 +3025,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     for name in m.resources_of_type("AWS::ElastiCache::ReplicationGroup") {
         if resolve_concrete(m, name, "Properties.Engine").as_ref().and_then(|v| v.as_str()) == Some("valkey")
-            && resolve_concrete(m, name, "Properties.TransitEncryptionEnabled").is_none()
+            && !m.has_property(name, "Properties.TransitEncryptionEnabled")
         {
             out.push(make_resource_diagnostic(
                 "E3704",
@@ -3554,7 +3525,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     for name in m.resources_of_type("AWS::ElastiCache::ReplicationGroup") {
         if resolve_concrete(m, name, "Properties.Engine").as_ref().and_then(|v| v.as_str()) == Some("redis") {
             // NumCacheClusters is ignored when NumNodeGroups is specified
-            if resolve_concrete(m, name, "Properties.NumNodeGroups").is_some() {
+            if m.has_property(name, "Properties.NumNodeGroups") {
                 continue;
             }
             if let Some(num) = resolve_concrete(m, name, "Properties.NumCacheClusters").and_then(|v| v.as_i64())
@@ -3869,9 +3840,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     // RDS DBCluster - SnapshotIdentifier makes MasterUsername ignored
     for name in m.resources_of_type("AWS::RDS::DBCluster") {
-        if resolve_concrete(m, name, "Properties.SnapshotIdentifier").is_some()
-            && resolve_concrete(m, name, "Properties.MasterUsername").is_some()
-        {
+        if m.has_property(name, "Properties.SnapshotIdentifier") && m.has_property(name, "Properties.MasterUsername") {
             out.push(make_resource_diagnostic(
                 "W3688",
                 "MasterUsername is ignored when SnapshotIdentifier is present",
@@ -3885,9 +3854,9 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     // RDS DBCluster - SourceDBClusterIdentifier makes several properties ignored
     for name in m.resources_of_type("AWS::RDS::DBCluster") {
-        if resolve_concrete(m, name, "Properties.SourceDBClusterIdentifier").is_some() {
+        if m.has_property(name, "Properties.SourceDBClusterIdentifier") {
             for ignored in &["MasterUserPassword", "MasterUsername", "StorageEncrypted"] {
-                if resolve_concrete(m, name, &format!("Properties.{}", ignored)).is_some() {
+                if m.has_property(name, &format!("Properties.{}", ignored)) {
                     out.push(make_resource_diagnostic(
                         "W3689",
                         &format!("'{}' is ignored when SourceDBClusterIdentifier is present", ignored),
@@ -3914,7 +3883,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             for ignored in
                 &["PerformanceInsightsEnabled", "PerformanceInsightsKmsKeyId", "PerformanceInsightsRetentionPeriod"]
             {
-                if resolve_concrete(m, name, &format!("Properties.{}", ignored)).is_some() {
+                if m.has_property(name, &format!("Properties.{}", ignored)) {
                     out.push(make_resource_diagnostic(
                         "W3693",
                         &format!("'{}' is ignored when EngineMode is 'serverless'", ignored),
@@ -4606,31 +4575,6 @@ fn check_iam_action_resources(
     }
 }
 
-type Ipv4Cidr = (u32, u8); // (network_addr, prefix_len)
-
-fn parse_ipv4_cidr(s: &str) -> Option<Ipv4Cidr> {
-    let (addr_str, prefix_str) = s.split_once('/')?;
-    let prefix: u8 = prefix_str.parse().ok()?;
-    if prefix > 32 {
-        return None;
-    }
-    let parts: Vec<u8> = addr_str.split('.').filter_map(|p| p.parse().ok()).collect();
-    if parts.len() != 4 {
-        return None;
-    }
-    let addr = (parts[0] as u32) << 24 | (parts[1] as u32) << 16 | (parts[2] as u32) << 8 | parts[3] as u32;
-    let mask = if prefix == 0 { 0 } else { !0u32 << (32 - prefix) };
-    Some((addr & mask, prefix))
-}
-
-fn is_subnet_of(sub: Ipv4Cidr, vpc: Ipv4Cidr) -> bool {
-    if sub.1 < vpc.1 {
-        return false;
-    } // subnet prefix must be >= vpc prefix (smaller or equal network)
-    let vpc_mask = if vpc.1 == 0 { 0 } else { !0u32 << (32 - vpc.1) };
-    (sub.0 & vpc_mask) == vpc.0
-}
-
 fn check_dynamic_ref_spaces(
     out: &mut Vec<Diagnostic>,
     m: &Arc<SemanticModel>,
@@ -4784,72 +4728,6 @@ mod tests {
         assert!(!sg_protocol_ignores_ports(None));
         assert!(!sg_protocol_requires_ports(Some(&unresolved_ref)));
         assert!(!sg_protocol_ignores_ports(Some(&unresolved_ref)));
-    }
-
-    #[test]
-    fn parse_cidr_valid() {
-        let (addr, prefix) = parse_ipv4_cidr("10.0.0.0/16").unwrap();
-        assert_eq!(prefix, 16);
-        assert_eq!(addr, 0x0A000000); // 10.0.0.0
-    }
-
-    #[test]
-    fn parse_cidr_host_bits_masked() {
-        let (addr, _) = parse_ipv4_cidr("10.0.1.5/16").unwrap();
-        assert_eq!(addr, 0x0A000000); // masked to 10.0.0.0
-    }
-
-    #[test]
-    fn parse_cidr_slash_32() {
-        let (addr, prefix) = parse_ipv4_cidr("192.168.1.1/32").unwrap();
-        assert_eq!(prefix, 32);
-        assert_eq!(addr, 0xC0A80101);
-    }
-
-    #[test]
-    fn parse_cidr_slash_0() {
-        let (addr, prefix) = parse_ipv4_cidr("10.0.0.0/0").unwrap();
-        assert_eq!(prefix, 0);
-        assert_eq!(addr, 0);
-    }
-
-    #[test]
-    fn parse_cidr_invalid_prefix() {
-        assert_eq!(parse_ipv4_cidr("10.0.0.0/33"), None, "prefix > 32 should return None");
-    }
-
-    #[test]
-    fn parse_cidr_invalid_format() {
-        assert_eq!(parse_ipv4_cidr("not-a-cidr"), None, "non-CIDR string should return None");
-        assert_eq!(parse_ipv4_cidr("10.0.0/16"), None, "incomplete IP should return None");
-        assert_eq!(parse_ipv4_cidr(""), None, "empty string should return None");
-    }
-
-    #[test]
-    fn subnet_of_true() {
-        let vpc = parse_ipv4_cidr("10.0.0.0/16").unwrap();
-        let sub = parse_ipv4_cidr("10.0.1.0/24").unwrap();
-        assert!(is_subnet_of(sub, vpc));
-    }
-
-    #[test]
-    fn subnet_of_same_network() {
-        let vpc = parse_ipv4_cidr("10.0.0.0/16").unwrap();
-        assert!(is_subnet_of(vpc, vpc));
-    }
-
-    #[test]
-    fn subnet_of_false_different_network() {
-        let vpc = parse_ipv4_cidr("10.0.0.0/16").unwrap();
-        let sub = parse_ipv4_cidr("172.16.0.0/24").unwrap();
-        assert!(!is_subnet_of(sub, vpc));
-    }
-
-    #[test]
-    fn subnet_of_false_larger_subnet() {
-        let vpc = parse_ipv4_cidr("10.0.0.0/24").unwrap();
-        let sub = parse_ipv4_cidr("10.0.0.0/16").unwrap();
-        assert!(!is_subnet_of(sub, vpc));
     }
 
     #[test]

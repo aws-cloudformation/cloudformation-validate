@@ -19,7 +19,7 @@ use template_model::iam_policy::{
     inline_identity_policy_document_paths, policy_has_allow_not_action_scenarios, validate_identity_policy_scenarios,
 };
 use template_model::region_enums;
-use template_model::resolved_value::{contains_dynamic_resolved, json_contains_markers};
+use template_model::resolved_value::json_contains_markers;
 use template_model::resolver::{MapEntry, RefKind, ResolvedValue};
 use template_model::{MARKER_DYNAMIC, MARKER_PARAM_TYPE, MARKER_REF};
 use template_model::{SourceSpan, UNKNOWN_SPAN, primary_identifier_conflict_message, render_value, render_value_list};
@@ -45,11 +45,14 @@ pub(crate) fn register_all(
     register_lifecycle_attribute_status(rego);
     register_lifecycle_policy_scenarios(rego);
     register_value_identity(rego);
+    register_referenced_resource_or_value_identity(rego);
     register_follow_ref(rego);
     register_authored_form(rego);
     register_resources_of_type(rego);
     register_effective_resource_type(rego);
     register_duplicate_subnet_associations(rego);
+    register_subnets_outside_vpc_findings(rego);
+    register_overlapping_subnet_findings(rego);
     register_hardcoded_azs(rego);
     register_ref_targets(rego);
     register_ref_sources(rego);
@@ -231,7 +234,11 @@ fn resolved_to_rego(rv: &ResolvedValue) -> Value {
             Value::Undefined
         }
         ResolvedValue::Conditional { if_true: t, .. } => resolved_to_rego(t),
-        ResolvedValue::Reference { target, .. } => Value::from(target.as_str()),
+        // A reference has no literal before deployment. Rendering it as the same
+        // marker object the `input` document uses keeps it distinct from an
+        // authored string, so a rule that validates literal content skips it
+        // while a presence check still sees a value.
+        ResolvedValue::Reference { target, .. } => json_to_value(&serde_json::json!({MARKER_REF: target})),
         ResolvedValue::Dynamic { .. } | ResolvedValue::TypedDynamic { .. } => Value::Undefined,
     }
 }
@@ -552,6 +559,28 @@ fn register_value_identity(rego: &mut regorus::Engine) {
     );
 }
 
+/// `referenced_resource_or_value_identity(rid, path)`: a key shared only by values
+/// that provably name the same thing - a `Ref`/`Fn::GetAtt` to a template resource
+/// is keyed by that resource, anything else by `value_identity`. Undefined when the
+/// value is opaque, so a rule can neither group nor separate it.
+fn register_referenced_resource_or_value_identity(rego: &mut regorus::Engine) {
+    let _ = rego.add_extension(
+        "referenced_resource_or_value_identity".into(),
+        2,
+        Box::new(move |params: Vec<Value>| {
+            let Some(model) = current_model() else {
+                return Ok(Value::Undefined);
+            };
+            let rid = params[0].as_string()?;
+            let path = params[1].as_string()?;
+            match model.referenced_resource_or_value_identity(rid, path) {
+                Some(identity) => Ok(Value::from(identity)),
+                None => Ok(Value::Undefined),
+            }
+        }),
+    );
+}
+
 fn register_resolve_scenarios(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "resolve_scenarios".into(),
@@ -620,8 +649,7 @@ fn register_has_unresolved_scenario(rego: &mut regorus::Engine) {
             };
             let resource_id = params[0].as_string()?;
             let path = params[1].as_string()?;
-            let scenarios = model.resolve_scenarios(resource_id.as_ref(), path.as_ref());
-            Ok(Value::from(scenarios.is_empty() || scenarios.iter().any(|(value, _)| contains_dynamic_resolved(value))))
+            Ok(Value::from(model.has_unresolved_scenario(resource_id.as_ref(), path.as_ref())))
         }),
     );
 }
@@ -861,6 +889,57 @@ fn register_duplicate_subnet_associations(rego: &mut regorus::Engine) {
     );
 }
 
+/// `subnets_outside_vpc_findings()`: the shared subnet placement analysis, one
+/// finding per subnet CIDR that lies outside every IPv4 network of its VPC.
+fn register_subnets_outside_vpc_findings(rego: &mut regorus::Engine) {
+    let _ = rego.add_extension(
+        "subnets_outside_vpc_findings".into(),
+        0,
+        Box::new(move |_params: Vec<Value>| {
+            let Some(model) = current_model() else {
+                return Ok(Value::from(Vec::<Value>::new()));
+            };
+            let findings: Vec<Value> = template_model::vpc_cidr::subnets_outside_vpc(&model)
+                .into_iter()
+                .map(|finding| {
+                    json_to_value(&serde_json::json!({
+                        "subnetId": finding.subnet_id,
+                        "message": finding.message,
+                    }))
+                })
+                .collect();
+            Ok(Value::from(findings))
+        }),
+    );
+}
+
+/// `overlapping_subnet_findings()`: the shared subnet placement analysis, one
+/// finding per pair of same-VPC subnets whose CIDRs overlap in a scenario where
+/// both are deployed, attributed to the later subnet.
+fn register_overlapping_subnet_findings(rego: &mut regorus::Engine) {
+    let _ = rego.add_extension(
+        "overlapping_subnet_findings".into(),
+        0,
+        Box::new(move |_params: Vec<Value>| {
+            let Some(model) = current_model() else {
+                return Ok(Value::from(Vec::<Value>::new()));
+            };
+            let findings: Vec<Value> = template_model::vpc_cidr::overlapping_subnets(&model)
+                .into_iter()
+                .map(|finding| {
+                    json_to_value(&serde_json::json!({
+                        "subnetId": finding.subnet_id,
+                        "message": finding.message,
+                        "earlierSubnetId": finding.earlier_subnet_id,
+                        "earlierSubnetMessage": finding.earlier_subnet_message,
+                    }))
+                })
+                .collect();
+            Ok(Value::from(findings))
+        }),
+    );
+}
+
 fn register_resources_of_type(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "resources_of_type".into(),
@@ -1080,22 +1159,7 @@ fn register_has_property(rego: &mut regorus::Engine) {
             };
             let rid = params[0].as_string()?;
             let prop = params[1].as_string()?;
-            let prop = prop.as_ref();
-            // Property names are documented as bare (`BucketName`), but a Guard
-            // `Properties.X EXISTS` clause translates to a leading `Properties.`
-            // prefix. Accept both by also checking the name with that prefix
-            // stripped, since the model stores top-level properties under the bare
-            // name.
-            let bare_prop = prop.strip_prefix("Properties.").unwrap_or(prop);
-            let has_top_level_property = model.resources.get(rid.as_ref()).is_some_and(|resource| {
-                resource.properties.contains_key(prop) || resource.properties.contains_key(bare_prop)
-            });
-            if has_top_level_property {
-                return Ok(Value::from(true));
-            }
-            let property_path =
-                if prop.starts_with("Properties.") { prop.to_string() } else { format!("Properties.{prop}") };
-            Ok(Value::from(model.resolve_deep(rid.as_ref(), &property_path).is_some()))
+            Ok(Value::from(model.has_property(rid.as_ref(), prop.as_ref())))
         }),
     );
 }
@@ -2823,9 +2887,11 @@ mod tests {
     }
 
     #[test]
-    fn resolved_to_rego_reference() {
+    fn resolved_to_rego_reference_is_a_marker_object_not_the_target_string() {
         let rv = ResolvedValue::Reference { target: "MyBucket".to_string(), kind: RefKind::Ref };
-        assert_eq!(resolved_to_rego(&rv), Value::from("MyBucket"));
+        let rendered = resolved_to_rego(&rv);
+        assert_ne!(rendered, Value::from("MyBucket"), "a logical ID must never masquerade as a literal string");
+        assert_eq!(rendered, json_to_value(&serde_json::json!({MARKER_REF: "MyBucket"})));
     }
 
     #[test]

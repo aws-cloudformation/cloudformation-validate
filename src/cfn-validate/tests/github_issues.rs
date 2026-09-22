@@ -9,11 +9,9 @@
 //! recursively covers the entire `resources/templates/` tree, so this file adds
 //! focused, rule-level assertions on top of the full-report snapshots.
 //!
-//! Every engine must agree on every assertion here unless a test explicitly says
-//! otherwise (see `issue_54_w3045_diverges_on_symbolic_accesscontrol_ref`, which
-//! pins a known rego/cel divergence). The composite selector evaluates the
-//! built-in rules with CEL, so it is checked alongside the two built-in engines
-//! and tracks the CEL engine - including where a divergence is pinned.
+//! Every engine must agree on every assertion here. The composite selector
+//! evaluates the built-in rules with CEL, so it is checked alongside the two
+//! built-in engines and tracks the CEL engine.
 
 mod common;
 
@@ -681,16 +679,16 @@ fn issue_54_no_f3003_when_ownershipcontrols_present() {
     assert_fires_with_severity(&diags, "W3045", Severity::Warn);
 }
 
-/// Issue #54 (engine divergence): when `AccessControl` is a symbolic `{Ref}` to a
-/// parameter with no default, the property IS present so the deprecation warning
-/// W3045 should fire (the deprecation is about presence of the property, not its
-/// value). CEL does fire it; rego does not (it keys on the resolved value, which
-/// is unresolvable here) - a rego false-negative and a rego/cel divergence. Pinned with inline
-/// bytes because the fixture diverges between engines and so cannot live in the
-/// rego==cel snapshot corpus. Tighten to both-fire once rego keys on presence.
+/// Issue #54 (presence, not value): when `AccessControl` is a symbolic `{Ref}` to
+/// a parameter with no default, the property IS present so the deprecation
+/// warning W3045 fires in every engine - the deprecation is about the property
+/// being set, not about what it resolves to. E3045, which needs the literal ACL
+/// value to decide whether OwnershipControls are required, must stay silent
+/// because that value is unknown. Pinned with inline bytes so the case reads next
+/// to the other issue-54 assertions.
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/54
 #[test]
-fn issue_54_w3045_diverges_on_symbolic_accesscontrol_ref() {
+fn issue_54_w3045_fires_on_symbolic_accesscontrol_ref_in_every_engine() {
     const TEMPLATE: &[u8] = br#"{
   "Parameters": { "Acl": { "Type": "String" } },
   "Resources": {
@@ -698,19 +696,17 @@ fn issue_54_w3045_diverges_on_symbolic_accesscontrol_ref() {
   }
 }"#;
     let sv = SchemaValidator::default();
-    let rego = validate_bytes(&*REGO, &sv, TEMPLATE, debug_config()).unwrap().diagnostics;
-    let cel = validate_bytes(&*CEL, &sv, TEMPLATE, debug_config()).unwrap().diagnostics;
-    let composite = validate_bytes(&*COMPOSITE, &sv, TEMPLATE, debug_config()).unwrap().diagnostics;
-
-    assert!(cel.iter().any(|d| d.rule_id == "W3045"), "cel should fire W3045 (property is present)");
-    assert!(
-        !rego.iter().any(|d| d.rule_id == "W3045"),
-        "rego currently does NOT fire W3045 on a symbolic AccessControl Ref (false negative)"
-    );
-    assert!(
-        composite.iter().any(|d| d.rule_id == "W3045"),
-        "composite evaluates the built-in rules with CEL, so it fires W3045 like CEL, not rego"
-    );
+    for (engine, diags) in [
+        ("rego", validate_bytes(&*REGO, &sv, TEMPLATE, debug_config()).unwrap().diagnostics),
+        ("cel", validate_bytes(&*CEL, &sv, TEMPLATE, debug_config()).unwrap().diagnostics),
+        ("composite", validate_bytes(&*COMPOSITE, &sv, TEMPLATE, debug_config()).unwrap().diagnostics),
+    ] {
+        assert!(diags.iter().any(|d| d.rule_id == "W3045"), "[{engine}] W3045 fires because the property is present");
+        assert!(
+            !diags.iter().any(|d| d.rule_id == "E3045"),
+            "[{engine}] E3045 needs the literal ACL value and must not judge an unresolved one"
+        );
+    }
 }
 
 /// Issue #55: a `CommaDelimitedList` parameter Default referenced by an

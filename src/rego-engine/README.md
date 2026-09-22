@@ -31,7 +31,7 @@ namespace prefix. For example, a policy calls `resolve(name, "Properties.BucketN
 
 | Builtin              | Signature                                                     | Purpose                                              |
 |----------------------|---------------------------------------------------------------|------------------------------------------------------|
-| `resolve`            | `(resource_id, path) → value`                                 | Resolve a property value through intrinsic functions |
+| `resolve`            | `(resource_id, path) → value`                                 | Resolve a property value through intrinsic functions; a reference is a `{"__ref": target}` marker, never a bare string |
 | `resolve_all`        | `(resource_id, path) → [values]`                              | Resolve all scenario values for a property           |
 | `resolve_scenarios`  | `(resource_id, path) → [{value, conditions}]`                 | Resolve all (value, condition_map) pairs             |
 | `resolve_ref_target` | `(resource_id, path) → {resourceType, condition, properties}` | Resolve the target of a reference                    |
@@ -47,7 +47,7 @@ namespace prefix. For example, a policy calls `resolve(name, "Properties.BucketN
 | Builtin             | Signature                         | Purpose                                  |
 |---------------------|-----------------------------------|------------------------------------------|
 | `get_resource`      | `(resource_id) → resource_object` | Get full resolved resource data          |
-| `has_property`      | `(resource_id, path) → bool`      | Check if a property exists on a resource |
+| `has_property`      | `(resource_id, path) → bool`      | Check if a property is authored, even when its value is only known at deployment |
 | `resources_of_type` | `(type_name) → [resource_ids]`    | Get all logical IDs of a resource type   |
 | `has_transform`     | `(transform_name) → bool`         | Check if a transform is declared         |
 

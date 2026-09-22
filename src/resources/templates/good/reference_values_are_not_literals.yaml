@@ -1,0 +1,74 @@
+# A Ref or Fn::GetAtt has no literal before deployment. Rules that validate
+# the format or allowed values of a string must skip such values instead of
+# judging the referenced resource's logical ID as if it were the value.
+AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+  Store:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Value: placeholder
+      Tags:
+        Name: regression
+  Record:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneName: example.com.
+      Name: !GetAtt Store.Value
+      Type: A
+      TTL: '300'
+      ResourceRecords: [192.0.2.10]
+  FifoQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      FifoQueue: true
+      QueueName: !GetAtt Store.Value
+      Tags:
+        - Key: Name
+          Value: regression
+  Distribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Aliases:
+          - !GetAtt Store.Value
+        DefaultCacheBehavior:
+          TargetOriginId: primary
+          ViewerProtocolPolicy: redirect-to-https
+          ForwardedValues:
+            QueryString: false
+        Origins:
+          - Id: primary
+            DomainName: origin.example.com
+            CustomOriginConfig:
+              OriginProtocolPolicy: https-only
+      Tags:
+        - Key: Name
+          Value: regression
+  Database:
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: Snapshot
+    UpdateReplacePolicy: Snapshot
+    Properties:
+      Engine: mysql
+      DBInstanceClass: !GetAtt Store.Value
+      AllocatedStorage: '20'
+      MasterUsername: dbadmin
+      MasterUserPassword: '{{resolve:secretsmanager:db-secret}}'
+      StorageEncrypted: true
+      BackupRetentionPeriod: 7
+      Tags:
+        - Key: Name
+          Value: regression
+  Function:
+    Type: AWS::Lambda::Function
+    Properties:
+      Role: !GetAtt Store.Value
+      Code:
+        ZipFile: "def handler(event, context): return event"
+      Runtime: !GetAtt Store.Value
+      Handler: index.handler
+      Tags:
+        - Key: Name
+          Value: regression

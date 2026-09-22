@@ -1,0 +1,104 @@
+# Subnet CIDR placement is judged per VPC and per deployment scenario:
+# identical layouts in two VPCs never overlap, Ref and Fn::GetAtt name the
+# same VPC, a subnet may live in a secondary VPCCidrBlock, opposite Fn::If
+# branches never coexist, and a CIDR only known at deployment is not compared.
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, prod]
+Conditions:
+  IsProd: !Equals [!Ref Environment, prod]
+Resources:
+  VpcA:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      Tags:
+        - Key: Name
+          Value: regression
+  VpcB:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      Tags:
+        - Key: Name
+          Value: regression
+  VpcASecondaryBlock:
+    Type: AWS::EC2::VPCCidrBlock
+    Properties:
+      VpcId: !Ref VpcA
+      CidrBlock: 10.1.0.0/16
+  SubnetA1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VpcA
+      CidrBlock: 10.0.0.0/24
+      Tags:
+        - Key: Name
+          Value: regression
+  SubnetB1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VpcB
+      CidrBlock: 10.0.0.0/24
+      Tags:
+        - Key: Name
+          Value: regression
+  SubnetA2ViaAttribute:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !GetAtt VpcA.VpcId
+      CidrBlock: 10.0.1.0/24
+      Tags:
+        - Key: Name
+          Value: regression
+  SubnetInSecondaryBlock:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VpcA
+      CidrBlock: 10.1.0.0/24
+      Tags:
+        - Key: Name
+          Value: regression
+  SubnetProdOrDev:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VpcA
+      CidrBlock: !If [IsProd, 10.0.2.0/24, 10.0.3.0/24]
+      Tags:
+        - Key: Name
+          Value: regression
+  SubnetDevOrProd:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VpcA
+      CidrBlock: !If [IsProd, 10.0.3.0/24, 10.0.2.0/24]
+      Tags:
+        - Key: Name
+          Value: regression
+  SubnetFromAttribute:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VpcA
+      CidrBlock: !GetAtt VpcA.CidrBlock
+      Tags:
+        - Key: Name
+          Value: regression
+  SubnetFromImport:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VpcA
+      CidrBlock: !ImportValue SharedSubnetCidr
+      Tags:
+        - Key: Name
+          Value: regression
+  SubnetFromCidrFunction:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VpcA
+      CidrBlock: !Select [0, !Cidr [!GetAtt VpcA.CidrBlock, 4, 8]]
+      Tags:
+        - Key: Name
+          Value: regression

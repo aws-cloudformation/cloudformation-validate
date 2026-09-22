@@ -1515,6 +1515,49 @@ impl SemanticModel {
         result
     }
 
+    /// Whether the resource authors a value at `path`, whatever that value is.
+    ///
+    /// Presence is a different question from resolvability: a `Ref` to a
+    /// parameter without a default, a `Fn::GetAtt`, or a `Fn::ImportValue` has no
+    /// literal before deployment yet the property is set. A rule that asks "is
+    /// this property provided?" must use this rather than a concrete lookup, or it
+    /// reports a missing property on every template that supplies it indirectly.
+    /// A `Properties` block wrapped in `Fn::If` keeps its values under the branch
+    /// paths, so a property present in either branch counts as authored.
+    #[must_use]
+    pub fn has_property(&self, resource_id: &str, path: &str) -> bool {
+        let Some(resource) = self.resources.get(resource_id) else {
+            return false;
+        };
+        let property_path = path.strip_prefix(&format!("{KEY_PROPERTIES}.")).unwrap_or(path);
+        resource.properties.contains_key(property_path)
+            || self.resolve_deep(resource_id, path).is_some()
+            || self.resolve_via_properties_if(resource_id, path).is_some()
+    }
+
+    /// Whether the value at `path` is unknown before deployment in at least one
+    /// scenario, or has no scenario at all. A rule that reasons about every value
+    /// a property can take must stop when one of them cannot be known.
+    #[must_use]
+    pub fn has_unresolved_scenario(&self, resource_id: &str, path: &str) -> bool {
+        let scenarios = self.resolve_scenarios(resource_id, path);
+        scenarios.is_empty() || scenarios.iter().any(|(value, _)| contains_dynamic_resolved(value))
+    }
+
+    /// A key that two values share only when they provably name the same thing.
+    ///
+    /// A `Ref` or `Fn::GetAtt` to a resource in this template is keyed by that
+    /// resource, so `!Ref Vpc` and `!GetAtt Vpc.VpcId` are one key. Every other
+    /// value falls back to [`Self::value_identity`]. Callers that group by this key
+    /// must treat `None` as "unknown" and neither group nor separate such values.
+    #[must_use]
+    pub fn referenced_resource_or_value_identity(&self, resource_id: &str, path: &str) -> Option<String> {
+        if let Some(target) = self.follow_ref(resource_id, path) {
+            return Some(format!("resource:{target}"));
+        }
+        self.value_identity(resource_id, path)
+    }
+
     #[must_use]
     pub fn is_from_parameter(&self, resource_id: &str, path: &str) -> bool {
         self.parameter_name_at(resource_id, path).is_some()

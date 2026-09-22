@@ -38,6 +38,7 @@ pub mod template_section;
 pub(crate) mod transform_expansion;
 pub(crate) mod value_identity;
 pub mod value_patterns;
+pub mod vpc_cidr;
 
 pub use budget::BudgetKind;
 pub use consts::PSEUDO_PARAMETERS;
