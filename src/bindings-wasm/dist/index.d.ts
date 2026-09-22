@@ -131,27 +131,43 @@ export interface AwsCliCommandValidation {
     template: Uint8Array | null;
 }
 export interface Engine {
-    validateTemplate(template: TemplateFile, config?: ValidateConfig): ValidationReport;
+    validateTemplate(template: Template, config?: ValidateConfig): ValidationReport;
     /**
      * @deprecated Use {@link validateTemplate} with `detailLevel: 'STANDARD'`. Any `detailLevel`
      * in `config` is overridden by `'STANDARD'`.
      */
-    validateStandard(template: TemplateFile, config?: ValidateConfig): StandardReport;
+    validateStandard(template: Template, config?: ValidateConfig): StandardReport;
     /**
      * @deprecated Use {@link validateTemplate}; `DETAILED` is already its default. Any `detailLevel`
      * in `config` is overridden by `'DETAILED'`.
      */
-    validateDetailed(template: TemplateFile, config?: ValidateConfig): DetailedReport;
+    validateDetailed(template: Template, config?: ValidateConfig): DetailedReport;
     validateAwsCliCommand(request: AwsCliCommand): AwsCliCommandValidation;
     listRules(): RuleInfo[];
     engineName(): string;
     free(): void;
 }
+/** Name reported for an in-memory template when the caller does not supply one. */
+export declare const DEFAULT_TEMPLATE_NAME = 'template';
+/** A template read from disk; the path labels the report and its diagnostics. */
 export declare class TemplateFile {
     readonly path: string;
     constructor(path: string);
     readBytes(): Uint8Array;
 }
+/**
+ * A template already held in memory as UTF-8 text or raw bytes, so nothing is
+ * read from disk. `name` labels the report and its diagnostics exactly like a
+ * {@link TemplateFile} path does and defaults to {@link DEFAULT_TEMPLATE_NAME}.
+ */
+export declare class TemplateContent {
+    readonly content: string | Uint8Array;
+    readonly name: string;
+    constructor(content: string | Uint8Array, name?: string);
+    readBytes(): Uint8Array;
+}
+/** A template source accepted by every template-consuming API: on disk or in memory. */
+export type Template = TemplateFile | TemplateContent;
 export declare class RuleFile {
     readonly path: string;
     constructor(path: string);
@@ -212,7 +228,7 @@ export interface SchemaValidatorConfig {
 }
 export declare class TemplateModel {
     private readonly inner;
-    constructor(template: TemplateFile);
+    constructor(template: Template);
     resources(): Record<string, ResolvedResource>;
     parameters(): Record<string, ParameterInfo>;
     outputs(): Record<string, ResolvedOutput>;
@@ -229,7 +245,7 @@ export declare class SchemaValidator {
     constructor(config?: SchemaValidatorConfig);
     listRules(): RuleInfo[];
     schemaCount(): number;
-    validate(template: TemplateFile, region?: string): Diagnostic[];
+    validate(template: Template, region?: string): Diagnostic[];
     free(): void;
 }
 export declare const RegoEngine: new (config?: EngineConfig) => Engine;
