@@ -1,7 +1,7 @@
 name: Benchmark
 
 # Every scenario of scripts/compare_benchmarks.py (built-in rules only, built-in +
-# Guard rule pack, built-in + custom Rego rule pack, and both packs) is a full
+# custom Rego rule pack, and built-in + Guard rule pack) is a full Rego/composite
 # engine × binding benchmark and always runs, in one job so every number in the
 # report comes from the same runner. The per-template and aggregate reports stay
 # on the runner; only the assembled comparison report is uploaded.
