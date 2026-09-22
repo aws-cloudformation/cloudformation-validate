@@ -6365,7 +6365,7 @@ limitations under the License.
 ******************************
 
 cloudformation-validate-composite-engine
-1.11.0 <https://github.com/aws-cloudformation/cloudformation-validate>
+1.12.0 <https://github.com/aws-cloudformation/cloudformation-validate>
 Apache License
 Version 2.0, January 2004
 http://www.apache.org/licenses/
@@ -17255,7 +17255,7 @@ limitations under the License.
 ******************************
 
 performance-harness
-1.11.0 <https://github.com/aws-cloudformation/cloudformation-validate>
+1.12.0 <https://github.com/aws-cloudformation/cloudformation-validate>
 Apache License
 Version 2.0, January 2004
 http://www.apache.org/licenses/

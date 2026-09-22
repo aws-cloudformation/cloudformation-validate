@@ -48,8 +48,27 @@ templates. Every fallible call throws on failure - the thrown value is the error
 core, so handle it with `catch (error) { String(error) }`; internal panics are caught at the WASM boundary and surface
 the same way, never a process abort. `version()` returns the version of the bundled validation core.
 
-A template is passed as a `TemplateFile`, which wraps a filesystem path: the engine reads the bytes and uses the path
-for diagnostic source locations.
+A template is passed as a `Template` - either a `TemplateFile`, which wraps a filesystem path the engine reads, or a
+`TemplateContent`, which carries template text or bytes already in memory so nothing is read from disk. The file path
+or the content `name` labels the report and its diagnostics; an omitted `TemplateContent` name defaults to
+`"template"` (`DEFAULT_TEMPLATE_NAME`).
+
+```typescript
+type Template = TemplateFile | TemplateContent;
+
+class TemplateFile {
+    constructor(path: string);                                   // template read from disk
+}
+
+class TemplateContent {
+    constructor(content: string | Uint8Array, name?: string);    // in-memory UTF-8 text or raw bytes
+}
+
+const fromDisk = engine.validateTemplate(new TemplateFile("template.yaml"));
+const fromMemory = engine.validateTemplate(new TemplateContent("Resources: {}", "inline.yaml"));
+```
+
+`TemplateModel` and `SchemaValidator.validate` accept the same `Template` union.
 
 ## Engine
 
@@ -61,7 +80,7 @@ CEL, and Guard rules on top of the built-in rules - see [CompositeEngine](#compo
 
 ```typescript
 interface Engine {
-    validateTemplate(template: TemplateFile, config?: ValidateConfig): ValidationReport;
+    validateTemplate(template: Template, config?: ValidateConfig): ValidationReport;
     validateAwsCliCommand(request: AwsCliCommand): AwsCliCommandValidation;
     listRules(): RuleInfo[];
     engineName(): string;
@@ -278,6 +297,7 @@ against.
 
 ```typescript
 const model = new TemplateModel(new TemplateFile("template.yaml"));
+const inMemory = new TemplateModel(new TemplateContent("Resources: {}"));
 ```
 
 | Method                 | Returns                            | Description                                                                                     |
@@ -311,7 +331,7 @@ try {
 | Method                         | Returns           | Description                                                                                                      |
 |--------------------------------|-------------------|------------------------------------------------------------------------------------------------------------------|
 | `new SchemaValidator(config?)` | `SchemaValidator` | Constructs a validator; an omitted `SchemaValidatorConfig` uses only the bundled schemas                         |
-| `validate(template, region?)`  | `Diagnostic[]`    | Schema diagnostics at `STANDARD` detail - the enrichment fields are absent. `region` defaults to `"us-east-1"`.  |
+| `validate(template, region?)`  | `Diagnostic[]`    | Schema diagnostics for a `Template` at `STANDARD` detail - the enrichment fields are absent. `region` defaults to `"us-east-1"`. |
 | `listRules()`                  | `RuleInfo[]`      | Schema rule metadata                                                                                             |
 | `schemaCount()`                | `number`          | Number of compiled provider schemas                                                                              |
 | `free()`                       | `void`            | Releases the validator's off-heap memory; the validator must not be used afterwards                              |

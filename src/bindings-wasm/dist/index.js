@@ -7,7 +7,9 @@ exports.CompositeEngine =
     exports.TemplateModel =
     exports.SchemaFile =
     exports.RuleFile =
+    exports.TemplateContent =
     exports.TemplateFile =
+    exports.DEFAULT_TEMPLATE_NAME =
     exports.AwsCliCommand =
         void 0;
 exports.version = version;
@@ -199,6 +201,9 @@ function fromWireAwsCliCommandValidation(validation) {
     };
 }
 const bridge = require('./bindings_wasm');
+/** Name reported for an in-memory template when the caller does not supply one. */
+exports.DEFAULT_TEMPLATE_NAME = 'template';
+/** A template read from disk; the path labels the report and its diagnostics. */
 class TemplateFile {
     constructor(path) {
         this.path = path;
@@ -208,6 +213,27 @@ class TemplateFile {
     }
 }
 exports.TemplateFile = TemplateFile;
+/**
+ * A template already held in memory as UTF-8 text or raw bytes, so nothing is
+ * read from disk. `name` labels the report and its diagnostics exactly like a
+ * {@link TemplateFile} path does and defaults to {@link DEFAULT_TEMPLATE_NAME}.
+ */
+class TemplateContent {
+    constructor(content, name = exports.DEFAULT_TEMPLATE_NAME) {
+        this.content = content;
+        this.name = name;
+        if (typeof content !== 'string' && !(content instanceof Uint8Array)) {
+            throw new TypeError('template content must be a string or a Uint8Array');
+        }
+    }
+    readBytes() {
+        return typeof this.content === 'string' ? new TextEncoder().encode(this.content) : this.content;
+    }
+}
+exports.TemplateContent = TemplateContent;
+function templateLabel(template) {
+    return template instanceof TemplateContent ? template.name : template.path;
+}
 class RuleFile {
     constructor(path) {
         this.path = path;
@@ -330,7 +356,7 @@ function createEngineClass(WasmClass, toWasmConfig) {
             this.inner = new WasmClass(toWasmConfig(config));
         }
         validateTemplate(template, config) {
-            return this.inner.validateTemplate(template.readBytes(), config ?? {}, template.path);
+            return this.inner.validateTemplate(template.readBytes(), config ?? {}, templateLabel(template));
         }
         validateStandard(template, config) {
             return this.validateTemplate(template, { ...config, detailLevel: 'STANDARD' });
