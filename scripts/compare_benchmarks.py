@@ -2,13 +2,11 @@
 """Runs benchmarks for every scenario × engine × binding and writes comparison reports.
 
 A *scenario* fixes the rules the engine evaluates: ``builtin`` measures the
-built-in rules alone, ``guard`` layers every Guard rule file of
-``src/resources/rules`` on top, ``rego`` layers every custom Rego rule file of
-that directory (the CEL engine cannot evaluate Rego, so that scenario skips
-CEL), and ``all`` layers both packs. The single report
-(``scripts/snapshots/benchmark_comparison.md``) opens with a cross-scenario
-summary of what each rule pack costs per engine and binding, then holds the
-full engine × binding comparison for every scenario.
+built-in rules alone, ``custom`` layers every custom Rego rule file of
+``src/resources/rules`` on top, and ``guard`` layers every Guard rule file of
+that directory. The single report (``scripts/snapshots/benchmark_comparison.md``)
+opens with a cross-scenario summary of what each rule pack costs per engine and
+binding, then holds the full engine × binding comparison for every scenario.
 
 The native benchmark builds ``cfn-benchmark`` from the workspace. The WASM, JVM,
 Python, and Go benchmarks consume the committed distribution artifacts that the
@@ -46,7 +44,9 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR.parent
 SRC_DIR = PROJECT_ROOT / "src"
 
-ENGINES = ["rego", "cel", "composite"]
+# Composite uses the CEL built-in implementation and also exercises custom Rego
+# composition, so a separate CEL benchmark would measure no additional path.
+ENGINES = ["rego", "composite"]
 FORMATS = ["detailed"]
 
 # Every .guard file here is the Guard rule pack and every .rego file the custom Rego
@@ -57,7 +57,6 @@ RULES_DIR = SRC_DIR / "resources" / "rules"
 # reports/<engine>/ layout that other tooling reads.
 DEFAULT_SCENARIO = "builtin"
 
-# The CEL engine cannot evaluate Rego, so Rego scenarios run Rego and composite only.
 SCENARIOS = [
     {
         "id": DEFAULT_SCENARIO,
@@ -67,25 +66,18 @@ SCENARIOS = [
         "rego": False,
     },
     {
+        "id": "custom",
+        "label": "Built-in rules + custom Rego rule pack",
+        "engines": ENGINES,
+        "guard": False,
+        "rego": True,
+    },
+    {
         "id": "guard",
         "label": "Built-in rules + Guard rule pack",
         "engines": ENGINES,
         "guard": True,
         "rego": False,
-    },
-    {
-        "id": "rego",
-        "label": "Built-in rules + custom Rego rule pack",
-        "engines": ["rego", "composite"],
-        "guard": False,
-        "rego": True,
-    },
-    {
-        "id": "all",
-        "label": "Built-in rules + Guard rule pack + custom Rego rule pack",
-        "engines": ["rego", "composite"],
-        "guard": True,
-        "rego": True,
     },
 ]
 SCENARIO_IDS = [scenario["id"] for scenario in SCENARIOS]
@@ -132,7 +124,7 @@ PAIRED_FLOOR_MS = 0.01
 VALID_BINDINGS = {"native", "wasm", "jvm", "python", "go"}
 
 # Valid engine labels.
-VALID_ENGINES = {"rego", "cel", "composite"}
+VALID_ENGINES = set(ENGINES)
 
 # External process timer used to measure startup and full-corpus memory. The
 # GNU coreutils build ("-v") and the macOS build ("-l") report different
@@ -1358,20 +1350,18 @@ def top_slowest_section(all_detailed, engines, bindings, top_n):
 
 def engine_display_name(engine):
     """Human-readable engine label for report headings and table cells."""
-    return {"rego": "Rego", "cel": "CEL", "composite": "Composite"}.get(engine, engine)
+    return {"rego": "Rego", "composite": "Composite"}.get(engine, engine)
 
 
 def paired_engine_pairs(all_detailed):
     """Every unordered pair of engines present in the loaded reports, in canonical
-    ENGINES order, so the report always compares e.g. Rego vs CEL, Rego vs
-    Composite, and CEL vs Composite when all three ran."""
+    ENGINES order."""
     present = [engine for engine in ENGINES if engine in all_detailed]
     return list(itertools.combinations(present, 2))
 
 
 def paired_engine_comparison(all_detailed, bindings):
-    """Paired engine-vs-engine analysis per binding, for every pair of engines
-    that ran (Rego vs CEL, Rego vs Composite, CEL vs Composite).
+    """Paired engine-vs-engine analysis per binding for Rego vs Composite.
 
     For each engine pair and binding, computes:
     - Representative corpus-pass sums (sum of per-template subsequent wallClockMs
@@ -1945,11 +1935,6 @@ def rule_pack_section(scenario, agg):
         lines += ["Pack files (from `src/resources/rules/`):", ""]
         lines += [f"- `{path.name}`" for path in guard_files + rego_files]
         lines.append("")
-    if scenario["rego"]:
-        lines += [
-            "The CEL engine cannot evaluate Rego, so this scenario compares the Rego and composite "
-            "engines only.", "",
-        ]
     return lines
 
 
@@ -1983,10 +1968,9 @@ def methodology_section():
         "## Methodology Notes", "",
         "### Scenarios - rule packs loaded into the engine", "",
         "Every scenario is a complete engine × binding run over the same corpus with a different rule "
-        f"set loaded into the engine. `{DEFAULT_SCENARIO}` evaluates the built-in rules alone; the other "
-        "scenarios load the Guard rule pack and/or the custom Rego rule pack of `src/resources/rules` on "
-        "top (the CEL engine cannot evaluate Rego, so Rego scenarios compare the Rego and composite "
-        "engines). Each harness records the scenario label, the rule pack it loaded, and a fingerprint of "
+        f"set loaded into the engine. `{DEFAULT_SCENARIO}` evaluates the built-in rules alone; `custom` "
+        "loads the custom Rego rule pack and `guard` loads the Guard rule pack of `src/resources/rules`. "
+        "Each harness records the scenario label, the rule pack it loaded, and a fingerprint of "
         "the rule files; every binding of a scenario must report the same fingerprint before it is "
         "compared. The cross-scenario table reads the rule-evaluation medians as the most robust "
         "measure of a pack's cost because they exclude process startup and host I/O.", "",

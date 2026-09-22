@@ -14,10 +14,10 @@ and snapshot tests, and exposes fixture paths plus discovery used by snapshot ge
 
 ## Benchmark rule packs
 
-`scripts/compare_benchmarks.py` measures every engine under load from custom rules as well as with the built-in
-rules alone. Its `guard` scenario loads every `.guard` file in `rules/` into the engine, its `rego` scenario every
-`.rego` file, and its `all` scenario both; the harnesses receive the directory and load the files themselves. The
-packs are therefore exactly the `.guard` and `.rego` files of this directory - a new fixture joins the next benchmark
+`scripts/compare_benchmarks.py` measures the Rego and composite engines with the built-in rules alone and under
+separate custom-rule loads. Its `custom` scenario loads every `.rego` file in `rules/`, while its `guard` scenario
+loads every `.guard` file; the harnesses receive the directory and load the files themselves. The packs are therefore
+exactly the `.guard` and `.rego` files of this directory - a new fixture joins the next benchmark
 automatically, and one that fails to evaluate on a corpus template shows up in the report's "Templates Failing Under
 a Rule Pack" list rather than silently.
 
@@ -45,8 +45,8 @@ a Rule Pack" list rather than silently.
   and check `cfn-validate resources/templates --engine rego --rule-source <file>` reports no
   `Custom rule package ... failed to evaluate` errors before adding one.
 
-Both engines see the same packs, so the Guard scenario also verifies that Rego, CEL, and composite report identical
-Guard findings under load.
+Both benchmarked engines see the same packs, so the Guard scenario also verifies that Rego and composite report
+identical Guard findings under load.
 
 ## Snapshot generation
 

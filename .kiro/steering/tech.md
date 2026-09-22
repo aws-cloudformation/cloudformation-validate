@@ -124,10 +124,10 @@ implementation and fix it there.
   cfn-lint is available on the machine (`cfn-lint --version`), then ask the user for the checkout path — never assume
   or hardcode one.
 - `compare_benchmarks.py` — runs the benchmark harnesses of every binding (native `cfn-benchmark`, WASM, JVM, Python,
-  Go) for every scenario — `builtin` (built-in rules only), `guard` (every `.guard` file in `resources/rules`
-  loaded as a Guard rule pack), `rego` (every `.rego` file loaded as a custom Rego pack; Rego and composite engines
-  only), and `all` (both) — and writes the single `scripts/snapshots/benchmark_comparison.md` with a cross-scenario
-  rule-pack-cost summary plus the full engine × binding comparison per scenario. Needs GNU `/usr/bin/time` (or
+  Go) with the Rego and composite engines for three scenarios — `builtin` (built-in rules only), `custom` (every
+  `.rego` file in `resources/rules` loaded as a custom Rego pack), and `guard` (every `.guard` file loaded as a Guard
+  rule pack) — and writes the single `scripts/snapshots/benchmark_comparison.md` with a cross-scenario rule-pack-cost
+  summary plus the full engine × binding comparison per scenario. Needs GNU `/usr/bin/time` (or
   `CFN_BENCHMARK_TIME_BIN`). The `benchmark` workflow runs every scenario in one job and uploads only that report.
 - `audit_rule_categorization.py` — audits rule registry for categorization consistency
 - `generate_licenses.py` — generates third-party license files
