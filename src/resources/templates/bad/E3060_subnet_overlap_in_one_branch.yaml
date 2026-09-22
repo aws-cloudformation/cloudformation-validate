@@ -1,0 +1,37 @@
+# Two subnets of one VPC overlap when any pair of coexisting deployment
+# scenarios collides: an Fn::If branch, or subnets that share a VPC parameter.
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, prod]
+  ExistingVpc:
+    Type: AWS::EC2::VPC::Id
+Conditions:
+  IsProd: !Equals [!Ref Environment, prod]
+Resources:
+  Vpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+  Fixed:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: 10.0.1.0/24
+  CollidesInProd:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !GetAtt Vpc.VpcId
+      CidrBlock: !If [IsProd, 10.0.1.0/25, 10.0.2.0/24]
+  ExistingA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref ExistingVpc
+      CidrBlock: 192.168.0.0/24
+  ExistingB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref ExistingVpc
+      CidrBlock: 192.168.0.128/25

@@ -8,6 +8,7 @@ use template_model::consts::{
 };
 use template_model::fargate::task_size_is_offered;
 use template_model::resolver::ResolvedValue;
+use template_model::vpc_cidr::overlapping_subnets;
 use template_model::{SemanticModel, SourceSpan, render_value};
 use validation_engine::make_resource_diagnostic;
 
@@ -66,68 +67,24 @@ fn eval_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    let subnets = m.resources_of_type("AWS::EC2::Subnet");
-    for (i, b_name) in subnets.iter().enumerate() {
-        if i == 0 {
-            continue;
-        }
-        if m.is_from_parameter(b_name, "Properties.CidrBlock") {
-            continue;
-        }
-        let Some(serde_json::Value::String(b_cidr)) = resolve_concrete(m, b_name, "Properties.CidrBlock") else {
-            continue;
-        };
-        let Ok(net_b) = b_cidr.parse::<ipnetwork::IpNetwork>() else {
-            continue;
-        };
-        let b_cond = m.resources.get(b_name.as_str()).and_then(|r| r.condition.as_deref());
-        let b_vpc = resolve_concrete(m, b_name, "Properties.VpcId");
-
-        for a_name in &subnets[..i] {
-            let a_cond = m.resources.get(a_name.as_str()).and_then(|r| r.condition.as_deref());
-            if !m.conditions.resources_compatible(a_cond, b_cond) {
-                continue;
-            }
-            if m.is_from_parameter(a_name, "Properties.CidrBlock") {
-                continue;
-            }
-            let a_vpc = resolve_concrete(m, a_name, "Properties.VpcId");
-            if a_vpc != b_vpc {
-                continue;
-            }
-            let Some(serde_json::Value::String(a_cidr)) = resolve_concrete(m, a_name, "Properties.CidrBlock") else {
-                continue;
-            };
-            let Ok(net_a) = a_cidr.parse::<ipnetwork::IpNetwork>() else {
-                continue;
-            };
-            if !(net_a.contains(net_b.network()) || net_b.contains(net_a.network())) {
-                continue;
-            }
-            let mut diag = make_resource_diagnostic(
-                "E3060",
-                &format!("'{}' overlaps with '{}'", b_cidr, a_cidr),
-                m,
-                b_name,
-                "Properties.CidrBlock",
-                None,
-            );
-            let span = m.resource_span(a_name, "");
-            diag.related_resources.get_or_insert_with(Vec::new).push(RelatedResource {
-                resource: Some(ResourceRef {
-                    id: Some(a_name.clone()),
-                    resource_type: m.resources.get(a_name.as_str()).map(|r| r.resource_type.clone()),
-                }),
-                location: Some(SourceSpan {
-                    start_line: span.start_line,
-                    start_column: span.start_column,
-                    end_line: span.end_line,
-                    end_column: span.end_column,
-                }),
-                message: format!("Overlapping subnet CIDR {}", a_cidr),
-            });
-            out.push(diag);
-        }
+    for finding in overlapping_subnets(m) {
+        let mut diag =
+            make_resource_diagnostic("E3060", &finding.message, m, &finding.subnet_id, "Properties.CidrBlock", None);
+        let span = m.resource_span(&finding.earlier_subnet_id, "");
+        diag.related_resources.get_or_insert_with(Vec::new).push(RelatedResource {
+            resource: Some(ResourceRef {
+                id: Some(finding.earlier_subnet_id.clone()),
+                resource_type: m.resources.get(finding.earlier_subnet_id.as_str()).map(|r| r.resource_type.clone()),
+            }),
+            location: Some(SourceSpan {
+                start_line: span.start_line,
+                start_column: span.start_column,
+                end_line: span.end_line,
+                end_column: span.end_column,
+            }),
+            message: finding.earlier_subnet_message,
+        });
+        out.push(diag);
     }
 
     for (name, res) in &m.resources {

@@ -10,8 +10,7 @@ violation contains make_diag_full("W3045", "WARN", name,
     "") if {
     cfn_rule_active("W3045")
     some name in resources_of_type("AWS::S3::Bucket")
-    ac := resolve(name, "Properties.AccessControl")
-    ac != null
+    has_property(name, "AccessControl")
 }
 
 # E3045: S3 AccessControl requires OwnershipControls
@@ -23,7 +22,7 @@ violation contains make_diag_full("E3045", "ERROR", name,
     cfn_rule_active("E3045")
     some name in resources_of_type("AWS::S3::Bucket")
     ac := resolve(name, "Properties.AccessControl")
-    ac != null
+    is_string(ac)
     # OwnershipControls is only required for ACLs that grant access to other
     # accounts. These owner-scoped ACLs need no OwnershipControl.
     not ac in {"Private", "BucketOwnerFullControl", "BucketOwnerRead"}

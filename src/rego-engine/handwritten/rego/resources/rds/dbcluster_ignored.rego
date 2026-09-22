@@ -8,10 +8,8 @@ violation contains make_diag_at("W3688", "WARN", name,
     "MasterUsername is ignored when SnapshotIdentifier is present") if {
     cfn_rule_active("W3688")
     some name in resources_of_type("AWS::RDS::DBCluster")
-    snap := resolve(name, "Properties.SnapshotIdentifier")
-    snap != null
-    mu := resolve(name, "Properties.MasterUsername")
-    mu != null
+    has_property(name, "SnapshotIdentifier")
+    has_property(name, "MasterUsername")
 }
 
 # W3689: RDS DBCluster - properties ignored when SourceDBClusterIdentifier is present
@@ -20,12 +18,10 @@ violation contains make_diag_at("W3689", "WARN", name,
     sprintf("'%s' is ignored when SourceDBClusterIdentifier is present", [prop])) if {
     cfn_rule_active("W3689")
     some name in resources_of_type("AWS::RDS::DBCluster")
-    src := resolve(name, "Properties.SourceDBClusterIdentifier")
-    src != null
+    has_property(name, "SourceDBClusterIdentifier")
     ignored := {"MasterUserPassword", "MasterUsername", "StorageEncrypted"}
     some prop in ignored
-    val := resolve(name, sprintf("Properties.%s", [prop]))
-    val != null
+    has_property(name, prop)
 }
 
 # W3693: RDS DBCluster - Aurora serverless ignores PerformanceInsights properties
@@ -40,6 +36,5 @@ violation contains make_diag_at("W3693", "WARN", name,
     mode == "serverless"
     ignored := {"PerformanceInsightsEnabled", "PerformanceInsightsKmsKeyId", "PerformanceInsightsRetentionPeriod"}
     some prop in ignored
-    val := resolve(name, sprintf("Properties.%s", [prop]))
-    val != null
+    has_property(name, prop)
 }

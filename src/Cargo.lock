@@ -736,6 +736,7 @@ dependencies = [
  "base64",
  "env_logger",
  "fancy-regex 0.18.0",
+ "ipnetwork",
  "log",
  "regex",
  "serde",

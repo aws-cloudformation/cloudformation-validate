@@ -144,5 +144,5 @@ _sg_protocol_ignores_ports(proto) if {
 _sg_has_port(rule) if { object.get(rule, "FromPort", null) != null }
 _sg_has_port(rule) if { object.get(rule, "ToPort", null) != null }
 
-_sg_has_standalone_port(name) if { resolve(name, "Properties.FromPort") != null }
-_sg_has_standalone_port(name) if { resolve(name, "Properties.ToPort") != null }
+_sg_has_standalone_port(name) if { has_property(name, "FromPort") }
+_sg_has_standalone_port(name) if { has_property(name, "ToPort") }

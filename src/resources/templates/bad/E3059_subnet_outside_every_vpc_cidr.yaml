@@ -1,0 +1,39 @@
+# A subnet must fall inside one of its VPC's IPv4 networks - the VPC's own
+# CidrBlock or a VPCCidrBlock attachment - in every deployment scenario.
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, prod]
+Conditions:
+  IsProd: !Equals [!Ref Environment, prod]
+Resources:
+  Vpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+  SecondaryBlock:
+    Type: AWS::EC2::VPCCidrBlock
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: 10.1.0.0/16
+  OutsideBothBlocks:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: 10.2.0.0/24
+  OutsideOnlyInProd:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: !If [IsProd, 172.16.0.0/24, 10.1.1.0/24]
+  PlainVpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.5.0.0/16
+  OutsidePlainVpc:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref PlainVpc
+      CidrBlock: 10.6.0.0/24
