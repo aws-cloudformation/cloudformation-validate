@@ -145,22 +145,15 @@ Maven:
 `latest.release` and `[0,)` select the newest published version. Replace them with a version shown on Maven Central to
 pin the dependency. See the [JVM API and examples](src/bindings-jvm/README.md).
 
-## Versioned GitHub release assets
+## GitHub release assets
 
-The [GitHub Releases page](https://github.com/aws-cloudformation/cloudformation-validate/releases) also publishes raw,
-versioned artifacts. Package-manager installation is usually easier, but these assets support vendoring and offline
-installation (`<version>` is the release tag):
+GitHub Releases contain the prebuilt CLI binaries listed above and their signing material. Language bindings are
+published through crates.io, npm, PyPI or TestPyPI, the Go module proxy, and Maven Central rather than duplicated as
+GitHub release archives.
 
-* `cloudformation-validate-<version>.jar` - JVM binding
-* `cloudformation-validate-wasm-<version>.zip` - Node.js/WASM package
-* `cloudformation_validate-<version>-py3-none-<platform>.whl` - Python wheel for one native target; beta release tags
-  use Python's `<version>b0` form
-* `cloudformation-validate-go-<version>.zip` - Go module with the supported native libraries
-* `cfn-validate-<version>-<os>-<arch>` - CLI binary (with `.exe` on Windows)
+### Verify a downloaded CLI release asset
 
-### Verify a downloaded release asset
-
-Each raw artifact has a detached `<artifact>.sig` signature. The same release includes `signing-key.pem` and its
+Each CLI binary has a detached `<artifact>.sig` signature. The same release includes `signing-key.pem` and its
 `signing-key.pem.sha256` fingerprint. Download all three files from that release and verify with OpenSSL:
 
 ```bash
