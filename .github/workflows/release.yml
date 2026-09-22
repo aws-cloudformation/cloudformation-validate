@@ -149,19 +149,13 @@ jobs:
       contents: write
       id-token: write
     env:
-      PYTHON_VERSION: ${{ needs.version-and-tag.outputs.python-version }}
       RELEASE_KIND: ${{ needs.version-and-tag.outputs.release-kind }}
       RELEASE_TAG: ${{ inputs.tag }}
-      RELEASE_VERSION: ${{ needs.version-and-tag.outputs.release-version }}
     steps:
       - uses: actions/checkout@v6
         with:
           ref: ${{ inputs.tag }}
           fetch-depth: 0
-
-      - name: Load build configs
-        id: configs
-        uses: ./.github/actions/load-configs
 
       - name: Check existing GitHub release
         id: check-github-release
@@ -200,63 +194,6 @@ jobs:
           set -euo pipefail
           shopt -s nullglob
           mkdir -p release
-
-          jar="$WORKING_DIR/bindings-jvm/generated/cloudformation-validate.jar"
-          if [ ! -f "$jar" ]; then
-            echo "::error::Missing $jar. Run the Build Artifacts workflow and merge its PR first."
-            exit 1
-          fi
-          cp "$jar" "release/cloudformation-validate-$RELEASE_TAG.jar"
-
-          if [ ! -d "$WORKING_DIR/bindings-wasm/dist" ]; then
-            echo "::error::bindings-wasm/dist not found. Run the Build Artifacts workflow and merge its PR first."
-            exit 1
-          fi
-
-          WASM_PKG_JSON="$WORKING_DIR/bindings-wasm/dist/package.json"
-          if [ ! -f "$WASM_PKG_JSON" ]; then
-            echo "::error::$WASM_PKG_JSON not found in committed dist."
-            exit 1
-          fi
-          tmp="$(mktemp)"
-          jq --arg version "$RELEASE_TAG" '.version = $version' "$WASM_PKG_JSON" > "$tmp"
-          mv "$tmp" "$WASM_PKG_JSON"
-          echo "WASM package version stamped to $RELEASE_TAG:"
-          grep '"version"' "$WASM_PKG_JSON"
-
-          ( cd "$WORKING_DIR/bindings-wasm" && zip -r "$GITHUB_WORKSPACE/release/cloudformation-validate-wasm-$RELEASE_TAG.zip" dist )
-
-          wheels=("$WORKING_DIR"/bindings-python/generated/dist/*.whl)
-          if [ ${#wheels[@]} -ne 5 ]; then
-            echo "::error::Expected five wheels in $WORKING_DIR/bindings-python/generated/dist/, found ${#wheels[@]}. Run the Build Artifacts workflow and merge its PR first."
-            exit 1
-          fi
-          for wheel in "${wheels[@]}"; do
-            case "$(basename "$wheel")" in
-              cloudformation_validate-"$RELEASE_VERSION"-*.whl) ;;
-              *)
-                echo "::error::Committed wheel $(basename "$wheel") is not version $RELEASE_VERSION. Run the Build Artifacts workflow and merge its PR first."
-                exit 1
-                ;;
-            esac
-            "$WORKING_DIR/bindings-python/stamp-wheel.py" release "$wheel" "$PYTHON_VERSION"
-          done
-          release_wheels=(release/cloudformation_validate-"$PYTHON_VERSION"-*.whl)
-          if [ ${#release_wheels[@]} -ne 5 ]; then
-            echo "::error::Expected five stamped release wheels, found ${#release_wheels[@]}."
-            exit 1
-          fi
-
-          if [ ! -f "$WORKING_DIR/bindings-go/go/go.mod" ]; then
-            echo "::error::$WORKING_DIR/bindings-go/go/go.mod not found. Run the Build Artifacts workflow and merge its PR first."
-            exit 1
-          fi
-          go_libraries=("$WORKING_DIR"/bindings-go/go/libs/*/libbindings_go.a)
-          if [ ${#go_libraries[@]} -ne 5 ]; then
-            echo "::error::Expected five Go static libraries in $WORKING_DIR/bindings-go/go/libs/, found ${#go_libraries[@]}. Run the Build Artifacts workflow and merge its PR first."
-            exit 1
-          fi
-          ( cd "$WORKING_DIR/bindings-go" && zip -r "$GITHUB_WORKSPACE/release/cloudformation-validate-go-$RELEASE_TAG.zip" go )
 
           binaries=("$GITHUB_WORKSPACE"/release-bin/cfn-validate-*)
           if [ ${#binaries[@]} -ne 6 ]; then
@@ -390,18 +327,12 @@ jobs:
     permissions:
       contents: read
     env:
-      PYTHON_VERSION: ${{ needs.version-and-tag.outputs.python-version }}
       RELEASE_KIND: ${{ needs.version-and-tag.outputs.release-kind }}
       RELEASE_TAG: ${{ inputs.tag }}
-      RELEASE_VERSION: ${{ needs.version-and-tag.outputs.release-version }}
     steps:
       - uses: actions/checkout@v6
         with:
           ref: ${{ inputs.tag }}
-
-      - name: Load build configs
-        id: configs
-        uses: ./.github/actions/load-configs
 
       - name: Verify published GitHub release artifacts
         env:
@@ -435,30 +366,9 @@ jobs:
             --dir "$download_directory"
 
           expected_artifacts=(
-            "cloudformation-validate-$RELEASE_TAG.jar"
-            "cloudformation-validate-wasm-$RELEASE_TAG.zip"
-            "cloudformation-validate-go-$RELEASE_TAG.zip"
             'cloudformation-validate-maven-signing-key.asc'
             'cloudformation-validate-maven-signing-key.asc.fingerprint'
           )
-
-          committed_wheels=("$WORKING_DIR"/bindings-python/generated/dist/*.whl)
-          if [ ${#committed_wheels[@]} -ne 5 ]; then
-            echo "::error::Expected five committed Python wheels, found ${#committed_wheels[@]}."
-            exit 1
-          fi
-          for wheel in "${committed_wheels[@]}"; do
-            wheel_name="$(basename "$wheel")"
-            case "$wheel_name" in
-              cloudformation_validate-"$RELEASE_VERSION"-*.whl) ;;
-              *)
-                echo "::error::Committed wheel $wheel_name is not version $RELEASE_VERSION."
-                exit 1
-                ;;
-            esac
-            wheel_suffix="${wheel_name#cloudformation_validate-$RELEASE_VERSION-}"
-            expected_artifacts+=("cloudformation_validate-$PYTHON_VERSION-$wheel_suffix")
-          done
 
           committed_binaries=("$GITHUB_WORKSPACE"/release-bin/cfn-validate-*)
           if [ ${#committed_binaries[@]} -ne 6 ]; then
@@ -624,8 +534,8 @@ jobs:
             echo "::error::Expected one workspace version assignment for $WORKSPACE_VERSION."
             exit 1
           fi
-          if [ "$(grep -oF "$dependency_assignment" Cargo.toml | wc -l)" -ne 9 ]; then
-            echo "::error::Expected nine internal dependency requirements for $WORKSPACE_VERSION."
+          if [ "$(grep -oF "$dependency_assignment" Cargo.toml | wc -l)" -ne 10 ]; then
+            echo "::error::Expected ten internal dependency requirements for $WORKSPACE_VERSION."
             exit 1
           fi
 
@@ -635,7 +545,7 @@ jobs:
             my $workspace_updates = s{(\[workspace\.package\]\s*\nversion = )"\Q$workspace\E"}{$1 . qq{"$release"}}e;
             die "expected one workspace version update\n" unless $workspace_updates == 1;
             my $dependency_updates = s{version = "=\Q$workspace\E"}{qq{version = "=$release"}}ge;
-            die "expected nine dependency version updates\n" unless $dependency_updates == 9;
+            die "expected ten dependency version updates\n" unless $dependency_updates == 10;
           ' Cargo.toml
 
           metadata="$(cargo metadata --no-deps --format-version 1)"
@@ -655,7 +565,7 @@ jobs:
             echo "::error::Not every workspace package was stamped to $RELEASE_VERSION."
             exit 1
           fi
-          if [ "$(grep -oF "version = \"=$RELEASE_VERSION\"" Cargo.toml | wc -l)" -ne 9 ]; then
+          if [ "$(grep -oF "version = \"=$RELEASE_VERSION\"" Cargo.toml | wc -l)" -ne 10 ]; then
             echo "::error::Not every internal dependency was stamped to =$RELEASE_VERSION."
             exit 1
           fi
@@ -968,7 +878,7 @@ jobs:
           committed_sha="$(sha256sum generated/cloudformation-validate.jar | awk '{print $1}')"
           bundle_sha="$(sha256sum "$base/cloudformation-validate-$RELEASE_TAG.jar" | awk '{print $1}')"
           if [ "$committed_sha" != "$bundle_sha" ]; then
-            echo "::error::Maven bundle jar ($bundle_sha) differs from the committed jar ($committed_sha) that the GitHub release ships. They must be byte-identical."
+            echo "::error::Maven bundle jar ($bundle_sha) differs from the committed jar ($committed_sha). They must be byte-identical."
             exit 1
           fi
           echo "Maven bundle jar is byte-identical to the committed jar (sha256 $committed_sha)."
@@ -1104,22 +1014,40 @@ jobs:
       id-token: write
     env:
       PYTHON_VERSION: ${{ needs.version-and-tag.outputs.python-version }}
-      RELEASE_TAG: ${{ inputs.tag }}
+      RELEASE_VERSION: ${{ needs.version-and-tag.outputs.release-version }}
     steps:
-      - name: Download Python wheels from GitHub release
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.tag }}
+
+      - name: Load build configs
+        id: configs
+        uses: ./.github/actions/load-configs
+
+      - name: Prepare committed Python wheels for publication
         run: |
           set -euo pipefail
-          mkdir dist
-          gh release download "$RELEASE_TAG" \
-            --repo "$GITHUB_REPOSITORY" \
-            --pattern "cloudformation_validate-$PYTHON_VERSION-*.whl" \
-            --dir dist
           shopt -s nullglob
-          wheels=(dist/*.whl)
-          if [ ${#wheels[@]} -ne 5 ]; then
-            echo "::error::Expected five Python wheels for $PYTHON_VERSION, found ${#wheels[@]}."
+          mkdir -p dist
+          committed_wheels=("$WORKING_DIR"/bindings-python/generated/dist/*.whl)
+          if [ ${#committed_wheels[@]} -ne 5 ]; then
+            echo "::error::Expected five committed Python wheels, found ${#committed_wheels[@]}. Run the Build Artifacts workflow and merge its PR first."
+            exit 1
+          fi
+          for wheel in "${committed_wheels[@]}"; do
+            wheel_name="$(basename "$wheel")"
+            case "$wheel_name" in
+              cloudformation_validate-"$RELEASE_VERSION"-*.whl) ;;
+              *)
+                echo "::error::Committed wheel $wheel_name is not version $RELEASE_VERSION. Run the Build Artifacts workflow and merge its PR first."
+                exit 1
+                ;;
+            esac
+            "$WORKING_DIR/bindings-python/stamp-wheel.py" dist "$wheel" "$PYTHON_VERSION"
+          done
+          publication_wheels=(dist/cloudformation_validate-"$PYTHON_VERSION"-*.whl)
+          if [ ${#publication_wheels[@]} -ne 5 ]; then
+            echo "::error::Expected five Python wheels for $PYTHON_VERSION, found ${#publication_wheels[@]}."
             exit 1
           fi
 
@@ -1177,12 +1105,14 @@ jobs:
     runs-on: ubuntu-latest
     env:
       PYTHON_VERSION: ${{ needs.version-and-tag.outputs.python-version }}
-      RELEASE_TAG: ${{ inputs.tag }}
+      RELEASE_VERSION: ${{ needs.version-and-tag.outputs.release-version }}
     steps:
       - uses: actions/checkout@v6
         with:
           ref: ${{ inputs.tag }}
-          sparse-checkout: .github
+          sparse-checkout: |
+            .github
+            src/bindings-python
 
       - name: Load build configs
         id: configs
@@ -1193,19 +1123,29 @@ jobs:
           python-version: ${{ steps.configs.outputs.python-version }}
 
       - name: Verify Python wheel resolves from TestPyPI
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          expected_directory="$(mktemp -d)"
-          gh release download "$RELEASE_TAG" \
-            --repo "$GITHUB_REPOSITORY" \
-            --pattern "cloudformation_validate-$PYTHON_VERSION-*.whl" \
-            --dir "$expected_directory"
           shopt -s nullglob
-          expected_wheels=("$expected_directory"/*.whl)
+          expected_directory="$(mktemp -d)"
+          committed_wheels=("$WORKING_DIR"/bindings-python/generated/dist/*.whl)
+          if [ ${#committed_wheels[@]} -ne 5 ]; then
+            echo "::error::Expected five committed Python wheels, found ${#committed_wheels[@]}."
+            exit 1
+          fi
+          for wheel in "${committed_wheels[@]}"; do
+            wheel_name="$(basename "$wheel")"
+            case "$wheel_name" in
+              cloudformation_validate-"$RELEASE_VERSION"-*.whl) ;;
+              *)
+                echo "::error::Committed wheel $wheel_name is not version $RELEASE_VERSION."
+                exit 1
+                ;;
+            esac
+            "$WORKING_DIR/bindings-python/stamp-wheel.py" "$expected_directory" "$wheel" "$PYTHON_VERSION"
+          done
+          expected_wheels=("$expected_directory"/cloudformation_validate-"$PYTHON_VERSION"-*.whl)
           if [ ${#expected_wheels[@]} -ne 5 ]; then
-            echo "::error::Expected five GitHub release wheels, found ${#expected_wheels[@]}."
+            echo "::error::Expected five prepared committed Python wheels, found ${#expected_wheels[@]}."
             exit 1
           fi
 
@@ -1227,10 +1167,10 @@ jobs:
               if [ ${#wheels[@]} -eq 1 ]; then
                 expected_wheel="$expected_directory/$(basename "${wheels[0]}")"
                 if [ ! -f "$expected_wheel" ] || ! cmp -s "${wheels[0]}" "$expected_wheel"; then
-                  echo "::error::TestPyPI selected wheel does not byte-match the matching GitHub release wheel."
+                  echo "::error::TestPyPI selected wheel does not byte-match the matching prepared committed wheel."
                   exit 1
                 fi
-                echo "TestPyPI selected wheel byte-matches the matching GitHub release wheel."
+                echo "TestPyPI selected wheel byte-matches the matching prepared committed wheel."
                 exit 0
               fi
             fi
@@ -1250,22 +1190,40 @@ jobs:
       id-token: write
     env:
       PYTHON_VERSION: ${{ needs.version-and-tag.outputs.python-version }}
-      RELEASE_TAG: ${{ inputs.tag }}
+      RELEASE_VERSION: ${{ needs.version-and-tag.outputs.release-version }}
     steps:
-      - name: Download Python wheels from GitHub release
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.tag }}
+
+      - name: Load build configs
+        id: configs
+        uses: ./.github/actions/load-configs
+
+      - name: Prepare committed Python wheels for publication
         run: |
           set -euo pipefail
-          mkdir dist
-          gh release download "$RELEASE_TAG" \
-            --repo "$GITHUB_REPOSITORY" \
-            --pattern "cloudformation_validate-$PYTHON_VERSION-*.whl" \
-            --dir dist
           shopt -s nullglob
-          wheels=(dist/*.whl)
-          if [ ${#wheels[@]} -ne 5 ]; then
-            echo "::error::Expected five Python wheels for $PYTHON_VERSION, found ${#wheels[@]}."
+          mkdir -p dist
+          committed_wheels=("$WORKING_DIR"/bindings-python/generated/dist/*.whl)
+          if [ ${#committed_wheels[@]} -ne 5 ]; then
+            echo "::error::Expected five committed Python wheels, found ${#committed_wheels[@]}. Run the Build Artifacts workflow and merge its PR first."
+            exit 1
+          fi
+          for wheel in "${committed_wheels[@]}"; do
+            wheel_name="$(basename "$wheel")"
+            case "$wheel_name" in
+              cloudformation_validate-"$RELEASE_VERSION"-*.whl) ;;
+              *)
+                echo "::error::Committed wheel $wheel_name is not version $RELEASE_VERSION. Run the Build Artifacts workflow and merge its PR first."
+                exit 1
+                ;;
+            esac
+            "$WORKING_DIR/bindings-python/stamp-wheel.py" dist "$wheel" "$PYTHON_VERSION"
+          done
+          publication_wheels=(dist/cloudformation_validate-"$PYTHON_VERSION"-*.whl)
+          if [ ${#publication_wheels[@]} -ne 5 ]; then
+            echo "::error::Expected five Python wheels for $PYTHON_VERSION, found ${#publication_wheels[@]}."
             exit 1
           fi
 
@@ -1322,12 +1280,14 @@ jobs:
     runs-on: ubuntu-latest
     env:
       PYTHON_VERSION: ${{ needs.version-and-tag.outputs.python-version }}
-      RELEASE_TAG: ${{ inputs.tag }}
+      RELEASE_VERSION: ${{ needs.version-and-tag.outputs.release-version }}
     steps:
       - uses: actions/checkout@v6
         with:
           ref: ${{ inputs.tag }}
-          sparse-checkout: .github
+          sparse-checkout: |
+            .github
+            src/bindings-python
 
       - name: Load build configs
         id: configs
@@ -1338,19 +1298,29 @@ jobs:
           python-version: ${{ steps.configs.outputs.python-version }}
 
       - name: Verify Python wheel resolves from PyPI
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          expected_directory="$(mktemp -d)"
-          gh release download "$RELEASE_TAG" \
-            --repo "$GITHUB_REPOSITORY" \
-            --pattern "cloudformation_validate-$PYTHON_VERSION-*.whl" \
-            --dir "$expected_directory"
           shopt -s nullglob
-          expected_wheels=("$expected_directory"/*.whl)
+          expected_directory="$(mktemp -d)"
+          committed_wheels=("$WORKING_DIR"/bindings-python/generated/dist/*.whl)
+          if [ ${#committed_wheels[@]} -ne 5 ]; then
+            echo "::error::Expected five committed Python wheels, found ${#committed_wheels[@]}."
+            exit 1
+          fi
+          for wheel in "${committed_wheels[@]}"; do
+            wheel_name="$(basename "$wheel")"
+            case "$wheel_name" in
+              cloudformation_validate-"$RELEASE_VERSION"-*.whl) ;;
+              *)
+                echo "::error::Committed wheel $wheel_name is not version $RELEASE_VERSION."
+                exit 1
+                ;;
+            esac
+            "$WORKING_DIR/bindings-python/stamp-wheel.py" "$expected_directory" "$wheel" "$PYTHON_VERSION"
+          done
+          expected_wheels=("$expected_directory"/cloudformation_validate-"$PYTHON_VERSION"-*.whl)
           if [ ${#expected_wheels[@]} -ne 5 ]; then
-            echo "::error::Expected five GitHub release wheels, found ${#expected_wheels[@]}."
+            echo "::error::Expected five prepared committed Python wheels, found ${#expected_wheels[@]}."
             exit 1
           fi
 
@@ -1372,10 +1342,10 @@ jobs:
               if [ ${#wheels[@]} -eq 1 ]; then
                 expected_wheel="$expected_directory/$(basename "${wheels[0]}")"
                 if [ ! -f "$expected_wheel" ] || ! cmp -s "${wheels[0]}" "$expected_wheel"; then
-                  echo "::error::PyPI selected wheel does not byte-match the matching GitHub release wheel."
+                  echo "::error::PyPI selected wheel does not byte-match the matching prepared committed wheel."
                   exit 1
                 fi
-                echo "PyPI selected wheel byte-matches the matching GitHub release wheel."
+                echo "PyPI selected wheel byte-matches the matching prepared committed wheel."
                 exit 0
               fi
             fi
