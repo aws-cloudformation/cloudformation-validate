@@ -31,7 +31,7 @@ namespace prefix. For example, a policy calls `resolve(name, "Properties.BucketN
 
 | Builtin              | Signature                                                     | Purpose                                              |
 |----------------------|---------------------------------------------------------------|------------------------------------------------------|
-| `resolve`            | `(resource_id, path) → value`                                 | Resolve a property value through intrinsic functions; a reference is a `{"__ref": target}` marker, never a bare string |
+| `resolve`            | `(resource_id, path) → value`                                 | Resolve a property value through intrinsic functions; a reference is rendered per the evaluating package, see below |
 | `resolve_all`        | `(resource_id, path) → [values]`                              | Resolve all scenario values for a property           |
 | `resolve_scenarios`  | `(resource_id, path) → [{value, conditions}]`                 | Resolve all (value, condition_map) pairs             |
 | `resolve_ref_target` | `(resource_id, path) → {resourceType, condition, properties}` | Resolve the target of a reference                    |
@@ -41,6 +41,22 @@ namespace prefix. For example, a policy calls `resolve(name, "Properties.BucketN
 | `is_from_intrinsic`  | `(resource_id, path) → bool`                                  | Check if a property originates from an intrinsic     |
 | `follow_ref`         | `(resource_id, path) → target_id`                             | Follow a Ref/GetAtt to its target resource           |
 | `flatten_list`       | `(resource_id, path) → [{value, index}]`                      | Flatten nested arrays                                |
+
+#### Reference rendering
+
+A `Ref`/`Fn::GetAtt` to a template resource has no literal before deployment, and `resolve` (and a reference inside a
+list returned by `resolve_all`) renders it according to the package being evaluated:
+
+- **Handwritten built-in policies** receive the `{"__ref": target}` marker object, the same shape the `input` document
+  uses. It is never a bare string, so a format or enum check that guards with `is_string` skips the reference instead of
+  judging a logical ID as if it were the value, while a presence check still sees a value.
+- **Custom rules** receive the target's logical ID as a plain string, the contract they were written against; a custom
+  rule may look the target up in `input.resources` or compare it with another logical ID. Rules that validate literal
+  content should exclude a logical ID with `not input.resources[value]`, or read the reference explicitly with
+  `follow_ref` or `authored_form`.
+
+The rendering is selected per package around each `eval_rule` query, so the two kinds evaluate on one engine instance
+without observing each other's rendering. Guard rules are not affected: they never evaluate through Rego.
 
 ### Resource Queries
 

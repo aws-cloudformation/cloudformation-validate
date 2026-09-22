@@ -1,7 +1,28 @@
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::collections::HashSet;
 use std::sync::Arc;
 use template_model::SemanticModel;
+
+/// How `resolve` and `resolve_all` render a `Ref`/`Fn::GetAtt` to a template
+/// resource, a value that has no literal before deployment.
+///
+/// The two renderings exist because two audiences read the same builtins. The
+/// handwritten built-in policies need a reference to stay distinct from an
+/// authored string so a format or enum check never judges a logical ID as if it
+/// were the value. Custom rules were written against the older contract, where
+/// the target's logical ID came back as a plain string that a rule could look up
+/// in `input.resources` or compare with another logical ID; keeping that contract
+/// for them means upgrading the engine does not silently change what their rules
+/// report.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum ReferenceRendering {
+    /// The `{"__ref": target}` marker object the `input` document uses, so a
+    /// literal check skips the reference with `is_string` while a presence check
+    /// still sees a value.
+    Marker,
+    /// The target's logical ID as a bare string.
+    TargetId,
+}
 
 /// Per-evaluation state the Rego builtins read while a single `evaluate_rules`
 /// call runs on the current thread: the model under validation, the region
@@ -32,6 +53,13 @@ thread_local! {
     /// the enclosing context when it finishes instead of clearing the state the
     /// outer evaluation still depends on.
     static CONTEXT_STACK: RefCell<Vec<EvaluationContext>> = const { RefCell::new(Vec::new()) };
+
+    /// The rendering of the package being evaluated on this thread. Separate from
+    /// [`CONTEXT_STACK`] because it changes per package inside one evaluation,
+    /// while the context above is fixed for the whole evaluation. Outside any
+    /// package scope it holds the built-in policies' rendering, so engine warm-up
+    /// and unit tests of the builtins see the documented default.
+    static REFERENCE_RENDERING: Cell<ReferenceRendering> = const { Cell::new(ReferenceRendering::Marker) };
 }
 
 /// Installs an [`EvaluationContext`] for the current thread until it is dropped.
@@ -59,6 +87,30 @@ impl Drop for EvaluationScope {
     }
 }
 
+/// Selects the [`ReferenceRendering`] for the current thread until it is dropped,
+/// then restores the rendering that was in effect before.
+///
+/// Installed around the evaluation of one Rego package. Restoring rather than
+/// resetting keeps a nested evaluation on the same thread from clobbering the
+/// rendering of the package that triggered it.
+#[must_use = "the rendering is only selected while the scope is held"]
+pub(crate) struct ReferenceRenderingScope {
+    previous: ReferenceRendering,
+}
+
+impl ReferenceRenderingScope {
+    pub(crate) fn enter(rendering: ReferenceRendering) -> Self {
+        let previous = REFERENCE_RENDERING.with(|slot| slot.replace(rendering));
+        Self { previous }
+    }
+}
+
+impl Drop for ReferenceRenderingScope {
+    fn drop(&mut self) {
+        REFERENCE_RENDERING.with(|slot| slot.set(self.previous));
+    }
+}
+
 fn with_current_context<R>(read: impl FnOnce(&EvaluationContext) -> R) -> Option<R> {
     CONTEXT_STACK.with(|stack| stack.borrow().last().map(read))
 }
@@ -80,6 +132,12 @@ pub(crate) fn current_region() -> Option<String> {
 /// active evaluation nothing is suppressed, which keeps engine warm-up unfiltered.
 pub(crate) fn is_builtin_rule_suppressed(rule_id: &str) -> bool {
     with_current_context(|context| context.suppressed_builtin_rules.contains(rule_id)).unwrap_or(false)
+}
+
+/// The rendering the package being evaluated on this thread was written against;
+/// the built-in policies' [`ReferenceRendering::Marker`] outside any package scope.
+pub(crate) fn current_reference_rendering() -> ReferenceRendering {
+    REFERENCE_RENDERING.with(Cell::get)
 }
 
 #[cfg(test)]
@@ -135,5 +193,33 @@ mod tests {
         assert_eq!(current_region(), Some("us-east-1".to_string()));
         assert!(is_builtin_rule_suppressed("OUTER"));
         assert!(!is_builtin_rule_suppressed("INNER"));
+    }
+
+    #[test]
+    fn no_rendering_scope_uses_the_marker_rendering_of_the_builtin_policies() {
+        assert_eq!(current_reference_rendering(), ReferenceRendering::Marker);
+    }
+
+    #[test]
+    fn rendering_scope_selects_its_rendering_and_restores_the_previous_one_on_exit() {
+        {
+            let _custom = ReferenceRenderingScope::enter(ReferenceRendering::TargetId);
+            assert_eq!(current_reference_rendering(), ReferenceRendering::TargetId);
+        }
+        assert_eq!(current_reference_rendering(), ReferenceRendering::Marker);
+    }
+
+    #[test]
+    fn nested_rendering_scope_restores_the_enclosing_rendering_not_the_default() {
+        let _custom = ReferenceRenderingScope::enter(ReferenceRendering::TargetId);
+        {
+            let _builtin = ReferenceRenderingScope::enter(ReferenceRendering::Marker);
+            assert_eq!(current_reference_rendering(), ReferenceRendering::Marker);
+        }
+        assert_eq!(
+            current_reference_rendering(),
+            ReferenceRendering::TargetId,
+            "leaving the inner scope must hand back the outer package's rendering"
+        );
     }
 }

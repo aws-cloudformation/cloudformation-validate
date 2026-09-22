@@ -1,3 +1,4 @@
+use crate::eval_context::{EvaluationContext, EvaluationScope, ReferenceRendering, ReferenceRenderingScope};
 use crate::policies;
 use data_source::embedded;
 use data_source::types::KnownResourceTypes;
@@ -187,6 +188,45 @@ fn extend_primary_identifiers_data(catalog: &OverlayCatalog) -> anyhow::Result<O
 enum BuiltinRuleMode {
     Enabled,
     ExternalOnly,
+}
+
+/// Who authored a Rego package, which fixes the contract its rules were written
+/// against: how its diagnostics are attributed and how the resolution builtins
+/// render a reference while it evaluates.
+#[derive(Clone, Copy)]
+enum PolicyPackageKind {
+    /// A handwritten built-in policy shipped with the engine.
+    BuiltIn,
+    /// A caller-supplied custom rule.
+    Custom,
+}
+
+impl PolicyPackageKind {
+    fn source_label(self) -> &'static str {
+        match self {
+            Self::BuiltIn => "Core",
+            Self::Custom => "Custom",
+        }
+    }
+
+    /// The origin stamped on the package's diagnostics; a built-in rule keeps the
+    /// origin the registry records for it.
+    fn rule_origin_override(self) -> Option<&'static RuleOrigin> {
+        match self {
+            Self::BuiltIn => None,
+            Self::Custom => Some(&RuleOrigin::Custom),
+        }
+    }
+
+    /// Built-in policies validate literal content and must never see a logical ID
+    /// where a value belongs. Custom rules keep the logical-ID string they were
+    /// written against, so upgrading the engine does not change what they report.
+    fn reference_rendering(self) -> ReferenceRendering {
+        match self {
+            Self::BuiltIn => ReferenceRendering::Marker,
+            Self::Custom => ReferenceRendering::TargetId,
+        }
+    }
 }
 
 pub struct RegoEngine {
@@ -396,6 +436,10 @@ impl RegoEngine {
 
     /// Evaluates a single Rego package and appends its diagnostics to `out`.
     ///
+    /// The package's [`ReferenceRendering`] is in effect only while its query
+    /// runs: Regorus discards memoized rule and builtin results between queries,
+    /// so a value rendered for one package never reaches the next.
+    ///
     /// Any evaluation or serialization failure is returned as a structured
     /// [`ValidationError`] - an exception the caller can handle - and is never
     /// converted into a diagnostic. A rule that fails to run must surface as an
@@ -404,11 +448,12 @@ impl RegoEngine {
         &self,
         rego: &mut regorus::Engine,
         package: &str,
-        source_label: &str,
+        kind: PolicyPackageKind,
         model: &SemanticModel,
-        origin: Option<&RuleOrigin>,
         out: &mut Vec<Diagnostic>,
     ) -> Result<(), ValidationError> {
+        let source_label = kind.source_label();
+        let _rendering = ReferenceRenderingScope::enter(kind.reference_rendering());
         let value = rego.eval_rule(package.to_string()).map_err(|e| {
             ValidationError::Engine(format!("{source_label} rule package '{package}' failed to evaluate: {e}"))
         })?;
@@ -418,7 +463,8 @@ impl RegoEngine {
                  serialized to JSON: {e}"
             ))
         })?;
-        extract_diagnostics_from_value(&diagnostics_json, model, out, origin).map_err(ValidationError::from)
+        extract_diagnostics_from_value(&diagnostics_json, model, out, kind.rule_origin_override())
+            .map_err(ValidationError::from)
     }
 
     /// The built-in rule IDs that global filtering proves cannot survive under
@@ -454,12 +500,12 @@ impl ValidationEngine for RegoEngine {
         model: &Arc<SemanticModel>,
         config: &ValidateConfig,
     ) -> Result<Vec<Diagnostic>, ValidationError> {
-        let context = crate::eval_context::EvaluationContext::new(
+        let context = EvaluationContext::new(
             model.clone(),
             config.pseudo_parameter_overrides.region.clone(),
             self.globally_suppressed_builtin_rules(config),
         );
-        let _scope = crate::eval_context::EvaluationScope::enter(context);
+        let _scope = EvaluationScope::enter(context);
 
         let mut rego = self.base_rego.clone();
 
@@ -484,12 +530,12 @@ impl ValidationEngine for RegoEngine {
             // excluded rule costs one builtin call. The packages share no rules,
             // so one query per package costs the same as one aggregated query.
             for package in CORE_PACKAGES {
-                self.eval_package_into(&mut rego, package, "Core", model, None, &mut diagnostics)?;
+                self.eval_package_into(&mut rego, package, PolicyPackageKind::BuiltIn, model, &mut diagnostics)?;
             }
         }
 
         for pkg in &self.custom_packages {
-            self.eval_package_into(&mut rego, pkg, "Custom", model, Some(&RuleOrigin::Custom), &mut diagnostics)?;
+            self.eval_package_into(&mut rego, pkg, PolicyPackageKind::Custom, model, &mut diagnostics)?;
         }
 
         if let Some(guard_rules) = &self.guard_rules {
@@ -925,6 +971,21 @@ Resources:
       Code:
         S3Bucket: !Ref MyBucket
         S3Key: code.zip
+      VpcConfig:
+        SecurityGroupIds:
+          - sg-0123456789abcdef0
+        SubnetIds:
+          - !Ref MySubnet
+          - subnet-0123456789abcdef0
+  MyVpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+  MySubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref MyVpc
+      CidrBlock: 10.0.0.0/24
   MyQueue:
     Type: AWS::SQS::Queue
     Properties:
@@ -976,6 +1037,162 @@ violation contains v if {
             "B_RESOLVE_ALL",
         );
         assert_eq!(diags.len(), 1, "resolve_all should return at least one value");
+    }
+
+    /// The contract custom rules were written against: `resolve` on a `Ref` or
+    /// `Fn::GetAtt` yields the target's logical ID as a string, so a rule can look
+    /// the target up in `input.resources` or compare it with another logical ID.
+    const LEGACY_REFERENCE_CUSTOM_RULE: &str = r#"
+package legacy_reference_test
+import rego.v1
+
+violation contains make_diag("LEGACY_LOOKUP", "error", name, sprintf("code bucket is %s", [target])) if {
+    some name in resources_of_type("AWS::Lambda::Function")
+    target := resolve(name, "Properties.Code.S3Bucket")
+    is_string(target)
+    input.resources[target].resourceType == "AWS::S3::Bucket"
+}
+
+violation contains make_diag("LEGACY_EQUALS", "error", name, "code lives in MyBucket") if {
+    some name in resources_of_type("AWS::Lambda::Function")
+    resolve(name, "Properties.Code.S3Bucket") == "MyBucket"
+}
+
+violation contains make_diag("LEGACY_MARKER_SEEN", "error", name, "resolve returned the marker object") if {
+    some name in resources_of_type("AWS::Lambda::Function")
+    is_object(resolve(name, "Properties.Code.S3Bucket"))
+}
+"#;
+
+    fn assert_legacy_reference_contract(diags: &[Diagnostic]) {
+        let lookup = diags
+            .iter()
+            .find(|d| d.rule_id == "LEGACY_LOOKUP")
+            .expect("resolve() must hand back a logical ID a rule can look up in input.resources");
+        assert_eq!(lookup.message, "code bucket is MyBucket");
+        assert_eq!(lookup.resource_logical_id(), Some("MyFunc"));
+        assert!(
+            diags.iter().any(|d| d.rule_id == "LEGACY_EQUALS"),
+            "resolve() must compare equal to the target's logical ID"
+        );
+        assert!(
+            !diags.iter().any(|d| d.rule_id == "LEGACY_MARKER_SEEN"),
+            "a custom rule must never see the marker object from resolve()"
+        );
+    }
+
+    #[test]
+    fn custom_rule_resolve_keeps_the_legacy_target_id_string_for_a_reference() {
+        let engine = RegoEngine::new(EngineConfig {
+            custom_rules: vec![ExternalRuleSource {
+                name: "legacy_reference_test.rego".into(),
+                content: LEGACY_REFERENCE_CUSTOM_RULE.into(),
+            }],
+            ..Default::default()
+        })
+        .unwrap();
+        let model = make_model_from_yaml(BUILTIN_TEST_TEMPLATE);
+
+        let diags = engine.evaluate_rules(&model, &ValidateConfig::default()).unwrap();
+
+        assert_legacy_reference_contract(&diags);
+    }
+
+    #[test]
+    fn external_only_engine_keeps_the_legacy_target_id_string_for_a_reference() {
+        let engine = RegoEngine::new_external_only(EngineConfig {
+            custom_rules: vec![ExternalRuleSource {
+                name: "legacy_reference_test.rego".into(),
+                content: LEGACY_REFERENCE_CUSTOM_RULE.into(),
+            }],
+            ..Default::default()
+        })
+        .unwrap();
+        let model = make_model_from_yaml(BUILTIN_TEST_TEMPLATE);
+
+        let diags = engine.evaluate_rules(&model, &ValidateConfig::default()).unwrap();
+
+        assert_legacy_reference_contract(&diags);
+    }
+
+    #[test]
+    fn custom_rule_resolve_all_list_items_keep_the_legacy_target_id_string() {
+        let diags = eval_builtin_policy(
+            r#"
+package builtin_test
+import rego.v1
+violation contains make_diag("LEGACY_LIST_ITEM", "error", "MyFunc", sprintf("subnets: %v", [subnets])) if {
+    some subnets in resolve_all("MyFunc", "Properties.VpcConfig.SubnetIds")
+    subnets == ["MySubnet", "subnet-0123456789abcdef0"]
+}
+"#,
+            "LEGACY_LIST_ITEM",
+        );
+        assert_eq!(diags.len(), 1, "a referenced list item must come back as the target's logical ID");
+    }
+
+    /// Both kinds of package evaluate on one Regorus engine instance, so the
+    /// rendering must switch per package: the built-in policies fixed to skip a
+    /// reference they would otherwise judge as a literal must keep doing so while
+    /// the custom package beside them still receives the legacy string.
+    #[test]
+    fn builtin_policies_keep_the_marker_rendering_while_a_custom_rule_gets_the_legacy_string() {
+        let engine = RegoEngine::new(EngineConfig {
+            custom_rules: vec![ExternalRuleSource {
+                name: "legacy_reference_test.rego".into(),
+                content: LEGACY_REFERENCE_CUSTOM_RULE.into(),
+            }],
+            ..Default::default()
+        })
+        .unwrap();
+        let model = make_model_from_yaml(
+            r#"
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  Store:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Value: placeholder
+  MyBucket:
+    Type: AWS::S3::Bucket
+  Distribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Aliases:
+          - !GetAtt Store.Value
+        DefaultCacheBehavior:
+          TargetOriginId: primary
+          ViewerProtocolPolicy: redirect-to-https
+          ForwardedValues:
+            QueryString: false
+        Origins:
+          - Id: primary
+            DomainName: origin.example.com
+            CustomOriginConfig:
+              OriginProtocolPolicy: https-only
+  MyFunc:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      Role: arn:aws:iam::123456789012:role/lambda-role
+      Code:
+        S3Bucket: !Ref MyBucket
+        S3Key: code.zip
+"#,
+        );
+
+        let diags = engine.evaluate_rules(&model, &ValidateConfig::default()).unwrap();
+
+        assert!(
+            !diags.iter().any(|d| d.rule_id == "E3013"),
+            "the built-in alias check must not judge the logical ID 'Store' as a domain name: {:?}",
+            diags.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
+        );
+        assert_legacy_reference_contract(&diags);
     }
 
     #[test]

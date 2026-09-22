@@ -228,6 +228,61 @@ fn custom_rule_list_rules_and_validate_match_between_engines() {
     }
 }
 
+/// A custom Rego rule reads `resolve()` under the contract it was written
+/// against - a `Ref`/`Fn::GetAtt` to a template resource comes back as that
+/// resource's logical ID string - while the built-in policies evaluated beside it
+/// must keep treating such a reference as a non-literal. The template is the
+/// built-in regression fixture for that second half, so a single run proves both
+/// halves on every engine that hosts custom Rego.
+#[test]
+fn custom_rego_resolve_keeps_the_target_logical_id_while_builtins_stay_silent_on_references() {
+    const TEMPLATE: &str = "good/reference_values_are_not_literals.yaml";
+    let legacy_reference_rule = ExternalRuleSource {
+        name: "legacy_reference.rego".into(),
+        content: r#"
+package legacy_reference
+import rego.v1
+
+violation contains make_diag("LEGACY_ROLE_TARGET", "warn", name, sprintf("role comes from %s", [target])) if {
+    some name in resources_of_type("AWS::Lambda::Function")
+    target := resolve(name, "Properties.Role")
+    is_string(target)
+    input.resources[target].resourceType == "AWS::SSM::Parameter"
+}
+"#
+        .into(),
+    };
+    let rego = RegoEngine::new(EngineConfig {
+        custom_rules: vec![legacy_reference_rule.clone()],
+        guard_rules: vec![],
+        ..Default::default()
+    })
+    .unwrap();
+    let composite =
+        CompositeEngine::new(CompositeEngineConfig::new().with_rego_rules([legacy_reference_rule])).unwrap();
+    let builtin_baseline: Vec<String> =
+        validate_template(&*COMPOSITE, TEMPLATE).into_iter().map(|d| d.rule_id).collect();
+
+    for (engine_name, diags) in
+        [("rego", validate_template(&rego, TEMPLATE)), ("composite", validate_template(&composite, TEMPLATE))]
+    {
+        let legacy = diags
+            .iter()
+            .find(|d| d.rule_id == "LEGACY_ROLE_TARGET")
+            .unwrap_or_else(|| panic!("[{engine_name}] the custom rule must see the referenced logical ID"));
+        assert_eq!(legacy.message, "role comes from Store", "[{engine_name}] resolve() yields the target logical ID");
+        assert_eq!(legacy.resource_logical_id(), Some("Function"), "[{engine_name}] resource_id");
+        assert_eq!(legacy.source, RuleOrigin::Custom, "[{engine_name}] origin");
+
+        let builtins: Vec<String> =
+            diags.iter().filter(|d| d.source != RuleOrigin::Custom).map(|d| d.rule_id.clone()).collect();
+        assert_eq!(
+            builtins, builtin_baseline,
+            "[{engine_name}] loading a custom rule must not change what the built-in rules report on a reference"
+        );
+    }
+}
+
 #[test]
 fn arbitrary_f_prefixed_custom_id_keeps_declared_severity_in_both_engines() {
     // A custom rule ID is arbitrary (here: `Firewall.check-1`, WARN). The built-in

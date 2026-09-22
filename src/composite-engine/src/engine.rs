@@ -458,4 +458,56 @@ Resources:
             "the composite init metric must span the external engine's construction, not replace it"
         );
     }
+
+    /// Custom Rego rules were written against `resolve` returning the logical ID
+    /// of a `Ref`/`Fn::GetAtt` target as a string. The external-only engine the
+    /// composite layers on must honor that contract, so a rule pack that resolves
+    /// a reference into a resource lookup keeps firing after an engine upgrade.
+    #[test]
+    fn custom_rego_resolve_yields_the_referenced_target_logical_id_as_a_string() {
+        let legacy_reference_rule = ExternalRuleSource {
+            name: "legacy_reference.rego".into(),
+            content: r#"
+package legacy_reference
+import rego.v1
+
+violation contains make_diag("LEGACY_TARGET_LOOKUP", "error", name, sprintf("code bucket is %s", [target])) if {
+    some name in resources_of_type("AWS::Lambda::Function")
+    target := resolve(name, "Properties.Code.S3Bucket")
+    is_string(target)
+    input.resources[target].resourceType == "AWS::S3::Bucket"
+}
+"#
+            .into(),
+        };
+        let composite = CompositeEngine::new(CompositeEngineConfig::new().with_rego_rules([legacy_reference_rule]))
+            .expect("composite builds");
+        let model = model(
+            r#"
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  ArtifactsBucket:
+    Type: AWS::S3::Bucket
+  Handler:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      Role: arn:aws:iam::123456789012:role/lambda-role
+      Code:
+        S3Bucket: !Ref ArtifactsBucket
+        S3Key: code.zip
+"#,
+        );
+
+        let diags = composite.evaluate_rules(&model, &ValidateConfig::default()).expect("composite evaluates");
+
+        let legacy = diags
+            .iter()
+            .find(|d| d.rule_id == "LEGACY_TARGET_LOOKUP")
+            .expect("a custom rule resolving a Ref into a resource lookup must still fire");
+        assert_eq!(legacy.message, "code bucket is ArtifactsBucket");
+        assert_eq!(legacy.source, RuleOrigin::Custom);
+        assert_eq!(legacy.resource_logical_id(), Some("Handler"));
+    }
 }
