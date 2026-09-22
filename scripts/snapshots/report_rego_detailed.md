@@ -1,6 +1,6 @@
 # cloudformation-validate vs cfn-lint - Parity Report
 
-> Generated: 2026-09-21 09:42:19  
+> Generated: 2026-09-22 00:11:52  
 > Engine: **rego**  
 > Detail level: **detailed**  
 > Matching: `(rule_id, resource_id, path)` two-pass with `(rule_id, resource_id)` fallback + aliases  
@@ -24,7 +24,7 @@
 |--------|------:|
 | True Positives | 4149 |
 | False Positives (engine bugs) | 80 |
-| Engine Extra (correct, cfn-lint gap) | 8576 |
+| Engine Extra (correct, cfn-lint gap) | 8577 |
 | False Negatives (engine misses) | 1153 |
 | Precision | 98.11% |
 | Recall | 78.25% |
@@ -40,7 +40,7 @@
 | Fatal | 466 | 13 | 82 | 142 | 97.29% | 76.64% |
 | Error | 894 | 55 | 15 | 150 | 94.20% | 85.63% |
 | Warning | 2098 | 0 | 378 | 63 | 100.00% | 97.08% |
-| Info | 691 | 12 | 8101 | 798 | 98.29% | 46.41% |
+| Info | 691 | 12 | 8102 | 798 | 98.29% | 46.41% |
 
 ## False Negatives - 1153 missed findings across 94 rules
 
@@ -2846,7 +2846,7 @@ These are diagnostics the engine reports but cfn-lint does not expect (potential
 - **F3012** `Parameter` (AWS::SSM::Parameter) → `Properties.Value` L28 in `bad_F6101_getatt_ref_typed_object_attribute_yaml`
   > GetAtt Database.Endpoint (AWS::RDS::DBInstance) returns 'object', but property expects 'string'
 
-## Engine Extra - 8576 correct findings across 43 rules
+## Engine Extra - 8577 correct findings across 43 rules
 
 These are correct diagnostics the engine reports that cfn-lint does not cover.
 
@@ -14177,7 +14177,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **I9001** `VPCGatewayAttachment` (AWS::EC2::VPCGatewayAttachment) → `Properties.VpcId` L558 in `quickstart_vpc_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
 
-### I9040 - 2372 findings
+### I9040 - 2373 findings
 
 - **I9040** `Instance` (AWS::EC2::Instance) → `Properties.Tags` L8 in `bad_E1150_network_interfaces_groupset_multi_yaml`
   > Resource 'Instance' of type 'AWS::EC2::Instance' supports Tags but none are configured
@@ -16663,6 +16663,8 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'sampleappServiceE7504FDB' of type 'AWS::ECS::Service' supports Tags but none are configured
 - **I9040** `sampleappServiceSecurityGroup0ABF0D21` (AWS::EC2::SecurityGroup) → `Properties.Tags` L729 in `cdk_ecs-fargate-service-with-auto-scaling--aws-fargate-application-autoscaling.template_json`
   > Resource 'sampleappServiceSecurityGroup0ABF0D21' of type 'AWS::EC2::SecurityGroup' supports Tags but none are configured
+- **I9040** `sampleappServiceTaskCountTargetE827DC30` (AWS::ApplicationAutoScaling::ScalableTarget) → `Properties.Tags` L751 in `cdk_ecs-fargate-service-with-auto-scaling--aws-fargate-application-autoscaling.template_json`
+  > Resource 'sampleappServiceTaskCountTargetE827DC30' of type 'AWS::ApplicationAutoScaling::ScalableTarget' supports Tags but none are configured
 - **I9040** `sampleappTaskDef6BF75736` (AWS::ECS::TaskDefinition) → `Properties.Tags` L556 in `cdk_ecs-fargate-service-with-auto-scaling--aws-fargate-application-autoscaling.template_json`
   > Resource 'sampleappTaskDef6BF75736' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured
 - **I9040** `sampleappTaskDefExecutionRoleAD6F4C40` (AWS::IAM::Role) → `Properties.Tags` L616 in `cdk_ecs-fargate-service-with-auto-scaling--aws-fargate-application-autoscaling.template_json`
@@ -22919,9 +22921,16 @@ other tool's output. They are excluded from precision/recall scoring.
 - `integration_yaml-alias-amplification_yaml` (1 diagnostics)
 - `integration_yaml-alias_yaml` (3 diagnostics)
 
-### Engine reports with no cfn-lint result — 2 templates, 0 diagnostics
+### Engine reports with no cfn-lint result — 9 templates, 115 diagnostics
 
+- `bad_E3059_subnet_outside_every_vpc_cidr_yaml` (18 diagnostics)
+- `bad_E3060_subnet_overlap_in_one_branch_yaml` (16 diagnostics)
+- `bad_E3679_https_listener_beside_referenced_certificate_yaml` (3 diagnostics)
+- `bad_W3688_snapshot_identifier_from_parameter_yaml` (14 diagnostics)
 - `empty_yaml` (0 diagnostics)
+- `good_reference_values_are_not_literals_yaml` (10 diagnostics)
+- `good_subnet_cidrs_across_vpcs_and_secondary_blocks_yaml` (22 diagnostics)
+- `good_unresolved_values_are_present_yaml` (32 diagnostics)
 - `malformed_yaml` (0 diagnostics)
 
 ## Root-Cause Analysis
