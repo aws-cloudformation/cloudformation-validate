@@ -683,6 +683,7 @@
       "MaxSize",
       "MetricsCollection",
       "MinSize",
+      "MixedInstancesPolicy.InstancesDistribution.DistributionSegments",
       "MixedInstancesPolicy.InstancesDistribution.OnDemandAllocationStrategy",
       "MixedInstancesPolicy.InstancesDistribution.OnDemandBaseCapacity",
       "MixedInstancesPolicy.InstancesDistribution.OnDemandPercentageAboveBaseCapacity",
@@ -853,6 +854,16 @@
       "FailureMessage",
       "Id",
       "Status"
+    ],
+    "AWS::BcmPricingCalculator::WorkloadEstimate": [
+      "Arn",
+      "CostCurrency",
+      "CreatedAt",
+      "FailureMessage",
+      "Id",
+      "RateTimestamp",
+      "Status",
+      "TotalCost"
     ],
     "AWS::Bedrock::Agent": [
       "AgentArn",
@@ -1358,6 +1369,10 @@
       "LayoutArn",
       "LayoutId"
     ],
+    "AWS::Cases::RelatedItem": [
+      "RelatedItemArn",
+      "RelatedItemId"
+    ],
     "AWS::Cases::Template": [
       "CreatedTime",
       "LastModifiedTime",
@@ -1408,6 +1423,14 @@
     ],
     "AWS::Chime::AppInstanceUser": [
       "AppInstanceUserArn"
+    ],
+    "AWS::Chime::Channel": [
+      "Arn",
+      "ChannelFlowArn",
+      "CreatedBy",
+      "CreatedTimestamp",
+      "LastMessageTimestamp",
+      "LastUpdatedTimestamp"
     ],
     "AWS::Chime::ChannelFlow": [
       "AppInstanceId",
@@ -2095,6 +2118,12 @@
       "Version",
       "ViewVersionArn"
     ],
+    "AWS::Connect::Vocabulary": [
+      "Arn",
+      "LastModifiedTime",
+      "State",
+      "VocabularyId"
+    ],
     "AWS::Connect::Workspace": [
       "Arn",
       "Id"
@@ -2214,6 +2243,10 @@
     "AWS::DRS::LaunchConfigurationTemplate": [
       "Arn",
       "LaunchConfigurationTemplateID"
+    ],
+    "AWS::DRS::ReplicationConfigurationTemplate": [
+      "Arn",
+      "ReplicationConfigurationTemplateID"
     ],
     "AWS::DRS::SourceNetwork": [
       "Arn",
@@ -3128,6 +3161,11 @@
       "IpSource",
       "Ipv6AddressAttribute"
     ],
+    "AWS::EC2::SubnetCidrReservation": [
+      "Arn",
+      "OwnerId",
+      "SubnetCidrReservationId"
+    ],
     "AWS::EC2::SubnetNetworkAclAssociation": [
       "AssociationId"
     ],
@@ -3244,6 +3282,12 @@
       "Ipv4NetmaskLength",
       "Ipv6CidrBlocks",
       "Tags",
+      "VpcEncryptionControl.EgressOnlyInternetGatewayExclusion",
+      "VpcEncryptionControl.ElasticFileSystemExclusion",
+      "VpcEncryptionControl.InternetGatewayExclusion",
+      "VpcEncryptionControl.LambdaExclusion",
+      "VpcEncryptionControl.Mode",
+      "VpcEncryptionControl.NatGatewayExclusion",
       "VpcEncryptionControl.ResourceExclusions",
       "VpcEncryptionControl.ResourceExclusions.EgressOnlyInternetGateway",
       "VpcEncryptionControl.ResourceExclusions.EgressOnlyInternetGateway.State",
@@ -3271,8 +3315,11 @@
       "VpcEncryptionControl.ResourceExclusions.VpcPeering.StateMessage",
       "VpcEncryptionControl.State",
       "VpcEncryptionControl.StateMessage",
+      "VpcEncryptionControl.VirtualPrivateGatewayExclusion",
       "VpcEncryptionControl.VpcEncryptionControlId",
       "VpcEncryptionControl.VpcId",
+      "VpcEncryptionControl.VpcLatticeExclusion",
+      "VpcEncryptionControl.VpcPeeringExclusion",
       "VpcId"
     ],
     "AWS::EC2::VPCBlockPublicAccessExclusion": [
@@ -4655,12 +4702,14 @@
       "Schedule.AutoDisablePolicy.FailureCount",
       "Schedule.PipelineExecutionStartCondition",
       "Schedule.ScheduleExpression",
+      "Schedule.Timezone",
       "Status",
       "Workflows"
     ],
     "AWS::ImageBuilder::ImageRecipe": [
       "AdditionalInstanceConfiguration.SystemsManagerAgent.UninstallAfterBuild",
       "AdditionalInstanceConfiguration.UserDataOverride",
+      "AmiWatermarks",
       "Arn",
       "BlockDeviceMappings",
       "Components",
@@ -5598,6 +5647,10 @@
       "EnvironmentArn",
       "EnvironmentId"
     ],
+    "AWS::MGN::Connector": [
+      "Arn",
+      "ConnectorID"
+    ],
     "AWS::MGN::NetworkMigrationDefinition": [
       "Arn",
       "CreatedAt",
@@ -5737,6 +5790,10 @@
     ],
     "AWS::MediaConnect::FlowEntitlement": [
       "EntitlementArn"
+    ],
+    "AWS::MediaConnect::FlowMediaStream": [
+      "Arn",
+      "Fmt"
     ],
     "AWS::MediaConnect::FlowOutput": [
       "OutputArn"
@@ -6529,7 +6586,6 @@
       "Id"
     ],
     "AWS::OpsWorks::Instance": [
-      "AvailabilityZone",
       "Id",
       "PrivateDnsName",
       "PrivateIp",
@@ -6543,8 +6599,7 @@
       "Id"
     ],
     "AWS::OpsWorks::UserProfile": [
-      "Id",
-      "SshUsername"
+      "Id"
     ],
     "AWS::OpsWorks::Volume": [
       "Id"
@@ -6671,6 +6726,12 @@
     "AWS::Personalize::EventTracker": [
       "EventTrackerArn",
       "TrackingId"
+    ],
+    "AWS::Personalize::Filter": [
+      "CreationDateTime",
+      "FilterArn",
+      "LastUpdatedDateTime",
+      "Status"
     ],
     "AWS::Personalize::MetricAttribution": [
       "MetricAttributionArn",
@@ -7576,12 +7637,22 @@
       "Arn",
       "Id"
     ],
+    "AWS::Route53::DelegationSet": [
+      "Arn",
+      "CallerReference",
+      "Id",
+      "NameServers"
+    ],
     "AWS::Route53::HealthCheck": [
       "HealthCheckId"
     ],
     "AWS::Route53::HostedZone": [
       "Id",
       "NameServers"
+    ],
+    "AWS::Route53::QueryLoggingConfig": [
+      "Arn",
+      "Id"
     ],
     "AWS::Route53::RecordSetGroup": [
       "Id"
@@ -8034,6 +8105,12 @@
     "AWS::SMSVOICE::SenderId": [
       "Arn"
     ],
+    "AWS::SMSVOICE::VerifiedDestinationNumber": [
+      "CreatedTimestamp",
+      "Status",
+      "VerifiedDestinationNumberArn",
+      "VerifiedDestinationNumberId"
+    ],
     "AWS::SNS::Subscription": [
       "Arn"
     ],
@@ -8044,6 +8121,7 @@
       "FifoThroughputScope",
       "FifoTopic",
       "KmsMasterKeyId",
+      "MaximumMessageSize",
       "SignatureVersion",
       "Subscription",
       "Tags",
@@ -8208,6 +8286,13 @@
       "InstanceGroups.*.CurrentCount",
       "RestrictedInstanceGroups.*.CurrentCount"
     ],
+    "AWS::SageMaker::ClusterSchedulerConfig": [
+      "ClusterSchedulerConfigArn",
+      "ClusterSchedulerConfigId",
+      "ClusterSchedulerConfigVersion",
+      "CreationTime",
+      "Status"
+    ],
     "AWS::SageMaker::CodeRepository": [
       "CodeRepositoryArn",
       "CodeRepositoryName"
@@ -8267,7 +8352,8 @@
       "Url"
     ],
     "AWS::SageMaker::Endpoint": [
-      "EndpointArn"
+      "EndpointArn",
+      "EndpointName"
     ],
     "AWS::SageMaker::EndpointConfig": [
       "EndpointConfigArn",
@@ -8551,7 +8637,7 @@
       "NotebookInstanceName"
     ],
     "AWS::SageMaker::NotebookInstanceLifecycleConfig": [
-      "Id",
+      "NotebookInstanceLifecycleConfigArn",
       "NotebookInstanceLifecycleConfigName"
     ],
     "AWS::SageMaker::PartnerApp": [
@@ -9214,6 +9300,31 @@
       "Capacity",
       "Id",
       "LabelNamespace"
+    ],
+    "AWS::WellArchitected::AgentContext": [
+      "ApplicationType",
+      "Arn",
+      "CreatedAt",
+      "CreatedBy",
+      "Criticality",
+      "Id",
+      "LastModifiedAt",
+      "LastModifiedBy"
+    ],
+    "AWS::WellArchitected::AgentGoal": [
+      "Arn",
+      "CreatedAt",
+      "CreatedBy",
+      "Id",
+      "LastModifiedAt",
+      "LastModifiedBy"
+    ],
+    "AWS::WellArchitected::AgentProfile": [
+      "Arn",
+      "CreatedAt",
+      "CreatedBy",
+      "LastModifiedAt",
+      "LastModifiedBy"
     ],
     "AWS::WellArchitected::Lens": [
       "Description",
@@ -10806,7 +10917,8 @@
       "ScalableDimension": "string",
       "ScheduledActions": "array",
       "ServiceNamespace": "string",
-      "SuspendedState": "object"
+      "SuspendedState": "object",
+      "Tags": "array"
     },
     "AWS::ApplicationAutoScaling::ScalingPolicy": {
       "Arn": "string",
@@ -11324,6 +11436,20 @@
       "Name": "string",
       "Status": "string",
       "Tags": "array"
+    },
+    "AWS::BcmPricingCalculator::WorkloadEstimate": {
+      "Arn": "string",
+      "CostCurrency": "string",
+      "CreatedAt": "string",
+      "ExpiresAt": "string",
+      "FailureMessage": "string",
+      "Id": "string",
+      "Name": "string",
+      "RateTimestamp": "string",
+      "RateType": "string",
+      "Status": "string",
+      "Tags": "array",
+      "TotalCost": "number"
     },
     "AWS::Bedrock::Agent": {
       "ActionGroups": "array",
@@ -12211,6 +12337,15 @@
       "Name": "string",
       "Tags": "array"
     },
+    "AWS::Cases::RelatedItem": {
+      "CaseId": "string",
+      "Content": "object",
+      "DomainId": "string",
+      "RelatedItemArn": "string",
+      "RelatedItemId": "string",
+      "Tags": "array",
+      "Type": "string"
+    },
     "AWS::Cases::Template": {
       "CreatedTime": "string",
       "Description": "string",
@@ -12358,6 +12493,26 @@
       "ExpirationSettings": "object",
       "Metadata": "string",
       "Name": "string",
+      "Tags": "array"
+    },
+    "AWS::Chime::Channel": {
+      "AppInstanceArn": "string",
+      "Arn": "string",
+      "ChannelFlowArn": "string",
+      "ChannelId": "string",
+      "ChimeBearer": "string",
+      "CreatedBy": "object",
+      "CreatedTimestamp": "string",
+      "ElasticChannelConfiguration": "object",
+      "ExpirationSettings": "object",
+      "LastMessageTimestamp": "string",
+      "LastUpdatedTimestamp": "string",
+      "MemberArns": "array",
+      "Metadata": "string",
+      "Mode": "string",
+      "ModeratorArns": "array",
+      "Name": "string",
+      "Privacy": "string",
       "Tags": "array"
     },
     "AWS::Chime::ChannelFlow": {
@@ -14029,6 +14184,7 @@
       "Key": "string"
     },
     "AWS::Connect::SecurityProfile": {
+      "AllowedAIAgents": "array",
       "AllowedAccessControlHierarchyGroupId": "string",
       "AllowedAccessControlTags": "array",
       "AllowedFlowModules": "array",
@@ -14129,6 +14285,17 @@
       "ViewArn": "string",
       "ViewContentSha256": "string",
       "ViewVersionArn": "string"
+    },
+    "AWS::Connect::Vocabulary": {
+      "Arn": "string",
+      "Content": "string",
+      "InstanceId": "string",
+      "LanguageCode": "string",
+      "LastModifiedTime": "string",
+      "State": "string",
+      "Tags": "array",
+      "VocabularyId": "string",
+      "VocabularyName": "string"
     },
     "AWS::Connect::Workspace": {
       "Arn": "string",
@@ -14530,6 +14697,26 @@
       "PostLaunchEnabled": "boolean",
       "Tags": "array",
       "TargetInstanceTypeRightSizingMethod": "string"
+    },
+    "AWS::DRS::ReplicationConfigurationTemplate": {
+      "Arn": "string",
+      "AssociateDefaultSecurityGroup": "boolean",
+      "AutoReplicateNewDisks": "boolean",
+      "BandwidthThrottling": "integer",
+      "CreatePublicIP": "boolean",
+      "DataPlaneRouting": "string",
+      "DefaultLargeStagingDiskType": "string",
+      "EbsEncryption": "string",
+      "EbsEncryptionKeyArn": "string",
+      "InternetProtocol": "string",
+      "PitPolicy": "array",
+      "ReplicationConfigurationTemplateID": "string",
+      "ReplicationServerInstanceType": "string",
+      "ReplicationServersSecurityGroupsIDs": "array",
+      "StagingAreaSubnetId": "string",
+      "StagingAreaTags": "object",
+      "Tags": "array",
+      "UseDedicatedReplicationServer": "boolean"
     },
     "AWS::DRS::SourceNetwork": {
       "Arn": "string",
@@ -16492,6 +16679,16 @@
       "Ipv6IpamPoolId": "string",
       "Ipv6NetmaskLength": "integer",
       "SubnetId": "string"
+    },
+    "AWS::EC2::SubnetCidrReservation": {
+      "Arn": "string",
+      "Cidr": "string",
+      "Description": "string",
+      "OwnerId": "string",
+      "ReservationType": "string",
+      "SubnetCidrReservationId": "string",
+      "SubnetId": "string",
+      "Tags": "array"
     },
     "AWS::EC2::SubnetNetworkAclAssociation": {
       "AssociationId": "string",
@@ -20547,11 +20744,14 @@
     },
     "AWS::IoTSiteWise::Dataset": {
       "DatasetArn": "string",
+      "DatasetConfig": "object",
       "DatasetDescription": "string",
       "DatasetId": "string",
       "DatasetName": "string",
       "DatasetSource": "object",
-      "Tags": "array"
+      "DatasetType": "string",
+      "Tags": "array",
+      "WorkspaceName": "string"
     },
     "AWS::IoTSiteWise::Gateway": {
       "GatewayCapabilitySummaries": "array",
@@ -21949,6 +22149,14 @@
       "SubnetIds": "array",
       "Tags": "object"
     },
+    "AWS::MGN::Connector": {
+      "Arn": "string",
+      "ConnectorID": "string",
+      "Name": "string",
+      "SsmCommandConfig": "object",
+      "SsmInstanceID": "string",
+      "Tags": "array"
+    },
     "AWS::MGN::NetworkMigrationDefinition": {
       "Arn": "string",
       "CreatedAt": "string",
@@ -22257,6 +22465,19 @@
       "Name": "string",
       "Subscribers": "array",
       "Tags": "array"
+    },
+    "AWS::MediaConnect::FlowMediaStream": {
+      "Arn": "string",
+      "Attributes": "object",
+      "ClockRate": "integer",
+      "Description": "string",
+      "FlowArn": "string",
+      "Fmt": "integer",
+      "MediaStreamId": "integer",
+      "MediaStreamName": "string",
+      "MediaStreamType": "string",
+      "Tags": "array",
+      "VideoFormat": "string"
     },
     "AWS::MediaConnect::FlowOutput": {
       "CidrAllowList": "array",
@@ -24282,6 +24503,16 @@
       "Tags": "array",
       "TrackingId": "string"
     },
+    "AWS::Personalize::Filter": {
+      "CreationDateTime": "string",
+      "DatasetGroupArn": "string",
+      "FilterArn": "string",
+      "FilterExpression": "string",
+      "LastUpdatedDateTime": "string",
+      "Name": "string",
+      "Status": "string",
+      "Tags": "array"
+    },
     "AWS::Personalize::MetricAttribution": {
       "DatasetGroupArn": "string",
       "MetricAttributionArn": "string",
@@ -25989,6 +26220,7 @@
       "MultiRegion": "object",
       "Name": "string",
       "PolicyArn": "string",
+      "SharingEnabled": "boolean",
       "Tags": "array",
       "UpdatedAt": "string"
     },
@@ -26163,6 +26395,12 @@
     "AWS::Route53::DNSSEC": {
       "HostedZoneId": "string"
     },
+    "AWS::Route53::DelegationSet": {
+      "Arn": "string",
+      "CallerReference": "string",
+      "Id": "string",
+      "NameServers": "array"
+    },
     "AWS::Route53::HealthCheck": {
       "HealthCheckConfig": "object",
       "HealthCheckId": "string",
@@ -26183,6 +26421,12 @@
       "KeyManagementServiceArn": "string",
       "Name": "string",
       "Status": "string"
+    },
+    "AWS::Route53::QueryLoggingConfig": {
+      "Arn": "string",
+      "CloudWatchLogsLogGroupArn": "string",
+      "HostedZoneId": "string",
+      "Id": "string"
     },
     "AWS::Route53::RecordSet": {
       "AliasTarget": "object",
@@ -27088,6 +27332,14 @@
       "SenderId": "string",
       "Tags": "array"
     },
+    "AWS::SMSVOICE::VerifiedDestinationNumber": {
+      "CreatedTimestamp": "string",
+      "DestinationPhoneNumber": "string",
+      "Status": "string",
+      "Tags": "array",
+      "VerifiedDestinationNumberArn": "string",
+      "VerifiedDestinationNumberId": "string"
+    },
     "AWS::SNS::Subscription": {
       "Arn": "string",
       "DeliveryPolicy": "object",
@@ -27514,6 +27766,18 @@
       "TieredStorageConfig": "object",
       "VpcConfig": "object"
     },
+    "AWS::SageMaker::ClusterSchedulerConfig": {
+      "ClusterArn": "string",
+      "ClusterSchedulerConfigArn": "string",
+      "ClusterSchedulerConfigId": "string",
+      "ClusterSchedulerConfigVersion": "integer",
+      "CreationTime": "string",
+      "Description": "string",
+      "Name": "string",
+      "SchedulerConfig": "object",
+      "Status": "string",
+      "Tags": "array"
+    },
     "AWS::SageMaker::CodeRepository": {
       "CodeRepositoryArn": "string",
       "CodeRepositoryName": "string",
@@ -27901,10 +28165,11 @@
       "VolumeSizeInGB": "integer"
     },
     "AWS::SageMaker::NotebookInstanceLifecycleConfig": {
-      "Id": "string",
+      "NotebookInstanceLifecycleConfigArn": "string",
       "NotebookInstanceLifecycleConfigName": "string",
       "OnCreate": "array",
-      "OnStart": "array"
+      "OnStart": "array",
+      "Tags": "array"
     },
     "AWS::SageMaker::PartnerApp": {
       "AppVersion": "string",
@@ -29513,6 +29778,48 @@
     "AWS::WAFv2::WebACLAssociation": {
       "ResourceArn": "string",
       "WebACLArn": "string"
+    },
+    "AWS::WellArchitected::AgentContext": {
+      "ApplicationType": "string",
+      "Arn": "string",
+      "Content": "object",
+      "ContextType": "string",
+      "CreatedAt": "string",
+      "CreatedBy": "string",
+      "Criticality": "string",
+      "Id": "string",
+      "LastModifiedAt": "string",
+      "LastModifiedBy": "string",
+      "ProfileArn": "string",
+      "Title": "string"
+    },
+    "AWS::WellArchitected::AgentGoal": {
+      "Arn": "string",
+      "CreatedAt": "string",
+      "CreatedBy": "string",
+      "Description": "string",
+      "Id": "string",
+      "LastModifiedAt": "string",
+      "LastModifiedBy": "string",
+      "Pillars": "array",
+      "ProfileArn": "string",
+      "Title": "string"
+    },
+    "AWS::WellArchitected::AgentProfile": {
+      "AggregationConfiguration": "array",
+      "Arn": "string",
+      "BusinessOverview": "string",
+      "CreatedAt": "string",
+      "CreatedBy": "string",
+      "DeletionProtection": "boolean",
+      "Description": "string",
+      "DisplayName": "string",
+      "ExecutionRoleArn": "string",
+      "LastModifiedAt": "string",
+      "LastModifiedBy": "string",
+      "Name": "string",
+      "Pillars": "array",
+      "Tags": "array"
     },
     "AWS::WellArchitected::Lens": {
       "Description": "string",
