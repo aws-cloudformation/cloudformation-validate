@@ -4,7 +4,8 @@ name: Benchmark
 # custom Rego rule pack, and built-in + Guard rule pack) is a full Rego/composite
 # engine × binding benchmark and always runs, in one job so every number in the
 # report comes from the same runner. The per-template and aggregate reports stay
-# on the runner; only the assembled comparison report is uploaded.
+# on the runner; only the assembled comparison report is uploaded, and its headline
+# sections are published to the job summary.
 
 on:
   workflow_dispatch:
@@ -213,6 +214,57 @@ jobs:
             sys.exit(1)
         print(f"All {len(expected)} aggregate files validated "
               "(labels, rule pack, provenance, startup, memory)")
+        PY
+
+    - name: Publish headline findings to the job summary
+      if: always()
+      shell: bash
+      run: |
+        set -euo pipefail
+        # The report is written most-important-first: the lede, Key Findings, and the
+        # three numbered comparison sections (engines, rule packs per engine, language
+        # bindings) answer the questions the run exists for. Publish exactly that head
+        # to the job summary so it can be read on the run page without downloading the
+        # artifact. The table of contents is dropped because its anchors point at
+        # sections that stay in the artifact, and the boundaries are the script's own
+        # heading constants so a retitle cannot silently truncate the summary.
+        python3 - <<'PY'
+        import os
+        import sys
+        from pathlib import Path
+
+        sys.path.insert(0, "scripts")
+        import compare_benchmarks as cb
+
+        summary = Path(os.environ["GITHUB_STEP_SUMMARY"])
+        report = cb.REPORT_PATH
+        if not report.is_file():
+            with summary.open("a") as handle:
+                handle.write("# Benchmark Comparison\n\nNo comparison report was produced; see the job log.\n")
+            sys.exit(0)
+
+        toc_heading = f"## {cb.TOC_TITLE}"
+        stop_heading = f"## {cb.HOW_TO_READ_TITLE}"
+        head = []
+        in_toc = False
+        stopped = False
+        for line in report.read_text().splitlines():
+            if line == stop_heading:
+                stopped = True
+                break
+            if line.startswith("## "):
+                in_toc = line == toc_heading
+            if not in_toc:
+                head.append(line)
+        if not stopped:
+            print(f"::error::{report}: heading {stop_heading!r} not found; the report layout changed")
+            sys.exit(1)
+
+        with summary.open("a") as handle:
+            handle.write("\n".join(head).rstrip() + "\n\n")
+            handle.write("The full report, including every engine × binding × rule-set table and the "
+                         "methodology notes, is the `benchmark-comparison` artifact of this run.\n")
+        print(f"Published {len(head)} report lines to the job summary")
         PY
 
     - name: Upload comparison report
