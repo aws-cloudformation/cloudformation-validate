@@ -5,8 +5,12 @@ A *scenario* fixes the rules the engine evaluates: ``builtin`` measures the
 built-in rules alone, ``custom`` layers every custom Rego rule file of
 ``src/resources/rules`` on top, and ``guard`` layers every Guard rule file of
 that directory. The single report (``scripts/snapshots/benchmark_comparison.md``)
-opens with a cross-scenario summary of what each rule pack costs per engine and
-binding, then holds the full engine × binding comparison for every scenario.
+is an inverted pyramid: it opens with the key findings in prose, then answers
+one question per section from the reference (native) binding - how the Rego and
+Composite engines compare, what each rule pack costs on each engine, and how the
+language bindings compare with the native core - and only then holds the
+appendices: every engine × binding rule-pack cost table, the methodology, and the
+full engine × binding comparison for every scenario.
 
 The native benchmark builds ``cfn-benchmark`` from the workspace. The WASM, JVM,
 Python, and Go benchmarks consume the committed distribution artifacts that the
@@ -61,6 +65,7 @@ SCENARIOS = [
     {
         "id": DEFAULT_SCENARIO,
         "label": "Built-in rules only",
+        "pack": None,
         "engines": ENGINES,
         "guard": False,
         "rego": False,
@@ -68,6 +73,7 @@ SCENARIOS = [
     {
         "id": "custom",
         "label": "Built-in rules + custom Rego rule pack",
+        "pack": "the custom Rego rule pack",
         "engines": ENGINES,
         "guard": False,
         "rego": True,
@@ -75,12 +81,36 @@ SCENARIOS = [
     {
         "id": "guard",
         "label": "Built-in rules + Guard rule pack",
+        "pack": "the Guard rule pack",
         "engines": ENGINES,
         "guard": True,
         "rego": False,
     },
 ]
 SCENARIO_IDS = [scenario["id"] for scenario in SCENARIOS]
+
+# The report is an inverted pyramid: the headline sections answer one question each
+# from the reference binding, then the appendices hold every engine × binding × rule-set
+# table. Headline engine comparisons read the default `--engine` selector against the
+# standalone Rego engine.
+REFERENCE_BINDING = "native"
+HEADLINE_BASELINE_ENGINE = "rego"
+HEADLINE_COMPARISON_ENGINE = "composite"
+HEADLINE_DIGITS = 2
+# Two engines pay "about the same" for a rule pack when the larger added cost per
+# template is within this factor of the smaller one.
+SIMILAR_PACK_COST_FACTOR = 1.3
+
+TOC_TITLE = "Table of Contents"
+KEY_FINDINGS_TITLE = "Key Findings"
+RULE_PACK_TITLE = "2. Rule Pack Behaviour per Engine"
+BINDING_TITLE = "3. Language Binding Overhead"
+HOW_TO_READ_TITLE = "How to Read the Numbers"
+RUN_SETUP_TITLE = "Run Setup"
+SCENARIOS_APPENDIX_TITLE = "Appendix: Scenarios"
+RULE_PACK_COST_APPENDIX_TITLE = "Appendix: Rule Pack Cost per Engine × Binding"
+FAILURE_APPENDIX_TITLE = "Appendix: Templates Failing Under a Rule Pack"
+METHODOLOGY_TITLE = "Appendix: Methodology Notes"
 ALL_BINDINGS = [
     ("native", "Native Rust"),
     ("wasm", "WASM (Node.js)"),
@@ -1423,71 +1453,25 @@ def paired_engine_pair_section(all_detailed, bindings, first, second):
         second_reports = all_detailed.get(second, {}).get(binding, {})
         if not first_reports or not second_reports:
             continue
-
-        common_paths = set(first_reports.keys()) & set(second_reports.keys())
-        if not common_paths:
+        if not set(first_reports.keys()) & set(second_reports.keys()):
             continue
-
-        first_wall_sum = 0.0
-        second_wall_sum = 0.0
-        first_rule_sum = 0.0
-        second_rule_sum = 0.0
-        first_faster_5pct = 0
-        second_faster_5pct = 0
-        within_noise = 0
-        compared = 0
-        deltas = []
-
-        for fp in sorted(common_paths):
-            first_sub = get(first_reports[fp], "benchmarkMetrics", "subsequent", default={})
-            second_sub = get(second_reports[fp], "benchmarkMetrics", "subsequent", default={})
-            if (not isinstance(first_sub, dict) or first_sub.get("sampleCount", 0) == 0
-                    or not isinstance(second_sub, dict) or second_sub.get("sampleCount", 0) == 0):
-                continue
-
-            fw = first_sub.get("wallClockMs")
-            sw = second_sub.get("wallClockMs")
-            fr = first_sub.get("ruleEvaluationMs")
-            sr = second_sub.get("ruleEvaluationMs")
-            if not all(_is_finite_number(v) for v in (fw, sw, fr, sr)):
-                continue
-
-            compared += 1
-            first_wall_sum += fw
-            second_wall_sum += sw
-            first_rule_sum += fr
-            second_rule_sum += sr
-
-            classification = classify_paired(fw, sw)
-            if classification == "first_faster":
-                first_faster_5pct += 1
-            elif classification == "second_faster":
-                second_faster_5pct += 1
-            else:
-                within_noise += 1
-
-            abs_diff = abs(fw - sw)
-            if fw < sw:
-                direction = f"{first_name} faster"
-            elif sw < fw:
-                direction = f"{second_name} faster"
-            else:
-                direction = "equal"
-            deltas.append((fp, fw, sw, abs_diff, direction))
 
         lines.append(f"#### {label}")
         lines.append("")
-        if compared == 0:
+        summary = paired_summary(first_reports, second_reports)
+        if summary is None:
             lines.append("_No subsequent samples to compare (single-iteration run)._")
             lines.append("")
             continue
 
-        deltas.sort(key=lambda x: x[3], reverse=True)
-
+        first_wall_sum = summary["first_wall_sum"]
+        second_wall_sum = summary["second_wall_sum"]
+        first_rule_sum = summary["first_rule_sum"]
+        second_rule_sum = summary["second_rule_sum"]
         direction_ratio = (first_wall_sum / second_wall_sum) if second_wall_sum > 0 else float("inf")
         rule_ratio = (first_rule_sum / second_rule_sum) if second_rule_sum > 0 else float("inf")
 
-        lines.append(f"**Templates compared:** {compared}")
+        lines.append(f"**Templates compared:** {summary['compared']}")
         lines.append("")
 
         summary_header = ["Metric", "Value"]
@@ -1498,21 +1482,27 @@ def paired_engine_pair_section(all_detailed, bindings, first, second):
             [f"{first_name} rule sum (ms)", f"{first_rule_sum:.2f}"],
             [f"{second_name} rule sum (ms)", f"{second_rule_sum:.2f}"],
             [f"Rule ratio ({first_name}/{second_name})", f"{rule_ratio:.4f}"],
-            [f"{first_name} faster by ≥5%", str(first_faster_5pct)],
-            [f"{second_name} faster by ≥5%", str(second_faster_5pct)],
-            ["Within 5% (practical parity)", str(within_noise)],
+            [f"{first_name} faster by ≥5%", str(summary["first_faster"])],
+            [f"{second_name} faster by ≥5%", str(summary["second_faster"])],
+            ["Within 5% (practical parity)", str(summary["within_noise"])],
         ]
         lines += table(summary_header, summary_rows)
         lines.append("")
 
         # Top-5 largest paired deltas
-        top_deltas = deltas[:5]
+        top_deltas = summary["deltas"][:5]
         if top_deltas:
             lines.append("**Largest paired deltas (top 5):**")
             lines.append("")
             delta_header = ["Template", f"{first_name} (ms)", f"{second_name} (ms)", "Δ (ms)", "Direction"]
             delta_rows = []
-            for fp, fw, sw, diff, direction in top_deltas:
+            for fp, fw, sw, diff in top_deltas:
+                if fw < sw:
+                    direction = f"{first_name} faster"
+                elif sw < fw:
+                    direction = f"{second_name} faster"
+                else:
+                    direction = "equal"
                 display_path = fp if len(fp) <= 50 else "…" + fp[-47:]
                 delta_rows.append([
                     display_path,
@@ -1965,7 +1955,7 @@ def run_all_benchmarks(scenarios, engines, bindings, args, flavor):
 
 def methodology_section():
     return [
-        "## Methodology Notes", "",
+        f"## {METHODOLOGY_TITLE}", "",
         "### Scenarios - rule packs loaded into the engine", "",
         "Every scenario is a complete engine × binding run over the same corpus with a different rule "
         f"set loaded into the engine. `{DEFAULT_SCENARIO}` evaluates the built-in rules alone; `custom` "
@@ -2040,7 +2030,7 @@ def _ratio(value, base):
 
 
 def scenario_overview_section(loaded_by_scenario, scenarios, engines):
-    lines = ["## Scenarios", ""]
+    lines = [f"## {SCENARIOS_APPENDIX_TITLE}", ""]
     header = ["Scenario", "Description", "Engines", "Guard files", "Guard rules", "Rego files", "Rules fingerprint"]
     rows = []
     for scenario in scenarios:
@@ -2059,7 +2049,8 @@ def scenario_overview_section(loaded_by_scenario, scenarios, engines):
 
 def rule_pack_cost_section(loaded_by_scenario, scenarios, engines, bindings):
     lines = [
-        "## Rule Pack Cost per Engine × Binding", "",
+        f"## {RULE_PACK_COST_APPENDIX_TITLE}", "",
+        "Every engine × binding, one row per rule set. "
         "Columns: engine init and first validation from the cold startup probe; rule evaluation and "
         "wall clock are the subsequent per-template medians (iterations 2..N) with p99 in parentheses; "
         "throughput is ok × iterations / measured validation wall time; RSS is the corpus process peak. "
@@ -2083,7 +2074,6 @@ def rule_pack_cost_section(loaded_by_scenario, scenarios, engines, bindings):
                 wall = get(agg, "performance", "subsequent_wall_clock_ms", default={})
                 base_rule = get(base, "performance", "rule_evaluation_ms", "median") if base else None
                 base_wall = get(base, "performance", "subsequent_wall_clock_ms", "median") if base else None
-                diags = agg.get("diagnostics") or {}
                 rows.append([
                     f"`{scenario['id']}`",
                     str(agg.get("templates_ok", "-")),
@@ -2095,8 +2085,7 @@ def rule_pack_cost_section(loaded_by_scenario, scenarios, engines, bindings):
                     _ratio(_stat_value(wall, "median"), base_wall),
                     ms(recomputed_throughput(agg), True, 2),
                     fmt_bytes(get(agg, "memory", "full_corpus_peak_rss_bytes")),
-                    "/".join(str(diags.get(k, "-")) for k in
-                             ("total_fatal", "total_errors", "total_warnings", "total_informational")),
+                    diagnostics_text(agg),
                 ])
             if rows:
                 lines += [f"### {engine.upper()} - {label}", ""] + table(header, rows) + [""]
@@ -2107,7 +2096,7 @@ def failure_difference_section(differences):
     if not differences:
         return []
     lines = [
-        "## Templates Failing Under a Rule Pack", "",
+        f"## {FAILURE_APPENDIX_TITLE}", "",
         f"Templates whose validation fails in a scenario but not in `{DEFAULT_SCENARIO}` (or the reverse). "
         "Every binding of the scenario agrees on this list. A failing template gets a report with no "
         "diagnostics and zero timings, so it is excluded from that scenario's latency and throughput "
@@ -2171,24 +2160,574 @@ def scenario_section(all_loaded, all_detailed, engines, bindings, args, scenario
         body += paired_engine_comparison(all_detailed, bindings)
     body += data_sources_section(all_loaded, engines, bindings, scenario_id)
 
-    heading = [f"## Scenario: `{scenario_id}` - {scenario['label']} <a id=\"{scenario_anchor(scenario)}\"></a>", ""]
+    heading = [f"## Appendix: Scenario `{scenario_id}` - {scenario['label']} <a id=\"{scenario_anchor(scenario)}\"></a>", ""]
     return heading + demote_headings(body), parity_all_passed
 
 
-def build_report(loaded_by_scenario, detailed_by_scenario, scenarios, engines, bindings, args):
-    host = host_metadata()
-    first = scenarios[0]
-    first_loaded = loaded_by_scenario[first["id"]]
-    first_engines = scenario_engines(first, engines)
-    sample = first_loaded[first_engines[0]][bindings[0][0]]
-    startup_samples = int(get(sample, "process_startup", "samples", default=args.startup_samples))
-    lines = [
-        "# Benchmark Comparison",
-        "",
-        f"Generated: {datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')}",
-        "",
-        "## Host", "",
+# ---------------------------------------------------------------------------
+# Headline sections - the top of the inverted pyramid. Each answers one question
+# from the aggregates (and, for per-template counts, the detailed reports) of
+# every scenario, read through the reference binding so that engine and rule-pack
+# effects are not mixed with binding overhead.
+# ---------------------------------------------------------------------------
+
+
+def reference_binding(bindings):
+    """The binding headline sections read: native when it ran, otherwise the first binding."""
+    for binding, label in bindings:
+        if binding == REFERENCE_BINDING:
+            return binding, label
+    return bindings[0]
+
+
+def headline_engine_pair(engines):
+    """``(baseline, comparison)`` engines of the headline comparison; None when one engine ran."""
+    if HEADLINE_BASELINE_ENGINE in engines and HEADLINE_COMPARISON_ENGINE in engines:
+        return HEADLINE_BASELINE_ENGINE, HEADLINE_COMPARISON_ENGINE
+    if len(engines) >= 2:
+        return engines[0], engines[1]
+    return None
+
+
+def headline_engine(engines):
+    """The engine binding-level headline tables read: the default selector when it ran."""
+    return HEADLINE_COMPARISON_ENGINE if HEADLINE_COMPARISON_ENGINE in engines else engines[0]
+
+
+def headline_scenario(scenarios):
+    """The scenario binding-level headline tables read: built-in rules when they ran."""
+    for scenario in scenarios:
+        if scenario["id"] == DEFAULT_SCENARIO:
+            return scenario
+    return scenarios[0]
+
+
+def scenario_phrase(scenario):
+    """How prose names a scenario: 'the Guard rule pack', or the label when it loads no pack."""
+    return scenario.get("pack") or scenario["label"].lower()
+
+
+def agg_stat(agg, metric, stat_name="median"):
+    """One statistic of a ``performance.<metric>`` distribution; None when absent or empty."""
+    return _stat_value(get(agg, "performance", metric, default={}), stat_name)
+
+
+def num(value, digits=HEADLINE_DIGITS):
+    return f"{value:.{digits}f}" if _is_finite_number(value) else "-"
+
+
+def signed(value, digits=HEADLINE_DIGITS):
+    return f"{value:+.{digits}f}" if _is_finite_number(value) else "-"
+
+
+def throughput_text(agg, digits=1):
+    value = recomputed_throughput(agg) if agg else 0.0
+    return f"{value:.{digits}f}" if value > 0 else "-"
+
+
+def diagnostics_text(agg):
+    """Aggregate diagnostic counts as ``fatal/errors/warnings/informational``."""
+    diags = (agg or {}).get("diagnostics") or {}
+    return "/".join(str(diags.get(k, "-")) for k in
+                    ("total_fatal", "total_errors", "total_warnings", "total_informational"))
+
+
+def speed_phrase(baseline, comparison):
+    """How a comparison engine's median relates to a baseline engine's: '6.5× faster',
+    '1.3× slower', or 'about the same speed'; None when either median is missing."""
+    if not (_is_finite_number(baseline) and _is_finite_number(comparison)) or baseline <= 0 or comparison <= 0:
+        return None
+    ratio = baseline / comparison
+    if ratio >= PAIRED_RATIO_THRESHOLD:
+        return f"{ratio:.1f}× faster"
+    if ratio <= 1 / PAIRED_RATIO_THRESHOLD:
+        return f"{1 / ratio:.1f}× slower"
+    return "about the same speed"
+
+
+def heading_anchor(text):
+    """GitHub-style anchor of a heading: lowercase, punctuation dropped, spaces to hyphens."""
+    return "".join(c for c in text.lower() if c.isalnum() or c in " -_").replace(" ", "-")
+
+
+def join_phrases(parts):
+    """'a', 'a and b', or 'a, b, and c'."""
+    parts = list(parts)
+    if len(parts) <= 1:
+        return "".join(parts)
+    if len(parts) == 2:
+        return f"{parts[0]} and {parts[1]}"
+    return ", ".join(parts[:-1]) + f", and {parts[-1]}"
+
+
+def count_noun(count, noun):
+    """'1 template' / '26 templates'."""
+    return f"{count} {noun}" if count == 1 else f"{count} {noun}s"
+
+
+def paired_summary(first_reports, second_reports):
+    """Per-template paired comparison of two engines' detailed reports for one binding.
+
+    Returns None when no template has subsequent samples under both engines; otherwise
+    the compared count, wall and rule-evaluation sums, the threshold classification
+    counts, and ``(path, first_wall, second_wall, |Δ|)`` deltas sorted by |Δ| descending.
+    """
+    summary = {
+        "compared": 0, "first_wall_sum": 0.0, "second_wall_sum": 0.0,
+        "first_rule_sum": 0.0, "second_rule_sum": 0.0,
+        "first_faster": 0, "second_faster": 0, "within_noise": 0, "deltas": [],
+    }
+    for fp in sorted(set(first_reports.keys()) & set(second_reports.keys())):
+        first_sub = get(first_reports[fp], "benchmarkMetrics", "subsequent", default={})
+        second_sub = get(second_reports[fp], "benchmarkMetrics", "subsequent", default={})
+        if (not isinstance(first_sub, dict) or first_sub.get("sampleCount", 0) == 0
+                or not isinstance(second_sub, dict) or second_sub.get("sampleCount", 0) == 0):
+            continue
+        fw, sw = first_sub.get("wallClockMs"), second_sub.get("wallClockMs")
+        fr, sr = first_sub.get("ruleEvaluationMs"), second_sub.get("ruleEvaluationMs")
+        if not all(_is_finite_number(v) for v in (fw, sw, fr, sr)):
+            continue
+        summary["compared"] += 1
+        summary["first_wall_sum"] += fw
+        summary["second_wall_sum"] += sw
+        summary["first_rule_sum"] += fr
+        summary["second_rule_sum"] += sr
+        classification = classify_paired(fw, sw)
+        if classification == "first_faster":
+            summary["first_faster"] += 1
+        elif classification == "second_faster":
+            summary["second_faster"] += 1
+        else:
+            summary["within_noise"] += 1
+        summary["deltas"].append((fp, fw, sw, abs(fw - sw)))
+    if summary["compared"] == 0:
+        return None
+    summary["deltas"].sort(key=lambda delta: delta[3], reverse=True)
+    return summary
+
+
+def pack_added_ms(loaded_by_scenario, scenario_id, engine, binding):
+    """Rule-evaluation median a scenario adds over the built-in run; None when either is missing."""
+    rule = agg_stat(get(loaded_by_scenario, scenario_id, engine, binding), "rule_evaluation_ms")
+    base = agg_stat(get(loaded_by_scenario, DEFAULT_SCENARIO, engine, binding), "rule_evaluation_ms")
+    if not (_is_finite_number(rule) and _is_finite_number(base)):
+        return None
+    return rule - base
+
+
+def failing_template_counts(failure_differences):
+    """``{scenario_id: count}`` of templates that fail only under that scenario's rule pack."""
+    counts = {}
+    for scenario_id, by_engine in failure_differences.items():
+        introduced = max((len(diff.get("introduced", ())) for diff in by_engine.values()), default=0)
+        if introduced:
+            counts[scenario_id] = introduced
+    return counts
+
+
+def engine_finding(loaded_by_scenario, detailed_by_scenario, scenarios, engines, ref):
+    pair = headline_engine_pair(engines)
+    if pair is None:
+        return None
+    baseline, comparison = pair
+    base_name, comp_name = engine_display_name(baseline), engine_display_name(comparison)
+    per_scenario = []
+    for scenario in scenarios:
+        base_wall = agg_stat(get(loaded_by_scenario, scenario["id"], baseline, ref), "subsequent_wall_clock_ms")
+        comp_wall = agg_stat(get(loaded_by_scenario, scenario["id"], comparison, ref), "subsequent_wall_clock_ms")
+        phrase = speed_phrase(base_wall, comp_wall)
+        if phrase is not None:
+            per_scenario.append((scenario, phrase, base_wall, comp_wall))
+    if not per_scenario:
+        return None
+    scenario, phrase, base_wall, comp_wall = per_scenario[0]
+    details = [f"{num(comp_wall)} ms vs {num(base_wall)} ms median per template"]
+    summary = paired_summary(
+        get(detailed_by_scenario, scenario["id"], baseline, ref, default={}),
+        get(detailed_by_scenario, scenario["id"], comparison, ref, default={}),
+    )
+    if summary:
+        corpus_phrase = speed_phrase(summary["first_wall_sum"], summary["second_wall_sum"])
+        if corpus_phrase:
+            details.append(f"{corpus_phrase} over a whole corpus pass, which the slowest templates dominate")
+        details.append(f"faster on {summary['second_faster']} of {summary['compared']} templates")
+    text = (f"**Engines.** {comp_name} (the default engine) is {phrase} than {base_name} with "
+            f"{scenario_phrase(scenario)} ({'; '.join(details)}).")
+    if len(per_scenario) > 1:
+        others = join_phrases(f"{other_phrase} with {scenario_phrase(other)}"
+                              for other, other_phrase, _, _ in per_scenario[1:])
+        text += f" With a rule pack loaded it is {others}"
+        text += pack_cost_clause(loaded_by_scenario, scenarios, baseline, comparison, ref) + "."
+    return text
+
+
+def pack_cost_clause(loaded_by_scenario, scenarios, baseline, comparison, ref):
+    """Why the engine ratio moves when a pack is loaded: what each pack adds per template on each engine."""
+    added = []
+    for scenario in scenarios:
+        if scenario["id"] == DEFAULT_SCENARIO:
+            continue
+        comp_delta = pack_added_ms(loaded_by_scenario, scenario["id"], comparison, ref)
+        base_delta = pack_added_ms(loaded_by_scenario, scenario["id"], baseline, ref)
+        if _is_finite_number(comp_delta) and _is_finite_number(base_delta):
+            added.append((scenario, comp_delta, base_delta))
+    if not added:
+        return ""
+    names = f"{engine_display_name(comparison)} / {engine_display_name(baseline)}"
+    parts = join_phrases(f"{signed(comp)} / {signed(base)} ms for {scenario_phrase(scenario)}"
+                         for scenario, comp, base in added)
+    similar = all(
+        min(comp, base) > 0 and max(comp, base) <= SIMILAR_PACK_COST_FACTOR * min(comp, base)
+        for _, comp, base in added
+    )
+    if similar:
+        return (f" — the gap narrows because a pack adds about the same rule-evaluation time per template "
+                f"to both engines ({names}: {parts})")
+    return f" — each pack adds a different amount of rule-evaluation time to the two engines ({names}: {parts})"
+
+
+def rule_pack_finding(loaded_by_scenario, scenarios, engines, ref, failure_differences):
+    packs = [scenario for scenario in scenarios if scenario["id"] != DEFAULT_SCENARIO]
+    if not packs or DEFAULT_SCENARIO not in loaded_by_scenario:
+        return None
+    sentences = []
+    for engine in engines:
+        base_agg = get(loaded_by_scenario, DEFAULT_SCENARIO, engine, ref)
+        base_rule = agg_stat(base_agg, "rule_evaluation_ms")
+        base_wall = agg_stat(base_agg, "subsequent_wall_clock_ms")
+        if not _is_finite_number(base_rule) or base_rule <= 0:
+            continue
+        rule_parts, wall_parts, throughput_parts = [], [], []
+        for index, scenario in enumerate(packs):
+            agg = get(loaded_by_scenario, scenario["id"], engine, ref)
+            rule = agg_stat(agg, "rule_evaluation_ms")
+            if not _is_finite_number(rule):
+                continue
+            arrow = f"{num(base_rule)} → " if not rule_parts else "→ "
+            rule_parts.append(f"{rule / base_rule:.1f}× more with {scenario_phrase(scenario)} ({arrow}{num(rule)} ms)")
+            wall_parts.append(_ratio(agg_stat(agg, "subsequent_wall_clock_ms"), base_wall))
+            throughput_parts.append(throughput_text(agg, 0))
+        if not rule_parts:
+            continue
+        sentence = f"On {engine_display_name(engine)}, rule evaluation costs {join_phrases(rule_parts)}"
+        if any(part != "-" for part in wall_parts):
+            sentence += f"; the whole call slows {join_phrases(wall_parts)}"
+        if throughput_text(base_agg, 0) != "-" and any(part != "-" for part in throughput_parts):
+            sentence += f", and throughput falls from {throughput_text(base_agg, 0)} to {join_phrases(throughput_parts)} val/s"
+        sentences.append(sentence + ".")
+    if not sentences:
+        return None
+    text = "**Rule packs.** " + " ".join(sentences)
+    failing = failing_template_counts(failure_differences)
+    if failing:
+        notes = join_phrases(f"{scenario_phrase(scenario_by_id(scenario_id))} cannot evaluate {count_noun(count, 'template')} "
+                             f"that the built-in run handles" for scenario_id, count in failing.items())
+        text += (f" {notes[0].upper()}{notes[1:]}; those templates are excluded from its timings and listed in "
+                 f"[{FAILURE_APPENDIX_TITLE}](#{heading_anchor(FAILURE_APPENDIX_TITLE)}).")
+    return text
+
+
+def binding_finding(loaded_by_scenario, scenarios, engines, bindings):
+    scenario = headline_scenario(scenarios)
+    engine = headline_engine(engines)
+    ref, ref_label = reference_binding(bindings)
+    by_binding = get(loaded_by_scenario, scenario["id"], engine, default={})
+    ref_wall = agg_stat(by_binding.get(ref), "subsequent_wall_clock_ms")
+    if not _is_finite_number(ref_wall) or ref_wall <= 0:
+        return None
+
+    def ranked(metric_of, render):
+        values = []
+        for binding, label in bindings:
+            value = metric_of(by_binding.get(binding))
+            if _is_finite_number(value):
+                values.append((value, f"{label} {render(value)}"))
+        values.sort()
+        return values
+
+    per_call = ranked(
+        lambda agg: agg_stat(agg, "subsequent_wall_clock_ms"),
+        lambda value: f"{num(value)} ms ({value / ref_wall:.1f}×)",
+    )
+    text = (f"**Bindings.** {ref_label} is the fastest way to call the validator: {num(ref_wall)} ms median "
+            f"per template ({engine_display_name(engine)}, {scenario_phrase(scenario)})")
+    others = [phrase for value, phrase in per_call if value != ref_wall or not phrase.startswith(ref_label)]
+    if others:
+        text += f"; the bindings follow at {join_phrases(others)}"
+    text += "."
+    overheads = ranked(lambda agg: agg_stat(agg, "binding_overhead_ms"), lambda value: f"{num(value)} ms")
+    overheads = [phrase for _, phrase in overheads if not phrase.startswith(ref_label)]
+    if overheads:
+        text += (f" The binding layer itself (`wall − engine time` per call) costs a median of "
+                 f"{join_phrases(overheads)}.")
+    starts = ranked(lambda agg: get(agg, "process_startup", "cold", "process_wall_ms"), lambda value: f"{value:.0f} ms")
+    if starts:
+        start_spread = starts[-1][0] / starts[0][0] if starts[0][0] > 0 else 0.0
+        call_spread = per_call[-1][0] / per_call[0][0] if per_call and per_call[0][0] > 0 else 0.0
+        lead = ("Process startup differs more than per-call latency" if start_spread > call_spread
+                else "Process startup")
+        text += (f" {lead}: a fresh process completes its first validation in "
+                 f"{join_phrases(phrase for _, phrase in starts)}.")
+    rss = ranked(lambda agg: get(agg, "memory", "full_corpus_peak_rss_bytes"), fmt_bytes)
+    if rss:
+        text += f" Peak memory over the corpus: {join_phrases(phrase for _, phrase in rss)}."
+    return text
+
+
+def correctness_finding(loaded_by_scenario, scenarios, engines, bindings, parity_all_passed):
+    ref, _ = reference_binding(bindings)
+    if parity_all_passed:
+        text = f"**Correctness.** Diagnostics are identical across all {count_noun(len(bindings), 'binding')} in every scenario"
+    else:
+        text = ("**Correctness.** ❌ Diagnostics differ between bindings in at least one scenario "
+                "(see the parity checks in the scenario appendices)")
+    engines_agree = len(engines) >= 2
+    if engines_agree:
+        mismatched = []
+        for scenario in scenarios:
+            totals = {diagnostics_text(agg) for agg in
+                      (get(loaded_by_scenario, scenario["id"], engine, ref) for engine in engines)
+                      if agg is not None}
+            if len(totals) > 1:
+                mismatched.append(f"`{scenario['id']}`")
+        if mismatched:
+            engines_agree = False
+            text += f", but the engines' diagnostic counts differ in {join_phrases(mismatched)}"
+        else:
+            text += (f", and {join_phrases(engine_display_name(engine) for engine in engines)} report the same "
+                     "diagnostic counts (F/E/W/I) in every scenario")
+    if parity_all_passed and engines_agree:
+        text += ", so the speed differences above come with no difference in findings"
+    return text + "."
+
+
+def key_findings_section(loaded_by_scenario, detailed_by_scenario, scenarios, engines, bindings,
+                         failure_differences, parity_all_passed):
+    ref, ref_label = reference_binding(bindings)
+    findings = [
+        engine_finding(loaded_by_scenario, detailed_by_scenario, scenarios, engines, ref),
+        rule_pack_finding(loaded_by_scenario, scenarios, engines, ref, failure_differences),
+        binding_finding(loaded_by_scenario, scenarios, engines, bindings),
+        correctness_finding(loaded_by_scenario, scenarios, engines, bindings, parity_all_passed),
+    ]
+    lines = [f"## {KEY_FINDINGS_TITLE}", "",
+             f"Latencies are per-template medians on an initialized process, {ref_label} binding unless "
+             "stated. Every number here is taken from the sections that follow.", ""]
+    lines += [f"{index}. {text}" for index, text in enumerate((f for f in findings if f), 1)]
+    return lines + [""]
+
+
+def engine_comparison_title(engines):
+    pair = headline_engine_pair(engines)
+    if pair is None:
+        return "1. Engine Comparison"
+    return f"1. Engine Comparison: {engine_display_name(pair[0])} vs {engine_display_name(pair[1])}"
+
+
+def engine_comparison_section(loaded_by_scenario, detailed_by_scenario, scenarios, engines, bindings):
+    pair = headline_engine_pair(engines)
+    ref, ref_label = reference_binding(bindings)
+    lines = [f"## {engine_comparison_title(engines)}", ""]
+    if pair is None:
+        return lines + [f"_Only the {engine_display_name(engines[0])} engine ran, so there is no engine "
+                        "comparison in this report._", ""]
+    baseline, comparison = pair
+    base_name, comp_name = engine_display_name(baseline), engine_display_name(comparison)
+    threshold_pct = int((PAIRED_RATIO_THRESHOLD - 1) * 100)
+    lines += [
+        "Both engines evaluate the same built-in rules and must produce identical diagnostics; what "
+        f"differs is evaluation cost. {comp_name} is the default `--engine` selector. Rows are rule sets and "
+        f"values are {ref_label} medians (typical per-template latency on an initialized process, iterations "
+        f"2..N). The median speedup is {base_name} ÷ {comp_name} of those medians - the gain on a typical "
+        "template; the corpus-pass speedup is the same ratio of the summed per-template medians - the gain "
+        "over the whole corpus, which its slowest templates dominate. The template counts compare each "
+        f"template under both engines (a ≥{threshold_pct}% difference counts as faster).", "",
+    ]
+    header = ["Rule set", f"{base_name} wall median (ms)", f"{comp_name} wall median (ms)",
+              f"{comp_name} speedup (median)", f"{comp_name} speedup (corpus pass)",
+              f"{base_name} wall p99 (ms)", f"{comp_name} wall p99 (ms)", "Rule-eval speedup",
+              f"Templates: {comp_name} faster / {base_name} faster / within {threshold_pct}%",
+              f"Throughput {base_name} → {comp_name} (val/s)"]
+    rows = []
+    for scenario in scenarios:
+        base_agg = get(loaded_by_scenario, scenario["id"], baseline, ref)
+        comp_agg = get(loaded_by_scenario, scenario["id"], comparison, ref)
+        if base_agg is None or comp_agg is None:
+            continue
+        summary = paired_summary(
+            get(detailed_by_scenario, scenario["id"], baseline, ref, default={}),
+            get(detailed_by_scenario, scenario["id"], comparison, ref, default={}),
+        )
+        counts = (f"{summary['second_faster']} / {summary['first_faster']} / {summary['within_noise']}"
+                  if summary else "-")
+        corpus_speedup = _ratio(summary["first_wall_sum"], summary["second_wall_sum"]) if summary else "-"
+        base_wall, comp_wall = agg_stat(base_agg, "subsequent_wall_clock_ms"), agg_stat(comp_agg, "subsequent_wall_clock_ms")
+        rows.append([
+            scenario["label"], num(base_wall), num(comp_wall), _ratio(base_wall, comp_wall), corpus_speedup,
+            num(agg_stat(base_agg, "subsequent_wall_clock_ms", "p99")),
+            num(agg_stat(comp_agg, "subsequent_wall_clock_ms", "p99")),
+            _ratio(agg_stat(base_agg, "rule_evaluation_ms"), agg_stat(comp_agg, "rule_evaluation_ms")),
+            counts, f"{throughput_text(base_agg)} → {throughput_text(comp_agg)}",
+        ])
+    lines += table(header, rows) + [""]
+
+    scenario = headline_scenario(scenarios)
+    inits = []
+    for engine in (baseline, comparison):
+        init = get(loaded_by_scenario, scenario["id"], engine, ref, "process_startup", "cold", "engine_init_ms")
+        if _is_finite_number(init):
+            inits.append(f"{engine_display_name(engine)} {num(init)} ms")
+    if inits:
+        lines += [f"Engine construction in a fresh process ({ref_label}, {scenario_phrase(scenario)}, cold "
+                  f"startup probe): {join_phrases(inits)}.", ""]
+
+    lines += ["### Speedup by binding", "",
+              f"The same ratio ({base_name} ÷ {comp_name} wall medians) measured inside every binding. A "
+              "column that holds across bindings shows the engine difference is not a binding artifact.", ""]
+    header = ["Binding"] + [scenario["label"] for scenario in scenarios]
+    rows = []
+    for binding, label in bindings:
+        rows.append([label] + [
+            _ratio(agg_stat(get(loaded_by_scenario, scenario["id"], baseline, binding), "subsequent_wall_clock_ms"),
+                   agg_stat(get(loaded_by_scenario, scenario["id"], comparison, binding), "subsequent_wall_clock_ms"))
+            for scenario in scenarios
+        ])
+    return lines + table(header, rows) + [""]
+
+
+def rule_set_descriptions(loaded_by_scenario, scenarios):
+    lines = []
+    for scenario in scenarios:
+        sample = next((agg for by_binding in loaded_by_scenario.get(scenario["id"], {}).values()
+                       for agg in by_binding.values()), None)
+        rules = (sample or {}).get("custom_rules") or {}
+        parts = []
+        if get(rules, "rego", "files"):
+            parts.append(f"{count_noun(get(rules, 'rego', 'files'), 'custom Rego file')}, {fmt_bytes(get(rules, 'rego', 'bytes'))}")
+        if get(rules, "guard", "files"):
+            parts.append(f"{count_noun(get(rules, 'guard', 'files'), 'Guard file')} holding "
+                         f"{count_noun(get(rules, 'guard', 'rules'), 'rule')}, {fmt_bytes(get(rules, 'guard', 'bytes'))}")
+        detail = "; ".join(parts) if parts else "the engine's bundled rules alone - the baseline"
+        lines.append(f"- **{scenario['label']}** (`{scenario['id']}`): {detail}.")
+    return lines + [""]
+
+
+def rule_pack_behavior_section(loaded_by_scenario, scenarios, engines, bindings, failure_differences):
+    ref, ref_label = reference_binding(bindings)
+    rules_dir = RULES_DIR.relative_to(PROJECT_ROOT)
+    lines = [f"## {RULE_PACK_TITLE}", "",
+             "Each rule set is a separate full run with a different set of rules loaded into the same engine "
+             f"(custom rules come from `{rules_dir}`). Values are {ref_label} medians; the × and Δ columns "
+             f"compare a rule set with `{DEFAULT_SCENARIO}` for the same engine, so they show what the pack "
+             "itself costs on top of the built-in rules.", ""]
+    lines += rule_set_descriptions(loaded_by_scenario, scenarios)
+    header = ["Rule set", "Rule eval median (ms)", "× vs built-in", "Δ vs built-in (ms)", "Wall median (ms)",
+              "× vs built-in", "Wall p99 (ms)", "Throughput (val/s)", "Corpus RSS", "Templates ok",
+              "Diagnostics F/E/W/I"]
+    for engine in engines:
+        base_agg = get(loaded_by_scenario, DEFAULT_SCENARIO, engine, ref)
+        base_rule = agg_stat(base_agg, "rule_evaluation_ms")
+        base_wall = agg_stat(base_agg, "subsequent_wall_clock_ms")
+        rows = []
+        for scenario in scenarios:
+            agg = get(loaded_by_scenario, scenario["id"], engine, ref)
+            if agg is None:
+                continue
+            rule, wall = agg_stat(agg, "rule_evaluation_ms"), agg_stat(agg, "subsequent_wall_clock_ms")
+            delta = rule - base_rule if _is_finite_number(rule) and _is_finite_number(base_rule) else None
+            rows.append([
+                scenario["label"], num(rule), _ratio(rule, base_rule), signed(delta), num(wall),
+                _ratio(wall, base_wall), num(agg_stat(agg, "subsequent_wall_clock_ms", "p99")),
+                throughput_text(agg), fmt_bytes(get(agg, "memory", "full_corpus_peak_rss_bytes")),
+                f"{agg.get('templates_ok', '-')} / {agg.get('templates_total', '-')}", diagnostics_text(agg),
+            ])
+        if rows:
+            lines += [f"### {engine_display_name(engine)}", ""] + table(header, rows) + [""]
+    failing = failing_template_counts(failure_differences)
+    if failing:
+        counts = join_phrases(f"`{scenario_id}`: {count}" for scenario_id, count in failing.items())
+        lines += [f"Templates that fail only under a rule pack are excluded from that pack's latency and "
+                  f"throughput figures ({counts}); the list is in "
+                  f"[{FAILURE_APPENDIX_TITLE}](#{heading_anchor(FAILURE_APPENDIX_TITLE)}).", ""]
+    return lines
+
+
+def binding_overhead_section(loaded_by_scenario, scenarios, engines, bindings):
+    scenario = headline_scenario(scenarios)
+    engine = headline_engine(engines)
+    ref, ref_label = reference_binding(bindings)
+    by_engine = loaded_by_scenario.get(scenario["id"], {})
+    lines = [f"## {BINDING_TITLE}", "",
+             "Every binding drives the same Rust core, so per-call differences are the binding layer "
+             "(marshalling across WASM, JNI, or UniFFI) plus the host runtime, and startup differences are "
+             f"the runtime itself. Values come from the {scenario_phrase(scenario)} run: per-call columns are "
+             f"medians with their ratio to {ref_label}, binding overhead is the median of "
+             "`wall_clock − engine_internal` per call, and startup is measured externally on fresh processes "
+             f"running the {engine_display_name(engine)} engine.", ""]
+
+    header = ["Binding"]
+    for other in engines:
+        header += [f"{engine_display_name(other)} wall median (ms)", f"× vs {ref_label}"]
+    header += ["Binding overhead median (ms)", "Binding overhead p99 (ms)"]
+    rows = []
+    for binding, label in bindings:
+        row = [label]
+        for other in engines:
+            wall = agg_stat(get(by_engine, other, binding), "subsequent_wall_clock_ms")
+            row += [num(wall), _ratio(wall, agg_stat(get(by_engine, other, ref), "subsequent_wall_clock_ms"))]
+        agg = get(by_engine, engine, binding)
+        row += [num(agg_stat(agg, "binding_overhead_ms")), num(agg_stat(agg, "binding_overhead_ms", "p99"))]
+        rows.append(row)
+    lines += ["### Per-call latency", ""] + table(header, rows) + [""]
+
+    header = ["Binding", "Module load (ms)", "Consumer init (ms)", "First validation (ms)",
+              "Cold process wall (ms)", "Warm process wall median (ms)", "Cold RSS", "Corpus RSS"]
+    rows = []
+    for binding, label in bindings:
+        agg = get(by_engine, engine, binding)
+        cold = get(agg, "process_startup", "cold", default={})
+        warm_wall = get(agg, "process_startup", "warm", "process_wall_ms", default={})
+        rows.append([
+            label, num(cold.get("module_load_ms")), num(cold.get("consumer_init_ms")),
+            num(cold.get("first_validation_host_ms")), num(cold.get("process_wall_ms"), 0),
+            num(_stat_value(warm_wall, "median"), 0), fmt_bytes(cold.get("process_peak_rss_bytes")),
+            fmt_bytes(get(agg, "memory", "full_corpus_peak_rss_bytes")),
+        ])
+    lines += [f"### Process startup and memory ({engine_display_name(engine)})", "",
+              "Cold is the first fresh process after the build and warm the later fresh processes, so the warm "
+              "spread is ordinary process-launch cost. Module load is the binding runtime's own bootstrap "
+              "before any validator code runs; consumer init builds the schema validator and engine.", ""]
+    return lines + table(header, rows) + [""]
+
+
+def how_to_read_section():
+    threshold_pct = int((PAIRED_RATIO_THRESHOLD - 1) * 100)
+    return [
+        f"## {HOW_TO_READ_TITLE}", "",
+        "- **Median (ms)**: typical latency of one `validate()` call for one template on an already-initialized "
+        "process - the median over templates of each template's median over iterations 2..N. **p99** is the tail "
+        "of the same distribution.",
+        "- **Speedup / × vs**: a ratio of two medians. A speedup above 1 means the second engine is faster; "
+        "`× vs built-in` and `× vs native` above 1 mean the row costs more than that baseline.",
+        "- **Rule eval**: the rule-evaluation phase alone, timed inside the Rust core, so it isolates the engine "
+        "and rule pack from parsing, schema validation, and binding overhead.",
+        "- **Throughput (val/s)**: validations per second sustained over the corpus run (ok templates × "
+        "iterations ÷ measured wall time). Unlike a median it is dominated by the slowest templates.",
+        f"- **Templates faster / slower**: each template is compared under both engines within the same binding; "
+        f"a ≥{threshold_pct}% difference counts, anything smaller is 'within {threshold_pct}%'.",
+        "- **Startup**: measured externally with `/usr/bin/time` on fresh processes; cold is the first process "
+        "after the build.",
+        "- CI runs on shared GitHub runners, so compare numbers within this report (engine vs engine, binding vs "
+        "binding, pack vs built-in) rather than against another run. Full definitions: "
+        f"[{METHODOLOGY_TITLE}](#{heading_anchor(METHODOLOGY_TITLE)}).", "",
+    ]
+
+
+def run_setup_section(host, sample, startup_samples, scenarios, engines, bindings):
+    return [
+        f"## {RUN_SETUP_TITLE}", "",
         *[f"- **{k}**: {v}" for k, v in host.items()],
+        f"- **cloudformation-validate**: {get(sample, 'provenance', 'cloudformation_validate', default='unknown')}",
         f"- **iterations/template**: {sample.get('iterations_per_template')}",
         f"- **startup samples/binding**: {startup_samples} (1 cold + {startup_samples - 1} warm)",
         f"- **corpus fingerprint**: `{sample.get('corpus_fingerprint')}` ({sample.get('corpus_file_count')} files)",
@@ -2196,18 +2735,39 @@ def build_report(loaded_by_scenario, detailed_by_scenario, scenarios, engines, b
         f"- **engines**: {', '.join(e.upper() for e in engines)}",
         f"- **scenarios**: {', '.join(s['id'] for s in scenarios)} ({len(scenarios)} total)",
         "",
-        "## Table of Contents", "",
-        "- [Scenarios](#scenarios)",
-        "- [Rule Pack Cost per Engine × Binding](#rule-pack-cost-per-engine--binding)",
-        "- [Methodology Notes](#methodology-notes)",
-        *[f"- [Scenario: {s['id']} - {s['label']}](#{scenario_anchor(s)})" for s in scenarios],
+    ]
+
+
+def lede_lines(host, sample, scenarios, engines, bindings):
+    core = get(sample, "provenance", "cloudformation_validate", default="unknown")
+    return [
+        f"cloudformation-validate {core} on {host.get('os', 'unknown OS')} ({host.get('arch', 'unknown arch')}): "
+        f"{len(engines)} engine(s) × {len(bindings)} binding(s) × {len(scenarios)} rule set(s) over "
+        f"{sample.get('corpus_file_count')} templates, {sample.get('iterations_per_template')} iteration(s) each.",
+        "",
+        "Most important first: **how the rule engines compare**, **what each rule pack costs on each engine**, "
+        "and **how the language bindings compare with the native Rust core**. Headline numbers use the "
+        "reference binding so engine and rule-pack effects are not mixed with binding overhead; the appendices "
+        "hold every engine × binding × rule-set table and the methodology.",
         "",
     ]
-    lines += scenario_overview_section(loaded_by_scenario, scenarios, engines)
-    lines += rule_pack_cost_section(loaded_by_scenario, scenarios, engines, bindings)
-    lines += failure_difference_section(scenario_failure_differences(loaded_by_scenario))
-    lines += methodology_section()
 
+
+def build_report(loaded_by_scenario, detailed_by_scenario, scenarios, engines, bindings, args):
+    host = host_metadata()
+    first = scenarios[0]
+    first_engines = scenario_engines(first, engines)
+    sample = loaded_by_scenario[first["id"]][first_engines[0]][bindings[0][0]]
+    startup_samples = int(get(sample, "process_startup", "samples", default=args.startup_samples))
+    failure_differences = scenario_failure_differences(loaded_by_scenario)
+
+    # The appendices are built first: the scenario sections also decide the parity
+    # outcome the headline reports.
+    appendix = scenario_overview_section(loaded_by_scenario, scenarios, engines)
+    appendix += rule_pack_cost_section(loaded_by_scenario, scenarios, engines, bindings)
+    failure_lines = failure_difference_section(failure_differences)
+    appendix += failure_lines
+    appendix += methodology_section()
     parity_all_passed = True
     for scenario in scenarios:
         section, parity_passed = scenario_section(
@@ -2218,9 +2778,34 @@ def build_report(loaded_by_scenario, detailed_by_scenario, scenarios, engines, b
             args,
             scenario,
         )
-        lines += section
+        appendix += section
         if not parity_passed:
             parity_all_passed = False
+
+    titles = [KEY_FINDINGS_TITLE, engine_comparison_title(engines), RULE_PACK_TITLE, BINDING_TITLE,
+              HOW_TO_READ_TITLE, RUN_SETUP_TITLE, SCENARIOS_APPENDIX_TITLE, RULE_PACK_COST_APPENDIX_TITLE]
+    if failure_lines:
+        titles.append(FAILURE_APPENDIX_TITLE)
+    titles.append(METHODOLOGY_TITLE)
+    lines = [
+        "# Benchmark Comparison",
+        "",
+        f"Generated: {datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')}",
+        "",
+        *lede_lines(host, sample, scenarios, engines, bindings),
+        f"## {TOC_TITLE}", "",
+        *[f"- [{title}](#{heading_anchor(title)})" for title in titles],
+        *[f"- [Appendix: Scenario `{s['id']}` - {s['label']}](#{scenario_anchor(s)})" for s in scenarios],
+        "",
+    ]
+    lines += key_findings_section(loaded_by_scenario, detailed_by_scenario, scenarios, engines, bindings,
+                                  failure_differences, parity_all_passed)
+    lines += engine_comparison_section(loaded_by_scenario, detailed_by_scenario, scenarios, engines, bindings)
+    lines += rule_pack_behavior_section(loaded_by_scenario, scenarios, engines, bindings, failure_differences)
+    lines += binding_overhead_section(loaded_by_scenario, scenarios, engines, bindings)
+    lines += how_to_read_section()
+    lines += run_setup_section(host, sample, startup_samples, scenarios, engines, bindings)
+    lines += appendix
     return lines, parity_all_passed
 
 
