@@ -35,7 +35,7 @@ MSVC.
 Engines, models, and validators hold off-heap memory - call `Destroy()` when done with each object:
 
 ```go
-engine, err := cfnvalidate.NewRegoEngine(nil)
+engine, err := cfnvalidate.NewCompositeEngine(nil)
 if err != nil {
     log.Fatal(err)
 }

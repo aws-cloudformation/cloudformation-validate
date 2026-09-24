@@ -47,10 +47,10 @@ library).
 ## Quick start
 
 ```kotlin
-import software.amazon.cloudformation.validate.RegoEngine
+import software.amazon.cloudformation.validate.CompositeEngine
 import java.io.File
 
-val engine = RegoEngine()
+val engine = CompositeEngine()
 val report = engine.validateTemplate(File("template.yaml"))
 for (d in report.diagnostics) {
     println("[${d.severity}] ${d.ruleId}: ${d.message}")
@@ -352,10 +352,10 @@ constraint the API itself does not enforce - is skipped with a reason, never gue
 
 ```kotlin
 import software.amazon.cloudformation.validate.AwsCliCommand
-import software.amazon.cloudformation.validate.RegoEngine
+import software.amazon.cloudformation.validate.CompositeEngine
 import software.amazon.cloudformation.validate.engine.AwsCliCommandValidationStatus
 
-val engine = RegoEngine()
+val engine = CompositeEngine()
 val request = AwsCliCommand("s3", "CreateBucket", mapOf("Bucket" to "example-bucket"))
 val validation = engine.validateAwsCliCommand(request)
 if (validation.status == AwsCliCommandValidationStatus.VALIDATED) {

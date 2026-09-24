@@ -26,9 +26,9 @@ only the artifact compatible with the installing host.
 ## Quick start
 
 ```python
-from cloudformation_validate import RegoEngine
+from cloudformation_validate import CompositeEngine
 
-engine = RegoEngine()
+engine = CompositeEngine()
 report = engine.validate_template("template.yaml")
 for d in report.diagnostics:
     print(f"[{d.severity.name}] {d.rule_id}: {d.message}")
@@ -329,9 +329,9 @@ exactly - an unregistered operation, a parameter without a lossless property map
 CloudFormation constraint the API itself does not enforce - is skipped with a reason, never guessed.
 
 ```python
-from cloudformation_validate import AwsCliCommand, AwsCliCommandValidationStatus, RegoEngine
+from cloudformation_validate import AwsCliCommand, AwsCliCommandValidationStatus, CompositeEngine
 
-engine = RegoEngine()
+engine = CompositeEngine()
 request = AwsCliCommand("s3", "CreateBucket", {"Bucket": "example-bucket"})
 validation = engine.validate_aws_cli_command(request)
 if validation.status == AwsCliCommandValidationStatus.VALIDATED:

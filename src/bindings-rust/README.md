@@ -31,10 +31,12 @@ Requires Rust 1.96 or later (the repository pins that toolchain in [`rust-toolch
 ## Quick start
 
 ```rust
-use cloudformation_validate::{EngineConfig, RegoEngine, SchemaValidator, ValidateConfig, validate_bytes_with_path};
+use cloudformation_validate::{
+    CompositeEngine, CompositeEngineConfig, SchemaValidator, ValidateConfig, validate_bytes_with_path,
+};
 
 let schema_validator = SchemaValidator::default();
-let engine = RegoEngine::new(EngineConfig::default())?;
+let engine = CompositeEngine::new(CompositeEngineConfig::default())?;
 
 let template = std::fs::read("template.yaml").unwrap_or_else(|_| b"Resources: {}\n".to_vec());
 let report = validate_bytes_with_path(
@@ -231,11 +233,11 @@ defaults - `ValidateConfig::default()` uses them.
 
 ```rust,no_run
 use cloudformation_validate::{
-    EngineConfig, FilterConfig, RegoEngine, RuleFilterConfig, SchemaValidator, Severity, ValidateConfig,
+    CompositeEngine, CompositeEngineConfig, FilterConfig, RuleFilterConfig, SchemaValidator, Severity, ValidateConfig,
     validate_bytes_with_path,
 };
 
-let engine = RegoEngine::new(EngineConfig::default())?;
+let engine = CompositeEngine::new(CompositeEngineConfig::default())?;
 let schema_validator = SchemaValidator::default();
 let template = std::fs::read("template.yaml")?;
 let report = validate_bytes_with_path(
@@ -391,9 +393,9 @@ result types live in the `validation_engine` module.
 use cloudformation_validate::validation_engine::{
     AwsCliCommand, AwsCliCommandValidationStatus, AwsCliValue, validate_aws_cli_command,
 };
-use cloudformation_validate::{EngineConfig, RegoEngine, SchemaValidator};
+use cloudformation_validate::{CompositeEngine, CompositeEngineConfig, SchemaValidator};
 
-let engine = RegoEngine::new(EngineConfig::default())?;
+let engine = CompositeEngine::new(CompositeEngineConfig::default())?;
 let schema_validator = SchemaValidator::default();
 let request = AwsCliCommand::new(
     "s3",
