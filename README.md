@@ -128,11 +128,11 @@ Construct an engine and a schema validator once, then validate many templates:
 
 ```rust
 use cloudformation_validate::{
-    EngineConfig, RegoEngine, SchemaValidator, ValidateConfig, validate_bytes_with_path,
+    CompositeEngine, CompositeEngineConfig, SchemaValidator, ValidateConfig, validate_bytes_with_path,
 };
 
 let schema_validator = SchemaValidator::default();
-let engine = RegoEngine::new(EngineConfig::default())?;
+let engine = CompositeEngine::new(CompositeEngineConfig::default())?;
 
 let bytes = std::fs::read("template.yaml")?;
 let report = validate_bytes_with_path(
@@ -179,9 +179,9 @@ the content in `TemplateContent`, Python accepts `bytes` or a `TemplateContent`,
 ### Node.js [(bindings-wasm)](src/bindings-wasm/README.md)
 
 ```typescript
-import {RegoEngine, TemplateFile} from "@aws/cloudformation-validate";
+import {CompositeEngine, TemplateFile} from "@aws/cloudformation-validate";
 
-const engine = new RegoEngine();
+const engine = new CompositeEngine();
 const report = engine.validateTemplate(new TemplateFile("template.yaml"));
 for (const d of report.diagnostics) {
     console.log(`[${d.severity}] ${d.ruleId}: ${d.message}`);
@@ -192,9 +192,9 @@ engine.free();
 ### Python [(bindings-python)](src/bindings-python/README.md)
 
 ```python
-from cloudformation_validate import RegoEngine
+from cloudformation_validate import CompositeEngine
 
-engine = RegoEngine()
+engine = CompositeEngine()
 report = engine.validate_template("template.yaml")
 for d in report.diagnostics:
     print(f"[{d.severity.name}] {d.rule_id}: {d.message}")
@@ -205,7 +205,7 @@ for d in report.diagnostics:
 ```go
 import cfnvalidate "github.com/aws-cloudformation/cloudformation-validate/src/bindings-go/go"
 
-engine, err := cfnvalidate.NewRegoEngine(nil)
+engine, err := cfnvalidate.NewCompositeEngine(nil)
 if err != nil {
     log.Fatal(err)
 }
@@ -223,7 +223,7 @@ for _, d := range report.Diagnostics {
 import software.amazon.cloudformation.validate.*
 import java.io.File
 
-val engine = RegoEngine()
+val engine = CompositeEngine()
 val report = engine.validateTemplate(File("template.yaml"))
 for (d in report.diagnostics) {
     println("[${d.severity}] ${d.ruleId}: ${d.message}")
