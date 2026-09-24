@@ -1,6 +1,6 @@
 # cloudformation-validate vs cfn-lint - Parity Report
 
-> Generated: 2026-09-22 00:11:58  
+> Generated: 2026-09-24 15:24:07  
 > Engine: **composite**  
 > Detail level: **detailed**  
 > Matching: `(rule_id, resource_id, path)` two-pass with `(rule_id, resource_id)` fallback + aliases  

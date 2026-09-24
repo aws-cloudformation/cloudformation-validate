@@ -285,6 +285,9 @@
     "AWS::Config::ConfigurationAggregator": [
       "ConfigurationAggregatorName"
     ],
+    "AWS::Config::ConfigurationRecorder": [
+      "Name"
+    ],
     "AWS::Config::ConformancePack": [
       "ConformancePackName"
     ],
@@ -636,6 +639,9 @@
       "EventBusName",
       "StatementId"
     ],
+    "AWS::EventsV2::ResourcePolicy": [
+      "EventBusArn"
+    ],
     "AWS::FIS::TargetAccountConfiguration": [
       "ExperimentTemplateId",
       "AccountId"
@@ -804,6 +810,10 @@
     ],
     "AWS::IoT::ThingGroup": [
       "ThingGroupName"
+    ],
+    "AWS::IoT::ThingPrincipalAttachment": [
+      "ThingName",
+      "Principal"
     ],
     "AWS::IoT::ThingType": [
       "ThingTypeName"
@@ -1056,6 +1066,9 @@
     ],
     "AWS::MediaConnect::FlowVpcInterface": [
       "FlowArn",
+      "Name"
+    ],
+    "AWS::MediaConvert::JobTemplate": [
       "Name"
     ],
     "AWS::MediaConvert::Preset": [
@@ -1495,6 +1508,10 @@
     ],
     "AWS::SES::EmailIdentity": [
       "EmailIdentity"
+    ],
+    "AWS::SES::EmailIdentityCertificate": [
+      "EmailIdentity",
+      "FromAddress"
     ],
     "AWS::SES::MultiRegionEndpoint": [
       "EndpointName"
