@@ -1,43 +1,44 @@
-mod baseline;
+mod comparison;
+mod measurement;
 mod worker;
 
 use std::env;
-use std::path::{Path, PathBuf};
-
-fn project_root() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .and_then(Path::parent)
-        .map(Path::to_path_buf)
-        .unwrap_or_else(|| PathBuf::from("."))
-}
+use std::path::PathBuf;
 
 fn usage() -> &'static str {
-    "usage:\n  performance-harness measure <rego|cel|composite> <iterations> <warmups> <label> <template>...\n  performance-harness check [--expected <file>] [--output-dir <directory>]\n  performance-harness update [--expected <file>] [--profile <profile>] [--output-dir <directory>]"
+    "usage:\n  performance-harness measure <rego|cel|composite> <iterations> <warmups> <label> <template>...\n  performance-harness compare --base-executable <file> [--base-revision <revision>] [--title <text>] [--output-dir <directory>]"
 }
 
-fn option_value(arguments: &[String], index: &mut usize, option: &str) -> Result<String, String> {
-    *index += 1;
-    arguments.get(*index).cloned().ok_or_else(|| format!("{option} requires a value"))
+#[derive(Debug)]
+struct CompareOptions {
+    base_executable: Option<PathBuf>,
+    base_revision: Option<String>,
+    title: Option<String>,
+    output_dir: PathBuf,
 }
 
-fn parse_options(arguments: &[String]) -> Result<(Option<PathBuf>, Option<String>, PathBuf), String> {
-    let mut expected = None;
-    let mut profile = None;
-    let mut output_dir = project_root().join("tmp/performance-check");
+fn parse_compare_options(arguments: &[String]) -> Result<CompareOptions, String> {
+    let mut options = CompareOptions {
+        base_executable: None,
+        base_revision: None,
+        title: None,
+        output_dir: measurement::project_root().join("tmp/performance-check"),
+    };
     let mut index = 0;
     while index < arguments.len() {
-        match arguments[index].as_str() {
-            "--expected" => expected = Some(PathBuf::from(option_value(arguments, &mut index, "--expected")?)),
-            "--profile" => profile = Some(option_value(arguments, &mut index, "--profile")?),
-            "--output-dir" => {
-                output_dir = PathBuf::from(option_value(arguments, &mut index, "--output-dir")?);
-            }
+        let option = arguments[index].as_str();
+        index += 1;
+        let value = arguments.get(index).cloned().ok_or_else(|| format!("{option} requires a value"))?;
+        match option {
+            "--base-executable" => options.base_executable = Some(PathBuf::from(value)),
+            "--base-revision" => options.base_revision = Some(value),
+            "--title" => options.title = Some(value),
+            "--output-dir" => options.output_dir = PathBuf::from(value),
             unknown => return Err(format!("unknown option {unknown:?}\n{}", usage())),
         }
         index += 1;
     }
-    Ok((expected, profile, output_dir))
+    Ok(options)
 }
 
 fn run(arguments: &[String]) -> Result<i32, String> {
@@ -49,27 +50,14 @@ fn run(arguments: &[String]) -> Result<i32, String> {
             worker::run(&arguments[1..])?;
             Ok(0)
         }
-        "check" => {
-            let (expected, profile, output_dir) = parse_options(&arguments[1..])?;
-            if profile.is_some() {
-                return Err("--profile is valid only with update".into());
-            }
-            let environment = baseline::detect_environment();
-            let passed = match expected {
-                Some(path) => baseline::run_check(&path, &output_dir)?,
-                None => baseline::run_default_check(&environment, &output_dir)?,
-            };
+        "compare" => {
+            let options = parse_compare_options(&arguments[1..])?;
+            let base_executable =
+                options.base_executable.ok_or_else(|| format!("compare requires --base-executable\n{}", usage()))?;
+            let base_revision = options.base_revision.unwrap_or_else(|| base_executable.display().to_string());
+            let title = options.title.as_deref().unwrap_or(comparison::DEFAULT_TITLE);
+            let passed = comparison::run_compare(&base_executable, &base_revision, title, &options.output_dir)?;
             Ok(if passed { 0 } else { 1 })
-        }
-        "update" => {
-            let (expected, profile, output_dir) = parse_options(&arguments[1..])?;
-            let environment = baseline::detect_environment();
-            let expected = match expected {
-                Some(path) => path,
-                None => baseline::default_expected_file(&environment)?,
-            };
-            baseline::run_update(&expected, profile.as_deref(), &output_dir)?;
-            Ok(0)
         }
         _ => Err(usage().into()),
     }
