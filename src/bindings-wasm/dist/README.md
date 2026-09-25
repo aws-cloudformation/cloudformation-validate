@@ -26,9 +26,9 @@ Requires Node.js 20 or later. The package has no runtime dependencies.
 Engines, models, and validators hold off-heap memory - call `.free()` when done with each object:
 
 ```typescript
-import { RegoEngine, TemplateFile } from "@aws/cloudformation-validate";
+import { CompositeEngine, TemplateFile } from "@aws/cloudformation-validate";
 
-const engine = new RegoEngine();
+const engine = new CompositeEngine();
 try {
     const report = engine.validateTemplate(new TemplateFile("template.yaml"));
     for (const d of report.diagnostics) {
@@ -346,9 +346,9 @@ an unregistered operation, a parameter without a lossless property mapping, or a
 constraint the API itself does not enforce - is skipped with a reason, never guessed.
 
 ```typescript
-import { AwsCliCommand, RegoEngine } from "@aws/cloudformation-validate";
+import { AwsCliCommand, CompositeEngine } from "@aws/cloudformation-validate";
 
-const engine = new RegoEngine();
+const engine = new CompositeEngine();
 try {
     const request = new AwsCliCommand("s3", "CreateBucket", { Bucket: "example-bucket" });
     const validation = engine.validateAwsCliCommand(request);
