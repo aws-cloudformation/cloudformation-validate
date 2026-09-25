@@ -1,7 +1,16 @@
 name: Performance
 
-# Checks out `inputs.ref` when a caller supplies one, otherwise the commit the run was triggered for (github.sha).
-# A manual run measures the branch it is dispatched from; no input selects code from another ref.
+# Measures the tested commit (`inputs.ref`, otherwise the commit the run was triggered for) against a base revision
+# built on the same runner. Base and head launches are interleaved on one pinned CPU, so the result does not depend on
+# which hosted-runner hardware the job lands on, and there is no checked-in measurement that a data-source update can
+# make stale. The base is selected by `inputs.base`:
+#   anchor      (default) the release tag in src/performance-harness/drift-anchor.txt. The tested commit is compared
+#               with the last accepted release, so the cost of one change and any slow drift accumulated on main since
+#               that release are both visible. Advance the tag to accept the accumulated change.
+#   parent      the tested commit's first parent - the target branch for a pull request merge commit, the previous
+#               commit for a push. Isolates what one change costs.
+#   <revision>  any other git revision, for manual investigation.
+# Callers decide whether the result gates them: pull requests and pushes gate on it, the release workflow does not.
 on:
   workflow_call:
     inputs:
@@ -9,15 +18,25 @@ on:
         description: Commit to test; defaults to the commit the calling run was triggered for
         required: false
         type: string
+      base:
+        description: Revision to compare against - `anchor`, `parent`, or any git revision
+        required: false
+        type: string
+        default: anchor
       performance-gate:
-        description: Fail the workflow when the expected-performance check fails
+        description: Fail the workflow when the performance check fails
         required: false
         type: boolean
         default: true
   workflow_dispatch:
     inputs:
+      base:
+        description: Revision to compare against - `anchor`, `parent`, or any git revision
+        required: false
+        type: string
+        default: anchor
       performance-gate:
-        description: Fail the workflow when the expected-performance check fails
+        description: Fail the workflow when the performance check fails
         required: false
         type: boolean
         default: true
@@ -33,12 +52,17 @@ jobs:
   check:
     name: Check expected performance
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
+    env:
+      BASE: ${{ inputs.base || 'anchor' }}
+      DRIFT_ANCHOR_FILE: src/performance-harness/drift-anchor.txt
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
         with:
           ref: ${{ inputs.ref || github.sha }}
+          # Lets `base: parent` resolve without another fetch.
+          fetch-depth: 2
 
       - name: Load build configs
         id: configs
@@ -49,24 +73,92 @@ jobs:
         with:
           toolchain: ${{ steps.configs.outputs.rust-toolchain }}
 
-      - name: Test performance assertions
+      - name: Test performance harness
         working-directory: ${{ env.WORKING_DIR }}
         run: cargo test --locked --release -p performance-harness
 
-      - name: Check expected performance
-        continue-on-error: ${{ !inputs.performance-gate }}
+      - name: Build head harness
         working-directory: ${{ env.WORKING_DIR }}
         run: |
           set -euo pipefail
-          cargo run --locked --release -p performance-harness -- \
-            check \
+          cargo build --locked --release -p performance-harness
+          install -D target/release/performance-harness "$RUNNER_TEMP/performance-harness/head"
+
+      - name: Resolve base revision
+        id: base
+        run: |
+          set -euo pipefail
+          case "$BASE" in
+            anchor)
+              anchor=$(<"$DRIFT_ANCHOR_FILE")
+              if [[ ! $anchor =~ ^[0-9]+\.[0-9]+\.[0-9]+(-beta)?$ ]]; then
+                echo "::error file=$DRIFT_ANCHOR_FILE::expected the file to contain one release tag, found: $anchor"
+                exit 1
+              fi
+              git fetch --no-tags --depth=1 origin "refs/tags/$anchor:refs/tags/$anchor"
+              base_sha=$(git rev-parse --verify "refs/tags/$anchor^{commit}")
+              title="Performance since release $anchor"
+              ;;
+            parent)
+              base_sha=$(git rev-parse --verify 'HEAD^1^{commit}')
+              title="Performance comparison against parent"
+              ;;
+            *)
+              git fetch --no-tags --depth=1 origin "$BASE"
+              base_sha=$(git rev-parse --verify 'FETCH_HEAD^{commit}')
+              title="Performance comparison against $BASE"
+              ;;
+          esac
+          if [[ $base_sha == "$(git rev-parse HEAD)" ]]; then
+            if [[ $BASE == anchor ]]; then
+              # Re-validating the anchored release commit itself has nothing to compare.
+              echo "::notice::the tested commit is release $anchor itself; skipping the comparison"
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+              echo "Performance check skipped: the tested commit is release \`$anchor\` itself." >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            echo "::error::base $BASE resolves to the tested commit itself"
+            exit 1
+          fi
+          echo "Comparing $(git rev-parse HEAD) against $BASE base $base_sha"
+          echo "sha=$base_sha" >> "$GITHUB_OUTPUT"
+          echo "title=$title" >> "$GITHUB_OUTPUT"
+
+      # The base harness supplies only the `measure` worker; the head harness defines the workloads and evaluation.
+      # Reusing the head target directory keeps the unchanged third-party dependencies from being rebuilt.
+      - name: Build base harness
+        if: ${{ steps.base.outputs.skip != 'true' }}
+        env:
+          BASE_SHA: ${{ steps.base.outputs.sha }}
+        run: |
+          set -euo pipefail
+          base_dir="$RUNNER_TEMP/performance-base"
+          mkdir -p "$base_dir"
+          git archive "$BASE_SHA" | tar -x -C "$base_dir"
+          target_dir="$GITHUB_WORKSPACE/$WORKING_DIR/target"
+          (cd "$base_dir/$WORKING_DIR" && CARGO_TARGET_DIR="$target_dir" cargo build --locked --release -p performance-harness)
+          install -D "$target_dir/release/performance-harness" "$RUNNER_TEMP/performance-harness/base"
+
+      - name: Compare performance against base
+        if: ${{ steps.base.outputs.skip != 'true' }}
+        continue-on-error: ${{ !inputs.performance-gate }}
+        working-directory: ${{ env.WORKING_DIR }}
+        env:
+          BASE_SHA: ${{ steps.base.outputs.sha }}
+          TITLE: ${{ steps.base.outputs.title }}
+        run: |
+          set -euo pipefail
+          "$RUNNER_TEMP/performance-harness/head" compare \
+            --base-executable "$RUNNER_TEMP/performance-harness/base" \
+            --base-revision "$BASE_SHA" \
+            --title "$TITLE" \
             --output-dir "$RUNNER_TEMP/performance-check"
 
       - name: Add performance result to job summary
         if: always()
         run: |
-          if [[ -f "$RUNNER_TEMP/performance-check/performance-results.md" ]]; then
-            cat "$RUNNER_TEMP/performance-check/performance-results.md" >> "$GITHUB_STEP_SUMMARY"
+          if [[ -f "$RUNNER_TEMP/performance-check/performance-comparison.md" ]]; then
+            cat "$RUNNER_TEMP/performance-check/performance-comparison.md" >> "$GITHUB_STEP_SUMMARY"
           fi
 
       - name: Upload performance evidence
@@ -75,8 +167,7 @@ jobs:
         with:
           name: performance-${{ github.event.pull_request.number || github.run_id }}
           path: |
-            ${{ runner.temp }}/performance-check/performance-results.json
-            ${{ runner.temp }}/performance-check/performance-results.md
-            ${{ runner.temp }}/performance-check/performance-candidate-baseline.json
+            ${{ runner.temp }}/performance-check/performance-comparison.json
+            ${{ runner.temp }}/performance-check/performance-comparison.md
           if-no-files-found: warn
           retention-days: 14

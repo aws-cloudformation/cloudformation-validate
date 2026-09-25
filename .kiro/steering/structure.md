@@ -39,8 +39,9 @@ src/
 ├── guard-translator/           # Guard DSL evaluation via the Guard evaluator (cloudformation-guard-lang) against the
 │                               # authored template; produces engine-agnostic findings that validation-engine maps to
 │                               # diagnostics through one GuardRuleSet every engine calls
-├── performance-harness/        # Performance regression harness (`check`/`update`) with per-environment
-│   └── expected/               # baseline profiles for GitHub x64 runners and the reference Apple Silicon Mac
+├── performance-harness/        # Performance regression harness: CI `compare` measures head against the release tag
+│                               # in `drift-anchor.txt` (or, on manual runs, a parent/any revision) built on the same
+│                               # runner; nothing measured is checked in
 ├── bindings-wasm/              # WASM bindings (wasm-bindgen) for Node.js embedding
 │   ├── ts/                     # TypeScript wrapper + type definitions
 │   ├── tests/                  # Node test suite (vitest, run.sh)

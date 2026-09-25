@@ -22,7 +22,7 @@ on:
         type: boolean
         default: true
       performance-gate:
-        description: 'Fail validation when the expected-performance check fails'
+        description: 'Fail validation when the performance check against the anchored release fails'
         required: false
         type: boolean
         default: true
@@ -40,7 +40,7 @@ on:
         type: boolean
         default: true
       performance-gate:
-        description: 'Fail validation when the expected-performance check fails'
+        description: 'Fail validation when the performance check against the anchored release fails'
         required: false
         type: boolean
         default: true
