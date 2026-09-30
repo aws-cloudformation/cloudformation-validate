@@ -17,8 +17,19 @@ const SELECT_SOURCE_FUNCTIONS: &[&str] = &[FN_FIND_IN_MAP, FN_GET_ATT, FN_GET_AZ
 const SELECT_INDEX_FUNCTIONS: &[&str] = &[FN_REF, FN_FIND_IN_MAP];
 const SELECT_INDEX_FUNCTIONS_EXT: &[&str] = &[FN_REF, FN_FIND_IN_MAP, FN_LENGTH];
 
-const SPLIT_SOURCE_FUNCTIONS: &[&str] =
-    &[FN_BASE64, FN_FIND_IN_MAP, FN_GET_ATT, FN_GET_AZS, FN_IF, FN_IMPORT_VALUE, FN_JOIN, FN_SELECT, FN_SUB, FN_REF];
+const SPLIT_SOURCE_FUNCTIONS: &[&str] = &[
+    FN_BASE64,
+    FN_FIND_IN_MAP,
+    FN_GET_ATT,
+    FN_GET_AZS,
+    FN_GET_STACK_OUTPUT,
+    FN_IF,
+    FN_IMPORT_VALUE,
+    FN_JOIN,
+    FN_SELECT,
+    FN_SUB,
+    FN_REF,
+];
 
 const SUB_VARIABLE_FUNCTIONS: &[&str] = &[
     FN_BASE64,
@@ -297,6 +308,21 @@ mod tests {
         let mut arena = Arena::new();
         let delimiter = alloc_string(&mut arena, ",");
         let source = alloc_intrinsic(&mut arena, IntrinsicFn::Ref("Param".into()));
+        alloc_intrinsic(&mut arena, IntrinsicFn::Split(delimiter, source));
+
+        assert!(validate_intrinsic_arg_shapes(&arena, &[]).is_empty());
+    }
+
+    #[test]
+    fn split_source_get_stack_output_is_allowed() {
+        let mut arena = Arena::new();
+        let delimiter = alloc_string(&mut arena, "||");
+        let stack_name = alloc_string(&mut arena, "producer-stack");
+        let output_name = alloc_string(&mut arena, "ExportedList");
+        let source = alloc_intrinsic(
+            &mut arena,
+            IntrinsicFn::GetStackOutput(vec![("StackName".into(), stack_name), ("OutputName".into(), output_name)]),
+        );
         alloc_intrinsic(&mut arena, IntrinsicFn::Split(delimiter, source));
 
         assert!(validate_intrinsic_arg_shapes(&arena, &[]).is_empty());

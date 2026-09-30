@@ -1,0 +1,43 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Fn::Split over Fn::GetStackOutput, the shape of a weak string-list cross-stack reference
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      CorsConfiguration:
+        CorsRules:
+          - AllowedMethods:
+              - GET
+            AllowedOrigins:
+              - "*"
+            ExposedHeaders:
+              Fn::Split:
+                - "||"
+                - Fn::GetStackOutput:
+                    StackName: producer-stack
+                    OutputName: ExportedHeaders
+  AllHeaders:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: StringList
+      Value:
+        Fn::Join:
+          - ","
+          - Fn::Split:
+              - "||"
+              - Fn::GetStackOutput:
+                  StackName: producer-stack
+                  Region: us-east-1
+                  OutputName: ExportedHeaders
+  FirstHeader:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Value:
+        Fn::Select:
+          - 0
+          - Fn::Split:
+              - "||"
+              - Fn::GetStackOutput:
+                  StackName: producer-stack
+                  OutputName: ExportedHeaders
