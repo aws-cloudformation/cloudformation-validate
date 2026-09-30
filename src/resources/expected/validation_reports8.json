@@ -1,4 +1,135 @@
 {
+  "quickstart/openshift_master.yaml": {
+    "filePath": "quickstart/openshift_master.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 2,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 6,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "OpenShiftStack",
+          "entityType": "Resource",
+          "resourceType": "AWS::CloudFormation::Stack"
+        },
+        "category": "Best Practice",
+        "startLine": 184,
+        "startColumn": 3,
+        "endLine": 184,
+        "endColumn": 17,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "OpenShiftStack",
+          "entityType": "Resource",
+          "resourceType": "AWS::CloudFormation::Stack"
+        },
+        "category": "Best Practice",
+        "startLine": 184,
+        "startColumn": 3,
+        "endLine": 184,
+        "endColumn": 17,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "VPCStack",
+          "entityType": "Resource",
+          "resourceType": "AWS::CloudFormation::Stack"
+        },
+        "category": "Best Practice",
+        "startLine": 242,
+        "startColumn": 3,
+        "endLine": 242,
+        "endColumn": 11,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "VPCStack",
+          "entityType": "Resource",
+          "resourceType": "AWS::CloudFormation::Stack"
+        },
+        "category": "Best Practice",
+        "startLine": 242,
+        "startColumn": 3,
+        "endLine": 242,
+        "endColumn": 11,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'OpenShiftStack' of type 'AWS::CloudFormation::Stack' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "OpenShiftStack",
+          "entityType": "Resource",
+          "resourceType": "AWS::CloudFormation::Stack"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 185,
+        "startColumn": 5,
+        "endLine": 185,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'VPCStack' of type 'AWS::CloudFormation::Stack' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VPCStack",
+          "entityType": "Resource",
+          "resourceType": "AWS::CloudFormation::Stack"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 243,
+        "startColumn": 5,
+        "endLine": 243,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
   "quickstart/test.yaml": {
     "filePath": "quickstart/test.yaml",
     "status": "OK",
