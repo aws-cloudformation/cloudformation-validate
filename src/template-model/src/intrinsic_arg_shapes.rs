@@ -17,9 +17,6 @@ const SELECT_SOURCE_FUNCTIONS: &[&str] = &[FN_FIND_IN_MAP, FN_GET_ATT, FN_GET_AZ
 const SELECT_INDEX_FUNCTIONS: &[&str] = &[FN_REF, FN_FIND_IN_MAP];
 const SELECT_INDEX_FUNCTIONS_EXT: &[&str] = &[FN_REF, FN_FIND_IN_MAP, FN_LENGTH];
 
-// Fn::GetStackOutput is accepted by CloudFormation as a Split source (confirmed
-// by deploying a template that splits one) even though the published Fn::Split
-// operand list predates that function and still omits it.
 const SPLIT_SOURCE_FUNCTIONS: &[&str] = &[
     FN_BASE64,
     FN_FIND_IN_MAP,

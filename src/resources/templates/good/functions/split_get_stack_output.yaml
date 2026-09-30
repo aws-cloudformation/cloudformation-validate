@@ -1,10 +1,6 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: >-
-  Fn::Split over Fn::GetStackOutput. This is the shape a consumer stack takes
-  when a string-list output of another stack is read as a weak cross-stack
-  reference; CloudFormation deploys it and resolves the list.
+Description: Fn::Split over Fn::GetStackOutput, the shape of a weak string-list cross-stack reference
 Resources:
-  # Split result used directly as a list-typed property
   Bucket:
     Type: AWS::S3::Bucket
     Properties:
@@ -20,7 +16,6 @@ Resources:
                 - Fn::GetStackOutput:
                     StackName: producer-stack
                     OutputName: ExportedHeaders
-  # Split result re-joined into a comma-delimited string
   AllHeaders:
     Type: AWS::SSM::Parameter
     Properties:
@@ -34,7 +29,6 @@ Resources:
                   StackName: producer-stack
                   Region: us-east-1
                   OutputName: ExportedHeaders
-  # Single element selected out of the split result
   FirstHeader:
     Type: AWS::SSM::Parameter
     Properties:
