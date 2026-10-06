@@ -78,11 +78,18 @@
       "StackName",
       "Name"
     ],
+    "AWS::AppStream::Fleet": [
+      "Name"
+    ],
     "AWS::AppStream::ImageBuilder": [
       "Name"
     ],
     "AWS::AppStream::Stack": [
       "Name"
+    ],
+    "AWS::AppStream::StackFleetAssociation": [
+      "FleetName",
+      "StackName"
     ],
     "AWS::AppStream::StackUserAssociation": [
       "StackName",
@@ -203,6 +210,12 @@
     "AWS::CloudWatch::MetricStream": [
       "Name"
     ],
+    "AWS::CloudWatch::ResourceMetricsConfiguration": [
+      "ResourceArn"
+    ],
+    "AWS::CloudWatch::View": [
+      "Name"
+    ],
     "AWS::CodeBuild::Project": [
       "Name"
     ],
@@ -293,6 +306,9 @@
     ],
     "AWS::Config::DeliveryChannel": [
       "Name"
+    ],
+    "AWS::Config::OrganizationConfigRule": [
+      "OrganizationConfigRuleName"
     ],
     "AWS::Config::OrganizationConformancePack": [
       "OrganizationConformancePackName"
@@ -785,6 +801,10 @@
     ],
     "AWS::IoT::MitigationAction": [
       "ActionName"
+    ],
+    "AWS::IoT::PolicyPrincipalAttachment": [
+      "PolicyName",
+      "Principal"
     ],
     "AWS::IoT::ProvisioningTemplate": [
       "TemplateName"
@@ -1333,6 +1353,22 @@
     "AWS::QuickSight::VPCConnection": [
       "AwsAccountId",
       "VPCConnectionId"
+    ],
+    "AWS::RAM::PermissionAssociation": [
+      "ResourceShareArn",
+      "PermissionArn"
+    ],
+    "AWS::RAM::PrincipalAssociation": [
+      "ResourceShareArn",
+      "Principal"
+    ],
+    "AWS::RAM::ResourceAssociation": [
+      "ResourceShareArn",
+      "ResourceArn"
+    ],
+    "AWS::RAM::SourceAssociation": [
+      "ResourceShareArn",
+      "SourceId"
     ],
     "AWS::RDS::CustomDBEngineVersion": [
       "Engine",
