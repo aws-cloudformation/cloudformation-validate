@@ -1,6 +1,6 @@
 # cloudformation-validate vs cfn-lint - Parity Report
 
-> Generated: 2026-09-24 15:24:07  
+> Generated: 2026-10-06 18:00:15  
 > Engine: **composite**  
 > Detail level: **detailed**  
 > Matching: `(rule_id, resource_id, path)` two-pass with `(rule_id, resource_id)` fallback + aliases  
@@ -24,7 +24,7 @@
 |--------|------:|
 | True Positives | 4149 |
 | False Positives (engine bugs) | 80 |
-| Engine Extra (correct, cfn-lint gap) | 8577 |
+| Engine Extra (correct, cfn-lint gap) | 8578 |
 | False Negatives (engine misses) | 1153 |
 | Precision | 98.11% |
 | Recall | 78.25% |
@@ -40,7 +40,7 @@
 | Fatal | 466 | 13 | 82 | 142 | 97.29% | 76.64% |
 | Error | 894 | 55 | 15 | 150 | 94.20% | 85.63% |
 | Warning | 2098 | 0 | 378 | 63 | 100.00% | 97.08% |
-| Info | 691 | 12 | 8102 | 798 | 98.29% | 46.41% |
+| Info | 691 | 12 | 8103 | 798 | 98.29% | 46.41% |
 
 ## False Negatives - 1153 missed findings across 94 rules
 
@@ -2846,7 +2846,7 @@ These are diagnostics the engine reports but cfn-lint does not expect (potential
 - **F3012** `Parameter` (AWS::SSM::Parameter) → `Properties.Value` L28 in `bad_F6101_getatt_ref_typed_object_attribute_yaml`
   > GetAtt Database.Endpoint (AWS::RDS::DBInstance) returns 'object', but property expects 'string'
 
-## Engine Extra - 8577 correct findings across 43 rules
+## Engine Extra - 8578 correct findings across 43 rules
 
 These are correct diagnostics the engine reports that cfn-lint does not cover.
 
@@ -14177,7 +14177,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **I9001** `VPCGatewayAttachment` (AWS::EC2::VPCGatewayAttachment) → `Properties.VpcId` L558 in `quickstart_vpc_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
 
-### I9040 - 2373 findings
+### I9040 - 2374 findings
 
 - **I9040** `Instance` (AWS::EC2::Instance) → `Properties.Tags` L8 in `bad_E1150_network_interfaces_groupset_multi_yaml`
   > Resource 'Instance' of type 'AWS::EC2::Instance' supports Tags but none are configured
@@ -14269,6 +14269,8 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'Database' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
 - **I9040** `Parameter` (AWS::SSM::Parameter) → `Properties.Tags` L26 in `bad_F6101_getatt_ref_typed_object_attribute_yaml`
   > Resource 'Parameter' of type 'AWS::SSM::Parameter' supports Tags but none are configured
+- **I9040** `GlobalCache` (AWS::ElastiCache::GlobalReplicationGroup) → `Properties.Tags` L5 in `bad_I3100_previous_generation_sourced_routes_yaml`
+  > Resource 'GlobalCache' of type 'AWS::ElastiCache::GlobalReplicationGroup' supports Tags but none are configured
 - **I9040** `SpotFleet` (AWS::EC2::SpotFleet) → `Properties.Tags` L19 in `bad_I3100_previous_generation_sourced_routes_yaml`
   > Resource 'SpotFleet' of type 'AWS::EC2::SpotFleet' supports Tags but none are configured
 - **I9040** `MyBucket` (AWS::S3::Bucket) → `Properties.Tags` L5 in `bad_W1019_sub_unused_key_yaml`
@@ -20754,10 +20756,10 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FP: `F2002`
 - EE: `F0001`
 
-### `bad_I3100_previous_generation_sourced_routes_yaml` - 2 mismatches (8 TP, 0 FP, 4 EE, 2 FN)
+### `bad_I3100_previous_generation_sourced_routes_yaml` - 2 mismatches (8 TP, 0 FP, 5 EE, 2 FN)
 
 - FN: `I4010` ×2
-- EE: `I9001` ×3, `I9040`
+- EE: `I9001` ×3, `I9040` ×2
 
 ### `bad_I9001_conditional_create_only_yaml` - 2 mismatches (0 TP, 0 FP, 3 EE, 2 FN)
 
@@ -22905,7 +22907,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 These templates cannot be compared because no counterpart exists in the
 other tool's output. They are excluded from precision/recall scoring.
 
-### cfn-lint results with no engine report — 13 templates, 58 diagnostics
+### cfn-lint results with no engine report — 15 templates, 67 diagnostics
 
 - `bad_resources_cloudformation_sam_app_nested_yaml` (4 diagnostics)
 - `bad_resources_cloudformation_sam_stacks_yaml` (14 diagnostics)
@@ -22916,18 +22918,21 @@ other tool's output. They are excluded from precision/recall scoring.
 - `good_resources_cloudformation_sam_stacks_yaml` (2 diagnostics)
 - `good_resources_lambda_sam_required_properties_yaml` (3 diagnostics)
 - `good_resources_serverless_ignore_globals_valid_yaml` (3 diagnostics)
+- `good_transform_yaml_alias_serverless_yaml` (4 diagnostics)
 - `integration_creationpolicy_yaml` (6 diagnostics)
 - `integration_updatepolicy_yaml` (3 diagnostics)
 - `integration_yaml-alias-amplification_yaml` (1 diagnostics)
+- `integration_yaml-alias-scalar_yaml` (5 diagnostics)
 - `integration_yaml-alias_yaml` (3 diagnostics)
 
-### Engine reports with no cfn-lint result — 9 templates, 115 diagnostics
+### Engine reports with no cfn-lint result — 10 templates, 118 diagnostics
 
 - `bad_E3059_subnet_outside_every_vpc_cidr_yaml` (18 diagnostics)
 - `bad_E3060_subnet_overlap_in_one_branch_yaml` (16 diagnostics)
 - `bad_E3679_https_listener_beside_referenced_certificate_yaml` (3 diagnostics)
 - `bad_W3688_snapshot_identifier_from_parameter_yaml` (14 diagnostics)
 - `empty_yaml` (0 diagnostics)
+- `good_functions_split_get_stack_output_yaml` (3 diagnostics)
 - `good_reference_values_are_not_literals_yaml` (10 diagnostics)
 - `good_subnet_cidrs_across_vpcs_and_secondary_blocks_yaml` (22 diagnostics)
 - `good_unresolved_values_are_present_yaml` (32 diagnostics)

@@ -328,6 +328,10 @@
     {
      "source": "regions",
      "target": "Regions"
+    },
+    {
+     "source": "serviceQuotaChecksEnabled",
+     "target": "ServiceQuotaChecksEnabled"
     }
    ],
    "operation": "CreatePlan",
@@ -1675,7 +1679,12 @@
    "mappings": [
     {
      "source": "ApplicationType",
-     "target": "ApplicationType"
+     "target": "ApplicationType",
+     "unrepresentable": {
+      "rejected_values": [
+       "A2A_SERVER"
+      ]
+     }
     },
     {
      "source": "Description",
@@ -2019,6 +2028,10 @@
      "target": "Description"
     },
     {
+     "source": "DisableIMDSV1",
+     "target": "DisableIMDSV1"
+    },
+    {
      "source": "DisplayName",
      "target": "DisplayName"
     },
@@ -2264,6 +2277,144 @@
    "service": "appstream"
   },
   {
+   "cfn_type": "AWS::AppStream::Fleet",
+   "mappings": [
+    {
+     "source": "Description",
+     "target": "Description",
+     "unrepresentable": {
+      "min_length": 1
+     }
+    },
+    {
+     "source": "DisableIMDSV1",
+     "target": "DisableIMDSV1"
+    },
+    {
+     "source": "DisconnectTimeoutInSeconds",
+     "target": "DisconnectTimeoutInSeconds",
+     "unrepresentable": {
+      "maximum": 360000.0,
+      "minimum": 60.0
+     }
+    },
+    {
+     "source": "DisplayName",
+     "target": "DisplayName",
+     "unrepresentable": {
+      "min_length": 1
+     }
+    },
+    {
+     "source": "EnableDefaultInternetAccess",
+     "target": "EnableDefaultInternetAccess"
+    },
+    {
+     "source": "FleetType",
+     "target": "FleetType"
+    },
+    {
+     "source": "IamRoleArn",
+     "target": "IamRoleArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^arn:aws(?:\\-cn|\\-iso\\-b|\\-iso|\\-us\\-gov)?:[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9][A-Za-z0-9:_/+=,@.\\\\-]{0,1023}$)$",
+       "cloudformation": "^arn:aws(?:\\-cn|\\-iso\\-b|\\-iso|\\-us\\-gov)?:iam::[0-9]{12}:role/.+$"
+      }
+     }
+    },
+    {
+     "source": "IdleDisconnectTimeoutInSeconds",
+     "target": "IdleDisconnectTimeoutInSeconds",
+     "unrepresentable": {
+      "maximum": 3600.0,
+      "minimum": 0.0
+     }
+    },
+    {
+     "source": "ImageArn",
+     "target": "ImageArn",
+     "unrepresentable": {
+      "max_length": 1024,
+      "pattern": {
+       "api": "^(?:^arn:aws(?:\\-cn|\\-iso\\-b|\\-iso|\\-us\\-gov)?:[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9][A-Za-z0-9:_/+=,@.\\\\-]{0,1023}$)$",
+       "cloudformation": "^arn:[a-z-]+:[a-z-]+:(([a-z]+-)+[0-9])?:([0-9]{12})?:.+$"
+      }
+     }
+    },
+    {
+     "source": "ImageName",
+     "target": "ImageName",
+     "unrepresentable": {
+      "max_length": 100,
+      "min_length": 1
+     }
+    },
+    {
+     "source": "InstanceType",
+     "target": "InstanceType"
+    },
+    {
+     "source": "MaxConcurrentSessions",
+     "target": "MaxConcurrentSessions"
+    },
+    {
+     "source": "MaxSessionsPerInstance",
+     "target": "MaxSessionsPerInstance"
+    },
+    {
+     "source": "MaxUserDurationInSeconds",
+     "target": "MaxUserDurationInSeconds",
+     "unrepresentable": {
+      "maximum": 360000.0,
+      "minimum": 600.0
+     }
+    },
+    {
+     "source": "Name",
+     "target": "Name",
+     "unrepresentable": {
+      "max_length": 100,
+      "min_length": 1
+     }
+    },
+    {
+     "source": "Platform",
+     "target": "Platform"
+    },
+    {
+     "source": "StreamView",
+     "target": "StreamView"
+    },
+    {
+     "source": "Tags",
+     "target": "Tags"
+    },
+    {
+     "source": "UsbDeviceFilterStrings",
+     "target": "UsbDeviceFilterStrings"
+    }
+   ],
+   "operation": "CreateFleet",
+   "phase": "create",
+   "service": "appstream"
+  },
+  {
+   "cfn_type": "AWS::AppStream::Fleet",
+   "mappings": [
+    {
+     "source": "Name",
+     "target": "Name",
+     "unrepresentable": {
+      "max_length": 100
+     }
+    }
+   ],
+   "operation": "DeleteFleet",
+   "phase": "delete",
+   "service": "appstream"
+  },
+  {
    "cfn_type": "AWS::AppStream::ImageBuilder",
    "mappings": [
     {
@@ -2273,6 +2424,10 @@
     {
      "source": "Description",
      "target": "Description"
+    },
+    {
+     "source": "DisableIMDSV1",
+     "target": "DisableIMDSV1"
     },
     {
      "source": "DisplayName",
@@ -2391,6 +2546,38 @@
    "service": "appstream"
   },
   {
+   "cfn_type": "AWS::AppStream::StackFleetAssociation",
+   "mappings": [
+    {
+     "source": "FleetName",
+     "target": "FleetName"
+    },
+    {
+     "source": "StackName",
+     "target": "StackName"
+    }
+   ],
+   "operation": "AssociateFleet",
+   "phase": "create",
+   "service": "appstream"
+  },
+  {
+   "cfn_type": "AWS::AppStream::StackFleetAssociation",
+   "mappings": [
+    {
+     "source": "FleetName",
+     "target": "FleetName"
+    },
+    {
+     "source": "StackName",
+     "target": "StackName"
+    }
+   ],
+   "operation": "DisassociateFleet",
+   "phase": "delete",
+   "service": "appstream"
+  },
+  {
    "cfn_type": "AWS::AppStream::User",
    "mappings": [
     {
@@ -2465,6 +2652,86 @@
    "cfn_type": "AWS::AppSync::Api",
    "mappings": [],
    "operation": "DeleteApi",
+   "phase": "delete",
+   "service": "appsync"
+  },
+  {
+   "cfn_type": "AWS::AppSync::ApiCache",
+   "mappings": [
+    {
+     "source": "apiCachingBehavior",
+     "target": "ApiCachingBehavior"
+    },
+    {
+     "source": "apiId",
+     "target": "ApiId"
+    },
+    {
+     "source": "atRestEncryptionEnabled",
+     "target": "AtRestEncryptionEnabled"
+    },
+    {
+     "source": "healthMetricsConfig",
+     "target": "HealthMetricsConfig"
+    },
+    {
+     "source": "transitEncryptionEnabled",
+     "target": "TransitEncryptionEnabled"
+    },
+    {
+     "source": "ttl",
+     "target": "Ttl"
+    },
+    {
+     "source": "type",
+     "target": "Type"
+    }
+   ],
+   "operation": "CreateApiCache",
+   "phase": "create",
+   "service": "appsync"
+  },
+  {
+   "cfn_type": "AWS::AppSync::ApiCache",
+   "mappings": [
+    {
+     "source": "apiId",
+     "target": "ApiId"
+    }
+   ],
+   "operation": "DeleteApiCache",
+   "phase": "delete",
+   "service": "appsync"
+  },
+  {
+   "cfn_type": "AWS::AppSync::ApiKey",
+   "mappings": [
+    {
+     "source": "apiId",
+     "target": "ApiId"
+    },
+    {
+     "source": "description",
+     "target": "Description"
+    },
+    {
+     "source": "expires",
+     "target": "Expires"
+    }
+   ],
+   "operation": "CreateApiKey",
+   "phase": "create",
+   "service": "appsync"
+  },
+  {
+   "cfn_type": "AWS::AppSync::ApiKey",
+   "mappings": [
+    {
+     "source": "apiId",
+     "target": "ApiId"
+    }
+   ],
+   "operation": "DeleteApiKey",
    "phase": "delete",
    "service": "appsync"
   },
@@ -2861,6 +3128,10 @@
     {
      "source": "ServiceNamespace",
      "target": "ServiceNamespace"
+    },
+    {
+     "source": "Tags",
+     "target": "Tags"
     }
    ],
    "operation": "RegisterScalableTarget",
@@ -3018,6 +3289,68 @@
    "cfn_type": "AWS::ApplicationSignals::GroupingConfiguration",
    "mappings": [],
    "operation": "DeleteGroupingConfiguration",
+   "phase": "delete",
+   "service": "application-signals"
+  },
+  {
+   "cfn_type": "AWS::ApplicationSignals::InstrumentationConfig",
+   "mappings": [
+    {
+     "source": "Description",
+     "target": "Description"
+    },
+    {
+     "source": "Environment",
+     "target": "Environment"
+    },
+    {
+     "source": "InstrumentationType",
+     "target": "InstrumentationType"
+    },
+    {
+     "source": "Service",
+     "target": "Service"
+    },
+    {
+     "source": "SignalType",
+     "target": "SignalType"
+    }
+   ],
+   "operation": "CreateInstrumentationConfiguration",
+   "phase": "create",
+   "service": "application-signals"
+  },
+  {
+   "cfn_type": "AWS::ApplicationSignals::InstrumentationConfig",
+   "mappings": [
+    {
+     "source": "Environment",
+     "target": "Environment",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^[A-Za-z0-9:/+=,.@_-]+$"
+      }
+     }
+    },
+    {
+     "source": "InstrumentationType",
+     "target": "InstrumentationType"
+    },
+    {
+     "source": "Service",
+     "target": "Service",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^[A-Za-z0-9:/+=,.@_-]+$"
+      }
+     }
+    },
+    {
+     "source": "SignalType",
+     "target": "SignalType"
+    }
+   ],
+   "operation": "DeleteInstrumentationConfiguration",
    "phase": "delete",
    "service": "application-signals"
   },
@@ -3904,6 +4237,13 @@
    "service": "bcm-dashboards"
   },
   {
+   "cfn_type": "AWS::BCM::ScheduledReport",
+   "mappings": [],
+   "operation": "DeleteScheduledReport",
+   "phase": "delete",
+   "service": "bcm-dashboards"
+  },
+  {
    "cfn_type": "AWS::BCMDataExports::Export",
    "mappings": [],
    "operation": "DeleteExport",
@@ -4520,6 +4860,36 @@
    "cfn_type": "AWS::BcmPricingCalculator::BillScenario",
    "mappings": [],
    "operation": "DeleteBillScenario",
+   "phase": "delete",
+   "service": "bcm-pricing-calculator"
+  },
+  {
+   "cfn_type": "AWS::BcmPricingCalculator::WorkloadEstimate",
+   "ignored_inputs": [
+    "clientToken"
+   ],
+   "mappings": [
+    {
+     "source": "name",
+     "target": "Name"
+    },
+    {
+     "source": "rateType",
+     "target": "RateType"
+    },
+    {
+     "source": "tags",
+     "target": "Tags"
+    }
+   ],
+   "operation": "CreateWorkloadEstimate",
+   "phase": "create",
+   "service": "bcm-pricing-calculator"
+  },
+  {
+   "cfn_type": "AWS::BcmPricingCalculator::WorkloadEstimate",
+   "mappings": [],
+   "operation": "DeleteWorkloadEstimate",
    "phase": "delete",
    "service": "bcm-pricing-calculator"
   },
@@ -5883,6 +6253,10 @@
      }
     },
     {
+     "source": "platformVersion",
+     "target": "PlatformVersion"
+    },
+    {
      "source": "roleArn",
      "target": "RoleArn"
     }
@@ -6521,6 +6895,42 @@
    "service": "connectcases"
   },
   {
+   "cfn_type": "AWS::Cases::RelatedItem",
+   "mappings": [
+    {
+     "source": "caseId",
+     "target": "CaseId"
+    },
+    {
+     "source": "domainId",
+     "target": "DomainId"
+    },
+    {
+     "source": "type",
+     "target": "Type"
+    }
+   ],
+   "operation": "CreateRelatedItem",
+   "phase": "create",
+   "service": "connectcases"
+  },
+  {
+   "cfn_type": "AWS::Cases::RelatedItem",
+   "mappings": [
+    {
+     "source": "caseId",
+     "target": "CaseId"
+    },
+    {
+     "source": "domainId",
+     "target": "DomainId"
+    }
+   ],
+   "operation": "DeleteRelatedItem",
+   "phase": "delete",
+   "service": "connectcases"
+  },
+  {
    "cfn_type": "AWS::Cases::Template",
    "mappings": [
     {
@@ -6862,6 +7272,71 @@
    "service": "chime-sdk-identity"
   },
   {
+   "cfn_type": "AWS::Chime::Channel",
+   "ignored_inputs": [
+    "ClientRequestToken"
+   ],
+   "mappings": [
+    {
+     "source": "AppInstanceArn",
+     "target": "AppInstanceArn"
+    },
+    {
+     "source": "ChannelId",
+     "target": "ChannelId"
+    },
+    {
+     "source": "ChimeBearer",
+     "target": "ChimeBearer"
+    },
+    {
+     "source": "MemberArns",
+     "target": "MemberArns"
+    },
+    {
+     "source": "Metadata",
+     "target": "Metadata"
+    },
+    {
+     "source": "Mode",
+     "target": "Mode"
+    },
+    {
+     "source": "ModeratorArns",
+     "target": "ModeratorArns"
+    },
+    {
+     "source": "Name",
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[\\u0009\\u000A\\u000D\\u0020-\\u007E\\u0085\\u00A0-\\uD7FF\\uE000-\\uFFFD\\u10000-\\u10FFFF]*)$",
+       "cloudformation": "^[\\u0009\\u000A\\u000D\\u0020-\\u007E\\u0085\\u00A0-\\uD7FF\\uE000-\\uFFFD\ud800\udc00-\udbff\udfff]*$"
+      }
+     }
+    },
+    {
+     "source": "Privacy",
+     "target": "Privacy"
+    }
+   ],
+   "operation": "CreateChannel",
+   "phase": "create",
+   "service": "chime-sdk-messaging"
+  },
+  {
+   "cfn_type": "AWS::Chime::Channel",
+   "mappings": [
+    {
+     "source": "ChimeBearer",
+     "target": "ChimeBearer"
+    }
+   ],
+   "operation": "DeleteChannel",
+   "phase": "delete",
+   "service": "chime-sdk-messaging"
+  },
+  {
    "cfn_type": "AWS::Chime::ChannelFlow",
    "ignored_inputs": [
     "ClientRequestToken"
@@ -6888,6 +7363,32 @@
    "service": "chime-sdk-messaging"
   },
   {
+   "cfn_type": "AWS::Chime::MediaInsightsPipelineConfiguration",
+   "ignored_inputs": [
+    "ClientRequestToken"
+   ],
+   "mappings": [
+    {
+     "source": "MediaInsightsPipelineConfigurationName",
+     "target": "MediaInsightsPipelineConfigurationName"
+    },
+    {
+     "source": "ResourceAccessRoleArn",
+     "target": "ResourceAccessRoleArn"
+    }
+   ],
+   "operation": "CreateMediaInsightsPipelineConfiguration",
+   "phase": "create",
+   "service": "chime-sdk-media-pipelines"
+  },
+  {
+   "cfn_type": "AWS::Chime::MediaInsightsPipelineConfiguration",
+   "mappings": [],
+   "operation": "DeleteMediaInsightsPipelineConfiguration",
+   "phase": "delete",
+   "service": "chime-sdk-media-pipelines"
+  },
+  {
    "cfn_type": "AWS::Chime::MediaPipelineKinesisVideoStreamPool",
    "ignored_inputs": [
     "ClientRequestToken"
@@ -6908,6 +7409,29 @@
    "operation": "DeleteMediaPipelineKinesisVideoStreamPool",
    "phase": "delete",
    "service": "chime-sdk-media-pipelines"
+  },
+  {
+   "cfn_type": "AWS::Chime::SipMediaApplication",
+   "mappings": [
+    {
+     "source": "AwsRegion",
+     "target": "AwsRegion"
+    },
+    {
+     "source": "Name",
+     "target": "Name"
+    }
+   ],
+   "operation": "CreateSipMediaApplication",
+   "phase": "create",
+   "service": "chime-sdk-voice"
+  },
+  {
+   "cfn_type": "AWS::Chime::SipMediaApplication",
+   "mappings": [],
+   "operation": "DeleteSipMediaApplication",
+   "phase": "delete",
+   "service": "chime-sdk-voice"
   },
   {
    "cfn_type": "AWS::Chime::VoiceConnector",
@@ -7489,6 +8013,49 @@
    "service": "cleanroomsml"
   },
   {
+   "cfn_type": "AWS::Cloud9::EnvironmentEC2",
+   "mappings": [
+    {
+     "source": "automaticStopTimeMinutes",
+     "target": "AutomaticStopTimeMinutes"
+    },
+    {
+     "source": "connectionType",
+     "target": "ConnectionType"
+    },
+    {
+     "source": "description",
+     "target": "Description",
+     "unrepresentable": {
+      "min_length": 1
+     }
+    },
+    {
+     "source": "imageId",
+     "target": "ImageId"
+    },
+    {
+     "source": "instanceType",
+     "target": "InstanceType"
+    },
+    {
+     "source": "name",
+     "target": "Name"
+    },
+    {
+     "source": "ownerArn",
+     "target": "OwnerArn"
+    },
+    {
+     "source": "subnetId",
+     "target": "SubnetId"
+    }
+   ],
+   "operation": "CreateEnvironmentEC2",
+   "phase": "create",
+   "service": "cloud9"
+  },
+  {
    "cfn_type": "AWS::CloudFront::AnycastIpList",
    "mappings": [
     {
@@ -7626,6 +8193,13 @@
    "cfn_type": "AWS::CloudFront::DistributionTenant",
    "mappings": [],
    "operation": "DeleteDistributionTenant",
+   "phase": "delete",
+   "service": "cloudfront"
+  },
+  {
+   "cfn_type": "AWS::CloudFront::FieldLevelEncryptionProfile",
+   "mappings": [],
+   "operation": "DeleteFieldLevelEncryptionProfile",
    "phase": "delete",
    "service": "cloudfront"
   },
@@ -8404,6 +8978,69 @@
    "operation": "DeleteMetricStream",
    "phase": "delete",
    "service": "cloudwatch"
+  },
+  {
+   "cfn_type": "AWS::CloudWatch::ResourceMetricsConfiguration",
+   "mappings": [
+    {
+     "source": "ResourceArn",
+     "target": "ResourceArn"
+    }
+   ],
+   "operation": "CreateResourceMetricsConfiguration",
+   "phase": "create",
+   "service": "cloudwatch"
+  },
+  {
+   "cfn_type": "AWS::CloudWatch::ResourceMetricsConfiguration",
+   "mappings": [
+    {
+     "source": "ResourceArn",
+     "target": "ResourceArn"
+    }
+   ],
+   "operation": "DeleteResourceMetricsConfiguration",
+   "phase": "delete",
+   "service": "cloudwatch"
+  },
+  {
+   "cfn_type": "AWS::CloudWatch::View",
+   "ignored_inputs": [
+    "clientToken"
+   ],
+   "mappings": [
+    {
+     "source": "definition",
+     "target": "Definition"
+    },
+    {
+     "source": "description",
+     "target": "Description"
+    },
+    {
+     "source": "name",
+     "target": "Name"
+    },
+    {
+     "source": "tags",
+     "target": "Tags"
+    }
+   ],
+   "operation": "CreateView",
+   "phase": "create",
+   "service": "cloudwatchomni"
+  },
+  {
+   "cfn_type": "AWS::CloudWatch::View",
+   "mappings": [
+    {
+     "source": "name",
+     "target": "Name"
+    }
+   ],
+   "operation": "DeleteView",
+   "phase": "delete",
+   "service": "cloudwatchomni"
   },
   {
    "cfn_type": "AWS::CodeArtifact::Domain",
@@ -9798,6 +10435,52 @@
    "service": "comprehend"
   },
   {
+   "cfn_type": "AWS::Comprehend::EntityRecognizer",
+   "ignored_inputs": [
+    "ClientRequestToken"
+   ],
+   "mappings": [
+    {
+     "source": "DataAccessRoleArn",
+     "target": "DataAccessRoleArn"
+    },
+    {
+     "source": "LanguageCode",
+     "target": "LanguageCode"
+    },
+    {
+     "source": "ModelKmsKeyId",
+     "target": "ModelKmsKeyId"
+    },
+    {
+     "source": "ModelPolicy",
+     "target": "ModelPolicy"
+    },
+    {
+     "source": "RecognizerName",
+     "target": "RecognizerName"
+    },
+    {
+     "source": "VersionName",
+     "target": "VersionName"
+    },
+    {
+     "source": "VolumeKmsKeyId",
+     "target": "VolumeKmsKeyId"
+    }
+   ],
+   "operation": "CreateEntityRecognizer",
+   "phase": "create",
+   "service": "comprehend"
+  },
+  {
+   "cfn_type": "AWS::Comprehend::EntityRecognizer",
+   "mappings": [],
+   "operation": "DeleteEntityRecognizer",
+   "phase": "delete",
+   "service": "comprehend"
+  },
+  {
    "cfn_type": "AWS::Comprehend::Flywheel",
    "ignored_inputs": [
     "ClientRequestToken"
@@ -9907,6 +10590,13 @@
    "service": "config"
   },
   {
+   "cfn_type": "AWS::Config::ConfigurationRecorder",
+   "mappings": [],
+   "operation": "DeleteConfigurationRecorder",
+   "phase": "delete",
+   "service": "config"
+  },
+  {
    "cfn_type": "AWS::Config::ConformancePack",
    "mappings": [
     {
@@ -9957,6 +10647,34 @@
    "cfn_type": "AWS::Config::DeliveryChannel",
    "mappings": [],
    "operation": "DeleteDeliveryChannel",
+   "phase": "delete",
+   "service": "config"
+  },
+  {
+   "cfn_type": "AWS::Config::OrganizationConfigRule",
+   "mappings": [
+    {
+     "source": "ExcludedAccounts",
+     "target": "ExcludedAccounts"
+    },
+    {
+     "source": "OrganizationConfigRuleName",
+     "target": "OrganizationConfigRuleName"
+    }
+   ],
+   "operation": "PutOrganizationConfigRule",
+   "phase": "create",
+   "service": "config"
+  },
+  {
+   "cfn_type": "AWS::Config::OrganizationConfigRule",
+   "mappings": [
+    {
+     "source": "OrganizationConfigRuleName",
+     "target": "OrganizationConfigRuleName"
+    }
+   ],
+   "operation": "DeleteOrganizationConfigRule",
    "phase": "delete",
    "service": "config"
   },
@@ -10497,6 +11215,10 @@
    ],
    "mappings": [
     {
+     "source": "AIVersion",
+     "target": "AIVersion"
+    },
+    {
      "source": "Description",
      "target": "Description",
      "unrepresentable": {
@@ -10654,11 +11376,22 @@
        "ANALYTICS_CONNECTOR",
        "CALL_TRANSFER_CONNECTOR",
        "COGNITO_USER_POOL",
-       "EVENT",
        "PINPOINT_APP",
        "VOICE_ID"
       ]
      }
+    },
+    {
+     "source": "SourceApplicationName",
+     "target": "SourceApplicationName"
+    },
+    {
+     "source": "SourceApplicationUrl",
+     "target": "SourceApplicationUrl"
+    },
+    {
+     "source": "SourceType",
+     "target": "SourceType"
     },
     {
      "source": "Tags",
@@ -11212,6 +11945,46 @@
    "service": "connect"
   },
   {
+   "cfn_type": "AWS::Connect::UseCase",
+   "mappings": [
+    {
+     "source": "InstanceId",
+     "target": "InstanceId"
+    },
+    {
+     "source": "IntegrationAssociationId",
+     "target": "IntegrationAssociationId"
+    },
+    {
+     "source": "Tags",
+     "target": "Tags"
+    },
+    {
+     "source": "UseCaseType",
+     "target": "UseCaseType"
+    }
+   ],
+   "operation": "CreateUseCase",
+   "phase": "create",
+   "service": "connect"
+  },
+  {
+   "cfn_type": "AWS::Connect::UseCase",
+   "mappings": [
+    {
+     "source": "InstanceId",
+     "target": "InstanceId"
+    },
+    {
+     "source": "IntegrationAssociationId",
+     "target": "IntegrationAssociationId"
+    }
+   ],
+   "operation": "DeleteUseCase",
+   "phase": "delete",
+   "service": "connect"
+  },
+  {
    "cfn_type": "AWS::Connect::User",
    "mappings": [
     {
@@ -11337,6 +12110,49 @@
    "cfn_type": "AWS::Connect::ViewVersion",
    "mappings": [],
    "operation": "DeleteViewVersion",
+   "phase": "delete",
+   "service": "connect"
+  },
+  {
+   "cfn_type": "AWS::Connect::Vocabulary",
+   "ignored_inputs": [
+    "ClientToken"
+   ],
+   "mappings": [
+    {
+     "source": "Content",
+     "target": "Content"
+    },
+    {
+     "source": "InstanceId",
+     "target": "InstanceId"
+    },
+    {
+     "source": "LanguageCode",
+     "target": "LanguageCode"
+    },
+    {
+     "source": "Tags",
+     "target": "Tags"
+    },
+    {
+     "source": "VocabularyName",
+     "target": "VocabularyName"
+    }
+   ],
+   "operation": "CreateVocabulary",
+   "phase": "create",
+   "service": "connect"
+  },
+  {
+   "cfn_type": "AWS::Connect::Vocabulary",
+   "mappings": [
+    {
+     "source": "InstanceId",
+     "target": "InstanceId"
+    }
+   ],
+   "operation": "DeleteVocabulary",
    "phase": "delete",
    "service": "connect"
   },
@@ -11933,6 +12749,42 @@
    "service": "customer-profiles"
   },
   {
+   "cfn_type": "AWS::CustomerProfiles::RecommenderSchema",
+   "mappings": [
+    {
+     "source": "DomainName",
+     "target": "DomainName"
+    },
+    {
+     "source": "RecommenderSchemaName",
+     "target": "RecommenderSchemaName"
+    },
+    {
+     "source": "Tags",
+     "target": "Tags"
+    }
+   ],
+   "operation": "CreateRecommenderSchema",
+   "phase": "create",
+   "service": "customer-profiles"
+  },
+  {
+   "cfn_type": "AWS::CustomerProfiles::RecommenderSchema",
+   "mappings": [
+    {
+     "source": "DomainName",
+     "target": "DomainName"
+    },
+    {
+     "source": "RecommenderSchemaName",
+     "target": "RecommenderSchemaName"
+    }
+   ],
+   "operation": "DeleteRecommenderSchema",
+   "phase": "delete",
+   "service": "customer-profiles"
+  },
+  {
    "cfn_type": "AWS::CustomerProfiles::SegmentDefinition",
    "mappings": [
     {
@@ -12179,6 +13031,10 @@
        "sybase"
       ]
      }
+    },
+    {
+     "source": "Virtual",
+     "target": "Virtual"
     }
    ],
    "operation": "CreateDataProvider",
@@ -12633,6 +13489,107 @@
    "cfn_type": "AWS::DRS::LaunchConfigurationTemplate",
    "mappings": [],
    "operation": "DeleteLaunchConfigurationTemplate",
+   "phase": "delete",
+   "service": "drs"
+  },
+  {
+   "cfn_type": "AWS::DRS::RecoveryPlan",
+   "ignored_inputs": [
+    "clientToken"
+   ],
+   "mappings": [
+    {
+     "source": "description",
+     "target": "Description"
+    },
+    {
+     "source": "name",
+     "target": "Name"
+    },
+    {
+     "source": "tags",
+     "target": "Tags"
+    }
+   ],
+   "operation": "CreateRecoveryPlan",
+   "phase": "create",
+   "service": "drs"
+  },
+  {
+   "cfn_type": "AWS::DRS::RecoveryPlan",
+   "mappings": [],
+   "operation": "DeleteRecoveryPlan",
+   "phase": "delete",
+   "service": "drs"
+  },
+  {
+   "cfn_type": "AWS::DRS::ReplicationConfigurationTemplate",
+   "mappings": [
+    {
+     "source": "associateDefaultSecurityGroup",
+     "target": "AssociateDefaultSecurityGroup"
+    },
+    {
+     "source": "autoReplicateNewDisks",
+     "target": "AutoReplicateNewDisks"
+    },
+    {
+     "source": "bandwidthThrottling",
+     "target": "BandwidthThrottling"
+    },
+    {
+     "source": "createPublicIP",
+     "target": "CreatePublicIP"
+    },
+    {
+     "source": "dataPlaneRouting",
+     "target": "DataPlaneRouting"
+    },
+    {
+     "source": "defaultLargeStagingDiskType",
+     "target": "DefaultLargeStagingDiskType"
+    },
+    {
+     "source": "ebsEncryption",
+     "target": "EbsEncryption"
+    },
+    {
+     "source": "ebsEncryptionKeyArn",
+     "target": "EbsEncryptionKeyArn"
+    },
+    {
+     "source": "internetProtocol",
+     "target": "InternetProtocol"
+    },
+    {
+     "source": "replicationServerInstanceType",
+     "target": "ReplicationServerInstanceType"
+    },
+    {
+     "source": "replicationServersSecurityGroupsIDs",
+     "target": "ReplicationServersSecurityGroupsIDs"
+    },
+    {
+     "source": "stagingAreaSubnetId",
+     "target": "StagingAreaSubnetId"
+    },
+    {
+     "source": "tags",
+     "target": "Tags"
+    },
+    {
+     "source": "useDedicatedReplicationServer",
+     "target": "UseDedicatedReplicationServer"
+    }
+   ],
+   "operation": "CreateReplicationConfigurationTemplate",
+   "phase": "create",
+   "service": "drs"
+  },
+  {
+   "cfn_type": "AWS::DRS::ReplicationConfigurationTemplate",
+   "mappings": [],
+   "operation": "DeleteReplicationConfigurationTemplate",
    "phase": "delete",
    "service": "drs"
   },
@@ -15876,6 +16833,41 @@
    "service": "directconnect"
   },
   {
+   "cfn_type": "AWS::DirectoryService::MicrosoftAD",
+   "mappings": [
+    {
+     "source": "Edition",
+     "target": "Edition",
+     "unrepresentable": {
+      "rejected_values": [
+       "Hybrid"
+      ]
+     }
+    },
+    {
+     "source": "Name",
+     "target": "Name"
+    },
+    {
+     "source": "Password",
+     "target": "Password",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:(?=^.{8,64}$)((?=.*\\d)(?=.*[A-Z])(?=.*[a-z])|(?=.*\\d)(?=.*[^A-Za-z0-9\\s])(?=.*[a-z])|(?=.*[^A-Za-z0-9\\s])(?=.*[A-Z])(?=.*[a-z])|(?=.*\\d)(?=.*[A-Z])(?=.*[^A-Za-z0-9\\s]))^.*)$",
+       "cloudformation": "^(?=^.{8,64}$)((?=.*\\d)(?=.*[A-Z])(?=.*[a-z])|(?=.*\\d)(?=.*[^A-Za-z0-9\\s])(?=.*[a-z])|(?=.*[^A-Za-z0-9\\s])(?=.*[A-Z])(?=.*[a-z])|(?=.*\\d)(?=.*[A-Z])(?=.*[^A-Za-z0-9\\s]))^"
+      }
+     }
+    },
+    {
+     "source": "ShortName",
+     "target": "ShortName"
+    }
+   ],
+   "operation": "CreateMicrosoftAD",
+   "phase": "create",
+   "service": "ds"
+  },
+  {
    "cfn_type": "AWS::DirectoryService::SimpleAD",
    "mappings": [
     {
@@ -16196,6 +17188,33 @@
    "cfn_type": "AWS::DocDBElastic::Cluster",
    "mappings": [],
    "operation": "DeleteCluster",
+   "phase": "delete",
+   "service": "docdb-elastic"
+  },
+  {
+   "cfn_type": "AWS::DocDBElastic::ClusterSnapshot",
+   "mappings": [
+    {
+     "source": "clusterArn",
+     "target": "ClusterArn"
+    },
+    {
+     "source": "snapshotName",
+     "target": "SnapshotName"
+    },
+    {
+     "source": "tags",
+     "target": "Tags"
+    }
+   ],
+   "operation": "CreateClusterSnapshot",
+   "phase": "create",
+   "service": "docdb-elastic"
+  },
+  {
+   "cfn_type": "AWS::DocDBElastic::ClusterSnapshot",
+   "mappings": [],
+   "operation": "DeleteClusterSnapshot",
    "phase": "delete",
    "service": "docdb-elastic"
   },
@@ -17196,6 +18215,16 @@
    "service": "ec2"
   },
   {
+   "cfn_type": "AWS::EC2::IPv4Pool",
+   "ignored_inputs": [
+    "DryRun"
+   ],
+   "mappings": [],
+   "operation": "DeletePublicIpv4Pool",
+   "phase": "delete",
+   "service": "ec2"
+  },
+  {
    "cfn_type": "AWS::EC2::Instance",
    "ignored_inputs": [
     "ClientToken",
@@ -17312,6 +18341,35 @@
    ],
    "mappings": [],
    "operation": "DeleteInstanceConnectEndpoint",
+   "phase": "delete",
+   "service": "ec2"
+  },
+  {
+   "cfn_type": "AWS::EC2::InstanceEventWindow",
+   "ignored_inputs": [
+    "DryRun"
+   ],
+   "mappings": [
+    {
+     "source": "CronExpression",
+     "target": "CronExpression"
+    },
+    {
+     "source": "Name",
+     "target": "Name"
+    }
+   ],
+   "operation": "CreateInstanceEventWindow",
+   "phase": "create",
+   "service": "ec2"
+  },
+  {
+   "cfn_type": "AWS::EC2::InstanceEventWindow",
+   "ignored_inputs": [
+    "DryRun"
+   ],
+   "mappings": [],
+   "operation": "DeleteInstanceEventWindow",
    "phase": "delete",
    "service": "ec2"
   },
@@ -18389,6 +19447,37 @@
    "service": "ec2"
   },
   {
+   "cfn_type": "AWS::EC2::SecondaryNetwork",
+   "ignored_inputs": [
+    "ClientToken",
+    "DryRun"
+   ],
+   "mappings": [
+    {
+     "source": "Ipv4CidrBlock",
+     "target": "Ipv4CidrBlock"
+    },
+    {
+     "source": "NetworkType",
+     "target": "NetworkType"
+    }
+   ],
+   "operation": "CreateSecondaryNetwork",
+   "phase": "create",
+   "service": "ec2"
+  },
+  {
+   "cfn_type": "AWS::EC2::SecondaryNetwork",
+   "ignored_inputs": [
+    "ClientToken",
+    "DryRun"
+   ],
+   "mappings": [],
+   "operation": "DeleteSecondaryNetwork",
+   "phase": "delete",
+   "service": "ec2"
+  },
+  {
    "cfn_type": "AWS::EC2::SecurityGroup",
    "ignored_inputs": [
     "DryRun"
@@ -18666,6 +19755,43 @@
    "cfn_type": "AWS::EC2::SubnetCidrBlock",
    "mappings": [],
    "operation": "DisassociateSubnetCidrBlock",
+   "phase": "delete",
+   "service": "ec2"
+  },
+  {
+   "cfn_type": "AWS::EC2::SubnetCidrReservation",
+   "ignored_inputs": [
+    "DryRun"
+   ],
+   "mappings": [
+    {
+     "source": "Cidr",
+     "target": "Cidr"
+    },
+    {
+     "source": "Description",
+     "target": "Description"
+    },
+    {
+     "source": "ReservationType",
+     "target": "ReservationType"
+    },
+    {
+     "source": "SubnetId",
+     "target": "SubnetId"
+    }
+   ],
+   "operation": "CreateSubnetCidrReservation",
+   "phase": "create",
+   "service": "ec2"
+  },
+  {
+   "cfn_type": "AWS::EC2::SubnetCidrReservation",
+   "ignored_inputs": [
+    "DryRun"
+   ],
+   "mappings": [],
+   "operation": "DeleteSubnetCidrReservation",
    "phase": "delete",
    "service": "ec2"
   },
@@ -21812,6 +22938,32 @@
    "service": "emr-containers"
   },
   {
+   "cfn_type": "AWS::EMRContainers::JobTemplate",
+   "ignored_inputs": [
+    "clientToken"
+   ],
+   "mappings": [
+    {
+     "source": "name",
+     "target": "Name"
+    },
+    {
+     "source": "tags",
+     "target": "Tags"
+    }
+   ],
+   "operation": "CreateJobTemplate",
+   "phase": "create",
+   "service": "emr-containers"
+  },
+  {
+   "cfn_type": "AWS::EMRContainers::JobTemplate",
+   "mappings": [],
+   "operation": "DeleteJobTemplate",
+   "phase": "delete",
+   "service": "emr-containers"
+  },
+  {
    "cfn_type": "AWS::EMRContainers::SecurityConfiguration",
    "ignored_inputs": [
     "clientToken"
@@ -22301,6 +23453,10 @@
    "cfn_type": "AWS::ElastiCache::ServerlessCache",
    "mappings": [
     {
+     "source": "ConnectionType",
+     "target": "ConnectionType"
+    },
+    {
      "source": "DailySnapshotTime",
      "target": "DailySnapshotTime"
     },
@@ -22319,6 +23475,10 @@
     {
      "source": "MajorEngineVersion",
      "target": "MajorEngineVersion"
+    },
+    {
+     "source": "NetworkType",
+     "target": "NetworkType"
     },
     {
      "source": "SecurityGroupIds",
@@ -22418,6 +23578,42 @@
     }
    ],
    "operation": "DeleteServerlessCacheSnapshot",
+   "phase": "delete",
+   "service": "elasticache"
+  },
+  {
+   "cfn_type": "AWS::ElastiCache::Snapshot",
+   "mappings": [
+    {
+     "source": "CacheClusterId",
+     "target": "CacheClusterId"
+    },
+    {
+     "source": "KmsKeyId",
+     "target": "KmsKeyId"
+    },
+    {
+     "source": "ReplicationGroupId",
+     "target": "ReplicationGroupId"
+    },
+    {
+     "source": "SnapshotName",
+     "target": "SnapshotName"
+    }
+   ],
+   "operation": "CreateSnapshot",
+   "phase": "create",
+   "service": "elasticache"
+  },
+  {
+   "cfn_type": "AWS::ElastiCache::Snapshot",
+   "mappings": [
+    {
+     "source": "SnapshotName",
+     "target": "SnapshotName"
+    }
+   ],
+   "operation": "DeleteSnapshot",
    "phase": "delete",
    "service": "elasticache"
   },
@@ -22603,6 +23799,10 @@
     {
      "source": "Description",
      "target": "Description"
+    },
+    {
+     "source": "Process",
+     "target": "Process"
     }
    ],
    "operation": "CreateApplicationVersion",
@@ -23646,7 +24846,12 @@
     },
     {
      "source": "ScheduleExpression",
-     "target": "ScheduleExpression"
+     "target": "ScheduleExpression",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^(rate\\(.+\\)|cron\\(.+\\))?$"
+      }
+     }
     },
     {
      "source": "State",
@@ -23678,6 +24883,186 @@
    "operation": "DeleteRule",
    "phase": "delete",
    "service": "events"
+  },
+  {
+   "cfn_type": "AWS::EventsV2::EventBus",
+   "ignored_inputs": [
+    "ClientToken"
+   ],
+   "mappings": [
+    {
+     "source": "Description",
+     "target": "Description",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[^\\u0000-\\u001F\\u007F-\\u009F\\u2028\\u2029]*(?![\\s\\S]).*)$",
+       "cloudformation": "^[^\\u0000-\\u001F\\u007F-\\u009F\\u2028\\u2029]*(?![\\s\\S])"
+      }
+     }
+    },
+    {
+     "source": "Name",
+     "target": "Name"
+    },
+    {
+     "source": "Tags",
+     "target": "Tags",
+     "unrepresentable": {
+      "max_length": 50,
+      "tag_key": {
+       "pattern": {
+        "api": "^(?:\\S([\\s\\S]*\\S)?(?![\\s\\S]).*)$",
+        "cloudformation": "^\\S([\\s\\S]*\\S)?(?![\\s\\S])"
+       }
+      },
+      "tag_value": {
+       "pattern": {
+        "api": "^(?:(\\S([\\s\\S]*\\S)?)?(?![\\s\\S]).*)$",
+        "cloudformation": "^(\\S([\\s\\S]*\\S)?)?(?![\\s\\S])"
+       }
+      }
+     }
+    }
+   ],
+   "operation": "CreateEventBus",
+   "phase": "create",
+   "service": "eventbridgev2"
+  },
+  {
+   "cfn_type": "AWS::EventsV2::EventBus",
+   "mappings": [],
+   "operation": "DeleteEventBus",
+   "phase": "delete",
+   "service": "eventbridgev2"
+  },
+  {
+   "cfn_type": "AWS::EventsV2::EventSource",
+   "ignored_inputs": [
+    "ClientToken"
+   ],
+   "mappings": [
+    {
+     "source": "Description",
+     "target": "Description",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[^\\u0000-\\u001F\\u007F-\\u009F\\u2028\\u2029]*(?![\\s\\S]).*)$",
+       "cloudformation": "^[^\\u0000-\\u001F\\u007F-\\u009F\\u2028\\u2029]*(?![\\s\\S])"
+      }
+     }
+    },
+    {
+     "source": "EventBusArn",
+     "target": "EventBusArn"
+    },
+    {
+     "source": "Name",
+     "target": "Name"
+    },
+    {
+     "source": "Tags",
+     "target": "Tags",
+     "unrepresentable": {
+      "max_length": 50,
+      "tag_key": {
+       "pattern": {
+        "api": "^(?:\\S([\\s\\S]*\\S)?(?![\\s\\S]).*)$",
+        "cloudformation": "^\\S([\\s\\S]*\\S)?(?![\\s\\S])"
+       }
+      },
+      "tag_value": {
+       "pattern": {
+        "api": "^(?:(\\S([\\s\\S]*\\S)?)?(?![\\s\\S]).*)$",
+        "cloudformation": "^(\\S([\\s\\S]*\\S)?)?(?![\\s\\S])"
+       }
+      }
+     }
+    }
+   ],
+   "operation": "CreateEventSource",
+   "phase": "create",
+   "service": "eventbridgev2"
+  },
+  {
+   "cfn_type": "AWS::EventsV2::EventSource",
+   "mappings": [],
+   "operation": "DeleteEventSource",
+   "phase": "delete",
+   "service": "eventbridgev2"
+  },
+  {
+   "cfn_type": "AWS::EventsV2::ResourcePolicy",
+   "mappings": [],
+   "operation": "DeleteResourcePolicy",
+   "phase": "delete",
+   "service": "eventbridgev2"
+  },
+  {
+   "cfn_type": "AWS::EventsV2::Subscriber",
+   "ignored_inputs": [
+    "ClientToken"
+   ],
+   "mappings": [
+    {
+     "source": "Description",
+     "target": "Description",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[^\\u0000-\\u001F\\u007F-\\u009F\\u2028\\u2029]*(?![\\s\\S]).*)$",
+       "cloudformation": "^[^\\u0000-\\u001F\\u007F-\\u009F\\u2028\\u2029]*(?![\\s\\S])"
+      }
+     }
+    },
+    {
+     "source": "EventBusArn",
+     "target": "EventBusArn"
+    },
+    {
+     "source": "Name",
+     "target": "Name"
+    },
+    {
+     "source": "StartingPosition",
+     "target": "StartingPosition"
+    },
+    {
+     "source": "State",
+     "target": "State"
+    },
+    {
+     "source": "Tags",
+     "target": "Tags",
+     "unrepresentable": {
+      "max_length": 50,
+      "tag_key": {
+       "pattern": {
+        "api": "^(?:\\S([\\s\\S]*\\S)?(?![\\s\\S]).*)$",
+        "cloudformation": "^\\S([\\s\\S]*\\S)?(?![\\s\\S])"
+       }
+      },
+      "tag_value": {
+       "pattern": {
+        "api": "^(?:(\\S([\\s\\S]*\\S)?)?(?![\\s\\S]).*)$",
+        "cloudformation": "^(\\S([\\s\\S]*\\S)?)?(?![\\s\\S])"
+       }
+      }
+     }
+    },
+    {
+     "source": "Type",
+     "target": "Type"
+    }
+   ],
+   "operation": "CreateSubscriber",
+   "phase": "create",
+   "service": "eventbridgev2"
+  },
+  {
+   "cfn_type": "AWS::EventsV2::Subscriber",
+   "mappings": [],
+   "operation": "DeleteSubscriber",
+   "phase": "delete",
+   "service": "eventbridgev2"
   },
   {
    "cfn_type": "AWS::FIS::ExperimentTemplate",
@@ -23790,11 +25175,43 @@
    "service": "fms"
   },
   {
+   "cfn_type": "AWS::FMS::ProtocolsList",
+   "mappings": [],
+   "operation": "DeleteProtocolsList",
+   "phase": "delete",
+   "service": "fms"
+  },
+  {
    "cfn_type": "AWS::FMS::ResourceSet",
    "mappings": [],
    "operation": "DeleteResourceSet",
    "phase": "delete",
    "service": "fms"
+  },
+  {
+   "cfn_type": "AWS::FSx::Backup",
+   "ignored_inputs": [
+    "ClientRequestToken"
+   ],
+   "mappings": [
+    {
+     "source": "FileSystemId",
+     "target": "FileSystemId"
+    }
+   ],
+   "operation": "CreateBackup",
+   "phase": "create",
+   "service": "fsx"
+  },
+  {
+   "cfn_type": "AWS::FSx::Backup",
+   "ignored_inputs": [
+    "ClientRequestToken"
+   ],
+   "mappings": [],
+   "operation": "DeleteBackup",
+   "phase": "delete",
+   "service": "fsx"
   },
   {
    "cfn_type": "AWS::FSx::DataRepositoryAssociation",
@@ -23838,6 +25255,61 @@
    "service": "fsx"
   },
   {
+   "cfn_type": "AWS::FSx::FileCache",
+   "ignored_inputs": [
+    "ClientRequestToken"
+   ],
+   "mappings": [
+    {
+     "source": "CopyTagsToDataRepositoryAssociations",
+     "target": "CopyTagsToDataRepositoryAssociations"
+    },
+    {
+     "source": "FileCacheType",
+     "target": "FileCacheType"
+    },
+    {
+     "source": "FileCacheTypeVersion",
+     "target": "FileCacheTypeVersion",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[0-9](.[0-9]*)*$)$",
+       "cloudformation": "^[0-9](\\.[0-9]*)*$"
+      }
+     }
+    },
+    {
+     "source": "KmsKeyId",
+     "target": "KmsKeyId"
+    },
+    {
+     "source": "SecurityGroupIds",
+     "target": "SecurityGroupIds"
+    },
+    {
+     "source": "StorageCapacity",
+     "target": "StorageCapacity"
+    },
+    {
+     "source": "SubnetIds",
+     "target": "SubnetIds"
+    }
+   ],
+   "operation": "CreateFileCache",
+   "phase": "create",
+   "service": "fsx"
+  },
+  {
+   "cfn_type": "AWS::FSx::FileCache",
+   "ignored_inputs": [
+    "ClientRequestToken"
+   ],
+   "mappings": [],
+   "operation": "DeleteFileCache",
+   "phase": "delete",
+   "service": "fsx"
+  },
+  {
    "cfn_type": "AWS::FSx::S3AccessPointAttachment",
    "ignored_inputs": [
     "ClientRequestToken"
@@ -23854,6 +25326,35 @@
    ],
    "operation": "CreateAndAttachS3AccessPoint",
    "phase": "create",
+   "service": "fsx"
+  },
+  {
+   "cfn_type": "AWS::FSx::Volume",
+   "ignored_inputs": [
+    "ClientRequestToken"
+   ],
+   "mappings": [
+    {
+     "source": "Name",
+     "target": "Name"
+    },
+    {
+     "source": "VolumeType",
+     "target": "VolumeType"
+    }
+   ],
+   "operation": "CreateVolume",
+   "phase": "create",
+   "service": "fsx"
+  },
+  {
+   "cfn_type": "AWS::FSx::Volume",
+   "ignored_inputs": [
+    "ClientRequestToken"
+   ],
+   "mappings": [],
+   "operation": "DeleteVolume",
+   "phase": "delete",
    "service": "fsx"
   },
   {
@@ -25165,6 +26666,42 @@
    "service": "glue"
   },
   {
+   "cfn_type": "AWS::Glue::ConnectionType",
+   "mappings": [
+    {
+     "source": "ConnectionType",
+     "target": "ConnectionType"
+    },
+    {
+     "source": "Description",
+     "target": "Description"
+    },
+    {
+     "source": "IntegrationType",
+     "target": "IntegrationType"
+    },
+    {
+     "source": "Tags",
+     "target": "Tags"
+    }
+   ],
+   "operation": "RegisterConnectionType",
+   "phase": "create",
+   "service": "glue"
+  },
+  {
+   "cfn_type": "AWS::Glue::ConnectionType",
+   "mappings": [
+    {
+     "source": "ConnectionType",
+     "target": "ConnectionType"
+    }
+   ],
+   "operation": "DeleteConnectionType",
+   "phase": "delete",
+   "service": "glue"
+  },
+  {
    "cfn_type": "AWS::Glue::Crawler",
    "mappings": [
     {
@@ -25576,6 +27113,46 @@
    "cfn_type": "AWS::Glue::MLTransform",
    "mappings": [],
    "operation": "DeleteMLTransform",
+   "phase": "delete",
+   "service": "glue"
+  },
+  {
+   "cfn_type": "AWS::Glue::Partition",
+   "mappings": [
+    {
+     "source": "CatalogId",
+     "target": "CatalogId"
+    },
+    {
+     "source": "DatabaseName",
+     "target": "DatabaseName"
+    },
+    {
+     "source": "TableName",
+     "target": "TableName"
+    }
+   ],
+   "operation": "CreatePartition",
+   "phase": "create",
+   "service": "glue"
+  },
+  {
+   "cfn_type": "AWS::Glue::Partition",
+   "mappings": [
+    {
+     "source": "CatalogId",
+     "target": "CatalogId"
+    },
+    {
+     "source": "DatabaseName",
+     "target": "DatabaseName"
+    },
+    {
+     "source": "TableName",
+     "target": "TableName"
+    }
+   ],
+   "operation": "DeletePartition",
    "phase": "delete",
    "service": "glue"
   },
@@ -26685,6 +28262,29 @@
    "service": "guardduty"
   },
   {
+   "cfn_type": "AWS::HealthAgent::Domain",
+   "mappings": [
+    {
+     "source": "name",
+     "target": "Name"
+    },
+    {
+     "source": "tags",
+     "target": "Tags"
+    }
+   ],
+   "operation": "CreateDomain",
+   "phase": "create",
+   "service": "connecthealth"
+  },
+  {
+   "cfn_type": "AWS::HealthAgent::Domain",
+   "mappings": [],
+   "operation": "DeleteDomain",
+   "phase": "delete",
+   "service": "connecthealth"
+  },
+  {
    "cfn_type": "AWS::HealthLake::DataTransformationProfile",
    "ignored_inputs": [
     "ClientToken"
@@ -27150,6 +28750,29 @@
    "service": "iam"
   },
   {
+   "cfn_type": "AWS::IVS::AdConfiguration",
+   "mappings": [
+    {
+     "source": "name",
+     "target": "Name"
+    },
+    {
+     "source": "tags",
+     "target": "Tags"
+    }
+   ],
+   "operation": "CreateAdConfiguration",
+   "phase": "create",
+   "service": "ivs"
+  },
+  {
+   "cfn_type": "AWS::IVS::AdConfiguration",
+   "mappings": [],
+   "operation": "DeleteAdConfiguration",
+   "phase": "delete",
+   "service": "ivs"
+  },
+  {
    "cfn_type": "AWS::IVS::Channel",
    "mappings": [
     {
@@ -27544,7 +29167,14 @@
     },
     {
      "source": "IdentityStoreId",
-     "target": "IdentityStoreId"
+     "target": "IdentityStoreId",
+     "unrepresentable": {
+      "max_length": 36,
+      "pattern": {
+       "api": "^(?:(arn:aws[a-z-]*:identitystore::\\d{12}:identitystore/)?(d-[0-9a-f]{10}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}))$",
+       "cloudformation": "^d-[0-9a-f]{10}$|^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+      }
+     }
     }
    ],
    "operation": "CreateGroup",
@@ -27556,7 +29186,14 @@
    "mappings": [
     {
      "source": "IdentityStoreId",
-     "target": "IdentityStoreId"
+     "target": "IdentityStoreId",
+     "unrepresentable": {
+      "max_length": 36,
+      "pattern": {
+       "api": "^(?:(arn:aws[a-z-]*:identitystore::\\d{12}:identitystore/)?(d-[0-9a-f]{10}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}))$",
+       "cloudformation": "^d-[0-9a-f]{10}$|^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+      }
+     }
     }
    ],
    "operation": "DeleteGroup",
@@ -27568,11 +29205,25 @@
    "mappings": [
     {
      "source": "GroupId",
-     "target": "GroupId"
+     "target": "GroupId",
+     "unrepresentable": {
+      "max_length": 47,
+      "pattern": {
+       "api": "^(?:(arn:aws[a-z-]*:identitystore:::(user|group|membership)/)?([0-9a-f]{10}-|)[A-Fa-f0-9]{8}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{12})$",
+       "cloudformation": "^([0-9a-f]{10}-|)[A-Fa-f0-9]{8}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{12}$"
+      }
+     }
     },
     {
      "source": "IdentityStoreId",
-     "target": "IdentityStoreId"
+     "target": "IdentityStoreId",
+     "unrepresentable": {
+      "max_length": 36,
+      "pattern": {
+       "api": "^(?:(arn:aws[a-z-]*:identitystore::\\d{12}:identitystore/)?(d-[0-9a-f]{10}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}))$",
+       "cloudformation": "^d-[0-9a-f]{10}$|^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+      }
+     }
     }
    ],
    "operation": "CreateGroupMembership",
@@ -27584,7 +29235,14 @@
    "mappings": [
     {
      "source": "IdentityStoreId",
-     "target": "IdentityStoreId"
+     "target": "IdentityStoreId",
+     "unrepresentable": {
+      "max_length": 36,
+      "pattern": {
+       "api": "^(?:(arn:aws[a-z-]*:identitystore::\\d{12}:identitystore/)?(d-[0-9a-f]{10}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}))$",
+       "cloudformation": "^d-[0-9a-f]{10}$|^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+      }
+     }
     }
    ],
    "operation": "DeleteGroupMembership",
@@ -27604,7 +29262,14 @@
     },
     {
      "source": "IdentityStoreId",
-     "target": "IdentityStoreId"
+     "target": "IdentityStoreId",
+     "unrepresentable": {
+      "max_length": 36,
+      "pattern": {
+       "api": "^(?:(arn:aws[a-z-]*:identitystore::\\d{12}:identitystore/)?(d-[0-9a-f]{10}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}))$",
+       "cloudformation": "^d-[0-9a-f]{10}$|^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+      }
+     }
     },
     {
      "source": "Locale",
@@ -27652,7 +29317,14 @@
    "mappings": [
     {
      "source": "IdentityStoreId",
-     "target": "IdentityStoreId"
+     "target": "IdentityStoreId",
+     "unrepresentable": {
+      "max_length": 36,
+      "pattern": {
+       "api": "^(?:(arn:aws[a-z-]*:identitystore::\\d{12}:identitystore/)?(d-[0-9a-f]{10}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}))$",
+       "cloudformation": "^d-[0-9a-f]{10}$|^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+      }
+     }
     }
    ],
    "operation": "DeleteUser",
@@ -28883,6 +30555,38 @@
    "service": "iot"
   },
   {
+   "cfn_type": "AWS::IoT::PolicyPrincipalAttachment",
+   "mappings": [
+    {
+     "source": "policyName",
+     "target": "PolicyName"
+    },
+    {
+     "source": "principal",
+     "target": "Principal"
+    }
+   ],
+   "operation": "AttachPrincipalPolicy",
+   "phase": "create",
+   "service": "iot"
+  },
+  {
+   "cfn_type": "AWS::IoT::PolicyPrincipalAttachment",
+   "mappings": [
+    {
+     "source": "policyName",
+     "target": "PolicyName"
+    },
+    {
+     "source": "principal",
+     "target": "Principal"
+    }
+   ],
+   "operation": "DetachPrincipalPolicy",
+   "phase": "delete",
+   "service": "iot"
+  },
+  {
    "cfn_type": "AWS::IoT::ProvisioningTemplate",
    "mappings": [
     {
@@ -29229,6 +30933,42 @@
    "service": "iot"
   },
   {
+   "cfn_type": "AWS::IoT::ThingPrincipalAttachment",
+   "mappings": [
+    {
+     "source": "principal",
+     "target": "Principal"
+    },
+    {
+     "source": "thingName",
+     "target": "ThingName"
+    },
+    {
+     "source": "thingPrincipalType",
+     "target": "ThingPrincipalType"
+    }
+   ],
+   "operation": "AttachThingPrincipal",
+   "phase": "create",
+   "service": "iot"
+  },
+  {
+   "cfn_type": "AWS::IoT::ThingPrincipalAttachment",
+   "mappings": [
+    {
+     "source": "principal",
+     "target": "Principal"
+    },
+    {
+     "source": "thingName",
+     "target": "ThingName"
+    }
+   ],
+   "operation": "DetachThingPrincipal",
+   "phase": "delete",
+   "service": "iot"
+  },
+  {
    "cfn_type": "AWS::IoT::ThingType",
    "mappings": [
     {
@@ -29536,6 +31276,70 @@
    "service": "iotfleetwise"
   },
   {
+   "cfn_type": "AWS::IoTManagedIntegrations::AccountAssociation",
+   "ignored_inputs": [
+    "ClientToken"
+   ],
+   "mappings": [
+    {
+     "source": "ConnectorDestinationId",
+     "target": "ConnectorDestinationId"
+    },
+    {
+     "source": "Description",
+     "target": "Description"
+    },
+    {
+     "source": "Name",
+     "target": "Name"
+    },
+    {
+     "source": "Tags",
+     "target": "Tags"
+    }
+   ],
+   "operation": "CreateAccountAssociation",
+   "phase": "create",
+   "service": "iot-managed-integrations"
+  },
+  {
+   "cfn_type": "AWS::IoTManagedIntegrations::AccountAssociation",
+   "mappings": [],
+   "operation": "DeleteAccountAssociation",
+   "phase": "delete",
+   "service": "iot-managed-integrations"
+  },
+  {
+   "cfn_type": "AWS::IoTManagedIntegrations::CloudConnector",
+   "ignored_inputs": [
+    "ClientToken"
+   ],
+   "mappings": [
+    {
+     "source": "Description",
+     "target": "Description"
+    },
+    {
+     "source": "EndpointType",
+     "target": "EndpointType"
+    },
+    {
+     "source": "Name",
+     "target": "Name"
+    }
+   ],
+   "operation": "CreateCloudConnector",
+   "phase": "create",
+   "service": "iot-managed-integrations"
+  },
+  {
+   "cfn_type": "AWS::IoTManagedIntegrations::CloudConnector",
+   "mappings": [],
+   "operation": "DeleteCloudConnector",
+   "phase": "delete",
+   "service": "iot-managed-integrations"
+  },
+  {
    "cfn_type": "AWS::IoTManagedIntegrations::CredentialLocker",
    "ignored_inputs": [
     "ClientToken"
@@ -29690,6 +31494,49 @@
    ],
    "mappings": [],
    "operation": "DeleteAccessPolicy",
+   "phase": "delete",
+   "service": "iotsitewise"
+  },
+  {
+   "cfn_type": "AWS::IoTSiteWise::Application",
+   "ignored_inputs": [
+    "clientToken"
+   ],
+   "mappings": [
+    {
+     "source": "description",
+     "target": "Description"
+    },
+    {
+     "source": "idcInstanceArn",
+     "target": "IdcInstanceArn"
+    },
+    {
+     "source": "name",
+     "target": "Name"
+    },
+    {
+     "source": "tags",
+     "target": "Tags"
+    },
+    {
+     "source": "workspaceName",
+     "target": "WorkspaceName"
+    }
+   ],
+   "operation": "CreateApplication",
+   "phase": "create",
+   "service": "iotsitewise"
+  },
+  {
+   "cfn_type": "AWS::IoTSiteWise::Application",
+   "mappings": [
+    {
+     "source": "workspaceName",
+     "target": "WorkspaceName"
+    }
+   ],
+   "operation": "DeleteApplication",
    "phase": "delete",
    "service": "iotsitewise"
   },
@@ -29870,8 +31717,16 @@
      "target": "DatasetName"
     },
     {
+     "source": "datasetType",
+     "target": "DatasetType"
+    },
+    {
      "source": "tags",
      "target": "Tags"
+    },
+    {
+     "source": "workspaceName",
+     "target": "WorkspaceName"
     }
    ],
    "operation": "CreateDataset",
@@ -29883,7 +31738,12 @@
    "ignored_inputs": [
     "clientToken"
    ],
-   "mappings": [],
+   "mappings": [
+    {
+     "source": "workspaceName",
+     "target": "WorkspaceName"
+    }
+   ],
    "operation": "DeleteDataset",
    "phase": "delete",
    "service": "iotsitewise"
@@ -31014,6 +32874,37 @@
    "service": "kendra"
   },
   {
+   "cfn_type": "AWS::Kendra::FeaturedResultsSet",
+   "ignored_inputs": [
+    "ClientToken"
+   ],
+   "mappings": [
+    {
+     "source": "Description",
+     "target": "Description"
+    },
+    {
+     "source": "FeaturedResultsSetName",
+     "target": "FeaturedResultsSetName"
+    },
+    {
+     "source": "IndexId",
+     "target": "IndexId"
+    },
+    {
+     "source": "QueryTexts",
+     "target": "QueryTexts"
+    },
+    {
+     "source": "Status",
+     "target": "Status"
+    }
+   ],
+   "operation": "CreateFeaturedResultsSet",
+   "phase": "create",
+   "service": "kendra"
+  },
+  {
    "cfn_type": "AWS::Kendra::Index",
    "ignored_inputs": [
     "ClientToken"
@@ -31233,6 +33124,10 @@
     {
      "source": "MaxRecordSizeInKiB",
      "target": "MaxRecordSizeInKiB"
+    },
+    {
+     "source": "RecordDistributionStrategy",
+     "target": "RecordDistributionStrategy"
     },
     {
      "source": "ShardCount",
@@ -32289,6 +34184,120 @@
    "service": "lambda"
   },
   {
+   "cfn_type": "AWS::Lambda::WebFunction",
+   "mappings": [
+    {
+     "source": "functionName",
+     "target": "FunctionName"
+    },
+    {
+     "source": "tags",
+     "target": "Tags"
+    }
+   ],
+   "operation": "CreateWebFunction",
+   "phase": "create",
+   "service": "lambda-web"
+  },
+  {
+   "cfn_type": "AWS::Lambda::WebFunction",
+   "mappings": [
+    {
+     "source": "functionName",
+     "target": "FunctionName"
+    }
+   ],
+   "operation": "DeleteWebFunction",
+   "phase": "delete",
+   "service": "lambda-web"
+  },
+  {
+   "cfn_type": "AWS::Lambda::WebFunctionEndpoint",
+   "mappings": [
+    {
+     "source": "authType",
+     "target": "AuthType"
+    },
+    {
+     "source": "description",
+     "target": "Description"
+    },
+    {
+     "source": "endpointName",
+     "target": "EndpointName"
+    },
+    {
+     "source": "endpointType",
+     "target": "EndpointType"
+    },
+    {
+     "source": "functionName",
+     "target": "FunctionName"
+    },
+    {
+     "source": "regions",
+     "target": "Regions"
+    }
+   ],
+   "operation": "CreateWebFunctionEndpoint",
+   "phase": "create",
+   "service": "lambda-web"
+  },
+  {
+   "cfn_type": "AWS::Lambda::WebFunctionEndpoint",
+   "mappings": [
+    {
+     "source": "endpointName",
+     "target": "EndpointName"
+    },
+    {
+     "source": "functionName",
+     "target": "FunctionName"
+    }
+   ],
+   "operation": "DeleteWebFunctionEndpoint",
+   "phase": "delete",
+   "service": "lambda-web"
+  },
+  {
+   "cfn_type": "AWS::Lambda::WebFunctionRevision",
+   "mappings": [
+    {
+     "source": "description",
+     "target": "Description"
+    },
+    {
+     "source": "functionName",
+     "target": "FunctionName"
+    },
+    {
+     "source": "kmsKeyArn",
+     "target": "KmsKeyArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:(aws[a-z-]*):kms:[a-z0-9-]+:[0-9]{12}:key/[a-z0-9-]+)$",
+       "cloudformation": "^arn:(aws[a-z-]*){1}:kms:[a-z0-9-]+:[0-9]{12}:key/.*$"
+      }
+     }
+    }
+   ],
+   "operation": "CreateWebFunctionRevision",
+   "phase": "create",
+   "service": "lambda-web"
+  },
+  {
+   "cfn_type": "AWS::Lambda::WebFunctionRevision",
+   "mappings": [
+    {
+     "source": "functionName",
+     "target": "FunctionName"
+    }
+   ],
+   "operation": "DeleteWebFunctionRevision",
+   "phase": "delete",
+   "service": "lambda-web"
+  },
+  {
    "cfn_type": "AWS::LaunchWizard::Deployment",
    "mappings": [
     {
@@ -32574,6 +34583,36 @@
    "cfn_type": "AWS::LicenseManager::License",
    "mappings": [],
    "operation": "DeleteLicense",
+   "phase": "delete",
+   "service": "license-manager"
+  },
+  {
+   "cfn_type": "AWS::LicenseManager::LicenseAssetGroup",
+   "ignored_inputs": [
+    "ClientToken"
+   ],
+   "mappings": [
+    {
+     "source": "AssociatedLicenseAssetRulesetARNs",
+     "target": "AssociatedLicenseAssetRulesetARNs"
+    },
+    {
+     "source": "Description",
+     "target": "Description"
+    },
+    {
+     "source": "Name",
+     "target": "Name"
+    }
+   ],
+   "operation": "CreateLicenseAssetGroup",
+   "phase": "create",
+   "service": "license-manager"
+  },
+  {
+   "cfn_type": "AWS::LicenseManager::LicenseAssetGroup",
+   "mappings": [],
+   "operation": "DeleteLicenseAssetGroup",
    "phase": "delete",
    "service": "license-manager"
   },
@@ -33158,6 +35197,30 @@
     }
    ],
    "operation": "DeleteInstanceSnapshot",
+   "phase": "delete",
+   "service": "lightsail"
+  },
+  {
+   "cfn_type": "AWS::Lightsail::KeyPair",
+   "mappings": [
+    {
+     "source": "keyPairName",
+     "target": "KeyPairName"
+    }
+   ],
+   "operation": "CreateKeyPair",
+   "phase": "create",
+   "service": "lightsail"
+  },
+  {
+   "cfn_type": "AWS::Lightsail::KeyPair",
+   "mappings": [
+    {
+     "source": "keyPairName",
+     "target": "KeyPairName"
+    }
+   ],
+   "operation": "DeleteKeyPair",
    "phase": "delete",
    "service": "lightsail"
   },
@@ -34518,6 +36581,105 @@
    "service": "m2"
   },
   {
+   "cfn_type": "AWS::MGN::Connector",
+   "mappings": [
+    {
+     "source": "name",
+     "target": "Name"
+    },
+    {
+     "source": "ssmInstanceID",
+     "target": "SsmInstanceID",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:.*(^i-[0-9a-zA-Z]{17}$)|(^mi-[0-9a-zA-Z]{17}$).*)$",
+       "cloudformation": "(^i-[0-9a-zA-Z]{17}$)|(^mi-[0-9a-zA-Z]{17}$)"
+      }
+     }
+    },
+    {
+     "source": "tags",
+     "target": "Tags"
+    }
+   ],
+   "operation": "CreateConnector",
+   "phase": "create",
+   "service": "mgn"
+  },
+  {
+   "cfn_type": "AWS::MGN::Connector",
+   "mappings": [],
+   "operation": "DeleteConnector",
+   "phase": "delete",
+   "service": "mgn"
+  },
+  {
+   "cfn_type": "AWS::MGN::LaunchConfigurationTemplate",
+   "mappings": [
+    {
+     "source": "associatePublicIpAddress",
+     "target": "AssociatePublicIpAddress"
+    },
+    {
+     "source": "bootMode",
+     "target": "BootMode"
+    },
+    {
+     "source": "copyPrivateIp",
+     "target": "CopyPrivateIp"
+    },
+    {
+     "source": "copyTags",
+     "target": "CopyTags"
+    },
+    {
+     "source": "enableMapAutoTagging",
+     "target": "EnableMapAutoTagging"
+    },
+    {
+     "source": "enableParametersEncryption",
+     "target": "EnableParametersEncryption"
+    },
+    {
+     "source": "launchDisposition",
+     "target": "LaunchDisposition"
+    },
+    {
+     "source": "mapAutoTaggingMpeID",
+     "target": "MapAutoTaggingMpeID"
+    },
+    {
+     "source": "parametersEncryptionKey",
+     "target": "ParametersEncryptionKey",
+     "unrepresentable": {
+      "min_length": 20
+     }
+    },
+    {
+     "source": "smallVolumeMaxSize",
+     "target": "SmallVolumeMaxSize"
+    },
+    {
+     "source": "tags",
+     "target": "Tags"
+    },
+    {
+     "source": "targetInstanceTypeRightSizingMethod",
+     "target": "TargetInstanceTypeRightSizingMethod"
+    }
+   ],
+   "operation": "CreateLaunchConfigurationTemplate",
+   "phase": "create",
+   "service": "mgn"
+  },
+  {
+   "cfn_type": "AWS::MGN::LaunchConfigurationTemplate",
+   "mappings": [],
+   "operation": "DeleteLaunchConfigurationTemplate",
+   "phase": "delete",
+   "service": "mgn"
+  },
+  {
    "cfn_type": "AWS::MGN::NetworkMigrationDefinition",
    "mappings": [
     {
@@ -35189,6 +37351,34 @@
    "service": "macie2"
   },
   {
+   "cfn_type": "AWS::Macie::Member",
+   "mappings": [
+    {
+     "source": "tags",
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_key": {
+       "max_length": 128,
+       "min_length": 1
+      },
+      "tag_value": {
+       "max_length": 256
+      }
+     }
+    }
+   ],
+   "operation": "CreateMember",
+   "phase": "create",
+   "service": "macie2"
+  },
+  {
+   "cfn_type": "AWS::Macie::Member",
+   "mappings": [],
+   "operation": "DeleteMember",
+   "phase": "delete",
+   "service": "macie2"
+  },
+  {
    "cfn_type": "AWS::Macie::Session",
    "ignored_inputs": [
     "clientToken"
@@ -35365,6 +37555,46 @@
     }
    ],
    "operation": "RevokeFlowEntitlement",
+   "phase": "delete",
+   "service": "mediaconnect"
+  },
+  {
+   "cfn_type": "AWS::MediaConnect::FlowMediaStream",
+   "mappings": [
+    {
+     "source": "FlowArn",
+     "target": "FlowArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:.+:mediaconnect.+:flow:.+)$",
+       "cloudformation": "^arn:(aws[a-zA-Z-]*):mediaconnect:[a-z0-9-]+:[0-9]{12}:flow:[a-zA-Z0-9-]+:[a-zA-Z0-9_-]+$"
+      }
+     }
+    }
+   ],
+   "operation": "AddFlowMediaStreams",
+   "phase": "create",
+   "service": "mediaconnect"
+  },
+  {
+   "cfn_type": "AWS::MediaConnect::FlowMediaStream",
+   "mappings": [
+    {
+     "source": "FlowArn",
+     "target": "FlowArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:.+:mediaconnect.+:flow:.+)$",
+       "cloudformation": "^arn:(aws[a-zA-Z-]*):mediaconnect:[a-z0-9-]+:[0-9]{12}:flow:[a-zA-Z0-9-]+:[a-zA-Z0-9_-]+$"
+      }
+     }
+    },
+    {
+     "source": "MediaStreamName",
+     "target": "MediaStreamName"
+    }
+   ],
+   "operation": "RemoveFlowMediaStream",
    "phase": "delete",
    "service": "mediaconnect"
   },
@@ -35622,6 +37852,50 @@
    "service": "mediaconnect"
   },
   {
+   "cfn_type": "AWS::MediaConvert::JobTemplate",
+   "mappings": [
+    {
+     "source": "Category",
+     "target": "Category"
+    },
+    {
+     "source": "Description",
+     "target": "Description"
+    },
+    {
+     "source": "Name",
+     "target": "Name"
+    },
+    {
+     "source": "Priority",
+     "target": "Priority"
+    },
+    {
+     "source": "Queue",
+     "target": "Queue"
+    },
+    {
+     "source": "StatusUpdateInterval",
+     "target": "StatusUpdateInterval"
+    }
+   ],
+   "operation": "CreateJobTemplate",
+   "phase": "create",
+   "service": "mediaconvert"
+  },
+  {
+   "cfn_type": "AWS::MediaConvert::JobTemplate",
+   "mappings": [
+    {
+     "source": "Name",
+     "target": "Name"
+    }
+   ],
+   "operation": "DeleteJobTemplate",
+   "phase": "delete",
+   "service": "mediaconvert"
+  },
+  {
    "cfn_type": "AWS::MediaConvert::Preset",
    "mappings": [
     {
@@ -35650,6 +37924,50 @@
     }
    ],
    "operation": "DeletePreset",
+   "phase": "delete",
+   "service": "mediaconvert"
+  },
+  {
+   "cfn_type": "AWS::MediaConvert::Queue",
+   "mappings": [
+    {
+     "source": "ConcurrentJobs",
+     "target": "ConcurrentJobs"
+    },
+    {
+     "source": "Description",
+     "target": "Description"
+    },
+    {
+     "source": "MaximumConcurrentFeeds",
+     "target": "MaximumConcurrentFeeds"
+    },
+    {
+     "source": "Name",
+     "target": "Name"
+    },
+    {
+     "source": "PricingPlan",
+     "target": "PricingPlan"
+    },
+    {
+     "source": "Status",
+     "target": "Status"
+    }
+   ],
+   "operation": "CreateQueue",
+   "phase": "create",
+   "service": "mediaconvert"
+  },
+  {
+   "cfn_type": "AWS::MediaConvert::Queue",
+   "mappings": [
+    {
+     "source": "Name",
+     "target": "Name"
+    }
+   ],
+   "operation": "DeleteQueue",
    "phase": "delete",
    "service": "mediaconvert"
   },
@@ -36430,12 +38748,7 @@
     },
     {
      "source": "InputType",
-     "target": "InputType",
-     "unrepresentable": {
-      "rejected_values": [
-       "MULTIVIEW"
-      ]
-     }
+     "target": "InputType"
     },
     {
      "source": "OutputLockingMode",
@@ -36729,14 +39042,7 @@
     },
     {
      "source": "FunctionType",
-     "target": "FunctionType",
-     "unrepresentable": {
-      "rejected_values": [
-       "AWS_SERVICE_REQUEST",
-       "CONCURRENT_EXECUTOR",
-       "VAST_REQUEST"
-      ]
-     }
+     "target": "FunctionType"
     },
     {
      "source": "Tags",
@@ -36902,6 +39208,50 @@
     }
    ],
    "operation": "DeletePrefetchSchedule",
+   "phase": "delete",
+   "service": "mediatailor"
+  },
+  {
+   "cfn_type": "AWS::MediaTailor::Program",
+   "mappings": [
+    {
+     "source": "ChannelName",
+     "target": "ChannelName"
+    },
+    {
+     "source": "LiveSourceName",
+     "target": "LiveSourceName"
+    },
+    {
+     "source": "ProgramName",
+     "target": "ProgramName"
+    },
+    {
+     "source": "SourceLocationName",
+     "target": "SourceLocationName"
+    },
+    {
+     "source": "VodSourceName",
+     "target": "VodSourceName"
+    }
+   ],
+   "operation": "CreateProgram",
+   "phase": "create",
+   "service": "mediatailor"
+  },
+  {
+   "cfn_type": "AWS::MediaTailor::Program",
+   "mappings": [
+    {
+     "source": "ChannelName",
+     "target": "ChannelName"
+    },
+    {
+     "source": "ProgramName",
+     "target": "ProgramName"
+    }
+   ],
+   "operation": "DeleteProgram",
    "phase": "delete",
    "service": "mediatailor"
   },
@@ -37222,6 +39572,38 @@
     }
    ],
    "operation": "DeleteParameterGroup",
+   "phase": "delete",
+   "service": "memorydb"
+  },
+  {
+   "cfn_type": "AWS::MemoryDB::Snapshot",
+   "mappings": [
+    {
+     "source": "ClusterName",
+     "target": "ClusterName"
+    },
+    {
+     "source": "KmsKeyId",
+     "target": "KmsKeyId"
+    },
+    {
+     "source": "SnapshotName",
+     "target": "SnapshotName"
+    }
+   ],
+   "operation": "CreateSnapshot",
+   "phase": "create",
+   "service": "memorydb"
+  },
+  {
+   "cfn_type": "AWS::MemoryDB::Snapshot",
+   "mappings": [
+    {
+     "source": "SnapshotName",
+     "target": "SnapshotName"
+    }
+   ],
+   "operation": "DeleteSnapshot",
    "phase": "delete",
    "service": "memorydb"
   },
@@ -37764,6 +40146,38 @@
    "service": "neptune-graph"
   },
   {
+   "cfn_type": "AWS::NetworkFirewall::ContainerAssociation",
+   "mappings": [
+    {
+     "source": "ContainerAssociationName",
+     "target": "ContainerAssociationName"
+    },
+    {
+     "source": "Description",
+     "target": "Description"
+    },
+    {
+     "source": "Type",
+     "target": "Type"
+    }
+   ],
+   "operation": "CreateContainerAssociation",
+   "phase": "create",
+   "service": "network-firewall"
+  },
+  {
+   "cfn_type": "AWS::NetworkFirewall::ContainerAssociation",
+   "mappings": [
+    {
+     "source": "ContainerAssociationName",
+     "target": "ContainerAssociationName"
+    }
+   ],
+   "operation": "DeleteContainerAssociation",
+   "phase": "delete",
+   "service": "network-firewall"
+  },
+  {
    "cfn_type": "AWS::NetworkFirewall::Firewall",
    "mappings": [
     {
@@ -38013,6 +40427,28 @@
    "service": "networkflowmonitor"
   },
   {
+   "cfn_type": "AWS::NetworkFlowMonitor::Scope",
+   "ignored_inputs": [
+    "clientToken"
+   ],
+   "mappings": [
+    {
+     "source": "tags",
+     "target": "Tags"
+    }
+   ],
+   "operation": "CreateScope",
+   "phase": "create",
+   "service": "networkflowmonitor"
+  },
+  {
+   "cfn_type": "AWS::NetworkFlowMonitor::Scope",
+   "mappings": [],
+   "operation": "DeleteScope",
+   "phase": "delete",
+   "service": "networkflowmonitor"
+  },
+  {
    "cfn_type": "AWS::NetworkManager::ConnectAttachment",
    "ignored_inputs": [
     "ClientToken"
@@ -38074,6 +40510,95 @@
    "cfn_type": "AWS::NetworkManager::ConnectPeer",
    "mappings": [],
    "operation": "DeleteConnectPeer",
+   "phase": "delete",
+   "service": "networkmanager"
+  },
+  {
+   "cfn_type": "AWS::NetworkManager::Connection",
+   "mappings": [
+    {
+     "source": "ConnectedDeviceId",
+     "target": "ConnectedDeviceId",
+     "unrepresentable": {
+      "min_length": 1,
+      "pattern": {
+       "api": "^(?:[\\s\\S]*)$",
+       "cloudformation": "^device-[a-z0-9-]*$"
+      }
+     }
+    },
+    {
+     "source": "ConnectedLinkId",
+     "target": "ConnectedLinkId",
+     "unrepresentable": {
+      "min_length": 1,
+      "pattern": {
+       "api": "^(?:[\\s\\S]*)$",
+       "cloudformation": "^link-[a-z0-9-]*$"
+      }
+     }
+    },
+    {
+     "source": "Description",
+     "target": "Description",
+     "unrepresentable": {
+      "min_length": 1
+     }
+    },
+    {
+     "source": "DeviceId",
+     "target": "DeviceId",
+     "unrepresentable": {
+      "min_length": 1,
+      "pattern": {
+       "api": "^(?:[\\s\\S]*)$",
+       "cloudformation": "^device-[a-z0-9-]*$"
+      }
+     }
+    },
+    {
+     "source": "GlobalNetworkId",
+     "target": "GlobalNetworkId",
+     "unrepresentable": {
+      "min_length": 1,
+      "pattern": {
+       "api": "^(?:[\\s\\S]*)$",
+       "cloudformation": "^global-network-[a-z0-9-]*$"
+      }
+     }
+    },
+    {
+     "source": "LinkId",
+     "target": "LinkId",
+     "unrepresentable": {
+      "min_length": 1,
+      "pattern": {
+       "api": "^(?:[\\s\\S]*)$",
+       "cloudformation": "^link-[a-z0-9-]*$"
+      }
+     }
+    }
+   ],
+   "operation": "CreateConnection",
+   "phase": "create",
+   "service": "networkmanager"
+  },
+  {
+   "cfn_type": "AWS::NetworkManager::Connection",
+   "mappings": [
+    {
+     "source": "GlobalNetworkId",
+     "target": "GlobalNetworkId",
+     "unrepresentable": {
+      "min_length": 1,
+      "pattern": {
+       "api": "^(?:[\\s\\S]*)$",
+       "cloudformation": "^global-network-[a-z0-9-]*$"
+      }
+     }
+    }
+   ],
+   "operation": "DeleteConnection",
    "phase": "delete",
    "service": "networkmanager"
   },
@@ -38513,27 +41038,220 @@
    "service": "networkmanager"
   },
   {
+   "cfn_type": "AWS::NetworkMonitor::Monitor",
+   "ignored_inputs": [
+    "clientToken"
+   ],
+   "mappings": [
+    {
+     "source": "aggregationPeriod",
+     "target": "AggregationPeriod"
+    },
+    {
+     "source": "monitorName",
+     "target": "MonitorName"
+    },
+    {
+     "source": "tags",
+     "target": "Tags"
+    }
+   ],
+   "operation": "CreateMonitor",
+   "phase": "create",
+   "service": "networkmonitor"
+  },
+  {
+   "cfn_type": "AWS::NetworkMonitor::Monitor",
+   "mappings": [
+    {
+     "source": "monitorName",
+     "target": "MonitorName"
+    }
+   ],
+   "operation": "DeleteMonitor",
+   "phase": "delete",
+   "service": "networkmonitor"
+  },
+  {
+   "cfn_type": "AWS::NetworkSecurityManager::Deployment",
+   "ignored_inputs": [
+    "clientToken"
+   ],
+   "mappings": [
+    {
+     "source": "deploymentDescription",
+     "target": "DeploymentDescription"
+    },
+    {
+     "source": "deploymentName",
+     "target": "DeploymentName"
+    },
+    {
+     "source": "tags",
+     "target": "Tags"
+    }
+   ],
+   "operation": "CreateDeployment",
+   "phase": "create",
+   "service": "network-security-manager"
+  },
+  {
+   "cfn_type": "AWS::NetworkSecurityManager::Deployment",
+   "mappings": [],
+   "operation": "DeleteDeployment",
+   "phase": "delete",
+   "service": "network-security-manager"
+  },
+  {
+   "cfn_type": "AWS::NetworkSecurityManager::Policy",
+   "ignored_inputs": [
+    "clientToken"
+   ],
+   "mappings": [
+    {
+     "source": "firewallType",
+     "target": "FirewallType"
+    },
+    {
+     "source": "policyDescription",
+     "target": "PolicyDescription"
+    },
+    {
+     "source": "policyName",
+     "target": "PolicyName"
+    },
+    {
+     "source": "priority",
+     "target": "Priority"
+    },
+    {
+     "source": "tags",
+     "target": "Tags"
+    }
+   ],
+   "operation": "CreatePolicy",
+   "phase": "create",
+   "service": "network-security-manager"
+  },
+  {
+   "cfn_type": "AWS::NetworkSecurityManager::Policy",
+   "mappings": [],
+   "operation": "DeletePolicy",
+   "phase": "delete",
+   "service": "network-security-manager"
+  },
+  {
+   "cfn_type": "AWS::NetworkSecurityManager::Rule",
+   "ignored_inputs": [
+    "clientToken"
+   ],
+   "mappings": [
+    {
+     "source": "firewallType",
+     "target": "FirewallType"
+    },
+    {
+     "source": "ruleDescription",
+     "target": "RuleDescription"
+    },
+    {
+     "source": "ruleName",
+     "target": "RuleName"
+    },
+    {
+     "source": "ruleType",
+     "target": "RuleType"
+    },
+    {
+     "source": "tags",
+     "target": "Tags"
+    }
+   ],
+   "operation": "CreateRule",
+   "phase": "create",
+   "service": "network-security-manager"
+  },
+  {
+   "cfn_type": "AWS::NetworkSecurityManager::Rule",
+   "mappings": [],
+   "operation": "DeleteRule",
+   "phase": "delete",
+   "service": "network-security-manager"
+  },
+  {
+   "cfn_type": "AWS::NetworkSecurityManager::Scope",
+   "ignored_inputs": [
+    "clientToken"
+   ],
+   "mappings": [
+    {
+     "source": "scopeDescription",
+     "target": "ScopeDescription"
+    },
+    {
+     "source": "scopeName",
+     "target": "ScopeName"
+    },
+    {
+     "source": "tags",
+     "target": "Tags"
+    }
+   ],
+   "operation": "CreateScope",
+   "phase": "create",
+   "service": "network-security-manager"
+  },
+  {
+   "cfn_type": "AWS::NetworkSecurityManager::Scope",
+   "mappings": [],
+   "operation": "DeleteScope",
+   "phase": "delete",
+   "service": "network-security-manager"
+  },
+  {
+   "cfn_type": "AWS::NetworkSecurityManager::Template",
+   "ignored_inputs": [
+    "clientToken"
+   ],
+   "mappings": [
+    {
+     "source": "firewallType",
+     "target": "FirewallType"
+    },
+    {
+     "source": "tags",
+     "target": "Tags"
+    },
+    {
+     "source": "templateDescription",
+     "target": "TemplateDescription"
+    },
+    {
+     "source": "templateName",
+     "target": "TemplateName"
+    }
+   ],
+   "operation": "CreateTemplate",
+   "phase": "create",
+   "service": "network-security-manager"
+  },
+  {
+   "cfn_type": "AWS::NetworkSecurityManager::Template",
+   "mappings": [],
+   "operation": "DeleteTemplate",
+   "phase": "delete",
+   "service": "network-security-manager"
+  },
+  {
    "cfn_type": "AWS::Notifications::ChannelAssociation",
    "mappings": [
     {
      "source": "arn",
-     "target": "Arn",
-     "unrepresentable": {
-      "pattern": {
-       "api": "^(?:arn:aws:(chatbot|consoleapp|notifications-contacts):[a-zA-Z0-9-]*:[0-9]{12}:[a-zA-Z0-9-_.@]+/[a-zA-Z0-9/_.@:-]+)$",
-       "cloudformation": "^arn:[a-z-]{3,10}:(chatbot|consoleapp|notifications-contacts):[a-zA-Z0-9-]*:[0-9]{12}:[a-zA-Z0-9-_.@]+/[a-zA-Z0-9/_.@:-]+$"
-      }
-     }
+     "target": "Arn"
     },
     {
      "source": "notificationConfigurationArn",
-     "target": "NotificationConfigurationArn",
-     "unrepresentable": {
-      "pattern": {
-       "api": "^(?:arn:aws:notifications::[0-9]{12}:configuration/[a-z0-9]{27})$",
-       "cloudformation": "^arn:[a-z-]{3,10}:notifications::[0-9]{12}:configuration/[a-z0-9]{27}$"
-      }
-     }
+     "target": "NotificationConfigurationArn"
     }
    ],
    "operation": "AssociateChannel",
@@ -38545,23 +41263,11 @@
    "mappings": [
     {
      "source": "arn",
-     "target": "Arn",
-     "unrepresentable": {
-      "pattern": {
-       "api": "^(?:arn:aws:(chatbot|consoleapp|notifications-contacts):[a-zA-Z0-9-]*:[0-9]{12}:[a-zA-Z0-9-_.@]+/[a-zA-Z0-9/_.@:-]+)$",
-       "cloudformation": "^arn:[a-z-]{3,10}:(chatbot|consoleapp|notifications-contacts):[a-zA-Z0-9-]*:[0-9]{12}:[a-zA-Z0-9-_.@]+/[a-zA-Z0-9/_.@:-]+$"
-      }
-     }
+     "target": "Arn"
     },
     {
      "source": "notificationConfigurationArn",
-     "target": "NotificationConfigurationArn",
-     "unrepresentable": {
-      "pattern": {
-       "api": "^(?:arn:aws:notifications::[0-9]{12}:configuration/[a-z0-9]{27})$",
-       "cloudformation": "^arn:[a-z-]{3,10}:notifications::[0-9]{12}:configuration/[a-z0-9]{27}$"
-      }
-     }
+     "target": "NotificationConfigurationArn"
     }
    ],
    "operation": "DisassociateChannel",
@@ -38581,13 +41287,7 @@
     },
     {
      "source": "notificationConfigurationArn",
-     "target": "NotificationConfigurationArn",
-     "unrepresentable": {
-      "pattern": {
-       "api": "^(?:arn:aws:notifications::[0-9]{12}:configuration/[a-z0-9]{27})$",
-       "cloudformation": "^arn:[a-z-]{3,10}:notifications::[0-9]{12}:configuration/[a-z0-9]{27}$"
-      }
-     }
+     "target": "NotificationConfigurationArn"
     },
     {
      "source": "regions",
@@ -38617,11 +41317,15 @@
      "target": "ContactIdentifier"
     },
     {
+     "source": "isSensitiveEventsSubscribed",
+     "target": "IsSensitiveEventsSubscribed"
+    },
+    {
      "source": "managedNotificationConfigurationArn",
      "target": "ManagedNotificationConfigurationArn",
      "unrepresentable": {
       "pattern": {
-       "api": "^(?:arn:[-.a-z0-9]{1,63}:notifications::[0-9]{12}:managed-notification-configuration/category/[a-zA-Z0-9\\-]{3,64}/sub-category/[a-zA-Z0-9\\-]{3,64})$",
+       "api": "^(?:arn:[a-z-]{3,10}:notifications::[0-9]{12}:managed-notification-configuration/category/[a-zA-Z0-9\\-]{3,64}/sub-category/[a-zA-Z0-9\\-]{3,64})$",
        "cloudformation": "^arn:[a-z-]{3,10}:notifications::([0-9]{12}|):managed-notification-configuration/category/[a-zA-Z0-9\\-]{3,64}/sub-category/[a-zA-Z0-9\\-]{3,64}$"
       }
      }
@@ -38643,7 +41347,7 @@
      "target": "ManagedNotificationConfigurationArn",
      "unrepresentable": {
       "pattern": {
-       "api": "^(?:arn:[-.a-z0-9]{1,63}:notifications::[0-9]{12}:managed-notification-configuration/category/[a-zA-Z0-9\\-]{3,64}/sub-category/[a-zA-Z0-9\\-]{3,64})$",
+       "api": "^(?:arn:[a-z-]{3,10}:notifications::[0-9]{12}:managed-notification-configuration/category/[a-zA-Z0-9\\-]{3,64}/sub-category/[a-zA-Z0-9\\-]{3,64})$",
        "cloudformation": "^arn:[a-z-]{3,10}:notifications::([0-9]{12}|):managed-notification-configuration/category/[a-zA-Z0-9\\-]{3,64}/sub-category/[a-zA-Z0-9\\-]{3,64}$"
       }
      }
@@ -38658,20 +41362,18 @@
    "mappings": [
     {
      "source": "channelArn",
-     "target": "ChannelArn",
-     "unrepresentable": {
-      "pattern": {
-       "api": "^(?:arn:aws:(chatbot|consoleapp|notifications-contacts):[a-zA-Z0-9-]*:[0-9]{12}:[a-zA-Z0-9-_.@]+/[a-zA-Z0-9/_.@:-]+)$",
-       "cloudformation": "^arn:[a-z-]{3,10}:(chatbot|consoleapp|notifications-contacts):[a-zA-Z0-9-]*:[0-9]{12}:[a-zA-Z0-9-_.@]+/[a-zA-Z0-9/_.@:-]+$"
-      }
-     }
+     "target": "ChannelArn"
+    },
+    {
+     "source": "isSensitiveEventsSubscribed",
+     "target": "IsSensitiveEventsSubscribed"
     },
     {
      "source": "managedNotificationConfigurationArn",
      "target": "ManagedNotificationConfigurationArn",
      "unrepresentable": {
       "pattern": {
-       "api": "^(?:arn:[-.a-z0-9]{1,63}:notifications::[0-9]{12}:managed-notification-configuration/category/[a-zA-Z0-9\\-]{3,64}/sub-category/[a-zA-Z0-9\\-]{3,64})$",
+       "api": "^(?:arn:[a-z-]{3,10}:notifications::[0-9]{12}:managed-notification-configuration/category/[a-zA-Z0-9\\-]{3,64}/sub-category/[a-zA-Z0-9\\-]{3,64})$",
        "cloudformation": "^arn:[a-z-]{3,10}:notifications::([0-9]{12}|):managed-notification-configuration/category/[a-zA-Z0-9\\-]{3,64}/sub-category/[a-zA-Z0-9\\-]{3,64}$"
       }
      }
@@ -38686,20 +41388,14 @@
    "mappings": [
     {
      "source": "channelArn",
-     "target": "ChannelArn",
-     "unrepresentable": {
-      "pattern": {
-       "api": "^(?:arn:aws:(chatbot|consoleapp|notifications-contacts):[a-zA-Z0-9-]*:[0-9]{12}:[a-zA-Z0-9-_.@]+/[a-zA-Z0-9/_.@:-]+)$",
-       "cloudformation": "^arn:[a-z-]{3,10}:(chatbot|consoleapp|notifications-contacts):[a-zA-Z0-9-]*:[0-9]{12}:[a-zA-Z0-9-_.@]+/[a-zA-Z0-9/_.@:-]+$"
-      }
-     }
+     "target": "ChannelArn"
     },
     {
      "source": "managedNotificationConfigurationArn",
      "target": "ManagedNotificationConfigurationArn",
      "unrepresentable": {
       "pattern": {
-       "api": "^(?:arn:[-.a-z0-9]{1,63}:notifications::[0-9]{12}:managed-notification-configuration/category/[a-zA-Z0-9\\-]{3,64}/sub-category/[a-zA-Z0-9\\-]{3,64})$",
+       "api": "^(?:arn:[a-z-]{3,10}:notifications::[0-9]{12}:managed-notification-configuration/category/[a-zA-Z0-9\\-]{3,64}/sub-category/[a-zA-Z0-9\\-]{3,64})$",
        "cloudformation": "^arn:[a-z-]{3,10}:notifications::([0-9]{12}|):managed-notification-configuration/category/[a-zA-Z0-9\\-]{3,64}/sub-category/[a-zA-Z0-9\\-]{3,64}$"
       }
      }
@@ -38758,13 +41454,7 @@
    "mappings": [
     {
      "source": "notificationConfigurationArn",
-     "target": "NotificationConfigurationArn",
-     "unrepresentable": {
-      "pattern": {
-       "api": "^(?:arn:aws:notifications::[0-9]{12}:configuration/[a-z0-9]{27})$",
-       "cloudformation": "^arn:[a-z-]{3,10}:notifications::[0-9]{12}:configuration/[a-z0-9]{27}$"
-      }
-     }
+     "target": "NotificationConfigurationArn"
     },
     {
      "source": "organizationalUnitId",
@@ -38786,13 +41476,7 @@
    "mappings": [
     {
      "source": "notificationConfigurationArn",
-     "target": "NotificationConfigurationArn",
-     "unrepresentable": {
-      "pattern": {
-       "api": "^(?:arn:aws:notifications::[0-9]{12}:configuration/[a-z0-9]{27})$",
-       "cloudformation": "^arn:[a-z-]{3,10}:notifications::[0-9]{12}:configuration/[a-z0-9]{27}$"
-      }
-     }
+     "target": "NotificationConfigurationArn"
     },
     {
      "source": "organizationalUnitId",
@@ -39321,6 +42005,36 @@
    "operation": "DeleteSink",
    "phase": "delete",
    "service": "oam"
+  },
+  {
+   "cfn_type": "AWS::ObservabilityAdmin::DatasetIntegration",
+   "mappings": [
+    {
+     "source": "RoleArn",
+     "target": "RoleArn",
+     "unrepresentable": {
+      "min_length": 20,
+      "pattern": {
+       "api": "^(?:arn:aws([a-z0-9\\-]+)?:([a-zA-Z0-9\\-]+):([a-z0-9\\-]+)?:([0-9]{12})?:(.+))$",
+       "cloudformation": "^arn:aws[a-zA-Z-]*:iam::[0-9]{12}:role/.+$"
+      }
+     }
+    },
+    {
+     "source": "Tags",
+     "target": "Tags"
+    }
+   ],
+   "operation": "CreateDatasetIntegration",
+   "phase": "create",
+   "service": "observabilityadmin"
+  },
+  {
+   "cfn_type": "AWS::ObservabilityAdmin::DatasetIntegration",
+   "mappings": [],
+   "operation": "DeleteDatasetIntegration",
+   "phase": "delete",
+   "service": "observabilityadmin"
   },
   {
    "cfn_type": "AWS::ObservabilityAdmin::OrganizationCentralizationRule",
@@ -40408,7 +43122,12 @@
     },
     {
      "source": "Type",
-     "target": "Type"
+     "target": "Type",
+     "unrepresentable": {
+      "rejected_values": [
+       "GUARDDUTY_POLICY"
+      ]
+     }
     }
    ],
    "operation": "CreatePolicy",
@@ -40440,6 +43159,66 @@
    "operation": "DeleteResourcePolicy",
    "phase": "delete",
    "service": "organizations"
+  },
+  {
+   "cfn_type": "AWS::Outposts::Outpost",
+   "mappings": [
+    {
+     "source": "AvailabilityZone",
+     "target": "AvailabilityZone"
+    },
+    {
+     "source": "AvailabilityZoneId",
+     "target": "AvailabilityZoneId"
+    },
+    {
+     "source": "Description",
+     "target": "Description",
+     "unrepresentable": {
+      "min_length": 1
+     }
+    },
+    {
+     "source": "Name",
+     "target": "Name"
+    },
+    {
+     "source": "SiteId",
+     "target": "SiteId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^(arn:aws([a-z-]+)?:outposts:[a-z\\d-]+:\\d{12}:site/)?(os-[a-f0-9]{17})$)$",
+       "cloudformation": "^os-[a-f0-9]{17}$"
+      }
+     }
+    },
+    {
+     "source": "SupportedHardwareType",
+     "target": "SupportedHardwareType"
+    },
+    {
+     "source": "Tags",
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_key": {
+       "pattern": {
+        "api": "^(?:^(?!aws:)[a-zA-Z+-=._:/]+$)$",
+        "cloudformation": "^(?![aA][wW][sS]:)[\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]+$"
+       }
+      }
+     }
+    }
+   ],
+   "operation": "CreateOutpost",
+   "phase": "create",
+   "service": "outposts"
+  },
+  {
+   "cfn_type": "AWS::Outposts::Outpost",
+   "mappings": [],
+   "operation": "DeleteOutpost",
+   "phase": "delete",
+   "service": "outposts"
   },
   {
    "cfn_type": "AWS::Outposts::Site",
@@ -40783,6 +43562,38 @@
    "service": "pcs"
   },
   {
+   "cfn_type": "AWS::PI::PerfReports",
+   "mappings": [
+    {
+     "source": "Identifier",
+     "target": "Identifier"
+    },
+    {
+     "source": "ServiceType",
+     "target": "ServiceType"
+    }
+   ],
+   "operation": "CreatePerformanceAnalysisReport",
+   "phase": "create",
+   "service": "pi"
+  },
+  {
+   "cfn_type": "AWS::PI::PerfReports",
+   "mappings": [
+    {
+     "source": "Identifier",
+     "target": "Identifier"
+    },
+    {
+     "source": "ServiceType",
+     "target": "ServiceType"
+    }
+   ],
+   "operation": "DeletePerformanceAnalysisReport",
+   "phase": "delete",
+   "service": "pi"
+  },
+  {
    "cfn_type": "AWS::PaymentCryptography::Alias",
    "mappings": [
     {
@@ -40844,6 +43655,33 @@
    "operation": "DeleteKey",
    "phase": "delete",
    "service": "payment-cryptography"
+  },
+  {
+   "cfn_type": "AWS::Personalize::Campaign",
+   "mappings": [
+    {
+     "source": "minProvisionedTPS",
+     "target": "MinProvisionedTPS"
+    },
+    {
+     "source": "name",
+     "target": "Name"
+    },
+    {
+     "source": "solutionVersionArn",
+     "target": "SolutionVersionArn"
+    }
+   ],
+   "operation": "CreateCampaign",
+   "phase": "create",
+   "service": "personalize"
+  },
+  {
+   "cfn_type": "AWS::Personalize::Campaign",
+   "mappings": [],
+   "operation": "DeleteCampaign",
+   "phase": "delete",
+   "service": "personalize"
   },
   {
    "cfn_type": "AWS::Personalize::Dataset",
@@ -40934,6 +43772,33 @@
    "cfn_type": "AWS::Personalize::EventTracker",
    "mappings": [],
    "operation": "DeleteEventTracker",
+   "phase": "delete",
+   "service": "personalize"
+  },
+  {
+   "cfn_type": "AWS::Personalize::Filter",
+   "mappings": [
+    {
+     "source": "datasetGroupArn",
+     "target": "DatasetGroupArn"
+    },
+    {
+     "source": "filterExpression",
+     "target": "FilterExpression"
+    },
+    {
+     "source": "name",
+     "target": "Name"
+    }
+   ],
+   "operation": "CreateFilter",
+   "phase": "create",
+   "service": "personalize"
+  },
+  {
+   "cfn_type": "AWS::Personalize::Filter",
+   "mappings": [],
+   "operation": "DeleteFilter",
    "phase": "delete",
    "service": "personalize"
   },
@@ -41921,6 +44786,36 @@
    "service": "quicksight"
   },
   {
+   "cfn_type": "AWS::QuickSight::Customization",
+   "mappings": [
+    {
+     "source": "Namespace",
+     "target": "Namespace",
+     "unrepresentable": {
+      "min_length": 1
+     }
+    }
+   ],
+   "operation": "CreateAccountCustomization",
+   "phase": "create",
+   "service": "quicksight"
+  },
+  {
+   "cfn_type": "AWS::QuickSight::Customization",
+   "mappings": [
+    {
+     "source": "Namespace",
+     "target": "Namespace",
+     "unrepresentable": {
+      "min_length": 1
+     }
+    }
+   ],
+   "operation": "DeleteAccountCustomization",
+   "phase": "delete",
+   "service": "quicksight"
+  },
+  {
    "cfn_type": "AWS::QuickSight::DLPSetting",
    "mappings": [
     {
@@ -42578,6 +45473,42 @@
    "service": "ram"
   },
   {
+   "cfn_type": "AWS::RAM::PermissionAssociation",
+   "mappings": [
+    {
+     "source": "permissionArn",
+     "target": "PermissionArn"
+    },
+    {
+     "source": "replace",
+     "target": "Replace"
+    },
+    {
+     "source": "resourceShareArn",
+     "target": "ResourceShareArn"
+    }
+   ],
+   "operation": "AssociateResourceSharePermission",
+   "phase": "create",
+   "service": "ram"
+  },
+  {
+   "cfn_type": "AWS::RAM::PermissionAssociation",
+   "mappings": [
+    {
+     "source": "permissionArn",
+     "target": "PermissionArn"
+    },
+    {
+     "source": "resourceShareArn",
+     "target": "ResourceShareArn"
+    }
+   ],
+   "operation": "DisassociateResourceSharePermission",
+   "phase": "delete",
+   "service": "ram"
+  },
+  {
    "cfn_type": "AWS::RAM::ResourceShare",
    "mappings": [
     {
@@ -42969,6 +45900,63 @@
     }
    ],
    "operation": "DeleteDBCluster",
+   "phase": "delete",
+   "service": "rds"
+  },
+  {
+   "cfn_type": "AWS::RDS::DBClusterEndpoint",
+   "mappings": [
+    {
+     "source": "DBClusterEndpointIdentifier",
+     "target": "DBClusterEndpointIdentifier",
+     "unrepresentable": {
+      "max_length": 63,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$"
+      }
+     }
+    },
+    {
+     "source": "DBClusterIdentifier",
+     "target": "DBClusterIdentifier",
+     "unrepresentable": {
+      "max_length": 63,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$"
+      }
+     }
+    },
+    {
+     "source": "ExcludedMembers",
+     "target": "ExcludedMembers"
+    },
+    {
+     "source": "StaticMembers",
+     "target": "StaticMembers"
+    }
+   ],
+   "operation": "CreateDBClusterEndpoint",
+   "phase": "create",
+   "service": "rds"
+  },
+  {
+   "cfn_type": "AWS::RDS::DBClusterEndpoint",
+   "mappings": [
+    {
+     "source": "DBClusterEndpointIdentifier",
+     "target": "DBClusterEndpointIdentifier",
+     "unrepresentable": {
+      "max_length": 63,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$"
+      }
+     }
+    }
+   ],
+   "operation": "DeleteDBClusterEndpoint",
    "phase": "delete",
    "service": "rds"
   },
@@ -44644,6 +47632,86 @@
    "service": "redshift"
   },
   {
+   "cfn_type": "AWS::Redshift::QEV2IdcApplication",
+   "mappings": [
+    {
+     "source": "IdcDisplayName",
+     "target": "IdcDisplayName"
+    },
+    {
+     "source": "IdcInstanceArn",
+     "target": "IdcInstanceArn"
+    },
+    {
+     "source": "Qev2IdcApplicationName",
+     "target": "Qev2IdcApplicationName"
+    }
+   ],
+   "operation": "CreateQev2IdcApplication",
+   "phase": "create",
+   "service": "redshift"
+  },
+  {
+   "cfn_type": "AWS::Redshift::QEV2IdcApplication",
+   "mappings": [],
+   "operation": "DeleteQev2IdcApplication",
+   "phase": "delete",
+   "service": "redshift"
+  },
+  {
+   "cfn_type": "AWS::Redshift::RedshiftIdcApplication",
+   "mappings": [
+    {
+     "source": "ApplicationType",
+     "target": "ApplicationType"
+    },
+    {
+     "source": "IamRoleArn",
+     "target": "IamRoleArn",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^arn:aws[a-zA-Z-]*:[a-zA-Z0-9-]+:[a-z0-9-]*:[0-9]*:.+$"
+      }
+     }
+    },
+    {
+     "source": "IdcDisplayName",
+     "target": "IdcDisplayName"
+    },
+    {
+     "source": "IdcInstanceArn",
+     "target": "IdcInstanceArn",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^arn:aws[a-zA-Z-]*:[a-zA-Z0-9-]+:[a-z0-9-]*:[0-9]*:.+$"
+      }
+     }
+    },
+    {
+     "source": "IdentityNamespace",
+     "target": "IdentityNamespace"
+    },
+    {
+     "source": "RedshiftIdcApplicationName",
+     "target": "RedshiftIdcApplicationName"
+    },
+    {
+     "source": "SsoTagKeys",
+     "target": "SsoTagKeys"
+    }
+   ],
+   "operation": "CreateRedshiftIdcApplication",
+   "phase": "create",
+   "service": "redshift"
+  },
+  {
+   "cfn_type": "AWS::Redshift::RedshiftIdcApplication",
+   "mappings": [],
+   "operation": "DeleteRedshiftIdcApplication",
+   "phase": "delete",
+   "service": "redshift"
+  },
+  {
    "cfn_type": "AWS::Redshift::ScheduledAction",
    "mappings": [
     {
@@ -44684,6 +47752,96 @@
    "service": "redshift"
   },
   {
+   "cfn_type": "AWS::Redshift::Snapshot",
+   "mappings": [
+    {
+     "source": "ClusterIdentifier",
+     "target": "ClusterIdentifier",
+     "unrepresentable": {
+      "max_length": 63,
+      "min_length": 1
+     }
+    },
+    {
+     "source": "ManualSnapshotRetentionPeriod",
+     "target": "ManualSnapshotRetentionPeriod",
+     "unrepresentable": {
+      "maximum": 3653.0,
+      "minimum": -1.0
+     }
+    },
+    {
+     "source": "SnapshotIdentifier",
+     "target": "SnapshotIdentifier",
+     "unrepresentable": {
+      "max_length": 255,
+      "min_length": 1
+     }
+    }
+   ],
+   "operation": "CreateClusterSnapshot",
+   "phase": "create",
+   "service": "redshift"
+  },
+  {
+   "cfn_type": "AWS::Redshift::Snapshot",
+   "mappings": [
+    {
+     "source": "SnapshotIdentifier",
+     "target": "SnapshotIdentifier",
+     "unrepresentable": {
+      "max_length": 255,
+      "min_length": 1
+     }
+    }
+   ],
+   "operation": "DeleteClusterSnapshot",
+   "phase": "delete",
+   "service": "redshift"
+  },
+  {
+   "cfn_type": "AWS::Redshift::SnapshotCopyGrant",
+   "mappings": [
+    {
+     "source": "KmsKeyId",
+     "target": "KmsKeyId"
+    },
+    {
+     "source": "SnapshotCopyGrantName",
+     "target": "SnapshotCopyGrantName",
+     "unrepresentable": {
+      "max_length": 63,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$"
+      }
+     }
+    }
+   ],
+   "operation": "CreateSnapshotCopyGrant",
+   "phase": "create",
+   "service": "redshift"
+  },
+  {
+   "cfn_type": "AWS::Redshift::SnapshotCopyGrant",
+   "mappings": [
+    {
+     "source": "SnapshotCopyGrantName",
+     "target": "SnapshotCopyGrantName",
+     "unrepresentable": {
+      "max_length": 63,
+      "min_length": 1,
+      "pattern": {
+       "cloudformation": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$"
+      }
+     }
+    }
+   ],
+   "operation": "DeleteSnapshotCopyGrant",
+   "phase": "delete",
+   "service": "redshift"
+  },
+  {
    "cfn_type": "AWS::Redshift::SnapshotSchedule",
    "ignored_inputs": [
     "DryRun"
@@ -44715,6 +47873,45 @@
     }
    ],
    "operation": "DeleteSnapshotSchedule",
+   "phase": "delete",
+   "service": "redshift"
+  },
+  {
+   "cfn_type": "AWS::Redshift::UsageLimit",
+   "mappings": [
+    {
+     "source": "Amount",
+     "target": "Amount"
+    },
+    {
+     "source": "BreachAction",
+     "target": "BreachAction"
+    },
+    {
+     "source": "ClusterIdentifier",
+     "target": "ClusterIdentifier"
+    },
+    {
+     "source": "FeatureType",
+     "target": "FeatureType"
+    },
+    {
+     "source": "LimitType",
+     "target": "LimitType"
+    },
+    {
+     "source": "Period",
+     "target": "Period"
+    }
+   ],
+   "operation": "CreateUsageLimit",
+   "phase": "create",
+   "service": "redshift"
+  },
+  {
+   "cfn_type": "AWS::Redshift::UsageLimit",
+   "mappings": [],
+   "operation": "DeleteUsageLimit",
    "phase": "delete",
    "service": "redshift"
   },
@@ -45449,6 +48646,10 @@
      "target": "Name"
     },
     {
+     "source": "sharingEnabled",
+     "target": "SharingEnabled"
+    },
+    {
      "source": "tags",
      "target": "Tags"
     }
@@ -45871,6 +49072,13 @@
    "service": "route53"
   },
   {
+   "cfn_type": "AWS::Route53::DelegationSet",
+   "mappings": [],
+   "operation": "DeleteReusableDelegationSet",
+   "phase": "delete",
+   "service": "route53"
+  },
+  {
    "cfn_type": "AWS::Route53::HealthCheck",
    "mappings": [],
    "operation": "DeleteHealthCheck",
@@ -45963,6 +49171,106 @@
     }
    ],
    "operation": "DeleteKeySigningKey",
+   "phase": "delete",
+   "service": "route53"
+  },
+  {
+   "cfn_type": "AWS::Route53::QueryLoggingConfig",
+   "mappings": [
+    {
+     "source": "CloudWatchLogsLogGroupArn",
+     "target": "CloudWatchLogsLogGroupArn"
+    },
+    {
+     "source": "HostedZoneId",
+     "target": "HostedZoneId"
+    }
+   ],
+   "operation": "CreateQueryLoggingConfig",
+   "phase": "create",
+   "service": "route53"
+  },
+  {
+   "cfn_type": "AWS::Route53::QueryLoggingConfig",
+   "mappings": [],
+   "operation": "DeleteQueryLoggingConfig",
+   "phase": "delete",
+   "service": "route53"
+  },
+  {
+   "cfn_type": "AWS::Route53::TrafficPolicy",
+   "mappings": [
+    {
+     "source": "Comment",
+     "target": "Comment"
+    },
+    {
+     "source": "Document",
+     "target": "Document"
+    },
+    {
+     "source": "Name",
+     "target": "Name"
+    }
+   ],
+   "operation": "CreateTrafficPolicy",
+   "phase": "create",
+   "service": "route53"
+  },
+  {
+   "cfn_type": "AWS::Route53::TrafficPolicy",
+   "mappings": [],
+   "operation": "DeleteTrafficPolicy",
+   "phase": "delete",
+   "service": "route53"
+  },
+  {
+   "cfn_type": "AWS::Route53::TrafficPolicyInstance",
+   "mappings": [
+    {
+     "source": "HostedZoneId",
+     "target": "HostedZoneId",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^[A-Z0-9]{1,32}$"
+      }
+     }
+    },
+    {
+     "source": "Name",
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^[^A-Z\\s]+\\.$"
+      }
+     }
+    },
+    {
+     "source": "TTL",
+     "target": "TTL"
+    },
+    {
+     "source": "TrafficPolicyId",
+     "target": "TrafficPolicyId",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^[0-9a-f-]{1,36}$"
+      }
+     }
+    },
+    {
+     "source": "TrafficPolicyVersion",
+     "target": "TrafficPolicyVersion"
+    }
+   ],
+   "operation": "CreateTrafficPolicyInstance",
+   "phase": "create",
+   "service": "route53"
+  },
+  {
+   "cfn_type": "AWS::Route53::TrafficPolicyInstance",
+   "mappings": [],
+   "operation": "DeleteTrafficPolicyInstance",
    "phase": "delete",
    "service": "route53"
   },
@@ -47705,6 +51013,42 @@
    "service": "s3vectors"
   },
   {
+   "cfn_type": "AWS::SCN::DataIntegrationFlow",
+   "mappings": [
+    {
+     "source": "instanceId",
+     "target": "InstanceId"
+    },
+    {
+     "source": "name",
+     "target": "Name"
+    },
+    {
+     "source": "tags",
+     "target": "Tags"
+    }
+   ],
+   "operation": "CreateDataIntegrationFlow",
+   "phase": "create",
+   "service": "supplychain"
+  },
+  {
+   "cfn_type": "AWS::SCN::DataIntegrationFlow",
+   "mappings": [
+    {
+     "source": "instanceId",
+     "target": "InstanceId"
+    },
+    {
+     "source": "name",
+     "target": "Name"
+    }
+   ],
+   "operation": "DeleteDataIntegrationFlow",
+   "phase": "delete",
+   "service": "supplychain"
+  },
+  {
    "cfn_type": "AWS::SCN::Dataset",
    "mappings": [
     {
@@ -47749,6 +51093,40 @@
     }
    ],
    "operation": "DeleteDataLakeDataset",
+   "phase": "delete",
+   "service": "supplychain"
+  },
+  {
+   "cfn_type": "AWS::SCN::Instance",
+   "ignored_inputs": [
+    "clientToken"
+   ],
+   "mappings": [
+    {
+     "source": "instanceDescription",
+     "target": "InstanceDescription"
+    },
+    {
+     "source": "instanceName",
+     "target": "InstanceName"
+    },
+    {
+     "source": "tags",
+     "target": "Tags"
+    },
+    {
+     "source": "webAppDnsDomain",
+     "target": "WebAppDnsDomain"
+    }
+   ],
+   "operation": "CreateInstance",
+   "phase": "create",
+   "service": "supplychain"
+  },
+  {
+   "cfn_type": "AWS::SCN::Instance",
+   "mappings": [],
+   "operation": "DeleteInstance",
    "phase": "delete",
    "service": "supplychain"
   },
@@ -47947,6 +51325,62 @@
     }
    ],
    "operation": "DeleteEmailIdentity",
+   "phase": "delete",
+   "service": "sesv2"
+  },
+  {
+   "cfn_type": "AWS::SES::EmailIdentityCertificate",
+   "mappings": [
+    {
+     "source": "CertificateArn",
+     "target": "CertificateArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:[\\w+=/,.@-]+:[\\w+=/,.@-]+:[\\w+=/,.@-]*:[0-9]+:certificate/[\\w+=,.@-]+)$",
+       "cloudformation": "^arn:aws[a-z0-9-]*:acm:[a-z0-9-]+:\\d{12}:certificate/[^\\s]+$"
+      }
+     }
+    },
+    {
+     "source": "EmailIdentity",
+     "target": "EmailIdentity",
+     "unrepresentable": {
+      "max_length": 320
+     }
+    },
+    {
+     "source": "FromAddress",
+     "target": "FromAddress",
+     "unrepresentable": {
+      "max_length": 320,
+      "min_length": 1
+     }
+    }
+   ],
+   "operation": "AssociateEmailIdentityCertificate",
+   "phase": "create",
+   "service": "sesv2"
+  },
+  {
+   "cfn_type": "AWS::SES::EmailIdentityCertificate",
+   "mappings": [
+    {
+     "source": "EmailIdentity",
+     "target": "EmailIdentity",
+     "unrepresentable": {
+      "max_length": 320
+     }
+    },
+    {
+     "source": "FromAddress",
+     "target": "FromAddress",
+     "unrepresentable": {
+      "max_length": 320,
+      "min_length": 1
+     }
+    }
+   ],
+   "operation": "DisassociateEmailIdentityCertificate",
    "phase": "delete",
    "service": "sesv2"
   },
@@ -48185,6 +51619,65 @@
    "service": "pinpoint-sms-voice"
   },
   {
+   "cfn_type": "AWS::SMSVOICE::NotifyConfiguration",
+   "ignored_inputs": [
+    "ClientToken"
+   ],
+   "mappings": [
+    {
+     "source": "DefaultTemplateId",
+     "target": "DefaultTemplateId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:([A-Za-z0-9_-]*|UNSET_DEFAULT_TEMPLATE))$",
+       "cloudformation": "^[A-Za-z0-9_-]*$"
+      }
+     }
+    },
+    {
+     "source": "DeletionProtectionEnabled",
+     "target": "DeletionProtectionEnabled"
+    },
+    {
+     "source": "DisplayName",
+     "target": "DisplayName"
+    },
+    {
+     "source": "EnabledChannels",
+     "target": "EnabledChannels"
+    },
+    {
+     "source": "EnabledCountries",
+     "target": "EnabledCountries"
+    },
+    {
+     "source": "PoolId",
+     "target": "PoolId",
+     "unrepresentable": {
+      "min_length": 1,
+      "pattern": {
+       "api": "^(?:[A-Za-z0-9_:/-]*)$",
+       "cloudformation": "^[A-Za-z0-9_:/-]+$"
+      }
+     }
+    },
+    {
+     "source": "UseCase",
+     "target": "UseCase"
+    }
+   ],
+   "operation": "CreateNotifyConfiguration",
+   "phase": "create",
+   "service": "pinpoint-sms-voice-v2"
+  },
+  {
+   "cfn_type": "AWS::SMSVOICE::NotifyConfiguration",
+   "mappings": [],
+   "operation": "DeleteNotifyConfiguration",
+   "phase": "delete",
+   "service": "pinpoint-sms-voice-v2"
+  },
+  {
    "cfn_type": "AWS::SMSVOICE::OptOutList",
    "ignored_inputs": [
     "ClientToken"
@@ -48308,6 +51801,39 @@
    "service": "pinpoint-sms-voice-v2"
   },
   {
+   "cfn_type": "AWS::SMSVOICE::RcsAgent",
+   "ignored_inputs": [
+    "ClientToken"
+   ],
+   "mappings": [
+    {
+     "source": "DeletionProtectionEnabled",
+     "target": "DeletionProtectionEnabled"
+    },
+    {
+     "source": "OptOutListName",
+     "target": "OptOutListName",
+     "unrepresentable": {
+      "max_length": 64,
+      "pattern": {
+       "api": "^(?:[A-Za-z0-9_:/-]+)$",
+       "cloudformation": "^[A-Za-z0-9_-]+$"
+      }
+     }
+    }
+   ],
+   "operation": "CreateRcsAgent",
+   "phase": "create",
+   "service": "pinpoint-sms-voice-v2"
+  },
+  {
+   "cfn_type": "AWS::SMSVOICE::RcsAgent",
+   "mappings": [],
+   "operation": "DeleteRcsAgent",
+   "phase": "delete",
+   "service": "pinpoint-sms-voice-v2"
+  },
+  {
    "cfn_type": "AWS::SMSVOICE::Registration",
    "ignored_inputs": [
     "ClientToken"
@@ -48326,6 +51852,28 @@
    "cfn_type": "AWS::SMSVOICE::Registration",
    "mappings": [],
    "operation": "DeleteRegistration",
+   "phase": "delete",
+   "service": "pinpoint-sms-voice-v2"
+  },
+  {
+   "cfn_type": "AWS::SMSVOICE::RegistrationAttachment",
+   "ignored_inputs": [
+    "ClientToken"
+   ],
+   "mappings": [
+    {
+     "source": "AttachmentUrl",
+     "target": "AttachmentUrl"
+    }
+   ],
+   "operation": "CreateRegistrationAttachment",
+   "phase": "create",
+   "service": "pinpoint-sms-voice-v2"
+  },
+  {
+   "cfn_type": "AWS::SMSVOICE::RegistrationAttachment",
+   "mappings": [],
+   "operation": "DeleteRegistrationAttachment",
    "phase": "delete",
    "service": "pinpoint-sms-voice-v2"
   },
@@ -48417,6 +51965,28 @@
    "service": "pinpoint-sms-voice-v2"
   },
   {
+   "cfn_type": "AWS::SMSVOICE::VerifiedDestinationNumber",
+   "ignored_inputs": [
+    "ClientToken"
+   ],
+   "mappings": [
+    {
+     "source": "DestinationPhoneNumber",
+     "target": "DestinationPhoneNumber"
+    }
+   ],
+   "operation": "CreateVerifiedDestinationNumber",
+   "phase": "create",
+   "service": "pinpoint-sms-voice-v2"
+  },
+  {
+   "cfn_type": "AWS::SMSVOICE::VerifiedDestinationNumber",
+   "mappings": [],
+   "operation": "DeleteVerifiedDestinationNumber",
+   "phase": "delete",
+   "service": "pinpoint-sms-voice-v2"
+  },
+  {
    "cfn_type": "AWS::SNS::Subscription",
    "mappings": [
     {
@@ -48471,7 +52041,22 @@
     },
     {
      "source": "tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_key": {
+       "max_length": 128,
+       "min_length": 1,
+       "pattern": {
+        "cloudformation": "^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$"
+       }
+      },
+      "tag_value": {
+       "max_length": 256,
+       "pattern": {
+        "cloudformation": "^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$"
+       }
+      }
+     }
     }
    ],
    "operation": "CreateQueue",
@@ -49516,6 +53101,42 @@
    "service": "sso-admin"
   },
   {
+   "cfn_type": "AWS::SageMaker::AIWorkloadConfig",
+   "mappings": [
+    {
+     "source": "AIWorkloadConfigName",
+     "target": "AIWorkloadConfigName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9](-*[a-zA-Z0-9]){0,62})$",
+       "cloudformation": "^[a-z0-9](-*[a-z0-9]){0,62}$"
+      }
+     }
+    }
+   ],
+   "operation": "CreateAIWorkloadConfig",
+   "phase": "create",
+   "service": "sagemaker"
+  },
+  {
+   "cfn_type": "AWS::SageMaker::AIWorkloadConfig",
+   "mappings": [
+    {
+     "source": "AIWorkloadConfigName",
+     "target": "AIWorkloadConfigName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-zA-Z0-9](-*[a-zA-Z0-9]){0,62})$",
+       "cloudformation": "^[a-z0-9](-*[a-z0-9]){0,62}$"
+      }
+     }
+    }
+   ],
+   "operation": "DeleteAIWorkloadConfig",
+   "phase": "delete",
+   "service": "sagemaker"
+  },
+  {
    "cfn_type": "AWS::SageMaker::Action",
    "mappings": [
     {
@@ -49769,6 +53390,57 @@
     }
    ],
    "operation": "DeleteCluster",
+   "phase": "delete",
+   "service": "sagemaker"
+  },
+  {
+   "cfn_type": "AWS::SageMaker::ClusterSchedulerConfig",
+   "mappings": [
+    {
+     "source": "ClusterArn",
+     "target": "ClusterArn"
+    },
+    {
+     "source": "Description",
+     "target": "Description"
+    },
+    {
+     "source": "Name",
+     "target": "Name"
+    }
+   ],
+   "operation": "CreateClusterSchedulerConfig",
+   "phase": "create",
+   "service": "sagemaker"
+  },
+  {
+   "cfn_type": "AWS::SageMaker::ClusterSchedulerConfig",
+   "mappings": [],
+   "operation": "DeleteClusterSchedulerConfig",
+   "phase": "delete",
+   "service": "sagemaker"
+  },
+  {
+   "cfn_type": "AWS::SageMaker::CodeRepository",
+   "mappings": [
+    {
+     "source": "CodeRepositoryName",
+     "target": "CodeRepositoryName"
+    }
+   ],
+   "operation": "CreateCodeRepository",
+   "phase": "create",
+   "service": "sagemaker"
+  },
+  {
+   "cfn_type": "AWS::SageMaker::CodeRepository",
+   "mappings": [
+    {
+     "source": "CodeRepositoryName",
+     "target": "CodeRepositoryName"
+    }
+   ],
+   "operation": "DeleteCodeRepository",
    "phase": "delete",
    "service": "sagemaker"
   },
@@ -50982,6 +54654,36 @@
    "service": "sagemaker"
   },
   {
+   "cfn_type": "AWS::SageMaker::NotebookInstanceLifecycleConfig",
+   "mappings": [
+    {
+     "source": "NotebookInstanceLifecycleConfigName",
+     "target": "NotebookInstanceLifecycleConfigName",
+     "unrepresentable": {
+      "min_length": 1
+     }
+    }
+   ],
+   "operation": "CreateNotebookInstanceLifecycleConfig",
+   "phase": "create",
+   "service": "sagemaker"
+  },
+  {
+   "cfn_type": "AWS::SageMaker::NotebookInstanceLifecycleConfig",
+   "mappings": [
+    {
+     "source": "NotebookInstanceLifecycleConfigName",
+     "target": "NotebookInstanceLifecycleConfigName",
+     "unrepresentable": {
+      "min_length": 1
+     }
+    }
+   ],
+   "operation": "DeleteNotebookInstanceLifecycleConfig",
+   "phase": "delete",
+   "service": "sagemaker"
+  },
+  {
    "cfn_type": "AWS::SageMaker::PartnerApp",
    "ignored_inputs": [
     "ClientToken"
@@ -51379,6 +55081,38 @@
     }
    ],
    "operation": "DeleteWorkforce",
+   "phase": "delete",
+   "service": "sagemaker"
+  },
+  {
+   "cfn_type": "AWS::SageMaker::Workteam",
+   "mappings": [
+    {
+     "source": "Description",
+     "target": "Description"
+    },
+    {
+     "source": "WorkforceName",
+     "target": "WorkforceName"
+    },
+    {
+     "source": "WorkteamName",
+     "target": "WorkteamName"
+    }
+   ],
+   "operation": "CreateWorkteam",
+   "phase": "create",
+   "service": "sagemaker"
+  },
+  {
+   "cfn_type": "AWS::SageMaker::Workteam",
+   "mappings": [
+    {
+     "source": "WorkteamName",
+     "target": "WorkteamName"
+    }
+   ],
+   "operation": "DeleteWorkteam",
    "phase": "delete",
    "service": "sagemaker"
   },
@@ -53438,6 +57172,57 @@
    "service": "stepfunctions"
   },
   {
+   "cfn_type": "AWS::StorageGateway::Tape",
+   "mappings": [
+    {
+     "source": "GatewayARN",
+     "target": "GatewayARN"
+    },
+    {
+     "source": "KMSEncrypted",
+     "target": "KMSEncrypted"
+    },
+    {
+     "source": "KMSKey",
+     "target": "KMSKey"
+    },
+    {
+     "source": "PoolId",
+     "target": "PoolId"
+    },
+    {
+     "source": "TapeBarcode",
+     "target": "TapeBarcode"
+    },
+    {
+     "source": "TapeSizeInBytes",
+     "target": "TapeSizeInBytes",
+     "unrepresentable": {
+      "minimum": 1.0
+     }
+    },
+    {
+     "source": "Worm",
+     "target": "Worm"
+    }
+   ],
+   "operation": "CreateTapeWithBarcode",
+   "phase": "create",
+   "service": "storagegateway"
+  },
+  {
+   "cfn_type": "AWS::StorageGateway::Tape",
+   "mappings": [
+    {
+     "source": "GatewayARN",
+     "target": "GatewayARN"
+    }
+   ],
+   "operation": "DeleteTape",
+   "phase": "delete",
+   "service": "storagegateway"
+  },
+  {
    "cfn_type": "AWS::StorageGateway::TapePool",
    "mappings": [
     {
@@ -53465,6 +57250,56 @@
    "cfn_type": "AWS::StorageGateway::TapePool",
    "mappings": [],
    "operation": "DeleteTapePool",
+   "phase": "delete",
+   "service": "storagegateway"
+  },
+  {
+   "cfn_type": "AWS::StorageGateway::Volume",
+   "ignored_inputs": [
+    "ClientToken"
+   ],
+   "mappings": [
+    {
+     "source": "GatewayARN",
+     "target": "GatewayARN"
+    },
+    {
+     "source": "KMSEncrypted",
+     "target": "KMSEncrypted"
+    },
+    {
+     "source": "KMSKey",
+     "target": "KMSKey"
+    },
+    {
+     "source": "NetworkInterfaceId",
+     "target": "NetworkInterfaceId"
+    },
+    {
+     "source": "SnapshotId",
+     "target": "SnapshotId"
+    },
+    {
+     "source": "SourceVolumeARN",
+     "target": "SourceVolumeARN"
+    },
+    {
+     "source": "TargetName",
+     "target": "TargetName"
+    },
+    {
+     "source": "VolumeSizeInBytes",
+     "target": "VolumeSizeInBytes"
+    }
+   ],
+   "operation": "CreateCachediSCSIVolume",
+   "phase": "create",
+   "service": "storagegateway"
+  },
+  {
+   "cfn_type": "AWS::StorageGateway::Volume",
+   "mappings": [],
+   "operation": "DeleteVolume",
    "phase": "delete",
    "service": "storagegateway"
   },
@@ -54076,6 +57911,188 @@
    "service": "timestream-write"
   },
   {
+   "cfn_type": "AWS::Transcribe::CallAnalyticsCategory",
+   "mappings": [
+    {
+     "source": "CategoryName",
+     "target": "CategoryName"
+    },
+    {
+     "source": "InputType",
+     "target": "InputType"
+    }
+   ],
+   "operation": "CreateCallAnalyticsCategory",
+   "phase": "create",
+   "service": "transcribe"
+  },
+  {
+   "cfn_type": "AWS::Transcribe::CallAnalyticsCategory",
+   "mappings": [
+    {
+     "source": "CategoryName",
+     "target": "CategoryName"
+    }
+   ],
+   "operation": "DeleteCallAnalyticsCategory",
+   "phase": "delete",
+   "service": "transcribe"
+  },
+  {
+   "cfn_type": "AWS::Transcribe::MedicalVocabulary",
+   "mappings": [
+    {
+     "source": "LanguageCode",
+     "target": "LanguageCode",
+     "unrepresentable": {
+      "rejected_values": [
+       "ab-GE",
+       "am-ET",
+       "ast-ES",
+       "az-AZ",
+       "ba-RU",
+       "be-BY",
+       "bg-BG",
+       "bn-IN",
+       "bs-BA",
+       "ca-ES",
+       "ckb-IQ",
+       "ckb-IR",
+       "cs-CZ",
+       "cy-GB",
+       "cy-WL",
+       "el-GR",
+       "es-MX",
+       "et-EE",
+       "et-ET",
+       "eu-ES",
+       "fa-AF",
+       "fi-FI",
+       "ga-IE",
+       "gd-GB",
+       "gl-ES",
+       "gu-IN",
+       "ha-NG",
+       "hr-HR",
+       "ht-HT",
+       "hu-HU",
+       "hy-AM",
+       "is-IS",
+       "jv-ID",
+       "ka-GE",
+       "kab-DZ",
+       "kk-KZ",
+       "km-KH",
+       "kn-IN",
+       "ky-KG",
+       "lg-IN",
+       "lt-LT",
+       "lv-LV",
+       "mhr-RU",
+       "mi-NZ",
+       "mk-MK",
+       "ml-IN",
+       "mn-MN",
+       "mr-IN",
+       "mt-MT",
+       "my-MM",
+       "ne-NP",
+       "no-NO",
+       "or-IN",
+       "pa-IN",
+       "pl-PL",
+       "ps-AF",
+       "ro-RO",
+       "rw-RW",
+       "si-LK",
+       "sk-SK",
+       "sl-SI",
+       "so-SO",
+       "sq-AL",
+       "sr-RS",
+       "su-ID",
+       "sw-BI",
+       "sw-KE",
+       "sw-RW",
+       "sw-TZ",
+       "sw-UG",
+       "tl-PH",
+       "tt-RU",
+       "ug-CN",
+       "uk-UA",
+       "uz-UZ",
+       "wo-SN",
+       "zh-HK",
+       "zu-ZA"
+      ]
+     }
+    },
+    {
+     "source": "VocabularyFileUri",
+     "target": "VocabularyFileUri"
+    },
+    {
+     "source": "VocabularyName",
+     "target": "VocabularyName"
+    }
+   ],
+   "operation": "CreateMedicalVocabulary",
+   "phase": "create",
+   "service": "transcribe"
+  },
+  {
+   "cfn_type": "AWS::Transcribe::MedicalVocabulary",
+   "mappings": [
+    {
+     "source": "VocabularyName",
+     "target": "VocabularyName"
+    }
+   ],
+   "operation": "DeleteMedicalVocabulary",
+   "phase": "delete",
+   "service": "transcribe"
+  },
+  {
+   "cfn_type": "AWS::Transcribe::Vocabulary",
+   "mappings": [
+    {
+     "source": "DataAccessRoleArn",
+     "target": "DataAccessRoleArn"
+    },
+    {
+     "source": "LanguageCode",
+     "target": "LanguageCode"
+    },
+    {
+     "source": "Phrases",
+     "target": "Phrases"
+    },
+    {
+     "source": "VocabularyFileUri",
+     "target": "VocabularyFileUri"
+    },
+    {
+     "source": "VocabularyName",
+     "target": "VocabularyName"
+    }
+   ],
+   "operation": "CreateVocabulary",
+   "phase": "create",
+   "service": "transcribe"
+  },
+  {
+   "cfn_type": "AWS::Transcribe::Vocabulary",
+   "mappings": [
+    {
+     "source": "VocabularyName",
+     "target": "VocabularyName"
+    }
+   ],
+   "operation": "DeleteVocabulary",
+   "phase": "delete",
+   "service": "transcribe"
+  },
+  {
    "cfn_type": "AWS::Transcribe::VocabularyFilter",
    "mappings": [
     {
@@ -54504,6 +58521,38 @@
     }
    ],
    "operation": "DeleteParallelData",
+   "phase": "delete",
+   "service": "translate"
+  },
+  {
+   "cfn_type": "AWS::Translate::Terminology",
+   "mappings": [
+    {
+     "source": "Description",
+     "target": "Description"
+    },
+    {
+     "source": "MergeStrategy",
+     "target": "MergeStrategy"
+    },
+    {
+     "source": "Name",
+     "target": "Name"
+    }
+   ],
+   "operation": "ImportTerminology",
+   "phase": "create",
+   "service": "translate"
+  },
+  {
+   "cfn_type": "AWS::Translate::Terminology",
+   "mappings": [
+    {
+     "source": "Name",
+     "target": "Name"
+    }
+   ],
+   "operation": "DeleteTerminology",
    "phase": "delete",
    "service": "translate"
   },
@@ -55064,10 +59113,7 @@
     },
     {
      "source": "priority",
-     "target": "Priority",
-     "unrepresentable": {
-      "maximum": 100.0
-     }
+     "target": "Priority"
     },
     {
      "source": "serviceIdentifier",
@@ -55625,6 +59671,169 @@
    "operation": "DeleteWebACL",
    "phase": "delete",
    "service": "wafv2"
+  },
+  {
+   "cfn_type": "AWS::WellArchitected::AgentContext",
+   "ignored_inputs": [
+    "clientToken"
+   ],
+   "mappings": [
+    {
+     "source": "contextType",
+     "target": "ContextType"
+    },
+    {
+     "source": "profileArn",
+     "target": "ProfileArn",
+     "unrepresentable": {
+      "min_length": 1,
+      "pattern": {
+       "api": "^(?:arn:aws([a-z0-9-]+)?:wellarchitected:[a-z0-9-]{6,64}:\\d{12}:agent-profile/([a-zA-Z0-9_-]+))$",
+       "cloudformation": "^arn:aws([a-z0-9-]+)?:wellarchitected:[a-z0-9-]{6,64}:[0-9]{12}:agent-profile/[a-zA-Z0-9_-]+$"
+      }
+     }
+    },
+    {
+     "source": "title",
+     "target": "Title"
+    }
+   ],
+   "operation": "CreateAgentContext",
+   "phase": "create",
+   "service": "wellarchitected"
+  },
+  {
+   "cfn_type": "AWS::WellArchitected::AgentContext",
+   "mappings": [
+    {
+     "source": "profileArn",
+     "target": "ProfileArn",
+     "unrepresentable": {
+      "min_length": 1,
+      "pattern": {
+       "api": "^(?:arn:aws([a-z0-9-]+)?:wellarchitected:[a-z0-9-]{6,64}:\\d{12}:agent-profile/([a-zA-Z0-9_-]+))$",
+       "cloudformation": "^arn:aws([a-z0-9-]+)?:wellarchitected:[a-z0-9-]{6,64}:[0-9]{12}:agent-profile/[a-zA-Z0-9_-]+$"
+      }
+     }
+    }
+   ],
+   "operation": "DeleteAgentContext",
+   "phase": "delete",
+   "service": "wellarchitected"
+  },
+  {
+   "cfn_type": "AWS::WellArchitected::AgentGoal",
+   "ignored_inputs": [
+    "clientToken"
+   ],
+   "mappings": [
+    {
+     "source": "description",
+     "target": "Description"
+    },
+    {
+     "source": "pillars",
+     "target": "Pillars"
+    },
+    {
+     "source": "profileArn",
+     "target": "ProfileArn",
+     "unrepresentable": {
+      "min_length": 1,
+      "pattern": {
+       "api": "^(?:arn:aws([a-z0-9-]+)?:wellarchitected:[a-z0-9-]{6,64}:\\d{12}:agent-profile/([a-zA-Z0-9_-]+))$",
+       "cloudformation": "^arn:aws([a-z0-9-]+)?:wellarchitected:[a-z0-9-]{6,64}:[0-9]{12}:agent-profile/[a-zA-Z0-9_-]+$"
+      }
+     }
+    },
+    {
+     "source": "title",
+     "target": "Title"
+    }
+   ],
+   "operation": "CreateAgentGoal",
+   "phase": "create",
+   "service": "wellarchitected"
+  },
+  {
+   "cfn_type": "AWS::WellArchitected::AgentGoal",
+   "mappings": [
+    {
+     "source": "profileArn",
+     "target": "ProfileArn",
+     "unrepresentable": {
+      "min_length": 1,
+      "pattern": {
+       "api": "^(?:arn:aws([a-z0-9-]+)?:wellarchitected:[a-z0-9-]{6,64}:\\d{12}:agent-profile/([a-zA-Z0-9_-]+))$",
+       "cloudformation": "^arn:aws([a-z0-9-]+)?:wellarchitected:[a-z0-9-]{6,64}:[0-9]{12}:agent-profile/[a-zA-Z0-9_-]+$"
+      }
+     }
+    }
+   ],
+   "operation": "DeleteAgentGoal",
+   "phase": "delete",
+   "service": "wellarchitected"
+  },
+  {
+   "cfn_type": "AWS::WellArchitected::AgentProfile",
+   "ignored_inputs": [
+    "clientToken"
+   ],
+   "mappings": [
+    {
+     "source": "businessOverview",
+     "target": "BusinessOverview"
+    },
+    {
+     "source": "deletionProtection",
+     "target": "DeletionProtection"
+    },
+    {
+     "source": "description",
+     "target": "Description"
+    },
+    {
+     "source": "displayName",
+     "target": "DisplayName"
+    },
+    {
+     "source": "executionRoleArn",
+     "target": "ExecutionRoleArn",
+     "unrepresentable": {
+      "min_length": 1,
+      "pattern": {
+       "api": "^(?:arn:([a-z\\-]+):iam::\\d{12}:role/(service-role/)?[a-zA-Z0-9+=,.@\\-_]+)$",
+       "cloudformation": "^arn:([a-z\\-]+):iam::[0-9]{12}:role/(service-role/)?[a-zA-Z0-9+=,.@\\-_]+$"
+      }
+     }
+    },
+    {
+     "source": "name",
+     "target": "Name"
+    },
+    {
+     "source": "pillars",
+     "target": "Pillars",
+     "unrepresentable": {
+      "items": {
+       "rejected_values": [
+        "OPERATIONAL_EXCELLENCE"
+       ]
+      },
+      "max_length": 4
+     }
+    }
+   ],
+   "operation": "CreateAgentProfile",
+   "phase": "create",
+   "service": "wellarchitected"
+  },
+  {
+   "cfn_type": "AWS::WellArchitected::AgentProfile",
+   "mappings": [],
+   "operation": "DeleteAgentProfile",
+   "phase": "delete",
+   "service": "wellarchitected"
   },
   {
    "cfn_type": "AWS::WellArchitected::Lens",
@@ -56262,6 +60471,132 @@
    "service": "wisdom"
   },
   {
+   "cfn_type": "AWS::Wisdom::Content",
+   "ignored_inputs": [
+    "clientToken"
+   ],
+   "mappings": [
+    {
+     "source": "knowledgeBaseId",
+     "target": "KnowledgeBaseId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$|^arn:[a-z-]*?:wisdom:[a-z0-9-]*?:[0-9]{12}:[a-z-]*?/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}(?:/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})?$)$",
+       "cloudformation": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
+      }
+     }
+    },
+    {
+     "source": "name",
+     "target": "Name"
+    },
+    {
+     "source": "overrideLinkOutUri",
+     "target": "OverrideLinkOutUri"
+    },
+    {
+     "source": "tags",
+     "target": "Tags"
+    },
+    {
+     "source": "title",
+     "target": "Title"
+    },
+    {
+     "source": "uploadId",
+     "target": "UploadId"
+    }
+   ],
+   "operation": "CreateContent",
+   "phase": "create",
+   "service": "wisdom"
+  },
+  {
+   "cfn_type": "AWS::Wisdom::Content",
+   "mappings": [
+    {
+     "source": "knowledgeBaseId",
+     "target": "KnowledgeBaseId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$|^arn:[a-z-]*?:wisdom:[a-z0-9-]*?:[0-9]{12}:[a-z-]*?/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}(?:/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})?$)$",
+       "cloudformation": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
+      }
+     }
+    }
+   ],
+   "operation": "DeleteContent",
+   "phase": "delete",
+   "service": "wisdom"
+  },
+  {
+   "cfn_type": "AWS::Wisdom::ContentAssociation",
+   "ignored_inputs": [
+    "clientToken"
+   ],
+   "mappings": [
+    {
+     "source": "associationType",
+     "target": "AssociationType"
+    },
+    {
+     "source": "contentId",
+     "target": "ContentId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$|^arn:[a-z-]*?:wisdom:[a-z0-9-]*?:[0-9]{12}:[a-z-]*?/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}(?:/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}){0,2})$",
+       "cloudformation": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
+      }
+     }
+    },
+    {
+     "source": "knowledgeBaseId",
+     "target": "KnowledgeBaseId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$|^arn:[a-z-]*?:wisdom:[a-z0-9-]*?:[0-9]{12}:[a-z-]*?/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}(?:/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}){0,2})$",
+       "cloudformation": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
+      }
+     }
+    },
+    {
+     "source": "tags",
+     "target": "Tags"
+    }
+   ],
+   "operation": "CreateContentAssociation",
+   "phase": "create",
+   "service": "qconnect"
+  },
+  {
+   "cfn_type": "AWS::Wisdom::ContentAssociation",
+   "mappings": [
+    {
+     "source": "contentId",
+     "target": "ContentId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$|^arn:[a-z-]*?:wisdom:[a-z0-9-]*?:[0-9]{12}:[a-z-]*?/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}(?:/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}){0,2})$",
+       "cloudformation": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
+      }
+     }
+    },
+    {
+     "source": "knowledgeBaseId",
+     "target": "KnowledgeBaseId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$|^arn:[a-z-]*?:wisdom:[a-z0-9-]*?:[0-9]{12}:[a-z-]*?/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}(?:/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}){0,2})$",
+       "cloudformation": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
+      }
+     }
+    }
+   ],
+   "operation": "DeleteContentAssociation",
+   "phase": "delete",
+   "service": "qconnect"
+  },
+  {
    "cfn_type": "AWS::Wisdom::KnowledgeBase",
    "ignored_inputs": [
     "clientToken"
@@ -56437,6 +60772,53 @@
    "cfn_type": "AWS::WorkSpaces::ConnectionAlias",
    "mappings": [],
    "operation": "DeleteConnectionAlias",
+   "phase": "delete",
+   "service": "workspaces"
+  },
+  {
+   "cfn_type": "AWS::WorkSpaces::Directory",
+   "mappings": [
+    {
+     "source": "EnableSelfService",
+     "target": "EnableSelfService"
+    },
+    {
+     "source": "IdcInstanceArn",
+     "target": "IdcInstanceArn"
+    },
+    {
+     "source": "SubnetIds",
+     "target": "SubnetIds"
+    },
+    {
+     "source": "Tenancy",
+     "target": "Tenancy"
+    },
+    {
+     "source": "UserIdentityType",
+     "target": "UserIdentityType"
+    },
+    {
+     "source": "WorkspaceDirectoryDescription",
+     "target": "WorkspaceDirectoryDescription"
+    },
+    {
+     "source": "WorkspaceDirectoryName",
+     "target": "WorkspaceDirectoryName"
+    },
+    {
+     "source": "WorkspaceType",
+     "target": "WorkspaceType"
+    }
+   ],
+   "operation": "RegisterWorkspaceDirectory",
+   "phase": "create",
+   "service": "workspaces"
+  },
+  {
+   "cfn_type": "AWS::WorkSpaces::Directory",
+   "mappings": [],
+   "operation": "DeregisterWorkspaceDirectory",
    "phase": "delete",
    "service": "workspaces"
   },
@@ -57072,12 +61454,12 @@
  ],
  "format_version": 1,
  "source": {
-  "aws_cli_version": "2.36.44",
-  "botocore_service_count": 433,
+  "aws_cli_version": "2.37.9",
+  "botocore_service_count": 438,
   "botocore_version": "2.0.0dev155",
-  "compiled_schemas_sha256": "9b941b24f8c08f5eb4bd9e2e30317e59d5eb476388ad0e012398ceca8806fe3b",
-  "compiled_type_count": 1769,
-  "provider_schemas_sha256": "68e93ce8270e74fd9f6fa43fdb77b88335963553a2b7740af1913434f0f0ab28",
-  "provider_type_count": 1767
+  "compiled_schemas_sha256": "ef6f0cf6ecdaacae60a11f0e14bac47493dde3640efc693908e54fd06a9e2eba",
+  "compiled_type_count": 1870,
+  "provider_schemas_sha256": "24b62c44c5d0c1fb984247028b6321ec9deb5947b071dece3695eed4a84edc74",
+  "provider_type_count": 1868
  }
 }

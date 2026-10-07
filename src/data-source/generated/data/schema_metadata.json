@@ -501,6 +501,7 @@
         "Regions",
         "ReportConfiguration",
         "Route53HealthChecks",
+        "ServiceQuotaChecksEnabled",
         "Tags",
         "Triggers",
         "Version",
@@ -528,6 +529,7 @@
         "Regions": "array",
         "ReportConfiguration": "object",
         "Route53HealthChecks": "object",
+        "ServiceQuotaChecksEnabled": "boolean",
         "Tags": "object",
         "Triggers": "array",
         "Version": "string",
@@ -824,9 +826,13 @@
       "properties": [
         "ApprovalConfiguration",
         "AuthorizerType",
+        "AutoDetectionEnabled",
+        "AutoDetectionScope",
+        "AutoDetectionStatus",
         "CreatedAt",
         "Description",
         "DiscoveryConfiguration",
+        "EncryptionConfiguration",
         "Name",
         "RegistryArn",
         "RegistryId",
@@ -840,9 +846,13 @@
       "property_types": {
         "ApprovalConfiguration": "object",
         "AuthorizerType": "string",
+        "AutoDetectionEnabled": "boolean",
+        "AutoDetectionScope": "string",
+        "AutoDetectionStatus": "string",
         "CreatedAt": "string",
         "Description": "string",
         "DiscoveryConfiguration": "object",
+        "EncryptionConfiguration": "object",
         "Name": "string",
         "RegistryArn": "string",
         "RegistryId": "string",
@@ -854,6 +864,13 @@
         "AuthorizerType": [
           "CUSTOM_JWT",
           "AWS_IAM"
+        ],
+        "AutoDetectionScope": [
+          "ORGANIZATION"
+        ],
+        "AutoDetectionStatus": [
+          "ACTIVE",
+          "INACTIVE"
         ],
         "Status": [
           "CREATING",
@@ -4343,6 +4360,7 @@
         "Arn",
         "CreatedTime",
         "Description",
+        "DisableIMDSV1",
         "DisplayName",
         "EnableDefaultInternetAccess",
         "IamRoleArn",
@@ -4364,6 +4382,7 @@
         "Arn": "string",
         "CreatedTime": "string",
         "Description": "string",
+        "DisableIMDSV1": "boolean",
         "DisplayName": "string",
         "EnableDefaultInternetAccess": "boolean",
         "IamRoleArn": "string",
@@ -4598,6 +4617,8 @@
     },
     "AWS::AppStream::Fleet": {
       "properties": [
+        "Arn",
+        "AttributesToDelete",
         "ComputeCapacity",
         "Description",
         "DisableIMDSV1",
@@ -4607,7 +4628,6 @@
         "EnableDefaultInternetAccess",
         "FleetType",
         "IamRoleArn",
-        "Id",
         "IdleDisconnectTimeoutInSeconds",
         "ImageArn",
         "ImageName",
@@ -4629,6 +4649,8 @@
         "Name"
       ],
       "property_types": {
+        "Arn": "string",
+        "AttributesToDelete": "array",
         "ComputeCapacity": "object",
         "Description": "string",
         "DisableIMDSV1": "boolean",
@@ -4638,7 +4660,6 @@
         "EnableDefaultInternetAccess": "boolean",
         "FleetType": "string",
         "IamRoleArn": "string",
-        "Id": "string",
         "IdleDisconnectTimeoutInSeconds": "integer",
         "ImageArn": "string",
         "ImageName": "string",
@@ -4655,22 +4676,76 @@
         "UsbDeviceFilterStrings": "array",
         "VpcConfig": "object"
       },
-      "property_enums": {},
+      "property_enums": {
+        "Platform": [
+          "AMAZON_LINUX2",
+          "RHEL8",
+          "ROCKY_LINUX8",
+          "UBUNTU_PRO_2404",
+          "WINDOWS",
+          "WINDOWS_SERVER_2016",
+          "WINDOWS_SERVER_2019",
+          "WINDOWS_SERVER_2022",
+          "WINDOWS_SERVER_2025"
+        ],
+        "StreamView": [
+          "APP",
+          "DESKTOP"
+        ]
+      },
       "property_constraints": {
+        "Arn": {
+          "pattern": "^arn:[a-z-]+:[a-z-]+:(([a-z]+-)+[0-9])?:([0-9]{12})?:.+$"
+        },
+        "AttributesToDelete": {
+          "uniqueItems": true
+        },
+        "Description": {
+          "minLength": 1,
+          "maxLength": 256
+        },
         "DisconnectTimeoutInSeconds": {
           "minimum": 60,
           "maximum": 360000
         },
+        "DisplayName": {
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "FleetType": {
+          "pattern": "^ALWAYS_ON$|^ON_DEMAND$|^ELASTIC$"
+        },
         "IamRoleArn": {
+          "pattern": "^arn:aws(?:\\-cn|\\-iso\\-b|\\-iso|\\-us\\-gov)?:iam::[0-9]{12}:role/.+$",
           "format": "AWS::IAM::Role.Arn"
         },
         "IdleDisconnectTimeoutInSeconds": {
           "minimum": 0,
           "maximum": 3600
         },
+        "ImageArn": {
+          "pattern": "^arn:[a-z-]+:[a-z-]+:(([a-z]+-)+[0-9])?:([0-9]{12})?:.+$",
+          "maxLength": 1024
+        },
+        "ImageName": {
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,100}$",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "InstanceType": {
+          "minLength": 1
+        },
         "MaxUserDurationInSeconds": {
           "minimum": 600,
           "maximum": 360000
+        },
+        "Name": {
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "Tags": {
+          "minItems": 1,
+          "maxItems": 50
         }
       }
     },
@@ -4830,7 +4905,6 @@
     "AWS::AppStream::StackFleetAssociation": {
       "properties": [
         "FleetName",
-        "Id",
         "StackName"
       ],
       "required": [
@@ -4839,7 +4913,6 @@
       ],
       "property_types": {
         "FleetName": "string",
-        "Id": "string",
         "StackName": "string"
       },
       "property_enums": {}
@@ -4981,10 +5054,37 @@
         "HealthMetricsConfig": "string",
         "Id": "string",
         "TransitEncryptionEnabled": "boolean",
-        "Ttl": "number",
+        "Ttl": "integer",
         "Type": "string"
       },
-      "property_enums": {}
+      "property_enums": {
+        "ApiCachingBehavior": [
+          "FULL_REQUEST_CACHING",
+          "OPERATION_LEVEL_CACHING",
+          "PER_RESOLVER_CACHING"
+        ],
+        "HealthMetricsConfig": [
+          "DISABLED",
+          "ENABLED"
+        ],
+        "Type": [
+          "LARGE",
+          "LARGE_12X",
+          "LARGE_2X",
+          "LARGE_4X",
+          "LARGE_8X",
+          "MEDIUM",
+          "R4_2XLARGE",
+          "R4_4XLARGE",
+          "R4_8XLARGE",
+          "R4_LARGE",
+          "R4_XLARGE",
+          "SMALL",
+          "T2_MEDIUM",
+          "T2_SMALL",
+          "XLARGE"
+        ]
+      }
     },
     "AWS::AppSync::ApiKey": {
       "properties": [
@@ -5931,6 +6031,92 @@
           "pattern": "^[0-9]{12}$",
           "minLength": 12,
           "maxLength": 12
+        }
+      }
+    },
+    "AWS::ApplicationSignals::InstrumentationConfig": {
+      "properties": [
+        "Arn",
+        "AttributeFilters",
+        "CaptureConfiguration",
+        "CreatedAt",
+        "Description",
+        "Environment",
+        "ExpiresAt",
+        "InstrumentationType",
+        "Location",
+        "LocationHash",
+        "Service",
+        "SignalType",
+        "Tags"
+      ],
+      "required": [
+        "InstrumentationType",
+        "Service",
+        "Environment",
+        "SignalType",
+        "Location",
+        "CaptureConfiguration"
+      ],
+      "property_types": {
+        "Arn": "string",
+        "AttributeFilters": "array",
+        "CaptureConfiguration": "object",
+        "CreatedAt": "string",
+        "Description": "string",
+        "Environment": "string",
+        "ExpiresAt": "string",
+        "InstrumentationType": "string",
+        "Location": "object",
+        "LocationHash": "string",
+        "Service": "string",
+        "SignalType": "string",
+        "Tags": "array"
+      },
+      "property_enums": {
+        "InstrumentationType": [
+          "BREAKPOINT",
+          "PROBE"
+        ],
+        "SignalType": [
+          "SNAPSHOT"
+        ]
+      },
+      "property_constraints": {
+        "Arn": {
+          "pattern": "^arn:[^:]+:application-signals:[^:]+:[0-9]{12}:instrumentationConfig/.+/[0-9a-f]{16}$"
+        },
+        "AttributeFilters": {
+          "minItems": 1,
+          "maxItems": 10
+        },
+        "CreatedAt": {
+          "format": "date-time"
+        },
+        "Description": {
+          "minLength": 1,
+          "maxLength": 50
+        },
+        "Environment": {
+          "pattern": "^[A-Za-z0-9:/+=,.@_-]+$",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "ExpiresAt": {
+          "format": "date-time"
+        },
+        "LocationHash": {
+          "minLength": 16,
+          "maxLength": 16
+        },
+        "Service": {
+          "pattern": "^[A-Za-z0-9:/+=,.@_-]+$",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "Tags": {
+          "minItems": 0,
+          "maxItems": 200
         }
       }
     },
@@ -10763,6 +10949,7 @@
         "ExecutionRoleArn",
         "HarnessId",
         "HarnessName",
+        "Hooks",
         "MaxIterations",
         "MaxTokens",
         "Memory",
@@ -10793,6 +10980,7 @@
         "ExecutionRoleArn": "string",
         "HarnessId": "string",
         "HarnessName": "string",
+        "Hooks": "array",
         "MaxIterations": "integer",
         "MaxTokens": "integer",
         "Memory": "object",
@@ -10836,6 +11024,10 @@
         },
         "HarnessName": {
           "pattern": "^[a-zA-Z][a-zA-Z0-9_]{0,39}$"
+        },
+        "Hooks": {
+          "maxItems": 20,
+          "uniqueItems": true
         },
         "Tags": {
           "maxItems": 50
@@ -15046,7 +15238,7 @@
         "AutomaticStopTimeMinutes",
         "ConnectionType",
         "Description",
-        "Id",
+        "EnvironmentId",
         "ImageId",
         "InstanceType",
         "Name",
@@ -15055,16 +15247,13 @@
         "SubnetId",
         "Tags"
       ],
-      "required": [
-        "ImageId",
-        "InstanceType"
-      ],
+      "required": [],
       "property_types": {
         "Arn": "string",
         "AutomaticStopTimeMinutes": "integer",
         "ConnectionType": "string",
         "Description": "string",
-        "Id": "string",
+        "EnvironmentId": "string",
         "ImageId": "string",
         "InstanceType": "string",
         "Name": "string",
@@ -15073,10 +15262,47 @@
         "SubnetId": "string",
         "Tags": "array"
       },
-      "property_enums": {},
+      "property_enums": {
+        "ConnectionType": [
+          "CONNECT_SSH",
+          "CONNECT_SSM"
+        ]
+      },
       "property_constraints": {
+        "AutomaticStopTimeMinutes": {
+          "minimum": 0,
+          "maximum": 20160
+        },
+        "Description": {
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "ImageId": {
+          "minLength": 0,
+          "maxLength": 512
+        },
+        "InstanceType": {
+          "pattern": "^[a-z]+[1-9][.][a-z0-9]+$",
+          "minLength": 5,
+          "maxLength": 20
+        },
+        "Name": {
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "OwnerArn": {
+          "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-iso|aws-iso-b):(iam|sts)::\\d+:(root|(user\\/[\\w+=/:,.@-]{1,64}|federated-user\\/[\\w+=/:,.@-]{2,32}|assumed-role\\/[\\w+=:,.@-]{1,64}\\/[\\w+=,.@-]{1,64}))$"
+        },
         "SubnetId": {
+          "pattern": "^(subnet-[0-9a-f]{8}|subnet-[0-9a-f]{17})$",
+          "minLength": 15,
+          "maxLength": 24,
           "format": "AWS::EC2::Subnet.Id"
+        },
+        "Tags": {
+          "minItems": 0,
+          "maxItems": 200,
+          "uniqueItems": true
         }
       }
     },
@@ -16318,6 +16544,29 @@
         "CreatedTime": {
           "format": "date-time"
         },
+        "LastModifiedTime": {
+          "format": "date-time"
+        }
+      }
+    },
+    "AWS::CloudFront::FieldLevelEncryptionProfile": {
+      "properties": [
+        "Arn",
+        "FieldLevelEncryptionProfileConfig",
+        "Id",
+        "LastModifiedTime"
+      ],
+      "required": [
+        "FieldLevelEncryptionProfileConfig"
+      ],
+      "property_types": {
+        "Arn": "string",
+        "FieldLevelEncryptionProfileConfig": "object",
+        "Id": "string",
+        "LastModifiedTime": "string"
+      },
+      "property_enums": {},
+      "property_constraints": {
         "LastModifiedTime": {
           "format": "date-time"
         }
@@ -17607,6 +17856,96 @@
           "RUNNING",
           "STOPPED"
         ]
+      }
+    },
+    "AWS::CloudWatch::ResourceMetricsConfiguration": {
+      "properties": [
+        "CreatedAt",
+        "MetricSelections",
+        "ResourceArn",
+        "UpdatedAt"
+      ],
+      "required": [
+        "ResourceArn"
+      ],
+      "property_types": {
+        "CreatedAt": "string",
+        "MetricSelections": "array",
+        "ResourceArn": "string",
+        "UpdatedAt": "string"
+      },
+      "property_enums": {},
+      "property_constraints": {
+        "CreatedAt": {
+          "format": "date-time"
+        },
+        "MetricSelections": {
+          "minItems": 1,
+          "maxItems": 1
+        },
+        "ResourceArn": {
+          "pattern": "^arn:[a-zA-Z0-9-]+:[a-zA-Z0-9-]+:[a-zA-Z0-9-]*:\\d{12}:.+$",
+          "minLength": 20,
+          "maxLength": 2048
+        },
+        "UpdatedAt": {
+          "format": "date-time"
+        }
+      }
+    },
+    "AWS::CloudWatch::View": {
+      "properties": [
+        "Arn",
+        "CreatedAt",
+        "Definition",
+        "Description",
+        "Name",
+        "Tags",
+        "Type",
+        "UpdatedAt"
+      ],
+      "required": [
+        "Definition"
+      ],
+      "property_types": {
+        "Arn": "string",
+        "CreatedAt": "string",
+        "Definition": "string",
+        "Description": "string",
+        "Name": "string",
+        "Tags": "array",
+        "Type": "string",
+        "UpdatedAt": "string"
+      },
+      "property_enums": {
+        "Type": [
+          "USER",
+          "MANAGED"
+        ]
+      },
+      "property_constraints": {
+        "CreatedAt": {
+          "format": "date-time"
+        },
+        "Definition": {
+          "minLength": 1,
+          "maxLength": 10000
+        },
+        "Description": {
+          "maxLength": 1024
+        },
+        "Name": {
+          "pattern": "^view\\.[a-z0-9][a-z0-9_-]{0,250}$",
+          "minLength": 6,
+          "maxLength": 256
+        },
+        "Tags": {
+          "maxItems": 50,
+          "uniqueItems": true
+        },
+        "UpdatedAt": {
+          "format": "date-time"
+        }
       }
     },
     "AWS::CodeArtifact::Domain": {
@@ -19939,6 +20278,7 @@
         },
         "ModelKmsKeyId": {
           "pattern": "^\\p{ASCII}+$",
+          "minLength": 0,
           "maxLength": 2048
         },
         "ModelPolicy": {
@@ -19948,6 +20288,7 @@
         },
         "RecognizerName": {
           "pattern": "^[a-zA-Z0-9](-*[a-zA-Z0-9])*$",
+          "minLength": 0,
           "maxLength": 63
         },
         "Tags": {
@@ -19955,11 +20296,93 @@
         },
         "VersionName": {
           "pattern": "^[a-zA-Z0-9](-*[a-zA-Z0-9])*$",
+          "minLength": 0,
           "maxLength": 63
         },
         "VolumeKmsKeyId": {
           "pattern": "^\\p{ASCII}+$",
+          "minLength": 0,
           "maxLength": 2048
+        }
+      }
+    },
+    "AWS::Comprehend::EntityRecognizerEndpoint": {
+      "properties": [
+        "Arn",
+        "CreationTime",
+        "CurrentInferenceUnits",
+        "DataAccessRoleArn",
+        "DesiredInferenceUnits",
+        "EndpointName",
+        "EndpointStatus",
+        "FlywheelArn",
+        "LastModifiedTime",
+        "ModelArn",
+        "Tags"
+      ],
+      "required": [
+        "EndpointName",
+        "DesiredInferenceUnits"
+      ],
+      "property_types": {
+        "Arn": "string",
+        "CreationTime": "string",
+        "CurrentInferenceUnits": "integer",
+        "DataAccessRoleArn": "string",
+        "DesiredInferenceUnits": "integer",
+        "EndpointName": "string",
+        "EndpointStatus": "string",
+        "FlywheelArn": "string",
+        "LastModifiedTime": "string",
+        "ModelArn": "string",
+        "Tags": "array"
+      },
+      "property_enums": {
+        "EndpointStatus": [
+          "CREATING",
+          "DELETING",
+          "FAILED",
+          "IN_SERVICE",
+          "UPDATING"
+        ]
+      },
+      "property_constraints": {
+        "Arn": {
+          "pattern": "^arn:aws(-[^:]+)?:comprehend:[a-zA-Z0-9-]*:[0-9]{12}:entity-recognizer-endpoint/[a-zA-Z0-9](-*[a-zA-Z0-9])*$",
+          "maxLength": 256
+        },
+        "CreationTime": {
+          "format": "date-time"
+        },
+        "CurrentInferenceUnits": {
+          "minimum": 1
+        },
+        "DataAccessRoleArn": {
+          "pattern": "^arn:aws(-[^:]+)?:iam::[0-9]{12}:role/.+$",
+          "minLength": 20,
+          "maxLength": 2048,
+          "format": "AWS::IAM::Role.Arn"
+        },
+        "DesiredInferenceUnits": {
+          "minimum": 1
+        },
+        "EndpointName": {
+          "pattern": "^[a-zA-Z0-9](-*[a-zA-Z0-9])*$",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "FlywheelArn": {
+          "pattern": "^arn:aws(-[^:]+)?:comprehend:[a-zA-Z0-9-]*:[0-9]{12}:flywheel/[a-zA-Z0-9](-*[a-zA-Z0-9])*$",
+          "minLength": 0,
+          "maxLength": 256
+        },
+        "LastModifiedTime": {
+          "format": "date-time"
+        },
+        "ModelArn": {
+          "pattern": "^arn:aws(-[^:]+)?:comprehend:[a-zA-Z0-9-]*:[0-9]{12}:entity-recognizer/[a-zA-Z0-9](-*[a-zA-Z0-9])*(/version/[a-zA-Z0-9](-*[a-zA-Z0-9])*)?$",
+          "minLength": 0,
+          "maxLength": 256
         }
       }
     },
@@ -20373,7 +20796,7 @@
     "AWS::Config::OrganizationConfigRule": {
       "properties": [
         "ExcludedAccounts",
-        "Id",
+        "OrganizationConfigRuleArn",
         "OrganizationConfigRuleName",
         "OrganizationCustomPolicyRuleMetadata",
         "OrganizationCustomRuleMetadata",
@@ -20384,13 +20807,24 @@
       ],
       "property_types": {
         "ExcludedAccounts": "array",
-        "Id": "string",
+        "OrganizationConfigRuleArn": "string",
         "OrganizationConfigRuleName": "string",
         "OrganizationCustomPolicyRuleMetadata": "object",
         "OrganizationCustomRuleMetadata": "object",
         "OrganizationManagedRuleMetadata": "object"
       },
-      "property_enums": {}
+      "property_enums": {},
+      "property_constraints": {
+        "ExcludedAccounts": {
+          "minItems": 0,
+          "maxItems": 1000
+        },
+        "OrganizationConfigRuleName": {
+          "pattern": "^[A-Za-z0-9-_]+$",
+          "minLength": 1,
+          "maxLength": 64
+        }
+      }
     },
     "AWS::Config::OrganizationConformancePack": {
       "properties": [
@@ -21465,6 +21899,9 @@
         "IntegrationArn",
         "IntegrationAssociationId",
         "IntegrationType",
+        "SourceApplicationName",
+        "SourceApplicationUrl",
+        "SourceType",
         "Tags"
       ],
       "required": [
@@ -21477,6 +21914,9 @@
         "IntegrationArn": "string",
         "IntegrationAssociationId": "string",
         "IntegrationType": "string",
+        "SourceApplicationName": "string",
+        "SourceApplicationUrl": "string",
+        "SourceType": "string",
         "Tags": "array"
       },
       "property_enums": {
@@ -21491,7 +21931,13 @@
           "FILE_SCANNER",
           "MESSAGE_PROCESSOR",
           "Q_MESSAGE_TEMPLATES",
-          "SES_IDENTITY"
+          "SES_IDENTITY",
+          "EVENT"
+        ],
+        "SourceType": [
+          "SALESFORCE",
+          "ZENDESK",
+          "CASES"
         ]
       },
       "property_constraints": {
@@ -21503,6 +21949,15 @@
         "IntegrationArn": {
           "minLength": 1,
           "maxLength": 140
+        },
+        "SourceApplicationName": {
+          "pattern": "^[a-zA-Z0-9_ -]+$",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "SourceApplicationUrl": {
+          "minLength": 1,
+          "maxLength": 2000
         },
         "Tags": {
           "minItems": 0,
@@ -22425,6 +22880,52 @@
         },
         "TrafficDistributionGroupArn": {
           "pattern": "^arn:(aws|aws-us-gov):connect:[a-z]{2}-[a-z]+-[0-9]{1}:[0-9]{1,20}:traffic-distribution-group/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
+        }
+      }
+    },
+    "AWS::Connect::UseCase": {
+      "properties": [
+        "InstanceId",
+        "IntegrationAssociationId",
+        "Tags",
+        "UseCaseArn",
+        "UseCaseId",
+        "UseCaseType"
+      ],
+      "required": [
+        "InstanceId",
+        "IntegrationAssociationId",
+        "UseCaseType"
+      ],
+      "property_types": {
+        "InstanceId": "string",
+        "IntegrationAssociationId": "string",
+        "Tags": "array",
+        "UseCaseArn": "string",
+        "UseCaseId": "string",
+        "UseCaseType": "string"
+      },
+      "property_enums": {
+        "UseCaseType": [
+          "RULES_EVALUATION",
+          "CONNECT_CAMPAIGNS"
+        ]
+      },
+      "property_constraints": {
+        "InstanceId": {
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "IntegrationAssociationId": {
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "Tags": {
+          "maxItems": 50
+        },
+        "UseCaseId": {
+          "minLength": 1,
+          "maxLength": 200
         }
       }
     },
@@ -24071,7 +24572,8 @@
         "Engine",
         "ExactSettings",
         "Settings",
-        "Tags"
+        "Tags",
+        "Virtual"
       ],
       "required": [
         "Engine"
@@ -24085,7 +24587,8 @@
         "Engine": "string",
         "ExactSettings": "boolean",
         "Settings": "object",
-        "Tags": "array"
+        "Tags": "array",
+        "Virtual": "boolean"
       },
       "property_enums": {
         "Engine": [
@@ -24633,6 +25136,66 @@
           "pattern": "^lct-[0-9a-zA-Z]{17}$",
           "minLength": 21,
           "maxLength": 21
+        }
+      }
+    },
+    "AWS::DRS::RecoveryPlan": {
+      "properties": [
+        "Arn",
+        "CreatedAt",
+        "Description",
+        "Name",
+        "RecoveryPlanID",
+        "Status",
+        "Tags",
+        "UpdatedAt"
+      ],
+      "required": [
+        "Name"
+      ],
+      "property_types": {
+        "Arn": "string",
+        "CreatedAt": "string",
+        "Description": "string",
+        "Name": "string",
+        "RecoveryPlanID": "string",
+        "Status": "string",
+        "Tags": "array",
+        "UpdatedAt": "string"
+      },
+      "property_enums": {
+        "Status": [
+          "ACTIVE",
+          "INVALID"
+        ]
+      },
+      "property_constraints": {
+        "Arn": {
+          "pattern": "^arn:aws(-[a-z0-9]+)*:drs:[a-z0-9-]+:[0-9]{12}:[a-zA-Z0-9_/.-]+$",
+          "minLength": 20,
+          "maxLength": 2048
+        },
+        "CreatedAt": {
+          "minLength": 19,
+          "maxLength": 32
+        },
+        "Description": {
+          "minLength": 0,
+          "maxLength": 1024
+        },
+        "Name": {
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9 _-]*$",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "RecoveryPlanID": {
+          "pattern": "^plan-[0-9a-zA-Z]{17,59}$",
+          "minLength": 22,
+          "maxLength": 64
+        },
+        "UpdatedAt": {
+          "minLength": 19,
+          "maxLength": 32
         }
       }
     },
@@ -27150,7 +27713,9 @@
         "DomainIdentifier",
         "EntityIdentifier",
         "EntityType",
-        "PolicyType"
+        "PolicyType",
+        "Principal",
+        "Detail"
       ],
       "property_types": {
         "CreatedAt": "string",
@@ -27315,19 +27880,15 @@
         "ProjectIdentifier": "string"
       },
       "property_enums": {
-        "Designation": [
-          "PROJECT_OWNER",
-          "PROJECT_CONTRIBUTOR",
-          "PROJECT_CATALOG_VIEWER",
-          "PROJECT_CATALOG_CONSUMER",
-          "PROJECT_CATALOG_STEWARD"
-        ],
         "MemberIdentifierType": [
           "USER_IDENTIFIER",
           "GROUP_IDENTIFIER"
         ]
       },
       "property_constraints": {
+        "Designation": {
+          "pattern": "^[a-zA-Z0-9_-]{1,36}$"
+        },
         "DomainIdentifier": {
           "pattern": "^dzd[-_][a-zA-Z0-9_-]{1,36}$"
         },
@@ -28383,6 +28944,7 @@
         "Locale",
         "Name",
         "OperatorApp",
+        "Preferences",
         "Tags",
         "UpdatedAt"
       ],
@@ -28398,6 +28960,7 @@
         "Locale": "string",
         "Name": "string",
         "OperatorApp": "object",
+        "Preferences": "object",
         "Tags": "array",
         "UpdatedAt": "string"
       },
@@ -29616,10 +30179,10 @@
       "properties": [
         "Alias",
         "CreateAlias",
+        "DirectoryId",
         "DnsIpAddresses",
         "Edition",
         "EnableSso",
-        "Id",
         "Name",
         "Password",
         "ShortName",
@@ -29627,22 +30190,45 @@
       ],
       "required": [
         "VpcSettings",
-        "Name",
-        "Password"
+        "Name"
       ],
       "property_types": {
         "Alias": "string",
         "CreateAlias": "boolean",
+        "DirectoryId": "string",
         "DnsIpAddresses": "array",
         "Edition": "string",
         "EnableSso": "boolean",
-        "Id": "string",
         "Name": "string",
         "Password": "string",
         "ShortName": "string",
         "VpcSettings": "object"
       },
-      "property_enums": {}
+      "property_enums": {
+        "Edition": [
+          "Enterprise",
+          "Standard"
+        ]
+      },
+      "property_constraints": {
+        "Alias": {
+          "pattern": "^(?!D-|d-)([\\da-zA-Z]+)([-]*[\\da-zA-Z])*$",
+          "minLength": 1,
+          "maxLength": 62
+        },
+        "DirectoryId": {
+          "pattern": "^d-[0-9a-f]{10}$"
+        },
+        "Name": {
+          "pattern": "^([a-zA-Z0-9]+[\\\\.-])+([a-zA-Z0-9])+$"
+        },
+        "Password": {
+          "pattern": "^(?=^.{8,64}$)((?=.*\\d)(?=.*[A-Z])(?=.*[a-z])|(?=.*\\d)(?=.*[^A-Za-z0-9\\s])(?=.*[a-z])|(?=.*[^A-Za-z0-9\\s])(?=.*[A-Z])(?=.*[a-z])|(?=.*\\d)(?=.*[A-Z])(?=.*[^A-Za-z0-9\\s]))^"
+        },
+        "ShortName": {
+          "pattern": "^[^\\\\/:*?\"<>|.]+[^\\\\/:*?\"<>|]*$"
+        }
+      }
     },
     "AWS::DirectoryService::SimpleAD": {
       "properties": [
@@ -33024,6 +33610,40 @@
         }
       }
     },
+    "AWS::EC2::SecondaryNetwork": {
+      "properties": [
+        "Ipv4CidrBlock",
+        "Ipv4CidrBlockAssociations",
+        "NetworkType",
+        "OwnerId",
+        "SecondaryNetworkArn",
+        "SecondaryNetworkId",
+        "Tags"
+      ],
+      "required": [
+        "Ipv4CidrBlock",
+        "NetworkType"
+      ],
+      "property_types": {
+        "Ipv4CidrBlock": "string",
+        "Ipv4CidrBlockAssociations": "array",
+        "NetworkType": "string",
+        "OwnerId": "string",
+        "SecondaryNetworkArn": "string",
+        "SecondaryNetworkId": "string",
+        "Tags": "array"
+      },
+      "property_enums": {
+        "NetworkType": [
+          "rdma"
+        ]
+      },
+      "property_constraints": {
+        "Tags": {
+          "uniqueItems": true
+        }
+      }
+    },
     "AWS::EC2::SecurityGroup": {
       "properties": [
         "GroupDescription",
@@ -34703,7 +35323,6 @@
         "VpnConcentratorId"
       ],
       "required": [
-        "TransitGatewayId",
         "Type"
       ],
       "property_types": {
@@ -37620,6 +38239,7 @@
     },
     "AWS::ElastiCache::GlobalReplicationGroup": {
       "properties": [
+        "Arn",
         "AutomaticFailoverEnabled",
         "CacheNodeType",
         "CacheParameterGroupName",
@@ -37631,12 +38251,14 @@
         "GlobalReplicationGroupIdSuffix",
         "Members",
         "RegionalConfigurations",
-        "Status"
+        "Status",
+        "Tags"
       ],
       "required": [
         "Members"
       ],
       "property_types": {
+        "Arn": "string",
         "AutomaticFailoverEnabled": "boolean",
         "CacheNodeType": "string",
         "CacheParameterGroupName": "string",
@@ -37648,15 +38270,23 @@
         "GlobalReplicationGroupIdSuffix": "string",
         "Members": "array",
         "RegionalConfigurations": "array",
-        "Status": "string"
+        "Status": "string",
+        "Tags": "array"
       },
       "property_enums": {},
       "property_constraints": {
+        "GlobalReplicationGroupId": {
+          "pattern": "^[a-zA-Z][a-zA-Z0-9]*(-[a-zA-Z0-9]+)*$"
+        },
         "Members": {
           "minItems": 1,
           "uniqueItems": true
         },
         "RegionalConfigurations": {
+          "uniqueItems": true
+        },
+        "Tags": {
+          "maxItems": 50,
           "uniqueItems": true
         }
       }
@@ -37883,6 +38513,7 @@
       "properties": [
         "ARN",
         "CacheUsageLimits",
+        "ConnectionType",
         "CreateTime",
         "DailySnapshotTime",
         "Description",
@@ -37910,6 +38541,7 @@
       "property_types": {
         "ARN": "string",
         "CacheUsageLimits": "object",
+        "ConnectionType": "string",
         "CreateTime": "string",
         "DailySnapshotTime": "string",
         "Description": "string",
@@ -37931,6 +38563,10 @@
         "UserGroupId": "string"
       },
       "property_enums": {
+        "ConnectionType": [
+          "public",
+          "vpc"
+        ],
         "NetworkType": [
           "dual_stack",
           "ipv4",
@@ -39800,6 +40436,7 @@
           "format": "AWS::IAM::Role.Arn"
         },
         "ScheduleExpression": {
+          "pattern": "^(rate\\(.+\\)|cron\\(.+\\))?$",
           "minLength": 0,
           "maxLength": 256
         },
@@ -41138,7 +41775,28 @@
         "VolumeId": "string",
         "VolumeType": "string"
       },
-      "property_enums": {}
+      "property_enums": {
+        "VolumeType": [
+          "ONTAP",
+          "OPENZFS"
+        ]
+      },
+      "property_constraints": {
+        "BackupId": {
+          "pattern": "^(backup-[0-9a-f]{8,})$",
+          "minLength": 12,
+          "maxLength": 128
+        },
+        "Name": {
+          "pattern": "^[^\\u0000\\u0085\\u2028\\u2029\\r\\n]{1,203}$",
+          "minLength": 1,
+          "maxLength": 203
+        },
+        "Tags": {
+          "minItems": 1,
+          "maxItems": 50
+        }
+      }
     },
     "AWS::FinSpace::Environment": {
       "properties": [
@@ -41987,8 +42645,7 @@
       "required": [
         "Name",
         "OperatingSystem",
-        "TotalMemoryLimitMebibytes",
-        "TotalVcpuLimit"
+        "TotalMemoryLimitMebibytes"
       ],
       "property_types": {
         "ContainerGroupDefinitionArn": "string",
@@ -46575,6 +47232,46 @@
         }
       }
     },
+    "AWS::IVS::AdConfiguration": {
+      "properties": [
+        "Arn",
+        "MediaTailorPlaybackConfigurations",
+        "Name",
+        "PostRollConfiguration",
+        "Tags"
+      ],
+      "required": [
+        "MediaTailorPlaybackConfigurations"
+      ],
+      "property_types": {
+        "Arn": "string",
+        "MediaTailorPlaybackConfigurations": "array",
+        "Name": "string",
+        "PostRollConfiguration": "object",
+        "Tags": "array"
+      },
+      "property_enums": {},
+      "property_constraints": {
+        "Arn": {
+          "pattern": "^arn:aws:ivs:[a-z0-9-]+:[0-9]+:ad-configuration/[a-zA-Z0-9-]+$",
+          "minLength": 0,
+          "maxLength": 128
+        },
+        "MediaTailorPlaybackConfigurations": {
+          "minItems": 1,
+          "maxItems": 3
+        },
+        "Name": {
+          "pattern": "^[a-zA-Z0-9-_]*$",
+          "minLength": 0,
+          "maxLength": 128
+        },
+        "Tags": {
+          "maxItems": 50,
+          "uniqueItems": true
+        }
+      }
+    },
     "AWS::IVS::Channel": {
       "properties": [
         "Arn",
@@ -49605,16 +50302,14 @@
     },
     "AWS::IoT::PolicyPrincipalAttachment": {
       "properties": [
-        "Id",
         "PolicyName",
         "Principal"
       ],
       "required": [
-        "Principal",
-        "PolicyName"
+        "PolicyName",
+        "Principal"
       ],
       "property_types": {
-        "Id": "string",
         "PolicyName": "string",
         "Principal": "string"
       },
@@ -54102,6 +54797,7 @@
         "DesiredShardLevelMetrics",
         "MaxRecordSizeInKiB",
         "Name",
+        "RecordDistributionStrategy",
         "RetentionPeriodHours",
         "ShardCount",
         "StreamEncryption",
@@ -54116,6 +54812,7 @@
         "DesiredShardLevelMetrics": "array",
         "MaxRecordSizeInKiB": "integer",
         "Name": "string",
+        "RecordDistributionStrategy": "string",
         "RetentionPeriodHours": "integer",
         "ShardCount": "integer",
         "StreamEncryption": "object",
@@ -54124,7 +54821,12 @@
         "WarmThroughputMiBps": "integer",
         "WarmThroughputObject": "object"
       },
-      "property_enums": {},
+      "property_enums": {
+        "RecordDistributionStrategy": [
+          "AUTO",
+          "USER_PARTITION_KEY"
+        ]
+      },
       "property_constraints": {
         "DesiredShardLevelMetrics": {
           "maxItems": 7,
@@ -54787,6 +55489,11 @@
           "minLength": 1,
           "maxLength": 128
         }
+      },
+      "dependent_excluded": {
+        "ProvisionedConcurrencyConfig": [
+          "RoutingConfig"
+        ]
       }
     },
     "AWS::Lambda::CapacityProvider": {
@@ -55716,6 +56423,247 @@
           "pattern": "^(arn:(aws[a-zA-Z-]*)?:lambda:)?((eusc-)?[a-z]{2}((-gov)|(-iso([a-z]?)))?-[a-z]+-\\d{1}:)?(\\d{12}:)?(function:)?([a-zA-Z0-9-_]+)(:(\\$LATEST|[a-zA-Z0-9-_]+))?$",
           "minLength": 1,
           "maxLength": 140
+        }
+      }
+    },
+    "AWS::Lambda::WebFunction": {
+      "properties": [
+        "CreatedAt",
+        "FunctionArn",
+        "FunctionName",
+        "State",
+        "StateReason",
+        "Tags",
+        "UpdatedAt"
+      ],
+      "required": [
+        "FunctionName"
+      ],
+      "property_types": {
+        "CreatedAt": "string",
+        "FunctionArn": "string",
+        "FunctionName": "string",
+        "State": "string",
+        "StateReason": "string",
+        "Tags": "array",
+        "UpdatedAt": "string"
+      },
+      "property_enums": {
+        "State": [
+          "Pending",
+          "Active",
+          "Failed",
+          "Deleting"
+        ]
+      },
+      "property_constraints": {
+        "CreatedAt": {
+          "format": "date-time"
+        },
+        "FunctionArn": {
+          "pattern": "^arn:(aws[a-z-]*):lambda:[a-z0-9-]+:[0-9]{12}:web-function/.+$",
+          "minLength": 1,
+          "maxLength": 2048,
+          "format": "AWS::Lambda::Function.Arn"
+        },
+        "FunctionName": {
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "Tags": {
+          "uniqueItems": true
+        },
+        "UpdatedAt": {
+          "format": "date-time"
+        }
+      }
+    },
+    "AWS::Lambda::WebFunctionEndpoint": {
+      "properties": [
+        "AuthType",
+        "CreatedAt",
+        "Description",
+        "DomainName",
+        "EndpointArn",
+        "EndpointName",
+        "EndpointType",
+        "FunctionArn",
+        "FunctionName",
+        "RegionalEndpoints",
+        "Regions",
+        "RevisionWeights",
+        "ScalingConfig",
+        "State",
+        "StateReason",
+        "ThrottleConfig",
+        "UpdateStatus",
+        "UpdateStatusReason",
+        "UpdatedAt"
+      ],
+      "required": [
+        "FunctionName",
+        "EndpointName",
+        "EndpointType",
+        "AuthType"
+      ],
+      "property_types": {
+        "AuthType": "string",
+        "CreatedAt": "string",
+        "Description": "string",
+        "DomainName": "string",
+        "EndpointArn": "string",
+        "EndpointName": "string",
+        "EndpointType": "string",
+        "FunctionArn": "string",
+        "FunctionName": "string",
+        "RegionalEndpoints": "object",
+        "Regions": "array",
+        "RevisionWeights": "array",
+        "ScalingConfig": "object",
+        "State": "string",
+        "StateReason": "string",
+        "ThrottleConfig": "object",
+        "UpdateStatus": "string",
+        "UpdateStatusReason": "string",
+        "UpdatedAt": "string"
+      },
+      "property_enums": {
+        "AuthType": [
+          "ApplicationManaged",
+          "IamAuth"
+        ],
+        "EndpointType": [
+          "HomeRegion",
+          "MultiRegion",
+          "PerRegion"
+        ],
+        "State": [
+          "Pending",
+          "Active",
+          "Failed",
+          "Deleting"
+        ],
+        "UpdateStatus": [
+          "InProgress",
+          "Successful",
+          "Failed"
+        ]
+      },
+      "property_constraints": {
+        "CreatedAt": {
+          "format": "date-time"
+        },
+        "Description": {
+          "minLength": 0,
+          "maxLength": 256
+        },
+        "DomainName": {
+          "pattern": "^([a-z0-9-]+\\.)+[a-z]+$",
+          "minLength": 4,
+          "maxLength": 256
+        },
+        "EndpointArn": {
+          "pattern": "^arn:(aws[a-z-]*):lambda:[a-z0-9-]+:[0-9]{12}:web-function/.+/endpoint/.+$",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "EndpointName": {
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "FunctionArn": {
+          "pattern": "^arn:(aws[a-z-]*):lambda:[a-z0-9-]+:[0-9]{12}:web-function/.+$",
+          "minLength": 1,
+          "maxLength": 2048,
+          "format": "AWS::Lambda::Function.Arn"
+        },
+        "FunctionName": {
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "Regions": {
+          "uniqueItems": true
+        },
+        "RevisionWeights": {
+          "minItems": 1,
+          "maxItems": 2
+        },
+        "UpdatedAt": {
+          "format": "date-time"
+        }
+      }
+    },
+    "AWS::Lambda::WebFunctionRevision": {
+      "properties": [
+        "BuildConfig",
+        "CreatedAt",
+        "Description",
+        "FunctionArn",
+        "FunctionName",
+        "KmsKeyArn",
+        "RevisionArn",
+        "RevisionId",
+        "ServiceConfig",
+        "State",
+        "StateReason"
+      ],
+      "required": [
+        "FunctionName",
+        "BuildConfig",
+        "ServiceConfig"
+      ],
+      "property_types": {
+        "BuildConfig": "object",
+        "CreatedAt": "string",
+        "Description": "string",
+        "FunctionArn": "string",
+        "FunctionName": "string",
+        "KmsKeyArn": "string",
+        "RevisionArn": "string",
+        "RevisionId": "string",
+        "ServiceConfig": "object",
+        "State": "string",
+        "StateReason": "string"
+      },
+      "property_enums": {
+        "State": [
+          "Pending",
+          "Active",
+          "Failed"
+        ]
+      },
+      "property_constraints": {
+        "CreatedAt": {
+          "format": "date-time"
+        },
+        "Description": {
+          "minLength": 0,
+          "maxLength": 256
+        },
+        "FunctionArn": {
+          "pattern": "^arn:(aws[a-z-]*):lambda:[a-z0-9-]+:[0-9]{12}:web-function/.+$",
+          "minLength": 1,
+          "maxLength": 2048,
+          "format": "AWS::Lambda::Function.Arn"
+        },
+        "FunctionName": {
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "KmsKeyArn": {
+          "pattern": "^arn:(aws[a-z-]*){1}:kms:[a-z0-9-]+:[0-9]{12}:key/.*$",
+          "minLength": 20,
+          "maxLength": 2048,
+          "format": "AWS::KMS::Key.Arn"
+        },
+        "RevisionArn": {
+          "pattern": "^arn:(aws[a-z-]*):lambda:[a-z0-9-]+:[0-9]{12}:web-function/.+/revision/.+$",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "RevisionId": {
+          "minLength": 1,
+          "maxLength": 256
         }
       }
     },
@@ -62349,13 +63297,16 @@
     "AWS::MediaTailor::Function": {
       "properties": [
         "Arn",
+        "AwsServiceRequestConfiguration",
+        "ConcurrentExecutorConfiguration",
         "CustomOutputConfiguration",
         "Description",
         "FunctionId",
         "FunctionType",
         "HttpRequestConfiguration",
         "SequentialExecutorConfiguration",
-        "Tags"
+        "Tags",
+        "VastRequestConfiguration"
       ],
       "required": [
         "FunctionId",
@@ -62363,19 +63314,25 @@
       ],
       "property_types": {
         "Arn": "string",
+        "AwsServiceRequestConfiguration": "object",
+        "ConcurrentExecutorConfiguration": "object",
         "CustomOutputConfiguration": "object",
         "Description": "string",
         "FunctionId": "string",
         "FunctionType": "string",
         "HttpRequestConfiguration": "object",
         "SequentialExecutorConfiguration": "object",
-        "Tags": "array"
+        "Tags": "array",
+        "VastRequestConfiguration": "object"
       },
       "property_enums": {
         "FunctionType": [
           "HTTP_REQUEST",
+          "AWS_SERVICE_REQUEST",
           "CUSTOM_OUTPUT",
-          "SEQUENTIAL_EXECUTOR"
+          "CONCURRENT_EXECUTOR",
+          "SEQUENTIAL_EXECUTOR",
+          "VAST_REQUEST"
         ]
       },
       "property_constraints": {
@@ -62522,6 +63479,52 @@
           "SINGLE",
           "RECURRING"
         ]
+      }
+    },
+    "AWS::MediaTailor::Program": {
+      "properties": [
+        "AdBreaks",
+        "Arn",
+        "AudienceMedia",
+        "ChannelName",
+        "ClipRange",
+        "CreationTime",
+        "DurationMillis",
+        "LiveSourceName",
+        "ProgramName",
+        "ScheduleConfiguration",
+        "ScheduledStartTime",
+        "SourceLocationName",
+        "VodSourceName"
+      ],
+      "required": [
+        "ChannelName",
+        "ProgramName",
+        "SourceLocationName"
+      ],
+      "property_types": {
+        "AdBreaks": "array",
+        "Arn": "string",
+        "AudienceMedia": "array",
+        "ChannelName": "string",
+        "ClipRange": "object",
+        "CreationTime": "string",
+        "DurationMillis": "integer",
+        "LiveSourceName": "string",
+        "ProgramName": "string",
+        "ScheduleConfiguration": "object",
+        "ScheduledStartTime": "string",
+        "SourceLocationName": "string",
+        "VodSourceName": "string"
+      },
+      "property_enums": {},
+      "property_constraints": {
+        "CreationTime": {
+          "format": "date-time"
+        },
+        "ScheduledStartTime": {
+          "format": "date-time"
+        }
       }
     },
     "AWS::MediaTailor::SourceLocation": {
@@ -64898,6 +65901,351 @@
         }
       }
     },
+    "AWS::NetworkSecurityManager::Deployment": {
+      "properties": [
+        "AssociatedPolicyList",
+        "AssociatedScopeList",
+        "DeploymentArn",
+        "DeploymentConfiguration",
+        "DeploymentDescription",
+        "DeploymentId",
+        "DeploymentName",
+        "Status",
+        "Tags",
+        "UpdatedAt",
+        "Version"
+      ],
+      "required": [
+        "DeploymentName"
+      ],
+      "property_types": {
+        "AssociatedPolicyList": "array",
+        "AssociatedScopeList": "array",
+        "DeploymentArn": "string",
+        "DeploymentConfiguration": "object",
+        "DeploymentDescription": "string",
+        "DeploymentId": "string",
+        "DeploymentName": "string",
+        "Status": "string",
+        "Tags": "array",
+        "UpdatedAt": "string",
+        "Version": "string"
+      },
+      "property_enums": {
+        "Status": [
+          "DRAFT",
+          "ACTIVE",
+          "DISABLED"
+        ]
+      },
+      "property_constraints": {
+        "AssociatedPolicyList": {
+          "minItems": 1,
+          "maxItems": 2
+        },
+        "AssociatedScopeList": {
+          "minItems": 1,
+          "maxItems": 1
+        },
+        "DeploymentDescription": {
+          "pattern": "^[a-zA-Z0-9 _.:/=+\\-@]*$",
+          "maxLength": 256
+        },
+        "DeploymentName": {
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9 _.:/=+\\-@]*$",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "Tags": {
+          "uniqueItems": true
+        },
+        "UpdatedAt": {
+          "format": "date-time"
+        },
+        "Version": {
+          "pattern": "^[1-9][0-9]*$",
+          "minLength": 1,
+          "maxLength": 10
+        }
+      }
+    },
+    "AWS::NetworkSecurityManager::Policy": {
+      "properties": [
+        "AssociatedTemplateAndRuleList",
+        "FirewallType",
+        "PolicyArn",
+        "PolicyConfiguration",
+        "PolicyDescription",
+        "PolicyId",
+        "PolicyName",
+        "Priority",
+        "Status",
+        "Tags",
+        "UpdatedAt",
+        "Version"
+      ],
+      "required": [
+        "PolicyName",
+        "Priority",
+        "FirewallType",
+        "PolicyConfiguration"
+      ],
+      "property_types": {
+        "AssociatedTemplateAndRuleList": "array",
+        "FirewallType": "string",
+        "PolicyArn": "string",
+        "PolicyConfiguration": "object",
+        "PolicyDescription": "string",
+        "PolicyId": "string",
+        "PolicyName": "string",
+        "Priority": "integer",
+        "Status": "string",
+        "Tags": "array",
+        "UpdatedAt": "string",
+        "Version": "string"
+      },
+      "property_enums": {
+        "FirewallType": [
+          "WAF",
+          "SHIELD_ADVANCED"
+        ],
+        "Status": [
+          "DRAFT",
+          "ACTIVE",
+          "DISABLED"
+        ]
+      },
+      "property_constraints": {
+        "AssociatedTemplateAndRuleList": {
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "PolicyArn": {
+          "pattern": "^arn(:[a-z0-9]+([.-][a-z0-9]+)*){2}(:([a-z0-9]+([.-][a-z0-9]+)*)?){2}:(.+)$",
+          "minLength": 20,
+          "maxLength": 1010
+        },
+        "PolicyDescription": {
+          "pattern": "^[a-zA-Z0-9 _.:/=+\\-@]*$",
+          "maxLength": 256
+        },
+        "PolicyId": {
+          "pattern": "^[a-z0-9]{1,64}$",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "PolicyName": {
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9 _.:/=+\\-@]*$",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "Priority": {
+          "minimum": 1
+        },
+        "Tags": {
+          "uniqueItems": true
+        },
+        "UpdatedAt": {
+          "format": "date-time"
+        },
+        "Version": {
+          "pattern": "^[1-9][0-9]*$",
+          "minLength": 1,
+          "maxLength": 10
+        }
+      }
+    },
+    "AWS::NetworkSecurityManager::Rule": {
+      "properties": [
+        "Configuration",
+        "FirewallType",
+        "RuleArn",
+        "RuleDescription",
+        "RuleId",
+        "RuleName",
+        "RuleType",
+        "Status",
+        "Tags",
+        "UpdatedAt",
+        "Version"
+      ],
+      "required": [
+        "RuleName"
+      ],
+      "property_types": {
+        "Configuration": "string",
+        "FirewallType": "string",
+        "RuleArn": "string",
+        "RuleDescription": "string",
+        "RuleId": "string",
+        "RuleName": "string",
+        "RuleType": "string",
+        "Status": "string",
+        "Tags": "array",
+        "UpdatedAt": "string",
+        "Version": "string"
+      },
+      "property_enums": {
+        "FirewallType": [
+          "WAF"
+        ],
+        "RuleType": [
+          "CONFIGURATION",
+          "INSPECTION"
+        ],
+        "Status": [
+          "DRAFT",
+          "ACTIVE",
+          "DISABLED"
+        ]
+      },
+      "property_constraints": {
+        "RuleDescription": {
+          "pattern": "^[a-zA-Z0-9 _.:/=+\\-@]*$",
+          "maxLength": 256
+        },
+        "RuleName": {
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9 _.:/=+\\-@]*$",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "Tags": {
+          "uniqueItems": true
+        },
+        "UpdatedAt": {
+          "format": "date-time"
+        },
+        "Version": {
+          "pattern": "^[1-9][0-9]*$",
+          "minLength": 1,
+          "maxLength": 10
+        }
+      }
+    },
+    "AWS::NetworkSecurityManager::Scope": {
+      "properties": [
+        "ScopeArn",
+        "ScopeConfiguration",
+        "ScopeDescription",
+        "ScopeId",
+        "ScopeName",
+        "Status",
+        "Tags",
+        "UpdatedAt",
+        "Version"
+      ],
+      "required": [
+        "ScopeName"
+      ],
+      "property_types": {
+        "ScopeArn": "string",
+        "ScopeConfiguration": "string",
+        "ScopeDescription": "string",
+        "ScopeId": "string",
+        "ScopeName": "string",
+        "Status": "string",
+        "Tags": "array",
+        "UpdatedAt": "string",
+        "Version": "string"
+      },
+      "property_enums": {
+        "Status": [
+          "DRAFT",
+          "ACTIVE",
+          "DISABLED"
+        ]
+      },
+      "property_constraints": {
+        "ScopeDescription": {
+          "pattern": "^[a-zA-Z0-9 _.:/=+\\-@]*$",
+          "maxLength": 256
+        },
+        "ScopeName": {
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9 _.:/=+\\-@]*$",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "Tags": {
+          "uniqueItems": true
+        },
+        "UpdatedAt": {
+          "format": "date-time"
+        },
+        "Version": {
+          "pattern": "^[1-9][0-9]*$",
+          "minLength": 1,
+          "maxLength": 10
+        }
+      }
+    },
+    "AWS::NetworkSecurityManager::Template": {
+      "properties": [
+        "AssociatedRuleList",
+        "FirewallType",
+        "Status",
+        "Tags",
+        "TemplateArn",
+        "TemplateDescription",
+        "TemplateId",
+        "TemplateName",
+        "UpdatedAt",
+        "Version"
+      ],
+      "required": [
+        "TemplateName"
+      ],
+      "property_types": {
+        "AssociatedRuleList": "array",
+        "FirewallType": "string",
+        "Status": "string",
+        "Tags": "array",
+        "TemplateArn": "string",
+        "TemplateDescription": "string",
+        "TemplateId": "string",
+        "TemplateName": "string",
+        "UpdatedAt": "string",
+        "Version": "string"
+      },
+      "property_enums": {
+        "FirewallType": [
+          "WAF",
+          "NETWORK_FIREWALL",
+          "NETWORK_FIREWALL_V2",
+          "IGW_FIREWALL"
+        ],
+        "Status": [
+          "DRAFT",
+          "ACTIVE",
+          "DISABLED"
+        ]
+      },
+      "property_constraints": {
+        "AssociatedRuleList": {
+          "minItems": 1,
+          "maxItems": 50
+        },
+        "Tags": {
+          "uniqueItems": true
+        },
+        "TemplateDescription": {
+          "pattern": "^[a-zA-Z0-9 _.:/=+\\-@]*$",
+          "maxLength": 256
+        },
+        "TemplateName": {
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9 _.:/=+\\-@]*$",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "UpdatedAt": {
+          "format": "date-time"
+        },
+        "Version": {
+          "pattern": "^[1-9][0-9]*$",
+          "minLength": 1,
+          "maxLength": 10
+        }
+      }
+    },
     "AWS::NimbleStudio::Studio": {
       "properties": [
         "AdminRoleArn",
@@ -65992,6 +67340,48 @@
         },
         "Policy": {
           "format": "json"
+        }
+      }
+    },
+    "AWS::ObservabilityAdmin::DatasetIntegration": {
+      "properties": [
+        "Arn",
+        "CreatedAt",
+        "RoleArn",
+        "Tags",
+        "UpdatedAt"
+      ],
+      "required": [
+        "RoleArn"
+      ],
+      "property_types": {
+        "Arn": "string",
+        "CreatedAt": "string",
+        "RoleArn": "string",
+        "Tags": "array",
+        "UpdatedAt": "string"
+      },
+      "property_enums": {},
+      "property_constraints": {
+        "Arn": {
+          "pattern": "^arn:aws[a-zA-Z-]*:observabilityadmin:[a-z0-9-]+:[0-9]{12}:dataset-integration/.+$",
+          "minLength": 1,
+          "maxLength": 1011
+        },
+        "CreatedAt": {
+          "format": "date-time"
+        },
+        "RoleArn": {
+          "pattern": "^arn:aws[a-zA-Z-]*:iam::[0-9]{12}:role/.+$",
+          "minLength": 20,
+          "maxLength": 2048,
+          "format": "AWS::IAM::Role.Arn"
+        },
+        "Tags": {
+          "uniqueItems": true
+        },
+        "UpdatedAt": {
+          "format": "date-time"
         }
       }
     },
@@ -68757,7 +70147,6 @@
       ],
       "required": [
         "ClusterId",
-        "CustomLaunchTemplate",
         "IamInstanceProfileArn",
         "InstanceConfigs",
         "ScalingConfiguration",
@@ -69269,6 +70658,68 @@
         "Tags": {
           "minItems": 0,
           "maxItems": 200
+        }
+      }
+    },
+    "AWS::Personalize::Campaign": {
+      "properties": [
+        "CampaignArn",
+        "CampaignConfig",
+        "CreationDateTime",
+        "LastUpdatedDateTime",
+        "MinProvisionedTPS",
+        "Name",
+        "SolutionVersionArn",
+        "Status",
+        "Tags"
+      ],
+      "required": [
+        "Name",
+        "SolutionVersionArn"
+      ],
+      "property_types": {
+        "CampaignArn": "string",
+        "CampaignConfig": "object",
+        "CreationDateTime": "string",
+        "LastUpdatedDateTime": "string",
+        "MinProvisionedTPS": "integer",
+        "Name": "string",
+        "SolutionVersionArn": "string",
+        "Status": "string",
+        "Tags": "array"
+      },
+      "property_enums": {},
+      "property_constraints": {
+        "CampaignArn": {
+          "pattern": "arn:([a-z\\d-]+):personalize:.*:.*:.+",
+          "maxLength": 256
+        },
+        "CreationDateTime": {
+          "format": "date-time"
+        },
+        "LastUpdatedDateTime": {
+          "format": "date-time"
+        },
+        "MinProvisionedTPS": {
+          "minimum": 1
+        },
+        "Name": {
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9\\-_]*$",
+          "minLength": 1,
+          "maxLength": 63
+        },
+        "SolutionVersionArn": {
+          "pattern": "arn:([a-z\\d-]+):personalize:.*:.*:.+",
+          "minLength": 0,
+          "maxLength": 256
+        },
+        "Status": {
+          "maxLength": 256
+        },
+        "Tags": {
+          "minItems": 0,
+          "maxItems": 200,
+          "uniqueItems": true
         }
       }
     },
@@ -72339,13 +73790,15 @@
           "APPFLOW",
           "IMPALA",
           "GLUE",
+          "GLUE_DATA_CATALOG",
           "GOOGLE_DRIVE",
           "CONFLUENCE",
           "SHAREPOINT",
           "ONE_DRIVE",
           "WEB_CRAWLER",
           "BOX",
-          "GOOGLESHEETS"
+          "GOOGLESHEETS",
+          "ATLAN"
         ]
       },
       "property_constraints": {
@@ -73339,6 +74792,144 @@
         }
       }
     },
+    "AWS::RAM::PermissionAssociation": {
+      "properties": [
+        "AssociationStatus",
+        "FeatureSet",
+        "IsDefault",
+        "LastUpdatedTime",
+        "PermissionArn",
+        "PermissionVersion",
+        "Replace",
+        "ResourceShareArn",
+        "ResourceType"
+      ],
+      "required": [
+        "PermissionArn",
+        "ResourceShareArn"
+      ],
+      "property_types": {
+        "AssociationStatus": "string",
+        "FeatureSet": "string",
+        "IsDefault": "boolean",
+        "LastUpdatedTime": "string",
+        "PermissionArn": "string",
+        "PermissionVersion": "string",
+        "Replace": "boolean",
+        "ResourceShareArn": "string",
+        "ResourceType": "string"
+      },
+      "property_enums": {
+        "AssociationStatus": [
+          "ASSOCIATING",
+          "ASSOCIATED",
+          "FAILED",
+          "DISASSOCIATING",
+          "SUSPENDED",
+          "SUSPENDING",
+          "RESTORING",
+          "DISASSOCIATED"
+        ],
+        "FeatureSet": [
+          "STANDARD",
+          "CREATED_FROM_POLICY",
+          "PROMOTING_TO_STANDARD"
+        ]
+      },
+      "property_constraints": {
+        "LastUpdatedTime": {
+          "format": "date-time"
+        }
+      }
+    },
+    "AWS::RAM::PrincipalAssociation": {
+      "properties": [
+        "AssociationType",
+        "CreationTime",
+        "External",
+        "LastUpdatedTime",
+        "Principal",
+        "ResourceShareArn",
+        "Status"
+      ],
+      "required": [
+        "ResourceShareArn",
+        "Principal"
+      ],
+      "property_types": {
+        "AssociationType": "string",
+        "CreationTime": "string",
+        "External": "boolean",
+        "LastUpdatedTime": "string",
+        "Principal": "string",
+        "ResourceShareArn": "string",
+        "Status": "string"
+      },
+      "property_enums": {
+        "Status": [
+          "ASSOCIATING",
+          "ASSOCIATED",
+          "FAILED",
+          "DISASSOCIATING",
+          "DISASSOCIATED",
+          "SUSPENDED",
+          "SUSPENDING",
+          "RESTORING"
+        ]
+      },
+      "property_constraints": {
+        "CreationTime": {
+          "format": "date-time"
+        },
+        "LastUpdatedTime": {
+          "format": "date-time"
+        }
+      }
+    },
+    "AWS::RAM::ResourceAssociation": {
+      "properties": [
+        "AssociationType",
+        "CreationTime",
+        "External",
+        "LastUpdatedTime",
+        "ResourceArn",
+        "ResourceShareArn",
+        "Status"
+      ],
+      "required": [
+        "ResourceShareArn",
+        "ResourceArn"
+      ],
+      "property_types": {
+        "AssociationType": "string",
+        "CreationTime": "string",
+        "External": "boolean",
+        "LastUpdatedTime": "string",
+        "ResourceArn": "string",
+        "ResourceShareArn": "string",
+        "Status": "string"
+      },
+      "property_enums": {
+        "Status": [
+          "ASSOCIATING",
+          "ASSOCIATED",
+          "FAILED",
+          "DISASSOCIATING",
+          "DISASSOCIATED",
+          "SUSPENDED",
+          "SUSPENDING",
+          "RESTORING"
+        ]
+      },
+      "property_constraints": {
+        "CreationTime": {
+          "format": "date-time"
+        },
+        "LastUpdatedTime": {
+          "format": "date-time"
+        }
+      }
+    },
     "AWS::RAM::ResourceShare": {
       "properties": [
         "AllowExternalPrincipals",
@@ -73398,6 +74989,48 @@
         },
         "Tags": {
           "uniqueItems": true
+        }
+      }
+    },
+    "AWS::RAM::SourceAssociation": {
+      "properties": [
+        "CreationTime",
+        "LastUpdatedTime",
+        "ResourceShareArn",
+        "SourceId",
+        "SourceType",
+        "Status"
+      ],
+      "required": [
+        "ResourceShareArn",
+        "SourceId"
+      ],
+      "property_types": {
+        "CreationTime": "string",
+        "LastUpdatedTime": "string",
+        "ResourceShareArn": "string",
+        "SourceId": "string",
+        "SourceType": "string",
+        "Status": "string"
+      },
+      "property_enums": {
+        "Status": [
+          "ASSOCIATING",
+          "ASSOCIATED",
+          "FAILED",
+          "DISASSOCIATING",
+          "DISASSOCIATED",
+          "SUSPENDED",
+          "SUSPENDING",
+          "RESTORING"
+        ]
+      },
+      "property_constraints": {
+        "CreationTime": {
+          "format": "date-time"
+        },
+        "LastUpdatedTime": {
+          "format": "date-time"
         }
       }
     },
@@ -73762,6 +75395,71 @@
         "MasterUserPassword": [
           "MasterUsername"
         ]
+      }
+    },
+    "AWS::RDS::DBClusterEndpoint": {
+      "properties": [
+        "CustomEndpointType",
+        "DBClusterEndpointArn",
+        "DBClusterEndpointIdentifier",
+        "DBClusterEndpointResourceIdentifier",
+        "DBClusterIdentifier",
+        "Endpoint",
+        "EndpointType",
+        "ExcludedMembers",
+        "StaticMembers",
+        "Status",
+        "Tags"
+      ],
+      "required": [
+        "DBClusterEndpointIdentifier",
+        "DBClusterIdentifier",
+        "CustomEndpointType"
+      ],
+      "property_types": {
+        "CustomEndpointType": "string",
+        "DBClusterEndpointArn": "string",
+        "DBClusterEndpointIdentifier": "string",
+        "DBClusterEndpointResourceIdentifier": "string",
+        "DBClusterIdentifier": "string",
+        "Endpoint": "string",
+        "EndpointType": "string",
+        "ExcludedMembers": "array",
+        "StaticMembers": "array",
+        "Status": "string",
+        "Tags": "array"
+      },
+      "property_enums": {
+        "CustomEndpointType": [
+          "READER",
+          "WRITER",
+          "ANY"
+        ]
+      },
+      "property_constraints": {
+        "DBClusterEndpointArn": {
+          "pattern": "^arn:aws(-[a-z0-9]+)*:rds:[a-z0-9-]+:[0-9]{12}:cluster-endpoint:[a-z][a-z0-9]*(-[a-z0-9]+)*$"
+        },
+        "DBClusterEndpointIdentifier": {
+          "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
+          "minLength": 1,
+          "maxLength": 63
+        },
+        "DBClusterIdentifier": {
+          "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
+          "minLength": 1,
+          "maxLength": 63
+        },
+        "ExcludedMembers": {
+          "uniqueItems": true
+        },
+        "StaticMembers": {
+          "uniqueItems": true
+        },
+        "Tags": {
+          "maxItems": 50,
+          "uniqueItems": true
+        }
       }
     },
     "AWS::RDS::DBClusterParameterGroup": {
@@ -74300,6 +75998,7 @@
         "DBClusterIdentifiers",
         "DBInstanceIdentifiers",
         "DBProxyName",
+        "Tags",
         "TargetGroupArn",
         "TargetGroupName"
       ],
@@ -74312,6 +76011,7 @@
         "DBClusterIdentifiers": "array",
         "DBInstanceIdentifiers": "array",
         "DBProxyName": "string",
+        "Tags": "array",
         "TargetGroupArn": "string",
         "TargetGroupName": "string"
       },
@@ -74325,6 +76025,9 @@
           "pattern": "[A-z][0-z]*",
           "minLength": 1,
           "maxLength": 64
+        },
+        "Tags": {
+          "uniqueItems": true
         },
         "TargetGroupName": {
           "minLength": 1,
@@ -75955,6 +77658,87 @@
           "maxLength": 2147483647
         },
         "Qev2IdcApplicationName": {
+          "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
+          "minLength": 1,
+          "maxLength": 63
+        },
+        "Tags": {
+          "uniqueItems": true
+        }
+      }
+    },
+    "AWS::Redshift::RedshiftIdcApplication": {
+      "properties": [
+        "ApplicationType",
+        "AuthorizedTokenIssuerList",
+        "IamRoleArn",
+        "IdcDisplayName",
+        "IdcInstanceArn",
+        "IdcManagedApplicationArn",
+        "IdcOnboardStatus",
+        "IdentityNamespace",
+        "RedshiftIdcApplicationArn",
+        "RedshiftIdcApplicationName",
+        "ServiceIntegrations",
+        "SsoTagKeys",
+        "Tags"
+      ],
+      "required": [
+        "IdcInstanceArn",
+        "RedshiftIdcApplicationName",
+        "IdcDisplayName",
+        "IamRoleArn"
+      ],
+      "property_types": {
+        "ApplicationType": "string",
+        "AuthorizedTokenIssuerList": "array",
+        "IamRoleArn": "string",
+        "IdcDisplayName": "string",
+        "IdcInstanceArn": "string",
+        "IdcManagedApplicationArn": "string",
+        "IdcOnboardStatus": "string",
+        "IdentityNamespace": "string",
+        "RedshiftIdcApplicationArn": "string",
+        "RedshiftIdcApplicationName": "string",
+        "ServiceIntegrations": "array",
+        "SsoTagKeys": "array",
+        "Tags": "array"
+      },
+      "property_enums": {
+        "ApplicationType": [
+          "None",
+          "Lakehouse"
+        ]
+      },
+      "property_constraints": {
+        "IamRoleArn": {
+          "pattern": "^arn:aws[a-zA-Z-]*:[a-zA-Z0-9-]+:[a-z0-9-]*:[0-9]*:.+$",
+          "minLength": 0,
+          "maxLength": 2147483647,
+          "format": "AWS::IAM::Role.Arn"
+        },
+        "IdcDisplayName": {
+          "pattern": "^[\\w+=,.@-]+$",
+          "minLength": 1,
+          "maxLength": 127
+        },
+        "IdcInstanceArn": {
+          "pattern": "^arn:aws[a-zA-Z-]*:[a-zA-Z0-9-]+:[a-z0-9-]*:[0-9]*:.+$",
+          "minLength": 0,
+          "maxLength": 2147483647
+        },
+        "IdcManagedApplicationArn": {
+          "pattern": "^arn:aws[a-zA-Z-]*:[a-zA-Z0-9-]+:[a-z0-9-]*:[0-9]*:.+$"
+        },
+        "IdentityNamespace": {
+          "pattern": "^[a-zA-Z0-9_+.#@$-]+$",
+          "minLength": 1,
+          "maxLength": 127
+        },
+        "RedshiftIdcApplicationArn": {
+          "pattern": "^arn:aws[a-zA-Z-]*:[a-zA-Z0-9-]+:[a-z0-9-]*:[0-9]*:.+$"
+        },
+        "RedshiftIdcApplicationName": {
           "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
           "minLength": 1,
           "maxLength": 63
@@ -81391,6 +83175,69 @@
         }
       }
     },
+    "AWS::SCN::DataIntegrationFlow": {
+      "properties": [
+        "Arn",
+        "CreatedTime",
+        "InstanceId",
+        "LastModifiedTime",
+        "Name",
+        "Sources",
+        "Tags",
+        "Target",
+        "Transformation"
+      ],
+      "required": [
+        "InstanceId",
+        "Name",
+        "Sources",
+        "Transformation",
+        "Target"
+      ],
+      "property_types": {
+        "Arn": "string",
+        "CreatedTime": "string",
+        "InstanceId": "string",
+        "LastModifiedTime": "string",
+        "Name": "string",
+        "Sources": "array",
+        "Tags": "array",
+        "Target": "object",
+        "Transformation": "object"
+      },
+      "property_enums": {},
+      "property_constraints": {
+        "Arn": {
+          "pattern": "^arn:aws:scn(?::([a-z0-9-]+):([0-9]+):instance)?/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})[-_./A-Za-z0-9]*$",
+          "minLength": 20,
+          "maxLength": 1011
+        },
+        "CreatedTime": {
+          "format": "date-time"
+        },
+        "InstanceId": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "minLength": 36,
+          "maxLength": 36
+        },
+        "LastModifiedTime": {
+          "format": "date-time"
+        },
+        "Name": {
+          "pattern": "^[A-Za-z0-9-]+$",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "Sources": {
+          "minItems": 1,
+          "maxItems": 40
+        },
+        "Tags": {
+          "maxItems": 200,
+          "uniqueItems": true
+        }
+      }
+    },
     "AWS::SCN::Dataset": {
       "properties": [
         "Arn",
@@ -81456,6 +83303,83 @@
         "Tags": {
           "maxItems": 200,
           "uniqueItems": true
+        }
+      }
+    },
+    "AWS::SCN::Instance": {
+      "properties": [
+        "Arn",
+        "AwsAccountId",
+        "CreatedTime",
+        "InstanceDescription",
+        "InstanceId",
+        "InstanceName",
+        "LastModifiedTime",
+        "State",
+        "Tags",
+        "VersionNumber",
+        "WebAppDnsDomain"
+      ],
+      "required": [],
+      "property_types": {
+        "Arn": "string",
+        "AwsAccountId": "string",
+        "CreatedTime": "string",
+        "InstanceDescription": "string",
+        "InstanceId": "string",
+        "InstanceName": "string",
+        "LastModifiedTime": "string",
+        "State": "string",
+        "Tags": "array",
+        "VersionNumber": "number",
+        "WebAppDnsDomain": "string"
+      },
+      "property_enums": {
+        "State": [
+          "Initializing",
+          "Active",
+          "CreateFailed",
+          "DeleteFailed",
+          "Deleting",
+          "Deleted"
+        ]
+      },
+      "property_constraints": {
+        "Arn": {
+          "pattern": "^arn:aws:scn(?::([a-z0-9-]+):([0-9]+):instance)?/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})[-_./A-Za-z0-9]*$",
+          "minLength": 20,
+          "maxLength": 1011
+        },
+        "AwsAccountId": {
+          "pattern": "^[0-9]{12}$"
+        },
+        "CreatedTime": {
+          "format": "date-time"
+        },
+        "InstanceDescription": {
+          "pattern": "^([a-zA-Z0-9., _ʼ'%-]){0,500}$",
+          "minLength": 0,
+          "maxLength": 501
+        },
+        "InstanceId": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "minLength": 36,
+          "maxLength": 36
+        },
+        "InstanceName": {
+          "pattern": "^(?![ _ʼ'%-])[a-zA-Z0-9 _ʼ'%-]{0,62}[a-zA-Z0-9]$",
+          "minLength": 0,
+          "maxLength": 63
+        },
+        "LastModifiedTime": {
+          "format": "date-time"
+        },
+        "Tags": {
+          "maxItems": 200,
+          "uniqueItems": true
+        },
+        "WebAppDnsDomain": {
+          "pattern": "^(?![-])[a-zA-Z0-9-]{1,62}[a-zA-Z0-9]$"
         }
       }
     },
@@ -82297,6 +84221,105 @@
         }
       }
     },
+    "AWS::SMSVOICE::NotifyConfiguration": {
+      "properties": [
+        "CreatedTimestamp",
+        "DefaultTemplateId",
+        "DeletionProtectionEnabled",
+        "DisplayName",
+        "EnabledChannels",
+        "EnabledCountries",
+        "NotifyConfigurationArn",
+        "NotifyConfigurationId",
+        "PoolId",
+        "Status",
+        "Tags",
+        "Tier",
+        "TierUpgradeStatus",
+        "UseCase"
+      ],
+      "required": [
+        "DisplayName",
+        "UseCase",
+        "EnabledChannels"
+      ],
+      "property_types": {
+        "CreatedTimestamp": "string",
+        "DefaultTemplateId": "string",
+        "DeletionProtectionEnabled": "boolean",
+        "DisplayName": "string",
+        "EnabledChannels": "array",
+        "EnabledCountries": "array",
+        "NotifyConfigurationArn": "string",
+        "NotifyConfigurationId": "string",
+        "PoolId": "string",
+        "Status": "string",
+        "Tags": "array",
+        "Tier": "string",
+        "TierUpgradeStatus": "string",
+        "UseCase": "string"
+      },
+      "property_enums": {
+        "Status": [
+          "PENDING",
+          "ACTIVE",
+          "REJECTED",
+          "REQUIRES_VERIFICATION"
+        ],
+        "Tier": [
+          "BASIC",
+          "ADVANCED"
+        ],
+        "TierUpgradeStatus": [
+          "BASIC",
+          "PENDING_UPGRADE",
+          "ADVANCED",
+          "REJECTED"
+        ],
+        "UseCase": [
+          "CODE_VERIFICATION"
+        ]
+      },
+      "property_constraints": {
+        "CreatedTimestamp": {
+          "format": "date-time"
+        },
+        "DefaultTemplateId": {
+          "pattern": "^[A-Za-z0-9_-]*$",
+          "maxLength": 256
+        },
+        "DisplayName": {
+          "pattern": "^[A-Za-z0-9_ -]+$",
+          "minLength": 1,
+          "maxLength": 15
+        },
+        "EnabledChannels": {
+          "minItems": 1,
+          "maxItems": 4
+        },
+        "EnabledCountries": {
+          "maxItems": 300
+        },
+        "NotifyConfigurationArn": {
+          "pattern": "^arn:\\S+$",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "NotifyConfigurationId": {
+          "pattern": "^[A-Za-z0-9_-]+$",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "PoolId": {
+          "pattern": "^[A-Za-z0-9_:/-]+$",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "Tags": {
+          "maxItems": 200
+        }
+      }
+    },
     "AWS::SMSVOICE::OptOutList": {
       "properties": [
         "Arn",
@@ -82459,6 +84482,100 @@
         }
       }
     },
+    "AWS::SMSVOICE::RcsAgent": {
+      "properties": [
+        "CreatedTimestamp",
+        "DeletionProtectionEnabled",
+        "OptOutListName",
+        "PoolId",
+        "RcsAgentArn",
+        "RcsAgentId",
+        "SelfManagedOptOutsEnabled",
+        "Status",
+        "Tags",
+        "TestingAgent",
+        "TwoWayChannelArn",
+        "TwoWayChannelRole",
+        "TwoWayEnabled",
+        "TwoWayMediaS3BucketName",
+        "TwoWayMediaS3KeyPrefix",
+        "TwoWayMediaS3Role",
+        "TwoWayRcsEventsEnabled"
+      ],
+      "required": [],
+      "property_types": {
+        "CreatedTimestamp": "string",
+        "DeletionProtectionEnabled": "boolean",
+        "OptOutListName": "string",
+        "PoolId": "string",
+        "RcsAgentArn": "string",
+        "RcsAgentId": "string",
+        "SelfManagedOptOutsEnabled": "boolean",
+        "Status": "string",
+        "Tags": "array",
+        "TestingAgent": "object",
+        "TwoWayChannelArn": "string",
+        "TwoWayChannelRole": "string",
+        "TwoWayEnabled": "boolean",
+        "TwoWayMediaS3BucketName": "string",
+        "TwoWayMediaS3KeyPrefix": "string",
+        "TwoWayMediaS3Role": "string",
+        "TwoWayRcsEventsEnabled": "array"
+      },
+      "property_enums": {
+        "Status": [
+          "CREATED",
+          "PENDING",
+          "TESTING",
+          "PARTIAL",
+          "ACTIVE",
+          "DELETED"
+        ]
+      },
+      "property_constraints": {
+        "CreatedTimestamp": {
+          "format": "date-time"
+        },
+        "OptOutListName": {
+          "pattern": "^[A-Za-z0-9_-]+$",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "Tags": {
+          "maxItems": 200,
+          "uniqueItems": true
+        },
+        "TwoWayChannelArn": {
+          "pattern": "^\\S+$",
+          "minLength": 20,
+          "maxLength": 2048
+        },
+        "TwoWayChannelRole": {
+          "pattern": "^arn:\\S+$",
+          "minLength": 20,
+          "maxLength": 2048
+        },
+        "TwoWayMediaS3BucketName": {
+          "pattern": "^[a-z0-9][a-z0-9.-]*[a-z0-9]$",
+          "minLength": 3,
+          "maxLength": 63
+        },
+        "TwoWayMediaS3KeyPrefix": {
+          "pattern": "^[\\S]+$",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "TwoWayMediaS3Role": {
+          "pattern": "^arn:\\S+$",
+          "minLength": 20,
+          "maxLength": 2048
+        },
+        "TwoWayRcsEventsEnabled": {
+          "minItems": 0,
+          "maxItems": 100
+        }
+      }
+    },
     "AWS::SMSVOICE::Registration": {
       "properties": [
         "CreatedTimestamp",
@@ -82507,6 +84624,56 @@
           "pattern": "^[A-Za-z0-9_]+$",
           "minLength": 1,
           "maxLength": 64
+        },
+        "Tags": {
+          "maxItems": 200
+        }
+      }
+    },
+    "AWS::SMSVOICE::RegistrationAttachment": {
+      "properties": [
+        "AttachmentBody",
+        "AttachmentStatus",
+        "AttachmentUrl",
+        "CreatedTimestamp",
+        "RegistrationAttachmentArn",
+        "RegistrationAttachmentId",
+        "Tags",
+        "UploadedAttachmentUrl"
+      ],
+      "required": [],
+      "property_types": {
+        "AttachmentBody": "string",
+        "AttachmentStatus": "string",
+        "AttachmentUrl": "string",
+        "CreatedTimestamp": "string",
+        "RegistrationAttachmentArn": "string",
+        "RegistrationAttachmentId": "string",
+        "Tags": "array",
+        "UploadedAttachmentUrl": "string"
+      },
+      "property_enums": {
+        "AttachmentStatus": [
+          "UPLOAD_IN_PROGRESS",
+          "UPLOAD_COMPLETE",
+          "UPLOAD_FAILED",
+          "DELETED"
+        ]
+      },
+      "property_constraints": {
+        "AttachmentBody": {
+          "minLength": 1
+        },
+        "AttachmentUrl": {
+          "pattern": "^\\S+$",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "CreatedTimestamp": {
+          "format": "date-time"
+        },
+        "RegistrationAttachmentArn": {
+          "pattern": "arn:[a-z0-9-\\.]{1,63}:sms-voice:[a-z0-9-\\.]{0,63}:[0-9]{12}:registration-attachment/[a-z0-9]+"
         },
         "Tags": {
           "maxItems": 200
@@ -87691,10 +89858,20 @@
       "property_enums": {},
       "property_constraints": {
         "Description": {
+          "pattern": "^.+$",
           "minLength": 1,
           "maxLength": 200
         },
+        "MemberDefinitions": {
+          "minItems": 1,
+          "maxItems": 10
+        },
+        "Tags": {
+          "minItems": 0,
+          "maxItems": 50
+        },
         "WorkforceName": {
+          "pattern": "^[a-zA-Z0-9]([a-zA-Z0-9\\-]){0,62}$",
           "minLength": 1,
           "maxLength": 63
         },
@@ -87702,6 +89879,7 @@
           "pattern": "^arn:.*"
         },
         "WorkteamName": {
+          "pattern": "^[a-zA-Z0-9](-*[a-zA-Z0-9]){0,62}$",
           "minLength": 1,
           "maxLength": 63
         }
@@ -93575,6 +95753,83 @@
         }
       }
     },
+    "AWS::Translate::Terminology": {
+      "properties": [
+        "Arn",
+        "CreatedAt",
+        "Description",
+        "Directionality",
+        "EncryptionKey",
+        "Format",
+        "LastUpdatedAt",
+        "MergeStrategy",
+        "Name",
+        "SizeBytes",
+        "SourceLanguageCode",
+        "Tags",
+        "TargetLanguageCodes",
+        "TermCount",
+        "TerminologyData"
+      ],
+      "required": [
+        "Name"
+      ],
+      "property_types": {
+        "Arn": "string",
+        "CreatedAt": "string",
+        "Description": "string",
+        "Directionality": "string",
+        "EncryptionKey": "object",
+        "Format": "string",
+        "LastUpdatedAt": "string",
+        "MergeStrategy": "string",
+        "Name": "string",
+        "SizeBytes": "integer",
+        "SourceLanguageCode": "string",
+        "Tags": "array",
+        "TargetLanguageCodes": "array",
+        "TermCount": "integer",
+        "TerminologyData": "object"
+      },
+      "property_enums": {
+        "Directionality": [
+          "UNI",
+          "MULTI"
+        ],
+        "Format": [
+          "CSV",
+          "TMX",
+          "TSV"
+        ],
+        "MergeStrategy": [
+          "OVERWRITE"
+        ]
+      },
+      "property_constraints": {
+        "Arn": {
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "CreatedAt": {
+          "format": "date-time"
+        },
+        "Description": {
+          "minLength": 0,
+          "maxLength": 256
+        },
+        "LastUpdatedAt": {
+          "format": "date-time"
+        },
+        "Name": {
+          "pattern": "^([A-Za-z0-9-]_?)+$",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "Tags": {
+          "maxItems": 200
+        }
+      }
+    },
     "AWS::UXC::AccountCustomization": {
       "properties": [
         "AccountColor",
@@ -96496,6 +98751,148 @@
         }
       }
     },
+    "AWS::Wisdom::Content": {
+      "properties": [
+        "ContentArn",
+        "ContentId",
+        "ContentType",
+        "KnowledgeBaseArn",
+        "KnowledgeBaseId",
+        "LinkOutUri",
+        "Metadata",
+        "Name",
+        "OverrideLinkOutUri",
+        "RevisionId",
+        "Status",
+        "Tags",
+        "Title",
+        "UploadId"
+      ],
+      "required": [
+        "KnowledgeBaseId",
+        "Name"
+      ],
+      "property_types": {
+        "ContentArn": "string",
+        "ContentId": "string",
+        "ContentType": "string",
+        "KnowledgeBaseArn": "string",
+        "KnowledgeBaseId": "string",
+        "LinkOutUri": "string",
+        "Metadata": "object",
+        "Name": "string",
+        "OverrideLinkOutUri": "string",
+        "RevisionId": "string",
+        "Status": "string",
+        "Tags": "array",
+        "Title": "string",
+        "UploadId": "string"
+      },
+      "property_enums": {
+        "Status": [
+          "CREATE_IN_PROGRESS",
+          "CREATE_FAILED",
+          "ACTIVE",
+          "DELETE_IN_PROGRESS",
+          "DELETE_FAILED",
+          "DELETED",
+          "UPDATE_FAILED"
+        ]
+      },
+      "property_constraints": {
+        "ContentArn": {
+          "pattern": "^arn:[a-z-]*?:wisdom:[a-z0-9-]*?:[0-9]{12}:[a-z-]*?/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}(?:/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}){0,2}$"
+        },
+        "ContentId": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
+        },
+        "KnowledgeBaseArn": {
+          "pattern": "^arn:[a-z-]*?:wisdom:[a-z0-9-]*?:[0-9]{12}:[a-z-]*?/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}(?:/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}){0,2}$"
+        },
+        "KnowledgeBaseId": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
+        },
+        "LinkOutUri": {
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "Name": {
+          "pattern": "^[a-zA-Z0-9\\s_.,-]+",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "OverrideLinkOutUri": {
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "RevisionId": {
+          "minLength": 1
+        },
+        "Title": {
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "UploadId": {
+          "minLength": 1,
+          "maxLength": 1200
+        }
+      }
+    },
+    "AWS::Wisdom::ContentAssociation": {
+      "properties": [
+        "Association",
+        "AssociationType",
+        "ContentArn",
+        "ContentAssociationArn",
+        "ContentAssociationId",
+        "ContentId",
+        "KnowledgeBaseArn",
+        "KnowledgeBaseId",
+        "Tags"
+      ],
+      "required": [
+        "KnowledgeBaseId",
+        "ContentId",
+        "AssociationType",
+        "Association"
+      ],
+      "property_types": {
+        "Association": "object",
+        "AssociationType": "string",
+        "ContentArn": "string",
+        "ContentAssociationArn": "string",
+        "ContentAssociationId": "string",
+        "ContentId": "string",
+        "KnowledgeBaseArn": "string",
+        "KnowledgeBaseId": "string",
+        "Tags": "array"
+      },
+      "property_enums": {
+        "AssociationType": [
+          "AMAZON_CONNECT_GUIDE"
+        ]
+      },
+      "property_constraints": {
+        "ContentArn": {
+          "pattern": "^arn:[a-z-]*?:wisdom:[a-z0-9-]*?:[0-9]{12}:[a-z-]*?/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}(?:/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}){0,2}$"
+        },
+        "ContentAssociationArn": {
+          "pattern": "^arn:[a-z-]*?:wisdom:[a-z0-9-]*?:[0-9]{12}:[a-z-]*?/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}(?:/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}){0,2}$"
+        },
+        "ContentAssociationId": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
+        },
+        "ContentId": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
+        },
+        "KnowledgeBaseArn": {
+          "pattern": "^arn:[a-z-]*?:wisdom:[a-z0-9-]*?:[0-9]{12}:[a-z-]*?/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}(?:/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}){0,2}$"
+        },
+        "KnowledgeBaseId": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
+        }
+      }
+    },
     "AWS::Wisdom::KnowledgeBase": {
       "properties": [
         "Description",
@@ -96786,6 +99183,145 @@
           "pattern": "^[.0-9a-zA-Z\\-]{1,255}$",
           "minLength": 1,
           "maxLength": 255
+        }
+      }
+    },
+    "AWS::WorkSpaces::Directory": {
+      "properties": [
+        "ActiveDirectoryConfig",
+        "Alias",
+        "Arn",
+        "CertificateBasedAuthProperties",
+        "CustomerUserName",
+        "DirectoryId",
+        "DirectoryName",
+        "DirectoryType",
+        "DnsIpAddresses",
+        "DnsIpv6Addresses",
+        "EnableSelfService",
+        "EndpointEncryptionMode",
+        "IDCConfig",
+        "IamRoleId",
+        "IdcInstanceArn",
+        "IpGroupIds",
+        "MicrosoftEntraConfig",
+        "RegistrationCode",
+        "SamlProperties",
+        "SelfservicePermissions",
+        "State",
+        "StreamingProperties",
+        "SubnetIds",
+        "Tags",
+        "Tenancy",
+        "UserIdentityType",
+        "WorkspaceAccessProperties",
+        "WorkspaceCreationProperties",
+        "WorkspaceDirectoryDescription",
+        "WorkspaceDirectoryName",
+        "WorkspaceSecurityGroupId",
+        "WorkspaceType"
+      ],
+      "required": [],
+      "property_types": {
+        "ActiveDirectoryConfig": "object",
+        "Alias": "string",
+        "Arn": "string",
+        "CertificateBasedAuthProperties": "object",
+        "CustomerUserName": "string",
+        "DirectoryId": "string",
+        "DirectoryName": "string",
+        "DirectoryType": "string",
+        "DnsIpAddresses": "array",
+        "DnsIpv6Addresses": "array",
+        "EnableSelfService": "boolean",
+        "EndpointEncryptionMode": "string",
+        "IDCConfig": "object",
+        "IamRoleId": "string",
+        "IdcInstanceArn": "string",
+        "IpGroupIds": "array",
+        "MicrosoftEntraConfig": "object",
+        "RegistrationCode": "string",
+        "SamlProperties": "object",
+        "SelfservicePermissions": "object",
+        "State": "string",
+        "StreamingProperties": "object",
+        "SubnetIds": "array",
+        "Tags": "array",
+        "Tenancy": "string",
+        "UserIdentityType": "string",
+        "WorkspaceAccessProperties": "object",
+        "WorkspaceCreationProperties": "object",
+        "WorkspaceDirectoryDescription": "string",
+        "WorkspaceDirectoryName": "string",
+        "WorkspaceSecurityGroupId": "string",
+        "WorkspaceType": "string"
+      },
+      "property_enums": {
+        "DirectoryType": [
+          "SIMPLE_AD",
+          "AD_CONNECTOR",
+          "CUSTOMER_MANAGED",
+          "AWS_IAM_IDENTITY_CENTER"
+        ],
+        "EndpointEncryptionMode": [
+          "STANDARD_TLS",
+          "FIPS_VALIDATED"
+        ],
+        "State": [
+          "REGISTERING",
+          "REGISTERED",
+          "DEREGISTERING",
+          "DEREGISTERED",
+          "ERROR"
+        ],
+        "Tenancy": [
+          "DEDICATED",
+          "SHARED"
+        ],
+        "UserIdentityType": [
+          "CUSTOMER_MANAGED",
+          "AWS_DIRECTORY_SERVICE",
+          "AWS_IAM_IDENTITY_CENTER"
+        ],
+        "WorkspaceType": [
+          "PERSONAL",
+          "POOLS"
+        ]
+      },
+      "property_constraints": {
+        "CustomerUserName": {
+          "minLength": 1,
+          "maxLength": 63
+        },
+        "DirectoryId": {
+          "pattern": "^(d-[0-9a-f]{8,63}|wsd-[0-9a-z]{8,63})$",
+          "minLength": 10,
+          "maxLength": 65
+        },
+        "IdcInstanceArn": {
+          "pattern": "^arn:aws[a-z-]{0,7}:[A-Za-z0-9][A-za-z0-9_/.-]{0,62}:[A-za-z0-9_/.-]{0,63}:[A-za-z0-9_/.-]{0,63}:[A-Za-z0-9][A-Za-z0-9:_/+=,@.\\\\-]{0,1023}$"
+        },
+        "RegistrationCode": {
+          "minLength": 1,
+          "maxLength": 20
+        },
+        "SubnetIds": {
+          "minItems": 0,
+          "maxItems": 2
+        },
+        "Tags": {
+          "uniqueItems": true
+        },
+        "WorkspaceDirectoryDescription": {
+          "pattern": "^([a-zA-Z0-9_])[\\\\a-zA-Z0-9_@#%*+=:?./!\\s-]{1,255}$"
+        },
+        "WorkspaceDirectoryName": {
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.\\s-]{1,64}$"
+        },
+        "WorkspaceSecurityGroupId": {
+          "pattern": "^(sg-([0-9a-f]{8}|[0-9a-f]{17}))$",
+          "minLength": 11,
+          "maxLength": 20
         }
       }
     },
